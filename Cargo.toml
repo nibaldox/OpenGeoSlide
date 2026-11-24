@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ogs-core", "crates/ogs-cli", "crates/ogs-wasm"]
+members = ["crates/ogs-core", "crates/ogs-cli", "crates/ogs-wasm", "crates/ogs-py"]
 default-members = ["crates/ogs-core", "crates/ogs-cli"]
 
 [workspace.package]
