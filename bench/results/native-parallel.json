@@ -1,0 +1,38 @@
+[
+  {
+    "case": "V047a",
+    "engine": "ogs-core 0.1.0",
+    "evaluated": 4340,
+    "fos": 0.9854343799918474,
+    "median_ms": 1.720065,
+    "method": "bishop",
+    "ms": [
+      1.720065,
+      2.043649,
+      1.5971099999999998,
+      1.611687,
+      1.938286
+    ],
+    "reps": 5,
+    "target": "native-parallel",
+    "valid": 2510
+  },
+  {
+    "case": "V047a",
+    "engine": "ogs-core 0.1.0",
+    "evaluated": 4310,
+    "fos": 0.9844525241763508,
+    "median_ms": 9.821869000000001,
+    "method": "spencer",
+    "ms": [
+      10.238403,
+      9.562833,
+      9.236134,
+      10.523114,
+      9.821869000000001
+    ],
+    "reps": 5,
+    "target": "native-parallel",
+    "valid": 2283
+  }
+]

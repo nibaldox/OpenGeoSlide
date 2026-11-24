@@ -9,5 +9,10 @@ license.workspace = true
 name = "ogs"
 path = "src/main.rs"
 
+[features]
+# Rayon grid search in ogs-core (native only). Used by bench/run_all.sh for the `native-parallel` target.
+parallel = ["ogs-core/parallel"]
+
 [dependencies]
 ogs-core = { path = "../ogs-core" }
+serde_json = "1"

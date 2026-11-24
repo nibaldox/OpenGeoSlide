@@ -1,5 +1,5 @@
-// Motor wasm (ogs-core compilado con wasm-bindgen --target web). Hoy el archivo no existe:
-// import.meta.glob devuelve un mapa vacío, así que no hay error de build y se usa el motor simulado.
+// Motor wasm (ogs-core compilado con wasm-bindgen --target web). Si src/wasm/ogs_wasm.js no existe,
+// import.meta.glob devuelve un mapa vacío, no hay error de build y se usa el motor simulado.
 // Generar el archivo con apps/web/scripts/build-wasm.sh.
 
 import { EngineError, type Engine } from './engine';

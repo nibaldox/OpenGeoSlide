@@ -192,7 +192,7 @@ export default function App() {
       )}
       {info && !simulated && (
         <div className="banner banner-ok" role="status">
-          Motor: {info.name} {info.version}
+          Motor: ogs-core {info.version} (WASM)
         </div>
       )}
       {!info && !error && <div className="banner" role="status">Cargando el motor…</div>}
