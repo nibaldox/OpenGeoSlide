@@ -84,8 +84,9 @@ Reglas:
 - **`water.unit_weight`** es opcional; por defecto vale 9.81. `water` y `piezometric_line` también son opcionales.
 - **`slope.direction`**: `"auto" | "left_to_right" | "right_to_left"` indica **hacia dónde se mueve la masa**.
   **Resolución de `auto`** (enmienda E1, reemplaza a la regla original). Se aplica en `PreparedModel::new`, en este orden:
-  1. Si `analysis.search` trae **ambos** rangos, `entry` y `exit`, la masa va de la entrada a la salida:
-     `left_to_right` si `mid(entry) < mid(exit)` y `right_to_left` en caso contrario.
+  1. Si `analysis.search` trae **ambos** rangos, `entry` y `exit`, y sus puntos medios difieren en más de 1e-9 · ancho,
+     la masa va de la entrada a la salida: `left_to_right` si `mid(entry) < mid(exit)` y `right_to_left` en caso contrario.
+     Si los puntos medios coinciden, se pasa al punto 2 (enmienda E1b).
   2. Si no, y `|y_top(x_min) − y_top(x_max)| > 1e-6 · (y_max − y_min del modelo)`: el extremo más alto es el
      coronamiento (`y_top(x_min) > y_top(x_max)` → `left_to_right`).
   3. Si no, y hay un círculo fijo en `analysis.surface`: el cruce arco-terreno **más alto** es la entrada, y la masa se
@@ -234,9 +235,13 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 ### 4.1 Dovelas (`slice_circle`)
 1. Solo se usa el **arco inferior** `y(x) = yc − sqrt(r² − (x − xc)²)`.
-2. Se buscan los cruces del arco con el terreno `y_top`. Los puntos de salida y entrada son el primer y el último
-   cruce del tramo donde el arco queda bajo el terreno. Si el arco vuelve a quedar sobre el terreno entre ambos puntos
-   → `AboveGround`. Si un cruce necesario cae en el semicírculo superior → `UpperArc`. Sin cruces → `NoIntersection`.
+2. Se buscan los cruces del arco con el terreno `y_top`. **(Enmienda E2.)** Los puntos de salida y entrada son los
+   cruces **más externos** del arco inferior con el terreno, es decir, el primero y el último en x dentro del dominio.
+   Entre ambos, el arco **puede** asomar sobre el terreno (por ejemplo, un círculo que sale por la cara y reentra
+   cerca del pie). Ese tramo se trata en el punto 8 y no invalida la superficie. Esta es la convención del oráculo
+   cSlope (`slices.rs`: "a base above the ground … is left to the slices"). Si un cruce necesario cae en el
+   semicírculo superior → `UpperArc`. Sin cruces → `NoIntersection`. `AboveGround` queda solo para el caso
+   degenerado en que **todas** las dovelas tienen la base sobre el terreno.
 3. Si el arco baja de `y_bottom(x)` en algún punto → `OutsideModel`.
 4. Bordes de dovela: `n` divisiones uniformes entre salida y entrada, más **puntos de quiebre** en todos los vértices x de
    las regiones, de la piezométrica y en los cruces del arco con aristas de región, para que cada dovela tenga material de
@@ -246,12 +251,19 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 6. Peso: en `x_mid`, la vertical entre `y_base_mid` (punto medio de la cuerda) y `y_top(x_mid)` se intersecta con
    cada región: `W = b · Σ γ_k · h_k`, aplicando `unit_weight_sat` bajo la piezométrica cuando corresponda.
 7. Material de la base: región que contiene el punto `(x_mid, y_base_mid + ε)`. Si no hay ninguna → `NoMaterial`.
+8. **Dovelas aéreas (E2):** si `y_base_mid ≥ y_top(x_mid)`, la dovela tiene `weight = 0`, `cohesion = 0`,
+   `tan_phi = 0` y `pore_pressure = 0`, y `material` es el de la región más cercana bajo la base o, si no hay
+   ninguna, el índice 0. No aporta fuerza motriz ni resistente. Los bordes de dovela incluyen los cruces intermedios
+   arco-terreno, para que cada dovela quede entera bajo el terreno o entera sobre él.
 
 ### 4.2 Bishop simplificado
 `F = Σ [ (c·b + (W − u·b)·tanφ) / m_α ] / Σ W·sin α`, con `m_α = cos α + sin α · tanφ / F`.
 - Iteración de punto fijo desde F₀ = 1 hasta `|ΔF|/F < tolerance`.
 - Si algún `m_α < min_m_alpha` → `Invalid` (mensaje `"m_alpha"`).
-- Si `Σ W sin α ≤ 0` → `Invalid`.
+- **(Enmienda E3.)** Si `Σ W sin α ≤ 1e-6 · Σ W` → `Invalid` (mensaje `"no_driving"`). Es una superficie sin momento
+  motor. Sin esta regla aparecían FS absurdos, del orden de 1e16, reportados como `Converged`.
+- Las dovelas con `m_α` bajo solo invalidan la superficie si tienen peso o resistencia; las dovelas aéreas (§4.1.8) no
+  se consideran.
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
 Algoritmo de **Zhu, Lee, Qian & Chen (2005)**, *Can. Geotech. J.* 42: 272–278.
@@ -268,6 +280,7 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
 - **Lazo**: iniciar con F de Bishop (o 1) y λ = 0. Iterar F con λ fijo hasta converger; recalcular E y λ.
   Repetir hasta que F y λ converjan.
 - **Fallas**: si no converge en `max_iterations` → `NotConverged`; si Φ ≈ 0 o aparece un NaN → `Invalid`.
+  Se aplica la misma regla E3 (`Σ T ≤ 1e-6 · Σ W` → `Invalid`, `"no_driving"`).
 - **Convención de signos**: el implementador debe **documentar** la que use. La **deciden las pruebas** de §5;
   si una de ellas falla, la convención está mal.
 
@@ -285,7 +298,9 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
 ---
 
 ## 5. Pruebas obligatorias (el coordinador las verifica)
-- **Identidad φ = 0**: en un círculo con φ = 0, Bishop = Spencer = Σ c·l / Σ W sin α (|Δ| < 1e-9 relativo).
+- **Identidad φ = 0**: en un círculo con φ = 0, Bishop = Σ c·l / Σ W sin α (|Δ| < 1e-9 relativo). Spencer converge a
+  ese mismo valor como O(1/n²), porque con base en cuerda la igualdad no es exacta para n finito: |Δ| < 1e-4 con
+  n = 50 y < 1e-9 con n ≥ 16000.
 - **Simetría**: espejar el modelo (x → −x, con la dirección invertida) produce el mismo FS (|Δ| < 1e-9 relativo) en Bishop y Spencer.
 - **Spencer ≈ Bishop**: en un círculo seco homogéneo con c > 0 y φ > 0 difieren < 1,5 %, y λ queda en (0, 1).
 - **Aceptación** (`crates/ogs-core/tests/acceptance.rs`): cada check de `verification/cases/*.json` cumple su tolerancia.
