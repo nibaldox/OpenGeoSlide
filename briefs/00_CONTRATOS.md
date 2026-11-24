@@ -264,6 +264,11 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   motor. Sin esta regla aparecían FS absurdos, del orden de 1e16, reportados como `Converged`.
 - Las dovelas con `m_α` bajo solo invalidan la superficie si tienen peso o resistencia; las dovelas aéreas (§4.1.8) no
   se consideran.
+- **(Enmienda E4a, revisión R1-03.)** Valor inicial `F₀ = max(F_ordinario, 0.1)`, donde
+  `F_ordinario = Σ (c·l + (W cos α − u·l)·tanφ) / Σ W sin α` (Fellenius, solo con dovelas de suelo). Si F_ordinario no es
+  finito o es ≤ 0, se usa `F₀ = 1`. Durante las iteraciones, solo un **polo** (`m_α ≤ 1e-9` en alguna dovela de suelo)
+  aborta con `Invalid` (`"m_alpha_pole"`). La condición `m_α ≥ min_m_alpha` se evalúa sobre el **F convergido**: si no
+  se cumple, el resultado es `Invalid` (`"m_alpha"`). Nunca se devuelve `Converged` con `m_α(F) < min_m_alpha`.
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
 Algoritmo de **Zhu, Lee, Qian & Chen (2005)**, *Can. Geotech. J.* 42: 272–278.
@@ -281,6 +286,22 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   Repetir hasta que F y λ converjan.
 - **Fallas**: si no converge en `max_iterations` → `NotConverged`; si Φ ≈ 0 o aparece un NaN → `Invalid`.
   Se aplica la misma regla E3 (`Σ T ≤ 1e-6 · Σ W` → `Invalid`, `"no_driving"`).
+- **(Enmienda E4b, revisión R1-01.)** Admisibilidad: con el (F, λ) convergido, toda dovela de suelo debe cumplir
+  `Φᵢ / F ≥ min_m_alpha` (con λ = 0 coincide con el `m_α` de Bishop). Si alguna no lo cumple → `Invalid`
+  (`"m_alpha"`). En iteraciones intermedias, `Φᵢ ≤ 1e-9·F` o un iterado `F ≤ 0` → `Invalid` (`"pole"`).
+- **(E4c, revisión R1-02.)** Las dovelas aéreas transmiten E sin cambio (`Eᵢ = Eᵢ₋₁`), **no** aportan a F y se
+  **excluyen** de los dos sumatorios de λ.
+- **(E4d, revisión R1-07.)** Antes de devolver `Converged`, se recalcula F con el λ final y se exige
+  `|F(λ_final) − F|/F < tolerance`. Si no se cumple, se sigue iterando o, agotado el presupuesto, el resultado es
+  `NotConverged`.
+- **(E4e, ambos métodos.)** Con el F convergido se calcula la normal efectiva de cada dovela de suelo, a partir del
+  equilibrio vertical `N cos α + S sin α = W − ΔX`, con `S = (c·l + N'·tanφ)/F`, `N = N' + u·l`, `l = b·sec α`
+  y `ΔX = Xᵢ − Xᵢ₋₁`:
+  - Bishop (`ΔX = 0`): `N' = (W − u·b − c·l·sin α / F) / m_α`.
+  - Spencer: `X = λ·E` con las E convergidas; `N' = (W − ΔX − u·b − c·l·sin α / F) / m_α`. Documenta el signo de ΔX
+    de acuerdo con la convención de E, y prueba que con `ΔX = 0` reproduce exactamente la fórmula de Bishop.
+  - Si algún `N' < −1e-6·ΣW`, el resultado conserva su estado y añade el aviso `"negative_effective_normal"` en
+    `message`. En v0.1 no se trunca la resistencia.
 - **Convención de signos**: el implementador debe **documentar** la que use. La **deciden las pruebas** de §5;
   si una de ellas falla, la convención está mal.
 
@@ -294,6 +315,32 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
    al espaciado de la grilla. Los pasos se reducen a la mitad cuando no hay mejora; se termina con pasos < 1e-3 ·
    (ancho del modelo) o tras 300 evaluaciones por semilla. Siempre se respetan los rangos.
 4. El resultado es la mejor superficie con su FS, `evaluated` (llamadas a `eval`) y `valid` (`Some`).
+
+### 4.5 Validación de entrada y reporte (enmienda E4f, revisión R1-05/08/09/10/11)
+- Todos los structs de `model.rs` llevan `#[serde(deny_unknown_fields)]`: **un campo desconocido es un error**, no se
+  ignora. Así, un error de tipeo como `r_u` no pasa como análisis seco.
+- `analyze` rechaza con `InvalidModel` (mensaje en español):
+  - `format != "opengeoslide"` y `version != "0.1"`;
+  - `methods` vacío o con métodos repetidos;
+  - `slices < 3` o `> 2000`;
+  - `tolerance` no finita o fuera de (0, 0.01];
+  - `max_iterations` fuera de [1, 100000];
+  - `min_m_alpha` no finito o fuera de (0, 1];
+  - en `search`: `n_entry`, `n_exit` o `n_radius` fuera de [1, 200]; producto `n_entry·n_exit·n_radius > 2e6`;
+    `max_radius_factor ≤ 0.51` o no finito; rangos con `lo > hi` o fuera de la extensión del modelo;
+    `min_width < 0`.
+  - `PreparedModel::new` exige además ancho y alto finitos y > 0 en el modelo.
+- `MethodReport.fos` pasa a **`Option<f64>`**: `None` (JSON `null`) cuando el FS no es finito. El estado explica el
+  motivo. Esta enmienda reemplaza la firma `fos: f64` de `MethodReport` en §3.
+- **Superficie fija:**
+  - si el slicer falla, `NoValidSurface` lleva el motivo en el mensaje (`OgsError::NoValidSurface` pasa a contener un
+    `String` con el `SurfaceError`);
+  - si el método falla (`Invalid` o `NotConverged`), **no** es un error: se reporta con su estado.
+- **Aviso de agua sobre el terreno:** solo en dovelas de suelo, con tolerancia `1e-9 · escala del modelo`, evaluando
+  los extremos y el punto medio de la dovela.
+- `PreparedModel::piezometric_y`: NaN → `None`; ±∞ → valor del extremo correspondiente.
+- `slice_circle` acepta círculos cuyo cruce externo coincide con `x_min` o `x_max` (|arco − terreno| ≤ tol en el borde).
+  Solo es `OutsideModel` si el arco sale **bajo** el terreno por un borde lateral.
 
 ---
 
