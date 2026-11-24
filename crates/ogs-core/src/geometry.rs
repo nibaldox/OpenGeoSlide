@@ -10,6 +10,9 @@ use crate::slicer::lower_arc_tramo;
 /// Default water unit weight when the `water` block is absent (contract §1).
 const DEFAULT_WATER_UNIT_WEIGHT: f64 = 9.81;
 
+/// A region polygon is degenerate when its area is at most this fraction of `scale²` (R1-11).
+const DEGENERATE_AREA_FRACTION: f64 = 1e-12;
+
 /// Direction in which the sliding mass moves (resolved; `Auto` is decided by `PreparedModel::new`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Sliding {
@@ -144,6 +147,27 @@ fn resolve_water(model: &Model) -> Result<(f64, Option<Vec<Point>>), OgsError> {
     Ok((water.unit_weight, Some(line.clone())))
 }
 
+/// True if the polygon's area is at most `DEGENERATE_AREA_FRACTION · scale²` (or NaN).
+///
+/// The shoelace sum is taken relative to the first vertex and in units of `scale`, so the products
+/// stay bounded: no overflow for huge models and no cancellation far from the origin.
+/// `scale` must be finite and > 0.
+fn polygon_is_degenerate(poly: &[Point], scale: f64) -> bool {
+    let o = poly[0];
+    let twice_area: f64 = poly
+        .iter()
+        .zip(poly.iter().cycle().skip(1))
+        .map(|(a, b)| {
+            let (ax, ay) = ((a[0] - o[0]) / scale, (a[1] - o[1]) / scale);
+            let (bx, by) = ((b[0] - o[0]) / scale, (b[1] - o[1]) / scale);
+            ax * by - bx * ay
+        })
+        .sum();
+    let area = 0.5 * twice_area.abs();
+    // NaN (never expected for finite input) is treated as degenerate rather than accepted.
+    area.is_nan() || area <= DEGENERATE_AREA_FRACTION
+}
+
 /// Keeps the larger of two envelope candidates (`upper`) or the smaller one.
 fn pick(best: Option<f64>, y: f64, upper: bool) -> Option<f64> {
     Some(match best {
@@ -245,9 +269,21 @@ impl PreparedModel {
         }
         vertex_xs.sort_by(f64::total_cmp);
         vertex_xs.dedup();
-        let scale = (x_max - x_min).max(y_max - y_min);
-        if scale.is_nan() || scale <= 0.0 {
-            return Err(invalid("el modelo tiene dimensiones nulas"));
+        // Width and height must be finite and strictly positive (contract §4.5, R1-11): a zero extent
+        // is a one-dimensional polygon, and an overflowing extent makes every tolerance infinite.
+        let (width, height) = (x_max - x_min, y_max - y_min);
+        if !(width.is_finite() && height.is_finite() && width > 0.0 && height > 0.0) {
+            return Err(invalid(format!(
+                "el modelo debe tener ancho y alto finitos y > 0 (ancho = {width}, alto = {height})"
+            )));
+        }
+        let scale = width.max(height);
+        for (k, region) in regions.iter().enumerate() {
+            if polygon_is_degenerate(&region.polygon, scale) {
+                return Err(invalid(format!(
+                    "la región {k} es degenerada: su área es nula"
+                )));
+            }
         }
         let (gamma_w, piezometric) = resolve_water(model)?;
         let mut pm = PreparedModel {
@@ -268,9 +304,15 @@ impl PreparedModel {
         Ok(pm)
     }
 
-    /// Piezometric elevation at `x` (constant extrapolation outside its range); `None` if there is no line.
+    /// Piezometric elevation at `x`; `None` if there is no line or `x` is NaN.
+    ///
+    /// Outside the line's x-range the nearest end value is used, so `±∞` return the end values
+    /// (contract §4.5, R1-04). A NaN abscissa is not a position on the line, so it gives `None`.
     pub fn piezometric_y(&self, x: f64) -> Option<f64> {
         let line = self.piezometric.as_ref()?;
+        if x.is_nan() {
+            return None;
+        }
         let (first, last) = (line[0], line[line.len() - 1]);
         if x <= first[0] {
             return Some(first[1]);
@@ -278,7 +320,8 @@ impl PreparedModel {
         if x >= last[0] {
             return Some(last[1]);
         }
-        // First point with abscissa > x; the segment is (i-1, i) and i is in 1..len.
+        // First point with abscissa > x. Since first[0] < x < last[0] and the abscissae are
+        // strictly increasing, the partition point is in 1..len, so both indices are valid.
         let i = line.partition_point(|p| p[0] <= x);
         let (a, b) = (line[i - 1], line[i]);
         Some(a[1] + (x - a[0]) * (b[1] - a[1]) / (b[0] - a[0]))
@@ -305,8 +348,11 @@ impl PreparedModel {
     }
 
     /// Max (`upper`) or min over all edge intersections with the vertical line at `x`.
-    /// Vertical edges contribute both endpoints.
+    /// Vertical edges contribute both endpoints. `None` for NaN or outside the model.
     fn envelope(&self, x: f64, upper: bool) -> Option<f64> {
+        if x.is_nan() {
+            return None;
+        }
         let mut best = None;
         for [a, b] in &self.edges {
             let (x0, x1) = if a[0] <= b[0] {
@@ -364,6 +410,12 @@ impl PreparedModel {
         let t = x - c.xc;
         let s = (c.r * c.r - t * t).max(0.0).sqrt();
         if lower { c.yc - s } else { c.yc + s }
+    }
+
+    /// Height of the lower arc of `c` above the ground at `x`, i.e. `arc − ground` (negative when the
+    /// arc is under the ground). `None` outside the model.
+    pub(crate) fn arc_clearance(&self, c: &Circle, x: f64) -> Option<f64> {
+        self.top_at(x).map(|g| self.arc_y(c, true, x) - g)
     }
 
     /// Breakpoints in `[a, b]` (both ends included, sorted, near-duplicates merged) and, for

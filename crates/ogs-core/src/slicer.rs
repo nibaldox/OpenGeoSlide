@@ -82,10 +82,11 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
     if !under.iter().any(|&u| u) {
         return Err(SurfaceError::NoIntersection);
     }
-    // The arc leaves the model through a side wall while under the ground.
-    let first_under = under[0];
-    let last_under = under[under.len() - 1];
-    if (first_under && ap < x_min - tol) || (last_under && bp > x_max + tol) {
+    // The arc leaves the model through a side wall. It is an error only if the arc is under the ground
+    // at that wall; touching the ground there (within tol) is a valid crossing at the wall (R1-06).
+    let leaves_left = ap < x_min - tol && pm.arc_clearance(c, x_min).is_some_and(|d| d < -tol);
+    let leaves_right = bp > x_max + tol && pm.arc_clearance(c, x_max).is_some_and(|d| d < -tol);
+    if leaves_left || leaves_right {
         return Err(SurfaceError::OutsideModel);
     }
     if pm.arc_below_base(c, &xs) {
@@ -110,9 +111,12 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
     let (Some(&(p, _)), Some(&(_, q))) = (intervals.first(), intervals.last()) else {
         return Err(SurfaceError::NoIntersection);
     };
-    // One end of the sliding range is not a crossing of the lower arc: the arc is under the
-    // ground at the edge of its span. The entry/exit then has to lie on the upper half.
-    if p <= a || q >= b {
+    // A sliding end on the model's side wall (p == a or q == b) is a crossing only when the arc touches
+    // the ground there. Otherwise the arc is under the ground at a non-wall end of its span, so the
+    // entry/exit has to lie on the upper half.
+    let touches_left = a - x_min <= tol && pm.arc_clearance(c, a).is_some_and(|d| d.abs() <= tol);
+    let touches_right = x_max - b <= tol && pm.arc_clearance(c, b).is_some_and(|d| d.abs() <= tol);
+    if (p <= a && !touches_left) || (q >= b && !touches_right) {
         let (_, upper_under) = pm.arc_profile(c, false, a, b);
         let upper_cross = upper_under.windows(2).any(|w| w[0] != w[1]);
         return Err(if upper_cross {

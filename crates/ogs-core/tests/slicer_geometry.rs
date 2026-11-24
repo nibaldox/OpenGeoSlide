@@ -2,8 +2,10 @@
 
 use ogs_core::OgsError;
 use ogs_core::geometry::{Ground, PreparedModel, Sliding};
-use ogs_core::model::{Circle, Model};
+use ogs_core::model::{Circle, Model, SearchSpec};
+use ogs_core::search::search_circular;
 use ogs_core::slicer::{Slice, SurfaceError, slice_circle};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 const SOIL: &str = r#"{"id":"soil","name":"Soil","model":"mohr_coulomb","unit_weight":20.0,"cohesion":3.0,"friction_angle":19.6}"#;
 const TOP: &str = r#"{"id":"top","name":"Top","model":"mohr_coulomb","unit_weight":18.0,"cohesion":10.0,"friction_angle":30.0}"#;
@@ -570,6 +572,238 @@ fn invalid_models_are_rejected() {
         r#"{"surface":null}"#,
     );
     assert!(matches!(prepare(&missing), Err(OgsError::InvalidModel(_))));
+}
+
+// ---------------------------------------------------------------------------
+// Review R1 (brief W3c): regression tests for R1-04 (piezometric NaN/∞), R1-06 (wall crossings)
+// and R1-11 (degenerate models).
+// ---------------------------------------------------------------------------
+
+/// Circle through `p` and `q` with radius `r`, centre on the upper side of the chord (`n_y > 0`),
+/// built as the circular search builds its circles (search.rs, `Space::circle`).
+fn circle_through(p: [f64; 2], q: [f64; 2], r: f64) -> Circle {
+    let mid = [0.5 * (p[0] + q[0]), 0.5 * (p[1] + q[1])];
+    let (dx, dy) = (q[0] - p[0], q[1] - p[1]);
+    let chord = dx.hypot(dy);
+    let dist = (r * r - 0.25 * chord * chord).sqrt();
+    let mut n = [-dy / chord, dx / chord];
+    if n[1] < 0.0 {
+        n = [-n[0], -n[1]];
+    }
+    Circle {
+        xc: mid[0] + dist * n[0],
+        yc: mid[1] + dist * n[1],
+        r,
+    }
+}
+
+/// R1-04: `piezometric_y` is total. NaN gives `None` (it used to panic); ±∞ give the end values.
+#[test]
+fn r1_04_piezometric_y_is_total_over_nan_and_infinities() {
+    let water = r#""water":{"unit_weight":9.81,"piezometric_line":[[20,30],[40,28],[60,26]]},"#;
+    let json = doc(
+        SOIL,
+        &region("soil", ACADS_POLY),
+        water,
+        "auto",
+        r#"{"surface":null}"#,
+    );
+    let pm = prepared(&json);
+    assert_eq!(pm.piezometric_y(f64::NAN), None);
+    assert_eq!(pm.piezometric_y(f64::INFINITY), Some(26.0));
+    assert_eq!(pm.piezometric_y(f64::NEG_INFINITY), Some(30.0));
+    assert_eq!(pm.piezometric_y(30.0), Some(29.0));
+    assert_eq!(pm.piezometric_y(50.0), Some(27.0));
+    // Without a piezometric line there is nothing to evaluate, NaN and ±∞ included.
+    let dry = prepared(&acads("auto", "null"));
+    assert_eq!(dry.piezometric_y(f64::NAN), None);
+    assert_eq!(dry.piezometric_y(f64::INFINITY), None);
+}
+
+/// R1-04: NaN is not a position in the model, so the terrain envelopes give `None` for it.
+#[test]
+fn r1_04_ground_envelopes_are_none_for_nan() {
+    let pm = prepared(&acads("auto", "null"));
+    assert_eq!(pm.y_top(f64::NAN), None);
+    assert_eq!(pm.y_bottom(f64::NAN), None);
+}
+
+/// R1-06: the circle through the wall corner (20, 25) and the ground point (50, 35), r = 30, built as
+/// the search builds it. Its lower arc touches the ground at x_min, which is a valid crossing: the
+/// sliding range starts at the corner and the slices cover the soil between corner and crest.
+#[test]
+fn r1_06_arc_through_wall_corner_is_valid() {
+    let c = circle_through([50.0, 35.0], [20.0, 25.0], 30.0);
+    let pm = prepared(&acads("auto", &circle_json(c)));
+    let slices = slices_of(&pm, &c, 2000);
+    // RightToLeft: the toe (exit) is on the left, at the corner x_min = 20.
+    assert!(
+        (slices[0].x_left - 20.0).abs() <= 1e-9,
+        "toe slice starts at {}, expected the wall corner x = 20",
+        slices[0].x_left
+    );
+    // Independent integral of (terrain − arc)⁺ over the arc's span (the arc is above the ground past the
+    // crest crossing, so the clip to the model changes nothing).
+    let terrain = |x: f64| {
+        if x <= 30.0 {
+            25.0
+        } else if x <= 50.0 {
+            25.0 + (x - 30.0) / 2.0
+        } else {
+            35.0
+        }
+    };
+    let arc = |x: f64| c.yc - (c.r * c.r - (x - c.xc).powi(2)).max(0.0).sqrt();
+    let (x0, x1) = (20.0, c.xc + c.r);
+    let strips = 400_000;
+    let h = (x1 - x0) / strips as f64;
+    let exact: f64 = (0..strips)
+        .map(|i| {
+            let x = x0 + (i as f64 + 0.5) * h;
+            (terrain(x) - arc(x)).max(0.0)
+        })
+        .sum::<f64>()
+        * h;
+    let sum_w_over_gamma: f64 = slices.iter().map(|s| s.weight / 20.0).sum();
+    let rel = (sum_w_over_gamma - exact).abs() / exact;
+    assert!(
+        rel < 1e-3,
+        "sum W/γ = {sum_w_over_gamma}, exact = {exact}, rel = {rel}"
+    );
+}
+
+/// R1-06, far wall: the mirror of the test above. The circle through the corner (−20, 25) of the mirrored
+/// model is touching the ground at x_max; it is valid and gives the same weights as the left-wall case.
+#[test]
+fn r1_06_arc_through_far_wall_corner_is_valid() {
+    let left = circle_through([50.0, 35.0], [20.0, 25.0], 30.0);
+    let pm_left = prepared(&acads("auto", &circle_json(left)));
+    let sum_left: f64 = slices_of(&pm_left, &left, 2000)
+        .iter()
+        .map(|s| s.weight)
+        .sum();
+
+    let mirror = circle_through([-50.0, 35.0], [-20.0, 25.0], 30.0);
+    let pm = prepared(&doc(
+        SOIL,
+        &region("soil", ACADS_POLY_MIRROR),
+        "",
+        "auto",
+        &format!(r#"{{"surface":{}}}"#, circle_json(mirror)),
+    ));
+    let slices = slices_of(&pm, &mirror, 2000);
+    // LeftToRight: the toe (exit) is on the right, at the far corner x_max = −20.
+    assert!(
+        (slices[0].x_right + 20.0).abs() <= 1e-9,
+        "toe slice ends at {}, expected the far wall corner x = −20",
+        slices[0].x_right
+    );
+    let sum_mirror: f64 = slices.iter().map(|s| s.weight).sum();
+    assert!(
+        rel_close(sum_left, sum_mirror, 1e-9),
+        "ΣW left {sum_left} vs mirror {sum_mirror}"
+    );
+}
+
+/// R1-06, literal numbers: the review's circle (xc = 26.937742, yc = 54.186773, r = 30) is printed to
+/// 6 decimals. Its arc crosses the wall 3.0e-7 below the vertex (20, 25), beyond the geometric tolerance
+/// (1e-9 · scale = 5e-8), so the arc is under the ground at x_min and it is `OutsideModel`. The valid
+/// case above is the exact circle through the vertex.
+#[test]
+fn r1_06_six_decimal_circle_is_outside_by_rounding() {
+    let c = Circle {
+        xc: 26.937742,
+        yc: 54.186773,
+        r: 30.0,
+    };
+    let pm = prepared(&acads("auto", &circle_json(c)));
+    assert_eq!(
+        slice_circle(&pm, &c, 50).unwrap_err(),
+        SurfaceError::OutsideModel
+    );
+}
+
+/// R1-06, grid: the circular search evaluates the grid end at the wall, x_min = 20 (exit). Circles through
+/// the corner whose centre lies over the slope (xc > 20), as the review's circle does, used to be rejected
+/// as `OutsideModel` whatever the radius. Now the grid produces valid slices for them.
+#[test]
+fn r1_06_search_grid_at_wall_produces_slices() {
+    let pm = prepared(&acads("auto", "null"));
+    let spec: SearchSpec = serde_json::from_str(
+        r#"{"type":"circular_entry_exit","entry":[50,50],"exit":[20,20],"n_entry":1,"n_exit":1,"n_radius":20,"refine":false}"#,
+    )
+    .expect("search spec must parse");
+    let over_slope = AtomicUsize::new(0);
+    let result = search_circular(&pm, &spec, |c| {
+        let sliced = slice_circle(&pm, c, 50).ok();
+        if sliced.is_some() && c.xc > 20.0 {
+            over_slope.fetch_add(1, Ordering::Relaxed);
+        }
+        sliced.map(|_| 1.0)
+    });
+    assert!(
+        over_slope.load(Ordering::Relaxed) > 0,
+        "no grid circle through the wall corner with its centre over the slope produced slices: {:?}",
+        result.stats
+    );
+    assert!(result.best.is_some(), "the grid must yield a best surface");
+}
+
+/// R1-11: zero width or zero height is a one-dimensional model: `InvalidModel`, not a late `NoValidSurface`.
+/// `left_to_right` isolates the size check from the sliding-direction rules.
+#[test]
+fn r1_11_zero_width_or_height_is_invalid_model() {
+    let vertical = doc(
+        SOIL,
+        &region("soil", "[[0,0],[0,10],[0,20]]"),
+        "",
+        "left_to_right",
+        r#"{"surface":null}"#,
+    );
+    match prepare(&vertical) {
+        Err(OgsError::InvalidModel(msg)) => assert!(msg.contains("ancho"), "{msg}"),
+        other => panic!("zero width must be InvalidModel, got {other:?}"),
+    }
+    let horizontal = doc(
+        SOIL,
+        &region("soil", "[[0,5],[10,5],[20,5]]"),
+        "",
+        "left_to_right",
+        r#"{"surface":null}"#,
+    );
+    match prepare(&horizontal) {
+        Err(OgsError::InvalidModel(msg)) => assert!(msg.contains("alto"), "{msg}"),
+        other => panic!("zero height must be InvalidModel, got {other:?}"),
+    }
+}
+
+/// R1-11: an overflowing extent (coordinates ±1e308, width = +∞) is `InvalidModel`, not an infinite tolerance.
+#[test]
+fn r1_11_overflowing_extent_is_invalid_model() {
+    let huge = doc(
+        SOIL,
+        &region("soil", "[[-1e308,0],[1e308,0],[0,1]]"),
+        "",
+        "left_to_right",
+        r#"{"surface":null}"#,
+    );
+    assert!(matches!(prepare(&huge), Err(OgsError::InvalidModel(_))));
+}
+
+/// R1-11: a region with width and height > 0 but zero area (collinear vertices on y = x) is `InvalidModel`.
+#[test]
+fn r1_11_zero_area_polygon_is_invalid_model() {
+    let flat = doc(
+        SOIL,
+        &region("soil", "[[0,0],[10,10],[20,20],[5,5]]"),
+        "",
+        "left_to_right",
+        r#"{"surface":null}"#,
+    );
+    match prepare(&flat) {
+        Err(OgsError::InvalidModel(msg)) => assert!(msg.contains("degenerada"), "{msg}"),
+        other => panic!("zero-area region must be InvalidModel, got {other:?}"),
+    }
 }
 
 /// Performance check (not run by default): `cargo test -p ogs-core --test slicer_geometry -- --ignored --nocapture`.
