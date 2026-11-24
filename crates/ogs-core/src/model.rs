@@ -6,12 +6,18 @@ use serde::{Deserialize, Serialize};
 /// A point `[x, y]`.
 pub type Point = [f64; 2];
 
+/// Required value of `Model.format`.
+pub const FORMAT: &str = "opengeoslide";
+/// Required value of `Model.version` (the model format version, not the crate version).
+pub const FORMAT_VERSION: &str = "0.1";
+
 fn default_water_unit_weight() -> f64 {
     9.81
 }
 
 /// Complete model document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Model {
     pub format: String,
     pub version: String,
@@ -31,6 +37,7 @@ pub struct Model {
 
 /// Free-form metadata.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Meta {
     #[serde(default)]
     pub id: Option<String>,
@@ -49,6 +56,7 @@ pub enum MaterialModel {
 
 /// Soil material. `friction_angle` in degrees; for φ = 0 use `friction_angle: 0` and `cohesion = Su`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Material {
     pub id: String,
     pub name: String,
@@ -64,6 +72,7 @@ pub struct Material {
 
 /// Simple polygon assigned to a material. Closed implicitly; the first vertex is not repeated.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Region {
     pub material: String,
     pub polygon: Vec<Point>,
@@ -71,6 +80,7 @@ pub struct Region {
 
 /// Water data. `unit_weight` defaults to 9.81.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Water {
     #[serde(default = "default_water_unit_weight")]
     pub unit_weight: f64,
@@ -90,6 +100,7 @@ pub enum Direction {
 
 /// Slope settings.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SlopeSettings {
     #[serde(default)]
     pub direction: Direction,
@@ -105,6 +116,7 @@ pub enum MethodKind {
 
 /// Circle `(xc, yc, r)`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Circle {
     pub xc: f64,
     pub yc: f64,
@@ -113,7 +125,7 @@ pub struct Circle {
 
 /// Fixed surface. Serialized as `{"type": "circle", ...}`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SurfaceSpec {
     Circle(Circle),
 }
@@ -139,7 +151,7 @@ pub struct SearchSpec {
 /// Defaults: `entry`/`exit` omitted (full x-extent), `n_entry = n_exit = n_radius = 20`,
 /// `max_radius_factor = 5.0`, `min_width` omitted (1 % of model width, resolved by W1c), `refine = true`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 struct SearchSpecWire {
     #[serde(rename = "type")]
     kind: SearchKind,
@@ -210,7 +222,7 @@ impl From<SearchSpec> for SearchSpecWire {
 /// Analysis settings. If `surface` is set and `search` is not, that surface is analyzed.
 /// If `search` is set, `surface` is ignored. If neither is set, the analysis fails with `NoSurface`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 pub struct AnalysisSettings {
     pub methods: Vec<MethodKind>,
     pub slices: usize,
