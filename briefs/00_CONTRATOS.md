@@ -83,7 +83,15 @@ Reglas:
   el motor la ignora (no añade peso de agua) y el informe lo señala con un `warning`.
 - **`water.unit_weight`** es opcional; por defecto vale 9.81. `water` y `piezometric_line` también son opcionales.
 - **`slope.direction`**: `"auto" | "left_to_right" | "right_to_left"` indica **hacia dónde se mueve la masa**.
-  `auto`: si `y_top(x_min) > y_top(x_max)` la masa se mueve hacia +x (`left_to_right`); si no, hacia −x (`right_to_left`).
+  **Resolución de `auto`** (enmienda E1, reemplaza a la regla original). Se aplica en `PreparedModel::new`, en este orden:
+  1. Si `analysis.search` trae **ambos** rangos, `entry` y `exit`, la masa va de la entrada a la salida:
+     `left_to_right` si `mid(entry) < mid(exit)` y `right_to_left` en caso contrario.
+  2. Si no, y `|y_top(x_min) − y_top(x_max)| > 1e-6 · (y_max − y_min del modelo)`: el extremo más alto es el
+     coronamiento (`y_top(x_min) > y_top(x_max)` → `left_to_right`).
+  3. Si no, y hay un círculo fijo en `analysis.surface`: el cruce arco-terreno **más alto** es la entrada, y la masa se
+     mueve hacia el más bajo. Si hay empate (< 1e-6 relativo), se aplica el punto 4.
+  4. En cualquier otro caso: `OgsError::InvalidModel("no se puede determinar el sentido del deslizamiento: indique slope.direction")`.
+  - Un modelo simétrico (por ejemplo, una presa con dos taludes) **siempre** necesita el sentido explícito o rangos de búsqueda.
 - **`analysis`**:
   - Si hay `surface` y no hay `search`, se analiza esa superficie fija.
   - Si hay `search`, se busca la superficie crítica e `surface` se ignora.
