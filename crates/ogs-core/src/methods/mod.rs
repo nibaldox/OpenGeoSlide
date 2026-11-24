@@ -1,7 +1,7 @@
-//! Limit-equilibrium solvers. `bishop` and `spencer` are implemented in W1b.
+//! Limit-equilibrium solvers: simplified Bishop (§4.2) and Spencer, i.e. Morgenstern-Price with f = 1 (§4.3).
 
 mod bishop;
-mod spencer;
+pub mod spencer;
 
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,30 @@ pub struct MethodResult {
     pub message: Option<String>,
 }
 
-/// Solves the slices with the given method. Dispatches to `bishop::solve` or `spencer::solve` (W1b).
+impl MethodResult {
+    /// Builds a result; `message` is `None` for a clean convergence.
+    fn new(
+        method: MethodKind,
+        fos: f64,
+        status: SolveStatus,
+        iterations: usize,
+        lambda: Option<f64>,
+        message: Option<&str>,
+    ) -> Self {
+        Self {
+            method,
+            fos,
+            status,
+            iterations,
+            lambda,
+            message: message.map(str::to_owned),
+        }
+    }
+}
+
+/// Solves the slices with the given method. Dispatches to `bishop::solve` or `spencer::solve`.
+///
+/// `slices` must be ordered toe → crest, with `alpha > 0` when the base rises toward the crest.
 pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> MethodResult {
     match method {
         MethodKind::Bishop => bishop::solve(slices, opts),
