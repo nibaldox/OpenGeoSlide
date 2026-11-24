@@ -60,6 +60,18 @@ SEARCH_DEFAULTS = {
 TOL_ABS = 1e-9
 TOL_REL = 1e-9
 
+# Sliding direction that the source leaves to `auto` but `auto` cannot resolve (contract §1, rule E1b).
+# V063 (Huang & Jia dam): both crests sit at elevation 7.3 and entry == exit == [101.7, 185.6], so `auto`
+# has no hint. Evidence, checked with cslope 0.1.0 on this search: the critical circle of cSlope lies on the
+# right-hand face (centre ≈ (154.2, 76.6), r ≈ 69.4); with orientation ltr it gives Bishop 2.4528 and Spencer
+# 2.4511, and with rtl it finds no valid slip surface.
+DIRECTION_OVERRIDES = {"V063": "left_to_right"}
+DIRECTION_OVERRIDE_NOTE = (
+    "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede "
+    "resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el "
+    "círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4)."
+)
+
 # ---------------------------------------------------------------- JSON Schema (sections 1 and 2 of the contracts)
 POINT = {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
 MODEL_SCHEMA = {
@@ -388,8 +400,9 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
 
     # direction
     orientation = d.get("orientation")
+    overridden = orientation is None and cid in DIRECTION_OVERRIDES
     if orientation is None:
-        direction = "auto"
+        direction = DIRECTION_OVERRIDES.get(cid, "auto")
     elif orientation in ORIENTATION:
         direction = ORIENTATION[orientation]
     else:
@@ -472,7 +485,7 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
         "source": {
             "reference": prob["reference"],
             "derived_from": f"cSlope verification problem {cid} (MIT License), https://github.com/ZilanCiftci/cslope",
-            "notes": prob.get("notes", []),
+            "notes": prob.get("notes", []) + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
         },
     }
     return case, discarded
@@ -548,6 +561,10 @@ def build_index(converted, omitted, discarded_by_case, order) -> str:
     for cid in order:
         for reason in discarded_by_case.get(cid, []):
             lines.append(f"- {cid}: {md_cell(reason)}")
+    overrides = [c["id"] for c in converted if DIRECTION_OVERRIDE_NOTE in c["source"]["notes"]]
+    if overrides:
+        lines += ["", "## Sentidos de deslizamiento fijados por el importador", ""]
+        lines += [f"- {cid}: {md_cell(DIRECTION_OVERRIDE_NOTE)}" for cid in overrides]
     lines += ["", "## Casos no incluidos", "", "| id | motivo |", "|---|---|"]
     for cid, reason in omitted:
         lines.append(f"| {cid} | {md_cell(reason)} |")

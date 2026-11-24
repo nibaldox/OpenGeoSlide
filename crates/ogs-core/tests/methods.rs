@@ -314,3 +314,85 @@ fn pore_pressure_reduces_fos_monotonically() {
         }
     }
 }
+
+/// Soil slice of width 1 at inclination `alpha_deg` (test helper for amendment E3 and E2).
+fn unit_slice(alpha_deg: f64, weight: f64, tan_phi: f64) -> Slice {
+    let alpha = alpha_deg.to_radians();
+    Slice {
+        x_left: 0.0,
+        x_right: 1.0,
+        y_base_left: 0.0,
+        y_base_right: alpha.tan(),
+        y_top_mid: 5.0,
+        width: 1.0,
+        alpha,
+        base_length: 1.0 / alpha.cos(),
+        weight,
+        cohesion: 1.0,
+        tan_phi,
+        pore_pressure: 0.0,
+        material: 0,
+    }
+}
+
+/// Air slice (E2): base above the ground, no weight, no strength.
+fn air_slice(alpha_deg: f64) -> Slice {
+    Slice {
+        weight: 0.0,
+        cohesion: 0.0,
+        tan_phi: 0.0,
+        pore_pressure: 0.0,
+        ..unit_slice(alpha_deg, 0.0, 0.0)
+    }
+}
+
+/// Test 7 (E3). `Σ W·sin α ≈ 0` gives `Invalid` with message `"no_driving"` in Bishop and in Spencer.
+#[test]
+fn zero_driving_moment_is_no_driving_in_both_methods() {
+    let tan30 = 30.0_f64.to_radians().tan();
+    // Mirror pair: W sin α cancels exactly.
+    let balanced = vec![
+        unit_slice(-10.0, 10.0, tan30),
+        unit_slice(10.0, 10.0, tan30),
+    ];
+    for method in [MethodKind::Bishop, MethodKind::Spencer] {
+        let r = solve(&balanced, method, &opts(1e-8, 500));
+        println!("[7] balanced {method:?}: {r:?}");
+        assert_eq!(r.status, SolveStatus::Invalid, "{method:?}");
+        assert_eq!(r.message.as_deref(), Some("no_driving"), "{method:?}");
+    }
+    // Driving component just above the 1e-6·ΣW threshold: the rule does not apply.
+    let slight = vec![
+        unit_slice(-10.0, 10.0, tan30),
+        unit_slice(10.0, 10.0 + 1e-3, tan30),
+    ];
+    let b = solve(&slight, MethodKind::Bishop, &opts(1e-8, 500));
+    assert_ne!(b.message.as_deref(), Some("no_driving"), "{b:?}");
+}
+
+/// Test 8 (E2 and E3). Air slices take no part in the m_α test and add nothing to Bishop's F.
+/// Without the exclusion, the air slice at α = 80° (m_α = cos 80° < 0.2) would make the surface `Invalid`.
+#[test]
+fn air_slices_do_not_trigger_m_alpha() {
+    let tan30 = 30.0_f64.to_radians().tan();
+    let soil = vec![unit_slice(20.0, 10.0, tan30), unit_slice(25.0, 12.0, tan30)];
+    let mut with_air = soil.clone();
+    with_air.insert(1, air_slice(80.0));
+    with_air.push(air_slice(-80.0));
+
+    let o = opts(1e-10, 1_000);
+    let b_soil = solve(&soil, MethodKind::Bishop, &o);
+    let b_air = solve(&with_air, MethodKind::Bishop, &o);
+    println!("[8] bishop soil={b_soil:?}\n[8] bishop +air={b_air:?}");
+    assert_converged(&b_air);
+    assert_eq!(
+        b_air.fos.to_bits(),
+        b_soil.fos.to_bits(),
+        "air slices must not change Bishop's FS"
+    );
+
+    let s_air = solve(&with_air, MethodKind::Spencer, &o);
+    println!("[8] spencer +air={s_air:?}");
+    assert_converged(&s_air);
+    assert!(s_air.fos.is_finite() && s_air.fos > 0.0);
+}

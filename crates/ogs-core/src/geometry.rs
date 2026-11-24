@@ -446,17 +446,21 @@ impl PreparedModel {
             Direction::RightToLeft => return Ok(Sliding::RightToLeft),
             Direction::Auto => {}
         }
-        // 1. Both search ranges: the mass goes from the entry range to the exit range.
+        // 1. Both search ranges: the mass goes from the entry range to the exit range. Only when
+        //    their midpoints differ by more than 1e-9 · model width (E1b); otherwise go on to 2.
         if let Some(search) = &model.analysis.search
             && let (Some(entry), Some(exit)) = (search.entry, search.exit)
         {
             let mid_entry = 0.5 * (entry[0] + entry[1]);
             let mid_exit = 0.5 * (exit[0] + exit[1]);
-            return Ok(if mid_entry < mid_exit {
-                Sliding::LeftToRight
-            } else {
-                Sliding::RightToLeft
-            });
+            let width = self.x_max - self.x_min;
+            if (mid_entry - mid_exit).abs() > 1e-9 * width {
+                return Ok(if mid_entry < mid_exit {
+                    Sliding::LeftToRight
+                } else {
+                    Sliding::RightToLeft
+                });
+            }
         }
         let threshold = 1e-6 * (self.y_max - self.y_min);
         // 2. The higher end of the terrain is the crest.
