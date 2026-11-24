@@ -1,0 +1,63 @@
+{
+  "id": "V047a",
+  "title": "ACADS 1(a), talud homogéneo, seco",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": { "id": "V047a", "title": "ACADS 1(a)", "notes": "Talud homogéneo sin agua; caso de referencia para la app." },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Suelo",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 3.0,
+        "friction_angle": 19.6,
+        "ru": null
+      }
+    ],
+    "regions": [
+      { "material": "soil", "polygon": [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]] }
+    ],
+    "slope": { "direction": "auto" },
+    "analysis": {
+      "methods": ["bishop", "spencer"],
+      "slices": 50,
+      "tolerance": 1e-5,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": { "type": "circle", "xc": 120.0, "yc": 90.0, "r": 80.0 },
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [49.9, 55.2],
+        "exit": [26.9, 30.2],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0251,
+      "options": { "slices": 50 }
+    }
+  ],
+  "source": {
+    "reference": "Giam, P.S.K. & Donald, I.B. (1989). ACADS Slope Stability Examples.",
+    "derived_from": "cSlope verification problem V047a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Ejemplo de respaldo: se usa cuando no hay casos en verification/cases/.",
+      "Los valores del modelo siguen el bloque de ejemplo del contrato v0.1 (sin agua: seco)."
+    ]
+  }
+}

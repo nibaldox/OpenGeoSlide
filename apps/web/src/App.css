@@ -1,0 +1,315 @@
+:root {
+  --bg: #f3f4f6;
+  --panel: #ffffff;
+  --ink: #111827;
+  --muted: #6b7280;
+  --line: #d1d5db;
+  --accent: #1f4e79;
+  --ok: #15803d;
+  --fail: #b91c1c;
+  --sim: #fef3c7;
+  --sim-ink: #78350f;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.app-header p {
+  margin: 2px 0 12px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.banner {
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  background: #e5e7eb;
+}
+
+.banner-sim {
+  background: var(--sim);
+  color: var(--sim-ink);
+  border: 1px solid #f59e0b;
+}
+
+.banner-ok {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.banner-error {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar,
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+}
+
+.field select,
+.field input[type='file'] {
+  font: inherit;
+}
+
+fieldset.field {
+  border: 0;
+  padding: 0;
+  margin-left: 0;
+}
+
+fieldset.field legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.link-button {
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}
+
+.link-button.active {
+  background: #fee2e2;
+  border-color: var(--fail);
+}
+
+.perf-controls {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.perf-controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  gap: 4px;
+}
+
+.perf-controls input {
+  width: 90px;
+  font: inherit;
+  padding: 4px 6px;
+}
+
+.perf-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 14px;
+  margin: 0;
+}
+
+.perf-stats dt {
+  color: var(--muted);
+}
+
+.perf-stats dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.section-wrap {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.section-canvas {
+  display: block;
+}
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 0.9rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 12px;
+  border: 1px solid #374151;
+}
+
+.swatch.line-red {
+  height: 0;
+  border: 0;
+  border-top: 2.5px solid #dc2626;
+  width: 22px;
+}
+
+.swatch.line-blue {
+  height: 0;
+  border: 0;
+  border-top: 2.5px dashed #1d4ed8;
+  width: 22px;
+}
+
+.swatch.slice {
+  background: rgba(75, 85, 99, 0.14);
+  border-color: rgba(75, 85, 99, 0.55);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+td.num,
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-warn td {
+  background: #fffbeb;
+}
+
+.results {
+  overflow-x: auto;
+}
+
+.warnings {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.badge-ok {
+  background: #dcfce7;
+  color: var(--ok);
+}
+
+.badge-fail {
+  background: #fee2e2;
+  color: var(--fail);
+}
