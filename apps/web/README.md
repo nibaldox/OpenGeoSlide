@@ -23,8 +23,8 @@ pnpm preview    # sirve dist/ en 127.0.0.1:5180
 
 | Motor | Estado | Cómo se elige |
 |-------|--------|---------------|
-| `mock` (simulado) | Siempre disponible | Se usa si no hay wasm. Muestra el banner «Motor simulado». |
-| `ogs-wasm` | Pendiente del crate `ogs-wasm` | `src/wasm/ogs_wasm.js` existe en el build. |
+| `ogs-wasm` (ogs-core real) | Disponible si existe `src/wasm/ogs_wasm.js` | Se usa automáticamente. Muestra «Motor: ogs-core <versión> (WASM)». |
+| `mock` (simulado) | Respaldo | Se usa si no hay wasm. Muestra el banner «Motor simulado» con el motivo. |
 
 El simulado calcula un FS con **Fellenius** (no Bishop ni Spencer) en ~30 dovelas, usa búsqueda en rejilla
 sin refinamiento y marca cada resultado con un aviso. No es válido para ingeniería; sirve para probar la
@@ -36,11 +36,17 @@ interfaz y el protocolo.
 apps/web/scripts/build-wasm.sh
 ```
 
-El script compila `ogs-wasm` (`cargo build --target wasm32-unknown-unknown --release`) y ejecuta
-`wasm-bindgen --target web` hacia `src/wasm/`. **Hoy falla**: el crate `ogs-wasm` aún no existe en el
-repositorio (`could not find Cargo.toml`). El fallo es esperado hasta que se implemente el crate.
+El script compila `ogs-wasm` (`cargo build -p ogs-wasm --target wasm32-unknown-unknown --release`) y ejecuta
+`wasm-bindgen --target web` hacia `src/wasm/`. Requiere el target `wasm32-unknown-unknown` y `wasm-bindgen`
+CLI 0.2.130 (igual que la dependencia del crate). `pnpm build` copia `ogs_wasm_bg.wasm` a `dist/`.
 
 `src/wasm/` está en `.gitignore`.
+
+### Página de benchmark
+
+`/?bench=1` ejecuta en el worker el caso V047a (búsqueda 20 × 20 × 20 con refinamiento) para Bishop y Spencer,
+con 1 calentamiento y 5 repeticiones. Escribe el JSON en `<pre id="bench-result">` y en `window.__OGS_BENCH__`.
+La suite completa (nativo, Node y Chrome) está en `bench/`: `bench/run_all.sh`.
 
 ## Casos
 
