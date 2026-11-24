@@ -1,0 +1,16 @@
+[package]
+name = "ogs-py"
+description = "Wrapper Python de ogs-core (PyO3 + maturin): paquete opengeoslide"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# The Python module is `opengeoslide._core`; maturin's `module-name` must end in this lib name.
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+ogs-core = { path = "../ogs-core" }
+# abi3-py311: one wheel (cp311-abi3) for CPython >= 3.11, including 3.13 and 3.14.
+pyo3 = { version = "0.30", features = ["extension-module", "abi3-py311"] }
