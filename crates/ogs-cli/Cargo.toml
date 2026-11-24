@@ -1,0 +1,13 @@
+[package]
+name = "ogs-cli"
+description = "CLI de OpenGeoSlide (binario `ogs`)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ogs"
+path = "src/main.rs"
+
+[dependencies]
+ogs-core = { path = "../ogs-core" }

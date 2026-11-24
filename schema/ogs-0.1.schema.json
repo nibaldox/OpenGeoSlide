@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ogs-0.1.schema.json",
+  "title": "OpenGeoSlide model (.ogs.json) v0.1",
+  "description": "Formato de modelo v0.1 (briefs/00_CONTRATOS.md, §1). Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados.",
+  "type": "object",
+  "required": ["format", "version", "materials", "regions", "analysis"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "opengeoslide" },
+    "version": { "const": "0.1" },
+    "meta": { "$ref": "#/$defs/meta" },
+    "units": { "type": "string", "enum": ["SI", "imperial"] },
+    "materials": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/material" } },
+    "regions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/region" } },
+    "water": { "$ref": "#/$defs/water" },
+    "slope": { "$ref": "#/$defs/slope" },
+    "analysis": { "$ref": "#/$defs/analysis" }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "range": {
+      "description": "Rango [min, max] en x.",
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polyline": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point" } },
+    "polygon": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/point" } },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "model", "unit_weight", "cohesion", "friction_angle"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "model": { "const": "mohr_coulomb" },
+        "unit_weight": { "type": "number", "exclusiveMinimum": 0 },
+        "unit_weight_sat": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "cohesion": { "type": "number", "minimum": 0 },
+        "friction_angle": { "type": "number", "minimum": 0, "maximum": 90 },
+        "ru": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material", "polygon"],
+      "properties": {
+        "material": { "type": "string", "minLength": 1 },
+        "polygon": { "$ref": "#/$defs/polygon" }
+      }
+    },
+    "water": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit_weight": { "type": "number", "exclusiveMinimum": 0, "default": 9.81 },
+        "piezometric_line": { "anyOf": [{ "$ref": "#/$defs/polyline" }, { "type": "null" }] }
+      }
+    },
+    "slope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["auto", "left_to_right", "right_to_left"],
+          "default": "auto"
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["bishop", "spencer"] },
+          "default": ["bishop"]
+        },
+        "slices": { "type": "integer", "minimum": 1, "default": 50 },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0, "default": 1e-5 },
+        "max_iterations": { "type": "integer", "minimum": 1, "default": 500 },
+        "min_m_alpha": { "type": "number", "minimum": 0, "default": 0.2 },
+        "surface": { "$ref": "#/$defs/surface" },
+        "search": { "$ref": "#/$defs/search" }
+      }
+    },
+    "surface": {
+      "description": "Superficie fija. Se ignora si existe analysis.search.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "xc", "yc", "r"],
+      "properties": {
+        "type": { "const": "circle" },
+        "xc": { "type": "number" },
+        "yc": { "type": "number" },
+        "r": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "search": {
+      "description": "Búsqueda circular entrada-salida. Si existe, reemplaza a analysis.surface.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "circular_entry_exit" },
+        "entry": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
+        "exit": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
+        "n_entry": { "type": "integer", "minimum": 1, "default": 20 },
+        "n_exit": { "type": "integer", "minimum": 1, "default": 20 },
+        "n_radius": { "type": "integer", "minimum": 1, "default": 20 },
+        "max_radius_factor": { "type": "number", "exclusiveMinimum": 0, "default": 5.0 },
+        "min_width": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "refine": { "type": "boolean", "default": true }
+      }
+    }
+  }
+}
