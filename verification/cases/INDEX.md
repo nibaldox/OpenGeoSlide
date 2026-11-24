@@ -42,6 +42,10 @@ Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertib
 - V093: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.325): superficie no circular (nonCircularOptimization)
 - V093: Janbu (Janbu simplified (uncorrected), Commercial program A (non-circular), 1.178): método no soportado
 
+## Sentidos de deslizamiento fijados por el importador
+
+- V063: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4).
+
 ## Casos no incluidos
 
 | id | motivo |
