@@ -1,0 +1,135 @@
+{
+  "id": "V030",
+  "title": "Duncan & Wright fig. 14.4",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V030",
+      "title": "Duncan & Wright fig. 14.4",
+      "notes": "Cohesionless fill on undrained clay; critical-circle search."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 450.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            40.0,
+            20.0
+          ],
+          [
+            130.0,
+            20.0
+          ],
+          [
+            130.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            40.0,
+            20.0
+          ],
+          [
+            78.0,
+            35.0
+          ],
+          [
+            130.0,
+            35.0
+          ],
+          [
+            130.0,
+            20.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.412,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020354107648725212,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.4,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.023571428571428573,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.4.",
+    "derived_from": "cSlope verification problem V030 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A Spencer 1.400, GLE 1.404 (deep circle tangent to the foundation base)."
+    ]
+  }
+}

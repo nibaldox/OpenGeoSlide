@@ -1,0 +1,234 @@
+{
+  "id": "V016a",
+  "title": "Stepped gabion wall, equivalent cohesion",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V016a",
+      "title": "Stepped gabion wall, equivalent cohesion",
+      "notes": "4 m gabion wall of 1 m cubes with the steps facing outwards on a sloping two-layer profile, dry; mesh as an equivalent cohesion (59.7 kPa); the reference circle."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil #1",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "soil_2",
+        "name": "Soil #2",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "gabion_wall",
+        "name": "Gabion wall",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.0,
+        "unit_weight_sat": null,
+        "cohesion": 59.7,
+        "friction_angle": 42.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            14.472,
+            5.456
+          ],
+          [
+            14.611,
+            6.4465
+          ],
+          [
+            15.6015,
+            6.3075
+          ],
+          [
+            15.7405,
+            7.298
+          ],
+          [
+            16.731,
+            7.159
+          ],
+          [
+            16.87,
+            8.1495
+          ],
+          [
+            17.8605,
+            8.0105
+          ],
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            18.99,
+            8.862
+          ],
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.456
+          ],
+          [
+            14.472,
+            5.456
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            30.0,
+            9.0
+          ],
+          [
+            30.0,
+            7.0
+          ],
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.99,
+            8.862
+          ]
+        ]
+      },
+      {
+        "material": "soil_2",
+        "polygon": [
+          [
+            30.0,
+            7.0
+          ],
+          [
+            30.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.453,
+            5.178
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            18.573,
+            5.8905
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 15.956,
+        "yc": 10.016,
+        "r": 5.722
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.787,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010279798545047566,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.791,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010279173646007818,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.79,
+      "published_by": "Program D",
+      "tolerance": 0.012793296089385476,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cao et al. (2016); Grodecki (2017).",
+    "derived_from": "cSlope verification problem V016a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Cao et al. (2016) contain no 4 m wall and none of these soils; Grodecki (2017) supports only the equivalent-cohesion method. The geometry and materials are a commercial program's verification problem."
+    ]
+  }
+}

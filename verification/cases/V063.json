@@ -1,0 +1,130 @@
+{
+  "id": "V063",
+  "title": "Huang & Jia earth dam, dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V063",
+      "title": "Huang & Jia earth dam, dry",
+      "notes": "Homogeneous earth dam (c′ = 13.8 kPa, φ′ = 37°, γ = 18.2 kN/m³) before the reservoir is filled; circular search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.2,
+        "unit_weight_sat": null,
+        "cohesion": 13.8,
+        "friction_angle": 37.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            7.3
+          ],
+          [
+            33.5,
+            7.3
+          ],
+          [
+            86.657,
+            24.391
+          ],
+          [
+            99.75,
+            28.6
+          ],
+          [
+            107.05,
+            28.6
+          ],
+          [
+            157.9,
+            7.3
+          ],
+          [
+            191.4,
+            7.3
+          ],
+          [
+            191.4,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          101.7,
+          185.6
+        ],
+        "exit": [
+          101.7,
+          185.6
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.455,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02020366598778004,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 2.43,
+      "published_by": "Huang & Jia",
+      "tolerance": 0.02205761316872428,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Huang, M. & Jia, C.-Q. (2009). Strength reduction FEM in stability analysis of soil slopes subjected to transient unsaturated seepage. Computers and Geotechnics 36(1–2), 93–101.",
+    "derived_from": "cSlope verification problem V063 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 101.7–185.6 (crest to the downstream berm), as in the source.",
+      "commercial program A reports the Spencer value only. The steady-seepage and drawdown stages need a seepage analysis.",
+      "Until 2026-10-25 the 2.43 check was labeled Spencer and attributed to the finite-element analysis; the paper states it is Bishop (LEM) and gives 2.50 for SSRFEM (docs/kallor/huang-jia-2009.md). cSlope Bishop 2.453, Spencer 2.451 on this search."
+    ]
+  }
+}

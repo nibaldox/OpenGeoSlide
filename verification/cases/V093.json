@@ -1,0 +1,97 @@
+{
+  "id": "V093",
+  "title": "Yamagami & Ueta (1988)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V093",
+      "title": "Yamagami & Ueta (1988)",
+      "notes": "Homogeneous 2:1 slope, 5 m high; critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.64,
+        "unit_weight_sat": null,
+        "cohesion": 9.8,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            5.0,
+            5.0
+          ],
+          [
+            15.0,
+            10.0
+          ],
+          [
+            25.0,
+            10.0
+          ],
+          [
+            25.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.344,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02037202380952381,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Yamagami & Ueta (1988).",
+    "derived_from": "cSlope verification problem V093 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Yamagami & Ueta: Bishop 1.348, Spencer 1.339 (non-circular); Greco 1.33."
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "id": "V033",
+  "title": "Duncan & Wright fig. 14.20a, water table",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V033",
+      "title": "Duncan & Wright fig. 14.20a, water table",
+      "notes": "Cohesive-frictional fill over sand with a piezometric line; critical-circle search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.6359325,
+        "unit_weight_sat": null,
+        "cohesion": 28.728156,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.73554472,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            6.096
+          ],
+          [
+            0.0,
+            18.288
+          ],
+          [
+            18.288,
+            18.288
+          ],
+          [
+            42.672,
+            6.096
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            6.096
+          ],
+          [
+            42.672,
+            6.096
+          ],
+          [
+            60.96,
+            6.096
+          ],
+          [
+            60.96,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          30.48,
+          9.144
+        ],
+        [
+          42.672,
+          6.096
+        ],
+        [
+          60.96,
+          6.096
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.533,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020326157860404436,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.529,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020327011118378025,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.20a.",
+    "derived_from": "cSlope verification problem V033 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan, Wright & Brandon (2014, Table 14.1 p. 244) give 1.528–1.542 for side-force inclinations θs of 1° to 10°, 1.529 at the recommended 3°; until 2026-10-25 the check carried 1.535 (the range's midpoint). The book names no method; θs is Spencer's. commercial program A Spencer 1.540 (circle)."
+    ]
+  }
+}

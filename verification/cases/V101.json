@@ -1,0 +1,119 @@
+{
+  "id": "V101",
+  "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V101",
+      "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+      "notes": "10 m high 1:1 slope (Li & Lumb's illustrative example, Fig. 5) with the means of their random variables: c′ = 18 kPa, tan φ′ = tan 30°, γ = 18 kN/m³, rᵤ = 0.2; critical-circle search. The ground 5 m below and beyond the toe and 5 m behind the crest is a program manual's model; the critical circle passes through the toe."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 18.0,
+        "friction_angle": 30.0,
+        "ru": 0.2
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            5.0,
+            5.0
+          ],
+          [
+            15.0,
+            15.0
+          ],
+          [
+            20.0,
+            15.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.334,
+      "published_by": "Hassan & Wolff",
+      "tolerance": 0.020374812593703148,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.34,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02373134328358209,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.343,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020372300819061804,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Li, K.S. & Lumb, P. (1987). Probabilistic design of slopes. Can. Geotech. J. 24(4), 520–535; Hassan, A.M. & Wolff, T.F. (1999). J. Geotech. Geoenviron. Eng. 125(4), 301–308.",
+    "derived_from": "cSlope verification problem V101 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Li & Lumb (1987), p. 9 and Fig. 5: the slope (10 m, 1:1) and the moments c′ 18 kPa (COV 20 %), γ 18 kN/m³ (5 %), t = tan φ′ = tan 30° (10 %), rᵤ 0.2 (10 %), with ũᵢΔxᵢ = rᵤ·Aᵢγ̄ᵢ (eq. 29), cSlope's rᵤ. They print no factor of safety; their βHL = 2.50 (Hasofer–Lind, with spatial averaging).",
+      "Hassan & Wolff (1999), Table 7 and Fig. 13: on the critical deterministic surface A, FS 1.334 and lognormal β 2.336; surfaces B–E 1.190 … 1.360 are the critical surfaces found with one parameter at a time set one standard deviation off its mean. They do not name the method for this example (their other examples use Bishop and Spencer); both program manuals run it with Bishop. cSlope: Spencer 1.332, M-P (half-sine) 1.330.",
+      "cSlope's critical circle (4.063, 19.410, R 14.441) runs from the toe to the crest 2.8 m behind its edge, as Hassan & Wolff's Fig. 13 draws surface A. Commercial program A (verification problem 36) and commercial program B (§2.23) are compared on their own searched surfaces."
+    ]
+  }
+}
