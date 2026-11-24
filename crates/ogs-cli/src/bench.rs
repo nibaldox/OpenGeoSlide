@@ -100,8 +100,8 @@ fn parse(args: &[&str]) -> Result<Options, String> {
 fn execute(opts: &Options) -> Result<String, String> {
     let text = fs::read_to_string(&opts.path)
         .map_err(|e| format!("no se puede leer {}: {e}", opts.path))?;
-    let root: Value = serde_json::from_str(&text)
-        .map_err(|e| format!("JSON no válido en {}: {e}", opts.path))?;
+    let root: Value =
+        serde_json::from_str(&text).map_err(|e| format!("JSON no válido en {}: {e}", opts.path))?;
     // A verification case (§2) wraps the model in `model`; a bare .ogs.json model is accepted too.
     let model = match root.get("model") {
         Some(model) => model.clone(),
