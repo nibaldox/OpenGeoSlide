@@ -8,6 +8,9 @@ use crate::model::Circle;
 /// One slice, in the ORIGINAL model frame.
 ///
 /// Sign convention: `alpha` is positive when the base rises toward the crest (driving component `W·sin α > 0`).
+///
+/// Air slices (contract §4.1.8, E2) have their base on or above the ground: `weight`, `cohesion`,
+/// `tan_phi` and `pore_pressure` are exactly zero, and they contribute no driving or resisting force.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Slice {
     pub x_left: f64,
@@ -102,10 +105,9 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
     if let Some(s) = start {
         intervals.push((s, xs[xs.len() - 1]));
     }
-    if intervals.len() > 1 {
-        return Err(SurfaceError::AboveGround);
-    }
-    let Some(&(p, q)) = intervals.first() else {
+    // E2: the sliding range runs between the outermost ground crossings. The arc may rise above the
+    // ground between them; those slices are air slices (see `slice_circle`).
+    let (Some(&(p, _)), Some(&(_, q))) = (intervals.first(), intervals.last()) else {
         return Err(SurfaceError::NoIntersection);
     };
     // One end of the sliding range is not a crossing of the lower arc: the arc is under the
@@ -174,11 +176,38 @@ pub fn slice_circle(
         let Some(y_top_mid) = pm.top_at(xm) else {
             return Err(SurfaceError::OutsideModel);
         };
-        if y_base_mid > y_top_mid + tol {
-            return Err(SurfaceError::AboveGround);
+        pm.column(xm, &mut column, &mut scratch);
+
+        let slope = (yr - yl) / width;
+        let alpha = sign * slope.atan();
+        let base_length = width / alpha.cos();
+
+        // Air slice (E2): the base lies on or above the ground. It carries no soil, so weight,
+        // cohesion, tan φ and pore pressure are zero. Its material is the region nearest below the
+        // base, or region 0 if there is none.
+        if y_top_mid - y_base_mid <= tol {
+            let nearest = column
+                .iter()
+                .filter(|&&(_, hi, _)| hi <= y_base_mid + tol)
+                .max_by(|a, b| a.1.total_cmp(&b.1));
+            slices.push(Slice {
+                x_left: xl,
+                x_right: xr,
+                y_base_left: yl,
+                y_base_right: yr,
+                y_top_mid,
+                width,
+                alpha,
+                base_length,
+                weight: 0.0,
+                cohesion: 0.0,
+                tan_phi: 0.0,
+                pore_pressure: 0.0,
+                material: nearest.map_or(0, |&(_, _, mat)| mat),
+            });
+            continue;
         }
 
-        pm.column(xm, &mut column, &mut scratch);
         let piezo = pm.piezometric_y(xm);
 
         // Σ γ_k h_k along the column between the base midpoint and the ground.
@@ -219,8 +248,6 @@ pub fn slice_circle(
             0.0
         };
 
-        let slope = (yr - yl) / width;
-        let alpha = sign * slope.atan();
         slices.push(Slice {
             x_left: xl,
             x_right: xr,
@@ -229,13 +256,18 @@ pub fn slice_circle(
             y_top_mid,
             width,
             alpha,
-            base_length: width / alpha.cos(),
+            base_length,
             weight,
             cohesion: m.cohesion,
             tan_phi: m.tan_phi,
             pore_pressure,
             material: mat,
         });
+    }
+
+    // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
+    if !slices.iter().any(|s| s.weight > 0.0) {
+        return Err(SurfaceError::AboveGround);
     }
 
     // Built left to right; the toe is on the left for RightToLeft and on the right otherwise.
