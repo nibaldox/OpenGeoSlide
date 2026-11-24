@@ -1,0 +1,143 @@
+{
+  "id": "V025",
+  "title": "Duncan & Wright fig. 6.38, piezometric line",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V025",
+      "title": "Duncan & Wright fig. 6.38, piezometric line",
+      "notes": "Homogeneous 2:1 slope with a nearly flat piezometric line; critical-circle search. Converted to SI; the water line was traced from a figure."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.6359325,
+        "unit_weight_sat": null,
+        "cohesion": 9.576052,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            12.192
+          ],
+          [
+            36.576,
+            12.192
+          ],
+          [
+            60.96,
+            24.384
+          ],
+          [
+            134.112,
+            24.384
+          ],
+          [
+            134.112,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          36.576,
+          12.192
+        ],
+        [
+          38.83152,
+          13.16736
+        ],
+        [
+          44.92752,
+          14.08176
+        ],
+        [
+          55.38216,
+          15.45336
+        ],
+        [
+          70.80504,
+          17.28216
+        ],
+        [
+          99.60864,
+          20.02536
+        ],
+        [
+          134.112,
+          22.86
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.142,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043782837127846,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.142,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043782837127846,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.38.",
+    "derived_from": "cSlope verification problem V025 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": []
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "id": "V044",
+  "title": "Fredlund & Krahn (1977), dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V044",
+      "title": "Fredlund & Krahn (1977), dry",
+      "notes": "Homogeneous 2:1 slope, 40 ft high, on a firm base: Fredlund & Krahn's comparison problem, on the published circle and with no pore pressure."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 600.0,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            60.0
+          ],
+          [
+            60.0,
+            60.0
+          ],
+          [
+            140.0,
+            20.0
+          ],
+          [
+            180.0,
+            20.0
+          ],
+          [
+            180.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 120.0,
+        "yc": 90.0,
+        "r": 80.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.08,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.012403846153846154,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.073,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010241196333815726,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3).",
+    "derived_from": "cSlope verification problem V044 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fredlund & Krahn (1977), Table 2 case 1 (slices 0.5 ft wide, tolerance 0.001): ordinary 1.928, Bishop 2.080, Spencer 2.073 (λ = 0.237), Janbu simplified 2.041, Janbu rigorous 2.008, Morgenstern-Price constant 2.076; Table 3: half-sine 2.076 (Saskatchewan) and 2.085 (Alberta). Their Janbu simplified is close to cSlope's Janbu with the f0 correction (2.021), not without it (1.876). cSlope's results do not change between 50 and 250 slices."
+    ]
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "id": "V047a",
+  "title": "ACADS 1(a), homogeneous slope, dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "notes": "ACADS 1(a): homogeneous 2:1 slope, 10 m high (c′ = 3 kPa, φ′ = 19.6°, γ = 20 kN/m³), dry; critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 3.0,
+        "friction_angle": 19.6,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            20.0,
+            20.0
+          ],
+          [
+            20.0,
+            25.0
+          ],
+          [
+            30.0,
+            25.0
+          ],
+          [
+            50.0,
+            35.0
+          ],
+          [
+            70.0,
+            35.0
+          ],
+          [
+            70.0,
+            20.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020506585612968593,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.986,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02050709939148073,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.992,
+      "published_by": "Commercial program B (moment equilibrium, λ = 0)",
+      "tolerance": 0.020504032258064516,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1,
+      "published_by": "ACADS",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989).",
+    "derived_from": "cSlope verification problem V047a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Geometry (20, 20)–(20, 25)–(30, 25)–(50, 35)–(70, 35)–(70, 20) from Fig. 1.1, strength from Table 1.1. Giam & Donald's reference 1.00.",
+      "Domain x = 20…70 as in Fig. 1 (the commercial program A/program D model is wider).",
+      "Table 2 prints Bishop 0.963 / Janbu 0.992, but Fig. 3 (FS vs λ, slip 207) shows the moment FS at λ = 0 = 0.992 and the force FS at λ = 0 = 0.963: the two rows are swapped. commercial program B's Janbu (0.963) is the uncorrected simplified Janbu."
+    ]
+  }
+}

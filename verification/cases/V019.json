@@ -1,0 +1,133 @@
+{
+  "id": "V019",
+  "title": "Cheng et al. 11 m homogeneous slope",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "notes": "11 m homogeneous slope (c = 10 kPa, φ = 30°, γ = 20 kN/m³); circular search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            10.0
+          ],
+          [
+            10.0,
+            10.0
+          ],
+          [
+            16.0,
+            16.0
+          ],
+          [
+            26.0,
+            21.0
+          ],
+          [
+            46.0,
+            21.0
+          ],
+          [
+            46.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.38,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0236231884057971,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.383,
+      "published_by": "Cheng et al.",
+      "tolerance": 0.020361532899493856,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.398,
+      "published_by": "Program D",
+      "tolerance": 0.020357653791130186,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.401,
+      "published_by": "Program D",
+      "tolerance": 0.020356887937187724,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150.",
+    "derived_from": "cSlope verification problem V019 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program E shear strength reduction 1.38.",
+      "Cheng et al. use 50 slices (p. 146) and search general (non-circular) surfaces by simulated annealing; their strength-reduction value is 1.47 and a local minimum 1.3848. cSlope's circular search gives 1.399, its non-circular optimization 1.377."
+    ]
+  }
+}
