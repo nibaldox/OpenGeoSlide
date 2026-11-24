@@ -405,7 +405,10 @@ fn circle_leaving_and_reentering_near_the_toe_is_valid() {
     let slices = slices_of(&pm, &c, 2000);
 
     let air: Vec<&Slice> = slices.iter().filter(|s| s.weight == 0.0).collect();
-    assert!(!air.is_empty(), "the gap above the ground must be air slices");
+    assert!(
+        !air.is_empty(),
+        "the gap above the ground must be air slices"
+    );
     for s in &air {
         assert_eq!((s.cohesion, s.tan_phi, s.pore_pressure), (0.0, 0.0, 0.0));
         let base_mid = 0.5 * (s.y_base_left + s.y_base_right);

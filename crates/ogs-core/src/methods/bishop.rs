@@ -44,7 +44,8 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
                     Some("m_alpha"),
                 );
             }
-            numerator += (s.cohesion * s.width + (s.weight - s.pore_pressure * s.width) * s.tan_phi)
+            numerator += (s.cohesion * s.width
+                + (s.weight - s.pore_pressure * s.width) * s.tan_phi)
                 / m_alpha;
         }
         let next = numerator / driving;

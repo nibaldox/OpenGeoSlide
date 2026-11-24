@@ -351,7 +351,10 @@ fn air_slice(alpha_deg: f64) -> Slice {
 fn zero_driving_moment_is_no_driving_in_both_methods() {
     let tan30 = 30.0_f64.to_radians().tan();
     // Mirror pair: W sin α cancels exactly.
-    let balanced = vec![unit_slice(-10.0, 10.0, tan30), unit_slice(10.0, 10.0, tan30)];
+    let balanced = vec![
+        unit_slice(-10.0, 10.0, tan30),
+        unit_slice(10.0, 10.0, tan30),
+    ];
     for method in [MethodKind::Bishop, MethodKind::Spencer] {
         let r = solve(&balanced, method, &opts(1e-8, 500));
         println!("[7] balanced {method:?}: {r:?}");
