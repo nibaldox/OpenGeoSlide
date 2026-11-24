@@ -1,0 +1,1449 @@
+{
+  "generated_at": "2026-11-24T20:02:30-03:00",
+  "harness_version": "1",
+  "cases_dir": "/home/xodla/archivos/opengeoslide-wt/w0b/verification/cases",
+  "engines": {
+    "ogs": {
+      "binary": "/home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+      "version": null,
+      "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs"
+    },
+    "cslope": {
+      "package": "cslope 0.1.0",
+      "version": "0.1.0",
+      "engine_build": "0.1.0+a80f9a024954",
+      "schema_version": "0.1.0"
+    },
+    "python": "3.13.14",
+    "platform": "Linux-7.3.5-2-cachyos-x86_64-with-glibc2.44"
+  },
+  "cases": [
+    {
+      "id": "V001",
+      "title": "Arai & Tagyo (1985) example 1",
+      "path": "../w0b/verification/cases/V001.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V002",
+      "title": "Arai & Tagyo (1985) example 2, three layers",
+      "path": "../w0b/verification/cases/V002.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V003",
+      "title": "Arai & Tagyo (1985) example 3, water table",
+      "path": "../w0b/verification/cases/V003.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V016a",
+      "title": "Stepped gabion wall, equivalent cohesion",
+      "path": "../w0b/verification/cases/V016a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "path": "../w0b/verification/cases/V019.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V025",
+      "title": "Duncan & Wright fig. 6.38, piezometric line",
+      "path": "../w0b/verification/cases/V025.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V030",
+      "title": "Duncan & Wright fig. 14.4",
+      "path": "../w0b/verification/cases/V030.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V033",
+      "title": "Duncan & Wright fig. 14.20a, water table",
+      "path": "../w0b/verification/cases/V033.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V044",
+      "title": "Fredlund & Krahn (1977), dry",
+      "path": "../w0b/verification/cases/V044.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V044b",
+      "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+      "path": "../w0b/verification/cases/V044b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V045",
+      "title": "Fredlund & Krahn (1977), with water table",
+      "path": "../w0b/verification/cases/V045.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "path": "../w0b/verification/cases/V047a.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "path": "../w0b/verification/cases/V049.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V063",
+      "title": "Huang & Jia earth dam, dry",
+      "path": "../w0b/verification/cases/V063.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V093",
+      "title": "Yamagami & Ueta (1988)",
+      "path": "../w0b/verification/cases/V093.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V101",
+      "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+      "path": "../w0b/verification/cases/V101.json",
+      "n_checks": 3
+    }
+  ],
+  "summary": {
+    "checks": 38,
+    "ogs": {
+      "OK": 0,
+      "FALLA": 0,
+      "sin dato": 38,
+      "no convergido": 0
+    },
+    "cslope": {
+      "OK": 36,
+      "FALLA": 0,
+      "sin dato": 2,
+      "no convergido": 0
+    },
+    "cslope_reproduces": {
+      "n": 36,
+      "N": 38
+    }
+  },
+  "checks": [
+    {
+      "case_id": "V001",
+      "title": "Arai & Tagyo (1985) example 1",
+      "source_path": "../w0b/verification/cases/V001.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.409,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02035486160397445,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.404138549719742,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3450284088188767,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V001",
+      "title": "Arai & Tagyo (1985) example 1",
+      "source_path": "../w0b/verification/cases/V001.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.417,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.404138549719742,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9076535130739576,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V002",
+      "title": "Arai & Tagyo (1985) example 2, three layers",
+      "source_path": "../w0b/verification/cases/V002.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.42,
+      "published_by": "Commercial program A",
+      "tolerance": 0.03190476190476191,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 0.41924673522103434,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.17934875689658228,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V003",
+      "title": "Arai & Tagyo (1985) example 3, water table",
+      "source_path": "../w0b/verification/cases/V003.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.118,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020447227191413238,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.113030171668033,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4445284733423094,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"a_t_ex3_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.82 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V003",
+      "title": "Arai & Tagyo (1985) example 3, water table",
+      "source_path": "../w0b/verification/cases/V003.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.118,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020447227191413238,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.1137957118491597,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.37605439631846116,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"a_t_ex3_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.82 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V003",
+      "title": "Arai & Tagyo (1985) example 3, water table",
+      "source_path": "../w0b/verification/cases/V003.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.112,
+      "published_by": "Program D",
+      "tolerance": 0.020449640287769785,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.113030171668033,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.09264133705332611,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"a_t_ex3_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.82 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V016a",
+      "title": "Stepped gabion wall, equivalent cohesion",
+      "source_path": "../w0b/verification/cases/V016a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.787,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010279798545047566,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.7904516875757923,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.1931554323330943,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V016a",
+      "title": "Stepped gabion wall, equivalent cohesion",
+      "source_path": "../w0b/verification/cases/V016a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.791,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010279173646007818,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.7975033634561832,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.3631135374753377,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V016a",
+      "title": "Stepped gabion wall, equivalent cohesion",
+      "source_path": "../w0b/verification/cases/V016a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.79,
+      "published_by": "Program D",
+      "tolerance": 0.012793296089385476,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.7904516875757923,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.025233942781691686,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "source_path": "../w0b/verification/cases/V019.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.38,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0236231884057971,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.3985164762119062,
+        "status": "converged",
+        "error": null,
+        "err_pct": 1.3417736385439372,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "source_path": "../w0b/verification/cases/V019.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.383,
+      "published_by": "Cheng et al.",
+      "tolerance": 0.020361532899493856,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.3984660017754231,
+        "status": "converged",
+        "error": null,
+        "err_pct": 1.118293693089163,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "source_path": "../w0b/verification/cases/V019.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.398,
+      "published_by": "Program D",
+      "tolerance": 0.020357653791130186,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.3985164762119062,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.03694393504337009,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V019",
+      "title": "Cheng et al. 11 m homogeneous slope",
+      "source_path": "../w0b/verification/cases/V019.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.401,
+      "published_by": "Program D",
+      "tolerance": 0.020356887937187724,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.4009458952830407,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.0038618641655477877,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V025",
+      "title": "Duncan & Wright fig. 6.38, piezometric line",
+      "source_path": "../w0b/verification/cases/V025.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.142,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043782837127846,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.1323324854828065,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8465424270747275,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V025",
+      "title": "Duncan & Wright fig. 6.38, piezometric line",
+      "source_path": "../w0b/verification/cases/V025.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.142,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043782837127846,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.132501057595271,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8317812963860707,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V030",
+      "title": "Duncan & Wright fig. 14.4",
+      "source_path": "../w0b/verification/cases/V030.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.412,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020354107648725212,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.4082897847769809,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2627631177775541,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V030",
+      "title": "Duncan & Wright fig. 14.4",
+      "source_path": "../w0b/verification/cases/V030.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.4,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.023571428571428573,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.39885026036924,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.08212425933998688,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V033",
+      "title": "Duncan & Wright fig. 14.20a, water table",
+      "source_path": "../w0b/verification/cases/V033.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.533,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020326157860404436,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.5208803996979923,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7905805806919537,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 20.736 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V033",
+      "title": "Duncan & Wright fig. 14.20a, water table",
+      "source_path": "../w0b/verification/cases/V033.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.529,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020327011118378025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.532842410752385,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.25130220748104104,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 20.736 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V044",
+      "title": "Fredlund & Krahn (1977), dry",
+      "source_path": "../w0b/verification/cases/V044.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.08,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.012403846153846154,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 2.075950410565908,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1946917997159591,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V044",
+      "title": "Fredlund & Krahn (1977), dry",
+      "source_path": "../w0b/verification/cases/V044.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.073,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010241196333815726,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 2.0721241844745846,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.04224869876581669,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V044b",
+      "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+      "source_path": "../w0b/verification/cases/V044b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.766,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01028312570781427,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.759465028340897,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.37004369530594533,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V044b",
+      "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+      "source_path": "../w0b/verification/cases/V044b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.761,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010283929585462806,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.7575807637887955,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1941644640093376,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V045",
+      "title": "Fredlund & Krahn (1977), with water table",
+      "source_path": "../w0b/verification/cases/V045.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.834,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010272628135223555,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.8289685369916626,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.27434367548186783,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V045",
+      "title": "Fredlund & Krahn (1977), with water table",
+      "source_path": "../w0b/verification/cases/V045.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01273224043715847,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.8274936104983974,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.13696117495096427,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "../w0b/verification/cases/V047a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020506585612968593,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 0.9850843968056648,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.19408340368137256,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "../w0b/verification/cases/V047a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.986,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02050709939148073,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 0.9840960685242506,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.19309649855470687,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "../w0b/verification/cases/V047a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.992,
+      "published_by": "Commercial program B (moment equilibrium, λ = 0)",
+      "tolerance": 0.020504032258064516,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 0.9850843968056648,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6971374187837854,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "../w0b/verification/cases/V047a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.0,
+      "published_by": "ACADS",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 0.9840960685242506,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.5903931475749422,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "source_path": "../w0b/verification/cases/V049.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.405,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020355871886120997,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.4029206876627012,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.14799376066184025,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "source_path": "../w0b/verification/cases/V049.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.375,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020363636363636365,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.3721293562548713,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.20877409055481358,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "source_path": "../w0b/verification/cases/V049.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.403,
+      "published_by": "Program D",
+      "tolerance": 0.020356379187455455,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.4029206876627012,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.005653053264351644,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V063",
+      "title": "Huang & Jia earth dam, dry",
+      "source_path": "../w0b/verification/cases/V063.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.455,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02020366598778004,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": null,
+        "status": null,
+        "error": "EngineError: No valid slip surface was found. Check the search limits, the geometry and the material strengths.",
+        "err_pct": null,
+        "verdict": "sin dato",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato · cSlope sin dato"
+    },
+    {
+      "case_id": "V063",
+      "title": "Huang & Jia earth dam, dry",
+      "source_path": "../w0b/verification/cases/V063.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 2.43,
+      "published_by": "Huang & Jia",
+      "tolerance": 0.02205761316872428,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": null,
+        "status": null,
+        "error": "EngineError: No valid slip surface was found. Check the search limits, the geometry and the material strengths.",
+        "err_pct": null,
+        "verdict": "sin dato",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato · cSlope sin dato"
+    },
+    {
+      "case_id": "V093",
+      "title": "Yamagami & Ueta (1988)",
+      "source_path": "../w0b/verification/cases/V093.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.344,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02037202380952381,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.342664197450681,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.09939007063386066,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V101",
+      "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+      "source_path": "../w0b/verification/cases/V101.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.334,
+      "published_by": "Hassan & Wolff",
+      "tolerance": 0.020374812593703148,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.333679048047886,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.024059366725196665,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 6 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V101",
+      "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+      "source_path": "../w0b/verification/cases/V101.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.34,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02373134328358209,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.333679048047886,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4717128322473231,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 6 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    },
+    {
+      "case_id": "V101",
+      "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
+      "source_path": "../w0b/verification/cases/V101.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.343,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020372300819061804,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
+        "engine": null,
+        "err_pct": null,
+        "verdict": "sin dato"
+      },
+      "cslope": {
+        "fos": 1.333679048047886,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6940396092415503,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 6 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "sin dato"
+    }
+  ]
+}

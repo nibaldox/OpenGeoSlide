@@ -1,0 +1,71 @@
+{
+  "id": "V047a",
+  "title": "ACADS 1(a), homogeneous slope, dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V047a",
+      "title": "ACADS 1(a)",
+      "notes": "Fixture propio del harness (W1e) con los datos de 00_CONTRATOS.md §1. No es un caso oficial de w0b."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 3.0,
+        "friction_angle": 19.6,
+        "ru": null
+      }
+    ],
+    "regions": [
+      { "material": "soil", "polygon": [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]] }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [[0, 12.0], [40, 6.0], [55, 6.0]]
+    },
+    "slope": { "direction": "auto" },
+    "analysis": {
+      "methods": ["bishop", "spencer"],
+      "slices": 50,
+      "tolerance": 1e-5,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": { "type": "circle", "xc": 120.0, "yc": 90.0, "r": 80.0 },
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [49.9, 55.2],
+        "exit": [26.9, 30.2],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.025,
+      "options": { "slices": 50 }
+    }
+  ],
+  "source": {
+    "reference": "Giam, P.S.K. & Donald, I.B. (1989). ACADS ... (referencia completa pendiente; ver briefs/00_CONTRATOS.md §2)",
+    "derived_from": "cSlope verification problem V047a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fixture de prueba del harness W1e. Los datos del modelo son los de 00_CONTRATOS.md §1 (ejemplo de la especificación).",
+      "El título 'dry' se mantiene del brief; el modelo incluye la piezométrica de §1, que queda por debajo de la base de la superficie crítica."
+    ]
+  }
+}
