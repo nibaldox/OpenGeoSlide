@@ -146,6 +146,29 @@ fn symmetric_model_without_ranges_or_surface_is_invalid() {
 }
 
 #[test]
+fn coincident_search_ranges_fall_through_to_the_next_rules() {
+    // E1b: entry == exit has equal midpoints, so rule 1 does not decide. The symmetric dam
+    // has no other hint, hence InvalidModel.
+    let same_range = dam(
+        "auto",
+        r#"{"search":{"type":"circular_entry_exit","entry":[15,25],"exit":[15,25]}}"#,
+    );
+    assert!(matches!(
+        prepare(&same_range),
+        Err(OgsError::InvalidModel(_))
+    ));
+    // ACADS 1(a) is asymmetric: rule 2 (higher terrain end is the crest) decides.
+    let asymmetric = doc(
+        SOIL,
+        &region("soil", ACADS_POLY),
+        "",
+        "auto",
+        r#"{"search":{"type":"circular_entry_exit","entry":[30,40],"exit":[30,40]}}"#,
+    );
+    assert_eq!(prepared(&asymmetric).sliding(), Sliding::RightToLeft);
+}
+
+#[test]
 fn area_converges_to_exact_arc_terrain_integral() {
     let pm = prepared(&acads("auto", &circle_json(CIRCLE)));
     let slices = slices_of(&pm, &CIRCLE, 2000);
