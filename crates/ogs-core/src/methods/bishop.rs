@@ -2,32 +2,36 @@
 //!
 //! `F = Σ [(c·b + (W − u·b)·tan φ) / m_α] / Σ W·sin α`, with `m_α = cos α + sin α·tan φ / F`.
 //! Fixed-point iteration from `F₀ = 1`, stopped when `|ΔF|/F < tolerance`.
-//! `Invalid` if some `m_α < min_m_alpha` (message `"m_alpha"`) or if `Σ W·sin α ≤ 0`.
+//! `Invalid` if some `m_α < min_m_alpha` (message `"m_alpha"`; air slices are not tested, §4.2 and
+//! §4.1.8) or if `Σ W·sin α ≤ 1e-6 · Σ W` (amendment E3, message `"no_driving"`).
 //! `NotConverged` when `max_iterations` is exhausted; such a value is never reported as converged.
 
-use super::{MethodResult, SolveOptions, SolveStatus};
+use super::{MethodResult, SolveOptions, SolveStatus, is_inert, lacks_driving};
 use crate::model::MethodKind;
 use crate::slicer::Slice;
 
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let method = MethodKind::Bishop;
-    let driving: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
-    if slices.is_empty() || !driving.is_finite() || driving <= 0.0 {
+    if lacks_driving(slices) {
         return MethodResult::new(
             method,
             f64::NAN,
             SolveStatus::Invalid,
             0,
             None,
-            Some("sum_w_sin_alpha"),
+            Some("no_driving"),
         );
     }
+    let driving: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
 
     let mut fos = 1.0_f64;
     let mut iterations = 0usize;
     while iterations < opts.max_iterations {
         let mut numerator = 0.0_f64;
         for s in slices {
+            if is_inert(s) {
+                continue;
+            }
             let (sin, cos) = s.alpha.sin_cos();
             let m_alpha = cos + sin * s.tan_phi / fos;
             if m_alpha.is_nan() || m_alpha < opts.min_m_alpha {
@@ -40,8 +44,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
                     Some("m_alpha"),
                 );
             }
-            numerator += (s.cohesion * s.width
-                + (s.weight - s.pore_pressure * s.width) * s.tan_phi)
+            numerator += (s.cohesion * s.width + (s.weight - s.pore_pressure * s.width) * s.tan_phi)
                 / m_alpha;
         }
         let next = numerator / driving;

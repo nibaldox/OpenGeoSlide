@@ -8,6 +8,22 @@ use serde::{Deserialize, Serialize};
 use crate::model::MethodKind;
 use crate::slicer::Slice;
 
+/// Relative driving threshold of amendment E3: `Σ W·sin α ≤ 1e-6 · Σ W` means no driving moment.
+const NO_DRIVING_FRACTION: f64 = 1e-6;
+
+/// An air slice (E2): no weight and no strength. It takes no part in the m_α test or in the
+/// force sums of the solvers.
+pub(crate) fn is_inert(s: &Slice) -> bool {
+    s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0
+}
+
+/// Amendment E3: true when the surface has no driving moment (`Σ W·sin α ≤ 1e-6 · Σ W`, or non-finite).
+pub(crate) fn lacks_driving(slices: &[Slice]) -> bool {
+    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let driving: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
+    !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
+}
+
 /// Solver tolerances, taken from `AnalysisSettings`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SolveOptions {
