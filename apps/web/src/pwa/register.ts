@@ -4,6 +4,7 @@
 // Actualización (R5-08): `updateViaCache: 'none'` para que `sw.js` nunca salga de la caché HTTP, aviso «Hay una
 // versión nueva» con botón «Actualizar» cuando hay un worker en espera, y recarga en `controllerchange`.
 
+import { getInstallController } from './installPrompt';
 import { watchForUpdates } from './updateFlow';
 import { showUpdatePrompt } from './updatePrompt';
 
@@ -35,5 +36,9 @@ export function registerServiceWorker(): void {
       });
   });
 }
+
+// `beforeinstallprompt` puede llegar antes de que React monte (UX-19): se captura aquí, al cargar el módulo, y el botón
+// «Instalar app» de la cabecera lee el estado. También en desarrollo: no depende del service worker.
+getInstallController();
 
 registerServiceWorker();
