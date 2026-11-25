@@ -86,7 +86,7 @@ describe('mockEngine (motor simulado)', () => {
       expect(r.surface).toEqual({ xc: 120, yc: 90, r: 80 });
       if (r.status === 'invalid') {
         expect(r.fos).toBeNull();
-        expect(r.warnings.join(' ')).toMatch(/OutsideModel|NoIntersection|AboveGround|Σ W/);
+        expect(r.warnings.join(' ')).toMatch(/OutsideModel|NoIntersection|AboveGround|NoMaterial|no_driving/);
       } else {
         expect(r.fos).not.toBeNull();
       }

@@ -1,4 +1,5 @@
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
+import { describeWarnings } from '../engine/warnings';
 
 export const METHOD_LABELS: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
@@ -27,7 +28,9 @@ interface Props {
 }
 
 export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: Props) {
-  const warnings = Array.from(new Set(report.results.flatMap((r) => r.warnings)));
+  const described = describeWarnings(report.results.flatMap((r) => r.warnings));
+  const notes = described.filter((w) => w.severity === 'nota');
+  const avisos = described.filter((w) => w.severity === 'aviso');
   return (
     <div className="results">
       <table>
@@ -69,10 +72,21 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
           ))}
         </tbody>
       </table>
-      {warnings.length > 0 && (
-        <ul className="warnings">
-          {warnings.map((w) => (
-            <li key={w}>{w}</li>
+      {notes.length > 0 && (
+        <ul className="notes" aria-label="Notas del análisis">
+          {notes.map((w) => (
+            <li key={w.code}>
+              <span className="note-tag">Nota:</span> {w.text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {avisos.length > 0 && (
+        <ul className="warnings" aria-label="Avisos del análisis">
+          {avisos.map((w) => (
+            <li key={w.code}>
+              <strong>Aviso:</strong> {w.text}
+            </li>
           ))}
         </ul>
       )}

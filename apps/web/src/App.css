@@ -296,6 +296,17 @@ td.num,
   color: #92400e;
 }
 
+.notes {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.note-tag {
+  font-weight: 600;
+}
+
 .badge {
   display: inline-block;
   padding: 2px 8px;
