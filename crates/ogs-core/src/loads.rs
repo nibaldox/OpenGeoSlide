@@ -18,6 +18,9 @@ pub const LOAD_OUTSIDE_MASS: &str = "load_outside_mass";
 /// Offset of the breakpoints around a line load, relative to the model width (E12b): `x ± 1e-6 · width`.
 const LINE_BREAK_FRACTION: f64 = 1e-6;
 
+/// Tolerance of the position of a line load against the ends of a slice, relative to the model width (E12f).
+pub(crate) const LINE_TOUCH_FRACTION: f64 = 1e-9;
+
 /// A vertical distributed load on the ground between `x1` and `x2`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Udl {
@@ -92,8 +95,10 @@ impl LoadCase {
     /// True when some declared load acts on no soil slice of `slices` (note `load_outside_mass`, E12b).
     ///
     /// A `udl` acts if it overlaps the x extent of a soil slice with positive length; a `line` acts if its `x` lies in
-    /// `[x_left, x_right)` of a soil slice. Air slices carry no load, so they do not count.
-    pub fn unused(&self, slices: &[Slice]) -> bool {
+    /// the closed interval `[x_left, x_right]` of a soil slice, within `tol = 1e-9·model width` (E12f). Air slices
+    /// carry no load, so they do not count.
+    pub fn unused(&self, slices: &[Slice], model_width: f64) -> bool {
+        let tol = LINE_TOUCH_FRACTION * model_width;
         let soil = |s: &&Slice| s.weight > 0.0;
         let udl_unused = |u: &Udl| {
             !slices
@@ -105,7 +110,7 @@ impl LoadCase {
             !slices
                 .iter()
                 .filter(soil)
-                .any(|s| s.x_left <= l.x && l.x < s.x_right)
+                .any(|s| s.x_left - tol <= l.x && l.x <= s.x_right + tol)
         };
         self.udls.iter().any(udl_unused) || self.lines.iter().any(line_unused)
     }

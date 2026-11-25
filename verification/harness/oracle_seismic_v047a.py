@@ -54,6 +54,36 @@ def line(x: float, angle: float, p: float = 20.0, ident: str = "l1") -> dict:
     return {"id": ident, "x": x, "p": p, "angle": angle}
 
 
+# Ends of the analysed block on the fixed circle (R5-01, E12f): the circle meets the ground at the toe `X_TOE` and at the
+# entry point `X_ENTRY`, exact floats of the ogs report. A line load there acts on the end slice (closed interval).
+X_TOE = 30.00000164700758
+X_ENTRY = 51.29111842105263
+UDL2 = {"id": "u1", "x1": 40.0, "x2": 52.0, "q": 15.0}
+
+
+def mirrored(scenario: tuple) -> tuple:
+    """The `ltr` image of an `rtl` scenario: x -> -x, the angle of the line loads with the opposite sign."""
+    sid, _, kh, kv, udls, lines = scenario
+    return (
+        f"ltr_{sid}",
+        "ltr",
+        kh,
+        kv,
+        [{**u, "x1": -u["x2"], "x2": -u["x1"]} for u in udls],
+        [{**l, "x": -l["x"], "angle": -l["angle"]} for l in lines],
+    )
+
+
+# Line loads of 100 kN/m on the edges of the block and on a terrain vertex / slice boundary (E12f, R5-01).
+EDGE_SCENARIOS: list[tuple] = [
+    ("line_entry_10", "rtl", 0.0, 0.0, [], [line(X_ENTRY, 10.0, 100.0)]),
+    ("line_entry_-10", "rtl", 0.0, 0.0, [], [line(X_ENTRY, -10.0, 100.0)]),
+    ("line_toe_10", "rtl", 0.0, 0.0, [], [line(X_TOE, 10.0, 100.0)]),
+    ("line_toe_-10", "rtl", 0.0, 0.0, [], [line(X_TOE, -10.0, 100.0)]),
+    ("line_crown_15", "rtl", 0.0, 0.0, [], [line(50.0, 15.0, 100.0)]),
+    ("line_udl_edge_10", "rtl", 0.0, 0.0, [UDL2], [line(40.0, 10.0, 100.0)]),
+]
+
 # (id, direction, kh, kv, udls, lines). Direction `rtl`: the mass moves toward -x (the model of V047a).
 SCENARIOS: list[tuple[str, str, float, float, list[dict], list[dict]]] = [
     ("control", "rtl", 0.0, 0.0, [], []),
@@ -76,6 +106,8 @@ SCENARIOS: list[tuple[str, str, float, float, list[dict], list[dict]]] = [
     ("ltr_udl20", "ltr", 0.0, 0.0, [{"id": "u1", "x1": -70.0, "x2": -50.0, "q": 20.0}], []),
     ("ltr_line40_10", "ltr", 0.0, 0.0, [], [line(-40.0, -10.0)]),
     ("ltr_line40_-10", "ltr", 0.0, 0.0, [], [line(-40.0, 10.0)]),
+    *EDGE_SCENARIOS,
+    *[mirrored(sc) for sc in EDGE_SCENARIOS],
 ]
 
 

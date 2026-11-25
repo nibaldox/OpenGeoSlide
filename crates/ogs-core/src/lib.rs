@@ -282,7 +282,7 @@ fn analyze_method(
         warnings.push("water_above_ground".to_string());
     }
     // E12b: a declared load that acts on no soil slice of the reported surface (informative note).
-    if load_case.unused(&slices) {
+    if load_case.unused(&slices, pm.x_max - pm.x_min) {
         warnings.push(LOAD_OUTSIDE_MASS.to_string());
     }
     // E11d′: on a searched surface, the effective soil ends are checked against `min_width` and the ranges (advisory).
