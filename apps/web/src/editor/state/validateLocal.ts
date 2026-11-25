@@ -11,47 +11,125 @@ import type { Issue, ModelDoc } from '../types';
 import { isFiniteNumber } from './docUtils';
 import { boundsOf, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, polygonsOverlap } from './polygonChecks';
 
+// Los mensajes se redactan con las etiquetas de la interfaz (paneles y tabla), indican el rango válido con un
+// ejemplo cuando ayuda y la acción a tomar. No nombran campos internos del JSON ni del motor: el código estable
+// y el puntero JSON viajan aparte en `Issue.code` y `Issue.path`.
+
 /**
- * Fragmentos de mensaje de cada regla numérica. Se exportan para que los formularios (panels/forms.ts) usen los
- * mismos textos que la validación local.
+ * Mensajes de cada regla numérica, completos y con la etiqueta del campo (también los usa panels/forms.ts, que los
+ * muestra tal cual junto al campo). Empiezan con mayúscula y no terminan en punto.
  */
 export const RULE_TEXT = {
-  materialId: 'el id del material no puede estar vacío',
-  unitWeight: 'el peso unitario debe ser > 0',
-  unitWeightSat: 'el peso unitario saturado debe ser > 0',
-  cohesion: 'la cohesión debe ser ≥ 0',
-  frictionAngle: 'el ángulo de fricción debe estar en [0, 90)',
-  ru: 'ru debe estar en [0, 1)',
-  waterUnitWeight: 'el peso unitario del agua debe ser > 0',
-  piezoMinPoints: 'la piezométrica necesita al menos 2 puntos',
-  piezoOrder: 'la piezométrica debe tener x estrictamente creciente',
-  methodsEmpty: 'debe haber al menos un método de análisis',
-  methodsRepeated: 'hay métodos de análisis repetidos',
-  slices: 'las dovelas deben ser un entero en [3, 2000]',
-  tolerance: 'la tolerancia debe estar en (0, 0,01]',
-  maxIterations: 'las iteraciones máximas deben ser un entero en [1, 100000]',
-  minMAlpha: 'min_m_alpha debe estar en (0, 1]',
-  surfaceRadius: 'el radio de la superficie debe ser > 0',
-  surfaceCenter: 'el centro de la superficie debe ser finito',
-  searchCount: 'debe ser un entero en [1, 200]',
-  searchProduct: 'el producto n_entry · n_exit · n_radius no puede superar 2 000 000',
-  maxRadiusFactor: 'el factor de radio máximo debe ser > 0,51',
-  minWidth: 'el ancho mínimo debe ser ≥ 0',
-  rangeOrder: 'el rango debe cumplir mínimo ≤ máximo',
-  rangeExtent: 'el rango debe estar dentro de la extensión x del modelo',
-  kh: 'kh debe estar en [0, 1)',
-  kv: 'kv debe estar en (-1, 1)',
-  udlOrder: 'x1 debe ser menor que x2',
-  loadX: 'la posición debe estar dentro del rango x del modelo',
-  loadQ: 'q debe ser ≥ 0',
-  loadP: 'p debe ser ≥ 0',
-  loadAngle: 'el ángulo debe estar en [-90, 90]',
-  loadDuplicateId: 'el id de carga está repetido',
-  loadType: 'el tipo de carga debe ser udl o line',
-  version02: 'los campos loads y analysis.seismic requieren version "0.2"',
-  finite: 'el valor debe ser un número finito',
-  noSurface: 'no hay superficie definida; indique una superficie fija o una búsqueda',
+  materialId: 'Identificador del material: no puede estar vacío; escriba un nombre corto (ej. arcilla)',
+  unitWeight: 'Peso unitario γ: use un valor mayor que 0 (ej. 18 kN/m³ o 115 pcf)',
+  unitWeightSat: 'Peso unitario saturado γsat: use un valor mayor que 0 (ej. 20 kN/m³ o 125 pcf), o déjelo vacío para usar γ',
+  cohesion: 'Cohesión c: use un valor igual o mayor que 0 (ej. 5 kPa o 100 psf)',
+  frictionAngle: 'Ángulo de fricción φ: use un valor desde 0° hasta menos de 90° (ej. 30)',
+  ru: 'Coeficiente de presión de poros ru: use un valor desde 0 hasta menos de 1 (ej. 0,2), o déjelo vacío',
+  waterUnitWeight: 'Peso unitario del agua γw: use un valor mayor que 0 (ej. 9,81 kN/m³ o 62,4 pcf)',
+  piezoMinPoints: 'Línea piezométrica: indique al menos 2 puntos, o quítela si no hay nivel freático',
+  piezoOrder: 'Línea piezométrica: la coordenada x debe aumentar de un punto al siguiente; ordene los puntos de izquierda a derecha',
+  methodsEmpty: 'Métodos de análisis: marque al menos uno (Bishop simplificado o Spencer)',
+  methodsRepeated: 'Métodos de análisis: hay un método repetido; marque cada uno una sola vez',
+  slices: 'Dovelas: use un número entero entre 3 y 2000 (ej. 50)',
+  tolerance: 'Tolerancia: use un valor mayor que 0 y hasta 0,01 (ej. 0,00001)',
+  maxIterations: 'Iteraciones máximas: use un número entero entre 1 y 100000 (ej. 500)',
+  minMAlpha: 'm_α mínimo: use un valor mayor que 0 y hasta 1 (ej. 0,2)',
+  surfaceCenterX: 'Centro xc del círculo de falla: escriba un número (ej. 45,5)',
+  surfaceCenterY: 'Centro yc del círculo de falla: escriba un número (ej. 38,75)',
+  surfaceCenter: 'Centro (xc, yc) del círculo de falla: escriba dos números (ej. 45,5 y 38,75)',
+  surfaceRadius: 'Radio r del círculo de falla: use un valor mayor que 0 (ej. 25)',
+  searchProduct:
+    'Búsqueda: puntos de entrada × puntos de salida × radios por par no puede superar 2 000 000 de candidatos; reduzca alguno de los tres',
+  maxRadiusFactor: 'Factor de radio máximo: use un valor mayor que 0,51 (ej. 5)',
+  minWidth: 'Ancho mínimo: use un valor igual o mayor que 0, o déjelo vacío',
+  kh: 'Coeficiente sísmico horizontal kh: use un valor entre 0 y 0,99 (ej. 0,15)',
+  kv: 'Coeficiente sísmico vertical kv: use un valor entre −0,99 y 0,99 (ej. 0 o 0,05)',
+  udlOrder: 'Carga distribuida: el inicio x1 debe ser menor que el fin x2; intercambie los valores',
+  loadQ: 'Carga distribuida q: use un valor igual o mayor que 0 (ej. 20 kPa o 400 psf)',
+  loadP: 'Carga lineal p: use un valor igual o mayor que 0 (ej. 50 kN/m o 3400 lbf/ft)',
+  loadAngle: 'Ángulo de la carga lineal: use un valor entre −90° y 90° desde la vertical (ej. 0 = vertical hacia abajo)',
+  loadDuplicateId: 'Identificador de carga: ya lo usa otra carga; use uno distinto',
+  loadType: 'Tipo de carga: debe ser distribuida o lineal',
+  version02:
+    'Formato del archivo: las cargas y el sismo requieren el formato 0.2, pero este modelo declara el 0.1; cambie la versión del archivo a 0.2',
+  noSurface:
+    'Superficie de falla: no hay ninguna definida; en el panel «Superficie de falla» elija «Búsqueda» (superficie crítica automática) o «Fija» (círculo con centro y radio)',
+  waterUnitWeightImperial:
+    'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica, así que el cálculo usaría 9,81 (el valor en kN/m³); escriba 62,4 pcf',
 } as const;
+
+// ───────────────────────── Formato de números y textos ─────────────────────────
+
+/** Número con coma decimal (hasta 6 decimales, sin ceros sobrantes) para citar el valor actual en un mensaje. */
+function fmt(v: unknown): string {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return 'no es un número';
+  return String(Number(v.toPrecision(8))).replace('.', ',');
+}
+
+function lcFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** «Valor actual: 1,2» para añadir al mensaje de un campo fuera de rango. */
+function withValue(text: string, v: unknown): string {
+  const shown = v === undefined || v === null ? 'vacío' : fmt(v);
+  return `${text}. Valor actual: ${shown}.`;
+}
+
+/** `Sujeto, etiqueta en minúscula: regla` (p. ej. «Material «arcilla», peso unitario γ: use…»). */
+function under(subject: string, text: string): string {
+  return `${subject}, ${lcFirst(text)}`;
+}
+
+/** Unidad de longitud según `units` del modelo. */
+function lengthUnit(units: string | undefined): string {
+  return units === 'imperial' ? 'ft' : 'm';
+}
+
+const COUNT_LABEL = { n_entry: 'Puntos de entrada', n_exit: 'Puntos de salida', n_radius: 'Radios por par' } as const;
+const RANGE_LABEL = { entry: 'Entrada (coronamiento)', exit: 'Salida (pie)' } as const;
+const LOAD_X_LABEL = {
+  x: 'Posición x de la carga lineal',
+  x1: 'Inicio x1 de la carga distribuida',
+  x2: 'Fin x2 de la carga distribuida',
+} as const;
+
+/** Entero con espacios como separador de miles (independiente del ICU del entorno). */
+function groups(n: number): string {
+  return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+}
+
+/** `Puntos de entrada: use un número entero entre 1 y 200 (ej. 20)`. */
+export function searchCountText(field: keyof typeof COUNT_LABEL): string {
+  return `${COUNT_LABEL[field]}: use un número entero entre 1 y 200 (ej. 20)`;
+}
+
+/** Candidatos de la rejilla de búsqueda, con separador de miles. */
+export function searchProductText(candidates: number): string {
+  return `${RULE_TEXT.searchProduct} (ahora son ${groups(candidates)})`;
+}
+
+/** Rango con mínimo mayor que máximo. `current` es el par escrito, si se conoce. */
+export function rangeOrderText(which: 'entry' | 'exit', current?: readonly [number, number]): string {
+  const shown = current ? ` (mínimo ${fmt(current[0])}, máximo ${fmt(current[1])})` : '';
+  return `${RANGE_LABEL[which]}: el mínimo no puede ser mayor que el máximo${shown}; intercambie los valores`;
+}
+
+/** Rango fuera del ancho del modelo. `extent` y `unit` dan el límite válido. */
+export function rangeExtentText(which: 'entry' | 'exit', extent?: { min: number; max: number } | null, unit?: string): string {
+  const limit = extent ? ` (de ${fmt(extent.min)} a ${fmt(extent.max)}${unit ? ` ${unit}` : ''})` : '';
+  return `${RANGE_LABEL[which]}: el rango debe quedar dentro del ancho del modelo${limit}; ajuste el mínimo y el máximo`;
+}
+
+/** Posición de una carga fuera del ancho del modelo. */
+export function loadXText(field: keyof typeof LOAD_X_LABEL, extent?: { min: number; max: number } | null, unit?: string): string {
+  const limit = extent ? ` (de ${fmt(extent.min)} a ${fmt(extent.max)}${unit ? ` ${unit}` : ''})` : '';
+  return `${LOAD_X_LABEL[field]}: la posición debe estar dentro del ancho del modelo${limit}`;
+}
+
+/** Los dos rótulos de rango tal como los muestra el panel de búsqueda. */
+export const SEARCH_RANGE_LABEL = RANGE_LABEL;
 
 type Code = Issue['code'];
 
@@ -83,28 +161,30 @@ function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
   const seen = new Set<string>();
   doc.materials.forEach((m: Material, i) => {
     const base = `/materials/${i}`;
-    const label = `Material '${m.id}'`;
+    const label = `Material «${m.id}»`;
     if (typeof m.id !== 'string' || m.id === '') {
-      issues.push(error('editor.out_of_range', `Material ${i + 1}: ${RULE_TEXT.materialId}.`, `${base}/id`));
+      issues.push(error('editor.out_of_range', `Material ${i + 1}: ${lcFirst(RULE_TEXT.materialId)}.`, `${base}/id`));
     } else if (seen.has(m.id)) {
-      issues.push(error('editor.duplicate_material', `${label}: el id está repetido.`, `${base}/id`));
+      issues.push(
+        error('editor.duplicate_material', `${label}: el identificador está repetido; cada material necesita uno distinto.`, `${base}/id`),
+      );
     } else {
       seen.add(m.id);
     }
     if (!(isNum(m.unit_weight) && m.unit_weight > 0)) {
-      issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.unitWeight}.`, `${base}/unit_weight`));
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.unitWeight), m.unit_weight), `${base}/unit_weight`));
     }
     if (m.unit_weight_sat !== undefined && m.unit_weight_sat !== null && !(isNum(m.unit_weight_sat) && m.unit_weight_sat > 0)) {
-      issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.unitWeightSat}.`, `${base}/unit_weight_sat`));
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.unitWeightSat), m.unit_weight_sat), `${base}/unit_weight_sat`));
     }
     if (!(isNum(m.cohesion) && m.cohesion >= 0)) {
-      issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.cohesion}.`, `${base}/cohesion`));
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.cohesion), m.cohesion), `${base}/cohesion`));
     }
     if (!(isNum(m.friction_angle) && m.friction_angle >= 0 && m.friction_angle < 90)) {
-      issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.frictionAngle}.`, `${base}/friction_angle`));
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.frictionAngle), m.friction_angle), `${base}/friction_angle`));
     }
     if (m.ru !== undefined && m.ru !== null && !(isNum(m.ru) && m.ru >= 0 && m.ru < 1)) {
-      issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.ru}.`, `${base}/ru`));
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.ru), m.ru), `${base}/ru`));
     }
   });
 }
@@ -118,30 +198,54 @@ function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issu
   const materialIds = new Set(doc.materials.map((m) => m.id));
   const clean: CleanRegion[] = [];
   if (doc.regions.length === 0) {
-    issues.push(error('editor.out_of_range', 'El modelo no tiene regiones.', '/regions'));
+    issues.push(error('editor.out_of_range', 'El modelo no tiene regiones: agregue al menos una región de suelo (por ejemplo, importando un DXF o abriendo un ejemplo).', '/regions'));
   }
   doc.regions.forEach((region, k) => {
     const base = `/regions/${k}`;
     const label = `Región ${k + 1}`;
     if (!materialIds.has(region.material)) {
-      issues.push(error('editor.missing_material', `${label}: usa el material '${region.material}', que no existe.`, `${base}/material`));
+      issues.push(
+        error(
+          'editor.missing_material',
+          `${label}: usa el material «${region.material}», que no existe. Asígnele uno de los materiales definidos o cree ese material en el panel «Materiales».`,
+          `${base}/material`,
+        ),
+      );
     }
     const polygon = region.polygon;
     if (polygon.length < 3) {
-      issues.push(error('editor.too_few_vertices', `${label}: tiene menos de 3 vértices (${polygon.length}).`, `${base}/polygon`));
+      issues.push(
+        error(
+          'editor.too_few_vertices',
+          `${label}: tiene ${polygon.length} ${polygon.length === 1 ? 'vértice' : 'vértices'} y necesita al menos 3. Agregue vértices o elimine la región.`,
+          `${base}/polygon`,
+        ),
+      );
       return;
     }
     let finite = true;
     polygon.forEach((p, i) => {
       if (!(Array.isArray(p) && isNum(p[0]) && isNum(p[1]))) {
         finite = false;
-        issues.push(error('editor.out_of_range', `${label}, vértice ${i + 1}: las coordenadas deben ser números finitos.`, `${base}/polygon/${i}`));
+        issues.push(
+          error(
+            'editor.out_of_range',
+            `${label}, vértice ${i + 1}: las coordenadas x e y deben ser números. Corrija el valor (ej. 12,5).`,
+            `${base}/polygon/${i}`,
+          ),
+        );
       }
     });
     if (!finite) return;
     // Igual que el motor, la degeneración se evalúa sobre el polígono tal como está (con sus repetidos).
     if (isDegenerateRegion(polygon, scale)) {
-      issues.push(error('editor.degenerate_region', `${label}: es degenerada, su área es nula (≤ 1e-12 · escala²).`, `${base}/polygon`));
+      issues.push(
+        error(
+          'editor.degenerate_region',
+          `${label}: no encierra superficie (los vértices están alineados o casi coinciden). Mueva algún vértice para que el contorno tenga área.`,
+          `${base}/polygon`,
+        ),
+      );
       return;
     }
     const { points, indices } = dedupeConsecutive(polygon, tol);
@@ -151,12 +255,24 @@ function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issu
     polygon.forEach((_, i) => {
       if (!kept.has(i)) {
         duplicated = true;
-        issues.push(warning('editor.duplicate_vertex', `${label}, vértice ${i + 1}: repite al vértice anterior (el motor lo acepta).`, `${base}/polygon/${i}`));
+        issues.push(
+          warning(
+            'editor.duplicate_vertex',
+            `${label}, vértice ${i + 1}: repite al vértice anterior. No afecta al cálculo, pero puede eliminarlo.`,
+            `${base}/polygon/${i}`,
+          ),
+        );
       }
     });
     if (points.length < 3) {
       if (duplicated) {
-        issues.push(error('editor.too_few_vertices', `${label}: tiene menos de 3 vértices distintos.`, `${base}/polygon`));
+        issues.push(
+          error(
+            'editor.too_few_vertices',
+            `${label}: tiene menos de 3 vértices distintos. Elimine los repetidos o agregue vértices.`,
+            `${base}/polygon`,
+          ),
+        );
       }
       return;
     }
@@ -167,7 +283,7 @@ function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issu
       issues.push(
         error(
           'editor.self_intersection',
-          `${label}: se auto-intersecta (aristas ${si.edgeA + 1} y ${si.edgeB + 1}; ${detail}).`,
+          `${label}: el contorno se cruza consigo mismo (aristas ${si.edgeA + 1} y ${si.edgeB + 1}; ${detail}). Mueva los vértices para que el contorno no se cruce.`,
           `${base}/polygon/${vi}`,
         ),
       );
@@ -180,7 +296,13 @@ function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issu
       const ra = clean[a] as CleanRegion;
       const rb = clean[b] as CleanRegion;
       if (polygonsOverlap(ra.polygon, rb.polygon, tol)) {
-        issues.push(error('editor.region_overlap', `Las regiones ${ra.index + 1} y ${rb.index + 1} se solapan.`, `/regions/${rb.index}`));
+        issues.push(
+          error(
+            'editor.region_overlap',
+            `Las regiones ${ra.index + 1} y ${rb.index + 1} se solapan. Ajuste sus vértices para que solo compartan bordes.`,
+            `/regions/${rb.index}`,
+          ),
+        );
       }
     }
   }
@@ -190,19 +312,25 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
   const water = doc.water;
   if (!water) return;
   if (water.unit_weight !== undefined && !(isNum(water.unit_weight) && water.unit_weight > 0)) {
-    issues.push(error('editor.out_of_range', `Agua: ${RULE_TEXT.waterUnitWeight}.`, '/water/unit_weight'));
+    issues.push(error('editor.out_of_range', withValue(RULE_TEXT.waterUnitWeight, water.unit_weight), '/water/unit_weight'));
   }
   const line = water.piezometric_line;
   if (line === undefined || line === null) return;
   const base = '/water/piezometric_line';
   if (line.length < 2) {
-    issues.push(error('editor.out_of_range', `Piezométrica: ${RULE_TEXT.piezoMinPoints}.`, base));
+    issues.push(error('editor.out_of_range', `${RULE_TEXT.piezoMinPoints}.`, base));
   }
   let finite = true;
   line.forEach((p, i) => {
     if (!(Array.isArray(p) && isNum(p[0]) && isNum(p[1]))) {
       finite = false;
-      issues.push(error('editor.out_of_range', `Piezométrica, punto ${i + 1}: las coordenadas deben ser números finitos.`, `${base}/${i}`));
+      issues.push(
+        error(
+          'editor.out_of_range',
+          `Línea piezométrica, punto ${i + 1}: las coordenadas x e y deben ser números. Corrija el valor (ej. 12,5).`,
+          `${base}/${i}`,
+        ),
+      );
     }
   });
   if (!finite) return;
@@ -210,8 +338,18 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
     const prev = line[i - 1] as Point;
     const cur = line[i] as Point;
     if (!(cur[0] > prev[0])) {
-      issues.push(error('editor.piezo_order', `Piezométrica, punto ${i + 1}: ${RULE_TEXT.piezoOrder}.`, `${base}/${i}`));
+      issues.push(
+        error(
+          'editor.piezo_order',
+          `Línea piezométrica, punto ${i + 1}: la coordenada x (${fmt(cur[0])}) debe ser mayor que la del punto anterior (${fmt(prev[0])}); ordene los puntos de izquierda a derecha.`,
+          `${base}/${i}`,
+        ),
+      );
     }
+  }
+  // El motor no convierte unidades: sin γw explícito usa 9,81 aunque el modelo esté en pcf (R7-22).
+  if (doc.units === 'imperial' && line.length >= 2 && (water.unit_weight === undefined || water.unit_weight === 9.81)) {
+    issues.push(warning('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
   }
 }
 
@@ -220,91 +358,94 @@ function validateRange(
   name: 'entry' | 'exit',
   extent: { min: number; max: number } | null,
   tol: number,
+  unit: string,
   issues: Issue[],
 ): void {
   if (value === undefined || value === null) return;
   const path = `/analysis/search/${name}`;
-  const label = `Búsqueda, rango de ${name === 'entry' ? 'entrada' : 'salida'}`;
   if (!(Array.isArray(value) && value.length === 2 && isNum(value[0]) && isNum(value[1]))) {
-    issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.finite}.`, path));
+    issues.push(error('editor.out_of_range', `${RANGE_LABEL[name]}: escriba dos números, el mínimo y el máximo.`, path));
     return;
   }
   const lo = value[0] as number;
   const hi = value[1] as number;
   if (lo > hi) {
-    issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.rangeOrder}.`, path));
+    issues.push(error('editor.out_of_range', `${rangeOrderText(name, [lo, hi])}.`, path));
   } else if (extent && (lo < extent.min - tol || hi > extent.max + tol)) {
-    issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.rangeExtent}.`, path));
+    issues.push(error('editor.out_of_range', `${rangeExtentText(name, extent, unit)}. Valor actual: ${fmt(lo)} a ${fmt(hi)}.`, path));
   }
 }
 
 function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | null, tol: number, issues: Issue[]): void {
   const a = doc.analysis;
+  const unit = lengthUnit(doc.units);
   if (a.methods !== undefined) {
     if (a.methods.length === 0) {
-      issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.methodsEmpty}.`, '/analysis/methods'));
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.methodsEmpty}.`, '/analysis/methods'));
     } else if (new Set(a.methods).size !== a.methods.length) {
-      issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.methodsRepeated}.`, '/analysis/methods'));
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.methodsRepeated}.`, '/analysis/methods'));
     }
   }
   if (a.slices !== undefined && !(isInt(a.slices) && a.slices >= 3 && a.slices <= 2000)) {
-    issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.slices}.`, '/analysis/slices'));
+    issues.push(error('editor.out_of_range', withValue(RULE_TEXT.slices, a.slices), '/analysis/slices'));
   }
   if (a.tolerance !== undefined && !(isNum(a.tolerance) && a.tolerance > 0 && a.tolerance <= 0.01)) {
-    issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.tolerance}.`, '/analysis/tolerance'));
+    issues.push(error('editor.out_of_range', withValue(RULE_TEXT.tolerance, a.tolerance), '/analysis/tolerance'));
   }
   if (a.max_iterations !== undefined && !(isInt(a.max_iterations) && a.max_iterations >= 1 && a.max_iterations <= 100000)) {
-    issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.maxIterations}.`, '/analysis/max_iterations'));
+    issues.push(error('editor.out_of_range', withValue(RULE_TEXT.maxIterations, a.max_iterations), '/analysis/max_iterations'));
   }
   if (a.min_m_alpha !== undefined && !(isNum(a.min_m_alpha) && a.min_m_alpha > 0 && a.min_m_alpha <= 1)) {
-    issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.minMAlpha}.`, '/analysis/min_m_alpha'));
+    issues.push(error('editor.out_of_range', withValue(RULE_TEXT.minMAlpha, a.min_m_alpha), '/analysis/min_m_alpha'));
   }
   const s = a.surface;
   if ((s === undefined || s === null) && (a.search === undefined || a.search === null)) {
-    issues.push(error('editor.no_surface', `Análisis: ${RULE_TEXT.noSurface}.`, '/analysis'));
+    issues.push(error('editor.no_surface', `${RULE_TEXT.noSurface}.`, '/analysis'));
   }
   if (s !== undefined && s !== null) {
     if (!(isNum(s.xc) && isNum(s.yc))) {
-      issues.push(error('editor.out_of_range', `Superficie fija: ${RULE_TEXT.surfaceCenter}.`, '/analysis/surface'));
+      issues.push(
+        error('editor.out_of_range', `${RULE_TEXT.surfaceCenter}. Valores actuales: xc ${fmt(s.xc)}, yc ${fmt(s.yc)}.`, '/analysis/surface'),
+      );
     }
     if (!(isNum(s.r) && s.r > 0)) {
-      issues.push(error('editor.out_of_range', `Superficie fija: ${RULE_TEXT.surfaceRadius}.`, '/analysis/surface/r'));
+      issues.push(error('editor.out_of_range', withValue(RULE_TEXT.surfaceRadius, s.r), '/analysis/surface/r'));
     }
   }
   const q = a.search;
   if (q !== undefined && q !== null) {
-    const counts: [string, number | undefined][] = [
+    const counts: ['n_entry' | 'n_exit' | 'n_radius', number | undefined][] = [
       ['n_entry', q.n_entry],
       ['n_exit', q.n_exit],
       ['n_radius', q.n_radius],
     ];
     for (const [name, value] of counts) {
       if (value !== undefined && !(isInt(value) && value >= 1 && value <= 200)) {
-        issues.push(error('editor.out_of_range', `Búsqueda, ${name}: ${RULE_TEXT.searchCount}.`, `/analysis/search/${name}`));
+        issues.push(error('editor.out_of_range', withValue(searchCountText(name), value), `/analysis/search/${name}`));
       }
     }
     const product = (q.n_entry ?? 20) * (q.n_exit ?? 20) * (q.n_radius ?? 20);
     if (counts.every(([, v]) => v === undefined || isInt(v)) && product > 2e6) {
-      issues.push(error('editor.out_of_range', `Búsqueda: ${RULE_TEXT.searchProduct}.`, '/analysis/search'));
+      issues.push(error('editor.out_of_range', `${searchProductText(product)}.`, '/analysis/search'));
     }
     if (q.max_radius_factor !== undefined && !(isNum(q.max_radius_factor) && q.max_radius_factor > 0.51)) {
-      issues.push(error('editor.out_of_range', `Búsqueda: ${RULE_TEXT.maxRadiusFactor}.`, '/analysis/search/max_radius_factor'));
+      issues.push(error('editor.out_of_range', withValue(RULE_TEXT.maxRadiusFactor, q.max_radius_factor), '/analysis/search/max_radius_factor'));
     }
     if (q.min_width !== undefined && q.min_width !== null && !(isNum(q.min_width) && q.min_width >= 0)) {
-      issues.push(error('editor.out_of_range', `Búsqueda: ${RULE_TEXT.minWidth}.`, '/analysis/search/min_width'));
+      issues.push(error('editor.out_of_range', withValue(RULE_TEXT.minWidth, q.min_width), '/analysis/search/min_width'));
     }
-    validateRange(q.entry, 'entry', extent, tol, issues);
-    validateRange(q.exit, 'exit', extent, tol, issues);
+    validateRange(q.entry, 'entry', extent, tol, unit, issues);
+    validateRange(q.exit, 'exit', extent, tol, unit, issues);
   }
   const seismic = a.seismic;
   if (seismic !== undefined && seismic !== null) {
     const kh = seismic.kh ?? 0;
     const kv = seismic.kv ?? 0;
     if (!(isNum(kh) && kh >= 0 && kh < 1)) {
-      issues.push(error('editor.out_of_range', `Sismo: ${RULE_TEXT.kh}.`, '/analysis/seismic/kh'));
+      issues.push(error('editor.out_of_range', withValue(RULE_TEXT.kh, kh), '/analysis/seismic/kh'));
     }
     if (!(isNum(kv) && kv > -1 && kv < 1)) {
-      issues.push(error('editor.out_of_range', `Sismo: ${RULE_TEXT.kv}.`, '/analysis/seismic/kv'));
+      issues.push(error('editor.out_of_range', withValue(RULE_TEXT.kv, kv), '/analysis/seismic/kv'));
     }
   }
 }
@@ -312,35 +453,48 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
 function validateLoads(doc: ModelDoc, extent: { min: number; max: number } | null, tol: number, issues: Issue[]): void {
   const loads = doc.loads ?? [];
   const ids = new Set<string>();
+  const unit = lengthUnit(doc.units);
   const inExtent = (x: number): boolean => extent === null || (x >= extent.min - tol && x <= extent.max + tol);
   loads.forEach((load, i) => {
     const base = `/loads/${i}`;
     const label = `Carga ${i + 1}`;
     if (load.id !== undefined && load.id !== null) {
       if (ids.has(load.id)) {
-        issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.loadDuplicateId}.`, `${base}/id`));
+        issues.push(error('editor.load_range', `${label}: el identificador «${load.id}» ya lo usa otra carga; use uno distinto.`, `${base}/id`));
       }
       ids.add(load.id);
     }
     if (load.type === 'udl') {
       if (!(isNum(load.x1) && isNum(load.x2))) {
-        issues.push(error('editor.load_range', `${label}: x1 y x2 deben ser números finitos.`, base));
+        issues.push(error('editor.load_range', `${label}: el inicio x1 y el fin x2 de la carga distribuida deben ser números.`, base));
       } else {
-        if (!(load.x1 < load.x2)) issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.udlOrder}.`, `${base}/x1`));
-        if (!inExtent(load.x1)) issues.push(error('editor.load_range', `${label}: x1 ${RULE_TEXT.loadX}.`, `${base}/x1`));
-        if (!inExtent(load.x2)) issues.push(error('editor.load_range', `${label}: x2 ${RULE_TEXT.loadX}.`, `${base}/x2`));
+        if (!(load.x1 < load.x2)) {
+          issues.push(
+            error('editor.load_range', `${label}: ${lcFirst(RULE_TEXT.udlOrder)}. Valores actuales: x1 ${fmt(load.x1)}, x2 ${fmt(load.x2)}.`, `${base}/x1`),
+          );
+        }
+        if (!inExtent(load.x1)) {
+          issues.push(error('editor.load_range', withValue(under(label, loadXText('x1', extent, unit)), load.x1), `${base}/x1`));
+        }
+        if (!inExtent(load.x2)) {
+          issues.push(error('editor.load_range', withValue(under(label, loadXText('x2', extent, unit)), load.x2), `${base}/x2`));
+        }
       }
-      if (!(isNum(load.q) && load.q >= 0)) issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.loadQ}.`, `${base}/q`));
+      if (!(isNum(load.q) && load.q >= 0)) {
+        issues.push(error('editor.load_range', withValue(`${label}: ${lcFirst(RULE_TEXT.loadQ)}`, load.q), `${base}/q`));
+      }
     } else if (load.type === 'line') {
       if (!(isNum(load.x) && inExtent(load.x))) {
-        issues.push(error('editor.load_range', `${label}: x ${RULE_TEXT.loadX}.`, `${base}/x`));
+        issues.push(error('editor.load_range', withValue(under(label, loadXText('x', extent, unit)), load.x), `${base}/x`));
       }
-      if (!(isNum(load.p) && load.p >= 0)) issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.loadP}.`, `${base}/p`));
+      if (!(isNum(load.p) && load.p >= 0)) {
+        issues.push(error('editor.load_range', withValue(`${label}: ${lcFirst(RULE_TEXT.loadP)}`, load.p), `${base}/p`));
+      }
       if (!(isNum(load.angle) && load.angle >= -90 && load.angle <= 90)) {
-        issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.loadAngle}.`, `${base}/angle`));
+        issues.push(error('editor.load_range', withValue(`${label}: ${lcFirst(RULE_TEXT.loadAngle)}`, load.angle), `${base}/angle`));
       }
     } else {
-      issues.push(error('editor.load_range', `${label}: ${RULE_TEXT.loadType}.`, `${base}/type`));
+      issues.push(error('editor.load_range', `${label}: ${lcFirst(RULE_TEXT.loadType)}.`, `${base}/type`));
     }
   });
 }
@@ -364,7 +518,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   const hasV02Fields =
     (doc.loads !== undefined && doc.loads.length > 0) || (doc.analysis.seismic !== undefined && doc.analysis.seismic !== null);
   if (doc.version === '0.1' && hasV02Fields) {
-    issues.push(error('editor.out_of_range', `Modelo: ${RULE_TEXT.version02}.`, '/version'));
+    issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
   }
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
