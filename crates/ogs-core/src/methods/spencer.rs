@@ -327,29 +327,14 @@ type SlopeFn<'a> = dyn Fn(f64) -> Option<(f64, f64)> + 'a;
 
 /// Root of `h(F) = 0` nearest to `start` on `[lo, FOS_MAX]` (continuation along the λ scan, E10c).
 ///
-/// Fast path: when `fast = (slope, guess)` is given (`slope` is the value and derivative of `h`, `guess` a better start
-/// than `start`, e.g. extrapolated along the scan), Newton's method from `guess` is tried first. Its root is accepted only
-/// if it stays on `[lo, FOS_MAX]` and within `ROOT_STEP0` (relative) of `start`, which is the first bracket of the walk
-/// below, so the root is the one the walk finds; otherwise the walk runs as usual.
-///
 /// The bracket is searched outward from `start`, both sides at the same distance, with growing steps. The first
 /// sign change wins, and it is refined with Brent. A bracket that holds a pole leaves a residual above `ROOT_ACCEPT`
 /// and is discarded. `None` if no admissible root is found.
-fn root_near(
-    h: &dyn Fn(f64) -> Option<f64>,
-    fast: Option<(&SlopeFn<'_>, f64)>,
-    start: f64,
-    lo: f64,
-) -> Option<f64> {
+fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64> {
     if lo > FOS_MAX {
         return None;
     }
     let x0 = start.clamp(lo, FOS_MAX);
-    if let Some((slope, guess)) = fast
-        && let Some(root) = newton_near(slope, guess.clamp(lo, FOS_MAX), x0, lo)
-    {
-        return Some(root);
-    }
     let h0 = h(x0);
     if h0 == Some(0.0) {
         return Some(x0);
@@ -394,12 +379,14 @@ fn root_near(
     None
 }
 
-/// Newton iteration on `h` from `guess`, around the start `x0` (see [`root_near`]). `None` when it does not settle within a few steps or leaves
-/// `[lo, FOS_MAX]` or the `ROOT_STEP0` neighbourhood of `x0`.
+/// Newton fast path of the force root (E12e, performance): the root of `h` found by Newton's method from `guess`
+/// (extrapolated along the scan), or `None` when it does not settle within a few steps or leaves `(0, FOS_MAX]` or the
+/// `ROOT_STEP0` neighbourhood of `start`. That neighbourhood is the first bracket of [`root_near`]'s walk, so the root is
+/// the one the walk finds. The caller checks the lower bound of F ([`Scheme::above_lower`]) and the closure at the root.
 ///
 /// The step taken from a point with `|h| ≤ NEWTON_TRUST` is returned without evaluating `h` again: Newton's error is
 /// quadratic there (about 1e-12 or less), and the caller checks the closure at the returned point (`ROOT_ACCEPT`).
-fn newton_near(slope: &SlopeFn<'_>, guess: f64, x0: f64, lo: f64) -> Option<f64> {
+fn newton_near(slope: &SlopeFn<'_>, guess: f64, start: f64) -> Option<f64> {
     let mut x = guess;
     for _ in 0..NEWTON_LIMIT {
         let (h, dh) = slope(x)?;
@@ -410,7 +397,7 @@ fn newton_near(slope: &SlopeFn<'_>, guess: f64, x0: f64, lo: f64) -> Option<f64>
             return None;
         }
         let next = x - h / dh;
-        if !(lo..=FOS_MAX).contains(&next) || (next - x0).abs() > ROOT_STEP0 * x0 {
+        if !(next > 0.0 && next <= FOS_MAX) || (next - start).abs() > ROOT_STEP0 * start {
             return None;
         }
         if h.abs() <= NEWTON_TRUST {
@@ -561,6 +548,18 @@ impl Scheme<'_> {
         }
     }
 
+    /// Whether `fos ≥ self.lower(λ)`, without the divisions of [`pole_bound`]: `F ≥ −p/(a − m)·(1 + ε)` reads
+    /// `p + (a − m)·F/(1 + ε) ≥ 0` when `a > m`.
+    fn above_lower(&self, lambda: f64, fos: f64) -> bool {
+        let scaled = fos / (1.0 + ADM_MARGIN);
+        fos >= FOS_FLOOR
+            && (self.m_bound <= 0.0 || fos >= self.m_bound * (1.0 + ADM_MARGIN))
+            && self.preps.iter().filter(|p| !p.inert).all(|p| {
+                let a = p.cos + lambda * p.sin - self.min_m;
+                a <= 0.0 || (p.sin - lambda * p.cos) * p.tan_phi + a * scaled >= 0.0
+            })
+    }
+
     /// Normalised moment residual `ρ = [Σb(E_k + E_{k+1})(tan α_k − λ) − 2·Σ h_moment_base] / (ΣW · Σb)` (E11a, E12b).
     fn residual(&self, b: &Balance, lambda: f64) -> f64 {
         (b.num - lambda * b.den - self.moment_h) / (self.total_w * self.total_width)
@@ -570,17 +569,20 @@ impl Scheme<'_> {
     fn point(&self, lambda: f64, warm: f64, guess: f64) -> Option<Point> {
         let preps = &self.preps;
         let total_w = self.total_w;
-        let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+        let closed = |b: &Balance| b.closure.abs() / total_w <= ROOT_ACCEPT;
         let slope =
             |x: f64| closure_slope(preps, lambda, x).map(|(e, de)| (e / total_w, de / total_w));
-        let lower = self.lower(lambda);
-        let mut fos = root_near(&closure, Some((&slope, guess)), warm, lower)?;
-        let mut b = balance_at(preps, lambda, fos)?;
-        if b.closure.abs() / total_w > ROOT_ACCEPT {
-            // The Newton fast path did not close (a pole nearby): redo it with the bracketing walk.
-            fos = root_near(&closure, None, warm, lower)?;
-            b = balance_at(preps, lambda, fos)?;
-        }
+        let fast = newton_near(&slope, guess, warm)
+            .filter(|&x| self.above_lower(lambda, x))
+            .and_then(|x| balance_at(preps, lambda, x).filter(closed).map(|b| (x, b)));
+        let (fos, b) = match fast {
+            Some(found) => found,
+            None => {
+                let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+                let fos = root_near(&closure, warm, self.lower(lambda))?;
+                (fos, balance_at(preps, lambda, fos)?)
+            }
+        };
         Some(Point {
             rho: self.residual(&b, lambda),
             fos,
@@ -812,13 +814,13 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .map(|&lambda| {
             let preps = &scheme.preps;
             let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
-            let force = root_near(&closure, None, warm.1, scheme.lower(lambda));
+            let force = root_near(&closure, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
                 balance_at(preps, lambda, x)
                     .and_then(|b| moment_ratio(&b, scheme.moment_h))
                     .map(|m| m - lambda)
             };
-            let moment = root_near(&moment_residual, None, warm.0, scheme.lower(lambda));
+            let moment = root_near(&moment_residual, warm.0, scheme.lower(lambda));
             if let (Some(m), Some(f)) = (moment, force) {
                 warm = (m, f);
             }
