@@ -6,6 +6,7 @@
 // inicial va al botón seguro («Cancelar» en las acciones destructivas) y, al cerrar, vuelve al disparador.
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { restoreFocus } from './focusReturn';
 import { appConfirmQueue, type ConfirmOptions, type PendingConfirm } from './confirmQueue';
 
 export type { ConfirmOptions } from './confirmQueue';
@@ -20,6 +21,7 @@ export function useConfirm(): (opts: ConfirmOptions) => Promise<boolean> {
 
 function Dialog({ pending }: { pending: PendingConfirm }) {
   const { title, message, confirmLabel, cancelLabel, tone } = pending.options;
+  const returnFocus = pending.returnFocus;
   const titleId = useId();
   const messageId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -37,10 +39,11 @@ function Dialog({ pending }: { pending: PendingConfirm }) {
     // Foco seguro: en una acción destructiva, «Cancelar»; en el resto, la acción que se pide.
     (tone === 'danger' ? cancelRef : confirmRef).current?.focus();
     return () => {
-      // Al desmontar, el navegador saca el diálogo de la capa superior; solo falta devolver el foco al disparador.
-      if (previous?.isConnected) previous.focus();
+      // Al desmontar, el navegador saca el diálogo de la capa superior; solo falta devolver el foco. Si el disparador ya no se
+      // puede enfocar (elemento de un menú cerrado, tarjeta eliminada), va al botón del menú o a #main-content (A-05, B-02).
+      restoreFocus(returnFocus as HTMLElement | (() => HTMLElement | null) | null, previous);
     };
-  }, [previous, tone]);
+  }, [previous, returnFocus, tone]);
 
   return (
     <dialog

@@ -9,6 +9,11 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   /** `danger` (acción destructiva): el foco inicial va a «Cancelar». Por omisión, `default`. */
   tone?: 'danger' | 'default';
+  /**
+   * Dónde vuelve el foco al cerrar (por omisión, el elemento enfocado al pedir). Si ese elemento ya no se puede enfocar
+   * (un elemento de menú cerrado, una tarjeta eliminada), el foco va al botón del menú o a `#main-content`.
+   */
+  returnFocus?: HTMLElement | (() => HTMLElement | null) | null;
 }
 
 export interface ResolvedConfirmOptions {
@@ -25,6 +30,8 @@ export interface PendingConfirm {
   options: ResolvedConfirmOptions;
   /** Elemento que tenía el foco al pedir (el disparador): el foco vuelve a él al cerrar. */
   opener: unknown;
+  /** `returnFocus` pedido por quien llamó (elemento, función o nada). */
+  returnFocus: unknown;
 }
 
 export const DEFAULT_CANCEL_LABEL = 'Cancelar';
@@ -66,7 +73,7 @@ export function createConfirmQueue(): ConfirmQueue {
   return {
     request(options, opener = null) {
       return new Promise<boolean>((settle) => {
-        entries.push({ id: nextId++, options: normalizeConfirm(options), opener, settle });
+        entries.push({ id: nextId++, options: normalizeConfirm(options), opener, returnFocus: options.returnFocus ?? null, settle });
         emit();
       });
     },

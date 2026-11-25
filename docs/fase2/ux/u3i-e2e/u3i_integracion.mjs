@@ -128,14 +128,16 @@ await page.waitForSelector('dialog[open]', { state: 'detached' });
 // 5. Talud simple con cambios sin guardar: el diálogo de descarte se apila sobre el del talud; cancelar lo deja abierto
 await page.keyboard.press('v');
 await openMenu('Archivo');
-await page.getByRole('button', { name: 'Talud simple…' }).click();
+// U5-S (B-03): la incidencia «El modelo no tiene regiones…» ahora es un botón y su nombre contiene «Talud simple…»: nombre exacto.
+await page.getByRole('button', { name: 'Talud simple…', exact: true }).click();
 await page.waitForSelector('dialog[open]');
 await page.getByRole('button', { name: 'Crear talud' }).click();
 await page.waitForSelector('[data-testid="canvas-empty"]', { state: 'detached' }); // Nuevo dejó el modelo sin cambios: no pregunta
 step('5a Talud simple sobre un modelo sin cambios no pregunta', (await page.locator(CONFIRM).count()) === 0 && (await nRegions()) === 1, { regions: await nRegions() });
 await dirtyEdit();
 await openMenu('Archivo');
-await page.getByRole('button', { name: 'Talud simple…' }).click();
+// U5-S (B-03): la incidencia «El modelo no tiene regiones…» ahora es un botón y su nombre contiene «Talud simple…»: nombre exacto.
+await page.getByRole('button', { name: 'Talud simple…', exact: true }).click();
 await page.waitForSelector('dialog[open]');
 await page.getByRole('button', { name: 'Crear talud' }).click();
 await page.waitForSelector(CONFIRM);

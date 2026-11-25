@@ -8,6 +8,14 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, ty
 import { nextRovingIndex } from './rovingTabIndex';
 
 // Las flechas recorren los botones; un <select> del menú (Ejemplos) se alcanza con Tab y conserva sus propias teclas.
+/**
+ * Tras ejecutar una acción del menú, ¿hay que devolver el foco al botón del menú? Sí cuando el foco se perdió (cayó en
+ * `<body>`, o sigue en un elemento del menú ya cerrado). No si la acción llevó el foco a otro sitio (un diálogo, el lienzo).
+ */
+export function shouldRefocusTrigger(active: { isBody: boolean; insideMenu: boolean; connected: boolean }): boolean {
+  return active.isBody || active.insideMenu || !active.connected;
+}
+
 const ITEM_SELECTOR = 'button:not(:disabled)';
 
 function menuItems(menu: HTMLElement): HTMLElement[] {
@@ -30,6 +38,16 @@ export function DropdownMenu({ label, children, className }: { label: string; ch
   const close = useCallback((): void => {
     const menu = menuRef.current;
     if (menu?.matches(':popover-open')) menu.hidePopover();
+  }, []);
+
+  /** Tras una acción del menú: si el foco se perdió, vuelve al botón del menú (A-05, B-02). Se evalúa tras el renderizado de la acción. */
+  const refocusTriggerIfLost = useCallback((): void => {
+    window.requestAnimationFrame(() => {
+      const menu = menuRef.current;
+      const active = document.activeElement;
+      if (!shouldRefocusTrigger({ isBody: active === null || active === document.body, insideMenu: !!menu && !!active && menu.contains(active), connected: !!active?.isConnected })) return;
+      triggerRef.current?.focus();
+    });
   }, []);
 
   useEffect(() => {
@@ -136,10 +154,16 @@ export function DropdownMenu({ label, children, className }: { label: string; ch
         onClick={(e) => {
           // Una acción cierra el menú (el foco vuelve al botón). El <select> lo cierra al elegir (onChange).
           const t = e.target instanceof Element ? e.target.closest('button') : null;
-          if (t && !t.disabled) close();
+          if (t && !t.disabled) {
+            close();
+            refocusTriggerIfLost();
+          }
         }}
         onChange={(e) => {
-          if (e.target instanceof HTMLSelectElement) close();
+          if (e.target instanceof HTMLSelectElement) {
+            close();
+            refocusTriggerIfLost();
+          }
         }}
       >
         {children}

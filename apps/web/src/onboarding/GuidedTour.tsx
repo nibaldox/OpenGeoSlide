@@ -7,7 +7,7 @@
 // cierran y el foco vuelve al control destacado (o, si no es enfocable, al botón «Ayuda»).
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { TOUR_STEPS, matchesTarget, placePopover, ringRect, stepProgress, type Placed, type Rect, type TargetSpec } from './tour';
+import { TOUR_STEPS, matchesTarget, placePopover, ringRect, shouldCloseTourOnEscape, stepProgress, type Placed, type Rect, type TargetSpec } from './tour';
 
 const FOCUSABLE = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]';
 
@@ -131,6 +131,23 @@ export function GuidedTour({ open, index, focusOnOpen, onNext, onPrev, onSkip, f
     onSkip();
     if (insideFocus) requestAnimationFrame(() => focusTargetOrFallback(target, fallbackFocus()));
   }, [onSkip, fallbackFocus]);
+
+  // Esc cierra la guía desde cualquier lugar (A-06): la guía no es modal y el foco suele estar en el lienzo o en un campo. Un
+  // `<dialog>` abierto o un menú desplegable tienen prioridad, y un manejador que ya atendió la tecla (el lienzo) también.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const ctx = {
+        key: e.key,
+        defaultPrevented: e.defaultPrevented,
+        dialogOpen: document.querySelector('dialog[open]') !== null,
+        menuOpen: document.querySelector('[popover="auto"]:popover-open') !== null,
+      };
+      if (shouldCloseTourOnEscape(ctx)) close();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, close]);
 
   const finishOrNext = (): void => {
     if (progress.last) close();

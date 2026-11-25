@@ -103,6 +103,25 @@ describe('buildReportContent', () => {
     expect(t2 && t2.kind === 'table' ? t2.header[2] : null).toBe('γ (pcf)');
   });
 
+  it('B-04: las tablas de resultados y de cargas declaran las unidades (SI e imperial)', () => {
+    const si = structuredClone(input.model);
+    si.loads = [
+      { type: 'udl', id: 'u1', x1: 50, x2: 70, q: 20 },
+      { type: 'line', x: 40, p: 20, angle: -10 },
+    ];
+    const tableOf = (doc: ModelDoc, id: string) => {
+      const t = section(buildReportContent({ ...input, model: doc }), id).blocks.find((b) => b.kind === 'table');
+      return t && t.kind === 'table' ? t : null;
+    };
+    expect(tableOf(si, 'results')?.header.slice(-2)).toEqual(['Centro (xc; yc) (m)', 'Radio (m)']);
+    expect(tableOf(si, 'model')?.rows.map((r) => r.slice(2, 4))).toEqual([['50 a 70 m', '20 kPa'], ['40 m', '20 kN/m']]);
+    const imp = structuredClone(si);
+    imp.units = 'imperial';
+    expect(tableOf(imp, 'results')?.header.slice(-2)).toEqual(['Centro (xc; yc) (ft)', 'Radio (ft)']);
+    expect(tableOf(imp, 'model')?.rows.map((r) => r.slice(2, 4))).toEqual([['50 a 70 ft', '20 psf'], ['40 ft', '20 lbf/ft']]);
+    expect(tableOf(imp, 'materials')?.header.slice(2, 5)).toEqual(['γ (pcf)', 'γsat (pcf)', 'c (psf)']);
+  });
+
   it('FS y λ solo si el método convergió; datos de la superficie crítica', () => {
     const base = input.results[0] as MethodReport;
     const results: MethodReport[] = [

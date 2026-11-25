@@ -190,7 +190,8 @@ step('8c borrador: autoguardado, aviso al recargar y Recuperar', draftKey?.kh ==
 
 // 9. Modo Casos de verificación
 await page.getByRole('tab', { name: 'Casos de verificación' }).click();
-await page.getByRole('button', { name: 'Calcular' }).click();
+// U5-S (R7-24): en Casos el botón se llama «Comprobar caso» (un solo verbo con «Comprobar» del editor).
+await page.getByRole('button', { name: 'Comprobar caso' }).click();
 await page.waitForSelector('#results-title', { timeout: 60000 });
 await page.waitForSelector('#checks-title', { timeout: 60000 }).catch(() => {});
 const checkRows = await page.locator('#checks-title').count();

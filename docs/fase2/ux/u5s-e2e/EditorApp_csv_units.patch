@@ -1,0 +1,18 @@
+diff --git a/apps/web/src/editor/EditorApp.tsx b/apps/web/src/editor/EditorApp.tsx
+index 3ec0bc4..b50db63 100644
+--- a/apps/web/src/editor/EditorApp.tsx
++++ b/apps/web/src/editor/EditorApp.tsx
+@@ -329,11 +329,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
+ 
+   const exportResults = (): void => {
+     if (!engine.run || !engine.current) return;
+-    downloadText(resultsCsv(engine.run.report), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
++    downloadText(resultsCsv(engine.run.report, engine.run.doc.units), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
+   };
+   const exportSurface = (): void => {
+     if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
+-    downloadText(surfaceCoordsCsv(engine.run.report.results), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
++    downloadText(surfaceCoordsCsv(engine.run.report.results, engine.run.doc.units), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
+   };
+ 
+   const onReport = async (): Promise<void> => {

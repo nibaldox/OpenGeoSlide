@@ -2,7 +2,8 @@
 // poner el foco. Lógica pura. Una incidencia sin destino real no se muestra como botón.
 
 import { selectionForPath } from '../panels/forms';
-import type { ModelDoc, Selection } from '../types';
+import { matchesTarget, type TargetSpec } from '../../onboarding/tour';
+import type { Issue, ModelDoc, Selection } from '../types';
 
 export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic' | 'project';
 
@@ -12,6 +13,28 @@ export interface IssueTarget {
   selection: Selection;
   /** Valor de `data-path` del campo que recibe el foco; `null` = primer control de la pestaña (o el lienzo). */
   fieldPath: string | null;
+  /**
+   * Controles fuera del panel (la barra o el lienzo) que reciben el foco, el primero visible de la lista (B-03). Tiene
+   * prioridad sobre `fieldPath`. `EditorApp` lo aplica con `findIssueFocus`.
+   */
+  focus?: TargetSpec[];
+}
+
+/** «Dibujar región»: el botón del estado vacío del lienzo y, si no se ve, la herramienta de la barra. */
+const DRAW_REGION_FOCUS: TargetSpec[] = [
+  { selector: '.ns-empty button', text: '^Dibujar región' },
+  { selector: '[aria-label=\"Herramienta del lienzo\"] button', text: '^Dibujar región' },
+];
+
+/** Primer control visible que cumple `target.focus`, o `null` (entonces se usa `fieldPath`). */
+export function findIssueFocus(target: IssueTarget, root: ParentNode = document): HTMLElement | null {
+  for (const spec of target.focus ?? []) {
+    for (const el of Array.from(root.querySelectorAll<HTMLElement>(spec.selector))) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && matchesTarget(spec, el.textContent ?? '')) return el;
+    }
+  }
+  return null;
 }
 
 const ANALYSIS_FIELDS = new Set(['slices', 'tolerance', 'max_iterations', 'min_m_alpha', 'methods']);
@@ -31,6 +54,8 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
   const selection = selectionForPath(path, doc);
 
   if (a === 'regions') {
+    // Colección sin índice (`/regions`: modelo sin regiones): Geometría, con el foco en «Dibujar región».
+    if (b === undefined) return { tab: 'geometry', selection, fieldPath: null, focus: DRAW_REGION_FOCUS };
     const k = index(b);
     if (k === null || k >= doc.regions.length) return null;
     if (c === 'material') return { tab: 'materials', selection, fieldPath: `/regions/${k}/material` };
@@ -81,4 +106,25 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
 /** Selector CSS del campo con `data-path` = `fieldPath` (los punteros solo llevan letras, cifras, `_` y `/`; se escapa por si acaso). */
 export function fieldSelector(fieldPath: string): string {
   return `[data-path="${fieldPath.replace(/["\\]/g, '\\$&')}"]`;
+}
+
+/**
+ * Destino de una incidencia completa. Manda el puntero (`issueTarget`); sin puntero, algunos códigos tienen destino propio:
+ * - `NoValidSurface` (error del motor) y `engine.invalid` (método sin superficie válida): la búsqueda, si el modelo busca,
+ *   o la superficie fija en otro caso;
+ * - `NoSurface`: el panel de superficie (el modelo no define ninguna).
+ */
+export function issueTargetFor(issue: Pick<Issue, 'path' | 'code'>, doc: ModelDoc): IssueTarget | null {
+  const byPath = issueTarget(issue.path, doc);
+  if (byPath) return byPath;
+  if (issue.path !== null && issue.path !== '') return null;
+  switch (issue.code) {
+    case 'NoValidSurface':
+    case 'engine.invalid':
+      return doc.analysis?.search ? issueTarget('/analysis/search', doc) : issueTarget('/analysis/surface', doc);
+    case 'NoSurface':
+      return issueTarget('/analysis', doc);
+    default:
+      return null;
+  }
 }

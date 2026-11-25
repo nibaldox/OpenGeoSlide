@@ -1,0 +1,12 @@
+/* Muestra «Dovelas» de la leyenda (B-05). Antes era un relleno translúcido (--canvas-slice-fill, 1,3:1 sobre el panel): no se
+   veía en ningún tema. Ahora son trazos verticales con --canvas-slice-edge (≥ 3:1 sobre el panel y sobre cada material en
+   los dos temas, ver styles/tokens.contrast.test.ts), como las dovelas dibujadas en el lienzo.
+   Va en este archivo y con mayor especificidad (`.legend .swatch.slice`) que la regla de App.css, que queda sin efecto. */
+.legend .swatch.slice {
+  width: 22px;
+  height: 12px;
+  border: 0;
+  background:
+    repeating-linear-gradient(90deg, var(--canvas-slice-edge) 0 1.5px, transparent 1.5px 5.5px),
+    linear-gradient(var(--canvas-slice-edge), var(--canvas-slice-edge)) bottom / 100% 1.5px no-repeat;
+}

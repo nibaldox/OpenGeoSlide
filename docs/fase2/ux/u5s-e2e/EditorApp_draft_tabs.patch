@@ -1,0 +1,47 @@
+--- a/apps/web/src/editor/EditorApp.tsx
++++ b/apps/web/src/editor/EditorApp.tsx
+@@ -5,7 +5,7 @@
+ import { loadBuiltinCases } from '../cases';
+ import type { EngineClient } from '../engine/client';
+ import type { MethodKind } from '../engine/types';
+-import { clearDraft, loadDraft, resolveDraftStorage, type Draft } from '../io/draft';
++import { clearDraft, loadDraft, type Draft } from '../io/draft';
+ import { parseCsv } from '../io/csv';
+ import { parseDxf, type DxfParseResult } from '../io/dxf';
+ import { saveOgsJson, sha256Hex } from '../io/ogsJson';
+@@ -43,7 +43,7 @@
+ import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+ import { createSingleFlight } from './app/singleFlight';
+ import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
+-import { shouldWarnBeforeUnload, useDraftAutosave, useUnloadGuard } from './app/useDraftAutosave';
++import { SAME_DRAFT_TEXT, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
+ import { useEngineCheck } from './app/useEngineCheck';
+ import {
+   AnalysisPanel,
+@@ -106,7 +106,7 @@
+ export function EditorApp({ client, active = true }: { client: EngineClient; active?: boolean }) {
+   const [store] = useState<EditorStoreWithSave>(() => createEditorStore(initialDoc().doc, null));
+   const cases = useMemo(() => loadBuiltinCases(), []);
+-  const draftStorage = useMemo(() => resolveDraftStorage(), []);
++  const draftStorage = useMemo(() => resolveTabDraftStorage(), []);
+   // El borrador se lee una sola vez (un borrador corrupto se elimina al leerlo y solo se avisa esa vez).
+   const [boot] = useState(() => loadDraft(draftStorage.storage));
+   const [draft, setDraft] = useState<Draft | null>(boot.draft);
+@@ -146,6 +146,7 @@
+ 
+   const engine = useEngineCheck(store, client);
+   const draftFailure = useDraftAutosave(store, draftStorage.storage, draft === null);
++  const sameDraftElsewhere = useSameDraftWarning();
+ 
+   const doc = useEditorStore(store, (s) => s.doc);
+   const fileName = useEditorStore(store, (s) => s.file.name);
+@@ -385,6 +386,9 @@
+   useEffect(() => {
+     if (draftFailure) announce(draftFailure);
+   }, [draftFailure, announce]);
++  useEffect(() => {
++    if (sameDraftElsewhere) notify('aviso', SAME_DRAFT_TEXT);
++  }, [sameDraftElsewhere, notify]);
+   const draftAnnounced = useRef(false);
+   useEffect(() => {
+     if (draft && !draftAnnounced.current) {

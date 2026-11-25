@@ -340,14 +340,15 @@ function materialsSection(model: ModelDoc): ReportSection {
   };
 }
 
-function resultsSection(results: MethodReport[]): ReportSection {
+function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection {
+  const u = units(model);
   return {
     id: 'results',
     title: 'Factor de seguridad por método',
     blocks: [
       {
         kind: 'table',
-        header: ['Método', 'Estado', 'FS', 'Iter.', 'λ', 'Evaluadas', 'Válidas', 'Centro (xc; yc)', 'Radio'],
+        header: ['Método', 'Estado', 'FS', 'Iter.', 'λ', 'Evaluadas', 'Válidas', `Centro (xc; yc) (${u.length})`, `Radio (${u.length})`],
         rows: results.map((r) => [
           METHOD_LABEL[r.method],
           STATUS_LABEL[r.status],
@@ -438,7 +439,7 @@ export function buildReportContent(input: ReportInput): ReportContent {
     modelSection(model),
     materialsSection(model),
     { id: 'section', title: 'Sección analizada', blocks: [{ kind: 'drawing', drawing }] },
-    resultsSection(input.results),
+    resultsSection(input.results, model),
   ];
   const checks = checksSection(input);
   if (checks) sections.push(checks);
