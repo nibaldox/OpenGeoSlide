@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
@@ -8,9 +8,14 @@ import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
 import { EditorApp } from './editor/EditorApp';
 import { createRunGuard } from './editor/app/runGuard';
+import { GuidedTour } from './onboarding/GuidedTour';
+import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
 import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
 import { CheckTable, type CheckRow } from './ui/CheckTable';
+import { ConfirmHost } from './ui/ConfirmDialog';
+import { HelpDialog } from './ui/HelpDialog';
+import { InstallButton } from './ui/InstallButton';
 import { Legend } from './ui/Legend';
 import { EngineIndicator } from './ui/EngineIndicator';
 import { ThemeSelect } from './ui/ThemeSelect';
@@ -301,6 +306,38 @@ export default function App() {
   }, [client]);
 
   const simulated = info?.name === 'mock';
+
+  // Guía de primera visita y ayuda (UX-12). La guía no es modal: se abre sola solo la primera vez (`ogs.onboarding.v1`) y se
+  // reabre desde «Ayuda ▸ Recorrido guiado».
+  const [tour, dispatchTour] = useReducer(tourReducer, undefined, initialTour);
+  const [tourFocus, setTourFocus] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    let storage: Storage | null = null;
+    try {
+      storage = window.localStorage;
+    } catch {
+      /* sin almacenamiento */
+    }
+    if (autoOpenTour(storage, { editing: mode === 'edit' })) {
+      setTourFocus(false);
+      dispatchTour({ type: 'open' });
+    }
+  }, [mode]);
+  // La guía señala controles del editor: en «Casos de verificación» no tiene destino y se cierra.
+  useEffect(() => {
+    if (mode !== 'edit') dispatchTour({ type: 'skip' });
+  }, [mode]);
+  const skipTour = useCallback(() => dispatchTour({ type: 'skip' }), []);
+  const nextStep = useCallback(() => dispatchTour({ type: 'next' }), []);
+  const prevStep = useCallback(() => dispatchTour({ type: 'prev' }), []);
+  const helpFallback = useCallback(() => helpButtonRef.current, []);
+  const startTourFromHelp = (): void => {
+    setHelpOpen(false);
+    setTourFocus(true);
+    dispatchTour({ type: 'open' });
+  };
   const modeTabsRef = useRef<HTMLDivElement>(null);
   const modeKeys = useRovingTabIndex(modeTabsRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
 
@@ -324,9 +361,25 @@ export default function App() {
         </div>
         <div className="app-header-tools">
           <EngineIndicator info={info} error={engineError} />
+          <InstallButton />
+          <button
+            type="button"
+            ref={helpButtonRef}
+            className="help-button"
+            aria-haspopup="dialog"
+            onClick={() => {
+              skipTour();
+              setHelpOpen(true);
+            }}
+          >
+            Ayuda
+          </button>
           <ThemeSelect />
         </div>
       </header>
+
+      {/* Justo después de la cabecera en el orden de tabulación: la guía no mueve el foco al abrirse sola. */}
+      <GuidedTour open={tour.open && mode === 'edit'} index={tour.index} focusOnOpen={tourFocus} onNext={nextStep} onPrev={prevStep} onSkip={skipTour} fallbackFocus={helpFallback} />
 
       {/* El estado normal del motor es el indicador compacto de la cabecera; el modo simulado y los fallos de carga siguen visibles con su explicación. */}
       {simulated && (
@@ -350,6 +403,10 @@ export default function App() {
           <CasesView client={client} info={info} />
         </div>
       </main>
+
+      {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onStartTour={startTourFromHelp} />}
+      {/* Único anfitrión de `useConfirm()`: todas las confirmaciones de la aplicación pasan por aquí. */}
+      <ConfirmHost />
     </div>
   );
 }

@@ -5,7 +5,7 @@
 // (`showModal`): el navegador deja inerte el resto de la página, atrapa el foco y cierra con Esc (= cancelar). El foco
 // inicial va al botón seguro («Cancelar» en las acciones destructivas) y, al cerrar, vuelve al disparador.
 
-import { useCallback, useEffect, useId, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { appConfirmQueue, type ConfirmOptions, type PendingConfirm } from './confirmQueue';
 
 export type { ConfirmOptions } from './confirmQueue';
@@ -25,12 +25,14 @@ function Dialog({ pending }: { pending: PendingConfirm }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  // El disparador se fija una sola vez (en desarrollo, StrictMode ejecuta el efecto dos veces y el foco ya estaría en el diálogo).
+  const [previous] = useState<HTMLElement | null>(() =>
+    pending.opener instanceof HTMLElement ? pending.opener : document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    const opener = pending.opener instanceof HTMLElement ? pending.opener : null;
-    const previous = opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     if (!dialog.open) dialog.showModal();
     // Foco seguro: en una acción destructiva, «Cancelar»; en el resto, la acción que se pide.
     (tone === 'danger' ? cancelRef : confirmRef).current?.focus();
@@ -38,7 +40,7 @@ function Dialog({ pending }: { pending: PendingConfirm }) {
       // Al desmontar, el navegador saca el diálogo de la capa superior; solo falta devolver el foco al disparador.
       if (previous?.isConnected) previous.focus();
     };
-  }, [pending, tone]);
+  }, [previous, tone]);
 
   return (
     <dialog
