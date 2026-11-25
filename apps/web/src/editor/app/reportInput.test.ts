@@ -3,7 +3,7 @@ import { analyzeMock } from '../../engine/mockEngine';
 import { sha256Hex, saveOgsJson } from '../../io/ogsJson';
 import { loadCaseDoc, loadDifferentialDoc, loadEngineReport } from '../../report/fixtures';
 import type { MethodReport } from '../../engine/types';
-import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, isRunCurrent, resultsCsv, surfaceCoordsCsv, type EngineRun } from './reportInput';
+import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, isRunCurrent, resultCaption, resultsCsv, surfaceCoordsCsv, type EngineRun } from './reportInput';
 
 async function makeRun(revision = 4): Promise<EngineRun> {
   const doc = loadCaseDoc('V047a');
@@ -150,5 +150,42 @@ describe('baseFileName', () => {
   it('sin archivo usa el id del modelo, y si no, «modelo»', () => {
     expect(baseFileName(null, doc)).toBe(doc.meta.id);
     expect(baseFileName(null, { ...doc, meta: {} })).toBe('modelo');
+  });
+});
+
+describe('texto visible de las exportaciones bloqueadas (R7-17)', () => {
+  it('sin cálculo: el motivo está en un texto visible, no solo en el title', () => {
+    const a = exportAvailability(null, false);
+    expect(a.hint).toBe('Pulse «Comprobar» para habilitar las exportaciones del modelo actual.');
+  });
+  it('resultado obsoleto: el texto dice que el modelo cambió y qué hacer', async () => {
+    const run = await makeRun(4);
+    const a = exportAvailability(run, false);
+    expect(a.hint).toContain('El modelo cambió desde el último cálculo');
+    expect(a.hint).toContain('Pulse «Comprobar» para habilitar las exportaciones del modelo actual.');
+  });
+  it('resultado actual y convergido: sin texto', async () => {
+    const run = await makeRun(4);
+    expect(exportAvailability(run, true).hint).toBeUndefined();
+  });
+  it('actual sin ningún método convergido: el texto explica por qué no hay superficie', async () => {
+    const run = await makeRun(4);
+    const results = run.report.results.map((r) => ({ ...r, status: 'not_converged' as const }));
+    const a = exportAvailability({ ...run, report: { ...run.report, results } }, true);
+    expect(a.hint).toContain('Ningún método convergió');
+  });
+});
+
+describe('resultCaption (R7-01)', () => {
+  it('convergido: superficie crítica', () => {
+    expect(resultCaption('bishop', 'converged')).toBe('Superficie crítica en rojo y dovelas en gris (Bishop simplificado).');
+  });
+  it('no convergido o no válido: «Superficie evaluada (sin convergencia)», nunca «crítica»', () => {
+    for (const status of ['not_converged', 'invalid'] as const) {
+      const text = resultCaption('spencer', status);
+      expect(text).toContain('Superficie evaluada (sin convergencia)');
+      expect(text).not.toContain('Superficie crítica');
+      expect(text).toContain('Spencer');
+    }
   });
 });
