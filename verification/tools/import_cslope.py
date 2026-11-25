@@ -207,7 +207,7 @@ CASE_SCHEMA = {
                     "options": {
                         "type": "object",
                         "additionalProperties": False,
-                        "properties": {"slices": {"type": "integer", "minimum": 2}},
+                        "properties": {"slices": {"type": "integer", "minimum": 3, "maximum": 2000}},
                     },
                 },
             },

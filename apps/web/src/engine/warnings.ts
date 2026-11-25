@@ -27,19 +27,22 @@ interface CatalogEntry {
  */
 export const ENGINE_WARNING_CODES = [
   'm_alpha',
-  'm_alpha_pole',
   'pole',
   'no_driving',
   'negative_effective_normal',
   'negative_effective_normal_major',
   'air_gap_thrust',
   'truncated_mass',
+  'truncated_driving_mass',
+  'effective_width_below_min',
+  'effective_ends_outside_range',
   'water_above_ground',
   'max_iterations',
   'non_finite',
-  'lambda_undefined',
-  'fos_nonpositive',
   'no_slices',
+  'no_lambda_root',
+  'no_admissible_root',
+  'negative_lambda',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -59,6 +62,18 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'nota',
     text: 'Se analizó solo el bloque principal de la superficie; las demás masas separadas por tramos aéreos se eliminaron.',
   },
+  truncated_driving_mass: {
+    severity: 'aviso',
+    text: 'Un bloque descartado de la superficie es motriz: podría ser un mecanismo más crítico. Revise otros círculos de falla.',
+  },
+  effective_width_below_min: {
+    severity: 'aviso',
+    text: 'El bloque analizado es más angosto que el ancho mínimo pedido; revise la superficie.',
+  },
+  effective_ends_outside_range: {
+    severity: 'aviso',
+    text: 'Los extremos reales del bloque analizado caen fuera de los rangos de entrada/salida.',
+  },
   water_above_ground: {
     severity: 'aviso',
     text: 'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora (no soportado en v0.1).',
@@ -70,10 +85,6 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   m_alpha: {
     severity: 'aviso',
     text: 'Algún m_α queda por debajo de min_m_alpha: la superficie no es admisible.',
-  },
-  m_alpha_pole: {
-    severity: 'aviso',
-    text: 'Polo en m_α durante la iteración de Bishop: la superficie no es admisible.',
   },
   pole: {
     severity: 'aviso',
@@ -87,13 +98,17 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'aviso',
     text: 'El cálculo produjo valores no finitos.',
   },
-  lambda_undefined: {
+  no_lambda_root: {
     severity: 'aviso',
-    text: 'No se pudo calcular λ en Spencer.',
+    text: 'Spencer no encontró ninguna raíz de λ en el rango de búsqueda. El FS no es un resultado definitivo.',
   },
-  fos_nonpositive: {
+  no_admissible_root: {
     severity: 'aviso',
-    text: 'El FS calculado no es positivo.',
+    text: 'Spencer halló raíces de λ, pero ninguna cumple la admisibilidad de Φ/F y m_α: la superficie no es admisible.',
+  },
+  negative_lambda: {
+    severity: 'aviso',
+    text: 'Spencer solo tiene raíces con λ negativo: el FS se reporta con λ < 0 y conviene revisarlo.',
   },
   no_slices: {
     severity: 'aviso',

@@ -43,7 +43,8 @@ describe('describeWarning', () => {
 
   it('la lista de códigos coincide con la lista E6 de briefs/00_CONTRATOS.md', () => {
     const contract = readFileSync(fileURLToPath(new URL('../../../../briefs/00_CONTRATOS.md', import.meta.url)), 'utf8');
-    const block = /Los códigos de aviso \(([\s\S]*?)\) son identificadores estables/.exec(contract);
+    // The contract wraps this sentence over two lines, so whitespace is matched loosely.
+    const block = /Los códigos de aviso \(([\s\S]*?)\)\s+son\s+identificadores\s+estables/.exec(contract);
     expect(block, 'no se encuentra la lista E6 en el contrato').not.toBeNull();
     const fromContract = [...block![1].matchAll(/`([a-z_]+)`/g)].map((m) => m[1]);
     expect(fromContract.length).toBeGreaterThan(0);

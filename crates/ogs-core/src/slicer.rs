@@ -56,6 +56,13 @@ pub enum SurfaceError {
 
 /// Informative note (contract E10a, code `truncated_mass`): only the main soil block was analysed.
 pub const TRUNCATED_MASS: &str = "truncated_mass";
+/// Warning (contract E11e, code `truncated_driving_mass`): a discarded block is driving, so it may be a more critical
+/// mechanism than the analysed one. Replaces `truncated_mass` when it applies.
+pub const TRUNCATED_DRIVING_MASS: &str = "truncated_driving_mass";
+/// A discarded block is driving when its `Σ W·sin α` exceeds this fraction of the analysed block's (contract E11e).
+const DRIVING_FRACTION: f64 = 0.05;
+/// The analysed block needs at least this many soil slices (contract E11d).
+const MIN_SOIL_SLICES: usize = 3;
 
 /// A sliced surface: the slices (toe first) and the informative notes raised while slicing.
 #[derive(Debug, Clone, PartialEq)]
@@ -98,15 +105,14 @@ pub(crate) fn main_block_range(air: &[bool]) -> Option<(usize, usize)> {
     Some((start, air.len()))
 }
 
-/// Slices of a circle in model order (left to right), before E10a.
+/// Slices of a span in model order (left to right), before E10a.
 pub(crate) struct Built {
     pub(crate) slices: Vec<Slice>,
     /// `true` for air slices (E2).
     pub(crate) air: Vec<bool>,
     /// `true` for soil slices whose base lies outside the model (no material). They are an error only when they
-    /// stay in the main block (E10a′, see [`slice_surface`]).
+    /// stay in the analysed block (E10a′, see [`slice_surface`]).
     pub(crate) unsupported: Vec<bool>,
-    pub(crate) tramo: Tramo,
 }
 
 /// Sliding range of the lower arc: its two ground crossings, plus the arc breakpoints (contract §4.1, steps 1–3).
@@ -215,14 +221,6 @@ pub(crate) fn check_block_ends(
     Ok(())
 }
 
-/// Sliding range of the lower arc with the checks of [`check_block_ends`] over the whole range `[p, q]`. Used for the
-/// entry of a fixed circle when the slope direction is `auto` (geometry).
-pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, SurfaceError> {
-    let t = sliding_span(pm, c)?;
-    check_block_ends(pm, c, &t, t.p, t.q)?;
-    Ok(t)
-}
-
 /// Slices the circle into `n` uniform divisions plus breakpoints (contract §4.1).
 ///
 /// ORDER: `slices[0]` is the toe slice (exit); `slices[last]` is the crest slice (entry), regardless of sliding direction.
@@ -238,19 +236,24 @@ pub fn slice_circle(
 /// Slices the circle like [`slice_circle`] and returns the notes of the slicing too (E10a).
 ///
 /// An interior air run splits the soil into blocks (E10a). Only the main block, the one with the entry point (E10a″),
-/// is analysed: the other blocks and every interior air slice are removed, and the note `truncated_mass` is raised.
-/// The checks of the arc's ends (E10a′) apply to the analysed block only.
+/// is analysed: the other blocks and every interior air slice are removed. The arc's ends are checked on the analysed
+/// block only (E10a′). The kept block is then sliced again into `n` uniform divisions plus breakpoints (E11d), and it
+/// must keep at least [`MIN_SOIL_SLICES`] soil slices, otherwise `TooFewSlices`. The same minimum applies to a surface
+/// that is not truncated.
+///
+/// Notes: `truncated_mass` when only the main block is analysed. `truncated_driving_mass` (E11e) replaces it when a
+/// discarded block is driving: its `Σ W·sin α` exceeds `DRIVING_FRACTION` of the analysed block's.
 pub fn slice_surface(
     pm: &PreparedModel,
     circle: &Circle,
     n: usize,
 ) -> Result<SlicedSurface, SurfaceError> {
+    let (built, tramo) = build_slices(pm, circle, n)?;
     let Built {
         mut slices,
         mut air,
         mut unsupported,
-        tramo,
-    } = build_slices(pm, circle, n)?;
+    } = built;
     // Built left to right; the toe is on the left for RightToLeft and on the right otherwise.
     if pm.sliding == Sliding::LeftToRight {
         slices.reverse();
@@ -271,39 +274,104 @@ pub fn slice_surface(
         .fold(f64::NEG_INFINITY, f64::max);
     // The arc's ends are checked before the materials, as before E10a: an arc under the base is `OutsideModel`.
     check_block_ends(pm, circle, &tramo, l, r)?;
-    if unsupported[lo..hi].iter().any(|&u| u) {
+    let driving = truncated && discards_driving(&slices, &air);
+
+    // E11d: the kept block is sliced again over its own span, so `n` divisions apply to it and not to the whole arc.
+    let (block, block_air, block_unsupported) = if truncated {
+        let re = slice_span(pm, circle, l, r, &tramo.breaks, n)?;
+        let Built {
+            mut slices,
+            mut air,
+            mut unsupported,
+        } = re;
+        if pm.sliding == Sliding::LeftToRight {
+            slices.reverse();
+            air.reverse();
+            unsupported.reverse();
+        }
+        (slices, air, unsupported)
+    } else {
+        (
+            slices[lo..hi].to_vec(),
+            air[lo..hi].to_vec(),
+            unsupported[lo..hi].to_vec(),
+        )
+    };
+    if block_air.iter().filter(|&&a| !a).count() < MIN_SOIL_SLICES {
+        return Err(SurfaceError::TooFewSlices);
+    }
+    if block_unsupported.iter().any(|&u| u) {
         return Err(SurfaceError::NoMaterial);
     }
-    let notes = if truncated {
-        vec![TRUNCATED_MASS.to_string()]
-    } else {
-        Vec::new()
+    let notes = match (truncated, driving) {
+        (false, _) => Vec::new(),
+        (true, true) => vec![TRUNCATED_DRIVING_MASS.to_string()],
+        (true, false) => vec![TRUNCATED_MASS.to_string()],
     };
     Ok(SlicedSurface {
-        slices: slices[lo..hi].to_vec(),
+        slices: block,
         notes,
     })
 }
 
-/// Builds the slices of `circle` in model order (left to right). Nothing is truncated and the ends of the arc are not
-/// checked here: `slice_surface` applies E10a and E10a′. The tests of E2 geometry use this function directly.
+/// `W·sin α` of one slice: its driving component (positive when the base rises toward the crest).
+fn driving_moment(s: &Slice) -> f64 {
+    s.weight * s.alpha.sin()
+}
+
+/// E11e: true if a discarded soil block is driving, i.e. its `Σ W·sin α` exceeds `DRIVING_FRACTION` times the
+/// analysed block's `Σ W·sin α`. `slices` and `air` are toe first, before truncation. The analysed block is the last
+/// soil block (the entry block, E10a″); with a single block nothing is discarded.
+fn discards_driving(slices: &[Slice], air: &[bool]) -> bool {
+    let blocks = soil_blocks(air);
+    let Some((&(m_lo, m_hi), discarded)) = blocks.split_last() else {
+        return false;
+    };
+    let moment =
+        |(lo, hi): (usize, usize)| -> f64 { slices[lo..hi].iter().map(driving_moment).sum() };
+    let main = moment((m_lo, m_hi));
+    discarded
+        .iter()
+        .any(|&block| moment(block) > DRIVING_FRACTION * main)
+}
+
+/// Builds the slices of `circle` in model order (left to right), over the full sliding range, and its sliding range.
+/// Nothing is truncated and the ends of the arc are not checked here: `slice_surface` applies E10a, E10a′ and E11d.
+/// The tests of E2 geometry use this function directly.
 pub(crate) fn build_slices(
     pm: &PreparedModel,
     circle: &Circle,
     n: usize,
-) -> Result<Built, SurfaceError> {
+) -> Result<(Built, Tramo), SurfaceError> {
     if n == 0 {
         return Err(SurfaceError::TooFewSlices);
     }
     let tramo = sliding_span(pm, circle)?;
-    let (p, q) = (tramo.p, tramo.q);
+    let built = slice_span(pm, circle, tramo.p, tramo.q, &tramo.breaks, n)?;
+    // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
+    if !built.slices.iter().any(|s| s.weight > 0.0) {
+        return Err(SurfaceError::AboveGround);
+    }
+    Ok((built, tramo))
+}
+
+/// Slices the arc of `circle` over `[p, q]` into `n` uniform divisions plus the breakpoints inside the span, left to
+/// right. Used for the whole sliding range (see [`build_slices`]) and again for the kept block (E11d).
+fn slice_span(
+    pm: &PreparedModel,
+    circle: &Circle,
+    p: f64,
+    q: f64,
+    breaks: &[f64],
+    n: usize,
+) -> Result<Built, SurfaceError> {
     let span = q - p;
     let min_width = 1e-9 * span;
 
     // Slice boundaries: n uniform divisions plus the breakpoints, sorted and merged.
-    let mut nodes: Vec<f64> = Vec::with_capacity(n + tramo.breaks.len());
+    let mut nodes: Vec<f64> = Vec::with_capacity(n + breaks.len());
     nodes.extend((1..n).map(|k| p + span * (k as f64) / (n as f64)));
-    nodes.extend(tramo.breaks.iter().copied().filter(|&x| x > p && x < q));
+    nodes.extend(breaks.iter().copied().filter(|&x| x > p && x < q));
     nodes.sort_by(f64::total_cmp);
     let mut bounds: Vec<f64> = Vec::with_capacity(nodes.len() + 2);
     bounds.push(p);
@@ -449,15 +517,10 @@ pub(crate) fn build_slices(
         unsupported.push(false);
     }
 
-    // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
-    if !slices.iter().any(|s| s.weight > 0.0) {
-        return Err(SurfaceError::AboveGround);
-    }
     Ok(Built {
         slices,
         air: air_flags,
         unsupported,
-        tramo,
     })
 }
 
@@ -612,7 +675,7 @@ mod tests {
             yc: 60.0,
             r: 44.0,
         };
-        let built = build_slices(&pm, &c, 50).expect("the notch is air, not an error (E2)");
+        let (built, _) = build_slices(&pm, &c, 50).expect("the notch is air, not an error (E2)");
         let (sl, flags) = (built.slices, built.air);
         let air_count = sl.iter().filter(|s| s.weight == 0.0).count();
         assert!(air_count > 0, "the notch must produce air slices");
@@ -671,7 +734,7 @@ mod tests {
             yc: 44.0,
             r: 19.5,
         };
-        let built = build_slices(&pm, &c, 2000).expect("the gap is air (E2)");
+        let (built, _) = build_slices(&pm, &c, 2000).expect("the gap is air (E2)");
         let (sl, flags) = (built.slices, built.air);
         let air_count = flags.iter().filter(|&&a| a).count();
         assert!(air_count > 0, "the gap above the ground must be air slices");

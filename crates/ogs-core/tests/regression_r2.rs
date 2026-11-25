@@ -188,7 +188,7 @@ fn r2_01_notch_keeps_the_entry_block() {
     let pm = ogs_core::geometry::PreparedModel::new(&m).expect("valid model");
     let sliced =
         ogs_core::slicer::slice_surface(&pm, &circle, 400).expect("the notch is valid (E10a)");
-    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    assert_eq!(sliced.notes, vec!["truncated_driving_mass".to_string()]);
     let s = &sliced.slices;
     assert!(s.iter().all(|x| x.weight > 0.0), "no interior air is left");
     assert!(
@@ -228,7 +228,7 @@ fn r2_01_notch_keeps_the_entry_block() {
     let report = analyze(&m400).expect("the notch surface is valid under E10a″");
     for r in &report.results {
         assert!(
-            r.warnings.iter().any(|w| w == "truncated_mass"),
+            r.warnings.iter().any(|w| w == "truncated_driving_mass"),
             "{:?}",
             r.warnings
         );
@@ -371,9 +371,10 @@ fn r2_03_search_spencer_result_is_admissible() {
 
 /// R2-03 Bishop-critical circle under E8b and E10a. The λ fixed point lies at λ ≈ 0.4587, where Φ/F < 0.2 on some slice, so
 /// the old E4b rejected it. E8b asks for Bishop's m_α ≥ min_m_alpha and Φ > 1e-9·F, which the state satisfies.
-/// Under E10a the circle's interior air run is cut: only the main block is analysed (`truncated_mass`), and Spencer
-/// gives FS 0.432216. That agrees with cSlube's Spencer on the same circle (0.432153, the representative circle of
-/// D09), +0.015 %. The former value 0.480195 included the lens that E10a now drops.
+/// Under E10a the circle's interior air run is cut: only the main block is analysed (`truncated_driving_mass`, E11e), and
+/// E11d re-slices that block into `n` divisions. Spencer gives FS 0.432155 (it was 0.432216 before E11d, when the block
+/// kept the discretization of the whole arc). cSlope's Spencer on the same circle is 0.432153 (D09's representative
+/// circle), +0.0005 %. The former value 0.480195 included the lens that E10a now drops.
 #[test]
 fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
     let m = model(
@@ -390,8 +391,8 @@ fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
     assert_eq!(spencer.status, SolveStatus::Converged, "{spencer:?}");
     let fos = spencer.fos.expect("finite");
     assert!(
-        (fos - 0.432_216).abs() / 0.432_216 < 1e-5,
-        "FS {fos} vs 0.432216"
+        (fos - 0.432_155).abs() / 0.432_155 < 1e-5,
+        "FS {fos} vs 0.432155"
     );
     let min_m = spencer
         .slices

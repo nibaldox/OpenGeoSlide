@@ -101,7 +101,7 @@ def model_for_check(model: dict, check: dict) -> dict:
 
 
 def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dict:
-    res: dict = {"fos": None, "status": None, "error": None, "engine": None}
+    res = {"fos": None, "status": None, "error": None, "engine": None, "warnings": []}
     if not binary:
         res["error"] = "no se indicó binario ogs (--ogs)"
         return res
@@ -135,12 +135,13 @@ def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dic
         res["error"] = "la salida de ogs no tiene 'results'"
         return res
     # Status first: a non-finite fos (null) with status invalid / not_converged is a method
-    # outcome (contract E4f), not a missing value.
+    # outcome (contract E4f), not a missing value. The reason of a method outcome is in `warnings`
+    # (MethodReport has no `message` field, R3-05).
     res["status"] = results[0].get("status")
+    res["warnings"] = list(results[0].get("warnings") or [])
     fos = results[0].get("fos")
     if not isinstance(fos, (int, float)) or isinstance(fos, bool) or not math.isfinite(fos):
         if res["status"] not in (None, "converged"):
-            res["message"] = results[0].get("message")
             return res
         res["error"] = f"fos no numérico: {fos!r}"
         return res
@@ -233,7 +234,7 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
                 "options": ch.get("options", {}),
                 "ogs": {
                     "fos": og["fos"], "status": og["status"], "error": og["error"],
-                    "engine": og["engine"],
+                    "engine": og["engine"], "warnings": og["warnings"],
                     "err_pct": err_pct(og["fos"], published), "verdict": og_v,
                 },
                 "cslope": {
