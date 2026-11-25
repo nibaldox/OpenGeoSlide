@@ -1,0 +1,19 @@
+{
+  "name": "OpenGeoSlide",
+  "short_name": "OpenGeoSlide",
+  "description": "Análisis de estabilidad de taludes 2D por equilibrio límite (Bishop y Spencer), con el motor ogs-core en WebAssembly.",
+  "lang": "es",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12324a",
+  "theme_color": "#12324a",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -4,6 +4,7 @@
   "private": true,
   "description": "OpenGeoSlide: interfaz web para análisis de estabilidad de taludes 2D",
   "license": "Apache-2.0",
+  "packageManager": "pnpm@11.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
