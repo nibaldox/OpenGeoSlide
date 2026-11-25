@@ -1,0 +1,100 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D04",
+    "title": "Pared de rajo, 3 bancos",
+    "notes": "Pared de rajo con 3 bancos (cara de 10 m, berma de 6 m), macizo rocoso. Rangos de búsqueda explícitos: entrada en los bancos altos, salida en el pie."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "rock",
+      "name": "Macizo rocoso",
+      "model": "mohr_coulomb",
+      "unit_weight": 25.0,
+      "unit_weight_sat": null,
+      "cohesion": 50.0,
+      "friction_angle": 35.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "rock",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          30.0
+        ],
+        [
+          6.0,
+          30.0
+        ],
+        [
+          12.0,
+          20.0
+        ],
+        [
+          18.0,
+          20.0
+        ],
+        [
+          24.0,
+          10.0
+        ],
+        [
+          30.0,
+          10.0
+        ],
+        [
+          36.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        0.0,
+        12.0
+      ],
+      "exit": [
+        18.0,
+        36.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 47.089557708209576,
+      "yc": 49.90746924985149,
+      "r": 51.12468852803489
+    }
+  }
+}

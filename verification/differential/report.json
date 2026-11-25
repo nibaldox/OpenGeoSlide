@@ -1,0 +1,1218 @@
+{
+  "report_version": "1",
+  "generated_at": "2026-11-24T22:04:28-03:00",
+  "criteria": {
+    "search_max_rel": 0.01,
+    "fixed_max_rel": 0.005,
+    "source": "briefs/00_CONTRATOS.md §4.4.6 (E9b)"
+  },
+  "engines": {
+    "generated_at": "2026-11-24T22:04:28-03:00",
+    "ogs": {
+      "binary": "/home/xodla/archivos/opengeoslide/target/release/ogs",
+      "version": "ogs-core 0.1.0"
+    },
+    "cslope": {
+      "package": "cslope 0.1.0",
+      "engine_build": "0.1.0+a80f9a024954",
+      "schema_version": "0.1.0"
+    },
+    "python": "3.13.14",
+    "platform": "Linux-7.3.5-2-cachyos-x86_64-with-glibc2.44"
+  },
+  "cases": [
+    {
+      "id": "D01",
+      "title": "Talud homogéneo 1:1, seco",
+      "path": "verification/differential/cases/D01.ogs.json"
+    },
+    {
+      "id": "D02",
+      "title": "Talud 1:1 con r_u = 0,5",
+      "path": "verification/differential/cases/D02.ogs.json"
+    },
+    {
+      "id": "D03",
+      "title": "Dos capas con capa débil en la base",
+      "path": "verification/differential/cases/D03.ogs.json"
+    },
+    {
+      "id": "D04",
+      "title": "Pared de rajo, 3 bancos",
+      "path": "verification/differential/cases/D04.ogs.json"
+    },
+    {
+      "id": "D05",
+      "title": "Botadero, ángulo de reposo 37°",
+      "path": "verification/differential/cases/D05.ogs.json"
+    },
+    {
+      "id": "D06",
+      "title": "Talud con piezométrica inclinada",
+      "path": "verification/differential/cases/D06.ogs.json"
+    },
+    {
+      "id": "D07",
+      "title": "Arcilla blanda, φ = 0",
+      "path": "verification/differential/cases/D07.ogs.json"
+    },
+    {
+      "id": "D08",
+      "title": "Presa simétrica con rangos de búsqueda",
+      "path": "verification/differential/cases/D08.ogs.json"
+    },
+    {
+      "id": "D09",
+      "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+      "path": "verification/differential/cases/D09.ogs.json"
+    },
+    {
+      "id": "D10",
+      "title": "Talud con c alto y φ bajo, círculo profundo",
+      "path": "verification/differential/cases/D10.ogs.json"
+    }
+  ],
+  "summary": {
+    "search": {
+      "OK": 17,
+      "FALLA": 3,
+      "sin dato": 0,
+      "N": 20
+    },
+    "fixed": {
+      "OK": 19,
+      "FALLA": 1,
+      "sin dato": 0,
+      "N": 20
+    },
+    "ogs_seconds": 5.548,
+    "cslope_seconds": 1.577
+  },
+  "checks": [
+    {
+      "case_id": "D01",
+      "title": "Talud homogéneo 1:1, seco",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.85855329948105,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0343
+      },
+      "cslope": {
+        "fos": 0.8585180036274225,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0557
+      },
+      "delta_pct": 0.0041,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D01",
+      "title": "Talud homogéneo 1:1, seco",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.85855329948105,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0018
+      },
+      "cslope": {
+        "fos": 0.8585183367720036,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0041,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D01",
+      "title": "Talud homogéneo 1:1, seco",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.8553958157538039,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.5928
+      },
+      "cslope": {
+        "fos": 0.855342204999502,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0883
+      },
+      "delta_pct": 0.0063,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D01",
+      "title": "Talud homogéneo 1:1, seco",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.8554554764005631,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 0.8554040170229124,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.006,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D02",
+      "title": "Talud 1:1 con r_u = 0,5",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.36782024038816374,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.023
+      },
+      "cslope": {
+        "fos": 0.36774538874493146,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0504
+      },
+      "delta_pct": 0.0204,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D02",
+      "title": "Talud 1:1 con r_u = 0,5",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.36782024038816374,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0015
+      },
+      "cslope": {
+        "fos": 0.3677457878926582,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0005
+      },
+      "delta_pct": 0.0202,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D02",
+      "title": "Talud 1:1 con r_u = 0,5",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.3850569147666719,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.6029
+      },
+      "cslope": {
+        "fos": 0.3850142080202133,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 12 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0973
+      },
+      "delta_pct": 0.0111,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D02",
+      "title": "Talud 1:1 con r_u = 0,5",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.387184210249846,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0017
+      },
+      "cslope": {
+        "fos": 0.38712370420788955,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 14 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0008
+      },
+      "delta_pct": 0.0156,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D03",
+      "title": "Dos capas con capa débil en la base",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.5195972164495626,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0267
+      },
+      "cslope": {
+        "fos": 0.5184926522342637,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0555
+      },
+      "delta_pct": 0.213,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D03",
+      "title": "Dos capas con capa débil en la base",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.5195972164495626,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 0.5186710817501351,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0011
+      },
+      "delta_pct": 0.1786,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D03",
+      "title": "Dos capas con capa débil en la base",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.7265225124208894,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.5921
+      },
+      "cslope": {
+        "fos": 0.5466738420377154,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 7 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 89° and 7 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0997
+      },
+      "delta_pct": 32.8987,
+      "verdict": "FALLA",
+      "reason": "ogs 0.7265 > cSlope·1,01 = 0.5521 (ogs no conservador)",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D03",
+      "title": "Dos capas con capa débil en la base",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 2.8354268575855888,
+        "status": "not_converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0025
+      },
+      "cslope": {
+        "fos": null,
+        "status": null,
+        "error": "EngineError: No valid slip surface was found. Moment and force equilibrium do not meet where the surface enters the slope at 90°: cohesion along a nearly vertical base can only hold it with tension at the base. A ",
+        "warnings": [],
+        "seconds": 0.0009
+      },
+      "delta_pct": null,
+      "verdict": "FALLA",
+      "reason": "ogs no válido (status not_converged, FS 2.8354268575855888)",
+      "notes": []
+    },
+    {
+      "case_id": "D04",
+      "title": "Pared de rajo, 3 bancos",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.5986492054828645,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.035
+      },
+      "cslope": {
+        "fos": 1.5985385261126224,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0368
+      },
+      "delta_pct": 0.0069,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D04",
+      "title": "Pared de rajo, 3 bancos",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.5986492054828645,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 1.5985385261422154,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0069,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D04",
+      "title": "Pared de rajo, 3 bancos",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.5922775152251614,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.5774
+      },
+      "cslope": {
+        "fos": 1.5921387168408079,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0677
+      },
+      "delta_pct": 0.0087,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D04",
+      "title": "Pared de rajo, 3 bancos",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.592322833193087,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 1.5921861262460506,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0086,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D05",
+      "title": "Botadero, ángulo de reposo 37°",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.006300405826323,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0269
+      },
+      "cslope": {
+        "fos": 1.0005012540721618,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "seconds": 0.0556
+      },
+      "delta_pct": 0.5796,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D05",
+      "title": "Botadero, ángulo de reposo 37°",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.006300405826323,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0017
+      },
+      "cslope": {
+        "fos": 1.0063030084011566,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "seconds": 0.0006
+      },
+      "delta_pct": -0.0003,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D05",
+      "title": "Botadero, ángulo de reposo 37°",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.006299838303986,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.1115
+      },
+      "cslope": {
+        "fos": 1.000501232806174,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "seconds": 0.0911
+      },
+      "delta_pct": 0.5796,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D05",
+      "title": "Botadero, ángulo de reposo 37°",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.0062998383039872,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0015
+      },
+      "cslope": {
+        "fos": 1.0062996656205072,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D06",
+      "title": "Talud con piezométrica inclinada",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.7155508409432042,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0254
+      },
+      "cslope": {
+        "fos": 0.7153541250375801,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0521
+      },
+      "delta_pct": 0.0275,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D06",
+      "title": "Talud con piezométrica inclinada",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.7155508409432039,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0017
+      },
+      "cslope": {
+        "fos": 0.7153565183136795,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0272,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D06",
+      "title": "Talud con piezométrica inclinada",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.7147911540835762,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.3493
+      },
+      "cslope": {
+        "fos": 0.7145940385488504,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0832
+      },
+      "delta_pct": 0.0276,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D06",
+      "title": "Talud con piezométrica inclinada",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.7148068310433202,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0018
+      },
+      "cslope": {
+        "fos": 0.7146180017456243,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 76° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0264,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D07",
+      "title": "Arcilla blanda, φ = 0",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.0519301885733414,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0177
+      },
+      "cslope": {
+        "fos": 1.0504382141576134,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0461
+      },
+      "delta_pct": 0.142,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D07",
+      "title": "Arcilla blanda, φ = 0",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.051930188573342,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 1.0516613718035739,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0006
+      },
+      "delta_pct": 0.0256,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D07",
+      "title": "Arcilla blanda, φ = 0",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.0519319978066501,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.3097
+      },
+      "cslope": {
+        "fos": 1.0504382141576134,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0802
+      },
+      "delta_pct": 0.1422,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D07",
+      "title": "Arcilla blanda, φ = 0",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.051931997806651,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0015
+      },
+      "cslope": {
+        "fos": 1.0516613718035739,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0006
+      },
+      "delta_pct": 0.0257,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D08",
+      "title": "Presa simétrica con rangos de búsqueda",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.6057498155190209,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0473
+      },
+      "cslope": {
+        "fos": 1.6056844229764196,
+        "status": "converged",
+        "error": null,
+        "warnings": [],
+        "seconds": 0.0487
+      },
+      "delta_pct": 0.0041,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D08",
+      "title": "Presa simétrica con rangos de búsqueda",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.6057498155190209,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 1.6056847246032218,
+        "status": "converged",
+        "error": null,
+        "warnings": [],
+        "seconds": 0.0391
+      },
+      "delta_pct": 0.0041,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D08",
+      "title": "Presa simétrica con rangos de búsqueda",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.604114466359217,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.2108
+      },
+      "cslope": {
+        "fos": 1.6040400817591298,
+        "status": "converged",
+        "error": null,
+        "warnings": [],
+        "seconds": 0.0785
+      },
+      "delta_pct": 0.0046,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D08",
+      "title": "Presa simétrica con rangos de búsqueda",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.6041258960136657,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0029
+      },
+      "cslope": {
+        "fos": 1.604051709492979,
+        "status": "converged",
+        "error": null,
+        "warnings": [],
+        "seconds": 0.0379
+      },
+      "delta_pct": 0.0046,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D09",
+      "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.34080208149178226,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0228
+      },
+      "cslope": {
+        "fos": 0.33067890958993307,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 5 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0561
+      },
+      "delta_pct": 3.0613,
+      "verdict": "FALLA",
+      "reason": "ogs 0.3408 > cSlope·1,01 = 0.3340 (ogs no conservador)",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D09",
+      "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.34080208149178226,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0018
+      },
+      "cslope": {
+        "fos": 0.3407121520076707,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0007
+      },
+      "delta_pct": 0.0264,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D09",
+      "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 0.4131961429860638,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.2535
+      },
+      "cslope": {
+        "fos": 0.3876046421588035,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.1899
+      },
+      "delta_pct": 6.6025,
+      "verdict": "FALLA",
+      "reason": "ogs 0.4132 > cSlope·1,01 = 0.3915 (ogs no conservador)",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D09",
+      "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 0.43219821094169025,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0017
+      },
+      "cslope": {
+        "fos": 0.43215307121340046,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 13 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "seconds": 0.0008
+      },
+      "delta_pct": 0.0104,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D10",
+      "title": "Talud con c alto y φ bajo, círculo profundo",
+      "method": "bishop",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.044017995315319,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0218
+      },
+      "cslope": {
+        "fos": 1.0436412354580862,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.054
+      },
+      "delta_pct": 0.0361,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D10",
+      "title": "Talud con c alto y φ bajo, círculo profundo",
+      "method": "bishop",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.044017995315319,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0016
+      },
+      "cslope": {
+        "fos": 1.0436431120095007,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0006
+      },
+      "delta_pct": 0.0359,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    },
+    {
+      "case_id": "D10",
+      "title": "Talud con c alto y φ bajo, círculo profundo",
+      "method": "spencer",
+      "kind": "search",
+      "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+      "ogs": {
+        "fos": 1.0427962474887456,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 1.6312
+      },
+      "cslope": {
+        "fos": 1.042439272383193,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.1001
+      },
+      "delta_pct": 0.0342,
+      "verdict": "OK",
+      "reason": "",
+      "notes": [
+        "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+      ]
+    },
+    {
+      "case_id": "D10",
+      "title": "Talud con c alto y φ bajo, círculo profundo",
+      "method": "spencer",
+      "kind": "fixed",
+      "criterion": "fija: |Δ| ≤ 0,5 %",
+      "ogs": {
+        "fos": 1.0427999783499218,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "seconds": 0.0029
+      },
+      "cslope": {
+        "fos": 1.0424403378728955,
+        "status": "converged",
+        "error": null,
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "seconds": 0.0008
+      },
+      "delta_pct": 0.0345,
+      "verdict": "OK",
+      "reason": "",
+      "notes": []
+    }
+  ]
+}

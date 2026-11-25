@@ -1,0 +1,84 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D08",
+    "title": "Presa simétrica con rangos de búsqueda",
+    "notes": "Presa simétrica 2H:1V, sin sentido explícito: auto se resuelve con los rangos de búsqueda (entrada en la coronación, salida en el talud de aguas abajo)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "core",
+      "name": "Núcleo de presa",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 10.0,
+      "friction_angle": 30.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "core",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          40.0,
+          20.0
+        ],
+        [
+          60.0,
+          20.0
+        ],
+        [
+          100.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "auto"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        40.0,
+        60.0
+      ],
+      "exit": [
+        60.0,
+        100.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 100.73720825848756,
+      "yc": 57.00770569226089,
+      "r": 57.01247218207448
+    }
+  }
+}

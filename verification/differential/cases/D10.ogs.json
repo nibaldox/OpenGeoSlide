@@ -1,0 +1,80 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D10",
+    "title": "Talud con c alto y φ bajo, círculo profundo",
+    "notes": "Talud 1.5H:1V con c alto (40 kPa) y φ bajo (10°) sobre cimentación de 10 m: círculos profundos."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo cohesivo",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 40.0,
+      "friction_angle": 10.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          25.0
+        ],
+        [
+          8.0,
+          25.0
+        ],
+        [
+          45.5,
+          0.0
+        ],
+        [
+          45.5,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 35.819118943985664,
+      "yc": 36.28579647805391,
+      "r": 37.55500611193463
+    }
+  }
+}
