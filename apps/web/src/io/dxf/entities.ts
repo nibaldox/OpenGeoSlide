@@ -1,7 +1,9 @@
 // Entidades DXF soportadas: LINE, LWPOLYLINE y POLYLINE 2D con VERTEX (X3 §2.7).
 //
 // Se rechazan, con una incidencia `aviso` y sin entrar en `entities`: bulge distinto de 0 (arcos), geometría 3D
-// (cota Z distinta de 0, POLYLINE 3D o malla, ajuste de curva/spline) y coordenadas no finitas (que `dxf-parser`
+// (cota Z distinta de 0, también en la cabecera de POLYLINE; POLYLINE 3D o malla; ajuste de curva/spline), vector de
+// extrusión OCS distinto de (0, 0, 1) (códigos 210/220/230: una polilínea espejada o en un plano inclinado no se
+// importaría como se ve en CAD) y coordenadas no finitas (que `dxf-parser`
 // deja pasar como `null`). El resto de tipos (SPLINE, CIRCLE, ARC, TEXT…) se ignora con recuento en `unsupported`.
 // Límites: 2 MB y 10 000 entidades.
 
@@ -57,6 +59,21 @@ function parseNum(p: DxfPair): number | null {
   if (!DXF_NUMBER.test(p.value)) return null;
   const n = Number(p.value);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * `null` si el vector de extrusión (210/220/230) es (0, 0, 1), que es el valor por omisión cuando faltan los códigos;
+ * en otro caso, el motivo del rechazo. Una componente no numérica también se rechaza.
+ */
+function extrusionProblem(pairs: DxfPair[]): string | null {
+  const ex = readNumber(pairs, 210);
+  const ey = readNumber(pairs, 220);
+  const ez = readNumber(pairs, 230);
+  if (ex === 'invalid' || ey === 'invalid' || ez === 'invalid') return 'vector de extrusión no numérico o no finito';
+  if ((ex ?? 0) !== 0 || (ey ?? 0) !== 0 || (ez ?? 1) !== 1) {
+    return `tiene un vector de extrusión (${ex ?? 0}, ${ey ?? 0}, ${ez ?? 1}) distinto de (0, 0, 1): el plano no es XY o está espejado`;
+  }
+  return null;
 }
 
 function layerOf(pairs: DxfPair[]): string {
@@ -115,6 +132,8 @@ function parseLine(r: Record_): Parsed {
   const z2 = readNumber(r.pairs, 31);
   if (z1 === 'invalid' || z2 === 'invalid') return reject('coordenadas no numéricas o no finitas');
   if ((z1 ?? 0) !== 0 || (z2 ?? 0) !== 0) return reject('es 3D (cota Z distinta de 0)');
+  const extrusion = extrusionProblem(r.pairs);
+  if (extrusion) return reject(extrusion);
   return {
     ok: true,
     entity: {
@@ -151,6 +170,8 @@ function parseLwPolyline(r: Record_): Parsed {
   const elevation = readNumber(r.pairs, 38);
   if (elevation === 'invalid') return reject('cota no numérica');
   if ((elevation ?? 0) !== 0) return reject('es 3D (cota distinta de 0)');
+  const extrusion = extrusionProblem(r.pairs);
+  if (extrusion) return reject(extrusion);
   const count = readNumber(r.pairs, 90);
   if (typeof count === 'number' && count !== verts.length) return reject(`declara ${count} vértices y trae ${verts.length}`);
   if (verts.length < 2) return reject('tiene menos de 2 vértices');
@@ -172,6 +193,12 @@ function parsePolyline(head: Record_, vertices: Record_[]): Parsed {
   const f = typeof flags === 'number' ? flags : 0;
   if (f & (8 | 16 | 64)) return reject('es una POLYLINE 3D, una malla o una polycara');
   if (f & (2 | 4)) return reject('es una polilínea con ajuste de curva o spline');
+  // Cabecera: cota Z (30; para una POLYLINE 2D es la elevación) y extrusión. Los VERTEX no traen 210/220/230.
+  const headerZ = readNumber(head.pairs, 30);
+  if (headerZ === 'invalid') return reject('coordenadas no numéricas o no finitas');
+  if ((headerZ ?? 0) !== 0) return reject('es 3D (la cabecera tiene cota Z distinta de 0)');
+  const extrusion = extrusionProblem(head.pairs);
+  if (extrusion) return reject(extrusion);
   const points: Point[] = [];
   for (const v of vertices) {
     const x = readNumber(v.pairs, 10);
@@ -190,6 +217,11 @@ function parsePolyline(head: Record_, vertices: Record_[]): Parsed {
 
 function samePoint(a: Point, b: Point): boolean {
   return a[0] === b[0] && a[1] === b[1];
+}
+
+/** Polilínea abierta que cierra con sus extremos coincidentes (≥ 4 puntos): se promueve a región. */
+function hasCoincidentEnds(e: DxfEntity): boolean {
+  return e.points.length >= 4 && samePoint(e.points[0] as Point, e.points[e.points.length - 1] as Point);
 }
 
 /**
@@ -302,9 +334,7 @@ export function parseDxf(text: string, options: ParseDxfOptions = {}): DxfParseR
   const regions: DxfImportResult['regions'] = [];
   for (const e of entities) {
     if (e.type === 'LINE') continue;
-    const first = e.points[0] as Point;
-    const last = e.points[e.points.length - 1] as Point;
-    const coincident = e.points.length >= 4 && samePoint(first, last);
+    const coincident = hasCoincidentEnds(e);
     if (!e.closed && !coincident) continue;
     const polygon = coincident ? e.points.slice(0, -1) : e.points.slice();
     if (!e.closed) {
@@ -325,7 +355,8 @@ export function parseDxf(text: string, options: ParseDxfOptions = {}): DxfParseR
   if (entities.some((e) => e.layer === '0')) {
     issues.push({ severity: 'aviso', text: 'Hay entidades en la capa 0: no indica un material; asigne uno manualmente.' });
   }
-  const open = entities.filter((e) => e.type !== 'LINE' && !e.closed).length;
+  // Las abiertas con extremos coincidentes ya se promovieron a región (con su propio aviso): no se cuentan de nuevo.
+  const open = entities.filter((e) => e.type !== 'LINE' && !e.closed && !hasCoincidentEnds(e)).length;
   if (open > 0) {
     issues.push({ severity: 'aviso', text: `${open} polilínea(s) abierta(s): no son regiones; ciérrelas con una línea base o descártelas.` });
   }

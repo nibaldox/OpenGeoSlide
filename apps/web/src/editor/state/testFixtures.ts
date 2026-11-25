@@ -57,7 +57,7 @@ export function singleRegionDoc(polygon: Point[]): ModelDoc {
     meta: {},
     materials: [mat('m1')],
     regions: [{ material: 'm1', polygon }],
-    analysis: {},
+    analysis: { surface: { type: 'circle', xc: 10, yc: 20, r: 12 } },
   };
 }
 
@@ -71,6 +71,6 @@ export function twoRegionDoc(a: Point[], b: Point[]): ModelDoc {
       { material: 'm1', polygon: a },
       { material: 'm1', polygon: b },
     ],
-    analysis: {},
+    analysis: { surface: { type: 'circle', xc: 10, yc: 20, r: 12 } },
   };
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Point } from '../../engine/types';
 import { baseDoc, singleRegionDoc, square, twoRegionDoc } from './testFixtures';
 import { validateLocal } from './validateLocal';
-import { classifyPoint, dedupeConsecutive, findSelfIntersection, polygonsOverlap, properCross, segmentsTouch } from './polygonChecks';
+import { classifyPoint, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, normalizedArea, polygonsOverlap, properCross, segmentsTouch } from './polygonChecks';
 
 const scaled = (pts: Point[], k: number): Point[] => pts.map(([x, y]): Point => [x * k, y * k]);
 
@@ -58,5 +58,21 @@ describe('validateLocal: la tolerancia es relativa a la escala del modelo', () =
     const r1 = doc.regions[1];
     if (r1) r1.polygon[0] = [10 + 1e-13, 0];
     expect(validateLocal(doc)).toEqual([]);
+  });
+});
+
+describe('isDegenerateRegion (E12j: misma regla que geometry.rs, área ≤ 1e-12·escala²)', () => {
+  it('normalizedArea: unidades de escala², independiente del origen', () => {
+    expect(normalizedArea([[0, 0], [100, 0], [100, 100], [0, 100]], 100)).toBeCloseTo(1, 12);
+    expect(normalizedArea([[1e6, 1e6], [1e6 + 100, 1e6], [1e6, 1e6 + 100]], 100)).toBeCloseTo(0.5, 9);
+  });
+  it('umbral: lados de 1e-4 (área 5e-9) son degenerados y de 1,7320508e-4 (1,5e-8) no, con escala 100', () => {
+    expect(isDegenerateRegion([[0, 0], [1e-4, 0], [0, 1e-4]], 100)).toBe(true);
+    expect(isDegenerateRegion([[0, 0], [1.7320508e-4, 0], [0, 1.7320508e-4]], 100)).toBe(false);
+  });
+  it('colineales y con repetidos: degenerados; ocho simétrico: no (es auto-intersección)', () => {
+    expect(isDegenerateRegion([[0, 0], [5, 0], [10, 0]], 10)).toBe(true);
+    expect(isDegenerateRegion([[0, 0], [0, 0], [5, 5]], 10)).toBe(true);
+    expect(isDegenerateRegion([[0, 0], [10, 10], [10, 0], [0, 10]], 10)).toBe(false);
   });
 });

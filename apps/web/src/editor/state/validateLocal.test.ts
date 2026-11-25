@@ -40,11 +40,14 @@ describe('validateLocal: vértices', () => {
   it('vértices consecutivos repetidos, incluido el cierre', () => {
     const issues = validateLocal(singleRegionDoc([[0, 0], [10, 0], [10, 0], [10, 10], [0, 10], [0, 0]]));
     expect(codes(issues)).toEqual(['editor.duplicate_vertex', 'editor.duplicate_vertex']);
+    // E12j: el motor acepta el repetido, así que es un aviso y no un error.
+    expect(issues.map((i) => i.severity)).toEqual(['aviso', 'aviso']);
     expect(issues.map((i) => i.path)).toEqual(['/regions/0/polygon/2', '/regions/0/polygon/5']);
   });
   it('repetidos que dejan menos de 3 vértices distintos', () => {
     const issues = validateLocal(singleRegionDoc([[0, 0], [0, 0], [5, 5]]));
-    expect(codes(issues)).toEqual(['editor.duplicate_vertex', 'editor.too_few_vertices']);
+    // Área nula: el motor la rechaza como degenerada (E12j); el repetido ya no se informa.
+    expect(codes(issues)).toEqual(['editor.degenerate_region']);
   });
   it('coordenadas no finitas', () => {
     const issues = validateLocal(singleRegionDoc([[0, 0], [10, Number.NaN], [10, 10]]));
@@ -89,8 +92,11 @@ describe('validateLocal: auto-intersección (E12c)', () => {
     expect(validateLocal(singleRegionDoc(l))).toEqual([]);
     expect(validateLocal(singleRegionDoc([...l].reverse()))).toEqual([]);
   });
-  it('un polígono degenerado (todos los puntos colineales) se informa como auto-intersección', () => {
-    expect(codes(validateLocal(singleRegionDoc([[0, 0], [5, 0], [10, 0]])))).toEqual(['editor.self_intersection']);
+  it('un polígono degenerado (todos los puntos colineales) se informa como región degenerada (E12j)', () => {
+    expect(codes(validateLocal(singleRegionDoc([[0, 0], [5, 0], [10, 0]])))).toEqual(['editor.degenerate_region']);
+  });
+  it('un ocho simétrico (área neta cero, no colineal) sigue siendo una auto-intersección', () => {
+    expect(codes(validateLocal(singleRegionDoc([[0, 0], [10, 10], [10, 0], [0, 10]])))).toEqual(['editor.self_intersection']);
   });
 });
 

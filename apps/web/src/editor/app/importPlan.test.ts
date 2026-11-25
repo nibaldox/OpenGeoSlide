@@ -188,3 +188,48 @@ describe('CSV capa,x,y', () => {
     expect(plan.regions.map((r) => r.material)).toEqual([doc.materials[0]!.id, 'roca']);
   });
 });
+
+// R5-06 (c): el mapeo se consulta con Object.hasOwn; una capa llamada como una propiedad de Object.prototype no
+// puede heredar un valor del prototipo.
+describe('R5-06: capas con nombre de propiedad del prototipo', () => {
+  const doc = { materials: [], units: 'SI' };
+  const base = { open: [], factor: 1, openMode: 'discard' as const, baseY: null };
+  const sq = [[0, 0], [1, 0], [1, 1], [0, 1]] as [number, number][];
+
+  it.each(['constructor', 'toString', 'hasOwnProperty', '__proto__', 'valueOf'])(
+    'la capa «%s» sin mapear se omite (no asigna una función como material)',
+    (layer) => {
+      const plan = planRegionImport(doc, { ...base, regions: [{ layer, polygon: sq }], mapping: {} });
+      expect(plan.regions).toEqual([]);
+      expect(plan.skipped).toBe(1);
+      expect(plan.newMaterials).toEqual([]);
+    },
+  );
+
+  it.each(['constructor', 'toString', '__proto__'])('la capa «%s» mapeada de forma explícita se respeta', (layer) => {
+    const mapping = Object.fromEntries([[layer, NEW_MATERIAL]]);
+    const plan = planRegionImport(doc, { ...base, regions: [{ layer, polygon: sq }], mapping });
+    expect(plan.regions).toHaveLength(1);
+    expect(typeof plan.regions[0]?.material).toBe('string');
+    expect(plan.newMaterials.map((m) => m.name)).toEqual([layer]);
+  });
+
+  it('defaultMapping conserva la capa «__proto__» como propiedad propia', () => {
+    const m = defaultMapping([{ name: '__proto__', suggestedMaterialId: null }, { name: 'constructor', suggestedMaterialId: 'x' }]);
+    expect(Object.hasOwn(m, '__proto__')).toBe(true);
+    expect(m['constructor']).toBe('x');
+    const plan = planRegionImport(doc, { ...base, regions: [{ layer: '__proto__', polygon: sq }], mapping: m });
+    expect(plan.regions).toHaveLength(1);
+  });
+
+  it('DXF con capas «constructor» y «toString»: el plan por defecto crea materiales de texto', () => {
+    const text = '0\nSECTION\n2\nENTITIES\n' +
+      ['constructor', 'toString'].map((l) => `0\nLWPOLYLINE\n8\n${l}\n90\n4\n70\n1\n10\n0\n20\n0\n10\n4\n20\n0\n10\n4\n20\n3\n10\n0\n20\n3\n`).join('') +
+      '0\nENDSEC\n0\nEOF\n';
+    const r = parseDxf(text);
+    const unmapped = planRegionImport(doc, { ...base, regions: r.regions, mapping: {} });
+    expect(unmapped.regions).toEqual([]);
+    const plan = planRegionImport(doc, { ...base, regions: r.regions, mapping: defaultMapping(r.layers) });
+    expect(plan.regions.map((x) => typeof x.material)).toEqual(['string', 'string']);
+  });
+});

@@ -213,3 +213,62 @@ describe('parseDxf: límites y archivos no válidos', () => {
     expect(noY.entities).toEqual([]);
   });
 });
+
+// R5-06: extrusión OCS, cota Z de la cabecera de POLYLINE y recuento de coincidentes (datos de R5).
+describe('parseDxf: R5-06 extrusión, cota Z de cabecera y recuento', () => {
+  const body = (extra: string): string => `0\nSECTION\n2\nENTITIES\n${extra}0\nENDSEC\n0\nEOF\n`;
+  const square = '10\n0\n20\n0\n10\n4\n20\n0\n10\n4\n20\n3\n10\n0\n20\n3\n';
+  const lw = (extrusion: string): string => `0\nLWPOLYLINE\n8\nA\n90\n4\n70\n1\n${square}${extrusion}`;
+  const poly = (header: string): string =>
+    `0\nPOLYLINE\n8\nA\n66\n1\n${header}70\n1\n` +
+    [[0, 0], [4, 0], [4, 3], [0, 3]].map(([x, y]) => `0\nVERTEX\n8\nA\n10\n${x}\n20\n${y}\n`).join('') +
+    '0\nSEQEND\n8\nA\n';
+
+  it('LWPOLYLINE espejada (230 = -1) se rechaza con aviso; con (0, 0, 1) explícito pasa', () => {
+    const bad = parseDxf(body(lw('210\n0\n220\n0\n230\n-1\n')));
+    expect(bad.entities).toEqual([]);
+    expect(bad.regions).toEqual([]);
+    expect(bad.issues.some((i) => i.severity === 'aviso' && i.entity === 'LWPOLYLINE' && i.text.includes('extrusión'))).toBe(true);
+    const good = parseDxf(body(lw('210\n0\n220\n0\n230\n1\n')));
+    expect(good.regions).toHaveLength(1);
+    expect(good.issues.filter((i) => i.text.includes('extrusión'))).toEqual([]);
+    // Sin los códigos 210/220/230 equivale a (0, 0, 1).
+    expect(parseDxf(body(lw(''))).regions).toHaveLength(1);
+  });
+
+  it('plano inclinado (210 o 220 ≠ 0) y vector no numérico también se rechazan', () => {
+    for (const ext of ['210\n0.5\n220\n0\n230\n0.866\n', '220\n-1\n', '210\n0\n220\n0\n230\nabc\n']) {
+      const r = parseDxf(body(lw(ext)));
+      expect(r.entities, ext).toEqual([]);
+      expect(r.issues.some((i) => i.severity === 'aviso' && i.entity === 'LWPOLYLINE'), ext).toBe(true);
+    }
+  });
+
+  it('POLYLINE espejada (230 = -1 en la cabecera) y LINE espejada se rechazan', () => {
+    const r = parseDxf(body(poly('210\n0\n220\n0\n230\n-1\n')));
+    expect(r.entities).toEqual([]);
+    expect(r.issues.some((i) => i.entity === 'POLYLINE' && i.text.includes('extrusión'))).toBe(true);
+    const line = parseDxf(body('0\nLINE\n8\nA\n10\n0\n20\n0\n11\n1\n21\n1\n210\n0\n220\n0\n230\n-1\n'));
+    expect(line.entities).toEqual([]);
+    expect(line.issues.some((i) => i.entity === 'LINE' && i.text.includes('extrusión'))).toBe(true);
+  });
+
+  it('POLYLINE con cota Z de cabecera (30 = 25) se rechaza como 3D; con 30 = 0 pasa', () => {
+    const bad = parseDxf(body(poly('10\n0\n20\n0\n30\n25\n')));
+    expect(bad.entities).toEqual([]);
+    expect(bad.issues.some((i) => i.entity === 'POLYLINE' && i.text.includes('3D'))).toBe(true);
+    expect(parseDxf(body(poly('10\n0\n20\n0\n30\n0\n'))).regions).toHaveLength(1);
+    expect(parseDxf(body(poly('10\n0\n20\n0\n30\nabc\n'))).entities).toEqual([]);
+  });
+
+  it('polilínea abierta con extremos coincidentes: se promueve a región y no se cuenta como abierta', () => {
+    const pts = [[0, 0], [4, 0], [4, 3], [0, 3], [0, 0]].map(([x, y]) => `10\n${x}\n20\n${y}\n`).join('');
+    const r = parseDxf(body(`0\nLWPOLYLINE\n8\nA\n90\n5\n70\n0\n${pts}`));
+    expect(r.regions).toHaveLength(1);
+    expect(r.issues.some((i) => i.text.includes('extremos coincidentes'))).toBe(true);
+    expect(r.issues.some((i) => i.text.includes('abierta(s)'))).toBe(false);
+    // Una abierta de verdad junto a la coincidente: se cuenta solo esa.
+    const two = parseDxf(body(`0\nLWPOLYLINE\n8\nA\n90\n5\n70\n0\n${pts}0\nLWPOLYLINE\n8\nB\n90\n2\n70\n0\n10\n0\n20\n0\n10\n1\n20\n1\n`));
+    expect(two.issues.find((i) => i.text.includes('abierta(s)'))?.text).toMatch(/^1 polilínea\(s\) abierta\(s\)/);
+  });
+});

@@ -2,25 +2,29 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ogs-0.2.schema.json",
   "title": "OpenGeoSlide model (.ogs.json) v0.2",
-  "description": "Formato de modelo v0.2 (briefs/00_CONTRATOS.md §1 y briefs/01_CONTRATOS_FASE1.md F1.1). Admite version 0.1 y 0.2: loads y analysis.seismic solo existen con version 0.2. Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados. Reglas que JSON Schema no expresa y valida el motor: x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, id de carga único.",
+  "description": "Formato de modelo v0.2 (briefs/00_CONTRATOS.md §1 y briefs/01_CONTRATOS_FASE1.md F1.1). Admite version 0.1 y 0.2: con version 0.1, loads solo puede ser [] y analysis.seismic solo null o ausente (igual que ogs-core); el resto de usos de loads y seismic exigen version 0.2. Las cotas son las de briefs/00_CONTRATOS.md §4.5 y las del motor: el esquema y el binario ogs aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede expresar y valida solo el motor: material de cada región existente, ids de material y de carga únicos, x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, polígonos simples sin solapes ni áreas degeneradas, piezométrica con x estrictamente creciente, rangos entry/exit con lo ≤ hi y dentro del modelo, y n_entry·n_exit·n_radius ≤ 2 000 000. Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados.",
   "type": "object",
   "required": ["format", "version", "materials", "regions", "analysis"],
   "additionalProperties": false,
   "if": { "properties": { "version": { "const": "0.1" } } },
   "then": {
     "properties": {
-      "loads": false,
-      "analysis": { "properties": { "seismic": false } }
+      "loads": { "type": "array", "maxItems": 0 },
+      "analysis": { "properties": { "seismic": { "type": "null" } } }
     }
   },
   "properties": {
     "format": { "const": "opengeoslide" },
     "version": { "enum": ["0.1", "0.2"] },
     "meta": { "$ref": "#/$defs/meta" },
-    "units": { "type": "string", "enum": ["SI", "imperial"] },
+    "units": {
+      "description": "Convencionalmente \"SI\" o \"imperial\". ogs-core acepta cualquier cadena (o null) y no convierte unidades.",
+      "type": ["string", "null"],
+      "examples": ["SI", "imperial"]
+    },
     "materials": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/material" } },
     "regions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/region" } },
-    "water": { "$ref": "#/$defs/water" },
+    "water": { "anyOf": [{ "$ref": "#/$defs/water" }, { "type": "null" }] },
     "loads": { "$ref": "#/$defs/loads" },
     "slope": { "$ref": "#/$defs/slope" },
     "analysis": { "$ref": "#/$defs/analysis" }
@@ -47,9 +51,9 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "notes": { "type": "string" }
+        "id": { "type": ["string", "null"] },
+        "title": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
       }
     },
     "material": {
@@ -63,8 +67,8 @@
         "unit_weight": { "type": "number", "exclusiveMinimum": 0 },
         "unit_weight_sat": { "type": ["number", "null"], "exclusiveMinimum": 0 },
         "cohesion": { "type": "number", "minimum": 0 },
-        "friction_angle": { "type": "number", "minimum": 0, "maximum": 90 },
-        "ru": { "type": ["number", "null"], "minimum": 0 }
+        "friction_angle": { "type": "number", "minimum": 0, "exclusiveMaximum": 90 },
+        "ru": { "type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 1 }
       }
     },
     "region": {
@@ -97,7 +101,7 @@
       "required": ["type", "x1", "x2", "q"],
       "properties": {
         "type": { "const": "udl" },
-        "id": { "type": "string", "minLength": 1 },
+        "id": { "type": ["string", "null"] },
         "x1": { "type": "number" },
         "x2": { "type": "number" },
         "q": { "type": "number", "minimum": 0 }
@@ -110,7 +114,7 @@
       "required": ["type", "x", "p"],
       "properties": {
         "type": { "const": "line" },
-        "id": { "type": "string", "minLength": 1 },
+        "id": { "type": ["string", "null"] },
         "x": { "type": "number" },
         "p": { "type": "number", "minimum": 0 },
         "angle": { "type": "number", "minimum": -90, "maximum": 90, "default": 0 }
@@ -137,8 +141,13 @@
       }
     },
     "analysis": {
+      "description": "Debe haber superficie fija o búsqueda (no nulas): sin ellas el motor responde NoSurface.",
       "type": "object",
       "additionalProperties": false,
+      "anyOf": [
+        { "required": ["surface"], "properties": { "surface": { "type": "object" } } },
+        { "required": ["search"], "properties": { "search": { "type": "object" } } }
+      ],
       "properties": {
         "methods": {
           "type": "array",
@@ -147,13 +156,13 @@
           "items": { "type": "string", "enum": ["bishop", "spencer"] },
           "default": ["bishop"]
         },
-        "slices": { "type": "integer", "minimum": 1, "default": 50 },
-        "tolerance": { "type": "number", "exclusiveMinimum": 0, "default": 1e-5 },
-        "max_iterations": { "type": "integer", "minimum": 1, "default": 500 },
-        "min_m_alpha": { "type": "number", "minimum": 0, "default": 0.2 },
+        "slices": { "type": "integer", "minimum": 3, "maximum": 2000, "default": 50 },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.01, "default": 1e-5 },
+        "max_iterations": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 500 },
+        "min_m_alpha": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "default": 0.2 },
         "seismic": { "anyOf": [{ "$ref": "#/$defs/seismic" }, { "type": "null" }] },
-        "surface": { "$ref": "#/$defs/surface" },
-        "search": { "$ref": "#/$defs/search" }
+        "surface": { "anyOf": [{ "$ref": "#/$defs/surface" }, { "type": "null" }] },
+        "search": { "anyOf": [{ "$ref": "#/$defs/search" }, { "type": "null" }] }
       }
     },
     "surface": {
@@ -176,11 +185,11 @@
         "type": { "const": "circular_entry_exit" },
         "entry": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
         "exit": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
-        "n_entry": { "type": "integer", "minimum": 1, "default": 20 },
-        "n_exit": { "type": "integer", "minimum": 1, "default": 20 },
-        "n_radius": { "type": "integer", "minimum": 1, "default": 20 },
-        "max_radius_factor": { "type": "number", "exclusiveMinimum": 0, "default": 5.0 },
-        "min_width": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "n_entry": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 },
+        "n_exit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 },
+        "n_radius": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 },
+        "max_radius_factor": { "type": "number", "exclusiveMinimum": 0.51, "default": 5.0 },
+        "min_width": { "type": ["number", "null"], "minimum": 0 },
         "refine": { "type": "boolean", "default": true }
       }
     }

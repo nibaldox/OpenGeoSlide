@@ -33,7 +33,9 @@ export type EditorIssueCode =
   | 'editor.duplicate_material'
   | 'editor.out_of_range'
   | 'editor.piezo_order'
-  | 'editor.load_range';
+  | 'editor.load_range'
+  | 'editor.degenerate_region'
+  | 'editor.no_surface';
 
 /** `path` es un puntero JSON, p. ej. "/regions/0/polygon/2". */
 export interface Issue {
