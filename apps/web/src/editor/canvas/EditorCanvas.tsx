@@ -2,7 +2,7 @@
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
-import type { Point } from '../../engine/types';
+import type { Circle, Point, Slice } from '../../engine/types';
 import { worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, ModelDoc } from '../types';
@@ -50,6 +50,32 @@ const COLOR_BAND_ENTRY = 'rgba(22, 163, 74, 0.35)';
 const COLOR_BAND_EXIT = 'rgba(234, 88, 12, 0.35)';
 
 const HANDLE_R = 5;
+const COLOR_RESULT = '#dc2626';
+const COLOR_SLICE_FILL = 'rgba(120, 120, 120, 0.22)';
+const COLOR_SLICE_EDGE = 'rgba(90, 90, 90, 0.55)';
+
+/** Resultado del cálculo que se superpone al modelo: superficie crítica y dovelas. */
+export interface CanvasResult {
+  surface: Circle;
+  slices: Slice[];
+}
+
+/** Puntos (en pantalla) del arco inferior de la superficie crítica entre la primera y la última dovela. */
+function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
+  if (result.slices.length === 0) return '';
+  const xmin = Math.min(...result.slices.map((s) => s.x_left));
+  const xmax = Math.max(...result.slices.map((s) => s.x_right));
+  const { xc, yc, r } = result.surface;
+  const pts: string[] = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const x = xmin + ((xmax - xmin) * i) / steps;
+    const d = r * r - (x - xc) ** 2;
+    if (d < 0) continue;
+    const [sx, sy] = worldToScreen(vp, x, yc - Math.sqrt(d));
+    pts.push(`${sx},${sy}`);
+  }
+  return pts.join(' ');
+}
 
 function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, panning: boolean): string {
   if (panning) return 'grabbing';
@@ -60,7 +86,7 @@ function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, p
   return 'default';
 }
 
-export function EditorCanvas({ store }: { store: EditorStore }) {
+export function EditorCanvas({ store, result }: { store: EditorStore; result?: CanvasResult }) {
   // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
   const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
   const getState = useCallback(() => store.getState(), [store]);
@@ -261,6 +287,27 @@ export function EditorCanvas({ store }: { store: EditorStore }) {
           );
         })}
       </g>
+
+      {result && result.slices.length > 0 && (
+        <g data-layer="result" aria-hidden="true" pointerEvents="none">
+          {result.slices.map((sl, i) => (
+            <polygon
+              key={i}
+              data-slice={i}
+              points={pointsAttr(vp, [
+                [sl.x_left, sl.y_base_left],
+                [sl.x_right, sl.y_base_right],
+                [sl.x_right, sl.y_top_mid],
+                [sl.x_left, sl.y_top_mid],
+              ])}
+              fill={COLOR_SLICE_FILL}
+              stroke={COLOR_SLICE_EDGE}
+              strokeWidth={0.6}
+            />
+          ))}
+          <polyline data-critical-surface points={surfaceArc(vp, result)} fill="none" stroke={COLOR_RESULT} strokeWidth={2.5} />
+        </g>
+      )}
 
       <g data-layer="search-ranges">
         {(['entry', 'exit'] as const).map((which) => {

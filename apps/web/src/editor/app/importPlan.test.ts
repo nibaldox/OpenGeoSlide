@@ -1,0 +1,190 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { parseCsv, csvToRegions } from '../../io/csv';
+import { parseDxf } from '../../io/dxf';
+import { loadCaseDoc } from '../../report/fixtures';
+import { createEditorStore, validateLocal } from '../state';
+import {
+  NEW_MATERIAL,
+  SKIP_LAYER,
+  applyPlanToDoc,
+  closeWithBase,
+  defaultMapping,
+  defaultUnit,
+  importableLayers,
+  openPolylines,
+  planRegionImport,
+  suggestBaseY,
+  unitFactor,
+} from './importPlan';
+
+const fixture = (name: string): string => readFileSync(new URL(`../../io/dxf/fixtures/${name}`, import.meta.url), 'utf8');
+
+describe('unidades', () => {
+  it('factor a metros y a pies', () => {
+    expect(unitFactor('m', 'SI')).toBe(1);
+    expect(unitFactor('mm', 'SI')).toBeCloseTo(0.001, 12);
+    expect(unitFactor('cm', undefined)).toBeCloseTo(0.01, 12);
+    expect(unitFactor('ft', 'SI')).toBeCloseTo(0.3048, 12);
+    expect(unitFactor('ft', 'imperial')).toBe(1);
+    expect(unitFactor('in', 'imperial')).toBeCloseTo(1 / 12, 12);
+    expect(unitFactor('m', 'imperial')).toBeCloseTo(3.280839895, 8);
+  });
+
+  it('la unidad propuesta es la del encabezado o, si no hay, la del modelo', () => {
+    expect(defaultUnit('mm', 'SI')).toBe('mm');
+    expect(defaultUnit(null, 'SI')).toBe('m');
+    expect(defaultUnit(null, 'imperial')).toBe('ft');
+  });
+});
+
+describe('closeWithBase', () => {
+  it('cierra un terreno abierto con una base horizontal', () => {
+    expect(closeWithBase([[0, 10], [10, 10], [20, 5]], 0)).toEqual([[0, 10], [10, 10], [20, 5], [20, 0], [0, 0]]);
+  });
+  it('no duplica vértices si el extremo ya está en la base', () => {
+    expect(closeWithBase([[0, 0], [10, 5], [20, 0]], 0)).toEqual([[0, 0], [10, 5], [20, 0]]);
+  });
+  it('una polilínea de un punto no es una región', () => {
+    expect(closeWithBase([[0, 0]], 0)).toBeNull();
+  });
+});
+
+describe('DXF: terraplen.dxf', () => {
+  const doc = loadCaseDoc('V047a');
+  const result = parseDxf(fixture('terraplen.dxf'), { materials: [{ id: 'suelo', name: 'Suelo_1' }] });
+
+  it('capas importables con sugerencia y polilínea abierta', () => {
+    const layers = importableLayers(result);
+    expect(layers.map((l) => l.name)).toContain('SUELO_1');
+    expect(layers.find((l) => l.name === 'SUELO_1')?.suggestedMaterialId).toBe('suelo');
+    expect(layers.reduce((a, l) => a + l.regions, 0)).toBe(2);
+    expect(openPolylines(result).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('mapeo: usa el material elegido, crea uno nuevo con id único y omite capas', () => {
+    const layers = importableLayers(result);
+    const mapping = defaultMapping(layers);
+    expect(mapping.SUELO_1).toBe('suelo');
+    mapping.arcilla = NEW_MATERIAL;
+    const plan = planRegionImport(
+      { materials: [{ ...doc.materials[0]!, id: 'arcilla' }], units: 'SI' },
+      { regions: result.regions, open: [], mapping, factor: 1, openMode: 'discard', baseY: null },
+    );
+    expect(plan.regions.map((r) => r.material)).toEqual(['suelo', 'arcilla_2']);
+    expect(plan.newMaterials.map((m) => [m.id, m.name])).toEqual([['arcilla_2', 'arcilla']]);
+    const skipAll = planRegionImport(doc, {
+      regions: result.regions,
+      open: [],
+      mapping: { SUELO_1: SKIP_LAYER, arcilla: SKIP_LAYER },
+      factor: 1,
+      openMode: 'discard',
+      baseY: null,
+    });
+    expect(skipAll.regions).toEqual([]);
+    expect(skipAll.skipped).toBe(2);
+  });
+
+  it('polilíneas abiertas: cerrar con base o descartar', () => {
+    const open = openPolylines(result).map((e) => ({ layer: e.layer, points: e.points }));
+    const base = {
+      regions: [],
+      open,
+      mapping: Object.fromEntries(open.map((o) => [o.layer, NEW_MATERIAL])),
+      factor: 1,
+    };
+    const closed = planRegionImport(doc, { ...base, openMode: 'close', baseY: 0 });
+    expect(closed.regions.length).toBe(open.length);
+    expect(closed.regions[0]!.polygon.length).toBeGreaterThanOrEqual(3);
+    const dropped = planRegionImport(doc, { ...base, openMode: 'discard', baseY: 0 });
+    expect(dropped.regions).toEqual([]);
+    expect(dropped.skipped).toBe(open.length);
+    const noBase = planRegionImport(doc, { ...base, openMode: 'close', baseY: null });
+    expect(noBase.regions).toEqual([]);
+    expect(noBase.notes.length).toBe(1);
+  });
+
+  it('suggestBaseY queda por debajo de la geometría', () => {
+    expect(suggestBaseY([[0, 5], [1, 7.26]], 1)).toBe(4);
+    expect(suggestBaseY([], 1)).toBeNull();
+  });
+});
+
+describe('DXF en mm: reescala al importar', () => {
+  it('polyline2d_crlf.dxf con unidad mm → metros', () => {
+    const r = parseDxf(fixture('polyline2d_crlf.dxf'));
+    const plan = planRegionImport(
+      { materials: [], units: 'SI' },
+      { regions: r.regions, open: [], mapping: { ROCA: NEW_MATERIAL }, factor: unitFactor('mm', 'SI'), openMode: 'discard', baseY: null },
+    );
+    expect(plan.regions[0]!.polygon).toEqual([[0, 0], [1, 0], [1, 0.5], [0, 0.5]]);
+    expect(plan.newMaterials[0]!.id).toBe('roca');
+  });
+});
+
+describe('aplicar el plan al documento y deshacerlo de una vez', () => {
+  it('replace y add dan documentos distintos; doc/replace se deshace con un Ctrl+Z', () => {
+    const doc = loadCaseDoc('V047a');
+    const plan = planRegionImport(doc, {
+      regions: [{ layer: 'N', polygon: [[0, 0], [1, 0], [1, 1]] }],
+      open: [],
+      mapping: { N: NEW_MATERIAL },
+      factor: 1,
+      openMode: 'discard',
+      baseY: null,
+    });
+    const replaced = applyPlanToDoc(doc, plan, 'replace');
+    const added = applyPlanToDoc(doc, plan, 'add');
+    expect(replaced.regions).toHaveLength(1);
+    expect(added.regions).toHaveLength(doc.regions.length + 1);
+    expect(replaced.materials.map((m) => m.id)).toContain('n');
+    expect(doc.regions.length).toBeGreaterThanOrEqual(1);
+
+    const store = createEditorStore(doc);
+    store.dispatch({ type: 'doc/replace', doc: replaced, fileName: 'x.dxf' });
+    expect(store.getState().doc.regions).toHaveLength(1);
+    store.undo();
+    expect(store.getState().doc.regions).toHaveLength(doc.regions.length);
+  });
+
+  it('modo add con gesto: material + región son una sola entrada de historial', () => {
+    const doc = loadCaseDoc('V047a');
+    const store = createEditorStore(doc);
+    const plan = planRegionImport(doc, {
+      regions: [{ layer: 'Nueva', polygon: [[0, 0], [1, 0], [1, 1]] }],
+      open: [],
+      mapping: { Nueva: NEW_MATERIAL },
+      factor: 1,
+      openMode: 'discard',
+      baseY: null,
+    });
+    store.beginGesture('Importar DXF');
+    for (const m of plan.newMaterials) store.dispatch({ type: 'material/upsert', material: m });
+    for (const r of plan.regions) store.dispatch({ type: 'region/add', region: r });
+    store.endGesture();
+    expect(store.getState().doc.regions).toHaveLength(doc.regions.length + 1);
+    expect(store.getState().doc.materials).toHaveLength(doc.materials.length + 1);
+    store.undo();
+    expect(store.getState().doc.regions).toHaveLength(doc.regions.length);
+    expect(store.getState().doc.materials).toHaveLength(doc.materials.length);
+    expect(validateLocal(store.getState().doc).filter((i) => i.severity === 'error')).toEqual([]);
+  });
+});
+
+describe('CSV capa,x,y', () => {
+  it('las capas del CSV pasan por el mismo plan', () => {
+    const csv = 'capa,x,y\nsuelo,0,0\nsuelo,10,0\nsuelo,10,5\nroca,0,-5\nroca,10,-5\nroca,10,0\n';
+    const { regions } = csvToRegions(parseCsv(csv));
+    expect(regions.map((r) => r.layer)).toEqual(['suelo', 'roca']);
+    const doc = loadCaseDoc('V047a');
+    const plan = planRegionImport(doc, {
+      regions,
+      open: [],
+      mapping: { suelo: doc.materials[0]!.id, roca: NEW_MATERIAL },
+      factor: 1,
+      openMode: 'discard',
+      baseY: null,
+    });
+    expect(plan.regions.map((r) => r.material)).toEqual([doc.materials[0]!.id, 'roca']);
+  });
+});

@@ -12,6 +12,7 @@ import type {
   SearchSpec,
   SurfaceSpec,
 } from '../../engine/types';
+import { RULE_TEXT } from '../state/validateLocal';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
 // ───────────────────────── Números ─────────────────────────
@@ -208,39 +209,38 @@ export interface MaterialFormContext {
 export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): FormOutcome<Material> {
   const errors: FieldErrors = {};
   const id = form.id.trim();
-  const subject = id === '' ? 'nuevo' : id;
-  if (id === '') errors.id = 'el id del material no puede estar vacío';
+  if (id === '') errors.id = RULE_TEXT.materialId;
   else if (ctx.otherIds.includes(id)) errors.id = `id de material duplicado: '${id}'`;
 
   const unitWeight = take(errors, 'unit_weight', form.unit_weight, {
     required: true,
-    missing: `el material '${subject}' debe tener peso unitario > 0`,
+    missing: RULE_TEXT.unitWeight,
     accept: (v) => finite(v) && v > 0,
-    range: `el material '${subject}' debe tener peso unitario > 0`,
+    range: RULE_TEXT.unitWeight,
   });
   const unitWeightSat = take(errors, 'unit_weight_sat', form.unit_weight_sat, {
     required: false,
     missing: '',
     accept: (v) => finite(v) && v > 0,
-    range: `el peso unitario saturado del material '${subject}' debe ser > 0`,
+    range: RULE_TEXT.unitWeightSat,
   });
   const cohesion = take(errors, 'cohesion', form.cohesion, {
     required: true,
-    missing: `la cohesión del material '${subject}' debe ser ≥ 0`,
+    missing: RULE_TEXT.cohesion,
     accept: (v) => finite(v) && v >= 0,
-    range: `la cohesión del material '${subject}' debe ser ≥ 0`,
+    range: RULE_TEXT.cohesion,
   });
   const friction = take(errors, 'friction_angle', form.friction_angle, {
     required: true,
-    missing: `el ángulo de fricción del material '${subject}' debe estar en [0, 90)`,
+    missing: RULE_TEXT.frictionAngle,
     accept: (v) => v >= 0 && v < 90,
-    range: `el ángulo de fricción del material '${subject}' debe estar en [0, 90)`,
+    range: RULE_TEXT.frictionAngle,
   });
   const ru = take(errors, 'ru', form.ru, {
     required: false,
     missing: '',
     accept: (v) => v >= 0 && v < 1,
-    range: `ru del material '${subject}' debe estar en [0, 1)`,
+    range: RULE_TEXT.ru,
   });
 
   return done(errors, () => ({
@@ -301,7 +301,7 @@ export function waterUnitWeightFromForm(text: string): FormOutcome<number | unde
     required: false,
     missing: '',
     accept: (n) => finite(n) && n > 0,
-    range: 'water.unit_weight debe ser > 0',
+    range: RULE_TEXT.waterUnitWeight,
   });
   return done(errors, () => v ?? undefined);
 }
@@ -330,14 +330,14 @@ export function piezoFromForm(rows: readonly PiezoRow[]): FormOutcome<Point[] | 
     const rule: NumberRule = { required: true, missing: 'falta el valor', accept: finite, range: NOT_A_NUMBER };
     return [take(errors, `${i}.x`, row.x, rule), take(errors, `${i}.y`, row.y, rule)];
   });
-  if (rows.length < 2) errors.table = 'la piezométrica necesita al menos 2 puntos';
+  if (rows.length < 2) errors.table = RULE_TEXT.piezoMinPoints;
   if (Object.keys(errors).length === 0) {
     for (let i = 1; i < points.length; i += 1) {
       const prev = points[i - 1][0] ?? 0;
       const cur = points[i][0] ?? 0;
       if (cur <= prev) {
-        errors[`${i}.x`] = 'la piezométrica debe tener x estrictamente creciente';
-        errors.table = 'la piezométrica debe tener x estrictamente creciente';
+        errors[`${i}.x`] = RULE_TEXT.piezoOrder;
+        errors.table = RULE_TEXT.piezoOrder;
       }
     }
   }
@@ -532,13 +532,11 @@ function rangeFromForm(
   const hi = take(errors, `${name}.hi`, form.hi, rule);
   if (lo === null || hi === null) return null;
   if (lo > hi) {
-    errors[`${name}.lo`] = `search.${name} = [${formatNumber(lo)}, ${formatNumber(hi)}]: lo debe ser ≤ hi`;
+    errors[`${name}.lo`] = RULE_TEXT.rangeOrder;
     return null;
   }
   if (xRange && (!insideRange(lo, xRange) || !insideRange(hi, xRange))) {
-    errors[`${name}.lo`] =
-      `search.${name} = [${formatNumber(lo)}, ${formatNumber(hi)}] sale de la extensión del modelo ` +
-      `[${formatNumber(xRange[0])}, ${formatNumber(xRange[1])}]`;
+    errors[`${name}.lo`] = RULE_TEXT.rangeExtent;
     return null;
   }
   return [lo, hi];
@@ -552,9 +550,9 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   const count = (field: 'n_entry' | 'n_exit' | 'n_radius'): number | null =>
     take(errors, field, form[field], {
       required: true,
-      missing: `search.${field} debe estar en [1, ${MAX_AXIS_POINTS}]`,
+      missing: RULE_TEXT.searchCount,
       accept: (v) => v >= 1 && v <= MAX_AXIS_POINTS,
-      range: `search.${field} debe estar en [1, ${MAX_AXIS_POINTS}], no ${form[field].trim()}`,
+      range: RULE_TEXT.searchCount,
       integer: true,
     });
   const nEntry = count('n_entry');
@@ -563,22 +561,20 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   if (nEntry !== null && nExit !== null && nRadius !== null) {
     const candidates = nEntry * nExit * nRadius;
     if (candidates > MAX_GRID_CANDIDATES) {
-      errors.n_radius =
-        `la grilla de búsqueda tendría ${candidates} candidatos (máximo ${MAX_GRID_CANDIDATES}); ` +
-        'reduzca n_entry, n_exit o n_radius';
+      errors.n_radius = RULE_TEXT.searchProduct;
     }
   }
   const factor = take(errors, 'max_radius_factor', form.max_radius_factor, {
     required: true,
-    missing: `search.max_radius_factor debe ser finito y mayor que ${formatNumber(MIN_RADIUS_FACTOR_EXCLUSIVE)}`,
+    missing: RULE_TEXT.maxRadiusFactor,
     accept: (v) => finite(v) && v > MIN_RADIUS_FACTOR_EXCLUSIVE,
-    range: `search.max_radius_factor debe ser finito y mayor que ${formatNumber(MIN_RADIUS_FACTOR_EXCLUSIVE)}, no ${form.max_radius_factor.trim()}`,
+    range: RULE_TEXT.maxRadiusFactor,
   });
   const minWidth = take(errors, 'min_width', form.min_width, {
     required: false,
     missing: '',
     accept: (v) => finite(v) && v >= 0,
-    range: `search.min_width debe ser finito y ≥ 0, no ${form.min_width.trim()}`,
+    range: RULE_TEXT.minWidth,
   });
   return done(errors, () => ({
     type: 'circular_entry_exit',
@@ -695,32 +691,32 @@ export interface AnalysisValues {
 /** Rangos del motor (lib.rs `validate_analysis`): métodos ≥ 1, slices 3–2000, tolerancia (0, 0,01], etc. */
 export function analysisFromForm(form: AnalysisForm): FormOutcome<AnalysisValues> {
   const errors: FieldErrors = {};
-  if (form.methods.length === 0) errors.methods = 'analysis.methods está vacío: elija al menos un método';
+  if (form.methods.length === 0) errors.methods = RULE_TEXT.methodsEmpty;
   const slices = take(errors, 'slices', form.slices, {
     required: true,
-    missing: `analysis.slices debe estar en [${MIN_SLICES}, ${MAX_SLICES}]`,
+    missing: RULE_TEXT.slices,
     accept: (v) => v >= MIN_SLICES && v <= MAX_SLICES,
-    range: `analysis.slices debe estar en [${MIN_SLICES}, ${MAX_SLICES}], no ${form.slices.trim()}`,
+    range: RULE_TEXT.slices,
     integer: true,
   });
   const tolerance = take(errors, 'tolerance', form.tolerance, {
     required: true,
-    missing: `analysis.tolerance debe ser finita y estar en (0, ${formatNumber(MAX_TOLERANCE)}]`,
+    missing: RULE_TEXT.tolerance,
     accept: (v) => finite(v) && v > 0 && v <= MAX_TOLERANCE,
-    range: `analysis.tolerance debe ser finita y estar en (0, ${formatNumber(MAX_TOLERANCE)}], no ${form.tolerance.trim()}`,
+    range: RULE_TEXT.tolerance,
   });
   const maxIterations = take(errors, 'max_iterations', form.max_iterations, {
     required: true,
-    missing: `analysis.max_iterations debe estar en [1, ${MAX_ITERATIONS}]`,
+    missing: RULE_TEXT.maxIterations,
     accept: (v) => v >= 1 && v <= MAX_ITERATIONS,
-    range: `analysis.max_iterations debe estar en [1, ${MAX_ITERATIONS}], no ${form.max_iterations.trim()}`,
+    range: RULE_TEXT.maxIterations,
     integer: true,
   });
   const minMAlpha = take(errors, 'min_m_alpha', form.min_m_alpha, {
     required: true,
-    missing: 'analysis.min_m_alpha debe ser finito y estar en (0, 1]',
+    missing: RULE_TEXT.minMAlpha,
     accept: (v) => finite(v) && v > 0 && v <= 1,
-    range: `analysis.min_m_alpha debe ser finito y estar en (0, 1], no ${form.min_m_alpha.trim()}`,
+    range: RULE_TEXT.minMAlpha,
   });
   return done(errors, () => ({
     methods: sortMethods(form.methods),
@@ -822,8 +818,7 @@ export function loadFromForm(form: LoadForm, ctx: LoadFormContext): FormOutcome<
   const idPart = id === '' ? {} : { id };
   const inRange = (field: string, v: number | null): void => {
     if (v !== null && ctx.xRange && !insideRange(v, ctx.xRange)) {
-      errors[field] =
-        `${subject} tiene ${field} fuera del rango x del modelo [${formatNumber(ctx.xRange[0])}, ${formatNumber(ctx.xRange[1])}]`;
+      errors[field] = RULE_TEXT.loadX;
     }
   };
   const xRule = (what: string): NumberRule => ({
@@ -840,9 +835,9 @@ export function loadFromForm(form: LoadForm, ctx: LoadFormContext): FormOutcome<
       required: true,
       missing: `${subject}: falta q`,
       accept: (v) => finite(v) && v >= 0,
-      range: `${subject} debe tener q ≥ 0`,
+      range: RULE_TEXT.loadQ,
     });
-    if (x1 !== null && x2 !== null && x1 >= x2) errors.x1 = `${subject} tiene x1 >= x2`;
+    if (x1 !== null && x2 !== null && x1 >= x2) errors.x1 = RULE_TEXT.udlOrder;
     else {
       if (!errors.x1) inRange('x1', x1);
       if (!errors.x2) inRange('x2', x2);
@@ -855,13 +850,13 @@ export function loadFromForm(form: LoadForm, ctx: LoadFormContext): FormOutcome<
     required: true,
     missing: `${subject}: falta p`,
     accept: (v) => finite(v) && v >= 0,
-    range: `${subject} debe tener p ≥ 0`,
+    range: RULE_TEXT.loadP,
   });
   const angle = take(errors, 'angle', form.angle, {
     required: true,
     missing: `${subject}: falta el ángulo`,
     accept: (v) => v >= -90 && v <= 90,
-    range: `${subject} debe tener ángulo en [-90, 90]`,
+    range: RULE_TEXT.loadAngle,
   });
   if (!errors.x) inRange('x', x);
   return done(errors, (): Load => ({ type: 'line', ...idPart, x: x ?? 0, p: p ?? 0, angle: angle ?? 0 }));
@@ -913,13 +908,13 @@ export function seismicFromForm(form: SeismicForm): FormOutcome<{ kh: number; kv
     required: false,
     missing: '',
     accept: (v) => v >= 0 && v < 1,
-    range: 'analysis.seismic.kh debe estar en [0, 1)',
+    range: RULE_TEXT.kh,
   });
   const kv = take(errors, 'kv', form.kv, {
     required: false,
     missing: '',
     accept: (v) => v > -1 && v < 1,
-    range: 'analysis.seismic.kv debe estar en (-1, 1)',
+    range: RULE_TEXT.kv,
   });
   return done(errors, () => ({ kh: kh ?? 0, kv: kv ?? 0 }));
 }

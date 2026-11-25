@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
-import { getEngineClient, type AnalyzeResult } from './engine/client';
+import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
 import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
+import { EditorApp } from './editor/EditorApp';
 import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
 import { CheckTable, type CheckRow } from './ui/CheckTable';
@@ -35,14 +36,12 @@ function describeAnalysis(model: Model): string {
   return parts.join(' · ');
 }
 
-export default function App() {
-  const client = useMemo(() => getEngineClient(), []);
-
+/** Vista de los casos de verificación publicados con su comprobación (sin cambios de comportamiento). */
+function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | null }) {
   const [cases, setCases] = useState<CaseEntry[]>(loadBuiltinCases);
   // Vacío hasta elegir: current cae en el primer caso.
   const [caseKey, setCaseKey] = useState<string>('');
   const [methods, setMethods] = useState<Record<MethodKind, boolean>>({ bishop: true, spencer: true });
-  const [info, setInfo] = useState<EngineInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<RunResult | null>(null);
@@ -53,21 +52,6 @@ export default function App() {
 
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
   const selectedMethods = ALL_METHODS.filter((m) => methods[m]);
-
-  useEffect(() => {
-    let alive = true;
-    client
-      .info()
-      .then((data) => {
-        if (alive) setInfo(data);
-      })
-      .catch((err: unknown) => {
-        if (alive) setError(userMessage(err));
-      });
-    return () => {
-      alive = false;
-    };
-  }, [client]);
 
   const shownResult = run?.report.results.find((r) => r.method === shownMethod) ?? run?.report.results[0] ?? null;
   const scene = useMemo(
@@ -174,29 +158,8 @@ export default function App() {
     }
   }
 
-  const simulated = info?.name === 'mock';
-
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>OpenGeoSlide</h1>
-        <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
-      </header>
-
-      {simulated && (
-        <div className="banner banner-sim" role="status">
-          <strong>Motor simulado.</strong> Los resultados son aproximados (Fellenius, 30 dovelas) y no provienen de
-          ogs-core.
-          {info?.fallback_reason ? <span className="small"> Motivo: {info.fallback_reason}.</span> : null}
-        </div>
-      )}
-      {info && !simulated && (
-        <div className="banner banner-ok" role="status">
-          Motor: ogs-core {info.version} (WASM)
-        </div>
-      )}
-      {!info && !error && <div className="banner" role="status">Cargando el motor…</div>}
-
+    <div className="cases-view">
       <main className="layout">
         <aside className="sidebar">
           <section className="panel" aria-labelledby="controls-title">
@@ -293,6 +256,75 @@ export default function App() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+type Mode = 'edit' | 'cases';
+
+export default function App() {
+  const client = useMemo(() => getEngineClient(), []);
+  const [info, setInfo] = useState<EngineInfo | null>(null);
+  const [engineError, setEngineError] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('edit');
+
+  useEffect(() => {
+    let alive = true;
+    client
+      .info()
+      .then((data) => {
+        if (alive) setInfo(data);
+      })
+      .catch((err: unknown) => {
+        if (alive) setEngineError(userMessage(err));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [client]);
+
+  const simulated = info?.name === 'mock';
+
+  return (
+    <div className="app" lang="es">
+      <header className="app-header">
+        <h1>OpenGeoSlide</h1>
+        <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
+        <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación">
+          <button type="button" role="tab" id="mode-edit" aria-selected={mode === 'edit'} aria-controls="mode-edit-panel" className={mode === 'edit' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('edit')}>
+            Editar
+          </button>
+          <button type="button" role="tab" id="mode-cases" aria-selected={mode === 'cases'} aria-controls="mode-cases-panel" className={mode === 'cases' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('cases')}>
+            Casos de verificación
+          </button>
+        </div>
+      </header>
+
+      {simulated && (
+        <div className="banner banner-sim" role="status">
+          <strong>Motor simulado.</strong> Los resultados son aproximados (Fellenius, 30 dovelas) y no provienen de ogs-core.
+          {info?.fallback_reason ? <span className="small"> Motivo: {info.fallback_reason}.</span> : null}
+        </div>
+      )}
+      {info && !simulated && (
+        <div className="banner banner-ok" role="status" data-testid="engine-banner">
+          Motor: ogs-core {info.version} (WASM)
+        </div>
+      )}
+      {!info && !engineError && <div className="banner" role="status">Cargando el motor…</div>}
+      {engineError && (
+        <div className="banner banner-error" role="alert">
+          {engineError}
+        </div>
+      )}
+
+      {/* Ambos modos permanecen montados: al volver a «Editar» se conservan el modelo, el historial y los resultados. */}
+      <div id="mode-edit-panel" role="tabpanel" aria-labelledby="mode-edit" hidden={mode !== 'edit'}>
+        <EditorApp client={client} />
+      </div>
+      <div id="mode-cases-panel" role="tabpanel" aria-labelledby="mode-cases" hidden={mode !== 'cases'}>
+        <CasesView client={client} info={info} />
+      </div>
     </div>
   );
 }
