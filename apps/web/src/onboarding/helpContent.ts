@@ -34,8 +34,13 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { scope: 'global', keys: 'D', action: 'Herramienta «Dividir región»: trace una línea que entre y salga del borde de una región; Intro, o un clic en el borde, la divide en dos (un solo paso deshacible)', probes: [{ key: 'd' }], shortcutAction: 'tool:split_region' },
   { scope: 'global', keys: 'H', action: 'Herramienta «Mover vista»', probes: [{ key: 'h' }], shortcutAction: 'tool:pan' },
 
-  { scope: 'canvas', keys: 'Tab o Mayús+Tab', action: 'Tirador siguiente o anterior; en los extremos, Tab sale del lienzo', probes: [{ key: 'Tab' }, { key: 'Tab', shift: true }] },
-  { scope: 'canvas', keys: '] o [', action: 'Tirador siguiente o anterior, dando la vuelta', probes: [{ key: ']' }, { key: '[' }] },
+  {
+    scope: 'canvas',
+    keys: '] o [ (también AvPág o RePág)',
+    action:
+      'Tirador siguiente o anterior, dando la vuelta. Tab y Mayús+Tab no recorren los tiradores: el lienzo es una sola parada de tabulación, así que entran al lienzo y salen de él',
+    probes: [{ key: ']' }, { key: '[' }, { key: 'PageDown' }, { key: 'PageUp' }],
+  },
   {
     scope: 'canvas',
     keys: 'Flechas',

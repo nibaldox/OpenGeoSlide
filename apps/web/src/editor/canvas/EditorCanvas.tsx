@@ -126,7 +126,7 @@ function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, p
 
 /** Instrucciones del lienzo para teclado y lector de pantalla (`aria-describedby`); documentadas también en docs/fase2/ux/U2C_lienzo_teclado.md. */
 export const CANVAS_INSTRUCTIONS =
-  'Lienzo del modelo. Tab y Mayús+Tab, o las teclas [ y ], pasan de un tirador a otro; en los extremos Tab sale del lienzo. ' +
+  'Lienzo del modelo: una sola parada de tabulación. Tab y Mayús+Tab entran al lienzo y salen de él; dentro, las teclas [ y ], o RePág y AvPág, pasan de un tirador a otro. ' +
   'Con las flechas se mueve el tirador seleccionado un paso de rejilla (0,1 sin rejilla); Mayús multiplica el paso por diez. ' +
   'En el tirador del radio las flechas cambian el radio del círculo; en el del centro, lo mueven. ' +
   'Insert, o la tecla i, inserta un vértice en el punto medio de la arista siguiente. ' +
@@ -628,7 +628,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const arrowId = `${markerBase}-load`;
   const seismicArrowId = `${markerBase}-seismic`;
 
-  // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero).
+  // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero). Tab entra y sale
+  // del lienzo; los tiradores se recorren con [ ] y RePág/AvPág (`keys.ts`), no con Tab (B-01).
   const keys = handles.map(handleKey);
   const selectedHandle = selectionHandle(sel, circlePart);
   if (selectedHandle) lastActiveKey.current = handleKey(selectedHandle);

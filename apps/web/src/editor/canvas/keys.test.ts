@@ -198,14 +198,26 @@ describe('R7-04: recorrido de tiradores con [ ] y Tab dentro del lienzo', () => 
     expect(prev.focus).toEqual({ kind: 'circle_radius' }); // vuelta al último
   });
 
-  it('Tab y Mayús+Tab recorren los tiradores y, en los extremos, dejan salir del lienzo', () => {
-    expect(keyActions(sel(v00), key('Tab')).focus).toEqual({ kind: 'vertex', regionIndex: 0, vertexIndex: 1 });
-    expect(keyActions(sel(v00), key('Tab')).handled).toBe(true);
-    expect(keyActions(sel({ kind: 'piezo_point', index: 0 }), key('Tab', { shiftKey: true })).focus).toEqual({ kind: 'vertex', regionIndex: 1, vertexIndex: 5 });
-    expect(keyActions(sel(v00), key('Tab', { shiftKey: true })).handled).toBe(false); // primero: sale
-    expect(keyActions(sel({ kind: 'surface_circle' }), key('Tab'), false, { circlePart: 'radius' }).handled).toBe(false); // último: sale
-    expect(keyActions(sel({ kind: 'surface_circle' }), key('Tab'), false, { circlePart: 'center' }).focus).toEqual({ kind: 'circle_radius' });
-    expect(keyActions(sel({ kind: 'none' }), key('Tab')).handled).toBe(false);
+  it('B-01: Tab y Mayús+Tab NO recorren los tiradores: entran y salen del lienzo (una sola parada de tabulación)', () => {
+    const mid: Selection = { kind: 'vertex', regionIndex: 0, vertexIndex: 1 };
+    for (const selection of [v00, mid, { kind: 'piezo_point', index: 0 } as Selection, { kind: 'surface_circle' } as Selection, { kind: 'none' } as Selection]) {
+      for (const shiftKey of [false, true]) {
+        const r = keyActions(sel(selection), key('Tab', { shiftKey }));
+        expect(r.handled, `Tab con selección ${selection.kind}`).toBe(false);
+        expect(r.actions).toEqual([]);
+        expect(r.focus).toBeUndefined();
+      }
+    }
+  });
+
+  it('B-01: AvPág y RePág recorren los tiradores igual que ] y [ (con vuelta)', () => {
+    const down = keyActions(sel(v00), key('PageDown'));
+    expect(down.handled).toBe(true);
+    expect(down.focus).toEqual({ kind: 'vertex', regionIndex: 0, vertexIndex: 1 });
+    expect(down.actions).toContainEqual({ type: 'ui/select', selection: { kind: 'vertex', regionIndex: 0, vertexIndex: 1 } });
+    expect(keyActions(sel(v00), key('PageUp')).focus).toEqual({ kind: 'circle_radius' }); // vuelta al último
+    expect(keyActions(sel({ kind: 'surface_circle' }), key('PageDown'), false, { circlePart: 'radius' }).focus).toEqual({ kind: 'vertex', regionIndex: 0, vertexIndex: 0 });
+    expect(keyActions(sel({ kind: 'none' }), key('PageDown')).focus).toEqual({ kind: 'vertex', regionIndex: 0, vertexIndex: 0 });
   });
 
   it('con una selección que no es tirador (región) ]/[ entran al primer/último tirador', () => {
