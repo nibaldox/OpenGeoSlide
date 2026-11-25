@@ -1,4 +1,5 @@
 import type { Scene } from '../render/scene';
+import './legend.css';
 import { legendItems, type LegendOptions } from './legendItems';
 
 /** Leyenda de la sección: materiales y elementos dibujados. El editor pasa `options` para mostrar solo lo que hay. */

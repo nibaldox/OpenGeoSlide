@@ -104,7 +104,8 @@ const PAIRS: Pair[] = [
     (stroke): Pair[] => ['canvas-bg', ...MATS].map((bg): Pair => [stroke, bg, UI, 'trazo esencial del lienzo']),
   ),
   // Dovelas (UX9-07): el trazo se compone sobre cada material y sobre el panel, donde está la muestra de la leyenda
-  ...['canvas-bg', 'ui-surface', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
+  // La muestra de la leyenda (B-05) es una línea con este mismo token sobre el panel: se cubren todas las superficies de la interfaz.
+  ...['canvas-bg', ...UI_SURFACES, 'ui-row-warn', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
   // Tiradores: relleno y aro, y el tirador de la piezométrica
   ['canvas-handle-ring', 'canvas-handle-sel', UI, 'tirador seleccionado'],
   ['canvas-handle-ring', 'canvas-handle-snap', UI, 'tirador con imán'],
