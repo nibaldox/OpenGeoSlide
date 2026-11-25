@@ -30,7 +30,11 @@ export function tokenizeDxf(text: string): TokenizeResult {
   const issues: ImportIssue[] = [];
   const src = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   if (src.startsWith('AutoCAD Binary DXF')) {
-    issues.push({ severity: 'error', text: 'El DXF es binario; exporte un DXF de texto (ASCII).' });
+    issues.push({
+      severity: 'error',
+      text: 'El archivo es un DXF binario, que no se puede leer. En su programa de CAD, guárdelo como DXF de texto (ASCII).',
+      detail: 'cabecera «AutoCAD Binary DXF»',
+    });
     return { pairs: [], issues };
   }
 
@@ -41,12 +45,23 @@ export function tokenizeDxf(text: string): TokenizeResult {
   for (let i = 0; i < lines.length; i += 2) {
     const codeText = (lines[i] ?? '').trim();
     if (!/^-?\d+$/.test(codeText)) {
-      issues.push({ severity: 'error', line: i + 1, text: `Línea ${i + 1}: se esperaba un código de grupo entero y se encontró «${codeText.slice(0, 20)}».` });
+      const found = codeText.slice(0, 20);
+      issues.push({
+        severity: 'error',
+        line: i + 1,
+        text: `Línea ${i + 1}: el archivo está dañado o no es un DXF de texto (se esperaba un número y se encontró «${found}»). Vuelva a guardarlo como DXF de texto (ASCII) desde su programa de CAD.`,
+        detail: `código de grupo no entero en la línea ${i + 1}: «${found}»`,
+      });
       return { pairs, issues };
     }
     const value = lines[i + 1];
     if (value === undefined) {
-      issues.push({ severity: 'error', line: i + 1, text: `Línea ${i + 1}: el archivo termina sin el valor del código ${codeText} (archivo truncado).` });
+      issues.push({
+        severity: 'error',
+        line: i + 1,
+        text: `Línea ${i + 1}: el archivo termina antes de tiempo (el DXF está truncado). Vuelva a exportarlo desde su programa de CAD.`,
+        detail: `falta el valor del código de grupo ${codeText}`,
+      });
       return { pairs, issues };
     }
     const pair: DxfPair = { code: Number(codeText), value: value.trim(), line: i + 1 };

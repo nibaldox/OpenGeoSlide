@@ -1,6 +1,8 @@
 import type { Point } from '../engine/types';
 
-export interface ImportIssue { line?: number; entity?: string; severity: 'error' | 'aviso'; text: string }
+export interface ImportIssue { line?: number; entity?: string; severity: 'error' | 'aviso'; text: string;
+  /** Detalle técnico (texto del analizador, código de grupo…), aparte del mensaje: la UI lo muestra colapsado. */
+  detail?: string }
 export interface DxfImportResult {
   ok: boolean;
   regions: { layer: string; polygon: Point[] }[];          // polilíneas cerradas

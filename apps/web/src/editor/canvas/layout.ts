@@ -21,20 +21,30 @@ export function formatNumber(v: number, minDec = 1, maxDec = 3): string {
   return s.replace('.', ',');
 }
 
-export function vertexLabel(regionIndex: number, vertexIndex: number, p: Point): string {
-  return `Región ${regionIndex + 1}, vértice ${vertexIndex + 1}: x ${formatNumber(p[0])} m, y ${formatNumber(p[1])} m`;
+/** Unidad de longitud del modelo (`units`): `ft` si es imperial, `m` en cualquier otro caso (SI por defecto). */
+export function lengthUnitOf(units: string | undefined | null): string {
+  return /imp/i.test(units ?? '') ? 'ft' : 'm';
 }
 
-export function piezoLabel(index: number, p: Point): string {
-  return `Piezométrica, punto ${index + 1}: x ${formatNumber(p[0])} m, y ${formatNumber(p[1])} m`;
+// Las etiquetas accesibles llevan la unidad de longitud del modelo (`units`); sin ese argumento valen las del SI.
+
+export function vertexLabel(regionIndex: number, vertexIndex: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Región ${regionIndex + 1}, vértice ${vertexIndex + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
 }
 
-export function circleCenterLabel(xc: number, yc: number): string {
-  return `Círculo de falla, centro: x ${formatNumber(xc)} m, y ${formatNumber(yc)} m`;
+export function piezoLabel(index: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Piezométrica, punto ${index + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
 }
 
-export function circleRadiusLabel(r: number): string {
-  return `Círculo de falla, radio: ${formatNumber(r)} m`;
+export function circleCenterLabel(xc: number, yc: number, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Círculo de falla, centro: x ${formatNumber(xc)} ${u}, y ${formatNumber(yc)} ${u}`;
+}
+
+export function circleRadiusLabel(r: number, units?: string | null): string {
+  return `Círculo de falla, radio: ${formatNumber(r)} ${lengthUnitOf(units)}`;
 }
 
 export function seismicLabel(seismic: { kh?: number; kv?: number }): string {
@@ -150,9 +160,9 @@ export function rangeBand(doc: ModelDoc, vp: Viewport, which: 'entry' | 'exit'):
   return [...lower, ...upper];
 }
 
-export function rangeLabel(which: 'entry' | 'exit', range: [number, number]): string {
+export function rangeLabel(which: 'entry' | 'exit', range: [number, number], units?: string | null): string {
   const name = which === 'entry' ? 'Entrada' : 'Salida';
-  return `${name}: x ${formatNumber(Math.min(...range))} a ${formatNumber(Math.max(...range))} m`;
+  return `${name}: x ${formatNumber(Math.min(...range))} a ${formatNumber(Math.max(...range))} ${lengthUnitOf(units)}`;
 }
 
 // ---------- Cargas ----------

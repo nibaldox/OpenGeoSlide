@@ -130,7 +130,8 @@ describe('parseDxf frente a dxf-parser 1.1.2', () => {
     expect(r.entities.map((e) => e.layer)).toEqual(['B']);
     expect(r.regions.map((x) => x.layer)).toEqual(['B']);
     const w = r.issues.find((i) => i.entity === 'LWPOLYLINE' && i.severity === 'aviso');
-    expect(w?.text).toContain('bulge');
+    expect(w?.text).toContain('tramos curvos');
+    expect(w?.detail).toContain('bulge');
     expect(w?.line).toBeGreaterThan(0);
     expect(ours(r.entities)).toEqual(oracle(text).filter((e) => e.layer === 'B'));
   });
@@ -142,7 +143,7 @@ describe('parseDxf frente a dxf-parser 1.1.2', () => {
     expect(Number.isFinite(line.vertices[0]?.x)).toBe(false);
     const r = parseDxf(text);
     expect(r.entities.map((e) => e.layer)).toEqual(['B']);
-    expect(r.issues.filter((i) => i.severity === 'aviso' && i.text.includes('no numéricas o no finitas'))).toHaveLength(2);
+    expect(r.issues.filter((i) => i.severity === 'aviso' && i.text.includes('coordenadas que no son números válidos'))).toHaveLength(2);
     expect(ours(r.entities)).toEqual(oracle(text).filter((e) => e.layer === 'B'));
   });
 
@@ -178,7 +179,7 @@ describe('parseDxf: límites y archivos no válidos', () => {
     expect(r.ok).toBe(false);
     expect(r.issues[0]?.severity).toBe('error');
     expect(parseDxf('').ok).toBe(false);
-    expect(parseDxf('0\nSECTION\n2\nCLASSES\n0\nENDSEC\n0\nEOF\n').issues[0]?.text).toContain('HEADER ni ENTITIES');
+    expect(parseDxf('0\nSECTION\n2\nCLASSES\n0\nENDSEC\n0\nEOF\n').issues[0]?.text).toContain('no parece un DXF');
   });
 
   it('DXF binario y truncado', () => {
@@ -201,7 +202,7 @@ describe('parseDxf: límites y archivos no válidos', () => {
     const bad = parseDxf(mk(DXF_MAX_ENTITIES + 1));
     expect(bad.ok).toBe(false);
     expect(bad.entityCount).toBe(DXF_MAX_ENTITIES + 1);
-    expect(bad.issues[0]?.text).toContain('límite');
+    expect(bad.issues[0]?.text).toContain('el máximo es 10000');
   });
 
   it('LWPOLYLINE con recuento 90 incoherente o con una sola coordenada se rechaza', () => {
@@ -228,7 +229,7 @@ describe('parseDxf: R5-06 extrusión, cota Z de cabecera y recuento', () => {
     const bad = parseDxf(body(lw('210\n0\n220\n0\n230\n-1\n')));
     expect(bad.entities).toEqual([]);
     expect(bad.regions).toEqual([]);
-    expect(bad.issues.some((i) => i.severity === 'aviso' && i.entity === 'LWPOLYLINE' && i.text.includes('extrusión'))).toBe(true);
+    expect(bad.issues.some((i) => i.severity === 'aviso' && i.entity === 'LWPOLYLINE' && i.text.includes('plano XY'))).toBe(true);
     const good = parseDxf(body(lw('210\n0\n220\n0\n230\n1\n')));
     expect(good.regions).toHaveLength(1);
     expect(good.issues.filter((i) => i.text.includes('extrusión'))).toEqual([]);
@@ -247,7 +248,7 @@ describe('parseDxf: R5-06 extrusión, cota Z de cabecera y recuento', () => {
   it('POLYLINE espejada (230 = -1 en la cabecera) se rechaza (la LINE no: R6-05)', () => {
     const r = parseDxf(body(poly('210\n0\n220\n0\n230\n-1\n')));
     expect(r.entities).toEqual([]);
-    expect(r.issues.some((i) => i.entity === 'POLYLINE' && i.text.includes('extrusión'))).toBe(true);
+    expect(r.issues.some((i) => i.entity === 'POLYLINE' && i.text.includes('plano XY'))).toBe(true);
   });
 
   // R6-05: tolerancia numérica y LINE en WCS.
@@ -282,9 +283,103 @@ describe('parseDxf: R5-06 extrusión, cota Z de cabecera y recuento', () => {
     const r = parseDxf(body(`0\nLWPOLYLINE\n8\nA\n90\n5\n70\n0\n${pts}`));
     expect(r.regions).toHaveLength(1);
     expect(r.issues.some((i) => i.text.includes('extremos coincidentes'))).toBe(true);
-    expect(r.issues.some((i) => i.text.includes('abierta(s)'))).toBe(false);
+    expect(r.issues.some((i) => i.text.includes('abierta no forma'))).toBe(false);
     // Una abierta de verdad junto a la coincidente: se cuenta solo esa.
     const two = parseDxf(body(`0\nLWPOLYLINE\n8\nA\n90\n5\n70\n0\n${pts}0\nLWPOLYLINE\n8\nB\n90\n2\n70\n0\n10\n0\n20\n0\n10\n1\n20\n1\n`));
-    expect(two.issues.find((i) => i.text.includes('abierta(s)'))?.text).toMatch(/^1 polilínea\(s\) abierta\(s\)/);
+    expect(two.issues.find((i) => i.text.includes('abierta no forma'))?.text).toMatch(/^1 polilínea abierta no forma una región/);
+  });
+});
+
+describe('parseDxf: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
+  const INTERNAL = /bulge|SEQEND|\$INSUNITS|ENTITIES|HEADER|código de grupo|dxf-parser|v1 no|extrusión/;
+  const body = (extra: string): string => `0\nSECTION\n2\nENTITIES\n${extra}0\nENDSEC\n0\nEOF\n`;
+  const square = '10\n0\n20\n0\n10\n4\n20\n0\n10\n4\n20\n3\n10\n0\n20\n3\n';
+  const lw = (extra: string): string => `0\nLWPOLYLINE\n8\nA\n90\n4\n70\n1\n${square}${extra}`;
+  const issueOf = (text: string, entity: string) => parseDxf(text).issues.find((i) => i.entity === entity);
+
+  it('código de grupo no entero: indica la línea y qué hacer, y deja el detalle técnico aparte', () => {
+    const issue = tokenizeDxf('0\nSECTION\nabc\nHEADER\n').issues[0];
+    expect(issue?.line).toBe(3);
+    expect(issue?.text).toBe(
+      'Línea 3: el archivo está dañado o no es un DXF de texto (se esperaba un número y se encontró «abc»). Vuelva a guardarlo como DXF de texto (ASCII) desde su programa de CAD.',
+    );
+    expect(issue?.detail).toBe('código de grupo no entero en la línea 3: «abc»');
+  });
+
+  it('archivo truncado: pide volver a exportar y guarda el código en el detalle', () => {
+    const issue = tokenizeDxf('0\nSECTION\n2').issues[0];
+    expect(issue?.line).toBe(3);
+    expect(issue?.text).toBe('Línea 3: el archivo termina antes de tiempo (el DXF está truncado). Vuelva a exportarlo desde su programa de CAD.');
+    expect(issue?.detail).toBe('falta el valor del código de grupo 2');
+  });
+
+  it('DXF binario: indica cómo guardarlo', () => {
+    const issue = tokenizeDxf('AutoCAD Binary DXF\r\n\x1a\x00').issues[0];
+    expect(issue?.text).toBe('El archivo es un DXF binario, que no se puede leer. En su programa de CAD, guárdelo como DXF de texto (ASCII).');
+  });
+
+  it('sin secciones: no nombra HEADER ni ENTITIES en el texto, solo en el detalle', () => {
+    const issue = parseDxf('0\nSECTION\n2\nCLASSES\n0\nENDSEC\n0\nEOF\n').issues[0];
+    expect(issue?.text).toBe('El archivo no parece un DXF: no se encontró ni el encabezado ni el dibujo. Compruebe que sea un archivo .dxf de texto.');
+    expect(issue?.detail).toBe('sin secciones HEADER ni ENTITIES');
+  });
+
+  it('límite de tamaño: dice cuánto y qué exportar', () => {
+    const issue = parseDxf(' '.repeat(DXF_MAX_BYTES + 1)).issues[0];
+    expect(issue?.text).toBe('El archivo DXF pesa más de 2 MB, el máximo admitido. Exporte solo el perfil del talud, sin planos ni anotaciones.');
+  });
+
+  it('arco (bulge): se explica como tramo curvo y el nombre técnico queda en el detalle', () => {
+    const arc = issueOf(body(lw('42\n0.5\n')), 'LWPOLYLINE');
+    expect(arc?.text).toMatch(/^La polilínea \(LWPOLYLINE\) de la línea \d+ no se importó: tiene tramos curvos \(arcos\); solo se importan tramos rectos/);
+    expect(arc?.text).not.toMatch(/bulge|v1 no/);
+    expect(arc?.detail).toMatch(/bulge/);
+  });
+
+  it('plano inclinado o espejado: pide llevar el dibujo al plano XY y el vector va al detalle', () => {
+    const issue = issueOf(body(lw('210\n0\n220\n0\n230\n-1\n')), 'LWPOLYLINE');
+    expect(issue?.text).toContain('no está dibujada en el plano XY estándar');
+    expect(issue?.text).not.toMatch(/extrusión|\(0, 0, -1\)/);
+    expect(issue?.detail).toBe('vector de extrusión (0, 0, -1) distinto de (0, 0, 1)');
+  });
+
+  it('3D: pide aplanar el dibujo', () => {
+    const issue = issueOf(body(lw('38\n5\n')), 'LWPOLYLINE');
+    expect(issue?.text).toContain('es 3D (tiene cota Z distinta de 0); aplánela al plano XY en su programa de CAD');
+    expect(issue?.detail).toBe('cota (código 38) = 5');
+  });
+
+  it('vértice declarado de menos: dice que la polilínea está incompleta', () => {
+    const issue = issueOf(body('0\nLWPOLYLINE\n8\nA\n90\n4\n70\n1\n10\n0\n20\n0\n10\n1\n20\n0\n10\n1\n20\n1\n'), 'LWPOLYLINE');
+    expect(issue?.text).toContain('está incompleta o dañada (declara 4 vértices y solo tiene 3)');
+    expect(issue?.detail).toBe('código 90 = 4; vértices leídos = 3');
+  });
+
+  it('capa 0 y polilíneas abiertas: avisos accionables', () => {
+    const layer0 = parseDxf(fixture('capa0_pies.dxf')).issues.find((i) => i.text.includes('capa «0»'));
+    expect(layer0?.text).toBe('Hay elementos en la capa «0», que no indica un material: asigne uno manualmente al importar.');
+    const pts = [[0, 0], [4, 0], [4, 3], [0, 3]].map(([x, y]) => `10\n${x}\n20\n${y}\n`).join('');
+    const open = parseDxf(body(`0\nLWPOLYLINE\n8\nA\n90\n4\n70\n0\n${pts}`)).issues.find((i) => i.text.includes('abierta'));
+    expect(open?.text).toBe('1 polilínea abierta no forma una región: ciérrela con una línea base o descártela.');
+  });
+
+  it('unidades no reconocidas: piden elegir la unidad y guardan $INSUNITS en el detalle', () => {
+    const text = `0\nSECTION\n2\nHEADER\n9\n$INSUNITS\n70\n3\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n${lw('')}0\nENDSEC\n0\nEOF\n`;
+    const issue = parseDxf(text).issues.find((i) => i.detail === '$INSUNITS = 3');
+    expect(issue?.text).toBe('El DXF declara unas unidades que no se reconocen (código 3); elija la unidad del dibujo al importar.');
+  });
+
+  it('ningún texto de usuario contiene nombres internos del formato', () => {
+    const texts = [
+      ...tokenizeDxf('0\nSECTION\nabc\n').issues,
+      ...tokenizeDxf('0\nSECTION\n2').issues,
+      ...parseDxf('esto no es un DXF\nsino texto\n').issues,
+      ...parseDxf(body(lw('210\n0\n220\n0\n230\n-1\n'))).issues,
+      ...parseDxf(body(lw('42\n0.5\n'))).issues,
+      ...parseDxf(fixture('bulge.dxf')).issues,
+      ...parseDxf(fixture('nonfinite.dxf')).issues,
+    ].map((i) => i.text);
+    expect(texts.length).toBeGreaterThan(5);
+    for (const t of texts) expect(t, t).not.toMatch(INTERNAL);
   });
 });

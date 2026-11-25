@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { VerificationCase } from '../engine/types';
-import { openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
+import { describePath, openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
 
 const casesDir = new URL('../../../../verification/cases/', import.meta.url);
 const caseFiles = readdirSync(casesDir).filter((f) => f.endsWith('.json') && f !== 'ogs-0.1.schema.json').sort();
@@ -412,5 +412,142 @@ describe('sha256', () => {
     const a = saveOgsJson(openOgsJson(readFileSync(new URL('V047a.json', casesDir), 'utf8')).doc as ModelDoc);
     const b = a.replace('"slices": 50', '"slices": 51');
     expect(await sha256Hex(a)).not.toBe(await sha256Hex(b));
+  });
+});
+
+describe('ogsJson: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
+  const base = (): Record<string, unknown> => ({
+    format: 'opengeoslide',
+    version: '0.2',
+    materials: [{ id: 's', name: 'S', model: 'mohr_coulomb', unit_weight: 20, cohesion: 3, friction_angle: 20 }],
+    regions: [{ material: 's', polygon: [[0, 0], [10, 0], [10, 5]] }],
+    analysis: { surface: { type: 'circle', xc: 1, yc: 2, r: 3 } },
+  });
+  const firstError = (model: unknown) => openOgsJson(typeof model === 'string' ? model : JSON.stringify(model)).issues[0];
+  const INTERNAL = /deny_unknown_fields|analysis\.|'format'|'version'|'loads'|'meta'|'slope'|'water'|'materials'|'regions'|\budl\b/;
+
+  it('JSON inválido: indica línea y columna, qué revisar y deja el texto del analizador en el detalle', () => {
+    const issue = firstError('{\n  "format": "opengeoslide",\n  "version": "0.2",,\n}');
+    expect(issue?.code).toBe('io.invalid_json');
+    expect(issue?.text).toBe(
+      'El archivo no es un JSON válido (línea 3, columna 20). Revise que no falte ni sobre alguna coma, llave o comilla cerca de ese punto, y que el archivo no esté truncado.',
+    );
+    expect(issue?.detail).toMatch(/JSON/);
+    expect(issue?.path).toBeNull();
+  });
+
+  it('archivo vacío: lo dice con todas sus letras', () => {
+    expect(firstError('   ')?.text).toBe('El archivo está vacío: abra un archivo .ogs.json guardado con OpenGeoSlide.');
+  });
+
+  it('el contenido no es un objeto', () => {
+    expect(firstError('[]')?.text).toBe(
+      'El archivo no tiene la forma esperada: debe ser un modelo OpenGeoSlide { … }, no una lista ni un valor suelto.',
+    );
+  });
+
+  it('format y version: muestran lo encontrado y qué hacer', () => {
+    const f = firstError({ ...base(), format: 'otro' });
+    expect(f?.text).toBe(
+      'No es un archivo OpenGeoSlide: declara el formato "otro" en lugar de "opengeoslide". Abra un archivo .ogs.json guardado con esta aplicación.',
+    );
+    expect(f?.detail).toBe('format = "otro"');
+    expect(firstError({ ...base(), format: undefined })?.text).toContain('no tiene marca de formato');
+    const v = firstError({ ...base(), version: '0.3' });
+    expect(v?.text).toBe(
+      'El archivo declara la versión "0.3" del formato, y esta aplicación solo abre las versiones 0.1 y 0.2. Guárdelo de nuevo con una versión compatible.',
+    );
+    expect(v?.detail).toBe('version = "0.3"');
+    expect(firstError({ ...base(), version: undefined })?.text).toContain('ninguna versión');
+  });
+
+  it('formas inválidas: hablan de materiales, regiones y cargas, no de claves del JSON', () => {
+    expect(firstError({ ...base(), materials: 3 })?.text).toBe('El archivo no tiene la lista de materiales (o no tiene la forma de una lista).');
+    expect(firstError({ ...base(), materials: [{ name: 'x' }] })?.text).toBe(
+      'El material 1 no tiene un identificador de texto (por ejemplo, «arcilla»).',
+    );
+    expect(firstError({ ...base(), regions: [{ polygon: [] }] })?.text).toBe(
+      'La región 1 no tiene un material asignado; indique el identificador de uno de los materiales.',
+    );
+    const poly = base();
+    (poly.regions as { polygon: unknown }[])[0]!.polygon = [[0, 0], [1, 'a']];
+    expect(firstError(poly)?.text).toBe(
+      'El contorno de la región 1 debe ser una lista de puntos [x, y] con números finitos; revise que cada vértice tenga dos números.',
+    );
+    expect(firstError({ ...base(), meta: 3 })?.text).toContain('Los datos del proyecto no tienen la forma esperada');
+    expect(firstError({ ...base(), slope: [] })?.text).toContain('El sentido de deslizamiento no tiene la forma esperada');
+    expect(firstError({ ...base(), analysis: { seismic: 4 } })?.text).toBe(
+      'El sismo (coeficientes kh y kv) no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacío (null).',
+    );
+    expect(firstError({ ...base(), analysis: { search: [] } })?.text).toContain('La búsqueda de superficies no tiene la forma esperada');
+    expect(firstError({ ...base(), water: { piezometric_line: [[0, 'x']] } })?.text).toBe(
+      'La línea piezométrica debe ser una lista de puntos [x, y] con números finitos; revise que cada punto tenga dos números.',
+    );
+    expect(firstError({ ...base(), water: 5 })?.text).toContain('Los datos de agua no tienen la forma esperada');
+    expect(firstError({ ...base(), loads: 'x' })?.text).toBe('Las cargas deben ser una lista (puede estar vacía).');
+    const load = firstError({ ...base(), loads: [{ type: 'zzz' }] });
+    expect(load?.text).toBe('La carga 1 no tiene un tipo reconocible: debe ser distribuida o lineal.');
+    expect(load?.detail).toBe('type = "zzz"');
+  });
+
+  it('versión 0.1 con cargas o sismo: pide cambiar la versión o quitar el dato', () => {
+    const loads = firstError({ ...base(), version: '0.1', loads: [{ type: 'line', x: 5, p: 1, angle: 0 }] });
+    expect(loads?.text).toBe('El archivo declara el formato 0.1, que no admite cargas. Cambie la versión del archivo a "0.2" o quite las cargas.');
+    const seismic = firstError({ ...base(), version: '0.1', analysis: { seismic: { kh: 0.1 } } });
+    expect(seismic?.text).toBe(
+      'El archivo declara el formato 0.1, que no admite el sismo (coeficientes kh y kv). Cambie la versión del archivo a "0.2" o quite el sismo.',
+    );
+  });
+
+  it('campo desconocido: dice cuál y dónde en términos de usuario; el puntero queda en path y detail', () => {
+    const m = base();
+    (m.analysis as Record<string, unknown>).colorido = 1;
+    const issue = firstError(m);
+    expect(issue?.code).toBe('io.unknown_field');
+    expect(issue?.text).toBe(
+      'Hay un dato que esta versión no reconoce: «colorido», en la configuración del análisis. Quítelo del archivo (puede ser un error de escritura o un campo de otra versión).',
+    );
+    expect(issue?.text).not.toMatch(INTERNAL);
+    expect(issue?.path).toBe('/analysis/colorido');
+    expect(issue?.detail).toBe('campo desconocido /analysis/colorido');
+    const reg = base();
+    (reg.regions as Record<string, unknown>[])[0]!.extra = 1;
+    expect(firstError(reg)?.text).toContain('«extra», en la región 1.');
+  });
+
+  it('número no finito: indica dónde está (por ejemplo, el vértice) y cómo corregirlo', () => {
+    const text = JSON.stringify(base()).replace('"cohesion":3', '"cohesion":1e400');
+    const issue = firstError(text);
+    expect(issue?.code).toBe('io.non_finite');
+    expect(issue?.text).toBe(
+      'En el material 1 (cohesión) hay un valor que no es un número finito (por ejemplo, un exponente demasiado grande como 1e400). Escriba un valor corriente.',
+    );
+    expect(issue?.path).toBe('/materials/0/cohesion');
+  });
+
+  it('caso de verificación y versión 0.1: avisos sin nombres internos', () => {
+    const wrapped = openOgsJson(JSON.stringify({ model: base(), checks: [] }));
+    expect(wrapped.issues[0]?.text).toBe(
+      'El archivo es un caso de verificación: se abre solo el modelo y se descartan los valores de referencia y las comprobaciones que incluye.',
+    );
+    const old = openOgsJson(JSON.stringify({ ...base(), version: '0.1' }));
+    expect(old.issues[0]?.text).toBe('El archivo usa el formato 0.1; al guardarlo se actualizará al 0.2 (el resultado del cálculo no cambia).');
+  });
+
+  it('guardar un valor no finito: dice dónde está el valor', () => {
+    const doc = openOgsJson(JSON.stringify(base())).doc as ModelDoc;
+    doc.regions[0]!.polygon[1] = [Number.POSITIVE_INFINITY, 0];
+    expect(() => saveOgsJson(doc)).toThrow('No se puede guardar: la región 1, vértice 2 tiene un valor no finito');
+  });
+
+  it('describePath traduce punteros a palabras de la interfaz', () => {
+    expect(describePath('')).toBe('el nivel principal del archivo');
+    expect(describePath('/materials/1/cohesion')).toBe('el material 2 (cohesión)');
+    expect(describePath('/regions/0/polygon/2/1')).toBe('la región 1, vértice 3');
+    expect(describePath('/water/piezometric_line/0')).toBe('la línea piezométrica, punto 1');
+    expect(describePath('/loads/0/q')).toBe('la carga 1 (carga q)');
+    expect(describePath('/analysis/search/n_entry')).toBe('la búsqueda (puntos de entrada)');
+    expect(describePath('/analysis/seismic/kh')).toBe('el sismo (coeficiente sísmico horizontal kh)');
+    expect(describePath('/otro')).toBe('el campo «otro»');
   });
 });

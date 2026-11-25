@@ -12,7 +12,15 @@ import type {
   SearchSpec,
   SurfaceSpec,
 } from '../../engine/types';
-import { RULE_TEXT } from '../state/validateLocal';
+import {
+  RULE_TEXT,
+  SEARCH_RANGE_LABEL,
+  loadXText,
+  rangeExtentText,
+  rangeOrderText,
+  searchCountText,
+  searchProductText,
+} from '../state/validateLocal';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
 // ───────────────────────── Números ─────────────────────────
@@ -54,7 +62,12 @@ function done<V>(errors: FieldErrors, value: () => V): FormOutcome<V> {
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: value() };
 }
 
-const NOT_A_NUMBER = 'escriba un número (admite coma o punto decimal)';
+const NOT_A_NUMBER = 'Escriba un número (admite coma o punto decimal)';
+
+/** Mensaje de «no es un número» con la etiqueta del campo, para que el aviso se entienda sin ver el campo. */
+function notANumber(label: string | undefined): string {
+  return label ? `${label}: escriba un número (admite coma o punto decimal)` : NOT_A_NUMBER;
+}
 
 interface NumberRule {
   /** Si es falso, un campo vacío es válido y el valor es `null`. */
@@ -66,20 +79,53 @@ interface NumberRule {
   /** Mensaje de rango (redacción del motor). */
   range: string;
   integer?: boolean;
+  /** Etiqueta del campo en la interfaz; encabeza los mensajes de formato («no es un número», «no es entero»). */
+  label?: string;
 }
 
 function readNumber(text: string, rule: NumberRule): { ok: true; value: number | null } | { ok: false; message: string } {
   const p = parseNumber(text);
   if (p.kind === 'empty') return rule.required ? { ok: false, message: rule.missing } : { ok: true, value: null };
-  if (p.kind === 'invalid') return { ok: false, message: NOT_A_NUMBER };
-  if (rule.integer === true && !Number.isInteger(p.value)) return { ok: false, message: 'debe ser un número entero' };
+  if (p.kind === 'invalid') return { ok: false, message: notANumber(rule.label) };
+  if (rule.integer === true && !Number.isInteger(p.value)) {
+    return { ok: false, message: `${rule.label ?? 'El valor'}: use un número entero, sin decimales` };
+  }
   if (!rule.accept(p.value)) return { ok: false, message: rule.range };
   return { ok: true, value: p.value };
 }
 
+/** Etiqueta en la interfaz de cada campo de los formularios (clave = nombre del campo). */
+const FIELD_LABEL: Readonly<Record<string, string>> = {
+  unit_weight: 'Peso unitario γ',
+  unit_weight_sat: 'Peso unitario saturado γsat',
+  cohesion: 'Cohesión c',
+  friction_angle: 'Ángulo de fricción φ',
+  ru: 'Coeficiente de presión de poros ru',
+  xc: 'Centro xc del círculo de falla',
+  yc: 'Centro yc del círculo de falla',
+  r: 'Radio r del círculo de falla',
+  n_entry: 'Puntos de entrada',
+  n_exit: 'Puntos de salida',
+  n_radius: 'Radios por par',
+  max_radius_factor: 'Factor de radio máximo',
+  min_width: 'Ancho mínimo',
+  slices: 'Dovelas',
+  tolerance: 'Tolerancia',
+  max_iterations: 'Iteraciones máximas',
+  min_m_alpha: 'm_α mínimo',
+  kh: 'Coeficiente sísmico horizontal kh',
+  kv: 'Coeficiente sísmico vertical kv',
+  x: 'Posición x de la carga lineal',
+  x1: 'Inicio x1 de la carga distribuida',
+  x2: 'Fin x2 de la carga distribuida',
+  q: 'Carga distribuida q',
+  p: 'Carga lineal p',
+  angle: 'Ángulo de la carga lineal',
+};
+
 /** Lee un campo y, si falla, anota el error. Devuelve el valor o `null` (vacío opcional o error). */
 function take(errors: FieldErrors, field: string, text: string, rule: NumberRule): number | null {
-  const r = readNumber(text, rule);
+  const r = readNumber(text, { label: FIELD_LABEL[field], ...rule });
   if (!r.ok) {
     errors[field] = r.message;
     return null;
@@ -184,15 +230,19 @@ export function nextMaterialId(existingIds: readonly string[]): string {
   }
 }
 
-/** Formulario de un material nuevo, con valores típicos de un suelo (el usuario los ajusta). */
-export function newMaterialForm(existingIds: readonly string[]): MaterialForm {
+/**
+ * Formulario de un material nuevo, con valores típicos de un suelo (el usuario los ajusta). Con `units` imperial
+ * usa pcf y psf (mismos valores que `materialForLayer` de la importación DXF); sin él, SI.
+ */
+export function newMaterialForm(existingIds: readonly string[], units?: string): MaterialForm {
+  const imperial = units === 'imperial';
   const id = nextMaterialId(existingIds);
   return {
     id,
     name: `Material ${id.slice(1)}`,
-    unit_weight: '18',
+    unit_weight: imperial ? '115' : '18',
     unit_weight_sat: '',
-    cohesion: '5',
+    cohesion: imperial ? '100' : '5',
     friction_angle: '30',
     ru: '',
   };
@@ -210,7 +260,7 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
   const errors: FieldErrors = {};
   const id = form.id.trim();
   if (id === '') errors.id = RULE_TEXT.materialId;
-  else if (ctx.otherIds.includes(id)) errors.id = `id de material duplicado: '${id}'`;
+  else if (ctx.otherIds.includes(id)) errors.id = `Identificador del material: «${id}» ya lo usa otro material; use uno distinto`;
 
   const unitWeight = take(errors, 'unit_weight', form.unit_weight, {
     required: true,
@@ -292,9 +342,24 @@ export function regionMaterialCommand(regionIndex: number, materialId: string): 
 
 // ───────────────────────── Agua ─────────────────────────
 
+/** Valor por defecto del motor para γw (kN/m³). El motor **no** lo convierte: en un modelo imperial hay que escribir γw. */
 export const DEFAULT_WATER_UNIT_WEIGHT = 9.81;
+/** γw del agua dulce en pcf, el valor que corresponde escribir en un modelo imperial. */
+export const DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL = 62.4;
 
-/** `water.unit_weight`: vacío = omitir (el motor usa 9,81); si no, > 0. */
+/** Valor de referencia de γw (para el marcador del campo) según las unidades del modelo. */
+export function defaultWaterUnitWeight(units: string | undefined): number {
+  return units === 'imperial' ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
+}
+
+/** Ayuda del campo γw: en imperial avisa de que dejarlo vacío usaría 9,81 (kN/m³), que no es el valor correcto en pcf. */
+export function waterUnitWeightHint(units: string | undefined): string {
+  return units === 'imperial'
+    ? 'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.'
+    : 'Vacío = se usa 9,81 kN/m³.';
+}
+
+/** γw del agua: vacío = omitir (el motor usa 9,81, sin convertir unidades); si no, > 0. */
 export function waterUnitWeightFromForm(text: string): FormOutcome<number | undefined> {
   const errors: FieldErrors = {};
   const v = take(errors, 'unit_weight', text, {
@@ -302,6 +367,7 @@ export function waterUnitWeightFromForm(text: string): FormOutcome<number | unde
     missing: '',
     accept: (n) => finite(n) && n > 0,
     range: RULE_TEXT.waterUnitWeight,
+    label: 'Peso unitario del agua γw',
   });
   return done(errors, () => v ?? undefined);
 }
@@ -327,8 +393,14 @@ export function piezoFromForm(rows: readonly PiezoRow[]): FormOutcome<Point[] | 
   const errors: FieldErrors = {};
   if (rows.length === 0) return { ok: true, value: null };
   const points: Array<[number | null, number | null]> = rows.map((row, i) => {
-    const rule: NumberRule = { required: true, missing: 'falta el valor', accept: finite, range: NOT_A_NUMBER };
-    return [take(errors, `${i}.x`, row.x, rule), take(errors, `${i}.y`, row.y, rule)];
+    const rule = (axis: 'x' | 'y'): NumberRule => ({
+      required: true,
+      missing: `Línea piezométrica, punto ${i + 1}: falta la coordenada ${axis}`,
+      accept: finite,
+      range: notANumber(`Línea piezométrica, punto ${i + 1}, coordenada ${axis}`),
+      label: `Línea piezométrica, punto ${i + 1}, coordenada ${axis}`,
+    });
+    return [take(errors, `${i}.x`, row.x, rule('x')), take(errors, `${i}.y`, row.y, rule('y'))];
   });
   if (rows.length < 2) errors.table = RULE_TEXT.piezoMinPoints;
   if (Object.keys(errors).length === 0) {
@@ -336,7 +408,7 @@ export function piezoFromForm(rows: readonly PiezoRow[]): FormOutcome<Point[] | 
       const prev = points[i - 1][0] ?? 0;
       const cur = points[i][0] ?? 0;
       if (cur <= prev) {
-        errors[`${i}.x`] = RULE_TEXT.piezoOrder;
+        errors[`${i}.x`] = `Línea piezométrica, punto ${i + 1}: la coordenada x debe ser mayor que la del punto anterior; ordene los puntos de izquierda a derecha`;
         errors.table = RULE_TEXT.piezoOrder;
       }
     }
@@ -446,14 +518,17 @@ export function circleToForm(surface: SurfaceSpec): CircleForm {
   return { xc: formatNumber(surface.xc), yc: formatNumber(surface.yc), r: formatNumber(surface.r) };
 }
 
-/** Motor: «analysis.surface: xc, yc y r deben ser finitos, con r > 0». */
+/** Círculo fijo: xc e yc finitos y r > 0 (misma regla que el motor). */
 export function circleFromForm(form: CircleForm): FormOutcome<SurfaceSpec> {
   const errors: FieldErrors = {};
-  const msg = 'analysis.surface: xc, yc y r deben ser finitos, con r > 0';
-  const coord: NumberRule = { required: true, missing: msg, accept: finite, range: msg };
-  const xc = take(errors, 'xc', form.xc, coord);
-  const yc = take(errors, 'yc', form.yc, coord);
-  const r = take(errors, 'r', form.r, { required: true, missing: msg, accept: (v) => finite(v) && v > 0, range: msg });
+  const xc = take(errors, 'xc', form.xc, { required: true, missing: RULE_TEXT.surfaceCenterX, accept: finite, range: RULE_TEXT.surfaceCenterX });
+  const yc = take(errors, 'yc', form.yc, { required: true, missing: RULE_TEXT.surfaceCenterY, accept: finite, range: RULE_TEXT.surfaceCenterY });
+  const r = take(errors, 'r', form.r, {
+    required: true,
+    missing: RULE_TEXT.surfaceRadius,
+    accept: (v) => finite(v) && v > 0,
+    range: RULE_TEXT.surfaceRadius,
+  });
   return done(errors, () => ({ type: 'circle', xc: xc ?? 0, yc: yc ?? 0, r: r ?? 1 }));
 }
 
@@ -524,19 +599,19 @@ function rangeFromForm(
   if (loText === '' && hiText === '') return null; // vacío = toda la extensión x del terreno
   const rule: NumberRule = {
     required: true,
-    missing: `search.${name}: indique mínimo y máximo, o deje ambos vacíos`,
+    missing: `${SEARCH_RANGE_LABEL[name]}: indique el mínimo y el máximo, o deje ambos vacíos para usar todo el ancho del terreno`,
     accept: finite,
     range: NOT_A_NUMBER,
   };
-  const lo = take(errors, `${name}.lo`, form.lo, rule);
-  const hi = take(errors, `${name}.hi`, form.hi, rule);
+  const lo = take(errors, `${name}.lo`, form.lo, { ...rule, label: `${SEARCH_RANGE_LABEL[name]}, mínimo` });
+  const hi = take(errors, `${name}.hi`, form.hi, { ...rule, label: `${SEARCH_RANGE_LABEL[name]}, máximo` });
   if (lo === null || hi === null) return null;
   if (lo > hi) {
-    errors[`${name}.lo`] = RULE_TEXT.rangeOrder;
+    errors[`${name}.lo`] = rangeOrderText(name, [lo, hi]);
     return null;
   }
   if (xRange && (!insideRange(lo, xRange) || !insideRange(hi, xRange))) {
-    errors[`${name}.lo`] = RULE_TEXT.rangeExtent;
+    errors[`${name}.lo`] = rangeExtentText(name, { min: xRange[0], max: xRange[1] });
     return null;
   }
   return [lo, hi];
@@ -550,9 +625,9 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   const count = (field: 'n_entry' | 'n_exit' | 'n_radius'): number | null =>
     take(errors, field, form[field], {
       required: true,
-      missing: RULE_TEXT.searchCount,
+      missing: searchCountText(field),
       accept: (v) => v >= 1 && v <= MAX_AXIS_POINTS,
-      range: RULE_TEXT.searchCount,
+      range: searchCountText(field),
       integer: true,
     });
   const nEntry = count('n_entry');
@@ -561,7 +636,7 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   if (nEntry !== null && nExit !== null && nRadius !== null) {
     const candidates = nEntry * nExit * nRadius;
     if (candidates > MAX_GRID_CANDIDATES) {
-      errors.n_radius = RULE_TEXT.searchProduct;
+      errors.n_radius = searchProductText(candidates);
     }
   }
   const factor = take(errors, 'max_radius_factor', form.max_radius_factor, {
@@ -813,27 +888,27 @@ export interface LoadFormContext {
 export function loadFromForm(form: LoadForm, ctx: LoadFormContext): FormOutcome<Load> {
   const errors: FieldErrors = {};
   const id = form.id.trim();
-  const subject = id !== '' ? `la carga '${id}'` : ctx.index !== null ? `la carga ${ctx.index + 1}` : 'la carga nueva';
-  if (id !== '' && ctx.otherIds.includes(id)) errors.id = `id de carga duplicado: '${id}'`;
+  if (id !== '' && ctx.otherIds.includes(id)) errors.id = `Identificador de carga: «${id}» ya lo usa otra carga; use uno distinto`;
   const idPart = id === '' ? {} : { id };
-  const inRange = (field: string, v: number | null): void => {
+  const inRange = (field: 'x' | 'x1' | 'x2', v: number | null): void => {
     if (v !== null && ctx.xRange && !insideRange(v, ctx.xRange)) {
-      errors[field] = RULE_TEXT.loadX;
+      errors[field] = loadXText(field, { min: ctx.xRange[0], max: ctx.xRange[1] });
     }
   };
   const xRule = (what: string): NumberRule => ({
     required: true,
-    missing: `${subject}: falta ${what}`,
+    missing: `${what}: falta el valor; escriba un número`,
     accept: finite,
     range: NOT_A_NUMBER,
+    label: what,
   });
 
   if (form.type === 'udl') {
-    const x1 = take(errors, 'x1', form.x1, xRule('x1'));
-    const x2 = take(errors, 'x2', form.x2, xRule('x2'));
+    const x1 = take(errors, 'x1', form.x1, xRule(FIELD_LABEL.x1 as string));
+    const x2 = take(errors, 'x2', form.x2, xRule(FIELD_LABEL.x2 as string));
     const q = take(errors, 'q', form.q, {
       required: true,
-      missing: `${subject}: falta q`,
+      missing: `${FIELD_LABEL.q}: falta el valor; use un número igual o mayor que 0`,
       accept: (v) => finite(v) && v >= 0,
       range: RULE_TEXT.loadQ,
     });
@@ -845,16 +920,16 @@ export function loadFromForm(form: LoadForm, ctx: LoadFormContext): FormOutcome<
     return done(errors, (): Load => ({ type: 'udl', ...idPart, x1: x1 ?? 0, x2: x2 ?? 0, q: q ?? 0 }));
   }
 
-  const x = take(errors, 'x', form.x, xRule('x'));
+  const x = take(errors, 'x', form.x, xRule(FIELD_LABEL.x as string));
   const p = take(errors, 'p', form.p, {
     required: true,
-    missing: `${subject}: falta p`,
+    missing: `${FIELD_LABEL.p}: falta el valor; use un número igual o mayor que 0`,
     accept: (v) => finite(v) && v >= 0,
     range: RULE_TEXT.loadP,
   });
   const angle = take(errors, 'angle', form.angle, {
     required: true,
-    missing: `${subject}: falta el ángulo`,
+    missing: `${FIELD_LABEL.angle}: falta el valor; use un número entre −90 y 90`,
     accept: (v) => v >= -90 && v <= 90,
     range: RULE_TEXT.loadAngle,
   });

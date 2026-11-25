@@ -54,11 +54,11 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   negative_effective_normal_major: {
     severity: 'aviso',
-    text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción',
+    text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción.',
   },
   air_gap_thrust: {
     severity: 'aviso',
-    text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría',
+    text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría.',
   },
   truncated_mass: {
     severity: 'nota',
@@ -70,69 +70,94 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   effective_width_below_min: {
     severity: 'aviso',
-    text: 'El bloque analizado es más angosto que el ancho mínimo pedido; revise la superficie.',
+    text: 'El bloque analizado es más angosto que el ancho mínimo pedido; revise la superficie o reduzca el ancho mínimo en «Búsqueda».',
   },
   effective_ends_outside_range: {
     severity: 'aviso',
-    text: 'Los extremos reales del bloque analizado caen fuera de los rangos de entrada/salida.',
+    text: 'Los extremos reales del bloque analizado caen fuera de los rangos de entrada y salida; amplíe esos rangos en «Búsqueda» o revise la superficie.',
   },
   load_outside_mass: {
     severity: 'nota',
-    text: 'Alguna carga declarada no actúa sobre la masa analizada',
+    text: 'Alguna carga declarada no actúa sobre la masa analizada.',
   },
   water_above_ground: {
     severity: 'aviso',
-    text: 'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora (no soportado en v0.1).',
+    text: 'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora: el agua libre (por ejemplo, un embalse) no se considera en esta versión; revise la línea piezométrica.',
   },
   max_iterations: {
     severity: 'aviso',
-    text: 'Se alcanzó el número máximo de iteraciones sin converger. El FS no es un resultado definitivo.',
+    text: 'Se alcanzó el número máximo de iteraciones sin converger. El FS no es un resultado definitivo; aumente las iteraciones máximas en «Análisis» o revise la superficie.',
   },
   m_alpha: {
     severity: 'aviso',
-    text: 'Algún m_α queda por debajo de min_m_alpha: la superficie no es admisible.',
+    text: 'Algún m_α queda por debajo del m_α mínimo: la superficie no es admisible. Revise el sentido de deslizamiento y los rangos de entrada y salida, o evite tramos de base muy inclinados.',
   },
   pole: {
     severity: 'aviso',
-    text: 'Polo en la iteración de Spencer: la superficie no es admisible.',
+    text: 'El cálculo de Spencer llegó a un punto singular (división por un valor casi nulo): la superficie no es admisible. Pruebe otra superficie o revise el sentido de deslizamiento.',
   },
   no_driving: {
     severity: 'aviso',
-    text: 'Sin momento motor: Σ W·sen α es casi nulo. La superficie no es admisible.',
+    text: 'Las fuerzas que provocan el deslizamiento son casi nulas (Σ W·sen α ≈ 0): la superficie no es admisible. Revise el sentido de deslizamiento y que la superficie cruce el talud.',
   },
   non_finite: {
     severity: 'aviso',
-    text: 'El cálculo produjo valores no finitos.',
+    text: 'El cálculo produjo valores no finitos. Revise que los pesos unitarios, la cohesión, los ángulos y la geometría sean razonables, y que la superficie corte el terreno.',
   },
   no_lambda_root: {
     severity: 'aviso',
-    text: 'Spencer no encontró ninguna raíz de λ en el rango de búsqueda. El FS no es un resultado definitivo.',
+    text: 'Spencer no encontró ningún equilibrio (ningún λ lo satisface) en el rango de búsqueda. El FS no es un resultado definitivo; pruebe otra superficie o compare con Bishop simplificado.',
   },
   no_admissible_root: {
     severity: 'aviso',
-    text: 'Spencer halló raíces de λ, pero ninguna cumple la admisibilidad de Φ/F y m_α: la superficie no es admisible.',
+    text: 'Spencer halló soluciones de equilibrio, pero ninguna cumple los límites de admisibilidad (Φ/F y m_α): la superficie no es admisible. Revise el sentido de deslizamiento, la superficie o el m_α mínimo en «Análisis».',
   },
   negative_lambda: {
     severity: 'nota',
-    text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado',
+    text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado.',
   },
   multiple_admissible_roots: {
     severity: 'nota',
-    text: 'Spencer tiene varias soluciones de equilibrio admisibles; se reporta la de menor factor de seguridad',
+    text: 'Spencer tiene varias soluciones de equilibrio admisibles; se reporta la de menor factor de seguridad.',
   },
   no_slices: {
     severity: 'aviso',
-    text: 'La superficie no tiene dovelas de suelo.',
+    text: 'La superficie no tiene dovelas de suelo: no atraviesa el terreno. Revise su centro y su radio, o los rangos de búsqueda.',
   },
   mock_engine: {
     severity: 'aviso',
-    text: 'Motor simulado: FS con Fellenius (aproximación); no es el cálculo de Bishop o Spencer de ogs-core.',
+    text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
   },
   mock_search: {
     severity: 'nota',
     text: 'Búsqueda simulada en rejilla, sin refinamiento de patrones.',
   },
 };
+
+/**
+ * Elemento del modelo donde conviene mirar para cada aviso (puntero JSON aproximado), o `null` si no hay uno claro.
+ * Sirve para que el diagnóstico lleve al panel o al elemento del lienzo correspondiente.
+ */
+const WARNING_PATH: Readonly<Record<string, string>> = {
+  water_above_ground: '/water/piezometric_line',
+  negative_effective_normal_major: '/water/piezometric_line',
+  load_outside_mass: '/loads',
+  max_iterations: '/analysis/max_iterations',
+  m_alpha: '/analysis/search',
+  pole: '/analysis/search',
+  no_driving: '/analysis/search',
+  no_admissible_root: '/analysis/search',
+  no_lambda_root: '/analysis/search',
+  no_slices: '/analysis/search',
+  non_finite: '/analysis',
+  effective_width_below_min: '/analysis/search',
+  effective_ends_outside_range: '/analysis/search',
+};
+
+/** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */
+export function warningPath(code: string): string | null {
+  return Object.prototype.hasOwnProperty.call(WARNING_PATH, code) ? (WARNING_PATH[code] as string) : null;
+}
 
 /** Describe un código de aviso. Desconocido → su propio código como texto, severidad `aviso`. */
 export function describeWarning(code: string): WarningInfo {

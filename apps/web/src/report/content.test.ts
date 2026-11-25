@@ -155,7 +155,7 @@ describe('buildReportContent', () => {
     expect(items.map((i) => [i.label, i.severity, i.text])).toEqual([
       ['Bishop simplificado', 'aviso', 'texto propio'],
       ['Bishop simplificado', 'aviso', 'codigo_desconocido'],
-      ['Spencer', 'nota', 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado'],
+      ['Spencer', 'nota', 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado.'],
     ]);
     const none = buildReportContent({ ...input, results: results.map((r) => ({ ...r, warnings: [] })) });
     expect(section(none, 'warnings').blocks).toEqual([{ kind: 'paragraph', text: 'Sin avisos ni notas.' }]);

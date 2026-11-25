@@ -3,6 +3,7 @@ import type { Load, Material } from '../../engine/types';
 import { RULE_TEXT, validateLocal } from '../state/validateLocal';
 import type { Issue, ModelDoc } from '../types';
 import {
+  DEFAULT_WATER_UNIT_WEIGHT,
   analysisCommands,
   analysisFromForm,
   analysisToForm,
@@ -12,6 +13,7 @@ import {
   defaultLoad,
   defaultPiezo,
   defaultSearch,
+  defaultWaterUnitWeight,
   diagnosticsStatusLabel,
   formatCount,
   formatNumber,
@@ -44,6 +46,7 @@ import {
   toggleMethod,
   unitLabels,
   waterUnitWeightFromForm,
+  waterUnitWeightHint,
   type AnalysisForm,
   type MaterialForm,
   type SearchForm,
@@ -167,9 +170,9 @@ describe('materiales', () => {
     expect(errorsOf(materialFromForm({ ...base, unit_weight_sat: '-1' }, ctx)).unit_weight_sat).toBe(RULE_TEXT.unitWeightSat);
     expect(errorsOf(materialFromForm({ ...base, cohesion: '-0,1' }, ctx)).cohesion).toBe(RULE_TEXT.cohesion);
     expect(errorsOf(materialFromForm({ ...base, friction_angle: '90' }, ctx)).friction_angle).toBe(RULE_TEXT.frictionAngle);
-    expect(errorsOf(materialFromForm({ ...base, friction_angle: '-1' }, ctx)).friction_angle).toContain('[0, 90)');
+    expect(errorsOf(materialFromForm({ ...base, friction_angle: '-1' }, ctx)).friction_angle).toContain('desde 0° hasta menos de 90°');
     expect(errorsOf(materialFromForm({ ...base, ru: '1' }, ctx)).ru).toBe(RULE_TEXT.ru);
-    expect(errorsOf(materialFromForm({ ...base, ru: '-0,1' }, ctx)).ru).toContain('[0, 1)');
+    expect(errorsOf(materialFromForm({ ...base, ru: '-0,1' }, ctx)).ru).toContain('desde 0 hasta menos de 1');
   });
 
   it('acepta los extremos válidos: c = 0, φ = 0, φ = 89,99, ru = 0', () => {
@@ -182,13 +185,14 @@ describe('materiales', () => {
     const r = materialFromForm({ ...materialToForm(soil), unit_weight: 'x', cohesion: 'y' }, ctx);
     const errors = errorsOf(r);
     expect(Object.keys(errors).sort()).toEqual(['cohesion', 'unit_weight']);
-    expect(errors.cohesion).toContain('escriba un número');
+    expect(errors.cohesion).toBe('Cohesión c: escriba un número (admite coma o punto decimal)');
+    expect(errors.unit_weight).toBe('Peso unitario γ: escriba un número (admite coma o punto decimal)');
   });
 
   it('exige id no vacío y único', () => {
     const base = materialToForm(soil);
     expect(errorsOf(materialFromForm({ ...base, id: '  ' }, ctx)).id).toContain('no puede estar vacío');
-    expect(errorsOf(materialFromForm({ ...base, id: 'rock' }, ctx)).id).toBe("id de material duplicado: 'rock'");
+    expect(errorsOf(materialFromForm({ ...base, id: 'rock' }, ctx)).id).toBe('Identificador del material: «rock» ya lo usa otro material; use uno distinto');
     expect(materialFromForm({ ...base, id: 'nuevo' }, { otherIds: ['rock', 'soil'], editing: null }).ok).toBe(true);
   });
 
@@ -202,6 +206,15 @@ describe('materiales', () => {
     const form = newMaterialForm(['m1', 'soil', 'm3']);
     expect(form.id).toBe('m2');
     expect(materialFromForm(form, { otherIds: ['m1', 'soil', 'm3'], editing: null }).ok).toBe(true);
+  });
+
+  it('newMaterialForm: valores por defecto en SI e imperiales, ambos válidos (R7-22)', () => {
+    const si = newMaterialForm(['m1']);
+    expect(si).toMatchObject({ unit_weight: '18', cohesion: '5', friction_angle: '30' });
+    expect(newMaterialForm(['m1'], 'SI')).toEqual(si);
+    const imp = newMaterialForm(['m1'], 'imperial');
+    expect(imp).toMatchObject({ id: 'm2', unit_weight: '115', cohesion: '100', friction_angle: '30' });
+    expect(materialFromForm(imp, { otherIds: ['m1'], editing: null }).ok).toBe(true);
   });
 
   it('materialsEqual trata null y undefined como iguales', () => {
@@ -234,21 +247,23 @@ describe('agua', () => {
   });
 
   it('exige al menos 2 puntos', () => {
-    expect(errorsOf(piezoFromForm([{ x: '0', y: '1' }])).table).toBe('la piezométrica necesita al menos 2 puntos');
+    expect(errorsOf(piezoFromForm([{ x: '0', y: '1' }])).table).toBe('Línea piezométrica: indique al menos 2 puntos, o quítela si no hay nivel freático');
   });
 
   it('exige x estrictamente creciente', () => {
     const e = errorsOf(piezoFromForm([{ x: '0', y: '1' }, { x: '5', y: '1' }, { x: '5', y: '2' }]));
-    expect(e['2.x']).toBe(RULE_TEXT.piezoOrder);
+    expect(e['2.x']).toBe(
+      'Línea piezométrica, punto 3: la coordenada x debe ser mayor que la del punto anterior; ordene los puntos de izquierda a derecha',
+    );
     expect(e.table).toBe(RULE_TEXT.piezoOrder);
     const e2 = errorsOf(piezoFromForm([{ x: '3', y: '1' }, { x: '1', y: '1' }]));
-    expect(e2['1.x']).toContain('estrictamente creciente');
+    expect(e2['1.x']).toContain('ordene los puntos de izquierda a derecha');
   });
 
   it('celdas vacías o no numéricas señalan la celda', () => {
     const e = errorsOf(piezoFromForm([{ x: '0', y: '' }, { x: 'a', y: '1' }]));
-    expect(e['0.y']).toBe('falta el valor');
-    expect(e['1.x']).toContain('escriba un número');
+    expect(e['0.y']).toBe('Línea piezométrica, punto 1: falta la coordenada y');
+    expect(e['1.x']).toBe('Línea piezométrica, punto 2, coordenada x: escriba un número (admite coma o punto decimal)');
   });
 
   it('piezoToForm usa coma decimal', () => {
@@ -330,11 +345,14 @@ describe('superficie', () => {
   });
 
   it('círculo: r > 0 y valores finitos', () => {
-    const msg = 'analysis.surface: xc, yc y r deben ser finitos, con r > 0';
+    const msg = 'Radio r del círculo de falla: use un valor mayor que 0 (ej. 25)';
     expect(errorsOf(circleFromForm({ xc: '1', yc: '2', r: '0' })).r).toBe(msg);
     expect(errorsOf(circleFromForm({ xc: '1', yc: '2', r: '-3' })).r).toBe(msg);
-    expect(errorsOf(circleFromForm({ xc: 'a', yc: '2', r: '3' })).xc).toContain('escriba un número');
-    expect(errorsOf(circleFromForm({ xc: '', yc: '2', r: '3' })).xc).toBe(msg);
+    expect(errorsOf(circleFromForm({ xc: 'a', yc: '2', r: '3' })).xc).toBe('Centro xc del círculo de falla: escriba un número (admite coma o punto decimal)');
+    expect(errorsOf(circleFromForm({ xc: '', yc: '2', r: '3' })).xc).toBe('Centro xc del círculo de falla: escriba un número (ej. 45,5)');
+    expect(errorsOf(circleFromForm({ xc: '1', yc: '', r: '3' })).yc).toBe('Centro yc del círculo de falla: escriba un número (ej. 38,75)');
+    // Ningún nombre interno del JSON en los mensajes del círculo.
+    expect(Object.values(errorsOf(circleFromForm({ xc: '', yc: '', r: '' }))).join(' ')).not.toMatch(/analysis\.surface/);
   });
 });
 
@@ -375,21 +393,26 @@ describe('búsqueda', () => {
     expect(r.ok && r.value.entry).toBeNull();
     expect(r.ok && r.value.exit).toBeNull();
     const e = errorsOf(searchFromForm({ ...full, entry: { lo: '50', hi: '' } }, ctx));
-    expect(e['entry.hi']).toContain('indique mínimo y máximo');
+    expect(e['entry.hi']).toBe('Entrada (coronamiento): indique el mínimo y el máximo, o deje ambos vacíos para usar todo el ancho del terreno');
+    expect(Object.values(e).join(' ')).not.toMatch(/search\./);
   });
 
   it('mín ≤ máx y dentro de la extensión del modelo', () => {
-    expect(errorsOf(searchFromForm({ ...full, entry: { lo: '60', hi: '50' } }, ctx))['entry.lo']).toBe(RULE_TEXT.rangeOrder);
-    expect(errorsOf(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, ctx))['exit.lo']).toBe(RULE_TEXT.rangeExtent);
+    expect(errorsOf(searchFromForm({ ...full, entry: { lo: '60', hi: '50' } }, ctx))['entry.lo']).toBe(
+      'Entrada (coronamiento): el mínimo no puede ser mayor que el máximo (mínimo 60, máximo 50); intercambie los valores',
+    );
+    expect(errorsOf(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, ctx))['exit.lo']).toBe(
+      'Salida (pie): el rango debe quedar dentro del ancho del modelo (de 20 a 70); ajuste el mínimo y el máximo',
+    );
     expect(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, { xRange: null }).ok).toBe(true);
     expect(searchFromForm({ ...full, entry: { lo: '50', hi: '50' } }, ctx).ok).toBe(true);
   });
 
   it('n_* enteros en 1–200', () => {
-    expect(errorsOf(searchFromForm({ ...full, n_entry: '0' }, ctx)).n_entry).toBe(RULE_TEXT.searchCount);
-    expect(errorsOf(searchFromForm({ ...full, n_exit: '201' }, ctx)).n_exit).toContain('[1, 200]');
-    expect(errorsOf(searchFromForm({ ...full, n_radius: '2,5' }, ctx)).n_radius).toBe('debe ser un número entero');
-    expect(errorsOf(searchFromForm({ ...full, n_radius: '' }, ctx)).n_radius).toContain('[1, 200]');
+    expect(errorsOf(searchFromForm({ ...full, n_entry: '0' }, ctx)).n_entry).toBe('Puntos de entrada: use un número entero entre 1 y 200 (ej. 20)');
+    expect(errorsOf(searchFromForm({ ...full, n_exit: '201' }, ctx)).n_exit).toBe('Puntos de salida: use un número entero entre 1 y 200 (ej. 20)');
+    expect(errorsOf(searchFromForm({ ...full, n_radius: '2,5' }, ctx)).n_radius).toBe('Radios por par: use un número entero, sin decimales');
+    expect(errorsOf(searchFromForm({ ...full, n_radius: '' }, ctx)).n_radius).toBe('Radios por par: use un número entero entre 1 y 200 (ej. 20)');
     expect(searchFromForm({ ...full, n_entry: '1', n_exit: '200', n_radius: '200' }, ctx).ok).toBe(true);
   });
 
@@ -397,7 +420,7 @@ describe('búsqueda', () => {
     // 200·200·50 = 2 000 000: permitido; 200·200·51 = 2 040 000: no.
     expect(searchFromForm({ ...full, n_entry: '200', n_exit: '200', n_radius: '50' }, ctx).ok).toBe(true);
     const e = errorsOf(searchFromForm({ ...full, n_entry: '200', n_exit: '200', n_radius: '51' }, ctx));
-    expect(e.n_radius).toBe(RULE_TEXT.searchProduct);
+    expect(e.n_radius).toBe(`${RULE_TEXT.searchProduct} (ahora son 2\u202f040\u202f000)`);
   });
 
   it('max_radius_factor > 0,51 y min_width ≥ 0 o vacío', () => {
@@ -441,19 +464,19 @@ describe('análisis', () => {
   it('valida los rangos del motor', () => {
     expect(errorsOf(analysisFromForm({ ...base(), methods: [] })).methods).toBe(RULE_TEXT.methodsEmpty);
     expect(errorsOf(analysisFromForm({ ...base(), slices: '2' })).slices).toBe(RULE_TEXT.slices);
-    expect(errorsOf(analysisFromForm({ ...base(), slices: '2001' })).slices).toContain('[3, 2000]');
-    expect(errorsOf(analysisFromForm({ ...base(), slices: '50,5' })).slices).toBe('debe ser un número entero');
+    expect(errorsOf(analysisFromForm({ ...base(), slices: '2001' })).slices).toContain('entre 3 y 2000');
+    expect(errorsOf(analysisFromForm({ ...base(), slices: '50,5' })).slices).toBe('Dovelas: use un número entero, sin decimales');
     expect(analysisFromForm({ ...base(), slices: '3' }).ok).toBe(true);
     expect(analysisFromForm({ ...base(), slices: '2000' }).ok).toBe(true);
     expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0' })).tolerance).toBe(RULE_TEXT.tolerance);
-    expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0,011' })).tolerance).toContain('(0, 0,01]');
+    expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0,011' })).tolerance).toContain('mayor que 0 y hasta 0,01');
     expect(analysisFromForm({ ...base(), tolerance: '0,01' }).ok).toBe(true);
     expect(analysisFromForm({ ...base(), tolerance: '1e-6' }).ok).toBe(true);
     expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '0' })).max_iterations).toBe(RULE_TEXT.maxIterations);
-    expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '100001' })).max_iterations).toContain('[1, 100000]');
+    expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '100001' })).max_iterations).toContain('entre 1 y 100000');
     expect(analysisFromForm({ ...base(), max_iterations: '100000' }).ok).toBe(true);
     expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '0' })).min_m_alpha).toBe(RULE_TEXT.minMAlpha);
-    expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '1,1' })).min_m_alpha).toContain('(0, 1]');
+    expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '1,1' })).min_m_alpha).toContain('mayor que 0 y hasta 1');
     expect(analysisFromForm({ ...base(), min_m_alpha: '1' }).ok).toBe(true);
   });
 
@@ -516,28 +539,34 @@ describe('cargas', () => {
   it('id vacío se omite; id repetido es error', () => {
     const r = loadFromForm({ type: 'udl', id: ' ', x1: '30', x2: '40', q: '5' }, ctx);
     expect(r.ok && 'id' in r.value).toBe(false);
-    expect(errorsOf(loadFromForm({ ...loadToForm(udl), id: 'u2' }, ctx)).id).toBe("id de carga duplicado: 'u2'");
+    expect(errorsOf(loadFromForm({ ...loadToForm(udl), id: 'u2' }, ctx)).id).toBe('Identificador de carga: «u2» ya lo usa otra carga; use uno distinto');
   });
 
   it('udl: x1 < x2, dentro del modelo y q ≥ 0', () => {
     const f = loadToForm(udl) as ReturnType<typeof loadToForm> & { type: 'udl' };
     expect(errorsOf(loadFromForm({ ...f, x1: '70', x2: '70' }, ctx)).x1).toBe(RULE_TEXT.udlOrder);
     expect(errorsOf(loadFromForm({ ...f, x1: '60', x2: '50' }, ctx)).x1).toBe(RULE_TEXT.udlOrder);
-    expect(errorsOf(loadFromForm({ ...f, x1: '10' }, ctx)).x1).toBe(RULE_TEXT.loadX);
-    expect(errorsOf(loadFromForm({ ...f, x2: '71' }, ctx)).x2).toBe(RULE_TEXT.loadX);
+    expect(errorsOf(loadFromForm({ ...f, x1: '10' }, ctx)).x1).toBe(
+      'Inicio x1 de la carga distribuida: la posición debe estar dentro del ancho del modelo (de 20 a 70)',
+    );
+    expect(errorsOf(loadFromForm({ ...f, x2: '71' }, ctx)).x2).toBe(
+      'Fin x2 de la carga distribuida: la posición debe estar dentro del ancho del modelo (de 20 a 70)',
+    );
     expect(errorsOf(loadFromForm({ ...f, q: '-1' }, ctx)).q).toBe(RULE_TEXT.loadQ);
     expect(loadFromForm({ ...f, q: '0', x1: '20' }, ctx).ok).toBe(true);
   });
 
   it('line: x dentro, p ≥ 0 y ángulo en [−90, 90]', () => {
     const f = { type: 'line' as const, id: 'l1', x: '40', p: '20', angle: '10' };
-    expect(errorsOf(loadFromForm({ ...f, x: '80' }, ctx)).x).toBe(RULE_TEXT.loadX);
+    expect(errorsOf(loadFromForm({ ...f, x: '80' }, ctx)).x).toBe(
+      'Posición x de la carga lineal: la posición debe estar dentro del ancho del modelo (de 20 a 70)',
+    );
     expect(errorsOf(loadFromForm({ ...f, p: '-1' }, ctx)).p).toBe(RULE_TEXT.loadP);
     expect(errorsOf(loadFromForm({ ...f, angle: '91' }, ctx)).angle).toBe(RULE_TEXT.loadAngle);
-    expect(errorsOf(loadFromForm({ ...f, angle: '-90,5' }, ctx)).angle).toContain('[-90, 90]');
+    expect(errorsOf(loadFromForm({ ...f, angle: '-90,5' }, ctx)).angle).toContain('entre −90° y 90°');
     expect(loadFromForm({ ...f, angle: '90' }, ctx).ok).toBe(true);
     expect(loadFromForm({ ...f, angle: '-90' }, ctx).ok).toBe(true);
-    expect(errorsOf(loadFromForm({ ...f, p: '' }, ctx)).p).toContain('falta p');
+    expect(errorsOf(loadFromForm({ ...f, p: '' }, ctx)).p).toBe('Carga lineal p: falta el valor; use un número igual o mayor que 0');
   });
 
   it('sin rango del modelo no se comprueba la pertenencia', () => {
@@ -569,11 +598,11 @@ describe('sismo', () => {
     expect(seismicFromForm({ kh: '0,1', kv: '0' })).toEqual({ ok: true, value: { kh: 0.1, kv: 0 } });
     expect(seismicFromForm({ kh: '0', kv: '-0,5' })).toEqual({ ok: true, value: { kh: 0, kv: -0.5 } });
     expect(errorsOf(seismicFromForm({ kh: '1', kv: '0' })).kh).toBe(RULE_TEXT.kh);
-    expect(errorsOf(seismicFromForm({ kh: '-0,01', kv: '0' })).kh).toContain('[0, 1)');
+    expect(errorsOf(seismicFromForm({ kh: '1', kv: '0' })).kh).toBe('Coeficiente sísmico horizontal kh: use un valor entre 0 y 0,99 (ej. 0,15)');
     expect(errorsOf(seismicFromForm({ kh: '0', kv: '1' })).kv).toBe(RULE_TEXT.kv);
-    expect(errorsOf(seismicFromForm({ kh: '0', kv: '-1' })).kv).toContain('(-1, 1)');
+    expect(errorsOf(seismicFromForm({ kh: '0', kv: '-1' })).kv).toBe('Coeficiente sísmico vertical kv: use un valor entre −0,99 y 0,99 (ej. 0 o 0,05)');
     expect(seismicFromForm({ kh: '0,999', kv: '0,999' }).ok).toBe(true);
-    expect(errorsOf(seismicFromForm({ kh: 'x', kv: '' })).kh).toContain('escriba un número');
+    expect(errorsOf(seismicFromForm({ kh: 'x', kv: '' })).kh).toBe('Coeficiente sísmico horizontal kh: escriba un número (admite coma o punto decimal)');
   });
 
   it('ambos vacíos = sin sismo; uno vacío vale 0', () => {
@@ -655,7 +684,48 @@ describe('unificación de mensajes con validateLocal (RULE_TEXT)', () => {
     ];
     for (const [fromForm, rule] of pairs) {
       expect(fromForm).toBe(rule);
-      expect(texts.some((t) => t.includes(rule))).toBe(true);
+      // Bajo un sujeto («Material «m1», …») la validación local baja la primera letra a minúscula.
+      const lowered = rule.charAt(0).toLowerCase() + rule.slice(1);
+      expect(texts.some((t) => t.includes(rule) || t.includes(lowered))).toBe(true);
     }
+  });
+});
+
+describe('γw según las unidades del modelo (R7-22)', () => {
+  it('el valor de referencia es 9,81 en SI y 62,4 en imperial; el motor no convierte', () => {
+    expect(defaultWaterUnitWeight(undefined)).toBe(9.81);
+    expect(defaultWaterUnitWeight('SI')).toBe(9.81);
+    expect(defaultWaterUnitWeight('imperial')).toBe(62.4);
+    expect(DEFAULT_WATER_UNIT_WEIGHT).toBe(9.81);
+  });
+
+  it('la ayuda avisa en imperial de que vacío usaría 9,81 (kN/m³)', () => {
+    expect(waterUnitWeightHint('SI')).toBe('Vacío = se usa 9,81 kN/m³.');
+    expect(waterUnitWeightHint('imperial')).toBe(
+      'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.',
+    );
+  });
+
+  it('un valor de γw inválido muestra la etiqueta del campo', () => {
+    expect(errorsOf(waterUnitWeightFromForm('x')).unit_weight).toBe('Peso unitario del agua γw: escriba un número (admite coma o punto decimal)');
+    expect(errorsOf(waterUnitWeightFromForm('0')).unit_weight).toBe(
+      'Peso unitario del agua γw: use un valor mayor que 0 (ej. 9,81 kN/m³ o 62,4 pcf)',
+    );
+  });
+});
+
+describe('mensajes de formulario sin nombres internos (R7-19)', () => {
+  it('ningún mensaje de campo contiene nombres internos del JSON', () => {
+    const doc = makeDoc();
+    const all: string[] = [];
+    const add = (r: { ok: boolean; errors?: Record<string, string> }): void => {
+      if (!r.ok) all.push(...Object.values(r.errors ?? {}));
+    };
+    add(analysisFromForm({ ...analysisToForm(doc), slices: 'x', tolerance: '5', max_iterations: '0', min_m_alpha: '2' }));
+    add(searchFromForm({ ...searchToForm(defaultSearch()), n_entry: '0', n_exit: '300', n_radius: '', max_radius_factor: '0', min_width: '-1', entry: { lo: '1', hi: '' } }, { xRange: [0, 10] }));
+    add(circleFromForm({ xc: '', yc: 'q', r: '-1' }));
+    add(seismicFromForm({ kh: '5', kv: '-9' }));
+    expect(all.length).toBeGreaterThan(10);
+    for (const m of all) expect(m, m).not.toMatch(/min_m_alpha|n_entry|n_exit|n_radius|analysis\.|search\.|max_radius_factor|\budl\b|\bkh debe|\bru debe/);
   });
 });

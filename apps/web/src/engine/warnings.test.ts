@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { describeWarning, describeWarnings, ENGINE_WARNING_CODES } from './warnings';
+import { describeWarning, describeWarnings, ENGINE_WARNING_CODES, warningPath } from './warnings';
 
 describe('describeWarning', () => {
   it('negative_effective_normal es una nota con el texto acordado (E5)', () => {
@@ -32,12 +32,12 @@ describe('describeWarning', () => {
     expect(describeWarning('negative_effective_normal_major')).toEqual({
       code: 'negative_effective_normal_major',
       severity: 'aviso',
-      text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción',
+      text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción.',
     });
     expect(describeWarning('air_gap_thrust')).toEqual({
       code: 'air_gap_thrust',
       severity: 'aviso',
-      text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría',
+      text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría.',
     });
   });
 
@@ -63,7 +63,7 @@ describe('describeWarning', () => {
     expect(describeWarning('negative_lambda')).toEqual({
       code: 'negative_lambda',
       severity: 'nota',
-      text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado',
+      text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado.',
     });
   });
 
@@ -74,6 +74,56 @@ describe('describeWarning', () => {
   it('no confunde propiedades del objeto con códigos (toString, __proto__)', () => {
     expect(describeWarning('toString').text).toBe('toString');
     expect(describeWarning('__proto__').text).toBe('__proto__');
+  });
+});
+
+describe('mensajes accionables y sin nombres internos (R7-19, R7-20)', () => {
+  const INTERNAL = /min_m_alpha|n_entry|n_exit|n_radius|ogs-core|deny_unknown_fields|performance\.now|v0\.1|\bwasm\b/i;
+
+  it('water_above_ground ya no menciona v0.1 y explica que el agua libre (embalse) no se considera', () => {
+    const { text } = describeWarning('water_above_ground');
+    expect(text).not.toMatch(/v0\.1|no soportado/);
+    expect(text).toBe(
+      'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora: el agua libre (por ejemplo, un embalse) no se considera en esta versión; revise la línea piezométrica.',
+    );
+  });
+
+  it.each([
+    ['m_alpha', /m_α mínimo.*sentido de deslizamiento.*rangos de entrada y salida/],
+    ['pole', /punto singular.*otra superficie/],
+    ['no_driving', /fuerzas que provocan el deslizamiento.*sentido de deslizamiento/],
+    ['no_admissible_root', /ninguna cumple.*Revise/],
+    ['non_finite', /pesos unitarios.*geometría/],
+    ['no_lambda_root', /pruebe otra superficie o compare con Bishop/],
+    ['max_iterations', /aumente las iteraciones máximas en «Análisis»/],
+    ['no_slices', /Revise su centro y su radio/],
+  ])('%s sugiere qué revisar', (code, pattern) => {
+    expect(describeWarning(code).text).toMatch(pattern);
+  });
+
+  it('m_alpha nombra el campo como en la interfaz y no como en el JSON', () => {
+    const { text } = describeWarning('m_alpha');
+    expect(text).toContain('m_α mínimo');
+    expect(text).not.toContain('min_m_alpha');
+  });
+
+  it('ningún texto del catálogo contiene nombres internos ni queda sin punto final', () => {
+    const codes = [...ENGINE_WARNING_CODES, 'mock_engine', 'mock_search'];
+    for (const code of codes) {
+      const { text } = describeWarning(code);
+      expect(text, code).not.toMatch(INTERNAL);
+      expect(text.endsWith('.'), `${code}: «${text}» no termina en punto`).toBe(true);
+    }
+  });
+
+  it('warningPath asocia los avisos a la parte del modelo que conviene revisar', () => {
+    expect(warningPath('water_above_ground')).toBe('/water/piezometric_line');
+    expect(warningPath('load_outside_mass')).toBe('/loads');
+    expect(warningPath('m_alpha')).toBe('/analysis/search');
+    expect(warningPath('max_iterations')).toBe('/analysis/max_iterations');
+    expect(warningPath('negative_effective_normal')).toBeNull();
+    expect(warningPath('codigo_nuevo')).toBeNull();
+    expect(warningPath('toString')).toBeNull();
   });
 });
 

@@ -194,7 +194,7 @@ describe('tipos congelados v0.2 del editor', () => {
     expect(describeWarning('load_outside_mass')).toEqual({
       code: 'load_outside_mass',
       severity: 'nota',
-      text: 'Alguna carga declarada no actúa sobre la masa analizada',
+      text: 'Alguna carga declarada no actúa sobre la masa analizada.',
     });
   });
 });

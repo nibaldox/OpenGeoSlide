@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { Point, VerificationCase } from '../../engine/types';
+import type { Point, SearchSpec, VerificationCase } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
 import { baseDoc, mat, singleRegionDoc, square, twoRegionDoc } from './testFixtures';
 import { RULE_TEXT, validateLocal, validateLocalCached } from './validateLocal';
@@ -20,7 +20,7 @@ describe('validateLocal: modelo válido', () => {
       source: 'local',
       severity: 'error',
       code: 'editor.missing_material',
-      text: "Región 1: usa el material 'nope', que no existe.",
+      text: 'Región 1: usa el material «nope», que no existe. Asígnele uno de los materiales definidos o cree ese material en el panel «Materiales».',
       path: '/regions/0/material',
     });
   });
@@ -104,7 +104,7 @@ describe('validateLocal: solape entre regiones (E12c)', () => {
   it('cruce propio de aristas', () => {
     const issues = validateLocal(twoRegionDoc(square(0, 0, 10, 10), square(5, 5, 15, 15)));
     expect(codes(issues)).toEqual(['editor.region_overlap']);
-    expect(issues[0]?.text).toBe('Las regiones 1 y 2 se solapan.');
+    expect(issues[0]?.text).toBe('Las regiones 1 y 2 se solapan. Ajuste sus vértices para que solo compartan bordes.');
     expect(issues[0]?.path).toBe('/regions/1');
   });
   it('contención: un vértice estrictamente dentro de la otra región', () => {
@@ -154,7 +154,7 @@ describe('validateLocal: solape entre regiones (E12c)', () => {
     doc.regions.push({ material: 'm1', polygon: square(15, 2, 25, 8) });
     const issues = validateLocal(doc);
     expect(codes(issues)).toEqual(['editor.region_overlap']);
-    expect(issues[0]?.text).toBe('Las regiones 2 y 3 se solapan.');
+    expect(issues[0]?.text).toBe('Las regiones 2 y 3 se solapan. Ajuste sus vértices para que solo compartan bordes.');
   });
 });
 
@@ -188,7 +188,7 @@ describe('validateLocal: materiales', () => {
     const issues = validateLocal(doc);
     expect(codes(issues)).toEqual(['editor.out_of_range']);
     expect(issues[0]?.path).toBe(`/materials/0/${field}`);
-    expect(issues[0]?.text).toBe(`Material 'm1': ${text}.`);
+    expect(issues[0]?.text.startsWith(`Material «m1», ${text.charAt(0).toLowerCase()}${text.slice(1)}. Valor actual: `)).toBe(true);
   });
   it('los límites válidos de material pasan: c = 0, φ = 0 y 89,9, ru = 0 y 0,99, γsat nulo', () => {
     const doc = baseDoc();
@@ -206,7 +206,9 @@ describe('validateLocal: piezométrica', () => {
     const issues = validateLocal(withPiezo([[0, 5], [10, 6], [5, 5], [20, 5]]));
     expect(codes(issues)).toEqual(['editor.piezo_order']);
     expect(issues[0]?.path).toBe('/water/piezometric_line/2');
-    expect(issues[0]?.text).toContain('x estrictamente creciente');
+    expect(issues[0]?.text).toBe(
+      'Línea piezométrica, punto 3: la coordenada x (5) debe ser mayor que la del punto anterior (10); ordene los puntos de izquierda a derecha.',
+    );
   });
   it('x repetida', () => {
     expect(codes(validateLocal(withPiezo([[0, 5], [10, 6], [10, 7]])))).toEqual(['editor.piezo_order']);
@@ -284,7 +286,9 @@ describe('validateLocal: cargas (F1.1)', () => {
       const issues = validateLocal(withLoads([{ type: 'udl', x1, x2, q: 1 }]));
       expect(codes(issues)).toEqual(['editor.load_range']);
       expect(issues[0]?.path).toBe('/loads/0/x1');
-      expect(issues[0]?.text).toBe(`Carga 1: ${RULE_TEXT.udlOrder}.`);
+      expect(issues[0]?.text).toBe(
+        `Carga 1: carga distribuida: el inicio x1 debe ser menor que el fin x2; intercambie los valores. Valores actuales: x1 ${String(x1)}, x2 ${String(x2)}.`,
+      );
     }
   });
   it('udl fuera del rango x del modelo y q negativa', () => {
@@ -393,5 +397,198 @@ describe('validateLocal: neutralidad frente a los casos de verificación', () =>
       analysis: { ...data.model.analysis, seismic: { kh: 0.1, kv: 0 } },
     };
     expect(validateLocal(doc)).toEqual([]);
+  });
+});
+
+describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () => {
+  // Los tests de unidades imperiales usan el agua de `baseDoc` (γw = 9,81): se deja fuera su aviso de γw, que se prueba aparte.
+  const textsOf = (doc: ModelDoc): string[] =>
+    validateLocal(doc)
+      .filter((i) => i.code !== 'editor.water_unit_weight')
+      .map((i) => i.text);
+  const withAnalysis = (analysis: ModelDoc['analysis']): ModelDoc => ({ ...baseDoc(), analysis });
+  const INTERNAL = /min_m_alpha|n_entry|n_exit|n_radius|analysis\.|search\.|deny_unknown_fields|performance\.now|1e-12|escala²|\budl\b|\bkh debe|\bru debe/;
+
+  it('kh fuera de rango: etiqueta de la interfaz, rango llano, ejemplo y valor actual', () => {
+    const issues = validateLocal(withAnalysis({ surface: { type: 'circle', xc: 10, yc: 20, r: 12 }, seismic: { kh: 1.2, kv: 0 } }));
+    expect(issues).toEqual([
+      {
+        source: 'local',
+        severity: 'error',
+        code: 'editor.out_of_range',
+        text: 'Coeficiente sísmico horizontal kh: use un valor entre 0 y 0,99 (ej. 0,15). Valor actual: 1,2.',
+        path: '/analysis/seismic/kh',
+      },
+    ]);
+  });
+
+  it('kv fuera de rango', () => {
+    const [i] = validateLocal(withAnalysis({ surface: { type: 'circle', xc: 10, yc: 20, r: 12 }, seismic: { kh: 0, kv: -1 } }));
+    expect(i?.text).toBe('Coeficiente sísmico vertical kv: use un valor entre −0,99 y 0,99 (ej. 0 o 0,05). Valor actual: -1.');
+  });
+
+  it('parámetros de análisis: etiquetas de la interfaz y valor actual', () => {
+    const surface = { type: 'circle', xc: 10, yc: 20, r: 12 } as const;
+    expect(textsOf(withAnalysis({ surface, min_m_alpha: 0 }))).toEqual(['m_α mínimo: use un valor mayor que 0 y hasta 1 (ej. 0,2). Valor actual: 0.']);
+    expect(textsOf(withAnalysis({ surface, slices: 2 }))).toEqual(['Dovelas: use un número entero entre 3 y 2000 (ej. 50). Valor actual: 2.']);
+    expect(textsOf(withAnalysis({ surface, tolerance: 0.5 }))).toEqual([
+      'Tolerancia: use un valor mayor que 0 y hasta 0,01 (ej. 0,00001). Valor actual: 0,5.',
+    ]);
+    expect(textsOf(withAnalysis({ surface, max_iterations: 0 }))).toEqual([
+      'Iteraciones máximas: use un número entero entre 1 y 100000 (ej. 500). Valor actual: 0.',
+    ]);
+    expect(textsOf(withAnalysis({ surface, methods: [] }))).toEqual(['Métodos de análisis: marque al menos uno (Bishop simplificado o Spencer).']);
+    expect(textsOf(withAnalysis({ surface, methods: ['bishop', 'bishop'] }))).toEqual([
+      'Métodos de análisis: hay un método repetido; marque cada uno una sola vez.',
+    ]);
+  });
+
+  it('búsqueda: puntos de entrada y salida, radios por par, producto, factor y ancho mínimo', () => {
+    const search = (q: Partial<Omit<SearchSpec, 'type'>>): string[] => textsOf(withAnalysis({ search: { type: 'circular_entry_exit', ...q } }));
+    expect(search({ n_entry: 0 })).toEqual(['Puntos de entrada: use un número entero entre 1 y 200 (ej. 20). Valor actual: 0.']);
+    expect(search({ n_exit: 201 })).toEqual(['Puntos de salida: use un número entero entre 1 y 200 (ej. 20). Valor actual: 201.']);
+    expect(search({ n_radius: 2.5 })).toEqual(['Radios por par: use un número entero entre 1 y 200 (ej. 20). Valor actual: 2,5.']);
+    expect(search({ n_entry: 200, n_exit: 200, n_radius: 200 })).toEqual([
+      'Búsqueda: puntos de entrada × puntos de salida × radios por par no puede superar 2 000 000 de candidatos; reduzca alguno de los tres (ahora son 8\u202f000\u202f000).',
+    ]);
+    expect(search({ max_radius_factor: 0.5 })).toEqual(['Factor de radio máximo: use un valor mayor que 0,51 (ej. 5). Valor actual: 0,5.']);
+    expect(search({ min_width: -1 })).toEqual(['Ancho mínimo: use un valor igual o mayor que 0, o déjelo vacío. Valor actual: -1.']);
+  });
+
+  it('rangos de entrada y salida: orden y extensión, con el límite del modelo y su unidad', () => {
+    const search = (q: Partial<Omit<SearchSpec, 'type'>>, units?: string): string[] =>
+      textsOf({ ...withAnalysis({ search: { type: 'circular_entry_exit', ...q } }), units });
+    expect(search({ entry: [15, 5] })).toEqual([
+      'Entrada (coronamiento): el mínimo no puede ser mayor que el máximo (mínimo 15, máximo 5); intercambie los valores.',
+    ]);
+    expect(search({ exit: [5, 50] })).toEqual([
+      'Salida (pie): el rango debe quedar dentro del ancho del modelo (de 0 a 20 m); ajuste el mínimo y el máximo. Valor actual: 5 a 50.',
+    ]);
+    expect(search({ exit: [5, 50] }, 'imperial')[0]).toContain('(de 0 a 20 ft)');
+  });
+
+  it('círculo fijo: centro y radio con ejemplos', () => {
+    expect(textsOf(withAnalysis({ surface: { type: 'circle', xc: Number.NaN, yc: 3, r: 5 } }))).toEqual([
+      'Centro (xc, yc) del círculo de falla: escriba dos números (ej. 45,5 y 38,75). Valores actuales: xc no es un número, yc 3.',
+    ]);
+    expect(textsOf(withAnalysis({ surface: { type: 'circle', xc: 1, yc: 3, r: 0 } }))).toEqual([
+      'Radio r del círculo de falla: use un valor mayor que 0 (ej. 25). Valor actual: 0.',
+    ]);
+  });
+
+  it('sin superficie: explica cómo elegirla en el panel', () => {
+    expect(textsOf(withAnalysis({}))).toEqual([
+      'Superficie de falla: no hay ninguna definida; en el panel «Superficie de falla» elija «Búsqueda» (superficie crítica automática) o «Fija» (círculo con centro y radio).',
+    ]);
+  });
+
+  it('materiales: identificador repetido o vacío', () => {
+    const doc = baseDoc();
+    doc.materials = [mat('m1', {}), mat('m1', {})];
+    expect(textsOf(doc)).toContain('Material «m1»: el identificador está repetido; cada material necesita uno distinto.');
+    const empty = baseDoc();
+    empty.materials = [mat('', {})];
+    expect(textsOf(empty)).toContain('Material 1: identificador del material: no puede estar vacío; escriba un nombre corto (ej. arcilla).');
+  });
+
+  it('material: etiquetas con símbolo (γ, c, φ, ru) y ejemplos en SI e imperial', () => {
+    const doc = baseDoc();
+    doc.materials[0] = mat('m1', { unit_weight: 0, cohesion: -1, friction_angle: 95, ru: 1.5 });
+    expect(textsOf(doc)).toEqual([
+      'Material «m1», peso unitario γ: use un valor mayor que 0 (ej. 18 kN/m³ o 115 pcf). Valor actual: 0.',
+      'Material «m1», cohesión c: use un valor igual o mayor que 0 (ej. 5 kPa o 100 psf). Valor actual: -1.',
+      'Material «m1», ángulo de fricción φ: use un valor desde 0° hasta menos de 90° (ej. 30). Valor actual: 95.',
+      'Material «m1», coeficiente de presión de poros ru: use un valor desde 0 hasta menos de 1 (ej. 0,2), o déjelo vacío. Valor actual: 1,5.',
+    ]);
+  });
+
+  it('regiones: acción a tomar en cada caso, sin «1e-12 · escala²»', () => {
+    expect(textsOf({ ...baseDoc(), regions: [] })).toEqual([
+      'El modelo no tiene regiones: agregue al menos una región de suelo (por ejemplo, importando un DXF o abriendo un ejemplo).',
+    ]);
+    expect(textsOf(singleRegionDoc([[0, 0], [1, 1]]))).toEqual([
+      'Región 1: tiene 2 vértices y necesita al menos 3. Agregue vértices o elimine la región.',
+    ]);
+    expect(textsOf(singleRegionDoc([[0, 0], [10, Number.NaN], [10, 10]]))).toEqual([
+      'Región 1, vértice 2: las coordenadas x e y deben ser números. Corrija el valor (ej. 12,5).',
+    ]);
+    expect(textsOf(singleRegionDoc([[0, 0], [5, 0], [10, 0]]))).toEqual([
+      'Región 1: no encierra superficie (los vértices están alineados o casi coinciden). Mueva algún vértice para que el contorno tenga área.',
+    ]);
+    expect(textsOf(singleRegionDoc([[0, 0], [10, 0], [10, 0], [10, 10], [0, 10]]))).toEqual([
+      'Región 1, vértice 3: repite al vértice anterior. No afecta al cálculo, pero puede eliminarlo.',
+    ]);
+    expect(textsOf(singleRegionDoc([[0, 0], [10, 10], [10, 0], [0, 10]]))[0]).toBe(
+      'Región 1: el contorno se cruza consigo mismo (aristas 1 y 3; dos aristas se tocan o se cruzan). Mueva los vértices para que el contorno no se cruce.',
+    );
+  });
+
+  it('piezométrica y agua: etiquetas y acción a tomar', () => {
+    const w = (water: NonNullable<ModelDoc['water']>): string[] => textsOf({ ...baseDoc(), water });
+    expect(w({ unit_weight: 0 })).toEqual(['Peso unitario del agua γw: use un valor mayor que 0 (ej. 9,81 kN/m³ o 62,4 pcf). Valor actual: 0.']);
+    expect(w({ piezometric_line: [[0, 5]] })).toEqual(['Línea piezométrica: indique al menos 2 puntos, o quítela si no hay nivel freático.']);
+    expect(w({ piezometric_line: [[0, 5], [10, Number.NaN]] })).toEqual([
+      'Línea piezométrica, punto 2: las coordenadas x e y deben ser números. Corrija el valor (ej. 12,5).',
+    ]);
+  });
+
+  it('versión 0.1 con cargas o sismo: nombra el formato, no los campos', () => {
+    const doc: ModelDoc = { ...baseDoc(), version: '0.1', loads: [{ type: 'udl', x1: 0, x2: 10, q: 5 }] };
+    expect(textsOf(doc)).toEqual([
+      'Formato del archivo: las cargas y el sismo requieren el formato 0.2, pero este modelo declara el 0.1; cambie la versión del archivo a 0.2.',
+    ]);
+  });
+
+  it('cargas: etiquetas de la tabla, rango del modelo con unidad y ejemplos', () => {
+    const withLoads = (loads: NonNullable<ModelDoc['loads']>, units?: string): string[] => textsOf({ ...baseDoc(), loads, units });
+    expect(withLoads([{ type: 'udl', id: 'a', x1: 0, x2: 5, q: 1 }, { type: 'line', id: 'a', x: 5, p: 1, angle: 0 }])).toEqual([
+      'Carga 2: el identificador «a» ya lo usa otra carga; use uno distinto.',
+    ]);
+    expect(withLoads([{ type: 'udl', x1: -1, x2: 5, q: -5 }])).toEqual([
+      'Carga 1, inicio x1 de la carga distribuida: la posición debe estar dentro del ancho del modelo (de 0 a 20 m). Valor actual: -1.',
+      'Carga 1: carga distribuida q: use un valor igual o mayor que 0 (ej. 20 kPa o 400 psf). Valor actual: -5.',
+    ]);
+    expect(withLoads([{ type: 'line', x: 99, p: -1, angle: 100 }], 'imperial')).toEqual([
+      'Carga 1, posición x de la carga lineal: la posición debe estar dentro del ancho del modelo (de 0 a 20 ft). Valor actual: 99.',
+      'Carga 1: carga lineal p: use un valor igual o mayor que 0 (ej. 50 kN/m o 3400 lbf/ft). Valor actual: -1.',
+      'Carga 1: ángulo de la carga lineal: use un valor entre −90° y 90° desde la vertical (ej. 0 = vertical hacia abajo). Valor actual: 100.',
+    ]);
+    expect(withLoads([{ type: 'udl', x1: 8, x2: 8, q: 1 }])).toEqual([
+      'Carga 1: carga distribuida: el inicio x1 debe ser menor que el fin x2; intercambie los valores. Valores actuales: x1 8, x2 8.',
+    ]);
+  });
+
+  it('γw en modelos imperiales: avisa de que el motor usaría 9,81 (kN/m³) si no se indica', () => {
+    const water: ModelDoc['water'] = { piezometric_line: [[0, 5], [10, 5]] };
+    const imperial = validateLocal({ ...baseDoc(), units: 'imperial', water });
+    expect(imperial).toEqual([
+      {
+        source: 'local',
+        severity: 'aviso',
+        code: 'editor.water_unit_weight',
+        text: 'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica, así que el cálculo usaría 9,81 (el valor en kN/m³); escriba 62,4 pcf.',
+        path: '/water/unit_weight',
+      },
+    ]);
+    // Con 9,81 explícito en pcf tampoco es creíble.
+    expect(codes(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 9.81 } }))).toEqual(['editor.water_unit_weight']);
+    // Con 62,4 o en SI no hay aviso.
+    expect(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 62.4 } })).toEqual([]);
+    expect(validateLocal({ ...baseDoc(), units: 'SI', water })).toEqual([]);
+    // Sin piezométrica, γw no interviene.
+    expect(validateLocal({ ...baseDoc(), units: 'imperial', water: {} })).toEqual([]);
+  });
+
+  it('ningún mensaje local contiene nombres internos del JSON o del motor', () => {
+    const docs: ModelDoc[] = [
+      { ...baseDoc(), regions: [] },
+      singleRegionDoc([[0, 0], [5, 0], [10, 0]]),
+      withAnalysis({ search: { type: 'circular_entry_exit', n_entry: 0, n_exit: 999, n_radius: 0, entry: [9, 1] }, min_m_alpha: 5, seismic: { kh: 3 } }),
+      { ...baseDoc(), version: '0.1', loads: [{ type: 'udl', x1: 3, x2: 1, q: 1 }] },
+      withAnalysis({ surface: { type: 'circle', xc: Number.NaN, yc: 0, r: -1 } }),
+    ];
+    const all = docs.flatMap(textsOf);
+    expect(all.length).toBeGreaterThan(8);
+    for (const t of all) expect(t, t).not.toMatch(INTERNAL);
   });
 });
