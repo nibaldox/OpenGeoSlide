@@ -271,6 +271,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
      superficie con `DisconnectedMass`, dejaba la búsqueda 3-7 % sobre el oráculo, lo que es no conservador.
    - `SurfaceError::DisconnectedMass` deja de emitirse; la variante puede eliminarse.
    - `truncated_mass` se agrega a `INFORMATIVE_WARNINGS` y a la lista de códigos E6.
+   - **(E10a′.)** La verificación `OutsideModel` (§4.1.3) se aplica **solo al tramo del arco del bloque principal**.
+     Un lente descartado puede salir por una pared lateral del modelo sin invalidar la superficie. **Motivo:** el
+     círculo crítico de Spencer de cSlope en D09 (centro (1,30; 55,17), r = 42,44; FS 0,3876) sale por x = 0 bajo el
+     terreno **dentro del lente del pie**, que se descarta.
 
    *Texto histórico de E8a (derogada):*
    **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
@@ -310,6 +314,21 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   se cumple, el resultado es `Invalid` (`"m_alpha"`). Nunca se devuelve `Converged` con `m_α(F) < min_m_alpha`.
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
+**(Enmienda E10c; corrige a E10b tras W8b.)** El solver mantiene la estructura de E10b: curvas F_m(λ) y F_f(λ) con
+búsqueda acotada de λ\*. Cambia lo siguiente:
+- **Ecuación de momentos:** la de Zhu et al. (2005), momentos por dovela con la línea de empuje en la base, la misma
+  que el solver verificado hasta ahora. Así se reproducen los valores verificados (V044, V045, V016a) con ≤ 1e-6
+  relativo. Con la F_m de momentos respecto del centro de E10b, las diferencias eran de ~3e-5 frente a toda la
+  verificación previa, sin que el oráculo prefiera ninguna de las dos (cSlope coincide con la de Zhu en ≤ 0,04 %).
+- **F de fuerzas:** la raíz de F con la recurrencia exacta de E (cierre `|Eₙ| ≤ 1e-6·ΣW`), con continuación a lo
+  largo del barrido. La iteración de Picard con X retardada no es obligatoria, porque diverge para λ ≥ 0,5.
+- **Barrido de λ hacia afuera:** desde λ = 0, alternando +0,1 y −0,1 hasta [−0,5; 1,5], con **parada en el primer**
+  cambio de signo de g, que es el más cercano a 0. Así se evita evaluar las 21 posiciones. Objetivo de rendimiento:
+  ≤ 1,3× el tiempo del solver Zhu en `ogs bench V047a --method spencer`.
+- **Sin cambio de signo** → `NotConverged("no_lambda_root")`.
+  - Nota: cSlope en ese caso reporta la aproximación más cercana con el aviso `steep-entry-no-equilibrium` (R1-01: 0,311
+    sin cierre). Nosotros **no** reportamos un FS sin equilibrio.
+
 **(Enmienda E10b: solver GLE de dos ecuaciones; reemplaza al lazo de punto fijo en λ de Zhu et al.)**
 Formulación del equilibrio límite general (Fredlund & Krahn 1977) con `X = λ·f(x)·E` y f = 1. Para un λ dado:
 - **Normal en la base** (equilibrio vertical, igual que en E4e):
