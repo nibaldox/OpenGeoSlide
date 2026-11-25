@@ -1,11 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import acads1a from '../examples/acads1a.json';
-import { checkModel, evaluateCheck, parseUploadedCase, runModel, summarizeTimes } from './runner';
+import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes } from './runner';
+import type { MethodReport } from '../engine/types';
 import { isAnalysisReport } from '../engine/validate';
 import { ticksBetween, niceStep } from '../render/drawSection';
 import type { Model, VerificationCase, VerificationCheck } from '../engine/types';
 
 const model = (acads1a as unknown as VerificationCase).model;
+
+describe('convergedFos (R4-06)', () => {
+  const report = (overrides: Partial<MethodReport>): MethodReport => ({
+    method: 'bishop',
+    fos: 1.2,
+    status: 'converged',
+    iterations: 4,
+    lambda: null,
+    surface: { xc: 0, yc: 0, r: 1 },
+    slices: [],
+    search: null,
+    warnings: [],
+    ...overrides,
+  });
+
+  it('usa el FS solo si el método convergió', () => {
+    expect(convergedFos(report({ status: 'converged', fos: 1.2 }))).toBe(1.2);
+  });
+
+  it('no usa un FS finito con not_converged (Bishop agota iteraciones en bisección)', () => {
+    expect(convergedFos(report({ status: 'not_converged', fos: 250.187978, warnings: ['max_iterations'] }))).toBeNull();
+  });
+
+  it('no usa el FS con estado invalid, ni la ausencia de resultado', () => {
+    expect(convergedFos(report({ status: 'invalid', fos: null }))).toBeNull();
+    expect(convergedFos(undefined)).toBeNull();
+  });
+});
 
 describe('runner', () => {
   it('runModel fija solo los métodos y no modifica el original', () => {

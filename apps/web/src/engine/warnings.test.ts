@@ -59,6 +59,14 @@ describe('describeWarning', () => {
     });
   });
 
+  it('negative_lambda es una nota con el texto acordado (R4-05, E11a′)', () => {
+    expect(describeWarning('negative_lambda')).toEqual({
+      code: 'negative_lambda',
+      severity: 'nota',
+      text: 'Spencer seleccionó la raíz admisible de menor |λ|, que es negativa; revise el resultado',
+    });
+  });
+
   it('un código desconocido se muestra tal cual, como aviso', () => {
     expect(describeWarning('codigo_nuevo')).toEqual({ code: 'codigo_nuevo', severity: 'aviso', text: 'codigo_nuevo' });
   });
