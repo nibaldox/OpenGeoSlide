@@ -195,6 +195,48 @@ En `PreparedModel::new` (`geometry.rs`), con tolerancia `tol = 1e-9 · escala de
 - **Fuera de alcance:** R4-02 (dos raíces dentro de un paso de 0,05). El sondeo del punto medio no lo cierra (X5 §3),
   así que queda en el backlog.
 
+## F1.7 Enmiendas tras la revisión R5 (E12f-E12j; evidencia en `docs/reviews/R5_agy.md`, reproducida por el coordinador)
+
+- **E12f (R5-01): cargas lineales en bordes.** Reemplaza la regla «`x_l ≤ x < x_r`» de E12b.
+  - Una carga lineal en `x` actúa sobre las dovelas de **suelo** del bloque analizado cuyo intervalo **cerrado**
+    `[x_l, x_r]` contiene `x`, con tolerancia `1e-9·ancho del modelo`.
+  - Si `x` cae en una frontera **compartida** entre dos dovelas de suelo, la carga se reparte **50/50** entre ambas.
+  - Si cae en el extremo de **entrada** o de **salida** del bloque, la recibe completa la dovela extrema.
+  - Fuera del bloque se emite `load_outside_mass`.
+  - **Motivo:** con un intervalo semiabierto, una carga justo en el punto de entrada se descartaba: FS 0,985 frente a
+    cSlope 0,920, +7,1 % no conservador, y además se rompía la simetría espejo (iv).
+  - **Criterios nuevos:** carga en el extremo derecho y en el extremo izquierdo, en `ltr` y en `rtl`, frente a cSlope
+    (≤ 0,1 %); carga sobre un vértice del terreno o sobre una frontera de dovela, con espejo ≤ 1e-9.
+- **E12g (R5-02): precisión del `.ogs.json`.**
+  - La web **no redondea** números al abrir, al calcular ni al guardar. `saveOgsJson` serializa con la representación
+    de ida y vuelta más corta de JS (`JSON.stringify`).
+  - El redondeo cosmético queda solo para **mostrar** valores en la UI.
+  - **Criterio:** los 21 casos y los 14 modelos de la batería, abiertos con `openOgsJson` y guardados con
+    `saveOgsJson`, dan **bit a bit** el mismo reporte del motor que el archivo original. Esto vale también para los
+    modelos de frontera de R5-02 (`min_m_alpha = 1e-7` y `kh`, `kv` o `ru` = 0,9999999).
+- **E12h (R5-07): entradas estrictas en la web.**
+  - `openOgsJson` **rechaza**, con el mismo criterio del motor (`deny_unknown_fields`):
+    - los campos desconocidos;
+    - `version: "0.1"` cuando `loads` no está vacío o `analysis.seismic` no es nulo.
+  - Un `loads: []` o un `seismic: null` con `"0.1"` cuentan como ausentes, igual que en el motor. El JSON Schema
+    v0.2 se alinea con esa regla y con las cotas de §4.5 del motor.
+- **E12i (R5-03/R5-04): resultados en el informe y en CSV.**
+  - Toda polilínea de superficie se arma en el orden de **x creciente**: `x_left` de cada dovela ordenada, más el
+    `x_right` de la última.
+  - El CSV de superficie trae la columna `estado` y solo exporta los métodos `converged`.
+  - El CSV de resultados trae la columna `avisos`.
+  - `lambda` solo se muestra si el método convergió. Las exportaciones se bloquean si el resultado no corresponde a la
+    revisión actual.
+  - El dibujo del PDF no se rotula «Superficie crítica» si ningún método convergió.
+- **E12j (R5-10): paridad entre el editor y el motor.**
+  - El motor rechaza `material.id` vacío.
+  - El editor rechaza las regiones degeneradas (área ≤ 1e-12·escala², igual que el motor) y los modelos sin `surface`
+    ni `search`. Para ello se agregan los códigos congelados `editor.degenerate_region` y `editor.no_surface`.
+  - Un vértice consecutivo repetido es un **aviso** en el editor, no un error, porque el motor lo acepta.
+- **R5-05 (E12e con N′ mayor):** se documenta como limitación conocida. Antes de cerrar la Fase 1 se evalúa una regla
+  combinada: descartar las raíces `negative_effective_normal_major` si existe otra admisible y luego elegir la de menor
+  F (exploración X7). La decisión la toma el coordinador con esos números.
+
 ## F1.5 Gates de la Fase 1 (además de §5 de `00_CONTRATOS.md`)
 
 - **Motor:**
