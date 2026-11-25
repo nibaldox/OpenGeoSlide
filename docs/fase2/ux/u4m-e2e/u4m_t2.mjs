@@ -17,7 +17,8 @@ async function slopeDialog({ lower }) {
   await page.getByLabel(/Peso unitario γ/).first().fill('18');
   await page.getByLabel(/Cohesión c/).first().fill('25');
   await page.getByLabel(/Ángulo de fricción φ/).first().fill('20');
-  await page.getByLabel('Línea piezométrica').selectOption('toe');
+  // Integración U4: el selector «Caso» de Casos (oculto) también contiene «piezométrica» en sus títulos; se acota al diálogo.
+  await page.locator('dialog[open]').getByLabel('Línea piezométrica').selectOption('toe');
   if (lower) {
     await page.getByLabel('Agregar un estrato inferior (material 2)').check();
     await page.getByLabel('Contacto: profundidad bajo el pie').fill('5');
@@ -91,7 +92,9 @@ step('B3 un solo Deshacer revierte la división entera (y Rehacer la devuelve)',
 // Material de la región nueva → roca (tarjeta 2 de Materiales)
 await page.getByRole('tab', { name: 'Materiales' }).click();
 await page.waitForTimeout(200);
-const setField = async (label, i, v) => { const f = page.getByLabel(label, { exact: true }).nth(i); await f.fill(v); await f.press('Enter'); };
+// Integración U4: U4-P da a cada tarjeta un nombre accesible único («Material <id>: Nombre», UX9-02).
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const setField = async (label, i, v) => { const f = page.getByLabel(new RegExp(`^Material .+: ${esc(label)}$`)).nth(i); await f.fill(v); await f.press('Enter'); };
 await setField('Nombre', 1, 'Roca');
 await setField('Peso unitario γ (kN/m³)', 1, '24');
 await setField('Cohesión c (kPa)', 1, '200');

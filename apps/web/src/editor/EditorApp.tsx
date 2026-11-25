@@ -33,7 +33,8 @@ import type { PanelTabId } from './app/issueNav';
 import { documentTitle } from './app/docTitle';
 import { fieldSelector, type IssueTarget } from './app/issueNav';
 import { LiveRegions } from './app/LiveRegions';
-import { noticeLifetimeMs, pushNotice, type Notice } from './app/notices';
+import { NoticeList } from './app/NoticeList';
+import { addNotice, noticeLifetimeMs, type Notice } from './app/notices';
 import { ResultSummary } from './app/ResultSummary';
 import { calcAnnouncement } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
@@ -112,9 +113,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [notices, setNotices] = useState<Notice[]>(() => {
     let first: Notice[] = [];
     boot.issues.forEach((i, k) => {
-      first = pushNotice(first, { id: k + 1, kind: 'aviso', text: i.text });
+      first = addNotice(first, { id: k + 1, kind: 'aviso', text: i.text });
     });
-    if (draftStorage.issue) first = pushNotice(first, { id: first.length + 1, kind: 'aviso', text: draftStorage.issue.text });
+    if (draftStorage.issue) first = addNotice(first, { id: first.length + 1, kind: 'aviso', text: draftStorage.issue.text });
     return first;
   });
   const noticeId = useRef(100);
@@ -159,7 +160,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     (kind: Notice['kind'], text: string) => {
       noticeId.current += 1;
       const id = noticeId.current;
-      setNotices((prev) => pushNotice(prev, { id, kind, text }));
+      setNotices((prev) => addNotice(prev, { id, kind, text }));
       if (kind === 'error') announceError(text);
       else announce(text);
     },
@@ -627,26 +628,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       )}
       {draftFailure && <div className="banner banner-sim">{draftFailure}</div>}
       {engine.message && <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'}>{engine.message}</div>}
-      {notices.length > 0 && (
-        <ul
-          className="ea-notices"
-          aria-label="Mensajes"
-          data-testid="notices"
-          onMouseEnter={() => setNoticesPaused(true)}
-          onMouseLeave={() => setNoticesPaused(false)}
-          onFocus={() => setNoticesPaused(true)}
-          onBlur={() => setNoticesPaused(false)}
-        >
-          {notices.map((n) => (
-            <li key={n.id} className={`ea-notice ea-notice-${n.kind}`}>
-              <span>{n.text}</span>
-              <button type="button" className="link-button" onClick={() => dismiss(n.id)} aria-label="Cerrar mensaje">
-                Cerrar
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <NoticeList notices={notices} onDismiss={dismiss} onDismissAll={() => setNotices([])} onPausedChange={setNoticesPaused} />
 
       <div className="ea-layout">
         <div className="ea-main">

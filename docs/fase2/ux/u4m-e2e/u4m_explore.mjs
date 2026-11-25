@@ -11,7 +11,8 @@ await page.getByLabel('Nombre', { exact: true }).fill('Arcilla');
 await page.getByLabel(/Peso unitario γ/).first().fill('18');
 await page.getByLabel(/Cohesión c/).first().fill('25');
 await page.getByLabel(/Ángulo de fricción φ/).first().fill('20');
-await page.getByLabel('Línea piezométrica').selectOption('toe');
+// Integración U4: el selector «Caso» de Casos (oculto) también contiene «piezométrica» en sus títulos; se acota al diálogo.
+  await page.locator('dialog[open]').getByLabel('Línea piezométrica').selectOption('toe');
 await page.getByLabel('Agregar un estrato inferior (material 2)').check();
 await page.getByLabel('Estrato inferior: nombre').fill('Roca');
 await page.getByLabel(/Estrato inferior: peso unitario/).fill('24');
