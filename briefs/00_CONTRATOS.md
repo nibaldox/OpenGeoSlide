@@ -258,7 +258,13 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
    arco-terreno, para que cada dovela quede entera bajo el terreno o entera sobre él.
 9. **Bloque principal (enmienda E10a; reemplaza a E8a).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
    lados) divide la masa en bloques: secuencias maximales de dovelas de suelo contiguas.
-   - **Se analiza solo el bloque principal**, el de mayor peso; en caso de empate gana el más cercano a la entrada.
+   - **Se analiza solo el bloque principal.** **(E10a″, reemplaza al criterio de mayor peso.)** El bloque principal
+     es el que contiene el **punto de entrada**, en el lado del coronamiento. La masa que se moviliza desde el
+     escarpe no puede empujar a través del aire a los bloques que quedan aguas abajo, y esos bloques son otros
+     mecanismos que la búsqueda evalúa por separado. **Motivo:** en el círculo crítico de Spencer de cSlope en D09, el
+     lente del pie pesa más (W = 475,8) que la cara (388,9), y el criterio de mayor peso elegía el lente, que además
+     sale por el muro. Con el bloque de entrada, ogs da 0,3878 frente a 0,3876 del oráculo. La regla tampoco necesita
+     umbrales ni desempates.
    - Los demás bloques y **todas** las dovelas aéreas interiores se **eliminan** de la lista de dovelas.
    - La salida y la entrada efectivas son los extremos del bloque principal.
    - Si se eliminó algo, se agrega el aviso informativo `"truncated_mass"`, con la nota "se analizó solo el bloque
