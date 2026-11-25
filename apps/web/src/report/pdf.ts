@@ -35,20 +35,111 @@ const PAGE_H = 297;
 const CONTENT_W = PAGE_W - 2 * MARGIN;
 const BOTTOM = PAGE_H - 18;
 
-/** Descarga la fuente desde `public/fonts/` respetando la base de Vite. */
-export const fetchFont: FontLoader = async (file) => {
+// Caché de módulo (R7-25): las dos fuentes (~1,4 MB) se piden una sola vez por sesión y su conversión a cadena binaria
+// (la que pide jsPDF) también. Se guarda la promesa, así que dos exportaciones simultáneas comparten la misma petición; un
+// fallo NO se guarda (la siguiente exportación reintenta). Con un `loadFont` inyectado no hay caché (lo controla quien lo da).
+const fontBytesCache = new Map<FontFile, Promise<Uint8Array>>();
+const binaryStringCache = new WeakMap<Uint8Array, string>();
+
+/** Vacía las cachés (solo para las pruebas). */
+export function clearFontCache(): void {
+  fontBytesCache.clear();
+}
+
+async function downloadFont(file: FontFile): Promise<Uint8Array> {
   const res = await fetch(`${import.meta.env.BASE_URL}fonts/${file}`);
   if (!res.ok) throw new Error(`No se pudo cargar la fuente ${file} (HTTP ${res.status}).`);
   return new Uint8Array(await res.arrayBuffer());
+}
+
+/** Descarga la fuente desde `public/fonts/` respetando la base de Vite; la segunda llamada no vuelve a pedirla. */
+export const fetchFont: FontLoader = (file) => {
+  const cached = fontBytesCache.get(file);
+  if (cached) return cached;
+  const pending = downloadFont(file).catch((error: unknown) => {
+    fontBytesCache.delete(file);
+    throw error;
+  });
+  fontBytesCache.set(file, pending);
+  return pending;
 };
 
-function toBinaryString(bytes: Uint8Array): string {
+function convertToBinaryString(bytes: Uint8Array): string {
   let out = '';
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     out += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return out;
+}
+
+/** Cadena binaria de los bytes de una fuente, convertida una sola vez por objeto (caché débil). */
+export function toBinaryString(bytes: Uint8Array): string {
+  const cached = binaryStringCache.get(bytes);
+  if (cached !== undefined) return cached;
+  const out = convertToBinaryString(bytes);
+  binaryStringCache.set(bytes, out);
+  return out;
+}
+
+/** Registra DejaVu Sans (normal y negrita, Identity-H) en el documento. */
+export function registerFonts(doc: jsPDF, regular: Uint8Array, bold: Uint8Array): void {
+  doc.addFileToVFS('DejaVuSans.ttf', toBinaryString(regular));
+  doc.addFont('DejaVuSans.ttf', FONT, 'normal', undefined, 'Identity-H');
+  doc.addFileToVFS('DejaVuSans-Bold.ttf', toBinaryString(bold));
+  doc.addFont('DejaVuSans-Bold.ttf', FONT, 'bold', undefined, 'Identity-H');
+}
+
+// ───────── Anchos de columna (B-07) ─────────
+
+/** Relleno horizontal de una celda (mm): 1 a cada lado más un margen para que la palabra no toque el borde. */
+export const CELL_PAD = 2.6;
+/** Un fragmento de una celda de datos de hasta esta longitud (un número, un id) tampoco debe partirse. */
+const KEEP_WHOLE_MAX_CHARS = 14;
+
+/**
+ * Reparte `total` mm entre las columnas: proporcional a `weights`, pero ninguna menor que su mínimo (la palabra más larga
+ * que no debe partirse). Si los mínimos no caben, se reducen todos en la misma proporción. La suma es siempre `total`.
+ */
+export function allocateColumnWidths(weights: number[], mins: number[], total: number): number[] {
+  const n = weights.length;
+  const minSum = mins.reduce((a, b) => a + b, 0);
+  if (minSum >= total) return mins.map((m) => (m / minSum) * total);
+  const widths = new Array<number>(n).fill(0);
+  const fixed = new Array<boolean>(n).fill(false);
+  for (let pass = 0; pass <= n; pass += 1) {
+    const freeWeight = weights.reduce((a, w, i) => a + (fixed[i] ? 0 : w), 0);
+    const freeTotal = total - widths.reduce((a, w, i) => a + (fixed[i] ? w : 0), 0);
+    let changed = false;
+    for (let i = 0; i < n; i += 1) {
+      if (fixed[i]) continue;
+      const w = freeWeight > 0 ? ((weights[i] as number) / freeWeight) * freeTotal : freeTotal / n;
+      if (w < (mins[i] as number)) {
+        widths[i] = mins[i] as number;
+        fixed[i] = true;
+        changed = true;
+      } else widths[i] = w;
+    }
+    if (!changed) break;
+  }
+  return widths;
+}
+
+/**
+ * Anchos de las columnas de una tabla, medidos con la fuente activa (DejaVu Sans). Cada columna es al menos tan ancha como
+ * la palabra más larga de su cabecera (en negrita) y de los textos cortos de sus celdas, para no partir palabras.
+ */
+export function tableColumnWidths(doc: jsPDF, header: string[], rows: string[][], size: number, total: number = CONTENT_W): number[] {
+  const weights = header.map((h, c) => Math.max(h.length * 0.9, ...rows.map((r) => (r[c] ?? '').length), 4));
+  doc.setFontSize(size);
+  const widest = (texts: string[], style: 'normal' | 'bold', onlyShort: boolean): number => {
+    doc.setFont(FONT, style);
+    let w = 0;
+    for (const t of texts) for (const word of String(t).split(/\s+/)) if (word !== '' && (!onlyShort || word.length <= KEEP_WHOLE_MAX_CHARS)) w = Math.max(w, doc.getTextWidth(word));
+    return w;
+  };
+  const mins = header.map((h, c) => Math.max(widest([h], 'bold', false), widest(rows.map((r) => r[c] ?? ''), 'normal', true)) + CELL_PAD);
+  return allocateColumnWidths(weights, mins, total);
 }
 
 class Writer {
@@ -149,10 +240,8 @@ class Writer {
     const size = 8.5;
     const lh = this.lineHeight(size);
     if (title) this.paragraph(title, 10, 'bold');
-    // Ancho de columna proporcional al contenido (con un mínimo).
-    const weights = header.map((h, c) => Math.max(h.length * 0.9, ...rows.map((r) => (r[c] ?? '').length), 4));
-    const total = weights.reduce((a, b) => a + b, 0);
-    const widths = weights.map((w) => (w / total) * CONTENT_W);
+    // Ancho de columna proporcional al contenido, pero nunca menor que la palabra más larga de la cabecera (B-07).
+    const widths = tableColumnWidths(this.doc, header, rows, size);
 
     const drawRow = (cells: string[], bold: boolean, fill: boolean): void => {
       this.font(bold ? 'bold' : 'normal', size);
@@ -352,10 +441,7 @@ export async function buildReportPdfWith(input: ReportInput, options: BuildPdfOp
 
   const content = buildReportContent(input);
   const doc = new JsPdf({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: options.compress ?? true });
-  doc.addFileToVFS('DejaVuSans.ttf', toBinaryString(regular));
-  doc.addFont('DejaVuSans.ttf', FONT, 'normal', undefined, 'Identity-H');
-  doc.addFileToVFS('DejaVuSans-Bold.ttf', toBinaryString(bold));
-  doc.addFont('DejaVuSans-Bold.ttf', FONT, 'bold', undefined, 'Identity-H');
+  registerFonts(doc, regular, bold);
   doc.setProperties({ title: content.title, subject: 'Informe de estabilidad de taludes', creator: 'OpenGeoSlide' });
 
   draw(doc, content);

@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { sampleInput } from './fixtures';
-import { buildReportPdf, buildReportPdfWith, type FontLoader } from './pdf';
+import { buildReportContent, type ReportBlock } from './content';
+import { allocateColumnWidths, buildReportPdf, buildReportPdfWith, CELL_PAD, clearFontCache, fetchFont, registerFonts, tableColumnWidths, toBinaryString, type FontLoader } from './pdf';
 
 const loadFont: FontLoader = async (file) => new Uint8Array(readFileSync(new URL(`../../public/fonts/${file}`, import.meta.url)));
 
@@ -167,5 +168,107 @@ describe('buildReportPdf', () => {
     const imports = [...src.matchAll(/^import .*$/gm)].map((m) => m[0]);
     expect(imports.filter((l) => l.includes("'jspdf'"))).toEqual(["import type { jsPDF } from 'jspdf';"]);
     expect(src).toContain("import('jspdf')");
+  });
+});
+
+describe('anchos de columna (B-07)', () => {
+  it('allocateColumnWidths respeta los mínimos y suma el total', () => {
+    const w = allocateColumnWidths([10, 10, 10, 10], [5, 5, 30, 5], 100);
+    expect(w[2]).toBe(30);
+    expect(w.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 9);
+    expect(w.every((x, i) => x >= [5, 5, 30, 5][i]!)).toBe(true);
+  });
+  it('si los mínimos no caben, se reducen en proporción y la suma sigue siendo el total', () => {
+    const w = allocateColumnWidths([1, 1], [80, 40], 60);
+    expect(w).toEqual([40, 20]);
+  });
+
+  it('ninguna palabra de ninguna cabecera de tabla del informe queda más ancha que su columna (medido con DejaVu Sans)', async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    registerFonts(doc, await loadFont('DejaVuSans.ttf'), await loadFont('DejaVuSans-Bold.ttf'));
+    const content = buildReportContent(sampleInput());
+    const tables = content.sections.flatMap((s) => s.blocks).filter((b): b is Extract<ReportBlock, { kind: 'table' }> => b.kind === 'table');
+    expect(tables.length).toBeGreaterThanOrEqual(3);
+    for (const t of tables) {
+      const widths = tableColumnWidths(doc, t.header, t.rows, 8.5);
+      expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(180, 6);
+      doc.setFont('DejaVuSans', 'bold');
+      doc.setFontSize(8.5);
+      t.header.forEach((h, c) => {
+        for (const word of h.split(/\s+/)) expect(doc.getTextWidth(word) + CELL_PAD, `${h} → ${word}`).toBeLessThanOrEqual((widths[c] as number) + 1e-6);
+      });
+    }
+  });
+
+  it('el PDF escribe «Evaluadas» y «Válidas» enteras en la cabecera de resultados (no «Evaluada / s»)', async () => {
+    const lines = decodeText(await pdfText());
+    for (const word of ['Evaluadas', 'Válidas', 'Método', 'Estado']) expect(lines, word).toContain(word);
+    expect(lines).not.toContain('s');
+  });
+});
+
+describe('caché de las fuentes (R7-25)', () => {
+  function fakeFetch(): { calls: string[]; restore: () => void } {
+    const real = globalThis.fetch;
+    const calls: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      calls.push(String(url));
+      return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array([1, 2, 3, 4]).buffer } as Response;
+    }) as typeof fetch;
+    return { calls, restore: () => void (globalThis.fetch = real) };
+  }
+
+  it('la segunda exportación no vuelve a pedir las fuentes y recibe los mismos bytes', async () => {
+    clearFontCache();
+    const f = fakeFetch();
+    try {
+      const a = await fetchFont('DejaVuSans.ttf');
+      const b = await fetchFont('DejaVuSans.ttf');
+      await fetchFont('DejaVuSans-Bold.ttf');
+      expect(f.calls).toHaveLength(2); // una por archivo
+      expect(b).toBe(a);
+    } finally {
+      f.restore();
+      clearFontCache();
+    }
+  });
+
+  it('dos exportaciones simultáneas comparten la petición', async () => {
+    clearFontCache();
+    const f = fakeFetch();
+    try {
+      await Promise.all([fetchFont('DejaVuSans.ttf'), fetchFont('DejaVuSans.ttf')]);
+      expect(f.calls).toHaveLength(1);
+    } finally {
+      f.restore();
+      clearFontCache();
+    }
+  });
+
+  it('un fallo no se guarda: la siguiente exportación reintenta', async () => {
+    clearFontCache();
+    const real = globalThis.fetch;
+    let n = 0;
+    globalThis.fetch = (async () => {
+      n += 1;
+      return n === 1 ? ({ ok: false, status: 503 } as Response) : ({ ok: true, status: 200, arrayBuffer: async () => new Uint8Array([9]).buffer } as Response);
+    }) as typeof fetch;
+    try {
+      await expect(fetchFont('DejaVuSans.ttf')).rejects.toThrow('HTTP 503');
+      await expect(fetchFont('DejaVuSans.ttf')).resolves.toEqual(new Uint8Array([9]));
+      expect(n).toBe(2);
+    } finally {
+      globalThis.fetch = real;
+      clearFontCache();
+    }
+  });
+
+  it('la conversión a cadena binaria se hace una sola vez por objeto de bytes', () => {
+    const bytes = new Uint8Array(70000).map((_, i) => i % 251);
+    const s1 = toBinaryString(bytes);
+    expect(s1).toHaveLength(70000);
+    expect(toBinaryString(bytes)).toBe(s1);
+    expect(s1.charCodeAt(250)).toBe(250);
   });
 });
