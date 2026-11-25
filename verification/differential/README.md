@@ -47,7 +47,7 @@ sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0
 Desde la raíz del worktree, tras `cargo build --release -p ogs-cli`:
 
 ```
-export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch
+export TMPDIR="$(mktemp -d)"
 uv run --python 3.13 --no-project --with shapely python verification/differential/build_cases.py
 uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \
   python verification/differential/run.py [--ogs PATH] [--cases DIR] [--out DIR]

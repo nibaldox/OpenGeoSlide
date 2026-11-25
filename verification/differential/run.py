@@ -14,7 +14,7 @@ even if checks fail; only execution errors (no cases, no ogs binary, no cslope) 
 
 Usage (from the worktree root):
 
-  export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch
+  export TMPDIR="$(mktemp -d)"
   uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \\
     python verification/differential/run.py [--ogs PATH] [--cases DIR] [--out DIR]
 """
@@ -359,7 +359,7 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
     L.append("## Reproducir")
     L.append("")
     L.append("```")
-    L.append("export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch")
+    L.append('export TMPDIR="$(mktemp -d)"')
     L.append("uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \\")
     L.append("  python verification/differential/run.py --ogs PATH_BINARIO_OGS")
     L.append("```")
