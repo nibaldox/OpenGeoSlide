@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { pwaPrecache } from '../../build/pwa-plugin';
 import { registerOptions } from './register';
+import { showUpdatePrompt, UPDATE_PROMPT_ID } from './updatePrompt';
 import { SKIP_WAITING_MESSAGE, watchForUpdates, type ContainerLike, type RegistrationLike, type WorkerLike } from './updateFlow';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -102,10 +103,88 @@ describe('flujo de actualización (R5-08)', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
+  // R6-01: pestaña abierta en la primera visita; `clients.claim()` le da controlador y luego llega una versión nueva.
+  it('R6-01: primera visita → claim v1 → llega v2 → «Actualizar» → controllerchange recarga una sola vez', () => {
+    const { reg, container, offers, reload } = setup({ controller: false });
+    const v1 = new FakeWorker();
+    reg.found(v1);
+    v1.setState('installed');
+    container.controller = {}; // clients.claim() de v1
+    container.change();
+    expect(offers).toHaveLength(0);
+    expect(reload).not.toHaveBeenCalled();
+
+    const v2 = new FakeWorker();
+    reg.found(v2);
+    v2.setState('installed');
+    expect(offers).toHaveLength(1);
+    offers[0]?.();
+    expect(v2.sent).toEqual([SKIP_WAITING_MESSAGE]);
+    container.change(); // v2 toma el control tras SKIP_WAITING
+    expect(reload).toHaveBeenCalledTimes(1);
+    container.change();
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('R6-01: tras la primera instalación, un controllerchange sin controlador nuevo no recarga más de una vez', () => {
+    const { container, reload } = setup({ controller: false });
+    container.controller = {};
+    container.change(); // claim de la primera instalación
+    container.change();
+    container.change();
+    expect(reload.mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
   it('sin cambios de versión no se ofrece nada', () => {
     const { offers, reload } = setup();
     expect(offers).toEqual([]);
     expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+describe('aviso de actualización (R6-01)', () => {
+  // DOM mínimo para el entorno `node`.
+  class FakeEl {
+    id = '';
+    style: Record<string, string> = {};
+    disabled = false;
+    children: FakeEl[] = [];
+    private click: (() => void)[] = [];
+    setAttribute(): void {}
+    append(...c: FakeEl[]): void {
+      this.children.push(...c);
+    }
+    addEventListener(_t: string, l: () => void): void {
+      this.click.push(l);
+    }
+    fire(): void {
+      this.click.forEach((l) => l());
+    }
+  }
+  function fakeDoc() {
+    const body = new FakeEl();
+    return {
+      body,
+      getElementById: (id: string) => body.children.find((c) => c.id === id) ?? null,
+      createElement: () => new FakeEl(),
+    } as unknown as Document & { body: FakeEl };
+  }
+
+  it('si llega otra versión con el aviso abierto y el botón ya pulsado, el botón se reactiva y aplica la nueva', () => {
+    const doc = fakeDoc();
+    const first = vi.fn();
+    const second = vi.fn();
+    const box = showUpdatePrompt(first, doc) as unknown as FakeEl;
+    expect(box.id).toBe(UPDATE_PROMPT_ID);
+    const button = box.children[1] as FakeEl;
+    button.fire();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(button.disabled).toBe(true);
+    showUpdatePrompt(second, doc);
+    expect(button.disabled).toBe(false);
+    button.fire();
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).toHaveBeenCalledTimes(1);
   });
 });
 

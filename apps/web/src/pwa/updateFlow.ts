@@ -40,14 +40,16 @@ export const SKIP_WAITING_MESSAGE = { type: 'SKIP_WAITING' } as const;
  * Solo avisa cuando la página ya tenía controlador: en la primera instalación no hay nada que actualizar.
  */
 export function watchForUpdates(reg: RegistrationLike, container: ContainerLike, options: UpdateFlowOptions): void {
-  const hadController = container.controller != null;
+  // Mutable (R6-01): en la primera visita no hay controlador, pero `clients.claim()` de la primera instalación lo crea.
+  // A partir de ese momento la página ya está controlada y una versión nueva sí debe recargarla.
+  let hasController = container.controller != null;
   let reloading = false;
 
   const offer = (worker: WorkerLike): void => {
     options.onUpdateReady(() => worker.postMessage(SKIP_WAITING_MESSAGE));
   };
 
-  if (reg.waiting && hadController) offer(reg.waiting);
+  if (reg.waiting && hasController) offer(reg.waiting);
 
   reg.addEventListener('updatefound', () => {
     const installing = reg.installing;
@@ -58,9 +60,14 @@ export function watchForUpdates(reg: RegistrationLike, container: ContainerLike,
   });
 
   // Con controlador previo, un cambio de controlador es una versión nueva (de esta u otra pestaña): se recarga para no
-  // dejar una página vieja bajo un service worker nuevo. En la primera instalación (`clients.claim`) no se recarga.
+  // dejar una página vieja bajo un service worker nuevo. El primer `controllerchange` de una página sin controlador es
+  // el `clients.claim()` de la primera instalación: no se recarga, pero desde entonces la página ya tiene controlador.
   container.addEventListener('controllerchange', () => {
-    if (!hadController || reloading) return;
+    if (!hasController) {
+      hasController = true;
+      return;
+    }
+    if (reloading) return;
     reloading = true;
     options.reload();
   });

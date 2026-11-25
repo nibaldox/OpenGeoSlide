@@ -61,32 +61,39 @@ function isRecord(v: unknown): v is Rec {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Un número se guarda tal cual; solo se exige que sea finito (JSON no admite NaN ni Infinity). */
-function checkedNumber(v: number, key: string): number {
-  if (!Number.isFinite(v)) {
-    throw new Error(`No se puede guardar un valor no finito en '${key}'.`);
-  }
-  return v;
-}
-
 interface Ctx {
   onUnknown(path: string, key: string): void;
+  /**
+   * Un número no finito en `path` (JSON no admite NaN ni Infinity; `JSON.parse` convierte `1e400` en `Infinity`).
+   * Al abrir se registra como incidencia (R6-02); al guardar lanza.
+   */
+  onNonFinite(path: string, key: string): void;
 }
 
 type Sub = (v: unknown, path: string, ctx: Ctx) => unknown;
 
-function plain(v: unknown, key: string): unknown {
-  if (typeof v === 'number') return checkedNumber(v, key);
-  if (Array.isArray(v)) return v.map((x) => plain(x, key));
+/** Un número se guarda tal cual; solo se exige que sea finito. */
+function checkedNumber(v: number, path: string, key: string, ctx: Ctx): number {
+  if (!Number.isFinite(v)) ctx.onNonFinite(path, key);
+  return v;
+}
+
+function plain(v: unknown, path: string, key: string, ctx: Ctx): unknown {
+  if (typeof v === 'number') return checkedNumber(v, path, key, ctx);
+  if (Array.isArray(v)) return v.map((x, i) => plain(x, `${path}/${i}`, key, ctx));
   if (isRecord(v)) {
     const out: Rec = {};
     for (const k of Object.keys(v)) {
-      if (v[k] !== undefined) out[k] = plain(v[k], k);
+      if (v[k] !== undefined) out[k] = plain(v[k], `${path}/${k}`, k, ctx);
     }
     return out;
   }
   return v;
 }
+
+const throwNonFinite = (_path: string, key: string): never => {
+  throw new Error(`No se puede guardar un valor no finito en '${key}'.`);
+};
 
 function ordered(v: unknown, order: readonly string[], path: string, ctx: Ctx, sub: Record<string, Sub> = {}): unknown {
   if (!isRecord(v)) return v;
@@ -95,7 +102,7 @@ function ordered(v: unknown, order: readonly string[], path: string, ctx: Ctx, s
     const value = v[key];
     if (value === undefined) continue;
     const f = sub[key];
-    out[key] = f ? f(value, `${path}/${key}`, ctx) : plain(value, key);
+    out[key] = f ? f(value, `${path}/${key}`, ctx) : plain(value, `${path}/${key}`, key, ctx);
   }
   for (const key of Object.keys(v)) {
     if (!order.includes(key) && v[key] !== undefined) ctx.onUnknown(path, key);
@@ -147,7 +154,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx): Rec {
 /** Documento en orden canónico y con `version: "0.2"`, sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const withVersion = { ...doc, format: OGS_FORMAT, version: OGS_SAVE_VERSION } as ModelDoc;
-  return canonicalObject(withVersion, { onUnknown: () => undefined }) as unknown as ModelDoc;
+  return canonicalObject(withVersion, { onUnknown: () => undefined, onNonFinite: throwNonFinite }) as unknown as ModelDoc;
 }
 
 /** Texto `.ogs.json` canónico: orden de claves de §1, 2 espacios, números sin redondear, `version: "0.2"`, salto de línea final. */
@@ -192,11 +199,10 @@ function checkShape(model: Rec, issues: Issue[]): void {
     });
   }
 
-  if (model.meta !== undefined && model.meta !== null && !isRecord(model.meta)) err('io.shape', "'meta' debe ser un objeto.", '/meta');
-  if (model.analysis !== undefined && model.analysis !== null && !isRecord(model.analysis)) {
-    err('io.shape', "'analysis' debe ser un objeto.", '/analysis');
+  // Como el motor y el esquema (R6-03): si están presentes deben ser objetos; `null` no vale.
+  for (const key of ['meta', 'analysis', 'slope'] as const) {
+    if (model[key] !== undefined && !isRecord(model[key])) err('io.shape', `'${key}' debe ser un objeto.`, `/${key}`);
   }
-  if (model.slope !== undefined && model.slope !== null && !isRecord(model.slope)) err('io.shape', "'slope' debe ser un objeto.", '/slope');
   if (isRecord(model.analysis)) {
     for (const key of ['surface', 'search', 'seismic'] as const) {
       const v = model.analysis[key];
@@ -282,15 +288,20 @@ export function openOgsJson(text: string): OpenOgsResult {
   }
 
   const input: Rec = { ...model, version: OGS_SAVE_VERSION };
-  if (input.meta === undefined || input.meta === null) input.meta = {};
-  if (input.analysis === undefined || input.analysis === null) input.analysis = {};
+  if (input.meta === undefined) input.meta = {};
+  if (input.analysis === undefined) input.analysis = {};
 
   const unknown: string[] = [];
+  const nonFinite: string[] = [];
   const canonical = canonicalObject(input as unknown as ModelDoc, {
     onUnknown: (path, key) => unknown.push(`${path}/${key}`),
+    onNonFinite: (path) => nonFinite.push(path),
   });
   for (const path of unknown) {
     issues.push(issue('error', 'io.unknown_field', `Campo desconocido '${path}': el motor no lo admite (deny_unknown_fields).`, path));
+  }
+  for (const path of nonFinite) {
+    issues.push(issue('error', 'io.non_finite', `El valor en '${path}' no es un número finito (por ejemplo, un literal fuera de rango como 1e400).`, path));
   }
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 

@@ -142,24 +142,32 @@ export function EditorApp({ client }: { client: EngineClient }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    const opened = openOgsJson(await file.text());
-    for (const i of opened.issues) notify(i.severity === 'error' ? 'error' : 'aviso', `${file.name}: ${i.text}`);
-    if (!opened.doc) return;
-    if (!confirmDiscard()) return;
-    replaceDoc(opened.doc, file.name);
-    notify('info', `Abierto «${file.name}».`);
+    try {
+      const opened = openOgsJson(await file.text());
+      for (const i of opened.issues) notify(i.severity === 'error' ? 'error' : 'aviso', `${file.name}: ${i.text}`);
+      if (!opened.doc) return;
+      if (!confirmDiscard()) return;
+      replaceDoc(opened.doc, file.name);
+      notify('info', `Abierto «${file.name}».`);
+    } catch (err) {
+      notify('error', `No se pudo abrir «${file.name}»: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
   const onSave = useCallback(async () => {
-    const s = store.getState();
-    const text = saveOgsJson(s.doc);
-    const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
-    const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
-    downloadText(text, finalName, 'application/json');
-    store.markSaved(finalName);
-    clearDraft(draftStorage.storage);
-    const sha = await sha256Hex(text);
-    notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
+    try {
+      const s = store.getState();
+      const text = saveOgsJson(s.doc);
+      const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
+      const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
+      downloadText(text, finalName, 'application/json');
+      store.markSaved(finalName);
+      clearDraft(draftStorage.storage);
+      const sha = await sha256Hex(text);
+      notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
+    } catch (err) {
+      notify('error', `No se pudo guardar: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }, [store, draftStorage, notify]);
 
   const onCase = (key: string): void => {
