@@ -1,7 +1,8 @@
 // Lista de avisos del editor (UX9-06): sin repetidos (con contador), máximo visible con «ver más» y «Cerrar todos».
-// Los errores no se cierran solos. La lógica (deduplicar, elegir los visibles) está en `notices.ts`.
+// El nombre del botón sigue siendo «Cerrar mensaje» (estable, lo usan los recorridos); el aviso al que pertenece lo da
+// `aria-describedby`. Los errores no se cierran solos. La lógica (deduplicar, elegir los visibles) está en `notices.ts`.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { visibleNotices, type Notice } from './notices';
 import './notices.css';
 
@@ -13,6 +14,7 @@ export function NoticeList({ notices, onDismiss, onDismissAll, onPausedChange }:
   onPausedChange?: (paused: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const baseId = useId();
   // Si la lista se desmonta con el foco dentro, `blur` no llega: se libera la pausa aquí.
   useEffect(() => () => onPausedChange?.(false), [onPausedChange]);
   if (notices.length === 0) return null;
@@ -30,7 +32,7 @@ export function NoticeList({ notices, onDismiss, onDismissAll, onPausedChange }:
       <ul className="ea-notices" aria-label="Mensajes" data-testid="notices">
         {shown.map((n) => (
           <li key={n.id} className={`ea-notice ea-notice-${n.kind}`}>
-            <span>
+            <span id={`${baseId}-${n.id}`}>
               {n.text}
               {(n.count ?? 1) > 1 ? (
                 <span className="ea-notice-count" data-testid="notice-count">
@@ -38,7 +40,7 @@ export function NoticeList({ notices, onDismiss, onDismissAll, onPausedChange }:
                 </span>
               ) : null}
             </span>
-            <button type="button" className="link-button" onClick={() => onDismiss(n.id)} aria-label={`Cerrar mensaje: ${n.text}`}>
+            <button type="button" className="link-button" onClick={() => onDismiss(n.id)} aria-label="Cerrar mensaje" aria-describedby={`${baseId}-${n.id}`}>
               Cerrar
             </button>
           </li>

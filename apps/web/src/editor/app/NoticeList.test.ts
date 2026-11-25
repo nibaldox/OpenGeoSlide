@@ -16,7 +16,7 @@ describe('NoticeList (UX9-06)', () => {
     const out = render([n(1, 'error')]);
     expect(out).not.toContain('Cerrar todos');
     expect(out).not.toContain('más');
-    expect(out).toContain('aria-label="Cerrar mensaje: Mensaje 1"');
+    expect(out).toContain('aria-label="Cerrar mensaje"');
   });
 
   it('el mismo error repetido sale una vez con su contador', () => {
@@ -36,8 +36,12 @@ describe('NoticeList (UX9-06)', () => {
     expect(ul.replace(/<li[\s\S]*?<\/li>/g, '')).toBe('');
   });
 
-  it('los nombres «Cerrar mensaje: …» son únicos', () => {
-    const names = Array.from(render([1, 2, 3].map((i) => n(i, 'aviso'))).matchAll(/aria-label="(Cerrar mensaje[^"]*)"/g), (m) => m[1]);
-    expect(new Set(names).size).toBe(3);
+  it('el botón se llama «Cerrar mensaje» (nombre estable) y cada uno apunta a su aviso con aria-describedby', () => {
+    const out = render([1, 2, 3].map((i) => n(i, 'aviso')));
+    const buttons = Array.from(out.matchAll(/<button[^>]*aria-label="Cerrar mensaje"[^>]*>/g), (m) => m[0]);
+    expect(buttons).toHaveLength(3);
+    const ids = buttons.map((b) => /aria-describedby="([^"]+)"/.exec(b)?.[1]);
+    expect(new Set(ids).size).toBe(3);
+    for (const id of ids) expect(out).toContain(`id="${id}"`);
   });
 });
