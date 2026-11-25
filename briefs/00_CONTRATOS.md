@@ -202,7 +202,8 @@ pub fn slice_circle(pm: &PreparedModel, circle: &Circle, n: usize) -> Result<Vec
 pub struct SolveOptions { pub tolerance: f64, pub max_iterations: usize, pub min_m_alpha: f64 }
 pub enum SolveStatus { Converged, NotConverged, Invalid }   // serde snake_case
 pub struct MethodResult { pub method: MethodKind, pub fos: f64, pub status: SolveStatus,
-                          pub iterations: usize, pub lambda: Option<f64>, pub message: Option<String> }
+                          pub iterations: usize, pub lambda: Option<f64>, pub message: Option<String>,
+                          pub warnings: Vec<String> /* E8d: avisos y notas, incluso con Converged */ }
 pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> MethodResult;
 
 // search.rs
@@ -255,6 +256,15 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
    `tan_phi = 0` y `pore_pressure = 0`, y `material` es el de la región más cercana bajo la base o, si no hay
    ninguna, el índice 0. No aporta fuerza motriz ni resistente. Los bordes de dovela incluyen los cruces intermedios
    arco-terreno, para que cada dovela quede entera bajo el terreno o entera sobre él.
+9. **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
+   lados) divide la masa deslizante en bloques. Cada bloque es una secuencia maximal de dovelas de suelo contiguas;
+   el bloque principal es el de mayor peso. Si **cualquier** bloque distinto del principal pesa `> 1e-3 · ΣW`, el
+   slicer devuelve `SurfaceError::DisconnectedMass`. La superficie define más de una masa deslizante y el equilibrio
+   límite de un solo cuerpo no es aplicable. La regla vale para ambos métodos.
+   - Los lentes despreciables (≤ 1e-3·ΣW, como la franja del pie de V019) se aceptan, y sus dovelas aéreas siguen E7a.
+   - **Motivo:** con E7a, la búsqueda de Spencer encontraba círculos que salían y reentraban, con FS absurdos (V003:
+     0,11 en lugar de 1,11), porque el aire transmitía empuje como un puntal. El aviso `air_gap_thrust` queda como
+     defensa en profundidad.
 
 ### 4.2 Bishop simplificado
 `F = Σ [ (c·b + (W − u·b)·tanφ) / m_α ] / Σ W·sin α`, con `m_α = cos α + sin α · tanφ / F`.
@@ -298,9 +308,15 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   Repetir hasta que F y λ converjan.
 - **Fallas**: si no converge en `max_iterations` → `NotConverged`; si Φ ≈ 0 o aparece un NaN → `Invalid`.
   Se aplica la misma regla E3 (`Σ T ≤ 1e-6 · Σ W` → `Invalid`, `"no_driving"`).
-- **(Enmienda E4b, revisión R1-01.)** Admisibilidad: con el (F, λ) convergido, toda dovela de suelo debe cumplir
-  `Φᵢ / F ≥ min_m_alpha` (con λ = 0 coincide con el `m_α` de Bishop). Si alguna no lo cumple → `Invalid`
-  (`"m_alpha"`). En iteraciones intermedias, `Φᵢ ≤ 1e-9·F` o un iterado `F ≤ 0` → `Invalid` (`"pole"`).
+- **(Enmienda E4b, revisión R1-01; reformulada por E8b.)** Admisibilidad: con el (F, λ) convergido, toda dovela de
+  suelo debe cumplir:
+  - (i) `Φᵢ > 1e-9·F`, sin polo ni divisor negativo; esto descarta el contraejemplo R1-01;
+  - (ii) `m_α(F) = cos α + sin α·tanφ/F ≥ min_m_alpha`, el **mismo** criterio de Bishop evaluado en el F de Spencer.
+
+  Si alguna no lo cumple → `Invalid` (`"pole"` o `"m_alpha"`). Durante las iteraciones aplica E7c.
+  - **Motivo de E8b:** exigir `Φᵢ/F ≥ min_m_alpha` (con λ ≠ 0) era más estricto que Bishop sin respaldo en la
+    práctica. En la búsqueda de R2-03 descartaba la superficie crítica y dejaba a Spencer 21 % sobre Bishop, lo que es
+    no conservador.
 - **(E4c, revisión R1-02.)** Las dovelas aéreas transmiten E sin cambio (`Eᵢ = Eᵢ₋₁`), **no** aportan a F y se
   **excluyen** de los dos sumatorios de λ.
   - **E4c queda DEROGADA por E7a (revisión R2-01).** Excluirlas deja un residuo de momento global
@@ -333,8 +349,13 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
     tolera los códigos de la lista `INFORMATIVE_WARNINGS = ["negative_effective_normal"]` y falla ante cualquier otro.
     La web y el informe deben mostrarlo como nota, no como error.
   - **(Enmienda E7d, revisión R2-04.)** El aviso se clasifica por magnitud, con `f = Σ_{N'<0} |N'| / ΣW`:
-    - `f ≤ 0.02` → `"negative_effective_normal"` (nota);
-    - `f > 0.02` → `"negative_effective_normal_major"` (aviso: tracción o subpresión generalizada en la base).
+    - `f ≤ 0.05` → `"negative_effective_normal"` (nota);
+    - `f > 0.05` → `"negative_effective_normal_major"` (aviso: tracción o subpresión generalizada en la base).
+
+    **Calibración (E8c):** el umbral original de 0,02 marcaba como aviso los problemas publicados estándar V002
+    (f = 0,038), V003 (0,022) y V101 (0,027), que corresponden a zonas de tracción normales del coronamiento; la
+    subpresión generalizada de R2-04 tiene f = 0,105. Por eso se fija en 0,05. Es un umbral de clasificación de avisos,
+    no una tolerancia numérica.
 
     En Spencer, N' se calcula con la forma directa, sin el divisor `m_α`:
     `N' = W cos α − U + (sin α − λ cos α)·ΔE`, con el signo de ΔE de la convención documentada. Debe coincidir con la
