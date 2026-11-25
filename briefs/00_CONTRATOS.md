@@ -213,13 +213,13 @@ pub fn search_circular<G, E>(ground: &G, spec: &SearchSpec, eval: E) -> SearchRe
 // eval devuelve Some(FS) solo para superficies válidas y convergidas.
 
 // report.rs (Serialize, snake_case)
-pub struct MethodReport { pub method: MethodKind, pub fos: f64, pub status: SolveStatus, pub iterations: usize,
+pub struct MethodReport { pub method: MethodKind, pub fos: Option<f64> /* E4f */, pub status: SolveStatus, pub iterations: usize,
                           pub lambda: Option<f64>, pub surface: Circle, pub slices: Vec<Slice>,
                           pub search: Option<SearchStats>, pub warnings: Vec<String> }
 pub struct AnalysisReport { pub engine: String /* "ogs-core <version>" */, pub results: Vec<MethodReport> }
 
 // lib.rs
-pub enum OgsError { InvalidModel(String), NoSurface, NoValidSurface, Json(String) }  // thiserror
+pub enum OgsError { InvalidModel(String), NoSurface, NoValidSurface(String) /* E4f: motivo */, Json(String) }  // thiserror
 pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError>;
 pub fn analyze_json(input: &str) -> Result<String, String>;   // JSON in → JSON (AnalysisReport) out
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -302,6 +302,10 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
     de acuerdo con la convención de E, y prueba que con `ΔX = 0` reproduce exactamente la fórmula de Bishop.
   - Si algún `N' < −1e-6·ΣW`, el resultado conserva su estado y añade el aviso `"negative_effective_normal"` en
     `message`. En v0.1 no se trunca la resistencia.
+  - **(Enmienda E5.)** `negative_effective_normal` es un aviso **informativo**: es típico de las dovelas del
+    coronamiento con cohesión (zona de tracción) y sugiere considerar una grieta de tracción. El test de aceptación
+    tolera los códigos de la lista `INFORMATIVE_WARNINGS = ["negative_effective_normal"]` y falla ante cualquier otro.
+    La web y el informe deben mostrarlo como nota, no como error.
 - **Convención de signos**: el implementador debe **documentar** la que use. La **deciden las pruebas** de §5;
   si una de ellas falla, la convención está mal.
 
@@ -339,6 +343,13 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
 - **Aviso de agua sobre el terreno:** solo en dovelas de suelo, con tolerancia `1e-9 · escala del modelo`, evaluando
   los extremos y el punto medio de la dovela.
 - `PreparedModel::piezometric_y`: NaN → `None`; ±∞ → valor del extremo correspondiente.
+- **(Enmienda E6.)** El `Display` de `OgsError` tiene la forma `"<Código>: <mensaje en español>"`, con
+  `Código ∈ {InvalidModel, NoSurface, NoValidSurface, Json}`. Por ejemplo:
+  `NoSurface: no hay superficie definida; indique analysis.surface o analysis.search`.
+  El prefijo es estable y lo usan la web y Python para clasificar el error.
+  Los códigos de aviso (`m_alpha`, `m_alpha_pole`, `pole`, `no_driving`, `negative_effective_normal`,
+  `water_above_ground`, `max_iterations`) son identificadores estables en inglés. Los textos al usuario los traduce
+  cada interfaz.
 - `slice_circle` acepta círculos cuyo cruce externo coincide con `x_min` o `x_max` (|arco − terreno| ≤ tol en el borde).
   Solo es `OutsideModel` si el arco sale **bajo** el terreno por un borde lateral.
 
