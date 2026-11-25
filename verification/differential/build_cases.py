@@ -74,7 +74,8 @@ def _region(material: str, polygon: list[tuple[float, float]]) -> dict:
 
 
 def _search(entry: tuple[float, float] | None = None,
-            exit_: tuple[float, float] | None = None) -> dict:
+            exit_: tuple[float, float] | None = None,
+            min_width: float | None = None) -> dict:
     # Defaults of contract §1 (20 x 20 x 20 grid, refine on). Omitted ranges span the whole model.
     block: dict = {
         "type": "circular_entry_exit",
@@ -82,7 +83,7 @@ def _search(entry: tuple[float, float] | None = None,
         "n_exit": 20,
         "n_radius": 20,
         "max_radius_factor": 5.0,
-        "min_width": None,
+        "min_width": min_width,
         "refine": True,
     }
     if entry is not None:
@@ -298,13 +299,16 @@ def d13() -> dict:
     # Civil cut: 10 m, 1.5H:1V, on a 8 m foundation; a 100 kN/m line load (footing line) tilted 15 degrees
     # toward +x (the sliding direction) on the crest.
     intent = ("Talud civil de 10 m, 1,5H:1V, con una carga lineal de 100 kN/m en x = 6 m (corona) inclinada 15° "
-              "hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°.")
+              "hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°. "
+              "La búsqueda fija min_width = 5 m para excluir fallas locales bajo la carga.")
     profile = [(0.0, -8.0), (0.0, 10.0), (10.0, 10.0), (25.0, 0.0), (40.0, 0.0), (40.0, -8.0)]
     return _model(
         "D13", "Talud civil con carga lineal de 100 kN/m a 15°", intent, "left_to_right",
         [_material("soil", "Suelo cohesivo-friccional", 19.0, 15.0, 26.0)],
         [_region("soil", profile)],
-        _search(),
+        # min_width = 5: a line load makes tiny local circles under it degenerate (m_alpha < 0.2); see the
+        # D13 finding in README.md. Same convention in both engines: an excluded local failure, not a tolerance.
+        _search(min_width=5.0),
         loads=[{"type": "line", "id": "l1", "x": 6.0, "p": 100.0, "angle": 15.0}],
     )
 
