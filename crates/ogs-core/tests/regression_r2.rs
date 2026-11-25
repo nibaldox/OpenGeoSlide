@@ -144,107 +144,36 @@ fn min_phi_over_fos(slices: &[Slice], fos: f64, lambda: f64) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
-/// Distance from the circle centre to the base chord of a slice (the moment arm of the base force).
-fn chord_distance(s: &Slice, xc: f64, yc: f64) -> f64 {
-    let (x1, y1, x2, y2) = (s.x_left, s.y_base_left, s.x_right, s.y_base_right);
-    let len = (x2 - x1).hypot(y2 - y1);
-    ((x2 - x1) * (yc - y1) - (y2 - y1) * (xc - x1)).abs() / len
-}
-
-/// Global moment residual about the circle centre, computed independently of the solver (E7a).
-///
-/// The interslice forces follow the recurrence `E_{k+1} = E_k + (F·T_k − R_k)/D_k` written here (air slices
-/// pass `E` through). The normal force uses the direct form `N' = W cos α − U + (sin α − λ cos α)·ΔE`, and
-/// the mobilised base shear is `S = (c·l + N'·tan φ)/F`. Returns `(Σ d(S − T), Σ d·T)`: the residual and the
-/// driving moment. The internal interslice forces cancel in pairs, so at equilibrium the residual is zero.
-fn global_moment(slices: &[Slice], fos: f64, lambda: f64, xc: f64, yc: f64) -> (f64, f64) {
-    let mut e = vec![0.0_f64];
-    for s in slices {
-        let prev = *e.last().expect("E[0]");
-        if is_air(s) {
-            e.push(prev);
-            continue;
-        }
-        let (sin, cos) = s.alpha.sin_cos();
-        let r = (s.weight * cos - s.pore_pressure * s.base_length) * s.tan_phi
-            + s.cohesion * s.base_length;
-        let t = s.weight * sin;
-        let d = (sin - lambda * cos) * s.tan_phi + (cos + lambda * sin) * fos;
-        e.push(prev + (fos * t - r) / d);
-    }
-    let (mut residual, mut motor) = (0.0_f64, 0.0_f64);
-    for (k, s) in slices.iter().enumerate() {
-        let (sin, cos) = s.alpha.sin_cos();
-        let de = e[k + 1] - e[k];
-        let n_prime = s.weight * cos - s.pore_pressure * s.base_length + (sin - lambda * cos) * de;
-        let shear = (s.cohesion * s.base_length + n_prime * s.tan_phi) / fos;
-        let t = s.weight * sin;
-        let d = chord_distance(s, xc, yc);
-        residual += d * (shear - t);
-        motor += d * t;
-    }
-    (residual, motor)
-}
-
-/// Σ c·l / Σ W·sin α over the slices: the φ = 0 identity of §5.
-fn phi_zero_target(slices: &[Slice]) -> f64 {
-    let cl: f64 = slices.iter().map(|s| s.cohesion * s.base_length).sum();
-    let wsin: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
-    cl / wsin
-}
-
-/// R2-01 (E7a). Clay φ = 0, c = 30, γ = 20, notch geometry, circle (16, 42, 34). Interior air gap.
-///
-/// Spencer must match the φ = 0 identity `Σ c·l / Σ W·sin α` (= Bishop exact) as O(1/n²): |Δ| < 1e-4 at n = 50 and
-/// < 1e-3 at n = 500 (§5). The global moment residual, computed independently, must be < 1e-6 · (motor moment).
-/// The interior air gap carries `|E_gap| ≫ 1e-3·ΣW` here, so the solver adds `air_gap_thrust`.
+/// R2-01 (E8a). The notch surface of R2-01 (φ = 0, c = 30, γ = 20, circle (16, 42, 34)) has an interior air void
+/// that splits the soil into two masses, both heavier than 1e-3·ΣW. `slice_circle` returns `DisconnectedMass`,
+/// and both methods report the surface as `NoValidSurface` through `analyze`. The global-moment and φ = 0 identities
+/// of E7a are checked at the level of the methods, with synthetic slices, in `tests/methods.rs`.
 #[test]
-fn r2_01_air_gap_keeps_global_moment_balance_and_phi_zero_identity() {
-    for (n, rel) in [(50_usize, 1e-4), (500_usize, 1e-3)] {
-        let m = model(
-            &P_R201,
-            30.0,
-            0.0,
-            20.0,
-            None,
-            fixed(&["bishop", "spencer"], n, 1e-10, (16.0, 42.0, 34.0)),
-        );
-        let results = run_all(&m);
-        let (bishop, spencer) = (&results[0], &results[1]);
-        assert_eq!(bishop.status, SolveStatus::Converged, "n={n} {bishop:?}");
-        assert_eq!(spencer.status, SolveStatus::Converged, "n={n} {spencer:?}");
-        let fos_b = bishop.fos.expect("finite");
-        let fos_s = spencer.fos.expect("finite");
-        let target = phi_zero_target(&bishop.slices);
-        assert!(
-            (fos_b - target).abs() / target < 1e-9,
-            "n={n} Bishop {fos_b} vs Σcl/ΣWsinα {target}"
-        );
-        let diff = (fos_s - fos_b).abs() / fos_b;
-        println!(
-            "[R2-01] n={n} bishop={fos_b:.8} spencer={fos_s:.8} diff={diff:.3e} lambda={:?}",
-            spencer.lambda
-        );
-        assert!(
-            diff < rel,
-            "n={n} Spencer {fos_s} vs Bishop {fos_b}: {diff:.3e} >= {rel:e}"
-        );
-
-        let lambda = spencer.lambda.expect("lambda");
-        let (residual, motor) = global_moment(&spencer.slices, fos_s, lambda, 16.0, 42.0);
-        println!(
-            "[R2-01] n={n} M_res={residual:+.3e} M_motor={motor:.4e} ratio={:+.3e}",
-            residual / motor
-        );
-        assert!(
-            residual.abs() < 1e-6 * motor,
-            "n={n} global moment residual {residual:e} vs motor {motor:e}"
-        );
-        assert!(
-            spencer.warnings.iter().any(|w| w == "air_gap_thrust"),
-            "n={n} expected air_gap_thrust, got {:?}",
-            spencer.warnings
-        );
+fn r2_01_notch_surface_is_disconnected_mass() {
+    let m = model(
+        &P_R201,
+        30.0,
+        0.0,
+        20.0,
+        None,
+        fixed(&["bishop", "spencer"], 50, 1e-10, (16.0, 42.0, 34.0)),
+    );
+    let pm = ogs_core::geometry::PreparedModel::new(&m).expect("valid model");
+    let circle = ogs_core::model::Circle {
+        xc: 16.0,
+        yc: 42.0,
+        r: 34.0,
+    };
+    assert_eq!(
+        ogs_core::slicer::slice_circle(&pm, &circle, 50).unwrap_err(),
+        ogs_core::slicer::SurfaceError::DisconnectedMass
+    );
+    let err = analyze(&m).expect_err("the notch surface is not valid");
+    match err {
+        ogs_core::OgsError::NoValidSurface(msg) => {
+            assert!(msg.contains("desconectados"), "{msg}")
+        }
+        other => panic!("expected NoValidSurface, got {other:?}"),
     }
 }
 
@@ -352,17 +281,21 @@ fn r2_03_search_spencer_result_is_admissible() {
     assert_eq!(r.status, SolveStatus::Converged, "{r:?}");
     let fos = r.fos.expect("finite");
     let lambda = r.lambda.expect("lambda");
-    assert!(min_phi_over_fos(&r.slices, fos, lambda) >= 0.2 - 1e-9);
+    assert!(min_phi_over_fos(&r.slices, fos, lambda) > 0.0);
+    let min_m = r
+        .slices
+        .iter()
+        .filter(|s| !is_air(s))
+        .map(|s| m_alpha(s, fos))
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_m >= 0.2 - 1e-9, "min m_α(F) = {min_m}");
 }
 
-/// R2-03 search, the target of W5a: Spencer's critical FS within 5 % of Bishop's (0.340806).
-///
-/// IGNORED, with the coordinator's decision pending. The Bishop-critical circle (10.772, 39.641, 24.642) has NO
-/// admissible Spencer state: the fixed point of the λ update lies at λ ≈ 0.45, where min Φ/F ≈ 0.05 < 0.2 (E4b).
-/// A 9×9×9 scan around it found 286 admissible Spencer surfaces out of 518 valid circles, and the lowest one is
-/// 0.425. The search returns 0.413197. The +21 % comes from E4b, not from an aborted solve.
+/// R2-03 search, the target of W5a: Spencer's critical FS within 5 % of Bishop's (0.340806). IGNORED: under E8b the
+/// critical Spencer state is still 0.413196 (+21.2 %). The Bishop-critical circle alone gives Spencer 0.480195 (+41 %),
+/// with an admissible state that carries `air_gap_thrust`; see `r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b`.
 #[test]
-#[ignore = "R2-03 search target (≤ 5 % of Bishop) needs a coordinator decision on E4b: see the doc comment"]
+#[ignore = "E8b does not reach the ≤5 % target: Spencer 0.413196 vs Bishop 0.340806 (+21.2 %), same as before E8b. Coordinator decision pending."]
 fn r2_03_search_spencer_within_5_percent_of_bishop() {
     let m = model(
         &P_R202,
@@ -379,10 +312,11 @@ fn r2_03_search_spencer_within_5_percent_of_bishop() {
     assert!((fs - fb).abs() / fb <= 0.05, "Spencer {fs} vs Bishop {fb}");
 }
 
-/// R2-03 Bishop-critical circle (E4b). Spencer has no admissible state there: `Invalid` with no FS, not a
-/// spurious `Converged`. Bishop converges on the same circle.
+/// R2-03 Bishop-critical circle under E8b. The λ fixed point lies at λ ≈ 0.4587, where Φ/F < 0.2 on some slice, so
+/// the old E4b rejected it. E8b asks for Bishop's m_α ≥ min_m_alpha and Φ > 1e-9·F, which the state satisfies:
+/// Spencer is `Converged` at FS 0.480195. Bishop converges on the same circle.
 #[test]
-fn r2_03_bishop_critical_circle_has_no_admissible_spencer_state() {
+fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
     let m = model(
         &P_R202,
         2.0,
@@ -394,9 +328,22 @@ fn r2_03_bishop_critical_circle_has_no_admissible_spencer_state() {
     let results = run_all(&m);
     let (bishop, spencer) = (&results[0], &results[1]);
     assert_eq!(bishop.status, SolveStatus::Converged, "{bishop:?}");
-    assert_eq!(spencer.status, SolveStatus::Invalid, "{spencer:?}");
+    assert_eq!(spencer.status, SolveStatus::Converged, "{spencer:?}");
+    let fos = spencer.fos.expect("finite");
     assert!(
-        spencer.warnings.iter().any(|w| w == "pole"),
+        (fos - 0.480_195).abs() / 0.480_195 < 1e-5,
+        "FS {fos} vs 0.480195"
+    );
+    let min_m = spencer
+        .slices
+        .iter()
+        .filter(|s| !is_air(s))
+        .map(|s| m_alpha(s, fos))
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_m >= 0.2, "min m_α(F) = {min_m}");
+    // Under E8b this state transmits thrust through an interior air run (|E| > 1e-3·ΣW): the warning is reported.
+    assert!(
+        spencer.warnings.iter().any(|w| w == "air_gap_thrust"),
         "{:?}",
         spencer.warnings
     );
@@ -447,7 +394,7 @@ fn r2_04_subpressure_is_negative_normal_major() {
         "Spencer {fs} vs 1.060891"
     );
 
-    // Share f = Σ_{N'<0} |N'| / ΣW with the Bishop normal force (E4e). Must exceed the 2 % threshold of E7d.
+    // Share f = Σ_{N'<0} |N'| / ΣW with the Bishop normal force (E4e). Must exceed the 5 % threshold of E7d (E8c).
     let b = &results[0];
     let total_w: f64 = b.slices.iter().map(|s| s.weight).sum();
     let f_share: f64 = b
@@ -460,7 +407,7 @@ fn r2_04_subpressure_is_negative_normal_major() {
         .sum::<f64>()
         / total_w;
     println!("[R2-04] f = {f_share:.4} (Σ_{{N'<0}}|N'|/ΣW)");
-    assert!(f_share > 0.02, "f = {f_share}");
+    assert!(f_share > 0.05, "f = {f_share}");
 }
 
 /// E7d. The direct form of N' for Spencer, `W cos α − U + (sin α − λ cos α)·ΔE`, equals the E4e formula

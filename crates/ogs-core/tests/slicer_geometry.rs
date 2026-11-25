@@ -353,8 +353,10 @@ fn centre_under_crest_ground_is_upper_arc() {
 /// notch are air slices (no weight, no strength); the others carry the soil of the valley.
 /// (Formerly `arc_that_resurfaces_is_above_ground`, which expected `AboveGround`; that rule is now
 /// reserved for the degenerate case where every slice is air.)
+/// E8a. A valley notch whose arc leaves the soil splits the mass in two. E2 still builds its air slices (see the
+/// unit tests of `slicer`); the surface is rejected as `DisconnectedMass`.
 #[test]
-fn arc_that_resurfaces_is_valid_with_air_slices() {
+fn valley_notch_surface_is_disconnected_mass() {
     let valley = doc(
         SOIL,
         &region(
@@ -371,83 +373,25 @@ fn arc_that_resurfaces_is_valid_with_air_slices() {
         yc: 60.0,
         r: 44.0,
     };
-    let sl = slice_circle(&pm, &c, 50).expect("the notch is air, not an error (E2)");
-    let air: Vec<&Slice> = sl.iter().filter(|s| s.weight == 0.0).collect();
-    assert!(!air.is_empty(), "the notch must produce air slices");
-    for s in &air {
-        assert_eq!((s.cohesion, s.tan_phi, s.pore_pressure), (0.0, 0.0, 0.0));
-        let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
-        assert!(
-            base_mid >= s.y_top_mid - 1e-9,
-            "air slice base {base_mid} below ground {}",
-            s.y_top_mid
-        );
-    }
-    for s in sl.iter().filter(|s| s.weight > 0.0) {
-        let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
-        assert!(base_mid < s.y_top_mid, "soil slice with base in the air");
-        assert_eq!(s.cohesion, 3.0);
-    }
-    // Air slices are one run over the notch, and the toe and crest slices carry soil.
-    assert!(sl[0].weight > 0.0 && sl[sl.len() - 1].weight > 0.0);
+    assert_eq!(
+        slice_circle(&pm, &c, 50).unwrap_err(),
+        SurfaceError::DisconnectedMass
+    );
 }
 
-/// E2: a circle that leaves the terrain near the toe and re-enters the slope face. Its outermost
-/// crossings bound the sliding range, the air slices carry nothing, and the summed weight equals the
-/// soil area under the arc, computed with an independent midpoint rule (n = 2000 slices).
+/// E8a. A circle that leaves the flat toe and re-enters the 2:1 face: the soil under the flat toe and the soil under
+/// the face are two heavy masses, so the surface is rejected (E2 geometry: `slicer::tests`).
 #[test]
-fn circle_leaving_and_reentering_near_the_toe_is_valid() {
-    // Lower arc: exits the flat ground at x ≈ 29.43 and re-enters the 2:1 face at x ≈ 30.72.
+fn toe_gap_surface_is_disconnected_mass() {
     let c = Circle {
         xc: 25.0,
         yc: 44.0,
         r: 19.5,
     };
     let pm = prepared(&acads("auto", &circle_json(c)));
-    let slices = slices_of(&pm, &c, 2000);
-
-    let air: Vec<&Slice> = slices.iter().filter(|s| s.weight == 0.0).collect();
-    assert!(
-        !air.is_empty(),
-        "the gap above the ground must be air slices"
-    );
-    for s in &air {
-        assert_eq!((s.cohesion, s.tan_phi, s.pore_pressure), (0.0, 0.0, 0.0));
-        let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
-        assert!(base_mid >= s.y_top_mid - 1e-9);
-        assert!(
-            s.x_left > 29.0 && s.x_right < 31.5,
-            "air only in the gap near the toe: {s:?}"
-        );
-    }
-
-    // Independent integral of (terrain − arc)⁺ over the model span (the arc is above the ground outside
-    // the sliding range, so the clip to the model does not change the value).
-    let terrain = |x: f64| {
-        if x <= 30.0 {
-            25.0
-        } else if x <= 50.0 {
-            25.0 + (x - 30.0) / 2.0
-        } else {
-            35.0
-        }
-    };
-    let arc = |x: f64| c.yc - (c.r * c.r - (x - c.xc).powi(2)).max(0.0).sqrt();
-    let (x0, x1) = (20.0_f64.max(c.xc - c.r), c.xc + c.r);
-    let strips = 400_000;
-    let h = (x1 - x0) / strips as f64;
-    let exact: f64 = (0..strips)
-        .map(|i| {
-            let x = x0 + (i as f64 + 0.5) * h;
-            (terrain(x) - arc(x)).max(0.0)
-        })
-        .sum::<f64>()
-        * h;
-    let sum_w_over_gamma: f64 = slices.iter().map(|s| s.weight / 20.0).sum();
-    let rel = (sum_w_over_gamma - exact).abs() / exact;
-    assert!(
-        rel < 1e-3,
-        "sum W/γ = {sum_w_over_gamma}, exact = {exact}, rel = {rel}"
+    assert_eq!(
+        slice_circle(&pm, &c, 2000).unwrap_err(),
+        SurfaceError::DisconnectedMass
     );
 }
 
