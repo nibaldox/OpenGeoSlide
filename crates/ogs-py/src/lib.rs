@@ -50,8 +50,10 @@ fn analyze_json(py: Python<'_>, model_json: &str) -> PyResult<String> {
 
 /// Test hook: panics with `message` through the same `guard` used by `analyze_json`.
 ///
-/// Private (underscore) and not re-exported by the package; it exists so the panic path
-/// can be tested deterministically regardless of the engine's state.
+/// Private (underscore), not re-exported by the package, and compiled only with the `test-hooks`
+/// feature: production wheels do not contain it. It exists so the panic path can be tested
+/// deterministically regardless of the engine's state.
+#[cfg(feature = "test-hooks")]
 #[pyfunction]
 fn _panic_for_tests(message: String) -> PyResult<()> {
     let outcome: Result<(), String> = guard(|| -> () { panic!("{message}") });
@@ -62,6 +64,7 @@ fn _panic_for_tests(message: String) -> PyResult<()> {
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(version, m)?)?;
     m.add_function(wrap_pyfunction!(analyze_json, m)?)?;
+    #[cfg(feature = "test-hooks")]
     m.add_function(wrap_pyfunction!(_panic_for_tests, m)?)?;
     Ok(())
 }

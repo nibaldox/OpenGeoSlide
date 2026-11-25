@@ -10,6 +10,11 @@ license.workspace = true
 name = "_core"
 crate-type = ["cdylib"]
 
+[features]
+# Adds the `_panic_for_tests` hook used by the panic-path tests. Off in production wheels:
+#   maturin build --release --features test-hooks
+test-hooks = []
+
 [dependencies]
 ogs-core = { path = "../ogs-core" }
 # abi3-py311: one wheel (cp311-abi3) for CPython >= 3.11, including 3.13 and 3.14.

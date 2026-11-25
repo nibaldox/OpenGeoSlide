@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { AnalysisReport, MethodReport } from '../engine/types';
-import { formatNumber, ResultsTable } from './ResultsTable';
+import { formatNumber, METHOD_LABELS, ResultsTable } from './ResultsTable';
 
 function methodReport(overrides: Partial<MethodReport>): MethodReport {
   return {
@@ -54,5 +54,38 @@ describe('ResultsTable', () => {
     const html = render({ engine: 'ogs-core 0.1.0', results: [methodReport({})] });
     expect(html).not.toContain('class="notes"');
     expect(html).not.toContain('class="warnings"');
+  });
+
+  it('asocia cada aviso al método que lo emitió (R2-09)', () => {
+    const html = render({
+      engine: 'ogs-core 0.1.0',
+      results: [
+        methodReport({ method: 'bishop', warnings: ['water_above_ground'] }),
+        methodReport({ method: 'spencer', warnings: ['negative_effective_normal_major'] }),
+      ],
+    });
+    const items = html.split('<li>').slice(1);
+    const water = items.find((item) => item.includes('El agua sobre el terreno'));
+    const major = items.find((item) => item.includes('Normal efectiva negativa en una parte importante'));
+    expect(water).toBeDefined();
+    expect(water).toContain(METHOD_LABELS.bishop);
+    expect(water).not.toContain(METHOD_LABELS.spencer);
+    expect(major).toBeDefined();
+    expect(major).toContain(METHOD_LABELS.spencer);
+    expect(major).not.toContain(METHOD_LABELS.bishop);
+  });
+
+  it('un mismo código emitido por los dos métodos aparece dos veces, cada una con su método', () => {
+    const html = render({
+      engine: 'ogs-core 0.1.0',
+      results: [
+        methodReport({ method: 'bishop', warnings: ['water_above_ground'] }),
+        methodReport({ method: 'spencer', warnings: ['water_above_ground'] }),
+      ],
+    });
+    const items = html.split('<li>').filter((item) => item.includes('El agua sobre el terreno'));
+    expect(items).toHaveLength(2);
+    expect(items[0]).toContain(METHOD_LABELS.bishop);
+    expect(items[1]).toContain(METHOD_LABELS.spencer);
   });
 });

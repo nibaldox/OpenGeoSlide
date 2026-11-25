@@ -4,6 +4,17 @@
 // con Código ∈ {InvalidModel, NoSurface, NoValidSurface, Json}. Se clasifica por ese prefijo exacto; el resto
 // del texto es el detalle que ya viene en español desde el motor.
 
+import { EngineFatalError } from './engine';
+
+export const FATAL_ENGINE_TEXT =
+  'Fallo interno del motor de cálculo. Recargue la página para reiniciarlo; si se repite, revise la consola del navegador.';
+
+/** Texto para la UI de cualquier fallo del motor: fatal (trap, distinto de E6) o de modelo (código E6). */
+export function userMessage(error: unknown): string {
+  if (error instanceof EngineFatalError) return `${FATAL_ENGINE_TEXT} Detalle: ${error.message}`;
+  return humanizeEngineError(error instanceof Error ? error.message : String(error));
+}
+
 export const ENGINE_ERROR_CODES = ['InvalidModel', 'NoSurface', 'NoValidSurface', 'Json'] as const;
 
 export type EngineErrorCode = (typeof ENGINE_ERROR_CODES)[number];
