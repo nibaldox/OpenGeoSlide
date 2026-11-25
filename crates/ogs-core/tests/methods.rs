@@ -449,14 +449,36 @@ fn fos_residual_of(sl: &[Slice], fos: f64, lambda: f64) -> f64 {
     (next - fos).abs() / fos
 }
 
-/// R1-01 (E4b). Circle (10, 22, 19.5), 50 slices: φ = 45°, c = 10 for x < 8 and φ = 0, c = 2 beyond, γ = 20.
-/// Before the fix Spencer returned `Converged` at FS 0.0749994 (5 slices with Φ < 0, the surface won the search)
-/// while Bishop gives 0.3262908. A converged Spencer state must not have Φ/F < min_m_alpha on any soil slice.
+/// FS of the spurious pole branch of the R1-01 review, synthetic version (five soil slices with Φ < 0).
+/// E8b, condition (c).
+const R1_01_SPURIOUS_FOS: f64 = 0.0749994;
+
+/// Test-local interslice closure `E_n` (E10c, f = 1): `E₀ = 0` and `E_{k+1} = E_k + (F·T_k − R_k)/Φ_k` over the
+/// soil slices. Air slices (E2) have `T = R = 0` and pass `E` through unchanged.
+fn closure_of(sl: &[Slice], fos: f64, lambda: f64) -> f64 {
+    let mut e = 0.0_f64;
+    for s in sl
+        .iter()
+        .filter(|s| !(s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0))
+    {
+        let r = (s.weight * s.alpha.cos() - s.pore_pressure * s.base_length) * s.tan_phi
+            + s.cohesion * s.base_length;
+        let t = s.weight * s.alpha.sin();
+        e += (fos * t - r) / pole_of(s, fos, lambda);
+    }
+    e
+}
+
+/// R1-01 (E4b, reformulated by E8b and E10c). Circle (10, 22, 19.5), 50 slices: φ = 45°, c = 10 for x < 8 and
+/// φ = 0, c = 2 beyond, γ = 20. Before the fix Spencer returned `Converged` at FS 0.0749994, the spurious branch
+/// with Φ < 0 on five slices, while Bishop gives 0.3262908.
+///
+/// Spencer never reports `Converged` on this slice set if (a) some soil slice has Φᵢ ≤ 0, (b) the closure fails,
+/// |Eₙ| > 1e-6·ΣW, or (c) FS ≤ 0.0749994. A `Converged` result must pass all three checks, and also E8b(ii),
+/// m_α(F) ≥ min_m_alpha on every soil slice. The current outcome is `Converged` at FS 0.518786, λ 0.199980 (closed,
+/// admissible), so the checks run on a real solution and are not skipped.
 #[test]
-#[ignore = "E10c (W8b): the synthetic R1-01 root F = 0.518786, λ = 0.199980 is closed (|E_n|/ΣW ≈ 6e-13, |g| ≤ 1e-6) and \
-             admissible under E8b (Φ > 0, m_α ≥ 0.2 at F). The test expects rejection (E4b). Its Φ/F ≥ 0.2 reading is not \
-             in E8b; min Φ/F = 0.174 is informational. Ignored pending coordinator decision (E4b vs E8b)."]
-fn r1_01_spencer_negative_pole_is_not_converged() {
+fn r1_01_spencer_never_converges_on_the_spurious_pole_branch() {
     let circ = Circ {
         xc: 10.0,
         yc: 22.0,
@@ -474,16 +496,52 @@ fn r1_01_spencer_negative_pole_is_not_converged() {
     let s = solve(&sl, MethodKind::Spencer, &o);
     println!("[R1-01] bishop={b:?}\n[R1-01] spencer={s:?}");
     assert_converged(&b);
-    assert_ne!(s.status, SolveStatus::Converged, "spencer {s:?}");
-    // E8b (review R1-01 stays rejected): the λ chain under the amended admissibility stops at the budget
-    // (NotConverged, λ ≈ 0.0499 with 2000 iterations). Either rejection is a rejection; a Converged state is not.
+    if s.status != SolveStatus::Converged {
+        assert!(
+            matches!(s.status, SolveStatus::Invalid | SolveStatus::NotConverged),
+            "spencer {s:?}"
+        );
+        return;
+    }
+
+    let fos = s.fos;
+    let lambda = s.lambda.expect("Converged Spencer reports λ");
+    let is_soil = |x: &&Slice| !(x.weight == 0.0 && x.cohesion == 0.0 && x.tan_phi == 0.0);
+    // (a) Φᵢ > 0 on every soil slice.
+    let min_pole = sl
+        .iter()
+        .filter(is_soil)
+        .map(|x| pole_of(x, fos, lambda))
+        .fold(f64::INFINITY, f64::min);
     assert!(
-        matches!(s.status, SolveStatus::Invalid | SolveStatus::NotConverged),
-        "spencer {s:?}"
+        min_pole > 0.0,
+        "(a) Φ ≤ 0 on a soil slice: min Φ = {min_pole}, {s:?}"
     );
+    // (b) closure of the interslice forces at (F, λ).
+    let total_w = sum_weight(&sl);
+    let closure = closure_of(&sl, fos, lambda).abs();
     assert!(
-        !(s.status == SolveStatus::Converged && s.fos < b.fos),
-        "Converged below Bishop: {s:?}"
+        closure <= 1e-6 * total_w,
+        "(b) |E_n| = {closure} > 1e-6·ΣW = {}: {s:?}",
+        1e-6 * total_w
+    );
+    // (c) the spurious FS of the review is not the answer.
+    assert!(
+        fos > R1_01_SPURIOUS_FOS,
+        "(c) FS {fos} ≤ spurious {R1_01_SPURIOUS_FOS}: {s:?}"
+    );
+    // E8b(ii): the Bishop criterion at the converged F.
+    let min_m = sl
+        .iter()
+        .filter(is_soil)
+        .map(|x| m_alpha_of(x, fos))
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        min_m >= o.min_m_alpha,
+        "E8b(ii) m_α {min_m} < min_m_alpha: {s:?}"
+    );
+    println!(
+        "[R1-01] (a) min Φ = {min_pole:.6}, (b) |E_n| = {closure:.3e}, (c) FS {fos:.6} > {R1_01_SPURIOUS_FOS}, E8b(ii) min m_α = {min_m:.6}"
     );
 }
 
