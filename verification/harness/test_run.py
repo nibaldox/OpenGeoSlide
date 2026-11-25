@@ -28,7 +28,8 @@ def _fake_ogs(tmp_path, payload: dict) -> str:
 
 
 def _report(fos, status, message=None) -> dict:
-    result = {"method": "bishop", "fos": fos, "status": status, "iterations": 0, "lambda": None}
+    """ogs JSON report with one result. `message` is a legacy field that MethodReport does not have (R3-05)."""
+    result = {"method": "bishop", "fos": fos, "status": status, "iterations": 0, "lambda": None, "warnings": []}
     if message is not None:
         result["message"] = message
     return {"engine": "ogs-core test", "results": [result]}
@@ -56,6 +57,23 @@ def test_finite_fos_is_read_with_its_status(tmp_path):
     res = run.run_ogs(_fake_ogs(tmp_path, _report(1.02, "converged")), MODEL, CHECK, 30)
     assert res["fos"] == pytest.approx(1.02) and res["status"] == "converged"
     assert run.verdict(res["fos"], res["status"], 1.0, 0.05) == "OK"
+
+
+def test_run_reads_warnings_not_message(tmp_path):
+    """R3-05 (2): MethodReport has no `message`; the reason of a method outcome is in `warnings`."""
+    payload = _report(None, "invalid", message="legacy")
+    payload["results"][0]["warnings"] = ["no_driving"]
+    res = run.run_ogs(_fake_ogs(tmp_path, payload), MODEL, CHECK, 30)
+    assert res["status"] == "invalid" and res["fos"] is None
+    assert res["warnings"] == ["no_driving"]
+    assert "message" not in res
+
+
+def test_run_keeps_warnings_of_a_converged_result(tmp_path):
+    payload = _report(1.02, "converged")
+    payload["results"][0]["warnings"] = ["truncated_mass"]
+    res = run.run_ogs(_fake_ogs(tmp_path, payload), MODEL, CHECK, 30)
+    assert res["fos"] == pytest.approx(1.02) and res["warnings"] == ["truncated_mass"]
 
 
 def test_verdict_without_status_keeps_the_old_rules():
