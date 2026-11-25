@@ -46,9 +46,33 @@ describe('atajos: lo que dice la ayuda es lo que hace la aplicación', () => {
     for (const s of SHORTCUTS) expect(s.probes.length, s.keys).toBeGreaterThan(0);
   });
 
-  it('las teclas de herramienta de la barra (V, A, H) están en la ayuda', () => {
+  it('las teclas de herramienta de la barra (V, A, R, H) están en la ayuda', () => {
     const keys = SHORTCUTS.map((s) => s.keys);
-    for (const k of ['V', 'A', 'H']) expect(keys).toContain(k);
+    for (const k of ['V', 'A', 'R', 'H']) expect(keys).toContain(k);
+  });
+
+  it('R es «Dibujar región»: la ayuda y shortcutFor coinciden', () => {
+    const r = SHORTCUTS.find((s) => s.keys === 'R');
+    expect(r?.scope).toBe('global');
+    expect(r?.action).toContain('Dibujar región');
+    expect(shortcutFor({ ...keyInput({ key: 'r' }), inField: false })).toBe('tool:draw_region');
+  });
+
+  it('cada acción que atiende shortcutFor (letra, Ctrl+letra o Ctrl+Intro) tiene su entrada en la ayuda', () => {
+    // Recorre las teclas imprimibles y las combinaciones con Ctrl/Mayús: lo que `shortcutFor` resuelva debe estar documentado.
+    const keys = [...'abcdefghijklmnopqrstuvwxyz0123456789', 'Enter'];
+    const found = new Set<ShortcutAction>();
+    for (const key of keys) {
+      for (const ctrl of [false, true]) {
+        for (const shift of [false, true]) {
+          const a = shortcutFor({ key, ctrlKey: ctrl, metaKey: false, shiftKey: shift, altKey: false, inField: false });
+          if (a) found.add(a);
+        }
+      }
+    }
+    const documented = new Set(SHORTCUTS.flatMap((s) => (s.scope === 'global' ? [s.shortcutAction] : [])));
+    expect([...found].sort()).toEqual([...documented].sort());
+    expect(found.has('tool:draw_region')).toBe(true);
   });
 
   it('no hay dos entradas con las mismas teclas y ámbito', () => {
