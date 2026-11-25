@@ -9,6 +9,7 @@ import {
   matchesTarget,
   placePopover,
   ringRect,
+  shouldCloseTourOnEscape,
   stepProgress,
   tourReducer,
   type StorageLike,
@@ -212,5 +213,22 @@ describe('placePopover', () => {
 describe('ringRect', () => {
   it('infla el control con un margen para que el anillo no lo tape', () => {
     expect(ringRect({ x: 10, y: 20, width: 100, height: 30 })).toEqual({ x: 6, y: 16, width: 108, height: 38 });
+  });
+});
+
+describe('Esc global de la guía (A-06)', () => {
+  const base = { key: 'Escape', defaultPrevented: false, dialogOpen: false, menuOpen: false };
+  it('Esc cierra la guía desde cualquier lugar', () => {
+    expect(shouldCloseTourOnEscape(base)).toBe(true);
+  });
+  it('otras teclas no la cierran', () => {
+    expect(shouldCloseTourOnEscape({ ...base, key: 'Enter' })).toBe(false);
+  });
+  it('un <dialog> abierto tiene prioridad', () => {
+    expect(shouldCloseTourOnEscape({ ...base, dialogOpen: true })).toBe(false);
+  });
+  it('un menú abierto o un manejador que ya usó la tecla tienen prioridad', () => {
+    expect(shouldCloseTourOnEscape({ ...base, menuOpen: true })).toBe(false);
+    expect(shouldCloseTourOnEscape({ ...base, defaultPrevented: true })).toBe(false);
   });
 });

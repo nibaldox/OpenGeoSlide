@@ -178,3 +178,20 @@ export function placePopover(target: Rect | null, pop: Size, vp: Size): Placed {
 export function ringRect(target: Rect): Rect {
   return { x: target.x - RING_PAD, y: target.y - RING_PAD, width: target.width + 2 * RING_PAD, height: target.height + 2 * RING_PAD };
 }
+
+// ───────── Esc global (A-06) ─────────
+
+export interface EscapeContext {
+  key: string;
+  /** Otro manejador ya atendió la tecla (p. ej. el lienzo cancelando un trazo). */
+  defaultPrevented: boolean;
+  /** Hay un `<dialog>` abierto (modal): tiene prioridad y el Esc es suyo. */
+  dialogOpen: boolean;
+  /** Hay un menú desplegable (`popover="auto"`) abierto: Esc lo cierra a él primero. */
+  menuOpen: boolean;
+}
+
+/** ¿Esc debe cerrar la guía? Desde cualquier lugar de la página, salvo si un diálogo, un menú o un manejador ya lo usaron. */
+export function shouldCloseTourOnEscape(ctx: EscapeContext): boolean {
+  return ctx.key === 'Escape' && !ctx.defaultPrevented && !ctx.dialogOpen && !ctx.menuOpen;
+}
