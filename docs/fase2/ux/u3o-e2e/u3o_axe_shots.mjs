@@ -7,7 +7,7 @@ import path from 'node:path';
 const AXE = process.env.TMPDIR + '/x8-ux/node_modules/axe-core/axe.min.js';
 const SHOTS = path.join(process.env.TMPDIR, 'u3x-shots');
 mkdirSync(SHOTS, { recursive: true });
-const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5187/';
+const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
 const WITH_PROJECT = process.env.WITH_PROJECT !== '0';
 const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', args: ['--no-sandbox'] });
 const summary = [];

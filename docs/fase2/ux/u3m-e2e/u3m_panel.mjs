@@ -12,11 +12,20 @@ const errors = [];
 const step = (name, ok, data = {}) => { if (!ok) failed += 1; console.log(ok ? 'OK  ' : 'FAIL', name, JSON.stringify(data)); };
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', headless: true, args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+await ctx.addInitScript(() => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); } catch {} }); // la guía de primera visita ya se vio (no tapa el recorrido)
 const page = await ctx.newPage();
 const dialogs = [];
 page.on('dialog', (d) => { dialogs.push(d.message()); d.accept(); });
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !(m.location()?.url ?? '').endsWith('/favicon.ico')) errors.push(m.text()); });
+// U3-I: «descartar cambios» y «eliminar» son un diálogo propio (`useConfirm`), no window.confirm. Acepta si aparece (solo con cambios sin guardar).
+async function discardIfAsked(page, label = 'Descartar cambios') {
+  const dlg = page.locator('[data-testid="confirm-dialog"]');
+  try { await dlg.waitFor({ state: 'visible', timeout: 1500 }); } catch { return false; }
+  await dlg.getByRole('button', { name: label, exact: true }).click();
+  await dlg.waitFor({ state: 'detached' });
+  return true;
+}
 async function openMenu(name) {
   const trigger = page.getByRole('button', { name, exact: true });
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
@@ -33,6 +42,7 @@ await openMenu('Archivo');
 await page.getByRole('button', { name: 'Talud simple…' }).click();
 await page.waitForSelector('dialog[open]');
 await page.getByRole('button', { name: 'Crear talud' }).click();
+await discardIfAsked(page);
 await page.waitForSelector('dialog[open]', { state: 'detached' });
 await page.waitForSelector('[data-vertex-row]');
 step('1 el panel Geometría es la primera pestaña y muestra la región con 6 vértices', (await page.locator('[aria-label="Paneles del modelo"] [role="tab"]').first().textContent()) === 'Geometría' && (await rowsCount()) === 6, { tabs: await page.locator('[aria-label="Paneles del modelo"] [role="tab"]').allTextContents() });
@@ -75,14 +85,23 @@ writeFileSync(path.join(SHOTS, 'tri.ogs.json'), JSON.stringify(small));
 
 // 5. Eliminar región con confirmación, deshacer
 await page.getByRole('button', { name: 'Eliminar región 1' }).click();
+await page.waitForSelector('[data-testid="confirm-dialog"]');
+const confirmText = (await page.locator('[data-testid="confirm-dialog"]').innerText()).replace(/\s+/g, ' ');
+const confirmTone = await page.getAttribute('[data-testid="confirm-dialog"]', 'data-tone');
+const regionsBeforeConfirm = await nRegions();
+await page.getByRole('button', { name: 'Conservar la región' }).click(); // cancelar no elimina
+await page.waitForSelector('[data-testid="confirm-dialog"]', { state: 'detached' });
+const keptAfterCancel = (await nRegions()) === regionsBeforeConfirm;
+await page.getByRole('button', { name: 'Eliminar región 1' }).click();
+await discardIfAsked(page, 'Eliminar región');
 await page.waitForFunction(() => document.querySelectorAll('[data-layer="regions"] polygon').length === 0);
-const confirmText = dialogs.at(-1);
 const emptyMsg = await page.locator('[data-testid="geometry-empty"]').count();
 await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
-step('5 «Eliminar región» pide confirmación y se deshace', /¿Eliminar la región 1/.test(confirmText ?? '') && emptyMsg === 1 && (await nRegions()) === 1, { confirmText });
+step('5 «Eliminar región» pide confirmación (diálogo propio, «danger»); cancelar no elimina; aceptar elimina y se deshace', /Eliminar la región 1/.test(confirmText) && confirmTone === 'danger' && keptAfterCancel && emptyMsg === 1 && (await nRegions()) === 1, { confirmText, confirmTone });
 
 // 6. Mínimo de 3 vértices
 await page.setInputFiles('[data-testid="file-open"]', path.join(SHOTS, 'tri.ogs.json'));
+await discardIfAsked(page);
 await page.waitForFunction(() => document.querySelectorAll('[data-vertex-row]').length === 3);
 const disabledDel = await page.getByRole('button', { name: /Eliminar el vértice 1 de la región 1/ }).isDisabled();
 step('6 con 3 vértices «Eliminar» está deshabilitado', disabledDel);
@@ -92,6 +111,7 @@ const big = [];
 for (let i = 0; i < 360; i += 1) { const a = (i / 360) * 2 * Math.PI; big.push([Math.round(Math.cos(a) * 5000) / 100, Math.round(Math.sin(a) * 5000) / 100]); }
 writeFileSync(path.join(SHOTS, 'big.ogs.json'), JSON.stringify({ ...small, regions: [{ material: 'a', polygon: big }] }));
 await page.setInputFiles('[data-testid="file-open"]', path.join(SHOTS, 'big.ogs.json'));
+await discardIfAsked(page);
 await page.waitForSelector('[data-vertex-row]');
 const t0 = Date.now();
 const firstPage = await rowsCount();
@@ -112,6 +132,7 @@ await openMenu('Archivo');
 await page.getByRole('button', { name: 'Talud simple…' }).click();
 await page.waitForSelector('dialog[open]');
 await page.getByRole('button', { name: 'Crear talud' }).click();
+await discardIfAsked(page);
 await page.waitForSelector('dialog[open]', { state: 'detached' });
 await page.waitForSelector('[data-vertex-row]');
 await field(0, 4, 'x').fill('45'); await field(0, 4, 'x').press('Enter');
