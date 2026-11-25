@@ -33,11 +33,10 @@ classifiers = [
 ]
 
 [project.urls]
-# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide)
-Homepage = "https://opengeoslide.github.io/opengeoslide/"
-Repository = "https://github.com/opengeoslide/opengeoslide"
-Issues = "https://github.com/opengeoslide/opengeoslide/issues"
-Changelog = "https://github.com/opengeoslide/opengeoslide/blob/main/CHANGELOG.md"
+Homepage = "https://nibaldox.github.io/opengeoslide/"
+Repository = "https://github.com/nibaldox/opengeoslide"
+Issues = "https://github.com/nibaldox/opengeoslide/issues"
+Changelog = "https://github.com/nibaldox/opengeoslide/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 module-name = "opengeoslide._core"

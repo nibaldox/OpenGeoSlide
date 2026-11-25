@@ -7,16 +7,17 @@ el **publicado**, el FS del **binario ogs** (`ogs analyze`) y el FS del **orácu
 - `run.py`: ejecuta ogs y cSlope por check y escribe `REPORT.md` y `report.json`.
 - `test_to_cslope.py`: tests del conversor (pytest).
 - `fixtures/V047a.json`: caso propio (ACADS 1(a), contratos §1), usado si no hay casos.
-- `sample/`: un informe generado de ejemplo (casos de w0b). No es un artefacto de `verification/`.
+- `sample/`: un informe de ejemplo generado con los 21 casos de `verification/cases` y el binario `target/release/ogs`
+  (rutas relativas a la raíz del repositorio). Se regenera con la orden de «Ejecución» más abajo.
 
 ## Ejecución
 
 Desde la raíz del worktree:
 
 ```
-export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch
+export TMPDIR="$(mktemp -d)"
 uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \
-  python verification/harness/run.py --cases DIR --ogs PATH_BINARIO_OGS --out DIR
+  python verification/harness/run.py --cases verification/cases --ogs target/release/ogs --out verification/harness/sample
 uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with pytest \
   python -m pytest verification/harness/test_to_cslope.py
 ```

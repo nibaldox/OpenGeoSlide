@@ -1,10 +1,86 @@
 # OpenGeoSlide
 
+[**Aplicación web**](https://nibaldox.github.io/opengeoslide/) ·
+[Repositorio](https://github.com/nibaldox/opengeoslide) ·
+[Releases](https://github.com/nibaldox/opengeoslide/releases) ·
+[Licencia Apache-2.0](LICENSE)
+
 Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por equilibrio límite
 (Bishop simplificado y Spencer). El motor está escrito en Rust y compila a binario nativo y a WebAssembly.
 
-> **Estado: Fase 1, en desarrollo.** El motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA) y los
-> tests de aceptación están implementados. Resumen de la verificación en [Estado de verificación](#estado-de-verificación).
+> **Estado: versión 0.1.0.** El motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA), el paquete
+> Python y los tests de aceptación están implementados. Resumen de la verificación en
+> [Estado de verificación](#estado-de-verificación).
+
+## Instalación
+
+OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde la web, desde el código fuente o desde los
+assets del [GitHub Release](https://github.com/nibaldox/opengeoslide/releases).
+
+### Web
+
+No requiere instalación: abra <https://nibaldox.github.io/opengeoslide/>. El cálculo corre en su navegador (motor en
+WebAssembly). La aplicación es una PWA: desde el navegador se puede instalar («Instalar aplicación» en Chrome o Edge)
+y funciona sin conexión una vez cargada.
+
+Para compilarla en local (Node 22, pnpm 11 y, para el motor real, el target `wasm32-unknown-unknown` y
+`wasm-bindgen-cli` 0.2.130):
+
+```sh
+apps/web/scripts/build-wasm.sh          # genera el motor WASM en apps/web/src/wasm/
+cd apps/web
+pnpm install --frozen-lockfile
+pnpm test
+VITE_BASE=/opengeoslide/ pnpm build     # genera apps/web/dist/ (sin VITE_BASE, la base es «/»)
+pnpm preview
+```
+
+Sin el paso del WASM, la web usa un motor simulado que no es válido para ingeniería (véase
+[`apps/web/README.md`](apps/web/README.md)).
+
+### CLI (`ogs`)
+
+Requiere [Rust](https://rustup.rs) (el repositorio fija la versión en `rust-toolchain.toml`):
+
+```sh
+git clone https://github.com/nibaldox/opengeoslide.git
+cd opengeoslide
+cargo install --path crates/ogs-cli --locked     # instala `ogs` en ~/.cargo/bin
+# o, sin instalar: cargo build --release -p ogs-cli   (binario en target/release/ogs)
+ogs --version
+ogs analyze examples/acads1a.ogs.json
+```
+
+### Python (`opengeoslide`)
+
+Wheel `abi3` para CPython 3.11 o superior. Como el paquete no está en PyPI, instale el wheel del GitHub Release de la
+versión (el nombre depende de la plataforma; elija el de la suya en la página del release):
+
+```sh
+pip install https://github.com/nibaldox/opengeoslide/releases/download/v0.1.0/opengeoslide-0.1.0-cp311-abi3-<plataforma>.whl
+```
+
+`<plataforma>` es la etiqueta del wheel del asset: `manylinux…x86_64` (Linux), `macosx_…_arm64` o `macosx_…_x86_64`
+(macOS) o `win_amd64` (Windows). También sirve descargar el `.whl` y hacer `pip install ./opengeoslide-….whl`.
+
+Para compilarlo desde el código fuente (necesita Rust y [maturin](https://www.maturin.rs)):
+
+```sh
+git clone https://github.com/nibaldox/opengeoslide.git
+cd opengeoslide/crates/ogs-py
+scripts/prepare-license-files.sh                 # copia LICENSE y NOTICE junto a pyproject.toml
+pip install maturin
+maturin build --release --out dist
+pip install dist/opengeoslide-*.whl
+```
+
+```python
+import json, opengeoslide
+print(opengeoslide.version())
+report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
+```
+
+Más detalle en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
 
 ## Estructura
 

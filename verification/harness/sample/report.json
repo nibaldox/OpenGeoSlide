@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-11-24T20:02:30-03:00",
+  "generated_at": "2026-11-25T10:44:39-03:00",
   "harness_version": "1",
-  "cases_dir": "/home/xodla/archivos/opengeoslide-wt/w0b/verification/cases",
+  "cases_dir": "verification/cases",
   "engines": {
     "ogs": {
-      "binary": "/home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-      "version": null,
-      "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs"
+      "binary": "target/release/ogs",
+      "version": "ogs-core 0.1.0",
+      "error": null
     },
     "cslope": {
       "package": "cslope 0.1.0",
@@ -21,124 +21,154 @@
     {
       "id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
-      "path": "../w0b/verification/cases/V001.json",
+      "path": "verification/cases/V001.json",
       "n_checks": 2
     },
     {
       "id": "V002",
       "title": "Arai & Tagyo (1985) example 2, three layers",
-      "path": "../w0b/verification/cases/V002.json",
+      "path": "verification/cases/V002.json",
       "n_checks": 1
     },
     {
       "id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
-      "path": "../w0b/verification/cases/V003.json",
+      "path": "verification/cases/V003.json",
       "n_checks": 3
     },
     {
       "id": "V016a",
       "title": "Stepped gabion wall, equivalent cohesion",
-      "path": "../w0b/verification/cases/V016a.json",
+      "path": "verification/cases/V016a.json",
       "n_checks": 3
     },
     {
       "id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
-      "path": "../w0b/verification/cases/V019.json",
+      "path": "verification/cases/V019.json",
       "n_checks": 4
     },
     {
       "id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
-      "path": "../w0b/verification/cases/V025.json",
+      "path": "verification/cases/V025.json",
       "n_checks": 2
     },
     {
       "id": "V030",
       "title": "Duncan & Wright fig. 14.4",
-      "path": "../w0b/verification/cases/V030.json",
+      "path": "verification/cases/V030.json",
       "n_checks": 2
     },
     {
       "id": "V033",
       "title": "Duncan & Wright fig. 14.20a, water table",
-      "path": "../w0b/verification/cases/V033.json",
+      "path": "verification/cases/V033.json",
       "n_checks": 2
     },
     {
       "id": "V044",
       "title": "Fredlund & Krahn (1977), dry",
-      "path": "../w0b/verification/cases/V044.json",
+      "path": "verification/cases/V044.json",
       "n_checks": 2
     },
     {
       "id": "V044b",
       "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
-      "path": "../w0b/verification/cases/V044b.json",
+      "path": "verification/cases/V044b.json",
       "n_checks": 2
     },
     {
       "id": "V045",
       "title": "Fredlund & Krahn (1977), with water table",
-      "path": "../w0b/verification/cases/V045.json",
+      "path": "verification/cases/V045.json",
       "n_checks": 2
     },
     {
       "id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
-      "path": "../w0b/verification/cases/V047a.json",
+      "path": "verification/cases/V047a.json",
       "n_checks": 4
     },
     {
       "id": "V049",
       "title": "ACADS 1(c), three-layer slope",
-      "path": "../w0b/verification/cases/V049.json",
+      "path": "verification/cases/V049.json",
       "n_checks": 3
     },
     {
       "id": "V063",
       "title": "Huang & Jia earth dam, dry",
-      "path": "../w0b/verification/cases/V063.json",
+      "path": "verification/cases/V063.json",
       "n_checks": 2
+    },
+    {
+      "id": "V081a",
+      "title": "Sharma (1996) reinforcement example, unreinforced",
+      "path": "verification/cases/V081a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V081b",
+      "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+      "path": "verification/cases/V081b.json",
+      "n_checks": 1
     },
     {
       "id": "V093",
       "title": "Yamagami & Ueta (1988)",
-      "path": "../w0b/verification/cases/V093.json",
+      "path": "verification/cases/V093.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V097a",
+      "title": "Eurocode 7 cutting with surcharge",
+      "path": "verification/cases/V097a.json",
       "n_checks": 1
     },
     {
       "id": "V101",
       "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
-      "path": "../w0b/verification/cases/V101.json",
+      "path": "verification/cases/V101.json",
       "n_checks": 3
+    },
+    {
+      "id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "path": "verification/cases/V102a.json",
+      "n_checks": 5
+    },
+    {
+      "id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "path": "verification/cases/V102b.json",
+      "n_checks": 5
     }
   ],
   "summary": {
-    "checks": 38,
+    "checks": 51,
     "ogs": {
-      "OK": 0,
+      "OK": 51,
       "FALLA": 0,
-      "sin dato": 38,
+      "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 36,
+      "OK": 51,
       "FALLA": 0,
-      "sin dato": 2,
+      "sin dato": 0,
       "no convergido": 0
     },
     "cslope_reproduces": {
-      "n": 36,
-      "N": 38
+      "n": 51,
+      "N": 51
     }
   },
   "checks": [
     {
       "case_id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
-      "source_path": "../w0b/verification/cases/V001.json",
+      "source_path": "verification/cases/V001.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.409,
@@ -148,12 +178,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4044306252852394,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.32429912808804817,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.404138549719742,
@@ -168,12 +201,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
-      "source_path": "../w0b/verification/cases/V001.json",
+      "source_path": "verification/cases/V001.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.417,
@@ -183,12 +216,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4044306252852394,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.8870412642738607,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.404138549719742,
@@ -203,12 +239,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V002",
       "title": "Arai & Tagyo (1985) example 2, three layers",
-      "source_path": "../w0b/verification/cases/V002.json",
+      "source_path": "verification/cases/V002.json",
       "method": "bishop",
       "kind": "search",
       "published": 0.42,
@@ -218,12 +254,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 0.4192993623106625,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.16681849746130475,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 0.41924673522103434,
@@ -238,12 +277,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
-      "source_path": "../w0b/verification/cases/V003.json",
+      "source_path": "verification/cases/V003.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.118,
@@ -253,12 +292,15 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.1140989695524928,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.3489293781312465,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.113030171668033,
@@ -275,12 +317,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
-      "source_path": "../w0b/verification/cases/V003.json",
+      "source_path": "verification/cases/V003.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.118,
@@ -290,12 +332,15 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.1147842183992989,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.28763699469599635,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.1137957118491597,
@@ -312,12 +357,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
-      "source_path": "../w0b/verification/cases/V003.json",
+      "source_path": "verification/cases/V003.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.112,
@@ -327,12 +372,15 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.1140989695524928,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.18875625472056373,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.113030171668033,
@@ -349,12 +397,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V016a",
       "title": "Stepped gabion wall, equivalent cohesion",
-      "source_path": "../w0b/verification/cases/V016a.json",
+      "source_path": "verification/cases/V016a.json",
       "method": "bishop",
       "kind": "fixed",
       "published": 1.787,
@@ -364,12 +412,15 @@
         "slices": 60
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.7910575887624773,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.22706148642850674,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.7904516875757923,
@@ -383,12 +434,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V016a",
       "title": "Stepped gabion wall, equivalent cohesion",
-      "source_path": "../w0b/verification/cases/V016a.json",
+      "source_path": "verification/cases/V016a.json",
       "method": "spencer",
       "kind": "fixed",
       "published": 1.791,
@@ -398,12 +449,15 @@
         "slices": 60
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.7981133357765622,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.39717117680414615,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.7975033634561832,
@@ -417,12 +471,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V016a",
       "title": "Stepped gabion wall, equivalent cohesion",
-      "source_path": "../w0b/verification/cases/V016a.json",
+      "source_path": "verification/cases/V016a.json",
       "method": "bishop",
       "kind": "fixed",
       "published": 1.79,
@@ -432,12 +486,15 @@
         "slices": 60
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.7910575887624773,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.05908317108811741,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.7904516875757923,
@@ -451,12 +508,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
-      "source_path": "../w0b/verification/cases/V019.json",
+      "source_path": "verification/cases/V019.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.38,
@@ -466,12 +523,16 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3987465271238366,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 1.3584439944809228,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.3985164762119062,
@@ -486,12 +547,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
-      "source_path": "../w0b/verification/cases/V019.json",
+      "source_path": "verification/cases/V019.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.383,
@@ -501,12 +562,16 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3986044656290475,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 1.128305540784345,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.3984660017754231,
@@ -521,12 +586,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
-      "source_path": "../w0b/verification/cases/V019.json",
+      "source_path": "verification/cases/V019.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.398,
@@ -536,12 +601,16 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3987465271238366,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.05339965120434302,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.3985164762119062,
@@ -556,12 +625,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
-      "source_path": "../w0b/verification/cases/V019.json",
+      "source_path": "verification/cases/V019.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.401,
@@ -571,12 +640,16 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4011731572980004,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.012359550178471198,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.4009458952830407,
@@ -591,12 +664,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
-      "source_path": "../w0b/verification/cases/V025.json",
+      "source_path": "verification/cases/V025.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.142,
@@ -606,12 +679,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.1328338309728028,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.8026417712081555,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.1323324854828065,
@@ -627,12 +703,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
-      "source_path": "../w0b/verification/cases/V025.json",
+      "source_path": "verification/cases/V025.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.142,
@@ -642,12 +718,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.1329835085118494,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.7895351565806074,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.132501057595271,
@@ -663,12 +742,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V030",
       "title": "Duncan & Wright fig. 14.4",
-      "source_path": "../w0b/verification/cases/V030.json",
+      "source_path": "verification/cases/V030.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.412,
@@ -678,12 +757,13 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4128557104935784,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.06060272617411229,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.4082897847769809,
@@ -696,12 +776,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V030",
       "title": "Duncan & Wright fig. 14.4",
-      "source_path": "../w0b/verification/cases/V030.json",
+      "source_path": "verification/cases/V030.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.4,
@@ -711,12 +791,13 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4027961335411776,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.19972382436983516,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.39885026036924,
@@ -729,12 +810,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V033",
       "title": "Duncan & Wright fig. 14.20a, water table",
-      "source_path": "../w0b/verification/cases/V033.json",
+      "source_path": "verification/cases/V033.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.533,
@@ -744,12 +825,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.5216816826614985,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.73831163330081,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.5208803996979923,
@@ -766,12 +850,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V033",
       "title": "Duncan & Wright fig. 14.20a, water table",
-      "source_path": "../w0b/verification/cases/V033.json",
+      "source_path": "verification/cases/V033.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.529,
@@ -781,12 +865,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.533587520451674,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.3000340386968018,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.532842410752385,
@@ -803,12 +890,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V044",
       "title": "Fredlund & Krahn (1977), dry",
-      "source_path": "../w0b/verification/cases/V044.json",
+      "source_path": "verification/cases/V044.json",
       "method": "bishop",
       "kind": "fixed",
       "published": 2.08,
@@ -818,12 +905,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 2.076559436939828,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.16541168558519964,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 2.075950410565908,
@@ -836,12 +926,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V044",
       "title": "Fredlund & Krahn (1977), dry",
-      "source_path": "../w0b/verification/cases/V044.json",
+      "source_path": "verification/cases/V044.json",
       "method": "spencer",
       "kind": "fixed",
       "published": 2.073,
@@ -851,12 +941,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 2.072768503864773,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.011167203821852097,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 2.0721241844745846,
@@ -869,12 +962,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V044b",
       "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
-      "source_path": "../w0b/verification/cases/V044b.json",
+      "source_path": "verification/cases/V044b.json",
       "method": "bishop",
       "kind": "fixed",
       "published": 1.766,
@@ -884,12 +977,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.7600653613654935,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.3360497528033123,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.759465028340897,
@@ -902,12 +998,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V044b",
       "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
-      "source_path": "../w0b/verification/cases/V044b.json",
+      "source_path": "verification/cases/V044b.json",
       "method": "spencer",
       "kind": "fixed",
       "published": 1.761,
@@ -917,12 +1013,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.758204914301594,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.1587215047362753,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.7575807637887955,
@@ -935,12 +1034,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V045",
       "title": "Fredlund & Krahn (1977), with water table",
-      "source_path": "../w0b/verification/cases/V045.json",
+      "source_path": "verification/cases/V045.json",
       "method": "bishop",
       "kind": "fixed",
       "published": 1.834,
@@ -950,12 +1049,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.8298280566432894,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.2274778275196659,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.8289685369916626,
@@ -969,12 +1071,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V045",
       "title": "Fredlund & Krahn (1977), with water table",
-      "source_path": "../w0b/verification/cases/V045.json",
+      "source_path": "verification/cases/V045.json",
       "method": "spencer",
       "kind": "fixed",
       "published": 1.83,
@@ -984,12 +1086,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.82837133537958,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.08899806668961721,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.8274936104983974,
@@ -1003,12 +1108,12 @@
         ],
         "notes": []
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
-      "source_path": "../w0b/verification/cases/V047a.json",
+      "source_path": "verification/cases/V047a.json",
       "method": "bishop",
       "kind": "search",
       "published": 0.987,
@@ -1018,12 +1123,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 0.9851233619232898,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.19013557008209073,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 0.9850843968056648,
@@ -1036,12 +1144,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
-      "source_path": "../w0b/verification/cases/V047a.json",
+      "source_path": "verification/cases/V047a.json",
       "method": "spencer",
       "kind": "search",
       "published": 0.986,
@@ -1051,12 +1159,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 0.9841420254934197,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.18843554833471782,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 0.9840960685242506,
@@ -1069,12 +1180,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
-      "source_path": "../w0b/verification/cases/V047a.json",
+      "source_path": "verification/cases/V047a.json",
       "method": "bishop",
       "kind": "search",
       "published": 0.992,
@@ -1084,12 +1195,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 0.9851233619232898,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.6932094835393388,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 0.9850843968056648,
@@ -1102,12 +1216,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
-      "source_path": "../w0b/verification/cases/V047a.json",
+      "source_path": "verification/cases/V047a.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.0,
@@ -1117,12 +1231,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 0.9841420254934197,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -1.585797450658033,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 0.9840960685242506,
@@ -1135,12 +1252,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V049",
       "title": "ACADS 1(c), three-layer slope",
-      "source_path": "../w0b/verification/cases/V049.json",
+      "source_path": "verification/cases/V049.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.405,
@@ -1150,12 +1267,13 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4030617776412113,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.137951769308805,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.4029206876627012,
@@ -1168,12 +1286,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V049",
       "title": "ACADS 1(c), three-layer slope",
-      "source_path": "../w0b/verification/cases/V049.json",
+      "source_path": "verification/cases/V049.json",
       "method": "spencer",
       "kind": "search",
       "published": 1.375,
@@ -1183,12 +1301,13 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.372390014049848,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.18981716001105814,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.3721293562548713,
@@ -1201,12 +1320,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V049",
       "title": "ACADS 1(c), three-layer slope",
-      "source_path": "../w0b/verification/cases/V049.json",
+      "source_path": "verification/cases/V049.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.403,
@@ -1216,12 +1335,13 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.4030617776412113,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.0044032531155589,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.4029206876627012,
@@ -1234,12 +1354,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V063",
       "title": "Huang & Jia earth dam, dry",
-      "source_path": "../w0b/verification/cases/V063.json",
+      "source_path": "verification/cases/V063.json",
       "method": "spencer",
       "kind": "search",
       "published": 2.455,
@@ -1249,30 +1369,31 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 2.4512639723149503,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.15218035376984806,
+        "verdict": "OK"
       },
       "cslope": {
-        "fos": null,
-        "status": null,
-        "error": "EngineError: No valid slip surface was found. Check the search limits, the geometry and the material strengths.",
-        "err_pct": null,
-        "verdict": "sin dato",
+        "fos": 2.4510760078738136,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1598367464841726,
+        "verdict": "OK",
         "warnings": [],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato · cSlope sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V063",
       "title": "Huang & Jia earth dam, dry",
-      "source_path": "../w0b/verification/cases/V063.json",
+      "source_path": "verification/cases/V063.json",
       "method": "bishop",
       "kind": "search",
       "published": 2.43,
@@ -1282,30 +1403,101 @@
         "slices": 40
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 2.453013233132842,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.9470466309811376,
+        "verdict": "OK"
       },
       "cslope": {
-        "fos": null,
-        "status": null,
-        "error": "EngineError: No valid slip surface was found. Check the search limits, the geometry and the material strengths.",
-        "err_pct": null,
-        "verdict": "sin dato",
+        "fos": 2.4528412988848878,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.9399711475262393,
+        "verdict": "OK",
         "warnings": [],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato · cSlope sin dato"
+      "estado": "OK"
+    },
+    {
+      "case_id": "V081a",
+      "title": "Sharma (1996) reinforcement example, unreinforced",
+      "source_path": "verification/cases/V081a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.764,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010654450261780106,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.7640742830177856,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": 0.00972290808711507,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7640946291174557,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.012386010138183842,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in sand (c′ = 0, φ′ = 36.0°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 0.727, below 0.764. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V081b",
+      "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+      "source_path": "verification/cases/V081b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.504,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010332446808510639,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5014675558129666,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.16838059754211143,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5011903396958457,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18681252022302555,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in reinforced_zone (c′ = 0, φ′ = 54.9°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.424, below 1.501. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
     },
     {
       "case_id": "V093",
       "title": "Yamagami & Ueta (1988)",
-      "source_path": "../w0b/verification/cases/V093.json",
+      "source_path": "verification/cases/V093.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.344,
@@ -1315,12 +1507,15 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3430681702560037,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.0693325702378285,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.342664197450681,
@@ -1335,12 +1530,46 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
+    },
+    {
+      "case_id": "V097a",
+      "title": "Eurocode 7 cutting with surcharge",
+      "source_path": "verification/cases/V097a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.173,
+      "published_by": "Commercial program B",
+      "tolerance": 0.01042625745950554,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1724678979256493,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.04536249568207387,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1721134187357998,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07558237546464366,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
     },
     {
       "case_id": "V101",
       "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
-      "source_path": "../w0b/verification/cases/V101.json",
+      "source_path": "verification/cases/V101.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.334,
@@ -1350,12 +1579,16 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3339159041527973,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.006304036521950086,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.333679048047886,
@@ -1371,12 +1604,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V101",
       "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
-      "source_path": "../w0b/verification/cases/V101.json",
+      "source_path": "verification/cases/V101.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.34,
@@ -1386,12 +1619,16 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3339159041527973,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.45403700352259846,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.333679048047886,
@@ -1407,12 +1644,12 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
     },
     {
       "case_id": "V101",
       "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
-      "source_path": "../w0b/verification/cases/V101.json",
+      "source_path": "verification/cases/V101.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.343,
@@ -1422,12 +1659,16 @@
         "slices": 50
       },
       "ogs": {
-        "fos": null,
-        "status": null,
-        "error": "binario ogs no encontrado: /home/xodla/archivos/opengeoslide-wt/w1e/target/release/ogs",
-        "engine": null,
-        "err_pct": null,
-        "verdict": "sin dato"
+        "fos": 1.3339159041527973,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.6764032648698965,
+        "verdict": "OK"
       },
       "cslope": {
         "fos": 1.333679048047886,
@@ -1443,7 +1684,385 @@
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
-      "estado": "sin dato"
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.0,
+      "published_by": "Loukidis, Bandini & Salgado",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724374,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.09687772724373822,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.10597041529147866,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724374,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.0031191536026481176,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.005964450840649024,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program B",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724374,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.0031191536026481176,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.005964450840649024,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.991,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020504540867810294,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9912817853686734,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.028434446889344496,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9912271341398147,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.02291969120228835,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.993,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020503524672708964,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9912817853686734,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.17303269197649523,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9912271341398147,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1785363404013418,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.0,
+      "published_by": "Loukidis, Bandini & Salgado",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940153,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.06770058940153145,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.06009637938388934,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940153,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.032267143455002534,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.03986375685924041,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program B",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940153,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.032267143455002534,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.03986375685924041,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020506585612968593,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.986456656872565,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.05504996225278428,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9863543568220496,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06541470901219354,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.988,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02050607287449393,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.986456656872565,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.1562088185662937,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9863543568220496,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.16656307469133108,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
     }
   ]
 }
