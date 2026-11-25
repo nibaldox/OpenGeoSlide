@@ -14,6 +14,9 @@ function menuItems(menu: HTMLElement): HTMLElement[] {
   return Array.from(menu.querySelectorAll<HTMLElement>(ITEM_SELECTOR));
 }
 
+/** Invocadores declarativos (`command` / `commandfor`, Baseline desde dic. 2025). Sin ellos se usa `popovertarget`, con el mismo efecto. */
+const HAS_INVOKERS = typeof HTMLButtonElement !== 'undefined' && 'command' in HTMLButtonElement.prototype;
+
 export function DropdownMenu({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   const base = useId();
   const triggerId = `${base}-trigger`;
@@ -113,8 +116,8 @@ export function DropdownMenu({ label, children, className }: { label: string; ch
         className="dd-trigger"
         aria-expanded={open}
         aria-controls={menuId}
-        // Invocador declarativo (Baseline): el navegador abre y cierra el popover y lo cierra al hacer clic en el botón abierto.
-        {...({ commandfor: menuId, command: 'toggle-popover' } as Record<string, string>)}
+        // Invocador declarativo: el navegador abre y cierra el popover y lo cierra al hacer clic en el botón abierto.
+        {...(HAS_INVOKERS ? ({ commandfor: menuId, command: 'toggle-popover' } as Record<string, string>) : { popoverTarget: menuId })}
         onKeyDown={onTriggerKeyDown}
         onPointerDown={() => {
           keyboardOpen.current = false;
