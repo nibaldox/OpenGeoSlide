@@ -326,6 +326,9 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   en los sumatorios de λ con su propio α (el de la cuerda del arco en el aire), lo que conserva el equilibrio global de
   momentos y la identidad φ = 0. Como el aire no puede transmitir empuje, si un tramo aéreo **interior** (con suelo a
   ambos lados) lleva `|E_gap| > 1e-3·ΣW`, el resultado conserva su estado y añade el **aviso** `"air_gap_thrust"`.
+- **(Enmienda E9c.)** Presupuesto de Spencer: el lazo de punto fijo usa a lo sumo `max_iterations/2`; el resto queda
+  para el amortiguamiento de λ y la bisección. Así se recupera R1-07a (FS 0,746180, λ 0,191570, admisible), que con E8b
+  se perdía por falta de presupuesto.
 - **(Enmienda E7c, revisión R2-03.)** Robustez de Spencer:
   - si un paso de λ produce un polo (`Φᵢ ≤ 1e-9·F`) o `F ≤ 0`, se **amortigua** (`Δλ ← Δλ/2`, hasta 12 veces) antes de
     abortar;
@@ -373,6 +376,20 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
    al espaciado de la grilla. Los pasos se reducen a la mitad cuando no hay mejora; se termina con pasos < 1e-3 ·
    (ancho del modelo) o tras 300 evaluaciones por semilla. Siempre se respetan los rangos.
 4. El resultado es la mejor superficie con su FS, `evaluated` (llamadas a `eval`) y `valid` (`Some`).
+5. **(Enmienda E9a, tras la verificación diferencial con cSlope.)** Candidatos de entrada y salida:
+   - además de los `n_entry` / `n_exit` puntos uniformes, se agregan los **vértices del terreno** (`y_top`) dentro de
+     cada rango, y para cada vértice los puntos `x ± 1e-6·ancho`. Los duplicados (|Δx| < 1e-9·ancho) se eliminan;
+   - el refinamiento parte de las **10** mejores superficies (antes 5), con al menos 2 semillas de pares
+     entrada-salida distintos;
+   - el determinismo serial = parallel se mantiene.
+   - **Motivo:** en el talud de R2-03 (c = 2, φ = 45°, ru = 0,65) la superficie crítica de cSlope sale exactamente en
+     el vértice del pie (15, 15), y la grilla uniforme no lo alcanza. ogs daba Bishop 0,3408 frente a 0,3307 de
+     cSlope (+3,1 %) y Spencer 0,4132 frente a 0,3876 (+6,6 %). Un FS de búsqueda por encima del oráculo es **no
+     conservador**.
+6. **(E9b) Criterio de calidad de búsqueda frente al oráculo:** en los casos diferenciales
+   (`verification/differential/`), el FS de búsqueda de ogs debe cumplir `FS_ogs ≤ FS_cSlope·(1 + 0,01)` con el
+   mismo método, número de dovelas y rangos. Si es menor, ogs es más exhaustivo, lo cual es aceptable. En superficie
+   fija, `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,005`.
 
 ### 4.5 Validación de entrada y reporte (enmienda E4f, revisión R1-05/08/09/10/11)
 - Todos los structs de `model.rs` llevan `#[serde(deny_unknown_fields)]`: **un campo desconocido es un error**, no se
