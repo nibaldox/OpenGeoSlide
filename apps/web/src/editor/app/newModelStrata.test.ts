@@ -5,6 +5,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { openOgsJson, saveOgsJson } from '../../io/ogsJson';
 import { engineRun, deepestPoint, haveEngine } from '../state/engineRun.testutil';
 import { validateLocal } from '../state';
 import { NewSlopeDialog } from './NewSlopeDialog';
@@ -66,6 +67,20 @@ describe('simpleSlope con estrato inferior: geometría', () => {
     const doc = simpleSlope(t2({ lower: undefined }));
     expect(doc.regions).toHaveLength(1);
     expect(doc.materials).toHaveLength(1);
+  });
+});
+
+describe('ida y vuelta (.ogs.json) del talud con estrato inferior', () => {
+  it('guardar y abrir devuelve los mismos materiales, regiones (con el contacto compartido) y piezométrica', () => {
+    const doc = simpleSlope(t2());
+    const back = openOgsJson(saveOgsJson(doc));
+    expect(back.issues.filter((i) => i.severity === 'error')).toEqual([]);
+    expect(back.doc).not.toBeNull();
+    const reopened = back.doc!;
+    expect(reopened.regions).toEqual(doc.regions);
+    expect(reopened.materials).toEqual(doc.materials);
+    expect(reopened.water).toEqual(doc.water);
+    expect(saveOgsJson(reopened)).toBe(saveOgsJson(doc));
   });
 });
 

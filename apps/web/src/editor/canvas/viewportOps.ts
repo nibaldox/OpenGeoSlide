@@ -117,7 +117,7 @@ export function pinchViewport(vp: Viewport, prev: PointerPair, next: PointerPair
 /** Franja, en píxeles, junto al borde del lienzo en la que la vista se desplaza sola mientras se dibuja. */
 export const EDGE_SCROLL_ZONE_PX = 24;
 /** Velocidad máxima del autodesplazamiento, en píxeles por paso (unos 16 ms). */
-export const EDGE_SCROLL_MAX_PX = 14;
+export const EDGE_SCROLL_MAX_PX = 10;
 
 /**
  * Desplazamiento de la vista (dx, dy en píxeles, para `panBy`) cuando el puntero está en (x, y) dentro de un lienzo de

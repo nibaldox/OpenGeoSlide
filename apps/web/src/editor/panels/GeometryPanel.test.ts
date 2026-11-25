@@ -67,7 +67,7 @@ describe('GeometryPanel (render estático)', () => {
     const html = render(createEditorStore(makeDoc()));
     expect(html).toContain('Rejilla de ajuste');
     expect(html).toContain('Sin rejilla');
-    expect(html).toContain('Ajustar a los vértices existentes');
+    expect(html).toContain('Ajustar a los vértices y aristas existentes');
   });
   it('no escribe colores literales', () => {
     expect(render(createEditorStore(makeDoc()))).not.toMatch(/(#[0-9a-fA-F]{3,8}\b|rgba?\()/);

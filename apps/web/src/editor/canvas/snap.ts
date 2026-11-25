@@ -84,6 +84,21 @@ export function snapPoint(raw: Point, ctx: SnapContext): SnapResult {
     if (best !== null) {
       const b: { regionIndex: number; afterIndex: number; point: Point } = best;
       const point: Point = [Number(b.point[0].toPrecision(12)), Number(b.point[1].toPrecision(12))];
+      // Con rejilla, en una arista vertical u horizontal la coordenada libre sigue la rejilla (sin salirse de la arista).
+      const grid = snap.gridStep !== null && snap.gridStep > 0 ? snap.gridStep : null;
+      if (grid !== null) {
+        const poly = doc.regions[b.regionIndex]!.polygon;
+        const p0 = poly[b.afterIndex] as Point;
+        const p1 = poly[(b.afterIndex + 1) % poly.length] as Point;
+        const within = (v: number, lo: number, hi: number): boolean => v >= Math.min(lo, hi) - 1e-12 && v <= Math.max(lo, hi) + 1e-12;
+        if (p0[0] === p1[0]) {
+          const y = snapToGrid(point[1], grid);
+          if (within(y, p0[1], p1[1])) point[1] = y;
+        } else if (p0[1] === p1[1]) {
+          const x = snapToGrid(point[0], grid);
+          if (within(x, p0[0], p1[0])) point[0] = x;
+        }
+      }
       return { point, kind: 'edge', target: null, edge: { regionIndex: b.regionIndex, afterIndex: b.afterIndex }, guides: { x: null, y: null } };
     }
   }

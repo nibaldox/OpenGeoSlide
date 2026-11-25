@@ -164,11 +164,11 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
                   <div className="ep-radios">
                     <label>
                       <input type="radio" name="ns-contact" checked={form.lowerMode === 'depth'} onChange={() => set('lowerMode', 'depth')} />
-                      Profundidad bajo el pie
+                      Dar la profundidad del contacto
                     </label>
                     <label>
                       <input type="radio" name="ns-contact" checked={form.lowerMode === 'elevation'} onChange={() => set('lowerMode', 'elevation')} />
-                      Cota del contacto
+                      Dar la cota del contacto
                     </label>
                   </div>
                   <LabeledField

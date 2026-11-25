@@ -93,4 +93,14 @@ describe('ajuste a aristas (herramientas de trazo)', () => {
   it('a 100 px/m la misma distancia de 0,4 m (40 px) ya no engancha', () => {
     expect(snapPoint([17, 0.4], { doc, vp: { ...VP, scale: 100 }, snap: snapOn, edges: true }).kind).toBe('none');
   });
+  it('con rejilla, en una arista horizontal o vertical la coordenada libre sigue la rejilla y no se sale de la arista', () => {
+    const grid = { ...snapOn, gridStep: 5 };
+    const h = snapPoint([17.4, 0.3], { doc, vp: VP, snap: grid, edges: true });
+    expect(h).toMatchObject({ kind: 'edge', point: [15, 0] });
+    const v = snapPoint([0.2, 12.3], { doc, vp: VP, snap: grid, edges: true }); // arista (0,20)-(0,5) de la región 1
+    expect(v).toMatchObject({ kind: 'edge', point: [0, 10] });
+    // en la arista (0,0)-(60,0) un punto redondeado más allá del extremo conserva la proyección
+    const end = snapPoint([59.9, 0.2], { doc, vp: VP, snap: { ...snapOn, gridStep: 8 }, edges: true });
+    expect(end.point[0]).toBeLessThanOrEqual(60);
+  });
 });

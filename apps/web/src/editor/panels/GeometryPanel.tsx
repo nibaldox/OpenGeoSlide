@@ -219,7 +219,7 @@ function SnapControls({ store, units }: { store: EditorStore; units: string | un
       </label>
       <label className="gp-check">
         <input type="checkbox" checked={snap.vertex} onChange={(e) => store.dispatch({ type: 'ui/snap', patch: { vertex: e.target.checked } })} />
-        Ajustar a los vértices existentes
+        Ajustar a los vértices y aristas existentes
       </label>
       <label className="gp-check">
         <input type="checkbox" checked={snap.axis} onChange={(e) => store.dispatch({ type: 'ui/snap', patch: { axis: e.target.checked } })} />
