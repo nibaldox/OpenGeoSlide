@@ -22,6 +22,7 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "negative_effective_normal",
     "truncated_mass",
     "negative_lambda",
+    "load_outside_mass",
 ];
 
 #[derive(Deserialize)]

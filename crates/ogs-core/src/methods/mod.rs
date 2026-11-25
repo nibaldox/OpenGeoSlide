@@ -49,13 +49,15 @@ pub(crate) fn m_alpha(s: &Slice, fos: f64) -> f64 {
 }
 
 /// Effective normal force of a slice (E4e), from the vertical equilibrium
-/// `N cos α + S sin α = W − ΔX` with `S = (c·l + N'·tan φ)/F`, `N = N' + u·l`, `l = b·sec α`:
+/// `N cos α + S sin α = W* − ΔX` with `S = (c·l + N'·tan φ)/F`, `N = N' + u·l`, `l = b·sec α`:
 ///
-/// `N' = (W − ΔX − u·b − c·l·sin α / F) / m_α`.
+/// `N' = (W* − ΔX − u·b − c·l·sin α / F) / m_α`.
 ///
-/// `delta_x` is the net interslice shear `X_right − X_left`; Bishop has `ΔX = 0`.
+/// `W* = W·(1 + kv) + Q + V` is the vertical force of the slice (E12b; it is `W` without seismic force or loads).
+/// The horizontal force `H` does not appear in the vertical equilibrium: in Bishop it enters only the moment, and in
+/// Spencer it acts through `ΔX = λ·ΔE`. `delta_x` is the net interslice shear `X_right − X_left`; Bishop has `ΔX = 0`.
 pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
-    (s.weight
+    (s.total_weight()
         - delta_x
         - s.pore_pressure * s.width
         - s.cohesion * s.base_length * s.alpha.sin() / fos)
@@ -148,10 +150,11 @@ pub(crate) fn converged_notes(air: bool, normal: Option<&'static str>) -> Vec<&'
     codes
 }
 
-/// Amendment E3: true when the surface has no driving moment (`Σ W·sin α ≤ 1e-6 · Σ W`, or non-finite).
+/// Amendment E3 (with E12b): true when the surface has no driving moment (`Σ [W*·sin α + M] ≤ 1e-6 · Σ W`, or
+/// non-finite). Without seismic force or loads this is `Σ W·sin α ≤ 1e-6 · Σ W`.
 pub(crate) fn lacks_driving(slices: &[Slice]) -> bool {
     let total_w: f64 = slices.iter().map(|s| s.weight).sum();
-    let driving: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
+    let driving: f64 = slices.iter().map(Slice::driving_term).sum();
     !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
 }
 
@@ -250,6 +253,7 @@ mod tests {
             tan_phi: 0.5,
             pore_pressure: 0.0,
             material: 0,
+            ..crate::slicer::ZERO_SLICE
         };
         let long = Slice {
             base_length: 9.0,
@@ -277,6 +281,7 @@ mod tests {
                 tan_phi: 0.5,
                 pore_pressure: 0.0,
                 material: 0,
+                ..crate::slicer::ZERO_SLICE
             })
             .collect();
         negative_normal_message(&s, |k, _| normals[k])

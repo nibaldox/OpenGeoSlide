@@ -1,6 +1,11 @@
 //! Simplified Bishop method (§4.2).
 //!
-//! `F = Σ [(c·b + (W − u·b)·tan φ) / m_α] / Σ W·sin α`, with `m_α = cos α + sin α·tan φ / F`.
+//! `F = Σ [(c·b + (W* − u·b)·tan φ) / m_α] / Σ [W*·sin α + M]`, with `m_α = cos α + sin α·tan φ / F`.
+//!
+//! `W* = W·(1 + kv) + Q + V` is the vertical force of the slice and `M = [kh·W·(yc − ȳ) + H^P·(yc − y_g)] / R` the
+//! moment of the horizontal forces about the circle centre, divided by the radius (amendment E12b, see
+//! `Slice::weight_extra` and `Slice::driving_extra`). The horizontal force does not enter the normal force: it appears
+//! only in the moment. Without seismic force or loads `W* = W` and `M = 0`, which is the §4.2 form.
 //!
 //! Admissible interval (amendment E7b, review R2-02). For each soil slice with `α < 0`,
 //! `m_α(F) ≥ min_m_alpha` holds iff `F ≥ F_adm,i = (−sin α · tan φ) / (cos α − min_m_alpha)`. With
@@ -14,7 +19,7 @@
 //! `Invalid("m_alpha")`. A pole (`m_α ≤ 1e-9`) is never an abort; it is an iterate outside the interval.
 //!
 //! The converged F is checked against `m_α ≥ min_m_alpha` (E4a): otherwise `Invalid("m_alpha")`.
-//! `Invalid` also if `Σ W·sin α ≤ 1e-6 · Σ W` (amendment E3, message `"no_driving"`). `NotConverged` when the
+//! `Invalid` also if `Σ [W*·sin α + M] ≤ 1e-6 · Σ W` (amendments E3 and E12b, message `"no_driving"`). `NotConverged` when the
 //! budget is exhausted; such a value is never reported as converged. Air slices (E2) are not tested.
 //! A converged result whose effective normal forces are negative keeps its status and carries the class
 //! message of E4e and E7d.
@@ -40,9 +45,9 @@ pub(crate) fn start_fos(slices: &[Slice]) -> f64 {
     let mut den = 0.0_f64;
     for s in slices.iter().filter(|s| !is_inert(s)) {
         let (sin, cos) = s.alpha.sin_cos();
-        num += s.cohesion * s.base_length
-            + (s.weight * cos - s.pore_pressure * s.base_length) * s.tan_phi;
-        den += s.weight * sin;
+        let w = s.total_weight();
+        num += s.cohesion * s.base_length + (w * cos - s.pore_pressure * s.base_length) * s.tan_phi;
+        den += w * sin + s.driving_extra;
     }
     let fellenius = num / den;
     if fellenius.is_finite() && fellenius > 0.0 {
@@ -71,7 +76,7 @@ pub(super) fn lower_bound(slices: &[Slice], min_m: f64) -> Option<f64> {
     Some(bound)
 }
 
-/// Right-hand side `g(F) = Σ(c·b + (W − u·b)·tan φ)/m_α / Σ W·sin α`. `None` at a pole (`m_α ≤ 1e-9` or NaN).
+/// Right-hand side `g(F) = Σ(c·b + (W* − u·b)·tan φ)/m_α / Σ [W*·sin α + M]`. `None` at a pole (`m_α ≤ 1e-9` or NaN).
 fn rhs(slices: &[Slice], driving: f64, fos: f64) -> Option<f64> {
     let mut numerator = 0.0_f64;
     for s in slices.iter().filter(|s| !is_inert(s)) {
@@ -80,7 +85,7 @@ fn rhs(slices: &[Slice], driving: f64, fos: f64) -> Option<f64> {
             return None;
         }
         numerator +=
-            (s.cohesion * s.width + (s.weight - s.pore_pressure * s.width) * s.tan_phi) / m;
+            (s.cohesion * s.width + (s.total_weight() - s.pore_pressure * s.width) * s.tan_phi) / m;
     }
     Some(numerator / driving)
 }
@@ -105,7 +110,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
             Some("no_driving"),
         );
     }
-    let driving: f64 = slices.iter().map(|s| s.weight * s.alpha.sin()).sum();
+    let driving: f64 = slices.iter().map(Slice::driving_term).sum();
     let min_m = opts.min_m_alpha;
     let invalid_m = |fos: f64, iterations: usize| {
         MethodResult::new(

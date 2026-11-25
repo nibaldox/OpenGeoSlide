@@ -1,0 +1,303 @@
+{
+  "oracle": "cslope 0.1.0",
+  "case": "V047a",
+  "circle": {
+    "xc": 29.54334963719809,
+    "yc": 53.63784815923435,
+    "r": 28.641487934160704
+  },
+  "slices": 50,
+  "tolerance": 1e-08,
+  "spencer_oracle": "Morgenstern-Price, interslice function constant",
+  "generator": "verification/harness/oracle_seismic_v047a.py",
+  "scenarios": [
+    {
+      "id": "control",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.9850842496014212,
+      "bishop_warnings": [],
+      "spencer": 0.9841002664435649,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kh0.05",
+      "direction": "rtl",
+      "kh": 0.05,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.8787988122842084,
+      "bishop_warnings": [],
+      "spencer": 0.878485518584627,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kh0.1",
+      "direction": "rtl",
+      "kh": 0.1,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.7905864526628563,
+      "bishop_warnings": [],
+      "spencer": 0.7910145778439219,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kh0.2",
+      "direction": "rtl",
+      "kh": 0.2,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.6527103451523532,
+      "bishop_warnings": [
+        "{'code': 'negative-effective-normal', 'message': '1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.', 'count': 1}"
+      ],
+      "spencer": 0.6548299737789531,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kv+0.1",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.1,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.9679870212160038,
+      "bishop_warnings": [],
+      "spencer": 0.9670592657556231,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kv-0.1",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": -0.1,
+      "udls": [],
+      "lines": [],
+      "bishop": 1.0059799328600965,
+      "bishop_warnings": [],
+      "spencer": 1.0049306807483451,
+      "spencer_warnings": []
+    },
+    {
+      "id": "udl20",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [
+        {
+          "id": "u1",
+          "x1": 50.0,
+          "x2": 70.0,
+          "q": 20.0
+        }
+      ],
+      "lines": [],
+      "bishop": 0.9590301880230327,
+      "bishop_warnings": [],
+      "spencer": 0.957715096953006,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line40_0",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 40.0,
+          "p": 20.0,
+          "angle": 0.0
+        }
+      ],
+      "bishop": 0.9836208938785101,
+      "bishop_warnings": [],
+      "spencer": 0.9826689166277398,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line40_10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 40.0,
+          "p": 20.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.9920950646048504,
+      "bishop_warnings": [],
+      "spencer": 0.9910766176667961,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line40_-10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 40.0,
+          "p": 20.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 0.9753135065557469,
+      "bishop_warnings": [],
+      "spencer": 0.9744289534186104,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kh0.2_udl20",
+      "direction": "rtl",
+      "kh": 0.2,
+      "kv": 0.0,
+      "udls": [
+        {
+          "id": "u1",
+          "x1": 50.0,
+          "x2": 70.0,
+          "q": 20.0
+        }
+      ],
+      "lines": [],
+      "bishop": 0.6440324997631472,
+      "bishop_warnings": [],
+      "spencer": 0.6461159953511835,
+      "spencer_warnings": []
+    },
+    {
+      "id": "kh0.1_kv0.05_line40_10",
+      "direction": "rtl",
+      "kh": 0.1,
+      "kv": 0.05,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 40.0,
+          "p": 20.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.7982261449300155,
+      "bishop_warnings": [],
+      "spencer": 0.7985130666908383,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line60_outside",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 60.0,
+          "p": 20.0,
+          "angle": 0.0
+        }
+      ],
+      "bishop": 0.9850842496014212,
+      "bishop_warnings": [],
+      "spencer": 0.9841002664435649,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_control",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.9850842496014518,
+      "bishop_warnings": [],
+      "spencer": 0.9841002664435946,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_kh0.1",
+      "direction": "ltr",
+      "kh": 0.1,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [],
+      "bishop": 0.7905864526628796,
+      "bishop_warnings": [],
+      "spencer": 0.7910145778439454,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_udl20",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [
+        {
+          "id": "u1",
+          "x1": -70.0,
+          "x2": -50.0,
+          "q": 20.0
+        }
+      ],
+      "lines": [],
+      "bishop": 0.9590301880230611,
+      "bishop_warnings": [],
+      "spencer": 0.9577150969530337,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line40_10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -40.0,
+          "p": 20.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 0.9920950646048373,
+      "bishop_warnings": [],
+      "spencer": 0.9910766176667833,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line40_-10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -40.0,
+          "p": 20.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.9753135065557347,
+      "bishop_warnings": [],
+      "spencer": 0.9744289534185984,
+      "spencer_warnings": []
+    }
+  ]
+}
