@@ -563,7 +563,7 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   Los códigos de aviso (`m_alpha`, `pole`, `no_driving`, `negative_effective_normal`,
   `negative_effective_normal_major`, `air_gap_thrust`, `truncated_mass`, `truncated_driving_mass`, `water_above_ground`,
   `effective_width_below_min`, `effective_ends_outside_range`,
-  `load_outside_mass`,
+  `load_outside_mass`, `multiple_admissible_roots`,
   `max_iterations`, `non_finite`, `no_slices`, `no_lambda_root`, `no_admissible_root`, `negative_lambda`) son
   identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
   porque ya no se emiten); agregar uno nuevo exige
