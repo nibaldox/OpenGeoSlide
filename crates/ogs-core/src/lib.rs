@@ -268,13 +268,18 @@ fn analyze_method(
         slice_circle(pm, &circle, n).map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
     let result = solve(&slices, method, opts);
 
-    // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is
-    //    ignored in v0.1.
-    let mut warnings = Vec::new();
+    // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is ignored in v0.1.
+    //    The list is the water note, then the reason of the status (E8d), then the notes of the state, without
+    //    duplicates and in a fixed order.
+    let mut warnings: Vec<String> = Vec::new();
     if water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
     }
-    warnings.extend(result.message);
+    for code in result.message.into_iter().chain(result.warnings) {
+        if !warnings.contains(&code) {
+            warnings.push(code);
+        }
+    }
 
     Ok(MethodReport {
         method,
@@ -318,6 +323,10 @@ fn surface_reason(e: SurfaceError) -> String {
         SurfaceError::OutsideModel => "el arco de deslizamiento sale del modelo".to_string(),
         SurfaceError::TooFewSlices => "número de dovelas insuficiente".to_string(),
         SurfaceError::NoMaterial => "alguna dovela de la base no tiene material".to_string(),
+        SurfaceError::DisconnectedMass => {
+            "la superficie separa la masa de suelo en bloques desconectados (tramo aéreo interior)"
+                .to_string()
+        }
     }
 }
 

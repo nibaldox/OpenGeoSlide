@@ -52,6 +52,39 @@ pub enum SurfaceError {
     TooFewSlices,
     #[error("no material at the base of a slice")]
     NoMaterial,
+    #[error("the sliding surface divides the soil into detached masses")]
+    DisconnectedMass,
+}
+
+/// E8a: a soil block other than the main one, heavier than this fraction of `ΣW`, makes the surface
+/// invalid. A lighter block (a toe lens such as V019's) is accepted.
+const DETACHED_MASS_FRACTION: f64 = 1e-3;
+
+/// E8a. `air[k]` tells whether slice `k` is an air slice. Soil blocks are maximal runs of soil slices;
+/// an interior air run is what separates two of them. The surface is rejected when a block other than
+/// the largest one weighs more than `1e-3·ΣW`. Air runs at the toe or the crest do not separate blocks.
+pub(crate) fn check_connected(slices: &[Slice], air: &[bool]) -> Result<(), SurfaceError> {
+    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let mut blocks: Vec<f64> = Vec::new();
+    let mut current: Option<f64> = None;
+    for (s, &is_air) in slices.iter().zip(air) {
+        if is_air {
+            blocks.extend(current.take());
+        } else {
+            *current.get_or_insert(0.0) += s.weight;
+        }
+    }
+    blocks.extend(current);
+    if blocks.len() < 2 {
+        return Ok(());
+    }
+    blocks.sort_by(|a, b| b.total_cmp(a));
+    let limit = DETACHED_MASS_FRACTION * total_w;
+    if blocks[1..].iter().any(|&w| w > limit) {
+        Err(SurfaceError::DisconnectedMass)
+    } else {
+        Ok(())
+    }
 }
 
 /// Sliding range of the lower arc: its two ground crossings, plus the arc breakpoints.
@@ -131,11 +164,29 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
 /// Slices the circle into `n` uniform divisions plus breakpoints (contract §4.1).
 ///
 /// ORDER: `slices[0]` is the toe slice (exit); `slices[last]` is the crest slice (entry), regardless of sliding direction.
+/// E8a: the surface is rejected with `DisconnectedMass` when an interior air run splits the soil into masses heavier
+/// than `1e-3·ΣW` (see [`check_connected`]).
 pub fn slice_circle(
     pm: &PreparedModel,
     circle: &Circle,
     n: usize,
 ) -> Result<Vec<Slice>, SurfaceError> {
+    let (mut slices, air) = build_slices(pm, circle, n)?;
+    check_connected(&slices, &air)?;
+    // Built left to right; the toe is on the left for RightToLeft and on the right otherwise.
+    if pm.sliding == Sliding::LeftToRight {
+        slices.reverse();
+    }
+    Ok(slices)
+}
+
+/// Builds the slices of `circle` in model order (left to right), with `air[k]` true for air slices, without the
+/// E8a connectivity check. `slice_circle` applies that check; the tests of E2 geometry use this function directly.
+pub(crate) fn build_slices(
+    pm: &PreparedModel,
+    circle: &Circle,
+    n: usize,
+) -> Result<(Vec<Slice>, Vec<bool>), SurfaceError> {
     if n == 0 {
         return Err(SurfaceError::TooFewSlices);
     }
@@ -169,6 +220,7 @@ pub fn slice_circle(
     let mut column = Vec::with_capacity(8);
     let mut scratch = Vec::with_capacity(8);
     let mut slices = Vec::with_capacity(bounds.len() - 1);
+    let mut air_flags = Vec::with_capacity(bounds.len() - 1);
 
     for w in bounds.windows(2) {
         let (xl, xr) = (w[0], w[1]);
@@ -209,6 +261,7 @@ pub fn slice_circle(
                 pore_pressure: 0.0,
                 material: nearest.map_or(0, |&(_, _, mat)| mat),
             });
+            air_flags.push(true);
             continue;
         }
 
@@ -267,16 +320,224 @@ pub fn slice_circle(
             pore_pressure,
             material: mat,
         });
+        air_flags.push(false);
     }
 
     // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
     if !slices.iter().any(|s| s.weight > 0.0) {
         return Err(SurfaceError::AboveGround);
     }
+    // E8a is checked by the caller (`slice_circle`), not here.
+    Ok((slices, air_flags))
+}
 
-    // Built left to right; the toe is on the left for RightToLeft and on the right otherwise.
-    if sliding == Sliding::LeftToRight {
-        slices.reverse();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::Model;
+    use serde_json::{Value, json};
+
+    fn soil(weight: f64) -> Slice {
+        Slice {
+            x_left: 0.0,
+            x_right: 1.0,
+            y_base_left: 0.0,
+            y_base_right: 0.0,
+            y_top_mid: 1.0,
+            width: 1.0,
+            alpha: 0.0,
+            base_length: 1.0,
+            weight,
+            cohesion: 1.0,
+            tan_phi: 0.5,
+            pore_pressure: 0.0,
+            material: 0,
+        }
     }
-    Ok(slices)
+
+    fn air() -> Slice {
+        Slice {
+            weight: 0.0,
+            cohesion: 0.0,
+            tan_phi: 0.0,
+            ..soil(0.0)
+        }
+    }
+
+    /// Soil of weight `w_soil` alone and a lens of total fraction `f` of ΣW, separated by one air slice.
+    fn lens_fraction(f: f64, lens_first: bool) -> Vec<Slice> {
+        let main = 1.0;
+        // lens = f·(main + lens)  ⇒  lens = f·main/(1 − f)
+        let lens = f * main / (1.0 - f);
+        if lens_first {
+            vec![soil(lens), air(), soil(main)]
+        } else {
+            vec![soil(main), air(), soil(lens)]
+        }
+    }
+
+    /// E8a: a lens just below the threshold (0.9e-3·ΣW) is accepted, a lens just above it (1.1e-3·ΣW) is rejected.
+    /// The order of the blocks does not matter.
+    #[test]
+    fn lens_around_the_threshold_is_accepted_or_rejected() {
+        for lens_first in [false, true] {
+            let below = lens_fraction(0.9e-3, lens_first);
+            let air_flags = [false, true, false];
+            assert_eq!(check_connected(&below, &air_flags), Ok(()));
+            let above = lens_fraction(1.1e-3, lens_first);
+            assert_eq!(
+                check_connected(&above, &air_flags),
+                Err(SurfaceError::DisconnectedMass),
+                "lens_first={lens_first}"
+            );
+        }
+    }
+
+    /// E8a: air at the toe or the crest does not separate blocks, and one soil run is always connected.
+    #[test]
+    fn air_at_the_ends_does_not_split_the_mass() {
+        let s = vec![air(), soil(1.0), air()];
+        assert_eq!(check_connected(&s, &[true, false, true]), Ok(()));
+        let one = vec![soil(1.0)];
+        assert_eq!(check_connected(&one, &[false]), Ok(()));
+    }
+
+    /// E8a: with three blocks, every block other than the largest is tested, so the second-largest one decides.
+    #[test]
+    fn every_block_besides_the_main_one_is_tested() {
+        let flags = [false, true, false, true, false];
+        let big_two = vec![soil(0.5), air(), soil(0.3), air(), soil(0.2)];
+        assert_eq!(
+            check_connected(&big_two, &flags),
+            Err(SurfaceError::DisconnectedMass)
+        );
+        let light = vec![soil(0.99), air(), soil(0.0005), air(), soil(0.0005)];
+        // Each light block is 0.0005 ≤ 1e-3·0.9910: accepted.
+        assert_eq!(check_connected(&light, &flags), Ok(()));
+    }
+
+    fn pm_of(polygon: Value, direction: &str) -> PreparedModel {
+        let doc = json!({
+            "format": "opengeoslide",
+            "version": "0.1",
+            "materials": [{
+                "id": "soil", "name": "Soil", "model": "mohr_coulomb",
+                "unit_weight": 20.0, "cohesion": 3.0, "friction_angle": 19.6
+            }],
+            "regions": [{"material": "soil", "polygon": polygon}],
+            "slope": {"direction": direction},
+            "analysis": {}
+        });
+        let model: Model = serde_json::from_value(doc).expect("test model");
+        PreparedModel::new(&model).expect("valid model")
+    }
+
+    /// E2 geometry (moved from `slicer_geometry`, which now expects `DisconnectedMass` for this surface):
+    /// a valley notch whose arc leaves the soil. The notch is air, not an error, and the air slices carry nothing.
+    #[test]
+    fn valley_notch_arc_produces_air_slices_at_the_notch() {
+        let pm = pm_of(
+            json!([
+                [0, 10],
+                [0, 20],
+                [10, 20],
+                [20, 12],
+                [30, 20],
+                [40, 20],
+                [40, 10]
+            ]),
+            "right_to_left",
+        );
+        let c = Circle {
+            xc: 20.0,
+            yc: 60.0,
+            r: 44.0,
+        };
+        let (sl, flags) = build_slices(&pm, &c, 50).expect("the notch is air, not an error (E2)");
+        let air_count = sl.iter().filter(|s| s.weight == 0.0).count();
+        assert!(air_count > 0, "the notch must produce air slices");
+        for (s, &is_air) in sl.iter().zip(&flags) {
+            assert_eq!(is_air, s.weight == 0.0);
+            if is_air {
+                assert_eq!((s.cohesion, s.tan_phi, s.pore_pressure), (0.0, 0.0, 0.0));
+                let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
+                assert!(base_mid >= s.y_top_mid - 1e-9, "air base below the ground");
+            } else {
+                let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
+                assert!(
+                    base_mid < s.y_top_mid,
+                    "soil slice with its base in the air"
+                );
+                assert_eq!(s.cohesion, 3.0);
+            }
+        }
+        assert!(sl[0].weight > 0.0 && sl[sl.len() - 1].weight > 0.0);
+        // The soil lies on both sides of the notch: E8a rejects the surface.
+        assert_eq!(
+            check_connected(&sl, &flags),
+            Err(SurfaceError::DisconnectedMass)
+        );
+    }
+
+    /// E2 geometry (moved from `slicer_geometry`): the circle leaves the flat toe and re-enters the 2:1 face. The air
+    /// slices lie only in that gap, and the summed weight equals the soil area under the arc (independent midpoint
+    /// rule, 400 000 strips, relative tolerance 1e-3). E8a then rejects it: the toe and the face are separate masses.
+    #[test]
+    fn toe_gap_produces_air_slices_and_the_exact_soil_area() {
+        let pm = pm_of(
+            json!([[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]]),
+            "auto",
+        );
+        let c = Circle {
+            xc: 25.0,
+            yc: 44.0,
+            r: 19.5,
+        };
+        let (sl, flags) = build_slices(&pm, &c, 2000).expect("the gap is air (E2)");
+        let air_count = flags.iter().filter(|&&a| a).count();
+        assert!(air_count > 0, "the gap above the ground must be air slices");
+        for (s, &is_air) in sl.iter().zip(&flags) {
+            if !is_air {
+                continue;
+            }
+            assert_eq!((s.cohesion, s.tan_phi, s.pore_pressure), (0.0, 0.0, 0.0));
+            let base_mid = 0.5 * (s.y_base_left + s.y_base_right);
+            assert!(base_mid >= s.y_top_mid - 1e-9);
+            assert!(
+                s.x_left > 29.0 && s.x_right < 31.5,
+                "air only in the gap near the toe: {s:?}"
+            );
+        }
+
+        let terrain = |x: f64| {
+            if x <= 30.0 {
+                25.0
+            } else if x <= 50.0 {
+                25.0 + (x - 30.0) / 2.0
+            } else {
+                35.0
+            }
+        };
+        let arc = |x: f64| c.yc - (c.r * c.r - (x - c.xc).powi(2)).max(0.0).sqrt();
+        let (x0, x1) = (20.0_f64.max(c.xc - c.r), c.xc + c.r);
+        let strips = 400_000;
+        let h = (x1 - x0) / strips as f64;
+        let exact: f64 = (0..strips)
+            .map(|i| {
+                let x = x0 + (i as f64 + 0.5) * h;
+                (terrain(x) - arc(x)).max(0.0)
+            })
+            .sum::<f64>()
+            * h;
+        let sum_w_over_gamma: f64 = sl.iter().map(|s| s.weight / 20.0).sum();
+        let rel = (sum_w_over_gamma - exact).abs() / exact;
+        assert!(
+            rel < 1e-3,
+            "sum W/γ = {sum_w_over_gamma}, exact = {exact}, rel = {rel}"
+        );
+        assert_eq!(
+            check_connected(&sl, &flags),
+            Err(SurfaceError::DisconnectedMass)
+        );
+    }
 }

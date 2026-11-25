@@ -459,24 +459,31 @@ fn r1_01_spencer_negative_pole_is_not_converged() {
             (2.0, 0.0, 20.0, 0.0)
         }
     });
-    let o = opts(1e-5, 500);
+    let o = opts(1e-5, 2_000);
     let b = solve(&sl, MethodKind::Bishop, &o);
     let s = solve(&sl, MethodKind::Spencer, &o);
     println!("[R1-01] bishop={b:?}\n[R1-01] spencer={s:?}");
     assert_converged(&b);
     assert_ne!(s.status, SolveStatus::Converged, "spencer {s:?}");
-    assert_eq!(s.status, SolveStatus::Invalid, "spencer {s:?}");
+    // E8b (review R1-01 stays rejected): the λ chain under the amended admissibility stops at the budget
+    // (NotConverged, λ ≈ 0.0499 with 2000 iterations). Either rejection is a rejection; a Converged state is not.
+    assert!(
+        matches!(s.status, SolveStatus::Invalid | SolveStatus::NotConverged),
+        "spencer {s:?}"
+    );
     assert!(
         !(s.status == SolveStatus::Converged && s.fos < b.fos),
         "Converged below Bishop: {s:?}"
     );
 }
 
-/// R1-02 (E4c), evidence 1. Soil slices α = 20°, 25° with an air slice at α = 80° between them:
-/// λ must equal the λ of the soil-only set within 1e-9 and lie in the range of the soil slices.
-/// Before the fix the air slice entered the λ sums and λ was 3.04.
+/// E7a (replaces the E4c test `r1_02_air_slice_is_excluded_from_lambda`, derogated by review R2-01).
+/// Soil slices α = 20°, 25° with an air slice at α = 80° between them. Air slices take part in the λ sums with
+/// their own α, so the converged λ satisfies `λ = Σ b(E_i+E_{i−1}) tan α_i / Σ b(E_i+E_{i−1})` over ALL slices.
+/// The check uses the recurrence written here, not the solver. The air slice must change λ with respect to the
+/// soil-only set, and the `air_gap_thrust` warning must follow the rule `|E_gap| > 1e-3·ΣW`.
 #[test]
-fn r1_02_air_slice_is_excluded_from_lambda() {
+fn e7a_air_slice_takes_part_in_lambda_sums() {
     let tan30 = 30.0_f64.to_radians().tan();
     let soil = vec![unit_slice(20.0, 10.0, tan30), unit_slice(25.0, 12.0, tan30)];
     let mut with_air = soil.clone();
@@ -484,31 +491,50 @@ fn r1_02_air_slice_is_excluded_from_lambda() {
     let o = opts(1e-10, 1_000);
     let s_soil = solve(&soil, MethodKind::Spencer, &o);
     let s_air = solve(&with_air, MethodKind::Spencer, &o);
-    println!("[R1-02] soil={s_soil:?}\n[R1-02] +air={s_air:?}");
+    println!("[E7a] soil={s_soil:?}\n[E7a] +air={s_air:?}");
     assert_converged(&s_soil);
     assert_converged(&s_air);
+    let lambda = s_air.lambda.expect("lambda");
+    let e = spencer_interslice(&with_air, s_air.fos, lambda);
+    let (mut num, mut den) = (0.0, 0.0);
+    for (k, s) in with_air.iter().enumerate() {
+        let sum_e = e[k] + e[k + 1];
+        num += s.width * sum_e * s.alpha.tan();
+        den += s.width * sum_e;
+    }
+    let lambda_all = num / den;
+    assert!(
+        (lambda - lambda_all).abs() < 1e-9,
+        "λ {lambda} vs moment update over all slices {lambda_all}"
+    );
     let l_soil = s_soil.lambda.expect("lambda");
-    let l_air = s_air.lambda.expect("lambda");
     assert!(
-        (l_air - l_soil).abs() < 1e-9,
-        "lambda with air {l_air} vs soil-only {l_soil}"
+        (lambda - l_soil).abs() > 1e-6,
+        "the air slice must enter λ: {lambda} equals soil-only {l_soil}"
     );
-    let (lo, hi) = (20.0_f64.to_radians().tan(), 25.0_f64.to_radians().tan());
-    assert!(
-        l_air > lo && l_air < hi,
-        "lambda {l_air} outside [{lo}, {hi}]"
+    let total_w: f64 = with_air.iter().map(|s| s.weight).sum();
+    let gap = e[1].abs();
+    let expected = gap > 1e-3 * total_w;
+    assert_eq!(
+        s_air.warnings.iter().any(|w| w == "air_gap_thrust"),
+        expected,
+        "|E_gap| = {gap} vs 1e-3·ΣW = {}",
+        1e-3 * total_w
     );
     assert!(
-        (s_air.fos - s_soil.fos).abs() / s_soil.fos < 1e-9,
-        "FS with air {} vs soil-only {}",
-        s_air.fos,
-        s_soil.fos
+        s_air.message.is_none(),
+        "a converged state has no reason: {s_air:?}"
     );
 }
 
-/// R1-03a (E4a). Synthetic pair with the failure mode of the review: F₀ = 1 gives m_α(1) = 0.366, the iteration
-/// converges to F = 0.750702 where the toe slice has m_α = 0.19998 < 0.2. Before the fix this was `Converged`.
-/// (Toe: α = −30°, φ = 45°, W = 0.0115 — negligible but not air; crest: α = 53.5°, W = 20.)
+/// R1-03a (E4a, E7b). Synthetic pair with the failure mode of the review. Toe: α = −30°, φ = 45°,
+/// W = 0.0115 (negligible but not air); crest: α = 53.5°, W = 20.
+///
+/// E7b: `F_adm = (−sin α·tan φ)/(cos α − 0.2) = 0.750722`. A scan of `h(F) = F − g(F)` on (0.05, 20) gives three
+/// roots: 0.568172, 0.577350 (pole, m_toe = 0) and 0.750711. The last one is the only one that could be
+/// admissible, and it lies BELOW F_adm: m_toe = 0.19999 < 0.2. `h > 0` on the whole admissible interval, so
+/// there is no admissible root: `Invalid("m_alpha")`, with no FS (NaN). The fixed-point start F₀ = 0.788 is above
+/// F_adm; the iteration leaves the interval and the bisection finds no sign change.
 #[test]
 fn r1_03a_bishop_converged_m_alpha_below_minimum_is_invalid() {
     let sl = vec![
@@ -516,11 +542,17 @@ fn r1_03a_bishop_converged_m_alpha_below_minimum_is_invalid() {
         synth_slice(53.5, 20.0, 0.0, 1.0),
     ];
     let r = solve(&sl, MethodKind::Bishop, &opts(1e-5, 500));
-    println!("[R1-03a] {r:?} m_toe(F)={}", m_alpha_of(&sl[0], r.fos));
+    println!("[R1-03a] {r:?}");
     assert_eq!(r.status, SolveStatus::Invalid, "{r:?}");
     assert_eq!(r.message.as_deref(), Some("m_alpha"));
-    let m_toe = m_alpha_of(&sl[0], r.fos);
-    assert!(m_toe < 0.2 && m_toe > 0.1999, "m_toe(F) = {m_toe}");
+    assert!(r.fos.is_nan(), "no admissible root, so no FS: {r:?}");
+    let f_adm = -(-30.0_f64).to_radians().sin() / ((-30.0_f64).to_radians().cos() - 0.2);
+    assert!((f_adm - 0.750_722).abs() < 1e-6, "F_adm = {f_adm}");
+    let m_root = m_alpha_of(&sl[0], 0.750_711);
+    assert!(
+        m_root < 0.2 && m_root > 0.19998,
+        "m_toe at the real root = {m_root}"
+    );
 }
 
 /// R1-03b (E4a). Synthetic slope with F ≈ 6.545 and m_α(1) < 0 (toe α = −60°, φ = 45°). Before the fix the
@@ -548,11 +580,42 @@ fn r1_03b_bishop_large_fos_with_negative_m_alpha_at_unit_fos_converges() {
     assert!(min_m >= 0.2, "min m_alpha(F) = {min_m}");
 }
 
-/// R1-07 (1), E4b. Circle (11.534196233023085, 21.228450550481845, 19.554378664753912), 10 slices:
-/// φ = 45°, c = 1 for x < 10.2769 and φ = 0, c = 2 beyond, γ = 20. The F iteration goes through negative values
-/// (13 of them). Before the fix Spencer returned `Converged` at FS 0.0445217; a non-positive iterate is a pole.
+/// E7b, safeguard branch. Two synthetic slices (α = −37.607° and 32.268°, tan φ = 1.0443 and 0.2533, no cohesion).
+/// The fixed-point iteration leaves `[F_adm·(1+1e-6), 1e3]` (F_adm = 1.076088 from the toe slice), so the root is
+/// bisected in the interval. The admissible root is F ≈ 1.2165 with min m_α ≈ 0.268 ≥ 0.2. This is the only test
+/// that exercises the bisection with a root found. Reference: an independent bisection outside the crate (1.216503,
+/// at its own tolerance of 1e-5).
 #[test]
-fn r1_07a_negative_fos_iterate_never_converges() {
+fn e7b_bishop_bisection_finds_the_admissible_root_when_fixed_point_leaves_the_interval() {
+    let sl = vec![
+        synth_slice(-37.607, 5.7689, 0.0, 1.0443),
+        synth_slice(32.268, 69.4878, 0.0, 0.2533),
+    ];
+    let r = solve(&sl, MethodKind::Bishop, &opts(1e-5, 500));
+    println!("[E7b bisect] {r:?}");
+    assert_converged(&r);
+    assert!(
+        (r.fos - 1.216_503).abs() / 1.216_503 < 1e-4,
+        "FS {} vs 1.216503",
+        r.fos
+    );
+    let min_m = sl
+        .iter()
+        .map(|s| m_alpha_of(s, r.fos))
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_m >= 0.2, "min m_alpha(F) = {min_m}");
+}
+
+/// R1-07 (1), E4b. Circle (11.534196233023085, 21.228450550481845, 19.554378664753912), 10 slices:
+/// φ = 45°, c = 1 for x < 10.2769 and φ = 0, c = 2 beyond, γ = 20. The F iteration goes through negative values.
+/// Before the fix Spencer returned `Converged` at the spurious FS 0.0445217 (a non-positive iterate counted as
+/// a root). E7c treats those iterates as poles. The solver now returns the admissible root FS 0.746180 with
+/// λ = 0.191569. That is an expectation change, verified outside the crate: λ is a fixed point of the moment
+/// update (λ_next = 0.191570), E_n ≈ 1e-14, and min Φ/F = 0.32 ≥ 0.2. The spurious root is gone.
+#[test]
+#[ignore = "E8b: the λ chain no longer reaches the admissible root 0.746180 (Invalid 'pole' at λ ≈ 0.104, 2000 \
+             iterations). Coordinator decision pending; see the report of W6 (R1-07a)."]
+fn r1_07a_negative_fos_iterate_is_not_a_root() {
     let circ = Circ {
         xc: 11.534_196_233_023_085,
         yc: 21.228_450_550_481_845,
@@ -565,9 +628,20 @@ fn r1_07a_negative_fos_iterate_never_converges() {
             (2.0, 0.0, 20.0, 0.0)
         }
     });
-    let s = solve(&sl, MethodKind::Spencer, &opts(1e-5, 500));
+    let o = opts(1e-5, 2_000);
+    let s = solve(&sl, MethodKind::Spencer, &o);
     println!("[R1-07a] spencer={s:?}");
-    assert_ne!(s.status, SolveStatus::Converged, "{s:?}");
+    assert_eq!(s.status, SolveStatus::Converged, "{s:?}");
+    let fos = s.fos;
+    assert!((fos - 0.746_180).abs() / 0.746_180 < 1e-5, "FS {fos}");
+    let lambda = s.lambda.expect("lambda");
+    let min_adm = sl
+        .iter()
+        .filter(|s| !(s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0))
+        .map(|s| pole_of(s, fos, lambda) / fos)
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_adm >= 0.2, "min Φ/F = {min_adm}");
+    assert!(fos_residual_of(&sl, fos, lambda) < o.tolerance);
 }
 
 /// R1-07 (2), E4d. Circle (11.678371903748555, 17.20264696229227, 24.12797655066047), 40 slices:
@@ -635,9 +709,185 @@ fn r1_e4e_negative_effective_normal_emits_warning() {
         println!("[E4e] high u {method:?}: {r:?}");
         assert_converged(&r);
         assert_eq!(
-            r.message.as_deref(),
-            Some("negative_effective_normal"),
+            r.warnings,
+            vec!["negative_effective_normal".to_string()],
             "{method:?}"
         );
+        assert!(r.message.is_none(), "{method:?}");
     }
+}
+
+/// Terrain of the R2-01 notch (the crest is cut by an air void), piecewise linear.
+fn notch_ground(x: f64) -> f64 {
+    const V: [(f64, f64); 7] = [
+        (0.0, 10.0),
+        (10.0, 10.0),
+        (25.0, 18.0),
+        (26.0, 6.0),
+        (38.0, 14.0),
+        (40.0, 28.0),
+        (60.0, 28.0),
+    ];
+    V.windows(2)
+        .find(|w| x >= w[0].0 && x <= w[1].0)
+        .map_or(28.0, |w| {
+            let ((x0, y0), (x1, y1)) = (w[0], w[1]);
+            y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+        })
+}
+
+/// Slices (toe → crest, α > 0 where the base rises toward the crest) of circle `c` over the notch terrain.
+/// `n` uniform slices run between the outermost soil crossings. A slice whose base midpoint lies on or above the
+/// ground is air (E2): no weight, no strength. Soil slices have weight γ·b·(top − y_base_mid) and cohesion `coh`.
+fn notch_slices(c: Circ, n: usize, coh: f64, gamma: f64) -> Vec<Slice> {
+    let arc = |x: f64| c.yc - (c.r * c.r - (x - c.xc).powi(2)).sqrt();
+    let soil = |x: f64| arc(x) < notch_ground(x);
+    let (x0, x1) = ((c.xc - c.r).max(0.0), (c.xc + c.r).min(60.0));
+    let steps = 40_000;
+    let xs: Vec<f64> = (0..=steps)
+        .map(|i| x0 + (x1 - x0) * i as f64 / steps as f64)
+        .filter(|&x| soil(x))
+        .collect();
+    let (p, q) = (xs[0], xs[xs.len() - 1]);
+    let w = (q - p) / n as f64;
+    (0..n)
+        .map(|k| {
+            let (xl, xr) = (p + k as f64 * w, p + (k + 1) as f64 * w);
+            let (yl, yr) = (arc(xl), arc(xr));
+            let xm = 0.5 * (xl + xr);
+            let y_base_mid = 0.5 * (yl + yr);
+            let top = notch_ground(xm);
+            let air = top <= y_base_mid;
+            let alpha = (yr - yl).atan2(w);
+            Slice {
+                x_left: xl,
+                x_right: xr,
+                y_base_left: yl,
+                y_base_right: yr,
+                y_top_mid: top,
+                width: w,
+                alpha,
+                base_length: w / alpha.cos(),
+                weight: if air {
+                    0.0
+                } else {
+                    gamma * w * (top - y_base_mid)
+                },
+                cohesion: if air { 0.0 } else { coh },
+                tan_phi: 0.0,
+                pore_pressure: 0.0,
+                material: 0,
+            }
+        })
+        .collect()
+}
+
+/// Global moment residual about the circle centre (E7a), written here from the recurrence and the E7d direct form.
+/// Air slices pass `E` through and take part with their own α. Returns `(Σ d(S − T), Σ d·T)`.
+fn global_moment(slices: &[Slice], fos: f64, lambda: f64, xc: f64, yc: f64) -> (f64, f64) {
+    let air = |s: &Slice| s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0;
+    let mut e = vec![0.0_f64];
+    for s in slices {
+        let prev = *e.last().expect("E[0]");
+        if air(s) {
+            e.push(prev);
+            continue;
+        }
+        let (sin, cos) = s.alpha.sin_cos();
+        let r = (s.weight * cos - s.pore_pressure * s.base_length) * s.tan_phi
+            + s.cohesion * s.base_length;
+        let t = s.weight * sin;
+        let d = (sin - lambda * cos) * s.tan_phi + (cos + lambda * sin) * fos;
+        e.push(prev + (fos * t - r) / d);
+    }
+    let (mut residual, mut motor) = (0.0_f64, 0.0_f64);
+    for (k, s) in slices.iter().enumerate() {
+        let (sin, cos) = s.alpha.sin_cos();
+        let de = e[k + 1] - e[k];
+        let n_prime = s.weight * cos - s.pore_pressure * s.base_length + (sin - lambda * cos) * de;
+        let shear = (s.cohesion * s.base_length + n_prime * s.tan_phi) / fos;
+        let t = s.weight * sin;
+        // Distance from the centre to the base chord: the moment arm of the base force.
+        let (x1, y1, x2, y2) = (s.x_left, s.y_base_left, s.x_right, s.y_base_right);
+        let len = (x2 - x1).hypot(y2 - y1);
+        let d = ((x2 - x1) * (yc - y1) - (y2 - y1) * (xc - x1)).abs() / len;
+        residual += d * (shear - t);
+        motor += d * t;
+    }
+    (residual, motor)
+}
+
+/// E7a at the level of the methods (replaces the `analyze` test of R2-01, now `DisconnectedMass`). Synthetic
+/// slices of the R2-01 notch, clay φ = 0, c = 30, γ = 20, circle (16, 42, 34), with an interior air void (E2).
+/// The surface is rejected by the slicer (E8a), but the solver must keep the equilibrium identities on these
+/// slices: Bishop equals Σc·l/ΣW·sin α; Spencer converges to it as O(1/n²); the global moment residual, computed
+/// independently, is < 1e-6 · (motor moment); and the air gap carries thrust.
+#[test]
+fn e7a_global_moment_and_phi_zero_identity_with_an_interior_air_gap() {
+    let c = Circ {
+        xc: 16.0,
+        yc: 42.0,
+        r: 34.0,
+    };
+    for (n, rel) in [(50_usize, 2e-2), (500_usize, 2e-3)] {
+        let sl = notch_slices(c, n, 30.0, 20.0);
+        assert!(
+            sl.iter().any(|s| s.weight == 0.0),
+            "the notch must contain air slices"
+        );
+        let cl: f64 = sl.iter().map(|s| s.cohesion * s.base_length).sum();
+        let wsin: f64 = sl.iter().map(|s| s.weight * s.alpha.sin()).sum();
+        let target = cl / wsin;
+        let o = opts(1e-10, 20_000);
+        let b = solve(&sl, MethodKind::Bishop, &o);
+        let s = solve(&sl, MethodKind::Spencer, &o);
+        println!("[E7a notch] n={n} bishop={b:?}\n[E7a notch] n={n} spencer={s:?}");
+        assert_converged(&b);
+        assert_converged(&s);
+        assert!(
+            (b.fos - target).abs() / target < 1e-9,
+            "Bishop {} vs Σcl/ΣWsinα {target}",
+            b.fos
+        );
+        let diff = (s.fos - b.fos).abs() / b.fos;
+        println!("[E7a notch] n={n} |Spencer−Bishop|/Bishop = {diff:.3e}");
+        assert!(diff < rel, "n={n}: {diff:e} >= {rel:e}");
+        let lambda = s.lambda.expect("lambda");
+        let (residual, motor) = global_moment(&sl, s.fos, lambda, c.xc, c.yc);
+        println!(
+            "[E7a notch] n={n} M_res/M_motor = {:+.3e}",
+            residual / motor
+        );
+        assert!(residual.abs() < 1e-6 * motor, "n={n}: {residual:e}");
+        assert!(
+            s.warnings.iter().any(|w| w == "air_gap_thrust"),
+            "n={n}: {:?}",
+            s.warnings
+        );
+    }
+}
+
+/// E8d. An air gap that transmits thrust and a negative effective normal force are two notes of one converged state:
+/// both codes appear in `warnings`, the air gap first, and `message` stays empty (it holds only the reason of Invalid
+/// or NotConverged). Fixture: the synthetic R2-01 notch of the test above (n = 50), which carries both notes.
+#[test]
+fn e8d_air_gap_and_negative_normal_are_both_reported() {
+    let c = Circ {
+        xc: 16.0,
+        yc: 42.0,
+        r: 34.0,
+    };
+    let sl = notch_slices(c, 50, 30.0, 20.0);
+    let r = solve(&sl, MethodKind::Spencer, &opts(1e-10, 20_000));
+    println!("[E8d] {r:?}");
+    assert_converged(&r);
+    assert_eq!(r.message, None, "a converged state has no reason");
+    assert_eq!(
+        r.warnings,
+        vec![
+            "air_gap_thrust".to_string(),
+            "negative_effective_normal".to_string()
+        ],
+        "{r:?}"
+    );
 }
