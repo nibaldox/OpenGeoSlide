@@ -8,6 +8,10 @@ license.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# Exposes `panicForTests` for the panic-path smoke test. Off by default; not used by the web build.
+test-hooks = []
+
 [dependencies]
 ogs-core = { path = "../ogs-core" }
 # Must match the wasm-bindgen CLI installed on the machine (0.2.130).
