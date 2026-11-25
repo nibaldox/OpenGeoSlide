@@ -13,7 +13,7 @@ const modelJson = JSON.stringify(acads1a.model);
  */
 function fakeWorker(delays: number[]): PortLike {
   const dispatch = createDispatcher(async () => ({ engine: createMockEngine(), fallbackReason: 'prueba' }));
-  const listeners: ((event: { data: unknown }) => void)[] = [];
+  const listeners: ((event: { data?: unknown }) => void)[] = [];
   let counter = 0;
   return {
     postMessage(request: Request) {
@@ -22,8 +22,8 @@ function fakeWorker(delays: number[]): PortLike {
         setTimeout(() => listeners.forEach((l) => l({ data: response })), delay);
       });
     },
-    addEventListener(_type, listener) {
-      listeners.push(listener);
+    addEventListener(type, listener) {
+      if (type === 'message') listeners.push(listener);
     },
   };
 }

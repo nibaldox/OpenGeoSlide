@@ -114,8 +114,8 @@ function portFor(engine: Engine): PortLike {
     postMessage(request: Request) {
       void dispatch(request).then((response) => listeners.forEach((listener) => listener({ data: response })));
     },
-    addEventListener(_type, listener) {
-      listeners.push(listener);
+    addEventListener(type, listener) {
+      if (type === 'message') listeners.push(listener);
     },
   };
 }
