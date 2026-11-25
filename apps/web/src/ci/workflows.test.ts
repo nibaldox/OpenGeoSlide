@@ -86,6 +86,16 @@ describe('wheels.yml: adjuntar wheels a un Release existente y scripts .sh (F1-R
     expect(assets).toContain('seq 1 60');
   });
 
+  it('los checkout de los jobs wheels y sdist construyen el tag cuando viene release_tag', () => {
+    const wheels = wf('wheels.yml');
+    for (const job of ['wheels', 'sdist']) {
+      const block = jobBlock(wheels, job);
+      const checkouts = [...block.matchAll(/uses: actions\/checkout@v\d+\n((?:\s{8,}.*\n)*)/g)];
+      expect(checkouts, job).toHaveLength(1);
+      expect(checkouts[0][1], job).toContain('ref: ${{ inputs.release_tag || github.ref }}');
+    }
+  });
+
   it('PyPI sigue con su guarda: solo push de tag v* y vars.PYPI_PUBLISH, nunca por release_tag', () => {
     const publish = jobBlock(wf('wheels.yml'), 'publish');
     expect(publish).toContain("vars.PYPI_PUBLISH == 'true'");

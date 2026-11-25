@@ -48,6 +48,9 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-msvc, smoke: true }
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Con release_tag (dispatch desde main) se construye el código del tag, no el de main.
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
@@ -91,6 +94,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Con release_tag (dispatch desde main) se construye el código del tag, no el de main.
+          ref: ${{ inputs.release_tag || github.ref }}
       - name: Copiar LICENSE y NOTICE junto a pyproject.toml
         run: bash crates/ogs-py/scripts/prepare-license-files.sh
       - uses: PyO3/maturin-action@v1
