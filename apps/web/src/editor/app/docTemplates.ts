@@ -1,5 +1,6 @@
 // Modelos de partida del editor: documento nuevo y apertura de un caso publicado como modelo.
 
+import { exampleTitle } from '../../examples/exampleTitles';
 import type { VerificationCase } from '../../engine/types';
 import { openOgsJson } from '../../io/ogsJson';
 import type { Issue, ModelDoc } from '../types';
@@ -63,5 +64,9 @@ export function newDoc(): ModelDoc {
 /** Abre el modelo de un caso de verificación (descarta sus `checks`). Devuelve `null` si el modelo no es válido. */
 export function docFromCase(caseData: VerificationCase): { doc: ModelDoc; issues: Issue[] } | null {
   const opened = openOgsJson(JSON.stringify(caseData.model));
-  return opened.doc ? { doc: opened.doc, issues: opened.issues } : null;
+  if (!opened.doc) return null;
+  // UX9-04: el título que se muestra es el nombre en español del ejemplo; el archivo del caso no cambia.
+  const title = exampleTitle(caseData.id, opened.doc.meta?.title ?? caseData.title);
+  const doc = title === opened.doc.meta?.title ? opened.doc : { ...opened.doc, meta: { ...opened.doc.meta, title } };
+  return { doc, issues: opened.issues };
 }

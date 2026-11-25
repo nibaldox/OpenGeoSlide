@@ -49,7 +49,7 @@ describe('calcAnnouncement', () => {
   });
   it('sin avisos no añade el recuento y un método sin convergencia no lleva FS', () => {
     expect(calcAnnouncement(report(result('bishop', 1.2), result('spencer', null)))).toBe(
-      'Cálculo completado: Bishop FS 1,2; Spencer sin convergencia',
+      'Cálculo completado: Bishop FS 1,200; Spencer sin convergencia',
     );
   });
 });

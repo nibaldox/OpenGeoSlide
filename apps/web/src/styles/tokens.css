@@ -69,7 +69,7 @@
   --canvas-band-exit: rgb(234 88 12 / 0.35);
   /* Lienzo: dovelas */
   --canvas-slice-fill: rgb(71 85 105 / 0.16);
-  --canvas-slice-edge: rgb(71 85 105 / 0.55);
+  --canvas-slice-edge: rgb(30 41 59 / 0.65);
   /* Lienzo: tiradores */
   --canvas-handle-fill: #ffffff;
   --canvas-handle-sel: #f59e0b;
@@ -137,7 +137,7 @@
     --canvas-band-entry: rgb(74 222 128 / 0.35);
     --canvas-band-exit: rgb(251 146 60 / 0.35);
     --canvas-slice-fill: rgb(203 213 225 / 0.16);
-    --canvas-slice-edge: rgb(203 213 225 / 0.45);
+    --canvas-slice-edge: rgb(226 232 240 / 0.7);
     --canvas-handle-fill: #0f172a;
     --canvas-handle-sel: #d97706;
     --canvas-handle-snap: #15803d;
@@ -201,7 +201,7 @@
     --canvas-band-entry: light-dark(rgb(22 163 74 / 0.35), rgb(74 222 128 / 0.35));
     --canvas-band-exit: light-dark(rgb(234 88 12 / 0.35), rgb(251 146 60 / 0.35));
     --canvas-slice-fill: light-dark(rgb(71 85 105 / 0.16), rgb(203 213 225 / 0.16));
-    --canvas-slice-edge: light-dark(rgb(71 85 105 / 0.55), rgb(203 213 225 / 0.45));
+    --canvas-slice-edge: light-dark(rgb(30 41 59 / 0.65), rgb(226 232 240 / 0.7));
     --canvas-handle-fill: light-dark(#ffffff, #0f172a);
     --canvas-handle-sel: light-dark(#f59e0b, #d97706);
     --canvas-handle-snap: light-dark(#16a34a, #15803d);
@@ -273,7 +273,7 @@ html[data-theme='dark'] {
     --canvas-band-entry: rgb(22 163 74 / 0.35);
     --canvas-band-exit: rgb(234 88 12 / 0.35);
     --canvas-slice-fill: rgb(71 85 105 / 0.16);
-    --canvas-slice-edge: rgb(71 85 105 / 0.55);
+    --canvas-slice-edge: rgb(30 41 59 / 0.65);
     --canvas-handle-fill: #ffffff;
     --canvas-handle-sel: #f59e0b;
     --canvas-handle-snap: #16a34a;
@@ -335,7 +335,7 @@ html[data-theme='dark'] {
     --canvas-band-entry: rgb(74 222 128 / 0.35);
     --canvas-band-exit: rgb(251 146 60 / 0.35);
     --canvas-slice-fill: rgb(203 213 225 / 0.16);
-    --canvas-slice-edge: rgb(203 213 225 / 0.45);
+    --canvas-slice-edge: rgb(226 232 240 / 0.7);
     --canvas-handle-fill: #0f172a;
     --canvas-handle-sel: #d97706;
     --canvas-handle-snap: #15803d;

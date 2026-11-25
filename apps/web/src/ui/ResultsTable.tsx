@@ -1,6 +1,7 @@
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
 import { describeWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
+import { formatFs } from './formatFs';
 
 export const METHOD_LABELS: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
@@ -49,7 +50,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
   const avisos = methodWarnings(report, 'aviso');
   return (
     <div className="results">
-      <table>
+      <table data-results-table tabIndex={-1}>
         <caption className="visually-hidden">Resultados del análisis por método</caption>
         <thead>
           <tr>
@@ -67,7 +68,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
           {report.results.map((r) => (
             <tr key={r.method} className={r.status !== 'converged' ? 'row-warn' : undefined}>
               <td>{METHOD_LABELS[r.method]}</td>
-              <td className="num">{formatNumber(convergedFos(r))}</td>
+              <td className="num">{formatFs(convergedFos(r))}</td>
               <td>{STATUS_LABELS[r.status]}</td>
               <td className="num">{r.iterations}</td>
               <td className="num">{formatNumber(r.status === 'converged' ? r.lambda : null)}</td>

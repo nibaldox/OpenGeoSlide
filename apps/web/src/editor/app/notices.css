@@ -1,0 +1,31 @@
+/* Barra de avisos: lista + «Ver más» y «Cerrar todos» (UX9-06). Solo tokens de PLAN_UX. */
+.ea-notice-bar {
+  margin-bottom: 8px;
+}
+
+.ea-notice-bar .ea-notices {
+  margin-bottom: 4px;
+}
+
+.ea-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ea-notice-count {
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* El botón «Cerrar» no se parte en dos líneas cuando el texto del aviso es largo. */
+.ea-notice-bar .ea-notice button {
+  flex: none;
+  white-space: nowrap;
+}

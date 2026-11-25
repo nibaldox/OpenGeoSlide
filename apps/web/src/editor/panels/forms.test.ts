@@ -11,6 +11,8 @@ import {
   circleFromForm,
   defaultCircle,
   defaultLoad,
+  rangeText,
+  terrainRanges,
   defaultPiezo,
   defaultSearch,
   defaultWaterUnitWeight,
@@ -582,14 +584,48 @@ describe('cargas', () => {
     const doc = makeDoc({ loads: [udl, line] });
     const a = defaultLoad('udl', doc);
     const b = defaultLoad('line', doc);
-    expect(a).toEqual({ type: 'udl', id: 'u2', x1: 40, x2: 50, q: 10 });
-    expect(b).toEqual({ type: 'line', id: 'l2', x: 45, p: 10, angle: 0 });
+    // UX9-03: sobre la corona (x 50 a 70), no sobre el talud
+    expect(a).toEqual({ type: 'udl', id: 'u2', x1: 55, x2: 65, q: 10 });
+    expect(b).toEqual({ type: 'line', id: 'l2', x: 60, p: 10, angle: 0 });
     for (const load of [a, b]) {
       expect(load).not.toBeNull();
       if (load) expect(loadFromForm(loadToForm(load), { xRange: modelXRange(doc), otherIds: [], index: null }).ok).toBe(true);
     }
     expect(defaultLoad('udl', makeDoc({ regions: [] }))).toBeNull();
     expect(nextLoadId([], 'line')).toBe('l1');
+  });
+});
+
+describe('UX9-03: terreno y corona', () => {
+  it('talud simple: terreno de 20 a 70 y corona de 50 a 70', () => {
+    expect(terrainRanges(makeDoc())).toEqual({ terrain: [20, 70], crown: [50, 70] });
+  });
+
+  it('con un estrato inferior la corona sigue siendo la del terreno', () => {
+    const doc = makeDoc({
+      regions: [
+        { material: 'soil', polygon: [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]] },
+        { material: 'rock', polygon: [[20, 10], [20, 20], [70, 20], [70, 10]] },
+      ],
+    });
+    expect(terrainRanges(doc)).toEqual({ terrain: [20, 70], crown: [50, 70] });
+  });
+
+  it('terreno con dos mesetas a distinta cota: la corona es la más alta', () => {
+    const doc = makeDoc({ regions: [{ material: 'soil', polygon: [[0, 0], [0, 10], [20, 10], [30, 6], [60, 6], [60, 0]] }] });
+    expect(terrainRanges(doc)?.crown).toEqual([0, 20]);
+  });
+
+  it('sin tramo plano en lo alto no hay corona (y no se inventa una)', () => {
+    const doc = makeDoc({ regions: [{ material: 'soil', polygon: [[0, 0], [0, 5], [10, 12], [20, 5], [20, 0]] }] });
+    expect(terrainRanges(doc)).toEqual({ terrain: [0, 20], crown: null });
+    expect(defaultLoad('udl', doc)).toMatchObject({ x1: 8, x2: 12 });
+  });
+
+  it('sin vértices no hay rangos; el texto lleva la unidad', () => {
+    expect(terrainRanges({ regions: [] })).toBeNull();
+    expect(rangeText([0, 10.5], 'm')).toBe('x de 0 a 10,5 m');
+    expect(rangeText([0, 10], 'ft')).toBe('x de 0 a 10 ft');
   });
 });
 

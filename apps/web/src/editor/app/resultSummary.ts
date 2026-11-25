@@ -4,18 +4,17 @@
 import { convergedFos } from '../../analysis/runner';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types';
 import { describeWarnings } from '../../engine/warnings';
+import { formatFs } from '../../ui/formatFs';
 
 const SHORT_NAME: Record<MethodKind, string> = { bishop: 'Bishop', spencer: 'Spencer' };
 const FULL_NAME: Record<MethodKind, string> = { bishop: 'Bishop simplificado', spencer: 'Spencer' };
 const STATUS_TEXT: Record<SolveStatus, string> = { converged: 'Convergió', not_converged: 'No convergió', invalid: 'No válida' };
 
-const fsFormat = new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-
 export interface SummaryItem {
   method: MethodKind;
   /** «Bishop simplificado». */
   name: string;
-  /** FS con coma decimal («0,985»), o «—» si el método no convergió. */
+  /** FS con coma decimal y siempre 3 decimales («0,985», «1,200»), o «—» si el método no convergió. */
   fs: string;
   converged: boolean;
   status: string;
@@ -32,7 +31,7 @@ export function summaryItems(report: AnalysisReport): SummaryItem[] {
     return {
       method: r.method,
       name: FULL_NAME[r.method],
-      fs: fos === null ? '—' : fsFormat.format(fos),
+      fs: formatFs(fos),
       converged: r.status === 'converged',
       status: STATUS_TEXT[r.status],
     };
@@ -77,4 +76,16 @@ export function nextAnnouncement(previous: string, message: string): string {
   const prev = previous.replace(/\u00a0$/, '');
   if (message !== prev) return message;
   return previous.endsWith('\u00a0') ? message : `${message}\u00a0`;
+}
+
+/**
+ * Lleva el foco y la vista a la tabla completa de resultados (UX9-05). La tabla lleva `data-results-table` y
+ * `tabindex="-1"`. Devuelve `false` si no hay tabla (aún no hay resultados).
+ */
+export function focusResultsTable(root: Pick<Document, 'querySelector'> = document): boolean {
+  const table = root.querySelector<HTMLElement>('[data-results-table]');
+  if (!table) return false;
+  table.scrollIntoView({ block: 'start' });
+  table.focus({ preventScroll: true });
+  return true;
 }

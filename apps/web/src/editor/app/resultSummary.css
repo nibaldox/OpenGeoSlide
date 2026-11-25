@@ -1,0 +1,5 @@
+/* «Ver tabla de resultados» (UX9-05): al final de la franja, con objetivo de al menos 24 px. */
+.rs .rs-table-link {
+  margin-left: auto;
+  min-height: 28px;
+}

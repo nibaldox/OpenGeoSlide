@@ -103,6 +103,8 @@ const PAIRS: Pair[] = [
   ...['canvas-surface', 'canvas-surface-unconverged', 'canvas-piezo', 'canvas-load', 'canvas-region-edge', 'canvas-selected', 'canvas-handle-ring'].flatMap(
     (stroke): Pair[] => ['canvas-bg', ...MATS].map((bg): Pair => [stroke, bg, UI, 'trazo esencial del lienzo']),
   ),
+  // Dovelas (UX9-07): el trazo se compone sobre cada material y sobre el panel, donde está la muestra de la leyenda
+  ...['canvas-bg', 'ui-surface', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
   // Tiradores: relleno y aro, y el tirador de la piezométrica
   ['canvas-handle-ring', 'canvas-handle-sel', UI, 'tirador seleccionado'],
   ['canvas-handle-ring', 'canvas-handle-snap', UI, 'tirador con imán'],
@@ -115,7 +117,8 @@ describe('tokens.css: contraste WCAG en claro y en oscuro', () => {
     describe(theme === 'light' ? 'tema claro' : 'tema oscuro', () => {
       for (const [fg, bg, min, why] of PAIRS) {
         it(`${fg} sobre ${bg} ≥ ${min}:1 (${why})`, () => {
-          const ratio = contrast(colorOf(fg, theme, bg.startsWith('canvas') ? 'canvas-bg' : bg), colorOf(bg, theme));
+          // Un primer plano con transparencia se compone sobre el propio fondo del par.
+          const ratio = contrast(colorOf(fg, theme, bg), colorOf(bg, theme));
           expect(ratio, `${theme}: ${fg} sobre ${bg} = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(min);
         });
       }

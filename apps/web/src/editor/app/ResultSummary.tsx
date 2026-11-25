@@ -1,8 +1,9 @@
 // Franja de resultados siempre visible sobre el lienzo (UX-03): el FS de cada método y el estado, sin desplazarse.
 // La tabla completa, los avisos y el diagnóstico quedan debajo del lienzo.
 
-import { summaryItems, warningCounts, warningCountsText } from './resultSummary';
+import { focusResultsTable, summaryItems, warningCounts, warningCountsText } from './resultSummary';
 import type { EngineRun } from './reportInput';
+import './resultSummary.css';
 
 export function ResultSummary({ run, current, busy, shownMethod }: {
   run: EngineRun | null;
@@ -32,6 +33,9 @@ export function ResultSummary({ run, current, busy, shownMethod }: {
             ))}
           </ul>
           {counts ? <p className="rs-counts small">{counts}</p> : null}
+          <button type="button" className="rs-table-link link-button" onClick={() => focusResultsTable()}>
+            Ver tabla de resultados
+          </button>
           {!current ? <p className="rs-stale-note small">Desactualizado: el modelo cambió. Pulse «Comprobar».</p> : null}
         </>
       )}

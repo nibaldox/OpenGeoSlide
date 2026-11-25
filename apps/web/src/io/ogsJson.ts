@@ -146,8 +146,141 @@ export function describePath(path: string): string {
 function lineColumn(text: string, offset: number): { line: number; column: number } {
   const before = text.slice(0, offset);
   const line = before.split(/\r\n|\r|\n/).length;
-  const column = offset - Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r')) ;
+  const column = offset - Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r'));
   return { line, column };
+}
+
+const isDigit = (c: number): boolean => c >= 0x30 && c <= 0x39;
+const isHex = (c: number): boolean => isDigit(c) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66);
+
+/**
+ * Desplazamiento (en unidades UTF-16) del primer carácter que rompe la sintaxis JSON, o `text.length` si el texto
+ * termina antes de tiempo, o `null` si es JSON válido (UX-13). V8 ya no escribe «position N» en sus mensajes
+ * (Node 22), así que la posición sale de este escáner, que sigue la gramática de RFC 8259 y es iterativo (sin
+ * recursión: un archivo con miles de niveles no desborda la pila). El mensaje del motor de JS queda solo como detalle.
+ */
+export function jsonErrorOffset(text: string): number | null {
+  const n = text.length;
+  let i = 0;
+  const at = (k: number): number => (k < n ? text.charCodeAt(k) : -1);
+  const ws = (): void => {
+    for (;;) {
+      const c = at(i);
+      if (c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0d) i++;
+      else return;
+    }
+  };
+  /** `-1` si la cadena (que empieza en `i`, en la comilla) es válida; si no, el desplazamiento del error. */
+  const scanString = (): number => {
+    i++;
+    for (;;) {
+      const c = at(i);
+      if (c === -1) return n;
+      if (c === 0x22) {
+        i++;
+        return -1;
+      }
+      if (c < 0x20) return i;
+      if (c !== 0x5c) {
+        i++;
+        continue;
+      }
+      i++;
+      const e = at(i);
+      if (e === -1) return n;
+      if ('"\\/bfnrt'.includes(String.fromCharCode(e))) i++;
+      else if (e === 0x75) {
+        for (let k = 1; k <= 4; k++) {
+          const h = at(i + k);
+          if (h === -1) return n;
+          if (!isHex(h)) return i + k;
+        }
+        i += 5;
+      } else return i;
+    }
+  };
+  const scanNumber = (): number => {
+    if (at(i) === 0x2d) i++;
+    const first = at(i);
+    if (first === 0x30) i++;
+    else if (first >= 0x31 && first <= 0x39) while (isDigit(at(i))) i++;
+    else return first === -1 ? n : i;
+    if (at(i) === 0x2e) {
+      i++;
+      if (!isDigit(at(i))) return at(i) === -1 ? n : i;
+      while (isDigit(at(i))) i++;
+    }
+    if (at(i) === 0x65 || at(i) === 0x45) {
+      i++;
+      if (at(i) === 0x2b || at(i) === 0x2d) i++;
+      if (!isDigit(at(i))) return at(i) === -1 ? n : i;
+      while (isDigit(at(i))) i++;
+    }
+    return -1;
+  };
+  const scanLiteral = (word: string): number => {
+    for (let k = 0; k < word.length; k++) {
+      if (at(i + k) !== word.charCodeAt(k)) return at(i + k) === -1 ? n : i + k;
+    }
+    i += word.length;
+    return -1;
+  };
+
+  const stack: number[] = []; // 0x7b `{` o 0x5b `[`
+  let state: 'value' | 'key' | 'after' = 'value';
+  for (;;) {
+    ws();
+    const c = at(i);
+    if (state === 'value') {
+      let err = -1;
+      if (c === 0x7b) {
+        stack.push(c);
+        i++;
+        ws();
+        if (at(i) === 0x7d) {
+          stack.pop();
+          i++;
+          state = 'after';
+        } else state = 'key';
+      } else if (c === 0x5b) {
+        stack.push(c);
+        i++;
+        ws();
+        if (at(i) === 0x5d) {
+          stack.pop();
+          i++;
+          state = 'after';
+        }
+      } else {
+        if (c === 0x22) err = scanString();
+        else if (c === 0x2d || isDigit(c)) err = scanNumber();
+        else if (c === 0x74) err = scanLiteral('true');
+        else if (c === 0x66) err = scanLiteral('false');
+        else if (c === 0x6e) err = scanLiteral('null');
+        else return c === -1 ? n : i;
+        if (err !== -1) return err;
+        state = 'after';
+      }
+    } else if (state === 'key') {
+      if (c !== 0x22) return c === -1 ? n : i;
+      const err = scanString();
+      if (err !== -1) return err;
+      ws();
+      if (at(i) !== 0x3a) return at(i) === -1 ? n : i;
+      i++;
+      state = 'value';
+    } else {
+      const top = stack[stack.length - 1];
+      if (top === undefined) return c === -1 ? null : i;
+      if (c === 0x2c) {
+        i++;
+        state = top === 0x7b ? 'key' : 'value';
+      } else if ((top === 0x7b && c === 0x7d) || (top === 0x5b && c === 0x5d)) {
+        stack.pop();
+        i++;
+      } else return c === -1 ? n : i;
+    }
+  }
 }
 
 interface Ctx {
@@ -355,8 +488,11 @@ export function openOgsJson(text: string): OpenOgsResult {
     raw = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
-    const pos = /position (\d+)/.exec(detail);
-    const at = pos ? lineColumn(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, Number(pos[1])) : null;
+    const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+    // UX-13: V8 (Node 22, Chrome reciente) ya no dice «position N»; la posición sale del escáner propio. Si el
+    // escáner no encuentra el fallo, se usa el «position N» del motor (versiones antiguas) cuando exista.
+    const offset = jsonErrorOffset(body) ?? (/position (\d+)/.exec(detail)?.[1] ?? null);
+    const at = offset === null ? null : lineColumn(body, Number(offset));
     const where = at ? ` (línea ${at.line}, columna ${at.column})` : '';
     const empty = text.trim() === '';
     return reject(
