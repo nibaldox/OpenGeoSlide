@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { MethodReport } from '../engine/types';
-import { csvToPoints, csvToRegions, escapeCsvText, modelToCsv, parseCsv, piezoToCsv, resultsToCsv, toCsv } from './csv';
+import { CSV_MAX_BYTES, csvToPoints, csvToRegions, escapeCsvText, modelToCsv, parseCsv, piezoToCsv, resultsToCsv, toCsv } from './csv';
 
 describe('parseCsv', () => {
   it('detecta la coma y deja el punto decimal', () => {
@@ -124,16 +124,61 @@ describe('exportación', () => {
     expect(csvToPoints(parseCsv(piezoToCsv(doc, { delimiter: '\t' }))).points).toEqual([[0, 12], [40, 6.5]]);
   });
 
-  it('resultsToCsv escribe el FS solo si convergió', () => {
+  it('resultsToCsv escribe FS y λ solo si convergió, y los avisos', () => {
     const base = { lambda: null, slices: [], warnings: [], iterations: 3, surface: { xc: 1, yc: 2, r: 3 }, search: { evaluated: 10, valid: 4 } };
     const results: MethodReport[] = [
-      { ...base, method: 'bishop', fos: 1.234, status: 'converged' },
-      { ...base, method: 'spencer', fos: 0.9, status: 'not_converged', lambda: 0.1 },
+      { ...base, method: 'bishop', fos: 1.234, status: 'converged', warnings: ['truncated_mass', 'm_alpha'] },
+      { ...base, method: 'spencer', fos: 0.9, status: 'not_converged', lambda: 0.1, warnings: ['no_lambda_root'] },
+      { ...base, method: 'spencer', fos: 0.8, status: 'invalid', lambda: 0.2 },
+      { ...base, method: 'spencer', fos: 1.1, status: 'converged', lambda: 0.3 },
     ];
     expect(resultsToCsv(results)).toBe(
-      'metodo,estado,fs,iteraciones,lambda,xc,yc,r,evaluadas,validas\r\n' +
-        'bishop,converged,1.234,3,,1,2,3,10,4\r\n' +
-        'spencer,not_converged,,3,0.1,1,2,3,10,4',
+      'metodo,estado,fs,iteraciones,lambda,xc,yc,r,evaluadas,validas,avisos\r\n' +
+        'bishop,converged,1.234,3,,1,2,3,10,4,truncated_mass|m_alpha\r\n' +
+        'spencer,not_converged,,3,,1,2,3,10,4,no_lambda_root\r\n' +
+        'spencer,invalid,,3,,1,2,3,10,4,\r\n' +
+        'spencer,converged,1.1,3,0.3,1,2,3,10,4,',
     );
+  });
+
+  it('resultsToCsv protege la celda de avisos contra fórmulas', () => {
+    const base = { lambda: null, slices: [], iterations: 1, surface: { xc: 1, yc: 2, r: 3 }, search: null, fos: 1, status: 'converged' as const };
+    const csv = resultsToCsv([{ ...base, method: 'bishop', warnings: ['=cmd|x', 'm_alpha'] }]);
+    expect(csv.split('\r\n')[1]).toBe("bishop,converged,1,1,,1,2,3,,,'=cmd|x|m_alpha");
+  });
+
+  it('los números se exportan sin redondeo (ida y vuelta de las coordenadas)', () => {
+    const base = { lambda: null, slices: [], warnings: [], iterations: 1, search: null, fos: 1, status: 'converged' as const };
+    const surface = { xc: 49.57942825454256, yc: 34.823211318713575, r: 36.11677577292455 };
+    const row = resultsToCsv([{ ...base, method: 'bishop', surface }]).split('\r\n')[1] as string;
+    const [, , , , , xc, yc, r] = row.split(',');
+    expect([Number(xc), Number(yc), Number(r)]).toEqual([surface.xc, surface.yc, surface.r]);
+  });
+});
+
+describe('parseCsv: límite de tamaño (R5-06)', () => {
+  it('un CSV de más de 2 MB se rechaza con un error y sin filas', () => {
+    const big = `x,y\n${'1,2\n'.repeat(Math.ceil(CSV_MAX_BYTES / 4) + 10)}`;
+    const r = parseCsv(big);
+    expect(r.ok).toBe(false);
+    expect(r.rows).toEqual([]);
+    expect(r.issues).toEqual([{ severity: 'error', text: 'El archivo CSV supera el límite de 2 MB.' }]);
+  });
+
+  it('el límite es en bytes UTF-8: caracteres de varios bytes lo superan antes', () => {
+    const text = `capa,x,y\n${'ñ'.repeat(CSV_MAX_BYTES / 2 + 1)},1,2\n`;
+    expect(text.length).toBeLessThan(CSV_MAX_BYTES);
+    expect(parseCsv(text).ok).toBe(false);
+  });
+
+  it('un CSV de exactamente el límite o menos sigue funcionando', () => {
+    const header = 'x,y\n';
+    const row = '1,2\n';
+    const n = Math.floor((CSV_MAX_BYTES - header.length) / row.length);
+    const text = header + row.repeat(n);
+    expect(new TextEncoder().encode(text).length).toBeLessThanOrEqual(CSV_MAX_BYTES);
+    const r = parseCsv(text);
+    expect(r.ok).toBe(true);
+    expect(r.rows).toHaveLength(n);
   });
 });
