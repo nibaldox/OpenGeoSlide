@@ -176,6 +176,25 @@ En `PreparedModel::new` (`geometry.rs`), con tolerancia `tol = 1e-9 · escala de
 - **Regla:** W2 y W3 solo usan `EditorStore`. Los tests van en `*.test.ts` con entorno `node`, y la lógica pura se
   separa de los componentes para poder probarla.
 
+## F1.6 Selección de raíz de Spencer (enmienda E12e; reemplaza a E11a′; evidencia en `docs/fase1/exploracion/X5.md`)
+
+- **Regla.** Se barre **todo** el rango λ ∈ [−0,5; 1,5] con el residuo sin divisor de E11a y se refina con Brent cada
+  cambio de signo. Entre las raíces **admisibles** (E11b, con cierre de fuerzas), se elige la de **menor F**. Un empate
+  dentro de 1e-9 relativo lo gana la raíz de menor |λ|.
+- **Nota informativa `multiple_admissible_roots`:** se emite cuando hay más de una raíz admisible y sus F difieren en
+  más del 1 %.
+  - Entra en `INFORMATIVE_WARNINGS`, en `warnings.ts` y en la lista de §4.5.
+- Se **mantiene** `negative_lambda` como nota cuando la raíz elegida tiene λ < 0.
+- **Motivo:**
+  - en el barrido bicapa de X5, la regla «menor |λ|» (E11a′) quedó 35 veces más de 1 % **por encima** de cSlope (no
+    conservador, hasta +5,07 %; R4-01 da +3,47 %);
+  - con «menor F», 0 casos por encima, D03 y R3-01a se mantienen y la aceptación 38/38 se conserva.
+  - Es la convención conservadora: de dos soluciones que cumplen el equilibrio y la admisibilidad, se reporta la menor.
+- **Costo esperado:** unas 1,6 veces más evaluaciones. Objetivo: ≤ 1,8× el tiempo de Spencer actual en V047a; si se
+  supera, se reporta.
+- **Fuera de alcance:** R4-02 (dos raíces dentro de un paso de 0,05). El sondeo del punto medio no lo cierra (X5 §3),
+  así que queda en el backlog.
+
 ## F1.5 Gates de la Fase 1 (además de §5 de `00_CONTRATOS.md`)
 
 - **Motor:**

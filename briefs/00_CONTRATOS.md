@@ -352,6 +352,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
 > **Vigente en §4.3 (tras R3):** E10c con E11a, E11b y E11c, más E4d, E4e/E7d/E11f, E7a y E3.
+> **Fase 1:** la selección de raíz de E11a′ queda reemplazada por **E12e** (`01_CONTRATOS_FASE1.md` §F1.6, menor F admisible).
 > **Derogados**, que se conservan solo como historia: E4c, E7c, E9c y E10b. Tampoco rige el lazo de punto fijo en λ de
 > Zhu. E8b queda reemplazada por E11b.
 
