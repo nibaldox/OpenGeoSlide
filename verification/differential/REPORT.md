@@ -1,28 +1,29 @@
-# Batería diferencial: ogs vs cSlope 0.1.0 (línea base W7b)
+# Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-24T23:48:22-03:00 · casos: 10 · checks: 40 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-24T23:52:31-03:00 · casos: 10 · checks: 40 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
-- **ogs**: `target/release/ogs` · versión: ogs-core 0.1.0
+- **ogs**: `/home/xodla/archivos/opengeoslide-wt/w9/target/release/ogs` · versión: ogs-core 0.1.0
 - **cSlope**: cslope 0.1.0 · motor 0.1.0+a80f9a024954 · esquema 0.1.0 · Python 3.13.14
 
 ## Criterio (E9b, briefs/00_CONTRATOS.md §4.4.6)
 
 - **Búsqueda**: `FS_ogs ≤ FS_cSlope · 1,01`, con el mismo método, número de dovelas y rangos. Un FS de ogs menor es más exhaustivo y se acepta.
 - **Superficie fija**: `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,5 %`, con el mismo círculo.
+- **Concordancia (W9)**: si ogs declara la superficie fija sin solución (`not_converged` o `invalid`) y cSlope también (`EngineError`), el veredicto es `OK (concordancia: ambos sin solución)`. Si solo uno de los dos la declara, es `FALLA`.
 - El veredicto no detiene la batería: el exit code es 0 aunque haya fallos.
 
 ## Resumen
 
-**búsqueda OK 20/20** · **fija OK 19/20**
+**búsqueda OK 20/20** · **fija OK 20/20**
 
-| criterio | OK | FALLA | sin dato |
-|---|---:|---:|---:|
-| búsqueda | 20 | 0 | 0 |
-| fija | 19 | 1 | 0 |
+| criterio | OK | de ellos, ambos sin solución | FALLA | sin dato |
+|---|---:|---:|---:|---:|
+| búsqueda | 20 | 0 | 0 | 0 |
+| fija | 20 | 1 | 0 | 0 |
 
-Tiempo total: ogs 1.879 s · cSlope 1.553 s.
+Tiempo total: ogs 1.895 s · cSlope 1.565 s.
 
 ## Tabla de línea base
 
@@ -33,7 +34,7 @@ Tiempo total: ogs 1.879 s · cSlope 1.553 s.
 | D02 Talud 1:1 con r_u = 0,5 | bishop | 0.3678 | 0.3677 | +0.02 | 0.3678 | 0.3677 | +0.02 | OK |
 | D02 Talud 1:1 con r_u = 0,5 | spencer | 0.3851 | 0.3850 | +0.01 | 0.3872 | 0.3871 | +0.02 | OK |
 | D03 Dos capas con capa débil en la base | bishop | 0.5196 | 0.5185 | +0.21 | 0.5196 | 0.5187 | +0.18 | OK |
-| D03 Dos capas con capa débil en la base | spencer | 0.5497 | 0.5467 | +0.56 | — | — | — | FALLA (fija) |
+| D03 Dos capas con capa débil en la base | spencer | 0.5497 | 0.5467 | +0.56 | — | — | — | OK (concordancia: ambos sin solución) |
 | D04 Pared de rajo, 3 bancos | bishop | 1.5986 | 1.5985 | +0.01 | 1.5986 | 1.5985 | +0.01 | OK |
 | D04 Pared de rajo, 3 bancos | spencer | 1.5923 | 1.5921 | +0.01 | 1.5923 | 1.5922 | +0.01 | OK |
 | D05 Botadero, ángulo de reposo 37° | bishop | 1.0063 | 1.0005 | +0.58 | 1.0063 | 1.0063 | -0.00 | OK |
@@ -53,51 +54,51 @@ Tiempo total: ogs 1.879 s · cSlope 1.553 s.
 
 ## Fallos y motivos
 
-- D03 spencer/fixed: **FALLA**. ogs no válido (status not_converged, FS None)
+Ninguno.
 
 ## Tiempos por check
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.037 | 0.057 |
+| D01 | bishop | search | 0.037 | 0.056 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.115 | 0.095 |
+| D01 | spencer | search | 0.118 | 0.090 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.036 | 0.051 |
+| D02 | bishop | search | 0.038 | 0.055 |
 | D02 | bishop | fixed | 0.002 | 0.001 |
-| D02 | spencer | search | 0.131 | 0.089 |
+| D02 | spencer | search | 0.131 | 0.095 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.051 | 0.054 |
+| D03 | bishop | search | 0.053 | 0.051 |
 | D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.166 | 0.095 |
-| D03 | spencer | fixed | 0.003 | 0.001 |
-| D04 | bishop | search | 0.079 | 0.040 |
+| D03 | spencer | search | 0.164 | 0.094 |
+| D03 | spencer | fixed | 0.002 | 0.001 |
+| D04 | bishop | search | 0.079 | 0.036 |
 | D04 | bishop | fixed | 0.002 | 0.001 |
-| D04 | spencer | search | 0.248 | 0.071 |
+| D04 | spencer | search | 0.250 | 0.071 |
 | D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.040 | 0.056 |
+| D05 | bishop | search | 0.041 | 0.051 |
 | D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.114 | 0.090 |
+| D05 | spencer | search | 0.116 | 0.088 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.039 | 0.051 |
+| D06 | bishop | search | 0.039 | 0.054 |
 | D06 | bishop | fixed | 0.002 | 0.001 |
-| D06 | spencer | search | 0.109 | 0.085 |
+| D06 | spencer | search | 0.106 | 0.089 |
 | D06 | spencer | fixed | 0.002 | 0.001 |
-| D07 | bishop | search | 0.029 | 0.048 |
+| D07 | bishop | search | 0.028 | 0.048 |
 | D07 | bishop | fixed | 0.002 | 0.001 |
-| D07 | spencer | search | 0.080 | 0.082 |
+| D07 | spencer | search | 0.081 | 0.082 |
 | D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.060 | 0.050 |
+| D08 | bishop | search | 0.061 | 0.053 |
 | D08 | bishop | fixed | 0.002 | 0.038 |
-| D08 | spencer | search | 0.149 | 0.073 |
-| D08 | spencer | fixed | 0.001 | 0.036 |
-| D09 | bishop | search | 0.054 | 0.052 |
+| D08 | spencer | search | 0.149 | 0.074 |
+| D08 | spencer | fixed | 0.002 | 0.039 |
+| D09 | bishop | search | 0.053 | 0.055 |
 | D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.108 | 0.181 |
+| D09 | spencer | search | 0.111 | 0.186 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.035 | 0.052 |
+| D10 | bishop | search | 0.037 | 0.052 |
 | D10 | bishop | fixed | 0.002 | 0.001 |
-| D10 | spencer | search | 0.167 | 0.093 |
+| D10 | spencer | search | 0.170 | 0.096 |
 | D10 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
