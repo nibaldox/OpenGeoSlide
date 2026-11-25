@@ -35,7 +35,8 @@ export type EditorIssueCode =
   | 'editor.piezo_order'
   | 'editor.load_range'
   | 'editor.degenerate_region'
-  | 'editor.no_surface';
+  | 'editor.no_surface'
+  | 'editor.water_unit_weight';
 
 /** `path` es un puntero JSON, p. ej. "/regions/0/polygon/2". */
 export interface Issue {
@@ -44,6 +45,8 @@ export interface Issue {
   code: string;        // local: un EditorIssueCode ("editor.self_intersection"); motor: "InvalidModel" o código de aviso
   text: string;        // español, sin voseo
   path: string | null;
+  /** Detalle técnico (código del analizador, posición…), aparte del texto: la UI lo muestra colapsado. */
+  detail?: string;
 }
 
 export interface Diagnostics {

@@ -61,6 +61,95 @@ function isRecord(v: unknown): v is Rec {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Ubicación en términos de usuario
+// ---------------------------------------------------------------------------------------------------------------
+
+const FIELD_NAME: Readonly<Record<string, string>> = {
+  id: 'identificador',
+  name: 'nombre',
+  model: 'modelo constitutivo',
+  unit_weight: 'peso unitario',
+  unit_weight_sat: 'peso unitario saturado',
+  cohesion: 'cohesión',
+  friction_angle: 'ángulo de fricción',
+  ru: 'coeficiente ru',
+  material: 'material',
+  polygon: 'contorno',
+  piezometric_line: 'línea piezométrica',
+  x: 'posición x',
+  x1: 'inicio x1',
+  x2: 'fin x2',
+  q: 'carga q',
+  p: 'carga p',
+  angle: 'ángulo',
+  direction: 'sentido de deslizamiento',
+  methods: 'métodos',
+  slices: 'dovelas',
+  tolerance: 'tolerancia',
+  max_iterations: 'iteraciones máximas',
+  min_m_alpha: 'm_α mínimo',
+  xc: 'centro xc',
+  yc: 'centro yc',
+  r: 'radio',
+  entry: 'rango de entrada',
+  exit: 'rango de salida',
+  n_entry: 'puntos de entrada',
+  n_exit: 'puntos de salida',
+  n_radius: 'radios por par',
+  max_radius_factor: 'factor de radio máximo',
+  min_width: 'ancho mínimo',
+  refine: 'refinamiento',
+  kh: 'coeficiente sísmico horizontal kh',
+  kv: 'coeficiente sísmico vertical kv',
+  title: 'título',
+  notes: 'notas',
+  units: 'unidades',
+};
+
+/** Describe un puntero JSON (`/regions/0/polygon/2/1`) con palabras de la interfaz («región 1, vértice 3»). */
+export function describePath(path: string): string {
+  const seg = path.split('/').filter((x) => x !== '');
+  const n = (k: string | undefined): number => Number(k) + 1;
+  const field = (k: string | undefined): string => (k !== undefined && FIELD_NAME[k]) || (k ?? 'valor');
+  const [a, b, c, d] = seg;
+  switch (a) {
+    case undefined:
+      return 'el nivel principal del archivo';
+    case 'materials':
+      return b === undefined ? 'la lista de materiales' : c === undefined ? `el material ${n(b)}` : `el material ${n(b)} (${field(c)})`;
+    case 'regions':
+      if (b === undefined) return 'la lista de regiones';
+      if (c === 'polygon' && d !== undefined) return `la región ${n(b)}, vértice ${n(d)}`;
+      return c === undefined ? `la región ${n(b)}` : `la región ${n(b)} (${field(c)})`;
+    case 'water':
+      if (b === 'piezometric_line' && c !== undefined) return `la línea piezométrica, punto ${n(c)}`;
+      return b === undefined ? 'los datos de agua' : `los datos de agua (${field(b)})`;
+    case 'loads':
+      return b === undefined ? 'la lista de cargas' : c === undefined ? `la carga ${n(b)}` : `la carga ${n(b)} (${field(c)})`;
+    case 'analysis': {
+      const section: Record<string, string> = { surface: 'la superficie fija', search: 'la búsqueda', seismic: 'el sismo' };
+      if (b === undefined) return 'la configuración del análisis';
+      if (c === undefined) return section[b] ? section[b] : `la configuración del análisis (${field(b)})`;
+      return `${section[b] ?? 'el análisis'} (${field(c)})`;
+    }
+    case 'meta':
+      return 'los datos del proyecto';
+    case 'slope':
+      return 'el sentido de deslizamiento';
+    default:
+      return `el campo «${a}»`;
+  }
+}
+
+/** Posición «línea L, columna C» de un desplazamiento dentro del texto (ambas desde 1). */
+function lineColumn(text: string, offset: number): { line: number; column: number } {
+  const before = text.slice(0, offset);
+  const line = before.split(/\r\n|\r|\n/).length;
+  const column = offset - Math.max(before.lastIndexOf('\n'), before.lastIndexOf('\r')) ;
+  return { line, column };
+}
+
 interface Ctx {
   onUnknown(path: string, key: string): void;
   /**
@@ -91,8 +180,8 @@ function plain(v: unknown, path: string, key: string, ctx: Ctx): unknown {
   return v;
 }
 
-const throwNonFinite = (_path: string, key: string): never => {
-  throw new Error(`No se puede guardar un valor no finito en '${key}'.`);
+const throwNonFinite = (path: string): never => {
+  throw new Error(`No se puede guardar: ${describePath(path)} tiene un valor no finito (infinito o indefinido); corríjalo antes de guardar.`);
 };
 
 function ordered(v: unknown, order: readonly string[], path: string, ctx: Ctx, sub: Record<string, Sub> = {}): unknown {
@@ -147,7 +236,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx): Rec {
     else if (key === 'version') result[key] = OGS_SAVE_VERSION;
     else result[key] = out[key];
   }
-  if (!('format' in result)) throw new Error('El documento no tiene `format`.');
+  if (!('format' in result)) throw new Error('No se puede guardar: el documento no tiene el campo de formato.');
   return result;
 }
 
@@ -166,8 +255,8 @@ export function saveOgsJson(doc: ModelDoc): string {
 // Abrir
 // ---------------------------------------------------------------------------------------------------------------
 
-function issue(severity: Issue['severity'], code: string, text: string, path: string | null = null): Issue {
-  return { source: 'local', severity, code, text, path };
+function issue(severity: Issue['severity'], code: string, text: string, path: string | null = null, detail?: string): Issue {
+  return detail === undefined ? { source: 'local', severity, code, text, path } : { source: 'local', severity, code, text, path, detail };
 }
 
 function isPoint(v: unknown): boolean {
@@ -175,57 +264,78 @@ function isPoint(v: unknown): boolean {
 }
 
 function checkShape(model: Rec, issues: Issue[]): void {
-  const err = (code: string, text: string, path: string): void => {
-    issues.push(issue('error', code, text, path));
+  const err = (code: string, text: string, path: string, detail?: string): void => {
+    issues.push(issue('error', code, text, path, detail));
   };
 
-  if (!Array.isArray(model.materials)) err('io.shape', "El archivo no tiene la lista 'materials'.", '/materials');
+  if (!Array.isArray(model.materials)) err('io.shape', 'El archivo no tiene la lista de materiales (o no tiene la forma de una lista).', '/materials');
   else {
     model.materials.forEach((m, i) => {
-      if (!isRecord(m) || typeof m.id !== 'string') err('io.shape', `El material ${i + 1} no es un objeto con 'id'.`, `/materials/${i}`);
+      if (!isRecord(m) || typeof m.id !== 'string') {
+        err('io.shape', `El material ${i + 1} no tiene un identificador de texto (por ejemplo, «arcilla»).`, `/materials/${i}`);
+      }
     });
   }
 
-  if (!Array.isArray(model.regions)) err('io.shape', "El archivo no tiene la lista 'regions'.", '/regions');
+  if (!Array.isArray(model.regions)) err('io.shape', 'El archivo no tiene la lista de regiones (o no tiene la forma de una lista).', '/regions');
   else {
     model.regions.forEach((r, i) => {
       if (!isRecord(r) || typeof r.material !== 'string') {
-        err('io.shape', `La región ${i + 1} no es un objeto con 'material'.`, `/regions/${i}`);
+        err('io.shape', `La región ${i + 1} no tiene un material asignado; indique el identificador de uno de los materiales.`, `/regions/${i}`);
         return;
       }
       if (!Array.isArray(r.polygon) || !r.polygon.every(isPoint)) {
-        err('io.shape', `La región ${i + 1} tiene un polígono que no es una lista de puntos [x, y] finitos.`, `/regions/${i}/polygon`);
+        err(
+          'io.shape',
+          `El contorno de la región ${i + 1} debe ser una lista de puntos [x, y] con números finitos; revise que cada vértice tenga dos números.`,
+          `/regions/${i}/polygon`,
+        );
       }
     });
   }
 
   // Como el motor y el esquema (R6-03): si están presentes deben ser objetos; `null` no vale.
+  const sectionName = {
+    meta: 'Los datos del proyecto no tienen',
+    analysis: 'La configuración del análisis no tiene',
+    slope: 'El sentido de deslizamiento no tiene',
+  } as const;
   for (const key of ['meta', 'analysis', 'slope'] as const) {
-    if (model[key] !== undefined && !isRecord(model[key])) err('io.shape', `'${key}' debe ser un objeto.`, `/${key}`);
+    if (model[key] !== undefined && !isRecord(model[key])) {
+      err('io.shape', `${sectionName[key]} la forma esperada: debe ser un bloque de datos { … }, no un valor suelto ni «null».`, `/${key}`);
+    }
   }
   if (isRecord(model.analysis)) {
+    const blockName = { surface: 'La superficie fija', search: 'La búsqueda de superficies', seismic: 'El sismo (coeficientes kh y kv)' } as const;
     for (const key of ['surface', 'search', 'seismic'] as const) {
       const v = model.analysis[key];
-      if (v !== undefined && v !== null && !isRecord(v)) err('io.shape', `'analysis.${key}' debe ser un objeto o null.`, `/analysis/${key}`);
+      if (v !== undefined && v !== null && !isRecord(v)) {
+        err('io.shape', `${blockName[key]} no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacío (null).`, `/analysis/${key}`);
+      }
     }
   }
 
   if (model.water !== undefined && model.water !== null) {
-    if (!isRecord(model.water)) err('io.shape', "'water' debe ser un objeto.", '/water');
+    if (!isRecord(model.water)) err('io.shape', 'Los datos de agua no tienen la forma esperada: deben ser un bloque de datos { … }.', '/water');
     else {
       const line = model.water.piezometric_line;
       if (line !== undefined && line !== null && (!Array.isArray(line) || !line.every(isPoint))) {
-        err('io.shape', 'La piezométrica debe ser una lista de puntos [x, y] finitos.', '/water/piezometric_line');
+        err('io.shape', 'La línea piezométrica debe ser una lista de puntos [x, y] con números finitos; revise que cada punto tenga dos números.', '/water/piezometric_line');
       }
     }
   }
 
   if (model.loads !== undefined) {
-    if (!Array.isArray(model.loads)) err('io.shape', "'loads' debe ser una lista.", '/loads');
+    if (!Array.isArray(model.loads)) err('io.shape', 'Las cargas deben ser una lista (puede estar vacía).', '/loads');
     else {
       model.loads.forEach((l, i) => {
         if (!isRecord(l) || (l.type !== 'udl' && l.type !== 'line')) {
-          err('io.shape', `La carga ${i + 1} debe tener type 'udl' o 'line'.`, `/loads/${i}`);
+          err(
+            'io.shape',
+            `La carga ${i + 1} no tiene un tipo reconocible: debe ser distribuida o lineal.`,
+            `/loads/${i}`,
+            isRecord(l) ? `type = ${JSON.stringify(l.type) ?? 'ausente'}` : undefined,
+          );
         }
       });
     }
@@ -235,18 +345,32 @@ function checkShape(model: Rec, issues: Issue[]): void {
 /** Abre el texto de un `.ogs.json` (v0.1, v0.2 o `{model, checks}`). Con `doc: null` el archivo se rechaza. */
 export function openOgsJson(text: string): OpenOgsResult {
   const issues: Issue[] = [];
-  const reject = (code: string, msg: string, path: string | null = null): OpenOgsResult => {
-    issues.push(issue('error', code, msg, path));
+  const reject = (code: string, msg: string, path: string | null = null, detail?: string): OpenOgsResult => {
+    issues.push(issue('error', code, msg, path, detail));
     return { doc: null, issues };
   };
 
   let raw: unknown;
   try {
     raw = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
-  } catch {
-    return reject('io.invalid_json', 'El archivo no es JSON válido.');
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    const pos = /position (\d+)/.exec(detail);
+    const at = pos ? lineColumn(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, Number(pos[1])) : null;
+    const where = at ? ` (línea ${at.line}, columna ${at.column})` : '';
+    const empty = text.trim() === '';
+    return reject(
+      'io.invalid_json',
+      empty
+        ? 'El archivo está vacío: abra un archivo .ogs.json guardado con OpenGeoSlide.'
+        : `El archivo no es un JSON válido${where}. Revise que no falte ni sobre alguna coma, llave o comilla cerca de ese punto, y que el archivo no esté truncado.`,
+      null,
+      detail,
+    );
   }
-  if (!isRecord(raw)) return reject('io.shape', 'El contenido debe ser un objeto JSON.');
+  if (!isRecord(raw)) {
+    return reject('io.shape', 'El archivo no tiene la forma esperada: debe ser un modelo OpenGeoSlide { … }, no una lista ni un valor suelto.');
+  }
 
   let model: Rec = raw;
   if (!('format' in raw) && isRecord(raw.model)) {
@@ -256,18 +380,29 @@ export function openOgsJson(text: string): OpenOgsResult {
         issue(
           'aviso',
           'io.checks_discarded',
-          'El archivo es un caso de verificación: se abre solo el modelo y se descartan las comprobaciones (checks).',
+          'El archivo es un caso de verificación: se abre solo el modelo y se descartan los valores de referencia y las comprobaciones que incluye.',
         ),
       );
     }
   }
 
   if (model.format !== OGS_FORMAT) {
-    return reject('io.format', `El campo 'format' debe ser "${OGS_FORMAT}"; no es un archivo OpenGeoSlide.`, '/format');
+    const found = model.format === undefined ? 'no tiene marca de formato' : `declara el formato ${JSON.stringify(model.format)}`;
+    return reject(
+      'io.format',
+      `No es un archivo OpenGeoSlide: ${found} en lugar de "${OGS_FORMAT}". Abra un archivo .ogs.json guardado con esta aplicación.`,
+      '/format',
+      `format = ${JSON.stringify(model.format) ?? 'ausente'}`,
+    );
   }
   if (model.version !== '0.1' && model.version !== '0.2') {
-    const shown = typeof model.version === 'string' ? `"${model.version}"` : 'ausente';
-    return reject('io.version', `Versión del formato no soportada (${shown}). Se admiten "0.1" y "0.2".`, '/version');
+    const shown = typeof model.version === 'string' ? `la versión "${model.version}"` : 'ninguna versión';
+    return reject(
+      'io.version',
+      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1 y 0.2. Guárdelo de nuevo con una versión compatible.`,
+      '/version',
+      `version = ${JSON.stringify(model.version) ?? 'ausente'}`,
+    );
   }
 
   checkShape(model, issues);
@@ -278,11 +413,23 @@ export function openOgsJson(text: string): OpenOgsResult {
   const hasSeismic = isRecord(model.analysis) && model.analysis.seismic !== undefined && model.analysis.seismic !== null;
   if (model.version === '0.1') {
     if (hasLoads) {
-      issues.push(issue('error', 'io.version_fields', "El archivo es v0.1 pero trae 'loads', que requiere version \"0.2\".", '/loads'));
+      issues.push(
+        issue(
+          'error',
+          'io.version_fields',
+          'El archivo declara el formato 0.1, que no admite cargas. Cambie la versión del archivo a "0.2" o quite las cargas.',
+          '/loads',
+        ),
+      );
     }
     if (hasSeismic) {
       issues.push(
-        issue('error', 'io.version_fields', "El archivo es v0.1 pero trae 'analysis.seismic', que requiere version \"0.2\".", '/analysis/seismic'),
+        issue(
+          'error',
+          'io.version_fields',
+          'El archivo declara el formato 0.1, que no admite el sismo (coeficientes kh y kv). Cambie la versión del archivo a "0.2" o quite el sismo.',
+          '/analysis/seismic',
+        ),
       );
     }
   }
@@ -291,22 +438,37 @@ export function openOgsJson(text: string): OpenOgsResult {
   if (input.meta === undefined) input.meta = {};
   if (input.analysis === undefined) input.analysis = {};
 
-  const unknown: string[] = [];
+  const unknown: { parent: string; key: string }[] = [];
   const nonFinite: string[] = [];
   const canonical = canonicalObject(input as unknown as ModelDoc, {
-    onUnknown: (path, key) => unknown.push(`${path}/${key}`),
+    onUnknown: (parent, key) => unknown.push({ parent, key }),
     onNonFinite: (path) => nonFinite.push(path),
   });
-  for (const path of unknown) {
-    issues.push(issue('error', 'io.unknown_field', `Campo desconocido '${path}': el motor no lo admite (deny_unknown_fields).`, path));
+  for (const { parent, key } of unknown) {
+    issues.push(
+      issue(
+        'error',
+        'io.unknown_field',
+        `Hay un dato que esta versión no reconoce: «${key}», en ${describePath(parent)}. Quítelo del archivo (puede ser un error de escritura o un campo de otra versión).`,
+        `${parent}/${key}`,
+        `campo desconocido ${parent}/${key}`,
+      ),
+    );
   }
   for (const path of nonFinite) {
-    issues.push(issue('error', 'io.non_finite', `El valor en '${path}' no es un número finito (por ejemplo, un literal fuera de rango como 1e400).`, path));
+    issues.push(
+      issue(
+        'error',
+        'io.non_finite',
+        `En ${describePath(path)} hay un valor que no es un número finito (por ejemplo, un exponente demasiado grande como 1e400). Escriba un valor corriente.`,
+        path,
+      ),
+    );
   }
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 
   if (model.version === '0.1') {
-    issues.push(issue('nota', 'io.version_upgraded', 'El archivo es v0.1. Se guardará como v0.2 (el resultado del cálculo es el mismo).'));
+    issues.push(issue('nota', 'io.version_upgraded', 'El archivo usa el formato 0.1; al guardarlo se actualizará al 0.2 (el resultado del cálculo no cambia).'));
   }
   return { doc: canonical as unknown as ModelDoc, issues };
 }
