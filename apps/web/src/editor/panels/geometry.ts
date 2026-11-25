@@ -2,6 +2,7 @@
 // agregar y quitar vértices o regiones, incidencias de la región y paginación de las tablas grandes. Sin React ni DOM.
 
 import type { Point } from '../../engine/types';
+import type { ConfirmOptions } from '../../ui/confirmQueue';
 import { coincidentVertices, type VertexRef } from '../canvas/geom';
 import { validateLocalCached } from '../state/validateLocal';
 import type { EditorCommand, Issue, ModelDoc } from '../types';
@@ -47,6 +48,19 @@ export function regionSummary(doc: ModelDoc): RegionSummary[] {
 
 export function regionRemoveCommand(doc: ModelDoc, regionIndex: number): EditorCommand | null {
   return Number.isInteger(regionIndex) && regionIndex >= 0 && regionIndex < doc.regions.length ? { type: 'region/remove', regionIndex } : null;
+}
+
+/** Confirmación previa a eliminar una región: dice cuál (número, material y vértices) y que se puede deshacer. */
+export function regionRemoveConfirm(summary: Pick<RegionSummary, 'index' | 'materialName' | 'vertexCount'>): ConfirmOptions {
+  const n = summary.index + 1;
+  const vertices = summary.vertexCount === 1 ? '1 vértice' : `${summary.vertexCount} vértices`;
+  return {
+    title: `Eliminar la región ${n}`,
+    message: `Se eliminará la región ${n} (material «${summary.materialName}», ${vertices}) con su contorno. Puede deshacerlo con Ctrl+Z.`,
+    confirmLabel: 'Eliminar región',
+    cancelLabel: 'Conservar la región',
+    tone: 'danger',
+  };
 }
 
 /** Incidencias locales de una región (errores y avisos), con los mismos mensajes que el panel de Diagnósticos. */

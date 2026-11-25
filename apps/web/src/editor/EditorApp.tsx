@@ -14,6 +14,7 @@ import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
 import './app/newModel.css';
 import { buildScene } from '../render/scene';
+import { useConfirm } from '../ui/ConfirmDialog';
 import { DropdownMenu } from '../ui/DropdownMenu';
 import { Legend } from '../ui/Legend';
 import { ResultsTable } from '../ui/ResultsTable';
@@ -21,6 +22,7 @@ import { useRovingTabIndex } from '../ui/useRovingTabIndex';
 import { EditorCanvas } from './canvas/EditorCanvas';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
+import { createConfirmDiscard, runIfDiscarded } from './app/discard';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { EmptyCanvasState } from './app/EmptyCanvasState';
 import { NewSlopeDialog } from './app/NewSlopeDialog';
@@ -48,6 +50,7 @@ import {
   GeometryPanel,
   LoadsPanel,
   MaterialsPanel,
+  ProjectPanel,
   SearchPanel,
   SeismicPanel,
   SurfacePanel,
@@ -71,6 +74,7 @@ const TABS: TabDef[] = [
   { id: 'analysis', label: 'Análisis', Panel: AnalysisPanel },
   { id: 'loads', label: 'Cargas', Panel: LoadsPanel },
   { id: 'seismic', label: 'Sismo', Panel: SeismicPanel },
+  { id: 'project', label: 'Proyecto', Panel: ProjectPanel },
 ];
 
 const TOOLS: { tool: Tool; label: string; key: string }[] = [
@@ -174,10 +178,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // ───────── Documento: nuevo, abrir, guardar ─────────
 
-  const confirmDiscard = useCallback((): boolean => {
-    const s = store.getState();
-    return s.revision === s.file.savedRevision || window.confirm('Hay cambios sin guardar. ¿Descartarlos?');
-  }, [store]);
+  // Con cambios sin guardar pregunta con el diálogo de la aplicación (`useConfirm`, asíncrono); sin cambios no pregunta.
+  const confirm = useConfirm();
+  const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm), [store, confirm]);
 
   const resetEngine = engine.reset;
   /**
@@ -197,20 +200,22 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   );
 
   // «Nuevo» = «Modelo vacío»: sin regiones y con un material por defecto; el lienzo invita a «Dibujar región» (UX-01).
-  const onNew = useCallback(() => {
-    if (!confirmDiscard()) return;
-    loadDoc(emptyModel(), null, { saved: true, example: false });
-    notify('info', 'Modelo vacío creado. Dibuje una región con la herramienta «Dibujar región» (tecla R).');
-  }, [confirmDiscard, loadDoc, notify]);
+  const onNew = useCallback(
+    () =>
+      void runIfDiscarded(confirmDiscard, () => {
+        loadDoc(emptyModel(), null, { saved: true, example: false });
+        notify('info', 'Modelo vacío creado. Dibuje una región con la herramienta «Dibujar región» (tecla R).');
+      }),
+    [confirmDiscard, loadDoc, notify],
+  );
 
-  /** «Talud simple…»: crea el modelo parametrizado. Devuelve `false` si el usuario no confirma descartar los cambios. */
+  /** «Talud simple…»: crea el modelo parametrizado. Resuelve a `false` si el usuario no confirma descartar los cambios. */
   const onCreateSlope = useCallback(
-    (input: SlopeInput): boolean => {
-      if (!confirmDiscard()) return false;
-      loadDoc(simpleSlope(input), null, { saved: true, example: false });
-      notify('info', 'Talud simple creado. Pulse «Comprobar» para calcular el factor de seguridad.');
-      return true;
-    },
+    (input: SlopeInput): Promise<boolean> =>
+      runIfDiscarded(confirmDiscard, () => {
+        loadDoc(simpleSlope(input), null, { saved: true, example: false });
+        notify('info', 'Talud simple creado. Pulse «Comprobar» para calcular el factor de seguridad.');
+      }),
     [confirmDiscard, loadDoc, notify],
   );
 
@@ -263,9 +268,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     [store, draftStorage, notify],
   );
 
-  const onCase = (key: string): void => {
+  const onCase = async (key: string): Promise<void> => {
     const entry = cases.find((c) => c.key === key);
-    if (!entry || !confirmDiscard()) return;
+    if (!entry || !(await confirmDiscard())) return;
     const opened = docFromCase(entry.caseData);
     if (!opened) {
       notify('error', `No se pudo abrir el caso ${entry.caseData.id}.`);
@@ -417,8 +422,10 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // ───────── Borrador ─────────
 
-  const recoverDraft = (): void => {
+  const recoverDraft = async (): Promise<void> => {
     if (!draft) return;
+    // Recuperar reemplaza el modelo actual: si se editó tras arrancar, se pregunta antes de descartarlo.
+    if (!(await confirmDiscard())) return;
     // Lo recuperado sigue siendo trabajo sin guardar en archivo: no se marca como guardado y el borrador se conserva.
     loadDoc(draft.doc, draft.fileName, { saved: false, example: false });
     setDraft(null);
@@ -449,6 +456,8 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     const onKey = (e: KeyboardEvent): void => {
       if (dxf || csv || slopeOpen) return;
       const t = e.target instanceof HTMLElement ? e.target : null;
+      // Con un diálogo modal abierto (confirmación, ayuda) las teclas son del diálogo: Ctrl+Z o R no deben tocar el modelo de detrás.
+      if (t?.closest('dialog')) return;
       const action = shortcutFor({
         key: e.key,
         ctrlKey: e.ctrlKey,
@@ -513,7 +522,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             <hr />
             <label className="dd-field">
               <span>Ejemplos</span>
-              <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => onCase(e.target.value)}>
+              <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => void onCase(e.target.value)}>
                 <option value="">Elegir un ejemplo…</option>
                 {cases.map((c) => (
                   <option key={c.key} value={c.key}>
@@ -606,7 +615,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           <span>
             Hay un borrador guardado el {formatWhen(draft.savedAt)} ({draft.fileName ?? 'sin nombre'}).
           </span>
-          <button type="button" onClick={recoverDraft}>
+          <button type="button" onClick={() => void recoverDraft()}>
             Recuperar
           </button>
           <button type="button" onClick={discardDraft}>
