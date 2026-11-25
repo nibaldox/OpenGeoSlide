@@ -215,9 +215,12 @@ describe('R7-10: móvil sin atrapar el desplazamiento', () => {
     expect(render()).not.toContain('touch-action:none');
   });
 
-  it('la altura es clamp(320px, 55dvh, 640px)', () => {
+  it('el lienzo rellena el contenedor y el contenedor fija clamp(320px, 55dvh, 640px)', () => {
+    // Integración U2-C + U2-L: una sola fuente de altura (.ea-canvas en App.css); .ec-root la rellena.
     const css = readFileSync(new URL('./canvas.css', import.meta.url), 'utf8');
-    expect(css).toContain('clamp(320px, 55dvh, 640px)');
+    expect(css).toMatch(/\.ec-root\s*\{[^}]*height:\s*100%/);
+    const app = readFileSync(new URL('../../App.css', import.meta.url), 'utf8');
+    expect(app).toMatch(/\.ea-canvas\s*\{[^}]*height:\s*clamp\(320px, 55dvh, 640px\)/);
     expect(render()).toContain('class="ec-root"');
   });
 });

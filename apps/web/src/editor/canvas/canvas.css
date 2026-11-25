@@ -4,8 +4,8 @@
 .ec-root {
   position: relative;
   width: 100%;
-  /* Móvil (R7-10): altura que deja ver el lienzo sin ocupar toda la pantalla. */
-  height: clamp(320px, 55dvh, 640px);
+  /* La altura la fija el contenedor .ea-canvas (App.css: clamp por tamaño de pantalla); el lienzo lo rellena. */
+  height: 100%;
   background: var(--canvas-bg);
 }
 

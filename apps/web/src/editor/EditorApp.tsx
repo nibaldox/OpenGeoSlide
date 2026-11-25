@@ -439,7 +439,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
   const scene = useMemo(() => buildScene(doc, canvasResult && shown ? shown : null), [doc, canvasResult, shown]);
   // Contrato con el lienzo (U2-C): superficie no convergida discontinua, unidades de las etiquetas y anuncios del teclado.
-  const canvasContract = { surfaceConverged, units: doc.units, onAnnounce: announce };
+  const canvasContract = {
+    surfaceConverged,
+    units: (doc.units === 'imperial' ? 'imperial' : 'SI') as 'SI' | 'imperial',
+    onAnnounce: announce,
+  };
 
   return (
     <div className="editor-app" lang="es" data-testid="editor-app">
