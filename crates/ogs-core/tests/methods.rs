@@ -472,11 +472,13 @@ fn r1_01_spencer_negative_pole_is_not_converged() {
     );
 }
 
-/// R1-02 (E4c), evidence 1. Soil slices α = 20°, 25° with an air slice at α = 80° between them:
-/// λ must equal the λ of the soil-only set within 1e-9 and lie in the range of the soil slices.
-/// Before the fix the air slice entered the λ sums and λ was 3.04.
+/// E7a (replaces the E4c test `r1_02_air_slice_is_excluded_from_lambda`, derogated by review R2-01).
+/// Soil slices α = 20°, 25° with an air slice at α = 80° between them. Air slices take part in the λ sums with
+/// their own α, so the converged λ satisfies `λ = Σ b(E_i+E_{i−1}) tan α_i / Σ b(E_i+E_{i−1})` over ALL slices.
+/// The check uses the recurrence written here, not the solver. The air slice must change λ with respect to the
+/// soil-only set, and the `air_gap_thrust` warning must follow the rule `|E_gap| > 1e-3·ΣW`.
 #[test]
-fn r1_02_air_slice_is_excluded_from_lambda() {
+fn e7a_air_slice_takes_part_in_lambda_sums() {
     let tan30 = 30.0_f64.to_radians().tan();
     let soil = vec![unit_slice(20.0, 10.0, tan30), unit_slice(25.0, 12.0, tan30)];
     let mut with_air = soil.clone();
@@ -484,31 +486,46 @@ fn r1_02_air_slice_is_excluded_from_lambda() {
     let o = opts(1e-10, 1_000);
     let s_soil = solve(&soil, MethodKind::Spencer, &o);
     let s_air = solve(&with_air, MethodKind::Spencer, &o);
-    println!("[R1-02] soil={s_soil:?}\n[R1-02] +air={s_air:?}");
+    println!("[E7a] soil={s_soil:?}\n[E7a] +air={s_air:?}");
     assert_converged(&s_soil);
     assert_converged(&s_air);
+    let lambda = s_air.lambda.expect("lambda");
+    let e = spencer_interslice(&with_air, s_air.fos, lambda);
+    let (mut num, mut den) = (0.0, 0.0);
+    for (k, s) in with_air.iter().enumerate() {
+        let sum_e = e[k] + e[k + 1];
+        num += s.width * sum_e * s.alpha.tan();
+        den += s.width * sum_e;
+    }
+    let lambda_all = num / den;
+    assert!(
+        (lambda - lambda_all).abs() < 1e-9,
+        "λ {lambda} vs moment update over all slices {lambda_all}"
+    );
     let l_soil = s_soil.lambda.expect("lambda");
-    let l_air = s_air.lambda.expect("lambda");
     assert!(
-        (l_air - l_soil).abs() < 1e-9,
-        "lambda with air {l_air} vs soil-only {l_soil}"
+        (lambda - l_soil).abs() > 1e-6,
+        "the air slice must enter λ: {lambda} equals soil-only {l_soil}"
     );
-    let (lo, hi) = (20.0_f64.to_radians().tan(), 25.0_f64.to_radians().tan());
-    assert!(
-        l_air > lo && l_air < hi,
-        "lambda {l_air} outside [{lo}, {hi}]"
-    );
-    assert!(
-        (s_air.fos - s_soil.fos).abs() / s_soil.fos < 1e-9,
-        "FS with air {} vs soil-only {}",
-        s_air.fos,
-        s_soil.fos
+    let total_w: f64 = with_air.iter().map(|s| s.weight).sum();
+    let gap = e[1].abs();
+    let expected = gap > 1e-3 * total_w;
+    assert_eq!(
+        s_air.message.as_deref() == Some("air_gap_thrust"),
+        expected,
+        "|E_gap| = {gap} vs 1e-3·ΣW = {}",
+        1e-3 * total_w
     );
 }
 
-/// R1-03a (E4a). Synthetic pair with the failure mode of the review: F₀ = 1 gives m_α(1) = 0.366, the iteration
-/// converges to F = 0.750702 where the toe slice has m_α = 0.19998 < 0.2. Before the fix this was `Converged`.
-/// (Toe: α = −30°, φ = 45°, W = 0.0115 — negligible but not air; crest: α = 53.5°, W = 20.)
+/// R1-03a (E4a, E7b). Synthetic pair with the failure mode of the review. Toe: α = −30°, φ = 45°,
+/// W = 0.0115 (negligible but not air); crest: α = 53.5°, W = 20.
+///
+/// E7b: `F_adm = (−sin α·tan φ)/(cos α − 0.2) = 0.750722`. A scan of `h(F) = F − g(F)` on (0.05, 20) gives three
+/// roots: 0.568172, 0.577350 (pole, m_toe = 0) and 0.750711. The last one is the only one that could be
+/// admissible, and it lies BELOW F_adm: m_toe = 0.19999 < 0.2. `h > 0` on the whole admissible interval, so
+/// there is no admissible root: `Invalid("m_alpha")`, with no FS (NaN). The fixed-point start F₀ = 0.788 is above
+/// F_adm; the iteration leaves the interval and the bisection finds no sign change.
 #[test]
 fn r1_03a_bishop_converged_m_alpha_below_minimum_is_invalid() {
     let sl = vec![
@@ -516,11 +533,17 @@ fn r1_03a_bishop_converged_m_alpha_below_minimum_is_invalid() {
         synth_slice(53.5, 20.0, 0.0, 1.0),
     ];
     let r = solve(&sl, MethodKind::Bishop, &opts(1e-5, 500));
-    println!("[R1-03a] {r:?} m_toe(F)={}", m_alpha_of(&sl[0], r.fos));
+    println!("[R1-03a] {r:?}");
     assert_eq!(r.status, SolveStatus::Invalid, "{r:?}");
     assert_eq!(r.message.as_deref(), Some("m_alpha"));
-    let m_toe = m_alpha_of(&sl[0], r.fos);
-    assert!(m_toe < 0.2 && m_toe > 0.1999, "m_toe(F) = {m_toe}");
+    assert!(r.fos.is_nan(), "no admissible root, so no FS: {r:?}");
+    let f_adm = -(-30.0_f64).to_radians().sin() / ((-30.0_f64).to_radians().cos() - 0.2);
+    assert!((f_adm - 0.750_722).abs() < 1e-6, "F_adm = {f_adm}");
+    let m_root = m_alpha_of(&sl[0], 0.750_711);
+    assert!(
+        m_root < 0.2 && m_root > 0.19998,
+        "m_toe at the real root = {m_root}"
+    );
 }
 
 /// R1-03b (E4a). Synthetic slope with F ≈ 6.545 and m_α(1) < 0 (toe α = −60°, φ = 45°). Before the fix the
@@ -548,11 +571,40 @@ fn r1_03b_bishop_large_fos_with_negative_m_alpha_at_unit_fos_converges() {
     assert!(min_m >= 0.2, "min m_alpha(F) = {min_m}");
 }
 
-/// R1-07 (1), E4b. Circle (11.534196233023085, 21.228450550481845, 19.554378664753912), 10 slices:
-/// φ = 45°, c = 1 for x < 10.2769 and φ = 0, c = 2 beyond, γ = 20. The F iteration goes through negative values
-/// (13 of them). Before the fix Spencer returned `Converged` at FS 0.0445217; a non-positive iterate is a pole.
+/// E7b, safeguard branch. Two synthetic slices (α = −37.607° and 32.268°, tan φ = 1.0443 and 0.2533, no cohesion).
+/// The fixed-point iteration leaves `[F_adm·(1+1e-6), 1e3]` (F_adm = 1.076088 from the toe slice), so the root is
+/// bisected in the interval. The admissible root is F ≈ 1.2165 with min m_α ≈ 0.268 ≥ 0.2. This is the only test
+/// that exercises the bisection with a root found. Reference: an independent bisection outside the crate (1.216503,
+/// at its own tolerance of 1e-5).
 #[test]
-fn r1_07a_negative_fos_iterate_never_converges() {
+fn e7b_bishop_bisection_finds_the_admissible_root_when_fixed_point_leaves_the_interval() {
+    let sl = vec![
+        synth_slice(-37.607, 5.7689, 0.0, 1.0443),
+        synth_slice(32.268, 69.4878, 0.0, 0.2533),
+    ];
+    let r = solve(&sl, MethodKind::Bishop, &opts(1e-5, 500));
+    println!("[E7b bisect] {r:?}");
+    assert_converged(&r);
+    assert!(
+        (r.fos - 1.216_503).abs() / 1.216_503 < 1e-4,
+        "FS {} vs 1.216503",
+        r.fos
+    );
+    let min_m = sl
+        .iter()
+        .map(|s| m_alpha_of(s, r.fos))
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_m >= 0.2, "min m_alpha(F) = {min_m}");
+}
+
+/// R1-07 (1), E4b. Circle (11.534196233023085, 21.228450550481845, 19.554378664753912), 10 slices:
+/// φ = 45°, c = 1 for x < 10.2769 and φ = 0, c = 2 beyond, γ = 20. The F iteration goes through negative values.
+/// Before the fix Spencer returned `Converged` at the spurious FS 0.0445217 (a non-positive iterate counted as
+/// a root). E7c treats those iterates as poles. The solver now returns the admissible root FS 0.746180 with
+/// λ = 0.191569. That is an expectation change, verified outside the crate: λ is a fixed point of the moment
+/// update (λ_next = 0.191570), E_n ≈ 1e-14, and min Φ/F = 0.32 ≥ 0.2. The spurious root is gone.
+#[test]
+fn r1_07a_negative_fos_iterate_is_not_a_root() {
     let circ = Circ {
         xc: 11.534_196_233_023_085,
         yc: 21.228_450_550_481_845,
@@ -565,9 +617,20 @@ fn r1_07a_negative_fos_iterate_never_converges() {
             (2.0, 0.0, 20.0, 0.0)
         }
     });
-    let s = solve(&sl, MethodKind::Spencer, &opts(1e-5, 500));
+    let o = opts(1e-5, 500);
+    let s = solve(&sl, MethodKind::Spencer, &o);
     println!("[R1-07a] spencer={s:?}");
-    assert_ne!(s.status, SolveStatus::Converged, "{s:?}");
+    assert_eq!(s.status, SolveStatus::Converged, "{s:?}");
+    let fos = s.fos;
+    assert!((fos - 0.746_180).abs() / 0.746_180 < 1e-5, "FS {fos}");
+    let lambda = s.lambda.expect("lambda");
+    let min_adm = sl
+        .iter()
+        .filter(|s| !(s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0))
+        .map(|s| pole_of(s, fos, lambda) / fos)
+        .fold(f64::INFINITY, f64::min);
+    assert!(min_adm >= 0.2, "min Φ/F = {min_adm}");
+    assert!(fos_residual_of(&sl, fos, lambda) < o.tolerance);
 }
 
 /// R1-07 (2), E4d. Circle (11.678371903748555, 17.20264696229227, 24.12797655066047), 40 slices:
