@@ -80,6 +80,12 @@ fn invalid(msg: impl Into<String>) -> OgsError {
 fn resolve_materials(model: &Model) -> Result<Vec<ResolvedMaterial>, OgsError> {
     let mut out = Vec::with_capacity(model.materials.len());
     for (i, m) in model.materials.iter().enumerate() {
+        // E12j (R5-10): an empty id cannot be told apart from "no material" by the editor, and no region can name it.
+        if m.id.is_empty() {
+            return Err(invalid(format!(
+                "el id del material {i} está vacío: debe tener al menos un carácter"
+            )));
+        }
         if model.materials[..i].iter().any(|other| other.id == m.id) {
             return Err(invalid(format!("id de material duplicado: '{}'", m.id)));
         }
