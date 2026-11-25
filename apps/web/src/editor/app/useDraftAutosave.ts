@@ -1,8 +1,9 @@
 // Autosave del borrador (io/draft.ts): 1 s después de la última edición, y al ocultar o cerrar la página.
 // No guarda mientras `enabled` sea falso (p. ej. mientras se ofrece «Recuperar», para no pisar el borrador).
 
-import { useEffect, useState } from 'react';
-import { createDraftAutosaver, type DraftSaveResult, type DraftStorage } from '../../io/draft';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { createDraftAutosaver, resolveDraftStorage, type DraftSaveResult, type DraftStorage, type ResolvedDraftStorage } from '../../io/draft';
+import { createPresence, ensureTabId, tabDraftStorage } from './draftTabs';
 import type { EditorStore } from '../types';
 
 export interface UnloadGuardInput {
@@ -70,3 +71,46 @@ export function useDraftAutosave(store: EditorStore, storage: DraftStorage, enab
 
   return failure;
 }
+
+// ───────── Borrador por pestaña (R7-18) ─────────
+
+let sameDraft = false;
+const sameDraftListeners = new Set<() => void>();
+
+/**
+ * Como `resolveDraftStorage()`, pero el borrador es **por pestaña** (ver `draftTabs.ts`): el id de pestaña va en
+ * `sessionStorage`, el borrador en `localStorage` con un índice, y «Recuperar» lee el más reciente de todas. Con
+ * `BroadcastChannel` detecta que el mismo borrador está abierto en otra pestaña (`useSameDraftWarning`).
+ */
+export function resolveTabDraftStorage(): ResolvedDraftStorage {
+  const resolved = resolveDraftStorage();
+  if (!resolved.persistent) return resolved;
+  const g = globalThis as { sessionStorage?: Storage; BroadcastChannel?: typeof BroadcastChannel };
+  const generate = (): string => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
+  const tabId = ensureTabId(g.sessionStorage ?? null, generate);
+  if (typeof g.BroadcastChannel === 'function') {
+    try {
+      createPresence(new g.BroadcastChannel('ogs.editor.draft'), tabId, generate(), () => {
+        sameDraft = true;
+        sameDraftListeners.forEach((l) => l());
+      });
+    } catch {
+      // Sin canal: solo se pierde el aviso de «abierto en otra pestaña».
+    }
+  }
+  return { ...resolved, storage: tabDraftStorage({ base: resolved.storage, tabId }) };
+}
+
+/** `true` si otra pestaña tiene abierto este mismo borrador (aviso no bloqueante). */
+export function useSameDraftWarning(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      sameDraftListeners.add(l);
+      return () => sameDraftListeners.delete(l);
+    },
+    () => sameDraft,
+    () => false,
+  );
+}
+
+export const SAME_DRAFT_TEXT = 'Este borrador está abierto también en otra pestaña: las dos se guardan por separado, y al recuperar se ofrece el más reciente.';
