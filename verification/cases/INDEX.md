@@ -1,28 +1,33 @@
-# Casos de verificación v0.1 (desde cSlope)
+# Casos de verificación v0.1 y v0.2 (desde cSlope)
 
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertibles o convertibles pero fuera del conjunto mínimo; motivo en cada fila).
+Casos convertidos e incluidos: **21** (v0.1: **16**, v0.2 con sismo o cargas: **5**). Casos no incluidos: **171** (no convertibles o convertibles pero fuera del conjunto mínimo; motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md).
 
-| id | título | referencia | unidades | checks (bishop/spencer) | tipo |
-|---|---|---|---|---|---|
-| V001 | Arai & Tagyo (1985) example 1 | Arai & Tagyo (1985), example 1. | SI | 2 / 0 | search |
-| V002 | Arai & Tagyo (1985) example 2, three layers | Arai & Tagyo (1985), example 2. | SI | 1 / 0 | search |
-| V003 | Arai & Tagyo (1985) example 3, water table | Arai & Tagyo (1985), Soils and Foundations 25(1). | SI | 2 / 1 | search |
-| V016a | Stepped gabion wall, equivalent cohesion | Cao et al. (2016); Grodecki (2017). | SI | 2 / 1 | fixed |
-| V019 | Cheng et al. 11 m homogeneous slope | Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150. | SI | 1 / 3 | search |
-| V025 | Duncan & Wright fig. 6.38, piezometric line | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.38. | SI | 1 / 1 | search |
-| V030 | Duncan & Wright fig. 14.4 | Duncan & Wright, Soil Strength and Slope Stability, fig. 14.4. | imperial | 1 / 1 | search |
-| V033 | Duncan & Wright fig. 14.20a, water table | Duncan & Wright, Soil Strength and Slope Stability, fig. 14.20a. | SI | 1 / 1 | search |
-| V044 | Fredlund & Krahn (1977), dry | Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3). | imperial | 1 / 1 | fixed |
-| V044b | Fredlund & Krahn (1977), rᵤ = 0.25 | Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3), 429–439. | imperial | 1 / 1 | fixed |
-| V045 | Fredlund & Krahn (1977), with water table | Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3). | SI | 1 / 1 | fixed |
-| V047a | ACADS 1(a), homogeneous slope, dry | Giam & Donald (1989). | SI | 2 / 2 | search |
-| V049 | ACADS 1(c), three-layer slope | Giam & Donald (1989), ACADS slope stability programs review. | SI | 2 / 1 | search |
-| V063 | Huang & Jia earth dam, dry | Huang, M. & Jia, C.-Q. (2009). Strength reduction FEM in stability analysis of soil slopes subjected to transient unsaturated seepage. Computers and Geotechnics 36(1–2), 93–101. | SI | 1 / 1 | search |
-| V101 | Li & Lumb (1987) homogeneous slope, rᵤ = 0.2 | Li, K.S. & Lumb, P. (1987). Probabilistic design of slopes. Can. Geotech. J. 24(4), 520–535; Hassan, A.M. & Wolff, T.F. (1999). J. Geotech. Geoenviron. Eng. 125(4), 301–308. | SI | 3 / 0 | search |
-| V093 | Yamagami & Ueta (1988) | Yamagami & Ueta (1988). | SI | 1 / 0 | search |
+| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |
+|---|---|---|---|---|---|---|
+| V001 | Arai & Tagyo (1985) example 1 | Arai & Tagyo (1985), example 1. | SI | — | 2 / 0 | search |
+| V002 | Arai & Tagyo (1985) example 2, three layers | Arai & Tagyo (1985), example 2. | SI | — | 1 / 0 | search |
+| V003 | Arai & Tagyo (1985) example 3, water table | Arai & Tagyo (1985), Soils and Foundations 25(1). | SI | — | 2 / 1 | search |
+| V016a | Stepped gabion wall, equivalent cohesion | Cao et al. (2016); Grodecki (2017). | SI | — | 2 / 1 | fixed |
+| V019 | Cheng et al. 11 m homogeneous slope | Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150. | SI | — | 1 / 3 | search |
+| V025 | Duncan & Wright fig. 6.38, piezometric line | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.38. | SI | — | 1 / 1 | search |
+| V030 | Duncan & Wright fig. 14.4 | Duncan & Wright, Soil Strength and Slope Stability, fig. 14.4. | imperial | — | 1 / 1 | search |
+| V033 | Duncan & Wright fig. 14.20a, water table | Duncan & Wright, Soil Strength and Slope Stability, fig. 14.20a. | SI | — | 1 / 1 | search |
+| V044 | Fredlund & Krahn (1977), dry | Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3). | imperial | — | 1 / 1 | fixed |
+| V044b | Fredlund & Krahn (1977), rᵤ = 0.25 | Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3), 429–439. | imperial | — | 1 / 1 | fixed |
+| V045 | Fredlund & Krahn (1977), with water table | Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3). | SI | — | 1 / 1 | fixed |
+| V047a | ACADS 1(a), homogeneous slope, dry | Giam & Donald (1989). | SI | — | 2 / 2 | search |
+| V049 | ACADS 1(c), three-layer slope | Giam & Donald (1989), ACADS slope stability programs review. | SI | — | 2 / 1 | search |
+| V063 | Huang & Jia earth dam, dry | Huang, M. & Jia, C.-Q. (2009). Strength reduction FEM in stability analysis of soil slopes subjected to transient unsaturated seepage. Computers and Geotechnics 36(1–2), 93–101. | SI | — | 1 / 1 | search |
+| V101 | Li & Lumb (1987) homogeneous slope, rᵤ = 0.2 | Li, K.S. & Lumb, P. (1987). Probabilistic design of slopes. Can. Geotech. J. 24(4), 520–535; Hassan, A.M. & Wolff, T.F. (1999). J. Geotech. Geoenviron. Eng. 125(4), 301–308. | SI | — | 3 / 0 | search |
+| V093 | Yamagami & Ueta (1988) | Yamagami & Ueta (1988). | SI | — | 1 / 0 | search |
+| V102a | Loukidis et al. (2003) slope at its critical seismic coefficient, dry | Loukidis, D., Bandini, P. & Salgado, R. (2003). Stability of seismically loaded slopes using limit analysis. Géotechnique 53(5), 463–479. | SI | kh = 0.432, kv = 0 | 2 / 3 | search |
+| V102b | Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5 | Loukidis, D., Bandini, P. & Salgado, R. (2003). Stability of seismically loaded slopes using limit analysis. Géotechnique 53(5), 463–479. | SI | kh = 0.132, kv = 0 | 2 / 3 | search |
+| V081a | Sharma (1996) reinforcement example, unreinforced | Sharma (1996). | SI | udl q = 40 en [17, 30] | 1 / 0 | fixed |
+| V081b | Sharma (1996) slope with a reinforced zone (φ = 54.93°) | Sharma (1996). Verification manual of a commercial slope stability program. | SI | udl q = 40 en [17, 30] | 1 / 0 | fixed |
+| V097a | Eurocode 7 cutting with surcharge | Verification manual of a commercial slope stability program. | SI | udl q = 35 en [52, 62] | 1 / 0 | fixed |
 
 ## Checks descartados en casos convertidos
 
@@ -39,6 +44,8 @@ Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertib
 - V047a: Morgenstern-Price (Morgenstern-Price (half-sine), Commercial program B, 0.991): método no soportado
 - V049: Janbu (Janbu corrected (f0), Commercial program A, 1.357): método no soportado
 - V049: Morgenstern-Price (Morgenstern-Price (half-sine), Commercial program B, 1.382): método no soportado
+- V102a: Morgenstern-Price (Spencer (M-P, constant f(x)), non-circular, Commercial program A (non-circular), 0.999): superficie no circular (nonCircularOptimization)
+- V102b: Morgenstern-Price (Spencer (M-P, constant f(x)), non-circular, Commercial program A (non-circular), 0.997): superficie no circular (nonCircularOptimization)
 - V093: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.325): superficie no circular (nonCircularOptimization)
 - V093: Janbu (Janbu simplified (uncorrected), Commercial program A (non-circular), 1.178): método no soportado
 
