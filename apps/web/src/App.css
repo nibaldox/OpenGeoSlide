@@ -1204,6 +1204,10 @@ dialog.ea-dialog.help-dialog[open] {
   flex: none;
 }
 
+.help-scroll button {
+  width: auto;
+}
+
 .help-scroll h3 {
   margin: 20px 0 8px;
   font-size: 1.05rem;
