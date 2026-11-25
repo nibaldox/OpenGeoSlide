@@ -170,3 +170,14 @@ def test_generated_cases_pass_the_schema_and_search_gates():
         errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
         assert errors == [], (path, errors)
         assert imp.gate_search(case) == [], path
+
+
+# ------------------------------------------------------------ checks[].options.slices (R3-08)
+
+@pytest.mark.parametrize("value, accepted", [(2, False), (3, True), (2000, True), (2001, False)])
+def test_case_schema_check_slices_follow_section_4_5(value, accepted):
+    """R3-08: the case schema allowed `checks[].options.slices` from 2, without a maximum. §4.5 says [3, 2000]."""
+    case = json.load(open(os.path.join(CASES_DIR, "V047a.json"), encoding="utf-8"))
+    case["checks"][0]["options"] = {"slices": value}
+    errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
+    assert (errors == []) is accepted, (value, errors)
