@@ -70,6 +70,42 @@ export interface SearchSpec {
   refine?: boolean;
 }
 
+/** Coeficientes sísmicos pseudoestáticos (v0.2). Ausente equivale a kh = kv = 0. */
+export interface Seismic {
+  /** En [0, 1). La fuerza kh·W actúa en el sentido del deslizamiento. */
+  kh?: number;
+  /** En (−1, 1). Con kv > 0, la fuerza kv·W actúa hacia abajo. */
+  kv?: number;
+}
+
+/** Carga distribuida vertical sobre el terreno entre x1 y x2 (v0.2). */
+export interface UdlLoad {
+  type: 'udl';
+  /** Si existe, no puede repetirse. */
+  id?: string | null;
+  /** x1 < x2, ambos dentro del rango x del modelo. */
+  x1: number;
+  x2: number;
+  /** kPa (SI) o psf (imperial); q ≥ 0. */
+  q: number;
+}
+
+/** Carga lineal aplicada en (x, y_top(x)) (v0.2). */
+export interface LineLoad {
+  type: 'line';
+  /** Si existe, no puede repetirse. */
+  id?: string | null;
+  /** Dentro del rango x del modelo. */
+  x: number;
+  /** kN/m (SI) o lbf/ft (imperial); p ≥ 0. */
+  p: number;
+  /** Grados en [−90, 90], desde la vertical hacia abajo; positivo inclina la carga hacia +x del modelo. */
+  angle: number;
+}
+
+/** Carga externa (v0.2), discriminada por `type`. */
+export type Load = UdlLoad | LineLoad;
+
 export interface AnalysisSettings {
   /** Por defecto ["bishop"]. */
   methods?: MethodKind[];
@@ -80,16 +116,20 @@ export interface AnalysisSettings {
   min_m_alpha?: number;
   surface?: SurfaceSpec | null;
   search?: SearchSpec | null;
+  /** Solo con version "0.2". */
+  seismic?: Seismic | null;
 }
 
 export interface Model {
   format: string;
-  version: string;
+  version: '0.1' | '0.2';
   meta: Meta;
   units?: string;
   materials: Material[];
   regions: Region[];
   water?: Water | null;
+  /** Solo con version "0.2". Va después de `water` y antes de `slope`. */
+  loads?: Load[];
   slope?: SlopeSettings;
   analysis: AnalysisSettings;
 }
