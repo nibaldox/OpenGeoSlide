@@ -1,8 +1,8 @@
 # OpenGeoSlide
 
-[**Aplicación web**](https://nibaldox.github.io/opengeoslide/) ·
-[Repositorio](https://github.com/nibaldox/opengeoslide) ·
-[Releases](https://github.com/nibaldox/opengeoslide/releases) ·
+[**Aplicación web**](https://nibaldox.github.io/OpenGeoSlide/) ·
+[Repositorio](https://github.com/nibaldox/OpenGeoSlide) ·
+[Releases](https://github.com/nibaldox/OpenGeoSlide/releases) ·
 [Licencia Apache-2.0](LICENSE)
 
 Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por equilibrio límite
@@ -15,11 +15,11 @@ Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por e
 ## Instalación
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde la web, desde el código fuente o desde los
-assets del [GitHub Release](https://github.com/nibaldox/opengeoslide/releases).
+assets del [GitHub Release](https://github.com/nibaldox/OpenGeoSlide/releases).
 
 ### Web
 
-No requiere instalación: abra <https://nibaldox.github.io/opengeoslide/>. El cálculo corre en su navegador (motor en
+No requiere instalación: abra <https://nibaldox.github.io/OpenGeoSlide/>. El cálculo corre en su navegador (motor en
 WebAssembly). La aplicación es una PWA: desde el navegador se puede instalar («Instalar aplicación» en Chrome o Edge)
 y funciona sin conexión una vez cargada.
 
@@ -31,7 +31,7 @@ apps/web/scripts/build-wasm.sh          # genera el motor WASM en apps/web/src/w
 cd apps/web
 pnpm install --frozen-lockfile
 pnpm test
-VITE_BASE=/opengeoslide/ pnpm build     # genera apps/web/dist/ (sin VITE_BASE, la base es «/»)
+VITE_BASE=/OpenGeoSlide/ pnpm build     # genera apps/web/dist/ (sin VITE_BASE, la base es «/»)
 pnpm preview
 ```
 
@@ -43,7 +43,7 @@ Sin el paso del WASM, la web usa un motor simulado que no es válido para ingeni
 Requiere [Rust](https://rustup.rs) (el repositorio fija la versión en `rust-toolchain.toml`):
 
 ```sh
-git clone https://github.com/nibaldox/opengeoslide.git
+git clone https://github.com/nibaldox/OpenGeoSlide.git
 cd opengeoslide
 cargo install --path crates/ogs-cli --locked     # instala `ogs` en ~/.cargo/bin
 # o, sin instalar: cargo build --release -p ogs-cli   (binario en target/release/ogs)
@@ -57,7 +57,7 @@ Wheel `abi3` para CPython 3.11 o superior. Como el paquete no está en PyPI, ins
 versión (el nombre depende de la plataforma; elija el de la suya en la página del release):
 
 ```sh
-pip install https://github.com/nibaldox/opengeoslide/releases/download/v0.1.0/opengeoslide-0.1.0-cp311-abi3-<plataforma>.whl
+pip install https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.1.0/opengeoslide-0.1.0-cp311-abi3-<plataforma>.whl
 ```
 
 `<plataforma>` es la etiqueta del wheel del asset: `manylinux…x86_64` (Linux), `macosx_…_arm64` o `macosx_…_x86_64`
@@ -66,7 +66,7 @@ pip install https://github.com/nibaldox/opengeoslide/releases/download/v0.1.0/op
 Para compilarlo desde el código fuente (necesita Rust y [maturin](https://www.maturin.rs)):
 
 ```sh
-git clone https://github.com/nibaldox/opengeoslide.git
+git clone https://github.com/nibaldox/OpenGeoSlide.git
 cd opengeoslide/crates/ogs-py
 scripts/prepare-license-files.sh                 # copia LICENSE y NOTICE junto a pyproject.toml
 pip install maturin

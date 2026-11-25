@@ -11,7 +11,7 @@ API pueden cambiar entre versiones menores.
 ## [0.1.0] - 2026-11-25
 
 Primera versión pública (cierre de la Fase 1): editor web, sismo y cargas, y publicación en
-<https://github.com/nibaldox/opengeoslide>.
+<https://github.com/nibaldox/OpenGeoSlide>.
 
 ### Added
 - **Motor (`ogs-core`):**
@@ -33,7 +33,7 @@ Primera versión pública (cierre de la Fase 1): editor web, sismo y cargas, y p
 - PWA instalable: `manifest.webmanifest`, iconos 192 y 512 px y service worker propio con precache del shell, el JS, el
   CSS, el glue y el `.wasm`, de modo que la aplicación carga y calcula sin conexión. Las fuentes del informe se cachean
   bajo demanda, en un caché versionado con el build.
-- `VITE_BASE` para desplegar la web bajo una subruta (por ejemplo, `/opengeoslide/` en GitHub Pages).
+- `VITE_BASE` para desplegar la web bajo una subruta (por ejemplo, `/OpenGeoSlide/` en GitHub Pages).
 - Tipos congelados v0.2 del contrato entre el motor y la web.
 - **Verificación:** harness en su versión 0.2 y 5 casos nuevos con sismo y cargas (51/51 checks en 21 casos); batería
   diferencial de 14 modelos (D11-D14 con sismo y cargas: 28/28 en búsqueda y 28/28 en superficie fija); prueba de ida y
@@ -45,7 +45,7 @@ Primera versión pública (cierre de la Fase 1): editor web, sismo y cargas, y p
   clasificadores.
 - **CI y publicación:** workflows de GitHub Actions `ci`, `pages`, `wheels` y `release`. El job `web` de `ci` ejecuta la
   paridad editor/motor con el CLI compilado, sin casos omitidos, y el job `oracle` ejecuta la ida y vuelta de la web.
-- **Distribución:** la web se publica en <https://nibaldox.github.io/opengeoslide/>. Los wheels de Python (`abi3`,
+- **Distribución:** la web se publica en <https://nibaldox.github.io/OpenGeoSlide/>. Los wheels de Python (`abi3`,
   CPython ≥ 3.11) y el sdist se suben como assets del GitHub Release del tag `v*`. La publicación en PyPI queda
   desactivada hasta definir la variable de repositorio `PYPI_PUBLISH` (requiere cuenta y Trusted Publishing);
   la publicación en crates.io sigue detrás de `workflow_dispatch` y del secret `CARGO_REGISTRY_TOKEN`.
@@ -99,6 +99,6 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/nibaldox/opengeoslide/releases/tag/v0.1.0
-[hito-fase0]: https://github.com/nibaldox/opengeoslide/tree/hito-fase0
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0
+[hito-fase0]: https://github.com/nibaldox/OpenGeoSlide/tree/hito-fase0
