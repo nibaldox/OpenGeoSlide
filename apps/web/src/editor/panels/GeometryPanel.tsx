@@ -3,6 +3,7 @@ import type { Point } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, Issue } from '../types';
+import { createToolSwitch } from '../app/discard';
 import { applyCommands } from './dispatch';
 import { PanelSection, TextInput } from './Fields';
 import { regionMaterialCommand, unitLabels } from './forms';
@@ -309,6 +310,8 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
   const summaries = useMemo(() => regionSummary(doc), [doc]);
   const [lastRegion, setLastRegion] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
+  const confirm = useConfirm();
+  const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
   const selectedRegion = selection.kind === 'region' || selection.kind === 'vertex' ? selection.regionIndex : null;
   useEffect(() => {
@@ -336,7 +339,7 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
               onClick={() => {
                 // Sin región elegida, se divide la que muestra el panel.
                 if (selectedRegion === null && active !== null) store.dispatch({ type: 'ui/select', selection: { kind: 'region', regionIndex: active } });
-                store.dispatch({ type: 'ui/tool', tool: 'split_region' });
+                void switchTool('split_region'); // con un trazo de 3 o más puntos pide confirmar antes de descartarlo (A-04)
               }}
             >
               Dividir región…
