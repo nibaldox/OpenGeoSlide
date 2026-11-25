@@ -53,8 +53,9 @@ pub(crate) fn start_fos(slices: &[Slice]) -> f64 {
 }
 
 /// Lower bound `F_adm = max_i (−sin α·tan φ)/(cos α − min_m_alpha)` over the soil slices with `α < 0` (E7b).
-/// `None` when a slice with `α < 0`, `cos α ≤ min_m_alpha` and `tan φ > 0` makes every F inadmissible.
-fn lower_bound(slices: &[Slice], min_m: f64) -> Option<f64> {
+/// Shared with Spencer (E8b). `None` when a slice with `α < 0`, `cos α ≤ min_m_alpha` and `tan φ > 0` makes
+/// every F inadmissible.
+pub(super) fn lower_bound(slices: &[Slice], min_m: f64) -> Option<f64> {
     let mut bound = 0.0_f64;
     for s in slices.iter().filter(|s| !is_inert(s) && s.alpha < 0.0) {
         let (sin, cos) = s.alpha.sin_cos();
@@ -197,14 +198,8 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     if !admissible(slices, root, min_m) {
         return invalid_m(root, iterations);
     }
-    // E4e: Bishop has ΔX = 0.
+    // E4e: Bishop has ΔX = 0. The class of the negative normal forces is a note of the converged state (E8d).
     let warning = negative_normal_message(slices, |_, s| effective_normal(s, root, 0.0));
-    MethodResult::new(
-        method,
-        root,
-        SolveStatus::Converged,
-        iterations,
-        None,
-        warning,
-    )
+    MethodResult::new(method, root, SolveStatus::Converged, iterations, None, None)
+        .with_warnings(warning)
 }

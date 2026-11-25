@@ -17,8 +17,9 @@ pub(crate) const M_ALPHA_POLE: f64 = 1e-9;
 /// Relative trigger of the negative-normal warning (E4e): `N' < −1e-6 · Σ W`.
 const NEGATIVE_NORMAL_FRACTION: f64 = 1e-6;
 
-/// Share of the weight carried by negative normal forces above which the warning is major (E7d).
-const NEGATIVE_NORMAL_MAJOR_FRACTION: f64 = 0.02;
+/// Share of the weight carried by negative normal forces above which the warning is major (E7d, calibrated
+/// by E8c). Like the 0.02 it replaces, it classifies the warning; it is not a numerical tolerance.
+const NEGATIVE_NORMAL_MAJOR_FRACTION: f64 = 0.05;
 
 /// Relative threshold of the air-gap warning (E7a): `|E_gap| > 1e-3 · Σ W`.
 const AIR_GAP_FRACTION: f64 = 1e-3;
@@ -60,7 +61,8 @@ pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
 /// force of slice `k`; air slices are not classified.
 ///
 /// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW`:
-/// `negative_effective_normal` (note) if `f ≤ 0.02`, `negative_effective_normal_major` (warning) if `f > 0.02`.
+/// `negative_effective_normal` (note) if `f ≤ 0.05`, `negative_effective_normal_major` (warning) if `f > 0.05`
+/// (E8c).
 pub(crate) fn negative_normal_message(
     slices: &[Slice],
     normal: impl Fn(usize, &Slice) -> f64,
@@ -118,10 +120,15 @@ pub(crate) fn air_gap_thrust(slices: &[Slice], e: &[f64]) -> bool {
     false
 }
 
-/// `MethodResult.message` is a single slot. The air-gap warning takes it first, because it is the
-/// more severe one; otherwise the negative-normal class is used.
-pub(crate) fn pick_warning(air: bool, normal: Option<&'static str>) -> Option<&'static str> {
-    if air { Some(AIR_GAP_MESSAGE) } else { normal }
+/// The notes of a converged state, in a fixed order: the air-gap warning first (the more severe one), then
+/// the negative-normal class (E7a, E8d). A converged result carries them in `MethodResult.warnings`.
+pub(crate) fn converged_notes(air: bool, normal: Option<&'static str>) -> Vec<&'static str> {
+    let mut codes = Vec::with_capacity(2);
+    if air {
+        codes.push(AIR_GAP_MESSAGE);
+    }
+    codes.extend(normal);
+    codes
 }
 
 /// Amendment E3: true when the surface has no driving moment (`Σ W·sin α ≤ 1e-6 · Σ W`, or non-finite).
@@ -151,6 +158,10 @@ pub enum SolveStatus {
 }
 
 /// Result of one method on one surface.
+///
+/// `message` is the reason for the status and is set only for `Invalid` and `NotConverged` (E8d). `warnings`
+/// are the notes of the state (for example `air_gap_thrust` or the negative-normal class); they can accompany a
+/// `Converged` result.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodResult {
     pub method: MethodKind,
@@ -159,10 +170,11 @@ pub struct MethodResult {
     pub iterations: usize,
     pub lambda: Option<f64>,
     pub message: Option<String>,
+    pub warnings: Vec<String>,
 }
 
 impl MethodResult {
-    /// Builds a result; `message` is `None` for a clean convergence.
+    /// Builds a result with no warnings. `message` is the reason of an `Invalid` or `NotConverged` state.
     fn new(
         method: MethodKind,
         fos: f64,
@@ -178,7 +190,14 @@ impl MethodResult {
             iterations,
             lambda,
             message: message.map(str::to_owned),
+            warnings: Vec::new(),
         }
+    }
+
+    /// Attaches the notes of a converged state (E8d).
+    fn with_warnings(mut self, codes: impl IntoIterator<Item = &'static str>) -> Self {
+        self.warnings.extend(codes.into_iter().map(str::to_owned));
+        self
     }
 }
 
@@ -189,5 +208,52 @@ pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> Metho
     match method {
         MethodKind::Bishop => bishop::solve(slices, opts),
         MethodKind::Spencer => spencer::solve(slices, opts),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Two soil slices of weight 50 each (ΣW = 100). The first one gets normal force `−f·100`, so the share
+    /// `Σ_{N'<0}|N'|/ΣW` is exactly `f`.
+    fn class_at(f: f64) -> Option<&'static str> {
+        let slice = Slice {
+            x_left: 0.0,
+            x_right: 1.0,
+            y_base_left: 0.0,
+            y_base_right: 0.0,
+            y_top_mid: 1.0,
+            width: 1.0,
+            alpha: 0.0,
+            base_length: 1.0,
+            weight: 50.0,
+            cohesion: 1.0,
+            tan_phi: 0.5,
+            pore_pressure: 0.0,
+            material: 0,
+        };
+        let s = vec![slice, slice];
+        negative_normal_message(&s, |k, _| if k == 0 { -f * 100.0 } else { 10.0 })
+    }
+
+    /// E8c: the note/warning threshold is 0.05. f = 0.03 is a note; f = 0.105 (R2-04) is the major warning; the
+    /// boundary 0.05 belongs to the note (`f ≤ 0.05`). With no negative normal force there is no class.
+    #[test]
+    fn e8c_negative_normal_threshold_is_five_percent() {
+        assert_eq!(class_at(0.03), Some("negative_effective_normal"));
+        assert_eq!(class_at(0.05), Some("negative_effective_normal"));
+        assert_eq!(class_at(0.105), Some("negative_effective_normal_major"));
+        assert_eq!(class_at(0.0), None);
+    }
+
+    /// E8d: the notes of a converged state keep a fixed order, the air gap first.
+    #[test]
+    fn e8d_converged_notes_order_and_content() {
+        assert_eq!(
+            converged_notes(true, Some(NEGATIVE_NORMAL_MESSAGE)),
+            vec![AIR_GAP_MESSAGE, NEGATIVE_NORMAL_MESSAGE]
+        );
+        assert_eq!(converged_notes(false, None), Vec::<&str>::new());
     }
 }

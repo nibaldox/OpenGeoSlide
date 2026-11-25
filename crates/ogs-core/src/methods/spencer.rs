@@ -18,19 +18,22 @@
 //! Air slices (E2) have no weight and no strength. Their normal force passes through unchanged
 //! (`E_{i+1} = E_i`). Amendment E7a restores them in the λ sums with their own α (E4c is derogated): they are
 //! massless bodies that transmit `E` and `X = λE`, which keeps the global moment balance (review R2-01).
-//! A run of air slices between two soil slices that carries `|E| > 1e-3·ΣW` adds the warning `air_gap_thrust`.
+//! A run of air slices between two soil slices that carries `|E| > 1e-3·ΣW` adds the note `air_gap_thrust`.
+//! Surfaces that split the soil into detached masses never reach this solver (E8a, in the slicer).
 //!
 //! Solver (E7c, review R2-03): the F loop with λ fixed uses the closed form with the safeguard of bisection in
-//! `[F_adm(λ)·(1+1e-6), 1e3]`. A λ step that leaves the admissible region is halved, up to 12 times, before the
-//! solver aborts with `Invalid("pole")`.
+//! `[F_adm(λ)·(1+1e-6), 1e3]`, where `F_adm(λ)` is the larger of Bishop's bound (E8b) and the pole bound of
+//! `Φ_i > 1e-9·F`. A λ step that leaves the admissible region is halved, up to 12 times, before the solver
+//! aborts with `Invalid("pole")`.
 //!
-//! Admissibility (E4b, E4d): the solution is `Converged` only if, with the final λ, the F equation still holds to
-//! `tolerance` (E4d), and every soil slice has `Φ_i / F ≥ min_m_alpha` (E4b). `NotConverged` when the budget
-//! is exhausted.
+//! Admissibility (E4b as amended by E8b, E4d): the solution is `Converged` only if, with the final λ, the F
+//! equation still holds to `tolerance` (E4d), and on every soil slice `Φ_i > 1e-9·F` (no pole, no negative
+//! divisor) and Bishop's `m_α(F) ≥ min_m_alpha` at the same F (E8b). `NotConverged` when the budget is
+//! exhausted.
 
 use super::{
-    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, is_inert, lacks_driving,
-    negative_normal_message, pick_warning,
+    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, converged_notes, is_inert,
+    lacks_driving, m_alpha, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -138,29 +141,43 @@ fn lambda_step(slices: &[Slice], e: &[f64]) -> Option<f64> {
     lambda.is_finite().then_some(lambda)
 }
 
-/// Lower bound of the admissible F for a fixed λ (E7c). The condition `Φ_i/F ≥ min` reads
-/// `p_i + (a_i − min)·F ≥ 0`, with `p_i = (sin α − λ cos α) tan φ` and `a_i = cos α + λ sin α`.
-/// For `a_i > min` it gives `F ≥ −p_i/(a_i − min)`; the bound is the largest of these (0 if none).
-fn lower_bound(slices: &[Slice], lambda: f64, min_m: f64) -> f64 {
+/// Lower bound of F from the poles at `λ` (E7c, E8b). `Φ_i > 1e-9·F` reads `p_i + (a_i − 1e-9)·F > 0`, with
+/// `p_i = (sin α − λ cos α) tan φ` and `a_i = cos α + λ sin α`. For `a_i > 1e-9` it gives
+/// `F > −p_i/(a_i − 1e-9)`; the bound is the largest of these (0 if none).
+fn pole_bound(slices: &[Slice], lambda: f64) -> f64 {
     let mut bound = 0.0_f64;
     for s in slices.iter().filter(|s| !is_inert(s)) {
         let (sin, cos) = s.alpha.sin_cos();
         let p = (sin - lambda * cos) * s.tan_phi;
         let a = cos + lambda * sin;
-        if a - min_m > 0.0 {
-            bound = bound.max(-p / (a - min_m));
+        if a - POLE_FRACTION > 0.0 {
+            bound = bound.max(-p / (a - POLE_FRACTION));
         }
     }
     bound
 }
 
-/// E4b admissibility of `F` at `λ`: `Φ_i / F ≥ min_m_alpha` on every soil slice. NaN fails.
-fn admissible_at(slices: &[Slice], fos: f64, lambda: f64, min_m: f64) -> bool {
-    fos > 0.0
-        && slices
-            .iter()
-            .filter(|s| !is_inert(s))
-            .all(|s| pole(s, fos, lambda) / fos >= min_m)
+/// Reason why `F` at `λ` is not admissible (E4b as amended by E8b), or `None` if it is. On every soil slice:
+/// `Φ_i > 1e-9·F` (no pole and no negative divisor: `"pole"`), and Bishop's `m_α(F) ≥ min_m_alpha` at this same
+/// F (`"m_alpha"`). NaN fails.
+fn inadmissibility(slices: &[Slice], fos: f64, lambda: f64, min_m: f64) -> Option<&'static str> {
+    if fos.is_nan() || fos <= 0.0 {
+        return Some("pole");
+    }
+    let soil = || slices.iter().filter(|s| !is_inert(s));
+    if soil().any(|s| {
+        let phi = pole(s, fos, lambda);
+        phi.is_nan() || phi <= POLE_FRACTION * fos
+    }) {
+        return Some("pole");
+    }
+    if soil().any(|s| {
+        let m = m_alpha(s, fos);
+        m.is_nan() || m < min_m
+    }) {
+        return Some("m_alpha");
+    }
+    None
 }
 
 /// Closed-form right-hand side `F = Σ(R/D)/Σ(T/D)` with λ fixed, over the soil slices.
@@ -182,8 +199,8 @@ fn closed_form(slices: &[Slice], fos: f64, lambda: f64) -> Option<f64> {
 }
 
 /// Solves `F` for a fixed `λ` (E7c). Fixed-point iterations on the closed form; when an iterate leaves the
-/// admissible region, bisection of `h(F) = F − g(F)` in `[F_adm(λ)·(1+1e-6), 1e3]`. Every evaluation counts
-/// toward `max_iterations`.
+/// admissible region, bisection of `h(F) = F − g(F)` in `[F_adm(λ)·(1+1e-6), 1e3]`. `m_bound` is Bishop's
+/// lower bound (E8b); the pole bound is added at this `λ`. Every evaluation counts toward `max_iterations`.
 ///
 /// Errors: `"pole"` (no admissible root in the interval), `"m_alpha"` (the root is not admissible),
 /// `"max_iterations"` (budget exhausted).
@@ -191,11 +208,12 @@ fn solve_fos(
     slices: &[Slice],
     start: f64,
     lambda: f64,
+    m_bound: f64,
     opts: &SolveOptions,
     iterations: &mut usize,
 ) -> Result<f64, &'static str> {
     let min_m = opts.min_m_alpha;
-    let bound = lower_bound(slices, lambda, min_m);
+    let bound = m_bound.max(pole_bound(slices, lambda));
     let lo = if bound > 0.0 {
         bound * (1.0 + ADM_MARGIN)
     } else {
@@ -210,7 +228,7 @@ fn solve_fos(
             break;
         };
         *iterations += 1;
-        if !(next > 0.0 && inside(next) && admissible_at(slices, next, lambda, min_m)) {
+        if !(next > 0.0 && inside(next) && inadmissibility(slices, next, lambda, min_m).is_none()) {
             break;
         }
         let delta = (next - fos).abs() / fos;
@@ -252,10 +270,9 @@ fn solve_fos(
         }
     }
     let root = 0.5 * (a + b);
-    if admissible_at(slices, root, lambda, min_m) {
-        Ok(root)
-    } else {
-        Err("m_alpha")
+    match inadmissibility(slices, root, lambda, min_m) {
+        None => Ok(root),
+        Some(reason) => Err(reason),
     }
 }
 
@@ -290,6 +307,10 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     if lacks_driving(slices) {
         return outcome(f64::NAN, SolveStatus::Invalid, 0, None, Some("no_driving"));
     }
+    // E8b: a slice that Bishop's criterion rejects for every F makes every Spencer state inadmissible too.
+    let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
+        return outcome(f64::NAN, SolveStatus::Invalid, 0, None, Some("m_alpha"));
+    };
     let start = bishop::solve(slices, opts);
     let mut fos =
         if start.status != SolveStatus::Invalid && start.fos.is_finite() && start.fos > 0.0 {
@@ -309,7 +330,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         };
         outcome(f64::NAN, status, iterations, Some(lambda), Some(msg))
     };
-    match solve_fos(slices, fos, lambda, opts, &mut iterations) {
+    match solve_fos(slices, fos, lambda, m_bound, opts, &mut iterations) {
         Ok(value) => fos = value,
         Err(msg) => return failed(msg, iterations, lambda),
     }
@@ -350,7 +371,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         let mut factor = 1.0_f64;
         for attempt in 0..=MAX_LAMBDA_HALVINGS {
             let lambda_try = lambda + factor * delta;
-            match solve_fos(slices, fos, lambda_try, opts, &mut iterations) {
+            match solve_fos(slices, fos, lambda_try, m_bound, opts, &mut iterations) {
                 Ok(value) => {
                     accepted = Some((value, lambda_try, attempt == 0));
                     break;
@@ -384,7 +405,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         }
     }
 
-    // Converged: the final E at (F, λ) gives the admissibility test (E4b) and the normal forces (E4e, E7d).
+    // Converged: the final E at (F, λ) gives the admissibility test (E4b, E8b) and the normal forces (E4e, E7d).
     let e = spencer_interslice(slices, fos, lambda);
     if e.iter().any(|v| !v.is_finite()) {
         return outcome(
@@ -395,23 +416,18 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
             Some("non_finite"),
         );
     }
-    if !admissible_at(slices, fos, lambda, opts.min_m_alpha) {
+    if let Some(reason) = inadmissibility(slices, fos, lambda, opts.min_m_alpha) {
         return outcome(
             fos,
             SolveStatus::Invalid,
             iterations,
             Some(lambda),
-            Some("m_alpha"),
+            Some(reason),
         );
     }
     let normals = spencer_direct_normals(slices, lambda, &e);
     let normal_class = negative_normal_message(slices, |k, _| normals[k]);
     let air = air_gap_thrust(slices, &e);
-    outcome(
-        fos,
-        SolveStatus::Converged,
-        iterations,
-        Some(lambda),
-        pick_warning(air, normal_class),
-    )
+    outcome(fos, SolveStatus::Converged, iterations, Some(lambda), None)
+        .with_warnings(converged_notes(air, normal_class))
 }
