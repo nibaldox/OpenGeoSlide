@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-25T03:29:33-03:00 · harness v1 · casos: `verification/cases` (21 casos, 51 checks)
+Generado: 2026-11-25T03:43:50-03:00 · harness v1 · casos: `verification/cases` (21 casos, 51 checks)
 
 ## Motores
 
