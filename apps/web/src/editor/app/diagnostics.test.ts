@@ -50,6 +50,18 @@ describe('issuesFromReport', () => {
     expect(['nota', 'aviso']).toContain(issues[0]?.severity);
   });
 
+  it('un aviso con destino conocido lleva su puntero (R7-11); sin destino queda en null', () => {
+    const report: AnalysisReport = {
+      engine: 'ogs-core 0.1.0',
+      results: [method({ warnings: ['no_driving', 'load_outside_mass', 'negative_lambda'] })],
+    };
+    expect(issuesFromReport(report).map((i) => [i.code, i.path])).toEqual([
+      ['no_driving', '/analysis/search'],
+      ['load_outside_mass', '/loads'],
+      ['negative_lambda', null],
+    ]);
+  });
+
   it('un método que no convergió genera un aviso aunque no traiga códigos', () => {
     const report: AnalysisReport = { engine: 'mock', results: [method({ status: 'not_converged' }), method({ method: 'spencer', status: 'invalid' })] };
     const issues = issuesFromReport(report);
