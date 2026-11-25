@@ -391,10 +391,10 @@ fn x_range_of(sl: &[Slice]) -> (f64, f64) {
     )
 }
 
-/// E10a′. A circle whose lower arc leaves D09 through the side wall `x = 0` under the ground, in a foot lens separated
-/// from the face by a small air window. The lens is the lighter block (W 20.5 against 26.3), so it is discarded
-/// and the arc's wall exit is not checked: the surface is valid with the note `truncated_mass`. The main block is
-/// the face, and its weight is the soil area under the arc over its own range (independent integration).
+/// E10a′/E10a″. A circle whose lower arc leaves D09 through the side wall `x = 0` under the ground, in a foot lens
+/// separated from the face by a small air window. The lens is not the entry block, so it is discarded and the arc's
+/// wall exit is not checked: the surface is valid with the note `truncated_mass`. The main block is the face, and its
+/// weight is the soil area under the arc over its own range (independent integration).
 #[test]
 fn wall_exit_of_a_discarded_lens_is_valid() {
     let d09 = doc(
@@ -440,12 +440,13 @@ fn wall_exit_of_a_discarded_lens_is_valid() {
     );
 }
 
-/// E10a′, the cSlope critical circle of D09 (Spencer, FS 0.3876). Pending: the foot lens (W ≈ 476) is heavier than the
-/// face (W ≈ 389), so the heaviest-block rule keeps the lens, which leaves through `x = 0` under the ground, and the
-/// surface is `OutsideModel`. The face alone gives Spencer 0.387759 (+0.02 %). The selection rule is the coordinator's
-/// decision (see the W8a report).
+/// The D09 differential model, as the oracle runs it (verification/differential/cases/D09.ogs.json).
+const D09_MODEL: &str = include_str!("../../../verification/differential/cases/D09.ogs.json");
+
+/// E10a″. The cSlope critical circle of D09 (Spencer, FS 0.3876). The foot lens (W ≈ 476, heavier) leaves through
+/// `x = 0` under the ground, but the main block is the entry block, the face (W ≈ 389). The surface is valid with
+/// `truncated_mass`, and at 50 slices (the oracle's count) Spencer is within 0.5 % of cSlope. Bishop is reported.
 #[test]
-#[ignore = "pendiente decisión del coordinador: el lente del pie (W 476) es más pesado que la cara (W 389) y sale por x = 0; la regla de mayor peso lo mantiene"]
 fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
     let d09 = doc(
         SOIL,
@@ -460,15 +461,57 @@ fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
         yc: 55.1690164837531,
         r: 42.44024115833943,
     };
-    let sliced = slice_surface(&pm, &c, 2000).expect("valid under E10a′");
+    let sliced = slice_surface(&pm, &c, 2000).expect("valid under E10a″");
     assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let x_face = sliced
+        .slices
+        .iter()
+        .map(|x| x.x_left)
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        x_face > 15.0 - 1e-3,
+        "the face is the main block: x_left = {x_face}"
+    );
+
+    // FS at 50 slices, both methods, on the real D09 model (c = 2, φ = 45°, r_u = 0.65), as the oracle.
+    let mut value: serde_json::Value =
+        serde_json::from_str(D09_MODEL).expect("D09 model is valid JSON");
+    value["analysis"] = serde_json::json!({
+        "methods": ["bishop", "spencer"],
+        "slices": 50,
+        "tolerance": 1e-8,
+        "max_iterations": 2000,
+        "min_m_alpha": 0.2,
+        "surface": {"type": "circle", "xc": 1.302373757508704, "yc": 55.1690164837531, "r": 42.44024115833943}
+    });
+    let json = value.to_string();
+    let model: Model = serde_json::from_str(&json).expect("model");
+    let report = ogs_core::analyze(&model).expect("valid under E10a″");
+    let (bishop, spencer) = (&report.results[0], &report.results[1]);
+    for r in [bishop, spencer] {
+        assert_eq!(r.status, ogs_core::methods::SolveStatus::Converged, "{r:?}");
+        assert!(
+            r.warnings.iter().any(|w| w == "truncated_mass"),
+            "{:?}",
+            r.warnings
+        );
+    }
+    let fs = spencer.fos.expect("finite");
+    let rel = (fs - 0.3876).abs() / 0.3876;
+    assert!(rel <= 0.005, "Spencer {fs} vs cSlope 0.3876: {rel}");
+    println!(
+        "[D09 cSlope circle] Bishop {:.6}, Spencer {fs:.6} ({:+.3} %)",
+        bishop.fos.unwrap_or(f64::NAN),
+        100.0 * (fs - 0.3876) / 0.3876
+    );
 }
 
-/// E10a. A valley notch whose arc leaves the soil splits the mass in two. The surface is valid: only the heavier
-/// block is analysed, the note `truncated_mass` is raised, and no air is left in the block. Its weight equals the
-/// soil area under the arc over the block's own range (independent integration, γ = 20).
+/// E10a″. A valley notch whose arc leaves the soil splits the mass in two. The surface is valid: only the block that
+/// contains the entry (crest side) is analysed, the note `truncated_mass` is raised, and no air is left in the block.
+/// Its weight equals the soil area under the arc over the block's own range (independent integration, γ = 20).
+/// (Formerly the heavier block, E10a; the entry rule replaces the weight rule in E10a″.)
 #[test]
-fn valley_notch_keeps_only_the_heavier_block() {
+fn valley_notch_keeps_the_entry_block() {
     let valley = doc(
         SOIL,
         &region(
@@ -511,10 +554,11 @@ fn valley_notch_keeps_only_the_heavier_block() {
 }
 
 /// E10a. A circle that leaves the flat toe and re-enters the 2:1 face: the soil under the flat toe and the soil under
-/// the face are two blocks. The surface is valid; the heavier block is analysed and `truncated_mass` is raised. Its
-/// weight equals the soil area under the arc over its own range (independent integration, γ = 20).
+/// the face are two blocks. The surface is valid; the block with the entry (the face, on the crest side) is analysed
+/// and `truncated_mass` is raised. Its weight equals the soil area under the arc over its own range (independent
+/// integration, γ = 20). (Formerly the heavier block, E10a; E10a″ replaces the weight rule.)
 #[test]
-fn toe_gap_keeps_only_the_heavier_block() {
+fn toe_gap_keeps_the_entry_block() {
     let c = Circle {
         xc: 25.0,
         yc: 44.0,
