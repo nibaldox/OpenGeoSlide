@@ -240,9 +240,10 @@ def test_run_writes_report_and_exits_zero_with_failures(tmp_path):
 # ------------------------------------------------------------ ogs warnings (R4-04)
 
 def test_informative_ogs_warnings_are_the_notes_of_the_contract():
-    # Same list as INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs (E5, E10a, E11a′, E12b).
+    # Same list as INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs (E5, E10a, E11a′, E12b, E12e).
     assert set(run.OGS_INFORMATIVE_WARNINGS) == {
-        "negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass"}
+        "negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass",
+        "multiple_admissible_roots"}
 
 
 def test_non_informative_warnings_keep_driving_and_major_codes():

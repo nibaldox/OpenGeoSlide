@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
-import { pwaPrecache } from './build/pwa-plugin';
+import { pwaPrecache } from './build/pwa-plugin.ts';
 
 // Repository root (apps/web/vite.config.ts -> ../../). The verification cases live there.
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));

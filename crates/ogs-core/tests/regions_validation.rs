@@ -470,20 +470,46 @@ fn assert_all_valid(files: &[PathBuf]) {
     }
 }
 
+/// Number of cases the index declares ("Casos convertidos e incluidos: **N**").
+fn included_cases_in_index() -> usize {
+    let text = fs::read_to_string(repo_path("verification/cases/INDEX.md"))
+        .unwrap_or_else(|e| panic!("cannot read verification/cases/INDEX.md: {e}"));
+    let tail = text
+        .split("Casos convertidos e incluidos: **")
+        .nth(1)
+        .expect("INDEX.md states the number of included cases");
+    let digits: String = tail.chars().take_while(|c| c.is_ascii_digit()).collect();
+    digits
+        .parse()
+        .expect("the number of included cases is an integer")
+}
+
 #[test]
-fn the_16_verification_cases_stay_valid() {
-    let files = json_files("verification/cases", ".json");
-    assert_eq!(files.len(), 16, "verification/cases: {files:?}");
+fn every_verification_case_stays_valid() {
+    let files: Vec<PathBuf> = json_files("verification/cases", ".json")
+        .into_iter()
+        .filter(|p| {
+            p.file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with('V'))
+        })
+        .collect();
+    // The index is the source of truth; it lists at least the 21 cases of v0.1 and v0.2.
+    let expected = included_cases_in_index();
+    assert!(expected >= 21, "INDEX.md declares only {expected} cases");
+    assert_eq!(
+        files.len(),
+        expected,
+        "verification/cases and INDEX.md disagree: {files:?}"
+    );
     assert_all_valid(&files);
 }
 
 #[test]
-fn the_10_differential_models_stay_valid() {
+fn every_differential_model_stays_valid() {
     let files = json_files("verification/differential/cases", ".ogs.json");
-    assert_eq!(
-        files.len(),
-        10,
-        "verification/differential/cases: {files:?}"
+    assert!(
+        files.len() >= 14,
+        "verification/differential/cases has fewer than the 14 models of D01-D14: {files:?}"
     );
     assert_all_valid(&files);
 }

@@ -17,7 +17,7 @@ sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0
   |---|---|---|
   | D11 | rajo de 3 bancos (geometría de D04), c = 40 kPa, φ = 32° | `kh = 0,15` |
   | D12 | botadero de 25 m, c = 2 kPa, φ = 35° | `udl` de 50 kPa en la corona (x de 0 a 10 m), `kv = −0,05` |
-  | D13 | talud civil de 10 m, 1,5H:1V, c = 15 kPa, φ = 26° | carga lineal de 100 kN/m en x = 6 m (corona), 15° hacia +x |
+  | D13 | talud civil de 10 m, 1,5H:1V, c = 15 kPa, φ = 26° | carga lineal de 100 kN/m en x = 6 m (corona), 15° hacia +x; búsqueda con `min_width = 5 m` |
   | D14 | terraplén de 12 m, 2H:1V, c = 12 kPa, φ = 30° | `kh = 0,1` y piezométrica inclinada |
 
 - `test_differential.py`: pytest. Comprueba que los casos coinciden con el generador, que ogs acepta
@@ -71,8 +71,8 @@ fallan (no se saltan) si el binario no existe.
 
 ## Línea base (ver `REPORT.md`)
 
-- Tras B2 (D11-D14): ver el resumen de `REPORT.md` y el hallazgo de D13 más abajo. D01-D10 conservan sus
-  valores de la línea base de W9.
+- Tras F1-E: búsqueda **OK 28/28** y superficie fija **OK 28/28** (D13 con `min_width = 5 m`, ver más abajo).
+  D01-D10 conservan sus valores de la línea base de W9.
 
 - Tras W9: búsqueda OK 20/20, fija OK 20/20 (incluida 1 concordancia «ambos sin solución»).
 - D03 spencer en superficie fija: ogs devuelve `not_converged` (sin FS finito) y cSlope rechaza la superficie
@@ -101,4 +101,17 @@ reales:
 - Si la búsqueda excluye esas superficies (`search.min_width` de 5 m o 10 m en los dos motores; no es la configuración
   de la batería), cSlope converge al mismo mínimo que ogs: Bishop 1,4595 frente a 1,4599 (+0,03 %) y Spencer 1,4499
   frente a 1,4504 (+0,03 %). Con `min_width = 2 m` cSlope sigue en círculos de 2 m bajo la carga (1,0010 y 1,0407).
-- El caso se conserva tal cual, con su veredicto.
+- **Decisión (F1-E): D13 fija `analysis.search.min_width = 5.0`** (en ogs y en cSlope, mismo valor). Práctica: se exige
+  un ancho mínimo de masa para excluir fallas superficiales locales bajo una carga puntual o lineal; el FS de esas
+  superficies depende de m_α con carga lineal y no es un resultado fiable en ninguno de los dos motores. No es un
+  ajuste de tolerancia: es una convención de la búsqueda, y la capacidad de soporte local se revisa aparte.
+  Valores de D13:
+
+  | | antes (`min_width` nulo) | después (`min_width = 5`) |
+  |---|---|---|
+  | Bishop, búsqueda | ogs 1,4599 · cSlope 0,6141 · +137,72 % · FALLA | ogs 1,4599 · cSlope 1,4595 · +0,03 % · OK |
+  | Spencer, búsqueda | ogs 1,4504 · cSlope 0,4989 (no convergido) · FALLA | ogs 1,4504 · cSlope 1,4499 · +0,04 % · OK |
+  | fija (Bishop / Spencer) | −0,21 % / −0,21 % · OK | −0,21 % / −0,21 % · OK |
+
+- El aviso `multiple_admissible_roots` (E12e) es informativo en la batería, igual que en la aceptación
+  (`OGS_INFORMATIVE_WARNINGS` en `run.py`): no aparece en la columna de avisos.

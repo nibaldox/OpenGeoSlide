@@ -36,8 +36,8 @@ function isSubsequence(keys: string[], order: string[]): boolean {
 }
 
 describe('ogsJson: ida y vuelta con los casos de verificación', () => {
-  it('hay 16 casos', () => {
-    expect(caseFiles).toHaveLength(16);
+  it('hay al menos los 21 casos de v0.1 y v0.2', () => {
+    expect(caseFiles.length).toBeGreaterThanOrEqual(21);
   });
 
   for (const file of caseFiles) {

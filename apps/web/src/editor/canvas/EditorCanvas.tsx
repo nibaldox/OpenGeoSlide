@@ -32,11 +32,12 @@ import {
   piezoLabel,
   rangeBand,
   rangeLabel,
+  seismicBadge,
   seismicLabel,
   slideDirection,
   vertexLabel,
 } from './layout';
-import { fitToDoc, wheelFactor, zoomAt } from './viewportOps';
+import { fitToDoc, resizeViewport, wheelFactor, zoomAt } from './viewportOps';
 
 const COLOR_EDGE = '#1f2937';
 const COLOR_SELECTED = '#2563eb';
@@ -92,7 +93,9 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
   const getState = useCallback(() => store.getState(), [store]);
   const state = useSyncExternalStore(subscribe, getState, getState);
   const svgRef = useRef<SVGSVGElement>(null);
+  // Sin ResizeObserver (render en node) el tamaño por defecto cuenta como medido.
   const [size, setSize] = useState({ w: 800, h: 600 });
+  const [measured, setMeasured] = useState(typeof ResizeObserver === 'undefined');
   const [gesture, setGesture] = useState<GestureState>(IDLE);
   const gestureRef = useRef<GestureState>(IDLE);
   const [hover, setHover] = useState<Hit['kind'] | null>(null);
@@ -106,7 +109,10 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
     if (!el || typeof ResizeObserver === 'undefined') return;
     const measure = (): void => {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) setSize({ w: Math.round(r.width), h: Math.round(r.height) });
+      if (r.width > 0 && r.height > 0) {
+        setSize({ w: Math.round(r.width), h: Math.round(r.height) });
+        setMeasured(true);
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -119,11 +125,13 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
     const s = store.getState();
     const vp = s.ui.viewport;
     if (vp === null) {
-      store.dispatch({ type: 'ui/viewport', viewport: fitToDoc(s.doc, size.w, size.h) });
+      // El ajuste inicial espera a la primera medida real: con el tamaño por defecto el modelo quedaba
+      // centrado en 800 × 600 y, en un lienzo más ancho, con un margen vacío a la derecha.
+      if (measured) store.dispatch({ type: 'ui/viewport', viewport: fitToDoc(s.doc, size.w, size.h) });
     } else if (vp.width !== size.w || vp.height !== size.h) {
-      store.dispatch({ type: 'ui/viewport', viewport: { ...vp, width: size.w, height: size.h } });
+      store.dispatch({ type: 'ui/viewport', viewport: resizeViewport(vp, size.w, size.h) });
     }
-  }, [store, size.w, size.h, ui.viewport]);
+  }, [store, size.w, size.h, measured, ui.viewport]);
 
   // Rueda: zoom alrededor del cursor. Listener nativo no pasivo para poder llamar a preventDefault.
   useEffect(() => {
@@ -213,6 +221,7 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);
+  const badge = seismicBadge(vp, dir);
   const dragging = gesture.mode === 'drag' && gesture.moved;
   const guides = preview && preview.kind !== 'circle' ? preview.snap.guides : null;
   const snapTarget = preview && preview.kind === 'vertex' ? preview.snap.target : null;
@@ -369,13 +378,22 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
       <g data-layer="seismic" aria-hidden="true">
         {seismic && (
           <g>
-            <rect x={10} y={10} width={196} height={50} rx={4} fill="rgba(255,255,255,0.9)" stroke={COLOR_SEISMIC} />
-            <text x={18} y={29} fontSize={13} fill={COLOR_SEISMIC}>{seismicLabel(seismic)}</text>
+            <rect
+              x={badge.x}
+              y={badge.y}
+              width={badge.width}
+              height={badge.height}
+              rx={4}
+              fill="rgba(255,255,255,0.72)"
+              stroke={COLOR_SEISMIC}
+              strokeOpacity={0.8}
+            />
+            <text x={badge.textX} y={badge.textY} fontSize={13} fill={COLOR_SEISMIC}>{seismicLabel(seismic)}</text>
             <line
-              x1={dir === 1 ? 18 : 198}
-              x2={dir === 1 ? 198 : 18}
-              y1={46}
-              y2={46}
+              x1={badge.arrowX1}
+              x2={badge.arrowX2}
+              y1={badge.arrowY}
+              y2={badge.arrowY}
               stroke={COLOR_SEISMIC}
               strokeWidth={2.5}
               markerEnd={`url(#${seismicArrowId})`}

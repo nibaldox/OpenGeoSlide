@@ -61,7 +61,13 @@ VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
 PASS_VERDICTS = (VERDICT_OK, VERDICT_BOTH_NO_SOLUTION)
 # Informative ogs warnings (contract §4.5 / E5, E7d, E10a, E11a′): notes, not warnings. Any other code is a warning
 # that the report lists. The list must match INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs.
-OGS_INFORMATIVE_WARNINGS = ("negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass")
+OGS_INFORMATIVE_WARNINGS = (
+    "negative_effective_normal",
+    "truncated_mass",
+    "negative_lambda",
+    "load_outside_mass",
+    "multiple_admissible_roots",
+)
 
 
 # ------------------------------------------------------------------ cases

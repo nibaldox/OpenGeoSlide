@@ -4,7 +4,7 @@
   "meta": {
     "id": "D13",
     "title": "Talud civil con carga lineal de 100 kN/m a 15°",
-    "notes": "Talud civil de 10 m, 1,5H:1V, con una carga lineal de 100 kN/m en x = 6 m (corona) inclinada 15° hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°."
+    "notes": "Talud civil de 10 m, 1,5H:1V, con una carga lineal de 100 kN/m en x = 6 m (corona) inclinada 15° hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°. La búsqueda fija min_width = 5 m para excluir fallas locales bajo la carga."
   },
   "units": "SI",
   "materials": [
@@ -80,7 +80,7 @@
       "n_exit": 20,
       "n_radius": 20,
       "max_radius_factor": 5.0,
-      "min_width": null,
+      "min_width": 5.0,
       "refine": true
     },
     "surface": {

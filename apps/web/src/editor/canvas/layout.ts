@@ -41,6 +41,34 @@ export function seismicLabel(seismic: { kh?: number; kv?: number }): string {
   return `kh = ${formatNumber(seismic.kh ?? 0, 2, 4)} · kv = ${formatNumber(seismic.kv ?? 0, 2, 4)}`;
 }
 
+export const SEISMIC_BADGE = { width: 196, height: 50, margin: 10 } as const;
+
+/**
+ * Recuadro del indicador de sismo: esquina superior derecha del área de dibujo, que no tiene etiquetas de eje
+ * (las del eje Y van a la izquierda y las del eje X abajo). Incluye el texto y el segmento de la flecha.
+ */
+export function seismicBadge(
+  vp: Pick<Viewport, 'width'>,
+  dir: 1 | -1,
+): { x: number; y: number; width: number; height: number; textX: number; textY: number; arrowX1: number; arrowX2: number; arrowY: number } {
+  const { width, height, margin } = SEISMIC_BADGE;
+  const x = Math.max(margin, vp.width - width - margin);
+  const y = margin;
+  const left = x + 8;
+  const right = x + width - 8;
+  return {
+    x,
+    y,
+    width,
+    height,
+    textX: left,
+    textY: y + 19,
+    arrowX1: dir === 1 ? left : right,
+    arrowX2: dir === 1 ? right : left,
+    arrowY: y + 36,
+  };
+}
+
 export function isImperial(doc: ModelDoc): boolean {
   return /imp/i.test(doc.units ?? '');
 }
