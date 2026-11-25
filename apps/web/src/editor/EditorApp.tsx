@@ -12,14 +12,25 @@ import { saveOgsJson, sha256Hex } from '../io/ogsJson';
 import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
+import { buildScene } from '../render/scene';
+import { DropdownMenu } from '../ui/DropdownMenu';
+import { Legend } from '../ui/Legend';
 import { ResultsTable } from '../ui/ResultsTable';
+import { useRovingTabIndex } from '../ui/useRovingTabIndex';
 import { EditorCanvas } from './canvas/EditorCanvas';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
 import type { RegionImportPlan } from './app/importPlan';
+import type { PanelTabId } from './app/issueNav';
 import { documentTitle } from './app/docTitle';
+import { fieldSelector, type IssueTarget } from './app/issueNav';
+import { LiveRegions } from './app/LiveRegions';
+import { noticeLifetimeMs, pushNotice, type Notice } from './app/notices';
+import { ResultSummary } from './app/ResultSummary';
+import { calcAnnouncement } from './app/resultSummary';
+import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
@@ -40,14 +51,8 @@ import {
 import { createEditorStore, useEditorStore, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc, Tool } from './types';
 
-interface Notice {
-  id: number;
-  kind: 'info' | 'aviso' | 'error';
-  text: string;
-}
-
 interface TabDef {
-  id: string;
+  id: PanelTabId;
   label: string;
   Panel: ComponentType<{ store: EditorStore }>;
 }
@@ -93,12 +98,23 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [boot] = useState(() => loadDraft(draftStorage.storage));
   const [draft, setDraft] = useState<Draft | null>(boot.draft);
   const [notices, setNotices] = useState<Notice[]>(() => {
-    const first: Notice[] = boot.issues.map((i, k) => ({ id: k + 1, kind: 'aviso' as const, text: i.text }));
-    if (draftStorage.issue) first.push({ id: first.length + 1, kind: 'aviso', text: draftStorage.issue.text });
+    let first: Notice[] = [];
+    boot.issues.forEach((i, k) => {
+      first = pushNotice(first, { id: k + 1, kind: 'aviso', text: i.text });
+    });
+    if (draftStorage.issue) first = pushNotice(first, { id: first.length + 1, kind: 'aviso', text: draftStorage.issue.text });
     return first;
   });
   const noticeId = useRef(100);
-  const [tab, setTab] = useState<string>('materials');
+  const [noticesPaused, setNoticesPaused] = useState(false);
+  const live = useAnnouncer();
+  const { announce, announceError } = live;
+  const [tab, setTab] = useState<PanelTabId>('materials');
+  const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const tablistRef = useRef<HTMLDivElement>(null);
+  const toolbarKeys = useRovingTabIndex(toolbarRef, { selector: 'button', orientation: 'horizontal' });
+  const tabKeys = useRovingTabIndex(tablistRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
   const [dxf, setDxf] = useState<{ fileName: string; result: DxfParseResult } | null>(null);
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
@@ -125,12 +141,28 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
   const canRedo = useEditorStore(store, (s) => s.history.future.length > 0);
 
-  const notify = useCallback((kind: Notice['kind'], text: string) => {
-    noticeId.current += 1;
-    const id = noticeId.current;
-    setNotices((prev) => [...prev.slice(-4), { id, kind, text }]);
-  }, []);
-  const dismiss = (id: number): void => setNotices((prev) => prev.filter((n) => n.id !== id));
+  // Cada aviso se muestra (máximo 3, sin repetidos) y se anuncia en la región viva que corresponde (R7-12).
+  const notify = useCallback(
+    (kind: Notice['kind'], text: string) => {
+      noticeId.current += 1;
+      const id = noticeId.current;
+      setNotices((prev) => pushNotice(prev, { id, kind, text }));
+      if (kind === 'error') announceError(text);
+      else announce(text);
+    },
+    [announce, announceError],
+  );
+  const dismiss = useCallback((id: number): void => setNotices((prev) => prev.filter((n) => n.id !== id)), []);
+
+  // Los informativos se cierran solos a los 6 s (UX-10); el puntero o el foco sobre la lista los mantienen.
+  useEffect(() => {
+    if (noticesPaused) return;
+    const timers = notices.flatMap((n) => {
+      const ms = noticeLifetimeMs(n.kind);
+      return ms === null ? [] : [window.setTimeout(() => dismiss(n.id), ms)];
+    });
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, [notices, noticesPaused, dismiss]);
 
   // ───────── Documento: nuevo, abrir, guardar ─────────
 
@@ -287,6 +319,67 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
   }, [engine, engineStatus]);
 
+  // ───────── Anuncios (regiones vivas persistentes) ─────────
+
+  // Resumen al terminar un cálculo: «Cálculo completado: Bishop FS 0,985; Spencer FS 0,984; 2 notas».
+  const announcedRun = useRef<unknown>(null);
+  useEffect(() => {
+    if (engine.run && engine.run !== announcedRun.current) {
+      announcedRun.current = engine.run;
+      announce(calcAnnouncement(engine.run.report));
+    }
+  }, [engine.run, announce]);
+  // Errores del motor y mensajes de la última pulsación (errores locales, cálculo cancelado).
+  const diagnostics = useEditorStore(store, (s) => s.diagnostics);
+  const engineErrorText = diagnostics.status === 'error' ? (diagnostics.issues.find((i) => i.source === 'engine' && i.severity === 'error')?.text ?? null) : null;
+  useEffect(() => {
+    if (engineErrorText) announceError(engineErrorText);
+  }, [engineErrorText, announceError]);
+  useEffect(() => {
+    if (!engine.message) return;
+    if (engine.messageKind === 'error') announceError(engine.message);
+    else announce(engine.message);
+  }, [engine.message, engine.messageKind, announce, announceError]);
+  useEffect(() => {
+    if (draftFailure) announce(draftFailure);
+  }, [draftFailure, announce]);
+  const draftAnnounced = useRef(false);
+  useEffect(() => {
+    if (draft && !draftAnnounced.current) {
+      draftAnnounced.current = true;
+      announce(`Hay un borrador guardado el ${formatWhen(draft.savedAt)}. Puede recuperarlo o descartarlo.`);
+    }
+  }, [draft, announce]);
+  const bootNotices = useRef(notices);
+  useEffect(() => {
+    for (const n of bootNotices.current) announce(n.text);
+  }, [announce]);
+
+  // ───────── Navegación desde Diagnósticos (R7-11) ─────────
+
+  const navigateIssue = useCallback((_issue: unknown, target: IssueTarget): void => {
+    if (target.tab) setTab(target.tab);
+    setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
+  }, []);
+  // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
+  useEffect(() => {
+    if (!pendingFocus) return;
+    const { target } = pendingFocus;
+    let el: HTMLElement | null = null;
+    if (target.tab === null) {
+      el = document.querySelector<HTMLElement>('[data-testid="editor-canvas"] [role="application"], [data-testid="editor-canvas"] svg');
+    } else {
+      const panel = document.getElementById('ea-tabpanel');
+      el = (target.fieldPath ? panel?.querySelector<HTMLElement>(fieldSelector(target.fieldPath)) : null) ?? panel?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)') ?? panel;
+    }
+    if (el) {
+      if (!el.matches('input, select, button, textarea, [tabindex]')) el.tabIndex = -1;
+      el.focus();
+      el.scrollIntoView({ block: 'nearest' });
+    }
+    setPendingFocus(null);
+  }, [pendingFocus]);
+
   // ───────── Borrador ─────────
 
   const recoverDraft = (): void => {
@@ -344,45 +437,53 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
+  const scene = useMemo(() => buildScene(doc, canvasResult && shown ? shown : null), [doc, canvasResult, shown]);
+  // Contrato con el lienzo (U2-C): superficie no convergida discontinua, unidades de las etiquetas y anuncios del teclado.
+  const canvasContract = { surfaceConverged, units: doc.units, onAnnounce: announce };
 
   return (
     <div className="editor-app" lang="es" data-testid="editor-app">
-      <div className="ea-toolbar panel" role="toolbar" aria-label="Acciones del modelo">
-        <div className="ea-group" role="group" aria-label="Archivo">
-          <button type="button" onClick={onNew}>
-            Nuevo
-          </button>
-          <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
-            Abrir
-          </button>
-          <button type="button" onClick={onSave} title="Ctrl+S">
-            Guardar
-          </button>
-          <label className="ea-select">
-            <span className="visually-hidden">Abrir un caso publicado como modelo</span>
-            <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => onCase(e.target.value)}>
-              <option value="">Ejemplos…</option>
-              {cases.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="ea-group" role="group" aria-label="Importar y exportar">
-          <button type="button" onClick={() => dxfRef.current?.click()}>
-            Importar DXF
-          </button>
-          <button type="button" onClick={() => csvRef.current?.click()}>
-            Importar CSV
-          </button>
-          <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
-            Exportar resultados (CSV)
-          </button>
-          <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
-            Exportar superficie (CSV)
-          </button>
+      <LiveRegions polite={live.polite} alert={live.alert} />
+      <div className="ea-toolbar panel" role="toolbar" aria-label="Acciones del modelo" ref={toolbarRef} onKeyDown={toolbarKeys.onKeyDown}>
+        <div className="ea-group" role="group" aria-label="Menús">
+          <DropdownMenu label="Archivo">
+            <button type="button" onClick={onNew}>
+              Nuevo
+            </button>
+            <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
+              Abrir
+            </button>
+            <button type="button" onClick={onSave} title="Ctrl+S">
+              Guardar
+            </button>
+            <hr />
+            <button type="button" onClick={() => dxfRef.current?.click()}>
+              Importar DXF
+            </button>
+            <button type="button" onClick={() => csvRef.current?.click()}>
+              Importar CSV
+            </button>
+            <hr />
+            <label className="dd-field">
+              <span>Ejemplos</span>
+              <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => onCase(e.target.value)}>
+                <option value="">Elegir un ejemplo…</option>
+                {cases.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </DropdownMenu>
+          <DropdownMenu label="Exportar">
+            <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+              Exportar resultados (CSV)
+            </button>
+            <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+              Exportar superficie (CSV)
+            </button>
+          </DropdownMenu>
         </div>
         <div className="ea-group" role="group" aria-label="Edición">
           <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
@@ -435,24 +536,26 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         <input ref={csvRef} type="file" accept=".csv,text/csv" hidden data-testid="file-csv" onChange={(e) => void onCsvFile(e)} />
       </div>
 
-      <p className="ea-status small" aria-live="polite" data-testid="file-status">
-        <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
-        {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
-        {engine.busy ? ' · calculando…' : ''}
-      </p>
-      {checkState.status && (
-        <p className="ea-engine-status small" role="status" data-testid="engine-status">
-          {checkState.status}
+      <div className="ea-statusbar">
+        <p className="ea-status small" data-testid="file-status">
+          <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
+          {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
+          {engine.busy ? ' · calculando…' : ''}
         </p>
-      )}
-      {exportHint && (
-        <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
-          {exportHint}
-        </p>
-      )}
+        {checkState.status && (
+          <p className="ea-engine-status small" data-testid="engine-status">
+            {checkState.status}
+          </p>
+        )}
+        {exportHint && (
+          <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
+            {exportHint}
+          </p>
+        )}
+      </div>
 
       {draft && (
-        <div className="banner ea-draft" role="alert" data-testid="draft-banner">
+        <div className="banner ea-draft" data-testid="draft-banner">
           <span>
             Hay un borrador guardado el {formatWhen(draft.savedAt)} ({draft.fileName ?? 'sin nombre'}).
           </span>
@@ -464,20 +567,20 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           </button>
         </div>
       )}
-      {draftFailure && (
-        <div className="banner banner-sim" role="status">
-          {draftFailure}
-        </div>
-      )}
-      {engine.message && (
-        <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'} role={engine.messageKind === 'error' ? 'alert' : 'status'}>
-          {engine.message}
-        </div>
-      )}
+      {draftFailure && <div className="banner banner-sim">{draftFailure}</div>}
+      {engine.message && <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'}>{engine.message}</div>}
       {notices.length > 0 && (
-        <ul className="ea-notices" aria-label="Mensajes" data-testid="notices">
+        <ul
+          className="ea-notices"
+          aria-label="Mensajes"
+          data-testid="notices"
+          onMouseEnter={() => setNoticesPaused(true)}
+          onMouseLeave={() => setNoticesPaused(false)}
+          onFocus={() => setNoticesPaused(true)}
+          onBlur={() => setNoticesPaused(false)}
+        >
           {notices.map((n) => (
-            <li key={n.id} className={`ea-notice ea-notice-${n.kind}`} role={n.kind === 'error' ? 'alert' : 'status'}>
+            <li key={n.id} className={`ea-notice ea-notice-${n.kind}`}>
               <span>{n.text}</span>
               <button type="button" className="link-button" onClick={() => dismiss(n.id)} aria-label="Cerrar mensaje">
                 Cerrar
@@ -489,13 +592,25 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
       <div className="ea-layout">
         <div className="ea-main">
+          <ResultSummary run={engine.run} current={engine.current} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
           <section className="panel ea-canvas-panel" aria-label="Sección del modelo">
             <div className="ea-canvas" data-testid="editor-canvas">
-              {/* TODO(U2-B): pasar `surfaceConverged={surfaceConverged}` a EditorCanvas para dibujar la superficie no convergida discontinua. */}
-              <EditorCanvas store={store} result={canvasResult} />
+              <EditorCanvas store={store} result={canvasResult} {...canvasContract} />
             </div>
+            <Legend
+              scene={scene}
+              label="Leyenda de la sección"
+              options={{
+                surface: Boolean(canvasResult),
+                unconverged: Boolean(canvasResult) && !surfaceConverged,
+                slices: Boolean(canvasResult),
+                bands: Boolean(doc.analysis.search),
+                loads: (doc.loads?.length ?? 0) > 0,
+                seismic: Boolean(doc.analysis.seismic),
+              }}
+            />
             {engine.run && !engine.current && (
-              <p className="small ea-stale" role="status" data-testid="stale-result">
+              <p className="small ea-stale" data-testid="stale-result">
                 El resultado mostrado es de una versión anterior del modelo. Pulse «Comprobar» para actualizarlo.
               </p>
             )}
@@ -515,11 +630,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
               </p>
             </section>
           )}
-          <DiagnosticsPanel store={store} onCheck={() => void onCheck()} />
+          <DiagnosticsPanel store={store} onNavigate={navigateIssue} />
         </div>
 
         <aside className="ea-side" aria-label="Propiedades del modelo">
-          <div className="ea-tabs" role="tablist" aria-label="Paneles del modelo">
+          <div className="ea-tabs" role="tablist" aria-label="Paneles del modelo" ref={tablistRef} onKeyDown={tabKeys.onKeyDown}>
             {TABS.map((t) => (
               <button
                 key={t.id}

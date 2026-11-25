@@ -22,7 +22,15 @@ export function EngineIndicator({ info, error }: { info: EngineInfo | null; erro
   return (
     <p className={`engine-badge engine-badge-${s.kind}`} data-testid="engine-banner" data-engine-state={s.kind}>
       <span className="engine-dot" aria-hidden="true" />
-      {s.text}
+      {s.kind === 'ok' ? (
+        <>
+          <span className="engine-extra">Motor: </span>
+          {s.text.replace(/^Motor: /, '').replace(/ \(WASM\)$/, '')}
+          <span className="engine-extra"> (WASM)</span>
+        </>
+      ) : (
+        s.text
+      )}
     </p>
   );
 }

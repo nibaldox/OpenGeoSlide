@@ -17,24 +17,72 @@ body {
 .app {
   max-width: 1560px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 12px 16px 16px;
 }
 
+@media (max-width: 640px) {
+  .app {
+    padding: 8px;
+  }
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  border: 2px solid var(--ui-focus);
+  border-radius: 6px;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+main:focus {
+  outline: none;
+}
+
+/* Cabecera compacta: marca, modos, indicador del motor y tema en una sola fila (se envuelve en pantallas estrechas). */
 .app-header {
-  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 20px;
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--ui-border);
 }
 
-.app-header h1 {
+.app-brand {
+  min-width: 0;
+  padding-bottom: 4px;
+}
+
+.app-brand h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   color: var(--ui-accent);
 }
 
-/* Selector de tema (Sistema / Claro / Oscuro), arriba a la derecha de la cabecera. */
+.app-brand p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.app-header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-left: auto;
+  padding-bottom: 6px;
+}
+
+/* Selector de tema (Sistema / Claro / Oscuro). */
 .theme-select {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -45,15 +93,39 @@ body {
   min-height: 28px;
 }
 
-@media (max-width: 640px) {
-  .theme-select {
-    position: static;
-    margin: 0 0 8px;
-  }
+/* Indicador compacto del motor (sustituye a la fila completa «Motor: ogs-core …»). */
+.engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  background: var(--ui-note-bg);
+  color: var(--ui-note-ink);
 }
 
-.app-header p {
-  margin: 2px 0 12px;
+.engine-badge-ok {
+  background: var(--ui-ok-bg);
+  color: var(--ui-ok-ink);
+}
+
+.engine-badge-simulated {
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+}
+
+.engine-badge-error {
+  background: var(--ui-err-bg);
+  color: var(--ui-err-ink);
+}
+
+.engine-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .muted {
@@ -162,7 +234,8 @@ fieldset.field legend {
 
 button {
   font: inherit;
-  padding: 6px 12px;
+  min-height: 32px;
+  padding: 4px 12px;
   border-radius: 6px;
   border: 1px solid var(--ui-control-border);
   background: var(--ui-surface-subtle);
@@ -206,8 +279,18 @@ button.primary:hover:not(:disabled) {
 }
 
 .link-button {
+  min-height: 28px;
   padding: 2px 8px;
   font-size: 0.85rem;
+}
+
+/* Punteros gruesos (táctil): objetivos de 44 px (WCAG 2.5.8 con margen). */
+@media (pointer: coarse) {
+  button,
+  .link-button,
+  select {
+    min-height: 44px;
+  }
 }
 
 .link-button.active {
@@ -300,6 +383,42 @@ button.primary:hover:not(:disabled) {
   width: 22px;
 }
 
+.swatch.line-unconverged {
+  height: 0;
+  border: 0;
+  border-top: 2.5px dashed var(--canvas-surface-unconverged);
+  width: 22px;
+}
+
+.swatch.band-entry {
+  background: var(--canvas-band-entry);
+  border-color: var(--canvas-band-entry);
+}
+
+.swatch.band-exit {
+  background: var(--canvas-band-exit);
+  border-color: var(--canvas-band-exit);
+}
+
+.swatch.line-load {
+  height: 0;
+  border: 0;
+  border-top: 2.5px solid var(--canvas-load);
+  width: 22px;
+}
+
+.swatch.line-seismic {
+  height: 0;
+  border: 0;
+  border-top: 2.5px solid var(--canvas-seismic);
+  width: 22px;
+}
+
+.ea-canvas-panel .legend {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}
+
 .swatch.slice {
   background: var(--canvas-slice-fill);
   border-color: var(--canvas-slice-edge);
@@ -334,8 +453,16 @@ td.num,
   background: var(--ui-row-warn);
 }
 
-.results {
+.results,
+.table-scroll,
+.ep-table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+}
+
+.table-scroll:focus-visible,
+.ep-table-wrap:focus-visible {
+  outline-offset: -2px;
 }
 
 .warnings {
@@ -381,6 +508,7 @@ td.num,
   outline-offset: 2px;
 }
 
+/* Texto solo para lectores de pantalla (única utilidad; `sr-only` de panels.css se eliminó). */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -388,7 +516,7 @@ td.num,
   margin: -1px;
   padding: 0;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -401,9 +529,9 @@ td.num,
 
 .mode-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  border-bottom: 2px solid var(--ui-border);
-  margin-bottom: 12px;
+  margin-bottom: -2px;
 }
 
 .mode-tab {
@@ -427,10 +555,10 @@ td.num,
 .ea-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 18px;
+  gap: 6px 14px;
   align-items: center;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
 }
 
 .ea-group {
@@ -444,9 +572,7 @@ td.num,
   margin-left: auto;
 }
 
-.ea-toolbar select,
-.ea-modal select,
-.ea-modal input[type='text'] {
+.ea-toolbar select {
   font: inherit;
   padding: 5px 6px;
   border: 1px solid var(--ui-control-border);
@@ -465,8 +591,164 @@ button.ea-primary {
   min-width: 120px;
 }
 
-.ea-status {
+.ea-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
   margin: 0 0 8px;
+}
+
+.ea-status {
+  margin: 0;
+}
+
+/* Menús desplegables de la barra (Archivo, Importar, Exportar): popover anclado al botón. */
+.dd {
+  position: relative;
+}
+
+.dd-trigger[aria-expanded='true'] {
+  background: var(--ui-surface-active);
+  border-color: var(--ui-accent);
+}
+
+.dd-menu {
+  margin: 0;
+  padding: 6px;
+  min-width: min(15rem, calc(100vw - 16px));
+  max-width: min(26rem, calc(100vw - 16px));
+  border: 1px solid var(--ui-control-border);
+  border-radius: 8px;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  box-shadow: 0 6px 20px var(--ui-backdrop);
+  /* Sin anchor positioning el popover se coloca por script (DropdownMenu.tsx). */
+  inset: auto;
+}
+
+@supports (position-area: block-end) {
+  .dd-menu {
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    margin-block: 4px;
+  }
+}
+
+.dd-menu:popover-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dd-menu button {
+  width: 100%;
+  text-align: left;
+  border-color: transparent;
+  background: transparent;
+}
+
+.dd-menu button:hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+}
+
+.dd-menu hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--ui-border);
+}
+
+.dd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
+.dd-field select {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Franja de resultados: el FS de cada método sobre el lienzo, sin desplazarse (UX-03). */
+.rs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  min-height: 56px;
+  padding: 6px 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface);
+}
+
+.rs-empty {
+  margin: 0;
+}
+
+.rs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rs-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding-bottom: 2px;
+  border-bottom: 3px solid transparent;
+}
+
+.rs-item-shown {
+  border-bottom-color: var(--ui-accent);
+}
+
+.rs-method {
+  font-weight: 600;
+}
+
+.rs-fs {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-fs-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ui-ink-muted);
+}
+
+.rs-status {
+  font-size: 0.8rem;
+  color: var(--ui-ink-muted);
+}
+
+.rs-item-warn .rs-fs {
+  color: var(--ui-warn-ink);
+}
+
+.rs-stale .rs-fs {
+  color: var(--ui-ink-muted);
+  text-decoration: line-through;
+}
+
+.rs-counts,
+.rs-stale-note {
+  margin: 0;
+  color: var(--ui-ink-muted);
+}
+
+.rs-stale-note {
+  color: var(--ui-warn-ink);
 }
 
 .ea-draft {
@@ -532,7 +814,8 @@ button.ea-primary {
 }
 
 .ea-canvas {
-  height: 540px;
+  /* Móvil y escritorio: 320 px como mínimo y hasta 55 % de la altura útil (R7-10, brief U2). */
+  height: clamp(320px, 55dvh, 640px);
   border: 1px solid var(--ui-border);
   border-radius: 6px;
   overflow: hidden;
@@ -561,35 +844,7 @@ button.ea-primary {
   font-weight: 600;
 }
 
-/* Diálogos de importación */
-
-.ea-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--ui-backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 50;
-}
-
-.ea-modal {
-  background: var(--ui-surface);
-  color: var(--ui-ink);
-  border-radius: 10px;
-  padding: 18px 20px;
-  width: min(720px, 100%);
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 10px 40px var(--ui-backdrop);
-}
-
-.ea-modal h2 {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
-  word-break: break-all;
-}
+/* Diálogos de importación: <dialog> nativo (editor/app/editor-app.css). */
 
 .ea-field {
   display: flex;
@@ -668,4 +923,126 @@ button.ea-primary {
 
 .ogs-update-prompt button {
   padding: 4px 12px;
+}
+
+/* ───────── Móvil (≤ 640 px): barra compacta y lienzo en la primera pantalla ───────── */
+
+@media (max-width: 640px) {
+  .app-header {
+    gap: 2px 8px;
+    align-items: center;
+  }
+
+  .app-brand {
+    flex: 1 1 auto;
+    padding-bottom: 0;
+  }
+
+  .app-brand h1 {
+    font-size: 1.2rem;
+  }
+
+  .app-brand p {
+    display: none;
+  }
+
+  /* Los hijos del bloque de herramientas (indicador y tema) se reparten en la fila de la marca. */
+  .app-header-tools {
+    display: contents;
+  }
+
+  .engine-badge {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+  }
+
+  .engine-badge .engine-extra {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .theme-select span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .mode-tabs {
+    order: 5;
+    width: 100%;
+  }
+
+  .mode-tab {
+    padding: 6px 10px;
+  }
+
+  .ea-toolbar {
+    gap: 4px 8px;
+    padding: 6px;
+  }
+
+  .ea-toolbar button {
+    padding: 4px 6px;
+    font-size: 0.9rem;
+  }
+
+  .ea-group {
+    gap: 4px;
+  }
+
+  .ea-group-main {
+    margin-left: 0;
+  }
+
+  .ea-statusbar {
+    margin-bottom: 6px;
+  }
+
+  .ea-status {
+    font-size: 0.8rem;
+  }
+
+  .rs {
+    min-height: 0;
+    padding: 4px 10px;
+    gap: 2px 12px;
+  }
+
+  .rs-list {
+    gap: 0 16px;
+  }
+
+  .rs-fs {
+    font-size: 1.35rem;
+  }
+
+  /* El estado «Convergió» sigue disponible para lectores de pantalla; solo se oculta a la vista. */
+  .rs-item:not(.rs-item-warn) .rs-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ea-layout,
+  .ea-main {
+    gap: 8px;
+  }
+
+  /* El lienzo cabe en la primera pantalla junto a la barra compacta; el resto de paneles queda debajo. */
+  .ea-canvas {
+    height: clamp(320px, 48dvh, 640px);
+  }
 }

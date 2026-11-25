@@ -12,7 +12,9 @@ import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
 import { CheckTable, type CheckRow } from './ui/CheckTable';
 import { Legend } from './ui/Legend';
+import { EngineIndicator } from './ui/EngineIndicator';
 import { ThemeSelect } from './ui/ThemeSelect';
+import { useRovingTabIndex } from './ui/useRovingTabIndex';
 import { MAX_PERF_RUNS, PerformancePanel } from './ui/PerformancePanel';
 import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 
@@ -175,7 +177,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
 
   return (
     <div className="cases-view">
-      <main className="layout">
+      <div className="layout">
         <aside className="sidebar">
           <section className="panel" aria-labelledby="controls-title">
             <h2 id="controls-title">Análisis</h2>
@@ -270,7 +272,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             </section>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
@@ -299,14 +301,20 @@ export default function App() {
   }, [client]);
 
   const simulated = info?.name === 'mock';
+  const modeTabsRef = useRef<HTMLDivElement>(null);
+  const modeKeys = useRovingTabIndex(modeTabsRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
 
   return (
     <div className="app" lang="es">
+      <a className="skip-link" href="#main-content">
+        Saltar al contenido
+      </a>
       <header className="app-header">
-        <h1>OpenGeoSlide</h1>
-        <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
-        <ThemeSelect />
-        <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación">
+        <div className="app-brand">
+          <h1>OpenGeoSlide</h1>
+          <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
+        </div>
+        <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación" ref={modeTabsRef} onKeyDown={modeKeys.onKeyDown}>
           <button type="button" role="tab" id="mode-edit" aria-selected={mode === 'edit'} aria-controls="mode-edit-panel" className={mode === 'edit' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('edit')}>
             Editar
           </button>
@@ -314,20 +322,19 @@ export default function App() {
             Casos de verificación
           </button>
         </div>
+        <div className="app-header-tools">
+          <EngineIndicator info={info} error={engineError} />
+          <ThemeSelect />
+        </div>
       </header>
 
+      {/* El estado normal del motor es el indicador compacto de la cabecera; el modo simulado y los fallos de carga siguen visibles con su explicación. */}
       {simulated && (
         <div className="banner banner-sim" role="status">
           <strong>Motor simulado.</strong> Los resultados son aproximados (Fellenius, 30 dovelas) y no provienen de ogs-core.
           {info?.fallback_reason ? <span className="small"> Motivo: {info.fallback_reason}.</span> : null}
         </div>
       )}
-      {info && !simulated && (
-        <div className="banner banner-ok" role="status" data-testid="engine-banner">
-          Motor: ogs-core {info.version} (WASM)
-        </div>
-      )}
-      {!info && !engineError && <div className="banner" role="status">Cargando el motor…</div>}
       {engineError && (
         <div className="banner banner-error" role="alert">
           {engineError}
@@ -335,12 +342,14 @@ export default function App() {
       )}
 
       {/* Ambos modos permanecen montados: al volver a «Editar» se conservan el modelo, el historial y los resultados. */}
-      <div id="mode-edit-panel" role="tabpanel" aria-labelledby="mode-edit" hidden={mode !== 'edit'}>
-        <EditorApp client={client} active={mode === 'edit'} />
-      </div>
-      <div id="mode-cases-panel" role="tabpanel" aria-labelledby="mode-cases" hidden={mode !== 'cases'}>
-        <CasesView client={client} info={info} />
-      </div>
+      <main id="main-content" tabIndex={-1}>
+        <div id="mode-edit-panel" role="tabpanel" aria-labelledby="mode-edit" hidden={mode !== 'edit'}>
+          <EditorApp client={client} active={mode === 'edit'} />
+        </div>
+        <div id="mode-cases-panel" role="tabpanel" aria-labelledby="mode-cases" hidden={mode !== 'cases'}>
+          <CasesView client={client} info={info} />
+        </div>
+      </main>
     </div>
   );
 }
