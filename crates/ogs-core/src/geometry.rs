@@ -28,6 +28,11 @@ pub trait Ground {
     fn x_range(&self) -> (f64, f64);
     /// Resolved sliding direction.
     fn sliding(&self) -> Sliding;
+    /// Abscissae of the ground-surface vertices (breakpoints of `y_top`), sorted and unique.
+    /// The search adds them as entry and exit candidates (E9a). Default: none.
+    fn ground_vertices_x(&self) -> Vec<f64> {
+        Vec::new()
+    }
 }
 
 /// Material with precomputed `tan φ`.
@@ -563,5 +568,23 @@ impl Ground for PreparedModel {
 
     fn sliding(&self) -> Sliding {
         self.sliding
+    }
+
+    /// x of every region vertex that lies on the terrain, i.e. `y_top(x) = y` (within `1e-9 · scale`).
+    fn ground_vertices_x(&self) -> Vec<f64> {
+        let tol = 1e-9 * self.scale;
+        let mut xs: Vec<f64> = self
+            .edges
+            .iter()
+            .flat_map(|edge| edge.iter())
+            .filter(|p| {
+                self.top_at(p[0])
+                    .is_some_and(|top| (p[1] - top).abs() <= tol)
+            })
+            .map(|p| p[0])
+            .collect();
+        xs.sort_by(f64::total_cmp);
+        xs.dedup();
+        xs
     }
 }

@@ -318,7 +318,8 @@ const GOLDEN_CIRCLE_BITS: [u64; 3] = [
     4630114869740570006,
     4630140219797701819,
 ];
-const GOLDEN_EVALUATED: usize = 4747;
+// E9a: 10 refinement seeds instead of 5 (FS and circle unchanged; the seed count changes `evaluated`).
+const GOLDEN_EVALUATED: usize = 5849;
 // GOLDEN_END
 
 #[test]
@@ -333,6 +334,46 @@ fn no_valid_surface_gives_no_best() {
     assert!(res.stats.evaluated > 0);
     assert_eq!(res.stats.valid, 0);
     assert_eq!(res.stats.evaluated, calls.load(Ordering::Relaxed));
+}
+
+/// `slope_2_to_1` that also declares its ground vertices, as `PreparedModel` does (E9a).
+struct WithVertices(Profile);
+
+impl Ground for WithVertices {
+    fn y_top(&self, x: f64) -> Option<f64> {
+        self.0.y_top(x)
+    }
+    fn x_range(&self) -> (f64, f64) {
+        self.0.x_range()
+    }
+    fn sliding(&self) -> Sliding {
+        self.0.sliding()
+    }
+    fn ground_vertices_x(&self) -> Vec<f64> {
+        self.0.vertices.iter().map(|v| v.0).collect()
+    }
+}
+
+/// E9a: with the ground vertices declared, entry and exit candidates sit on them, so some evaluated circle passes
+/// through a vertex. The uniform grid of `default_spec` has no such point on this profile (x = 0 and x = 20 are not
+/// grid abscissae), so the hit comes from the vertex candidates.
+#[test]
+fn ground_vertices_are_entry_and_exit_candidates() {
+    let g = WithVertices(slope_2_to_1());
+    let seen: Mutex<Vec<Circle>> = Mutex::new(Vec::new());
+    let res = search_circular(&g, &default_spec(), |c| {
+        seen.lock().unwrap().push(*c);
+        bowl(c)
+    });
+    assert!(res.best.is_some());
+    let vertices = [(0.0, 10.0), (20.0, 0.0)];
+    let circles = seen.into_inner().unwrap();
+    let hit = circles.iter().any(|c| {
+        vertices
+            .iter()
+            .any(|&(x, y)| ((c.xc - x).hypot(c.yc - y) - c.r).abs() <= 1e-9 * c.r)
+    });
+    assert!(hit, "no evaluated circle passes through a ground vertex");
 }
 
 #[test]
