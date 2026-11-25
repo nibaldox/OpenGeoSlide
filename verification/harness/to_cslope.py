@@ -6,6 +6,7 @@ known, documented differences are in README.md.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -13,8 +14,11 @@ from shapely.geometry import LineString, Polygon
 from shapely.ops import linemerge, unary_union
 
 # The installed cSlope 0.1.0 engine ignores the `waterUnitWeight` option and
-# always uses 9.807 kN/m3. OpenGeoSlide's default is 9.81 (see README.md).
+# always uses 9.807 (in the units of the model). OpenGeoSlide's default is 9.81 (see README.md).
 CSLOPE_WATER_UNIT_WEIGHT = 9.807
+# Largest |water.unit_weight - 9.807| accepted with a piezometric line (contract §1: 9.81 is the default).
+WATER_UNIT_WEIGHT_TOL = 0.01
+
 # Water line of the materials whose ru replaces the piezometric pressure.
 # Placed far below the model so that it contributes no pore pressure.
 DRY_LINE_ID = "ogs-ru-no-water"
@@ -78,8 +82,67 @@ def y_top(outline: Polygon, x: float) -> float:
     return float(seg.bounds[3])
 
 
-def resolve_direction(model: dict, outline: Polygon) -> str:
-    """OpenGeoSlide slope.direction -> cSlope orientation ('ltr' | 'rtl')."""
+def arc_y(circle: dict, x: float) -> float:
+    """Lower arc of the fixed circle at x (the part of the circle the slip surface uses)."""
+    xc, yc, r = float(circle["xc"]), float(circle["yc"]), float(circle["r"])
+    return yc - math.sqrt(max(r * r - (x - xc) ** 2, 0.0))
+
+
+def arc_terrain_crossings(circle: dict, outline: Polygon) -> tuple[float, float] | None:
+    """x of the outermost crossings of the lower arc with the terrain, or None.
+
+    Mirrors ogs-core `lower_arc_tramo` (contract E2): the first and the last x where the arc
+    passes from above to below the ground (or back). Sign changes are found on a dense grid and
+    refined by bisection; a crossing lying between two grid points is therefore located to
+    about width / 4000 / 2**60, and a tangency that falls between grid points is missed.
+    """
+    xc, r = float(circle["xc"]), float(circle["r"])
+    minx, _, maxx, _ = outline.bounds
+    a, b = max(xc - r, minx), min(xc + r, maxx)
+    if not a < b:
+        return None
+
+    def under(x: float) -> bool:
+        return arc_y(circle, x) < y_top(outline, x)
+
+    n = 4000
+    xs = [a + (b - a) * i / n for i in range(n + 1)]
+    states = [under(x) for x in xs]
+    flips = [i for i in range(n) if states[i] != states[i + 1]]
+    if not flips:
+        return None
+
+    def refine(i: int) -> float:
+        lo, hi = xs[i], xs[i + 1]
+        lo_state = states[i]
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            if under(mid) == lo_state:
+                lo = mid
+            else:
+                hi = mid
+        return 0.5 * (lo + hi)
+
+    return refine(flips[0]), refine(flips[-1])
+
+
+def resolve_direction(model: dict, outline: Polygon, kind: str | None = None) -> str:
+    """OpenGeoSlide slope.direction -> cSlope orientation ('ltr' | 'rtl').
+
+    Resolution follows contract §1 (amendments E1, E1b) and ogs-core's `resolve_sliding`:
+
+    0. an explicit ``left_to_right`` / ``right_to_left`` always wins;
+    1. ``auto`` with both search ranges whose midpoints differ by more than 1e-9 · width: the mass
+       goes from the entry range to the exit range (E1b: equal midpoints fall through to 2);
+    2. the higher end of the terrain is the crest, when |y_top(x_min) - y_top(x_max)| > 1e-6 · height;
+    3. a fixed circle (only when no search is analysed): the higher of its outermost ground
+       crossings is the entry; the mass moves towards the lower one (tie: 1e-6 · height, go to 4);
+    4. otherwise UnsupportedModel (indicate slope.direction).
+
+    ``kind`` is the check kind ('fixed' | 'search') the direction is resolved for. ogs runs a fixed
+    check without ``analysis.search`` and a search check without ``analysis.surface``, so the other
+    block is ignored here too. ``None`` uses the model as written.
+    """
     direction = (model.get("slope") or {}).get("direction", "auto")
     if direction == "left_to_right":
         return "ltr"
@@ -87,9 +150,48 @@ def resolve_direction(model: dict, outline: Polygon) -> str:
         return "rtl"
     if direction != "auto":
         raise UnsupportedModel(f"unknown slope.direction {direction!r}")
-    minx, maxx = outline.bounds[0], outline.bounds[2]
-    # auto: moves towards +x (left_to_right) when y_top(x_min) > y_top(x_max)
-    return "ltr" if y_top(outline, minx) > y_top(outline, maxx) else "rtl"
+
+    minx, miny, maxx, maxy = outline.bounds
+    width, height = maxx - minx, maxy - miny
+    analysis = model.get("analysis") or {}
+    search = analysis.get("search")
+    surface = analysis.get("surface")
+    if kind == "fixed":
+        search = None
+    elif kind == "search":
+        surface = None
+
+    # 1. both search ranges (E1), with the E1b midpoint test
+    if search and search.get("entry") is not None and search.get("exit") is not None:
+        mid_entry = 0.5 * (float(search["entry"][0]) + float(search["entry"][1]))
+        mid_exit = 0.5 * (float(search["exit"][0]) + float(search["exit"][1]))
+        if abs(mid_entry - mid_exit) > 1e-9 * width:
+            return "ltr" if mid_entry < mid_exit else "rtl"
+
+    # 2. the higher end of the terrain is the crest
+    y_left, y_right = y_top(outline, minx), y_top(outline, maxx)
+    if abs(y_left - y_right) > 1e-6 * height:
+        return "ltr" if y_left > y_right else "rtl"
+
+    # 3. fixed circle: its higher outermost ground crossing is the entry
+    if surface is not None and search is None:
+        if surface.get("type") != "circle":
+            raise UnsupportedModel("only circular fixed surfaces are supported")
+        crossings = arc_terrain_crossings(surface, outline)
+        if crossings is not None:
+            y_p, y_q = arc_y(surface, crossings[0]), arc_y(surface, crossings[1])
+            if abs(y_p - y_q) > 1e-6 * height:
+                return "ltr" if y_p > y_q else "rtl"
+
+    # 4. undetermined
+    raise UnsupportedModel(
+        "no se puede determinar el sentido del deslizamiento: indique slope.direction"
+    )
+
+
+def unit_label(model: dict) -> str:
+    """Unit name for notes: 'pcf' for imperial models, 'kN/m3' otherwise."""
+    return "pcf" if model.get("units") == "imperial" else "kN/m3"
 
 
 def _linestrings(geom: Any) -> list[LineString]:
@@ -202,17 +304,23 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     polys = regions_of(model)
     outline = outline_of(polys)
     minx, miny, maxx, maxy = outline.bounds
-    orientation = resolve_direction(model, outline)
+    orientation = resolve_direction(model, outline, kind)
 
     water = model.get("water") or {}
     piezo = water.get("piezometric_line") or None
     gamma_w = float(water.get("unit_weight", 9.81))
+    if piezo and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > WATER_UNIT_WEIGHT_TOL:
+        # cSlope 0.1.0 takes no water weight from the model: it always computes the pore pressure
+        # of the piezometric line with 9.807. A different declared value would be silently wrong.
+        raise UnsupportedModel(
+            f"water.unit_weight={gamma_w} ({unit_label(model)}) con piezometric_line: cSlope 0.1.0 "
+            f"ignora waterUnitWeight y usa {CSLOPE_WATER_UNIT_WEIGHT}; el resultado no sería fiel"
+        )
     materials, needs_dry_line = _material_definitions(model, notes, bool(piezo))
-    if (piezo or any(m.get("unit_weight_sat") is not None for m in model.get("materials", []))) \
-            and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > 1e-12:
+    if piezo and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > 1e-12:
         notes.append(
-            f"gamma_w={gamma_w} kN/m3 in OpenGeoSlide; cSlope 0.1.0 uses {CSLOPE_WATER_UNIT_WEIGHT} "
-            "(waterUnitWeight is ignored by the installed engine)."
+            f"gamma_w={gamma_w} {unit_label(model)} en OpenGeoSlide; cSlope 0.1.0 usa "
+            f"{CSLOPE_WATER_UNIT_WEIGHT} (waterUnitWeight se ignora)."
         )
 
     # Region assignments: one representative point per region.
@@ -260,8 +368,8 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     if method == "spencer":
         # Morgenstern-Price with a constant interslice function f(x) = 1 is Spencer.
         options["intersliceFunction"] = "constant"
-    elif float(analysis.get("min_m_alpha", 0.2)) != 0.2:
-        notes.append("min_m_alpha has no cSlope equivalent; cSlope uses its own Bishop validity rule.")
+    if float(analysis.get("min_m_alpha", 0.2)) != 0.2:
+        notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
 
     if kind == "fixed":
         surface = analysis.get("surface")
