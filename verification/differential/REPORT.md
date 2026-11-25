@@ -1,6 +1,6 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-25T03:43:41-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-25T04:25:22-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
@@ -24,7 +24,7 @@ Generado: 2026-11-25T03:43:41-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 4.151 s · cSlope 2.07 s.
+Tiempo total: ogs 4.151 s · cSlope 2.071 s.
 
 ## Tabla de línea base
 
@@ -72,61 +72,61 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.039 | 0.062 |
+| D01 | bishop | search | 0.039 | 0.057 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.120 | 0.085 |
+| D01 | spencer | search | 0.120 | 0.086 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.037 | 0.050 |
+| D02 | bishop | search | 0.037 | 0.056 |
 | D02 | bishop | fixed | 0.002 | 0.001 |
-| D02 | spencer | search | 0.170 | 0.100 |
+| D02 | spencer | search | 0.165 | 0.087 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.051 | 0.051 |
+| D03 | bishop | search | 0.051 | 0.052 |
 | D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.168 | 0.095 |
+| D03 | spencer | search | 0.170 | 0.092 |
 | D03 | spencer | fixed | 0.002 | 0.001 |
-| D04 | bishop | search | 0.119 | 0.039 |
+| D04 | bishop | search | 0.122 | 0.036 |
 | D04 | bishop | fixed | 0.002 | 0.001 |
-| D04 | spencer | search | 0.409 | 0.068 |
+| D04 | spencer | search | 0.406 | 0.072 |
 | D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.042 | 0.055 |
+| D05 | bishop | search | 0.043 | 0.054 |
 | D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.134 | 0.092 |
+| D05 | spencer | search | 0.133 | 0.095 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.041 | 0.051 |
+| D06 | bishop | search | 0.042 | 0.049 |
 | D06 | bishop | fixed | 0.002 | 0.001 |
-| D06 | spencer | search | 0.125 | 0.083 |
+| D06 | spencer | search | 0.122 | 0.086 |
 | D06 | spencer | fixed | 0.002 | 0.001 |
-| D07 | bishop | search | 0.028 | 0.047 |
+| D07 | bishop | search | 0.029 | 0.049 |
 | D07 | bishop | fixed | 0.002 | 0.001 |
-| D07 | spencer | search | 0.147 | 0.081 |
+| D07 | spencer | search | 0.143 | 0.084 |
 | D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.060 | 0.049 |
-| D08 | bishop | fixed | 0.002 | 0.039 |
-| D08 | spencer | search | 0.272 | 0.070 |
-| D08 | spencer | fixed | 0.002 | 0.037 |
-| D09 | bishop | search | 0.070 | 0.052 |
+| D08 | bishop | search | 0.060 | 0.054 |
+| D08 | bishop | fixed | 0.002 | 0.036 |
+| D08 | spencer | search | 0.263 | 0.078 |
+| D08 | spencer | fixed | 0.002 | 0.040 |
+| D09 | bishop | search | 0.070 | 0.051 |
 | D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.363 | 0.181 |
+| D09 | spencer | search | 0.369 | 0.190 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.034 | 0.051 |
+| D10 | bishop | search | 0.034 | 0.052 |
 | D10 | bishop | fixed | 0.002 | 0.001 |
-| D10 | spencer | search | 0.146 | 0.097 |
-| D10 | spencer | fixed | 0.002 | 0.001 |
-| D11 | bishop | search | 0.189 | 0.037 |
+| D10 | spencer | search | 0.145 | 0.090 |
+| D10 | spencer | fixed | 0.003 | 0.001 |
+| D11 | bishop | search | 0.192 | 0.038 |
 | D11 | bishop | fixed | 0.002 | 0.001 |
-| D11 | spencer | search | 0.458 | 0.066 |
+| D11 | spencer | search | 0.460 | 0.070 |
 | D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.044 | 0.056 |
+| D12 | bishop | search | 0.046 | 0.053 |
 | D12 | bishop | fixed | 0.002 | 0.001 |
-| D12 | spencer | search | 0.153 | 0.091 |
+| D12 | spencer | search | 0.158 | 0.092 |
 | D12 | spencer | fixed | 0.002 | 0.001 |
-| D13 | bishop | search | 0.051 | 0.044 |
-| D13 | bishop | fixed | 0.002 | 0.001 |
-| D13 | spencer | search | 0.201 | 0.072 |
+| D13 | bishop | search | 0.053 | 0.044 |
+| D13 | bishop | fixed | 0.003 | 0.001 |
+| D13 | spencer | search | 0.204 | 0.064 |
 | D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.091 | 0.062 |
+| D14 | bishop | search | 0.094 | 0.057 |
 | D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.339 | 0.088 |
+| D14 | spencer | search | 0.332 | 0.089 |
 | D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
