@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ogs_core::geometry::{Ground, Sliding};
 use ogs_core::model::{Circle, SearchSpec};
-use ogs_core::search::{SearchResult, search_circular};
+use ogs_core::search::{SearchResult, SearchStats, search_circular};
 
 /// Piecewise-linear ground through `vertices` (sorted by x).
 struct Profile {
@@ -349,4 +349,93 @@ fn refinement_never_worsens_the_grid_result() {
     let refined = search_circular(&g, &default_spec(), bowl);
     assert!(best_fs(&refined) <= best_fs(&grid_only));
     assert!(refined.stats.evaluated >= grid_only.stats.evaluated);
+}
+
+// ---------------------------------------------------------------- R1-10: robustness
+
+/// Runs the search with a counting `eval`; returns the result and the number of `eval` calls.
+fn run_counting(spec: &SearchSpec) -> (SearchResult, usize) {
+    let calls = AtomicUsize::new(0);
+    let res = search_circular(&slope_2_to_1(), spec, |c| {
+        calls.fetch_add(1, Ordering::Relaxed);
+        bowl(c)
+    });
+    (res, calls.into_inner())
+}
+
+#[test]
+fn r1_10_grid_product_overflow_is_refused_before_allocation() {
+    // usize::MAX · 2 · 2 overflows; the grid must not be built (it would not fit in memory).
+    let spec = SearchSpec {
+        n_entry: usize::MAX,
+        n_exit: 2,
+        n_radius: 2,
+        ..default_spec()
+    };
+    let (res, calls) = run_counting(&spec);
+    assert!(res.best.is_none());
+    assert_eq!(res.stats, SearchStats::default());
+    assert_eq!(calls, 0);
+}
+
+#[test]
+fn r1_10_grid_above_the_limit_is_refused() {
+    // 2000 · 2000 · 2 = 8e6 candidates, above MAX_GRID_CANDIDATES (2e6).
+    let spec = SearchSpec {
+        n_entry: 2000,
+        n_exit: 2000,
+        n_radius: 2,
+        ..default_spec()
+    };
+    let (res, calls) = run_counting(&spec);
+    assert!(res.best.is_none());
+    assert_eq!(calls, 0);
+}
+
+#[test]
+fn r1_10_radius_range_too_small_yields_no_candidate() {
+    // With factor ≤ 0.50005 the radius range is empty or inverted (ρ_max ≤ ρ_min, or NaN).
+    for factor in [0.5, 0.0, -1.0, f64::NAN, f64::INFINITY] {
+        let spec = SearchSpec {
+            max_radius_factor: factor,
+            ..default_spec()
+        };
+        let (res, calls) = run_counting(&spec);
+        assert!(res.best.is_none(), "factor {factor}");
+        assert_eq!(calls, 0, "factor {factor}");
+    }
+}
+
+#[test]
+fn r1_10_zero_step_axis_is_not_probed() {
+    // A point entry and a point exit: their pattern steps are 0. The refinement must not probe the
+    // current circle again through those axes, so no two consecutive `eval` calls are identical.
+    let spec = SearchSpec {
+        entry: Some([-5.0, -5.0]),
+        exit: Some([30.0, 30.0]),
+        n_entry: 1,
+        n_exit: 1,
+        n_radius: 1,
+        refine: true,
+        ..default_spec()
+    };
+    let seen = Mutex::new(Vec::<Circle>::new());
+    let res = search_circular(&slope_2_to_1(), &spec, |c| {
+        seen.lock().unwrap().push(*c);
+        bowl(c)
+    });
+    let seen = seen.into_inner().unwrap();
+    assert!(res.best.is_some());
+    assert!(seen.len() > 1, "the refinement must run");
+    for pair in seen.windows(2) {
+        assert!(pair[0] != pair[1], "repeated evaluation: {:?}", pair[0]);
+    }
+}
+
+#[test]
+fn r1_10_search_stays_deterministic_after_the_guards() {
+    let spec = default_spec();
+    let (a, _) = run_counting(&spec);
+    let (b, _) = run_counting(&spec);
+    assert_eq!(a, b);
 }

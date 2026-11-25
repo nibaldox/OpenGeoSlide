@@ -12,11 +12,13 @@
 //!   A grid point where `y_top` is `None` (or otherwise infeasible) is skipped and not evaluated.
 //! - Refinement: the 5 best grid candidates (by FS, ties by grid index) seed a Hooke-Jeeves pattern
 //!   search over `(x_e, x_s, ρ)`. An exploratory move tries `±step` on each axis and keeps every strict
-//!   improvement. If it improves, pattern moves jump along the direction of success
-//!   (`new + (new − old)`) and explore from there while they keep improving. If it does not, all steps
-//!   are halved. The search stops when every step is below its threshold (`1e-3·model width` for x,
-//!   `1e-3` for ρ) or after 300 `eval` calls per seed. Neighbours outside the ranges (or infeasible)
-//!   are skipped without calling `eval`.
+//!   improvement; an axis whose step is 0 is skipped. If it improves, pattern moves jump along the
+//!   direction of success (`new + (new − old)`) and explore from there while they keep improving. If it
+//!   does not, all steps are halved. The search stops when every step is below its threshold
+//!   (`1e-3·model width` for x, `1e-3` for ρ) or after 300 `eval` calls per seed. Neighbours outside
+//!   the ranges (or infeasible) are skipped without calling `eval`.
+//! - Degenerate specs (grid above `MAX_GRID_CANDIDATES`, or an empty radius range) return no candidate
+//!   and call `eval` zero times. `analyze` rejects them earlier with `InvalidModel`.
 //! - `NaN` FS values count as `valid` (`eval` returned `Some`) but are never selected.
 //! - Determinism: candidates are produced by an order-preserving indexed map (rayon with feature
 //!   `parallel`, plain iterator otherwise). All reductions run serially in index order with strict `<`,
@@ -39,6 +41,10 @@ const STEP_TOL_RHO: f64 = 1e-3;
 const RATIO_MIN: f64 = 1.0001;
 /// Default `min_width` as a fraction of the model width.
 const DEFAULT_MIN_WIDTH_FRACTION: f64 = 0.01;
+/// Largest number of points per grid axis (`n_entry`, `n_exit`, `n_radius`) accepted by `analyze`.
+pub const MAX_AXIS_POINTS: usize = 200;
+/// Largest grid (`n_entry · n_exit · n_radius`) accepted by `analyze`. Checked before any allocation.
+pub const MAX_GRID_CANDIDATES: usize = 2_000_000;
 
 /// Search counters.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
@@ -57,17 +63,31 @@ pub struct SearchResult {
 }
 
 /// Searches the critical circle. `eval` returns `Some(FS)` only for valid, converged surfaces.
+///
+/// A spec that `analyze` would reject (grid larger than `MAX_GRID_CANDIDATES`, or a radius range
+/// that is empty because `max_radius_factor` is too small, or not finite) yields no candidate and
+/// no `eval` call, instead of overflowing or allocating without bound.
 pub fn search_circular<G, E>(ground: &G, spec: &SearchSpec, eval: E) -> SearchResult
 where
     G: Ground + Sync,
     E: Fn(&Circle) -> Option<f64> + Sync,
 {
+    let empty = SearchResult {
+        best: None,
+        stats: SearchStats::default(),
+    };
+    let Some(total) = grid_size(spec) else {
+        return empty;
+    };
+    let rho = [RATIO_MIN.ln(), (2.0 * spec.max_radius_factor).ln()];
+    if !(rho[0].is_finite() && rho[1].is_finite() && rho[0] <= rho[1]) {
+        return empty;
+    }
     let (x_min, x_max) = ground.x_range();
     let width = x_max - x_min;
     let full = [x_min, x_max];
     let entry = normalized(spec.entry.unwrap_or(full));
     let exit = normalized(spec.exit.unwrap_or(full));
-    let rho = [RATIO_MIN.ln(), (2.0 * spec.max_radius_factor).ln()];
     let space = Space {
         ground,
         sliding: ground.sliding(),
@@ -83,7 +103,6 @@ where
     let exits = grid_axis(exit, spec.n_exit);
     let rhos = grid_axis(rho, spec.n_radius);
     let (n_s, n_r) = (exits.len(), rhos.len());
-    let total = entries.len() * n_s * n_r;
     let grid = map_range(total, |idx| {
         let (i_e, rest) = (idx / (n_s * n_r), idx % (n_s * n_r));
         let p = Params {
@@ -142,6 +161,15 @@ where
     }
 
     SearchResult { best, stats }
+}
+
+/// `n_entry · n_exit · n_radius`, or `None` when the product overflows or exceeds `MAX_GRID_CANDIDATES`.
+fn grid_size(spec: &SearchSpec) -> Option<usize> {
+    let total = spec
+        .n_entry
+        .checked_mul(spec.n_exit)?
+        .checked_mul(spec.n_radius)?;
+    (total <= MAX_GRID_CANDIDATES).then_some(total)
 }
 
 /// Parameters of a candidate: entry x, exit x and `ρ = ln(R / (L/2))`.
@@ -313,6 +341,11 @@ where
 {
     let mut cur = start;
     for (axis, &step) in steps.iter().enumerate() {
+        // A zero step (a degenerate range, or a single grid point) has no neighbour on this axis.
+        // Probing it would re-evaluate `cur` itself.
+        if step.is_nan() || step <= 0.0 {
+            continue;
+        }
         for sign in [1.0, -1.0] {
             let mut q = cur.params;
             let delta = sign * step;

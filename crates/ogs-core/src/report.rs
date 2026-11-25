@@ -11,7 +11,8 @@ use crate::slicer::Slice;
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MethodReport {
     pub method: MethodKind,
-    pub fos: f64,
+    /// Factor of safety; `None` (JSON `null`) when it is not finite. `status` and `warnings` say why.
+    pub fos: Option<f64>,
     pub status: SolveStatus,
     pub iterations: usize,
     pub lambda: Option<f64>,

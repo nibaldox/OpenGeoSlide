@@ -1,5 +1,9 @@
 //! Acceptance test: every check in `verification/cases/*.json` must match its published value
 //! within the stated relative tolerance. An empty case set is a failure, never a silent pass.
+//!
+//! The case files are strict: an unknown field in a case, check or option is an error. A check also
+//! fails when the engine emits any warning, because a warning means the result was computed under
+//! an assumption (for example, water over the ground) that the verification case does not state.
 
 use std::fs;
 use std::path::PathBuf;
@@ -8,16 +12,29 @@ use ogs_core::analyze;
 use ogs_core::methods::SolveStatus;
 use ogs_core::model::{MethodKind, Model};
 use serde::Deserialize;
+use serde_json::{Value, json};
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Case {
     id: String,
     title: String,
     model: Model,
     checks: Vec<Check>,
+    source: Source,
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(dead_code)] // Documentation fields: they must be present, their content is not checked.
+struct Source {
+    reference: String,
+    derived_from: String,
+    notes: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Check {
     method: MethodKind,
     kind: CheckKind,
@@ -36,6 +53,7 @@ enum CheckKind {
 }
 
 #[derive(Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 struct CheckOptions {
     slices: Option<usize>,
 }
@@ -70,6 +88,11 @@ fn verification_cases_match_published_values() {
             .unwrap_or_else(|e| panic!("{} is not a valid case: {e}", file.display()));
         println!("# {} — {}", case.id, case.title);
         assert!(!case.checks.is_empty(), "case {} has no checks", case.id);
+        assert!(
+            !case.source.reference.is_empty(),
+            "case {} has an empty source reference",
+            case.id
+        );
 
         for check in &case.checks {
             total += 1;
@@ -106,7 +129,12 @@ fn verification_cases_match_published_values() {
                     if res.status != SolveStatus::Converged {
                         return Err(format!("status {:?}", res.status));
                     }
-                    Ok(res.fos)
+                    if !res.warnings.is_empty() {
+                        return Err(format!("unexpected warnings: {:?}", res.warnings));
+                    }
+                    // Converged implies a finite FS; a `None` here is a contract violation.
+                    res.fos
+                        .ok_or_else(|| "converged without a finite fos".to_string())
                 });
 
             match outcome {
@@ -162,4 +190,48 @@ fn verification_cases_match_published_values() {
         failures.len(),
         failures.join("\n")
     );
+}
+
+/// Parses a minimal case document; `patch` lets a test add one unknown field somewhere.
+fn case_doc(patch: impl Fn(&mut Value)) -> String {
+    let model: Value =
+        serde_json::from_str(include_str!("../../../examples/acads1a.ogs.json")).unwrap();
+    let mut doc = json!({
+        "id": "T000",
+        "title": "documento de prueba",
+        "model": model,
+        "checks": [{
+            "method": "bishop", "kind": "search", "published": 0.987,
+            "published_by": "prueba", "tolerance": 0.01, "options": {"slices": 50}
+        }],
+        "source": {"reference": "ref", "derived_from": "origen", "notes": []}
+    });
+    patch(&mut doc);
+    doc.to_string()
+}
+
+#[test]
+fn case_documents_parse_and_reject_unknown_fields() {
+    assert!(serde_json::from_str::<Case>(&case_doc(|_| {})).is_ok());
+    type Patch = fn(&mut Value);
+    let variants: [(&str, Patch); 3] = [
+        ("case", |d| d["extra"] = json!(1)),
+        ("check", |d| d["checks"][0]["tolerence"] = json!(0.01)),
+        ("options", |d| {
+            d["checks"][0]["options"]["slice"] = json!(50)
+        }),
+    ];
+    for (level, patch) in variants {
+        let err = serde_json::from_str::<Case>(&case_doc(patch))
+            .err()
+            .unwrap_or_else(|| panic!("{level}: an unknown field must be an error"));
+        assert!(err.to_string().contains("unknown field"), "{level}: {err}");
+    }
+}
+
+#[test]
+fn case_documents_require_source() {
+    let mut doc: Value = serde_json::from_str(&case_doc(|_| {})).unwrap();
+    doc.as_object_mut().unwrap().remove("source");
+    assert!(serde_json::from_str::<Case>(&doc.to_string()).is_err());
 }
