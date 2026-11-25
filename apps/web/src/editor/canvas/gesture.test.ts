@@ -283,3 +283,25 @@ describe('doble clic', () => {
     expect(store.getState().doc.water?.piezometric_line).toEqual([[0, 8], [60, 6]]);
   });
 });
+
+describe('acierto táctil y de ratón (R7-10)', () => {
+  const [vx, vy] = toPx(60, 0);
+  it('ratón: arrastra el vértice desde 14 px (radio 16) aunque el radio de ajuste sea 10; no desde 19 px', () => {
+    const near = pointerDown(IDLE, makeState(), { x: vx + 14, y: vy, button: 0, pointerType: 'mouse' });
+    expect(near.state.mode).toBe('drag');
+    const far = pointerDown(IDLE, makeState(), { x: vx + 19, y: vy, button: 0, pointerType: 'mouse' });
+    expect(far.state.mode).toBe('idle');
+  });
+
+  it('táctil: arrastra el vértice desde 20 px (radio 22); no desde 25 px', () => {
+    const near = pointerDown(IDLE, makeState(), { x: vx + 20, y: vy, button: 0, pointerType: 'touch' });
+    expect(near.state.mode).toBe('drag');
+    expect(near.actions[0]).toMatchObject({ type: 'ui/select', selection: { kind: 'vertex', regionIndex: 0, vertexIndex: 1 } });
+    const far = pointerDown(IDLE, makeState(), { x: vx + 25, y: vy, button: 0, pointerType: 'touch' });
+    expect(far.state.mode).toBe('idle');
+  });
+
+  it('sin pointerType se usa el radio de ratón', () => {
+    expect(pointerDown(IDLE, makeState(), { x: vx + 14, y: vy, button: 0 }).state.mode).toBe('drag');
+  });
+});

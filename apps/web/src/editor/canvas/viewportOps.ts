@@ -66,3 +66,35 @@ export function docBounds(doc: ModelDoc): Bounds {
 export function fitToDoc(doc: ModelDoc, width: number, height: number, margin = 48): Viewport {
   return fitViewport(docBounds(doc), width, height, margin);
 }
+
+/** Factor de un paso de zoom con los botones o las teclas + y −. */
+export const ZOOM_STEP = 1.25;
+
+/** Un paso de zoom (dir 1 acerca, −1 aleja) alrededor de `anchor` (px); sin ancla, del centro del lienzo. */
+export function zoomStep(vp: Viewport, dir: 1 | -1, anchor?: readonly [number, number]): Viewport {
+  const [ax, ay] = anchor ?? [vp.width / 2, vp.height / 2];
+  return zoomAt(vp, ax, ay, dir === 1 ? ZOOM_STEP : 1 / ZOOM_STEP);
+}
+
+/** Si el punto de pantalla (sx, sy) queda a menos de `margin` px del borde o fuera, centra la vista en él; si no, la deja igual. */
+export function ensureVisible(vp: Viewport, sx: number, sy: number, margin: number): Viewport {
+  const inside = sx >= margin && sx <= vp.width - margin && sy >= margin && sy <= vp.height - margin;
+  return inside ? vp : panBy(vp, vp.width / 2 - sx, vp.height / 2 - sy);
+}
+
+export type PointerPair = readonly [readonly [number, number], readonly [number, number]];
+
+/**
+ * Pellizco con dos punteros: la escala sigue a la separación entre los dedos, y el punto del mundo que estaba bajo el punto
+ * medio anterior pasa a quedar bajo el nuevo (así también se desplaza la vista con los dos dedos).
+ */
+export function pinchViewport(vp: Viewport, prev: PointerPair, next: PointerPair): Viewport {
+  const d0 = Math.hypot(prev[0][0] - prev[1][0], prev[0][1] - prev[1][1]);
+  const d1 = Math.hypot(next[0][0] - next[1][0], next[0][1] - next[1][1]);
+  const factor = d0 >= 1 && d1 >= 1 ? d1 / d0 : 1;
+  const m0x = (prev[0][0] + prev[1][0]) / 2;
+  const m0y = (prev[0][1] + prev[1][1]) / 2;
+  const m1x = (next[0][0] + next[1][0]) / 2;
+  const m1y = (next[0][1] + next[1][1]) / 2;
+  return panBy(zoomAt(vp, m0x, m0y, factor), m1x - m0x, m1y - m0y);
+}

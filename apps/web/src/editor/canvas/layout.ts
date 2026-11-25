@@ -47,6 +47,23 @@ export function circleRadiusLabel(r: number, units?: string | null): string {
   return `Círculo de falla, radio: ${formatNumber(r)} ${lengthUnitOf(units)}`;
 }
 
+/** Anuncio (región aria-live) de la posición de un vértice: «Vértice 3 de la región 1: x 31,4 m, y 26,4 m». */
+export function vertexAnnouncement(regionIndex: number, vertexIndex: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Vértice ${vertexIndex + 1} de la región ${regionIndex + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
+}
+
+export function piezoAnnouncement(index: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Punto ${index + 1} de la piezométrica: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
+}
+
+/** Títulos de los ejes con la unidad de longitud del modelo. */
+export function axisTitles(units?: string | null): { x: string; y: string } {
+  const u = lengthUnitOf(units);
+  return { x: `x (${u})`, y: `y (${u})` };
+}
+
 export function seismicLabel(seismic: { kh?: number; kv?: number }): string {
   return `kh = ${formatNumber(seismic.kh ?? 0, 2, 4)} · kv = ${formatNumber(seismic.kv ?? 0, 2, 4)}`;
 }

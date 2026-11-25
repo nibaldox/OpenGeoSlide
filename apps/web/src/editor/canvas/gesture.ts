@@ -6,9 +6,9 @@
 
 import type { Circle, Point } from '../../engine/types';
 import type { EditorCommand, EditorState, EditorStore, ModelDoc, UiAction } from '../types';
-import { screenToWorld } from '../../geometry/viewport';
+import { screenToWorld, type Viewport } from '../../geometry/viewport';
 import { coincidentVertices, piezoPoints, roundForScale, type VertexRef } from './geom';
-import { hitTest } from './hitTest';
+import { handleHitRadius, hitTest, type Hit } from './hitTest';
 import { insertPiezoPoint, movePiezoPoint, removePiezoPoint } from './edits';
 import { snapPoint, type SnapResult } from './snap';
 import { panBy } from './viewportOps';
@@ -33,6 +33,8 @@ export interface PointerInput {
   button: number;
   /** Alt desacopla un vértice de los coincidentes de otras regiones. */
   altKey?: boolean;
+  /** `mouse`, `pen` o `touch`: con el dedo la tolerancia de acierto es mayor (R7-10). */
+  pointerType?: string;
 }
 
 export type DragTarget =
@@ -167,6 +169,12 @@ function commitActions(preview: Preview, doc: ModelDoc): CanvasAction[] {
 
 // ---------- Eventos ----------
 
+/** Qué hay bajo el puntero: tiradores con el radio de acierto del tipo de puntero (≥ 16 px; 22 px con el dedo). */
+export function hitTestFor(doc: ModelDoc, vp: Viewport, input: PointerInput, snapRadiusPx: number, bands: boolean): Hit {
+  const radius = handleHitRadius(snapRadiusPx, input.pointerType);
+  return hitTest(doc, vp, input.x, input.y, radius, { bands, edgeRadiusPx: input.pointerType === 'touch' ? radius : snapRadiusPx });
+}
+
 export function pointerDown(state: GestureState, ctx: GestureContext, input: PointerInput): GestureResult {
   const vp = ctx.ui.viewport;
   if (!vp || state.mode !== 'idle') return noop(state);
@@ -177,7 +185,7 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
   if (input.button !== 0) return noop(state);
 
   const { doc, ui } = ctx;
-  const hit = hitTest(doc, vp, input.x, input.y, ui.snap.radiusPx, { bands: ui.tool === 'select' });
+  const hit = hitTestFor(doc, vp, input, ui.snap.radiusPx, ui.tool === 'select');
   const start: [number, number] = [input.x, input.y];
   const drag = (target: DragTarget, label: string, selection: UiAction): GestureResult => ({
     state: { mode: 'drag', target, start, moved: false, preview: null },
@@ -279,7 +287,7 @@ export function pointerCancel(state: GestureState): GestureResult {
 export function doubleClick(ctx: GestureContext, input: PointerInput): CanvasAction[] {
   const vp = ctx.ui.viewport;
   if (!vp || ctx.ui.tool === 'pan') return [];
-  const hit = hitTest(ctx.doc, vp, input.x, input.y, ctx.ui.snap.radiusPx, { bands: false });
+  const hit = hitTestFor(ctx.doc, vp, input, ctx.ui.snap.radiusPx, false);
   if (hit.kind === 'vertex') {
     if ((ctx.doc.regions[hit.regionIndex]?.polygon.length ?? 0) <= 3) return [];
     return [
