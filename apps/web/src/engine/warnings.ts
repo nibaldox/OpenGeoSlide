@@ -114,7 +114,7 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   negative_lambda: {
     severity: 'nota',
-    text: 'Spencer seleccionó la raíz admisible de menor |λ|, que es negativa; revise el resultado',
+    text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado',
   },
   multiple_admissible_roots: {
     severity: 'nota',

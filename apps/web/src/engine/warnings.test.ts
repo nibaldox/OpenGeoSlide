@@ -59,11 +59,11 @@ describe('describeWarning', () => {
     });
   });
 
-  it('negative_lambda es una nota con el texto acordado (R4-05, E11a′)', () => {
+  it('negative_lambda es una nota con el texto de E12e', () => {
     expect(describeWarning('negative_lambda')).toEqual({
       code: 'negative_lambda',
       severity: 'nota',
-      text: 'Spencer seleccionó la raíz admisible de menor |λ|, que es negativa; revise el resultado',
+      text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado',
     });
   });
 
