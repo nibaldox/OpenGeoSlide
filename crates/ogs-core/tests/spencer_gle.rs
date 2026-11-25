@@ -1,11 +1,10 @@
-//! W8b tests of the GLE solver of Spencer (E10b): φ = 0 identity, equivalence with the former Zhu solver,
-//! and the D03 differential checks against cSlope.
+//! W8b tests of the Spencer solver (E10c): equivalence with the former Zhu solver on fixed surfaces, and the D03
+//! differential checks against cSlope.
 
+use ogs_core::analyze;
 use ogs_core::methods::SolveStatus;
-use ogs_core::methods::spencer::spencer_gle_curves;
 use ogs_core::model::Model;
 use ogs_core::report::MethodReport;
-use ogs_core::{analyze, slicer::Slice};
 use serde_json::Value;
 
 /// Loads a JSON file under the repository root (`verification/...`).
@@ -32,34 +31,9 @@ fn spencer(doc: &Value, fixed: Option<Value>) -> MethodReport {
     report.results.into_iter().next().expect("one method")
 }
 
-/// φ = 0 (D07, clay): the moment factor is Bishop's for every λ, F_m(λ) = Σ c·l / Σ W sin α (E10b, exact).
+/// Equivalence with the former Zhu solver on fixed surfaces V044, V045 and V016a (E10c, ≤ 1e-6 relative). The former
+/// values are those of the commit before W8b.
 #[test]
-fn phi_zero_moment_factor_is_bishop_for_every_lambda() {
-    let doc = load("verification/differential/cases/D07.ogs.json");
-    let mut m = doc.clone();
-    m["analysis"]["methods"] = serde_json::json!(["bishop"]);
-    let model: Model = serde_json::from_value(m).expect("model");
-    let bishop = analyze(&model).expect("analyze").results.remove(0);
-    let sl: Vec<Slice> = bishop.slices;
-    let cl: f64 = sl.iter().map(|s| s.cohesion * s.base_length).sum();
-    let wsin: f64 = sl.iter().map(|s| s.weight * s.alpha.sin()).sum();
-    let target = cl / wsin;
-    let lambdas: Vec<f64> = (-5..=15).map(|k| 0.1 * k as f64).collect();
-    for (lambda, fm, _) in spencer_gle_curves(&sl, &lambdas) {
-        assert!(
-            (fm - target).abs() / target < 1e-9,
-            "λ = {lambda}: F_m = {fm} vs Σcl/ΣWsinα = {target}"
-        );
-    }
-}
-
-/// Equivalence with the former Zhu solver (fixed surfaces V044, V045, V016a). The former values are those of the
-/// commit before W8b. Under E10b the relative differences are 2.9e-5, 2.4e-5 and 4.2e-5. The equivalence needs
-/// the per-slice moment of Zhu in place of F_m (see the report of W8b). Kept as an ignored test, with the values.
-#[test]
-#[ignore = "E10b (W8b): F_m with chord-radius arms differs from the former Zhu solver by 2.9e-5 (V044), 2.4e-5 \
-             (V045) and 4.2e-5 (V016a) on fixed surfaces; the brief asks ≤ 1e-6. Coordinator decision pending \
-             (moment equation of E10b)."]
 fn equivalence_with_former_zhu_solver_on_fixed_surfaces() {
     let cases = [
         ("verification/cases/V044.json", 2.072_769_312_990_772),
@@ -74,16 +48,16 @@ fn equivalence_with_former_zhu_solver_on_fixed_surfaces() {
         let fos = r.fos.expect("finite");
         assert!(
             (fos - former).abs() / former <= 1e-6,
-            "{path}: E10b {fos} vs former {former}"
+            "{path}: E10c {fos} vs former {former}"
         );
     }
 }
 
-/// D03 (weak layer), differential. The fixed circle of the model is cSlope's Bishop-critical circle. cSlope
-/// cannot solve Spencer on it either (`EngineError`: tension at the 90° entry), and the GLE scheme finds no root
-/// on that circle. The status is `NotConverged("no_lambda_root")` and not a value.
+/// D03 (weak layer), differential. The fixed circle of the model is cSlope's Bishop-critical circle. cSlope cannot
+/// solve Spencer on it either (`EngineError`: tension at the 90° entry). The Zhu moment has no root in the scan range
+/// on that circle, so the status is `NotConverged("no_lambda_root")` and not a value.
 #[test]
-fn d03_model_circle_has_no_gle_root_as_cslope() {
+fn d03_model_circle_has_no_root_in_scan_range_as_cslope() {
     let doc = load("verification/differential/cases/D03.ogs.json");
     let fixed = doc["analysis"]["surface"].clone();
     let r = spencer(&doc, Some(fixed));
@@ -92,8 +66,8 @@ fn d03_model_circle_has_no_gle_root_as_cslope() {
     assert!(r.fos.is_none());
 }
 
-/// D03: Spencer search, against cSlope 0.5466738 (E9b: ogs ≤ cSlope·1.01). The E10b result is 0.549738 at λ = −0.134,
-/// with the note `negative_effective_normal_major` (f > 5 %, E7d).
+/// D03: Spencer search against cSlope 0.5466738 (E9b: ogs ≤ cSlope·1.01), with the note
+/// `negative_effective_normal_major` (f > 5 %, E7d).
 #[test]
 fn d03_search_is_within_one_percent_above_cslope() {
     let doc = load("verification/differential/cases/D03.ogs.json");
