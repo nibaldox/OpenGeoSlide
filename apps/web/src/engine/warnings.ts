@@ -44,6 +44,7 @@ export const ENGINE_WARNING_CODES = [
   'no_lambda_root',
   'no_admissible_root',
   'negative_lambda',
+  'multiple_admissible_roots',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -114,6 +115,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   negative_lambda: {
     severity: 'nota',
     text: 'Spencer seleccionó la raíz admisible de menor |λ|, que es negativa; revise el resultado',
+  },
+  multiple_admissible_roots: {
+    severity: 'nota',
+    text: 'Spencer tiene varias soluciones de equilibrio admisibles; se reporta la de menor factor de seguridad',
   },
   no_slices: {
     severity: 'aviso',

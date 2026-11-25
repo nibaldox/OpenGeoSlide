@@ -831,6 +831,88 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .collect()
 }
 
+/// The λ search state and its Brent stop `tol_r` (E11c), or the early result: `no_slices`, `no_driving` (E3) or `m_alpha`
+/// (E8b, a slice that Bishop's criterion rejects for every F makes every Spencer state inadmissible too).
+fn setup<'a>(slices: &'a [Slice], opts: &SolveOptions) -> Result<(Scheme<'a>, f64), MethodResult> {
+    if slices.is_empty() {
+        return Err(outcome(
+            f64::NAN,
+            SolveStatus::Invalid,
+            0,
+            None,
+            Some("no_slices"),
+        ));
+    }
+    if lacks_driving(slices) {
+        return Err(outcome(
+            f64::NAN,
+            SolveStatus::Invalid,
+            0,
+            None,
+            Some("no_driving"),
+        ));
+    }
+    let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
+        return Err(outcome(
+            f64::NAN,
+            SolveStatus::Invalid,
+            0,
+            None,
+            Some("m_alpha"),
+        ));
+    };
+    let start = bishop::solve(slices, opts);
+    let start_fos =
+        if start.status != SolveStatus::Invalid && start.fos.is_finite() && start.fos > 0.0 {
+            start.fos
+        } else {
+            1.0
+        };
+    let scheme = Scheme {
+        slices,
+        preps: prepare(slices),
+        m_bound,
+        min_m: opts.min_m_alpha,
+        start: start_fos,
+        total_w: slices.iter().map(|s| s.weight).sum(),
+        total_width: slices.iter().map(|s| s.width).sum(),
+        moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+        budget: opts.max_iterations,
+        evaluations: 0,
+    };
+    // E11c: Brent stops at tol_r; a root is accepted at MOMENT_ACCEPT, which is never below tol_r.
+    let tol_r = (ROOT_FRACTION * opts.tolerance).min(MOMENT_ACCEPT);
+    Ok((scheme, tol_r))
+}
+
+/// A root of the moment residual found by the λ scan (diagnostic, E12e).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SpencerRoot {
+    pub lambda: f64,
+    pub fos: f64,
+    /// Admissible at `(F, λ)` (E11b).
+    pub admissible: bool,
+}
+
+/// Every root of the λ scan on `slices`, admissible or not, in scan order. `None` if the solver would stop before the
+/// scan (no slices, no driving moment, `m_alpha`) or the evaluation budget runs out. It is the list from which
+/// [`solve`] picks the admissible root of smallest F (E12e), so a test can check that choice.
+pub fn spencer_roots(slices: &[Slice], opts: &SolveOptions) -> Option<Vec<SpencerRoot>> {
+    let (mut scheme, tol_r) = setup(slices, opts).ok()?;
+    let found = scan(&mut scheme, tol_r).ok()?;
+    Some(
+        found
+            .roots
+            .iter()
+            .map(|r| SpencerRoot {
+                lambda: r.lambda,
+                fos: r.fos,
+                admissible: admissible(slices, r.fos, r.lambda, opts.min_m_alpha),
+            })
+            .collect(),
+    )
+}
+
 /// Spencer solver (E10c, E11a, E11b, E11c, E12e). Start: `F` from Bishop (or 1 if Bishop is invalid).
 ///
 /// 1. `no_driving` (E3) and the Bishop lower bound (E8b) are checked first.
@@ -841,41 +923,11 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
 /// 4. At λ*, the closure `|E_n| ≤ 1e-6·ΣW` is checked, and the normal forces (E7d) and the notes (E7a, E7d) are
 ///    attached to the `Converged` result.
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
-    if slices.is_empty() {
-        return outcome(f64::NAN, SolveStatus::Invalid, 0, None, Some("no_slices"));
-    }
-    // Amendment E3: a surface without driving moment is invalid for Spencer too.
-    if lacks_driving(slices) {
-        return outcome(f64::NAN, SolveStatus::Invalid, 0, None, Some("no_driving"));
-    }
-    // E8b: a slice that Bishop's criterion rejects for every F makes every Spencer state inadmissible too.
-    let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
-        return outcome(f64::NAN, SolveStatus::Invalid, 0, None, Some("m_alpha"));
+    let (mut scheme, tol_r) = match setup(slices, opts) {
+        Ok(setup) => setup,
+        Err(result) => return result,
     };
-    let start = bishop::solve(slices, opts);
-    let start_fos =
-        if start.status != SolveStatus::Invalid && start.fos.is_finite() && start.fos > 0.0 {
-            start.fos
-        } else {
-            1.0
-        };
-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
-    let total_width: f64 = slices.iter().map(|s| s.width).sum();
-    let mut scheme = Scheme {
-        slices,
-        preps: prepare(slices),
-        m_bound,
-        min_m: opts.min_m_alpha,
-        start: start_fos,
-        total_w,
-        total_width,
-        moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
-        budget: opts.max_iterations,
-        evaluations: 0,
-    };
-    // E11c: Brent stops at tol_r; a root is accepted at MOMENT_ACCEPT, which is never below tol_r.
-    let tol_r = (ROOT_FRACTION * opts.tolerance).min(MOMENT_ACCEPT);
-
+    let total_w = scheme.total_w;
     let admissible_at = |r: &Root| admissible(slices, r.fos, r.lambda, opts.min_m_alpha);
     let search = match scan(&mut scheme, tol_r) {
         Ok(search) => search,

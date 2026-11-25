@@ -249,6 +249,7 @@ fn r1_05_the_valid_example_still_runs() {
             "truncated_mass",
             "negative_lambda",
             "load_outside_mass",
+            "multiple_admissible_roots",
         ];
         for w in r["warnings"].as_array().expect("warnings array") {
             let code = w.as_str().expect("warning code");
