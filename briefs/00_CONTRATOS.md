@@ -281,6 +281,18 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
      Un lente descartado puede salir por una pared lateral del modelo sin invalidar la superficie. **Motivo:** el
      círculo crítico de Spencer de cSlope en D09 (centro (1,30; 55,17), r = 42,44; FS 0,3876) sale por x = 0 bajo el
      terreno **dentro del lente del pie**, que se descarta.
+   - **(E11d, revisión R3-03a/b.)** Después de truncar, el bloque conservado se **re-rebana**: `n` divisiones uniformes
+     entre sus extremos, más los puntos de quiebre de §4.1.4. Se exigen al menos 3 dovelas de suelo; si no, el
+     resultado es `TooFewSlices`.
+     - En la búsqueda, `min_width` y los rangos `entry` / `exit` se verifican sobre los **extremos efectivos** del bloque
+       analizado: salida = `slices[0].x_left`, entrada = `slices[last].x_right`. Si no cumplen, el evaluador devuelve
+       `None`.
+     - **Motivo:** en un botadero de 2 bancos con `min_width = 10`, ogs daba 0,856 sobre un bloque de 5,2 m de ancho,
+       25 % bajo cSlope (1,142), que sí respeta el ancho pedido.
+   - **(E11e, revisión R3-03c.)** Si algún bloque descartado es **motriz** (`Σ W sin α > 0,05·Σ W sin α` del bloque
+     principal), el aviso es `"truncated_driving_mass"`. **No** es informativo: indica que el bloque descartado puede
+     ser un mecanismo más crítico y que conviene revisar otros círculos. En otro caso se mantiene la nota
+     `truncated_mass`.
 
    *Texto histórico de E8a (derogada):*
    **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
@@ -320,6 +332,40 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   se cumple, el resultado es `Invalid` (`"m_alpha"`). Nunca se devuelve `Converged` con `m_α(F) < min_m_alpha`.
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
+> **Vigente en §4.3 (tras R3):** E10c con E11a, E11b y E11c, más E4d, E4e/E7d/E11f, E7a y E3.
+> **Derogados**, que se conservan solo como historia: E4c, E7c, E9c y E10b. Tampoco rige el lazo de punto fijo en λ de
+> Zhu. E8b queda reemplazada por E11b.
+
+**(Enmienda E11a, revisión R3-01.)** Ecuación de λ sin divisor y selección de raíz:
+- El residuo de momentos se escribe en forma **sin divisor**: `r(λ) = Σ bᵢ (Eᵢ + Eᵢ₋₁)(tan αᵢ − λ)`, con f = 1 y las
+  dovelas aéreas incluidas (E7a). Es continuo y no tiene asíntotas.
+- **Barrido completo** de λ ∈ [−0,5; 1,5] con paso 0,05. **Todos** los cambios de signo de r se refinan con Brent.
+- **Candidatas:** raíces con cierre de fuerzas (`|Eₙ| ≤ 1e-6·ΣW`) que cumplen la admisibilidad E11b.
+- **Selección:**
+  - la candidata con **λ ≥ 0 más pequeño**;
+  - si no hay ninguna, la de λ < 0 más cercana a 0, con el **aviso** `"negative_lambda"`;
+  - si no hay candidatas: `NotConverged("no_admissible_root")` cuando hubo raíces que no eran admisibles, o
+    `NotConverged("no_lambda_root")` cuando no hubo raíces.
+- **Motivo:** el barrido hacia afuera con parada en el primer cambio de signo elegía λ = −0,371 (FS 1,5178, −5 % frente
+  a cSlope 1,5974) en vez de la raíz física λ = +0,402. Además, las asíntotas de la forma con divisor abortaban la
+  búsqueda.
+
+**(Enmienda E11b, revisión R3-02; reemplaza a E8b.)** Admisibilidad: en toda dovela de suelo, `Φᵢ / F ≥ min_m_alpha`.
+Es la E4b original, que con λ = 0 coincide con el `m_α` de Bishop. Además, `m_α(F) ≥ min_m_alpha`.
+- **Motivo:** E8b (`Φ > 1e-9·F`) admitía raíces con `Φ/F ≈ 4·10⁻⁴` y FS +233 % sobre cSlope o −31 % bajo Bishop.
+  El motivo que llevó a relajarla (Spencer 21 % sobre Bishop en R2-03) resultó ser en su mayoría una diferencia real
+  entre métodos (cSlope: +17 %) más el defecto de E8a, ya corregido por E10a.
+- Si la batería diferencial deja de pasar con esta regla, se **reporta** con números; no se relaja sin decisión del
+  coordinador.
+
+**(Enmienda E11c, revisión R3-04.)** La parada de Brent en λ usa `tol_r = min(1e-3·tolerance, MOMENT_ACCEPT)`, con la
+misma escala que el corte final, de modo que toda raíz que Brent acepte pase el corte. Con `tolerance` en todo el rango
+(0; 0,01], los casos D01 y D06 deben converger.
+
+**(Enmienda E11f, revisión R3-06; complementa a E7d/E8c.)** `negative_effective_normal_major` se emite si `f > 0,05`
+**o** si la fracción de la longitud de base de suelo con `N' < 0` supera 0,25. V002, V003 y V101, con tracción
+localizada en el coronamiento, deben quedar como nota; repórtalo.
+
 **(Enmienda E10c; corrige a E10b tras W8b.)** El solver mantiene la estructura de E10b: curvas F_m(λ) y F_f(λ) con
 búsqueda acotada de λ\*. Cambia lo siguiente:
 - **Ecuación de momentos:** la de Zhu et al. (2005), momentos por dovela con la línea de empuje en la base, la misma
@@ -485,9 +531,11 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `Código ∈ {InvalidModel, NoSurface, NoValidSurface, Json}`. Por ejemplo:
   `NoSurface: no hay superficie definida; indique analysis.surface o analysis.search`.
   El prefijo es estable y lo usan la web y Python para clasificar el error.
-  Los códigos de aviso (`m_alpha`, `m_alpha_pole`, `pole`, `no_driving`, `negative_effective_normal`,
-  `negative_effective_normal_major`, `air_gap_thrust`, `truncated_mass`, `water_above_ground`, `max_iterations`, `non_finite`,
-  `lambda_undefined`, `fos_nonpositive`, `no_slices`) son identificadores estables en inglés; agregar uno nuevo exige
+  Los códigos de aviso (`m_alpha`, `pole`, `no_driving`, `negative_effective_normal`,
+  `negative_effective_normal_major`, `air_gap_thrust`, `truncated_mass`, `truncated_driving_mass`, `water_above_ground`,
+  `max_iterations`, `non_finite`, `no_slices`, `no_lambda_root`, `no_admissible_root`, `negative_lambda`) son
+  identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
+  porque ya no se emiten); agregar uno nuevo exige
   actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
   cada interfaz.
 - `slice_circle` acepta círculos cuyo cruce externo coincide con `x_min` o `x_max` (|arco − terreno| ≤ tol en el borde).
