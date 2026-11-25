@@ -92,6 +92,15 @@ describe('paneles: render con store falso', () => {
     expect(out).toContain('Quitar piezométrica');
   });
 
+  it('WaterPanel: en un modelo imperial la ayuda y el marcador de γw usan pcf (U1-M)', () => {
+    const out = html(WaterPanel, makeDoc({ units: 'imperial', water: { unit_weight: undefined, piezometric_line: [[0, 1], [5, 2]] } }));
+    expect(out).toContain('placeholder="62,4"');
+    expect(out).toContain('Escriba 62,4 pcf para agua dulce');
+    expect(out).not.toContain('placeholder="9,81"');
+    const si = html(WaterPanel, makeDoc());
+    expect(si).toContain('Vacío = se usa 9,81 kN/m³.');
+  });
+
   it('WaterPanel: sin piezométrica ofrece crearla; con 2 puntos no deja quitar', () => {
     expect(html(WaterPanel, makeDoc({ water: null }))).toContain('Crear piezométrica');
     expect(html(WaterPanel, makeDoc({ water: { piezometric_line: [[0, 1], [5, 1]] } }))).toContain('title="Mínimo 2 puntos"');
