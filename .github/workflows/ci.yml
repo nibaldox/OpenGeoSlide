@@ -34,7 +34,7 @@ jobs:
       - run: cargo test --workspace --exclude ogs-py --release --locked
 
   acceptance:
-    name: acceptance (38/38 checks publicados)
+    name: acceptance (checks publicados)
     needs: rust
     runs-on: ubuntu-latest
     steps:
@@ -114,7 +114,7 @@ jobs:
         run: |
           wasm-bindgen --version
           test "$(wasm-bindgen --version)" = "wasm-bindgen ${WASM_BINDGEN_VERSION}"
-      - run: apps/web/scripts/build-wasm.sh
+      - run: bash apps/web/scripts/build-wasm.sh
       - run: test -s apps/web/src/wasm/ogs_wasm_bg.wasm
       - uses: actions/upload-artifact@v7
         with:
