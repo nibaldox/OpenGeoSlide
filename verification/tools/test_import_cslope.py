@@ -181,3 +181,222 @@ def test_case_schema_check_slices_follow_section_4_5(value, accepted):
     case["checks"][0]["options"] = {"slices": value}
     errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
     assert (errors == []) is accepted, (value, errors)
+
+
+# ------------------------------------------------------------ schema v0.2: seismic coefficients and loads
+
+PENDING_DIR = os.path.join(ROOT, "verification", "pending")
+
+
+def _raw_v02(udls=None, line_loads=None, seismic=None, extra_options=None):
+    """The synthetic problem of `_raw` with loads and/or seismic coefficients in the cSlope format."""
+    options = dict(extra_options or {})
+    if seismic is not None:
+        options.update(seismic)
+    raw = _raw(options=options)
+    if udls is not None:
+        raw["definition"]["udls"] = udls
+    if line_loads is not None:
+        raw["definition"]["lineLoads"] = line_loads
+    return raw
+
+
+def test_v0_1_conversion_still_omits_loads_and_seismic():
+    with pytest.raises(imp.Omit, match="udls"):
+        imp.convert(_raw_v02(udls=[{"magnitude": 20.0, "x1": 1.0, "x2": 5.0}]), PROB)
+    with pytest.raises(imp.Omit, match="lineLoads"):
+        imp.convert(_raw_v02(line_loads=[{"x": 3.0, "magnitude": 10.0, "angle": 5.0}]), PROB)
+    with pytest.raises(imp.Omit, match="seismicHorizontal"):
+        imp.convert(_raw_v02(seismic={"seismicHorizontal": 0.1}), PROB)
+
+
+def test_v0_2_conversion_writes_loads_and_seismic_in_contract_order():
+    raw = _raw_v02(
+        udls=[{"magnitude": 20.0, "x1": 1.0, "x2": 5.0}, {"magnitude": 7.5, "x1": 6.0, "x2": 9.0, "direction": "vertical"}],
+        line_loads=[{"x": 3.0, "magnitude": 10.0, "angle": -12.5}],
+        seismic={"seismicHorizontal": 0.15, "seismicVertical": -0.05},
+    )
+    raw["definition"]["waterTable"] = {"mode": "custom", "value": [[0.0, 3.0], [25.0, 3.0]]}
+    case, _ = imp.convert(raw, PROB, v02=True)
+    model = case["model"]
+    assert model["version"] == "0.2"
+    assert model["loads"] == [
+        {"type": "udl", "id": "u1", "x1": 1.0, "x2": 5.0, "q": 20.0},
+        {"type": "udl", "id": "u2", "x1": 6.0, "x2": 9.0, "q": 7.5},
+        {"type": "line", "id": "l1", "x": 3.0, "p": 10.0, "angle": -12.5},   # the angle is copied unchanged
+    ]
+    assert model["analysis"]["seismic"] == {"kh": 0.15, "kv": -0.05}
+    keys = list(model)
+    assert keys.index("water") < keys.index("loads") < keys.index("slope")      # F1.1: after water, before slope
+    assert [e for e in imp.gate_schema(case)] == [] and imp.gate_loads(case) == []
+
+
+def test_v0_2_conversion_without_features_is_not_a_v0_2_case():
+    with pytest.raises(imp.Omit, match="sin cargas ni coeficientes"):
+        imp.convert(_raw(), PROB, v02=True)
+    assert imp.has_v02_features(_raw()) is False
+    assert imp.has_v02_features(_raw_v02(seismic={"seismicVertical": 0.1})) is True
+    assert imp.has_v02_features(_raw_v02(seismic={"seismicHorizontal": 0.0})) is False
+
+
+def test_v0_2_conversion_keeps_omitting_what_v0_2_does_not_cover():
+    udl = {"magnitude": 20.0, "x1": 1.0, "x2": 5.0}
+    cases = [
+        (_raw_v02(udls=[dict(udl, excessPorePressure=0.5)]), "excessPorePressure"),
+        (_raw_v02(udls=[dict(udl, direction="normal")]), "normal"),
+        (_raw_v02(line_loads=[{"x": 3.0, "magnitude": 10.0, "angle": 0.0, "y": 8.0}]), "propiedad no soportada: y"),
+        (_raw_v02(udls=[{"magnitude": 20.0, "x1": 5.0, "x2": 1.0}]), "x1 >= x2"),
+        (_raw_v02(udls=[{"magnitude": 20.0, "x1": 1.0, "x2": 90.0}]), "fuera del rango"),
+        (_raw_v02(line_loads=[{"x": -3.0, "magnitude": 10.0, "angle": 0.0}]), "fuera del rango"),
+        (_raw_v02(udls=[udl], extra_options={"partialFactors": {"cohesion": 1.25}}), "partialFactors"),
+        (_raw_v02(seismic={"seismicHorizontal": 1.0}), "kh"),
+    ]
+    for raw, match in cases:
+        with pytest.raises(imp.Omit, match=match):
+            imp.convert(raw, PROB, v02=True)
+    raw = _raw_v02(udls=[udl])
+    raw["definition"]["reinforcements"] = [{"x1": 0.0, "y1": 1.0, "x2": 5.0, "y2": 1.0}]
+    with pytest.raises(imp.Omit, match="reinforcements"):
+        imp.convert(raw, PROB, v02=True)
+    raw = _raw_v02(udls=[udl])
+    raw["definition"]["customSurfaces"] = [{}]
+    with pytest.raises(imp.Omit, match="customSurfaces"):
+        imp.convert(raw, PROB, v02=True)
+
+
+def test_v0_2_conversion_needs_one_seismic_pair_for_all_the_checks():
+    raw = _raw_v02(seismic={"seismicHorizontal": 0.1})
+    raw["checks"].append({"method": "Bishop", "published": 1.1, "publishedBy": "T2", "tolerance": 0.05,
+                          "options": {"seismicHorizontal": 0.2}})
+    with pytest.raises(imp.Omit, match="coeficientes sísmicos distintos"):
+        imp.convert(raw, PROB, v02=True)
+    # a check that is discarded for another reason does not count
+    raw["checks"][1]["options"]["nonCircularOptimization"] = True
+    case, discarded = imp.convert(raw, PROB, v02=True)
+    assert case["model"]["analysis"]["seismic"] == {"kh": 0.1, "kv": 0.0} and len(discarded) == 1
+
+
+def _v02_model() -> dict:
+    model = _model_from_fixture()
+    model["version"] = "0.2"
+    model["loads"] = [{"type": "udl", "id": "u1", "x1": 50.0, "x2": 70.0, "q": 20.0},
+                      {"type": "line", "id": "l1", "x": 40.0, "p": 20.0, "angle": 10.0}]
+    model["analysis"]["seismic"] = {"kh": 0.1, "kv": 0.0}
+    return model
+
+
+def test_schema_accepts_a_v0_2_model_and_only_v0_2_has_loads_and_seismic():
+    model = _v02_model()
+    assert _schema_errors(model) == []
+    # the same fields with version 0.1 are rejected, as the engine does
+    for mutate in (lambda m: m.pop("loads"), lambda m: m["analysis"].pop("seismic")):
+        v01 = _v02_model()
+        mutate(v01)
+        v01["version"] = "0.1"
+        assert _schema_errors(v01), "version 0.1 must not carry loads or seismic"
+    model.pop("loads"), model["analysis"].pop("seismic")
+    model["version"] = "0.1"
+    assert _schema_errors(model) == []
+    model["version"] = "0.3"
+    assert _schema_errors(model)
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda m: m["loads"][0].update(q=-1.0),
+    lambda m: m["loads"][0].update(direction="vertical"),
+    lambda m: m["loads"][0].pop("x2"),
+    lambda m: m["loads"][1].update(angle=91.0),
+    lambda m: m["loads"][1].update(p=-0.1),
+    lambda m: m["loads"][1].update(y=3.0),
+    lambda m: m["loads"].append({"type": "patch"}),
+    lambda m: m["analysis"]["seismic"].update(kh=1.0),
+    lambda m: m["analysis"]["seismic"].update(kh=-0.01),
+    lambda m: m["analysis"]["seismic"].update(kv=1.0),
+    lambda m: m["analysis"]["seismic"].update(kv=-1.0),
+    lambda m: m["analysis"]["seismic"].update(kz=0.1),
+])
+def test_schema_rejects_malformed_loads_and_seismic(mutate):
+    model = _v02_model()
+    mutate(model)
+    assert _schema_errors(model)
+
+
+def test_schema_accepts_the_limits_of_loads_and_seismic():
+    model = _v02_model()
+    model["loads"][0]["q"] = 0.0
+    model["loads"][1].update(p=0.0, angle=-90.0)
+    model["analysis"]["seismic"] = {"kh": 0.0, "kv": -0.999}
+    assert _schema_errors(model) == []
+    model["loads"][1]["angle"] = 90.0
+    model["analysis"]["seismic"] = {"kv": 0.999}
+    assert _schema_errors(model) == []
+
+
+def test_gate_loads_checks_version_range_order_and_ids():
+    case = {"model": _v02_model()}
+    assert imp.gate_loads(case) == []
+    case["model"]["loads"][0]["x2"] = 500.0
+    assert any("fuera del rango" in e for e in imp.gate_loads(case))
+    case = {"model": _v02_model()}
+    case["model"]["loads"][0].update(x1=70.0, x2=50.0)
+    assert any("x1 >= x2" in e for e in imp.gate_loads(case))
+    case = {"model": _v02_model()}
+    case["model"]["loads"][1]["id"] = "u1"
+    assert any("repetidos" in e for e in imp.gate_loads(case))
+    case = {"model": _v02_model()}
+    case["model"]["version"] = "0.1"
+    assert any("requieren" in e for e in imp.gate_loads(case))
+
+
+def _pending_cases() -> dict[str, dict]:
+    out = {}
+    for path in sorted(glob.glob(os.path.join(PENDING_DIR, "V*.json"))):
+        with open(path, encoding="utf-8") as fh:
+            case = json.load(fh)
+        out[case["id"]] = case
+    return out
+
+
+def test_pending_cases_pass_every_gate_of_the_importer():
+    cases = _pending_cases()
+    assert {"V102a", "V102b", "V097a", "V081a"} <= set(cases), sorted(cases)
+    for cid, case in cases.items():
+        assert imp.gate_schema(case) == [], cid
+        assert imp.gate_search(case) == [], cid
+        assert imp.gate_loads(case) == [], cid
+        assert case["model"]["version"] == "0.2", cid
+        assert case["model"].get("loads") or case["model"]["analysis"].get("seismic"), cid
+        # every pending case really is a v0.2 case; the v0.1 cases stay in verification/cases
+        assert not os.path.exists(os.path.join(CASES_DIR, f"{cid}.json")), cid
+
+
+def test_pending_seismic_cases_carry_the_published_critical_coefficients():
+    cases = _pending_cases()
+    assert cases["V102a"]["model"]["analysis"]["seismic"] == {"kh": 0.432, "kv": 0.0}
+    assert cases["V102b"]["model"]["analysis"]["seismic"] == {"kh": 0.132, "kv": 0.0}
+    assert cases["V102b"]["model"]["materials"][0]["ru"] == 0.5
+    assert cases["V097a"]["model"]["loads"] == [{"type": "udl", "id": "u1", "x1": 52.0, "x2": 62.0, "q": 35.0}]
+    assert cases["V081a"]["model"]["loads"] == [{"type": "udl", "id": "u1", "x1": 17.0, "x2": 30.0, "q": 40.0}]
+    # the non-circular check of V102a/b is discarded, the circular ones are kept
+    for cid in ("V102a", "V102b"):
+        assert {c["method"] for c in cases[cid]["checks"]} == {"bishop", "spencer"}
+        assert all(c["kind"] == "search" for c in cases[cid]["checks"])
+
+
+def test_pending_index_lists_every_case_with_its_reason():
+    with open(os.path.join(PENDING_DIR, "INDEX.md"), encoding="utf-8") as fh:
+        index = fh.read()
+    for cid in ("V102a", "V102b", "V097a", "V081a", "V017a", "V066e", "V097b", "V104c"):
+        assert f"| {cid} |" in index, cid
+    assert "| V097b | excluido |" in index and "partialFactors" in index
+    assert "| V066e | excluido |" in index and "reinforcements" in index
+    for cid in _pending_cases():
+        assert f"| {cid} | incluido |" in index, cid
+
+
+def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
+    for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
+        with open(path, encoding="utf-8") as fh:
+            case = json.load(fh)
+        assert case["model"]["version"] == "0.1", path
+        assert "loads" not in case["model"] and "seismic" not in case["model"]["analysis"], path

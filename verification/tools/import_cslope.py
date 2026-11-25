@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert cSlope verification problems (MIT) into OpenGeoSlide v0.1 verification cases.
+"""Convert cSlope verification problems (MIT) into OpenGeoSlide verification cases (v0.1 and v0.2).
 
 Usage (from the repository root):
 
@@ -10,6 +10,10 @@ The source clone is read only. The script writes:
 
 - verification/cases/<id>.json   one case per converted cSlope problem (format: briefs/00_CONTRATOS.md, section 2)
 - verification/cases/INDEX.md    table of converted cases, omitted cases and discarded checks
+- verification/pending/<id>.json cases with seismic coefficients or loads (schema v0.2, briefs/01_CONTRATOS_FASE1.md F1.1):
+                                 they need the v0.2 engine (A1), so they are kept out of verification/cases/
+- verification/pending/INDEX.md  every cSlope problem with `seismicHorizontal`, `seismicVertical`, `udls` or
+                                 `lineLoads`, with the reason it is included or not
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 The output is deterministic: running the script twice leaves every file unchanged.
@@ -28,6 +32,7 @@ from pathlib import Path
 import jsonschema
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import polygonize, unary_union
+from shapely.validation import explain_validity
 
 # ---------------------------------------------------------------- selection
 PRIORITY = [
@@ -43,13 +48,20 @@ ALLOWED_DEFINITION_KEYS = {
     "coordinates", "materials", "materialBoundaries", "regionAssignments", "analysisLimits",
     "customPlanesOnly", "customSearchPlanes", "orientation", "waterTable",
 }
+# Schema v0.2 (contract F1.1): loads and seismic coefficients. Only with `convert(..., v02=True)`.
+V02_DEFINITION_KEYS = {"udls", "lineLoads"}
+ALLOWED_UDL_KEYS = {"magnitude", "x1", "x2", "direction"}
+ALLOWED_LINE_LOAD_KEYS = {"magnitude", "x", "angle"}
+SEISMIC_OPTION_KEYS = ("seismicHorizontal", "seismicVertical")
 ALLOWED_MATERIAL_KEYS = {"name", "model"}
 ALLOWED_MODEL_KEYS = {"kind", "unitWeight", "cohesion", "frictionAngle", "unitWeightSat", "ru"}
 ALLOWED_WATER_KEYS = {"mode", "value", "followBoundary"}
 ALLOWED_LIMIT_KEYS = {"entryLeftX", "entryRightX", "exitLeftX", "exitRightX"}
 NEUTRAL_OPTION_KEYS = {"method", "slices", "iterations", "refinedIterations", "tolerance"}
-# Options that change the problem: their presence omits the whole case.
+# Options that change the problem: their presence omits the whole case. The seismic coefficients are
+# imported with schema v0.2.
 CASE_OMIT_OPTION_PREFIXES = ("tensionCrack", "seismic", "partialFactors", "compositeBase")
+CASE_OMIT_OPTION_PREFIXES_V02 = ("tensionCrack", "partialFactors", "compositeBase")
 ORIENTATION = {"rtl": "right_to_left", "ltr": "left_to_right"}
 
 ANALYSIS_DEFAULTS = {"tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2}
@@ -74,14 +86,50 @@ DIRECTION_OVERRIDE_NOTE = (
 
 # ---------------------------------------------------------------- JSON Schema (sections 1 and 2 of the contracts)
 POINT = {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+# F1.1: `loads` go after `water` and before `slope`; `q`, `p` >= 0 (cSlope's magnitudes are > 0 and come out that way).
+UDL_SCHEMA = {
+    "type": "object",
+    "required": ["type", "x1", "x2", "q"],
+    "additionalProperties": False,
+    "properties": {
+        "type": {"const": "udl"},
+        "id": {"type": "string", "minLength": 1},
+        "x1": {"type": "number"},
+        "x2": {"type": "number"},
+        "q": {"type": "number", "minimum": 0},
+    },
+}
+LINE_LOAD_SCHEMA = {
+    "type": "object",
+    "required": ["type", "x", "p", "angle"],
+    "additionalProperties": False,
+    "properties": {
+        "type": {"const": "line"},
+        "id": {"type": "string", "minLength": 1},
+        "x": {"type": "number"},
+        "p": {"type": "number", "minimum": 0},
+        "angle": {"type": "number", "minimum": -90, "maximum": 90},
+    },
+}
+SEISMIC_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "kh": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+        "kv": {"type": "number", "exclusiveMinimum": -1, "exclusiveMaximum": 1},
+    },
+}
 MODEL_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "required": ["format", "version", "meta", "units", "materials", "regions", "slope", "analysis"],
     "additionalProperties": False,
+    # `loads` and `analysis.seismic` exist only in v0.2 (F1.1); the engine rejects them with version "0.1".
+    "if": {"properties": {"version": {"const": "0.1"}}},
+    "then": {"properties": {"loads": False, "analysis": {"properties": {"seismic": False}}}},
     "properties": {
         "format": {"const": "opengeoslide"},
-        "version": {"const": "0.1"},
+        "version": {"enum": ["0.1", "0.2"]},
         "meta": {
             "type": "object",
             "required": ["id"],
@@ -132,6 +180,10 @@ MODEL_SCHEMA = {
                 "piezometric_line": {"type": "array", "minItems": 2, "items": POINT},
             },
         },
+        "loads": {
+            "type": "array",
+            "items": {"oneOf": [UDL_SCHEMA, LINE_LOAD_SCHEMA]},
+        },
         "slope": {
             "type": "object",
             "required": ["direction"],
@@ -152,6 +204,7 @@ MODEL_SCHEMA = {
                 "tolerance": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.01},
                 "max_iterations": {"type": "integer", "minimum": 1, "maximum": 100000},
                 "min_m_alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+                "seismic": SEISMIC_SCHEMA,
                 "surface": {
                     "type": "object",
                     "required": ["type", "xc", "yc", "r"],
@@ -310,12 +363,17 @@ def water_above_ground(outer: Polygon, piezo: list[list[float]]) -> bool:
     return False
 
 
-def option_reason(method: str, opts: dict) -> str | None:
-    """Return why a check cannot be used with our engine, or None if its options are neutral."""
+def option_reason(method: str, opts: dict, v02: bool = False) -> str | None:
+    """Return why a check cannot be used with our engine, or None if its options are neutral.
+
+    With ``v02`` the seismic coefficients are not an obstacle: they go to ``analysis.seismic``.
+    """
     if opts.get("nonCircularOptimization"):
         return "superficie no circular (nonCircularOptimization)"
     for key, value in opts.items():
         if key in NEUTRAL_OPTION_KEYS:
+            continue
+        if v02 and key in SEISMIC_OPTION_KEYS:
             continue
         if key == "porePressureHead" and value == "vertical":
             continue
@@ -332,8 +390,58 @@ class Omit(Exception):
     """Raised to omit a case; the message is the reason recorded in INDEX.md."""
 
 
-def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
-    """Convert one cSlope case. Returns (case, discarded_checks). Raises Omit."""
+def has_v02_features(raw: dict) -> bool:
+    """True if the cSlope problem has loads or seismic coefficients (the v0.2 schema)."""
+    d = raw["definition"]
+    if d.get("udls") or d.get("lineLoads"):
+        return True
+    return any(float(ck.get("options", {}).get(k) or 0.0) != 0.0
+               for ck in raw["checks"] for k in SEISMIC_OPTION_KEYS)
+
+
+def convert_loads(d: dict, x_min: float, x_max: float) -> list[dict]:
+    """cSlope ``udls`` and ``lineLoads`` -> ogs ``loads`` (F1.1). Raises Omit if one cannot be expressed.
+
+    The angle of a line load is copied unchanged: cSlope measures it from the downward vertical, positive
+    towards +x of the model, for ltr and rtl alike (verified with the oracle, see to_cslope.py).
+    """
+    loads: list[dict] = []
+    for i, u in enumerate(d.get("udls") or []):
+        extra = sorted(set(u) - ALLOWED_UDL_KEYS)
+        if extra:
+            raise Omit("udl con propiedad no soportada: " + ", ".join(extra))
+        if u.get("direction", "vertical") != "vertical":
+            raise Omit(f"udl con direction {u['direction']!r} (solo vertical)")
+        x1, x2, q = float(u["x1"]), float(u["x2"]), float(u["magnitude"])
+        if not x1 < x2:
+            raise Omit(f"udl {i + 1} con x1 >= x2")
+        if x1 < x_min - TOL_ABS or x2 > x_max + TOL_ABS:
+            raise Omit(f"udl {i + 1} fuera del rango x del modelo [{x_min:g}, {x_max:g}]")
+        if not q > 0:
+            raise Omit(f"udl {i + 1} con magnitud no positiva")
+        loads.append({"type": "udl", "id": f"u{i + 1}", "x1": num(x1), "x2": num(x2), "q": num(q)})
+    for i, ll in enumerate(d.get("lineLoads") or []):
+        extra = sorted(set(ll) - ALLOWED_LINE_LOAD_KEYS)
+        if extra:
+            raise Omit("carga lineal con propiedad no soportada: " + ", ".join(extra))
+        x, p, angle = float(ll["x"]), float(ll["magnitude"]), float(ll.get("angle", 0.0))
+        if x < x_min - TOL_ABS or x > x_max + TOL_ABS:
+            raise Omit(f"carga lineal {i + 1} fuera del rango x del modelo [{x_min:g}, {x_max:g}]")
+        if not p > 0:
+            raise Omit(f"carga lineal {i + 1} con magnitud no positiva")
+        if not -90.0 <= angle <= 90.0:
+            raise Omit(f"carga lineal {i + 1} con ángulo fuera de [-90, 90]")
+        loads.append({"type": "line", "id": f"l{i + 1}", "x": num(x), "p": num(p), "angle": num(angle)})
+    return loads
+
+
+def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list[str]]:
+    """Convert one cSlope case. Returns (case, discarded_checks). Raises Omit.
+
+    With ``v02`` the case may have ``udls``, ``lineLoads`` and seismic coefficients, and the model
+    is written with ``version "0.2"`` (``loads`` after ``water``, ``analysis.seismic``). Otherwise those
+    features omit the case, as in schema v0.1.
+    """
     cid = raw["id"]
     if prob is None:
         raise Omit("sin entrada en problems.ts")
@@ -347,13 +455,14 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
         raise Omit(f"superficie desconocida: {surface_kind!r}")
 
     d = raw["definition"]
-    extra = sorted(set(d) - ALLOWED_DEFINITION_KEYS)
+    extra = sorted(set(d) - ALLOWED_DEFINITION_KEYS - (V02_DEFINITION_KEYS if v02 else set()))
     if extra:
         raise Omit("definition con clave que cambia el problema: " + ", ".join(extra))
 
+    omit_prefixes = CASE_OMIT_OPTION_PREFIXES_V02 if v02 else CASE_OMIT_OPTION_PREFIXES
     for ck in raw["checks"]:
         for key in ck.get("options", {}):
-            if key.startswith(CASE_OMIT_OPTION_PREFIXES):
+            if key.startswith(omit_prefixes):
                 raise Omit(f"opción de check que cambia el problema: {key}")
 
     # materials
@@ -385,7 +494,7 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
     coords = d["coordinates"]
     outer = Polygon(coords)
     if not outer.is_valid:
-        raise Omit("contorno no válido")
+        raise Omit(f"contorno no válido ({explain_validity(outer)})")
     # water
     water = None
     wt = d.get("waterTable")
@@ -467,7 +576,7 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
         analysis["search"] = search
 
     # checks
-    checks, discarded = [], []
+    checks, discarded, kept_raw = [], [], []
     for ck in raw["checks"]:
         opts = ck.get("options", {})
         label = f"{ck['method']} ({ck.get('label')}, {ck['publishedBy']}, {ck['published']})"
@@ -478,7 +587,7 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
         else:
             discarded.append(f"{label}: método no soportado")
             continue
-        reason = option_reason(ck["method"], opts)
+        reason = option_reason(ck["method"], opts, v02)
         if reason:
             discarded.append(f"{label}: {reason}")
             continue
@@ -493,17 +602,41 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
             "tolerance": ck["tolerance"],
             "options": check_opts,
         })
+        kept_raw.append(ck)
     if not checks:
         raise Omit("sin checks válidos")
+
+    # seismic coefficients: one pair for the model, shared by every check kept (v0.2 only)
+    seismic = None
+    if v02:
+        pairs = {(float(ck["options"].get("seismicHorizontal") or 0.0),
+                  float(ck["options"].get("seismicVertical") or 0.0)) for ck in kept_raw}
+        if len(pairs) > 1:
+            raise Omit("checks con coeficientes sísmicos distintos: "
+                       + ", ".join(f"kh={kh:g} kv={kv:g}" for kh, kv in sorted(pairs)))
+        kh, kv = pairs.pop()
+        if not 0.0 <= kh < 1.0:
+            raise Omit(f"kh = {kh:g} fuera de [0, 1) (contrato F1.1)")
+        if not -1.0 < kv < 1.0:
+            raise Omit(f"kv = {kv:g} fuera de (-1, 1) (contrato F1.1)")
+        if kh != 0.0 or kv != 0.0:
+            seismic = {"kh": num(kh), "kv": num(kv)}
+    loads: list[dict] = []
+    if v02:
+        xs = [float(x) for x, _ in coords]
+        loads = convert_loads(d, min(xs), max(xs))
+        if not loads and seismic is None:
+            raise Omit("sin cargas ni coeficientes sísmicos (corresponde a verification/cases)")
 
     methods = [m for m in ("bishop", "spencer") if any(c["method"] == m for c in checks)]
     slice_values = {c["options"].get("slices", 50) for c in checks}
     slices = slice_values.pop() if len(slice_values) == 1 else 50
-    analysis_block = {"methods": methods, "slices": slices, **ANALYSIS_DEFAULTS, **analysis}
+    analysis_block = {"methods": methods, "slices": slices, **ANALYSIS_DEFAULTS,
+                      **({"seismic": seismic} if seismic is not None else {}), **analysis}
 
     model = {
         "format": "opengeoslide",
-        "version": "0.1",
+        "version": "0.2" if v02 else "0.1",
         "meta": {"id": cid, "title": raw["title"], "notes": prob.get("description") or ""},
         "units": units,
         "materials": materials,
@@ -511,6 +644,8 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
     }
     if water is not None:
         model["water"] = water
+    if loads:
+        model["loads"] = loads
     model["slope"] = {"direction": direction}
     model["analysis"] = analysis_block
 
@@ -574,6 +709,27 @@ def gate_search(case: dict) -> list[str]:
     candidates = search["n_entry"] * search["n_exit"] * search["n_radius"]
     if candidates > 2_000_000:
         errors.append(f"grilla de búsqueda con {candidates} candidatos (máximo 2000000)")
+    return errors
+
+
+def gate_loads(case: dict) -> list[str]:
+    """F1.1 rules that JSON Schema cannot express: version, ranges in x, order, unique ids."""
+    errors = []
+    m = case.get("model") or {}
+    loads = m.get("loads") or []
+    seismic = (m.get("analysis") or {}).get("seismic")
+    if (loads or seismic) and m.get("version") != "0.2":
+        errors.append('loads y analysis.seismic requieren version "0.2"')
+    xs = [x for r in m.get("regions", []) for x, _ in r["polygon"]]
+    ids = [load["id"] for load in loads if "id" in load]
+    if len(set(ids)) != len(ids):
+        errors.append("ids de carga repetidos")
+    for load in loads:
+        ends = [load["x1"], load["x2"]] if load["type"] == "udl" else [load["x"]]
+        if load["type"] == "udl" and not load["x1"] < load["x2"]:
+            errors.append(f"carga {load.get('id')}: x1 >= x2")
+        if xs and (min(ends) < min(xs) - TOL_ABS or max(ends) > max(xs) + TOL_ABS):
+            errors.append(f"carga {load.get('id')} fuera del rango x del modelo")
     return errors
 
 
@@ -656,6 +812,67 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str
     lines += ["", "## Casos no incluidos", "", "| id | motivo |", "|---|---|"]
     for cid, reason in omitted:
         lines.append(f"| {cid} | {md_cell(reason)} |")
+    return "\n".join(lines) + "\n"
+
+
+def describe_features(case: dict) -> str:
+    """Short text of the seismic coefficients and loads of a v0.2 case."""
+    m = case["model"]
+    parts = []
+    seismic = m["analysis"].get("seismic")
+    if seismic:
+        parts.append(f"kh = {seismic['kh']:g}, kv = {seismic['kv']:g}")
+    for load in m.get("loads", []):
+        if load["type"] == "udl":
+            parts.append(f"udl q = {load['q']:g} en [{load['x1']:g}, {load['x2']:g}]")
+        else:
+            parts.append(f"carga lineal p = {load['p']:g} en x = {load['x']:g}, ángulo {load['angle']:g}°")
+    return "; ".join(parts)
+
+
+def build_pending_index(converted: list[dict], status: list[tuple[str, str, str]],
+                        discarded_by_case: dict[str, list[str]]) -> str:
+    """status: (id, title, reason or '') per cSlope problem with loads or seismic coefficients."""
+    included = {c["id"] for c in converted}
+    lines = [
+        "# Casos pendientes (esquema v0.2: sismo y cargas)",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+        "Estos casos usan `analysis.seismic` o `loads` (contrato F1.1) y el motor de la rama `main` no los acepta "
+        "todavía: están aquí, y no en `verification/cases/`, para no romper la aceptación antes de integrar A1 "
+        "(sismo y cargas en el motor). Al integrar A1 se mueven a `verification/cases/` y se regeneran los índices.",
+        "",
+        f"Problemas de cSlope con sismo o cargas: **{len(status)}**. Casos incluidos: **{len(converted)}**.",
+        "",
+        "El oráculo (cSlope 0.1.0, a través de `to_cslope.py`) reproduce los valores publicados de estos casos en "
+        "`ORACLE_REPORT.md` (`verification/harness/run.py --cases verification/pending`). La columna de ogs queda "
+        "«sin dato» hasta que el motor acepte la versión 0.2.",
+        "",
+        "| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for case in converted:
+        nb = sum(c["method"] == "bishop" for c in case["checks"])
+        ns = sum(c["method"] == "spencer" for c in case["checks"])
+        lines.append(
+            f"| {md_cell(case['id'])} | {md_cell(case['title'])} | {md_cell(case['source']['reference'])} "
+            f"| {case['model']['units']} | {md_cell(describe_features(case))} | {nb} / {ns} "
+            f"| {case['checks'][0]['kind']} |"
+        )
+    lines += ["", "## Checks descartados en los casos incluidos", ""]
+    for case in converted:
+        for reason in discarded_by_case.get(case["id"], []):
+            lines.append(f"- {case['id']}: {md_cell(reason)}")
+    lines += ["", "## Motivo de inclusión o exclusión de cada problema", "", "| id | estado | motivo |", "|---|---|---|"]
+    for cid, title, reason in status:
+        if cid in included:
+            case = next(c for c in converted if c["id"] == cid)
+            lines.append(f"| {cid} | incluido | {md_cell(title)}: {md_cell(describe_features(case))}; "
+                         "sin reforzamientos, superficies personalizadas, B̄, presión de exceso ni factores parciales |")
+        else:
+            lines.append(f"| {cid} | excluido | {md_cell(reason)} |")
     return "\n".join(lines) + "\n"
 
 
@@ -756,8 +973,36 @@ def main() -> int:
                   for cid in sat_ids}
     sat_included = [cid for cid in sat_ids if cid in selected]
 
+    # ---- pending cases: seismic coefficients and loads (schema v0.2), kept out of verification/cases
+    pending: list[dict] = []
+    pending_status: list[tuple[str, str, str]] = []
+    pending_discarded: dict[str, list[str]] = {}
+    for cid in order:
+        if not has_v02_features(raw_by_id[cid]):
+            continue
+        try:
+            case, disc = convert(raw_by_id[cid], problems.get(cid), v02=True)
+        except Omit as exc:
+            pending_status.append((cid, raw_by_id[cid]["title"], str(exc)))
+        except KeyError as exc:
+            pending_status.append((cid, raw_by_id[cid]["title"], f"campo ausente en cSlope: {exc}"))
+        else:
+            pending.append(case)
+            pending_discarded[cid] = disc
+            pending_status.append((cid, case["title"], ""))
+
     # ---- gates
     failures = []
+    for case in pending:
+        cid = case["id"]
+        for err in gate_schema(case):
+            failures.append(f"{cid} (pending) schema: {err}")
+        for err in gate_search(case):
+            failures.append(f"{cid} (pending) rangos: {err}")
+        for err in gate_loads(case):
+            failures.append(f"{cid} (pending) cargas: {err}")
+        for err in gate_geometry(case, raw_by_id[cid]):
+            failures.append(f"{cid} (pending) geometría: {err}")
     for case in converted:
         cid = case["id"]
         for err in gate_schema(case):
@@ -791,6 +1036,18 @@ def main() -> int:
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
         converted, omitted, discarded_by_case, order, (sat_ids, sat_reason, sat_included)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
+    pending_dir = root / "verification" / "pending"
+    expected_pending = {f"{c['id']}.json" for c in pending}
+    for case in pending:
+        text = json.dumps(case, indent=2, ensure_ascii=False) + "\n"
+        changed += write_if_changed(pending_dir / f"{case['id']}.json", text)
+    if pending_dir.is_dir():
+        for stale in sorted(pending_dir.glob("V*.json")):
+            if stale.name not in expected_pending:
+                stale.unlink()
+                changed += 1
+    changed += write_if_changed(pending_dir / "INDEX.md",
+                                build_pending_index(pending, pending_status, pending_discarded))
 
     # ---- summary
     print(f"Fuente: {src}")
@@ -805,6 +1062,9 @@ def main() -> int:
     print("Omitidos:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")
+    print(f"Pendientes (esquema v0.2, verification/pending): {len(pending)} de {len(pending_status)} problemas con sismo o cargas")
+    for cid, _, reason in pending_status:
+        print(f"  {cid}: {'incluido' if not reason else 'excluido: ' + reason}")
     print(f"Archivos escritos/modificados en esta ejecución: {changed}")
     print("GATES OK: schema, geometría, selección")
     return 0
