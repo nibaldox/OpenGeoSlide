@@ -50,6 +50,14 @@ describe('describeWarning', () => {
     expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
   });
 
+  it('truncated_mass es una nota con el texto acordado (E10a)', () => {
+    expect(describeWarning('truncated_mass')).toEqual({
+      code: 'truncated_mass',
+      severity: 'nota',
+      text: 'Se analizó solo el bloque principal de la superficie; las demás masas separadas por tramos aéreos se eliminaron.',
+    });
+  });
+
   it('un código desconocido se muestra tal cual, como aviso', () => {
     expect(describeWarning('codigo_nuevo')).toEqual({ code: 'codigo_nuevo', severity: 'aviso', text: 'codigo_nuevo' });
   });

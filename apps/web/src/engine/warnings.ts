@@ -33,6 +33,7 @@ export const ENGINE_WARNING_CODES = [
   'negative_effective_normal',
   'negative_effective_normal_major',
   'air_gap_thrust',
+  'truncated_mass',
   'water_above_ground',
   'max_iterations',
   'non_finite',
@@ -53,6 +54,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   air_gap_thrust: {
     severity: 'aviso',
     text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría',
+  },
+  truncated_mass: {
+    severity: 'nota',
+    text: 'Se analizó solo el bloque principal de la superficie; las demás masas separadas por tramos aéreos se eliminaron.',
   },
   water_above_ground: {
     severity: 'aviso',
