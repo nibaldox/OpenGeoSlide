@@ -348,30 +348,34 @@ def test_gate_loads_checks_version_range_order_and_ids():
     assert any("requieren" in e for e in imp.gate_loads(case))
 
 
-def _pending_cases() -> dict[str, dict]:
+V02_IDS = ("V102a", "V102b", "V097a", "V081a", "V081b")
+
+
+def _v02_cases() -> dict[str, dict]:
+    """The v0.2 cases of verification/cases (promoted from pending/ once the engine accepted version 0.2)."""
     out = {}
-    for path in sorted(glob.glob(os.path.join(PENDING_DIR, "V*.json"))):
+    for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
-        out[case["id"]] = case
+        if case["model"]["version"] == "0.2":
+            out[case["id"]] = case
     return out
 
 
-def test_pending_cases_pass_every_gate_of_the_importer():
-    cases = _pending_cases()
-    assert {"V102a", "V102b", "V097a", "V081a"} <= set(cases), sorted(cases)
+def test_v0_2_cases_pass_every_gate_of_the_importer():
+    cases = _v02_cases()
+    assert set(cases) == set(V02_IDS), sorted(cases)
     for cid, case in cases.items():
         assert imp.gate_schema(case) == [], cid
         assert imp.gate_search(case) == [], cid
         assert imp.gate_loads(case) == [], cid
-        assert case["model"]["version"] == "0.2", cid
         assert case["model"].get("loads") or case["model"]["analysis"].get("seismic"), cid
-        # every pending case really is a v0.2 case; the v0.1 cases stay in verification/cases
-        assert not os.path.exists(os.path.join(CASES_DIR, f"{cid}.json")), cid
+        # they were promoted: nothing is left in pending/
+        assert not os.path.exists(os.path.join(PENDING_DIR, f"{cid}.json")), cid
 
 
-def test_pending_seismic_cases_carry_the_published_critical_coefficients():
-    cases = _pending_cases()
+def test_v0_2_seismic_cases_carry_the_published_critical_coefficients():
+    cases = _v02_cases()
     assert cases["V102a"]["model"]["analysis"]["seismic"] == {"kh": 0.432, "kv": 0.0}
     assert cases["V102b"]["model"]["analysis"]["seismic"] == {"kh": 0.132, "kv": 0.0}
     assert cases["V102b"]["model"]["materials"][0]["ru"] == 0.5
@@ -383,20 +387,33 @@ def test_pending_seismic_cases_carry_the_published_critical_coefficients():
         assert all(c["kind"] == "search" for c in cases[cid]["checks"])
 
 
-def test_pending_index_lists_every_case_with_its_reason():
+def test_pending_index_lists_only_the_excluded_problems_with_their_reason():
     with open(os.path.join(PENDING_DIR, "INDEX.md"), encoding="utf-8") as fh:
         index = fh.read()
-    for cid in ("V102a", "V102b", "V097a", "V081a", "V017a", "V066e", "V097b", "V104c"):
-        assert f"| {cid} |" in index, cid
+    for cid in ("V017a", "V066e", "V097b", "V104c"):
+        assert f"| {cid} | excluido |" in index, cid
     assert "| V097b | excluido |" in index and "partialFactors" in index
     assert "| V066e | excluido |" in index and "reinforcements" in index
-    for cid in _pending_cases():
-        assert f"| {cid} | incluido |" in index, cid
+    for cid in V02_IDS:
+        assert f"| {cid} |" not in index, cid
+
+
+def test_cases_index_lists_the_v0_2_cases_with_their_seismic_and_loads():
+    with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
+        index = fh.read()
+    assert "| V102a |" in index and "kh = 0.432" in index
+    for cid in V02_IDS:
+        assert f"| {cid} |" in index, cid
 
 
 def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
+    n = 0
     for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
+        if case["id"] in V02_IDS:
+            continue
+        n += 1
         assert case["model"]["version"] == "0.1", path
         assert "loads" not in case["model"] and "seismic" not in case["model"]["analysis"], path
+    assert n == 16

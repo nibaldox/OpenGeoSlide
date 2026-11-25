@@ -51,7 +51,7 @@ DEFAULT_OGS = os.environ.get(
     "OGS_BIN", os.path.normpath(os.path.join(HERE, "..", "..", "target", "release", "ogs")))
 METHODS = ("bishop", "spencer")
 KINDS = ("search", "fixed")
-EXPECTED_CASES = 10
+EXPECTED_CASES = 14
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
 REPORT_VERSION = "3"
@@ -61,7 +61,7 @@ VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
 PASS_VERDICTS = (VERDICT_OK, VERDICT_BOTH_NO_SOLUTION)
 # Informative ogs warnings (contract §4.5 / E5, E7d, E10a, E11a′): notes, not warnings. Any other code is a warning
 # that the report lists. The list must match INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs.
-OGS_INFORMATIVE_WARNINGS = ("negative_effective_normal", "truncated_mass", "negative_lambda")
+OGS_INFORMATIVE_WARNINGS = ("negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass")
 
 
 # ------------------------------------------------------------------ cases
@@ -102,8 +102,24 @@ def _rel(a: float | None, b: float | None) -> float | None:
 
 
 def cslope_declares_no_solution(cs: dict) -> bool:
-    """cSlope raises EngineError ('No valid slip surface …') when it has no surface for the circle."""
-    return bool(cs["error"]) and cs["error"].startswith("EngineError")
+    """cSlope declares the check without a solution: EngineError ('No valid slip surface …') or a result with
+    ``criticalSurface.converged == False`` (status ``not_converged``).
+
+    The second case returns a ``minFOS`` that is the closest pair of Fm/Ff, not a root of the equilibrium
+    (docs/fase1/exploracion/X6.md; for example R3-01b: 0,0830 not converged against the real root 0,2685). That
+    number is never a reference value: it counts as «oráculo sin solución», the same as an EngineError.
+    """
+    if cs["error"] and cs["error"].startswith("EngineError"):
+        return True
+    return not cs["error"] and cs["status"] not in (None, "converged")
+
+
+def cslope_no_solution_text(cs: dict) -> str:
+    """Why cSlope has no solution, for the reason column."""
+    if cs["error"]:
+        return cs["error"]
+    return f"no convergido (status {cs['status']}, minFOS {cs['fos']:.4f} no es una raíz)" if cs["fos"] is not None \
+        else f"no convergido (status {cs['status']})"
 
 
 def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
@@ -113,8 +129,10 @@ def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
     not a valid result, contract E4a/E4d), so the ogs status is checked before the FS is compared.
 
     No-solution rule (W9, fixed surface only): when both engines declare the surface without a solution
-    (ogs not_converged/invalid and cSlope EngineError), the verdict is VERDICT_BOTH_NO_SOLUTION. When only
-    one of them declares it, the check is FALLA. An ogs execution error is never a declaration: it stays sin dato.
+    (ogs not_converged/invalid and cSlope EngineError or converged = false), the verdict is
+    VERDICT_BOTH_NO_SOLUTION. When only one of them declares it, the check is FALLA. A cSlope result with
+    converged = false is a «sin solución» of the oracle, never a reference FS (X6). An ogs execution error is never
+    a declaration: it stays sin dato.
     """
     if ogs["error"]:
         return "sin dato", f"ogs: {ogs['error']}"
@@ -123,16 +141,16 @@ def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
     if ogs_no and cs_no:
         if kind == "fixed":
             return VERDICT_BOTH_NO_SOLUTION, (
-                f"ambos motores declaran la superficie sin solución: ogs {ogs['status']}, cSlope {cs['error']}")
+                f"ambos motores declaran la superficie sin solución: ogs {ogs['status']}, cSlope {cslope_no_solution_text(cs)}")
         return "FALLA", f"ogs no válido (status {ogs['status']}, FS {ogs['fos']}); cSlope sin solución"
     if ogs_no:
         return "FALLA", f"ogs no válido (status {ogs['status']}, FS {ogs['fos']})"
     if cs_no:
-        return "FALLA", f"solo cSlope declara la superficie sin solución ({cs['error']}); ogs da FS {ogs['fos']:.4f}"
+        return "FALLA", f"solo cSlope declara la superficie sin solución ({cslope_no_solution_text(cs)}); ogs da FS {ogs['fos']:.4f}"
     if cs["error"]:
         return "sin dato", f"cSlope: {cs['error']}"
-    if cs["status"] not in (None, "converged") or cs["fos"] is None:
-        return "sin dato", f"cSlope no convergido (status {cs['status']})"
+    if cs["fos"] is None:
+        return "sin dato", "cSlope sin FS"
     if kind == "search":
         limit = cs["fos"] * (1.0 + SEARCH_MAX_REL)
         if ogs["fos"] <= limit:
@@ -254,8 +272,11 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
              "Un FS de ogs menor es más exhaustivo y se acepta.")
     L.append("- **Superficie fija**: `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,5 %`, con el mismo círculo.")
     L.append("- **Concordancia (W9)**: si ogs declara la superficie fija sin solución (`not_converged` o `invalid`) "
-             "y cSlope también (`EngineError`), el veredicto es `OK (concordancia: ambos sin solución)`. "
-             "Si solo uno de los dos la declara, es `FALLA`.")
+             "y cSlope también (`EngineError` o `converged: false`), el veredicto es "
+             "`OK (concordancia: ambos sin solución)`. Si solo uno de los dos la declara, es `FALLA`.")
+    L.append("- Un resultado de cSlope con `converged: false` (el par Fm/Ff más cercano, no una raíz; X6) es un "
+             "oráculo sin solución, igual que un `EngineError`, y nunca es un valor de referencia: su `minFOS` "
+             "figura en la tabla pero no se compara.")
     L.append("- El veredicto no detiene la batería: el exit code es 0 aunque haya fallos.")
     L.append("")
     L.append("## Resumen")

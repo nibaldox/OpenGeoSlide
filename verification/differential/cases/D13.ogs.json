@@ -1,0 +1,93 @@
+{
+  "format": "opengeoslide",
+  "version": "0.2",
+  "meta": {
+    "id": "D13",
+    "title": "Talud civil con carga lineal de 100 kN/m a 15°",
+    "notes": "Talud civil de 10 m, 1,5H:1V, con una carga lineal de 100 kN/m en x = 6 m (corona) inclinada 15° hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo cohesivo-friccional",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 15.0,
+      "friction_angle": 26.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          -8.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          25.0,
+          0.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          40.0,
+          -8.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "loads": [
+    {
+      "type": "line",
+      "id": "l1",
+      "x": 6.0,
+      "p": 100.0,
+      "angle": 15.0
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 25.051065245816822,
+      "yc": 23.172099814674574,
+      "r": 23.17215608182742
+    }
+  }
+}

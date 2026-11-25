@@ -79,3 +79,22 @@ def test_run_keeps_warnings_of_a_converged_result(tmp_path):
 def test_verdict_without_status_keeps_the_old_rules():
     assert run.verdict(None, None, 1.0, 0.05) == "sin dato"
     assert run.verdict(1.2, None, 1.0, 0.05) == "FALLA"
+
+
+class _FakeCslope:
+    """cslope module stand-in: analyse returns a minFOS with criticalSurface.converged = False (X6)."""
+
+    def validate(self, document):
+        return []
+
+    def analyse(self, document):
+        return {"minFOS": 0.0830, "criticalSurface": {"converged": False}, "warnings": []}
+
+
+def test_cslope_not_converged_is_never_a_reference_value():
+    # R3-01b of X6: minFOS 0.0830 with converged = false (the real root is 0.2685). Even if the published value
+    # were 0.0830, the oracle verdict is «no convergido», not OK.
+    res = run.run_cslope(_FakeCslope(), {})
+    assert res["status"] == "not_converged" and res["fos"] == pytest.approx(0.0830)
+    assert run.verdict(res["fos"], res["status"], 0.0830, 0.05) == "no convergido"
+    assert run.estado("OK", "no convergido") == "OK · cSlope no convergido"

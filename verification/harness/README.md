@@ -3,7 +3,7 @@
 Compara, para cada check de cada caso de `verification/cases/*.json`, tres valores:
 el **publicado**, el FS del **binario ogs** (`ogs analyze`) y el FS del **oráculo cSlope 0.1.0**.
 
-- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1) → documento de análisis de cSlope.
+- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1 y v0.2) → documento de análisis de cSlope.
 - `run.py`: ejecuta ogs y cSlope por check y escribe `REPORT.md` y `report.json`.
 - `test_to_cslope.py`: tests del conversor (pytest).
 - `fixtures/V047a.json`: caso propio (ACADS 1(a), contratos §1), usado si no hay casos.
@@ -83,6 +83,29 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
 | `search.refine` | `refinedIterations` 1500 / 0 |
 | `search.min_width` (o 1 % del ancho) | `minFailureDist` (aproximado) |
 
+### Sismo y cargas (esquema v0.2, F1.1)
+
+Solo con `version: "0.2"`. El conversor traduce; no calcula.
+
+| ogs (contrato F1.1) | cSlope 0.1.0 | notas |
+|---|---|---|
+| `analysis.seismic.kh` | `options.seismicHorizontal` | actúa en el sentido del deslizamiento, con `ltr` y `rtl`; con 0 se omite (cSlope toma kh en (0, 1]) |
+| `analysis.seismic.kv` | `options.seismicVertical` | `kv > 0` hacia abajo, igual que ogs; con 0 se omite |
+| `loads[]` con `type: "udl"` (`x1`, `x2`, `q`) | `definition.udls[] {magnitude: q, x1, x2, direction: "vertical"}` | una carga con `q = 0` se omite (cSlope exige magnitud > 0) y se anota |
+| `loads[]` con `type: "line"` (`x`, `p`, `angle`) | `definition.lineLoads[] {x, magnitude: p, angle}` | el ángulo pasa **sin cambio**, también con `rtl`: se mide desde la vertical hacia abajo y el positivo inclina la carga hacia +x del modelo; cSlope espeja la geometría `rtl` y el signo internamente. Con `p = 0` se omite |
+| `loads[].id` | no se envía | cSlope 0.1.0 marca `id` como `unknown-key` (error); los ids repetidos se rechazan en el conversor |
+| `kh`, `kv` y las cargas | — | `kh` y `kv` multiplican solo el peso del suelo, nunca las cargas (ogs y cSlope) |
+
+El ángulo se comprobó contra el oráculo sobre el círculo fijo de V047a (docstring de `to_cslope.py`): con `ltr`, +10° da
+0,9753 y −10° da 0,9921; la imagen especular `rtl` con el signo invertido reproduce el valor a 1e-13 relativo.
+`oracle_seismic_v047a.py` reproduce los escenarios de sismo y cargas sobre ese círculo.
+
+### cSlope sin convergencia
+
+`cslope.analyse` puede devolver `minFOS` con `criticalSurface.converged: false`: es el par Fm/Ff más cercano, no una raíz
+(R3-01b: 0,0830 no convergido frente a la raíz real 0,2685). El harness lo marca «no convergido», nunca «OK»; la batería
+diferencial lo trata como oráculo sin solución (igual que `EngineError`).
+
 ## Diferencias conocidas (no son errores del harness)
 
 - **γw**: ogs usa 9.81 por defecto; cSlope 0.1.0 fija 9.807 (la opción `waterUnitWeight` se ignora). Efecto
@@ -112,19 +135,35 @@ Ejecución de los tests (desde la raíz del worktree):
 uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with pytest \
   python -m pytest verification/harness/
 uv run --python 3.13 --no-project --with shapely --with jsonschema --with pytest \
-  python -m pytest verification/tools/test_import_cslope.py
+  python -m pytest verification/tools
 ```
 
-- `test_to_cslope.py` (24 tests): capas apiladas → un contorno, una frontera y dos asignaciones correctas;
+Todo el conjunto (harness, importador, esquema v0.2 y batería diferencial; necesita `target/release/ogs`):
+
+```
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely \
+  --with jsonschema --with pytest python -m pytest -q verification
+```
+
+- `verification/tools/test_schema.py`: `schema/ogs-0.2.schema.json` (los 21 casos y los 14 modelos de la batería validan;
+  `version: "0.1"` con `loads` o `analysis.seismic` falla; cargas y coeficientes mal formados fallan; el esquema y el
+  binario `ogs` aceptan y rechazan los mismos documentos).
+
+- `test_to_cslope.py`: capas apiladas → un contorno, una frontera y dos asignaciones correctas;
   ida y vuelta de la piezométrica (y de su orden) y del círculo fijo; mapeo del fixture (orientación, rangos,
   agua, Spencer); rechazo de `ru` + piezométrica + γsat; línea seca para `ru` con piezométrica;
   `cslope.validate` sin errores sobre el fixture (Bishop y Spencer). R2-05: las cuatro reglas de E1 con una
   presa simétrica (rangos, empate de puntos medios, coronamiento, círculo fijo y empate), la dirección explícita,
   γw distinto de 9.807 con agua (rechazo), imperial con agua y la nota de unidades.
-- `test_run.py` (5 tests): R2-09 (1), `status` antes que `fos`, con un binario `ogs` falso.
-- `verification/tools/test_import_cslope.py` (21 tests): R2-07. Agua sobre escalones (y no solo en los vértices),
+- `test_run.py`: R2-09 (1), `status` antes que `fos`, con un binario `ogs` falso; cSlope con `converged: false` es «no convergido», nunca un valor de referencia.
+- `verification/tools/test_import_cslope.py`: R2-07. Agua sobre escalones (y no solo en los vértices),
   x de la piezométrica estrictamente creciente, `options.tolerance` en las notas, los límites de
   §4.5 en el schema, los rangos de búsqueda y que los casos generados los cumplen.
+
+## Estado actual (tras B2)
+
+Con `--cases verification/cases`: 21 casos, 51 checks (16 casos v0.1 y 5 casos v0.2 con sismo o cargas). ogs reproduce
+51/51 y cSlope reproduce 51/51 dentro de la tolerancia de cada check.
 
 ## Hallazgos de la primera ejecución (casos de w0b, 16 casos, 38 checks)
 

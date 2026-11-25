@@ -2,7 +2,7 @@ NOTICE
 
 This product includes verification problem data adapted from cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-The adapted data are the verification problems in verification/cases/ (outlines, material parameters, water levels, analysis limits and fixed circles). The published factors of safety they are checked against belong to the bibliographic references cited in each case (source.reference in verification/cases/<id>.json). Transformations and discarded checks are documented in verification/cases/INDEX.md.
+The adapted data are the verification problems in verification/cases/ (v0.1 and v0.2; outlines, material parameters, water levels, loads, seismic coefficients, analysis limits and fixed circles). The published factors of safety they are checked against belong to the bibliographic references cited in each case (source.reference in verification/cases/<id>.json). Transformations and discarded checks are documented in verification/cases/INDEX.md.
 
 The cSlope license text follows, copied from its LICENSE file.
 
@@ -29,3 +29,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+This product also embeds the font DejaVu Sans 2.37 in the PDF report of the web editor (apps/web/public/fonts/DejaVuSans.ttf and apps/web/public/fonts/DejaVuSans-Bold.ttf). DejaVu Sans is licensed under the Bitstream Vera / DejaVu license (the changes made by DejaVu are in the public domain). The full license text is in apps/web/public/fonts/LICENSE-DejaVu.txt.

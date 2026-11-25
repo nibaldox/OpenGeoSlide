@@ -10,10 +10,10 @@ The source clone is read only. The script writes:
 
 - verification/cases/<id>.json   one case per converted cSlope problem (format: briefs/00_CONTRATOS.md, section 2)
 - verification/cases/INDEX.md    table of converted cases, omitted cases and discarded checks
-- verification/pending/<id>.json cases with seismic coefficients or loads (schema v0.2, briefs/01_CONTRATOS_FASE1.md F1.1):
-                                 they need the v0.2 engine (A1), so they are kept out of verification/cases/
+                                 Cases with seismic coefficients or loads (schema v0.2, briefs/01_CONTRATOS_FASE1.md F1.1)
+                                 are written here too, with `version: "0.2"` (the v0.2 engine accepts them since A1)
 - verification/pending/INDEX.md  every cSlope problem with `seismicHorizontal`, `seismicVertical`, `udls` or
-                                 `lineLoads`, with the reason it is included or not
+                                 `lineLoads`, with the reason it is excluded (the included ones live in cases/)
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 The output is deterministic: running the script twice leaves every file unchanged.
@@ -765,28 +765,35 @@ def md_cell(text: str) -> str:
 
 
 def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str:
+    """converted: v0.1 and v0.2 cases (the v0.2 ones carry `loads` or `analysis.seismic`)."""
     """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
     sat_ids, sat_reason, sat_included = sat_report
     n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     lines = [
-        "# Casos de verificación v0.1 (desde cSlope)",
+        "# Casos de verificación v0.1 y v0.2 (desde cSlope)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
         "",
-        f"Casos convertidos e incluidos: **{len(converted)}**. Casos no incluidos: **{len(omitted)}** "
-        "(no convertibles o convertibles pero fuera del conjunto mínimo; motivo en cada fila).",
+        f"Casos convertidos e incluidos: **{len(converted)}** "
+        f"(v0.1: **{sum(c['model']['version'] == '0.1' for c in converted)}**, "
+        f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**). "
+        f"Casos no incluidos: **{len(omitted)}** "
+        "(no convertibles o convertibles pero fuera del conjunto mínimo; motivo en cada fila). "
+        "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
+        "[`../pending/INDEX.md`](../pending/INDEX.md).",
         "",
-        "| id | título | referencia | unidades | checks (bishop/spencer) | tipo |",
-        "|---|---|---|---|---|---|",
+        "| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |",
+        "|---|---|---|---|---|---|---|",
     ]
     for case in converted:
         nb = sum(c["method"] == "bishop" for c in case["checks"])
         ns = sum(c["method"] == "spencer" for c in case["checks"])
         lines.append(
             f"| {md_cell(case['id'])} | {md_cell(case['title'])} | {md_cell(case['source']['reference'])} "
-            f"| {case['model']['units']} | {nb} / {ns} | {case['checks'][0]['kind']} |"
+            f"| {case['model']['units']} | {md_cell(describe_features(case)) or '—'} | {nb} / {ns} "
+            f"| {case['checks'][0]['kind']} |"
         )
     lines += ["", "## Checks descartados en casos convertidos", ""]
     for cid in order:
@@ -830,50 +837,37 @@ def describe_features(case: dict) -> str:
     return "; ".join(parts)
 
 
-def build_pending_index(converted: list[dict], status: list[tuple[str, str, str]],
-                        discarded_by_case: dict[str, list[str]]) -> str:
+def build_pending_index(converted: list[dict], status: list[tuple[str, str, str]]) -> str:
     """status: (id, title, reason or '') per cSlope problem with loads or seismic coefficients."""
-    included = {c["id"] for c in converted}
+    included = [c["id"] for c in converted]
+    excluded = [(cid, reason) for cid, _, reason in status if cid not in set(included)]
     lines = [
-        "# Casos pendientes (esquema v0.2: sismo y cargas)",
+        "# Problemas con sismo o cargas excluidos (esquema v0.2)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
         "",
-        "Estos casos usan `analysis.seismic` o `loads` (contrato F1.1) y el motor de la rama `main` no los acepta "
-        "todavía: están aquí, y no en `verification/cases/`, para no romper la aceptación antes de integrar A1 "
-        "(sismo y cargas en el motor). Al integrar A1 se mueven a `verification/cases/` y se regeneran los índices.",
+        "Los problemas de cSlope con `seismicHorizontal`, `seismicVertical`, `udls` o `lineLoads` que se pueden "
+        "convertir al esquema v0.2 (contrato F1.1) están en `verification/cases/` desde que el motor acepta la "
+        f"versión 0.2: **{len(included)}** casos ({', '.join(included)}). Aquí quedan los **{len(excluded)}** "
+        f"excluidos, de un total de **{len(status)}** problemas con sismo o cargas, con el motivo de cada uno.",
         "",
-        f"Problemas de cSlope con sismo o cargas: **{len(status)}**. Casos incluidos: **{len(converted)}**.",
-        "",
-        "El oráculo (cSlope 0.1.0, a través de `to_cslope.py`) reproduce los valores publicados de estos casos en "
-        "`ORACLE_REPORT.md` (`verification/harness/run.py --cases verification/pending`). La columna de ogs queda "
-        "«sin dato» hasta que el motor acepte la versión 0.2.",
-        "",
-        "| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |",
-        "|---|---|---|---|---|---|---|",
+        "| id | estado | motivo |",
+        "|---|---|---|",
     ]
-    for case in converted:
-        nb = sum(c["method"] == "bishop" for c in case["checks"])
-        ns = sum(c["method"] == "spencer" for c in case["checks"])
-        lines.append(
-            f"| {md_cell(case['id'])} | {md_cell(case['title'])} | {md_cell(case['source']['reference'])} "
-            f"| {case['model']['units']} | {md_cell(describe_features(case))} | {nb} / {ns} "
-            f"| {case['checks'][0]['kind']} |"
-        )
-    lines += ["", "## Checks descartados en los casos incluidos", ""]
-    for case in converted:
-        for reason in discarded_by_case.get(case["id"], []):
-            lines.append(f"- {case['id']}: {md_cell(reason)}")
-    lines += ["", "## Motivo de inclusión o exclusión de cada problema", "", "| id | estado | motivo |", "|---|---|---|"]
-    for cid, title, reason in status:
-        if cid in included:
-            case = next(c for c in converted if c["id"] == cid)
-            lines.append(f"| {cid} | incluido | {md_cell(title)}: {md_cell(describe_features(case))}; "
-                         "sin reforzamientos, superficies personalizadas, B̄, presión de exceso ni factores parciales |")
-        else:
-            lines.append(f"| {cid} | excluido | {md_cell(reason)} |")
+    for cid, reason in excluded:
+        lines.append(f"| {cid} | excluido | {md_cell(reason)} |")
     return "\n".join(lines) + "\n"
+
+
+# Third-party attribution that is not derived from cSlope: the PDF report font of the web editor.
+FONT_NOTICE = (
+    "\n---\n\n"
+    "This product also embeds the font DejaVu Sans 2.37 in the PDF report of the web editor "
+    "(apps/web/public/fonts/DejaVuSans.ttf and apps/web/public/fonts/DejaVuSans-Bold.ttf). DejaVu Sans is "
+    "licensed under the Bitstream Vera / DejaVu license (the changes made by DejaVu are in the public domain). "
+    "The full license text is in apps/web/public/fonts/LICENSE-DejaVu.txt.\n"
+)
 
 
 def build_notice(license_text: str) -> str:
@@ -881,13 +875,14 @@ def build_notice(license_text: str) -> str:
         "NOTICE\n\n"
         "This product includes verification problem data adapted from cSlope (MIT License, "
         "Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.\n\n"
-        "The adapted data are the verification problems in verification/cases/ (outlines, material parameters, "
-        "water levels, analysis limits and fixed circles). The published factors of safety they are checked against "
+        "The adapted data are the verification problems in verification/cases/ (v0.1 and v0.2; outlines, material parameters, "
+        "water levels, loads, seismic coefficients, analysis limits and fixed circles). The published factors of safety they are checked against "
         "belong to the bibliographic references cited in each case (source.reference in verification/cases/<id>.json). "
         "Transformations and discarded checks are documented in verification/cases/INDEX.md.\n\n"
         "The cSlope license text follows, copied from its LICENSE file.\n\n"
         "---\n\n"
         f"{license_text.rstrip()}\n"
+        f"{FONT_NOTICE}"
     )
 
 
@@ -973,7 +968,8 @@ def main() -> int:
                   for cid in sat_ids}
     sat_included = [cid for cid in sat_ids if cid in selected]
 
-    # ---- pending cases: seismic coefficients and loads (schema v0.2), kept out of verification/cases
+    # ---- v0.2 cases: seismic coefficients and loads. They go to verification/cases too; `pending/INDEX.md`
+    # keeps only the problems that could not be converted.
     pending: list[dict] = []
     pending_status: list[tuple[str, str, str]] = []
     pending_discarded: dict[str, list[str]] = {}
@@ -1024,6 +1020,9 @@ def main() -> int:
 
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
+    v01_count = len(converted)
+    converted = converted + pending
+    discarded_by_case = {**discarded_by_case, **pending_discarded}
     expected = {f"{c['id']}.json" for c in converted}
     changed = 0
     for case in converted:
@@ -1037,23 +1036,17 @@ def main() -> int:
         converted, omitted, discarded_by_case, order, (sat_ids, sat_reason, sat_included)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
     pending_dir = root / "verification" / "pending"
-    expected_pending = {f"{c['id']}.json" for c in pending}
-    for case in pending:
-        text = json.dumps(case, indent=2, ensure_ascii=False) + "\n"
-        changed += write_if_changed(pending_dir / f"{case['id']}.json", text)
     if pending_dir.is_dir():
         for stale in sorted(pending_dir.glob("V*.json")):
-            if stale.name not in expected_pending:
-                stale.unlink()
-                changed += 1
-    changed += write_if_changed(pending_dir / "INDEX.md",
-                                build_pending_index(pending, pending_status, pending_discarded))
+            stale.unlink()
+            changed += 1
+    changed += write_if_changed(pending_dir / "INDEX.md", build_pending_index(pending, pending_status))
 
     # ---- summary
     print(f"Fuente: {src}")
     print(f"Problemas en verification.json: {len(order)}; en problems.ts: {len(problems)}")
-    print(f"Casos convertidos: {len(converted)} (fixed {total_fixed}, search {len(converted) - total_fixed}); "
-          f"checks Spencer {total_spencer}, Bishop {sum(c['method'] == 'bishop' for k in converted for c in k['checks'])}")
+    print(f"Casos convertidos: {len(converted)} ({v01_count} v0.1 + {len(pending)} v0.2) (fixed {total_fixed}, search {v01_count - total_fixed}); "
+          f"checks Spencer {total_spencer}, Bishop {sum(c['method'] == 'bishop' for k in converted[:v01_count] for c in k['checks'])}")
     print("Convertidos:")
     for case in converted:
         cks = ", ".join(f"{c['method']} {c['published']} ±{c['tolerance']:.4f} [{c['published_by']}]" for c in case["checks"])
@@ -1062,7 +1055,7 @@ def main() -> int:
     print("Omitidos:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")
-    print(f"Pendientes (esquema v0.2, verification/pending): {len(pending)} de {len(pending_status)} problemas con sismo o cargas")
+    print(f"Casos v0.2 (verification/cases): {len(pending)} de {len(pending_status)} problemas con sismo o cargas")
     for cid, _, reason in pending_status:
         print(f"  {cid}: {'incluido' if not reason else 'excluido: ' + reason}")
     print(f"Archivos escritos/modificados en esta ejecución: {changed}")

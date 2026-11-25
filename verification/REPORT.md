@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-25T03:18:01-03:00 · harness v1 · casos: `verification/cases` (16 casos, 38 checks)
+Generado: 2026-11-25T03:29:33-03:00 · harness v1 · casos: `verification/cases` (21 casos, 51 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-25T03:18:01-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 38 | 0 | 0 | 0 |
-| cSlope | 38 | 0 | 0 | 0 |
+| ogs | 51 | 0 | 0 | 0 |
+| cSlope | 51 | 0 | 0 | 0 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **38/38** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **51/51** checks.
 
 ## Tabla
 
@@ -54,10 +54,23 @@ cSlope reproduce el valor publicado dentro de tolerancia en **38/38** checks.
 | V049 | bishop | search | 1.4030 | 1.4031 | +0.00 | 1.4029 | -0.01 | 2.04 | OK |
 | V063 | spencer | search | 2.4550 | 2.4513 | -0.15 | 2.4511 | -0.16 | 2.02 | OK |
 | V063 | bishop | search | 2.4300 | 2.4530 | +0.95 | 2.4528 | +0.94 | 2.21 | OK |
+| V081a | bishop | fixed | 0.7640 | 0.7641 | +0.01 | 0.7641 | +0.01 | 1.07 | OK |
+| V081b | bishop | fixed | 1.5040 | 1.5015 | -0.17 | 1.5012 | -0.19 | 1.03 | OK |
 | V093 | bishop | search | 1.3440 | 1.3431 | -0.07 | 1.3427 | -0.10 | 2.04 | OK |
+| V097a | bishop | fixed | 1.1730 | 1.1725 | -0.05 | 1.1721 | -0.08 | 1.04 | OK |
 | V101 | bishop | search | 1.3340 | 1.3339 | -0.01 | 1.3337 | -0.02 | 2.04 | OK |
 | V101 | bishop | search | 1.3400 | 1.3339 | -0.45 | 1.3337 | -0.47 | 2.37 | OK |
 | V101 | bishop | search | 1.3430 | 1.3339 | -0.68 | 1.3337 | -0.69 | 2.04 | OK |
+| V102a | spencer | search | 1.0000 | 1.0010 | +0.10 | 1.0011 | +0.11 | 2.50 | OK |
+| V102a | spencer | search | 1.0010 | 1.0010 | -0.00 | 1.0011 | +0.01 | 2.05 | OK |
+| V102a | spencer | search | 1.0010 | 1.0010 | -0.00 | 1.0011 | +0.01 | 2.05 | OK |
+| V102a | bishop | search | 0.9910 | 0.9913 | +0.03 | 0.9912 | +0.02 | 2.05 | OK |
+| V102a | bishop | search | 0.9930 | 0.9913 | -0.17 | 0.9912 | -0.18 | 2.05 | OK |
+| V102b | spencer | search | 1.0000 | 1.0007 | +0.07 | 1.0006 | +0.06 | 2.50 | OK |
+| V102b | spencer | search | 1.0010 | 1.0007 | -0.03 | 1.0006 | -0.04 | 2.05 | OK |
+| V102b | spencer | search | 1.0010 | 1.0007 | -0.03 | 1.0006 | -0.04 | 2.05 | OK |
+| V102b | bishop | search | 0.9870 | 0.9865 | -0.06 | 0.9864 | -0.07 | 2.05 | OK |
+| V102b | bishop | search | 0.9880 | 0.9865 | -0.16 | 0.9864 | -0.17 | 2.05 | OK |
 
 Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no reproduce el publicado, se añade «revisar conversión» (el fallo puede estar en el conversor, en el publicado o en el motor).
 
@@ -75,6 +88,10 @@ Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no r
 - V063 (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V093 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V101 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V102a (spencer/search, bishop/search): sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
+- V102a (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V102b (spencer/search, bishop/search): sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
+- V102b (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 
 ## Reproducir
 

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-25T03:18:01-03:00",
+  "generated_at": "2026-11-25T03:29:33-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -103,9 +103,27 @@
       "n_checks": 2
     },
     {
+      "id": "V081a",
+      "title": "Sharma (1996) reinforcement example, unreinforced",
+      "path": "verification/cases/V081a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V081b",
+      "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+      "path": "verification/cases/V081b.json",
+      "n_checks": 1
+    },
+    {
       "id": "V093",
       "title": "Yamagami & Ueta (1988)",
       "path": "verification/cases/V093.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V097a",
+      "title": "Eurocode 7 cutting with surcharge",
+      "path": "verification/cases/V097a.json",
       "n_checks": 1
     },
     {
@@ -113,25 +131,37 @@
       "title": "Li & Lumb (1987) homogeneous slope, rᵤ = 0.2",
       "path": "verification/cases/V101.json",
       "n_checks": 3
+    },
+    {
+      "id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "path": "verification/cases/V102a.json",
+      "n_checks": 5
+    },
+    {
+      "id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "path": "verification/cases/V102b.json",
+      "n_checks": 5
     }
   ],
   "summary": {
-    "checks": 38,
+    "checks": 51,
     "ogs": {
-      "OK": 38,
+      "OK": 51,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 38,
+      "OK": 51,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope_reproduces": {
-      "n": 38,
-      "N": 38
+      "n": 51,
+      "N": 51
     }
   },
   "checks": [
@@ -1395,6 +1425,76 @@
       "estado": "OK"
     },
     {
+      "case_id": "V081a",
+      "title": "Sharma (1996) reinforcement example, unreinforced",
+      "source_path": "verification/cases/V081a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.764,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010654450261780106,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.7640742830177856,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": 0.00972290808711507,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7640946291174557,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.012386010138183842,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in sand (c′ = 0, φ′ = 36.0°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 0.727, below 0.764. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V081b",
+      "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+      "source_path": "verification/cases/V081b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.504,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010332446808510639,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5014675558129666,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.16838059754211143,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5011903396958457,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18681252022302555,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in reinforced_zone (c′ = 0, φ′ = 54.9°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.424, below 1.501. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V093",
       "title": "Yamagami & Ueta (1988)",
       "source_path": "verification/cases/V093.json",
@@ -1429,6 +1529,40 @@
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V097a",
+      "title": "Eurocode 7 cutting with surcharge",
+      "source_path": "verification/cases/V097a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.173,
+      "published_by": "Commercial program B",
+      "tolerance": 0.01042625745950554,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1724678979256493,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.04536249568207387,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1721134187357998,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07558237546464366,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
       },
       "estado": "OK"
     },
@@ -1547,6 +1681,384 @@
           "steep-entry-tension: The surface enters the slope at 72° and 6 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.0,
+      "published_by": "Loukidis, Bandini & Salgado",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724436,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.09687772724435995,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.10597041529147866,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724436,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.003119153602027014,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.005964450840649024,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program B",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0009687772724436,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.003119153602027014,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0010597041529148,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.005964450840649024,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.991,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020504540867810294,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9912817853686734,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.028434446889344496,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9912271341398147,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.02291969120228835,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "source_path": "verification/cases/V102a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.993,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020503524672708964,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9912817853686734,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.17303269197649523,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9912271341398147,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1785363404013418,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.0,
+      "published_by": "Loukidis, Bandini & Salgado",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940155,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.06770058940155366,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.06009637938388934,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940155,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.03226714345498036,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.03986375685924041,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program B",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0006770058940155,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.03226714345498036,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.000600963793839,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.03986375685924041,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.987,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020506585612968593,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.986456656872565,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.05504996225278428,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9863543568220496,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06541470901219354,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "source_path": "verification/cases/V102b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.988,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02050607287449393,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.986456656872565,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.1562088185662937,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9863543568220496,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.16656307469133108,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
