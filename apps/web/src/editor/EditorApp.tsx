@@ -24,6 +24,7 @@ import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
 import { visibleExportHint } from './app/exportHint';
+import { useNarrow } from './app/useNarrow';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { EmptyCanvasState } from './app/EmptyCanvasState';
 import { NewSlopeDialog } from './app/NewSlopeDialog';
@@ -504,6 +505,30 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     emptyState: <EmptyCanvasState onDraw={() => void switchTool('draw_region')} onExample={openExamples} />,
   };
 
+  const narrow = useNarrow();
+  const undoRedoButtons = (
+    <>
+      <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
+        Deshacer
+      </button>
+      <button type="button" onClick={() => store.redo()} disabled={!canRedo} title="Ctrl+Mayús+Z o Ctrl+Y">
+        Rehacer
+      </button>
+    </>
+  );
+  const toolButtons = TOOLS.map((t) => (
+    <button
+      key={t.tool}
+      type="button"
+      aria-pressed={tool === t.tool}
+      className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
+      onClick={() => void switchTool(t.tool)}
+      title={`Tecla ${t.key}`}
+    >
+      {t.label}
+    </button>
+  ));
+
   return (
     <div className="editor-app" lang="es" data-testid="editor-app">
       <LiveRegions polite={live.polite} alert={live.alert} />
@@ -563,28 +588,25 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             </button>
           </DropdownMenu>
         </div>
-        <div className="ea-group" role="group" aria-label="Edición">
-          <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
-            Deshacer
-          </button>
-          <button type="button" onClick={() => store.redo()} disabled={!canRedo} title="Ctrl+Mayús+Z o Ctrl+Y">
-            Rehacer
-          </button>
-        </div>
-        <div className="ea-group" role="group" aria-label="Herramienta del lienzo">
-          {TOOLS.map((t) => (
-            <button
-              key={t.tool}
-              type="button"
-              aria-pressed={tool === t.tool}
-              className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
-              onClick={() => void switchTool(t.tool)}
-              title={`Tecla ${t.key}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {narrow ? (
+          // Con 480 px o menos, Deshacer, Rehacer y las herramientas van en un menú «Editar» (B-09). Los botones conservan sus nombres.
+          <div className="ea-group" role="group" aria-label="Edición y herramientas">
+            <DropdownMenu label="Editar">
+              {undoRedoButtons}
+              <hr />
+              {toolButtons}
+            </DropdownMenu>
+          </div>
+        ) : (
+          <>
+            <div className="ea-group" role="group" aria-label="Edición">
+              {undoRedoButtons}
+            </div>
+            <div className="ea-group" role="group" aria-label="Herramienta del lienzo">
+              {toolButtons}
+            </div>
+          </>
+        )}
         <div className="ea-group ea-group-main" role="group" aria-label="Cálculo">
           <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={checkState.disabled} title="Ctrl+Intro">
             {checkState.label}

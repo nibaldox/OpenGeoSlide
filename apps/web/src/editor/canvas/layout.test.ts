@@ -14,8 +14,7 @@ import {
   seismicBadge,
   seismicLabel,
   slideDirection,
-  vertexLabel,
-} from './layout';
+  vertexLabel, cursorReadout } from './layout';
 import { docBounds, fitToDoc, panBy, resizeViewport, wheelFactor, zoomAt } from './viewportOps';
 import { screenToWorld, worldToScreen } from '../../geometry/viewport';
 
@@ -273,5 +272,15 @@ describe('U2-C: unidades en etiquetas, ejes y anuncios', () => {
     const m = await import('./layout');
     expect(m.vertexLabel(0, 0, [1, 2], 'imperial')).toContain('ft');
     expect(m.rangeLabel('entry', [0, 10], 'imperial')).toContain('ft');
+  });
+});
+
+describe('R7-02: lectura de x e y del cursor', () => {
+  it('una sola línea con la unidad del modelo', () => {
+    expect(cursorReadout([31.4, 26.4])).toBe('x 31,4 · y 26,4 m');
+    expect(cursorReadout([31.4, 26.4], 'SI')).toBe('x 31,4 · y 26,4 m');
+    expect(cursorReadout([103.019, -8.2], 'imperial')).toBe('x 103,019 · y -8,2 ft');
+    expect(cursorReadout([0, -0.0001])).toBe('x 0,0 · y 0,0 m');
+    expect(cursorReadout([0, 0])).not.toContain('\n');
   });
 });

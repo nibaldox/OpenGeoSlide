@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import type { Circle, Point, Slice } from '../../engine/types';
-import { worldToScreen, type Viewport } from '../../geometry/viewport';
+import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, ModelDoc } from '../types';
 import {
@@ -37,6 +37,7 @@ import {
   axisTitles,
   circleCenterLabel,
   circleRadiusLabel,
+  cursorReadout,
   gridLines,
   loadShapes,
   pointsAttr,
@@ -206,6 +207,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const trailPointer = useRef<{ x: number; y: number } | null>(null);
   const edgeDwell = useRef(0);
   const prevTool = useRef(store.getState().ui.tool);
+  // Lectura de (x, y) del cursor: se escribe directamente en el DOM (sin estado) para no repintar el lienzo en cada movimiento.
+  const readoutRef = useRef<HTMLParagraphElement>(null);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
 
@@ -364,6 +367,16 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.docEpoch]);
 
+  const showReadout = (p: Point | null): void => {
+    if (readoutRef.current) readoutRef.current.textContent = p ? cursorReadout(p, unitsEff) : '';
+  };
+  // Con una herramienta de trazo manda el cursor del dibujo (con ajuste, o el del teclado): también se lee desde el teclado.
+  useEffect(() => {
+    if (isTraceTool(ui.tool) && draft.cursor) showReadout(draft.cursor);
+    else if (!isTraceTool(ui.tool)) showReadout(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.cursor, ui.tool, unitsEff]);
+
   // El resto de la aplicación (confirmar al cambiar de herramienta, cambios sin guardar) necesita saber si hay un trazo.
   useEffect(() => {
     store.dispatch({ type: 'ui/trace', points: draft.points.length });
@@ -496,6 +509,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (pinching.current) return;
     const input = localInput(e);
     const ctx = context();
+    if (e.pointerType !== 'touch' && ctx.ui.viewport && !isTraceTool(ctx.ui.tool)) {
+      showReadout(screenToWorld(ctx.ui.viewport, input.x, input.y) as Point);
+    }
     if (isTraceTool(ctx.ui.tool) && gestureRef.current.mode === 'idle') {
       if (e.pointerType !== 'touch') trailPointer.current = { x: input.x, y: input.y };
       const next = drawHover(draftRef.current, ctx, input);
@@ -550,6 +566,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     apply(pointerCancel(gestureRef.current));
   };
   const onPointerLeave = (): void => {
+    if (!isTraceTool(store.getState().ui.tool)) showReadout(null);
     trailPointer.current = null;
     edgeDwell.current = 0;
   };
@@ -952,6 +969,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </button>
       </div>
 
+      <p ref={readoutRef} className="ec-cursor" aria-hidden="true" data-testid="cursor-readout" />
+
       {ui.tool === 'draw_region' && (
         <p className="ec-draw-hint" data-testid="draw-hint">
           <strong>Dibujar región</strong>: {draft.points.length === 0 ? 'ningún punto todavía' : `${draft.points.length} ${draft.points.length === 1 ? 'punto' : 'puntos'}`}.{' '}
@@ -976,9 +995,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </div>
       ) : null}
 
-      <p id={instructionsId} className="ec-visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
+      <p id={instructionsId} className="visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
       {!onAnnounce && (
-        <div className="ec-visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
+        <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
           {liveMsg}
         </div>
       )}

@@ -1,7 +1,7 @@
 // Diálogo «Talud simple…»: parámetros del talud, vista previa del perfil y creación del modelo (`newModel.ts`).
 // Usa el `<dialog>` modal nativo de `ImportDialogs` (trampa de foco, Esc y foco de vuelta al botón que lo abrió).
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { LabeledField } from '../panels/Fields';
 import { formatNumber, unitLabels } from '../panels/forms';
 import { Modal } from './ImportDialogs';
@@ -83,6 +83,8 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
   /** Resuelve a `false` si no se creó (p. ej. el usuario no confirmó descartar los cambios): el diálogo sigue abierto. */
   onCreate: (input: SlopeInput) => boolean | Promise<boolean>;
 }) {
+  // Nombres de los grupos de opciones únicos por instancia (dos diálogos montados a la vez no comparten el grupo; B-10).
+  const uid = useId();
   const [form, setForm] = useState<SlopeForm>(() => slopeFormDefaults(initialUnits));
   const outcome = useMemo(() => slopeFromForm(form), [form]);
   const errors = outcome.ok ? {} : outcome.errors;
@@ -124,11 +126,11 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
               <legend>Inclinación del talud</legend>
               <div className="ep-radios">
                 <label>
-                  <input type="radio" name="ns-mode" checked={form.mode === 'angle'} onChange={() => set('mode', 'angle')} />
+                  <input type="radio" name={`${uid}-mode`} checked={form.mode === 'angle'} onChange={() => set('mode', 'angle')} />
                   Ángulo β
                 </label>
                 <label>
-                  <input type="radio" name="ns-mode" checked={form.mode === 'ratio'} onChange={() => set('mode', 'ratio')} />
+                  <input type="radio" name={`${uid}-mode`} checked={form.mode === 'ratio'} onChange={() => set('mode', 'ratio')} />
                   Pendiente H:V
                 </label>
               </div>
@@ -163,11 +165,11 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
                 <>
                   <div className="ep-radios">
                     <label>
-                      <input type="radio" name="ns-contact" checked={form.lowerMode === 'depth'} onChange={() => set('lowerMode', 'depth')} />
+                      <input type="radio" name={`${uid}-contact`} checked={form.lowerMode === 'depth'} onChange={() => set('lowerMode', 'depth')} />
                       Dar la profundidad del contacto
                     </label>
                     <label>
-                      <input type="radio" name="ns-contact" checked={form.lowerMode === 'elevation'} onChange={() => set('lowerMode', 'elevation')} />
+                      <input type="radio" name={`${uid}-contact`} checked={form.lowerMode === 'elevation'} onChange={() => set('lowerMode', 'elevation')} />
                       Dar la cota del contacto
                     </label>
                   </div>
