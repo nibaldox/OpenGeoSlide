@@ -36,6 +36,15 @@ describe('ResultsTable', () => {
     expect(html).toContain('No válido');
   });
 
+  it('muestra "—" en la columna FS cuando el método no convergió, aunque el motor dé un número (R4-06)', () => {
+    const html = render({
+      engine: 'ogs-core 0.1.0',
+      results: [methodReport({ fos: 250.187978, status: 'not_converged', warnings: ['max_iterations'] })],
+    });
+    expect(html).toContain('<td class="num">—</td>');
+    expect(html).not.toContain('250');
+  });
+
   it('muestra negative_effective_normal como nota y water_above_ground como aviso', () => {
     const html = render({
       engine: 'ogs-core 0.1.0',

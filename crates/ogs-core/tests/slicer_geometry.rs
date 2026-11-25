@@ -417,8 +417,8 @@ fn wall_exit_of_a_discarded_lens_is_valid() {
         "the arc leaves through the wall under the ground: y = {y_wall}"
     );
     let sliced = slice_surface(&pm, &c, 2000).expect("E10a′: the discarded lens may exit the wall");
-    // E11e: the foot lens is driving (its base rises toward the crest), so the note is the warning.
-    assert_eq!(sliced.notes, vec!["truncated_driving_mass".to_string()]);
+    // E11e′: the foot lens touches the wall x = 0, so it cannot be classified: the note stays `truncated_mass`.
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
     let s = &sliced.slices;
     assert!(
         s.iter().all(|x| x.weight > 0.0),
@@ -463,8 +463,8 @@ fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
         r: 42.44024115833943,
     };
     let sliced = slice_surface(&pm, &c, 2000).expect("valid under E10a″");
-    // E11e: the discarded foot lens is driving (W sin α > 5 % of the face's), so the warning replaces the note.
-    assert_eq!(sliced.notes, vec!["truncated_driving_mass".to_string()]);
+    // E11e′: the discarded foot lens leaves through the wall x = 0, so it is not classified: the note is `truncated_mass`.
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
     let x_face = sliced
         .slices
         .iter()
@@ -493,8 +493,13 @@ fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
     for r in [bishop, spencer] {
         assert_eq!(r.status, ogs_core::methods::SolveStatus::Converged, "{r:?}");
         assert!(
-            r.warnings.iter().any(|w| w == "truncated_driving_mass"),
+            r.warnings.iter().any(|w| w == "truncated_mass"),
             "{:?}",
+            r.warnings
+        );
+        assert!(
+            !r.warnings.iter().any(|w| w == "truncated_driving_mass"),
+            "E11e′: the lens at the wall is not driving: {:?}",
             r.warnings
         );
     }

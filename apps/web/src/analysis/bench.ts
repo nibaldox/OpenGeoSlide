@@ -2,6 +2,7 @@
 // los benchmarks de Node: 1 calentamiento y 5 repeticiones por método, con el caso V047a en modo búsqueda.
 
 import type { AnalysisReport, MethodKind } from '../engine/types';
+import { convergedFos } from './runner';
 
 export const BENCH_CASE_ID = 'V047a';
 export const BENCH_TARGET = 'chrome-wasm';
@@ -50,6 +51,6 @@ export function makeBenchRecord(input: {
     median_ms: median(input.ms),
     evaluated: result?.search?.evaluated ?? null,
     valid: result?.search?.valid ?? null,
-    fos: result?.fos ?? null,
+    fos: convergedFos(result),
   };
 }

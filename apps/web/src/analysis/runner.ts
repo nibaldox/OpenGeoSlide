@@ -1,7 +1,7 @@
 // Lógica de la aplicación sin React: preparación de modelos, evaluación de verificaciones,
 // resumen de tiempos y lectura de archivos subidos. Se prueba en Vitest.
 
-import type { Model, MethodKind, VerificationCase, VerificationCheck } from '../engine/types';
+import type { MethodReport, Model, MethodKind, VerificationCase, VerificationCheck } from '../engine/types';
 
 export function cloneModel(model: Model): Model {
   return structuredClone(model);
@@ -35,6 +35,14 @@ export interface CheckEvaluation {
   /** |FS − publicado| / publicado; null si no hay FS. */
   errorRel: number | null;
   ok: boolean;
+}
+
+/**
+ * FS que la web usa de un método (R4-06): solo si el método convergió. Con otro estado el número no es un resultado:
+ * Bishop, por ejemplo, devuelve un FS finito con `not_converged` cuando agota las iteraciones.
+ */
+export function convergedFos(result: MethodReport | undefined): number | null {
+  return result?.status === 'converged' ? result.fos : null;
 }
 
 /** Criterio de §2: pasa si |FS − published| / published ≤ tolerance. */

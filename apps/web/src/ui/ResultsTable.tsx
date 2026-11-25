@@ -1,5 +1,6 @@
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
 import { describeWarnings } from '../engine/warnings';
+import { convergedFos } from '../analysis/runner';
 
 export const METHOD_LABELS: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
@@ -65,7 +66,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
           {report.results.map((r) => (
             <tr key={r.method} className={r.status !== 'converged' ? 'row-warn' : undefined}>
               <td>{METHOD_LABELS[r.method]}</td>
-              <td className="num">{formatNumber(r.fos)}</td>
+              <td className="num">{formatNumber(convergedFos(r))}</td>
               <td>{STATUS_LABELS[r.status]}</td>
               <td className="num">{r.iterations}</td>
               <td className="num">{formatNumber(r.lambda)}</td>

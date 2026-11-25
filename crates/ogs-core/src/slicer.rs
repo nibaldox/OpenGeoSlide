@@ -59,8 +59,8 @@ pub const TRUNCATED_MASS: &str = "truncated_mass";
 /// Warning (contract E11e, code `truncated_driving_mass`): a discarded block is driving, so it may be a more critical
 /// mechanism than the analysed one. Replaces `truncated_mass` when it applies.
 pub const TRUNCATED_DRIVING_MASS: &str = "truncated_driving_mass";
-/// A discarded block is driving when its `Σ W·sin α` exceeds this fraction of the analysed block's (contract E11e).
-const DRIVING_FRACTION: f64 = 0.05;
+/// A discarded block is driving when its `Σ W·sin α` exceeds this fraction of its own `Σ W` (contract E11e′).
+const DRIVING_FRACTION: f64 = 1e-3;
 /// The analysed block needs at least this many soil slices (contract E11d).
 const MIN_SOIL_SLICES: usize = 3;
 
@@ -241,8 +241,8 @@ pub fn slice_circle(
 /// must keep at least [`MIN_SOIL_SLICES`] soil slices, otherwise `TooFewSlices`. The same minimum applies to a surface
 /// that is not truncated.
 ///
-/// Notes: `truncated_mass` when only the main block is analysed. `truncated_driving_mass` (E11e) replaces it when a
-/// discarded block is driving: its `Σ W·sin α` exceeds `DRIVING_FRACTION` of the analysed block's.
+/// Notes: `truncated_mass` when only the main block is analysed. `truncated_driving_mass` (E11e′) replaces it when a
+/// discarded block is driving (see [`discards_driving`]).
 pub fn slice_surface(
     pm: &PreparedModel,
     circle: &Circle,
@@ -274,7 +274,7 @@ pub fn slice_surface(
         .fold(f64::NEG_INFINITY, f64::max);
     // The arc's ends are checked before the materials, as before E10a: an arc under the base is `OutsideModel`.
     check_block_ends(pm, circle, &tramo, l, r)?;
-    let driving = truncated && discards_driving(&slices, &air);
+    let driving = truncated && discards_driving(pm, &slices, &air);
 
     // E11d: the kept block is sliced again over its own span, so `n` divisions apply to it and not to the whole arc.
     let (block, block_air, block_unsupported) = if truncated {
@@ -319,20 +319,29 @@ fn driving_moment(s: &Slice) -> f64 {
     s.weight * s.alpha.sin()
 }
 
-/// E11e: true if a discarded soil block is driving, i.e. its `Σ W·sin α` exceeds `DRIVING_FRACTION` times the
-/// analysed block's `Σ W·sin α`. `slices` and `air` are toe first, before truncation. The analysed block is the last
-/// soil block (the entry block, E10a″); with a single block nothing is discarded.
-fn discards_driving(slices: &[Slice], air: &[bool]) -> bool {
+/// E11e′: true if a discarded soil block is driving: its `Σ W·sin α` exceeds `DRIVING_FRACTION` times its own `Σ W`,
+/// and it does not touch a side wall of the model. A block that touches a wall is clipped by the model's edge and
+/// cannot be classified, so it only adds the note `truncated_mass` (see [`slice_surface`]). `slices` and `air` are toe
+/// first, before truncation. The analysed block is the last soil block (the entry block, E10a″); with a single block
+/// nothing is discarded.
+fn discards_driving(pm: &PreparedModel, slices: &[Slice], air: &[bool]) -> bool {
     let blocks = soil_blocks(air);
-    let Some((&(m_lo, m_hi), discarded)) = blocks.split_last() else {
+    let Some((_, discarded)) = blocks.split_last() else {
         return false;
     };
-    let moment =
-        |(lo, hi): (usize, usize)| -> f64 { slices[lo..hi].iter().map(driving_moment).sum() };
-    let main = moment((m_lo, m_hi));
-    discarded
-        .iter()
-        .any(|&block| moment(block) > DRIVING_FRACTION * main)
+    let tol = pm.tol();
+    discarded.iter().any(|&(lo, hi)| {
+        let block = &slices[lo..hi];
+        let touches_wall = block
+            .iter()
+            .any(|s| s.x_left <= pm.x_min + tol || s.x_right >= pm.x_max - tol);
+        if touches_wall {
+            return false;
+        }
+        let weight: f64 = block.iter().map(|s| s.weight).sum();
+        let moment: f64 = block.iter().map(driving_moment).sum();
+        moment > DRIVING_FRACTION * weight
+    })
 }
 
 /// Builds the slices of `circle` in model order (left to right), over the full sliding range, and its sliding range.

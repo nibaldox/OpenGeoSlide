@@ -107,8 +107,8 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     text: 'Spencer halló raíces de λ, pero ninguna cumple la admisibilidad de Φ/F y m_α: la superficie no es admisible.',
   },
   negative_lambda: {
-    severity: 'aviso',
-    text: 'Spencer solo tiene raíces con λ negativo: el FS se reporta con λ < 0 y conviene revisarlo.',
+    severity: 'nota',
+    text: 'Spencer seleccionó la raíz admisible de menor |λ|, que es negativa; revise el resultado',
   },
   no_slices: {
     severity: 'aviso',

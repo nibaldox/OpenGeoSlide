@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import './App.css';
-import { checkModel, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
+import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
 import { getEngineClient, type AnalyzeResult } from './engine/client';
 import { userMessage } from './engine/errors';
@@ -91,14 +91,14 @@ export default function App() {
   async function runCheck(model: Model, check: VerificationCheck): Promise<CheckRow> {
     try {
       const { report } = await client.analyze(JSON.stringify(checkModel(model, check)));
-      const fos = report.results[0]?.fos ?? null;
+      const fos = convergedFos(report.results[0]);
       const outcome = evaluateCheck(check, fos);
       return {
         check,
         fos: outcome.fos,
         errorRel: outcome.errorRel,
         ok: outcome.ok,
-        message: fos === null ? 'El motor no devolvió FS para este método.' : undefined,
+        message: fos === null ? 'El método no convergió: no se reporta FS para esta comprobación.' : undefined,
       };
     } catch (err) {
       return { check, fos: null, errorRel: null, ok: false, message: userMessage(err) };
