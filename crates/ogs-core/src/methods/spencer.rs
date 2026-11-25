@@ -24,7 +24,8 @@
 //! Solver (E7c, review R2-03): the F loop with λ fixed uses the closed form with the safeguard of bisection in
 //! `[F_adm(λ)·(1+1e-6), 1e3]`, where `F_adm(λ)` is the larger of Bishop's bound (E8b) and the pole bound of
 //! `Φ_i > 1e-9·F`. A λ step that leaves the admissible region is halved, up to 12 times, before the solver
-//! aborts with `Invalid("pole")`.
+//! aborts with `Invalid("pole")`. Budget (E9c): the fixed-point steps use at most `max_iterations / 2` in total;
+//! the rest of `max_iterations` is for the λ damping and the bisection.
 //!
 //! Admissibility (E4b as amended by E8b, E4d): the solution is `Converged` only if, with the final λ, the F
 //! equation still holds to `tolerance` (E4d), and on every soil slice `Φ_i > 1e-9·F` (no pole, no negative
@@ -201,6 +202,8 @@ fn closed_form(slices: &[Slice], fos: f64, lambda: f64) -> Option<f64> {
 /// Solves `F` for a fixed `λ` (E7c). Fixed-point iterations on the closed form; when an iterate leaves the
 /// admissible region, bisection of `h(F) = F − g(F)` in `[F_adm(λ)·(1+1e-6), 1e3]`. `m_bound` is Bishop's
 /// lower bound (E8b); the pole bound is added at this `λ`. Every evaluation counts toward `max_iterations`.
+/// Fixed-point steps are also capped by `max_iterations / 2` in total over the whole solve (E9c): `fp_used`
+/// counts them across calls, and the rest of the budget goes to the λ damping and the bisection.
 ///
 /// Errors: `"pole"` (no admissible root in the interval), `"m_alpha"` (the root is not admissible),
 /// `"max_iterations"` (budget exhausted).
@@ -211,6 +214,7 @@ fn solve_fos(
     m_bound: f64,
     opts: &SolveOptions,
     iterations: &mut usize,
+    fp_used: &mut usize,
 ) -> Result<f64, &'static str> {
     let min_m = opts.min_m_alpha;
     let bound = m_bound.max(pole_bound(slices, lambda));
@@ -221,13 +225,15 @@ fn solve_fos(
     };
     let inside = |f: f64| f.is_finite() && f >= lo && f <= FOS_MAX;
 
-    // Fixed-point phase. Any iterate that leaves the admissible region hands over to the bisection.
+    // Fixed-point phase (E9c). Any iterate that leaves the admissible region hands over to the bisection.
+    let fp_budget = opts.max_iterations / 2;
     let mut fos = start;
-    while inside(fos) && *iterations < opts.max_iterations {
+    while inside(fos) && *fp_used < fp_budget && *iterations < opts.max_iterations {
         let Some(next) = closed_form(slices, fos, lambda) else {
             break;
         };
         *iterations += 1;
+        *fp_used += 1;
         if !(next > 0.0 && inside(next) && inadmissibility(slices, next, lambda, min_m).is_none()) {
             break;
         }
@@ -320,6 +326,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         };
     let mut lambda = 0.0_f64;
     let mut iterations = 0usize;
+    let mut fp_used = 0usize;
 
     // The F of λ = 0 is the first state of the chain.
     let failed = |msg: &'static str, iterations: usize, lambda: f64| {
@@ -330,7 +337,15 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         };
         outcome(f64::NAN, status, iterations, Some(lambda), Some(msg))
     };
-    match solve_fos(slices, fos, lambda, m_bound, opts, &mut iterations) {
+    match solve_fos(
+        slices,
+        fos,
+        lambda,
+        m_bound,
+        opts,
+        &mut iterations,
+        &mut fp_used,
+    ) {
         Ok(value) => fos = value,
         Err(msg) => return failed(msg, iterations, lambda),
     }
@@ -371,7 +386,15 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         let mut factor = 1.0_f64;
         for attempt in 0..=MAX_LAMBDA_HALVINGS {
             let lambda_try = lambda + factor * delta;
-            match solve_fos(slices, fos, lambda_try, m_bound, opts, &mut iterations) {
+            match solve_fos(
+                slices,
+                fos,
+                lambda_try,
+                m_bound,
+                opts,
+                &mut iterations,
+                &mut fp_used,
+            ) {
                 Ok(value) => {
                     accepted = Some((value, lambda_try, attempt == 0));
                     break;

@@ -10,8 +10,11 @@
 //!   lower semicircle is decided by the slicer (`UpperArc`), not here: `eval` returns `None` for those.
 //! - Grid axes include both endpoints; with `n = 1` the midpoint of the range is used.
 //!   A grid point where `y_top` is `None` (or otherwise infeasible) is skipped and not evaluated.
-//! - Refinement: the 5 best grid candidates (by FS, ties by grid index) seed a Hooke-Jeeves pattern
-//!   search over `(x_e, x_s, ρ)`. An exploratory move tries `±step` on each axis and keeps every strict
+//! - Entry and exit candidates (E9a): the uniform axis is extended with every ground vertex inside the range,
+//!   and for each vertex the points `x ± 1e-6·width`. Sorted; duplicates closer than `1e-9·width` are dropped.
+//!   If the extended grid would exceed `MAX_GRID_CANDIDATES`, the uniform axes are used alone.
+//! - Refinement: the 10 best grid candidates (by FS, ties by grid index) seed a Hooke-Jeeves pattern
+//!   search over `(x_e, x_s, ρ)`, with at least two distinct entry-exit pairs among the seeds (E9a). An exploratory move tries `±step` on each axis and keeps every strict
 //!   improvement; an axis whose step is 0 is skipped. If it improves, pattern moves jump along the
 //!   direction of success (`new + (new − old)`) and explore from there while they keep improving. If it
 //!   does not, all steps are halved. The search stops when every step is below its threshold
@@ -29,8 +32,12 @@ use serde::Serialize;
 use crate::geometry::{Ground, Sliding};
 use crate::model::{Circle, SearchSpec};
 
-/// Number of grid candidates refined by the pattern search.
-const N_SEEDS: usize = 5;
+/// Number of grid candidates refined by the pattern search (E9a: 10, with at least two entry-exit pairs).
+const N_SEEDS: usize = 10;
+/// Offset of the candidates placed beside each ground vertex, as a fraction of the model width (E9a).
+const VERTEX_OFFSET: f64 = 1e-6;
+/// Entry or exit candidates closer than this fraction of the model width are duplicates (E9a).
+const DEDUP_FRACTION: f64 = 1e-9;
 /// Maximum number of `eval` calls per refinement seed.
 const MAX_REFINE_EVALS: usize = 300;
 /// Pattern-search step threshold for x, as a fraction of the model width.
@@ -76,9 +83,9 @@ where
         best: None,
         stats: SearchStats::default(),
     };
-    let Some(total) = grid_size(spec) else {
+    if grid_size(spec).is_none() {
         return empty;
-    };
+    }
     let rho = [RATIO_MIN.ln(), (2.0 * spec.max_radius_factor).ln()];
     if !(rho[0].is_finite() && rho[1].is_finite() && rho[0] <= rho[1]) {
         return empty;
@@ -98,11 +105,21 @@ where
         tol_x: STEP_TOL_X * width,
     };
 
-    // 1. Grid: entry × exit × radius, in lexicographic index order.
-    let entries = grid_axis(entry, spec.n_entry);
-    let exits = grid_axis(exit, spec.n_exit);
+    // 1. Grid: entry × exit × radius, in lexicographic index order. The entry and exit axes also
+    //    carry the ground vertices (E9a), unless that would exceed the grid limit.
+    let vertices = ground.ground_vertices_x();
     let rhos = grid_axis(rho, spec.n_radius);
+    let (entries, exits) = {
+        let e = candidate_axis(entry, spec.n_entry, &vertices, width);
+        let x = candidate_axis(exit, spec.n_exit, &vertices, width);
+        if e.len() * x.len() * rhos.len() <= MAX_GRID_CANDIDATES {
+            (e, x)
+        } else {
+            (grid_axis(entry, spec.n_entry), grid_axis(exit, spec.n_exit))
+        }
+    };
     let (n_s, n_r) = (exits.len(), rhos.len());
+    let total = entries.len() * n_s * n_r;
     let grid = map_range(total, |idx| {
         let (i_e, rest) = (idx / (n_s * n_r), idx % (n_s * n_r));
         let p = Params {
@@ -140,11 +157,8 @@ where
     // 3. Pattern-search refinement from the best grid seeds.
     if spec.refine && !scored.is_empty() {
         scored.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
-        let seeds: Vec<Scored> = scored
-            .into_iter()
-            .take(N_SEEDS)
-            .map(|(_, _, s)| s)
-            .collect();
+        let ordered: Vec<Scored> = scored.into_iter().map(|(_, _, s)| s).collect();
+        let seeds = pick_seeds(&ordered);
         let steps0 = [
             spacing(entry, spec.n_entry),
             spacing(exit, spec.n_exit),
@@ -161,6 +175,45 @@ where
     }
 
     SearchResult { best, stats }
+}
+
+/// Refinement seeds (E9a): the `N_SEEDS` best candidates, in order. If they all share the entry-exit pair of
+/// the best one, the best candidate with another pair takes the last place, so at least two pairs are seeded.
+fn pick_seeds(ordered: &[Scored]) -> Vec<Scored> {
+    let mut seeds: Vec<Scored> = ordered.iter().take(N_SEEDS).copied().collect();
+    let Some(first) = seeds.first().copied() else {
+        return seeds;
+    };
+    let same_pair = |s: &Scored| s.params.xe == first.params.xe && s.params.xs == first.params.xs;
+    if seeds.iter().all(|s| same_pair(s))
+        && let Some(other) = ordered.iter().find(|s| !same_pair(s))
+    {
+        if seeds.len() == N_SEEDS {
+            seeds.pop();
+        }
+        seeds.push(*other);
+    }
+    seeds
+}
+
+/// Entry or exit candidates (E9a): the uniform axis of [`grid_axis`], plus every ground vertex inside the range
+/// with the points `vertex ± 1e-6·width` that lie in the range. Sorted; near-duplicates are dropped. Empty if `n = 0`.
+fn candidate_axis(range: [f64; 2], n: usize, vertices: &[f64], width: f64) -> Vec<f64> {
+    let mut xs = grid_axis(range, n);
+    if xs.is_empty() {
+        return xs;
+    }
+    let offset = VERTEX_OFFSET * width;
+    for &v in vertices.iter().filter(|&&v| in_range(v, range)) {
+        xs.extend(
+            [v - offset, v, v + offset]
+                .into_iter()
+                .filter(|&x| in_range(x, range)),
+        );
+    }
+    xs.sort_by(f64::total_cmp);
+    xs.dedup_by(|later, kept| (*later - *kept).abs() < DEDUP_FRACTION * width);
+    xs
 }
 
 /// `n_entry · n_exit · n_radius`, or `None` when the product overflows or exceeds `MAX_GRID_CANDIDATES`.
