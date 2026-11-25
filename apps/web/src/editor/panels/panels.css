@@ -1,0 +1,143 @@
+.ep-panel .ep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.ep-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.ep-table td {
+  padding: 2px 4px;
+  vertical-align: top;
+}
+
+.ep-table input[type='text'],
+.ep-field input[type='text'] {
+  width: 100%;
+  min-width: 4.5ch;
+  font: inherit;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.ep-table input[aria-invalid='true'],
+.ep-field input[aria-invalid='true'] {
+  border-color: var(--fail);
+  background: #fef2f2;
+}
+
+.ep-row-selected {
+  background: #eff6ff;
+}
+
+.ep-error {
+  color: var(--fail);
+  font-size: 0.85rem;
+}
+
+.ep-error-list {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  color: var(--fail);
+  font-size: 0.85rem;
+}
+
+.ep-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.ep-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0 12px;
+}
+
+.ep-radios {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ep-radios label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ep-issues {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ep-issue {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+button.ep-issue:hover {
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.ep-badge {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.ep-badge-error {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.ep-badge-aviso {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.ep-badge-nota {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.ep-status-stale {
+  color: var(--sim-ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ep-new {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+}
