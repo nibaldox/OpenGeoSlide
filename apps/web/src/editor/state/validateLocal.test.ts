@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Point, SearchSpec, VerificationCase } from '../../engine/types';
+import { issueTarget } from '../app/issueNav';
 import type { Issue, ModelDoc } from '../types';
 import { baseDoc, mat, singleRegionDoc, square, twoRegionDoc } from './testFixtures';
 import { RULE_TEXT, validateLocal, validateLocalCached } from './validateLocal';
@@ -558,25 +559,30 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
     ]);
   });
 
-  it('γw en modelos imperiales: avisa de que el motor usaría 9,81 (kN/m³) si no se indica', () => {
+  it('γw en modelos imperiales: con piezométrica y sin γw (o con 9,81) es un ERROR que bloquea, con la acción para corregirlo (R8)', () => {
     const water: ModelDoc['water'] = { piezometric_line: [[0, 5], [10, 5]] };
     const imperial = validateLocal({ ...baseDoc(), units: 'imperial', water });
-    expect(imperial).toEqual([
-      {
-        source: 'local',
-        severity: 'aviso',
-        code: 'editor.water_unit_weight',
-        text: 'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica, así que el cálculo usaría 9,81 (el valor en kN/m³); escriba 62,4 pcf.',
-        path: '/water/unit_weight',
-      },
-    ]);
+    expect(imperial).toHaveLength(1);
+    expect(imperial[0]).toMatchObject({ source: 'local', severity: 'error', code: 'editor.water_unit_weight', path: '/water/unit_weight' });
+    expect(imperial[0]!.text).toContain('Escriba 62,4 pcf');
+    expect(imperial[0]!.text).toContain('pestaña «Agua»');
+    expect(imperial[0]!.text).toMatch(/6,4 veces menores/);
     // Con 9,81 explícito en pcf tampoco es creíble.
-    expect(codes(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 9.81 } }))).toEqual(['editor.water_unit_weight']);
-    // Con 62,4 o en SI no hay aviso.
+    const explicit = validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 9.81 } });
+    expect(codes(explicit)).toEqual(['editor.water_unit_weight']);
+    expect(explicit[0]!.severity).toBe('error');
+    // Con 62,4 (o el 62,45 de la conversión) o en SI no hay incidencia.
     expect(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 62.4 } })).toEqual([]);
+    expect(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 62.4501 } })).toEqual([]);
     expect(validateLocal({ ...baseDoc(), units: 'SI', water })).toEqual([]);
     // Sin piezométrica, γw no interviene.
     expect(validateLocal({ ...baseDoc(), units: 'imperial', water: {} })).toEqual([]);
+  });
+
+  it('la incidencia de γw lleva a la pestaña «Agua» y al campo γw (botón «ir a Agua» de Diagnósticos)', () => {
+    const doc: ModelDoc = { ...baseDoc(), units: 'imperial', water: { piezometric_line: [[0, 5], [10, 5]] } };
+    const issue = validateLocal(doc).find((i) => i.code === 'editor.water_unit_weight')!;
+    expect(issueTarget(issue.path, doc)).toMatchObject({ tab: 'water', fieldPath: '/water/unit_weight' });
   });
 
   it('ningún mensaje local contiene nombres internos del JSON o del motor', () => {

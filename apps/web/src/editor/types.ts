@@ -86,7 +86,8 @@ export type EditorCommand =
   | { type: 'analysis/patch'; patch: Partial<AnalysisSettings> }
   | { type: 'slope/setDirection'; direction: Direction }
   | { type: 'meta/patch'; patch: Partial<Meta> }
-  | { type: 'units/set'; units: string }               // cambia el sistema de unidades; NO convierte ningún valor
+  | { type: 'units/set'; units: string }               // cambia solo la etiqueta del sistema de unidades; NO convierte ningún valor
+  | { type: 'units/convert'; units: 'SI' | 'imperial' } // reescribe los valores al otro sistema (FS invariante): un solo paso deshacible
   | { type: 'seismic/set'; seismic: { kh: number; kv: number } | null }
   | { type: 'loads/set'; loads: Load[] }
   | { type: 'load/upsert'; index: number | null; load: Load }   // index null = agregar

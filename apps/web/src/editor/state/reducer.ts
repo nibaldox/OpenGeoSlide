@@ -18,6 +18,7 @@ import type {
   UiAction,
 } from '../types';
 import { allFinite, copyPoints, deepEqual, isFiniteNumber, isPoint, isPointList } from './docUtils';
+import { convertDocUnits, isUnitSystem } from './units';
 
 export const HISTORY_LIMIT = 200;
 
@@ -214,6 +215,11 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
       // Solo la etiqueta del sistema («SI», «imperial» u otra cadena que acepta el motor): los valores no se convierten.
       if (typeof cmd.units !== 'string' || cmd.units.trim() === '') return null;
       return { ...doc, units: cmd.units };
+    }
+    case 'units/convert': {
+      // Convierte los valores (`state/units.ts`): longitudes, pesos unitarios, c, q y p. El FS no cambia.
+      if (!isUnitSystem(cmd.units)) return null;
+      return convertDocUnits(doc, cmd.units);
     }
     case 'seismic/set': {
       if (cmd.seismic === null) {
