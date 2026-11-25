@@ -60,6 +60,29 @@ versión que fija el crate.
 > validarse por un profesional competente antes de usarlos en un diseño. El criterio profesional y la
 > responsabilidad sobre el diseño son del usuario.
 
+## Limitaciones conocidas (Fase 0)
+
+Limitaciones que la revisión adversarial R4 ([`docs/reviews/R4_agy.md`](docs/reviews/R4_agy.md)) dejó abiertas para la
+Fase 1. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (38/38) ni la batería
+diferencial (20/20 + 20/20).
+
+- **R4-01, selección de la raíz de λ en Spencer:** entre dos raíces admisibles, se elige la de menor |λ|, aunque sea
+  negativa. En taludes bicapa con un estrato superior cohesivo (φ = 0) puede dar un FS de −7,08 % a +3,47 % frente a
+  cSlope (47 de 1008 casos bicapa difieren más de 1 %). Aviso: `negative_lambda` (nota) y `negative_effective_normal_major`.
+- **R4-02, paso fijo de 0,05 en el barrido de λ:** dos raíces admisibles dentro del mismo paso no se detectan y el
+  resultado es `no_lambda_root`, aunque cSlope converge (p. ej., c_top = 74,05: cSlope 1,914138 y ogs sin FS).
+  Aviso: `no_lambda_root`, con estado `not_converged` y sin FS.
+- **R4-03a, avisos de búsqueda:** `truncated_driving_mass` solo se evalúa en la superficie final. Si el círculo crítico
+  ganador no está truncado, el aviso de un bloque descartado motriz de un candidato truncado se pierde.
+  Aviso: ninguno en ese caso.
+- **Frontera de `min_width` (E11d′):** la búsqueda no alcanza la frontera ancho = `min_width`. En el botadero de
+  dos bancos con `min_width = 10`, ogs da 0,855 frente a 1,142 de cSlope (conservador). Aviso:
+  `effective_width_below_min` y `truncated_mass`.
+- **Bloques descartados que salen por una pared lateral (E11e′):** no se pueden clasificar, así que solo reciben la
+  nota `truncated_mass`, aunque sean motrices. Aviso: `truncated_mass`.
+- **`unit_weight_sat` sin cobertura:** ningún caso de aceptación usa `unit_weight_sat` (0 de 16 casos de verificación).
+  La ruta de peso saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
+
 ## Licencia
 
 Apache-2.0. Véase [LICENSE](LICENSE).
