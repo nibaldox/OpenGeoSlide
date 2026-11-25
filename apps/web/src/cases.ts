@@ -3,6 +3,7 @@
 
 import acads1a from './examples/acads1a.json';
 import type { VerificationCase } from './engine/types';
+import { exampleLabel } from './examples/exampleTitles';
 
 const repoCases = import.meta.glob('../../../verification/cases/*.json', {
   eager: true,
@@ -20,7 +21,7 @@ export interface CaseEntry {
 export function loadBuiltinCases(): CaseEntry[] {
   const entries = Object.entries(repoCases)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([path, data]) => ({ key: path, label: `${data.id}: ${data.title}`, caseData: data }));
+    .map(([path, data]) => ({ key: path, label: exampleLabel(data.id, data.title), caseData: data }));
   if (entries.length > 0) return entries;
-  return [{ key: 'example:acads1a', label: `${example.id}: ${example.title} (ejemplo)`, caseData: example }];
+  return [{ key: 'example:acads1a', label: `${exampleLabel(example.id, example.title)} (ejemplo)`, caseData: example }];
 }
