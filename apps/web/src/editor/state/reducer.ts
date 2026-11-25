@@ -205,6 +205,11 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
       if (typeof cmd.patch !== 'object' || cmd.patch === null) return null;
       return { ...doc, meta: mergePatch(doc.meta, cmd.patch) };
     }
+    case 'units/set': {
+      // Solo la etiqueta del sistema («SI», «imperial» u otra cadena que acepta el motor): los valores no se convierten.
+      if (typeof cmd.units !== 'string' || cmd.units.trim() === '') return null;
+      return { ...doc, units: cmd.units };
+    }
     case 'seismic/set': {
       if (cmd.seismic === null) {
         if (doc.analysis.seismic === undefined) return doc;

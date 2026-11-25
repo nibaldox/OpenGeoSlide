@@ -53,16 +53,14 @@ export function unitsOptions(current: CurrentUnits): { value: string; label: str
 }
 
 /**
- * Cambio de unidades: NO convierte ningún valor, solo cambia `units` (etiquetas y valores por defecto). No existe un comando
- * propio para esto, así que usa `doc/replace` (un solo paso deshacible). Con `fileName: null` el documento queda con
- * cambios sin guardar (con el nombre del archivo, `doc/replace` lo daría por guardado y se perdería el aviso al salir);
- * lo único que se pierde es el nombre del archivo en la barra de estado, que pasa a mostrar el título del proyecto.
+ * Cambio de unidades: NO convierte ningún valor, solo cambia `units` (etiquetas y valores por defecto). Usa `units/set`:
+ * un único paso deshacible que conserva el nombre del archivo y deja el documento «con cambios sin guardar».
  */
 export function unitsChangeCommand(doc: ModelDoc, to: string): EditorCommand | null {
   const from = currentUnits(doc);
   if (from.kind !== 'other' && from.kind === to) return null;
   if (from.kind === 'other' && from.raw === to) return null;
-  return { type: 'doc/replace', doc: { ...doc, units: to }, fileName: null };
+  return { type: 'units/set', units: to };
 }
 
 /** Confirmación previa: explica con claridad que los números no cambian. */

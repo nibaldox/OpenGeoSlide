@@ -224,6 +224,27 @@ describe('análisis', () => {
   });
 });
 
+describe('units/set', () => {
+  it('cambia solo la etiqueta de unidades: no convierte ningún valor y es un paso deshacible', () => {
+    const s = fresh();
+    const n = applied(s, { type: 'units/set', units: 'imperial' });
+    expect(n.doc.units).toBe('imperial');
+    expect(n.doc.materials).toBe(s.doc.materials);
+    expect(n.doc.regions).toBe(s.doc.regions);
+    expect(n.file.name).toBe('base.ogs.json'); // conserva el archivo
+    expect(n.file.savedRevision).toBe(s.file.savedRevision); // y queda con cambios sin guardar
+  });
+  it('las mismas unidades no ensucian el historial', () => {
+    const s = reduce(fresh(), { type: 'units/set', units: 'SI' });
+    expect(reduce(s, { type: 'units/set', units: 'SI' })).toBe(s);
+  });
+  it('rechaza un valor que no es texto o es vacío', () => {
+    ignored(fresh(), { type: 'units/set', units: '' });
+    ignored(fresh(), { type: 'units/set', units: '   ' });
+    ignored(fresh(), { type: 'units/set', units: 3 as unknown as string });
+  });
+});
+
 describe('sismo y cargas', () => {
   it('seismic/set: fija kh y kv y sube a v0.2; null elimina el campo', () => {
     const v01 = createInitialState({ ...baseDoc(), version: '0.1' });
