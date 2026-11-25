@@ -26,11 +26,13 @@ function recorder() {
   const strokes: string[] = [];
   const widths: number[] = [];
   const fonts: string[] = [];
+  const texts: string[] = [];
   const noop = (): void => undefined;
   const ctx = new Proxy(
     {},
     {
-      get: (_t, k) => (k === 'measureText' ? () => ({ width: 10 }) : noop),
+      get: (_t, k) =>
+        k === 'measureText' ? () => ({ width: 10 }) : k === 'fillText' ? (t: string) => void texts.push(String(t)) : noop,
       set: (_t, k, v) => {
         if (k === 'fillStyle') fills.push(String(v));
         if (k === 'strokeStyle') strokes.push(String(v));
@@ -40,7 +42,7 @@ function recorder() {
       },
     },
   ) as unknown as CanvasRenderingContext2D;
-  return { ctx, fills, strokes, widths, fonts };
+  return { ctx, fills, strokes, widths, fonts, texts };
 }
 
 const dark: SectionPalette = {
@@ -76,6 +78,32 @@ describe('drawSection con SectionPalette', () => {
     expect(light.bg).toBe('#ffffff');
     expect(light.materials).toHaveLength(7);
     expect(r.fills).toContain(light.materials[0]);
+  });
+});
+
+describe('U2-C: unidades en los ejes', () => {
+  const scene = buildScene(model, method);
+
+  it('por defecto los ejes dicen x (m) e y (m)', () => {
+    const r = recorder();
+    drawSection(r.ctx, 600, 400, 1, scene, dark);
+    expect(r.texts).toContain('x (m)');
+    expect(r.texts).toContain('y (m)');
+  });
+
+  it('con unidades imperiales (parámetro o `scene.units`) dicen x (ft) e y (ft)', () => {
+    const a = recorder();
+    drawSection(a.ctx, 600, 400, 1, scene, dark, 'imperial');
+    expect(a.texts).toContain('x (ft)');
+    expect(a.texts).toContain('y (ft)');
+    expect(a.texts).not.toContain('x (m)');
+    const b = recorder();
+    drawSection(b.ctx, 600, 400, 1, { ...scene, units: 'imperial' }, dark);
+    expect(b.texts).toContain('x (ft)');
+  });
+
+  it('buildScene recoge la unidad del modelo', () => {
+    expect(buildScene({ ...model, units: 'imperial' } as Model, null).units).toBe('imperial');
   });
 });
 
