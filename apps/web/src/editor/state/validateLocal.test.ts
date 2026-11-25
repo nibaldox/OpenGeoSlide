@@ -504,7 +504,7 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
 
   it('regiones: acción a tomar en cada caso, sin «1e-12 · escala²»', () => {
     expect(textsOf({ ...baseDoc(), regions: [] })).toEqual([
-      'El modelo no tiene regiones: agregue al menos una región de suelo (por ejemplo, importando un DXF o abriendo un ejemplo).',
+      'El modelo no tiene regiones: dibuje una con la herramienta «Dibujar región» (tecla R), cree un «Talud simple…» desde Archivo ▸ Nuevo, importe un DXF o abra un ejemplo.',
     ]);
     expect(textsOf(singleRegionDoc([[0, 0], [1, 1]]))).toEqual([
       'Región 1: tiene 2 vértices y necesita al menos 3. Agregue vértices o elimine la región.',

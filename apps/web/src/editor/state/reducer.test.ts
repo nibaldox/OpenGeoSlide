@@ -362,6 +362,14 @@ describe('UiAction', () => {
     expect(s.history).toEqual({ past: [], future: [] });
     expect(s.doc).toEqual(baseDoc());
   });
+  it('la herramienta «Dibujar región» es válida y no toca el historial', () => {
+    const s = reduce(fresh(), { type: 'ui/tool', tool: 'draw_region' });
+    expect(s.ui.tool).toBe('draw_region');
+    expect(s.revision).toBe(0);
+    expect(s.history).toEqual({ past: [], future: [] });
+    expect(reduce(s, { type: 'ui/tool', tool: 'draw_region' })).toBe(s);
+    expect(reduce(s, { type: 'ui/tool', tool: 'nope' as never })).toBe(s);
+  });
   it('acciones repetidas o inválidas devuelven el mismo estado', () => {
     const s = fresh();
     expect(reduce(s, { type: 'ui/tool', tool: 'select' })).toBe(s);

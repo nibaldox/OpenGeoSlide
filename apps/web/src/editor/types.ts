@@ -4,7 +4,7 @@ import type { Viewport } from '../geometry/viewport';
 
 /** Documento = Model v0.2 completo (el editor abre v0.1 y v0.2, y guarda siempre v0.2). Nunca lleva campos de UI (deny_unknown_fields). */
 export type ModelDoc = Model;
-export type Tool = 'select' | 'add_vertex' | 'pan';
+export type Tool = 'select' | 'add_vertex' | 'draw_region' | 'pan';
 
 export type Selection =
   | { kind: 'none' }

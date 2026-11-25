@@ -1,0 +1,97 @@
+/* «Nuevo» con opciones y estado vacío del lienzo (U3-M). Solo consume tokens `var(--ui-*)` y `var(--canvas-*)`. */
+
+.ns-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .ns-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ns-group {
+  margin: 10px 0;
+  padding: 6px 10px 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.ns-group legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.ns-side {
+  position: sticky;
+  top: 0;
+}
+
+.ns-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  background: var(--canvas-bg);
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+}
+
+.ns-preview-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--ui-border);
+  border-radius: 6px;
+}
+
+.ns-actions {
+  align-items: center;
+}
+
+.ns-actions button {
+  width: auto;
+}
+
+.ns-empty {
+  max-width: min(420px, 100%);
+  padding: 14px 18px;
+  text-align: center;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+}
+
+.ns-empty-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.ns-empty-text {
+  margin: 4px 0;
+}
+
+.ns-empty-actions button {
+  width: auto;
+}
+
+.ns-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+/* Nota dentro del menú Archivo (debajo de «Nuevo») */
+.dd-note {
+  display: block;
+  margin: -2px 10px 4px;
+  font-size: 0.78rem;
+  color: var(--ui-ink-muted);
+}

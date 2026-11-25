@@ -1,0 +1,78 @@
+/* Panel «Geometría» (U3-M): lista de regiones, tabla de vértices y ajuste. Solo consume tokens `var(--ui-*)`. */
+
+.gp-regions {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gp-region {
+  min-width: 0;
+  padding: 6px 10px 2px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+}
+
+.gp-region-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.gp-region .ep-actions {
+  margin: 4px 0 6px;
+}
+
+.gp-vertices h3 {
+  margin: 12px 0 4px;
+}
+
+.gp-row-actions {
+  white-space: nowrap;
+}
+
+.gp-row-actions button {
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  min-height: 28px;
+}
+
+.gp-row-actions button + button {
+  margin-left: 4px;
+}
+
+.gp-error-row td {
+  padding-top: 0;
+}
+
+.gp-issues {
+  margin-top: 0;
+}
+
+.gp-issue-warn {
+  color: var(--ui-warn-ink);
+}
+
+.gp-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.gp-snap {
+  margin-top: 12px;
+}
+
+.gp-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}

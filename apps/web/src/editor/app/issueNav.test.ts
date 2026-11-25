@@ -54,8 +54,15 @@ describe('issueTarget', () => {
     expect(issueTarget('/materials/0/cohesion', d)).toMatchObject({ tab: 'materials', selection: { kind: 'material', materialId: m }, fieldPath: '/materials/0/cohesion' });
     expect(issueTarget('/regions/0/material', d)).toMatchObject({ tab: 'materials', fieldPath: '/regions/0/material' });
   });
-  it('geometría de una región: el destino es el lienzo', () => {
-    expect(issueTarget('/regions/0/polygon/1', doc())).toMatchObject({ tab: null, selection: { kind: 'vertex', regionIndex: 0, vertexIndex: 1 }, fieldPath: null });
+  it('geometría de una región: la pestaña «Geometría», con el vértice y su campo x', () => {
+    expect(issueTarget('/regions/0/polygon/1', doc())).toMatchObject({ tab: 'geometry', selection: { kind: 'vertex', regionIndex: 0, vertexIndex: 1 }, fieldPath: '/regions/0/polygon/1/x' });
+  });
+  it('contorno entero o solape de regiones: la pestaña «Geometría» y el primer vértice', () => {
+    expect(issueTarget('/regions/0/polygon', doc())).toMatchObject({ tab: 'geometry', selection: { kind: 'region', regionIndex: 0 }, fieldPath: '/regions/0/polygon/0/x' });
+    expect(issueTarget('/regions/0', doc())).toMatchObject({ tab: 'geometry', fieldPath: '/regions/0/polygon/0/x' });
+  });
+  it('un vértice fuera de rango cae en el primero', () => {
+    expect(issueTarget('/regions/0/polygon/99', doc())).toMatchObject({ tab: 'geometry', fieldPath: '/regions/0/polygon/0/x' });
   });
 });
 

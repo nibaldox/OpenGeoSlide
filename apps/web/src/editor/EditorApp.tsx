@@ -12,6 +12,7 @@ import { saveOgsJson, sha256Hex } from '../io/ogsJson';
 import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
+import './app/newModel.css';
 import { buildScene } from '../render/scene';
 import { DropdownMenu } from '../ui/DropdownMenu';
 import { Legend } from '../ui/Legend';
@@ -21,6 +22,9 @@ import { EditorCanvas } from './canvas/EditorCanvas';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { docFromCase, newDoc } from './app/docTemplates';
+import { EmptyCanvasState } from './app/EmptyCanvasState';
+import { NewSlopeDialog } from './app/NewSlopeDialog';
+import { emptyModel, simpleSlope, type SlopeInput } from './app/newModel';
 import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
 import type { RegionImportPlan } from './app/importPlan';
 import type { PanelTabId } from './app/issueNav';
@@ -41,6 +45,7 @@ import { useEngineCheck } from './app/useEngineCheck';
 import {
   AnalysisPanel,
   DiagnosticsPanel,
+  GeometryPanel,
   LoadsPanel,
   MaterialsPanel,
   SearchPanel,
@@ -58,6 +63,7 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
+  { id: 'geometry', label: 'Geometría', Panel: GeometryPanel },
   { id: 'materials', label: 'Materiales', Panel: MaterialsPanel },
   { id: 'water', label: 'Agua', Panel: WaterPanel },
   { id: 'surface', label: 'Superficie', Panel: SurfacePanel },
@@ -70,6 +76,7 @@ const TABS: TabDef[] = [
 const TOOLS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'select', label: 'Seleccionar', key: 'V' },
   { tool: 'add_vertex', label: 'Agregar vértice', key: 'A' },
+  { tool: 'draw_region', label: 'Dibujar región', key: 'R' },
   { tool: 'pan', label: 'Mover vista', key: 'H' },
 ];
 
@@ -109,7 +116,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [noticesPaused, setNoticesPaused] = useState(false);
   const live = useAnnouncer();
   const { announce, announceError } = live;
-  const [tab, setTab] = useState<PanelTabId>('materials');
+  const [tab, setTab] = useState<PanelTabId>('geometry');
   const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const tablistRef = useRef<HTMLDivElement>(null);
@@ -117,6 +124,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const tabKeys = useRovingTabIndex(tablistRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
   const [dxf, setDxf] = useState<{ fileName: string; result: DxfParseResult } | null>(null);
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
+  const [slopeOpen, setSlopeOpen] = useState(false);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
   // El modelo de partida y los de «Ejemplos» son ejemplos hasta que se guardan con nombre propio (UX-11).
@@ -188,11 +196,38 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     [store, resetEngine],
   );
 
+  // «Nuevo» = «Modelo vacío»: sin regiones y con un material por defecto; el lienzo invita a «Dibujar región» (UX-01).
   const onNew = useCallback(() => {
     if (!confirmDiscard()) return;
-    loadDoc(newDoc(), null, { saved: true, example: false });
-    notify('info', 'Modelo nuevo creado.');
+    loadDoc(emptyModel(), null, { saved: true, example: false });
+    notify('info', 'Modelo vacío creado. Dibuje una región con la herramienta «Dibujar región» (tecla R).');
   }, [confirmDiscard, loadDoc, notify]);
+
+  /** «Talud simple…»: crea el modelo parametrizado. Devuelve `false` si el usuario no confirma descartar los cambios. */
+  const onCreateSlope = useCallback(
+    (input: SlopeInput): boolean => {
+      if (!confirmDiscard()) return false;
+      loadDoc(simpleSlope(input), null, { saved: true, example: false });
+      notify('info', 'Talud simple creado. Pulse «Comprobar» para calcular el factor de seguridad.');
+      return true;
+    },
+    [confirmDiscard, loadDoc, notify],
+  );
+
+  /** «Abrir un ejemplo» del estado vacío: abre el menú Archivo y lleva el foco a la lista de ejemplos. */
+  const openExamples = useCallback((): void => {
+    const trigger = Array.from(document.querySelectorAll<HTMLButtonElement>('button.dd-trigger')).find((b) => b.textContent?.trim().startsWith('Archivo'));
+    trigger?.click();
+    window.setTimeout(() => {
+      const select = document.querySelector<HTMLSelectElement>('select[aria-label="Abrir un caso publicado como modelo"]');
+      select?.focus();
+      try {
+        select?.showPicker();
+      } catch {
+        /* sin showPicker (o sin gesto del usuario): queda enfocada la lista */
+      }
+    }, 50);
+  }, []);
 
   const onOpenFile = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
@@ -406,12 +441,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     check: () => void onCheck(),
     'tool:select': () => store.dispatch({ type: 'ui/tool', tool: 'select' }),
     'tool:add_vertex': () => store.dispatch({ type: 'ui/tool', tool: 'add_vertex' }),
+    'tool:draw_region': () => store.dispatch({ type: 'ui/tool', tool: 'draw_region' }),
     'tool:pan': () => store.dispatch({ type: 'ui/tool', tool: 'pan' }),
   };
   useEffect(() => {
     if (!active) return; // en «Casos de verificación» el editor sigue montado pero oculto: sus atajos no actúan (R7-07)
     const onKey = (e: KeyboardEvent): void => {
-      if (dxf || csv) return;
+      if (dxf || csv || slopeOpen) return;
       const t = e.target instanceof HTMLElement ? e.target : null;
       const action = shortcutFor({
         key: e.key,
@@ -428,7 +464,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dxf, csv, active]);
+  }, [dxf, csv, slopeOpen, active]);
 
   // ───────── Presentación ─────────
 
@@ -443,6 +479,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     surfaceConverged,
     units: (doc.units === 'imperial' ? 'imperial' : 'SI') as 'SI' | 'imperial',
     onAnnounce: announce,
+    emptyState: <EmptyCanvasState onDraw={() => store.dispatch({ type: 'ui/tool', tool: 'draw_region' })} onExample={openExamples} />,
   };
 
   return (
@@ -451,8 +488,14 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       <div className="ea-toolbar panel" role="toolbar" aria-label="Acciones del modelo" ref={toolbarRef} onKeyDown={toolbarKeys.onKeyDown}>
         <div className="ea-group" role="group" aria-label="Menús">
           <DropdownMenu label="Archivo">
-            <button type="button" onClick={onNew}>
+            <button type="button" onClick={onNew} aria-describedby="ea-new-hint">
               Nuevo
+            </button>
+            <span id="ea-new-hint" className="dd-note">
+              Modelo vacío: sin regiones, para dibujarlas.
+            </span>
+            <button type="button" onClick={() => setSlopeOpen(true)}>
+              Talud simple…
             </button>
             <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
               Abrir
@@ -660,6 +703,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         </aside>
       </div>
 
+      {slopeOpen && <NewSlopeDialog initialUnits={doc.units === 'imperial' ? 'imperial' : 'SI'} onCancel={() => setSlopeOpen(false)} onCreate={onCreateSlope} />}
       {dxf && (
         <DxfImportDialog
           fileName={dxf.fileName}

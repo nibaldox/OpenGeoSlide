@@ -4,7 +4,7 @@
 import { selectionForPath } from '../panels/forms';
 import type { ModelDoc, Selection } from '../types';
 
-export type PanelTabId = 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic';
+export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic';
 
 export interface IssueTarget {
   /** Pestaña del panel lateral que se abre (`null`: el destino es el lienzo). */
@@ -33,7 +33,10 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     const k = index(b);
     if (k === null || k >= doc.regions.length) return null;
     if (c === 'material') return { tab: 'materials', selection, fieldPath: `/regions/${k}/material` };
-    return { tab: null, selection, fieldPath: null };
+    // Contorno, vértice o solape: la pestaña «Geometría» muestra la región con sus incidencias y la tabla de vértices.
+    const v = c === 'polygon' ? index(d) : null;
+    const vertex = v !== null && v < (doc.regions[k]?.polygon.length ?? 0) ? v : 0;
+    return { tab: 'geometry', selection, fieldPath: `/regions/${k}/polygon/${vertex}/x` };
   }
   if (a === 'materials') {
     const k = index(b);

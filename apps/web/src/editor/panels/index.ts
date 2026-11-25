@@ -6,3 +6,4 @@ export { SearchPanel } from './SearchPanel';
 export { SeismicPanel } from './SeismicPanel';
 export { SurfacePanel } from './SurfacePanel';
 export { WaterPanel } from './WaterPanel';
+export { GeometryPanel } from './GeometryPanel';

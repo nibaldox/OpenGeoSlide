@@ -288,4 +288,27 @@ describe('U2-C: props del contrato', () => {
     expect(html).toContain('x 60,0 ft');
     expect(html).toContain('x (ft)');
   });
+
+  it('«Dibujar región»: muestra la ayuda sobre el lienzo y la capa del dibujo; con «Seleccionar» no', () => {
+    const html = render(() => undefined, { tool: 'draw_region' });
+    expect(html).toContain('data-testid="draw-hint"');
+    expect(html).toContain('Dibujar región');
+    expect(html).toContain('data-layer="draw"');
+    expect(html).toContain('cursor:crosshair');
+    const normal = render();
+    expect(normal).not.toContain('data-testid="draw-hint"');
+    expect(normal).not.toContain('data-layer="draw"');
+  });
+
+  it('estado vacío: con el modelo sin regiones muestra el contenido de `emptyState`; con regiones o dibujando, no', () => {
+    const empty = (d: ReturnType<typeof makeDoc>) => {
+      d.regions = [];
+    };
+    const content = createElement('p', null, 'Sin regiones: dibuje la primera');
+    expect(render(empty, {}, { emptyState: content })).toContain('data-testid="canvas-empty"');
+    expect(render(empty, {}, { emptyState: content })).toContain('Sin regiones: dibuje la primera');
+    expect(render(() => undefined, {}, { emptyState: content })).not.toContain('data-testid="canvas-empty"');
+    const drawing = render(empty, { tool: 'draw_region' }, { emptyState: content });
+    expect(drawing).not.toContain('data-testid="canvas-empty"');
+  });
 });

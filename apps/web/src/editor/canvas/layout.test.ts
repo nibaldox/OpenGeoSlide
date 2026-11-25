@@ -172,7 +172,7 @@ describe('viewportOps', () => {
     const empty = makeDoc();
     empty.regions = [];
     empty.water = null;
-    expect(docBounds(empty)).toEqual({ minX: 0, maxX: 10, minY: 0, maxY: 10 });
+    expect(docBounds(empty)).toEqual({ minX: 0, maxX: 60, minY: 0, maxY: 30 });
     const fit = fitToDoc(makeDoc(), 800, 600, 48);
     expect(fit.scale).toBeCloseTo(Math.min(704 / 60, 504 / 20), 9);
   });
