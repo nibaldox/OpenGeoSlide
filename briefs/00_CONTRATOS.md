@@ -284,7 +284,15 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
    - **(E11d, revisión R3-03a/b.)** Después de truncar, el bloque conservado se **re-rebana**: `n` divisiones uniformes
      entre sus extremos, más los puntos de quiebre de §4.1.4. Se exigen al menos 3 dovelas de suelo; si no, el
      resultado es `TooFewSlices`.
-     - En la búsqueda, `min_width` y los rangos `entry` / `exit` se verifican sobre los **extremos efectivos** del bloque
+     - **(E11d′, reemplaza el filtro por extremos efectivos.)** `min_width` y los rangos se siguen verificando sobre
+       la **cuerda del arco** (x_e, x_s). Si el ancho de suelo efectivo del bloque analizado (dovelas de suelo más
+       externas) es menor que `min_width`, o si sus extremos de suelo caen fuera de los rangos, el resultado conserva
+       su estado y agrega el **aviso** `"effective_width_below_min"` o `"effective_ends_outside_range"`.
+       - **Motivo:** filtrar por extremos efectivos dejó la búsqueda del botadero en 1,3905 frente a 1,1423 de cSlope
+         (+22 %, no conservador), porque el óptimo está en la frontera ancho = 10 y la búsqueda no la alcanza. El
+         criterio por cuerda da 0,856, que es conservador, y el aviso explica que el bloque real es más angosto.
+       - **Pendiente para la Fase 1:** búsqueda con restricción de frontera.
+     - *Texto derogado:* En la búsqueda, `min_width` y los rangos `entry` / `exit` se verifican sobre los **extremos efectivos** del bloque
        analizado: salida = `slices[0].x_left`, entrada = `slices[last].x_right`. Si no cumplen, el evaluador devuelve
        `None`.
      - **Motivo:** en un botadero de 2 bancos con `min_width = 10`, ogs daba 0,856 sobre un bloque de 5,2 m de ancho,
@@ -341,7 +349,16 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   dovelas aéreas incluidas (E7a). Es continuo y no tiene asíntotas.
 - **Barrido completo** de λ ∈ [−0,5; 1,5] con paso 0,05. **Todos** los cambios de signo de r se refinan con Brent.
 - **Candidatas:** raíces con cierre de fuerzas (`|Eₙ| ≤ 1e-6·ΣW`) que cumplen la admisibilidad E11b.
-- **Selección:**
+- **Selección (E11a′, reemplaza a la regla "λ ≥ 0 más pequeño"):** la candidata admisible con **menor |λ|**, sin
+  preferencia de signo. Si es negativa, se agrega el aviso informativo `"negative_lambda"`. **Evidencia del oráculo:**
+  - en D03, cSlope elige λ = −0,162 (FS 0,5467, con su aviso `steep-entry-tension` por una entrada a 89°);
+  - en R3-01a elige +0,402, porque la raíz −0,371 tiene Φ/F = 0,073 y no es admisible.
+
+  La regla "λ ≥ 0" llevaba la búsqueda de D03 a +1,38 % sobre el oráculo.
+  - **Barrido:** hacia afuera y simétrico desde 0 con paso 0,05 (niveles |λ| = 0,05·k, ambos lados en cada nivel).
+    Se detiene al terminar el **primer nivel** que contenga una raíz admisible; si hay dos en ese nivel, gana la de
+    menor |λ|. Mantiene E11a sin asíntotas y es barato. Objetivo: ≤ 1,5× el tiempo de E10c.
+  - Con λ ≥ 0, regla ya derogada:
   - la candidata con **λ ≥ 0 más pequeño**;
   - si no hay ninguna, la de λ < 0 más cercana a 0, con el **aviso** `"negative_lambda"`;
   - si no hay candidatas: `NotConverged("no_admissible_root")` cuando hubo raíces que no eran admisibles, o
@@ -533,6 +550,7 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   El prefijo es estable y lo usan la web y Python para clasificar el error.
   Los códigos de aviso (`m_alpha`, `pole`, `no_driving`, `negative_effective_normal`,
   `negative_effective_normal_major`, `air_gap_thrust`, `truncated_mass`, `truncated_driving_mass`, `water_above_ground`,
+  `effective_width_below_min`, `effective_ends_outside_range`,
   `max_iterations`, `non_finite`, `no_slices`, `no_lambda_root`, `no_admissible_root`, `negative_lambda`) son
   identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
   porque ya no se emiten); agregar uno nuevo exige
