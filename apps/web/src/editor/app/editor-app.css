@@ -1,0 +1,56 @@
+/* Estilos del editor que pertenecen a U1-A. Solo consumen tokens (`var(--ui-*)`): los valores los define styles/tokens.css.
+   Los respaldos `Canvas` y `CanvasText` son colores de sistema (siguen al tema del navegador), no literales. */
+
+/* Diálogos de importación (<dialog> nativo con showModal) */
+dialog.ea-dialog {
+  background: var(--ui-surface, Canvas);
+  color: var(--ui-ink, CanvasText);
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  width: min(720px, calc(100% - 32px));
+  max-height: 90vh;
+  overflow: auto;
+}
+
+dialog.ea-dialog::backdrop {
+  background: var(--ui-backdrop);
+}
+
+dialog.ea-dialog h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  word-break: break-all;
+}
+
+dialog.ea-dialog h2:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+
+/* Estado del motor y motivo visible de las exportaciones bloqueadas (R7-14, R7-17) */
+.ea-engine-status,
+.ea-export-hint {
+  margin: 4px 0;
+  color: var(--ui-ink-muted);
+}
+
+/* Superficie evaluada sin convergencia: no se lee como resultado (R7-01) */
+.ea-caption-unconverged {
+  margin: 4px 0;
+  padding: 4px 8px;
+  border-left: 4px solid var(--ui-warn-border);
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+}
+
+/* Pie de la tabla de resultados: tiempo total una sola vez (R7-21) */
+.results tfoot th {
+  text-align: right;
+  font-weight: 400;
+  color: var(--ui-ink-muted);
+}
+
+.results tfoot td {
+  color: var(--ui-ink-muted);
+}

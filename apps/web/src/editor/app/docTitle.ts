@@ -3,7 +3,7 @@
 export interface TitleInput {
   fileName: string | null;
   /** `meta.title` del documento. */
-  title: string | undefined;
+  title: string | null | undefined;
   /** El documento viene de un ejemplo publicado y aún no tiene archivo propio. */
   example: boolean;
 }
