@@ -39,21 +39,33 @@ import {
 } from './layout';
 import { fitToDoc, resizeViewport, wheelFactor, zoomAt } from './viewportOps';
 
-const COLOR_EDGE = '#1f2937';
-const COLOR_SELECTED = '#2563eb';
-const COLOR_PIEZO = '#1d4ed8';
-const COLOR_SURFACE = '#dc2626';
-const COLOR_LOAD = '#7c3aed';
-const COLOR_SEISMIC = '#c2410c';
-const COLOR_GRID = '#e5e7eb';
-const COLOR_AXIS_TEXT = '#6b7280';
-const COLOR_BAND_ENTRY = 'rgba(22, 163, 74, 0.35)';
-const COLOR_BAND_EXIT = 'rgba(234, 88, 12, 0.35)';
+// Colores: referencias a los tokens `--canvas-*` de styles/tokens.css; el tema los cambia sin volver a dibujar.
+const COLOR_EDGE = 'var(--canvas-region-edge)';
+const COLOR_SELECTED = 'var(--canvas-selected)';
+const COLOR_PIEZO = 'var(--canvas-piezo)';
+const COLOR_SURFACE = 'var(--canvas-surface)';
+const COLOR_LOAD = 'var(--canvas-load)';
+const COLOR_SEISMIC = 'var(--canvas-seismic)';
+const COLOR_GRID = 'var(--canvas-grid)';
+const COLOR_AXIS_TEXT = 'var(--canvas-axis-text)';
+const COLOR_BAND_ENTRY = 'var(--canvas-band-entry)';
+const COLOR_BAND_EXIT = 'var(--canvas-band-exit)';
+const COLOR_HALO = 'var(--canvas-halo)';
+const COLOR_HANDLE_FILL = 'var(--canvas-handle-fill)';
+const COLOR_HANDLE_SEL = 'var(--canvas-handle-sel)';
+const COLOR_HANDLE_SNAP = 'var(--canvas-handle-snap)';
+const COLOR_HANDLE_RING = 'var(--canvas-handle-ring)';
+const COLOR_MATERIAL_UNKNOWN = 'var(--canvas-mat-unknown)';
 
 const HANDLE_R = 5;
-const COLOR_RESULT = '#dc2626';
-const COLOR_SLICE_FILL = 'rgba(120, 120, 120, 0.22)';
-const COLOR_SLICE_EDGE = 'rgba(90, 90, 90, 0.55)';
+const COLOR_RESULT = COLOR_SURFACE;
+const COLOR_SLICE_FILL = 'var(--canvas-slice-fill)';
+const COLOR_SLICE_EDGE = 'var(--canvas-slice-edge)';
+
+/** Rótulos del lienzo: el halo (`paint-order: stroke`) los separa de líneas y materiales en ambos temas. */
+const HALO_LABEL = { stroke: COLOR_HALO, strokeWidth: 3, paintOrder: 'stroke', strokeLinejoin: 'round' } as const;
+/** Tamaño de las etiquetas de los ejes (UX-20: 12 px o más). */
+const AXIS_FONT_PX = 12;
 
 /** Resultado del cálculo que se superpone al modelo: superficie crítica y dovelas. */
 export interface CanvasResult {
@@ -233,7 +245,7 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
     width: '100%',
     height: '100%',
     minHeight: 320,
-    background: '#ffffff',
+    background: 'var(--canvas-bg)',
     touchAction: 'none',
     userSelect: 'none',
     cursor: cursorFor(ui.tool, hover, dragging, gesture.mode === 'pan'),
@@ -267,13 +279,13 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
         {grid.vertical.map((l) => (
           <g key={`gx${l.px}`}>
             <line x1={l.px} x2={l.px} y1={0} y2={vp.height} stroke={COLOR_GRID} strokeWidth={1} />
-            <text x={l.px + 2} y={vp.height - 4} fontSize={10} fill={COLOR_AXIS_TEXT}>{l.label}</text>
+            <text x={l.px + 2} y={vp.height - 4} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{l.label}</text>
           </g>
         ))}
         {grid.horizontal.map((l) => (
           <g key={`gy${l.px}`}>
             <line x1={0} x2={vp.width} y1={l.px} y2={l.px} stroke={COLOR_GRID} strokeWidth={1} />
-            <text x={4} y={l.px - 2} fontSize={10} fill={COLOR_AXIS_TEXT}>{l.label}</text>
+            <text x={4} y={l.px - 2} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{l.label}</text>
           </g>
         ))}
       </g>
@@ -287,7 +299,7 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
               key={ri}
               data-region={ri}
               points={pointsAttr(vp, region.polygon)}
-              fill={mi >= 0 ? materialColor(mi) : '#cccccc'}
+              fill={mi >= 0 ? materialColor(mi) : COLOR_MATERIAL_UNKNOWN}
               fillOpacity={0.85}
               stroke={selected ? COLOR_SELECTED : COLOR_EDGE}
               strokeWidth={selected ? 2.5 : 1.25}
@@ -314,6 +326,7 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
               strokeWidth={0.6}
             />
           ))}
+          <polyline points={surfaceArc(vp, result)} fill="none" stroke={COLOR_HALO} strokeWidth={6.5} strokeLinejoin="round" data-halo="critical-surface" />
           <polyline data-critical-surface points={surfaceArc(vp, result)} fill="none" stroke={COLOR_RESULT} strokeWidth={2.5} />
         </g>
       )}
@@ -364,12 +377,12 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
               {l.arrows.map((a, i) => (
                 <line key={i} x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} markerEnd={`url(#${arrowId})`} />
               ))}
-              <text x={l.label.x} y={l.label.y} fontSize={12} fill={COLOR_LOAD} stroke="none" textAnchor="middle">{l.label.text}</text>
+              <text x={l.label.x} y={l.label.y} fontSize={12} fill={COLOR_LOAD} {...HALO_LABEL} textAnchor="middle">{l.label.text}</text>
             </g>
           ) : (
             <g key={`l${l.index}`} data-load={l.index} stroke={COLOR_LOAD} strokeWidth={2.5} fill="none">
               <line x1={l.arrow.x1} y1={l.arrow.y1} x2={l.arrow.x2} y2={l.arrow.y2} markerEnd={`url(#${arrowId})`} />
-              <text x={l.label.x} y={l.label.y} fontSize={12} fill={COLOR_LOAD} stroke="none" textAnchor="middle">{l.label.text}</text>
+              <text x={l.label.x} y={l.label.y} fontSize={12} fill={COLOR_LOAD} {...HALO_LABEL} textAnchor="middle">{l.label.text}</text>
             </g>
           ),
         )}
@@ -384,7 +397,7 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
               width={badge.width}
               height={badge.height}
               rx={4}
-              fill="rgba(255,255,255,0.72)"
+              fill="var(--canvas-seismic-bg)"
               stroke={COLOR_SEISMIC}
               strokeOpacity={0.8}
             />
@@ -422,8 +435,8 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
                 cx={sx}
                 cy={sy}
                 r={selected || target ? HANDLE_R + 2 : HANDLE_R}
-                fill={selected ? '#f59e0b' : target ? '#16a34a' : '#ffffff'}
-                stroke={COLOR_EDGE}
+                fill={selected ? COLOR_HANDLE_SEL : target ? COLOR_HANDLE_SNAP : COLOR_HANDLE_FILL}
+                stroke={COLOR_HANDLE_RING}
                 strokeWidth={1.5}
                 tabIndex={0}
                 role="button"
@@ -445,8 +458,8 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
               y={sy - HANDLE_R}
               width={HANDLE_R * 2}
               height={HANDLE_R * 2}
-              fill={selected ? '#f59e0b' : COLOR_PIEZO}
-              stroke="#ffffff"
+              fill={selected ? COLOR_HANDLE_SEL : COLOR_PIEZO}
+              stroke={COLOR_HANDLE_FILL}
               strokeWidth={1.5}
               tabIndex={0}
               role="button"
@@ -471,8 +484,8 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
                     cx={cx}
                     cy={cy}
                     r={HANDLE_R + 1}
-                    fill={selected ? '#f59e0b' : COLOR_SURFACE}
-                    stroke="#ffffff"
+                    fill={selected ? COLOR_HANDLE_SEL : COLOR_SURFACE}
+                    stroke={COLOR_HANDLE_FILL}
                     strokeWidth={1.5}
                     tabIndex={0}
                     role="button"
@@ -486,8 +499,8 @@ export function EditorCanvas({ store, result }: { store: EditorStore; result?: C
                     width={HANDLE_R * 2}
                     height={HANDLE_R * 2}
                     transform={`rotate(45 ${rx} ${ry})`}
-                    fill={selected ? '#f59e0b' : COLOR_SURFACE}
-                    stroke="#ffffff"
+                    fill={selected ? COLOR_HANDLE_SEL : COLOR_SURFACE}
+                    stroke={COLOR_HANDLE_FILL}
                     strokeWidth={1.5}
                     tabIndex={0}
                     role="button"

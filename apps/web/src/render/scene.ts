@@ -3,10 +3,17 @@
 import type { Circle, MethodReport, Model, Point, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 
-export const MATERIAL_COLORS = ['#d8b77a', '#9cc29a', '#9fb9d9', '#d59b9b', '#c2a8d8', '#e3cf86', '#a9d4d0'];
+/** Número de tonos de material del tema (`--canvas-mat-0` … `--canvas-mat-6`); los materiales siguientes los reciclan. */
+export const MATERIAL_SLOTS = 7;
 
+/** Casilla de color (0 a 6) del material de índice `index`. */
+export function materialSlot(index: number): number {
+  return ((index % MATERIAL_SLOTS) + MATERIAL_SLOTS) % MATERIAL_SLOTS;
+}
+
+/** Color del material para SVG y CSS: referencia al token, que cambia solo con el tema. El Canvas 2D usa `SectionPalette`. */
 export function materialColor(index: number): string {
-  return MATERIAL_COLORS[((index % MATERIAL_COLORS.length) + MATERIAL_COLORS.length) % MATERIAL_COLORS.length];
+  return `var(--canvas-mat-${materialSlot(index)})`;
 }
 
 export interface SceneRegion {
