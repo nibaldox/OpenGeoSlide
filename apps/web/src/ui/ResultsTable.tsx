@@ -8,9 +8,10 @@ export const METHOD_LABELS: Record<MethodKind, string> = {
 };
 
 const STATUS_LABELS: Record<SolveStatus, string> = {
-  converged: 'Convergido',
-  not_converged: 'No convergido',
-  invalid: 'No válido',
+  // Mismos términos que el informe PDF (report/content.ts).
+  converged: 'Convergió',
+  not_converged: 'No convergió',
+  invalid: 'No válida',
 };
 
 const numberFormat = (digits: number) =>
@@ -49,6 +50,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
   return (
     <div className="results">
       <table>
+        <caption className="visually-hidden">Resultados del análisis por método</caption>
         <thead>
           <tr>
             <th scope="col">Método</th>
@@ -58,7 +60,6 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
             <th scope="col">λ</th>
             <th scope="col">Superficies evaluadas</th>
             <th scope="col">Superficies válidas</th>
-            <th scope="col">Tiempo (ms)</th>
             <th scope="col">Superficie</th>
           </tr>
         </thead>
@@ -69,10 +70,9 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
               <td className="num">{formatNumber(convergedFos(r))}</td>
               <td>{STATUS_LABELS[r.status]}</td>
               <td className="num">{r.iterations}</td>
-              <td className="num">{formatNumber(r.lambda)}</td>
+              <td className="num">{formatNumber(r.status === 'converged' ? r.lambda : null)}</td>
               <td className="num">{r.search ? r.search.evaluated : '—'}</td>
               <td className="num">{r.search ? r.search.valid : '—'}</td>
-              <td className="num">{formatNumber(elapsedMs, 1)}</td>
               <td>
                 <button
                   type="button"
@@ -86,6 +86,14 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" colSpan={7}>
+              Tiempo total del análisis
+            </th>
+            <td className="num">{formatNumber(elapsedMs, 1)} ms</td>
+          </tr>
+        </tfoot>
       </table>
       {notes.length > 0 && (
         <ul className="notes" aria-label="Notas del análisis">

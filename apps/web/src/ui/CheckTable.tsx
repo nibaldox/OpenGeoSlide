@@ -12,6 +12,7 @@ export interface CheckRow {
 export function CheckTable({ rows }: { rows: CheckRow[] }) {
   return (
     <table className="checks">
+      <caption className="visually-hidden">Comprobación frente a los valores publicados</caption>
       <thead>
         <tr>
           <th scope="col">Método</th>
@@ -36,7 +37,7 @@ export function CheckTable({ rows }: { rows: CheckRow[] }) {
             <td className="num">{row.errorRel === null ? '—' : formatNumber(row.errorRel * 100, 2)}</td>
             <td className="num">{formatNumber(row.check.tolerance * 100, 2)}</td>
             <td>
-              <span className={row.ok ? 'badge badge-ok' : 'badge badge-fail'}>{row.ok ? 'OK' : 'FALLA'}</span>
+              <span className={row.ok ? 'badge badge-ok' : 'badge badge-fail'}>{row.ok ? 'Cumple' : 'No cumple'}</span>
               {row.message ? <div className="muted small">{row.message}</div> : null}
             </td>
           </tr>
