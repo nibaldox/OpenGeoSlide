@@ -198,7 +198,7 @@ function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issu
   const materialIds = new Set(doc.materials.map((m) => m.id));
   const clean: CleanRegion[] = [];
   if (doc.regions.length === 0) {
-    issues.push(error('editor.out_of_range', 'El modelo no tiene regiones: agregue al menos una región de suelo (por ejemplo, importando un DXF o abriendo un ejemplo).', '/regions'));
+    issues.push(error('editor.out_of_range', 'El modelo no tiene regiones: dibuje una con la herramienta «Dibujar región» (tecla R), cree un «Talud simple…» desde Archivo ▸ Nuevo, importe un DXF o abra un ejemplo.', '/regions'));
   }
   doc.regions.forEach((region, k) => {
     const base = `/regions/${k}`;
