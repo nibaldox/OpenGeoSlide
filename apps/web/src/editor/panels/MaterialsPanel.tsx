@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Material } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
@@ -63,6 +63,7 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
           <LabeledField
             key={key}
             label={label}
+            scope={`Material ${material.id}`}
             unit={unit}
             hint={hint}
             value={form[key]}
@@ -94,13 +95,34 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
   );
 }
 
-function NewMaterial({ store, ids, units }: { store: EditorStore; ids: readonly string[]; units: string | undefined }) {
-  const [form, setForm] = useState<MaterialForm | null>(null);
+export const NEW_MATERIAL_SCOPE = 'Nuevo material';
+
+/**
+ * Formulario de material nuevo (UX9-02): `fieldset` con la leyenda «Nuevo material», nombres accesibles únicos
+ * («Nuevo material: Nombre», …) y el foco en el primer campo al abrirlo. `initiallyOpen` solo sirve para probarlo.
+ */
+export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
+  store: EditorStore;
+  ids: readonly string[];
+  units: string | undefined;
+  initiallyOpen?: boolean;
+}) {
+  const [form, setForm] = useState<MaterialForm | null>(() => (initiallyOpen ? newMaterialForm(ids, units) : null));
   const u = unitLabels(units);
+  const open = form !== null;
+  const fieldsetRef = useRef<HTMLFieldSetElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    // Al abrir, el foco va al primer campo; al cerrar (agregar o cancelar), vuelve a «Nuevo material…».
+    if (open && !wasOpen.current && !initiallyOpen) fieldsetRef.current?.querySelector('input')?.focus();
+    else if (!open && wasOpen.current) openerRef.current?.focus();
+    wasOpen.current = open;
+  }, [open, initiallyOpen]);
   if (form === null) {
     return (
       <div className="ep-actions">
-        <button type="button" onClick={() => setForm(newMaterialForm(ids, units))}>
+        <button ref={openerRef} type="button" onClick={() => setForm(newMaterialForm(ids, units))}>
           Nuevo material…
         </button>
       </div>
@@ -109,11 +131,12 @@ function NewMaterial({ store, ids, units }: { store: EditorStore; ids: readonly 
   const outcome = materialFromForm(form, { otherIds: ids, editing: null });
   const errors = outcome.ok ? {} : outcome.errors;
   return (
-    <fieldset className="field ep-new">
-      <legend>Nuevo material</legend>
+    <fieldset ref={fieldsetRef} className="field ep-new">
+      <legend>{NEW_MATERIAL_SCOPE}</legend>
       <div className="ep-grid">
         <LabeledField
           label="Identificador (id)"
+          scope={NEW_MATERIAL_SCOPE}
           value={form.id}
           mode="text"
           error={'id' in errors ? errors.id : undefined}
@@ -123,6 +146,7 @@ function NewMaterial({ store, ids, units }: { store: EditorStore; ids: readonly 
           <LabeledField
             key={key}
             label={label}
+            scope={NEW_MATERIAL_SCOPE}
             unit={unit}
             hint={hint}
             value={form[key]}

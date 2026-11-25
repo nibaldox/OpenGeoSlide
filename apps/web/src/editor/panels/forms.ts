@@ -187,6 +187,64 @@ function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+/** Rangos x que sirven para ubicar una carga (UX9-03): el terreno completo y la corona (el tramo horizontal más alto). */
+export interface TerrainRanges {
+  /** Extensión x de la superficie del terreno. */
+  terrain: readonly [number, number];
+  /** Tramo horizontal más alto del terreno; `null` si el perfil no tiene un tramo plano en su cota máxima. */
+  crown: readonly [number, number] | null;
+}
+
+/** Cota de la superficie del terreno (envolvente superior de todas las regiones) en `x`; `-Infinity` fuera. */
+function terrainY(regions: ModelDoc['regions'], x: number, tol: number): number {
+  let best = -Infinity;
+  for (const { polygon } of regions) {
+    for (let i = 0; i < polygon.length; i += 1) {
+      const a = polygon[i] as readonly [number, number];
+      const b = polygon[(i + 1) % polygon.length] as readonly [number, number];
+      const lo = Math.min(a[0], b[0]);
+      const hi = Math.max(a[0], b[0]);
+      if (x < lo - tol || x > hi + tol) continue;
+      if (hi - lo <= tol) best = Math.max(best, a[1], b[1]);
+      else best = Math.max(best, a[1] + ((Math.min(Math.max(x, lo), hi) - a[0]) / (b[0] - a[0])) * (b[1] - a[1]));
+    }
+  }
+  return best;
+}
+
+/**
+ * Terreno y corona del modelo, calculados de la geometría (sin usar el nombre de ninguna región). La corona es el
+ * tramo más ancho de la envolvente superior que está a la cota máxima del terreno; `null` si no hay ninguno
+ * (terreno sin tramo plano en lo alto). `null` también si el modelo no tiene vértices.
+ */
+export function terrainRanges(doc: Pick<ModelDoc, 'regions'>): TerrainRanges | null {
+  const range = modelXRange(doc);
+  if (!range) return null;
+  const tol = extentTol(range);
+  const xs = Array.from(new Set(doc.regions.flatMap((r) => r.polygon.map((v) => v[0])).filter(Number.isFinite))).sort((p, q) => p - q);
+  const ys = xs.map((x) => terrainY(doc.regions, x, tol));
+  const top = Math.max(...ys);
+  const yTol = 1e-9 * Math.max(1, Math.abs(top));
+  let crown: [number, number] | null = null;
+  let start: number | null = null;
+  const close = (end: number): void => {
+    if (start !== null && end > start && (crown === null || end - start > crown[1] - crown[0])) crown = [start, end];
+    start = null;
+  };
+  for (let i = 0; i < xs.length; i += 1) {
+    const x = xs[i] as number;
+    if (Math.abs((ys[i] as number) - top) <= yTol) start ??= x;
+    else close(xs[i - 1] as number);
+  }
+  close(xs[xs.length - 1] as number);
+  return { terrain: range, crown };
+}
+
+/** Texto «x de a a b m» con la unidad del modelo. */
+export function rangeText(range: readonly [number, number], unit: string): string {
+  return `x de ${formatNumber(range[0])} a ${formatNumber(range[1])} ${unit}`;
+}
+
 /** Tolerancia de la comparación con la extensión del modelo (misma idea que `pm.tol()` del motor). */
 function extentTol(range: readonly [number, number]): number {
   return 1e-9 * Math.max(1, Math.abs(range[1] - range[0]));
@@ -867,12 +925,16 @@ export function nextLoadId(loads: readonly Load[], type: Load['type']): string {
 export function defaultLoad(type: Load['type'], doc: ModelDoc): Load | null {
   const range = modelXRange(doc);
   if (!range || !(range[1] > range[0])) return null;
-  const width = range[1] - range[0];
+  // UX9-03: una carga nueva nace sobre la corona (la mitad central), no sobre el talud; sin corona, en el centro.
+  const crown = terrainRanges(doc)?.crown;
+  const [lo, hi] = crown && crown[1] > crown[0] ? crown : range;
+  const width = hi - lo;
   const id = nextLoadId(doc.loads ?? [], type);
+  const [f1, f2] = crown ? [0.25, 0.75] : [0.4, 0.6];
   if (type === 'udl') {
-    return { type: 'udl', id, x1: round2(range[0] + 0.4 * width), x2: round2(range[0] + 0.6 * width), q: 10 };
+    return { type: 'udl', id, x1: round2(lo + f1 * width), x2: round2(lo + f2 * width), q: 10 };
   }
-  return { type: 'line', id, x: round2(range[0] + 0.5 * width), p: 10, angle: 0 };
+  return { type: 'line', id, x: round2(lo + 0.5 * width), p: 10, angle: 0 };
 }
 
 export interface LoadFormContext {

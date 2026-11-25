@@ -60,7 +60,8 @@ describe('paneles: render con store falso', () => {
     const out = html(MaterialsPanel, makeDoc());
     expect(out).not.toContain('<table');
     expect(out).toContain('class="ep-card');
-    expect(out).toMatch(/<label for="[^"]+">Nombre<\/label>/);
+    // El texto visible sigue siendo «Nombre»; el prefijo único («Material soil: ») es solo para lectores de pantalla (UX9-02).
+    expect(out).toMatch(/<label for="[^"]+"><span class="visually-hidden">Material soil: <\/span>Nombre<\/label>/);
   });
 
   it('MaterialsPanel: el id es texto de solo lectura, no un campo (R7-23)', () => {

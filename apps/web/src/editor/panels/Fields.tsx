@@ -78,16 +78,22 @@ export function LabeledField(props: Omit<TextInputProps, 'ariaLabel' | 'invalid'
   unit?: string;
   error?: string;
   hint?: string;
+  /**
+   * Prefijo solo para lectores de pantalla que vuelve único el nombre accesible cuando varias tarjetas repiten el
+   * mismo campo («Nuevo material: Nombre», «Carga 2: Inicio x1»). El texto visible no cambia.
+   */
+  scope?: string;
 }) {
   const base = useId();
   const inputId = `${base}-in`;
   const hintId = `${base}-hint`;
   const errorId = `${base}-err`;
   const [announce, setAnnounce] = useState<FieldAnnounce>('quiet');
-  const { label, unit, error, hint, onChange, onCommit, onReset, ...input } = props;
+  const { label, unit, error, hint, scope, onChange, onCommit, onReset, ...input } = props;
   return (
     <div className="field ep-field">
       <label htmlFor={inputId}>
+        {scope ? <span className="visually-hidden">{scope}: </span> : null}
         {label}
         {unit ? <span className="muted"> ({unit})</span> : null}
       </label>

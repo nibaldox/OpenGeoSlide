@@ -187,3 +187,23 @@ div.ep-issue {
 .ep-field input[type='text'] {
   max-width: 100%;
 }
+
+/* Ubicación de una carga: rango del terreno y de la corona + botón (UX9-03) */
+.ep-placement {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.ep-placement p {
+  margin: 0;
+}
+
+.ep-note {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ui-note-bg);
+  color: var(--ui-note-ink);
+}
