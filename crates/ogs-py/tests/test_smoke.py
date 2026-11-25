@@ -38,6 +38,20 @@ def test_invalid_json_raises_value_error():
         opengeoslide.analyze_json("{ esto no es JSON")
 
 
+def test_error_messages_start_with_the_stable_code():
+    # Contract E6: "<Código>: <mensaje en español>". Python classifies errors by this prefix.
+    with pytest.raises(ValueError, match=r"^Json: "):
+        opengeoslide.analyze_json("{ esto no es JSON")
+    model = load_acads1a()
+    model["format"] = "BOGUS"
+    with pytest.raises(ValueError, match=r"^InvalidModel: .*format"):
+        opengeoslide.analyze_json(json.dumps(model))
+    model = load_acads1a()
+    del model["analysis"]["search"]
+    with pytest.raises(ValueError, match=r"^NoSurface: no hay superficie definida"):
+        opengeoslide.analyze_json(json.dumps(model))
+
+
 def test_model_without_surface_raises_value_error_mentioning_surface():
     model = load_acads1a()
     del model["analysis"]["search"]  # acads1a has no fixed surface either: NoSurface
@@ -52,7 +66,6 @@ def test_analyze_dict_without_surface_raises_value_error():
         opengeoslide.analyze(model)
 
 
-@pytest.mark.xfail(strict=False, reason="motor en stubs hasta W1")
 def test_acads1a_bishop_fos_in_expected_range():
     report = opengeoslide.analyze(load_acads1a())
     bishop = [r for r in report["results"] if r["method"] == "bishop"]
