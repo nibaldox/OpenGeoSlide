@@ -33,10 +33,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://nibaldox.github.io/opengeoslide/"
-Repository = "https://github.com/nibaldox/opengeoslide"
-Issues = "https://github.com/nibaldox/opengeoslide/issues"
-Changelog = "https://github.com/nibaldox/opengeoslide/blob/main/CHANGELOG.md"
+Homepage = "https://nibaldox.github.io/OpenGeoSlide/"
+Repository = "https://github.com/nibaldox/OpenGeoSlide"
+Issues = "https://github.com/nibaldox/OpenGeoSlide/issues"
+Changelog = "https://github.com/nibaldox/OpenGeoSlide/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 module-name = "opengeoslide._core"

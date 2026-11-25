@@ -190,7 +190,7 @@ describe('aviso de actualización (R6-01)', () => {
 
 describe('registro del service worker', () => {
   it("usa updateViaCache: 'none' y el alcance de la base", () => {
-    expect(registerOptions('/opengeoslide/')).toEqual({ scope: '/opengeoslide/', updateViaCache: 'none' });
+    expect(registerOptions('/OpenGeoSlide/')).toEqual({ scope: '/OpenGeoSlide/', updateViaCache: 'none' });
     expect(registerOptions('/').updateViaCache).toBe('none');
   });
 });

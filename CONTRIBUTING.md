@@ -73,7 +73,7 @@ pnpm typecheck && pnpm test && pnpm build
 ```
 
 `pnpm build` debe dejar un `.wasm` en `dist/`; sin él, la aplicación caería en el motor simulado sin avisar. Para
-probar el despliegue bajo una subruta: `VITE_BASE=/opengeoslide/ pnpm build`.
+probar el despliegue bajo una subruta: `VITE_BASE=/OpenGeoSlide/ pnpm build`.
 
 ### 6. Wheel de Python (si toca `crates/ogs-py` o `ogs-core`)
 

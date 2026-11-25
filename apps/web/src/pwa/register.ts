@@ -1,6 +1,6 @@
 // Registro del service worker (PWA). Se carga desde index.html; no depende de React ni de main.tsx.
 // El service worker se genera en el build (apps/web/build/pwa-plugin.ts) y vive en la raíz de `base`, de modo que
-// su alcance es toda la aplicación, también bajo una subruta (p. ej. /opengeoslide/).
+// su alcance es toda la aplicación, también bajo una subruta (p. ej. /OpenGeoSlide/).
 // Actualización (R5-08): `updateViaCache: 'none'` para que `sw.js` nunca salga de la caché HTTP, aviso «Hay una
 // versión nueva» con botón «Actualizar» cuando hay un worker en espera, y recarga en `controllerchange`.
 

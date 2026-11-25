@@ -14,9 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Subruta del proyecto en GitHub Pages: https://<propietario>.github.io/opengeoslide/
+  # Subruta del proyecto en GitHub Pages: https://<propietario>.github.io/<repositorio>/
+  # (la ruta respeta mayúsculas: se usa el nombre exacto del repositorio)
   # Con dominio propio (https://ejemplo.org/) basta VITE_BASE=/ .
-  VITE_BASE: /opengeoslide/
+  VITE_BASE: /${{ github.event.repository.name }}/
   WASM_BINDGEN_VERSION: 0.2.130
 
 jobs:

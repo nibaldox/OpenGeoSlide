@@ -7,7 +7,7 @@ import { pwaPrecache } from './build/pwa-plugin.ts';
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 
 export default defineConfig({
-  // Subruta de despliegue. '/' por defecto; en GitHub Pages: VITE_BASE=/opengeoslide/ (ver .github/workflows/pages.yml).
+  // Subruta de despliegue. '/' por defecto; en GitHub Pages: VITE_BASE=/OpenGeoSlide/ (pages.yml usa el nombre exacto del repo: /${{ github.event.repository.name }}/, con mayúsculas).
   base: process.env.VITE_BASE ?? '/',
   plugins: [react(), pwaPrecache()],
   // The worker is loaded as an ES module; the optional wasm glob needs code splitting,
