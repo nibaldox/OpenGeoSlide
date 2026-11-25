@@ -25,7 +25,7 @@ use geometry::{Ground, PreparedModel};
 use methods::{SolveOptions, SolveStatus, is_inert, solve};
 use model::{AnalysisSettings, FORMAT, FORMAT_VERSION, MethodKind, Model, SearchSpec, SurfaceSpec};
 use report::{AnalysisReport, MethodReport};
-use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, block_ends_admissible, search_circular};
+use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings, search_circular};
 use slicer::{Slice, SurfaceError, slice_circle, slice_surface};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -242,10 +242,6 @@ fn analyze_method(
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
                 let slices = slice_circle(pm, candidate, n).ok()?;
-                // E11d: `min_width` and the entry/exit ranges apply to the extremes of the analysed block.
-                if !block_ends_admissible(pm, spec, &slices) {
-                    return None;
-                }
                 let res = solve(&slices, method, opts);
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
@@ -280,9 +276,18 @@ fn analyze_method(
     if water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
     }
+    // E11d′: on a searched surface, the effective soil ends are checked against `min_width` and the ranges (advisory).
+    let effective: Vec<String> = match &analysis.search {
+        Some(spec) => effective_block_warnings(pm, spec, &slices)
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        None => Vec::new(),
+    };
     for code in sliced
         .notes
         .into_iter()
+        .chain(effective)
         .chain(result.message)
         .chain(result.warnings)
     {
