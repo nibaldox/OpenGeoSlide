@@ -22,11 +22,16 @@ sintéticos de tipo minero y civil. Compara motores entre sí: **no contiene val
 - **Superficie fija**: `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,5 %`.
 - Un método de ogs que no converge (`status` distinto de `converged`) es **FALLA**, aunque devuelva un número.
 - Un error de motor o un FS de cSlope no convergido es **sin dato**, no aprobado.
+- **Concordancia (W9)**: en la superficie fija, si ogs declara el método sin solución (`not_converged` o
+  `invalid`) **y** cSlope también (`EngineError`, «no valid slip surface»), el veredicto es
+  `OK (concordancia: ambos sin solución)`. Cuenta como acierto en el resumen y se desglosa aparte.
+  Si solo uno de los dos motores declara sin solución, es **FALLA**. Un error de ejecución de ogs nunca
+  cuenta como declaración: sigue siendo sin dato. La regla no se aplica a la búsqueda.
 - El veredicto no detiene la batería: sale con código 0 si puede ejecutarse.
 
 ## Ejecución
 
-Desde la raíz del worktree:
+Desde la raíz del worktree, tras `cargo build --release -p ogs-cli`:
 
 ```
 export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch
@@ -37,7 +42,7 @@ uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with pyt
   python -m pytest verification/differential -q
 ```
 
-`--ogs` por defecto es `$OGS_BIN` o `/home/xodla/archivos/opengeoslide/target/release/ogs`. Los tests
+`--ogs` por defecto es `$OGS_BIN` o `target/release/ogs` de este worktree (relativo al archivo). Los tests
 fallan (no se saltan) si el binario no existe.
 
 ## Decisiones de diseño
@@ -52,12 +57,9 @@ fallan (no se saltan) si el binario no existe.
 
 ## Línea base (ver `REPORT.md`)
 
-- búsqueda OK 17/20, fija OK 19/20.
-- Fallos de búsqueda: D09 bishop/spencer (+3,06 % y +6,60 %, reproduce el brief W7) y D03 spencer
-  (ogs 0,7265 frente a 0,5467 de cSlope, +32,9 %).
-- Fallo de fija: D03 spencer. ogs devuelve `not_converged` con FS 2,83. cSlope rechaza la superficie
-  («entrada a 90°»: la dovela del pie necesita tracción), así que el caso queda sin comparación fiable.
+- Tras W9: búsqueda OK 20/20, fija OK 20/20 (incluida 1 concordancia «ambos sin solución»).
+- D03 spencer en superficie fija: ogs devuelve `not_converged` (sin FS finito) y cSlope rechaza la superficie
+  («entrada a 90°»: la dovela del pie necesita tracción). Ambos motores declaran el círculo sin solución: concordancia.
 - Diagnóstico manual, fuera de la batería: la superficie crítica de cSlope para D03 spencer (r ≈ 4,1
-  en el pie) da en ogs un FS fijo de 0,5572 (+1,9 % frente a cSlope). Es decir, el fallo de búsqueda es
-  sobre todo de búsqueda (ogs no encuentra ese círculo), aunque también hay una diferencia de método
-  sobre un círculo tan pequeño.
+  en el pie) da en ogs un FS fijo de 0,5572 (+1,9 % frente a cSlope). En la búsqueda, ogs da para D03 spencer
+  0,5497 frente a 0,5467 de cSlope (+0,56 %), dentro del criterio. Ese círculo concreto sigue sin comparación fiable.

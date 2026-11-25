@@ -46,13 +46,19 @@ run_ogs = harness_run.run_ogs
 run_cslope = harness_run.run_cslope
 OGS_TIMEOUT_S = harness_run.OGS_TIMEOUT_S
 
-DEFAULT_OGS = os.environ.get("OGS_BIN", "/home/xodla/archivos/opengeoslide/target/release/ogs")
+# Default binary: the release build of this worktree (cargo build --release -p ogs-cli), not another checkout.
+DEFAULT_OGS = os.environ.get(
+    "OGS_BIN", os.path.normpath(os.path.join(HERE, "..", "..", "target", "release", "ogs")))
 METHODS = ("bishop", "spencer")
 KINDS = ("search", "fixed")
 EXPECTED_CASES = 10
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
-REPORT_VERSION = "1"
+REPORT_VERSION = "2"
+VERDICT_OK = "OK"
+# Fixed surface where both engines declare no solution (ogs not_converged/invalid, cSlope EngineError): a match.
+VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
+PASS_VERDICTS = (VERDICT_OK, VERDICT_BOTH_NO_SOLUTION)
 
 
 # ------------------------------------------------------------------ cases
@@ -92,16 +98,34 @@ def _rel(a: float | None, b: float | None) -> float | None:
     return (a - b) / b
 
 
+def cslope_declares_no_solution(cs: dict) -> bool:
+    """cSlope raises EngineError ('No valid slip surface …') when it has no surface for the circle."""
+    return bool(cs["error"]) and cs["error"].startswith("EngineError")
+
+
 def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
-    """Verdict and reason for one check ('OK' | 'FALLA' | 'sin dato').
+    """Verdict and reason for one check ('OK' | 'OK (concordancia…)' | 'FALLA' | 'sin dato').
 
     A method that does not converge is a failure of ogs even when it reports a number (its FS is
     not a valid result, contract E4a/E4d), so the ogs status is checked before the FS is compared.
+
+    No-solution rule (W9, fixed surface only): when both engines declare the surface without a solution
+    (ogs not_converged/invalid and cSlope EngineError), the verdict is VERDICT_BOTH_NO_SOLUTION. When only
+    one of them declares it, the check is FALLA. An ogs execution error is never a declaration: it stays sin dato.
     """
     if ogs["error"]:
         return "sin dato", f"ogs: {ogs['error']}"
-    if ogs["status"] not in (None, "converged") or ogs["fos"] is None:
+    ogs_no = ogs["status"] not in (None, "converged") or ogs["fos"] is None
+    cs_no = cslope_declares_no_solution(cs)
+    if ogs_no and cs_no:
+        if kind == "fixed":
+            return VERDICT_BOTH_NO_SOLUTION, (
+                f"ambos motores declaran la superficie sin solución: ogs {ogs['status']}, cSlope {cs['error']}")
+        return "FALLA", f"ogs no válido (status {ogs['status']}, FS {ogs['fos']}); cSlope sin solución"
+    if ogs_no:
         return "FALLA", f"ogs no válido (status {ogs['status']}, FS {ogs['fos']})"
+    if cs_no:
+        return "FALLA", f"solo cSlope declara la superficie sin solución ({cs['error']}); ogs da FS {ogs['fos']:.4f}"
     if cs["error"]:
         return "sin dato", f"cSlope: {cs['error']}"
     if cs["status"] not in (None, "converged") or cs["fos"] is None:
@@ -109,11 +133,11 @@ def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
     if kind == "search":
         limit = cs["fos"] * (1.0 + SEARCH_MAX_REL)
         if ogs["fos"] <= limit:
-            return "OK", ""
+            return VERDICT_OK, ""
         return "FALLA", f"ogs {ogs['fos']:.4f} > cSlope·1,01 = {limit:.4f} (ogs no conservador)"
     rel = abs(ogs["fos"] - cs["fos"]) / cs["fos"]
     if rel <= FIXED_MAX_REL:
-        return "OK", ""
+        return VERDICT_OK, ""
     return "FALLA", f"|Δ| = {rel * 100:.2f} % > 0,5 %"
 
 
@@ -161,7 +185,8 @@ def summarize(checks: list[dict]) -> dict:
     for kind in KINDS:
         rows = [c for c in checks if c["kind"] == kind]
         out[kind] = {
-            "OK": sum(1 for c in rows if c["verdict"] == "OK"),
+            "OK": sum(1 for c in rows if c["verdict"] in PASS_VERDICTS),
+            "ambos_sin_solucion": sum(1 for c in rows if c["verdict"] == VERDICT_BOTH_NO_SOLUTION),
             "FALLA": sum(1 for c in rows if c["verdict"] == "FALLA"),
             "sin dato": sum(1 for c in rows if c["verdict"] == "sin dato"),
             "N": len(rows),
@@ -180,9 +205,9 @@ def _fmt(v, spec: str) -> str:
 def _verdict_row(search: dict, fixed: dict) -> str:
     """Row verdict: OK only if both checks pass; FALLA beats sin dato; names what failed."""
     failed = [(name, c["verdict"]) for name, c in (("búsqueda", search), ("fija", fixed))
-              if c["verdict"] != "OK"]
+              if c["verdict"] not in PASS_VERDICTS]
     if not failed:
-        return "OK"
+        return next((c["verdict"] for c in (search, fixed) if c["verdict"] != VERDICT_OK), VERDICT_OK)
     label = "FALLA" if any(v == "FALLA" for _, v in failed) else "sin dato"
     return label + " (" + ", ".join(name for name, _ in failed) + ")"
 
@@ -190,7 +215,7 @@ def _verdict_row(search: dict, fixed: dict) -> str:
 def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: dict, meta: dict) -> None:
     by_key = {(c["case_id"], c["method"], c["kind"]): c for c in checks}
     L: list[str] = []
-    L.append("# Batería diferencial: ogs vs cSlope 0.1.0 (línea base W7b)")
+    L.append("# Batería diferencial: ogs vs cSlope 0.1.0 (W9)")
     L.append("")
     L.append(f"Generado: {meta['generated_at']} · casos: {len(cases)} · checks: {len(checks)} "
              f"(búsqueda + superficie fija, bishop y spencer)")
@@ -206,6 +231,9 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
     L.append("- **Búsqueda**: `FS_ogs ≤ FS_cSlope · 1,01`, con el mismo método, número de dovelas y rangos. "
              "Un FS de ogs menor es más exhaustivo y se acepta.")
     L.append("- **Superficie fija**: `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,5 %`, con el mismo círculo.")
+    L.append("- **Concordancia (W9)**: si ogs declara la superficie fija sin solución (`not_converged` o `invalid`) "
+             "y cSlope también (`EngineError`), el veredicto es `OK (concordancia: ambos sin solución)`. "
+             "Si solo uno de los dos la declara, es `FALLA`.")
     L.append("- El veredicto no detiene la batería: el exit code es 0 aunque haya fallos.")
     L.append("")
     L.append("## Resumen")
@@ -213,10 +241,10 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
     s, f = summary["search"], summary["fixed"]
     L.append(f"**búsqueda OK {s['OK']}/{s['N']}** · **fija OK {f['OK']}/{f['N']}**")
     L.append("")
-    L.append("| criterio | OK | FALLA | sin dato |")
-    L.append("|---|---:|---:|---:|")
-    L.append(f"| búsqueda | {s['OK']} | {s['FALLA']} | {s['sin dato']} |")
-    L.append(f"| fija | {f['OK']} | {f['FALLA']} | {f['sin dato']} |")
+    L.append("| criterio | OK | de ellos, ambos sin solución | FALLA | sin dato |")
+    L.append("|---|---:|---:|---:|---:|")
+    L.append(f"| búsqueda | {s['OK']} | {s['ambos_sin_solucion']} | {s['FALLA']} | {s['sin dato']} |")
+    L.append(f"| fija | {f['OK']} | {f['ambos_sin_solucion']} | {f['FALLA']} | {f['sin dato']} |")
     L.append("")
     L.append(f"Tiempo total: ogs {summary['ogs_seconds']} s · cSlope {summary['cslope_seconds']} s.")
     L.append("")
@@ -238,7 +266,7 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
     L.append("")
     L.append("Δ% = (FS_ogs − FS_cSlope) / FS_cSlope · 100. El veredicto de la fila combina las dos comprobaciones.")
     L.append("")
-    fails = [c for c in checks if c["verdict"] != "OK"]
+    fails = [c for c in checks if c["verdict"] not in PASS_VERDICTS]
     L.append("## Fallos y motivos")
     L.append("")
     if not fails:

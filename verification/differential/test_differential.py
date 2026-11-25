@@ -29,7 +29,7 @@ sys.path.insert(0, str(HERE))
 import build_cases  # noqa: E402
 from to_cslope import ogs_to_cslope  # noqa: E402
 
-DEFAULT_OGS = "/home/xodla/archivos/opengeoslide/target/release/ogs"
+DEFAULT_OGS = os.path.normpath(os.path.join(HERE, "..", "..", "target", "release", "ogs"))
 OGS_BIN = os.environ.get("OGS_BIN", DEFAULT_OGS)
 MODELS = build_cases.build_all()
 CASE_IDS = sorted(MODELS)
@@ -151,8 +151,36 @@ def test_ogs_not_converged_is_a_failure_even_with_a_number():
 
 def test_missing_values_are_no_data_not_a_pass():
     assert run.evaluate("search", _side(None, error="exit 2"), _side(0.3))[0] == "sin dato"
-    assert run.evaluate("fixed", _side(0.5), _side(None, error="EngineError"))[0] == "sin dato"
+    assert run.evaluate("fixed", _side(0.5), _side(None, error="conversión no soportada: x"))[0] == "sin dato"
+    # cSlope 'not converged' (a number without convergence) stays no data, not a pass.
     assert run.evaluate("fixed", _side(0.5), _side(0.5, status="not_converged"))[0] == "sin dato"
+    # An ogs execution error is never a declaration of no solution.
+    assert run.evaluate("fixed", _side(None, error="exit 2"), _side(None, error="EngineError: x"))[0] == "sin dato"
+
+
+def test_one_side_declaring_no_solution_is_a_failure():
+    # cSlope has no surface, ogs has one: a discrepancy, not a no-data case (W9).
+    verdict, reason = run.evaluate("fixed", _side(0.5), _side(None, error="EngineError: No valid slip surface"))
+    assert verdict == "FALLA"
+    assert "cSlope" in reason
+    # ogs has no solution, cSlope has a surface.
+    assert run.evaluate("fixed", _side(2.83, status="not_converged"), _side(0.5187))[0] == "FALLA"
+    assert run.evaluate("fixed", _side(None, status="invalid"), _side(0.5187))[0] == "FALLA"
+
+
+def test_both_engines_without_solution_on_a_fixed_surface_is_concordance():
+    cs_err = _side(None, error="EngineError: No valid slip surface was found")
+    verdict, reason = run.evaluate("fixed", _side(2.83, status="not_converged"), cs_err)
+    assert verdict == "OK (concordancia: ambos sin solución)" == run.VERDICT_BOTH_NO_SOLUTION
+    assert verdict in run.PASS_VERDICTS
+    assert "ambos motores" in reason
+    assert run.evaluate("fixed", _side(None, status="invalid"), cs_err)[0] == run.VERDICT_BOTH_NO_SOLUTION
+
+
+def test_both_without_solution_is_not_concordance_on_search():
+    # The concordance rule is for the fixed surface only (E9b). A search where both fail stays FALLA.
+    cs_err = _side(None, error="EngineError: No valid slip surface was found")
+    assert run.evaluate("search", _side(None, status="not_converged"), cs_err)[0] == "FALLA"
 
 
 def test_run_writes_report_and_exits_zero_with_failures(tmp_path):
