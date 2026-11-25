@@ -291,26 +291,9 @@ fn r2_03_search_spencer_result_is_admissible() {
     assert!(min_m >= 0.2 - 1e-9, "min m_α(F) = {min_m}");
 }
 
-/// R2-03 search, the target of W5a: Spencer's critical FS within 5 % of Bishop's (0.340806). IGNORED: under E8b the
-/// critical Spencer state is still 0.413196 (+21.2 %). The Bishop-critical circle alone gives Spencer 0.480195 (+41 %),
-/// with an admissible state that carries `air_gap_thrust`; see `r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b`.
-#[test]
-#[ignore = "E8b does not reach the ≤5 % target: Spencer 0.413196 vs Bishop 0.340806 (+21.2 %), same as before E8b. Coordinator decision pending."]
-fn r2_03_search_spencer_within_5_percent_of_bishop() {
-    let m = model(
-        &P_R202,
-        2.0,
-        45.0,
-        20.0,
-        Some(0.65),
-        search(&["bishop", "spencer"], 1e-5),
-    );
-    let results = run_all(&m);
-    let (bishop, spencer) = (&results[0], &results[1]);
-    let fb = bishop.fos.expect("finite");
-    let fs = spencer.fos.expect("finite");
-    assert!((fs - fb).abs() / fb <= 0.05, "Spencer {fs} vs Bishop {fb}");
-}
+// The W5a target `r2_03_search_spencer_within_5_percent_of_bishop` (ignored) was removed in W7a. Its premise, Spencer
+// within 5 % of Bishop, is retired: cSlope 0.1.0 gives Spencer 0.3876 and Bishop 0.3307 on this slope (+17 %, a real
+// difference). The differential check against the oracle replaces it in `tests/differential_r2_03.rs`.
 
 /// R2-03 Bishop-critical circle under E8b. The λ fixed point lies at λ ≈ 0.4587, where Φ/F < 0.2 on some slice, so
 /// the old E4b rejected it. E8b asks for Bishop's m_α ≥ min_m_alpha and Φ > 1e-9·F, which the state satisfies:
