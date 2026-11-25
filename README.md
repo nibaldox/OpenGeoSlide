@@ -83,8 +83,9 @@ Con la búsqueda por defecto, este modelo da Bishop 1,2723 y Spencer 1,2704 (`og
   Test: `cargo test -p ogs-core --test acceptance`.
 - **Harness frente a cSlope:** cSlope 0.1.0 reproduce 51/51 de esos mismos checks publicados.
 - **Batería diferencial** (ogs frente a cSlope 0.1.0, 14 modelos sintéticos, bishop y spencer; D11-D14 con sismo y cargas):
-  - búsqueda (`FS_ogs ≤ FS_cSlope · 1,01`, mismo método, dovelas y rangos): **26/28** OK. Los 2 que no pasan son D13
-    (carga lineal): cSlope encuentra como mínimo un círculo de 0,67 m bajo la carga, que ogs descarta por `min_m_alpha`;
+  - búsqueda (`FS_ogs ≤ FS_cSlope · 1,01`, mismo método, dovelas y rangos): **28/28** OK. D13 (carga lineal) fija
+    `min_width = 5 m`: sin él, cSlope encuentra un círculo de 0,67 m bajo la carga (FS 0,614) que ogs descarta por
+    `min_m_alpha`;
   - superficie fija (`|Δ| ≤ 0,5 %`): **28/28** OK. D03 spencer es una concordancia (ambos motores declaran la superficie
     sin solución);
   - resultados y diagnóstico de D13 en [`verification/differential/REPORT.md`](verification/differential/REPORT.md) y
@@ -108,15 +109,21 @@ Con la búsqueda por defecto, este modelo da Bishop 1,2723 y Spencer 1,2704 (`og
 > validarse por un profesional competente antes de usarlos en un diseño. El criterio profesional y la
 > responsabilidad sobre el diseño son del usuario.
 
-## Limitaciones conocidas (Fase 0)
+## Limitaciones conocidas
 
-Limitaciones que la revisión adversarial R4 ([`docs/reviews/R4_agy.md`](docs/reviews/R4_agy.md)) dejó abiertas para la
-Fase 1. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (51/51) ni la batería
-diferencial en D01-D10 (20/20 + 20/20).
+Limitaciones que las revisiones adversariales ([`docs/reviews/`](docs/reviews/)) dejaron abiertas, más las que dejó la
+verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (51/51)
+ni la batería diferencial (28/28 + 28/28 en D01-D14).
 
-- **R4-01, selección de la raíz de λ en Spencer:** entre dos raíces admisibles, se elige la de menor |λ|, aunque sea
-  negativa. En taludes bicapa con un estrato superior cohesivo (φ = 0) puede dar un FS de −7,08 % a +3,47 % frente a
-  cSlope (47 de 1008 casos bicapa difieren más de 1 %). Aviso: `negative_lambda` (nota) y `negative_effective_normal_major`.
+- **R4-01, selección de la raíz de λ en Spencer (resuelto por E12e):** entre varias raíces admisibles, Spencer elige
+  la de menor F (conservadora), y a igualdad la de menor |λ|. Con la selección anterior (menor |λ|) 47 de 1008 casos
+  bicapa diferían más de 1 % de cSlope. Aviso: `multiple_admissible_roots` (nota) cuando hay más de una raíz admisible.
+  Residual: cuando cSlope sigue otra raíz, ogs puede quedar por debajo de cSlope (caso R4-01 (2): −7,08 %), por
+  elegir la raíz de menor F, y con la nota `multiple_admissible_roots`.
+- **Cargas lineales y superficies locales (D13):** una carga puntual o lineal puede generar bajo ella círculos
+  diminutos con m_α < `min_m_alpha` (en D13, un círculo de 0,67 m con FS 0,614 en cSlope, que avisa `low-m-alpha`).
+  ogs los rechaza (E4b). Conviene fijar `search.min_width` (D13 usa 5 m, y entonces ogs y cSlope coinciden en
+  +0,03 %) y revisar aparte la capacidad de soporte local bajo la carga: un análisis de estabilidad global no la cubre.
 - **R4-02, paso fijo de 0,05 en el barrido de λ:** dos raíces admisibles dentro del mismo paso no se detectan y el
   resultado es `no_lambda_root`, aunque cSlope converge (p. ej., c_top = 74,05: cSlope 1,914138 y ogs sin FS).
   Aviso: `no_lambda_root`, con estado `not_converged` y sin FS.
@@ -128,8 +135,8 @@ diferencial en D01-D10 (20/20 + 20/20).
   `effective_width_below_min` y `truncated_mass`.
 - **Bloques descartados que salen por una pared lateral (E11e′):** no se pueden clasificar, así que solo reciben la
   nota `truncated_mass`, aunque sean motrices. Aviso: `truncated_mass`.
-- **`unit_weight_sat` sin cobertura:** ningún caso de aceptación usa `unit_weight_sat` (0 de 16 casos de verificación).
-  La ruta de peso saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
+- **`unit_weight_sat` sin cobertura:** ninguno de los 21 casos de verificación (los 5 de la ola B tampoco) usa
+  `unit_weight_sat`. La ruta de peso saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
 
 ## Licencia
 
