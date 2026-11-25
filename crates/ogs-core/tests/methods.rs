@@ -613,8 +613,9 @@ fn e7b_bishop_bisection_finds_the_admissible_root_when_fixed_point_leaves_the_in
 /// λ = 0.191569. That is an expectation change, verified outside the crate: λ is a fixed point of the moment
 /// update (λ_next = 0.191570), E_n ≈ 1e-14, and min Φ/F = 0.32 ≥ 0.2. The spurious root is gone.
 #[test]
-#[ignore = "E8b: the λ chain no longer reaches the admissible root 0.746180 (Invalid 'pole' at λ ≈ 0.104, 2000 \
-             iterations). Coordinator decision pending; see the report of W6 (R1-07a)."]
+#[ignore = "E9c (W7a): the budget split does not recover the root. At λ ≈ 0.0978, h(F) has two admissible roots \
+             (≈ 0.40 and ≈ 0.62) inside [F_adm, 1e3], so the bisection finds no sign change, and the λ chain \
+             stalls at λ ≈ 0.104 with Invalid 'pole'. Coordinator decision pending (root branch selection)."]
 fn r1_07a_negative_fos_iterate_is_not_a_root() {
     let circ = Circ {
         xc: 11.534_196_233_023_085,
