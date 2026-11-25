@@ -41,16 +41,19 @@ const MAX_ITERATIONS: usize = 100_000;
 const MIN_RADIUS_FACTOR_EXCLUSIVE: f64 = 0.51;
 
 /// Errors produced by the engine.
+///
+/// `Display` is `"<Código>: <mensaje en español>"` (contract E6). The code is stable: the web and
+/// Python classify errors by that prefix.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum OgsError {
-    #[error("invalid model: {0}")]
+    #[error("InvalidModel: {0}")]
     InvalidModel(String),
-    #[error("no surface defined: set analysis.surface or analysis.search")]
+    #[error("NoSurface: no hay superficie definida; indique analysis.surface o analysis.search")]
     NoSurface,
     /// Carries the reason in Spanish (the slicer error, or the search outcome).
-    #[error("no valid surface found: {0}")]
+    #[error("NoValidSurface: {0}")]
     NoValidSurface(String),
-    #[error("invalid model JSON: {0}")]
+    #[error("Json: el texto no es un JSON válido: {0}")]
     Json(String),
 }
 
@@ -265,14 +268,11 @@ fn analyze_method(
         slice_circle(pm, &circle, n).map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
     let result = solve(&slices, method, opts);
 
-    // 3. Warnings. Water over the ground inside the sliding mass is ignored in v0.1.
+    // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is
+    //    ignored in v0.1.
     let mut warnings = Vec::new();
     if water_over_ground(pm, &slices) {
-        warnings.push(
-            "piezometric line above the ground inside the sliding mass: \
-             water over ground is ignored in v0.1"
-                .to_string(),
-        );
+        warnings.push("water_above_ground".to_string());
     }
     warnings.extend(result.message);
 
@@ -333,7 +333,9 @@ pub fn analyze_json(input: &str) -> Result<String, String> {
 
 fn json_error(e: &serde_json::Error) -> OgsError {
     match e.classify() {
-        serde_json::error::Category::Data => invalid(e.to_string()),
+        serde_json::error::Category::Data => {
+            invalid(format!("el documento no coincide con el esquema: {e}"))
+        }
         _ => OgsError::Json(e.to_string()),
     }
 }

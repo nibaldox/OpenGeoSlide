@@ -2,8 +2,10 @@
 //! within the stated relative tolerance. An empty case set is a failure, never a silent pass.
 //!
 //! The case files are strict: an unknown field in a case, check or option is an error. A check also
-//! fails when the engine emits any warning, because a warning means the result was computed under
-//! an assumption (for example, water over the ground) that the verification case does not state.
+//! fails when the engine emits a warning that is not informative, because such a warning means the
+//! result was computed under an assumption (for example, water over the ground) that the verification
+//! case does not state. Informative warnings (contract E5) are listed in `INFORMATIVE_WARNINGS`; they
+//! are printed in the `avisos` column and do not fail the check.
 
 use std::fs;
 use std::path::PathBuf;
@@ -13,6 +15,10 @@ use ogs_core::methods::SolveStatus;
 use ogs_core::model::{MethodKind, Model};
 use serde::Deserialize;
 use serde_json::{Value, json};
+
+/// Warning codes that are informative (contract E5): they are reported, not failed.
+/// Any other warning code fails the check.
+const INFORMATIVE_WARNINGS: &[&str] = &["negative_effective_normal"];
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -77,8 +83,8 @@ fn verification_cases_match_published_values() {
     let mut total = 0usize;
     let mut failures: Vec<String> = Vec::new();
     println!(
-        "{:<10} | {:<8} | {:<6} | {:>12} | {:>12} | {:>8} | {:>7} | OK/FAIL",
-        "id", "método", "tipo", "publicado", "ogs", "err%", "tol%"
+        "{:<10} | {:<8} | {:<6} | {:>12} | {:>12} | {:>8} | {:>7} | {:<28} | OK/FAIL",
+        "id", "método", "tipo", "publicado", "ogs", "err%", "tol%", "avisos"
     );
 
     for file in &files {
@@ -129,20 +135,32 @@ fn verification_cases_match_published_values() {
                     if res.status != SolveStatus::Converged {
                         return Err(format!("status {:?}", res.status));
                     }
-                    if !res.warnings.is_empty() {
-                        return Err(format!("unexpected warnings: {:?}", res.warnings));
+                    let blocking: Vec<&String> = res
+                        .warnings
+                        .iter()
+                        .filter(|w| !INFORMATIVE_WARNINGS.contains(&w.as_str()))
+                        .collect();
+                    if !blocking.is_empty() {
+                        return Err(format!("unexpected warnings: {blocking:?}"));
                     }
                     // Converged implies a finite FS; a `None` here is a contract violation.
-                    res.fos
-                        .ok_or_else(|| "converged without a finite fos".to_string())
+                    let fos = res
+                        .fos
+                        .ok_or_else(|| "converged without a finite fos".to_string())?;
+                    Ok((fos, res.warnings.clone()))
                 });
 
             match outcome {
-                Ok(fos) => {
+                Ok((fos, warnings)) => {
                     let err = (fos - check.published).abs() / check.published.abs();
                     let ok = err <= check.tolerance;
+                    let avisos = if warnings.is_empty() {
+                        "-".to_string()
+                    } else {
+                        warnings.join(",")
+                    };
                     println!(
-                        "{:<10} | {:<8} | {:<6} | {:>12.6} | {:>12.6} | {:>8.4} | {:>7.3} | {}",
+                        "{:<10} | {:<8} | {:<6} | {:>12.6} | {:>12.6} | {:>8.4} | {:>7.3} | {:<28} | {}",
                         case.id,
                         method,
                         kind,
@@ -150,6 +168,7 @@ fn verification_cases_match_published_values() {
                         fos,
                         100.0 * err,
                         100.0 * check.tolerance,
+                        avisos,
                         if ok { "OK" } else { "FAIL" }
                     );
                     if !ok {
@@ -165,14 +184,15 @@ fn verification_cases_match_published_values() {
                 }
                 Err(msg) => {
                     println!(
-                        "{:<10} | {:<8} | {:<6} | {:>12.6} | {:>12} | {:>8} | {:>7.3} | ERROR",
+                        "{:<10} | {:<8} | {:<6} | {:>12.6} | {:>12} | {:>8} | {:>7.3} | {:<28} | ERROR",
                         case.id,
                         method,
                         kind,
                         check.published,
                         "-",
                         "-",
-                        100.0 * check.tolerance
+                        100.0 * check.tolerance,
+                        "-"
                     );
                     failures.push(format!(
                         "{} {method} ({kind}): {msg} (publicado {:.6} por {})",

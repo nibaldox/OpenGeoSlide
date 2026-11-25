@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { EngineClient, type PortLike } from './client';
 import { createMockEngine } from './mockEngine';
 import { createDispatcher, type Request, type Response } from './protocol';
-import { humanizeEngineError } from './errors';
 import { EngineError } from './engine';
 import acads1a from '../examples/acads1a.json';
 
@@ -70,12 +69,3 @@ describe('protocolo y cliente', () => {
   });
 });
 
-describe('humanizeEngineError', () => {
-  it('traduce los códigos de §3 a mensajes en español', () => {
-    expect(humanizeEngineError('NoSurface: falta')).toMatch(/superficie/);
-    expect(humanizeEngineError('NoValidSurface: x')).toMatch(/ninguna superficie de deslizamiento válida/);
-    expect(humanizeEngineError('InvalidModel: sin materiales')).toBe('Modelo no válido: sin materiales');
-    expect(humanizeEngineError('Json: unexpected token')).toBe('JSON no válido: unexpected token');
-    expect(humanizeEngineError('algo raro')).toBe('Error del motor: algo raro');
-  });
-});

@@ -7,6 +7,8 @@ API pública:
 - ``analyze(model)``: igual, pero con un ``dict`` de entrada y un ``dict`` de salida.
 
 Errores: ``ValueError`` si el motor rechaza el modelo; ``RuntimeError`` si el motor entra en pánico.
+El mensaje de ``ValueError`` empieza por el código del error (``InvalidModel``, ``NoSurface``,
+``NoValidSurface`` o ``Json``), seguido de ``: `` y el detalle en español.
 """
 
 import json

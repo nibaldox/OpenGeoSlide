@@ -204,7 +204,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
                 SolveStatus::NotConverged,
                 iterations,
                 Some(lambda),
-                Some("max_iterations reached"),
+                Some("max_iterations"),
             );
         }
 
@@ -240,7 +240,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
                 SolveStatus::NotConverged,
                 iterations,
                 Some(lambda),
-                Some("max_iterations reached"),
+                Some("max_iterations"),
             );
         }
         let check = match fos_step(slices, fos, lambda) {

@@ -32,8 +32,8 @@ import type {
 
 export const MOCK_VERSION = '0.1.0';
 export const MOCK_SLICE_COUNT = 30;
-export const MOCK_WARNING =
-  'Motor simulado: FS con Fellenius (aproximación), no es el cálculo de Bishop o Spencer de ogs-core.';
+/** Código de aviso (ver warnings.ts) que marca el resultado como simulado. */
+export const MOCK_WARNING = 'mock_engine';
 
 const GAMMA_W_DEFAULT = 9.81;
 const GROUND_TOL = 1e-7;
@@ -171,7 +171,7 @@ function buildSlices(ctx: Context, circle: Circle, bounds: number[]): Slice[] {
     const ints = verticalIntervals(model, xm);
     const piezo = piezoY(model, xm);
     if (piezo !== null && piezo > ytm + GROUND_TOL) {
-      ctx.warnings.add('Agua sobre el terreno: ignorada (no soportada en v0.1)');
+      ctx.warnings.add('water_above_ground');
     }
 
     // Σ γ_k h_k sobre la vertical x_mid entre la base y el terreno (kPa).
@@ -293,7 +293,7 @@ function fixedOutcome(ctx: Context, circle: Circle): Outcome {
     fos,
     status: fos === null ? 'invalid' : 'converged',
     search: null,
-    notes: fos === null ? ['Σ W·sen α ≤ 0: no hay fuerza motriz'] : [],
+    notes: fos === null ? ['no_driving'] : [],
   };
 }
 
@@ -391,7 +391,7 @@ export function analyzeMock(modelJson: string): AnalysisReport {
       fos: best.fos,
       status: 'converged',
       search: stats,
-      notes: ['Búsqueda simulada en rejilla, sin refinamiento de patrones.'],
+      notes: ['mock_search'],
     };
   } else {
     const surface = analysis.surface as NonNullable<typeof analysis.surface>;

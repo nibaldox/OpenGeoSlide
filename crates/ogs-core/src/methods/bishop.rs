@@ -129,6 +129,6 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         SolveStatus::NotConverged,
         iterations,
         None,
-        Some("max_iterations reached"),
+        Some("max_iterations"),
     )
 }
