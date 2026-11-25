@@ -4,7 +4,7 @@
 > de la CPU y con el resto del sistema activo. Sirve para orientarse sobre el orden de magnitud; no para comparar
 > versiones con precisión.
 
-Generado por `bench/run_all.sh` el 2026-11-25T03:31:30.124Z.
+Generado por `bench/run_all.sh` el 2026-11-25T07:47:28.209Z.
 
 ## Máquina y versiones
 
@@ -30,22 +30,22 @@ Generado por `bench/run_all.sh` el 2026-11-25T03:31:30.124Z.
 
 | target | método | evaluadas | mediana ms | ms/superficie | FS |
 |---|---|---|---|---|---|
-| native | Bishop simplificado | 8543 | 51,08 | 0,0060 | 0,985123362 |
-| native | Spencer | 8655 | 177,75 | 0,0205 | 0,984142025 |
-| native-parallel | Bishop simplificado | 8543 | 5,42 | 0,0006 | 0,985123362 |
-| native-parallel | Spencer | 8655 | 17,48 | 0,0020 | 0,984142025 |
-| node-wasm | Bishop simplificado | 8543 | 61,26 | 0,0072 | 0,985123362 |
-| node-wasm | Spencer | 8655 | 219,34 | 0,0253 | 0,984142025 |
-| chrome-wasm | Bishop simplificado | 8543 | 52,70 | 0,0062 | 0,985123362 |
-| chrome-wasm | Spencer | 8655 | 185,40 | 0,0214 | 0,984142025 |
+| native | Bishop simplificado | 8543 | 50,16 | 0,0059 | 0,985123362 |
+| native | Spencer | 8655 | 217,21 | 0,0251 | 0,984142025 |
+| native-parallel | Bishop simplificado | 8543 | 5,33 | 0,0006 | 0,985123362 |
+| native-parallel | Spencer | 8655 | 20,59 | 0,0024 | 0,984142025 |
+| node-wasm | Bishop simplificado | 8543 | 61,49 | 0,0072 | 0,985123362 |
+| node-wasm | Spencer | 8655 | 264,69 | 0,0306 | 0,984142025 |
+| chrome-wasm | Bishop simplificado | 8543 | 55,90 | 0,0065 | 0,985123362 |
+| chrome-wasm | Spencer | 8655 | 231,50 | 0,0267 | 0,984142025 |
 
 Razón de tiempo: mediana de cada target dividida por la mediana nativa de un hilo (menor es mejor). Los valores
 menores que 1 indican que el target es más rápido que el nativo de un hilo.
 
 | método | native-parallel | node-wasm | chrome-wasm |
 |---|---|---|---|
-| Bishop simplificado | 0,11 | 1,20 | 1,03 |
-| Spencer | 0,10 | 1,23 | 1,04 |
+| Bishop simplificado | 0,11 | 1,23 | 1,11 |
+| Spencer | 0,09 | 1,22 | 1,07 |
 
 ## Verificación de FS
 
