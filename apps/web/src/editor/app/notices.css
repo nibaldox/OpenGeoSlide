@@ -23,3 +23,9 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* El botón «Cerrar» no se parte en dos líneas cuando el texto del aviso es largo. */
+.ea-notice-bar .ea-notice button {
+  flex: none;
+  white-space: nowrap;
+}

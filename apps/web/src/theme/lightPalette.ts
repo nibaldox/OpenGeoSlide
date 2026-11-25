@@ -14,7 +14,7 @@ export const LIGHT_SECTION_PALETTE: SectionPalette = {
   surface: '#a31515',
   piezo: '#1e40af',
   sliceFill: 'rgb(71 85 105 / 0.16)',
-  sliceEdge: 'rgb(71 85 105 / 0.55)',
+  sliceEdge: 'rgb(30 41 59 / 0.65)',
   materialUnknown: '#cbd5e1',
   materials: ['#d8b77a', '#9cc29a', '#9fb9d9', '#dba5a5', '#c2a8d8', '#e3cf86', '#a9d4d0'],
 };
