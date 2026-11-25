@@ -1,6 +1,6 @@
 """Tests for the differential battery (W7b). Run from the worktree root, see README.md.
 
-- the ten generated models are the committed ones (no drift);
+- the fourteen generated models are the committed ones (no drift);
 - the ogs binary accepts every model (search and fixed) without InvalidModel;
 - the cSlope converter accepts every model and cSlope validates the document;
 - the E9b verdict rules of run.py.
@@ -63,8 +63,8 @@ def _ogs_analyze(model: dict, method: str, kind: str, tmp_path: Path) -> subproc
 
 # ------------------------------------------------------------ cases
 
-def test_ten_cases_with_intent():
-    assert CASE_IDS == [f"D{i:02d}" for i in range(1, 11)]
+def test_fourteen_cases_with_intent():
+    assert CASE_IDS == [f"D{i:02d}" for i in range(1, 15)]
     for case_id, model in MODELS.items():
         assert model["meta"]["notes"].strip(), f"{case_id} has no intent note"
         assert model["units"] == "SI"
@@ -80,6 +80,21 @@ def test_committed_cases_match_builder():
         assert path.is_file(), f"missing {path.name}: run build_cases.py"
         assert path.read_text(encoding="utf-8") == build_cases.serialize(model), (
             f"{path.name} is stale: rerun build_cases.py")
+
+
+def test_v0_2_cases_carry_seismic_and_loads_as_designed():
+    """D11-D14 are the only v0.2 models; D01-D10 stay v0.1 and byte-identical to the previous battery."""
+    for case_id, model in MODELS.items():
+        assert model["version"] == ("0.2" if case_id >= "D11" else "0.1"), case_id
+        has_new = bool(model.get("loads")) or "seismic" in model["analysis"]
+        assert has_new == (case_id >= "D11"), case_id
+    assert MODELS["D11"]["analysis"]["seismic"] == {"kh": 0.15, "kv": 0.0}
+    assert MODELS["D12"]["loads"] == [{"type": "udl", "id": "u1", "x1": 0.0, "x2": 10.0, "q": 50.0}]
+    assert MODELS["D12"]["analysis"]["seismic"] == {"kh": 0.0, "kv": -0.05}
+    assert MODELS["D13"]["loads"] == [{"type": "line", "id": "l1", "x": 6.0, "p": 100.0, "angle": 15.0}]
+    assert MODELS["D14"]["analysis"]["seismic"] == {"kh": 0.1, "kv": 0.0}
+    assert MODELS["D14"]["water"]["piezometric_line"]
+    assert list(MODELS["D12"]).index("loads") == list(MODELS["D12"]).index("water") + 1  # F1.1: after water
 
 
 def test_material_mix_covers_mining_and_civil_cases():
@@ -152,8 +167,7 @@ def test_ogs_not_converged_is_a_failure_even_with_a_number():
 def test_missing_values_are_no_data_not_a_pass():
     assert run.evaluate("search", _side(None, error="exit 2"), _side(0.3))[0] == "sin dato"
     assert run.evaluate("fixed", _side(0.5), _side(None, error="conversión no soportada: x"))[0] == "sin dato"
-    # cSlope 'not converged' (a number without convergence) stays no data, not a pass.
-    assert run.evaluate("fixed", _side(0.5), _side(0.5, status="not_converged"))[0] == "sin dato"
+    assert run.evaluate("fixed", _side(0.5), _side(None))[0] == "sin dato"
     # An ogs execution error is never a declaration of no solution.
     assert run.evaluate("fixed", _side(None, error="exit 2"), _side(None, error="EngineError: x"))[0] == "sin dato"
 
@@ -177,6 +191,27 @@ def test_both_engines_without_solution_on_a_fixed_surface_is_concordance():
     assert run.evaluate("fixed", _side(None, status="invalid"), cs_err)[0] == run.VERDICT_BOTH_NO_SOLUTION
 
 
+def test_cslope_not_converged_is_an_oracle_without_solution_never_a_reference():
+    """X6: converged = false is cSlope's closest Fm/Ff pair, not a root. Same semantics as EngineError."""
+    cs_nc = _side(0.0830, status="not_converged")  # R3-01b: not converged 0.0830, the real root is 0.2685
+    assert run.cslope_declares_no_solution(cs_nc)
+    assert not run.cslope_declares_no_solution(_side(0.2685))
+    assert not run.cslope_declares_no_solution(_side(None, error="conversión no soportada: x"))
+    # fixed surface: both without solution is concordance, whatever ogs would have compared against 0.0830
+    for ogs in (_side(2.83, status="not_converged"), _side(None, status="invalid")):
+        verdict, reason = run.evaluate("fixed", ogs, cs_nc)
+        assert verdict == run.VERDICT_BOTH_NO_SOLUTION and "no es una raíz" in reason
+    # only the oracle without solution: FALLA, and the oracle's number is not used as reference
+    verdict, reason = run.evaluate("fixed", _side(0.0830), cs_nc)  # equal to the oracle's number: still FALLA
+    assert verdict == "FALLA" and "solo cSlope" in reason
+    verdict, _ = run.evaluate("search", _side(0.0830), cs_nc)
+    assert verdict == "FALLA"
+    # only ogs without solution, the oracle has a root
+    assert run.evaluate("fixed", _side(None, status="not_converged"), _side(0.2685))[0] == "FALLA"
+    # the concordance rule is not extended to the search
+    assert run.evaluate("search", _side(None, status="not_converged"), cs_nc)[0] == "FALLA"
+
+
 def test_both_without_solution_is_not_concordance_on_search():
     # The concordance rule is for the fixed surface only (E9b). A search where both fail stays FALLA.
     cs_err = _side(None, error="EngineError: No valid slip surface was found")
@@ -184,15 +219,15 @@ def test_both_without_solution_is_not_concordance_on_search():
 
 
 def test_run_writes_report_and_exits_zero_with_failures(tmp_path):
-    """Full path on the 10 cases: exit 0 even though some checks fail, and the summary counts 20+20."""
+    """Full path on the 14 cases: exit 0 even though some checks fail, and the summary counts 28+28."""
     cases = tmp_path / "cases"
     shutil.copytree(HERE / "cases", cases)
     out = tmp_path / "out"
     code = run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)])
     assert code == 0
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
-    assert len(report["checks"]) == 40
-    assert report["summary"]["search"]["N"] == 20 and report["summary"]["fixed"]["N"] == 20
+    assert len(report["checks"]) == 56
+    assert report["summary"]["search"]["N"] == 28 and report["summary"]["fixed"]["N"] == 28
     assert (out / "REPORT.md").read_text(encoding="utf-8").startswith("# Batería diferencial")
     # R4-04: the ogs warnings of every check are kept in report.json and listed in REPORT.md.
     for check in report["checks"]:
@@ -204,9 +239,10 @@ def test_run_writes_report_and_exits_zero_with_failures(tmp_path):
 
 # ------------------------------------------------------------ ogs warnings (R4-04)
 
-def test_informative_ogs_warnings_are_the_three_notes_of_the_contract():
-    # Same list as INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs (E5, E10a, E11a′).
-    assert set(run.OGS_INFORMATIVE_WARNINGS) == {"negative_effective_normal", "truncated_mass", "negative_lambda"}
+def test_informative_ogs_warnings_are_the_notes_of_the_contract():
+    # Same list as INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs (E5, E10a, E11a′, E12b).
+    assert set(run.OGS_INFORMATIVE_WARNINGS) == {
+        "negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass"}
 
 
 def test_non_informative_warnings_keep_driving_and_major_codes():

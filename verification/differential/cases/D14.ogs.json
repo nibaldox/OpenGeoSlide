@@ -1,0 +1,106 @@
+{
+  "format": "opengeoslide",
+  "version": "0.2",
+  "meta": {
+    "id": "D14",
+    "title": "Terraplén con kh = 0,1 y piezométrica",
+    "notes": "Terraplén homogéneo de 12 m con taludes 2H:1V, sismo kh = 0,1 y línea piezométrica que baja desde (0; 9) hasta el pie (32; 0). c = 12 kPa, φ = 30°, γ = 19 kN/m³, γw = 9,807."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno compactado",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 12.0,
+      "friction_angle": 30.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          0.0,
+          -5.0
+        ],
+        [
+          0.0,
+          12.0
+        ],
+        [
+          8.0,
+          12.0
+        ],
+        [
+          32.0,
+          0.0
+        ],
+        [
+          50.0,
+          0.0
+        ],
+        [
+          50.0,
+          -5.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        9.0
+      ],
+      [
+        20.0,
+        5.0
+      ],
+      [
+        32.0,
+        0.0
+      ],
+      [
+        50.0,
+        0.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "seismic": {
+      "kh": 0.1,
+      "kv": 0.0
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 26.164842791391187,
+      "yc": 22.108248746858482,
+      "r": 23.365781178520713
+    }
+  }
+}

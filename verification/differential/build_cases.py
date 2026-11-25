@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Ten synthetic OpenGeoSlide v0.1 models for the differential battery (ogs vs cSlope 0.1.0).
+"""Fourteen synthetic OpenGeoSlide models for the differential battery (ogs vs cSlope 0.1.0).
+
+D01-D10 are v0.1 models. D11-D14 are v0.2 models with pseudo-static seismic coefficients and surface loads
+(briefs/01_CONTRATOS_FASE1.md F1.1).
 
 Writes verification/differential/cases/<id>.ogs.json. Nothing here is a published value: the
 models only feed two engines, and run.py compares the engines with each other (contract E9b).
@@ -44,6 +47,11 @@ FIXED_SURFACES: dict[str, tuple[float, float, float]] = {
     "D08": (100.73720825848756, 57.00770569226089, 57.01247218207448),
     "D09": (10.77159214833143, 39.640974335435686, 24.641649084951563),
     "D10": (35.819118943985664, 36.28579647805391, 37.55500611193463),
+    # D11-D14: critical circle of ogs' default Bishop search with kh / kv / loads, unrounded for the same reason.
+    "D11": (49.15361069958381, 52.38433283950057, 54.01051565645141),
+    "D12": (78.02156234337791, 86.40658284746021, 93.16814016491793),
+    "D13": (25.051065245816822, 23.172099814674574, 23.17215608182742),
+    "D14": (26.164842791391187, 22.108248746858482, 23.365781178520713),
 }
 
 
@@ -86,7 +94,8 @@ def _search(entry: tuple[float, float] | None = None,
 
 def _model(case_id: str, title: str, intent: str, direction: str,
            materials: list[dict], regions: list[dict], search: dict,
-           piezo: list[tuple[float, float]] | None = None) -> dict:
+           piezo: list[tuple[float, float]] | None = None,
+           loads: list[dict] | None = None, seismic: dict | None = None) -> dict:
     water: dict = {"unit_weight": GAMMA_W}
     if piezo:
         water["piezometric_line"] = [[x, y] for x, y in piezo]
@@ -98,20 +107,26 @@ def _model(case_id: str, title: str, intent: str, direction: str,
         "min_m_alpha": 0.2,
         "search": search,
     }
+    if seismic is not None:
+        analysis["seismic"] = dict(seismic)
     if case_id in FIXED_SURFACES:
         xc, yc, r = FIXED_SURFACES[case_id]
         analysis["surface"] = {"type": "circle", "xc": xc, "yc": yc, "r": r}
-    return {
+    v02 = bool(loads) or seismic is not None
+    model: dict = {
         "format": "opengeoslide",
-        "version": "0.1",
+        "version": "0.2" if v02 else "0.1",
         "meta": {"id": case_id, "title": title, "notes": intent},
         "units": "SI",
         "materials": materials,
         "regions": regions,
         "water": water,
-        "slope": {"direction": direction},
-        "analysis": analysis,
     }
+    if loads:
+        model["loads"] = [dict(load) for load in loads]
+    model["slope"] = {"direction": direction}
+    model["analysis"] = analysis
+    return model
 
 
 # Shared 1:1 homogeneous profile (height 20 m, crest x in [0, 20], toe at x = 40).
@@ -248,11 +263,72 @@ def d10() -> dict:
     )
 
 
-BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10]
+def d11() -> dict:
+    # D04's open-pit wall (3 benches) with a horizontal pseudo-static coefficient kh = 0.15, weaker rock mass.
+    intent = ("Pared de rajo con 3 bancos (geometría de D04) con sismo pseudoestático kh = 0,15, macizo rocoso "
+              "c = 40 kPa, φ = 32°. Rangos de búsqueda explícitos como D04.")
+    profile = [(0.0, 0.0), (0.0, 30.0), (6.0, 30.0), (12.0, 20.0), (18.0, 20.0),
+               (24.0, 10.0), (30.0, 10.0), (36.0, 0.0)]
+    return _model(
+        "D11", "Pared de rajo, 3 bancos, kh = 0,15", intent, "left_to_right",
+        [_material("rock", "Macizo rocoso", 25.0, 40.0, 32.0)],
+        [_region("rock", profile)],
+        _search(entry=(0.0, 12.0), exit_=(18.0, 36.0)),
+        seismic={"kh": 0.15, "kv": 0.0},
+    )
+
+
+def d12() -> dict:
+    # Waste dump with a 50 kPa uniform load on the crest (haul trucks) and an upward vertical coefficient.
+    intent = ("Botadero de estéril de 25 m con una carga distribuida de 50 kPa en toda la corona (x de 0 a 10 m) "
+              "y kv = −0,05 (fuerza vertical hacia arriba). c = 2 kPa, φ = 35°.")
+    run = 25.0 / math.tan(math.radians(37.0))
+    profile = [(0.0, 0.0), (0.0, 25.0), (10.0, 25.0), (10.0 + run, 0.0)]
+    return _model(
+        "D12", "Botadero con sobrecarga en la corona y kv = −0,05", intent, "left_to_right",
+        [_material("waste", "Estéril granular", 18.0, 2.0, 35.0)],
+        [_region("waste", profile)],
+        _search(),
+        loads=[{"type": "udl", "id": "u1", "x1": 0.0, "x2": 10.0, "q": 50.0}],
+        seismic={"kh": 0.0, "kv": -0.05},
+    )
+
+
+def d13() -> dict:
+    # Civil cut: 10 m, 1.5H:1V, on a 8 m foundation; a 100 kN/m line load (footing line) tilted 15 degrees
+    # toward +x (the sliding direction) on the crest.
+    intent = ("Talud civil de 10 m, 1,5H:1V, con una carga lineal de 100 kN/m en x = 6 m (corona) inclinada 15° "
+              "hacia +x (el sentido del deslizamiento), sobre una cimentación de 8 m. c = 15 kPa, φ = 26°.")
+    profile = [(0.0, -8.0), (0.0, 10.0), (10.0, 10.0), (25.0, 0.0), (40.0, 0.0), (40.0, -8.0)]
+    return _model(
+        "D13", "Talud civil con carga lineal de 100 kN/m a 15°", intent, "left_to_right",
+        [_material("soil", "Suelo cohesivo-friccional", 19.0, 15.0, 26.0)],
+        [_region("soil", profile)],
+        _search(),
+        loads=[{"type": "line", "id": "l1", "x": 6.0, "p": 100.0, "angle": 15.0}],
+    )
+
+
+def d14() -> dict:
+    # Homogeneous embankment dam, 12 m, 2H:1V, with kh = 0.1 and an inclined piezometric line.
+    intent = ("Terraplén homogéneo de 12 m con taludes 2H:1V, sismo kh = 0,1 y línea piezométrica que baja desde "
+              "(0; 9) hasta el pie (32; 0). c = 12 kPa, φ = 30°, γ = 19 kN/m³, γw = 9,807.")
+    profile = [(0.0, -5.0), (0.0, 12.0), (8.0, 12.0), (32.0, 0.0), (50.0, 0.0), (50.0, -5.0)]
+    return _model(
+        "D14", "Terraplén con kh = 0,1 y piezométrica", intent, "left_to_right",
+        [_material("fill", "Relleno compactado", 19.0, 12.0, 30.0)],
+        [_region("fill", profile)],
+        _search(),
+        piezo=[(0.0, 9.0), (20.0, 5.0), (32.0, 0.0), (50.0, 0.0)],
+        seismic={"kh": 0.1, "kv": 0.0},
+    )
+
+
+BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14]
 
 
 def build_all() -> dict[str, dict]:
-    """Model for every case id, keyed by id (D01..D10), in order."""
+    """Model for every case id, keyed by id (D01..D14), in order."""
     models = {}
     for build in BUILDERS:
         model = build()

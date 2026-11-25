@@ -1,0 +1,89 @@
+{
+  "format": "opengeoslide",
+  "version": "0.2",
+  "meta": {
+    "id": "D12",
+    "title": "Botadero con sobrecarga en la corona y kv = −0,05",
+    "notes": "Botadero de estéril de 25 m con una carga distribuida de 50 kPa en toda la corona (x de 0 a 10 m) y kv = −0,05 (fuerza vertical hacia arriba). c = 2 kPa, φ = 35°."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "waste",
+      "name": "Estéril granular",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 2.0,
+      "friction_angle": 35.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "waste",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          25.0
+        ],
+        [
+          10.0,
+          25.0
+        ],
+        [
+          43.176121,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "loads": [
+    {
+      "type": "udl",
+      "id": "u1",
+      "x1": 0.0,
+      "x2": 10.0,
+      "q": 50.0
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "seismic": {
+      "kh": 0.0,
+      "kv": -0.05
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 78.02156234337791,
+      "yc": 86.40658284746021,
+      "r": 93.16814016491793
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-25T03:17:55-03:00 · casos: 10 · checks: 40 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-25T03:26:18-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
@@ -11,19 +11,20 @@ Generado: 2026-11-25T03:17:55-03:00 · casos: 10 · checks: 40 (búsqueda + supe
 
 - **Búsqueda**: `FS_ogs ≤ FS_cSlope · 1,01`, con el mismo método, número de dovelas y rangos. Un FS de ogs menor es más exhaustivo y se acepta.
 - **Superficie fija**: `|FS_ogs − FS_cSlope| / FS_cSlope ≤ 0,5 %`, con el mismo círculo.
-- **Concordancia (W9)**: si ogs declara la superficie fija sin solución (`not_converged` o `invalid`) y cSlope también (`EngineError`), el veredicto es `OK (concordancia: ambos sin solución)`. Si solo uno de los dos la declara, es `FALLA`.
+- **Concordancia (W9)**: si ogs declara la superficie fija sin solución (`not_converged` o `invalid`) y cSlope también (`EngineError` o `converged: false`), el veredicto es `OK (concordancia: ambos sin solución)`. Si solo uno de los dos la declara, es `FALLA`.
+- Un resultado de cSlope con `converged: false` (el par Fm/Ff más cercano, no una raíz; X6) es un oráculo sin solución, igual que un `EngineError`, y nunca es un valor de referencia: su `minFOS` figura en la tabla pero no se compara.
 - El veredicto no detiene la batería: el exit code es 0 aunque haya fallos.
 
 ## Resumen
 
-**búsqueda OK 20/20** · **fija OK 20/20**
+**búsqueda OK 26/28** · **fija OK 28/28**
 
 | criterio | OK | de ellos, ambos sin solución | FALLA | sin dato |
 |---|---:|---:|---:|---:|
-| búsqueda | 20 | 0 | 0 | 0 |
-| fija | 20 | 1 | 0 | 0 |
+| búsqueda | 26 | 0 | 2 | 0 |
+| fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 2.721 s · cSlope 1.542 s.
+Tiempo total: ogs 4.559 s · cSlope 2.173 s.
 
 ## Tabla de línea base
 
@@ -49,60 +50,85 @@ Tiempo total: ogs 2.721 s · cSlope 1.542 s.
 | D09 Talud R2-03 (c = 2, φ = 45°, r_u = 0,65) | spencer | 0.3876 | 0.3876 | -0.01 | 0.4322 | 0.4322 | +0.01 | fija: negative_effective_normal_major | OK |
 | D10 Talud con c alto y φ bajo, círculo profundo | bishop | 1.0440 | 1.0436 | +0.04 | 1.0440 | 1.0436 | +0.04 | — | OK |
 | D10 Talud con c alto y φ bajo, círculo profundo | spencer | 1.0428 | 1.0424 | +0.03 | 1.0428 | 1.0424 | +0.03 | — | OK |
+| D11 Pared de rajo, 3 bancos, kh = 0,15 | bishop | 1.0898 | 1.0897 | +0.01 | 1.0898 | 1.0897 | +0.01 | — | OK |
+| D11 Pared de rajo, 3 bancos, kh = 0,15 | spencer | 1.0876 | 1.0876 | +0.01 | 1.0876 | 1.0876 | +0.01 | — | OK |
+| D12 Botadero con sobrecarga en la corona y kv = −0,05 | bishop | 1.0488 | 1.0425 | +0.60 | 1.0488 | 1.0488 | -0.00 | — | OK |
+| D12 Botadero con sobrecarga en la corona y kv = −0,05 | spencer | 1.0482 | 1.0462 | +0.19 | 1.0482 | 1.0482 | +0.00 | — | OK |
+| D13 Talud civil con carga lineal de 100 kN/m a 15° | bishop | 1.4599 | 0.6141 | +137.72 | 1.4599 | 1.4630 | -0.21 | — | FALLA (búsqueda) |
+| D13 Talud civil con carga lineal de 100 kN/m a 15° | spencer | 1.4504 | 0.4989 | +190.74 | 1.4505 | 1.4536 | -0.21 | — | FALLA (búsqueda) |
+| D14 Terraplén con kh = 0,1 y piezométrica | bishop | 1.1219 | 1.1213 | +0.05 | 1.1219 | 1.1214 | +0.05 | — | OK |
+| D14 Terraplén con kh = 0,1 y piezométrica | spencer | 1.1344 | 1.1339 | +0.04 | 1.1357 | 1.1353 | +0.04 | — | OK |
 
 Δ% = (FS_ogs − FS_cSlope) / FS_cSlope · 100. El veredicto de la fila combina las dos comprobaciones.
 Avisos de ogs: se listan por comprobación los códigos que no son informativos (`negative_effective_normal`, `truncated_mass` y `negative_lambda` son notas informativas). `—` significa que no hay avisos no informativos.
 
-Checks de ogs con avisos no informativos: 7 de 40.
+Checks de ogs con avisos no informativos: 7 de 56.
 
 ## Fallos y motivos
 
-Ninguno.
+- D13 bishop/search: **FALLA**. ogs 1.4599 > cSlope·1,01 = 0.6203 (ogs no conservador)
+- D13 spencer/search: **FALLA**. solo cSlope declara la superficie sin solución (no convergido (status not_converged, minFOS 0.4989 no es una raíz)); ogs da FS 1.4504
 
 ## Tiempos por check
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.038 | 0.057 |
+| D01 | bishop | search | 0.040 | 0.061 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.146 | 0.086 |
+| D01 | spencer | search | 0.150 | 0.088 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.038 | 0.053 |
+| D02 | bishop | search | 0.038 | 0.052 |
 | D02 | bishop | fixed | 0.002 | 0.001 |
-| D02 | spencer | search | 0.164 | 0.088 |
+| D02 | spencer | search | 0.164 | 0.093 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.052 | 0.051 |
+| D03 | bishop | search | 0.052 | 0.052 |
 | D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.197 | 0.095 |
+| D03 | spencer | search | 0.206 | 0.103 |
 | D03 | spencer | fixed | 0.002 | 0.001 |
-| D04 | bishop | search | 0.120 | 0.037 |
+| D04 | bishop | search | 0.119 | 0.036 |
 | D04 | bishop | fixed | 0.002 | 0.001 |
-| D04 | spencer | search | 0.601 | 0.067 |
+| D04 | spencer | search | 0.617 | 0.067 |
 | D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.041 | 0.052 |
+| D05 | bishop | search | 0.042 | 0.053 |
 | D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.167 | 0.088 |
+| D05 | spencer | search | 0.168 | 0.089 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.041 | 0.052 |
+| D06 | bishop | search | 0.042 | 0.053 |
 | D06 | bishop | fixed | 0.002 | 0.001 |
-| D06 | spencer | search | 0.146 | 0.082 |
+| D06 | spencer | search | 0.152 | 0.089 |
 | D06 | spencer | fixed | 0.002 | 0.001 |
-| D07 | bishop | search | 0.029 | 0.049 |
+| D07 | bishop | search | 0.030 | 0.048 |
 | D07 | bishop | fixed | 0.002 | 0.001 |
-| D07 | spencer | search | 0.116 | 0.080 |
-| D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.061 | 0.055 |
-| D08 | bishop | fixed | 0.002 | 0.038 |
-| D08 | spencer | search | 0.210 | 0.079 |
+| D07 | spencer | search | 0.117 | 0.083 |
+| D07 | spencer | fixed | 0.003 | 0.001 |
+| D08 | bishop | search | 0.059 | 0.052 |
+| D08 | bishop | fixed | 0.002 | 0.040 |
+| D08 | spencer | search | 0.216 | 0.081 |
 | D08 | spencer | fixed | 0.002 | 0.038 |
-| D09 | bishop | search | 0.071 | 0.054 |
+| D09 | bishop | search | 0.071 | 0.064 |
 | D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.234 | 0.188 |
+| D09 | spencer | search | 0.251 | 0.193 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.035 | 0.051 |
-| D10 | bishop | fixed | 0.002 | 0.001 |
-| D10 | spencer | search | 0.182 | 0.090 |
+| D10 | bishop | search | 0.037 | 0.051 |
+| D10 | bishop | fixed | 0.003 | 0.001 |
+| D10 | spencer | search | 0.182 | 0.092 |
 | D10 | spencer | fixed | 0.002 | 0.001 |
+| D11 | bishop | search | 0.196 | 0.041 |
+| D11 | bishop | fixed | 0.002 | 0.001 |
+| D11 | spencer | search | 0.695 | 0.073 |
+| D11 | spencer | fixed | 0.002 | 0.001 |
+| D12 | bishop | search | 0.044 | 0.056 |
+| D12 | bishop | fixed | 0.002 | 0.001 |
+| D12 | spencer | search | 0.189 | 0.093 |
+| D12 | spencer | fixed | 0.003 | 0.001 |
+| D13 | bishop | search | 0.055 | 0.054 |
+| D13 | bishop | fixed | 0.002 | 0.001 |
+| D13 | spencer | search | 0.217 | 0.109 |
+| D13 | spencer | fixed | 0.002 | 0.001 |
+| D14 | bishop | search | 0.095 | 0.060 |
+| D14 | bishop | fixed | 0.002 | 0.001 |
+| D14 | spencer | search | 0.264 | 0.090 |
+| D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
 
@@ -116,6 +142,14 @@ Ninguno.
 - D08: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - D09: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - D10: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- D11: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- D11: sismo pseudoestático kh=0.15, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
+- D12: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- D12: sismo pseudoestático kh=0, kv=-0.05: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
+- D13: cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
+- D13: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- D14: search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- D14: sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
 
 ## Errores y rechazos de motor
 
