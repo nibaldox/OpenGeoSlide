@@ -1,7 +1,7 @@
 // Entradas del informe y exportaciones CSV a partir del último cálculo. Lógica pura (sin React ni DOM).
 
 import { toCsv, resultsToCsv, type CsvCell } from '../../io/csv';
-import { professionalDisclaimer } from '../../report/content';
+import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { describeWarnings } from '../../engine/warnings';
 import type { AnalysisReport, MethodReport } from '../../engine/types';
@@ -40,24 +40,52 @@ export function buildReportInput(run: EngineRun, now: Date = new Date()): Report
   };
 }
 
-/** Resultados por método (FS solo si convergió; ver `resultsToCsv`). */
+/** Resultados por método (FS y λ solo si convergió, con los avisos; ver `resultsToCsv`). */
 export function resultsCsv(report: AnalysisReport): string {
   return resultsToCsv(report.results);
 }
 
-/** Puntos de la base de las dovelas de cada método: `metodo,punto,x,y` (la superficie crítica de izquierda a derecha). */
+/**
+ * Puntos de la base de las dovelas de cada método que **convergió**: `metodo,estado,punto,x,y`, con la superficie de
+ * izquierda a derecha (x creciente, con el pie). Los métodos `not_converged` o `invalid` no se exportan: sus dovelas no
+ * son un resultado.
+ */
 export function surfaceCoordsCsv(results: readonly MethodReport[]): string {
   const rows: CsvCell[][] = [];
   for (const r of results) {
-    let n = 0;
-    for (const s of r.slices) {
-      n += 1;
-      rows.push([r.method, n, s.x_left, s.y_base_left]);
-    }
-    const last = r.slices[r.slices.length - 1];
-    if (last) rows.push([r.method, n + 1, last.x_right, last.y_base_right]);
+    if (r.status !== 'converged') continue;
+    baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
   }
-  return toCsv(['metodo', 'punto', 'x', 'y'], rows);
+  return toCsv(['metodo', 'estado', 'punto', 'x', 'y'], rows);
+}
+
+export interface ExportAvailability {
+  /** Resultados CSV e informe PDF: hay un cálculo y corresponde a la revisión actual. */
+  canExport: boolean;
+  /** Superficie CSV: además, algún método convergió y tiene dovelas. */
+  canExportSurface: boolean;
+  /** Texto del botón bloqueado (`title`); `undefined` si está habilitado. */
+  blockedTitle: string | undefined;
+  surfaceTitle: string | undefined;
+}
+
+/** Qué exportaciones están permitidas (E12i): solo el resultado de la revisión actual, nunca uno obsoleto. */
+export function exportAvailability(run: EngineRun | null, current: boolean): ExportAvailability {
+  const canExport = run !== null && current;
+  const blockedTitle =
+    run === null
+      ? 'Pulse «Comprobar» para calcular el modelo antes de exportar.'
+      : !current
+        ? 'El modelo cambió desde el último cálculo: pulse «Comprobar» para exportar el resultado actual.'
+        : undefined;
+  const canExportSurface = canExport && hasExportableSurface(run.report.results);
+  const surfaceTitle = blockedTitle ?? (canExportSurface ? undefined : 'Ningún método convergió: no hay una superficie crítica que exportar.');
+  return { canExport, canExportSurface, blockedTitle, surfaceTitle };
+}
+
+/** `true` si algún método convergió y tiene dovelas: hay una superficie que exportar. */
+export function hasExportableSurface(results: readonly MethodReport[]): boolean {
+  return results.some((r) => r.status === 'converged' && r.slices.length > 0);
 }
 
 /** Nombre base de archivo para descargas: nombre del archivo abierto, id del modelo o «modelo». */

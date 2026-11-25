@@ -18,7 +18,7 @@ import { downloadBlob, downloadText } from './app/download';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
 import type { RegionImportPlan } from './app/importPlan';
-import { baseFileName, buildReportInput, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { useDraftAutosave } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
@@ -206,12 +206,15 @@ export function EditorApp({ client }: { client: EngineClient }) {
     );
   };
 
+  // Solo se exporta el resultado de la revisión actual: tras editar, hay que volver a pulsar «Comprobar» (E12i).
+  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle } = exportAvailability(engine.run, engine.current);
+
   const exportResults = (): void => {
-    if (!engine.run) return;
+    if (!engine.run || !engine.current) return;
     downloadText(resultsCsv(engine.run.report), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
   };
   const exportSurface = (): void => {
-    if (!engine.run) return;
+    if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
     downloadText(surfaceCoordsCsv(engine.run.report.results), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
   };
 
@@ -327,10 +330,10 @@ export function EditorApp({ client }: { client: EngineClient }) {
           <button type="button" onClick={() => csvRef.current?.click()}>
             Importar CSV
           </button>
-          <button type="button" onClick={exportResults} disabled={!engine.run}>
+          <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle}>
             Exportar resultados (CSV)
           </button>
-          <button type="button" onClick={exportSurface} disabled={!engine.run}>
+          <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle}>
             Exportar superficie (CSV)
           </button>
         </div>
@@ -360,7 +363,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
           <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={engine.busy} title="Ctrl+Intro">
             {engine.busy ? 'Calculando…' : 'Comprobar'}
           </button>
-          <button type="button" onClick={() => void onReport()} disabled={reportBusy || engine.busy}>
+          <button type="button" onClick={() => void onReport()} disabled={reportBusy || engine.busy || !canExport} title={exportBlockedTitle}>
             {reportBusy ? 'Generando…' : 'Informe PDF'}
           </button>
         </div>

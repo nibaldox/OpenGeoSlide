@@ -13,9 +13,17 @@ const TEXT_COLUMNS = new Set(['capa', 'layer', 'material', 'nombre', 'name', 'id
 const DECIMAL_COMMA = /^[-+]?\d+,\d+$/;
 const NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
 
+/** Tamaño máximo de un CSV importado: 2 MB en UTF-8, igual que el DXF (R5-06). */
+export const CSV_MAX_BYTES = 2 * 1024 * 1024;
+
 /** Importa un CSV. `rows` trae las cadenas ya normalizadas (coma decimal → punto cuando corresponde). */
 export function parseCsv(text: string): CsvImportResult {
   const issues: ImportIssue[] = [];
+  // Cada unidad UTF-16 ocupa al menos 1 byte en UTF-8: pasado el límite en unidades, ya no hace falta codificar.
+  if (text.length > CSV_MAX_BYTES || new TextEncoder().encode(text).length > CSV_MAX_BYTES) {
+    issues.push({ severity: 'error', text: 'El archivo CSV supera el límite de 2 MB.' });
+    return { ok: false, delimiter: '', rows: [], issues };
+  }
   const parsed = parse<Record<string, string>>(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, {
     header: true,
     skipEmptyLines: true,
@@ -163,7 +171,7 @@ export interface ToCsvOptions {
 
 function formatNumber(n: number, comma: boolean): string {
   if (!Number.isFinite(n)) return '';
-  const s = String(Number(n.toFixed(6)));
+  const s = String(n); // representación de ida y vuelta más corta de JS: sin redondeo (E12g)
   return comma ? s.replace('.', ',') : s;
 }
 
@@ -196,19 +204,26 @@ export function piezoToCsv(doc: ModelDoc, options: ToCsvOptions = {}): string {
   return toCsv(['x', 'y'], rows, options);
 }
 
-/** Tabla de FS por método. El FS solo se escribe si el método convergió. */
+/** Separador de los códigos de aviso dentro de la celda `avisos` (no es un delimitador CSV). */
+export const WARNING_SEPARATOR = '|';
+
+/**
+ * Tabla de FS por método. El FS y `lambda` solo se escriben si el método convergió; `avisos` lleva los códigos del
+ * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas).
+ */
 export function resultsToCsv(results: MethodReport[], options: ToCsvOptions = {}): string {
   const rows: CsvCell[][] = results.map((r) => [
     r.method,
     r.status,
     r.status === 'converged' ? r.fos : null,
     r.iterations,
-    r.lambda,
+    r.status === 'converged' ? r.lambda : null,
     r.surface.xc,
     r.surface.yc,
     r.surface.r,
     r.search?.evaluated ?? null,
     r.search?.valid ?? null,
+    r.warnings.join(WARNING_SEPARATOR),
   ]);
-  return toCsv(['metodo', 'estado', 'fs', 'iteraciones', 'lambda', 'xc', 'yc', 'r', 'evaluadas', 'validas'], rows, options);
+  return toCsv(['metodo', 'estado', 'fs', 'iteraciones', 'lambda', 'xc', 'yc', 'r', 'evaluadas', 'validas', 'avisos'], rows, options);
 }

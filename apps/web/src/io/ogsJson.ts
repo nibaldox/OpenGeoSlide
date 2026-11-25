@@ -2,8 +2,11 @@
 //
 // - `openOgsJson` acepta v0.1 y v0.2 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` v0.2.
 // - `saveOgsJson` escribe siempre `version: "0.2"`, con el orden de claves canónico de 00_CONTRATOS.md §1
-//   (`loads` después de `water`, `analysis.seismic` al final de `analysis`), 2 espacios y 6 decimales.
-// - Los campos desconocidos se descartan con un aviso: el motor usa `deny_unknown_fields`.
+//   (`loads` después de `water`, `analysis.seismic` al final de `analysis`) y 2 espacios. Los números se escriben
+//   **sin redondear**, con la representación de ida y vuelta más corta de JS (E12g): abrir y guardar no cambia el
+//   resultado del motor ni un bit.
+// - `openOgsJson` es estricto, igual que el motor (`deny_unknown_fields`, E12h): un campo desconocido, o `loads` o
+//   `analysis.seismic` en un archivo v0.1, es un error con su puntero JSON, no un aviso.
 
 import type { Issue, ModelDoc } from '../editor/types';
 
@@ -58,22 +61,12 @@ function isRecord(v: unknown): v is Rec {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Redondeo a 6 decimales (X3 §2.1). `-0` se normaliza a `0`. */
-export function round6(v: number): number {
-  const r = Number(v.toFixed(6));
-  return r === 0 ? 0 : r;
-}
-
-/**
- * `tolerance` es una tolerancia relativa (0, 0,01] y puede ser menor que 1e-6: a 6 decimales pasaría a 0.
- * Para ese campo se conservan 12 cifras significativas.
- */
-function roundValue(v: number, key: string): number {
+/** Un número se guarda tal cual; solo se exige que sea finito (JSON no admite NaN ni Infinity). */
+function checkedNumber(v: number, key: string): number {
   if (!Number.isFinite(v)) {
     throw new Error(`No se puede guardar un valor no finito en '${key}'.`);
   }
-  if (key === 'tolerance') return Number(v.toPrecision(12));
-  return round6(v);
+  return v;
 }
 
 interface Ctx {
@@ -83,7 +76,7 @@ interface Ctx {
 type Sub = (v: unknown, path: string, ctx: Ctx) => unknown;
 
 function plain(v: unknown, key: string): unknown {
-  if (typeof v === 'number') return roundValue(v, key);
+  if (typeof v === 'number') return checkedNumber(v, key);
   if (Array.isArray(v)) return v.map((x) => plain(x, key));
   if (isRecord(v)) {
     const out: Rec = {};
@@ -151,13 +144,13 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx): Rec {
   return result;
 }
 
-/** Documento en orden canónico, redondeado y con `version: "0.2"`, sin serializar (para borradores y pruebas). */
+/** Documento en orden canónico y con `version: "0.2"`, sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const withVersion = { ...doc, format: OGS_FORMAT, version: OGS_SAVE_VERSION } as ModelDoc;
   return canonicalObject(withVersion, { onUnknown: () => undefined }) as unknown as ModelDoc;
 }
 
-/** Texto `.ogs.json` canónico: orden de claves de §1, 2 espacios, 6 decimales, `version: "0.2"`, salto de línea final. */
+/** Texto `.ogs.json` canónico: orden de claves de §1, 2 espacios, números sin redondear, `version: "0.2"`, salto de línea final. */
 export function saveOgsJson(doc: ModelDoc): string {
   return `${JSON.stringify(canonicalDoc(doc), null, 2)}\n`;
 }
@@ -204,6 +197,12 @@ function checkShape(model: Rec, issues: Issue[]): void {
     err('io.shape', "'analysis' debe ser un objeto.", '/analysis');
   }
   if (model.slope !== undefined && model.slope !== null && !isRecord(model.slope)) err('io.shape', "'slope' debe ser un objeto.", '/slope');
+  if (isRecord(model.analysis)) {
+    for (const key of ['surface', 'search', 'seismic'] as const) {
+      const v = model.analysis[key];
+      if (v !== undefined && v !== null && !isRecord(v)) err('io.shape', `'analysis.${key}' debe ser un objeto o null.`, `/analysis/${key}`);
+    }
+  }
 
   if (model.water !== undefined && model.water !== null) {
     if (!isRecord(model.water)) err('io.shape', "'water' debe ser un objeto.", '/water');
@@ -268,19 +267,18 @@ export function openOgsJson(text: string): OpenOgsResult {
   checkShape(model, issues);
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 
-  const hasV02Fields =
-    (Array.isArray(model.loads) && model.loads.length > 0) ||
-    (isRecord(model.analysis) && model.analysis.seismic !== undefined && model.analysis.seismic !== null);
+  // Como el motor (E12a/E12h): `loads: []` y `seismic: null` cuentan como ausentes; con datos, exigen v0.2.
+  const hasLoads = Array.isArray(model.loads) && model.loads.length > 0;
+  const hasSeismic = isRecord(model.analysis) && model.analysis.seismic !== undefined && model.analysis.seismic !== null;
   if (model.version === '0.1') {
-    issues.push(
-      issue(
-        'nota',
-        'io.version_upgraded',
-        hasV02Fields
-          ? 'El archivo es v0.1 pero trae cargas o sismo, que solo existen en v0.2. Se guardará como v0.2.'
-          : 'El archivo es v0.1. Se guardará como v0.2 (el resultado del cálculo es el mismo).',
-      ),
-    );
+    if (hasLoads) {
+      issues.push(issue('error', 'io.version_fields', "El archivo es v0.1 pero trae 'loads', que requiere version \"0.2\".", '/loads'));
+    }
+    if (hasSeismic) {
+      issues.push(
+        issue('error', 'io.version_fields', "El archivo es v0.1 pero trae 'analysis.seismic', que requiere version \"0.2\".", '/analysis/seismic'),
+      );
+    }
   }
 
   const input: Rec = { ...model, version: OGS_SAVE_VERSION };
@@ -289,10 +287,15 @@ export function openOgsJson(text: string): OpenOgsResult {
 
   const unknown: string[] = [];
   const canonical = canonicalObject(input as unknown as ModelDoc, {
-    onUnknown: (path, key) => unknown.push(`${path === '' ? '' : path}/${key}`),
+    onUnknown: (path, key) => unknown.push(`${path}/${key}`),
   });
   for (const path of unknown) {
-    issues.push(issue('aviso', 'io.unknown_field', `Campo desconocido '${path}': se descarta al guardar.`, path));
+    issues.push(issue('error', 'io.unknown_field', `Campo desconocido '${path}': el motor no lo admite (deny_unknown_fields).`, path));
+  }
+  if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
+
+  if (model.version === '0.1') {
+    issues.push(issue('nota', 'io.version_upgraded', 'El archivo es v0.1. Se guardará como v0.2 (el resultado del cálculo es el mismo).'));
   }
   return { doc: canonical as unknown as ModelDoc, issues };
 }

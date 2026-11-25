@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { MethodReport } from '../engine/types';
-import { buildReportContent, buildSectionDrawing, clipPolylineX, fmt, fmtParam, professionalDisclaimer, terrainY, type ReportSection } from './content';
-import { loadCaseDoc, sampleInput } from './fixtures';
+import { baseSurfacePoints, buildReportContent, buildSectionDrawing, clipPolylineX, fmt, fmtParam, professionalDisclaimer, terrainY, type ReportSection } from './content';
+import { loadCaseDoc, loadDifferentialDoc, loadEngineReport, sampleInput } from './fixtures';
 
 const section = (c: ReturnType<typeof buildReportContent>, id: string): ReportSection => {
   const s = c.sections.find((x) => x.id === id);
@@ -103,18 +103,22 @@ describe('buildReportContent', () => {
     expect(t2 && t2.kind === 'table' ? t2.header[2] : null).toBe('γ (pcf)');
   });
 
-  it('FS solo si convergió; Spencer muestra λ; datos de la superficie crítica', () => {
+  it('FS y λ solo si el método convergió; datos de la superficie crítica', () => {
     const base = input.results[0] as MethodReport;
     const results: MethodReport[] = [
       { ...base, method: 'bishop', status: 'converged', fos: 1.23456, lambda: null },
       { ...base, method: 'spencer', status: 'not_converged', fos: 0.99, lambda: 0.1234, search: null },
       { ...base, method: 'bishop', status: 'invalid', fos: null, lambda: null },
+      { ...base, method: 'spencer', status: 'converged', fos: 1.05, lambda: 0.1234, search: null },
+      { ...base, method: 'spencer', status: 'invalid', fos: null, lambda: 0.5, search: null },
     ];
     const t = section(buildReportContent({ ...input, results }), 'results').blocks[0];
     const rows = t && t.kind === 'table' ? t.rows : [];
     expect(rows[0]?.slice(0, 5)).toEqual(['Bishop simplificado', 'Convergió', '1,235', String(base.iterations), '—']);
-    expect(rows[1]?.slice(0, 7)).toEqual(['Spencer', 'No convergió', '—', String(base.iterations), '0,1234', '—', '—']);
+    expect(rows[1]?.slice(0, 7)).toEqual(['Spencer', 'No convergió', '—', String(base.iterations), '—', '—', '—']);
     expect(rows[2]?.[1]).toBe('No válida');
+    expect(rows[3]?.slice(0, 5)).toEqual(['Spencer', 'Convergió', '1,050', String(base.iterations), '0,1234']);
+    expect(rows[4]?.[4]).toBe('—');
     expect(rows[0]?.[7]).toContain(';');
   });
 
@@ -211,5 +215,73 @@ describe('dibujo de la sección', () => {
       expect(x).toBeLessThanOrEqual(70);
       expect(y).toBeLessThanOrEqual((terrainY(input.model, x) ?? 0) + 1e-9);
     }
+  });
+});
+
+describe('E12i: superficie en x creciente (R5-03)', () => {
+  const increasing = (pts: [number, number][]): boolean => pts.every((p, i) => i === 0 || p[0] > (pts[i - 1] as [number, number])[0]);
+
+  it('D01 con superficie fija, left_to_right: del menor x al mayor, con el pie (x = 40) y sin retrocesos', () => {
+    const doc = loadDifferentialDoc('D01');
+    expect(doc.slope?.direction).toBe('left_to_right');
+    const report = loadEngineReport('d01-fixed-ltr');
+    const bishop = report.results[0] as MethodReport;
+    // El motor entrega las dovelas del pie al coronamiento: en left_to_right, x decreciente.
+    expect(bishop.slices[0]?.x_right).toBe(40);
+    expect((bishop.slices[1]?.x_left as number) < (bishop.slices[0]?.x_left as number)).toBe(true);
+
+    const d = buildSectionDrawing(doc, report.results);
+    const points = d.surface?.points ?? [];
+    expect(points).toHaveLength(bishop.slices.length + 1);
+    expect(points[0]?.[0]).toBe(Math.min(...bishop.slices.map((s) => s.x_left)));
+    expect(points[points.length - 1]?.[0]).toBe(40); // el pie
+    expect(points[points.length - 1]?.[1]).toBe(bishop.slices[0]?.y_base_right);
+    expect(increasing(points)).toBe(true);
+    // Los antiguos 52 puntos de R5-03 (39,5329 primero; 17,1118 → 16,6447 → 17,1118 al final) ya no aparecen.
+    expect(points.some((p) => p[0] === 39.5328947368421)).toBe(true);
+    expect(d.surface?.sliceLines.every(([a, b]) => a[0] === b[0])).toBe(true);
+  });
+
+  it('right_to_left (V047a): también de menor a mayor x, con el pie en x = 30', () => {
+    const doc = loadCaseDoc('V047a');
+    const report = loadEngineReport('v047a-search-rtl');
+    for (const r of report.results) {
+      const pts = baseSurfacePoints(r.slices);
+      expect(pts).toHaveLength(r.slices.length + 1);
+      expect(increasing(pts)).toBe(true);
+      expect(pts[0]?.[0]).toBeCloseTo(30, 5);
+    }
+    expect(increasing(buildSectionDrawing(doc, report.results).surface?.points ?? [])).toBe(true);
+  });
+
+  it('baseSurfacePoints no depende del orden de entrada y no modifica los datos', () => {
+    const slices = (loadEngineReport('d01-fixed-ltr').results[0] as MethodReport).slices;
+    const copy = structuredClone(slices);
+    expect(baseSurfacePoints([...slices].reverse())).toEqual(baseSurfacePoints(slices));
+    expect(slices).toEqual(copy);
+    expect(baseSurfacePoints([])).toEqual([]);
+  });
+});
+
+describe('E12i: rótulo de la superficie y λ en el dibujo (R5-04)', () => {
+  const doc = loadDifferentialDoc('D01');
+  const results = loadEngineReport('d01-fixed-ltr').results;
+  const label = (rs: MethodReport[]): string | undefined => buildSectionDrawing(doc, rs).legend.find((l) => l.kind === 'surface')?.label;
+
+  it('con un método convergido se rotula «Superficie crítica»', () => {
+    expect(label(results)).toBe('Superficie crítica (Bishop simplificado)');
+  });
+
+  it('si ningún método convergió no dice «Superficie crítica»', () => {
+    const notConverged = results.map((r) => ({ ...r, status: 'not_converged' as const }));
+    expect(label(notConverged)).toBe('Superficie evaluada, sin convergencia (Bishop simplificado)');
+    expect(label(notConverged)).not.toContain('crítica');
+    const invalid = results.map((r) => ({ ...r, status: 'invalid' as const, fos: null }));
+    expect(label(invalid)).not.toContain('crítica');
+  });
+
+  it('si el primero no convergió y el segundo sí, la superficie crítica es la del que convergió', () => {
+    const mixed = [{ ...(results[0] as MethodReport), status: 'not_converged' as const }, results[1] as MethodReport];
+    expect(label(mixed)).toBe('Superficie crítica (Spencer)');
   });
 });
