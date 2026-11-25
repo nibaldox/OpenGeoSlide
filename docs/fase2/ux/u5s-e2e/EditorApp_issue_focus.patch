@@ -1,0 +1,22 @@
+diff --git a/apps/web/src/editor/EditorApp.tsx b/apps/web/src/editor/EditorApp.tsx
+index 3ec0bc4..8de07cd 100644
+--- a/apps/web/src/editor/EditorApp.tsx
++++ b/apps/web/src/editor/EditorApp.tsx
+@@ -31,7 +31,7 @@ import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
+ import type { RegionImportPlan } from './app/importPlan';
+ import type { PanelTabId } from './app/issueNav';
+ import { documentTitle } from './app/docTitle';
+-import { fieldSelector, type IssueTarget } from './app/issueNav';
++import { fieldSelector, findIssueFocus, type IssueTarget } from './app/issueNav';
+ import { LiveRegions } from './app/LiveRegions';
+ import { NoticeList } from './app/NoticeList';
+ import { addNotice, noticeLifetimeMs, type Notice } from './app/notices';
+@@ -412,7 +412,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
+       el = document.querySelector<HTMLElement>('[data-testid="editor-canvas"] [role="application"], [data-testid="editor-canvas"] svg');
+     } else {
+       const panel = document.getElementById('ea-tabpanel');
+-      el = (target.fieldPath ? panel?.querySelector<HTMLElement>(fieldSelector(target.fieldPath)) : null) ?? panel?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)') ?? panel;
++      el = findIssueFocus(target) ?? (target.fieldPath ? panel?.querySelector<HTMLElement>(fieldSelector(target.fieldPath)) : null) ?? panel?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)') ?? panel;
+     }
+     if (el) {
+       if (!el.matches('input, select, button, textarea, [tabindex]')) el.tabIndex = -1;

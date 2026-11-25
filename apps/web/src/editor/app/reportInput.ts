@@ -1,6 +1,6 @@
 // Entradas del informe y exportaciones CSV a partir del último cálculo. Lógica pura (sin React ni DOM).
 
-import { toCsv, resultsToCsv, type CsvCell } from '../../io/csv';
+import { resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { describeWarnings } from '../../engine/warnings';
@@ -40,9 +40,12 @@ export function buildReportInput(run: EngineRun, now: Date = new Date()): Report
   };
 }
 
-/** Resultados por método (FS y λ solo si convergió, con los avisos; ver `resultsToCsv`). */
-export function resultsCsv(report: AnalysisReport): string {
-  return resultsToCsv(report.results);
+/**
+ * Resultados por método (FS y λ solo si convergió, con los avisos; ver `resultsToCsv`). `units` es el `doc.units` del
+ * modelo calculado: con él la cabecera lleva `xc_m` o `xc_ft` y la primera línea declara las unidades (B-04).
+ */
+export function resultsCsv(report: AnalysisReport, units?: string | null): string {
+  return resultsToCsv(report.results, { units });
 }
 
 /**
@@ -50,13 +53,13 @@ export function resultsCsv(report: AnalysisReport): string {
  * izquierda a derecha (x creciente, con el pie). Los métodos `not_converged` o `invalid` no se exportan: sus dovelas no
  * son un resultado.
  */
-export function surfaceCoordsCsv(results: readonly MethodReport[]): string {
+export function surfaceCoordsCsv(results: readonly MethodReport[], units?: string | null): string {
   const rows: CsvCell[][] = [];
   for (const r of results) {
     if (r.status !== 'converged') continue;
     baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
   }
-  return toCsv(['metodo', 'estado', 'punto', 'x', 'y'], rows);
+  return surfaceToCsv(rows, { units });
 }
 
 export interface ExportAvailability {

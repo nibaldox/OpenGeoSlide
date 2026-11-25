@@ -185,6 +185,27 @@ export interface ToCsvOptions {
   delimiter?: ',' | ';' | '\t';
   /** Coma decimal en los números; solo con delimitador distinto de la coma. */
   decimalComma?: boolean;
+  /** Línea de comentario (`# …`) antes de la cabecera. */
+  comment?: string;
+}
+
+/** Unidades con que se declaran los CSV de resultados (B-04). Sin sistema indicado, SI (igual que el modelo). */
+export interface CsvUnits {
+  system: 'SI' | 'imperial';
+  /** Longitud: `m` o `ft`. */
+  length: string;
+  /** Peso unitario. */
+  unitWeight: string;
+  /** Tensión y presión. */
+  stress: string;
+  /** Primera línea del CSV, p. ej. `# unidades: SI (m, kN/m³, kPa)`. */
+  comment: string;
+}
+
+export function csvUnits(units: string | null | undefined): CsvUnits {
+  return units === 'imperial'
+    ? { system: 'imperial', length: 'ft', unitWeight: 'pcf', stress: 'psf', comment: '# unidades: imperial (ft, pcf, psf)' }
+    : { system: 'SI', length: 'm', unitWeight: 'kN/m³', stress: 'kPa', comment: '# unidades: SI (m, kN/m³, kPa)' };
 }
 
 function formatNumber(n: number, comma: boolean): string {
@@ -204,7 +225,8 @@ export function toCsv(header: string[], rows: CsvCell[][], options: ToCsvOptions
       return escapeCsvText(c);
     }),
   );
-  return unparse({ fields: header.map(escapeCsvText), data }, { delimiter, newline: '\r\n', escapeFormulae: false });
+  const body = unparse({ fields: header.map(escapeCsvText), data }, { delimiter, newline: '\r\n', escapeFormulae: false });
+  return options.comment === undefined ? body : `${options.comment}\r\n${body}`;
 }
 
 /** Coordenadas de las regiones: `capa,x,y` con el id del material como capa. */
@@ -225,11 +247,18 @@ export function piezoToCsv(doc: ModelDoc, options: ToCsvOptions = {}): string {
 /** Separador de los códigos de aviso dentro de la celda `avisos` (no es un delimitador CSV). */
 export const WARNING_SEPARATOR = '|';
 
+export interface ResultsCsvOptions extends ToCsvOptions {
+  /** `doc.units` del modelo calculado (`'SI'`, `'imperial'` o ausente = SI). */
+  units?: string | null;
+}
+
 /**
  * Tabla de FS por método. El FS y `lambda` solo se escriben si el método convergió; `avisos` lleva los códigos del
- * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas).
+ * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas). Las columnas con dimensión llevan
+ * la unidad en la cabecera (`xc_m`, `yc_ft`…) y la primera línea declara el sistema de unidades (B-04).
  */
-export function resultsToCsv(results: MethodReport[], options: ToCsvOptions = {}): string {
+export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions = {}): string {
+  const u = csvUnits(options.units);
   const rows: CsvCell[][] = results.map((r) => [
     r.method,
     r.status,
@@ -243,5 +272,15 @@ export function resultsToCsv(results: MethodReport[], options: ToCsvOptions = {}
     r.search?.valid ?? null,
     r.warnings.join(WARNING_SEPARATOR),
   ]);
-  return toCsv(['metodo', 'estado', 'fs', 'iteraciones', 'lambda', 'xc', 'yc', 'r', 'evaluadas', 'validas', 'avisos'], rows, options);
+  const header = ['metodo', 'estado', 'fs', 'iteraciones', 'lambda', `xc_${u.length}`, `yc_${u.length}`, `r_${u.length}`, 'evaluadas', 'validas', 'avisos'];
+  return toCsv(header, rows, { ...options, comment: options.comment ?? u.comment });
+}
+
+/**
+ * Puntos de la base de las dovelas por método: `metodo,estado,punto,x_<unidad>,y_<unidad>`, con el comentario de unidades.
+ * Es el CSV de **resultados** (superficie crítica), distinto del CSV de geometría que se importa (`capa,x,y`).
+ */
+export function surfaceToCsv(rows: CsvCell[][], options: ResultsCsvOptions = {}): string {
+  const u = csvUnits(options.units);
+  return toCsv(['metodo', 'estado', 'punto', `x_${u.length}`, `y_${u.length}`], rows, { ...options, comment: options.comment ?? u.comment });
 }
