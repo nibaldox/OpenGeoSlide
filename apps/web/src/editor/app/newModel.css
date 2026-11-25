@@ -52,6 +52,10 @@
   align-items: center;
 }
 
+.ns-actions button {
+  width: auto;
+}
+
 .ns-empty {
   max-width: min(420px, 100%);
   padding: 14px 18px;

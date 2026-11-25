@@ -130,7 +130,8 @@ export const CANVAS_INSTRUCTIONS =
   'Insert, o la tecla i, inserta un vértice en el punto medio de la arista siguiente. ' +
   'Supr elimina el vértice o el punto y el foco pasa al vecino. ' +
   'Las teclas + y − acercan y alejan, y 0 encuadra el modelo. ' +
-  'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección.';
+  'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección. ' +
+  'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región.';
 
 const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius']);
 
