@@ -1064,11 +1064,11 @@ button.ea-primary {
 }
 
 /* Diálogo de confirmación (useConfirm / ConfirmHost) */
-dialog.ogs-confirm {
+dialog.ea-dialog.ogs-confirm {
   width: min(460px, calc(100% - 32px));
 }
 
-dialog.ogs-confirm h2 {
+dialog.ea-dialog.ogs-confirm h2 {
   word-break: normal;
 }
 
@@ -1166,14 +1166,14 @@ button.ogs-danger:hover {
 }
 
 /* Ayuda */
-dialog.help-dialog {
+dialog.ea-dialog.help-dialog {
   width: min(880px, calc(100% - 16px));
   max-height: min(90dvh, 900px);
   padding: 0;
   overflow: hidden;
 }
 
-dialog.help-dialog[open] {
+dialog.ea-dialog.help-dialog[open] {
   display: flex;
   flex-direction: column;
 }
@@ -1193,8 +1193,15 @@ dialog.help-dialog[open] {
 }
 
 .help-scroll {
+  flex: 1 1 auto;
+  min-height: 0; /* el único que se desplaza es este bloque: la cabecera con «Cerrar» no sale de la vista */
+  position: relative; /* contiene el texto .visually-hidden de los enlaces: si no, desborda el <dialog> y scrollIntoView lo desplaza */
   overflow: auto;
   padding: 8px 20px 20px;
+}
+
+.help-head {
+  flex: none;
 }
 
 .help-scroll h3 {
