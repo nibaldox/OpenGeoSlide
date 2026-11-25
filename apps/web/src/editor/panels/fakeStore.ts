@@ -15,7 +15,8 @@ export function makeState(doc: ModelDoc, patch: Partial<EditorState> = {}): Edit
   return {
     doc,
     revision: 0,
-    ui: { tool: 'select', selection: { kind: 'none' }, viewport: null, snap: { vertex: true, axis: true, gridStep: null, radiusPx: 8 } },
+    docEpoch: 0,
+    ui: { tool: 'select', selection: { kind: 'none' }, viewport: null, snap: { vertex: true, axis: true, gridStep: null, radiusPx: 8 }, tracePoints: 0 },
     history: { past: [], future: [] },
     file: { name: null, savedRevision: 0 },
     diagnostics: { status: 'idle', issues: [], revision: 0 },

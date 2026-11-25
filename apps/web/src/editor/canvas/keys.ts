@@ -1,6 +1,6 @@
 // Atajos de teclado del lienzo, como función pura: tecla → lista de acciones (+ tirador que recibe el foco + anuncio).
 //   Ctrl+Z deshace; Ctrl+Mayús+Z o Ctrl+Y rehace; Escape deselecciona.
-//   Tab / Mayús+Tab y [ ] recorren los tiradores (Tab deja salir del lienzo en los extremos; [ ] dan la vuelta).
+//   [ ] y RePág/AvPág recorren los tiradores, dando la vuelta. Tab y Mayús+Tab entran y salen del lienzo (una sola parada de tabulación).
 //   Flechas: mueven el tirador seleccionado 1 paso de rejilla (Mayús = ×10); en el tirador del radio cambian el radio;
 //   sin tirador seleccionado desplazan la vista.
 //   Insert (o «i»): inserta un vértice en el punto medio de la arista siguiente. Supr/Retroceso: quita el vértice o punto
@@ -110,14 +110,11 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     return { handled: true, actions: [{ type: 'ui/select', selection: { kind: 'none' } }] };
   }
 
-  // Recorrido de tiradores: Tab y Mayús+Tab dentro del lienzo; [ y ] dan la vuelta.
-  if (k.key === 'Tab') {
-    if (!current) return NOT_HANDLED;
-    const next = stepHandle(handleList(doc), current, k.shiftKey ? -1 : 1, false);
-    return next ? focusOn(ctx, next) : NOT_HANDLED;
-  }
-  if (k.key === '[' || k.key === ']') {
-    const next = stepHandle(handleList(doc), current, k.key === ']' ? 1 : -1, true);
+  // Recorrido de tiradores: [ y ], o RePág y AvPág, con vuelta. Tab y Mayús+Tab NO se atienden aquí: el lienzo es una sola parada
+  // de tabulación (el tirador activo tiene tabindex 0 y los demás −1), así que el navegador entra y sale del lienzo con ellos (B-01).
+  if (k.key === '[' || k.key === ']' || k.key === 'PageUp' || k.key === 'PageDown') {
+    const forward = k.key === ']' || k.key === 'PageDown';
+    const next = stepHandle(handleList(doc), current, forward ? 1 : -1, true);
     return next ? focusOn(ctx, next) : NOT_HANDLED;
   }
 

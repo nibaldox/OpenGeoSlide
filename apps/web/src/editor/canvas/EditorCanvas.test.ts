@@ -173,6 +173,27 @@ describe('R7-04: tabindex itinerante, instrucciones y anuncios', () => {
     expect(html).toMatch(/<svg[^>]*tabindex="0"/);
   });
 
+  it('B-01: con 344 tiradores hay una sola parada de tabulación (un tirador con tabindex 0)', () => {
+    const many = (selection?: { regionIndex: number; vertexIndex: number }) =>
+      render(
+        (d) => {
+          const n = 340;
+          const ring = Array.from({ length: n }, (_, i): [number, number] => [30 + 25 * Math.cos((2 * Math.PI * i) / n), 15 + 12 * Math.sin((2 * Math.PI * i) / n)]);
+          d.regions = [{ material: 'm1', polygon: ring }];
+          d.water = null;
+          d.analysis.surface = { type: 'circle', xc: 30, yc: 30, r: 25 };
+        },
+        selection ? { selection: { kind: 'vertex', ...selection } } : {},
+      );
+    for (const html of [many(), many({ regionIndex: 0, vertexIndex: 200 })]) {
+      const handles = [...html.matchAll(/<g[^>]*data-handle-key="([^"]+)"[^>]*>/g)].map((m) => m[0]);
+      expect(handles).toHaveLength(342);
+      expect(handles.filter((h) => /tabindex="0"/.test(h))).toHaveLength(1);
+      expect(handles.filter((h) => /tabindex="-1"/.test(h))).toHaveLength(341);
+    }
+    expect(many({ regionIndex: 0, vertexIndex: 200 })).toMatch(/data-handle-key="v-0-200"[^>]*tabindex="0"|tabindex="0"[^>]*data-handle-key="v-0-200"/);
+  });
+
   it('el lienzo (svg) tiene tabindex −1 cuando hay tiradores', () => {
     expect(render()).toMatch(/<svg[^>]*tabindex="-1"/);
   });

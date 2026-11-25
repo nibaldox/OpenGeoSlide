@@ -8,6 +8,9 @@ import {
   projectToForm,
   unitsChangeCommand,
   unitsChangeConfirm,
+  unitsChangeDialog,
+  unitsChoiceCommand,
+  unitsConvertCommand,
   unitsOptions,
 } from './projectForm';
 
@@ -123,5 +126,55 @@ describe('unitsChangeConfirm', () => {
     const o = unitsChangeConfirm({ kind: 'imperial' }, 'SI');
     expect(o.confirmLabel).toMatch(/SI/);
     expect(o.message).toMatch(/pcf/);
+  });
+});
+
+describe('R8 A-02: cambio de unidades con opción de convertir', () => {
+  const si = (): ModelDoc => ({ ...newDoc(), units: 'SI' });
+
+  it('el diálogo ofrece tres opciones: convertir (recomendada y por defecto), solo la etiqueta y cancelar', () => {
+    const d = unitsChangeDialog({ kind: 'SI' }, 'imperial');
+    expect(d.options.map((o) => o.id)).toEqual(['convert', 'label', 'cancel']);
+    expect(d.options.map((o) => o.label)).toEqual(['Convertir los valores', 'Solo cambiar la etiqueta', 'Cancelar']);
+    expect(d.defaultOption).toBe('convert');
+    expect(d.options[0]!.recommended).toBe(true);
+    expect(d.options[1]!.recommended).toBe(false);
+  });
+  it('explica qué se convierte, que el FS no cambia y el caso de γw (9,81 → 62,45)', () => {
+    const d = unitsChangeDialog({ kind: 'SI' }, 'imperial');
+    const text = `${d.intro} ${d.options[0]!.description}`;
+    expect(text).toContain('factor de seguridad');
+    expect(text).toContain('62,45');
+    expect(text).toMatch(/γ.*c.*q/s);
+    expect(text).toContain('Ctrl+Z');
+  });
+  it('«Solo cambiar la etiqueta» conserva la advertencia actual (los números no cambian)', () => {
+    const d = unitsChangeDialog({ kind: 'SI' }, 'imperial');
+    const label = d.options[1]!;
+    expect(label.description).toContain('no convierte los valores');
+    expect(label.description).toContain('debe reescribirlos usted');
+    expect(unitsChangeConfirm({ kind: 'SI' }, 'imperial').message).toContain('no convierte los valores');
+  });
+  it('de un sistema sin convención conocida no se ofrece convertir', () => {
+    const d = unitsChangeDialog({ kind: 'other', raw: 'cgs' }, 'SI');
+    expect(d.options.map((o) => o.id)).toEqual(['label', 'cancel']);
+    expect(d.defaultOption).toBe('label');
+  });
+  it('cada opción da su comando: units/convert, units/set o nada', () => {
+    expect(unitsChoiceCommand(si(), 'imperial', 'convert')).toEqual({ type: 'units/convert', units: 'imperial' });
+    expect(unitsChoiceCommand(si(), 'imperial', 'label')).toEqual({ type: 'units/set', units: 'imperial' });
+    expect(unitsChoiceCommand(si(), 'imperial', 'cancel')).toBeNull();
+    expect(unitsConvertCommand(si(), 'SI')).toBeNull(); // ya está en SI
+    expect(unitsConvertCommand({ ...si(), units: 'cgs' }, 'SI')).toBeNull(); // sin convención: no se convierte
+  });
+  it('con el almacén real, convertir es un solo paso deshacible', () => {
+    const store = createEditorStore(si(), null);
+    const before = store.getState().doc;
+    const cmd = unitsChoiceCommand(before, 'imperial', 'convert')!;
+    store.dispatch(cmd);
+    expect(store.getState().doc.units).toBe('imperial');
+    expect(store.getState().history.past).toHaveLength(1);
+    store.undo();
+    expect(store.getState().doc).toBe(before);
   });
 });

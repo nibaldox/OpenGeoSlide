@@ -22,7 +22,9 @@ import { useRovingTabIndex } from '../ui/useRovingTabIndex';
 import { EditorCanvas } from './canvas/EditorCanvas';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
-import { createConfirmDiscard, runIfDiscarded } from './app/discard';
+import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
+import { visibleExportHint } from './app/exportHint';
+import { useNarrow } from './app/useNarrow';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { EmptyCanvasState } from './app/EmptyCanvasState';
 import { NewSlopeDialog } from './app/NewSlopeDialog';
@@ -183,6 +185,8 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   // Con cambios sin guardar pregunta con el diálogo de la aplicación (`useConfirm`, asíncrono); sin cambios no pregunta.
   const confirm = useConfirm();
   const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm), [store, confirm]);
+  // Cambiar de herramienta con un trazo de 3 o más puntos pide confirmación (A-04); con menos, el lienzo lo descarta y lo anuncia.
+  const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
   const resetEngine = engine.reset;
   /**
@@ -325,7 +329,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   };
 
   // Solo se exporta el resultado de la revisión actual: tras editar, hay que volver a pulsar «Comprobar» (E12i).
-  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle, hint: exportHint } = exportAvailability(engine.run, engine.current);
+  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle, hint: exportHintText } = exportAvailability(engine.run, engine.current);
+  // La pista se ve con un resultado obsoleto o tras intentar exportar; en el estado inicial el resumen ya dice «Pulse «Comprobar»» (B-06).
+  const [exportAttempted, setExportAttempted] = useState(false);
+  useEffect(() => {
+    if (engine.current) setExportAttempted(false);
+  }, [engine.current]);
+  const exportHint = visibleExportHint({ hint: exportHintText, hasRun: engine.run !== null, current: engine.current, attempted: exportAttempted });
 
   const exportResults = (): void => {
     if (!engine.run || !engine.current) return;
@@ -339,6 +349,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const onReport = async (): Promise<void> => {
     if (reportBusy) return;
     if (!engine.run || !engine.current) {
+      setExportAttempted(true);
       notify('aviso', 'El informe necesita un cálculo del modelo actual. Pulse «Comprobar» y después «Informe PDF».');
       return;
     }
@@ -448,11 +459,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     save: () => onSave(),
     open: () => openRef.current?.click(),
     check: () => void onCheck(),
-    'tool:select': () => store.dispatch({ type: 'ui/tool', tool: 'select' }),
-    'tool:add_vertex': () => store.dispatch({ type: 'ui/tool', tool: 'add_vertex' }),
-    'tool:draw_region': () => store.dispatch({ type: 'ui/tool', tool: 'draw_region' }),
-    'tool:split_region': () => store.dispatch({ type: 'ui/tool', tool: 'split_region' }),
-    'tool:pan': () => store.dispatch({ type: 'ui/tool', tool: 'pan' }),
+    'tool:select': () => void switchTool('select'),
+    'tool:add_vertex': () => void switchTool('add_vertex'),
+    'tool:draw_region': () => void switchTool('draw_region'),
+    'tool:split_region': () => void switchTool('split_region'),
+    'tool:pan': () => void switchTool('pan'),
   };
   useEffect(() => {
     if (!active) return; // en «Casos de verificación» el editor sigue montado pero oculto: sus atajos no actúan (R7-07)
@@ -491,14 +502,47 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     surfaceConverged,
     units: (doc.units === 'imperial' ? 'imperial' : 'SI') as 'SI' | 'imperial',
     onAnnounce: announce,
-    emptyState: <EmptyCanvasState onDraw={() => store.dispatch({ type: 'ui/tool', tool: 'draw_region' })} onExample={openExamples} />,
+    emptyState: <EmptyCanvasState onDraw={() => void switchTool('draw_region')} onExample={openExamples} />,
   };
+
+  const narrow = useNarrow();
+  const undoRedoButtons = (
+    <>
+      <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
+        Deshacer
+      </button>
+      <button type="button" onClick={() => store.redo()} disabled={!canRedo} title="Ctrl+Mayús+Z o Ctrl+Y">
+        Rehacer
+      </button>
+    </>
+  );
+  const toolButtons = TOOLS.map((t) => (
+    <button
+      key={t.tool}
+      type="button"
+      aria-pressed={tool === t.tool}
+      className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
+      onClick={() => void switchTool(t.tool)}
+      title={`Tecla ${t.key}`}
+    >
+      {t.label}
+    </button>
+  ));
 
   return (
     <div className="editor-app" lang="es" data-testid="editor-app">
       <LiveRegions polite={live.polite} alert={live.alert} />
       <div className="ea-toolbar panel" role="toolbar" aria-label="Acciones del modelo" ref={toolbarRef} onKeyDown={toolbarKeys.onKeyDown}>
-        <div className="ea-group" role="group" aria-label="Menús">
+        <div
+          className="ea-group"
+          role="group"
+          aria-label="Menús"
+          onClickCapture={(e) => {
+            // Abrir «Exportar» sin resultado vigente es un intento de exportar: se muestra la pista.
+            const trigger = e.target instanceof Element ? e.target.closest('button.dd-trigger') : null;
+            if (trigger?.textContent?.trim().startsWith('Exportar') && !canExport) setExportAttempted(true);
+          }}
+        >
           <DropdownMenu label="Archivo">
             <button type="button" onClick={onNew} aria-describedby="ea-new-hint">
               Nuevo
@@ -544,28 +588,25 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             </button>
           </DropdownMenu>
         </div>
-        <div className="ea-group" role="group" aria-label="Edición">
-          <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
-            Deshacer
-          </button>
-          <button type="button" onClick={() => store.redo()} disabled={!canRedo} title="Ctrl+Mayús+Z o Ctrl+Y">
-            Rehacer
-          </button>
-        </div>
-        <div className="ea-group" role="group" aria-label="Herramienta del lienzo">
-          {TOOLS.map((t) => (
-            <button
-              key={t.tool}
-              type="button"
-              aria-pressed={tool === t.tool}
-              className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
-              onClick={() => store.dispatch({ type: 'ui/tool', tool: t.tool })}
-              title={`Tecla ${t.key}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {narrow ? (
+          // Con 480 px o menos, Deshacer, Rehacer y las herramientas van en un menú «Editar» (B-09). Los botones conservan sus nombres.
+          <div className="ea-group" role="group" aria-label="Edición y herramientas">
+            <DropdownMenu label="Editar">
+              {undoRedoButtons}
+              <hr />
+              {toolButtons}
+            </DropdownMenu>
+          </div>
+        ) : (
+          <>
+            <div className="ea-group" role="group" aria-label="Edición">
+              {undoRedoButtons}
+            </div>
+            <div className="ea-group" role="group" aria-label="Herramienta del lienzo">
+              {toolButtons}
+            </div>
+          </>
+        )}
         <div className="ea-group ea-group-main" role="group" aria-label="Cálculo">
           <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={checkState.disabled} title="Ctrl+Intro">
             {checkState.label}

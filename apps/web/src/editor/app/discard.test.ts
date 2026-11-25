@@ -4,7 +4,7 @@ import type { ConfirmOptions } from '../../ui/confirmQueue';
 import { normalizeConfirm } from '../../ui/confirmQueue';
 import { createEditorStore } from '../state';
 import { newDoc } from './docTemplates';
-import { DISCARD_CONFIRM, createConfirmDiscard, hasUnsavedChanges, runIfDiscarded } from './discard';
+import { DISCARD_CONFIRM, DISCARD_TRACE_CONFIRM, createConfirmDiscard, createToolSwitch, discardConfirmFor, hasUnsavedChanges, runIfDiscarded } from './discard';
 import { emptyModel, simpleSlope, slopeFormDefaults, slopeFromForm } from './newModel';
 import { readOpenFile } from './openFile';
 
@@ -95,5 +95,73 @@ describe('llamadores: cancelar no descarta', () => {
     const store = dirtyStore();
     const r = await readOpenFile({ name: 'b.ogs.json', text: async () => '{}' }, createConfirmDiscard(store, async () => false), () => ({ doc: newDoc(), issues: [] }));
     expect(r).toEqual({ doc: null, notices: [] });
+  });
+});
+
+describe('A-08: un trazo a medias cuenta como cambios sin guardar', () => {
+  it('con un modelo sin cambios, un trazo con puntos hace que hasUnsavedChanges sea verdadero', () => {
+    const store = cleanStore();
+    expect(hasUnsavedChanges(store)).toBe(false);
+    store.dispatch({ type: 'ui/trace', points: 2 });
+    expect(hasUnsavedChanges(store)).toBe(true);
+    store.dispatch({ type: 'ui/trace', points: 0 });
+    expect(hasUnsavedChanges(store)).toBe(false);
+  });
+  it('«Abrir» con un trazo en curso pregunta antes de descartar (y lo dice)', async () => {
+    const store = cleanStore();
+    store.dispatch({ type: 'ui/trace', points: 3 });
+    const confirm = vi.fn(async (_o: ConfirmOptions) => false);
+    expect(await createConfirmDiscard(store, confirm)()).toBe(false);
+    const asked = confirm.mock.calls[0]![0];
+    expect(asked.tone).toBe('danger');
+    expect(asked.message).toMatch(/trazo/);
+    expect(asked.message).toContain('3 puntos');
+    expect(asked).toEqual(discardConfirmFor({ revision: 0, file: { savedRevision: 0 }, ui: { tracePoints: 3 } }));
+  });
+  it('con cambios en el modelo y un trazo, el texto habitual añade el trazo', () => {
+    const o = discardConfirmFor({ revision: 3, file: { savedRevision: 0 }, ui: { tracePoints: 1 } });
+    expect(o.message).toContain(DISCARD_CONFIRM.message);
+    expect(o.message).toContain('1 punto');
+    expect(discardConfirmFor({ revision: 3, file: { savedRevision: 0 }, ui: { tracePoints: 0 } })).toBe(DISCARD_CONFIRM);
+    expect(DISCARD_TRACE_CONFIRM(2).confirmLabel).toBe('Descartar el trazo');
+  });
+});
+
+describe('A-04: cambiar de herramienta con un trazo en curso', () => {
+  const traced = (points: number, tool: 'draw_region' | 'split_region' = 'draw_region') => {
+    const store = createEditorStore(newDoc(), null);
+    store.dispatch({ type: 'ui/tool', tool });
+    store.dispatch({ type: 'ui/trace', points });
+    return store;
+  };
+  it('con 3 o más puntos pide confirmación de tono «danger»; si se cancela, la herramienta no cambia', async () => {
+    const store = traced(4);
+    const confirm = vi.fn(async (_o: ConfirmOptions) => false);
+    expect(await createToolSwitch(store, confirm)('select')).toBe(false);
+    expect(store.getState().ui.tool).toBe('draw_region');
+    expect(confirm).toHaveBeenCalledTimes(1);
+    const asked = confirm.mock.calls[0]![0];
+    expect(asked.tone).toBe('danger');
+    expect(asked.message).toContain('4 puntos');
+  });
+  it('si se confirma, cambia de herramienta', async () => {
+    const store = traced(3, 'split_region');
+    expect(await createToolSwitch(store, async () => true)('draw_region')).toBe(true);
+    expect(store.getState().ui.tool).toBe('draw_region');
+  });
+  it('con 1 o 2 puntos cambia sin preguntar (el lienzo anuncia el descarte); sin trazo, tampoco pregunta', async () => {
+    const confirm = vi.fn(async (_o: ConfirmOptions) => false);
+    const two = traced(2);
+    expect(await createToolSwitch(two, confirm)('pan')).toBe(true);
+    expect(two.getState().ui.tool).toBe('pan');
+    const none = traced(0);
+    expect(await createToolSwitch(none, confirm)('select')).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+  it('elegir la herramienta que ya está activa no pregunta ni cambia nada', async () => {
+    const confirm = vi.fn(async (_o: ConfirmOptions) => false);
+    const store = traced(5);
+    expect(await createToolSwitch(store, confirm)('draw_region')).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

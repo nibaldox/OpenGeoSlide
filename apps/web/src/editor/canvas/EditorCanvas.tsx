@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import type { Circle, Point, Slice } from '../../engine/types';
-import { worldToScreen, type Viewport } from '../../geometry/viewport';
+import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, ModelDoc } from '../types';
 import {
@@ -37,6 +37,7 @@ import {
   axisTitles,
   circleCenterLabel,
   circleRadiusLabel,
+  cursorReadout,
   gridLines,
   loadShapes,
   pointsAttr,
@@ -51,6 +52,7 @@ import {
   vertexLabel,
 } from './layout';
 import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
+import { isTraceTool, traceOnDocChange, traceOnToolChange } from './trace';
 import { edgeScrollDelta, fitToDoc, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
 import './canvas.css';
 
@@ -125,7 +127,7 @@ function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, p
 
 /** Instrucciones del lienzo para teclado y lector de pantalla (`aria-describedby`); documentadas también en docs/fase2/ux/U2C_lienzo_teclado.md. */
 export const CANVAS_INSTRUCTIONS =
-  'Lienzo del modelo. Tab y Mayús+Tab, o las teclas [ y ], pasan de un tirador a otro; en los extremos Tab sale del lienzo. ' +
+  'Lienzo del modelo: una sola parada de tabulación. Tab y Mayús+Tab entran al lienzo y salen de él; dentro, las teclas [ y ], o RePág y AvPág, pasan de un tirador a otro. ' +
   'Con las flechas se mueve el tirador seleccionado un paso de rejilla (0,1 sin rejilla); Mayús multiplica el paso por diez. ' +
   'En el tirador del radio las flechas cambian el radio del círculo; en el del centro, lo mueven. ' +
   'Insert, o la tecla i, inserta un vértice en el punto medio de la arista siguiente. ' +
@@ -134,9 +136,6 @@ export const CANVAS_INSTRUCTIONS =
   'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección. ' +
   'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
   'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
-
-/** Herramientas de trazo: comparten el borrador, el cursor del teclado y el autodesplazamiento. */
-const isTraceTool = (tool: string): boolean => tool === 'draw_region' || tool === 'split_region';
 
 /** Espera, en ms, con el puntero junto al borde antes de que la vista empiece a desplazarse (evita desplazar al cruzar el borde de paso). */
 const EDGE_SCROLL_DWELL_MS = 250;
@@ -208,6 +207,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const trailPointer = useRef<{ x: number; y: number } | null>(null);
   const edgeDwell = useRef(0);
   const prevTool = useRef(store.getState().ui.tool);
+  // Lectura de (x, y) del cursor: se escribe directamente en el DOM (sin estado) para no repintar el lienzo en cada movimiento.
+  const readoutRef = useRef<HTMLParagraphElement>(null);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
 
@@ -326,26 +327,60 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   });
 
   // Herramientas de trazo («Dibujar región» y «Dividir región»): al elegirlas el foco pasa al lienzo (para operar con el teclado) y se
-  // anuncia cómo usarlas; al salir de ellas, o al cambiar de una a otra, el trazo en curso se descarta.
+  // anuncia cómo usarlas; al salir de ellas, o al cambiar de una a otra, el trazo en curso se descarta y se anuncia (A-04, B-08).
   useEffect(() => {
     const was = prevTool.current;
     prevTool.current = ui.tool;
+    const reset = traceOnToolChange(draftRef.current, was, ui.tool);
+    if (reset.draft !== draftRef.current) {
+      setDraft(reset.draft);
+      setDrawError(null);
+    } else if (!isTraceTool(ui.tool) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+      setDraft(EMPTY_DRAFT);
+      setDrawError(null);
+    }
     if (isTraceTool(ui.tool) && was !== ui.tool) {
-      if (draftRef.current.points.length > 0 || draftRef.current.cursor !== null) {
-        draftRef.current = EMPTY_DRAFT;
-        setDraftState(EMPTY_DRAFT);
+      if (!isTraceTool(was) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+        setDraft(EMPTY_DRAFT);
         setDrawError(null);
       }
       svgRef.current?.focus({ preventScroll: true });
       const text = ui.tool === 'split_region' ? SPLIT_INSTRUCTIONS : DRAW_INSTRUCTIONS;
-      if (onAnnounce) onAnnounce(text);
-      else setLiveMsg(text);
-    } else if (!isTraceTool(ui.tool) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
-      draftRef.current = EMPTY_DRAFT;
-      setDraftState(EMPTY_DRAFT);
+      announce(reset.announce ? `${reset.announce} ${text}` : text);
+    } else if (reset.announce) {
+      announce(reset.announce);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.tool]);
+
+  // Otro documento (Nuevo, Abrir, Ejemplos, Talud simple, Recuperar, importar): el trazo a medias era del anterior y se descarta (A-01).
+  const lastEpoch = useRef(state.docEpoch);
+  useEffect(() => {
+    if (lastEpoch.current === state.docEpoch) return;
+    lastEpoch.current = state.docEpoch;
+    const reset = traceOnDocChange(draftRef.current);
+    if (reset.draft !== draftRef.current) {
+      setDraft(reset.draft);
       setDrawError(null);
     }
-  }, [ui.tool, onAnnounce]);
+    if (reset.announce) announce(reset.announce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.docEpoch]);
+
+  const showReadout = (p: Point | null): void => {
+    if (readoutRef.current) readoutRef.current.textContent = p ? cursorReadout(p, unitsEff) : '';
+  };
+  // Con una herramienta de trazo manda el cursor del dibujo (con ajuste, o el del teclado): también se lee desde el teclado.
+  useEffect(() => {
+    if (isTraceTool(ui.tool) && draft.cursor) showReadout(draft.cursor);
+    else if (!isTraceTool(ui.tool)) showReadout(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.cursor, ui.tool, unitsEff]);
+
+  // El resto de la aplicación (confirmar al cambiar de herramienta, cambios sin guardar) necesita saber si hay un trazo.
+  useEffect(() => {
+    store.dispatch({ type: 'ui/trace', points: draft.points.length });
+  }, [store, draft.points.length]);
 
   // Autodesplazamiento (UX9-01): con una herramienta de trazo, el puntero a menos de 24 px del borde del lienzo desplaza la vista
   // hacia ese lado (más rápido cuanto más cerca), para poder dibujar fuera de lo que se ve. Empieza tras una breve espera.
@@ -474,6 +509,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (pinching.current) return;
     const input = localInput(e);
     const ctx = context();
+    if (e.pointerType !== 'touch' && ctx.ui.viewport && !isTraceTool(ctx.ui.tool)) {
+      showReadout(screenToWorld(ctx.ui.viewport, input.x, input.y) as Point);
+    }
     if (isTraceTool(ctx.ui.tool) && gestureRef.current.mode === 'idle') {
       if (e.pointerType !== 'touch') trailPointer.current = { x: input.x, y: input.y };
       const next = drawHover(draftRef.current, ctx, input);
@@ -528,6 +566,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     apply(pointerCancel(gestureRef.current));
   };
   const onPointerLeave = (): void => {
+    if (!isTraceTool(store.getState().ui.tool)) showReadout(null);
     trailPointer.current = null;
     edgeDwell.current = 0;
   };
@@ -606,7 +645,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const arrowId = `${markerBase}-load`;
   const seismicArrowId = `${markerBase}-seismic`;
 
-  // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero).
+  // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero). Tab entra y sale
+  // del lienzo; los tiradores se recorren con [ ] y RePág/AvPág (`keys.ts`), no con Tab (B-01).
   const keys = handles.map(handleKey);
   const selectedHandle = selectionHandle(sel, circlePart);
   if (selectedHandle) lastActiveKey.current = handleKey(selectedHandle);
@@ -929,6 +969,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </button>
       </div>
 
+      <p ref={readoutRef} className="ec-cursor" aria-hidden="true" data-testid="cursor-readout" />
+
       {ui.tool === 'draw_region' && (
         <p className="ec-draw-hint" data-testid="draw-hint">
           <strong>Dibujar región</strong>: {draft.points.length === 0 ? 'ningún punto todavía' : `${draft.points.length} ${draft.points.length === 1 ? 'punto' : 'puntos'}`}.{' '}
@@ -953,9 +995,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </div>
       ) : null}
 
-      <p id={instructionsId} className="ec-visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
+      <p id={instructionsId} className="visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
       {!onAnnounce && (
-        <div className="ec-visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
+        <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
           {liveMsg}
         </div>
       )}

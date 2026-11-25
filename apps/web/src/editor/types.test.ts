@@ -133,6 +133,7 @@ describe('tipos congelados v0.2 del editor', () => {
       selection: selections[7],
       viewport: null,
       snap: { vertex: true, axis: true, gridStep: null, radiusPx: 8 },
+      tracePoints: 0,
     };
     // @ts-expect-error EditorUi no tiene `features` (F1.4)
     const withFeatures: EditorUi = { ...ui, features: { loads: false, seismic: false } };
@@ -143,6 +144,7 @@ describe('tipos congelados v0.2 del editor', () => {
     const state: EditorState = {
       doc,
       revision: 0,
+      docEpoch: 0,
       ui,
       history: { past: [], future: [] },
       file: { name: null, savedRevision: 0 },

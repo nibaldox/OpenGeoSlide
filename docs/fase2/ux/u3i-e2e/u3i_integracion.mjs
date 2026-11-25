@@ -64,20 +64,23 @@ const mat0 = await page.evaluate(() => 0);
 void mat0;
 const sel = page.getByLabel('Unidades');
 const before = { units: await sel.inputValue(), status: await status() };
+// U5-E (R8 A-02): el cambio de unidades abre un diálogo propio con tres opciones («Convertir los valores», «Solo cambiar la etiqueta» y
+// «Cancelar»), en lugar de la confirmación genérica; «Solo cambiar la etiqueta» conserva el comportamiento de units/set de este paso.
+const UNITS = 'dialog:has([data-testid="units-dialog"])';
 await sel.selectOption('imperial');
-await page.waitForSelector(CONFIRM);
-const ci = await confirmInfo();
+await page.waitForSelector(UNITS + '[open]');
+const ci = await page.evaluate((q) => { const d = document.querySelector(q); return { modal: d.matches(':modal'), opciones: [...d.querySelectorAll('button')].map((b) => b.textContent.trim()), active: document.activeElement?.textContent?.trim() }; }, UNITS);
 await page.keyboard.press('Escape');
-await page.waitForSelector(CONFIRM, { state: 'detached' });
+await page.waitForSelector(UNITS, { state: 'detached' });
 const afterCancel = await sel.inputValue();
 await sel.selectOption('imperial');
-await page.waitForSelector(CONFIRM);
-await page.getByRole('button', { name: /^Cambiar a imperial/ }).click();
-await page.waitForSelector(CONFIRM, { state: 'detached' });
+await page.waitForSelector(UNITS + '[open]');
+await page.getByRole('button', { name: 'Solo cambiar la etiqueta' }).click();
+await page.waitForSelector(UNITS, { state: 'detached' });
 const afterOk = { units: await sel.inputValue(), status: await status() };
 await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
 const afterUndo = await sel.inputValue();
-step('2 cambiar unidades: diálogo «danger» con foco en «Mantener»; Esc no cambia; confirmar cambia a imperial (con cambios sin guardar) y un Deshacer lo revierte', ci?.role === 'alertdialog' && ci.tone === 'danger' && /Mantener/.test(ci.active ?? '') && afterCancel === 'SI' && afterOk.units === 'imperial' && /con cambios/.test(afterOk.status) && afterUndo === 'SI', { ci, before, afterCancel, afterOk, afterUndo });
+step('2 cambiar unidades: diálogo con 3 opciones (foco en «Convertir los valores»); Esc no cambia; «Solo cambiar la etiqueta» cambia a imperial (con cambios sin guardar) y un Deshacer lo revierte', ci.modal && /Convertir los valores/.test(ci.active ?? '') && ci.opciones.length === 3 && afterCancel === 'SI' && afterOk.units === 'imperial' && /con cambios/.test(afterOk.status) && afterUndo === 'SI', { ci, before, afterCancel, afterOk, afterUndo });
 await page.getByRole('tab', { name: 'Geometría' }).click();
 
 // 3. Nuevo con cambios sin guardar: diálogo propio; las teclas no tocan el modelo de detrás; Seguir editando no descarta

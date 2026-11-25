@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Point } from '../../engine/types';
 import { makeDoc } from '../canvas/fakeStore';
-import { applyCommand } from '../state';
+import { applyCommand, createEditorStore } from '../state';
+import { createConfirmQueue, type ConfirmOptions } from '../../ui/confirmQueue';
 import type { ModelDoc } from '../types';
 import {
   GRID_CHOICES,
@@ -16,6 +17,7 @@ import {
   regionIssues,
   regionRemoveCommand,
   regionRemoveConfirm,
+  removeRegionConfirmed,
   regionSummary,
   vertexCoordEdit,
   vertexInsertCommand,
@@ -187,5 +189,77 @@ describe('regionRemoveConfirm', () => {
   });
   it('singular de vértice', () => {
     expect(regionRemoveConfirm({ index: 0, materialName: 'm', vertexCount: 1 }).message).toContain('1 vértice)');
+  });
+});
+
+describe('A-03: eliminar una región por identidad, no por índice', () => {
+  const threeRegions = () => {
+    const d = doc();
+    d.regions = [
+      { material: 'm1', polygon: [[0, 0], [10, 0], [10, 10], [0, 10]] },
+      { material: 'm2', polygon: [[10, 0], [20, 0], [20, 10], [10, 10]] },
+      { material: 'm1', polygon: [[20, 0], [30, 0], [30, 10], [20, 10]] },
+    ];
+    return d;
+  };
+
+  it('dos confirmaciones en cola borran exactamente las dos regiones pedidas', async () => {
+    const store = createEditorStore(threeRegions(), null);
+    const [first, second, third] = store.getState().doc.regions;
+    const queue = createConfirmQueue();
+    const confirm = (o: ConfirmOptions) => queue.request(o);
+    // Dos solicitudes antes de responder a ninguna (doble clic): la 1.ª pide la región 1 y la 2.ª, la región 2.
+    const p1 = removeRegionConfirmed(store, first!, confirm);
+    const p2 = removeRegionConfirmed(store, second!, confirm);
+    expect(queue.size()).toBe(2);
+    queue.resolve(true); // se confirma la 1.ª: los índices del resto cambian
+    await p1;
+    queue.resolve(true);
+    expect(await p1).toBe('removed');
+    expect(await p2).toBe('removed');
+    expect(store.getState().doc.regions).toEqual([third]);
+  });
+
+  it('el mismo clic repetido: la 2.ª solicitud de la misma región no borra otra (antes borraba la región vecina)', async () => {
+    const store = createEditorStore(threeRegions(), null);
+    const [first, second, third] = store.getState().doc.regions;
+    const queue = createConfirmQueue();
+    const confirm = (o: ConfirmOptions) => queue.request(o);
+    const p1 = removeRegionConfirmed(store, first!, confirm);
+    const p2 = removeRegionConfirmed(store, first!, confirm);
+    queue.resolve(true);
+    queue.resolve(true);
+    expect(await p1).toBe('removed');
+    expect(await p2).toBe('missing');
+    expect(store.getState().doc.regions).toEqual([second, third]);
+  });
+
+  it('si la región desaparece mientras se confirma (deshacer, importar), no borra nada', async () => {
+    const store = createEditorStore(threeRegions(), null);
+    const [first] = store.getState().doc.regions;
+    const queue = createConfirmQueue();
+    const p = removeRegionConfirmed(store, first!, (o) => queue.request(o));
+    store.dispatch({ type: 'region/remove', regionIndex: 0 });
+    queue.resolve(true);
+    expect(await p).toBe('missing');
+    expect(store.getState().doc.regions).toHaveLength(2);
+  });
+
+  it('cancelar no borra y una región que ya no existe ni pregunta', async () => {
+    const store = createEditorStore(threeRegions(), null);
+    const [first] = store.getState().doc.regions;
+    expect(await removeRegionConfirmed(store, first!, async () => false)).toBe('cancelled');
+    expect(store.getState().doc.regions).toHaveLength(3);
+    let asked = 0;
+    const ghost = { material: 'm1', polygon: [[0, 0], [1, 0], [1, 1]] as [number, number][] };
+    expect(await removeRegionConfirmed(store, ghost, async () => (asked += 1, true))).toBe('missing');
+    expect(asked).toBe(0);
+  });
+
+  it('el diálogo nombra la región por su número y material en el momento de pedirla', async () => {
+    const store = createEditorStore(threeRegions(), null);
+    const asked: ConfirmOptions[] = [];
+    await removeRegionConfirmed(store, store.getState().doc.regions[1]!, async (o) => (asked.push(o), false));
+    expect(asked[0]?.title).toBe('Eliminar la región 2');
   });
 });

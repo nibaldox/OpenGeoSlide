@@ -56,7 +56,8 @@ export const RULE_TEXT = {
   noSurface:
     'Superficie de falla: no hay ninguna definida; en el panel «Superficie de falla» elija «Búsqueda» (superficie crítica automática) o «Fija» (círculo con centro y radio)',
   waterUnitWeightImperial:
-    'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica, así que el cálculo usaría 9,81 (el valor en kN/m³); escriba 62,4 pcf',
+    'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica (o indica 9,81, que es un valor en kN/m³), así que el cálculo usaría 9,81 pcf en lugar de 62,4 pcf, ' +
+    'las presiones de poros saldrían unas 6,4 veces menores y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
 } as const;
 
 // ───────────────────────── Formato de números y textos ─────────────────────────
@@ -347,9 +348,10 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
       );
     }
   }
-  // El motor no convierte unidades: sin γw explícito usa 9,81 aunque el modelo esté en pcf (R7-22).
+  // El motor no convierte unidades: sin γw explícito usa 9,81 aunque el modelo esté en pcf (R7-22). Con piezométrica es un ERROR que
+  // bloquea «Comprobar» (R8): con 9,81 pcf las presiones de poros salen 6,4 veces menores y el FS queda del lado inseguro.
   if (doc.units === 'imperial' && line.length >= 2 && (water.unit_weight === undefined || water.unit_weight === 9.81)) {
-    issues.push(warning('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
+    issues.push(error('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
   }
 }
 

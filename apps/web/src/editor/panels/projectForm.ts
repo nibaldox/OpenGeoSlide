@@ -53,7 +53,7 @@ export function unitsOptions(current: CurrentUnits): { value: string; label: str
 }
 
 /**
- * Cambio de unidades: NO convierte ningún valor, solo cambia `units` (etiquetas y valores por defecto). Usa `units/set`:
+ * «Solo cambiar la etiqueta»: NO convierte ningún valor, solo cambia `units` (etiquetas y valores por defecto). Usa `units/set`:
  * un único paso deshacible que conserva el nombre del archivo y deja el documento «con cambios sin guardar».
  */
 export function unitsChangeCommand(doc: ModelDoc, to: string): EditorCommand | null {
@@ -78,4 +78,72 @@ export function unitsChangeConfirm(from: CurrentUnits, to: UnitsKind): ConfirmOp
     cancelLabel: 'Mantener las unidades',
     tone: 'danger',
   };
+}
+
+// ───────── Diálogo de cambio de unidades (R8 A-02) ─────────
+
+export type UnitsChoice = 'convert' | 'label' | 'cancel';
+
+export interface UnitsDialogOption {
+  id: UnitsChoice;
+  label: string;
+  description: string;
+  /** La opción recomendada (se destaca y recibe el foco). */
+  recommended: boolean;
+}
+
+export interface UnitsDialog {
+  title: string;
+  intro: string;
+  options: UnitsDialogOption[];
+  /** Opción con el foco inicial. */
+  defaultOption: UnitsChoice;
+}
+
+/** Texto y opciones del diálogo: convertir (por defecto), solo la etiqueta (con la advertencia de siempre) o cancelar. */
+export function unitsChangeDialog(from: CurrentUnits, to: UnitsKind): UnitsDialog {
+  const name = to === 'imperial' ? 'imperial' : 'SI';
+  const t = unitLabels(to);
+  const f = unitLabels(from.kind === 'imperial' ? 'imperial' : 'SI');
+  const cancel: UnitsDialogOption = { id: 'cancel', label: 'Cancelar', description: 'Mantiene las unidades y los valores actuales.', recommended: false };
+  const labelOnly: UnitsDialogOption = {
+    id: 'label',
+    label: 'Solo cambiar la etiqueta',
+    description: unitsChangeConfirm(from, to).message,
+    recommended: false,
+  };
+  const intro = `El modelo pasa a unidades ${name} (${t.length}, ${t.unitWeight}, ${t.stress}).`;
+  if (from.kind === 'other') {
+    return {
+      title: 'Cambiar el sistema de unidades',
+      intro: `${intro} El sistema actual («${from.raw}») no tiene una convención conocida, así que no se pueden convertir los valores.`,
+      options: [labelOnly, cancel],
+      defaultOption: 'label',
+    };
+  }
+  const gammaW = to === 'imperial' ? ' El peso del agua pasa de 9,81 kN/m³ a 62,45 pcf (y se escribe explícito).' : ' El peso del agua vuelve a su equivalente en kN/m³.';
+  const convert: UnitsDialogOption = {
+    id: 'convert',
+    label: 'Convertir los valores',
+    description:
+      `Reescribe los números de ${f.length}, ${f.unitWeight}, ${f.stress} a ${t.length}, ${t.unitWeight}, ${t.stress}: coordenadas, radios y parámetros de longitud de la búsqueda, ` +
+      'γ, γsat y γw, c y q, y la carga lineal p. No cambian φ, ru, kh, kv ni los ángulos. El factor de seguridad no cambia.' +
+      `${gammaW} Se deshace con un solo Ctrl+Z.`,
+    recommended: true,
+  };
+  return { title: 'Cambiar el sistema de unidades', intro, options: [convert, labelOnly, cancel], defaultOption: 'convert' };
+}
+
+/** `units/convert` (valores reescritos, FS invariante), o `null` si ya está en `to` o el sistema actual no tiene convención conocida. */
+export function unitsConvertCommand(doc: ModelDoc, to: UnitsKind): EditorCommand | null {
+  const from = currentUnits(doc);
+  if (from.kind === 'other' || from.kind === to) return null;
+  return { type: 'units/convert', units: to };
+}
+
+/** Comando de la opción elegida en el diálogo (`null` = no hacer nada). */
+export function unitsChoiceCommand(doc: ModelDoc, to: UnitsKind, choice: UnitsChoice): EditorCommand | null {
+  if (choice === 'convert') return unitsConvertCommand(doc, to);
+  if (choice === 'label') return unitsChangeCommand(doc, to);
+  return null;
 }

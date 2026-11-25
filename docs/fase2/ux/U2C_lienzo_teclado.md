@@ -5,13 +5,14 @@ Hallazgos que cubre: R7-04, R7-10, parte de R7-02, UX-02 y UX-05. Código en `ap
 ## Teclado
 
 El lienzo es **una sola parada de tabulación** (tabindex itinerante): el tirador activo (el seleccionado, o el último que
-lo estuvo, o el primero) tiene `tabindex="0"` y los demás `-1`. El elemento `<svg role="application">` se describe con
+lo estuvo, o el primero) tiene `tabindex="0"` y los demás `-1`. (Hasta U4 `Tab` también recorría los tiradores, y con 344 salir del
+lienzo costaba cientos de pulsaciones: R8 B-01. Desde U5-E el recorrido es solo con `[ ]` y `AvPág`/`RePág`.) El elemento `<svg role="application">` se describe con
 `aria-describedby` (texto de `CANVAS_INSTRUCTIONS` en `EditorCanvas.tsx`).
 
 | Tecla | Acción |
 |---|---|
-| `Tab` / `Mayús+Tab` | Tirador siguiente / anterior dentro del lienzo. En el último (o el primero) deja salir del lienzo. |
-| `]` / `[` | Tirador siguiente / anterior, dando la vuelta. Entran al lienzo desde una selección que no sea un tirador. |
+| `Tab` / `Mayús+Tab` | **Entran al lienzo y salen de él.** El lienzo es una sola parada de tabulación: el canvas no atiende Tab, de modo que el navegador pasa al siguiente (o anterior) elemento enfocable de la página, sin importar cuántos tiradores haya. |
+| `]` / `[`, `AvPág` / `RePág` | Tirador siguiente / anterior, dando la vuelta. Entran al lienzo desde una selección que no sea un tirador (primero o último). |
 | Flechas | Mueven el tirador seleccionado 1 paso de rejilla (0,1 sin rejilla); `Mayús` = ×10. En `circle_radius` cambian el radio (derecha/arriba +, izquierda/abajo −); en `circle_center` mueven el centro. Sin tirador seleccionado desplazan la vista 40 px (`Mayús` ×4). |
 | `Insert` o `i` | Con un vértice seleccionado, inserta otro en el punto medio de la arista siguiente (la de cierre, si es el último) y le pasa el foco. «i» existe porque muchos portátiles no tienen `Insert`. |
 | `Supr` / `Retroceso` | Elimina el vértice (mínimo 3 por región) o el punto de la piezométrica (mínimo 2); el foco pasa al vecino anterior. Si no se puede, se anuncia. |
@@ -64,3 +65,13 @@ rellena `buildScene`).
 
 Guiones usados (Playwright, puerto 5187), en `docs/fase2/ux/u2c-e2e/`: `u2c_keyboard.mjs` (edición solo con teclado),
 `u2c_touch.mjs` (pellizco, desplazamiento y arrastre táctil) y `u2c_axe.mjs` (axe en claro y oscuro, capturas).
+
+## Cambios de U5-E (R8)
+
+- **Una sola parada de tabulación (B-01):** `Tab` y `Mayús+Tab` entran y salen del lienzo; los tiradores se recorren con `[ ]` y `AvPág`/`RePág`.
+  Medido en Chrome con 344 tiradores: salir del lienzo toma **1 Tab** (antes, 12 Tab no pasaban del vértice 4 al 15).
+- **Trazo y documento (A-01):** cargar otro documento (`doc/load` o `doc/replace`) sube `docEpoch`; el lienzo descarta el trazo en curso
+  y lo anuncia. El lienzo publica su número de puntos en `ui.tracePoints` (`ui/trace`).
+- **Cambiar de herramienta con un trazo (A-04, B-08, A-08):** con 3 o más puntos pide confirmación (`useConfirm`, tono `danger`); con 1 o 2
+  lo descarta y lo anuncia. Un trazo con puntos cuenta como «cambios sin guardar» en `confirmDiscard`.
+- **Lectura del cursor (R7-02):** una línea `aria-hidden` en la esquina superior izquierda con `x`, `y` y la unidad.

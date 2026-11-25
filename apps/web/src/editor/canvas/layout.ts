@@ -28,6 +28,11 @@ export function lengthUnitOf(units: string | undefined | null): string {
 
 // Las etiquetas accesibles llevan la unidad de longitud del modelo (`units`); sin ese argumento valen las del SI.
 
+/** Lectura del cursor sobre el lienzo (R7-02): una sola línea con x, y y la unidad de longitud, p. ej. «x 31,4 · y 26,4 m». */
+export function cursorReadout(p: Point, units?: string | null): string {
+  return `x ${formatNumber(p[0])} · y ${formatNumber(p[1])} ${lengthUnitOf(units)}`;
+}
+
 export function vertexLabel(regionIndex: number, vertexIndex: number, p: Point, units?: string | null): string {
   const u = lengthUnitOf(units);
   return `Región ${regionIndex + 1}, vértice ${vertexIndex + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;

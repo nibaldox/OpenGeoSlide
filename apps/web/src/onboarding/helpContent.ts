@@ -34,8 +34,13 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { scope: 'global', keys: 'D', action: 'Herramienta «Dividir región»: trace una línea que entre y salga del borde de una región; Intro, o un clic en el borde, la divide en dos (un solo paso deshacible)', probes: [{ key: 'd' }], shortcutAction: 'tool:split_region' },
   { scope: 'global', keys: 'H', action: 'Herramienta «Mover vista»', probes: [{ key: 'h' }], shortcutAction: 'tool:pan' },
 
-  { scope: 'canvas', keys: 'Tab o Mayús+Tab', action: 'Tirador siguiente o anterior; en los extremos, Tab sale del lienzo', probes: [{ key: 'Tab' }, { key: 'Tab', shift: true }] },
-  { scope: 'canvas', keys: '] o [', action: 'Tirador siguiente o anterior, dando la vuelta', probes: [{ key: ']' }, { key: '[' }] },
+  {
+    scope: 'canvas',
+    keys: '] o [ (también AvPág o RePág)',
+    action:
+      'Tirador siguiente o anterior, dando la vuelta. Tab y Mayús+Tab no recorren los tiradores: el lienzo es una sola parada de tabulación, así que entran al lienzo y salen de él',
+    probes: [{ key: ']' }, { key: '[' }, { key: 'PageDown' }, { key: 'PageUp' }],
+  },
   {
     scope: 'canvas',
     keys: 'Flechas',
@@ -146,7 +151,7 @@ export const LIMITATIONS: readonly string[] = [
   'Es un análisis de equilibrio límite en 2D con material Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción). No calcula deformaciones ni análisis en tres dimensiones.',
   'Las superficies de deslizamiento son circulares, ya sea fijas o encontradas por la búsqueda de entrada y salida.',
   'Spencer barre λ con un paso fijo de 0,05: puede no hallar solución (aviso «no_lambda_root») aunque exista. Con tracción en la base, su FS puede quedar por debajo de Bishop; revise los avisos.',
-  'Cambiar el sistema de unidades (SI o imperial) no convierte los valores del modelo: solo cambia las etiquetas y los valores por defecto.',
+  'Cambiar el sistema de unidades (SI o imperial) ofrece convertir los valores del modelo (el factor de seguridad no cambia) o cambiar solo la etiqueta. El motor nunca convierte: interpreta los números en las unidades declaradas, y con piezométrica en imperial el peso del agua debe ser explícito (62,4 pcf).',
   'Una carga puntual o lineal puede generar círculos diminutos con FS muy bajo bajo ella; fije un «ancho mínimo» de búsqueda y revise aparte la capacidad de soporte local.',
   'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa.',
 ];

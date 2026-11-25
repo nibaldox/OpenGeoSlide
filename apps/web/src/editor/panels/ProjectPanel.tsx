@@ -1,18 +1,70 @@
 // Panel «Proyecto»: título, identificador y descripción del modelo (`meta`) y sistema de unidades. Misma firma que los demás
 // paneles (`{ store }`). El esquema (`schema/ogs-0.2.schema.json`, `$defs/meta`) solo tiene `id`, `title` y `notes`.
-// Cambiar las unidades no convierte los valores: antes de aplicar el cambio se pide confirmación (`useConfirm`).
+// Cambiar las unidades abre un diálogo propio con tres opciones: «Convertir los valores» (recomendada: el FS no cambia),
+// «Solo cambiar la etiqueta» (la advertencia de siempre) y «Cancelar» (R8 A-02).
 
-import { useId, type KeyboardEvent } from 'react';
-import { useConfirm } from '../../ui/ConfirmDialog';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { Modal } from '../app/ImportDialogs';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
-import { currentUnits, metaPatchCommand, projectToForm, unitsChangeCommand, unitsChangeConfirm, unitsOptions, type MetaField } from './projectForm';
+import {
+  currentUnits,
+  metaPatchCommand,
+  projectToForm,
+  unitsChangeDialog,
+  unitsChoiceCommand,
+  unitsOptions,
+  type MetaField,
+  type UnitsChoice,
+  type UnitsKind,
+} from './projectForm';
 import { useDraft, useStoreSelector } from './useStoreSelector';
+import './project.css';
+
+/** Diálogo del cambio de unidades. El foco inicial va a la opción por defecto («Convertir los valores»). */
+function UnitsDialog({ from, to, onChoose }: { from: ReturnType<typeof currentUnits>; to: UnitsKind; onChoose: (choice: UnitsChoice) => void }) {
+  const dialog = unitsChangeDialog(from, to);
+  const defaultRef = useRef<HTMLButtonElement>(null);
+  const descId = useId();
+  useEffect(() => {
+    // `Modal` lleva el foco al título al montarse; después, a la opción recomendada.
+    const id = window.setTimeout(() => defaultRef.current?.focus(), 50);
+    return () => window.clearTimeout(id);
+  }, []);
+  return (
+    <Modal title={dialog.title} onCancel={() => onChoose('cancel')}>
+      <div className="pj-units-dialog" data-testid="units-dialog">
+        <p id={descId}>{dialog.intro}</p>
+        <ul className="pj-units-options">
+          {dialog.options.map((o) => (
+            <li key={o.id} className={o.recommended ? 'pj-units-option pj-units-recommended' : 'pj-units-option'}>
+              <button
+                type="button"
+                ref={o.id === dialog.defaultOption ? defaultRef : undefined}
+                className={o.recommended ? 'primary' : o.id === 'cancel' ? undefined : 'pj-units-secondary'}
+                aria-describedby={`${descId}-${o.id}`}
+                data-units-choice={o.id}
+                onClick={() => onChoose(o.id)}
+              >
+                {o.label}
+                {o.recommended ? ' (recomendado)' : ''}
+              </button>
+              <span id={`${descId}-${o.id}`} className="muted small">
+                {o.description}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Modal>
+  );
+}
 
 export function ProjectPanel({ store }: { store: EditorStore }) {
   const meta = useStoreSelector(store, (s) => s.doc.meta);
   const units = useStoreSelector(store, (s) => s.doc.units);
-  const confirm = useConfirm();
+  const [pendingUnits, setPendingUnits] = useState<UnitsKind | null>(null);
+  const [unitsNotice, setUnitsNotice] = useState<string | null>(null);
   const notesId = useId();
   const notesHintId = useId();
   const unitsId = useId();
@@ -30,16 +82,26 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
   const options = unitsOptions(unitsNow);
   const selectValue = unitsNow.kind === 'other' ? unitsNow.raw : unitsNow.kind;
 
-  const onUnitsChange = async (value: string): Promise<void> => {
+  const onUnitsChange = (value: string): void => {
     if (value !== 'SI' && value !== 'imperial') return;
-    const doc = store.getState().doc;
-    const cmd = unitsChangeCommand(doc, value);
+    if (value === unitsNow.kind) return;
+    setUnitsNotice(null);
+    setPendingUnits(value);
+  };
+  const onUnitsChoice = (choice: UnitsChoice): void => {
+    const to = pendingUnits;
+    setPendingUnits(null);
+    if (to === null) return;
+    // El estado pudo cambiar mientras el diálogo estaba abierto: el comando se recalcula sobre el documento actual.
+    const cmd = unitsChoiceCommand(store.getState().doc, to, choice);
     if (!cmd) return;
-    const ok = await confirm(unitsChangeConfirm(unitsNow, value));
-    if (!ok) return;
-    // El estado pudo cambiar mientras el diálogo estaba abierto: se recalcula sobre el documento actual.
-    const fresh = unitsChangeCommand(store.getState().doc, value);
-    if (fresh) store.dispatch(fresh);
+    store.dispatch(cmd);
+    if (choice === 'convert') {
+      store.dispatch({ type: 'ui/viewport', viewport: null }); // las coordenadas cambiaron de escala: el lienzo vuelve a encuadrar
+      setUnitsNotice(`Valores convertidos a ${to === 'imperial' ? 'imperial (ft, pcf, psf)' : 'SI (m, kN/m³, kPa)'}. El factor de seguridad no cambia. Ctrl+Z lo deshace.`);
+    } else {
+      setUnitsNotice('Solo se cambió la etiqueta: los números del modelo no se convirtieron.');
+    }
   };
 
   const onNotesKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>): void => {
@@ -90,17 +152,23 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
         <div className="field ep-field">
           <label htmlFor={unitsId}>Unidades</label>
           <span id={unitsHintId} className="muted small">
-            Cambiar de sistema no convierte los valores del modelo
+            Al cambiar de sistema puede convertir los valores del modelo (el factor de seguridad no cambia) o solo cambiar la etiqueta
           </span>
-          <select id={unitsId} data-path="/units" value={selectValue} aria-describedby={unitsHintId} onChange={(e) => void onUnitsChange(e.target.value)}>
+          <select id={unitsId} data-path="/units" value={selectValue} aria-describedby={unitsHintId} onChange={(e) => onUnitsChange(e.target.value)}>
             {options.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
             ))}
           </select>
+          {unitsNotice ? (
+            <p className="small pj-units-notice" role="status" data-testid="units-notice">
+              {unitsNotice}
+            </p>
+          ) : null}
         </div>
       </div>
+      {pendingUnits ? <UnitsDialog from={unitsNow} to={pendingUnits} onChoose={onUnitsChoice} /> : null}
     </PanelSection>
   );
 }

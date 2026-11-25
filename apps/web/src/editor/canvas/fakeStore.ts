@@ -46,6 +46,7 @@ export function makeState(doc: ModelDoc = makeDoc(), patch: Partial<EditorState[
       selection: { kind: 'none' },
       viewport: VP,
       snap: { vertex: true, axis: true, gridStep: null, radiusPx: 10 },
+      tracePoints: 0,
       ...patch,
     },
   };
@@ -79,6 +80,7 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
       const state: EditorState = {
         doc: doc0,
         revision,
+        docEpoch: 0,
         ui,
         history: { past: store.past, future: store.future },
         file: { name: null, savedRevision: 0 },
