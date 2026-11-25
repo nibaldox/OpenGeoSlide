@@ -1,0 +1,146 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Debe coincidir con `wasm-bindgen = "=0.2.130"` en crates/ogs-wasm/Cargo.toml.
+  WASM_BINDGEN_VERSION: 0.2.130
+
+jobs:
+  rust:
+    name: rust (fmt, clippy, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      # ogs-py es una extensión PyO3 (cdylib): su verificación es el pytest del wheel (workflow wheels).
+      - run: cargo clippy --workspace --exclude ogs-py --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --exclude ogs-py --release --locked
+
+  acceptance:
+    name: acceptance (38/38 checks publicados)
+    needs: rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p ogs-cli
+      - run: cargo test --release --locked -p ogs-core --test acceptance -- --nocapture
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ogs-linux-x86_64
+          path: target/release/ogs
+          if-no-files-found: error
+
+  oracle:
+    name: oracle (harness + diferencial frente a cSlope)
+    needs: acceptance
+    runs-on: ubuntu-latest
+    env:
+      OGS_BIN: ${{ github.workspace }}/target/release/ogs
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: ogs-linux-x86_64
+          path: target/release
+      # upload-artifact no conserva el bit de ejecución.
+      - run: chmod +x target/release/ogs
+      - uses: astral-sh/setup-uv@v10.4.0
+      # cslope 0.1.0 trae wheel precompilado en PyPI: no hay que compilar el oráculo.
+      # El --out va fuera del repo: por defecto estos scripts escribirían REPORT.md y report.json en el árbol.
+      - name: Harness de verificación cruzada
+        run: >
+          uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely
+          python verification/harness/run.py --cases verification/cases --ogs target/release/ogs
+          --out "$RUNNER_TEMP/harness"
+      - name: Batería diferencial
+        run: >
+          uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely
+          python verification/differential/run.py --ogs target/release/ogs --out "$RUNNER_TEMP/diff"
+      - name: pytest de verificación
+        run: >
+          uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with jsonschema --with pytest
+          python -m pytest -q verification
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: verification-reports
+          path: |
+            ${{ runner.temp }}/harness
+            ${{ runner.temp }}/diff
+          if-no-files-found: warn
+
+  wasm:
+    name: wasm (ogs-wasm + wasm-bindgen)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
+      - name: Comprobar la versión de wasm-bindgen
+        run: |
+          wasm-bindgen --version
+          test "$(wasm-bindgen --version)" = "wasm-bindgen ${WASM_BINDGEN_VERSION}"
+      - run: apps/web/scripts/build-wasm.sh
+      - run: test -s apps/web/src/wasm/ogs_wasm_bg.wasm
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wasm-bindings
+          path: apps/web/src/wasm
+          if-no-files-found: error
+
+  web:
+    name: web (typecheck, tests, build)
+    needs: wasm
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: wasm-bindings
+          path: apps/web/src/wasm
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      # Sin .wasm en dist/ la app caería en el motor simulado sin que el build fallase.
+      - name: dist/ debe contener el .wasm y los archivos de la PWA
+        run: |
+          find dist -name '*.wasm' | grep -q .
+          test -s dist/sw.js
+          test -s dist/manifest.webmanifest
+          grep -q '\.wasm' dist/sw.js

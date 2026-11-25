@@ -1,0 +1,99 @@
+name: wheels
+
+# Wheels abi3 (cp311-abi3: un wheel por plataforma sirve para CPython >= 3.11) y sdist.
+# Publica en PyPI con Trusted Publishing (OIDC, sin token) solo con tags v*, desde el environment `pypi`.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'crates/ogs-py/**'
+      - 'crates/ogs-core/**'
+      - '.github/workflows/wheels.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wheels-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wheels:
+    name: wheel ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, manylinux: '2014', smoke: true }
+          - { os: macos-latest, target: aarch64-apple-darwin, smoke: true }
+          - { os: macos-latest, target: x86_64-apple-darwin, smoke: false }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, smoke: true }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      # LICENSE y NOTICE viven en la raíz; PEP 639 no admite `..`, así que se copian junto al pyproject.toml.
+      - name: Copiar LICENSE y NOTICE junto a pyproject.toml
+        shell: bash
+        run: crates/ogs-py/scripts/prepare-license-files.sh
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          working-directory: crates/ogs-py
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          # `--compatibility pypi` rechaza etiquetas que PyPI no acepta (p. ej. manylinux_2_35).
+          args: --release --locked --compatibility pypi -i python3.13 --out dist
+          sccache: 'true'
+      - name: Comprobar que el wheel instala e importa
+        if: ${{ matrix.smoke }}
+        shell: bash
+        run: |
+          python -m pip install --no-index --find-links crates/ogs-py/dist opengeoslide
+          python -c "import opengeoslide; print('opengeoslide', opengeoslide.__file__)"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-${{ matrix.target }}
+          path: crates/ogs-py/dist/*.whl
+          if-no-files-found: error
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Copiar LICENSE y NOTICE junto a pyproject.toml
+        run: crates/ogs-py/scripts/prepare-license-files.sh
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          working-directory: crates/ogs-py
+          args: --out dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wheels-sdist
+          path: crates/ogs-py/dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    name: publicar en PyPI
+    needs: [wheels, sdist]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/opengeoslide/
+    permissions:
+      contents: read
+      id-token: write # Trusted Publishing: PyPI intercambia el OIDC por un token de 15 minutos
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+      - run: ls -l dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

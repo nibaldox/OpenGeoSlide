@@ -1,0 +1,68 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # Subruta del proyecto en GitHub Pages: https://<propietario>.github.io/opengeoslide/
+  # Con dominio propio (https://ejemplo.org/) basta VITE_BASE=/ .
+  VITE_BASE: /opengeoslide/
+  WASM_BINDGEN_VERSION: 0.2.130
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ env.WASM_BINDGEN_VERSION }}
+      - name: Comprobar la versión de wasm-bindgen
+        run: test "$(wasm-bindgen --version)" = "wasm-bindgen ${WASM_BINDGEN_VERSION}"
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: apps/web
+      - run: apps/web/scripts/build-wasm.sh
+      - run: pnpm build
+        working-directory: apps/web
+      - name: dist/ debe contener el .wasm, la PWA y la subruta correcta
+        working-directory: apps/web
+        run: |
+          find dist -name '*.wasm' | grep -q .
+          test -s dist/sw.js
+          grep -q "src=\"${VITE_BASE}assets/" dist/index.html
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
