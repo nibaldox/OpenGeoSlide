@@ -1,0 +1,65 @@
+name: release
+
+# Tag v*  -> comprobación (cargo publish --dry-run) + GitHub Release.
+# Publicar en crates.io es siempre una acción manual: workflow_dispatch con `publish_crates: true`, sobre un tag v*,
+# y con el secret CARGO_REGISTRY_TOKEN definido. crates.io no tiene Trusted Publishing: exige token.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish_crates:
+        description: 'Publicar ogs-core y ogs-cli en crates.io (irreversible; requiere ejecutar sobre un tag v*)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: cargo publish --dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Empaqueta y verifica ogs-core y ogs-cli en orden de dependencias (ogs-py y ogs-wasm tienen publish = false).
+      - run: cargo publish --workspace --dry-run --locked
+
+  github-release:
+    name: GitHub Release
+    needs: verify
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  publish-crates:
+    name: publicar en crates.io
+    needs: verify
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_crates && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    environment: crates-io
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - name: Comprobar que existe el token
+        run: |
+          if [ -z "${CARGO_REGISTRY_TOKEN}" ]; then
+            echo "::error::Falta el secret CARGO_REGISTRY_TOKEN"
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      # Publica ogs-core, espera a que crates.io lo indexe y después publica ogs-cli.
+      - run: cargo publish --workspace --locked
