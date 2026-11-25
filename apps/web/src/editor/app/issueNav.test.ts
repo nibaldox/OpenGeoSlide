@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../types';
 import { newDoc } from './docTemplates';
-import { fieldSelector, issueTarget } from './issueNav';
+import { fieldSelector, issueTarget, issueTargetFor } from './issueNav';
 
 function doc(): ModelDoc {
   const d = newDoc();
@@ -15,7 +15,6 @@ describe('issueTarget', () => {
   });
   it('punteros sin elemento real en la interfaz no son navegables', () => {
     expect(issueTarget('/version', doc())).toBeNull();
-    expect(issueTarget('/regions', doc())).toBeNull();
     expect(issueTarget('/regions/99', doc())).toBeNull();
     expect(issueTarget('/materials/42/cohesion', doc())).toBeNull();
     expect(issueTarget('/loads/9/q', doc())).toBeNull();
@@ -85,5 +84,46 @@ describe('fieldSelector', () => {
   });
   it('escapa comillas y barras invertidas', () => {
     expect(fieldSelector('/a"b\\c')).toBe('[data-path="/a\\"b\\\\c"]');
+  });
+});
+
+describe('issueTarget: colecciones (B-03)', () => {
+  it('/regions (modelo vacío) lleva a Geometría y enfoca «Dibujar región»', () => {
+    const t = issueTarget('/regions', doc());
+    expect(t).toMatchObject({ tab: 'geometry', selection: { kind: 'none' }, fieldPath: null });
+    expect(t?.focus?.map((f) => f.selector)).toEqual(['.ns-empty button', '[aria-label=\"Herramienta del lienzo\"] button']);
+    expect(t?.focus?.every((f) => f.text === '^Dibujar región')).toBe(true);
+  });
+  it('/analysis/search y /analysis/surface llevan a sus pestañas', () => {
+    expect(issueTarget('/analysis/search', doc())).toMatchObject({ tab: 'search' });
+    expect(issueTarget('/analysis/surface', doc())).toMatchObject({ tab: 'surface' });
+  });
+  it('/regions/99 (índice inexistente) sigue sin destino', () => {
+    expect(issueTarget('/regions/99', doc())).toBeNull();
+  });
+});
+
+describe('issueTargetFor: incidencias sin puntero', () => {
+  const issue = (code: string, path: string | null = null) => ({ source: 'engine' as const, severity: 'error' as const, code, text: 'x', path });
+  it('«no hay superficie válida» del motor lleva a Búsqueda si el modelo busca', () => {
+    const d = { ...doc(), analysis: { ...doc().analysis, search: { type: 'circular_entry_exit', entry: [0, 1], exit: [2, 3] } } } as ModelDoc;
+    expect(issueTargetFor(issue('NoValidSurface'), d)).toMatchObject({ tab: 'search', fieldPath: null });
+  });
+  it('sin búsqueda, la misma incidencia lleva a Superficie', () => {
+    const d = { ...doc(), analysis: { ...doc().analysis, search: undefined } } as ModelDoc;
+    expect(issueTargetFor(issue('NoValidSurface'), d)).toMatchObject({ tab: 'surface' });
+  });
+  it('un método sin superficie válida (engine.invalid) también', () => {
+    expect(issueTargetFor(issue('engine.invalid'), doc())).not.toBeNull();
+  });
+  it('con puntero, manda el puntero', () => {
+    expect(issueTargetFor(issue('NoValidSurface', '/analysis/seismic/kh'), doc())).toMatchObject({ tab: 'seismic' });
+  });
+  it('una incidencia sin puntero ni código conocido no tiene destino', () => {
+    expect(issueTargetFor(issue('EngineError'), doc())).toBeNull();
+    expect(issueTargetFor(issue('InvalidModel'), doc())).toBeNull();
+  });
+  it('tabla de destinos: cada código con destino', () => {
+    for (const code of ['NoValidSurface', 'engine.invalid', 'NoSurface']) expect(issueTargetFor(issue(code), doc()), code).not.toBeNull();
   });
 });

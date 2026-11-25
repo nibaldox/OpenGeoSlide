@@ -1,5 +1,5 @@
 import type { Issue, EditorStore } from '../types';
-import { issueTarget, type IssueTarget } from '../app/issueNav';
+import { issueTargetFor, type IssueTarget } from '../app/issueNav';
 import { PanelSection } from './Fields';
 import { useStoreSelector } from './useStoreSelector';
 import { SEVERITY_LABELS, diagnosticsStatusLabel, issueSummary, sortIssues } from './forms';
@@ -13,7 +13,7 @@ export function issueTechnicalText(issue: Issue): string {
 }
 
 /**
- * Lista de incidencias. Una incidencia con destino real (`issueTarget`) es un botón: al pulsarla se selecciona el
+ * Lista de incidencias. Una incidencia con destino real (`issueTargetFor`) es un botón: al pulsarla se selecciona el
  * elemento y `onNavigate` abre la pestaña y lleva el foco al campo (R7-11). Sin destino es solo texto.
  * El panel no ejecuta el motor: el botón «Comprobar» es el de la barra (no se duplica).
  */
@@ -44,7 +44,7 @@ export function DiagnosticsPanel({ store, onNavigate }: { store: EditorStore; on
       ) : (
         <ul className="ep-issues">
           {sorted.map((issue, i) => {
-            const target = issueTarget(issue.path, doc);
+            const target = issueTargetFor(issue, doc);
             const content = (
               <>
                 <span className={`ep-badge ep-badge-${issue.severity}`}>{SEVERITY_LABELS[issue.severity]}</span>
