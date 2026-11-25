@@ -65,49 +65,37 @@ pub struct SlicedSurface {
     pub notes: Vec<String>,
 }
 
-/// Soil blocks of a toe-first sequence: maximal runs of soil slices, as `(start, end, weight)` with `end`
-/// exclusive. `air[k]` tells whether slice `k` is an air slice.
-fn soil_blocks(slices: &[Slice], air: &[bool]) -> Vec<(usize, usize, f64)> {
+/// Soil blocks of a toe-first sequence: maximal runs of soil slices, as `(start, end)` with `end` exclusive.
+/// `air[k]` tells whether slice `k` is an air slice.
+fn soil_blocks(air: &[bool]) -> Vec<(usize, usize)> {
     let mut blocks = Vec::new();
     let mut k = 0;
-    while k < slices.len() {
+    while k < air.len() {
         if air[k] {
             k += 1;
             continue;
         }
         let start = k;
-        let mut weight = 0.0;
-        while k < slices.len() && !air[k] {
-            weight += slices[k].weight;
+        while k < air.len() && !air[k] {
             k += 1;
         }
-        blocks.push((start, k, weight));
+        blocks.push((start, k));
     }
     blocks
 }
 
-/// Index range `[lo, hi)` of the main soil block of a toe-first sequence (E10a): the block with the largest soil
-/// weight, and on a tie the one nearest the entry (the last in toe-first order). Air slices at the ends of the sequence
-/// are kept only when they touch the main block. `None` when there is at most one soil block: nothing to remove.
-pub(crate) fn main_block_range(slices: &[Slice], air: &[bool]) -> Option<(usize, usize)> {
-    let blocks = soil_blocks(slices, air);
+/// Index range `[lo, hi)` of the main soil block of a toe-first sequence (E10a″): the block that contains the entry
+/// point, on the crest side. `slices[last]` is the crest slice, and the sliding range ends on soil, so the entry block
+/// is the last soil block in toe-first order. Its own weight does not matter, and no tie rule is needed. The other
+/// blocks are dropped; air slices at the crest end are kept, since they touch the main block. `None` when there is at
+/// most one soil block: nothing to remove.
+pub(crate) fn main_block_range(air: &[bool]) -> Option<(usize, usize)> {
+    let blocks = soil_blocks(air);
     if blocks.len() < 2 {
         return None;
     }
-    let mut main = 0;
-    for (k, block) in blocks.iter().enumerate().skip(1) {
-        if block.2 >= blocks[main].2 {
-            main = k;
-        }
-    }
-    let (start, end, _) = blocks[main];
-    let lo = if main == 0 { 0 } else { start };
-    let hi = if main == blocks.len() - 1 {
-        slices.len()
-    } else {
-        end
-    };
-    Some((lo, hi))
+    let (start, _) = blocks[blocks.len() - 1];
+    Some((start, air.len()))
 }
 
 /// Slices of a circle in model order (left to right), before E10a.
@@ -238,7 +226,7 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
 /// Slices the circle into `n` uniform divisions plus breakpoints (contract §4.1).
 ///
 /// ORDER: `slices[0]` is the toe slice (exit); `slices[last]` is the crest slice (entry), regardless of sliding direction.
-/// E10a: only the main soil block is kept (see [`slice_surface`]); this function drops the notes.
+/// E10a/E10a″: only the main soil block (the entry block) is kept (see [`slice_surface`]); this function drops the notes.
 pub fn slice_circle(
     pm: &PreparedModel,
     circle: &Circle,
@@ -249,9 +237,9 @@ pub fn slice_circle(
 
 /// Slices the circle like [`slice_circle`] and returns the notes of the slicing too (E10a).
 ///
-/// An interior air run splits the soil into blocks (E10a). Only the main block (the heaviest one) is analysed: the
-/// other blocks and every interior air slice are removed, and the note `truncated_mass` is raised. The checks of the
-/// arc's ends (E10a′) apply to the analysed block only.
+/// An interior air run splits the soil into blocks (E10a). Only the main block, the one with the entry point (E10a″),
+/// is analysed: the other blocks and every interior air slice are removed, and the note `truncated_mass` is raised.
+/// The checks of the arc's ends (E10a′) apply to the analysed block only.
 pub fn slice_surface(
     pm: &PreparedModel,
     circle: &Circle,
@@ -269,7 +257,7 @@ pub fn slice_surface(
         air.reverse();
         unsupported.reverse();
     }
-    let (lo, hi, truncated) = match main_block_range(&slices, &air) {
+    let (lo, hi, truncated) = match main_block_range(&air) {
         Some((lo, hi)) => (lo, hi, true),
         None => (0, slices.len(), false),
     };
@@ -481,7 +469,7 @@ mod tests {
 
     /// E10a on a toe-first sequence: the sequence cut to its main block, and whether anything was removed.
     fn truncate_to_main_block(slices: Vec<Slice>, air: &[bool]) -> (Vec<Slice>, bool) {
-        match main_block_range(&slices, air) {
+        match main_block_range(air) {
             Some((lo, hi)) => (slices[lo..hi].to_vec(), true),
             None => (slices, false),
         }
@@ -522,21 +510,17 @@ mod tests {
         )
     }
 
-    /// E10a: the lighter block is removed, however small; the heavier one is the main block and is kept whole.
+    /// E10a″: the block that contains the entry is kept whatever its weight. A heavier toe block is dropped, and a light
+    /// entry block is kept (the D09 foot lens is heavier than the face, and the face is the entry block).
     #[test]
-    fn lighter_block_is_removed_at_any_size() {
-        for (w_first, w_second, kept_weight) in [(0.9, 0.001, 0.9), (1.0, 1.1e-3, 1.0)] {
-            let (s, flags) = two_blocks(w_first, w_second);
+    fn entry_block_is_kept_whatever_its_weight() {
+        for (w_toe, w_entry) in [(0.9, 0.001), (1.0, 1.1e-3), (0.001, 0.9)] {
+            let (s, flags) = two_blocks(w_toe, w_entry);
             let (out, truncated) = truncate_to_main_block(s, &flags);
             assert!(truncated);
-            assert_eq!(out.len(), 1);
-            assert_eq!(out[0].weight, kept_weight);
+            assert_eq!(out.len(), 1, "w_toe={w_toe} w_entry={w_entry}");
+            assert_eq!(out[0].weight, w_entry);
         }
-        // Order does not matter: a light first block is dropped as well.
-        let (s, flags) = two_blocks(0.001, 0.9);
-        let (out, truncated) = truncate_to_main_block(s, &flags);
-        assert!(truncated);
-        assert_eq!(out.iter().map(|x| x.weight).collect::<Vec<_>>(), vec![0.9]);
     }
 
     /// E10a: one soil block is never truncated, and air at the ends of a single block is left as it is.
@@ -551,19 +535,19 @@ mod tests {
         assert_eq!(out, s);
     }
 
-    /// E10a: with three blocks the heaviest one wins, whichever position it has.
+    /// E10a″: with three blocks the one containing the entry (the last in toe-first order) wins, whatever its weight.
     #[test]
-    fn heaviest_of_three_blocks_is_the_main_one() {
+    fn entry_block_of_three_is_the_main_one() {
         let flags = [false, true, false, true, false];
-        let big_middle = vec![soil(0.3), air(), soil(0.5), air(), soil(0.2)];
-        let (out, truncated) = truncate_to_main_block(big_middle, &flags);
+        let s = vec![soil(0.3), air(), soil(0.5), air(), soil(0.2)];
+        let (out, truncated) = truncate_to_main_block(s, &flags);
         assert!(truncated);
-        assert_eq!(out.iter().map(|x| x.weight).collect::<Vec<_>>(), vec![0.5]);
+        assert_eq!(out.iter().map(|x| x.weight).collect::<Vec<_>>(), vec![0.2]);
     }
 
-    /// E10a: on a tie the block nearest the entry wins. In toe-first order the entry is the last index.
+    /// E10a″: equal weights do not change the choice. The entry block is the last one, on the crest side.
     #[test]
-    fn tie_goes_to_the_block_nearest_the_entry() {
+    fn equal_weights_keep_the_entry_block() {
         let (s, flags) = two_blocks(0.5, 0.5);
         let mut marked = s.clone();
         marked[0].x_left = -1.0; // toe-side block
@@ -571,14 +555,14 @@ mod tests {
         let (out, truncated) = truncate_to_main_block(marked, &flags);
         assert!(truncated);
         assert_eq!(out.len(), 1);
-        assert_eq!(out[0].x_left, -2.0, "the entry-side block must win the tie");
+        assert_eq!(out[0].x_left, -2.0, "the entry-side block is kept");
     }
 
-    /// E10a: air slices at the ends are kept only when they touch the main block. Toe air next to the main
-    /// block is kept; crest air that sits beyond a removed block is dropped.
+    /// E10a: air slices at the ends are kept only when they touch the main block. Toe air beyond a removed block is
+    /// dropped; crest air next to the entry block is kept.
     #[test]
     fn end_air_is_kept_only_next_to_the_main_block() {
-        // Toe air, the main block (heaviest, first soil block), an interior air slice, a light block, crest air.
+        // Toe air, a heavy toe block, an interior air slice, the light entry block, crest air.
         let s = vec![air(), soil(1.0), air(), soil(0.1), air()];
         let flags = [true, false, true, false, true];
         let (out, truncated) = truncate_to_main_block(s, &flags);
@@ -586,8 +570,8 @@ mod tests {
         let kinds: Vec<bool> = out.iter().map(|x| x.weight == 0.0).collect();
         assert_eq!(
             kinds,
-            vec![true, false],
-            "toe air kept, block 2 and its air removed"
+            vec![false, true],
+            "entry block and crest air kept; toe air, toe block and interior air removed"
         );
     }
 
@@ -648,19 +632,28 @@ mod tests {
             }
         }
         assert!(sl[0].weight > 0.0 && sl[sl.len() - 1].weight > 0.0);
-        // The soil lies on both sides of the notch: E10a keeps only the heavier block, and no air is left inside it.
+        // E10a″: the main block is the one with the entry point, the last soil block in toe-first order. The notch
+        // runs right to left, so `sl` is toe-first. No air is left in the main block, and its weight is the weight of the
+        // entry block (independent of the other block).
         let (main, truncated) = truncate_to_main_block(sl.clone(), &flags);
         assert!(truncated);
         assert!(
             main.iter().all(|s| s.weight > 0.0),
             "no air in the main block"
         );
+        let blocks = soil_blocks(&flags);
+        assert_eq!(blocks.len(), 2, "the notch splits the soil in two blocks");
+        let (start, end) = blocks[1];
+        let w_entry: f64 = sl[start..end].iter().map(|s| s.weight).sum();
         let w_main: f64 = main.iter().map(|s| s.weight).sum();
-        let blocks = soil_blocks(&sl, &flags);
-        let w_max = blocks.iter().map(|b| b.2).fold(0.0, f64::max);
         assert!(
-            (w_main - w_max).abs() <= 1e-12 * w_max,
-            "main block is the heaviest"
+            (w_main - w_entry).abs() <= 1e-12 * w_entry,
+            "main block weight {w_main} vs entry block {w_entry}"
+        );
+        assert_eq!(
+            main.last().map(|s| s.x_right),
+            sl.last().map(|s| s.x_right),
+            "the main block ends at the entry (crest side)"
         );
     }
 
@@ -721,10 +714,16 @@ mod tests {
             rel < 1e-3,
             "sum W/γ = {sum_w_over_gamma}, exact = {exact}, rel = {rel}"
         );
-        // E10a: the toe lens and the face are two blocks; only the heavier one is analysed.
+        // E10a″: the slope rises to the right, so the entry is on the right and the face is the main block. The toe
+        // lens (x < 30) is dropped whatever its weight.
         let (main, truncated) = truncate_to_main_block(sl.clone(), &flags);
         assert!(truncated);
         assert!(main.len() < sl.len());
         assert!(main.iter().all(|s| s.weight > 0.0));
+        assert!(
+            main[0].x_left >= 30.0 - 1e-6,
+            "the toe lens is dropped: main starts at {}",
+            main[0].x_left
+        );
     }
 }
