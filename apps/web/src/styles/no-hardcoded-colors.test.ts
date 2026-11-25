@@ -3,10 +3,12 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-// U1-T: ningún color literal fuera de tokens.css y de la paleta fija del PDF. Todo lo demás consume var(--…).
+// U1-T: ningún color literal fuera de tokens.css, de la paleta fija del PDF y de la paleta clara por defecto del Canvas 2D
+// (lightPalette.ts, atada a tokens.css por una prueba). Todo lo demás consume var(--…).
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
-const ALLOWED = new Set(['styles/tokens.css', 'report/palette.ts']);
+// lightPalette.ts: paleta clara por defecto del Canvas 2D en Node; theme/lightPalette.test.ts la ata a tokens.css.
+const ALLOWED = new Set(['styles/tokens.css', 'report/palette.ts', 'theme/lightPalette.ts']);
 const COLOR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g;
 
 function walk(dir: string): string[] {

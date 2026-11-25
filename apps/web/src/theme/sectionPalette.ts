@@ -1,9 +1,9 @@
 // Paleta del Canvas 2D (vista de Casos). El lienzo no entiende `var()`: se resuelven los tokens `--canvas-*` con
 // getComputedStyle y se vuelve a dibujar cuando cambia el tema. Fuera del navegador (pruebas en Node) se usa la paleta
-// clara, leída del propio tokens.css para no duplicar valores.
+// clara de lightPalette.ts (sincronizada con tokens.css por una prueba).
 
 import { MATERIAL_SLOTS } from '../render/scene';
-import tokensCss from '../styles/tokens.css?raw';
+import { LIGHT_SECTION_PALETTE } from './lightPalette';
 
 export interface SectionPalette {
   bg: string;
@@ -43,23 +43,9 @@ function build(read: (token: string) => string): SectionPalette {
   return { ...scalars, materials: Array.from({ length: MATERIAL_SLOTS }, (_, i) => read(materialToken(i))) };
 }
 
-/** Valores del tema claro de `:root` en tokens.css (el primer bloque, sin light-dark()). */
-export function parseLightTokens(css: string): Record<string, string> {
-  const end = css.indexOf('\n@media');
-  const out: Record<string, string> = {};
-  for (const m of css.slice(0, end < 0 ? undefined : end).matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) out[m[1]] = m[2].trim();
-  return out;
-}
-
-let lightDefault: SectionPalette | null = null;
-
 /** Paleta clara por defecto (sin DOM). */
 export function defaultSectionPalette(): SectionPalette {
-  lightDefault ??= (() => {
-    const light = parseLightTokens(tokensCss);
-    return build((token) => light[token] ?? '');
-  })();
-  return lightDefault;
+  return LIGHT_SECTION_PALETTE;
 }
 
 /**
