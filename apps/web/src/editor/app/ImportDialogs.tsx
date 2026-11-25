@@ -20,6 +20,7 @@ import {
   type LengthUnit,
   type RegionImportPlan,
 } from './importPlan';
+import { layerChoice } from './layerChoice';
 
 function Modal({ title, onCancel, children }: { title: string; onCancel: () => void; children: ReactNode }) {
   const titleId = useId();
@@ -83,7 +84,7 @@ function LayerMapTable({ layers, materials, mapping, onChange }: {
             <td>
               <select
                 aria-label={`Material de la capa ${l.name}`}
-                value={mapping[l.name] ?? SKIP_LAYER}
+                value={layerChoice(mapping, l.name)}
                 onChange={(e) => onChange({ ...mapping, [l.name]: e.target.value })}
               >
                 {materials.map((m) => (

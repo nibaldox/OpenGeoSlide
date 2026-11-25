@@ -3,8 +3,8 @@
 Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por equilibrio límite
 (Bishop simplificado y Spencer). El motor está escrito en Rust y compila a binario nativo y a WebAssembly.
 
-> **Estado: Fase 0, en desarrollo.** El motor, la CLI, la web y los tests de aceptación están implementados.
-> Resumen de la verificación de la Fase 0 en [Estado de verificación](#estado-de-verificación).
+> **Estado: Fase 1, en desarrollo.** El motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA) y los
+> tests de aceptación están implementados. Resumen de la verificación en [Estado de verificación](#estado-de-verificación).
 
 ## Estructura
 
@@ -13,6 +13,8 @@ Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por e
 - `crates/ogs-wasm/`: wrapper WebAssembly (`wasm-bindgen`).
 - `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
 - `schema/ogs-0.2.schema.json`: JSON Schema del formato `.ogs.json` v0.2 (agrega `loads` y `analysis.seismic`; acepta también v0.1).
+- `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](apps/web/README.md).
+- `verification/`: casos publicados, harness y batería diferencial frente a cSlope, y pruebas en Python.
 - `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
 
 ## Compilar y probar
@@ -81,6 +83,12 @@ Con la búsqueda por defecto, este modelo da Bishop 1,2723 y Spencer 1,2704 (`og
 - **Aceptación:** 51/51 checks publicados cumplen su tolerancia, en 21 casos (`verification/cases/`): 16 casos del
   esquema v0.1 y 5 con sismo o cargas del esquema v0.2 (V102a, V102b, V081a, V081b, V097a).
   Test: `cargo test -p ogs-core --test acceptance`.
+- **Paridad entre el editor y el motor** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos.
+  La prueba `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`;
+  sin él se omiten) y corre en CI sin casos omitidos.
+- **Ida y vuelta de la web** (E12g): para 113 modelos (51 checks de los 21 casos, 56 de la batería diferencial y 6 de
+  frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit a bit,
+  que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario compilado).
 - **Harness frente a cSlope:** cSlope 0.1.0 reproduce 51/51 de esos mismos checks publicados.
 - **Batería diferencial** (ogs frente a cSlope 0.1.0, 14 modelos sintéticos, bishop y spencer; D11-D14 con sismo y cargas):
   - búsqueda (`FS_ogs ≤ FS_cSlope · 1,01`, mismo método, dovelas y rangos): **28/28** OK. D13 (carga lineal) fija
@@ -120,6 +128,18 @@ ni la batería diferencial (28/28 + 28/28 en D01-D14).
   bicapa diferían más de 1 % de cSlope. Aviso: `multiple_admissible_roots` (nota) cuando hay más de una raíz admisible.
   Residual: cuando cSlope sigue otra raíz, ogs puede quedar por debajo de cSlope (caso R4-01 (2): −7,08 %), por
   elegir la raíz de menor F, y con la nota `multiple_admissible_roots`.
+- **R5-05, Spencer con tracción (decidido tras X7: se mantiene E12e):** cuando aparecen juntas las notas
+  `multiple_admissible_roots` y `negative_effective_normal_major`, el FS de Spencer puede corresponder a una rama con
+  tracción y quedar por debajo de Bishop (hasta −14,30 % frente a cSlope en la familia bicapa de superficie fija de X7;
+  −13,9 % en R5-2). Se recomienda revisar Bishop y la distribución de N′. La alternativa evaluada (descartar las raíces con N′
+  mayor si hay otra admisible) corrige 49 de 67 casos por debajo de cSlope, pero crea 9 por encima (hasta +10,13 % en
+  superficie fija y +7,50 % en búsqueda), lo que contradice el criterio conservador. Evidencia:
+  [`docs/fase1/exploracion/X7.md`](docs/fase1/exploracion/X7.md). Aviso: `multiple_admissible_roots`,
+  `negative_lambda` y `negative_effective_normal_major`.
+- **E12f, cargas lineales fuera del bloque analizado:** una carga lineal que cae a más de `1e-9·ancho` del modelo fuera
+  del bloque de suelo analizado no actúa, aunque esté muy cerca del pie de la superficie. Dentro de esa tolerancia, y en
+  las fronteras de dovela o los extremos del bloque, sí actúa (reparto 50/50 entre dovelas compartidas). Aviso:
+  `load_outside_mass`.
 - **Cargas lineales y superficies locales (D13):** una carga puntual o lineal puede generar bajo ella círculos
   diminutos con m_α < `min_m_alpha` (en D13, un círculo de 0,67 m con FS 0,614 en cSlope, que avisa `low-m-alpha`).
   ogs los rechaza (E4b). Conviene fijar `search.min_width` (D13 usa 5 m, y entonces ogs y cSlope coinciden en

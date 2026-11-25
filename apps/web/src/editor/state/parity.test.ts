@@ -12,8 +12,6 @@ import { validateLocal } from './validateLocal';
 
 const OGS_BIN = process.env.OGS_BIN;
 const haveEngine = OGS_BIN !== undefined && existsSync(OGS_BIN);
-/** `OGS_ENGINE_G1=1` indica que el binario ya incluye E12j de G1 (`material.id` vacío). */
-const engineHasG1 = process.env.OGS_ENGINE_G1 === '1';
 
 function engineVerdict(doc: unknown): { verdict: 'accept' | 'reject'; message: string } {
   const dir = mkdtempSync(join(tmpdir(), 'ogs-parity-'));
@@ -45,8 +43,7 @@ describe('paridad editor/motor (E12j)', () => {
       if (c.codes) expect([...new Set(errors.map((i) => i.code))]).toEqual(c.codes);
     });
 
-    it.skipIf(!haveEngine)('el motor real da el veredicto de la tabla', (ctx) => {
-      if (c.engineSince === 'G1' && !engineHasG1) ctx.skip();
+    it.skipIf(!haveEngine)('el motor real da el veredicto de la tabla', () => {
       const r = engineVerdict(c.doc);
       expect(r.verdict, r.message).toBe(c.verdict);
     });
