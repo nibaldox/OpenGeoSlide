@@ -1,10 +1,15 @@
 // Cliente del motor: promesas sobre el protocolo postMessage. Empareja respuestas por `id`,
 // así que varias peticiones pueden estar en vuelo a la vez.
 
-import { EngineError } from './engine';
+import { EngineError, EngineFatalError } from './engine';
 import { isAnalysisReport } from './validate';
 import type { AnalysisReport } from './types';
 import type { EngineInfo, Request, RequestType, Response } from './protocol';
+
+/** Convierte una respuesta de error en la excepción que corresponde (fatal o de modelo). */
+function failure(response: Extract<Response, { ok: false }>): Error {
+  return response.fatal ? new EngineFatalError(response.error) : new EngineError(response.error);
+}
 
 /** Lo mínimo que necesita el cliente de un Worker (o de un doble de pruebas). */
 export interface PortLike {
@@ -57,7 +62,7 @@ export class EngineClient {
   /** Ejecuta el análisis. Lanza EngineError con el mensaje del motor si falla. */
   async analyze(modelJson: string): Promise<AnalyzeResult> {
     const response = await this.send('analyze', modelJson);
-    if (!response.ok) throw new EngineError(response.error);
+    if (!response.ok) throw failure(response);
     const text = response.result;
     if (typeof text !== 'string') throw new EngineError('Respuesta del motor no válida');
     const report: unknown = JSON.parse(text);
@@ -69,13 +74,13 @@ export class EngineClient {
 
   async version(): Promise<string> {
     const response = await this.send('version');
-    if (!response.ok) throw new EngineError(response.error);
+    if (!response.ok) throw failure(response);
     return String(response.result);
   }
 
   async info(): Promise<EngineInfo> {
     const response = await this.send('engine');
-    if (!response.ok) throw new EngineError(response.error);
+    if (!response.ok) throw failure(response);
     return response.result as EngineInfo;
   }
 

@@ -3,7 +3,7 @@ import './App.css';
 import { checkModel, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
 import { getEngineClient, type AnalyzeResult } from './engine/client';
-import { humanizeEngineError } from './engine/errors';
+import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
 import { buildScene } from './render/scene';
@@ -62,7 +62,7 @@ export default function App() {
         if (alive) setInfo(data);
       })
       .catch((err: unknown) => {
-        if (alive) setError(humanizeEngineError(errorMessage(err)));
+        if (alive) setError(userMessage(err));
       });
     return () => {
       alive = false;
@@ -101,7 +101,7 @@ export default function App() {
         message: fos === null ? 'El motor no devolvió FS para este método.' : undefined,
       };
     } catch (err) {
-      return { check, fos: null, errorRel: null, ok: false, message: humanizeEngineError(errorMessage(err)) };
+      return { check, fos: null, errorRel: null, ok: false, message: userMessage(err) };
     }
   }
 
@@ -128,7 +128,7 @@ export default function App() {
       setChecks(rows);
     } catch (err) {
       setRun(null);
-      setError(humanizeEngineError(errorMessage(err)));
+      setError(userMessage(err));
     } finally {
       setBusy(false);
     }
@@ -152,7 +152,7 @@ export default function App() {
       }
       setPerf(summarizeTimes(times));
     } catch (err) {
-      setError(humanizeEngineError(errorMessage(err)));
+      setError(userMessage(err));
     } finally {
       setBusy(false);
     }

@@ -18,6 +18,18 @@ export class EngineError extends Error {
   }
 }
 
+/**
+ * Fallo fatal del motor wasm: un trap (`WebAssembly.RuntimeError`, p. ej. un pánico de Rust) o un
+ * valor lanzado que no es texto. No es un error de modelo: la instancia se considera no fiable y la
+ * siguiente llamada vuelve a cargar el módulo. El mensaje es el detalle técnico, sin traducir.
+ */
+export class EngineFatalError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'EngineFatalError';
+  }
+}
+
 export interface EngineHolder {
   engine: Engine;
   /** Motivo por el que no se usa el wasm; null si se usa el wasm. */

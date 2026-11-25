@@ -2,7 +2,7 @@
 // Petición: {id, type, payload?}. Respuesta: {id, ok, result | error, elapsed_ms}.
 // `elapsed_ms` lo mide el propio worker con performance.now().
 
-import type { EngineHolder } from './engine';
+import { EngineFatalError, type EngineHolder } from './engine';
 
 export type RequestType = 'analyze' | 'version' | 'engine';
 
@@ -22,9 +22,10 @@ export interface EngineInfo {
   fallback_reason: string | null;
 }
 
+/** `fatal: true` marca un fallo del motor (trap) distinto de un error de modelo (E6). */
 export type Response =
   | { id: number; ok: true; result: unknown; elapsed_ms: number }
-  | { id: number; ok: false; error: string; elapsed_ms: number };
+  | { id: number; ok: false; error: string; fatal?: true; elapsed_ms: number };
 
 export type EngineProvider = () => Promise<EngineHolder>;
 
@@ -69,7 +70,8 @@ export function createDispatcher(getEngine: EngineProvider): (request: Request) 
           };
       }
     } catch (error) {
-      return { id: request.id, ok: false, error: errorText(error), elapsed_ms: elapsed() };
+      const fatal = error instanceof EngineFatalError ? { fatal: true as const } : {};
+      return { id: request.id, ok: false, error: errorText(error), ...fatal, elapsed_ms: elapsed() };
     }
   };
 }
