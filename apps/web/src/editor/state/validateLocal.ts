@@ -2,13 +2,14 @@
 //
 // Códigos `editor.*` de F1.4. La geometría sigue la semántica E12c (briefs/01_CONTRATOS_FASE1.md §F1.3):
 // auto-intersección y solape son errores; aristas compartidas, tramos colineales compartidos y uniones en T
-// son válidos. Los rangos numéricos son los de briefs/00_CONTRATOS.md §1 y §4.5, más F1.1 (sismo y cargas).
+// son válidos. E12j (paridad con el motor): la región degenerada (área ≤ 1e-12·escala²) y el modelo sin `surface`
+// ni `search` son errores; un vértice consecutivo repetido es un aviso (el motor lo acepta). Los rangos numéricos son los de briefs/00_CONTRATOS.md §1 y §4.5, más F1.1 (sismo y cargas).
 // `path` es un puntero JSON. Los números de región y de arista de los textos son de base 1 (como en la UI).
 
 import type { Material, Model, Point } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
 import { isFiniteNumber } from './docUtils';
-import { boundsOf, dedupeConsecutive, findSelfIntersection, polygonsOverlap } from './polygonChecks';
+import { boundsOf, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, polygonsOverlap } from './polygonChecks';
 
 /**
  * Fragmentos de mensaje de cada regla numérica. Se exportan para que los formularios (panels/forms.ts) usen los
@@ -49,12 +50,17 @@ export const RULE_TEXT = {
   loadType: 'el tipo de carga debe ser udl o line',
   version02: 'los campos loads y analysis.seismic requieren version "0.2"',
   finite: 'el valor debe ser un número finito',
+  noSurface: 'no hay superficie definida; indique una superficie fija o una búsqueda',
 } as const;
 
 type Code = Issue['code'];
 
 function error(code: Code, text: string, path: string | null): Issue {
   return { source: 'local', severity: 'error', code, text, path };
+}
+
+function warning(code: Code, text: string, path: string | null): Issue {
+  return { source: 'local', severity: 'aviso', code, text, path };
 }
 
 function isNum(v: unknown): v is number {
@@ -108,7 +114,7 @@ interface CleanRegion {
   polygon: Point[];
 }
 
-function validateRegions(doc: ModelDoc, tol: number, issues: Issue[]): void {
+function validateRegions(doc: ModelDoc, scale: number, tol: number, issues: Issue[]): void {
   const materialIds = new Set(doc.materials.map((m) => m.id));
   const clean: CleanRegion[] = [];
   if (doc.regions.length === 0) {
@@ -133,6 +139,11 @@ function validateRegions(doc: ModelDoc, tol: number, issues: Issue[]): void {
       }
     });
     if (!finite) return;
+    // Igual que el motor, la degeneración se evalúa sobre el polígono tal como está (con sus repetidos).
+    if (isDegenerateRegion(polygon, scale)) {
+      issues.push(error('editor.degenerate_region', `${label}: es degenerada, su área es nula (≤ 1e-12 · escala²).`, `${base}/polygon`));
+      return;
+    }
     const { points, indices } = dedupeConsecutive(polygon, tol);
     let duplicated = false;
     // Un vértice repetido es el que desaparece al deduplicar: se informa el segundo de cada par consecutivo.
@@ -140,7 +151,7 @@ function validateRegions(doc: ModelDoc, tol: number, issues: Issue[]): void {
     polygon.forEach((_, i) => {
       if (!kept.has(i)) {
         duplicated = true;
-        issues.push(error('editor.duplicate_vertex', `${label}, vértice ${i + 1}: repite al vértice anterior.`, `${base}/polygon/${i}`));
+        issues.push(warning('editor.duplicate_vertex', `${label}, vértice ${i + 1}: repite al vértice anterior (el motor lo acepta).`, `${base}/polygon/${i}`));
       }
     });
     if (points.length < 3) {
@@ -249,6 +260,9 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
     issues.push(error('editor.out_of_range', `Análisis: ${RULE_TEXT.minMAlpha}.`, '/analysis/min_m_alpha'));
   }
   const s = a.surface;
+  if ((s === undefined || s === null) && (a.search === undefined || a.search === null)) {
+    issues.push(error('editor.no_surface', `Análisis: ${RULE_TEXT.noSurface}.`, '/analysis'));
+  }
   if (s !== undefined && s !== null) {
     if (!(isNum(s.xc) && isNum(s.yc))) {
       issues.push(error('editor.out_of_range', `Superficie fija: ${RULE_TEXT.surfaceCenter}.`, '/analysis/surface'));
@@ -353,7 +367,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     issues.push(error('editor.out_of_range', `Modelo: ${RULE_TEXT.version02}.`, '/version'));
   }
   validateMaterials(doc, issues);
-  validateRegions(doc, tol, issues);
+  validateRegions(doc, scale, tol, issues);
   validateWater(doc, issues);
   validateLoads(doc, extent, tol, issues);
   validateAnalysis(doc, extent, tol, issues);

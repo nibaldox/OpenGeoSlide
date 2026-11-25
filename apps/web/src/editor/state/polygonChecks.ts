@@ -92,6 +92,64 @@ export function dedupeConsecutive(poly: readonly Point[], tol: number): { points
   return { points, indices };
 }
 
+/** Fracción de `escala²` a partir de la cual una región es degenerada: la misma constante que `geometry.rs` (R1-11). */
+export const DEGENERATE_AREA_FRACTION = 1e-12;
+
+/**
+ * Área del polígono (fórmula del lazo) en unidades de `scale²`, calculada respecto al primer vértice y con las
+ * coordenadas divididas por `scale` antes de multiplicar, igual que `polygon_is_degenerate` de `geometry.rs`.
+ */
+export function normalizedArea(poly: readonly Point[], scale: number): number {
+  const o = poly[0] as Point;
+  let twice = 0;
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i] as Point;
+    const b = poly[(i + 1) % poly.length] as Point;
+    const ax = (a[0] - o[0]) / scale;
+    const ay = (a[1] - o[1]) / scale;
+    const bx = (b[0] - o[0]) / scale;
+    const by = (b[1] - o[1]) / scale;
+    twice += ax * by - bx * ay;
+  }
+  return 0.5 * Math.abs(twice);
+}
+
+/** Todos los vértices a menos de `tol` de la recta que pasa por los dos más alejados (`is_collinear` de `geometry.rs`). */
+function isCollinear(poly: readonly Point[], tol: number): boolean {
+  let a = poly[0] as Point;
+  let b = a;
+  let best = 0;
+  for (const p of poly) {
+    for (const q of poly) {
+      const d = distance(p, q);
+      if (d > best) {
+        a = p;
+        b = q;
+        best = d;
+      }
+    }
+  }
+  return best <= tol || poly.every((p) => Math.abs(orient(a, b, p)) / best <= tol);
+}
+
+/**
+ * Región degenerada, con la misma regla que el motor (`PreparedModel::new`): área ≤ 1e-12·escala² (o NaN), salvo
+ * que el polígono no sea colineal y se auto-intersecte con área neta cero (un ocho simétrico), que se informa como
+ * auto-intersección. `scale` es el mayor lado del rectángulo envolvente de todos los vértices del modelo.
+ */
+export function isDegenerateRegion(poly: readonly Point[], scale: number): boolean {
+  const area = normalizedArea(poly, scale);
+  if (!(area > DEGENERATE_AREA_FRACTION)) {
+    const o = poly[0] as Point;
+    const norm = poly.map((p): Point => [(p[0] - o[0]) / scale, (p[1] - o[1]) / scale]);
+    const tol = 1e-9;
+    if (isCollinear(norm, tol)) return true;
+    const { points } = dedupeConsecutive(norm, tol);
+    return !(points.length >= 3 && findSelfIntersection(points, tol) !== null);
+  }
+  return false;
+}
+
 export interface SelfIntersection {
   /** Índices (base 0) de las dos aristas implicadas; la arista i va del vértice i al (i+1) mod n. */
   edgeA: number;
