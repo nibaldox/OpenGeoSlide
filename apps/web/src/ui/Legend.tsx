@@ -1,28 +1,22 @@
 import type { Scene } from '../render/scene';
+import { legendItems, type LegendOptions } from './legendItems';
 
-export function Legend({ scene }: { scene: Scene }) {
+/** Leyenda de la sección: materiales y elementos dibujados. El editor pasa `options` para mostrar solo lo que hay. */
+export function Legend({ scene, options, label = 'Leyenda de materiales' }: { scene: Scene; options?: LegendOptions; label?: string }) {
   return (
-    <ul className="legend" aria-label="Leyenda de materiales">
+    <ul className="legend" aria-label={label}>
       {scene.materials.map((m) => (
         <li key={m.id}>
           <span className="swatch" style={{ background: m.color }} aria-hidden="true" />
           {m.name} <span className="muted small">({m.id})</span>
         </li>
       ))}
-      <li>
-        <span className="swatch line-red" aria-hidden="true" />
-        Superficie crítica
-      </li>
-      <li>
-        <span className="swatch slice" aria-hidden="true" />
-        Dovelas
-      </li>
-      {scene.piezo ? (
-        <li>
-          <span className="swatch line-blue" aria-hidden="true" />
-          Piezométrica
+      {legendItems(scene, options).map((item) => (
+        <li key={item.key}>
+          <span className={`swatch ${item.swatch}`} aria-hidden="true" />
+          {item.label}
         </li>
-      ) : null}
+      ))}
     </ul>
   );
 }

@@ -30,6 +30,7 @@ export function AnalysisPanel({ store }: { store: EditorStore }) {
   const field = (key: 'slices' | 'tolerance' | 'max_iterations' | 'min_m_alpha', label: string, hint: string) => (
     <LabeledField
       label={label}
+      path={`/analysis/${key}`}
       value={form[key]}
       hint={hint}
       error={err(key)}
@@ -47,6 +48,7 @@ export function AnalysisPanel({ store }: { store: EditorStore }) {
           <label key={method} className="checkbox">
             <input
               type="checkbox"
+              data-path={method === METHOD_ORDER[0] ? '/analysis/methods' : undefined}
               checked={form.methods.includes(method)}
               onChange={(e) => {
                 const next = { ...form, methods: toggleMethod(form.methods, method, e.target.checked) };

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { EditorStore } from '../types';
 import { applyCommands } from './dispatch';
 import { LabeledField, PanelSection } from './Fields';
@@ -14,6 +15,7 @@ import {
 } from './forms';
 
 export function SurfacePanel({ store }: { store: EditorStore }) {
+  const modeName = useId();
   const surface = useStoreSelector(store, (s) => s.doc.analysis.surface ?? null);
   const search = useStoreSelector(store, (s) => s.doc.analysis.search ?? null);
   const units = useStoreSelector(store, (s) => s.doc.units);
@@ -37,11 +39,11 @@ export function SurfacePanel({ store }: { store: EditorStore }) {
         <legend>Tipo</legend>
         <div className="ep-radios">
           <label>
-            <input type="radio" name="surface-mode" checked={mode === 'search'} onChange={() => change('search')} />
+            <input type="radio" name={modeName} checked={mode === 'search'} onChange={() => change('search')} />
             Búsqueda
           </label>
           <label>
-            <input type="radio" name="surface-mode" checked={mode === 'fixed'} onChange={() => change('fixed')} />
+            <input type="radio" name={modeName} checked={mode === 'fixed'} onChange={() => change('fixed')} />
             Fija
           </label>
         </div>
@@ -72,6 +74,7 @@ export function SurfacePanel({ store }: { store: EditorStore }) {
             <LabeledField
               key={key}
               label={label}
+              path={`/analysis/surface/${key}`}
               unit={u.length}
               value={form[key]}
               error={key in errors ? errors[key] : undefined}

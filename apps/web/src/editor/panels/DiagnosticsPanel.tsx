@@ -1,13 +1,23 @@
 import type { Issue, EditorStore } from '../types';
+import { issueTarget, type IssueTarget } from '../app/issueNav';
 import { PanelSection } from './Fields';
 import { useStoreSelector } from './useStoreSelector';
-import { SEVERITY_LABELS, diagnosticsStatusLabel, issueSummary, selectionForPath, sortIssues } from './forms';
+import { SEVERITY_LABELS, diagnosticsStatusLabel, issueSummary, sortIssues } from './forms';
+
+/** Texto técnico de una incidencia (origen, código, puntero y detalle del analizador): va colapsado, no en la lista. */
+export function issueTechnicalText(issue: Issue): string {
+  const parts = [`${issue.source === 'local' ? 'local' : 'motor'}: ${issue.code}`];
+  if (issue.path) parts.push(issue.path);
+  if (issue.detail) parts.push(issue.detail);
+  return parts.join(' · ');
+}
 
 /**
- * Lista de incidencias. Al hacer clic en una con `path` se selecciona el elemento en el lienzo y en los paneles.
- * `onCheck` (opcional) lo conecta el integrador al botón «Comprobar» del motor; el panel no ejecuta el motor.
+ * Lista de incidencias. Una incidencia con destino real (`issueTarget`) es un botón: al pulsarla se selecciona el
+ * elemento y `onNavigate` abre la pestaña y lleva el foco al campo (R7-11). Sin destino es solo texto.
+ * El panel no ejecuta el motor: el botón «Comprobar» es el de la barra (no se duplica).
  */
-export function DiagnosticsPanel({ store, onCheck }: { store: EditorStore; onCheck?: () => void }) {
+export function DiagnosticsPanel({ store, onNavigate }: { store: EditorStore; onNavigate?: (issue: Issue, target: IssueTarget) => void }) {
   const diagnostics = useStoreSelector(store, (s) => s.diagnostics);
   const revision = useStoreSelector(store, (s) => s.revision);
   const sorted = sortIssues(diagnostics.issues);
@@ -15,51 +25,45 @@ export function DiagnosticsPanel({ store, onCheck }: { store: EditorStore; onChe
     diagnostics.status === 'stale' ||
     ((diagnostics.status === 'ok' || diagnostics.status === 'error') && diagnostics.revision !== revision);
 
-  const select = (issue: Issue): void =>
-    store.dispatch({ type: 'ui/select', selection: selectionForPath(issue.path, store.getState().doc) });
+  const go = (issue: Issue, target: IssueTarget): void => {
+    store.dispatch({ type: 'ui/select', selection: target.selection });
+    onNavigate?.(issue, target);
+  };
+  const doc = store.getState().doc;
 
   return (
     <PanelSection title="Diagnósticos">
-      <p className={outdated ? 'ep-status-stale' : undefined} aria-live="polite">
+      <p className={outdated ? 'ep-status-stale' : undefined} data-testid="diagnostics-status">
         {outdated && diagnostics.status !== 'stale'
           ? diagnosticsStatusLabel('stale')
           : diagnosticsStatusLabel(diagnostics.status)}
       </p>
-      {onCheck ? (
-        <div className="ep-actions">
-          <button type="button" disabled={diagnostics.status === 'checking'} onClick={onCheck}>
-            Comprobar
-          </button>
-        </div>
-      ) : null}
       <p className="muted small">{issueSummary(sorted)}</p>
       {sorted.length === 0 ? (
         <p className="muted">Sin incidencias.</p>
       ) : (
         <ul className="ep-issues">
           {sorted.map((issue, i) => {
+            const target = issueTarget(issue.path, doc);
             const content = (
               <>
                 <span className={`ep-badge ep-badge-${issue.severity}`}>{SEVERITY_LABELS[issue.severity]}</span>
-                <span>
-                  {issue.text}
-                  <span className="muted small">
-                    {' '}
-                    [{issue.source === 'local' ? 'local' : 'motor'}: {issue.code}
-                    {issue.path ? ` · ${issue.path}` : ''}]
-                  </span>
-                </span>
+                <span>{issue.text}</span>
               </>
             );
             return (
-              <li key={`${issue.code}-${issue.path ?? ''}-${i}`}>
-                {issue.path ? (
-                  <button type="button" className="ep-issue" onClick={() => select(issue)}>
+              <li key={`${issue.code}-${issue.path ?? ''}-${i}`} className="ep-issue-item">
+                {target ? (
+                  <button type="button" className="ep-issue" onClick={() => go(issue, target)}>
                     {content}
                   </button>
                 ) : (
                   <div className="ep-issue">{content}</div>
                 )}
+                <details className="ep-issue-detail">
+                  <summary>Detalle técnico</summary>
+                  <p className="small muted">{issueTechnicalText(issue)}</p>
+                </details>
               </li>
             );
           })}

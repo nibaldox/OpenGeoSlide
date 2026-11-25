@@ -2,7 +2,7 @@
 // con las incidencias locales en un único `Diagnostics` para el store. Lógica pura (sin React).
 
 import { engineErrorCode, userMessage } from '../../engine/errors';
-import { describeWarning } from '../../engine/warnings';
+import { describeWarning, warningPath } from '../../engine/warnings';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types';
 import type { Diagnostics, Issue } from '../types';
 
@@ -48,7 +48,7 @@ export function issuesFromReport(report: AnalysisReport): Issue[] {
         severity: info.severity,
         code: info.code,
         text: `${METHOD_NAME[r.method]}: ${info.text}`,
-        path: null,
+        path: warningPath(code),
       });
     }
   }

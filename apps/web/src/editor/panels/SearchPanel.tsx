@@ -47,6 +47,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
     <LabeledField
       key={key}
       label={label}
+      path={`/analysis/search/${key}`}
       value={form[key]}
       hint={`1 a ${MAX_AXIS_POINTS}`}
       error={err(key)}
@@ -64,6 +65,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
       <div className="ep-grid">
         <LabeledField
           label="Mínimo"
+          path={`/analysis/search/${which}/lo`}
           value={form[which].lo}
           error={err(`${which}.lo`)}
           onChange={(v) => setForm({ ...form, [which]: { ...form[which], lo: v } })}
@@ -73,6 +75,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
         />
         <LabeledField
           label="Máximo"
+          path={`/analysis/search/${which}/hi`}
           value={form[which].hi}
           error={err(`${which}.hi`)}
           onChange={(v) => setForm({ ...form, [which]: { ...form[which], hi: v } })}
@@ -99,6 +102,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
         {count('n_radius', 'Radios por par')}
         <LabeledField
           label="Factor de radio máximo"
+          path="/analysis/search/max_radius_factor"
           value={form.max_radius_factor}
           hint="Mayor que 0,51"
           error={err('max_radius_factor')}
@@ -108,6 +112,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
         />
         <LabeledField
           label="Ancho mínimo"
+          path="/analysis/search/min_width"
           unit={u.length}
           value={form.min_width}
           hint="Vacío = 1 % del ancho del modelo"

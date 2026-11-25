@@ -19,6 +19,7 @@ export function SeismicPanel({ store }: { store: EditorStore }) {
       <div className="ep-grid">
         <LabeledField
           label="kh"
+          path="/analysis/seismic/kh"
           value={form.kh}
           placeholder="0"
           hint="Horizontal, de 0 a menos de 1"
@@ -29,6 +30,7 @@ export function SeismicPanel({ store }: { store: EditorStore }) {
         />
         <LabeledField
           label="kv"
+          path="/analysis/seismic/kv"
           value={form.kv}
           placeholder="0"
           hint="Vertical, mayor que −1 y menor que 1"

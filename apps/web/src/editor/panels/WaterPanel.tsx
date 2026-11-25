@@ -3,8 +3,8 @@ import type { EditorStore } from '../types';
 import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
-  DEFAULT_WATER_UNIT_WEIGHT,
   appendPiezoPoint,
+  defaultWaterUnitWeight,
   defaultPiezo,
   formatNumber,
   piezoFromForm,
@@ -13,6 +13,7 @@ import {
   removePiezoPoint,
   unitLabels,
   waterUnitWeightCommand,
+  waterUnitWeightHint,
   waterUnitWeightFromForm,
 } from './forms';
 
@@ -51,8 +52,9 @@ export function WaterPanel({ store }: { store: EditorStore }) {
         label="Peso unitario del agua γw"
         unit={u.unitWeight}
         value={gammaText}
-        placeholder={formatNumber(DEFAULT_WATER_UNIT_WEIGHT)}
-        hint="Vacío = se omite y el motor usa 9,81."
+        placeholder={formatNumber(defaultWaterUnitWeight(units))}
+        hint={waterUnitWeightHint(units)}
+        path="/water/unit_weight"
         error={gamma.ok ? undefined : gamma.errors.unit_weight}
         onChange={setGammaText}
         onCommit={commitGamma}
@@ -71,6 +73,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
         </>
       ) : (
         <>
+          <div className="ep-table-wrap" role="region" aria-label="Puntos de la línea piezométrica" tabIndex={0}>
           <table className="ep-table">
             <thead>
               <tr>
@@ -78,7 +81,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
                 <th scope="col">x ({u.length})</th>
                 <th scope="col">y ({u.length})</th>
                 <th scope="col">
-                  <span className="sr-only">Acciones</span>
+                  <span className="visually-hidden">Acciones</span>
                 </th>
               </tr>
             </thead>
@@ -93,6 +96,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
                         <TextInput
                           value={row[axis]}
                           ariaLabel={`Piezométrica, punto ${i + 1}: ${axis}`}
+                          path={`/water/piezometric_line/${i}/${axis}`}
                           invalid={`${i}.${axis}` in tableErrors}
                           onChange={(v) => setRows(rows.map((r, j) => (j === i ? { ...r, [axis]: v } : r)))}
                           onCommit={commitRows}
@@ -117,6 +121,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
               })}
             </tbody>
           </table>
+          </div>
           <ErrorList errors={tableErrors} />
           <p className="muted small">Mínimo 2 puntos, con x estrictamente creciente.</p>
           <div className="ep-actions">

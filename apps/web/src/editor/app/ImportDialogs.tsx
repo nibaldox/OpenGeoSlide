@@ -82,6 +82,7 @@ function LayerMapTable({ layers, materials, mapping, onChange }: {
   onChange: (next: Record<string, string>) => void;
 }) {
   return (
+    <div className="table-scroll" role="region" aria-label="Asignación de materiales por capa" tabIndex={0}>
     <table className="ea-table">
       <thead>
         <tr>
@@ -114,6 +115,7 @@ function LayerMapTable({ layers, materials, mapping, onChange }: {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -161,6 +163,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
   const [unit, setUnit] = useState<LengthUnit>(() => defaultUnit(result.unitsFromHeader, units));
   const [mode, setMode] = useState<'add' | 'replace'>('add');
   const [openMode, setOpenMode] = useState<'close' | 'discard'>('close');
+  const openModeName = useId();
   const factor = unitFactor(unit, units);
   // La base sugerida sigue a la unidad del dibujo mientras el usuario no haya escrito su propio valor (R7-06).
   const [baseEdited, setBaseEdited] = useState<string | null>(null);
@@ -223,7 +226,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
         <fieldset className="ea-fieldset">
           <legend>Polilíneas abiertas ({open.length})</legend>
           <label>
-            <input type="radio" name="open-mode" checked={openMode === 'close'} onChange={() => setOpenMode('close')} /> Cerrarlas con una base
+            <input type="radio" name={openModeName} checked={openMode === 'close'} onChange={() => setOpenMode('close')} /> Cerrarlas con una base
             horizontal
           </label>
           <label className="ea-inline">
@@ -240,7 +243,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
             <span className="muted small">en unidades del modelo</span>
           </label>
           <label>
-            <input type="radio" name="open-mode" checked={openMode === 'discard'} onChange={() => setOpenMode('discard')} /> Descartarlas
+            <input type="radio" name={openModeName} checked={openMode === 'discard'} onChange={() => setOpenMode('discard')} /> Descartarlas
           </label>
         </fieldset>
       )}
@@ -272,6 +275,7 @@ export interface CsvDialogProps {
 export function CsvImportDialog({ fileName, result, materials, units, onCancel, onApplyRegions, onApplyPiezo }: CsvDialogProps) {
   const hasLayer = result.rows[0] !== undefined && ('capa' in result.rows[0] || 'layer' in result.rows[0]);
   const [target, setTarget] = useState<'regions' | 'piezo'>(hasLayer ? 'regions' : 'piezo');
+  const targetName = useId();
   const regionRead = useMemo(() => csvToRegions(result), [result]);
   const piezoRead = useMemo(() => csvToPoints(result), [result]);
   const layers = useMemo(() => {
@@ -305,10 +309,10 @@ export function CsvImportDialog({ fileName, result, materials, units, onCancel, 
       <fieldset className="ea-fieldset">
         <legend>Qué contiene el archivo</legend>
         <label>
-          <input type="radio" name="csv-target" checked={target === 'regions'} onChange={() => setTarget('regions')} /> Regiones (columnas capa, x, y)
+          <input type="radio" name={targetName} checked={target === 'regions'} onChange={() => setTarget('regions')} /> Regiones (columnas capa, x, y)
         </label>
         <label>
-          <input type="radio" name="csv-target" checked={target === 'piezo'} onChange={() => setTarget('piezo')} /> Línea piezométrica (columnas x, y)
+          <input type="radio" name={targetName} checked={target === 'piezo'} onChange={() => setTarget('piezo')} /> Línea piezométrica (columnas x, y)
         </label>
       </fieldset>
       <IssueList issues={issues} />
