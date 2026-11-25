@@ -1,0 +1,76 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D05",
+    "title": "Botadero, ángulo de reposo 37°",
+    "notes": "Botadero de estéril granular, c = 0, talud al ángulo de reposo de 37°."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "waste",
+      "name": "Estéril granular",
+      "model": "mohr_coulomb",
+      "unit_weight": 16.0,
+      "unit_weight_sat": null,
+      "cohesion": 0.0,
+      "friction_angle": 37.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "waste",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          25.0
+        ],
+        [
+          10.0,
+          25.0
+        ],
+        [
+          43.176121,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 82.92838487497718,
+      "yc": 76.39308638542958,
+      "r": 85.36162170596734
+    }
+  }
+}

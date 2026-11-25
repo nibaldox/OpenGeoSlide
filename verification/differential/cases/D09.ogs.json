@@ -1,0 +1,84 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D09",
+    "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+    "notes": "Talud de R2-03 (briefs/W7): c = 2, φ = 45°, r_u = 0,65. Búsqueda por defecto; el sentido lo decide la regla 2 de E1 (coronación a la derecha)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 2.0,
+      "friction_angle": 45.0,
+      "ru": 0.65
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          15.0
+        ],
+        [
+          15.0,
+          15.0
+        ],
+        [
+          30.0,
+          25.0
+        ],
+        [
+          60.0,
+          25.0
+        ],
+        [
+          60.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "auto"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 10.77159214833143,
+      "yc": 39.640974335435686,
+      "r": 24.641649084951563
+    }
+  }
+}

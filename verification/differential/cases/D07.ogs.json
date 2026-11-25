@@ -1,0 +1,76 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D07",
+    "title": "Arcilla blanda, φ = 0",
+    "notes": "Terraplén 2H:1V sobre arcilla blanda no drenada (φ = 0, c = Su = 35 kPa)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "clay",
+      "name": "Arcilla blanda (φu = 0)",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 35.0,
+      "friction_angle": 0.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          15.0
+        ],
+        [
+          10.0,
+          15.0
+        ],
+        [
+          40.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 27.03400140234385,
+      "yc": 31.871649197129635,
+      "r": 31.866750359158594
+    }
+  }
+}
