@@ -71,12 +71,3 @@ def test_acads1a_bishop_fos_in_expected_range():
     bishop = [r for r in report["results"] if r["method"] == "bishop"]
     assert len(bishop) == 1
     assert 0.95 <= bishop[0]["fos"] <= 1.03
-
-
-def test_rust_panic_becomes_runtime_error_not_abort():
-    # Goes through the same catch_unwind guard as analyze_json. PanicException (a BaseException)
-    # would not match RuntimeError, so this also checks the conversion itself.
-    with pytest.raises(RuntimeError, match="boom"):
-        _core._panic_for_tests("boom")
-    # The interpreter is still alive and usable after the panic.
-    assert opengeoslide.version()

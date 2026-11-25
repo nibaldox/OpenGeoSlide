@@ -16,6 +16,17 @@ VIRTUAL_ENV="$TMPDIR/ogs-py-venv" uv pip install "$TMPDIR"/ogs-py-dist/*.whl pyt
 El wheel es `abi3-py311`: un único binario sirve para CPython 3.11 o superior. En v0.1 solo se han probado
 3.13 y 3.14.
 
+### Wheel con hooks de prueba
+
+El hook de pánico `_panic_for_tests` está detrás de la feature `test-hooks` y **no** entra en el wheel de
+producción. Para probar la ruta de pánico, compile un wheel aparte:
+
+```sh
+uv run --python 3.13 --no-project --with maturin maturin build --release --features test-hooks --out "$TMPDIR/ogs-py-dist-hooks"
+uv venv -p 3.13 "$TMPDIR/ogs-py-venv-hooks"
+VIRTUAL_ENV="$TMPDIR/ogs-py-venv-hooks" uv pip install "$TMPDIR"/ogs-py-dist-hooks/*.whl pytest
+```
+
 ## API
 
 ```python
@@ -27,24 +38,28 @@ report = opengeoslide.analyze(model)    # dict en, dict fuera (envoltorio sobre 
 ```
 
 - `analyze_json(model_json: str) -> str`: `ValueError` con el mensaje del motor si este rechaza el modelo
-  (JSON inválido, sin superficie, etc.).
-- `analyze(model: dict) -> dict`: serializa el `dict`, llama a `analyze_json` y deserializa el resultado.
+  (JSON inválido, sin superficie, etc.). El mensaje empieza por el código E6 (`Json`, `InvalidModel`, ...).
+- `analyze(model: dict) -> dict`: serializa el `dict` con `allow_nan=False`. Un NaN o un infinito en el
+  modelo se rechaza antes de llegar al motor con `ValueError("InvalidModel: ... en modelo.materials[0].cohesion ...")`,
+  con la ruta del valor. Un ciclo en el `dict` da `ValueError("Json: ...")`.
 
 ## Pánicos
 
 Un pánico de Rust dentro del motor **no** aborta el intérprete. `analyze_json` lo captura con
 `std::panic::catch_unwind` y lo relanza como `RuntimeError` con el mensaje del pánico (prefijo `Rust panic: `).
 No se usa `PanicException` de PyO3, porque hereda de `BaseException` y no sería capturada por `except Exception`.
-Mientras el motor tenga stubs (`todo!()`), `analyze_json` lanzará `RuntimeError`.
 
 ## Tests
 
 ```sh
-$TMPDIR/ogs-py-venv/bin/python -m pytest tests -v
+# Wheel de producción (el hook no debe existir):
+OGS_PY_TEST_HOOKS=0 $TMPDIR/ogs-py-venv/bin/python -m pytest tests -v
+# Wheel con --features test-hooks (ejercita el pánico):
+OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 ```
 
-Los tests usan el wheel instalado, no el código fuente. El test de precisión sobre `examples/acads1a.ogs.json`
-está marcado `xfail` hasta que el motor esté implementado (W1).
+Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
+`1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
 ## Licencia
 
