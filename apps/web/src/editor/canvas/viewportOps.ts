@@ -1,0 +1,60 @@
+// Operaciones puras sobre el viewport (zoom, pan, ajuste al contenido). `geometry/viewport.ts` es de solo lectura.
+
+import { fitViewport, screenToWorld, type Bounds, type Viewport } from '../../geometry/viewport';
+import type { ModelDoc } from '../types';
+import { piezoPoints } from './geom';
+
+export const MIN_SCALE = 0.01;
+export const MAX_SCALE = 1e5;
+
+/** Cambia la escala por `factor` manteniendo fijo el punto del mundo que está bajo (sx, sy). */
+export function zoomAt(vp: Viewport, sx: number, sy: number, factor: number): Viewport {
+  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, vp.scale * factor));
+  const [wx, wy] = screenToWorld(vp, sx, sy);
+  return { ...vp, scale, tx: sx - scale * wx, ty: sy + scale * wy };
+}
+
+/** Desplaza la vista (dx, dy) píxeles. */
+export function panBy(vp: Viewport, dx: number, dy: number): Viewport {
+  return { ...vp, tx: vp.tx + dx, ty: vp.ty + dy };
+}
+
+/** Factor de zoom para un `deltaY` de rueda (negativo acerca). */
+export function wheelFactor(deltaY: number): number {
+  const clamped = Math.max(-200, Math.min(200, deltaY));
+  return Math.exp(-clamped * 0.0015);
+}
+
+/** Cuadro delimitador de regiones y piezométrica; por defecto un cuadro unitario si el modelo está vacío. */
+export function docBounds(doc: ModelDoc): Bounds {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const region of doc.regions) {
+    for (const [x, y] of region.polygon) {
+      xs.push(x);
+      ys.push(y);
+    }
+  }
+  for (const [x, y] of piezoPoints(doc)) {
+    xs.push(x);
+    ys.push(y);
+  }
+  if (xs.length === 0) return { minX: 0, maxX: 10, minY: 0, maxY: 10 };
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const x of xs) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+  }
+  for (const y of ys) {
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+export function fitToDoc(doc: ModelDoc, width: number, height: number, margin = 48): Viewport {
+  return fitViewport(docBounds(doc), width, height, margin);
+}
