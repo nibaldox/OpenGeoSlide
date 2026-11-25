@@ -34,6 +34,8 @@ export const ENGINE_WARNING_CODES = [
   'air_gap_thrust',
   'truncated_mass',
   'truncated_driving_mass',
+  'effective_width_below_min',
+  'effective_ends_outside_range',
   'water_above_ground',
   'max_iterations',
   'non_finite',
@@ -63,6 +65,14 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   truncated_driving_mass: {
     severity: 'aviso',
     text: 'Un bloque descartado de la superficie es motriz: podría ser un mecanismo más crítico. Revise otros círculos de falla.',
+  },
+  effective_width_below_min: {
+    severity: 'aviso',
+    text: 'El bloque analizado es más angosto que el ancho mínimo pedido; revise la superficie.',
+  },
+  effective_ends_outside_range: {
+    severity: 'aviso',
+    text: 'Los extremos reales del bloque analizado caen fuera de los rangos de entrada/salida.',
   },
   water_above_ground: {
     severity: 'aviso',
