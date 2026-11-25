@@ -81,9 +81,10 @@ Correcciones de la revisión R5 (`docs/reviews/R5_agy.md`):
 - E12f: una carga lineal a más de `1e-9·ancho` fuera del bloque analizado no actúa (`load_outside_mass`).
 - Detalle y demás limitaciones en la sección «Limitaciones conocidas» del README.
 
-## [0.1.0-fase0] - 2026-11-25
+## [hito-fase0] - 2026-11-25
 
-Cierre de la Fase 0 (spike). Versión de prueba: ver `docs/fase0_cierre.md`.
+Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado con la etiqueta `hito-fase0`
+(no sigue `v*`, así que no dispara releases). Ver `docs/fase0_cierre.md`.
 
 ### Added
 - Motor `ogs-core` (Rust): geometría y dovelas, Bishop simplificado, Spencer (GLE) y búsqueda circular de
@@ -99,5 +100,5 @@ Cierre de la Fase 0 (spike). Versión de prueba: ver `docs/fase0_cierre.md`.
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
 [Unreleased]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0-fase0...v0.1.0
-[0.1.0-fase0]: https://github.com/nibaldox/opengeoslide/releases/tag/v0.1.0-fase0
+[0.1.0]: https://github.com/nibaldox/opengeoslide/releases/tag/v0.1.0
+[hito-fase0]: https://github.com/nibaldox/opengeoslide/tree/hito-fase0

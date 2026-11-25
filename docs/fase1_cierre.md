@@ -1,6 +1,6 @@
 # Cierre de la Fase 1 de OpenGeoSlide
 
-**Fecha:** 2026-11-25 · **Base:** `main` tras el merge de F1-I · **Etiqueta:** `v0.1.0-fase1`
+**Fecha:** 2026-11-25 · **Base:** `main` tras el merge de F1-I · **Etiqueta:** `hito-fase1`
 
 ## Veredicto
 **La Fase 1 está cerrada.** La última revisión adversarial independiente, **R6** (Antigravity, commit `730802e`), dio
