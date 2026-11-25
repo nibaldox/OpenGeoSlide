@@ -3,9 +3,9 @@
 import type { Point } from '../../engine/types';
 import type { Viewport } from '../../geometry/viewport';
 import type { EditorUi, ModelDoc } from '../types';
-import { roundForScale, type VertexRef } from './geom';
+import { projectOnSegment, roundForScale, type VertexRef } from './geom';
 
-export type SnapKind = 'vertex' | 'axis' | 'grid' | 'none';
+export type SnapKind = 'vertex' | 'edge' | 'axis' | 'grid' | 'none';
 
 export interface SnapContext {
   doc: ModelDoc;
@@ -15,6 +15,8 @@ export interface SnapContext {
   exclude?: readonly VertexRef[];
   /** Puntos vecinos con los que alinear en horizontal o vertical (los vecinos del vértice arrastrado). */
   neighbors?: readonly Point[];
+  /** Ajuste a aristas (herramientas «Dibujar región» y «Dividir región»): con `snap.vertex` activo, un punto cerca de una arista se apoya en ella. */
+  edges?: boolean;
 }
 
 export interface SnapResult {
@@ -22,6 +24,8 @@ export interface SnapResult {
   kind: SnapKind;
   /** Vértice destino cuando `kind === 'vertex'`. */
   target: VertexRef | null;
+  /** Arista destino cuando `kind === 'edge'`: región y vértice anterior a la arista. */
+  edge?: { regionIndex: number; afterIndex: number };
   /** Coordenadas (mundo) de las guías de alineación activas, para dibujarlas. */
   guides: { x: number | null; y: number | null };
 }
@@ -59,6 +63,28 @@ export function snapPoint(raw: Point, ctx: SnapContext): SnapResult {
     }
     if (bestRef !== null) {
       return { point: [bestPoint[0], bestPoint[1]], kind: 'vertex', target: bestRef, guides: { x: null, y: null } };
+    }
+  }
+
+  // 1b. Arista más cercana (solo al dibujar o dividir): el punto se apoya en la arista, sin redondear, para que dos regiones
+  // compartan su límite sin hueco ni solape.
+  if (snap.vertex && ctx.edges) {
+    let best: { regionIndex: number; afterIndex: number; point: Point } | null = null;
+    let bestD = Infinity;
+    doc.regions.forEach((region, regionIndex) => {
+      const poly = region.polygon;
+      for (let i = 0; i < poly.length; i++) {
+        const proj = projectOnSegment(raw, poly[i] as Point, poly[(i + 1) % poly.length] as Point);
+        if (proj.distance <= tol && proj.distance < bestD) {
+          bestD = proj.distance;
+          best = { regionIndex, afterIndex: i, point: proj.point };
+        }
+      }
+    });
+    if (best !== null) {
+      const b: { regionIndex: number; afterIndex: number; point: Point } = best;
+      const point: Point = [Number(b.point[0].toPrecision(12)), Number(b.point[1].toPrecision(12))];
+      return { point, kind: 'edge', target: null, edge: { regionIndex: b.regionIndex, afterIndex: b.afterIndex }, guides: { x: null, y: null } };
     }
   }
 

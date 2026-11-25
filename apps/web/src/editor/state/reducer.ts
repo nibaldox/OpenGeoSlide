@@ -144,6 +144,10 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
       if (!isPointList(polygon) || polygon.length < 3) return null;
       return { ...doc, regions: [...doc.regions, { material, polygon: copyPoints(polygon) }] };
     }
+    case 'region/setPolygon': {
+      if (!inRange(cmd.regionIndex, doc.regions.length) || !isPointList(cmd.polygon) || cmd.polygon.length < 3) return null;
+      return withRegionPolygon(doc, cmd.regionIndex, copyPoints(cmd.polygon));
+    }
     case 'region/remove': {
       if (!inRange(cmd.regionIndex, doc.regions.length)) return null;
       return { ...doc, regions: doc.regions.filter((_, i) => i !== cmd.regionIndex) };
@@ -394,7 +398,7 @@ function reduceUi(state: EditorState, action: UiAction): EditorState {
       return { ...state, ui: { ...state.ui, selection: action.selection } };
     }
     case 'ui/tool': {
-      if (action.tool !== 'select' && action.tool !== 'add_vertex' && action.tool !== 'draw_region' && action.tool !== 'pan') return state;
+      if (action.tool !== 'select' && action.tool !== 'add_vertex' && action.tool !== 'draw_region' && action.tool !== 'split_region' && action.tool !== 'pan') return state;
       return action.tool === state.ui.tool ? state : { ...state, ui: { ...state.ui, tool: action.tool } };
     }
     case 'ui/viewport': {

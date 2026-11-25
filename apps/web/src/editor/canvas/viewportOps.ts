@@ -63,8 +63,21 @@ export function docBounds(doc: ModelDoc): Bounds {
   return { minX, maxX, minY, maxY };
 }
 
-export function fitToDoc(doc: ModelDoc, width: number, height: number, margin = 48): Viewport {
-  return fitViewport(docBounds(doc), width, height, margin);
+/** Espacio libre del encuadre, como fracción del alto del modelo: bajo la base y a los lados (para dibujar estratos), y arriba. */
+export const FIT_PAD_BELOW = 0.25;
+export const FIT_PAD_SIDE = 0.25;
+export const FIT_PAD_TOP = 0.1;
+
+/** Cuadro delimitador ampliado con el espacio libre del encuadre (UX9-01): al menos 25 % del alto bajo la base y a los lados. */
+export function paddedBounds(b: Bounds): Bounds {
+  const span = b.maxY - b.minY;
+  const h = span > 1e-9 ? span : Math.max((b.maxX - b.minX) / 2, 1);
+  return { minX: b.minX - FIT_PAD_SIDE * h, maxX: b.maxX + FIT_PAD_SIDE * h, minY: b.minY - FIT_PAD_BELOW * h, maxY: b.maxY + FIT_PAD_TOP * h };
+}
+
+/** Encuadre del modelo con margen de dibujo: deja sitio bajo la base y a los lados para agregar estratos y regiones. */
+export function fitToDoc(doc: ModelDoc, width: number, height: number, margin = 24): Viewport {
+  return fitViewport(paddedBounds(docBounds(doc)), width, height, margin);
 }
 
 /** Factor de un paso de zoom con los botones o las teclas + y −. */
@@ -97,4 +110,45 @@ export function pinchViewport(vp: Viewport, prev: PointerPair, next: PointerPair
   const m1x = (next[0][0] + next[1][0]) / 2;
   const m1y = (next[0][1] + next[1][1]) / 2;
   return panBy(zoomAt(vp, m0x, m0y, factor), m1x - m0x, m1y - m0y);
+}
+
+// ───────────────────────── Autodesplazamiento al dibujar (UX9-01) ─────────────────────────
+
+/** Franja, en píxeles, junto al borde del lienzo en la que la vista se desplaza sola mientras se dibuja. */
+export const EDGE_SCROLL_ZONE_PX = 24;
+/** Velocidad máxima del autodesplazamiento, en píxeles por paso (unos 16 ms). */
+export const EDGE_SCROLL_MAX_PX = 14;
+
+/**
+ * Desplazamiento de la vista (dx, dy en píxeles, para `panBy`) cuando el puntero está en (x, y) dentro de un lienzo de
+ * `width × height`: nulo en el interior y creciente al acercarse al borde, de modo que el contenido se mueve hacia
+ * el lado contrario al borde que se toca (si el puntero está abajo, el contenido sube y aparece lo de abajo).
+ */
+export function edgeScrollDelta(width: number, height: number, x: number, y: number, zone = EDGE_SCROLL_ZONE_PX, maxPx = EDGE_SCROLL_MAX_PX): [number, number] {
+  const axis = (v: number, size: number): number => {
+    if (size <= 2 * zone) return 0; // lienzo demasiado pequeño: sin autodesplazamiento
+    if (v < zone) return Math.min(1, (zone - v) / zone) * maxPx;
+    if (v > size - zone) return -Math.min(1, (v - (size - zone)) / zone) * maxPx;
+    return 0;
+  };
+  const dx = axis(x, width);
+  const dy = axis(y, height);
+  return [dx === 0 ? 0 : dx, dy === 0 ? 0 : dy];
+}
+
+/**
+ * Teclado: si el punto de pantalla (sx, sy) queda a menos de `zone` px del borde o fuera, desplaza la vista lo justo para
+ * dejarlo a `zone + lead` px del borde (con `lead` = 20 % del lado, para no volver a tocar el borde con la siguiente tecla).
+ * Si ya está en el interior, devuelve la misma vista.
+ */
+export function revealCursor(vp: Viewport, sx: number, sy: number, zone = EDGE_SCROLL_ZONE_PX): Viewport {
+  const axis = (v: number, size: number): number => {
+    const lead = 0.2 * size;
+    if (v < zone) return zone + lead - v;
+    if (v > size - zone) return size - zone - lead - v;
+    return 0;
+  };
+  const dx = axis(sx, vp.width);
+  const dy = axis(sy, vp.height);
+  return dx === 0 && dy === 0 ? vp : panBy(vp, dx, dy);
 }
