@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ogs-0.2.schema.json",
+  "title": "OpenGeoSlide model (.ogs.json) v0.2",
+  "description": "Formato de modelo v0.2 (briefs/00_CONTRATOS.md §1 y briefs/01_CONTRATOS_FASE1.md F1.1). Admite version 0.1 y 0.2: loads y analysis.seismic solo existen con version 0.2. Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados. Reglas que JSON Schema no expresa y valida el motor: x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, id de carga único.",
+  "type": "object",
+  "required": ["format", "version", "materials", "regions", "analysis"],
+  "additionalProperties": false,
+  "if": { "properties": { "version": { "const": "0.1" } } },
+  "then": {
+    "properties": {
+      "loads": false,
+      "analysis": { "properties": { "seismic": false } }
+    }
+  },
+  "properties": {
+    "format": { "const": "opengeoslide" },
+    "version": { "enum": ["0.1", "0.2"] },
+    "meta": { "$ref": "#/$defs/meta" },
+    "units": { "type": "string", "enum": ["SI", "imperial"] },
+    "materials": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/material" } },
+    "regions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/region" } },
+    "water": { "$ref": "#/$defs/water" },
+    "loads": { "$ref": "#/$defs/loads" },
+    "slope": { "$ref": "#/$defs/slope" },
+    "analysis": { "$ref": "#/$defs/analysis" }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "range": {
+      "description": "Rango [min, max] en x.",
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polyline": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point" } },
+    "polygon": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/point" } },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "model", "unit_weight", "cohesion", "friction_angle"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "model": { "const": "mohr_coulomb" },
+        "unit_weight": { "type": "number", "exclusiveMinimum": 0 },
+        "unit_weight_sat": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "cohesion": { "type": "number", "minimum": 0 },
+        "friction_angle": { "type": "number", "minimum": 0, "maximum": 90 },
+        "ru": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["material", "polygon"],
+      "properties": {
+        "material": { "type": "string", "minLength": 1 },
+        "polygon": { "$ref": "#/$defs/polygon" }
+      }
+    },
+    "water": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit_weight": { "type": "number", "exclusiveMinimum": 0, "default": 9.81 },
+        "piezometric_line": { "anyOf": [{ "$ref": "#/$defs/polyline" }, { "type": "null" }] }
+      }
+    },
+    "loads": {
+      "description": "Cargas superficiales (solo version 0.2). Por defecto, lista vacía.",
+      "type": "array",
+      "items": { "oneOf": [{ "$ref": "#/$defs/udl" }, { "$ref": "#/$defs/line_load" }] },
+      "default": []
+    },
+    "udl": {
+      "description": "Carga distribuida vertical q (kPa; psf en unidades imperiales) sobre el terreno entre x1 y x2 (x1 < x2, ambos dentro del rango x del modelo).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x1", "x2", "q"],
+      "properties": {
+        "type": { "const": "udl" },
+        "id": { "type": "string", "minLength": 1 },
+        "x1": { "type": "number" },
+        "x2": { "type": "number" },
+        "q": { "type": "number", "minimum": 0 }
+      }
+    },
+    "line_load": {
+      "description": "Carga lineal p (kN/m; lbf/ft en unidades imperiales) aplicada en (x, y_top(x)). angle en grados desde la vertical hacia abajo; el positivo inclina la carga hacia +x del modelo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "x", "p"],
+      "properties": {
+        "type": { "const": "line" },
+        "id": { "type": "string", "minLength": 1 },
+        "x": { "type": "number" },
+        "p": { "type": "number", "minimum": 0 },
+        "angle": { "type": "number", "minimum": -90, "maximum": 90, "default": 0 }
+      }
+    },
+    "seismic": {
+      "description": "Coeficientes pseudoestáticos (solo version 0.2). kh·W actúa en el sentido del deslizamiento; con kv > 0, kv·W actúa hacia abajo. Se aplican solo al peso del suelo, nunca a las cargas.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kh": { "type": "number", "minimum": 0, "exclusiveMaximum": 1, "default": 0 },
+        "kv": { "type": "number", "exclusiveMinimum": -1, "exclusiveMaximum": 1, "default": 0 }
+      }
+    },
+    "slope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["auto", "left_to_right", "right_to_left"],
+          "default": "auto"
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["bishop", "spencer"] },
+          "default": ["bishop"]
+        },
+        "slices": { "type": "integer", "minimum": 1, "default": 50 },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0, "default": 1e-5 },
+        "max_iterations": { "type": "integer", "minimum": 1, "default": 500 },
+        "min_m_alpha": { "type": "number", "minimum": 0, "default": 0.2 },
+        "seismic": { "anyOf": [{ "$ref": "#/$defs/seismic" }, { "type": "null" }] },
+        "surface": { "$ref": "#/$defs/surface" },
+        "search": { "$ref": "#/$defs/search" }
+      }
+    },
+    "surface": {
+      "description": "Superficie fija. Se ignora si existe analysis.search.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "xc", "yc", "r"],
+      "properties": {
+        "type": { "const": "circle" },
+        "xc": { "type": "number" },
+        "yc": { "type": "number" },
+        "r": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "search": {
+      "description": "Búsqueda circular entrada-salida. Si existe, reemplaza a analysis.surface.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "circular_entry_exit" },
+        "entry": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
+        "exit": { "anyOf": [{ "$ref": "#/$defs/range" }, { "type": "null" }] },
+        "n_entry": { "type": "integer", "minimum": 1, "default": 20 },
+        "n_exit": { "type": "integer", "minimum": 1, "default": 20 },
+        "n_radius": { "type": "integer", "minimum": 1, "default": 20 },
+        "max_radius_factor": { "type": "number", "exclusiveMinimum": 0, "default": 5.0 },
+        "min_width": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "refine": { "type": "boolean", "default": true }
+      }
+    }
+  }
+}
