@@ -122,8 +122,8 @@ uv run --python 3.13 --no-project --with shapely --with jsonschema --with pytest
   presa simétrica (rangos, empate de puntos medios, coronamiento, círculo fijo y empate), la dirección explícita,
   γw distinto de 9.807 con agua (rechazo), imperial con agua y la nota de unidades.
 - `test_run.py` (5 tests): R2-09 (1), `status` antes que `fos`, con un binario `ogs` falso.
-- `verification/tools/test_import_cslope.py` (22 tests): R2-07. Agua sobre escalones y entre puntos de
-  control, x de la piezométrica estrictamente creciente, `options.tolerance` en las notas, los límites de
+- `verification/tools/test_import_cslope.py` (21 tests): R2-07. Agua sobre escalones (y no solo en los vértices),
+  x de la piezométrica estrictamente creciente, `options.tolerance` en las notas, los límites de
   §4.5 en el schema, los rangos de búsqueda y que los casos generados los cumplen.
 
 ## Hallazgos de la primera ejecución (casos de w0b, 16 casos, 38 checks)

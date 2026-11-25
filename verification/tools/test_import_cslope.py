@@ -28,29 +28,23 @@ CASES_DIR = os.path.join(ROOT, "verification", "cases")
 
 # ------------------------------------------------------------ water over ground
 
-# Terrace: top at y = 10 for x in [0, 10], then a step down to y = 4 for x in [10, 20].
-STEPPED = Polygon([(0, 0), (0, 10), (10, 10), (10, 4), (20, 4), (20, 0)])
+# Bump: top at y = 10, a lower terrace (y = 4) between x = 10 and x = 15, and y = 10 again beyond.
+# Water at y = 6 is above the terrace inside (10, 15) but below the ground at both ends and at x = 15.
+BUMP = Polygon([(0, 0), (0, 10), (10, 10), (10, 4), (15, 4), (15, 10), (25, 10), (25, 0)])
 
 
 def test_water_above_lower_terrace_is_detected_at_the_step():
-    # Old check: the vertex x = 10 reports the upper terrace (10), so y = 6 looked safe.
-    assert imp.water_above_ground(STEPPED, [[0.0, 6.0], [20.0, 6.0]])
+    # Old check (vertices only): x = 10 and x = 15 report the upper level (10), so y = 6 looked safe.
+    assert imp.water_above_ground(BUMP, [[0.0, 6.0], [25.0, 6.0]])
 
 
 def test_water_below_both_terraces_is_accepted():
-    assert not imp.water_above_ground(STEPPED, [[0.0, 3.0], [20.0, 3.0]])
+    assert not imp.water_above_ground(BUMP, [[0.0, 3.0], [25.0, 3.0]])
 
 
 def test_water_touching_the_terrace_is_accepted():
     # Exactly on the lower terrace: within the tolerance, no warning.
-    assert not imp.water_above_ground(STEPPED, [[0.0, 4.0], [20.0, 4.0]])
-
-
-def test_water_above_ground_between_breakpoints_is_detected():
-    # Piezometric breakpoints at x = 0 and x = 20 only; the ground between them is linear.
-    tent = Polygon([(0, 0), (0, 4), (10, 10), (20, 4), (20, 0)])
-    assert imp.water_above_ground(tent, [[0.0, 5.0], [20.0, 5.0]])
-    assert not imp.water_above_ground(tent, [[0.0, 3.5], [20.0, 3.5]])
+    assert not imp.water_above_ground(BUMP, [[0.0, 4.0], [25.0, 4.0]])
 
 
 # ------------------------------------------------------------ convert() gates
@@ -61,7 +55,7 @@ def _raw(piezo=None, options=None, surface_ok=True):
         "title": "synthetic",
         "surface": "fixed",
         "definition": {
-            "coordinates": [[0, 0], [0, 10], [10, 10], [10, 4], [20, 4], [20, 0]],
+            "coordinates": [[0, 0], [0, 10], [10, 10], [10, 4], [15, 4], [15, 10], [25, 10], [25, 0]],
             "materials": [{"name": "Soil", "model": {
                 "kind": "mohr-coulomb", "unitWeight": 18.0, "cohesion": 5.0, "frictionAngle": 30.0}}],
             "regionAssignments": [{"point": [5.0, 5.0], "materialName": "Soil"}],
@@ -86,14 +80,14 @@ def test_convert_omits_piezometric_line_with_x_not_increasing():
         imp.convert(_raw(piezo=[[10.0, 3.0], [0.0, 3.0]]), PROB)
 
 
-def test_convert_omits_water_above_a_step():
+def test_convert_omits_water_above_a_step_inside_the_model():
     with pytest.raises(imp.Omit, match="agua embalsada"):
-        imp.convert(_raw(piezo=[[0.0, 6.0], [20.0, 6.0]]), PROB)
+        imp.convert(_raw(piezo=[[0.0, 6.0], [25.0, 6.0]]), PROB)
 
 
 def test_convert_keeps_water_below_the_terrain():
-    case, _ = imp.convert(_raw(piezo=[[0.0, 3.0], [20.0, 3.0]]), PROB)
-    assert case["model"]["water"]["piezometric_line"] == [[0.0, 3.0], [20.0, 3.0]]
+    case, _ = imp.convert(_raw(piezo=[[0.0, 3.0], [25.0, 3.0]]), PROB)
+    assert case["model"]["water"]["piezometric_line"] == [[0.0, 3.0], [25.0, 3.0]]
 
 
 def test_solver_tolerance_of_the_check_is_recorded_in_notes():
