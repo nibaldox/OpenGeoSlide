@@ -42,7 +42,7 @@ export function PerformancePanel({ summary, runs, busy, onRunsChange, onMeasure 
           <dd>{formatNumber(summary.max, 1)} ms</dd>
         </dl>
       ) : (
-        <p className="muted small">Mide el tiempo del análisis dentro del worker (performance.now).</p>
+        <p className="muted small">Mide cuánto tarda el análisis en el motor de cálculo, repitiéndolo el número de veces indicado (tiempos en milisegundos).</p>
       )}
     </section>
   );

@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createFakeStore, makeDoc, toPx, VP } from './fakeStore';
 import {
+  circleCenterLabel,
+  circleRadiusLabel,
   formatNumber,
   gridLines,
+  lengthUnitOf,
   loadShapes,
   niceStep,
   piezoLabel,
   rangeBand,
+  rangeLabel,
   seismicBadge,
   seismicLabel,
   slideDirection,
@@ -29,6 +33,25 @@ describe('formato en español', () => {
   it('aria-label de vértices como en X3 §2.3', () => {
     expect(vertexLabel(0, 2, [30, 25])).toBe('Región 1, vértice 3: x 30,0 m, y 25,0 m');
     expect(piezoLabel(0, [1.5, 2])).toBe('Piezométrica, punto 1: x 1,5 m, y 2,0 m');
+  });
+
+  it('las etiquetas accesibles usan la unidad del modelo: m en SI, ft en imperial (R7-22)', () => {
+    expect(lengthUnitOf(undefined)).toBe('m');
+    expect(lengthUnitOf('SI')).toBe('m');
+    expect(lengthUnitOf('imperial')).toBe('ft');
+    expect(lengthUnitOf(null)).toBe('m');
+    expect(vertexLabel(0, 2, [30, 25], 'imperial')).toBe('Región 1, vértice 3: x 30,0 ft, y 25,0 ft');
+    expect(piezoLabel(0, [1.5, 2], 'imperial')).toBe('Piezométrica, punto 1: x 1,5 ft, y 2,0 ft');
+    expect(circleCenterLabel(45, 38.75)).toBe('Círculo de falla, centro: x 45,0 m, y 38,75 m');
+    expect(circleCenterLabel(45, 38.75, 'imperial')).toBe('Círculo de falla, centro: x 45,0 ft, y 38,75 ft');
+    expect(circleRadiusLabel(25)).toBe('Círculo de falla, radio: 25,0 m');
+    expect(circleRadiusLabel(25, 'imperial')).toBe('Círculo de falla, radio: 25,0 ft');
+    expect(rangeLabel('entry', [10, 0])).toBe('Entrada: x 0,0 a 10,0 m');
+    expect(rangeLabel('exit', [0, 10], 'imperial')).toBe('Salida: x 0,0 a 10,0 ft');
+    // Con unidades imperiales ninguna etiqueta conserva la «m».
+    for (const label of [vertexLabel(0, 0, [1, 2], 'imperial'), piezoLabel(0, [1, 2], 'imperial'), circleCenterLabel(1, 2, 'imperial'), circleRadiusLabel(1, 'imperial'), rangeLabel('entry', [0, 1], 'imperial')]) {
+      expect(label, label).not.toMatch(/\d m\b/);
+    }
   });
 
   it('indicador sísmico «kh = … · kv = …»', () => {
