@@ -185,7 +185,8 @@ export function planRegionImport(doc: Pick<ModelDoc, 'materials' | 'units'>, inp
       continue;
     }
     if (input.baseY === null || !Number.isFinite(input.baseY)) {
-      notes.push('Falta el valor de la base y para cerrar las polilíneas abiertas.');
+      const note = 'Falta el valor de la base y para cerrar las polilíneas abiertas.';
+      if (!notes.includes(note)) notes.push(note); // una sola vez, no por cada polilínea (R7-06)
       skipped += 1;
       continue;
     }
@@ -213,4 +214,13 @@ export function suggestBaseY(points: readonly Point[], factor: number): number |
   if (points.length === 0) return null;
   const minY = Math.min(...points.map((p) => p[1])) * factor;
   return Math.floor(minY * 10) / 10 - 1;
+}
+
+/** Texto de la base sugerida (coma decimal) para las polilíneas abiertas en la unidad elegida; vacío si no hay ninguna. */
+export function suggestBaseText(open: readonly { points: readonly Point[] }[], unit: LengthUnit, modelUnits: string | undefined): string {
+  const v = suggestBaseY(
+    open.flatMap((e) => e.points),
+    unitFactor(unit, modelUnits),
+  );
+  return v === null ? '' : String(v).replace('.', ',');
 }

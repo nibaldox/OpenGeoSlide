@@ -15,36 +15,49 @@ import {
   importableLayers,
   openPolylines,
   planRegionImport,
-  suggestBaseY,
+  suggestBaseText,
   unitFactor,
   type LengthUnit,
   type RegionImportPlan,
 } from './importPlan';
 import { layerChoice } from './layerChoice';
 
-function Modal({ title, onCancel, children }: { title: string; onCancel: () => void; children: ReactNode }) {
+/**
+ * Diálogo modal nativo (`<dialog>` + `showModal()`): el navegador atrapa el foco, deja inerte el resto de la página y cierra
+ * con Esc (R7-03). El foco inicial va al título para que se lea antes que las incidencias; al cerrar, vuelve al botón que
+ * lo abrió.
+ */
+export function Modal({ title, onCancel, children }: { title: string; onCancel: () => void; children: ReactNode }) {
   const titleId = useId();
-  const ref = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    ref.current?.querySelector<HTMLElement>('select, input, button')?.focus();
-    return () => previous?.focus?.();
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!dialog.open) dialog.showModal();
+    titleRef.current?.focus();
+    return () => {
+      if (dialog.open) dialog.close();
+      if (previous?.isConnected) previous.focus();
+    };
   }, []);
   return (
-    <div
-      className="ea-backdrop"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.stopPropagation();
-          onCancel();
-        }
+    <dialog
+      ref={dialogRef}
+      className="ea-dialog"
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault(); // el estado de React decide cuándo desaparece
+        onCancel();
       }}
+      onClose={onCancel}
     >
-      <div ref={ref} className="ea-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <h2 id={titleId}>{title}</h2>
-        {children}
-      </div>
-    </div>
+      <h2 id={titleId} ref={titleRef} tabIndex={-1}>
+        {title}
+      </h2>
+      {children}
+    </dialog>
   );
 }
 
@@ -148,10 +161,9 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
   const [mode, setMode] = useState<'add' | 'replace'>('add');
   const [openMode, setOpenMode] = useState<'close' | 'discard'>('close');
   const factor = unitFactor(unit, units);
-  const [baseText, setBaseText] = useState<string>(() => {
-    const v = suggestBaseY(open.flatMap((e) => e.points), unitFactor(defaultUnit(result.unitsFromHeader, units), units));
-    return v === null ? '' : String(v).replace('.', ',');
-  });
+  // La base sugerida sigue a la unidad del dibujo mientras el usuario no haya escrito su propio valor (R7-06).
+  const [baseEdited, setBaseEdited] = useState<string | null>(null);
+  const baseText = baseEdited ?? suggestBaseText(open, unit, units);
   const parsedBase = parseNumber(baseText);
   const baseY = parsedBase.kind === 'ok' ? parsedBase.value : null;
 
@@ -222,7 +234,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
               value={baseText}
               disabled={openMode !== 'close'}
               aria-invalid={openMode === 'close' && baseY === null ? true : undefined}
-              onChange={(e) => setBaseText(e.target.value)}
+              onChange={(e) => setBaseEdited(e.target.value)}
             />
             <span className="muted small">en unidades del modelo</span>
           </label>
@@ -307,7 +319,13 @@ export function CsvImportDialog({ fileName, result, materials, units, onCancel, 
         </>
       ) : (
         <p className="small" role="status">
-          Se reemplazará la piezométrica por <strong>{piezoRead.points.length}</strong> punto(s). Debe tener al menos 2 y x estrictamente creciente.
+          {piezoRead.issues.some((i) => i.severity === 'error') ? (
+            <>No se puede importar: corrija el archivo. La piezométrica necesita al menos 2 puntos y x estrictamente creciente.</>
+          ) : (
+            <>
+              Se reemplazará la piezométrica por <strong>{piezoRead.points.length}</strong> punto(s). Debe tener al menos 2 y x estrictamente creciente.
+            </>
+          )}
         </p>
       )}
       <div className="ea-actions">
