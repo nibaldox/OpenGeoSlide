@@ -1,5 +1,4 @@
-//! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), solved as the two-equation GLE scheme of
-//! Fredlund & Krahn (1977), amendment E10b. The fixed-point loop in λ of Zhu, Lee, Qian & Chen (2005) is retired.
+//! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), amendment E10c.
 //!
 //! Sign convention (§4.3 leaves it to the implementer):
 //! - Slices run toe → crest, with `alpha > 0` when the base rises toward the crest, so `W·sin α > 0` drives the slide.
@@ -9,32 +8,29 @@
 //! - Interslice shear `X = λ·f·E` with f = 1, same sign as E. Net shear of slice `k`: `ΔX_k = λ·ΔE_k`.
 //! - Vertical equilibrium `N cos α + S sin α = W − ΔX`. Eliminating `N` and `S` gives the recurrence of
 //!   [`spencer_interslice`]: `ΔE = (F·W sin α − R) / D`, with `D = (sin α − λ cos α) tan φ + (cos α + λ sin α) F` and
-//!   `R = (W cos α − u·l) tan φ + c·l`. For given `(F, λ)` the forces E are therefore unique, and `E[0] = 0` fixes them.
+//!   `R = (W cos α − u·l) tan φ + c·l`. For given `(F, λ)` the forces E are unique, and `E[0] = 0` fixes them.
 //! - Effective normal force (E4e, E7d): `N' = N − u·l`, in the direct form `N' = W cos α − u·l + (sin α − λ cos α)·ΔE`
-//!   (free of `m_α`). With `ΔX = 0` it is Bishop's `N'` (tests); the base-equation form
-//!   `N' = (W − ΔX − u·b − c·l·sin α / F) / m_α` agrees on slices without a pole.
+//!   (free of `m_α`). With `ΔX = 0` it is Bishop's `N'` (tests).
 //!
-//! GLE scheme (E10b). For a given λ, two factors of safety:
-//! - `F_m(λ) = Σ (c·l + N'·tan φ) / Σ W sin α` (moments about the centre),
-//! - `F_f(λ) = Σ (c·l + N'·tan φ) cos α / Σ N sin α` (global horizontal equilibrium).
+//! Scheme (E10c). Two equations for `(F, λ)`:
+//! - **Force closure** `E_n(F, λ) = 0` (`|E_n| ≤ 1e-6·ΣW`). With the exact recurrence this is the horizontal
+//!   equilibrium of the whole mass. Its root `F_f(λ)` is found by a bracket search outward from the previous root
+//!   along the scan (continuation), refined with Brent.
+//! - **Moment equation of Zhu, Lee, Qian & Chen (2005)**, per slice with the thrust line at the base:
+//!   `λ = Σ b (E_k + E_{k+1}) tan α_k / Σ b (E_k + E_{k+1})`. Its residual `g(λ) = λ_upd(F_f(λ), λ) − λ` is the
+//!   scalar that the scan brackets.
 //!
-//! Both are fixed points in `F`. Their interslice forces are the exact recurrence at `(F, λ)`, which is the limit of
-//! the pass-by-pass update of E10b (`ΔX` from the previous pass). Each fixed point is a root of `F − F_m(F)` (or of
-//! `F − F_f(F)`) on `[lower bound, 1e3]`, found by a bracket search outward from the previous root along the scan
-//! (continuation) and refined with Brent. Bishop's F starts the scan at `λ = 0`, where `F_m` is Bishop's F.
+//! The scan goes outward from `λ = 0`: `0, +0.1, −0.1, +0.2, −0.2, …`, within `[−0.5, 1.5]`. It stops at the first
+//! sign change of `g`, which is the one nearest to 0, and refines it with Brent. No sign change gives
+//! `NotConverged("no_lambda_root")`. The admissibility (E8b) and the closure (`|E_n| ≤ 1e-6·ΣW`) are checked at λ*.
 //!
-//! `g(λ) = F_m(λ) − F_f(λ)` is scanned at `λ = 0, 0.1, …, 1.5` and `−0.1, …, −0.5`. The sign change nearest to
-//! `λ = 0` is refined with Brent until `|g| ≤ 1e-3 · tolerance · F`. λ* is accepted only if the state is admissible
-//! (E4b as amended by E8b) and the force closure `|E_n| ≤ 1e-6 · ΣW` holds.
+//! Air slices (E2, E7a): no weight, no strength, `E` passes through unchanged. They take part in the moment sum with
+//! their own α. An interior air run carrying `|E| > 1e-3·ΣW` adds the note `air_gap_thrust`. Surfaces that split the
+//! soil into detached masses never reach this solver (E10a, in the slicer).
 //!
-//! Air slices (E2, E7a): no weight, no strength, `N = S = 0`, so `E` passes through unchanged. An interior air run
-//! that carries `|E| > 1e-3·ΣW` adds the note `air_gap_thrust`. Surfaces that split the soil into detached masses
-//! never reach this solver (E10a, in the slicer).
-//!
-//! Budget: each evaluation of `g(λ)` (both factors) counts once toward `max_iterations`. Exhausting it gives
-//! `NotConverged("max_iterations")`; a scan without sign change, or a root that fails the closure, gives
-//! `NotConverged("no_lambda_root")`. A root that fails the admissibility gives `Invalid` with the reason (`pole`
-//! or `m_alpha`).
+//! Budget: each evaluation of `g(λ)` (one closure root) counts once toward `max_iterations`. Exhausting it gives
+//! `NotConverged("max_iterations")`. A root that fails admissibility gives `Invalid` with the reason (`pole` or
+//! `m_alpha`). A closure or moment residual that is not met gives `NotConverged("no_lambda_root")`.
 
 use super::{
     MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, converged_notes, is_inert,
@@ -51,23 +47,27 @@ const FOS_MAX: f64 = 1e3;
 const ADM_MARGIN: f64 = 1e-6;
 /// Lower end of the F interval when no slice bounds F from below.
 const FOS_FLOOR: f64 = 1e-9;
-/// Brent steps of one root in F (E10b: at most 100 passes).
+/// Below this magnitude the moment denominator `Σ b (E_k + E_{k+1})` of Zhu's update is treated as zero.
+const MOMENT_DENOM_EPS: f64 = 1e-12;
+/// Brent steps of one root in F (E10c).
 const ROOT_BRENT_LIMIT: usize = 100;
 /// Outward steps of the bracket search for one root in F. The step grows by `ROOT_STEP_GROWTH` each time.
 const ROOT_WALK_LIMIT: usize = 60;
 const ROOT_STEP0: f64 = 0.01;
 const ROOT_STEP_GROWTH: f64 = 1.5;
-/// Absolute width at which Brent stops in F (relative to F it is far below the residual tolerance).
+/// Absolute width at which Brent stops in F.
 const ROOT_XTOL: f64 = 1e-13;
-/// Relative residual `|F − F_m(F)| / F` that stops Brent in F.
+/// Residual of the closure (`E_n / ΣW`, dimensionless) at which Brent stops.
 const ROOT_STOP: f64 = 1e-12;
-/// Largest relative residual accepted as a root in F. Above it the bracket crossed a pole.
+/// Largest residual (`E_n / ΣW`) accepted as a closed root in F. Above it the bracket crossed a pole.
 const ROOT_ACCEPT: f64 = 1e-9;
-/// Brent stops when `|g| ≤ ROOT_FRACTION · tolerance · F` (E10b).
-const ROOT_FRACTION: f64 = 1e-3;
-/// Force closure at λ*: `|E_n| ≤ CLOSURE_FRACTION · ΣW` (E10b).
+/// Force closure at λ*: `|E_n| ≤ CLOSURE_FRACTION · ΣW` (E10b, E10c).
 const CLOSURE_FRACTION: f64 = 1e-6;
-/// Scan of λ (E10b): step 0.1, up to 15 steps above 0 (λ = 1.5) and 5 below (λ = −0.5).
+/// Brent stops on `g(λ)` when `|g| ≤ ROOT_FRACTION · tolerance`.
+const ROOT_FRACTION: f64 = 1e-3;
+/// Largest `|g(λ*)|` accepted: the moment equation of Zhu must hold to this level at the root.
+const MOMENT_ACCEPT: f64 = 1e-6;
+/// Scan of λ (E10c): step 0.1, up to 15 steps above 0 (λ = 1.5) and 5 below (λ = −0.5).
 const SCAN_STEP: f64 = 0.1;
 const SCAN_POS_STEPS: usize = 15;
 const SCAN_NEG_STEPS: usize = 5;
@@ -100,8 +100,8 @@ fn driving(s: &Slice) -> f64 {
 /// Interslice normal forces `E[0..=n]` for the given `F` and `λ` (f = 1), with `E[0] = 0`.
 ///
 /// `E[k+1] = E[k] + (F·T_k − R_k) / D_k`, the exact solution of the vertical and horizontal equilibrium of slice
-/// `k` with `X = λE`. At convergence `E[n] ≈ 0`. Values are non-finite if a pole vanishes.
-/// Air slices (E2) have `T = R = 0`, so the normal force passes through them unchanged: `E[k+1] = E[k]`.
+/// `k` with `X = λE`. Values are non-finite if a pole vanishes. Air slices (E2) have `T = R = 0`, so the normal force
+/// passes through them unchanged: `E[k+1] = E[k]`.
 pub fn spencer_interslice(slices: &[Slice], fos: f64, lambda: f64) -> Vec<f64> {
     let mut e = Vec::with_capacity(slices.len() + 1);
     e.push(0.0);
@@ -191,38 +191,149 @@ fn inadmissibility(slices: &[Slice], fos: f64, lambda: f64, min_m: f64) -> Optio
     None
 }
 
-/// The two factors `(F_m, F_f)` at `(fos, λ)` with the exact interslice forces of the recurrence (E10b).
-///
-/// Allocation-free. `None` at a pole (`D ≤ 1e-9·F`) or when a sum vanishes.
-fn factors_at(slices: &[Slice], lambda: f64, fos: f64) -> Option<(f64, f64)> {
-    let (mut wsin, mut r, mut rcos, mut nsin) = (0.0, 0.0, 0.0, 0.0);
-    for s in slices {
-        if is_inert(s) {
-            continue;
-        }
-        // One sin/cos per slice: the same terms as `pole`, `resisting` and `driving`.
-        let (sin, cos) = s.alpha.sin_cos();
-        let (t, u) = (s.weight * sin, s.pore_pressure * s.base_length);
-        wsin += t;
-        let d = (sin - lambda * cos) * s.tan_phi + (cos + lambda * sin) * fos;
-        if d.is_nan() || d <= POLE_FRACTION * fos {
-            return None;
-        }
-        let res = (s.weight * cos - u) * s.tan_phi + s.cohesion * s.base_length;
-        let de = (fos * t - res) / d;
-        let n_eff = s.weight * cos - s.pore_pressure * s.base_length + (sin - lambda * cos) * de;
-        let shear = s.cohesion * s.base_length + n_eff * s.tan_phi;
-        r += shear;
-        rcos += shear * cos;
-        nsin += (n_eff + u) * sin;
-    }
-    let (moment, force) = (r / wsin, rcos / nsin);
-    (moment.is_finite() && force.is_finite()).then_some((moment, force))
+/// Per-slice terms that do not depend on `(F, λ)`, computed once per solve (E10c, performance). `res` is the resisting
+/// term `R = (W cos α − U) tan φ + c·l` (f = 1), and `t` the driving term `W sin α`.
+#[derive(Clone, Copy, Debug)]
+struct Prep {
+    sin: f64,
+    cos: f64,
+    tan: f64,
+    tan_phi: f64,
+    width: f64,
+    t: f64,
+    res: f64,
+    inert: bool,
 }
 
-/// Brent's method (Brent 1973, as in Numerical Recipes `zbrent`) on a value `T` with a sign change between
-/// `a0` and `b0`. Stops when `stop(x, t)` holds, when the value is exactly zero, or when the bracket is narrower than
-/// `xtol`. `eval` gives `Ok(None)` at an undefined point (`UNDEFINED`), and `Err` passes through (budget).
+fn prepare(slices: &[Slice]) -> Vec<Prep> {
+    slices
+        .iter()
+        .map(|s| {
+            let (sin, cos) = s.alpha.sin_cos();
+            Prep {
+                sin,
+                cos,
+                tan: sin / cos,
+                tan_phi: s.tan_phi,
+                width: s.width,
+                t: s.weight * sin,
+                res: (s.weight * cos - s.pore_pressure * s.base_length) * s.tan_phi
+                    + s.cohesion * s.base_length,
+                inert: is_inert(s),
+            }
+        })
+        .collect()
+}
+
+/// The two residuals of Zhu's scheme at `(F, λ)`, from the exact interslice recurrence (E10c). Allocation-free.
+#[derive(Clone, Copy, Debug)]
+struct Balance {
+    /// Interslice force at the crest, `E_n`. The force closure is `E_n = 0`.
+    closure: f64,
+    /// Moment update of Zhu, `Σ b (E_k + E_{k+1}) tan α / Σ b (E_k + E_{k+1})`. `None` if the denominator vanishes.
+    moment: Option<f64>,
+}
+
+/// Balance at `(fos, λ)`, or `None` at a pole (`D ≤ 1e-9·F` on a soil slice) or a non-finite recurrence.
+fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
+    let mut e = 0.0_f64;
+    let (mut num, mut den) = (0.0_f64, 0.0_f64);
+    for p in preps {
+        let e_prev = e;
+        if !p.inert {
+            let d = (p.sin - lambda * p.cos) * p.tan_phi + (p.cos + lambda * p.sin) * fos;
+            if d.is_nan() || d <= POLE_FRACTION * fos {
+                return None;
+            }
+            e = e_prev + (fos * p.t - p.res) / d;
+        }
+        // Air slices keep E, and they take part in the sum with their own α (E7a).
+        let sum_e = e_prev + e;
+        num += p.width * sum_e * p.tan;
+        den += p.width * sum_e;
+    }
+    if !e.is_finite() {
+        return None;
+    }
+    let moment = (den.abs() > MOMENT_DENOM_EPS)
+        .then(|| num / den)
+        .filter(|v| v.is_finite());
+    Some(Balance { closure: e, moment })
+}
+
+/// Root of `h(F) = 0` nearest to `start` on `[lo, FOS_MAX]` (continuation along the λ scan, E10c).
+///
+/// The bracket is searched outward from `start`, both sides at the same distance, with growing steps. The first
+/// sign change wins, and it is refined with Brent. A bracket that holds a pole leaves a residual above `ROOT_ACCEPT`
+/// and is discarded. `None` if no admissible root is found.
+fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64> {
+    if lo > FOS_MAX {
+        return None;
+    }
+    let x0 = start.clamp(lo, FOS_MAX);
+    let h0 = h(x0);
+    if h0 == Some(0.0) {
+        return Some(x0);
+    }
+    let mut up = (x0, h0);
+    let mut down = (x0, h0);
+    let mut up_done = false;
+    let mut down_done = false;
+    let mut step = ROOT_STEP0;
+    for _ in 0..ROOT_WALK_LIMIT {
+        for side in [1.0_f64, -1.0] {
+            let (prev, done) = if side > 0.0 {
+                (&mut up, &mut up_done)
+            } else {
+                (&mut down, &mut down_done)
+            };
+            if *done {
+                continue;
+            }
+            let x = (x0 * (1.0 + side * step)).clamp(lo, FOS_MAX);
+            if x == prev.0 {
+                // Clamped at the admissible end: nothing new to bracket on this side.
+                *done = true;
+                continue;
+            }
+            let hx = h(x);
+            if let (Some(hp), Some(hv)) = (prev.1, hx)
+                && hp * hv <= 0.0
+            {
+                let bracket = (prev.0, hp, x, hv);
+                if let Some(root) = refine_root(h, bracket) {
+                    return Some(root);
+                }
+            }
+            *prev = (x, hx);
+        }
+        if up_done && down_done {
+            break;
+        }
+        step *= ROOT_STEP_GROWTH;
+    }
+    None
+}
+
+/// Brent refinement of a root bracket of `h`. `None` if the bracket crosses a pole (residual above `ROOT_ACCEPT`).
+fn refine_root(h: &dyn Fn(f64) -> Option<f64>, bracket: (f64, f64, f64, f64)) -> Option<f64> {
+    let (xa, ha, xb, hb) = bracket;
+    let (x, residual) = brent(
+        |x| Ok(h(x)),
+        |v: &f64| *v,
+        |_, v: &f64| v.abs() <= ROOT_STOP,
+        (xa, ha),
+        (xb, hb),
+        ROOT_XTOL,
+        ROOT_BRENT_LIMIT,
+    )
+    .ok()?;
+    (residual.abs() <= ROOT_ACCEPT).then_some(x)
+}
+
+/// Brent's method (Brent 1973, as in Numerical Recipes `zbrent`) on a value `T` with a sign change between `a0` and
+/// `b0`. Stops when `stop(x, t)` holds, when the value is exactly zero, or when the bracket is narrower than `xtol`.
+/// `eval` gives `Ok(None)` at an undefined point (`UNDEFINED`), and `Err` passes through (budget).
 fn brent<T: Copy>(
     mut eval: impl FnMut(f64) -> Result<Option<T>, &'static str>,
     value: impl Fn(&T) -> f64,
@@ -301,127 +412,57 @@ fn brent<T: Copy>(
     Err(UNDEFINED)
 }
 
-/// Root of `h(F) = F − Φ(F)` nearest to `start` on `[lo, FOS_MAX]` (E10b, continuation along the λ scan).
-///
-/// The bracket is searched outward from `start`, both sides at the same distance, with growing steps. The first
-/// sign change wins, and it is refined with Brent. A bracket that holds a pole gives a residual above
-/// `ROOT_ACCEPT·F` and is discarded. `None` if no admissible root is found.
-fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64> {
-    if lo > FOS_MAX {
-        return None;
-    }
-    let x0 = start.clamp(lo, FOS_MAX);
-    let h0 = h(x0);
-    if h0 == Some(0.0) {
-        return Some(x0);
-    }
-    let mut up = (x0, h0);
-    let mut down = (x0, h0);
-    let mut up_done = false;
-    let mut down_done = false;
-    let mut step = ROOT_STEP0;
-    for _ in 0..ROOT_WALK_LIMIT {
-        for side in [1.0_f64, -1.0] {
-            let (prev, done) = if side > 0.0 {
-                (&mut up, &mut up_done)
-            } else {
-                (&mut down, &mut down_done)
-            };
-            if *done {
-                continue;
-            }
-            let x = (x0 * (1.0 + side * step)).clamp(lo, FOS_MAX);
-            if x == prev.0 {
-                // Clamped at the admissible end: nothing new to bracket on this side.
-                *done = true;
-                continue;
-            }
-            let hx = h(x);
-            if let (Some(hp), Some(hv)) = (prev.1, hx)
-                && hp * hv <= 0.0
-            {
-                let bracket = (prev.0, hp, x, hv);
-                if let Some(root) = refine_root(h, bracket) {
-                    return Some(root);
-                }
-            }
-            *prev = (x, hx);
-        }
-        if up_done && down_done {
-            break;
-        }
-        step *= ROOT_STEP_GROWTH;
-    }
-    None
-}
-
-/// Brent refinement of a root bracket of `h`. `None` if the bracket crosses a pole (residual above `ROOT_ACCEPT`).
-fn refine_root(h: &dyn Fn(f64) -> Option<f64>, bracket: (f64, f64, f64, f64)) -> Option<f64> {
-    let (xa, ha, xb, hb) = bracket;
-    let (x, residual) = brent(
-        |x| Ok(h(x)),
-        |v: &f64| *v,
-        |x, v: &f64| v.abs() <= ROOT_STOP * x,
-        (xa, ha),
-        (xb, hb),
-        ROOT_XTOL,
-        ROOT_BRENT_LIMIT,
-    )
-    .ok()?;
-    (residual.abs() <= ROOT_ACCEPT * x).then_some(x)
-}
-
-/// The two factors at one λ and their difference `g = F_m − F_f`.
+/// A point of the λ scan: `g(λ) = λ_upd(F_f(λ), λ) − λ`, with the force root `fos = F_f(λ)`.
 #[derive(Clone, Copy, Debug)]
 struct Point {
     g: f64,
-    moment: f64,
-    force: f64,
+    fos: f64,
 }
 
-/// State of the λ search: the slices, Bishop's lower bound and start value, and the evaluation budget.
+/// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
 struct Scheme<'a> {
     slices: &'a [Slice],
+    preps: Vec<Prep>,
     m_bound: f64,
     start: f64,
+    total_w: f64,
     budget: usize,
     evaluations: usize,
 }
 
 impl Scheme<'_> {
-    /// Roots `(F_m, F_f)` at `λ`, each searched from its warm start `warm`. `None` for a factor with no root.
-    fn roots(&self, lambda: f64, warm: (f64, f64)) -> (Option<f64>, Option<f64>) {
+    /// Lower bound of F at `λ` (Bishop E8b and the poles, E7c).
+    fn lower(&self, lambda: f64) -> f64 {
         let bound = self.m_bound.max(pole_bound(self.slices, lambda));
-        let lo = if bound > 0.0 {
+        if bound > 0.0 {
             bound * (1.0 + ADM_MARGIN)
         } else {
             FOS_FLOOR
-        };
-        let slices = self.slices;
-        let h_moment = |x: f64| factors_at(slices, lambda, x).map(|(m, _)| x - m);
-        let h_force = |x: f64| factors_at(slices, lambda, x).map(|(_, f)| x - f);
-        (
-            root_near(&h_moment, warm.0, lo),
-            root_near(&h_force, warm.1, lo),
-        )
+        }
+    }
+
+    /// Force root `F_f(λ)` from the warm start `warm`, and the moment residual of Zhu at it.
+    fn point(&self, lambda: f64, warm: f64) -> Option<Point> {
+        let preps = &self.preps;
+        let total_w = self.total_w;
+        let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+        let fos = root_near(&closure, warm, self.lower(lambda))?;
+        let moment = balance_at(preps, lambda, fos)?.moment?;
+        Some(Point {
+            g: moment - lambda,
+            fos,
+        })
     }
 }
 
 /// Evaluates `g(λ)` from the warm start `warm`, refusing once the budget is spent (`Err("max_iterations")`).
 /// `Ok(None)` when the point is undefined. Each call counts once toward the budget.
-fn eval(scheme: &mut Scheme, lambda: f64, warm: (f64, f64)) -> Result<Option<Point>, &'static str> {
+fn eval(scheme: &mut Scheme, lambda: f64, warm: f64) -> Result<Option<Point>, &'static str> {
     if scheme.evaluations >= scheme.budget {
         return Err("max_iterations");
     }
     scheme.evaluations += 1;
-    Ok(match scheme.roots(lambda, warm) {
-        (Some(moment), Some(force)) => Some(Point {
-            g: moment - force,
-            moment,
-            force,
-        }),
-        _ => None,
-    })
+    Ok(scheme.point(lambda, warm))
 }
 
 /// True when two defined points of the scan bracket a sign change of `g` (zero included).
@@ -432,48 +473,39 @@ fn sign_change(a: Option<Point>, b: Option<Point>) -> Option<(Point, Point)> {
     }
 }
 
-/// Finds λ* (E10b): scans outward from 0 on both sides (`0, ±0.1, ±0.2, …`), so the first sign change is the one
-/// nearest to 0, and refines it with Brent until `|g| ≤ ROOT_FRACTION·tolerance·F`. Ties at equal distance go to
-/// the positive side. Each side carries its roots along the scan (continuation).
+/// Finds λ* (E10c): scans outward from 0 (`0, +0.1, −0.1, +0.2, −0.2, …`). The first sign change is the one nearest
+/// to 0, and Brent refines it until `|g| ≤ ROOT_FRACTION·tolerance`. Each side carries its warm start along the scan.
 fn find_lambda(scheme: &mut Scheme, tolerance: f64) -> Result<(f64, Point), &'static str> {
-    let start = (scheme.start, scheme.start);
+    let start = scheme.start;
     let g0 = eval(scheme, 0.0, start)?;
-    let warm_of =
-        |p: Option<Point>, fallback: (f64, f64)| p.map_or(fallback, |p| (p.moment, p.force));
     let mut pos = vec![g0];
     let mut neg = vec![g0];
-    let mut warm_pos = warm_of(g0, start);
+    let mut warm_pos = g0.map_or(start, |p| p.fos);
     let mut warm_neg = warm_pos;
     let steps = SCAN_POS_STEPS.max(SCAN_NEG_STEPS);
     for k in 0..steps {
         if k < SCAN_POS_STEPS {
             let next = eval(scheme, SCAN_STEP * (k + 1) as f64, warm_pos)?;
-            if next.is_some() {
-                warm_pos = warm_of(next, warm_pos);
+            if let Some(p) = next {
+                warm_pos = p.fos;
             }
             pos.push(next);
             if let Some((pa, pb)) = sign_change(pos[k], next) {
-                return refine_lambda(
-                    scheme,
-                    tolerance,
-                    (SCAN_STEP * k as f64, pa),
-                    (SCAN_STEP * (k + 1) as f64, pb),
-                );
+                let left = (SCAN_STEP * k as f64, pa);
+                let right = (SCAN_STEP * (k + 1) as f64, pb);
+                return refine_lambda(scheme, tolerance, left, right);
             }
         }
         if k < SCAN_NEG_STEPS {
             let next = eval(scheme, -SCAN_STEP * (k + 1) as f64, warm_neg)?;
-            if next.is_some() {
-                warm_neg = warm_of(next, warm_neg);
+            if let Some(p) = next {
+                warm_neg = p.fos;
             }
             neg.push(next);
             if let Some((pa, pb)) = sign_change(neg[k], next) {
-                return refine_lambda(
-                    scheme,
-                    tolerance,
-                    (-SCAN_STEP * k as f64, pa),
-                    (-SCAN_STEP * (k + 1) as f64, pb),
-                );
+                let left = (-SCAN_STEP * (k + 1) as f64, pb);
+                let right = (-SCAN_STEP * k as f64, pa);
+                return refine_lambda(scheme, tolerance, left, right);
             }
         }
     }
@@ -487,17 +519,17 @@ fn refine_lambda(
     left: (f64, Point),
     right: (f64, Point),
 ) -> Result<(f64, Point), &'static str> {
-    let mut warm = (left.1.moment, left.1.force);
+    let mut warm = left.1.fos;
     brent(
         |x| {
             let p = eval(scheme, x, warm)?;
             if let Some(q) = p {
-                warm = (q.moment, q.force);
+                warm = q.fos;
             }
             Ok(p)
         },
         |p: &Point| p.g,
-        |_, p: &Point| p.g.abs() <= ROOT_FRACTION * tolerance * p.moment.abs(),
+        |_, p: &Point| p.g.abs() <= ROOT_FRACTION * tolerance,
         left,
         right,
         LAMBDA_EPS,
@@ -512,11 +544,12 @@ fn refine_lambda(
     })
 }
 
-/// Diagnostic curves of the scheme (E10b): for each λ, `(λ, F_m(λ), F_f(λ))`.
+/// Diagnostic curves of the scheme (E10c): for each λ, `(λ, F_m(λ), F_f(λ))`.
 ///
-/// The roots are searched along the list, each λ warm-started from the previous one. The first λ starts from
-/// Bishop's F (with `min_m_alpha = 0.2`), or from 1 if Bishop is invalid. A factor with no admissible root is `NaN`.
-/// The curves do not use the evaluation budget and do not check admissibility or closure.
+/// `F_f(λ)` is the root of the force closure. `F_m(λ)` is the root in F of Zhu's moment equation `λ_upd(F, λ) = λ`.
+/// Both are searched along the list, each λ warm-started from the previous one. The first λ starts from Bishop's F
+/// (with `min_m_alpha = 0.2`), or from 1 if Bishop is invalid. A factor with no admissible root is `NaN`.
+/// The curves do not use the evaluation budget and do not check admissibility or closure at λ.
 pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f64)> {
     let Some(m_bound) = bishop::lower_bound(slices, DIAGNOSTIC_MIN_M) else {
         return lambdas.iter().map(|&l| (l, f64::NAN, f64::NAN)).collect();
@@ -535,16 +568,27 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         };
     let scheme = Scheme {
         slices,
+        preps: prepare(slices),
         m_bound,
         start: start_fos,
+        total_w: slices.iter().map(|s| s.weight).sum(),
         budget: usize::MAX,
         evaluations: 0,
     };
+    let total_w = scheme.total_w;
     let mut warm = (start_fos, start_fos);
     lambdas
         .iter()
         .map(|&lambda| {
-            let (moment, force) = scheme.roots(lambda, warm);
+            let preps = &scheme.preps;
+            let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+            let force = root_near(&closure, warm.1, scheme.lower(lambda));
+            let moment_residual = |x: f64| {
+                balance_at(preps, lambda, x)
+                    .and_then(|b| b.moment)
+                    .map(|m| m - lambda)
+            };
+            let moment = root_near(&moment_residual, warm.0, scheme.lower(lambda));
             if let (Some(m), Some(f)) = (moment, force) {
                 warm = (m, f);
             }
@@ -574,12 +618,12 @@ fn outcome(
     )
 }
 
-/// Spencer solver (E10b). Start: `F` from Bishop (or 1 if Bishop is invalid).
+/// Spencer solver (E10c). Start: `F` from Bishop (or 1 if Bishop is invalid).
 ///
 /// 1. `no_driving` (E3) and the Bishop lower bound (E8b) are checked first.
-/// 2. λ* is found by the scan and Brent on `g = F_m − F_f`.
-/// 3. At λ*, `F = F_m`. The interslice forces come from the exact recurrence, and the admissibility (E8b) and the
-///    closure `|E_n| ≤ 1e-6·ΣW` are checked.
+/// 2. λ* is found by the outward scan and Brent on `g(λ) = λ_upd(F_f(λ), λ) − λ`. Accepted only if `|g| ≤ 1e-6`.
+/// 3. At λ*, `F = F_f`. The interslice forces come from the exact recurrence. The closure `|E_n| ≤ 1e-6·ΣW` and the
+///    admissibility (E8b) are checked.
 /// 4. The normal forces (E7d) and the notes (E7a, E7d) are attached to a `Converged` result.
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     if slices.is_empty() {
@@ -603,8 +647,10 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let total_w: f64 = slices.iter().map(|s| s.weight).sum();
     let mut scheme = Scheme {
         slices,
+        preps: prepare(slices),
         m_bound,
         start: start_fos,
+        total_w,
         budget: opts.max_iterations,
         evaluations: 0,
     };
@@ -622,7 +668,16 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         }
     };
     let iterations = scheme.evaluations;
-    let fos = point.moment;
+    let fos = point.fos;
+    if point.g.abs() > MOMENT_ACCEPT {
+        return outcome(
+            f64::NAN,
+            SolveStatus::NotConverged,
+            iterations,
+            None,
+            Some("no_lambda_root"),
+        );
+    }
 
     // Forces at the root: the exact recurrence at (F, λ*).
     let e = spencer_interslice(slices, fos, lambda);
