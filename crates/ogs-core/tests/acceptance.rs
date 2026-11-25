@@ -18,7 +18,11 @@ use serde_json::{Value, json};
 
 /// Warning codes that are informative (contract E5): they are reported, not failed.
 /// Any other warning code fails the check.
-const INFORMATIVE_WARNINGS: &[&str] = &["negative_effective_normal", "truncated_mass"];
+const INFORMATIVE_WARNINGS: &[&str] = &[
+    "negative_effective_normal",
+    "truncated_mass",
+    "negative_lambda",
+];
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

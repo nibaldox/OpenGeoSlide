@@ -21,6 +21,11 @@ const NEGATIVE_NORMAL_FRACTION: f64 = 1e-6;
 /// by E8c). Like the 0.02 it replaces, it classifies the warning; it is not a numerical tolerance.
 const NEGATIVE_NORMAL_MAJOR_FRACTION: f64 = 0.05;
 
+/// Share of the soil base length with `N' < 0` above which the warning is major (E11f, review R3-06). It is an
+/// alternative to the weight share: a negative normal force over a large part of the base is major even when its
+/// weight share is small (for example, a hydraulic uplift that leaves most of the base in tension).
+const NEGATIVE_NORMAL_LENGTH_FRACTION: f64 = 0.25;
+
 /// Relative threshold of the air-gap warning (E7a): `|E_gap| > 1e-3 · Σ W`.
 const AIR_GAP_FRACTION: f64 = 1e-3;
 
@@ -60,9 +65,9 @@ pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
 /// Classification of the negative effective normal forces (E4e, E7d). `normal(k, s)` gives the normal
 /// force of slice `k`; air slices are not classified.
 ///
-/// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW`:
-/// `negative_effective_normal` (note) if `f ≤ 0.05`, `negative_effective_normal_major` (warning) if `f > 0.05`
-/// (E8c).
+/// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW` and
+/// `λ_neg = Σ_{N'<0} b / Σ_soil b` (share of the soil base length): `negative_effective_normal` (note) if
+/// `f ≤ 0.05` **and** `λ_neg ≤ 0.25`; `negative_effective_normal_major` (warning) otherwise (E8c, E11f).
 pub(crate) fn negative_normal_message(
     slices: &[Slice],
     normal: impl Fn(usize, &Slice) -> f64,
@@ -71,13 +76,17 @@ pub(crate) fn negative_normal_message(
     let floor = -NEGATIVE_NORMAL_FRACTION * total_w;
     let mut triggered = false;
     let mut negative_sum = 0.0_f64;
+    let mut soil_length = 0.0_f64;
+    let mut negative_length = 0.0_f64;
     for (k, s) in slices.iter().enumerate().filter(|(_, s)| !is_inert(s)) {
         let n = normal(k, s);
+        soil_length += s.base_length;
         if n < floor {
             triggered = true;
         }
         if n < 0.0 {
             negative_sum += -n;
+            negative_length += s.base_length;
         }
     }
     if !triggered {
@@ -88,11 +97,19 @@ pub(crate) fn negative_normal_message(
     } else {
         f64::INFINITY
     };
-    Some(if share > NEGATIVE_NORMAL_MAJOR_FRACTION {
-        NEGATIVE_NORMAL_MAJOR_MESSAGE
+    let length_share = if soil_length > 0.0 {
+        negative_length / soil_length
     } else {
-        NEGATIVE_NORMAL_MESSAGE
-    })
+        0.0
+    };
+    Some(
+        if share > NEGATIVE_NORMAL_MAJOR_FRACTION || length_share > NEGATIVE_NORMAL_LENGTH_FRACTION
+        {
+            NEGATIVE_NORMAL_MAJOR_MESSAGE
+        } else {
+            NEGATIVE_NORMAL_MESSAGE
+        },
+    )
 }
 
 /// Air-gap check (E7a): true when an interior run of air slices (soil on both sides) transmits
@@ -216,9 +233,10 @@ mod tests {
     use super::*;
 
     /// Two soil slices of weight 50 each (ΣW = 100). The first one gets normal force `−f·100`, so the share
-    /// `Σ_{N'<0}|N'|/ΣW` is exactly `f`.
+    /// `Σ_{N'<0}|N'|/ΣW` is exactly `f`. Its base length is 1 out of 10, so the length share is 0.1 and E11f does not
+    /// decide the class.
     fn class_at(f: f64) -> Option<&'static str> {
-        let slice = Slice {
+        let base = Slice {
             x_left: 0.0,
             x_right: 1.0,
             y_base_left: 0.0,
@@ -233,8 +251,35 @@ mod tests {
             pore_pressure: 0.0,
             material: 0,
         };
-        let s = vec![slice, slice];
+        let long = Slice {
+            base_length: 9.0,
+            ..base
+        };
+        let s = vec![base, long];
         negative_normal_message(&s, |k, _| if k == 0 { -f * 100.0 } else { 10.0 })
+    }
+
+    /// Soil slices of weight 10 with base lengths `lengths`, and the normal forces `normals` (E11f).
+    fn class_of(lengths: &[f64], normals: &[f64]) -> Option<&'static str> {
+        let s: Vec<Slice> = lengths
+            .iter()
+            .map(|&l| Slice {
+                x_left: 0.0,
+                x_right: 1.0,
+                y_base_left: 0.0,
+                y_base_right: 0.0,
+                y_top_mid: 1.0,
+                width: 1.0,
+                alpha: 0.0,
+                base_length: l,
+                weight: 10.0,
+                cohesion: 1.0,
+                tan_phi: 0.5,
+                pore_pressure: 0.0,
+                material: 0,
+            })
+            .collect();
+        negative_normal_message(&s, |k, _| normals[k])
     }
 
     /// E8c: the note/warning threshold is 0.05. f = 0.03 is a note; f = 0.105 (R2-04) is the major warning; the
@@ -245,6 +290,25 @@ mod tests {
         assert_eq!(class_at(0.05), Some("negative_effective_normal"));
         assert_eq!(class_at(0.105), Some("negative_effective_normal_major"));
         assert_eq!(class_at(0.0), None);
+    }
+
+    /// E11f: the major class also comes from the share of the base length with `N' < 0` above 0.25, even when
+    /// the weight share is small. Two soil slices of weight 10 (ΣW = 20) with normal forces −0.2 and 90, so f = 0.01
+    /// in all three cases. The negative slice has length share 0.1 (note), 0.5 (major) or exactly 0.25 (note).
+    #[test]
+    fn e11f_length_share_above_a_quarter_is_major() {
+        assert_eq!(
+            class_of(&[1.0, 9.0], &[-0.2, 90.0]),
+            Some("negative_effective_normal")
+        );
+        assert_eq!(
+            class_of(&[5.0, 5.0], &[-0.2, 90.0]),
+            Some("negative_effective_normal_major")
+        );
+        assert_eq!(
+            class_of(&[1.0, 3.0], &[-0.2, 90.0]),
+            Some("negative_effective_normal")
+        );
     }
 
     /// E8d: the notes of a converged state keep a fixed order, the air gap first.
