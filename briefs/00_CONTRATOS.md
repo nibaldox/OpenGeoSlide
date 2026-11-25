@@ -301,6 +301,17 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
      principal), el aviso es `"truncated_driving_mass"`. **No** es informativo: indica que el bloque descartado puede
      ser un mecanismo más crítico y que conviene revisar otros círculos. En otro caso se mantiene la nota
      `truncated_mass`.
+   - **(E11e′, revisión R4-03b/R4-04; reemplaza el umbral de E11e.)** Un bloque descartado es **motriz** si
+     `Σ_bloque W sin α > 1e-3 · Σ_bloque W`, con su propio peso como escala en lugar del bloque principal, **y** no toca
+     una pared lateral del modelo (`x_min`/`x_max`).
+     - Si el bloque descartado sale por una pared lateral, su geometría está recortada por el borde del modelo y no se
+       puede clasificar: se emite la nota `truncated_mass`.
+     - **Motivos:**
+       - R4-04: el lente de pie de D09, bajo terreno plano y cortado en x = 0, daba ΣW sin α > 0 artificial y emitía un
+         falso `truncated_driving_mass`;
+       - R4-03b: un banco inferior inestable con < 5 % de la masa motriz del bloque principal quedaba oculto.
+     - Sigue pendiente para la Fase 1 (R4-03a): el aviso de los candidatos truncados de la búsqueda no se propaga si el
+       círculo crítico ganador no está truncado.
 
    *Texto histórico de E8a (derogada):*
    **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
