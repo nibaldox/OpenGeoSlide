@@ -44,7 +44,7 @@ jobs:
           cache-dependency-path: apps/web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: apps/web
-      - run: apps/web/scripts/build-wasm.sh
+      - run: bash apps/web/scripts/build-wasm.sh
       - run: pnpm build
         working-directory: apps/web
       - name: dist/ debe contener el .wasm, la PWA y la subruta correcta

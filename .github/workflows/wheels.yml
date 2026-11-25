@@ -20,6 +20,12 @@ on:
       - 'crates/ogs-core/**'
       - '.github/workflows/wheels.yml'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag de un Release existente al que adjuntar los wheels; vacío = no adjuntar'
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -48,7 +54,7 @@ jobs:
       # LICENSE y NOTICE viven en la raíz; PEP 639 no admite `..`, así que se copian junto al pyproject.toml.
       - name: Copiar LICENSE y NOTICE junto a pyproject.toml
         shell: bash
-        run: crates/ogs-py/scripts/prepare-license-files.sh
+        run: bash crates/ogs-py/scripts/prepare-license-files.sh
       - uses: PyO3/maturin-action@v1
         with:
           command: build
@@ -86,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Copiar LICENSE y NOTICE junto a pyproject.toml
-        run: crates/ogs-py/scripts/prepare-license-files.sh
+        run: bash crates/ogs-py/scripts/prepare-license-files.sh
       - uses: PyO3/maturin-action@v1
         with:
           command: sdist
@@ -101,7 +107,7 @@ jobs:
   release-assets:
     name: wheels en el GitHub Release
     needs: [wheels, sdist]
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write # solo este job sube assets al Release (lo crea release.yml)
@@ -119,21 +125,23 @@ jobs:
       - name: Esperar a que release.yml cree el Release del tag
         run: |
           for i in $(seq 1 60); do
-            if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-              echo "Release $GITHUB_REF_NAME encontrado."
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "Release $TAG encontrado."
               exit 0
             fi
-            echo "Esperando el Release $GITHUB_REF_NAME ($i/60)..."
+            echo "Esperando el Release $TAG ($i/60)..."
             sleep 20
           done
-          echo "::error::El Release $GITHUB_REF_NAME no apareció tras 20 min. Revise que release.yml (job github-release) se haya ejecutado y creado el Release." >&2
+          echo "::error::El Release $TAG no apareció tras 20 min. Revise que release.yml (job github-release) se haya ejecutado y creado el Release." >&2
           exit 1
         env:
+          TAG: ${{ inputs.release_tag || github.ref_name }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
       - name: Subir wheels y sdist al Release
-        run: gh release upload "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz --clobber
+        run: gh release upload "$TAG" dist/*.whl dist/*.tar.gz --clobber
         env:
+          TAG: ${{ inputs.release_tag || github.ref_name }}
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
 
