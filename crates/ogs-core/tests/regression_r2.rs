@@ -144,12 +144,12 @@ fn min_phi_over_fos(slices: &[Slice], fos: f64, lambda: f64) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
-/// R2-01 (E8a). The notch surface of R2-01 (φ = 0, c = 30, γ = 20, circle (16, 42, 34)) has an interior air void
-/// that splits the soil into two masses, both heavier than 1e-3·ΣW. `slice_circle` returns `DisconnectedMass`,
-/// and both methods report the surface as `NoValidSurface` through `analyze`. The global-moment and φ = 0 identities
-/// of E7a are checked at the level of the methods, with synthetic slices, in `tests/methods.rs`.
+/// R2-01 (E10a, replaces E8a). The notch surface of R2-01 (φ = 0, c = 30, γ = 20, circle (16, 42, 34)) has an interior
+/// air void that splits the soil into two blocks. E10a keeps only the heavier one, so the surface is valid: both
+/// methods report a finite FS and the note `truncated_mass`. The global-moment and φ = 0 identities of E7a are
+/// checked at the level of the methods, with synthetic slices, in `tests/methods.rs`.
 #[test]
-fn r2_01_notch_surface_is_disconnected_mass() {
+fn r2_01_notch_surface_keeps_only_the_main_block() {
     let m = model(
         &P_R201,
         30.0,
@@ -164,16 +164,22 @@ fn r2_01_notch_surface_is_disconnected_mass() {
         yc: 42.0,
         r: 34.0,
     };
-    assert_eq!(
-        ogs_core::slicer::slice_circle(&pm, &circle, 50).unwrap_err(),
-        ogs_core::slicer::SurfaceError::DisconnectedMass
+    let sliced =
+        ogs_core::slicer::slice_surface(&pm, &circle, 50).expect("the notch is valid (E10a)");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    assert!(
+        sliced.slices.iter().all(|s| s.weight > 0.0),
+        "no interior air is left"
     );
-    let err = analyze(&m).expect_err("the notch surface is not valid");
-    match err {
-        ogs_core::OgsError::NoValidSurface(msg) => {
-            assert!(msg.contains("desconectados"), "{msg}")
-        }
-        other => panic!("expected NoValidSurface, got {other:?}"),
+    let report = analyze(&m).expect("the notch surface is valid under E10a");
+    for r in &report.results {
+        println!("[R2-01 notch] {r:?}");
+        assert!(
+            r.warnings.iter().any(|w| w == "truncated_mass"),
+            "{:?}",
+            r.warnings
+        );
+        assert!(r.fos.is_some(), "FS not finite: {:?}", r.status);
     }
 }
 
@@ -295,9 +301,11 @@ fn r2_03_search_spencer_result_is_admissible() {
 // within 5 % of Bishop, is retired: cSlope 0.1.0 gives Spencer 0.3876 and Bishop 0.3307 on this slope (+17 %, a real
 // difference). The differential check against the oracle replaces it in `tests/differential_r2_03.rs`.
 
-/// R2-03 Bishop-critical circle under E8b. The λ fixed point lies at λ ≈ 0.4587, where Φ/F < 0.2 on some slice, so
-/// the old E4b rejected it. E8b asks for Bishop's m_α ≥ min_m_alpha and Φ > 1e-9·F, which the state satisfies:
-/// Spencer is `Converged` at FS 0.480195. Bishop converges on the same circle.
+/// R2-03 Bishop-critical circle under E8b and E10a. The λ fixed point lies at λ ≈ 0.4587, where Φ/F < 0.2 on some slice, so
+/// the old E4b rejected it. E8b asks for Bishop's m_α ≥ min_m_alpha and Φ > 1e-9·F, which the state satisfies.
+/// Under E10a the circle's interior air run is cut: only the main block is analysed (`truncated_mass`), and Spencer
+/// gives FS 0.432216. That agrees with cSlube's Spencer on the same circle (0.432153, the representative circle of
+/// D09), +0.015 %. The former value 0.480195 included the lens that E10a now drops.
 #[test]
 fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
     let m = model(
@@ -314,8 +322,8 @@ fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
     assert_eq!(spencer.status, SolveStatus::Converged, "{spencer:?}");
     let fos = spencer.fos.expect("finite");
     assert!(
-        (fos - 0.480_195).abs() / 0.480_195 < 1e-5,
-        "FS {fos} vs 0.480195"
+        (fos - 0.432_216).abs() / 0.432_216 < 1e-5,
+        "FS {fos} vs 0.432216"
     );
     let min_m = spencer
         .slices
@@ -324,9 +332,14 @@ fn r2_03_bishop_critical_circle_spencer_is_admissible_under_e8b() {
         .map(|s| m_alpha(s, fos))
         .fold(f64::INFINITY, f64::min);
     assert!(min_m >= 0.2, "min m_α(F) = {min_m}");
-    // Under E8b this state transmits thrust through an interior air run (|E| > 1e-3·ΣW): the warning is reported.
+    // E10a: the interior air run is gone with the removed block, so `air_gap_thrust` cannot arise here.
     assert!(
-        spencer.warnings.iter().any(|w| w == "air_gap_thrust"),
+        spencer.warnings.iter().any(|w| w == "truncated_mass"),
+        "{:?}",
+        spencer.warnings
+    );
+    assert!(
+        !spencer.warnings.iter().any(|w| w == "air_gap_thrust"),
         "{:?}",
         spencer.warnings
     );

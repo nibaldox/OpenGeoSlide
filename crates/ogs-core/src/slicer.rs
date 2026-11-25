@@ -52,39 +52,64 @@ pub enum SurfaceError {
     TooFewSlices,
     #[error("no material at the base of a slice")]
     NoMaterial,
-    #[error("the sliding surface divides the soil into detached masses")]
-    DisconnectedMass,
 }
 
-/// E8a: a soil block other than the main one, heavier than this fraction of `ΣW`, makes the surface
-/// invalid. A lighter block (a toe lens such as V019's) is accepted.
-const DETACHED_MASS_FRACTION: f64 = 1e-3;
+/// Informative note (contract E10a, code `truncated_mass`): only the main soil block was analysed.
+pub const TRUNCATED_MASS: &str = "truncated_mass";
 
-/// E8a. `air[k]` tells whether slice `k` is an air slice. Soil blocks are maximal runs of soil slices;
-/// an interior air run is what separates two of them. The surface is rejected when a block other than
-/// the largest one weighs more than `1e-3·ΣW`. Air runs at the toe or the crest do not separate blocks.
-pub(crate) fn check_connected(slices: &[Slice], air: &[bool]) -> Result<(), SurfaceError> {
-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
-    let mut blocks: Vec<f64> = Vec::new();
-    let mut current: Option<f64> = None;
-    for (s, &is_air) in slices.iter().zip(air) {
-        if is_air {
-            blocks.extend(current.take());
-        } else {
-            *current.get_or_insert(0.0) += s.weight;
+/// A sliced surface: the slices (toe first) and the informative notes raised while slicing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SlicedSurface {
+    pub slices: Vec<Slice>,
+    /// Stable note codes (contract E6). `"truncated_mass"` when the surface was truncated to its main block.
+    pub notes: Vec<String>,
+}
+
+/// Soil blocks of a toe-first sequence: maximal runs of soil slices, as `(start, end, weight)` with `end`
+/// exclusive. `air[k]` tells whether slice `k` is an air slice.
+fn soil_blocks(slices: &[Slice], air: &[bool]) -> Vec<(usize, usize, f64)> {
+    let mut blocks = Vec::new();
+    let mut k = 0;
+    while k < slices.len() {
+        if air[k] {
+            k += 1;
+            continue;
+        }
+        let start = k;
+        let mut weight = 0.0;
+        while k < slices.len() && !air[k] {
+            weight += slices[k].weight;
+            k += 1;
+        }
+        blocks.push((start, k, weight));
+    }
+    blocks
+}
+
+/// E10a. Keeps only the main soil block of a toe-first sequence: the heaviest one, and on a tie the one nearest
+/// the entry (the last in toe-first order). Every other block and every interior air slice is dropped. Air slices
+/// at the ends of the sequence are kept only when they touch the main block (no soil separates them from it).
+/// Returns the slices and whether anything was removed (`truncated_mass`). A single soil block is returned
+/// unchanged.
+pub(crate) fn truncate_to_main_block(slices: Vec<Slice>, air: &[bool]) -> (Vec<Slice>, bool) {
+    let blocks = soil_blocks(&slices, air);
+    if blocks.len() < 2 {
+        return (slices, false);
+    }
+    let mut main = 0;
+    for (k, block) in blocks.iter().enumerate().skip(1) {
+        if block.2 >= blocks[main].2 {
+            main = k;
         }
     }
-    blocks.extend(current);
-    if blocks.len() < 2 {
-        return Ok(());
-    }
-    blocks.sort_by(|a, b| b.total_cmp(a));
-    let limit = DETACHED_MASS_FRACTION * total_w;
-    if blocks[1..].iter().any(|&w| w > limit) {
-        Err(SurfaceError::DisconnectedMass)
+    let (start, end, _) = blocks[main];
+    let lo = if main == 0 { 0 } else { start };
+    let hi = if main == blocks.len() - 1 {
+        slices.len()
     } else {
-        Ok(())
-    }
+        end
+    };
+    (slices[lo..hi].to_vec(), true)
 }
 
 /// Sliding range of the lower arc: its two ground crossings, plus the arc breakpoints.
@@ -164,24 +189,41 @@ pub(crate) fn lower_arc_tramo(pm: &PreparedModel, c: &Circle) -> Result<Tramo, S
 /// Slices the circle into `n` uniform divisions plus breakpoints (contract §4.1).
 ///
 /// ORDER: `slices[0]` is the toe slice (exit); `slices[last]` is the crest slice (entry), regardless of sliding direction.
-/// E8a: the surface is rejected with `DisconnectedMass` when an interior air run splits the soil into masses heavier
-/// than `1e-3·ΣW` (see [`check_connected`]).
+/// E10a: only the main soil block is kept (see [`slice_surface`]); this function drops the notes.
 pub fn slice_circle(
     pm: &PreparedModel,
     circle: &Circle,
     n: usize,
 ) -> Result<Vec<Slice>, SurfaceError> {
-    let (mut slices, air) = build_slices(pm, circle, n)?;
-    check_connected(&slices, &air)?;
+    slice_surface(pm, circle, n).map(|sliced| sliced.slices)
+}
+
+/// Slices the circle like [`slice_circle`] and returns the notes of the slicing too (E10a).
+///
+/// An interior air run splits the soil into blocks (E10a). Only the main block (the heaviest one) is analysed:
+/// the other blocks and every interior air slice are removed, and the note `truncated_mass` is raised.
+pub fn slice_surface(
+    pm: &PreparedModel,
+    circle: &Circle,
+    n: usize,
+) -> Result<SlicedSurface, SurfaceError> {
+    let (mut slices, mut air) = build_slices(pm, circle, n)?;
     // Built left to right; the toe is on the left for RightToLeft and on the right otherwise.
     if pm.sliding == Sliding::LeftToRight {
         slices.reverse();
+        air.reverse();
     }
-    Ok(slices)
+    let (slices, truncated) = truncate_to_main_block(slices, &air);
+    let notes = if truncated {
+        vec![TRUNCATED_MASS.to_string()]
+    } else {
+        Vec::new()
+    };
+    Ok(SlicedSurface { slices, notes })
 }
 
-/// Builds the slices of `circle` in model order (left to right), with `air[k]` true for air slices, without the
-/// E8a connectivity check. `slice_circle` applies that check; the tests of E2 geometry use this function directly.
+/// Builds the slices of `circle` in model order (left to right), with `air[k]` true for air slices. Nothing is
+/// truncated here: `slice_surface` applies E10a. The tests of E2 geometry use this function directly.
 pub(crate) fn build_slices(
     pm: &PreparedModel,
     circle: &Circle,
@@ -327,7 +369,7 @@ pub(crate) fn build_slices(
     if !slices.iter().any(|s| s.weight > 0.0) {
         return Err(SurfaceError::AboveGround);
     }
-    // E8a is checked by the caller (`slice_circle`), not here.
+    // E10a truncates the surface in `slice_surface`, not here.
     Ok((slices, air_flags))
 }
 
@@ -364,56 +406,81 @@ mod tests {
         }
     }
 
-    /// Soil of weight `w_soil` alone and a lens of total fraction `f` of ΣW, separated by one air slice.
-    fn lens_fraction(f: f64, lens_first: bool) -> Vec<Slice> {
-        let main = 1.0;
-        // lens = f·(main + lens)  ⇒  lens = f·main/(1 − f)
-        let lens = f * main / (1.0 - f);
-        if lens_first {
-            vec![soil(lens), air(), soil(main)]
-        } else {
-            vec![soil(main), air(), soil(lens)]
-        }
+    /// Two soil blocks of weights `w_first` and `w_second` (toe first) separated by one interior air slice.
+    fn two_blocks(w_first: f64, w_second: f64) -> (Vec<Slice>, Vec<bool>) {
+        (
+            vec![soil(w_first), air(), soil(w_second)],
+            vec![false, true, false],
+        )
     }
 
-    /// E8a: a lens just below the threshold (0.9e-3·ΣW) is accepted, a lens just above it (1.1e-3·ΣW) is rejected.
-    /// The order of the blocks does not matter.
+    /// E10a: the lighter block is removed, however small; the heavier one is the main block and is kept whole.
     #[test]
-    fn lens_around_the_threshold_is_accepted_or_rejected() {
-        for lens_first in [false, true] {
-            let below = lens_fraction(0.9e-3, lens_first);
-            let air_flags = [false, true, false];
-            assert_eq!(check_connected(&below, &air_flags), Ok(()));
-            let above = lens_fraction(1.1e-3, lens_first);
-            assert_eq!(
-                check_connected(&above, &air_flags),
-                Err(SurfaceError::DisconnectedMass),
-                "lens_first={lens_first}"
-            );
+    fn lighter_block_is_removed_at_any_size() {
+        for (w_first, w_second, kept_weight) in [(0.9, 0.001, 0.9), (1.0, 1.1e-3, 1.0)] {
+            let (s, flags) = two_blocks(w_first, w_second);
+            let (out, truncated) = truncate_to_main_block(s, &flags);
+            assert!(truncated);
+            assert_eq!(out.len(), 1);
+            assert_eq!(out[0].weight, kept_weight);
         }
+        // Order does not matter: a light first block is dropped as well.
+        let (s, flags) = two_blocks(0.001, 0.9);
+        let (out, truncated) = truncate_to_main_block(s, &flags);
+        assert!(truncated);
+        assert_eq!(out.iter().map(|x| x.weight).collect::<Vec<_>>(), vec![0.9]);
     }
 
-    /// E8a: air at the toe or the crest does not separate blocks, and one soil run is always connected.
+    /// E10a: one soil block is never truncated, and air at the ends of a single block is left as it is.
     #[test]
-    fn air_at_the_ends_does_not_split_the_mass() {
+    fn single_block_is_not_truncated() {
+        let (out, truncated) = truncate_to_main_block(vec![soil(1.0)], &[false]);
+        assert!(!truncated);
+        assert_eq!(out.len(), 1);
         let s = vec![air(), soil(1.0), air()];
-        assert_eq!(check_connected(&s, &[true, false, true]), Ok(()));
-        let one = vec![soil(1.0)];
-        assert_eq!(check_connected(&one, &[false]), Ok(()));
+        let (out, truncated) = truncate_to_main_block(s.clone(), &[true, false, true]);
+        assert!(!truncated);
+        assert_eq!(out, s);
     }
 
-    /// E8a: with three blocks, every block other than the largest is tested, so the second-largest one decides.
+    /// E10a: with three blocks the heaviest one wins, whichever position it has.
     #[test]
-    fn every_block_besides_the_main_one_is_tested() {
+    fn heaviest_of_three_blocks_is_the_main_one() {
         let flags = [false, true, false, true, false];
-        let big_two = vec![soil(0.5), air(), soil(0.3), air(), soil(0.2)];
+        let big_middle = vec![soil(0.3), air(), soil(0.5), air(), soil(0.2)];
+        let (out, truncated) = truncate_to_main_block(big_middle, &flags);
+        assert!(truncated);
+        assert_eq!(out.iter().map(|x| x.weight).collect::<Vec<_>>(), vec![0.5]);
+    }
+
+    /// E10a: on a tie the block nearest the entry wins. In toe-first order the entry is the last index.
+    #[test]
+    fn tie_goes_to_the_block_nearest_the_entry() {
+        let (s, flags) = two_blocks(0.5, 0.5);
+        let mut marked = s.clone();
+        marked[0].x_left = -1.0; // toe-side block
+        marked[2].x_left = -2.0; // entry-side block
+        let (out, truncated) = truncate_to_main_block(marked, &flags);
+        assert!(truncated);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].x_left, -2.0, "the entry-side block must win the tie");
+    }
+
+    /// E10a: air slices at the ends are kept only when they touch the main block. Toe air next to the main
+    /// block is kept; crest air that sits beyond a removed block is dropped.
+    #[test]
+    fn end_air_is_kept_only_next_to_the_main_block() {
+        // Toe air, the main block (heaviest, first soil block), an interior air slice, a light block, crest air.
+        let s = vec![air(), soil(1.0), air(), soil(0.1), air()];
+        let flags = [true, false, true, false, true];
+        let (out, truncated) = truncate_to_main_block(s, &flags);
+        assert!(truncated);
+        let kinds: Vec<bool> = out.iter().map(|x| x.weight == 0.0).collect();
         assert_eq!(
-            check_connected(&big_two, &flags),
-            Err(SurfaceError::DisconnectedMass)
+            kinds,
+            vec![true, false],
+            "toe air kept, block 2 and its air removed"
         );
-        let light = vec![soil(0.99), air(), soil(0.0005), air(), soil(0.0005)];
-        // Each light block is 0.0005 ≤ 1e-3·0.9910: accepted.
-        assert_eq!(check_connected(&light, &flags), Ok(()));
     }
 
     fn pm_of(polygon: Value, direction: &str) -> PreparedModel {
@@ -472,10 +539,19 @@ mod tests {
             }
         }
         assert!(sl[0].weight > 0.0 && sl[sl.len() - 1].weight > 0.0);
-        // The soil lies on both sides of the notch: E8a rejects the surface.
-        assert_eq!(
-            check_connected(&sl, &flags),
-            Err(SurfaceError::DisconnectedMass)
+        // The soil lies on both sides of the notch: E10a keeps only the heavier block, and no air is left inside it.
+        let (main, truncated) = truncate_to_main_block(sl.clone(), &flags);
+        assert!(truncated);
+        assert!(
+            main.iter().all(|s| s.weight > 0.0),
+            "no air in the main block"
+        );
+        let w_main: f64 = main.iter().map(|s| s.weight).sum();
+        let blocks = soil_blocks(&sl, &flags);
+        let w_max = blocks.iter().map(|b| b.2).fold(0.0, f64::max);
+        assert!(
+            (w_main - w_max).abs() <= 1e-12 * w_max,
+            "main block is the heaviest"
         );
     }
 
@@ -535,9 +611,10 @@ mod tests {
             rel < 1e-3,
             "sum W/γ = {sum_w_over_gamma}, exact = {exact}, rel = {rel}"
         );
-        assert_eq!(
-            check_connected(&sl, &flags),
-            Err(SurfaceError::DisconnectedMass)
-        );
+        // E10a: the toe lens and the face are two blocks; only the heavier one is analysed.
+        let (main, truncated) = truncate_to_main_block(sl.clone(), &flags);
+        assert!(truncated);
+        assert!(main.len() < sl.len());
+        assert!(main.iter().all(|s| s.weight > 0.0));
     }
 }
