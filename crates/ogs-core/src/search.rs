@@ -31,6 +31,7 @@ use serde::Serialize;
 
 use crate::geometry::{Ground, Sliding};
 use crate::model::{Circle, SearchSpec};
+use crate::slicer::Slice;
 
 /// Number of grid candidates refined by the pattern search (E9a: 10, with at least two entry-exit pairs).
 const N_SEEDS: usize = 10;
@@ -48,6 +49,8 @@ const STEP_TOL_RHO: f64 = 1e-3;
 const RATIO_MIN: f64 = 1.0001;
 /// Default `min_width` as a fraction of the model width.
 const DEFAULT_MIN_WIDTH_FRACTION: f64 = 0.01;
+/// Tolerance of the effective-end checks, as a fraction of the model width (see [`block_ends_admissible`]).
+const END_TOLERANCE_FRACTION: f64 = 1e-9;
 /// Largest number of points per grid axis (`n_entry`, `n_exit`, `n_radius`) accepted by `analyze`.
 pub const MAX_AXIS_POINTS: usize = 200;
 /// Largest grid (`n_entry · n_exit · n_radius`) accepted by `analyze`. Checked before any allocation.
@@ -175,6 +178,37 @@ where
     }
 
     SearchResult { best, stats }
+}
+
+/// Acceptance of the analysed block of a searched surface (contract E11d). `min_width` and the `entry`/`exit` ranges
+/// apply to its effective extremes: the points where the soil mass really starts and ends, i.e. the outer soil slices
+/// (`slices` toe first, air slices with `weight == 0` ignored). The grid's nominal ends (`x_e`, `x_s`) are not enough:
+/// the analysed block can start farther along the arc than the nominal entry (the arc is in the air over the crest),
+/// and the arc's air ends beyond the soil must not count as width. A tolerance of `1e-9` times the model width absorbs
+/// the rounding of the arc crossings. A block without soil is not admissible.
+pub fn block_ends_admissible<G: Ground>(ground: &G, spec: &SearchSpec, slices: &[Slice]) -> bool {
+    let soil = || slices.iter().filter(|s| s.weight > 0.0);
+    let (Some(toe), Some(crest)) = (soil().next(), soil().next_back()) else {
+        return false;
+    };
+    let (x_min, x_max) = ground.x_range();
+    let width = x_max - x_min;
+    let tol = END_TOLERANCE_FRACTION * width;
+    let full = [x_min, x_max];
+    let (exit_x, entry_x) = match ground.sliding() {
+        Sliding::LeftToRight => (toe.x_right, crest.x_left),
+        Sliding::RightToLeft => (toe.x_left, crest.x_right),
+    };
+    let span = match ground.sliding() {
+        Sliding::LeftToRight => exit_x - entry_x,
+        Sliding::RightToLeft => entry_x - exit_x,
+    };
+    let min_width = spec.min_width.unwrap_or(DEFAULT_MIN_WIDTH_FRACTION * width);
+    let in_axis = |v: f64, [lo, hi]: [f64; 2]| v >= lo - tol && v <= hi + tol;
+    span > 0.0
+        && span >= min_width - tol
+        && in_axis(entry_x, normalized(spec.entry.unwrap_or(full)))
+        && in_axis(exit_x, normalized(spec.exit.unwrap_or(full)))
 }
 
 /// Refinement seeds (E9a): the `N_SEEDS` best candidates, in order. If they all share the entry-exit pair of

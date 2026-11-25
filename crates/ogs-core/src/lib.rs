@@ -25,7 +25,7 @@ use geometry::{Ground, PreparedModel};
 use methods::{SolveOptions, SolveStatus, is_inert, solve};
 use model::{AnalysisSettings, FORMAT, FORMAT_VERSION, MethodKind, Model, SearchSpec, SurfaceSpec};
 use report::{AnalysisReport, MethodReport};
-use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, search_circular};
+use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, block_ends_admissible, search_circular};
 use slicer::{Slice, SurfaceError, slice_circle, slice_surface};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -242,6 +242,10 @@ fn analyze_method(
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
                 let slices = slice_circle(pm, candidate, n).ok()?;
+                // E11d: `min_width` and the entry/exit ranges apply to the extremes of the analysed block.
+                if !block_ends_admissible(pm, spec, &slices) {
+                    return None;
+                }
                 let res = solve(&slices, method, opts);
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;

@@ -5,7 +5,7 @@
 
 use crate::OgsError;
 use crate::model::{Circle, Direction, Model, Point, SurfaceSpec};
-use crate::slicer::lower_arc_tramo;
+use crate::slicer::sliding_span;
 
 /// Default water unit weight when the `water` block is absent (contract §1).
 const DEFAULT_WATER_UNIT_WEIGHT: f64 = 9.81;
@@ -530,15 +530,16 @@ impl PreparedModel {
                 Sliding::RightToLeft
             });
         }
-        // 3. Fixed circle (only when it is the surface analyzed, i.e. no search): the
-        //    higher of its two ground crossings is the entry.
+        // 3. Fixed circle (only when it is the surface analyzed, i.e. no search): the higher of its two ground
+        //    crossings is the entry. The crossings come from the sliding span alone (R3-07): the ends of the analysed
+        //    block are checked later, in `slice_surface` (E10a′), so a discarded block may leave the model here.
         let fixed = if model.analysis.search.is_none() {
             model.analysis.surface
         } else {
             None
         };
         if let Some(SurfaceSpec::Circle(circle)) = fixed
-            && let Ok(tramo) = lower_arc_tramo(self, &circle)
+            && let Ok(tramo) = sliding_span(self, &circle)
         {
             let y_p = self.arc_y(&circle, true, tramo.p);
             let y_q = self.arc_y(&circle, true, tramo.q);
