@@ -6,6 +6,7 @@ import type { Material } from '../../engine/types';
 import type { EditorStore, Issue, ModelDoc } from '../types';
 import { AnalysisPanel, DiagnosticsPanel, LoadsPanel, MaterialsPanel, SearchPanel, SeismicPanel, SurfacePanel, WaterPanel } from './index';
 import { applyCommands } from './dispatch';
+import { LabeledField } from './Fields';
 import { createFakeStore } from './fakeStore';
 import { defaultSearch, surfaceModeCommands } from './forms';
 
@@ -45,12 +46,27 @@ describe('paneles: render con store falso', () => {
   it('MaterialsPanel: tabla con coma decimal, unidades y asignación por región', () => {
     const out = html(MaterialsPanel, makeDoc());
     expect(out).toContain('Materiales');
-    expect(out).toContain('γ (kN/m³)');
+    expect(out).toContain('Peso unitario γ<span class="muted"> (kN/m³)</span>');
     expect(out).toContain('value="19,6"');
-    expect(out).toContain('aria-label="Material soil: ángulo de fricción"');
+    expect(out).toContain('data-path="/materials/0/friction_angle"');
+    expect(out).toContain('Ángulo de fricción φ<span class="muted"> (°)</span>');
     expect(out).toContain('Material por región');
-    expect(out).toContain('aria-label="Material de la región 1"');
+    expect(out).toContain('Material de la región 1');
+    expect(out).toContain('data-path="/regions/0/material"');
     expect(out).toContain('Roca (rock)');
+  });
+
+  it('MaterialsPanel: tarjetas apiladas con etiquetas visibles y sin tabla ancha (R7-13)', () => {
+    const out = html(MaterialsPanel, makeDoc());
+    expect(out).not.toContain('<table');
+    expect(out).toContain('class="ep-card');
+    expect(out).toMatch(/<label for="[^"]+">Nombre<\/label>/);
+  });
+
+  it('MaterialsPanel: el id es texto de solo lectura, no un campo (R7-23)', () => {
+    const out = html(MaterialsPanel, makeDoc());
+    expect(out).toContain('Identificador: <code>soil</code> (no se puede cambiar)');
+    expect(out).not.toMatch(/<input[^>]*value="soil"/);
   });
 
   it('MaterialsPanel: «Quitar» deshabilitado si una región usa el material', () => {
@@ -64,8 +80,8 @@ describe('paneles: render con store falso', () => {
 
   it('MaterialsPanel: unidades imperiales', () => {
     const out = html(MaterialsPanel, makeDoc({ units: 'imperial' }));
-    expect(out).toContain('γ (pcf)');
-    expect(out).toContain('c (psf)');
+    expect(out).toContain('(pcf)');
+    expect(out).toContain('Cohesión c<span class="muted"> (psf)</span>');
   });
 
   it('WaterPanel: γw y tabla de la piezométrica', () => {
@@ -83,7 +99,7 @@ describe('paneles: render con store falso', () => {
 
   it('SurfacePanel: modo búsqueda; fija con campos del círculo; ambas guardadas avisa', () => {
     const search = html(SurfacePanel, makeDoc());
-    expect(search).toMatch(/name="surface-mode"[^>]*checked=""[^>]*\/>\s*Búsqueda/);
+    expect(search).toMatch(/type="radio"[^>]*checked=""[^>]*\/>\s*Búsqueda/);
     expect(search).not.toContain('Centro xc');
 
     const fixed = html(SurfacePanel, makeDoc({ analysis: { surface: { type: 'circle', xc: 45.5, yc: 60, r: 30 } } }));
@@ -113,11 +129,14 @@ describe('paneles: render con store falso', () => {
     expect(out).toContain('Automático');
   });
 
-  it('LoadsPanel: tabla con ambos tipos, ángulo con signo y botones de agregar', () => {
+  it('LoadsPanel: tarjetas con ambos tipos, ángulo con signo y botones de agregar', () => {
     const out = html(LoadsPanel, makeDoc());
-    expect(out).toContain('aria-label="Carga 1: q (kPa)"');
+    expect(out).not.toContain('<table');
+    expect(out).toContain('Carga q<span class="muted"> (kPa)</span>');
+    expect(out).toContain('data-path="/loads/0/q"');
     expect(out).toContain('value="20,5"');
-    expect(out).toContain('aria-label="Carga 2: ángulo (°)"');
+    expect(out).toContain('Ángulo<span class="muted"> (°)</span>');
+    expect(out).toContain('data-path="/loads/1/angle"');
     expect(out).toContain('value="-10"');
     expect(out).toContain('Agregar carga distribuida');
     expect(html(LoadsPanel, makeDoc({ loads: [] }))).toContain('Sin cargas.');
@@ -153,10 +172,25 @@ describe('paneles: render con store falso', () => {
     expect(out).toContain('Desactualizado');
   });
 
-  it('DiagnosticsPanel: «Comprobar» solo si hay onCheck', () => {
+  it('DiagnosticsPanel: no duplica «Comprobar» (el botón es el de la barra, UX-18)', () => {
     const store = createFakeStore(makeDoc());
     expect(renderToStaticMarkup(createElement(DiagnosticsPanel, { store }))).not.toContain('Comprobar');
-    expect(renderToStaticMarkup(createElement(DiagnosticsPanel, { store, onCheck: () => undefined }))).toContain('Comprobar');
+  });
+
+  it('DiagnosticsPanel: solo es botón la incidencia con destino real; el detalle técnico va colapsado (R7-11)', () => {
+    const issues: Issue[] = [
+      { source: 'local', severity: 'error', code: 'editor.out_of_range', text: 'Texto con destino', path: '/analysis/seismic/kh' },
+      { source: 'local', severity: 'error', code: 'editor.out_of_range', text: 'Texto sin destino', path: '/version' },
+      { source: 'engine', severity: 'aviso', code: 'pole', text: 'Texto con detalle', path: null, detail: 'línea 3' },
+    ];
+    const out = html(DiagnosticsPanel, makeDoc(), { diagnostics: { status: 'ok', issues, revision: 0 } });
+    const items = out.split('<li ').slice(1);
+    const buttonItems = items.filter((li) => li.includes('<button type="button" class="ep-issue"'));
+    expect(buttonItems).toHaveLength(1);
+    expect(buttonItems[0]).toContain('Texto con destino');
+    expect(out).toContain('<details class="ep-issue-detail">');
+    expect(out).toContain('motor: pole · línea 3');
+    expect(out).not.toContain('[local:');
   });
 });
 
@@ -187,5 +221,32 @@ describe('applyCommands', () => {
     store.dispatch = boom;
     expect(() => applyCommands(store, 'x', [{ type: 'seismic/set', seismic: null }, { type: 'seismic/set', seismic: null }])).toThrow('boom');
     expect(store.log).toEqual(['begin:x', 'end']);
+  });
+});
+
+describe('LabeledField (R7-23)', () => {
+  const field = (props: Record<string, unknown>) =>
+    renderToStaticMarkup(createElement(LabeledField, { label: 'kh', value: '0,1', onChange: () => undefined, ...props }));
+
+  it('la ayuda se enlaza siempre con aria-describedby', () => {
+    const out = field({ hint: 'De 0 a menos de 1' });
+    const id = /aria-describedby="([^"]+)"/.exec(out)?.[1] ?? '';
+    expect(id).toMatch(/-hint$/);
+    expect(out).toContain(`id="${id}"`);
+  });
+
+  it('con error enlaza ayuda y error; el error no es role=alert hasta confirmar el campo', () => {
+    const out = field({ hint: 'De 0 a menos de 1', error: 'Fuera de rango' });
+    const ids = (/aria-describedby="([^"]+)"/.exec(out)?.[1] ?? '').split(' ');
+    expect(ids).toHaveLength(2);
+    expect(out).toMatch(/<span[^>]*class="ep-error"[^>]*>Fuera de rango/);
+    expect(out).not.toContain('role="alert"');
+    expect(out).toContain('aria-invalid="true"');
+  });
+
+  it('el nombre accesible viene del <label for>, sin aria-label duplicado', () => {
+    const out = field({});
+    expect(out).toMatch(/<label for="([^"]+)">kh<\/label>/);
+    expect(out).not.toContain('aria-label');
   });
 });

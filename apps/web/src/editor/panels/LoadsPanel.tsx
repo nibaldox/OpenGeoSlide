@@ -1,6 +1,6 @@
 import type { Load } from '../../engine/types';
 import type { EditorStore } from '../types';
-import { ErrorList, PanelSection, TextInput } from './Fields';
+import { LabeledField, PanelSection } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   LOAD_TYPE_LABELS,
@@ -18,7 +18,8 @@ import {
 
 const NO_LOADS: readonly Load[] = [];
 
-function LoadRow({ store, load, index, loads, units }: {
+/** Una carga como tarjeta apilada con etiquetas visibles (R7-13): sin tabla de 9 columnas dentro del lateral. */
+function LoadCard({ store, load, index, loads, units }: {
   store: EditorStore;
   load: Load;
   index: number;
@@ -31,19 +32,20 @@ function LoadRow({ store, load, index, loads, units }: {
   const otherIds = loads.flatMap((l, i) => (i !== index && l.id ? [l.id] : []));
   const outcome = loadFromForm(form, { xRange: modelXRange({ regions }), otherIds, index });
   const errors = outcome.ok ? {} : outcome.errors;
-  const errorId = `load-err-${index}`;
 
   const commit = (): void => {
     if (outcome.ok && !loadsEqual(outcome.value, load)) store.dispatch(loadUpsertCommand(index, outcome.value));
   };
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'load', index } });
-  const cell = (key: string, ariaLabel: string, mode: 'text' | 'decimal' = 'decimal') => (
-    <TextInput
-      value={(form as unknown as Record<string, string>)[key] ?? ''}
+  const field = (key: string, label: string, unit?: string, mode: 'text' | 'decimal' = 'decimal') => (
+    <LabeledField
+      key={key}
+      label={label}
+      unit={unit}
       mode={mode}
-      ariaLabel={`Carga ${index + 1}: ${ariaLabel}`}
-      invalid={key in errors}
-      describedBy={errorId}
+      value={(form as unknown as Record<string, string>)[key] ?? ''}
+      path={`/loads/${index}/${key}`}
+      error={key in errors ? errors[key] : undefined}
       onChange={(v) => setForm({ ...form, [key]: v } as LoadForm)}
       onCommit={commit}
       onReset={reset}
@@ -52,42 +54,32 @@ function LoadRow({ store, load, index, loads, units }: {
   );
 
   return (
-    <>
-      <tr className={selected ? 'ep-row-selected' : undefined}>
-        <td>{index + 1}</td>
-        <td>{LOAD_TYPE_LABELS[form.type]}</td>
-        <td>{cell('id', 'id', 'text')}</td>
+    <fieldset className={selected ? 'ep-card ep-row-selected' : 'ep-card'}>
+      <legend>
+        Carga {index + 1}: {LOAD_TYPE_LABELS[form.type]}
+      </legend>
+      <div className="ep-grid">
+        {field('id', 'Identificador (id)', undefined, 'text')}
         {form.type === 'udl' ? (
           <>
-            <td>{cell('x1', 'x1')}</td>
-            <td>{cell('x2', 'x2')}</td>
-            <td>{cell('q', `q (${units.stress})`)}</td>
-            <td />
-            <td />
+            {field('x1', 'Inicio x1', units.length)}
+            {field('x2', 'Fin x2', units.length)}
+            {field('q', 'Carga q', units.stress)}
           </>
         ) : (
           <>
-            <td>{cell('x', 'x')}</td>
-            <td />
-            <td />
-            <td>{cell('p', `p (${units.lineLoad})`)}</td>
-            <td>{cell('angle', 'ángulo (°)')}</td>
+            {field('x', 'Posición x', units.length)}
+            {field('p', 'Carga p', units.lineLoad)}
+            {field('angle', 'Ángulo', '°')}
           </>
         )}
-        <td>
-          <button type="button" aria-label={`Quitar la carga ${index + 1}`} onClick={() => store.dispatch(loadRemoveCommand(index))}>
-            Quitar
-          </button>
-        </td>
-      </tr>
-      {Object.keys(errors).length > 0 ? (
-        <tr>
-          <td colSpan={9}>
-            <ErrorList errors={errors} id={errorId} />
-          </td>
-        </tr>
-      ) : null}
-    </>
+      </div>
+      <div className="ep-actions">
+        <button type="button" aria-label={`Quitar la carga ${index + 1}`} onClick={() => store.dispatch(loadRemoveCommand(index))}>
+          Quitar
+        </button>
+      </div>
+    </fieldset>
   );
 }
 
@@ -106,28 +98,11 @@ export function LoadsPanel({ store }: { store: EditorStore }) {
       {loads.length === 0 ? (
         <p className="muted">Sin cargas.</p>
       ) : (
-        <table className="ep-table">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">Tipo</th>
-              <th scope="col">id</th>
-              <th scope="col">x1 / x ({units.length})</th>
-              <th scope="col">x2 ({units.length})</th>
-              <th scope="col">q ({units.stress})</th>
-              <th scope="col">p ({units.lineLoad})</th>
-              <th scope="col">ángulo (°)</th>
-              <th scope="col">
-                <span className="sr-only">Acciones</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loads.map((load, i) => (
-              <LoadRow key={i} store={store} load={load} index={i} loads={loads} units={units} />
-            ))}
-          </tbody>
-        </table>
+        <div className="ep-cards">
+          {loads.map((load, i) => (
+            <LoadCard key={i} store={store} load={load} index={i} loads={loads} units={units} />
+          ))}
+        </div>
       )}
       <div className="ep-actions">
         <button type="button" disabled={!canAdd} onClick={() => add('udl')}>

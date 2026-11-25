@@ -11,6 +11,7 @@ export interface CheckRow {
 
 export function CheckTable({ rows }: { rows: CheckRow[] }) {
   return (
+    <div className="table-scroll" role="region" aria-label="Tabla de comprobación frente a los valores publicados" tabIndex={0}>
     <table className="checks">
       <caption className="visually-hidden">Comprobación frente a los valores publicados</caption>
       <thead>
@@ -44,5 +45,6 @@ export function CheckTable({ rows }: { rows: CheckRow[] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

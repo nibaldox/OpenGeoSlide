@@ -1,5 +1,6 @@
-import { useId, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { FieldErrors } from './forms';
+import { describedByIds, errorRole, nextFieldAnnounce, type FieldAnnounce } from './fieldA11y';
 import './panels.css';
 
 export function PanelSection({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
@@ -20,7 +21,11 @@ export interface TextInputProps {
   /** Esc: descarta el borrador. */
   onReset?: () => void;
   onFocus?: () => void;
-  ariaLabel: string;
+  /** Nombre accesible cuando no hay `<label>` asociado (celdas de tabla). */
+  ariaLabel?: string;
+  id?: string;
+  /** Puntero JSON del campo del modelo (`data-path`): el panel de Diagnósticos lo usa para llevar el foco (R7-11). */
+  path?: string;
   invalid?: boolean;
   describedBy?: string;
   readOnly?: boolean;
@@ -43,6 +48,8 @@ export function TextInput(props: TextInputProps) {
   return (
     <input
       type="text"
+      id={props.id}
+      data-path={props.path}
       inputMode={props.mode === 'text' ? 'text' : 'decimal'}
       autoComplete="off"
       spellCheck={false}
@@ -50,7 +57,7 @@ export function TextInput(props: TextInputProps) {
       value={props.value}
       aria-label={props.ariaLabel}
       aria-invalid={props.invalid ? true : undefined}
-      aria-describedby={props.invalid ? props.describedBy : undefined}
+      aria-describedby={props.describedBy}
       readOnly={props.readOnly}
       disabled={props.disabled}
       placeholder={props.placeholder}
@@ -62,27 +69,54 @@ export function TextInput(props: TextInputProps) {
   );
 }
 
-/** Campo con etiqueta visible, unidad y mensaje de error. */
-export function LabeledField(props: Omit<TextInputProps, 'ariaLabel' | 'invalid' | 'describedBy'> & {
+/**
+ * Campo con etiqueta visible (`<label for>`), unidad, ayuda y mensaje de error. La ayuda se enlaza siempre con
+ * `aria-describedby`; el error se enlaza mientras exista y solo se anuncia (`role="alert"`) al confirmar el campo.
+ */
+export function LabeledField(props: Omit<TextInputProps, 'ariaLabel' | 'invalid' | 'describedBy' | 'id'> & {
   label: string;
   unit?: string;
   error?: string;
   hint?: string;
 }) {
-  const errorId = useId();
-  const { label, unit, error, hint, ...input } = props;
+  const base = useId();
+  const inputId = `${base}-in`;
+  const hintId = `${base}-hint`;
+  const errorId = `${base}-err`;
+  const [announce, setAnnounce] = useState<FieldAnnounce>('quiet');
+  const { label, unit, error, hint, onChange, onCommit, onReset, ...input } = props;
   return (
     <div className="field ep-field">
-      <label>
-        <span>
-          {label}
-          {unit ? <span className="muted"> ({unit})</span> : null}
-        </span>
-        <TextInput {...input} ariaLabel={unit ? `${label} (${unit})` : label} invalid={Boolean(error)} describedBy={errorId} />
+      <label htmlFor={inputId}>
+        {label}
+        {unit ? <span className="muted"> ({unit})</span> : null}
       </label>
-      {hint ? <span className="muted small">{hint}</span> : null}
+      {hint ? (
+        <span id={hintId} className="muted small">
+          {hint}
+        </span>
+      ) : null}
+      <TextInput
+        {...input}
+        id={inputId}
+        invalid={Boolean(error)}
+        describedBy={describedByIds({ hintId, errorId }, { hint: Boolean(hint), error: Boolean(error) })}
+        onChange={(v) => {
+          setAnnounce(nextFieldAnnounce('edit'));
+          onChange(v);
+        }}
+        onCommit={() => {
+          setAnnounce(nextFieldAnnounce('commit'));
+          onCommit?.();
+        }}
+        onReset={() => {
+          setAnnounce(nextFieldAnnounce('reset'));
+          onReset?.();
+        }}
+      />
       {error ? (
-        <span id={errorId} className="ep-error" role="alert">
+        // `key` re-monta el aviso al confirmar: así el rol `alert` se anuncia en ese momento y no con cada tecla.
+        <span key={announce} id={errorId} className="ep-error" role={errorRole(announce)}>
           {error}
         </span>
       ) : null}
