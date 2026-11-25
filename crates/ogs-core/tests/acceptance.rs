@@ -23,6 +23,7 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "truncated_mass",
     "negative_lambda",
     "load_outside_mass",
+    "multiple_admissible_roots",
 ];
 
 #[derive(Deserialize)]
