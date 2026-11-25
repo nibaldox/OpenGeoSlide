@@ -233,10 +233,14 @@ En `PreparedModel::new` (`geometry.rs`), con tolerancia `tol = 1e-9 · escala de
   - El editor rechaza las regiones degeneradas (área ≤ 1e-12·escala², igual que el motor) y los modelos sin `surface`
     ni `search`. Para ello se agregan los códigos congelados `editor.degenerate_region` y `editor.no_surface`.
   - Un vértice consecutivo repetido es un **aviso** en el editor, no un error, porque el motor lo acepta.
-- **R5-05 (E12e con N′ mayor):** se documenta como limitación conocida. Antes de cerrar la Fase 1 se evalúa una regla
-  combinada: descartar las raíces `negative_effective_normal_major` si existe otra admisible y luego elegir la de menor
-  F (exploración X7). La decisión la toma el coordinador con esos números.
-
+- **R5-05 (E12e con N′ mayor), DECIDIDO tras X7:** se **mantiene** E12e, la raíz admisible de menor F.
+  - La regla combinada (g) («descartar las raíces con N′ mayor si hay otra admisible y luego elegir la de menor F»)
+    corrige 49 de los 67 casos por debajo de cSlope, pero crea 9 casos **por encima** de cSlope en más de 1 % (hasta
+    +10,13 % en superficie fija y +7,50 % en búsqueda). Eso viola el criterio conservador de F1.6.
+  - Se documenta como limitación conocida: si en el resultado aparecen juntas las notas `multiple_admissible_roots` y
+    `negative_effective_normal_major`, el FS de Spencer puede corresponder a una rama con tracción y quedar por debajo
+    de Bishop (hasta −14 % frente a cSlope). Se recomienda revisar Bishop y la distribución de N′.
+  - Evidencia: `docs/fase1/exploracion/X7.md`.
 ## F1.5 Gates de la Fase 1 (además de §5 de `00_CONTRATOS.md`)
 
 - **Motor:**
