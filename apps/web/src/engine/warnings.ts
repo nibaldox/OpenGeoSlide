@@ -36,6 +36,7 @@ export const ENGINE_WARNING_CODES = [
   'truncated_driving_mass',
   'effective_width_below_min',
   'effective_ends_outside_range',
+  'load_outside_mass',
   'water_above_ground',
   'max_iterations',
   'non_finite',
@@ -73,6 +74,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   effective_ends_outside_range: {
     severity: 'aviso',
     text: 'Los extremos reales del bloque analizado caen fuera de los rangos de entrada/salida.',
+  },
+  load_outside_mass: {
+    severity: 'nota',
+    text: 'Alguna carga declarada no actúa sobre la masa analizada',
   },
   water_above_ground: {
     severity: 'aviso',
