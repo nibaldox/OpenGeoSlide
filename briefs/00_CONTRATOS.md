@@ -256,7 +256,24 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
    `tan_phi = 0` y `pore_pressure = 0`, y `material` es el de la región más cercana bajo la base o, si no hay
    ninguna, el índice 0. No aporta fuerza motriz ni resistente. Los bordes de dovela incluyen los cruces intermedios
    arco-terreno, para que cada dovela quede entera bajo el terreno o entera sobre él.
-9. **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
+9. **Bloque principal (enmienda E10a; reemplaza a E8a).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
+   lados) divide la masa en bloques: secuencias maximales de dovelas de suelo contiguas.
+   - **Se analiza solo el bloque principal**, el de mayor peso; en caso de empate gana el más cercano a la entrada.
+   - Los demás bloques y **todas** las dovelas aéreas interiores se **eliminan** de la lista de dovelas.
+   - La salida y la entrada efectivas son los extremos del bloque principal.
+   - Si se eliminó algo, se agrega el aviso informativo `"truncated_mass"`, con la nota "se analizó solo el bloque
+     principal de la superficie".
+   - Tras la truncación no quedan dovelas aéreas interiores, de modo que E7a solo aplica si quedan en los extremos.
+     `air_gap_thrust` queda como defensa en profundidad.
+   - **Motivo:** el lente más allá de un vacío de aire no es empujado por la masa (el aire no transmite fuerza).
+     Excluirlo es conservador, porque el lente del pie solo aporta resistencia, y coincide con el oráculo: en D09/R2-03
+     el círculo crítico de cSlope sale en el vértice del pie e ignora el lente del pie. E8a, que rechazaba la
+     superficie con `DisconnectedMass`, dejaba la búsqueda 3-7 % sobre el oráculo, lo que es no conservador.
+   - `SurfaceError::DisconnectedMass` deja de emitirse; la variante puede eliminarse.
+   - `truncated_mass` se agrega a `INFORMATIVE_WARNINGS` y a la lista de códigos E6.
+
+   *Texto histórico de E8a (derogada):*
+   **Masa desconectada (enmienda E8a, tras W5a/R2-01).** Un tramo aéreo **interior** (con dovelas de suelo a ambos
    lados) divide la masa deslizante en bloques. Cada bloque es una secuencia maximal de dovelas de suelo contiguas;
    el bloque principal es el de mayor peso. Si **cualquier** bloque distinto del principal pesa `> 1e-3 · ΣW`, el
    slicer devuelve `SurfaceError::DisconnectedMass`. La superficie define más de una masa deslizante y el equilibrio
@@ -293,6 +310,31 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   se cumple, el resultado es `Invalid` (`"m_alpha"`). Nunca se devuelve `Converged` con `m_α(F) < min_m_alpha`.
 
 ### 4.3 Spencer (Morgenstern-Price con f = 1)
+**(Enmienda E10b: solver GLE de dos ecuaciones; reemplaza al lazo de punto fijo en λ de Zhu et al.)**
+Formulación del equilibrio límite general (Fredlund & Krahn 1977) con `X = λ·f(x)·E` y f = 1. Para un λ dado:
+- **Normal en la base** (equilibrio vertical, igual que en E4e):
+  `N = [W − (Xᵢ − Xᵢ₋₁) − (c·l·sin α − u·l·tanφ·sin α)/F] / m_α(F)`, con `m_α(F) = cos α + sin α·tanφ/F`.
+- **F de momentos** (superficie circular, momentos respecto del centro):
+  `F_m = Σ (c·l + (N − u·l)·tanφ) / Σ W sin α`.
+- **F de fuerzas** (equilibrio horizontal global):
+  `F_f = Σ (c·l + (N − u·l)·tanφ)·cos α / Σ N sin α`.
+- **Fuerzas E** por equilibrio horizontal de cada dovela, del pie al coronamiento, con E₀ = 0:
+  `Eᵢ = Eᵢ₋₁ + N sin α − S cos α`, donde `S = (c·l + (N − u·l)·tanφ)/F`. Documenta el signo.
+
+Para cada λ, F_m(λ) y F_f(λ) se obtienen por punto fijo (máx. 100 iteraciones). Las X se actualizan con las E de la
+iteración anterior.
+
+**Búsqueda de λ\*:**
+- se evalúa `g(λ) = F_m(λ) − F_f(λ)` en λ = 0; 0,1; …; 1,5 y en −0,1; …; −0,5;
+- se toma el cambio de signo **más cercano a λ = 0** y se refina con Brent hasta `|g| < tolerance·F`;
+- si no hay cambio de signo → `NotConverged("no_lambda_root")`;
+- en el λ\* hallado se aplica la admisibilidad E8b (`Φ > 0`, `m_α(F) ≥ min_m_alpha`) **y** se exige el cierre de
+  fuerzas `|Eₙ| < 1e-6·ΣW` (o la tolerancia equivalente que se documente).
+
+Bishop es el caso λ = 0 de F_m. La identidad φ = 0 es exacta para F_m.
+*El algoritmo de Zhu, Lee, Qian & Chen (2005), en el texto siguiente, queda como referencia histórica y como oráculo
+interno opcional en los tests.*
+
 Algoritmo de **Zhu, Lee, Qian & Chen (2005)**, *Can. Geotech. J.* 42: 272–278.
 Las dovelas van del pie al coronamiento, con E₀ = Eₙ = 0 y fᵢ = 1:
 ```
