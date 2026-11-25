@@ -11,6 +11,7 @@ import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
 import { CheckTable, type CheckRow } from './ui/CheckTable';
 import { Legend } from './ui/Legend';
+import { ThemeSelect } from './ui/ThemeSelect';
 import { MAX_PERF_RUNS, PerformancePanel } from './ui/PerformancePanel';
 import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 
@@ -290,6 +291,7 @@ export default function App() {
       <header className="app-header">
         <h1>OpenGeoSlide</h1>
         <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
+        <ThemeSelect />
         <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación">
           <button type="button" role="tab" id="mode-edit" aria-selected={mode === 'edit'} aria-controls="mode-edit-panel" className={mode === 'edit' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('edit')}>
             Editar
