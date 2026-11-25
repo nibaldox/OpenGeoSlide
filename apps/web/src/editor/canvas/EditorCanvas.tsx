@@ -51,6 +51,7 @@ import {
   vertexLabel,
 } from './layout';
 import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
+import { isTraceTool, traceOnDocChange, traceOnToolChange } from './trace';
 import { edgeScrollDelta, fitToDoc, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
 import './canvas.css';
 
@@ -134,9 +135,6 @@ export const CANVAS_INSTRUCTIONS =
   'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección. ' +
   'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
   'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
-
-/** Herramientas de trazo: comparten el borrador, el cursor del teclado y el autodesplazamiento. */
-const isTraceTool = (tool: string): boolean => tool === 'draw_region' || tool === 'split_region';
 
 /** Espera, en ms, con el puntero junto al borde antes de que la vista empiece a desplazarse (evita desplazar al cruzar el borde de paso). */
 const EDGE_SCROLL_DWELL_MS = 250;
@@ -326,26 +324,50 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   });
 
   // Herramientas de trazo («Dibujar región» y «Dividir región»): al elegirlas el foco pasa al lienzo (para operar con el teclado) y se
-  // anuncia cómo usarlas; al salir de ellas, o al cambiar de una a otra, el trazo en curso se descarta.
+  // anuncia cómo usarlas; al salir de ellas, o al cambiar de una a otra, el trazo en curso se descarta y se anuncia (A-04, B-08).
   useEffect(() => {
     const was = prevTool.current;
     prevTool.current = ui.tool;
+    const reset = traceOnToolChange(draftRef.current, was, ui.tool);
+    if (reset.draft !== draftRef.current) {
+      setDraft(reset.draft);
+      setDrawError(null);
+    } else if (!isTraceTool(ui.tool) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+      setDraft(EMPTY_DRAFT);
+      setDrawError(null);
+    }
     if (isTraceTool(ui.tool) && was !== ui.tool) {
-      if (draftRef.current.points.length > 0 || draftRef.current.cursor !== null) {
-        draftRef.current = EMPTY_DRAFT;
-        setDraftState(EMPTY_DRAFT);
+      if (!isTraceTool(was) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+        setDraft(EMPTY_DRAFT);
         setDrawError(null);
       }
       svgRef.current?.focus({ preventScroll: true });
       const text = ui.tool === 'split_region' ? SPLIT_INSTRUCTIONS : DRAW_INSTRUCTIONS;
-      if (onAnnounce) onAnnounce(text);
-      else setLiveMsg(text);
-    } else if (!isTraceTool(ui.tool) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
-      draftRef.current = EMPTY_DRAFT;
-      setDraftState(EMPTY_DRAFT);
+      announce(reset.announce ? `${reset.announce} ${text}` : text);
+    } else if (reset.announce) {
+      announce(reset.announce);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.tool]);
+
+  // Otro documento (Nuevo, Abrir, Ejemplos, Talud simple, Recuperar, importar): el trazo a medias era del anterior y se descarta (A-01).
+  const lastEpoch = useRef(state.docEpoch);
+  useEffect(() => {
+    if (lastEpoch.current === state.docEpoch) return;
+    lastEpoch.current = state.docEpoch;
+    const reset = traceOnDocChange(draftRef.current);
+    if (reset.draft !== draftRef.current) {
+      setDraft(reset.draft);
       setDrawError(null);
     }
-  }, [ui.tool, onAnnounce]);
+    if (reset.announce) announce(reset.announce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.docEpoch]);
+
+  // El resto de la aplicación (confirmar al cambiar de herramienta, cambios sin guardar) necesita saber si hay un trazo.
+  useEffect(() => {
+    store.dispatch({ type: 'ui/trace', points: draft.points.length });
+  }, [store, draft.points.length]);
 
   // Autodesplazamiento (UX9-01): con una herramienta de trazo, el puntero a menos de 24 px del borde del lienzo desplaza la vista
   // hacia ese lado (más rápido cuanto más cerca), para poder dibujar fuera de lo que se ve. Empieza tras una breve espera.

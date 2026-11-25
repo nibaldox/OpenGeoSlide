@@ -21,6 +21,8 @@ export interface EditorUi {
   selection: Selection;
   viewport: Viewport | null;          // no se persiste
   snap: { vertex: boolean; axis: boolean; gridStep: number | null; radiusPx: number };
+  /** Puntos del trazo en curso de «Dibujar región» o «Dividir región» (los publica el lienzo; 0 = sin trazo). No se persiste. */
+  tracePoints: number;
 }
 
 /** Códigos de las incidencias locales del editor (prefijo `editor.`). */
@@ -58,6 +60,8 @@ export interface Diagnostics {
 export interface EditorState {
   doc: ModelDoc;
   revision: number;                       // sube con cada cambio de doc (no de ui)
+  /** Sube con cada `doc/load` y `doc/replace`: lo que el lienzo guarda aparte del documento (el trazo en curso) deja de valer. */
+  docEpoch: number;
   ui: EditorUi;
   history: { past: ModelDoc[]; future: ModelDoc[] };  // máx. 200
   file: { name: string | null; savedRevision: number };
@@ -94,7 +98,8 @@ export type UiAction =                 // no entra en historial
   | { type: 'ui/select'; selection: Selection }
   | { type: 'ui/tool'; tool: Tool }
   | { type: 'ui/viewport'; viewport: Viewport | null }
-  | { type: 'ui/snap'; patch: Partial<EditorUi['snap']> };
+  | { type: 'ui/snap'; patch: Partial<EditorUi['snap']> }
+  | { type: 'ui/trace'; points: number };
 
 /** Fachada para canvas y paneles. Solo W1 la implementa. */
 export interface EditorStore {

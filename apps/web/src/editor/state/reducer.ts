@@ -27,7 +27,8 @@ export function createInitialState(doc: ModelDoc, fileName: string | null = null
   return {
     doc,
     revision: 0,
-    ui: { tool: 'select', selection: { kind: 'none' }, viewport: null, snap: { ...DEFAULT_SNAP } },
+    docEpoch: 0,
+    ui: { tool: 'select', selection: { kind: 'none' }, viewport: null, snap: { ...DEFAULT_SNAP }, tracePoints: 0 },
     history: { past: [], future: [] },
     file: { name: fileName, savedRevision: 0 },
     diagnostics: { status: 'idle', issues: [], revision: 0 },
@@ -360,11 +361,13 @@ function reduceCommand(state: EditorState, cmd: EditorCommand): EditorState {
   if (cmd.type === 'doc/load') {
     // Otro documento: el historial y el gesto del anterior no le pertenecen (Ctrl+Z no debe mezclar modelos, R7-08).
     // No se marca como guardado: quien carga lo decide (`markSaved`; un borrador recuperado sigue sin guardar).
-    return withDoc({ ...state, gesture: null }, next, {
+    // Cambia la época: el trazo a medias del lienzo pertenece al modelo anterior y se descarta (A-01).
+    const loaded = withDoc({ ...state, gesture: null }, next, {
       history: { past: [], future: [] },
       selection: NONE,
       file: { name: cmd.fileName, savedRevision: state.file.savedRevision },
     });
+    return { ...loaded, docEpoch: state.docEpoch + 1, ui: { ...loaded.ui, tracePoints: 0 } };
   }
   const isReplace = cmd.type === 'doc/replace';
   if (!isReplace && (next === state.doc || deepEqual(next, state.doc))) return state;
@@ -373,11 +376,12 @@ function reduceCommand(state: EditorState, cmd: EditorCommand): EditorState {
     : { past: pushPast(state.history.past, state.doc), future: [] };
   if (isReplace) {
     const revision = state.revision + 1;
-    return withDoc(state, next, {
+    const replaced = withDoc(state, next, {
       history,
       selection: NONE,
       file: { name: cmd.fileName, savedRevision: cmd.fileName !== null ? revision : state.file.savedRevision },
     });
+    return { ...replaced, docEpoch: state.docEpoch + 1, ui: { ...replaced.ui, tracePoints: 0 } };
   }
   return withDoc(state, next, { history, selection: remapSelection(state.ui.selection, cmd) });
 }
@@ -407,6 +411,10 @@ function reduceUi(state: EditorState, action: UiAction): EditorState {
       if (a === b || deepEqual(a, b)) return state;
       if (a !== null && !allFinite(a)) return state;
       return { ...state, ui: { ...state.ui, viewport: a } };
+    }
+    case 'ui/trace': {
+      const n = Number.isInteger(action.points) && action.points >= 0 ? action.points : 0;
+      return n === state.ui.tracePoints ? state : { ...state, ui: { ...state.ui, tracePoints: n } };
     }
     case 'ui/snap': {
       if (!snapPatchValid(action.patch)) return state;
