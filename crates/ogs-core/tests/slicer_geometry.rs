@@ -391,6 +391,79 @@ fn x_range_of(sl: &[Slice]) -> (f64, f64) {
     )
 }
 
+/// E10a′. A circle whose lower arc leaves D09 through the side wall `x = 0` under the ground, in a foot lens separated
+/// from the face by a small air window. The lens is the lighter block (W 20.5 against 26.3), so it is discarded
+/// and the arc's wall exit is not checked: the surface is valid with the note `truncated_mass`. The main block is
+/// the face, and its weight is the soil area under the arc over its own range (independent integration).
+#[test]
+fn wall_exit_of_a_discarded_lens_is_valid() {
+    let d09 = doc(
+        SOIL,
+        &region("soil", "[[0,0],[0,15],[15,15],[30,25],[60,25],[60,0]]"),
+        "",
+        "right_to_left",
+        r#"{"surface":null}"#,
+    );
+    let pm = prepared(&d09);
+    let c = Circle {
+        xc: 2.2462194238038085,
+        yc: 56.72885233916507,
+        r: 43.63311939756725,
+    };
+    assert!(c.xc - c.r < 0.0, "the arc must reach the wall");
+    let y_wall = c.yc - (c.r * c.r - c.xc * c.xc).sqrt();
+    assert!(
+        y_wall < 15.0,
+        "the arc leaves through the wall under the ground: y = {y_wall}"
+    );
+    let sliced = slice_surface(&pm, &c, 2000).expect("E10a′: the discarded lens may exit the wall");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let s = &sliced.slices;
+    assert!(
+        s.iter().all(|x| x.weight > 0.0),
+        "no air inside the main block"
+    );
+    let x_face = s.iter().map(|x| x.x_left).fold(f64::INFINITY, f64::min);
+    assert!(
+        x_face > 15.0 - 1e-3,
+        "the kept block starts at the foot: x_left = {x_face}"
+    );
+    let chain = [(15.0, 15.0), (30.0, 25.0), (60.0, 25.0)];
+    let (x0, x1) = x_range_of(s);
+    let sum_w: f64 = s.iter().map(|x| x.weight).sum();
+    let area = soil_area_over(&chain, &c, x0, x1, 400_000);
+    let rel = (sum_w - 20.0 * area).abs() / (20.0 * area);
+    assert!(
+        rel < 1e-3,
+        "ΣW = {sum_w}, γ·area = {}, rel = {rel}",
+        20.0 * area
+    );
+}
+
+/// E10a′, the cSlope critical circle of D09 (Spencer, FS 0.3876). Pending: the foot lens (W ≈ 476) is heavier than the
+/// face (W ≈ 389), so the heaviest-block rule keeps the lens, which leaves through `x = 0` under the ground, and the
+/// surface is `OutsideModel`. The face alone gives Spencer 0.387759 (+0.02 %). The selection rule is the coordinator's
+/// decision (see the W8a report).
+#[test]
+#[ignore = "pendiente decisión del coordinador: el lente del pie (W 476) es más pesado que la cara (W 389) y sale por x = 0; la regla de mayor peso lo mantiene"]
+fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
+    let d09 = doc(
+        SOIL,
+        &region("soil", "[[0,0],[0,15],[15,15],[30,25],[60,25],[60,0]]"),
+        "",
+        "right_to_left",
+        r#"{"surface":null}"#,
+    );
+    let pm = prepared(&d09);
+    let c = Circle {
+        xc: 1.302373757508704,
+        yc: 55.1690164837531,
+        r: 42.44024115833943,
+    };
+    let sliced = slice_surface(&pm, &c, 2000).expect("valid under E10a′");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+}
+
 /// E10a. A valley notch whose arc leaves the soil splits the mass in two. The surface is valid: only the heavier
 /// block is analysed, the note `truncated_mass` is raised, and no air is left in the block. Its weight equals the
 /// soil area under the arc over the block's own range (independent integration, γ = 20).
