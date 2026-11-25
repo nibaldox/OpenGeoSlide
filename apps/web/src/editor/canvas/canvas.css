@@ -73,3 +73,42 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Dibujar región (U3-M): ayuda sobre el lienzo y estado vacío. Solo tokens. */
+.ec-draw-hint {
+  position: absolute;
+  left: 52px;
+  top: 8px;
+  max-width: calc(100% - 60px);
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: 6px;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.ec-draw-keys {
+  color: var(--ui-ink-muted);
+}
+.ec-draw-error {
+  display: block;
+  margin-top: 2px;
+  color: var(--ui-err-ink);
+  font-weight: 600;
+}
+
+.ec-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  pointer-events: none;
+}
+.ec-empty > * {
+  pointer-events: auto;
+}

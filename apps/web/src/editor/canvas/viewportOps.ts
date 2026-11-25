@@ -33,7 +33,7 @@ export function wheelFactor(deltaY: number): number {
   return Math.exp(-clamped * 0.0015);
 }
 
-/** Cuadro delimitador de regiones y piezométrica; por defecto un cuadro unitario si el modelo está vacío. */
+/** Cuadro delimitador de regiones y piezométrica; por defecto un cuadro de 60 × 30 si el modelo está vacío (el tamaño de un talud típico para empezar a dibujar). */
 export function docBounds(doc: ModelDoc): Bounds {
   const xs: number[] = [];
   const ys: number[] = [];
@@ -47,7 +47,7 @@ export function docBounds(doc: ModelDoc): Bounds {
     xs.push(x);
     ys.push(y);
   }
-  if (xs.length === 0) return { minX: 0, maxX: 10, minY: 0, maxY: 10 };
+  if (xs.length === 0) return { minX: 0, maxX: 60, minY: 0, maxY: 30 };
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;

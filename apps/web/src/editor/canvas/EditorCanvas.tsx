@@ -20,6 +20,8 @@ import {
   type GestureState,
   type PointerInput,
 } from './gesture';
+import { DrawLayer } from './DrawLayer';
+import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
 import {
@@ -113,6 +115,7 @@ function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
 function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, panning: boolean): string {
   if (panning) return 'grabbing';
   if (tool === 'pan') return 'grab';
+  if (tool === 'draw_region') return 'crosshair';
   if (dragging) return 'grabbing';
   if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius') return 'move';
   if (tool === 'add_vertex') return hover === 'edge' || hover === 'piezo_edge' ? 'copy' : 'crosshair';
@@ -149,7 +152,12 @@ export interface EditorCanvasProps {
   units?: 'SI' | 'imperial';
   /** Mensajes para la región aria-live al mover, agregar o eliminar vértices. Sin esta prop el lienzo trae su propia región. */
   onAnnounce?: (msg: string) => void;
+  /** Contenido que se muestra sobre el lienzo cuando el modelo no tiene regiones (mensaje con las acciones para empezar). */
+  emptyState?: ReactNode;
 }
+
+/** Movimiento máximo, en píxeles, entre pulsar y soltar para que un toque o clic cuente como «colocar un punto». */
+const DRAW_TAP_SLOP_PX = 6;
 
 function ToolIcon({ children }: { children: ReactNode }) {
   return (
@@ -159,7 +167,7 @@ function ToolIcon({ children }: { children: ReactNode }) {
   );
 }
 
-export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce }: EditorCanvasProps) {
+export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState }: EditorCanvasProps) {
   // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
   const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
   const getState = useCallback(() => store.getState(), [store]);
@@ -180,6 +188,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   // Punteros táctiles activos y estado de pellizco (dos dedos).
   const touchPts = useRef(new Map<number, [number, number]>());
   const pinching = useRef(false);
+  // Dibujo de una región: puntos colocados y cursor (estado local: no se guarda ni entra en el historial hasta cerrar).
+  const [draft, setDraftState] = useState<DrawDraft>(EMPTY_DRAFT);
+  const draftRef = useRef<DrawDraft>(EMPTY_DRAFT);
+  const [drawError, setDrawError] = useState<string | null>(null);
+  const drawDown = useRef<{ id: number; x: number; y: number; pointerType: string } | null>(null);
+  const prevTool = useRef(store.getState().ui.tool);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
 
@@ -190,6 +204,17 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const announce = (msg: string): void => {
     if (onAnnounce) onAnnounce(msg);
     else setLiveMsg(msg);
+  };
+  const setDraft = (next: DrawDraft): void => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
+  /** Aplica un paso del dibujo: borrador, acciones sobre el store y anuncio. */
+  const runDraw = (step: DrawStep): void => {
+    setDraft(step.draft);
+    setDrawError(step.error ?? null);
+    runActions(store, step.actions);
+    if (step.announce) announce(step.announce);
   };
 
   // Tamaño del lienzo (ResizeObserver solo existe en el navegador).
@@ -286,6 +311,22 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     svgRef.current?.querySelector<SVGElement>(`[data-handle-key="${key}"]`)?.focus({ preventScroll: true });
   });
 
+  // «Dibujar región»: al elegir la herramienta el foco pasa al lienzo (para operar con el teclado) y se anuncia cómo usarla;
+  // al salir de ella, el dibujo en curso se descarta.
+  useEffect(() => {
+    const was = prevTool.current;
+    prevTool.current = ui.tool;
+    if (ui.tool === 'draw_region' && was !== 'draw_region') {
+      svgRef.current?.focus({ preventScroll: true });
+      if (onAnnounce) onAnnounce(DRAW_INSTRUCTIONS);
+      else setLiveMsg(DRAW_INSTRUCTIONS);
+    } else if (ui.tool !== 'draw_region' && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+      draftRef.current = EMPTY_DRAFT;
+      setDraftState(EMPTY_DRAFT);
+      setDrawError(null);
+    }
+  }, [ui.tool, onAnnounce]);
+
   const vp: Viewport = ui.viewport ?? fitToDoc(doc, size.w, size.h);
   const preview = gesture.mode === 'drag' ? gesture.preview : null;
   const shown: ModelDoc = applyPreview(doc, preview);
@@ -336,8 +377,17 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         return;
       }
     }
-    if (pinching.current) return;
+    if (pinching.current) {
+      drawDown.current = null;
+      return;
+    }
     const input = localInput(e);
+    // «Dibujar región»: el punto se coloca al soltar (si el puntero no se movió), así un arrastre táctil sigue desplazando la página.
+    if (store.getState().ui.tool === 'draw_region' && e.button === 0) {
+      drawDown.current = { id: e.pointerId, x: input.x, y: input.y, pointerType: e.pointerType };
+      setDraft(drawHover(draftRef.current, context(), input));
+      return;
+    }
     // El círculo recuerda qué parte se tocó (centro o radio) para que las flechas sepan qué cambiar.
     const ctx = context();
     if (ctx.ui.viewport) {
@@ -357,6 +407,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const before = [...touchPts.current.values()];
       touchPts.current.set(e.pointerId, touchPoint(e));
       if (pinching.current) {
+        drawDown.current = null;
         const now = [...touchPts.current.values()];
         const cur = store.getState().ui.viewport;
         if (cur && before.length >= 2 && now.length >= 2) {
@@ -368,6 +419,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (pinching.current) return;
     const input = localInput(e);
     const ctx = context();
+    if (ctx.ui.tool === 'draw_region' && gestureRef.current.mode === 'idle') {
+      const next = drawHover(draftRef.current, ctx, input);
+      if (next !== draftRef.current) setDraft(next);
+      return;
+    }
     if (gestureRef.current.mode === 'idle') {
       const kind = ctx.ui.viewport
         ? hitTest(ctx.doc, ctx.ui.viewport, input.x, input.y, handleHitRadius(ctx.ui.snap.radiusPx, e.pointerType), { edgeRadiusPx: ctx.ui.snap.radiusPx }).kind
@@ -387,7 +443,17 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   };
   const onPointerUp = (e: PointerEvent<SVGSVGElement>): void => {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    if (endTouch(e)) return;
+    if (endTouch(e)) {
+      drawDown.current = null;
+      return;
+    }
+    const down = drawDown.current;
+    if (down && down.id === e.pointerId) {
+      drawDown.current = null;
+      const input = localInput(e);
+      if (store.getState().ui.tool === 'draw_region' && Math.hypot(input.x - down.x, input.y - down.y) <= DRAW_TAP_SLOP_PX) runDraw(drawClick(draftRef.current, context(), { ...input, pointerType: down.pointerType }));
+      return;
+    }
     const before = gestureRef.current;
     const r = pointerUp(before, context(), localInput(e));
     apply(r);
@@ -397,6 +463,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     }
   };
   const onPointerCancel = (e: PointerEvent<SVGSVGElement>): void => {
+    if (drawDown.current?.id === e.pointerId) drawDown.current = null;
     if (endTouch(e)) return;
     apply(pointerCancel(gestureRef.current));
   };
@@ -411,6 +478,15 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       e.preventDefault();
       apply(pointerCancel(gestureRef.current));
       return;
+    }
+    // «Dibujar región»: las flechas, Espacio, Intro, Retroceso y Esc son del dibujo; el resto (zoom, Tab…) sigue su camino.
+    if (store.getState().ui.tool === 'draw_region') {
+      const d = drawKey(draftRef.current, context(), e);
+      if (d.handled) {
+        e.preventDefault();
+        runDraw(d.step);
+        return;
+      }
     }
     // El elemento con el foco manda: tras Escape (selección vacía) un tirador enfocado sigue siendo el punto de partida.
     const focusedKey = (e.target as Element).getAttribute?.('data-handle-key') ?? null;
@@ -685,6 +761,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
+        {ui.tool === 'draw_region' && <DrawLayer draft={draft} vp={vp} />}
+
         <g data-layer="handles">
           {shown.regions.map((region, ri) =>
             region.polygon.map((p, vi) => {
@@ -785,7 +863,22 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </button>
       </div>
 
-      <p id={instructionsId} className="ec-visually-hidden">{CANVAS_INSTRUCTIONS}</p>
+      {ui.tool === 'draw_region' && (
+        <p className="ec-draw-hint" data-testid="draw-hint">
+          <strong>Dibujar región</strong>: {draft.points.length === 0 ? 'ningún punto todavía' : `${draft.points.length} ${draft.points.length === 1 ? 'punto' : 'puntos'}`}.{' '}
+          <span className="ec-draw-keys">
+            Clic o Espacio agrega un punto{draft.points.length >= 3 ? '; Intro o clic en el primero cierra' : ''} · Retroceso quita · Esc cancela
+          </span>
+          {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
+        </p>
+      )}
+      {emptyState && doc.regions.length === 0 && ui.tool !== 'draw_region' ? (
+        <div className="ec-empty" data-testid="canvas-empty">
+          {emptyState}
+        </div>
+      ) : null}
+
+      <p id={instructionsId} className="ec-visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
       {!onAnnounce && (
         <div className="ec-visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
           {liveMsg}
