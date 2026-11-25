@@ -1,7 +1,8 @@
 // Dibujo en Canvas 2D. Escala única en x e y (aspecto 1:1), ejes con escala en metros y
-// superficie crítica en rojo sobre dovelas grises. La piezométrica va en azul discontinuo.
+// superficie crítica en rojo sobre dovelas grises. Los ejes usan la unidad del modelo. La piezométrica va en azul discontinuo.
 
 import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport';
+import { lengthUnitOf } from '../editor/canvas/layout';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
 import { materialSlot, type Scene } from './scene';
 
@@ -37,7 +38,7 @@ function decimalsFor(step: number): number {
   return step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step)));
 }
 
-function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette): void {
+function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette, unit: string): void {
   const { minX, maxX, minY, maxY } = scene.bounds;
   const [left, top] = worldToScreen(vp, minX, maxY);
   const [right, bottom] = worldToScreen(vp, maxX, minY);
@@ -92,10 +93,10 @@ function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, pal
   }
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
-  label('x (m)', right, bottom + 18);
+  label(`x (${unit})`, right, bottom + 18);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
-  label('y (m)', left, top - 6);
+  label(`y (${unit})`, left, top - 6);
 }
 
 function tracePolygon(ctx: CanvasRenderingContext2D, vp: Viewport, points: [number, number][]): void {
@@ -116,6 +117,7 @@ export function drawSection(
   dpr: number,
   scene: Scene,
   palette: SectionPalette = defaultSectionPalette(),
+  units?: string | null,
 ): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssWidth, cssHeight);
@@ -123,7 +125,8 @@ export function drawSection(
   ctx.fillRect(0, 0, cssWidth, cssHeight);
 
   const vp = fitViewport(scene.bounds, cssWidth, cssHeight, MARGIN_PX);
-  drawAxes(ctx, vp, scene, palette);
+  // Los ejes llevan la unidad de longitud del modelo (m en SI, ft en imperial): el parámetro manda sobre `scene.units`.
+  drawAxes(ctx, vp, scene, palette, lengthUnitOf(units ?? scene.units));
 
   // Regiones por material
   for (const region of scene.regions) {

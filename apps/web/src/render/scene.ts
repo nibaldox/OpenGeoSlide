@@ -33,6 +33,8 @@ export interface Scene {
   piezo: Point[] | null;
   surface: { circle: Circle; slices: Slice[] } | null;
   bounds: Bounds;
+  /** Unidades del modelo (`SI` o `imperial`); los ejes de `drawSection` las usan para rotular m o ft. */
+  units?: string;
 }
 
 export function buildScene(model: Model, method: MethodReport | null): Scene {
@@ -80,5 +82,6 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     piezo,
     surface,
     bounds: { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY },
+    units: model.units,
   };
 }

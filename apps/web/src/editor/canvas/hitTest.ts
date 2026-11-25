@@ -10,6 +10,16 @@ export const BAND_HEIGHT_PX = 14;
 /** Ángulo (rad) del tirador del radio sobre el círculo: abajo a la derecha del centro. */
 export const RADIUS_HANDLE_ANGLE = -Math.PI / 4;
 
+/** Radio de acierto de los tiradores con ratón o lápiz: diámetro de 32 px (WCAG 2.5.8 pide 24 px). */
+export const HIT_RADIUS_MOUSE_PX = 16;
+/** Radio de acierto con el dedo (`pointerType === 'touch'`). */
+export const HIT_RADIUS_TOUCH_PX = 22;
+
+/** Radio de acierto de los tiradores: el de ajuste de la rejilla, con un mínimo según el tipo de puntero. */
+export function handleHitRadius(snapRadiusPx: number, pointerType?: string): number {
+  return Math.max(snapRadiusPx, pointerType === 'touch' ? HIT_RADIUS_TOUCH_PX : HIT_RADIUS_MOUSE_PX);
+}
+
 export type Hit =
   | { kind: 'vertex'; regionIndex: number; vertexIndex: number; distPx: number }
   | { kind: 'piezo_point'; index: number; distPx: number }
@@ -45,7 +55,7 @@ function screenDist(vp: Viewport, p: Point, sx: number, sy: number): number {
 }
 
 /**
- * Qué hay bajo (sx, sy) en pantalla. Prioridad: tiradores (vértice > punto de piezométrica > centro > radio, el más
+ * Qué hay bajo (sx, sy) en pantalla. `radiusPx` es la tolerancia de los tiradores (véase `handleHitRadius`). Prioridad: tiradores (vértice > punto de piezométrica > centro > radio, el más
  * cercano gana) > aristas y línea piezométrica > bandas de búsqueda > interior de región > nada.
  */
 export function hitTest(
@@ -54,7 +64,7 @@ export function hitTest(
   sx: number,
   sy: number,
   radiusPx: number,
-  options: { bands?: boolean } = {},
+  options: { bands?: boolean; /** Tolerancia de aristas y segmentos; por omisión `radiusPx`. */ edgeRadiusPx?: number } = {},
 ): Hit {
   const bandsOn = options.bands ?? true;
   const handles: HandleCandidate[] = [];
@@ -99,7 +109,7 @@ export function hitTest(
 
   // Aristas de región y segmentos de la piezométrica: la más cercana dentro de la tolerancia.
   let bestEdge: Hit | null = null;
-  let bestDist = radiusPx;
+  let bestDist = options.edgeRadiusPx ?? radiusPx;
   const toScreen = (p: Point): Point => worldToScreen(vp, p[0], p[1]);
   doc.regions.forEach((region, regionIndex) => {
     const poly = region.polygon;

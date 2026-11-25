@@ -242,3 +242,25 @@ describe('fake store', () => {
     expect(s.getState()).not.toBe(a);
   });
 });
+
+describe('U2-C: unidades en etiquetas, ejes y anuncios', () => {
+  it('axisTitles usa m en SI y ft en imperial', async () => {
+    const { axisTitles } = await import('./layout');
+    expect(axisTitles('SI')).toEqual({ x: 'x (m)', y: 'y (m)' });
+    expect(axisTitles(undefined)).toEqual({ x: 'x (m)', y: 'y (m)' });
+    expect(axisTitles('imperial')).toEqual({ x: 'x (ft)', y: 'y (ft)' });
+  });
+
+  it('vertexAnnouncement sigue el formato «Vértice 3 de la región 1: x 31,4 m, y 26,4 m»', async () => {
+    const { vertexAnnouncement, piezoAnnouncement } = await import('./layout');
+    expect(vertexAnnouncement(0, 2, [31.4, 26.4])).toBe('Vértice 3 de la región 1: x 31,4 m, y 26,4 m');
+    expect(vertexAnnouncement(0, 2, [31.4, 26.4], 'imperial')).toBe('Vértice 3 de la región 1: x 31,4 ft, y 26,4 ft');
+    expect(piezoAnnouncement(1, [30, 8])).toBe('Punto 2 de la piezométrica: x 30,0 m, y 8,0 m');
+  });
+
+  it('las etiquetas accesibles ya llevan ft con units imperial', async () => {
+    const m = await import('./layout');
+    expect(m.vertexLabel(0, 0, [1, 2], 'imperial')).toContain('ft');
+    expect(m.rangeLabel('entry', [0, 10], 'imperial')).toContain('ft');
+  });
+});

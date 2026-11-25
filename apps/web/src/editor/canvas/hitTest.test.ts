@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeDoc, toPx, VP } from './fakeStore';
-import { hitTest, radiusHandlePoint } from './hitTest';
+import { HIT_RADIUS_MOUSE_PX, HIT_RADIUS_TOUCH_PX, handleHitRadius, hitTest, radiusHandlePoint } from './hitTest';
 
 const R = 10;
 const hit = (doc = makeDoc(), x = 0, y = 0) => hitTest(doc, VP, x, y, R);
@@ -93,3 +93,37 @@ function makeDocSinCirculo() {
   d.analysis.surface = null;
   return d;
 }
+
+describe('radio de acierto (R7-10, UX-05)', () => {
+  it('ratón: 16 px o más; táctil: 22 px o más; un radio de ajuste mayor se respeta', () => {
+    expect(HIT_RADIUS_MOUSE_PX).toBeGreaterThanOrEqual(16);
+    expect(HIT_RADIUS_TOUCH_PX).toBeGreaterThanOrEqual(22);
+    expect(handleHitRadius(10, 'mouse')).toBe(16);
+    expect(handleHitRadius(10, undefined)).toBe(16);
+    expect(handleHitRadius(10, 'pen')).toBe(16);
+    expect(handleHitRadius(10, 'touch')).toBe(22);
+    expect(handleHitRadius(30, 'touch')).toBe(30);
+    expect(handleHitRadius(8, 'mouse')).toBe(16);
+  });
+
+  it('con el radio de ratón un vértice a 15 px se acierta; a 17 px no', () => {
+    const [sx, sy] = toPx(60, 0);
+    const r = handleHitRadius(10, 'mouse');
+    expect(hitTest(makeDoc(), VP, sx + 15, sy, r, { edgeRadiusPx: 10 }).kind).toBe('vertex');
+    expect(hitTest(makeDoc(), VP, sx + 17, sy, r, { edgeRadiusPx: 10 }).kind).not.toBe('vertex');
+  });
+
+  it('con el radio táctil un vértice a 21 px se acierta; a 23 px no', () => {
+    const [sx, sy] = toPx(60, 0);
+    const r = handleHitRadius(10, 'touch');
+    expect(hitTest(makeDoc(), VP, sx + 21, sy, r).kind).toBe('vertex');
+    expect(hitTest(makeDoc(), VP, sx + 23, sy, r).kind).not.toBe('vertex');
+  });
+
+  it('edgeRadiusPx afloja la tolerancia de los tiradores sin ensanchar la de las aristas', () => {
+    const [sx, sy] = toPx(30, 0);
+    // a 14 px bajo la arista y = 0: fuera del radio de arista (10) aunque el de tiradores sea 16
+    expect(hitTest(makeDoc(), VP, sx, sy + 14, 16, { edgeRadiusPx: 10 }).kind).not.toBe('edge');
+    expect(hitTest(makeDoc(), VP, sx, sy + 8, 16, { edgeRadiusPx: 10 }).kind).toBe('edge');
+  });
+});

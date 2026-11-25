@@ -1,14 +1,19 @@
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { EditorCanvas } from './EditorCanvas';
 import { createFakeStore, makeDoc } from './fakeStore';
 
-function render(patch: (doc: ReturnType<typeof makeDoc>) => void = () => undefined, ui: Parameters<typeof createFakeStore>[1] = {}): string {
+function render(
+  patch: (doc: ReturnType<typeof makeDoc>) => void = () => undefined,
+  ui: Parameters<typeof createFakeStore>[1] = {},
+  props: Omit<Parameters<typeof EditorCanvas>[0], 'store'> = {},
+): string {
   const doc = makeDoc();
   patch(doc);
   const store = createFakeStore(doc, ui);
-  return renderToStaticMarkup(createElement(EditorCanvas, { store }));
+  return renderToStaticMarkup(createElement(EditorCanvas, { store, ...props }));
 }
 
 describe('EditorCanvas (render estático)', () => {
@@ -130,5 +135,154 @@ describe('EditorCanvas (render estático)', () => {
       expect(t).toContain('paint-order="stroke"');
       expect(t).toContain('stroke="var(--canvas-halo)"');
     }
+  });
+});
+
+
+const tabStops = (html: string): number => (html.match(/tabindex="0"/g) ?? []).length;
+
+describe('R7-04: tabindex itinerante, instrucciones y anuncios', () => {
+  it('el lienzo es una sola parada de tabulación: el tirador activo (el primero) tiene 0 y los demás −1', () => {
+    const html = render();
+    expect(tabStops(html)).toBe(1);
+    const handles = [...html.matchAll(/<(?:g|circle|rect)[^>]*data-handle="[^"]+"[^>]*>/g)].map((m) => m[0]);
+    expect(handles.length).toBe(15);
+    expect(handles.filter((h) => h.includes('tabindex="0"'))).toHaveLength(1);
+    expect(handles[0]).toContain('tabindex="0"');
+    expect(handles.slice(1).every((h) => h.includes('tabindex="-1"'))).toBe(true);
+  });
+
+  it('el tirador seleccionado es la parada de tabulación', () => {
+    const html = render(undefined, { selection: { kind: 'vertex', regionIndex: 1, vertexIndex: 4 } });
+    expect(tabStops(html)).toBe(1);
+    expect(html).toMatch(/<g[^>]*data-handle-key="v-1-4"[^>]*tabindex="0"|<g[^>]*tabindex="0"[^>]*data-handle-key="v-1-4"/);
+  });
+
+  it('con un círculo seleccionado el centro es el tirador activo por omisión', () => {
+    const html = render(undefined, { selection: { kind: 'surface_circle' } });
+    expect(html).toMatch(/data-handle-key="c-center"[^>]*tabindex="0"|tabindex="0"[^>]*data-handle-key="c-center"/);
+  });
+
+  it('sin tiradores el propio lienzo es la parada de tabulación', () => {
+    const html = render((d) => {
+      d.regions = [];
+      d.water = null;
+      d.analysis.surface = null;
+    });
+    expect(tabStops(html)).toBe(1);
+    expect(html).toMatch(/<svg[^>]*tabindex="0"/);
+  });
+
+  it('el lienzo (svg) tiene tabindex −1 cuando hay tiradores', () => {
+    expect(render()).toMatch(/<svg[^>]*tabindex="-1"/);
+  });
+
+  it('aria-describedby apunta a unas instrucciones que documentan [ ], Insert, Supr, + − 0 y las flechas', () => {
+    const html = render();
+    const id = /<svg[^>]*aria-describedby="([^"]+)"/.exec(html)?.[1];
+    expect(id).toBeTruthy();
+    const m = new RegExp(`id="${id}"[^>]*>([^<]*)<`).exec(html);
+    expect(m).not.toBeNull();
+    const text = m?.[1] ?? '';
+    for (const part of ['Tab', '[', ']', 'Insert', 'Supr', '+', '0', 'flechas', 'Mayús']) expect(text).toContain(part);
+  });
+
+  it('sin onAnnounce el lienzo trae su propia región aria-live; con onAnnounce no (la pone la aplicación)', () => {
+    expect(render()).toMatch(/aria-live="polite"/);
+    expect(render(undefined, {}, { onAnnounce: () => undefined })).not.toMatch(/aria-live="polite"/);
+  });
+});
+
+describe('R7-10 · UX-05: objetivos', () => {
+  it('cada tirador lleva un área de acierto de 24 px o más y una marca visible de 12 px o más con anillo de contraste', () => {
+    const html = render();
+    const hits = [...html.matchAll(/<circle[^>]*data-hit-area[^>]*>/g)].map((m) => m[0]);
+    expect(hits.length).toBe(15);
+    for (const h of hits) expect(Number(/ r="([\d.]+)"/.exec(h)?.[1]) * 2).toBeGreaterThanOrEqual(24);
+    const vis = [...html.matchAll(/<circle[^>]*data-handle-shape="vertex"[^>]*>/g)].map((m) => m[0]);
+    expect(vis.length).toBe(10);
+    for (const v of vis) {
+      expect(Number(/ r="([\d.]+)"/.exec(v)?.[1]) * 2).toBeGreaterThanOrEqual(12);
+      expect(v).toContain('stroke="var(--canvas-handle-ring)"');
+    }
+  });
+});
+
+describe('R7-10: móvil sin atrapar el desplazamiento', () => {
+  it('touch-action solo es none con la herramienta «Mover vista»; en el resto deja desplazar la página', () => {
+    expect(render()).toContain('touch-action:pan-x pan-y');
+    expect(render(undefined, { tool: 'pan' })).toContain('touch-action:none');
+    expect(render()).not.toContain('touch-action:none');
+  });
+
+  it('la altura es clamp(320px, 55dvh, 640px)', () => {
+    const css = readFileSync(new URL('./canvas.css', import.meta.url), 'utf8');
+    expect(css).toContain('clamp(320px, 55dvh, 640px)');
+    expect(render()).toContain('class="ec-root"');
+  });
+});
+
+describe('R7-02: zoom y encuadre sobre el lienzo', () => {
+  it('hay botones accesibles Acercar, Alejar y Encuadrar dentro de un grupo con nombre', () => {
+    const html = render();
+    expect(html).toMatch(/role="group"[^>]*aria-label="Zoom y encuadre"/);
+    for (const name of ['Acercar', 'Alejar', 'Encuadrar']) expect(html).toMatch(new RegExp(`<button[^>]*aria-label="${name}"`));
+    expect(html).toMatch(/<button[^>]*type="button"/);
+  });
+});
+
+describe('U2-C: props del contrato', () => {
+  const slice = {
+    x_left: 20, x_right: 30, y_base_left: 10, y_base_right: 9, y_top_mid: 20, width: 10, alpha: 0.1, base_length: 10,
+    weight: 100, cohesion: 5, tan_phi: 0.5, pore_pressure: 0, material: 0,
+  };
+  const result = { surface: { xc: 30, yc: 40, r: 30 }, slices: [slice] };
+
+  it('surfaceConverged=false dibuja la superficie discontinua con --canvas-surface-unconverged', () => {
+    const html = render(undefined, {}, { result, surfaceConverged: false });
+    const tag = /<polyline[^>]*data-critical-surface[^>]*>/.exec(html)?.[0] ?? '';
+    expect(tag).toContain('stroke="var(--canvas-surface-unconverged)"');
+    expect(tag).toMatch(/stroke-dasharray="[^"]+"/);
+  });
+
+  it('por defecto (convergida) la superficie es continua y usa --canvas-surface', () => {
+    const tag = /<polyline[^>]*data-critical-surface[^>]*>/.exec(render(undefined, {}, { result }))?.[0] ?? '';
+    expect(tag).toContain('stroke="var(--canvas-surface)"');
+    expect(tag).not.toContain('stroke-dasharray');
+    const explicit = /<polyline[^>]*data-critical-surface[^>]*>/.exec(render(undefined, {}, { result, surfaceConverged: true }))?.[0] ?? '';
+    expect(explicit).not.toContain('stroke-dasharray');
+  });
+
+  it('units=imperial pasa las etiquetas accesibles y los ejes a ft', () => {
+    const html = render(
+      (d) => {
+        d.analysis.search = { type: 'circular_entry_exit', entry: [0, 10], exit: [45, 55] };
+      },
+      {},
+      { units: 'imperial' },
+    );
+    expect(html).toContain('aria-label="Región 1, vértice 3: x 60,0 ft, y 5,0 ft"');
+    expect(html).toContain('aria-label="Piezométrica, punto 2: x 30,0 ft, y 8,0 ft"');
+    expect(html).toContain('aria-label="Círculo de falla, centro: x 30,0 ft, y 30,0 ft"');
+    expect(html).toContain('aria-label="Círculo de falla, radio: 25,0 ft"');
+    expect(html).toContain('Entrada: x 0,0 a 10,0 ft');
+    expect(html).toContain('x (ft)');
+    expect(html).toContain('y (ft)');
+    expect(html).not.toContain('x (m)');
+  });
+
+  it('units por omisión (SI) usa m en etiquetas y ejes', () => {
+    const html = render();
+    expect(html).toContain('x 60,0 m, y 5,0 m');
+    expect(html).toContain('x (m)');
+    expect(html).toContain('y (m)');
+  });
+
+  it('sin la prop `units` se respeta la unidad del propio documento', () => {
+    const html = render((d) => {
+      d.units = 'imperial';
+    });
+    expect(html).toContain('x 60,0 ft');
+    expect(html).toContain('x (ft)');
   });
 });
