@@ -173,6 +173,297 @@ fn polygon_is_degenerate(poly: &[Point], scale: f64) -> bool {
     area.is_nan() || area <= DEGENERATE_AREA_FRACTION
 }
 
+/// Relative geometric tolerance of the region checks (contract E12c): `tol = 1e-9 · scale`.
+const REGION_TOLERANCE: f64 = 1e-9;
+
+fn sub(a: Point, b: Point) -> Point {
+    [a[0] - b[0], a[1] - b[1]]
+}
+
+fn cross(u: Point, v: Point) -> f64 {
+    u[0] * v[1] - u[1] * v[0]
+}
+
+fn dot(u: Point, v: Point) -> f64 {
+    u[0] * v[0] + u[1] * v[1]
+}
+
+fn norm(u: Point) -> f64 {
+    u[0].hypot(u[1])
+}
+
+/// Distance from `p` to the closed segment `[a, b]`.
+fn point_segment_distance(p: Point, a: Point, b: Point) -> f64 {
+    let d = sub(b, a);
+    let len2 = dot(d, d);
+    let t = if len2 > 0.0 {
+        (dot(sub(p, a), d) / len2).clamp(0.0, 1.0)
+    } else {
+        0.0
+    };
+    norm(sub(p, [a[0] + t * d[0], a[1] + t * d[1]]))
+}
+
+/// Distance between the closed segments `[a, b]` and `[c, d]` (0 if they cross).
+fn segment_distance(a: Point, b: Point, c: Point, d: Point) -> f64 {
+    let (o1, o2) = (cross(sub(b, a), sub(c, a)), cross(sub(b, a), sub(d, a)));
+    let (o3, o4) = (cross(sub(d, c), sub(a, c)), cross(sub(d, c), sub(b, c)));
+    if o1 * o2 < 0.0 && o3 * o4 < 0.0 {
+        return 0.0;
+    }
+    point_segment_distance(a, c, d)
+        .min(point_segment_distance(b, c, d))
+        .min(point_segment_distance(c, a, b))
+        .min(point_segment_distance(d, a, b))
+}
+
+/// True if the interiors of `[a, b]` and `[c, d]` cross at one point and the segments are not collinear:
+/// each segment's end points lie on opposite sides of the other's line, more than `tol` away from it.
+/// A segment end that touches the other segment (a T junction) is not a proper crossing.
+fn proper_crossing(a: Point, b: Point, c: Point, d: Point, tol: f64) -> bool {
+    let (lab, lcd) = (norm(sub(b, a)), norm(sub(d, c)));
+    if lab <= tol || lcd <= tol {
+        return false;
+    }
+    let (s1, s2) = (
+        cross(sub(b, a), sub(c, a)) / lab,
+        cross(sub(b, a), sub(d, a)) / lab,
+    );
+    let (s3, s4) = (
+        cross(sub(d, c), sub(a, c)) / lcd,
+        cross(sub(d, c), sub(b, c)) / lcd,
+    );
+    s1 * s2 < 0.0 && s3 * s4 < 0.0 && s1.abs().min(s2.abs()) > tol && s3.abs().min(s4.abs()) > tol
+}
+
+/// Polygon edges, closed implicitly.
+fn polygon_edges(poly: &[Point]) -> impl Iterator<Item = (Point, Point)> + '_ {
+    poly.iter()
+        .zip(poly.iter().cycle().skip(1))
+        .map(|(&a, &b)| (a, b))
+}
+
+fn boundary_distance(p: Point, poly: &[Point]) -> f64 {
+    polygon_edges(poly)
+        .map(|(a, b)| point_segment_distance(p, a, b))
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// Even-odd point-in-polygon test (half-open rule at the vertices).
+fn point_in_polygon(p: Point, poly: &[Point]) -> bool {
+    let mut inside = false;
+    for (a, b) in polygon_edges(poly) {
+        if (a[1] > p[1]) != (b[1] > p[1]) {
+            let x_cross = a[0] + (p[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+            if p[0] < x_cross {
+                inside = !inside;
+            }
+        }
+    }
+    inside
+}
+
+/// `p` is inside `poly` and farther than `tol` from its boundary.
+fn strictly_inside(p: Point, poly: &[Point], tol: f64) -> bool {
+    boundary_distance(p, poly) > tol && point_in_polygon(p, poly)
+}
+
+fn bbox(poly: &[Point]) -> [f64; 4] {
+    poly.iter().fold(
+        [
+            f64::INFINITY,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NEG_INFINITY,
+        ],
+        |b, p| {
+            [
+                b[0].min(p[0]),
+                b[1].min(p[1]),
+                b[2].max(p[0]),
+                b[3].max(p[1]),
+            ]
+        },
+    )
+}
+
+fn bboxes_apart(a: &[f64; 4], b: &[f64; 4], tol: f64) -> bool {
+    a[0] > b[2] + tol || b[0] > a[2] + tol || a[1] > b[3] + tol || b[1] > a[3] + tol
+}
+
+/// First pair of edges of a polygon that touch or cross where they must not (contract E12c).
+///
+/// Non-adjacent edges must stay more than `tol` apart. Adjacent edges only share their common vertex:
+/// a spike (the second edge doubles back over the first) is a collinear overlap. Zero-length edges
+/// (repeated vertices) are skipped: they are not geometric features. `poly` must be normalized.
+/// Returns the indices of the two edges in the polygon as given (edge `i` goes from vertex `i` to `i + 1`).
+fn find_self_intersection(poly: &[Point], tol: f64) -> Option<(usize, usize)> {
+    let edges: Vec<(usize, Point, Point)> = polygon_edges(poly)
+        .enumerate()
+        .filter(|(_, (a, b))| norm(sub(*b, *a)) > tol)
+        .map(|(i, (a, b))| (i, a, b))
+        .collect();
+    let m = edges.len();
+    for i in 0..m {
+        for j in i + 1..m {
+            let (ei, ai, bi) = edges[i];
+            let (ej, aj, bj) = edges[j];
+            let hit = if j == i + 1 || (i == 0 && j == m - 1) {
+                // `shared` is the common vertex, `p` and `q` the far end of each edge.
+                let (p, shared, q) = if j == i + 1 {
+                    (ai, bi, bj)
+                } else {
+                    (aj, bj, bi)
+                };
+                point_segment_distance(q, p, shared) <= tol
+                    || point_segment_distance(p, shared, q) <= tol
+            } else {
+                segment_distance(ai, bi, aj, bj) <= tol
+            };
+            if hit {
+                return Some((ei, ej));
+            }
+        }
+    }
+    None
+}
+
+/// Absolute area of a polygon (shoelace formula).
+fn polygon_area(poly: &[Point]) -> f64 {
+    0.5 * polygon_edges(poly)
+        .map(|(a, b)| cross(a, b))
+        .sum::<f64>()
+        .abs()
+}
+
+/// True if the polygons are the same figure: every vertex of each lies on the other's boundary
+/// and the areas coincide. Independent of the starting vertex, the orientation and extra collinear vertices.
+fn same_polygon(a: &[Point], b: &[Point], tol: f64) -> bool {
+    (polygon_area(a) - polygon_area(b)).abs() <= tol
+        && a.iter().all(|&p| boundary_distance(p, b) <= tol)
+        && b.iter().all(|&p| boundary_distance(p, a) <= tol)
+}
+
+/// True if some part of the boundary of `a` runs through the strict interior of `b`.
+///
+/// Each edge of `a` is split where it meets the boundary of `b` and the midpoint of every piece is
+/// tested. Pieces on the boundary of `b` (shared edges, collinear stretches) never count.
+fn boundary_enters(a: &[Point], b: &[Point], tol: f64) -> bool {
+    for (p, q) in polygon_edges(a) {
+        let r = sub(q, p);
+        let len = norm(r);
+        if len <= tol {
+            continue;
+        }
+        let mut ts = vec![0.0, 1.0];
+        for (c, d) in polygon_edges(b) {
+            let s = sub(d, c);
+            let den = cross(r, s);
+            if den != 0.0 {
+                let t = cross(sub(c, p), s) / den;
+                let u = cross(sub(c, p), r) / den;
+                if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
+                    ts.push(t);
+                }
+            }
+            for v in [c, d] {
+                if point_segment_distance(v, p, q) <= tol {
+                    ts.push((dot(sub(v, p), r) / (len * len)).clamp(0.0, 1.0));
+                }
+            }
+        }
+        ts.sort_by(f64::total_cmp);
+        for w in ts.windows(2) {
+            if (w[1] - w[0]) * len <= tol {
+                continue;
+            }
+            let t = 0.5 * (w[0] + w[1]);
+            if strictly_inside([p[0] + t * r[0], p[1] + t * r[1]], b, tol) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Whether two regions overlap (contract E12c). Shared edges, shared collinear stretches and T junctions
+/// are allowed. Overlap is any of: a proper edge crossing; a vertex strictly inside the other region;
+/// identical polygons; or, beyond the contract's list, a stretch of boundary running through the strict
+/// interior of the other region (for example a diagonal across a square that shares two of its sides).
+fn regions_overlap(a: &[Point], b: &[Point], tol: f64) -> bool {
+    if bboxes_apart(&bbox(a), &bbox(b), tol) {
+        return false;
+    }
+    if polygon_edges(a)
+        .any(|(p, q)| polygon_edges(b).any(|(c, d)| proper_crossing(p, q, c, d, tol)))
+    {
+        return true;
+    }
+    a.iter().any(|&p| strictly_inside(p, b, tol))
+        || b.iter().any(|&p| strictly_inside(p, a, tol))
+        || same_polygon(a, b, tol)
+        || boundary_enters(a, b, tol)
+        || boundary_enters(b, a, tol)
+}
+
+/// Polygon coordinates measured from `origin` in units of `scale`.
+fn normalize(poly: &[Point], origin: Point, scale: f64) -> Vec<Point> {
+    poly.iter()
+        .map(|p| [(p[0] - origin[0]) / scale, (p[1] - origin[1]) / scale])
+        .collect()
+}
+
+/// True if all the vertices lie within `tol` of the line through the two that are farthest apart.
+fn is_collinear(poly: &[Point], tol: f64) -> bool {
+    let (mut a, mut b, mut best) = (poly[0], poly[0], 0.0);
+    for &p in poly {
+        for &q in poly {
+            let d = norm(sub(p, q));
+            if d > best {
+                (a, b, best) = (p, q, d);
+            }
+        }
+    }
+    best <= tol
+        || poly
+            .iter()
+            .all(|&p| cross(sub(b, a), sub(p, a)).abs() / best <= tol)
+}
+
+/// A polygon whose signed area cancels to zero (a symmetric figure eight) is not degenerate: it crosses
+/// itself, and E12c reports that. A polygon with all its vertices on one line is degenerate.
+fn crosses_itself_with_zero_area(poly: &[Point], origin: Point, scale: f64) -> bool {
+    let poly = normalize(poly, origin, scale);
+    !is_collinear(&poly, REGION_TOLERANCE)
+        && find_self_intersection(&poly, REGION_TOLERANCE).is_some()
+}
+
+/// Checks that every region is a simple polygon and that no two regions overlap (contract E12c).
+/// Works on coordinates normalized to the unit of `scale` and measured from `(x_min, y_min)`, so the
+/// tolerance is `1e-9` and no product overflows.
+fn validate_regions(regions: &[PreparedRegion], origin: Point, scale: f64) -> Result<(), OgsError> {
+    let tol = REGION_TOLERANCE;
+    let polys: Vec<Vec<Point>> = regions
+        .iter()
+        .map(|r| normalize(&r.polygon, origin, scale))
+        .collect();
+    for (k, poly) in polys.iter().enumerate() {
+        if let Some((i, j)) = find_self_intersection(poly, tol) {
+            return Err(invalid(format!(
+                "la región {k} se auto-intersecta (aristas {i} y {j})"
+            )));
+        }
+    }
+    for a in 0..polys.len() {
+        for b in a + 1..polys.len() {
+            if regions_overlap(&polys[a], &polys[b], tol) {
+                return Err(invalid(format!("las regiones {a} y {b} se solapan")));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Keeps the larger of two envelope candidates (`upper`) or the smaller one.
 fn pick(best: Option<f64>, y: f64, upper: bool) -> Option<f64> {
     Some(match best {
@@ -284,12 +575,15 @@ impl PreparedModel {
         }
         let scale = width.max(height);
         for (k, region) in regions.iter().enumerate() {
-            if polygon_is_degenerate(&region.polygon, scale) {
+            if polygon_is_degenerate(&region.polygon, scale)
+                && !crosses_itself_with_zero_area(&region.polygon, [x_min, y_min], scale)
+            {
                 return Err(invalid(format!(
                     "la región {k} es degenerada: su área es nula"
                 )));
             }
         }
+        validate_regions(&regions, [x_min, y_min], scale)?;
         let (gamma_w, piezometric) = resolve_water(model)?;
         let mut pm = PreparedModel {
             materials,
