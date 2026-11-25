@@ -66,6 +66,19 @@ describe('issueTarget', () => {
   });
 });
 
+describe('issueTarget: proyecto', () => {
+  it('título, id y descripción abren «Proyecto» y enfocan su campo', () => {
+    for (const f of ['title', 'id', 'notes']) expect(issueTarget(`/meta/${f}`, doc())).toMatchObject({ tab: 'project', fieldPath: `/meta/${f}` });
+  });
+  it('/meta sin campo conocido enfoca el título', () => {
+    expect(issueTarget('/meta', doc())).toMatchObject({ tab: 'project', fieldPath: '/meta/title' });
+    expect(issueTarget('/meta/otro', doc())).toMatchObject({ tab: 'project', fieldPath: '/meta/title' });
+  });
+  it('las unidades abren «Proyecto» y enfocan el selector de unidades', () => {
+    expect(issueTarget('/units', doc())).toMatchObject({ tab: 'project', fieldPath: '/units' });
+  });
+});
+
 describe('fieldSelector', () => {
   it('construye el selector del campo por su puntero', () => {
     expect(fieldSelector('/analysis/seismic/kh')).toBe('[data-path="/analysis/seismic/kh"]');
