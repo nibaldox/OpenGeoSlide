@@ -1,11 +1,11 @@
 // Lógica pura del panel «Geometría»: resumen de regiones, edición de las coordenadas de la tabla de vértices, comandos para
 // agregar y quitar vértices o regiones, incidencias de la región y paginación de las tablas grandes. Sin React ni DOM.
 
-import type { Point } from '../../engine/types';
+import type { Point, Region } from '../../engine/types';
 import type { ConfirmOptions } from '../../ui/confirmQueue';
 import { coincidentVertices, type VertexRef } from '../canvas/geom';
 import { validateLocalCached } from '../state/validateLocal';
-import type { EditorCommand, Issue, ModelDoc } from '../types';
+import type { EditorCommand, EditorStore, Issue, ModelDoc } from '../types';
 import { formatNumber, parseNumber } from './forms';
 
 // ───────────────────────── Regiones ─────────────────────────
@@ -61,6 +61,34 @@ export function regionRemoveConfirm(summary: Pick<RegionSummary, 'index' | 'mate
     cancelLabel: 'Conservar la región',
     tone: 'danger',
   };
+}
+
+export type RegionRemoveOutcome = 'removed' | 'cancelled' | 'missing';
+
+/** Texto del aviso cuando la región que se iba a eliminar ya no está en el modelo. */
+export const REGION_GONE_NOTICE = 'La región ya no está en el modelo (se eliminó o se deshizo mientras se confirmaba): no se eliminó nada.';
+
+/**
+ * Elimina una región **por identidad** (R8 A-03): `region` es el objeto `doc.regions[i]` que se tenía al pedir la eliminación.
+ * Con dos confirmaciones en cola, el índice de la segunda queda obsoleto en cuanto se confirma la primera; la región se vuelve
+ * a buscar al responder. Si ya no existe, no se borra nada y el resultado es `'missing'`.
+ */
+export async function removeRegionConfirmed(
+  store: Pick<EditorStore, 'getState' | 'dispatch'>,
+  region: Region,
+  confirm: (options: ConfirmOptions) => Promise<boolean>,
+): Promise<RegionRemoveOutcome> {
+  const askedAt = store.getState().doc.regions.indexOf(region);
+  if (askedAt < 0) return 'missing';
+  const summary = regionSummary(store.getState().doc)[askedAt]!;
+  if (!(await confirm(regionRemoveConfirm(summary)))) return 'cancelled';
+  const doc = store.getState().doc;
+  const now = doc.regions.indexOf(region);
+  if (now < 0) return 'missing';
+  const cmd = regionRemoveCommand(doc, now);
+  if (!cmd) return 'missing';
+  store.dispatch(cmd);
+  return 'removed';
 }
 
 /** Incidencias locales de una región (errores y avisos), con los mismos mensajes que el panel de Diagnósticos. */

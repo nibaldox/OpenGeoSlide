@@ -13,8 +13,8 @@ import {
   pageOf,
   pageRange,
   regionIssues,
-  regionRemoveCommand,
-  regionRemoveConfirm,
+  REGION_GONE_NOTICE,
+  removeRegionConfirmed,
   regionSummary,
   vertexCoordEdit,
   vertexInsertCommand,
@@ -141,19 +141,19 @@ function IssueList({ issues }: { issues: readonly Issue[] }) {
   );
 }
 
-function RegionCard({ store, summary, selected, units }: { store: EditorStore; summary: RegionSummary; selected: boolean; units: string | undefined }) {
+function RegionCard({ store, summary, selected, units, onNotice }: { store: EditorStore; summary: RegionSummary; selected: boolean; units: string | undefined; onNotice: (text: string) => void }) {
   const materials = useStoreSelector(store, (s) => s.doc.materials);
   const u = unitLabels(units).length;
   const n = summary.index + 1;
   const confirm = useConfirm();
   const materialIndex = materials.findIndex((m) => m.id === summary.materialId);
   const materialName = materialIndex >= 0 ? materials[materialIndex]!.name : `${summary.materialId} (no existe)`;
+  // La región se identifica por su objeto, tomado al pedir la eliminación: con varias confirmaciones en cola el índice cambia (A-03).
   const remove = async (): Promise<void> => {
-    if (!regionRemoveCommand(store.getState().doc, summary.index)) return;
-    if (!(await confirm(regionRemoveConfirm(summary)))) return;
-    // El modelo pudo cambiar mientras el diálogo estaba abierto: el comando se recalcula sobre el documento actual.
-    const cmd = regionRemoveCommand(store.getState().doc, summary.index);
-    if (cmd) store.dispatch(cmd);
+    const region = store.getState().doc.regions[summary.index];
+    if (!region) return;
+    const outcome = await removeRegionConfirmed(store, region, confirm);
+    if (outcome === 'missing') onNotice(REGION_GONE_NOTICE);
   };
   return (
     <li className={selected ? 'gp-region ep-row-selected' : 'gp-region'} data-region-card={summary.index}>
@@ -308,6 +308,7 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
   const selection = useStoreSelector(store, (s) => s.ui.selection);
   const summaries = useMemo(() => regionSummary(doc), [doc]);
   const [lastRegion, setLastRegion] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const selectedRegion = selection.kind === 'region' || selection.kind === 'vertex' ? selection.regionIndex : null;
   useEffect(() => {
@@ -341,9 +342,17 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
               Dividir región…
             </button>
           </div>
+          {notice ? (
+            <p className="muted small gp-notice" role="status" data-testid="geometry-notice">
+              {notice}{' '}
+              <button type="button" onClick={() => setNotice(null)}>
+                Entendido
+              </button>
+            </p>
+          ) : null}
           <ul className="gp-regions" aria-label="Regiones del modelo">
           {summaries.map((s) => (
-            <RegionCard key={s.index} store={store} summary={s} selected={active === s.index} units={doc.units} />
+            <RegionCard key={s.index} store={store} summary={s} selected={active === s.index} units={doc.units} onNotice={setNotice} />
           ))}
           </ul>
         </>
