@@ -94,6 +94,21 @@ export interface SlopeInput {
   depth: number;
   material: Pick<Material, 'name' | 'unit_weight' | 'cohesion' | 'friction_angle'>;
   water: SlopeWater;
+  /** Estrato inferior (material 2) con un contacto horizontal. Sin él, el talud es de un solo material. */
+  lower?: LowerStratum;
+}
+
+/** Contacto horizontal entre el material 1 (arriba) y el 2 (abajo): su cota y (el pie está en y = 0) o su profundidad bajo el pie. */
+export type StratumContact = { kind: 'elevation'; y: number } | { kind: 'depth'; depth: number };
+
+export interface LowerStratum {
+  material: Pick<Material, 'name' | 'unit_weight' | 'cohesion' | 'friction_angle'>;
+  contact: StratumContact;
+}
+
+/** Cota y del contacto (el pie del talud está en y = 0). */
+export function contactElevation(contact: StratumContact): number {
+  return contact.kind === 'elevation' ? contact.y : -contact.depth;
 }
 
 /** Ángulos admitidos para el talud simple, en grados (el diálogo no genera taludes casi planos ni casi verticales). */
@@ -126,21 +141,43 @@ function dedupe(points: Point[]): Point[] {
   return out;
 }
 
-/** Talud simple de un material con búsqueda de superficie crítica y dirección de izquierda a derecha. */
-export function simpleSlope(input: SlopeInput): ModelDoc {
-  const { height: h, crownWidth, toeWidth, depth, units } = input;
+/** Regiones del talud simple (arriba y, si hay estrato inferior, abajo) a partir de los parámetros geométricos. */
+export function slopeRegions(input: SlopeInput): { upper: Point[]; lower: Point[] | null; xToe: number; xCrest: number; width: number } {
+  const { height: h, crownWidth, toeWidth, depth } = input;
   const run = r6(h / slopeTangent(input.slope));
   const xCrest = r6(crownWidth);
   const xToe = r6(crownWidth + run);
   const width = r6(crownWidth + run + toeWidth);
-  const polygon = dedupe([
-    [0, -depth],
-    [width, -depth],
-    [width, 0],
-    [xToe, 0],
-    [xCrest, h],
-    [0, h],
-  ]);
+  const ground: Point[] = [[width, 0], [xToe, 0], [xCrest, h], [0, h]];
+  if (!input.lower) {
+    return { upper: dedupe([[0, -depth], [width, -depth], ...ground]), lower: null, xToe, xCrest, width };
+  }
+  const yc = r6(contactElevation(input.lower.contact));
+  if (yc < 0) {
+    // Contacto bajo el pie: el estrato inferior es un rectángulo y comparte con el superior toda la arista y = yc.
+    return {
+      upper: dedupe([[0, yc], [width, yc], ...ground]),
+      lower: dedupe([[0, -depth], [width, -depth], [width, yc], [0, yc]]),
+      xToe,
+      xCrest,
+      width,
+    };
+  }
+  // Contacto a la altura del pie o sobre él: corta la cara del talud en (xFace, yc).
+  const xFace = r6(xToe - (yc * run) / h);
+  return {
+    upper: dedupe([[0, yc], [xFace, yc], [xCrest, h], [0, h]]),
+    lower: dedupe([[0, -depth], [width, -depth], [width, 0], [xToe, 0], [xFace, yc], [0, yc]]),
+    xToe,
+    xCrest,
+    width,
+  };
+}
+
+/** Talud simple de un material (o de dos, con estrato inferior) con búsqueda de superficie crítica y dirección de izquierda a derecha. */
+export function simpleSlope(input: SlopeInput): ModelDoc {
+  const { height: h, units } = input;
+  const { upper, lower, xToe, width } = slopeRegions(input);
 
   let water: ModelDoc['water'] = null;
   if (input.water !== 'none') {
@@ -154,24 +191,30 @@ export function simpleSlope(input: SlopeInput): ModelDoc {
     water = { unit_weight: defaultWaterUnitWeight(units), piezometric_line: line };
   }
 
+  const material = (id: string, m: SlopeInput['material'], fallback: string): Material => ({
+    id,
+    name: m.name.trim() === '' ? fallback : m.name.trim(),
+    model: 'mohr_coulomb',
+    unit_weight: m.unit_weight,
+    unit_weight_sat: null,
+    cohesion: m.cohesion,
+    friction_angle: m.friction_angle,
+    ru: null,
+  });
+  const materials = [material('suelo', input.material, 'Suelo')];
+  const regions: ModelDoc['regions'] = [{ material: 'suelo', polygon: upper }];
+  if (input.lower && lower) {
+    materials.push(material('estrato-2', input.lower.material, 'Estrato inferior'));
+    regions.push({ material: 'estrato-2', polygon: lower });
+  }
+
   return {
     format: 'opengeoslide',
     version: '0.2',
     meta: { id: 'talud-simple', title: slopeTitle(input), notes: null },
     units,
-    materials: [
-      {
-        id: 'suelo',
-        name: input.material.name.trim() === '' ? 'Suelo' : input.material.name.trim(),
-        model: 'mohr_coulomb',
-        unit_weight: input.material.unit_weight,
-        unit_weight_sat: null,
-        cohesion: input.material.cohesion,
-        friction_angle: input.material.friction_angle,
-        ru: null,
-      },
-    ],
-    regions: [{ material: 'suelo', polygon }],
+    materials,
+    regions,
     water,
     loads: [],
     slope: { direction: 'left_to_right' },
@@ -197,6 +240,15 @@ export interface SlopeForm {
   cohesion: string;
   friction_angle: string;
   water: SlopeWater;
+  /** «Estrato inferior»: material 2 bajo un contacto horizontal. */
+  lowerOn: boolean;
+  /** Qué se da del contacto: su cota (y, con el pie en 0) o su profundidad bajo el pie. */
+  lowerMode: 'depth' | 'elevation';
+  lowerContact: string;
+  lowerName: string;
+  lowerUnitWeight: string;
+  lowerCohesion: string;
+  lowerFriction: string;
 }
 
 export function slopeFormDefaults(units: 'SI' | 'imperial' = 'SI'): SlopeForm {
@@ -215,6 +267,13 @@ export function slopeFormDefaults(units: 'SI' | 'imperial' = 'SI'): SlopeForm {
     cohesion: imperial ? '200' : '10',
     friction_angle: '30',
     water: 'none',
+    lowerOn: false,
+    lowerMode: 'depth',
+    lowerContact: imperial ? '15' : '5',
+    lowerName: 'Roca',
+    lowerUnitWeight: imperial ? '150' : '24',
+    lowerCohesion: imperial ? '4000' : '200',
+    lowerFriction: '40',
   };
 }
 
@@ -268,6 +327,9 @@ export function slopeFromForm(form: SlopeForm): FormOutcome<SlopeInput> {
     for (const [k, v] of Object.entries(mat.errors)) if (k !== 'id') errors[k] = v;
   }
 
+  let lower: LowerStratum | undefined;
+  if (form.lowerOn) lower = lowerFromForm(form, errors, { height, depth, len, e });
+
   if (Object.keys(errors).length > 0 || height === null || slope === null || crown === null || toe === null || depth === null || !mat.ok) {
     return { ok: false, errors };
   }
@@ -282,6 +344,43 @@ export function slopeFromForm(form: SlopeForm): FormOutcome<SlopeInput> {
       depth,
       material: { name: mat.value.name, unit_weight: mat.value.unit_weight, cohesion: mat.value.cohesion, friction_angle: mat.value.friction_angle },
       water: form.water,
+      ...(lower ? { lower } : {}),
     },
   };
+}
+
+/** Cota mínima y máxima admitidas para el contacto: dentro del modelo, entre la base (−profundidad) y la corona (H). */
+export function contactLimits(height: number, depth: number): { min: number; max: number } {
+  return { min: -depth, max: height };
+}
+
+function lowerFromForm(form: SlopeForm, errors: FieldErrors, ctx: { height: number | null; depth: number | null; len: string; e: string }): LowerStratum | undefined {
+  const { height, depth, len, e } = ctx;
+  let contact: StratumContact | null = null;
+  const text = form.lowerContact;
+  if (form.lowerMode === 'depth') {
+    const msg =
+      depth !== null
+        ? `Profundidad del contacto: use un valor mayor que 0 y menor que la profundidad del modelo, ${formatNumber(depth)} ${len} (ej. ${e === '30' ? '15' : '5'} ${len})`
+        : 'Profundidad del contacto: use un valor mayor que 0 (ej. 5)';
+    const v = field(errors, 'lowerContact', text, msg, (x) => x > 0 && (depth === null || x < depth));
+    if (v !== null) contact = { kind: 'depth', depth: v };
+  } else {
+    const msg =
+      height !== null && depth !== null
+        ? `Cota del contacto: debe quedar dentro del modelo, entre ${formatNumber(-depth)} y ${formatNumber(height)} ${len} (el pie está en 0)`
+        : 'Cota del contacto: escriba la cota y (el pie está en 0)';
+    const v = field(errors, 'lowerContact', text, msg, (x) => (depth === null || x > -depth) && (height === null || x < height));
+    if (v !== null) contact = { kind: 'elevation', y: v };
+  }
+  const mat = materialFromForm(
+    { id: 'estrato-2', name: form.lowerName, unit_weight: form.lowerUnitWeight, unit_weight_sat: '', cohesion: form.lowerCohesion, friction_angle: form.lowerFriction, ru: '' },
+    { otherIds: [], editing: null },
+  );
+  if (!mat.ok) {
+    const map: Record<string, string> = { unit_weight: 'lowerUnitWeight', cohesion: 'lowerCohesion', friction_angle: 'lowerFriction', name: 'lowerName' };
+    for (const [k, v] of Object.entries(mat.errors)) if (map[k]) errors[map[k] as string] = v;
+  }
+  if (contact === null || !mat.ok) return undefined;
+  return { material: { name: mat.value.name, unit_weight: mat.value.unit_weight, cohesion: mat.value.cohesion, friction_angle: mat.value.friction_angle }, contact };
 }
