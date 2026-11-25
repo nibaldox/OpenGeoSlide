@@ -29,13 +29,17 @@ describe('workflows de publicación (R6-04)', () => {
     const wheels = wf('wheels.yml');
     const assets = jobBlock(wheels, 'release-assets');
     expect(assets).toContain(guard);
-    expect(assets).toContain('softprops/action-gh-release@v3');
+    // No crea el Release (lo hace release.yml): espera a que exista y sube con gh.
+    expect(assets).not.toContain('softprops');
+    expect(assets).toContain('gh release view "$GITHUB_REF_NAME"');
+    expect(assets).toContain('gh release upload "$GITHUB_REF_NAME" dist/*.whl dist/*.tar.gz --clobber');
     expect(assets).toContain('contents: write');
     expect(assets).not.toContain('id-token');
     // El permiso global sigue siendo de solo lectura: contents: write solo aparece en release-assets.
     expect(wheels.match(/contents: write/g)).toHaveLength(1);
-    // La misma versión de la acción que usa release.yml.
+    // release.yml es el único workflow que usa softprops (el único que crea el Release).
     expect(wf('release.yml')).toContain('softprops/action-gh-release@v3');
+    expect(wheels).not.toContain('softprops');
   });
 
   it('release.yml: github-release lleva la misma guarda', () => {
