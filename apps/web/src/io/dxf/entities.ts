@@ -61,16 +61,20 @@ function parseNum(p: DxfPair): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Tolerancia con la que el vector de extrusión se considera (0, 0, 1): absorbe residuos de exportadores CAD/QGIS (R6-05). */
+const EXTRUSION_TOL = 1e-9;
+
 /**
- * `null` si el vector de extrusión (210/220/230) es (0, 0, 1), que es el valor por omisión cuando faltan los códigos;
- * en otro caso, el motivo del rechazo. Una componente no numérica también se rechaza.
+ * `null` si el vector de extrusión (210/220/230) es (0, 0, 1) con tolerancia `1e-9`, que es el valor por omisión cuando
+ * faltan los códigos; en otro caso, el motivo del rechazo. Una componente no numérica también se rechaza. Solo se usa
+ * en entidades con coordenadas OCS (`LWPOLYLINE`, `POLYLINE`): las de `LINE` son WCS y su extrusión no afecta.
  */
 function extrusionProblem(pairs: DxfPair[]): string | null {
   const ex = readNumber(pairs, 210);
   const ey = readNumber(pairs, 220);
   const ez = readNumber(pairs, 230);
   if (ex === 'invalid' || ey === 'invalid' || ez === 'invalid') return 'vector de extrusión no numérico o no finito';
-  if ((ex ?? 0) !== 0 || (ey ?? 0) !== 0 || (ez ?? 1) !== 1) {
+  if (Math.abs(ex ?? 0) > EXTRUSION_TOL || Math.abs(ey ?? 0) > EXTRUSION_TOL || Math.abs((ez ?? 1) - 1) > EXTRUSION_TOL) {
     return `tiene un vector de extrusión (${ex ?? 0}, ${ey ?? 0}, ${ez ?? 1}) distinto de (0, 0, 1): el plano no es XY o está espejado`;
   }
   return null;
@@ -132,8 +136,7 @@ function parseLine(r: Record_): Parsed {
   const z2 = readNumber(r.pairs, 31);
   if (z1 === 'invalid' || z2 === 'invalid') return reject('coordenadas no numéricas o no finitas');
   if ((z1 ?? 0) !== 0 || (z2 ?? 0) !== 0) return reject('es 3D (cota Z distinta de 0)');
-  const extrusion = extrusionProblem(r.pairs);
-  if (extrusion) return reject(extrusion);
+  // Sin comprobar la extrusión: los extremos de una LINE están en WCS (R6-05).
   return {
     ok: true,
     entity: {

@@ -244,13 +244,29 @@ describe('parseDxf: R5-06 extrusión, cota Z de cabecera y recuento', () => {
     }
   });
 
-  it('POLYLINE espejada (230 = -1 en la cabecera) y LINE espejada se rechazan', () => {
+  it('POLYLINE espejada (230 = -1 en la cabecera) se rechaza (la LINE no: R6-05)', () => {
     const r = parseDxf(body(poly('210\n0\n220\n0\n230\n-1\n')));
     expect(r.entities).toEqual([]);
     expect(r.issues.some((i) => i.entity === 'POLYLINE' && i.text.includes('extrusión'))).toBe(true);
+  });
+
+  // R6-05: tolerancia numérica y LINE en WCS.
+  it('R6-05: residuo numérico (1e-16, 0, 1) se acepta; (1e-6, 0, 1) sigue rechazándose', () => {
+    const ok = parseDxf(body(lw('210\n1e-16\n220\n0\n230\n1\n')));
+    expect(ok.regions).toHaveLength(1);
+    expect(ok.issues.filter((i) => i.text.includes('extrusión'))).toEqual([]);
+    const okZ = parseDxf(body(lw('210\n0\n220\n0\n230\n0.9999999999999999\n')));
+    expect(okZ.regions).toHaveLength(1);
+    const bad = parseDxf(body(lw('210\n1e-6\n220\n0\n230\n1\n')));
+    expect(bad.entities).toEqual([]);
+  });
+
+  it('R6-05: LINE con 230 = -1 se acepta (sus coordenadas son WCS); LWPOLYLINE y POLYLINE con 230 = -1 se rechazan', () => {
     const line = parseDxf(body('0\nLINE\n8\nA\n10\n0\n20\n0\n11\n1\n21\n1\n210\n0\n220\n0\n230\n-1\n'));
-    expect(line.entities).toEqual([]);
-    expect(line.issues.some((i) => i.entity === 'LINE' && i.text.includes('extrusión'))).toBe(true);
+    expect(line.entities).toHaveLength(1);
+    expect(line.issues.filter((i) => i.text.includes('extrusión'))).toEqual([]);
+    expect(parseDxf(body(lw('210\n0\n220\n0\n230\n-1\n'))).entities).toEqual([]);
+    expect(parseDxf(body(poly('210\n0\n220\n0\n230\n-1\n'))).entities).toEqual([]);
   });
 
   it('POLYLINE con cota Z de cabecera (30 = 25) se rechaza como 3D; con 30 = 0 pasa', () => {
