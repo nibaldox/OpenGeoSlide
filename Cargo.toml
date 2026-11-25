@@ -9,7 +9,7 @@ edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.85"
 authors = ["Colaboradores de OpenGeoSlide"]
-# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide): ver CONTRIBUTING.md, sección «Publicación».
+# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide): si cambia, actualícelo también en pyproject.toml y CITATION.cff.
 repository = "https://github.com/opengeoslide/opengeoslide"
 homepage = "https://opengeoslide.github.io/opengeoslide/"
 documentation = "https://docs.rs/ogs-core"
