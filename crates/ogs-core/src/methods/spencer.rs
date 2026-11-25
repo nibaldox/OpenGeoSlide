@@ -387,6 +387,11 @@ fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64>
 /// The step taken from a point with `|h| ≤ NEWTON_TRUST` is returned without evaluating `h` again: Newton's error is
 /// quadratic there (about 1e-12 or less), and the caller checks the closure at the returned point (`ROOT_ACCEPT`).
 fn newton_near(slope: &SlopeFn<'_>, guess: f64, start: f64) -> Option<f64> {
+    // R5-11: the guess itself obeys the guards of the steps, so a root at it (|h| ≤ ROOT_STOP at iteration 0) cannot
+    // come from outside `(0, FOS_MAX]` or from beyond the `ROOT_STEP0` neighbourhood of `start`.
+    if !(guess > 0.0 && guess <= FOS_MAX) || (guess - start).abs() > ROOT_STEP0 * start {
+        return None;
+    }
     let mut x = guess;
     for _ in 0..NEWTON_LIMIT {
         let (h, dh) = slope(x)?;
@@ -995,4 +1000,33 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     }
     notes.extend(converged_notes(air, normal_class));
     outcome(fos, SolveStatus::Converged, iterations, Some(lambda), None).with_warnings(notes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// R5-11: `newton_near` applies the guards of `(0, FOS_MAX]` and of the `ROOT_STEP0` neighbourhood to the guess too.
+    /// Before, a guess that already satisfied `|h| ≤ ROOT_STOP` at iteration 0 was returned unchecked.
+    #[test]
+    fn newton_near_checks_the_guess_at_iteration_zero() {
+        // Linear residual with its root at 1.5: Newton converges at once from any guess.
+        let line = |x: f64| Some((x - 1.5, 1.0));
+        // The root is 50 % away from `start = 1.0`: outside the 1 % neighbourhood, so the fast path gives up.
+        assert_eq!(newton_near(&line, 1.5, 1.0), None);
+        // From inside the neighbourhood the same root is accepted (start = 1.495: 0.33 % away).
+        assert_eq!(newton_near(&line, 1.5, 1.495), Some(1.5));
+        // Root at or below zero, and above FOS_MAX: rejected even when |h| = 0 at the guess.
+        let zero = |x: f64| Some((x, 1.0));
+        assert_eq!(newton_near(&zero, 0.0, 0.001), None);
+        let negative = |x: f64| Some((x + 1.0, 1.0));
+        assert_eq!(newton_near(&negative, -1.0, 0.5), None);
+        let far = |x: f64| Some((x - 2.0 * FOS_MAX, 1.0));
+        assert_eq!(newton_near(&far, 2.0 * FOS_MAX, 2.0 * FOS_MAX), None);
+        // Boundary of the neighbourhood: just inside is kept.
+        let edge = |x: f64| Some((x - 1.0099, 1.0));
+        assert_eq!(newton_near(&edge, 1.0099, 1.0), Some(1.0099));
+        let outside = |x: f64| Some((x - 1.0101, 1.0));
+        assert_eq!(newton_near(&outside, 1.0101, 1.0), None);
+    }
 }
