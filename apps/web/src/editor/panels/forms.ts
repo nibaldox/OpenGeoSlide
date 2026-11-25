@@ -37,6 +37,11 @@ export function formatNumber(value: number | null | undefined): string {
   return String(Number(value.toPrecision(12))).replace('.', ',');
 }
 
+/** Entero con espacio fino de no separación como separador de miles (independiente del ICU del entorno). */
+export function formatCount(n: number): string {
+  return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+}
+
 // ───────────────────────── Resultado de formularios ─────────────────────────
 
 /** Errores por campo (clave = nombre del campo del formulario). */
@@ -109,7 +114,7 @@ export interface ModelBounds {
 }
 
 /** Caja de todos los vértices de todas las regiones; `null` si no hay vértices finitos. */
-export function modelBounds(doc: ModelDoc): ModelBounds | null {
+export function modelBounds(doc: Pick<ModelDoc, 'regions'>): ModelBounds | null {
   let xMin = Infinity;
   let xMax = -Infinity;
   let yMin = Infinity;
@@ -126,7 +131,7 @@ export function modelBounds(doc: ModelDoc): ModelBounds | null {
   return xMin <= xMax && yMin <= yMax ? { xMin, xMax, yMin, yMax } : null;
 }
 
-export function modelXRange(doc: ModelDoc): [number, number] | null {
+export function modelXRange(doc: Pick<ModelDoc, 'regions'>): [number, number] | null {
   const b = modelBounds(doc);
   return b ? [b.xMin, b.xMax] : null;
 }
@@ -269,7 +274,7 @@ export function materialUpsertCommand(material: Material): EditorCommand {
 }
 
 /** Índices de las regiones que usan el material. */
-export function materialUsage(doc: ModelDoc, materialId: string): number[] {
+export function materialUsage(doc: Pick<ModelDoc, 'regions'>, materialId: string): number[] {
   const out: number[] = [];
   doc.regions.forEach((r, i) => {
     if (r.material === materialId) out.push(i);
@@ -277,7 +282,7 @@ export function materialUsage(doc: ModelDoc, materialId: string): number[] {
   return out;
 }
 
-export function materialRemoveCommand(doc: ModelDoc, materialId: string): EditorCommand | null {
+export function materialRemoveCommand(doc: Pick<ModelDoc, 'regions'>, materialId: string): EditorCommand | null {
   return materialUsage(doc, materialId).length > 0 ? null : { type: 'material/remove', materialId };
 }
 

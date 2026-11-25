@@ -12,6 +12,7 @@ import {
   defaultPiezo,
   defaultSearch,
   diagnosticsStatusLabel,
+  formatCount,
   formatNumber,
   hasIgnoredSurface,
   issueSummary,
@@ -119,6 +120,15 @@ describe('parseNumber / formatNumber', () => {
     for (const v of [0, 1, -3.25, 19.6, 1e-5, 0.01, 123456.789, 1e-7]) {
       expect(parseNumber(formatNumber(v))).toEqual({ kind: 'ok', value: v });
     }
+  });
+});
+
+describe('formatCount', () => {
+  it('agrupa miles con espacio fino', () => {
+    expect(formatCount(0)).toBe('0');
+    expect(formatCount(999)).toBe('999');
+    expect(formatCount(8000)).toBe('8\u202f000');
+    expect(formatCount(2_000_000)).toBe('2\u202f000\u202f000');
   });
 });
 
