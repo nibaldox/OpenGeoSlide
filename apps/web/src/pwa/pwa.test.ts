@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { pwaPrecache } from '../../build/pwa-plugin';
 import { registerOptions } from './register';
-import { showUpdatePrompt, UPDATE_PROMPT_ID } from './updatePrompt';
+import { LATER_BUTTON_TEXT, showUpdatePrompt, UPDATE_BUTTON_TEXT, UPDATE_PROMPT_ID } from './updatePrompt';
 import { SKIP_WAITING_MESSAGE, watchForUpdates, type ContainerLike, type RegistrationLike, type WorkerLike } from './updateFlow';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
@@ -146,12 +146,20 @@ describe('aviso de actualización (R6-01)', () => {
   // DOM mínimo para el entorno `node`.
   class FakeEl {
     id = '';
+    className = '';
+    textContent = '';
     style: Record<string, string> = {};
     disabled = false;
     children: FakeEl[] = [];
+    parent: FakeEl | null = null;
     private click: (() => void)[] = [];
     setAttribute(): void {}
+    remove(): void {
+      if (this.parent) this.parent.children = this.parent.children.filter((c) => c !== this);
+      this.parent = null;
+    }
     append(...c: FakeEl[]): void {
+      c.forEach((x) => (x.parent = this));
       this.children.push(...c);
     }
     addEventListener(_t: string, l: () => void): void {
@@ -185,6 +193,29 @@ describe('aviso de actualización (R6-01)', () => {
     button.fire();
     expect(second).toHaveBeenCalledTimes(1);
     expect(first).toHaveBeenCalledTimes(1);
+  });
+
+  it('U1-T: el aviso se estiliza con una clase (tokens), sin estilos en línea ni colores literales', () => {
+    const doc = fakeDoc();
+    const box = showUpdatePrompt(vi.fn(), doc) as unknown as FakeEl;
+    expect(box.className).toBe('ogs-update-prompt');
+    expect(box.style).toEqual({});
+    for (const child of box.children) expect(child.style).toEqual({});
+    const src = read('./updatePrompt.ts');
+    expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|\.style\b/);
+  });
+
+  it('U1-T: «Más tarde» cierra el aviso sin llamar a apply ni recargar; una versión posterior lo vuelve a mostrar', () => {
+    const doc = fakeDoc();
+    const apply = vi.fn();
+    const box = showUpdatePrompt(apply, doc) as unknown as FakeEl;
+    expect(box.children.map((c) => c.textContent)).toEqual(['Hay una versión nueva de OpenGeoSlide', UPDATE_BUTTON_TEXT, LATER_BUTTON_TEXT]);
+    expect(LATER_BUTTON_TEXT).toBe('Más tarde');
+    (box.children[2] as FakeEl).fire();
+    expect(apply).not.toHaveBeenCalled();
+    expect(doc.getElementById(UPDATE_PROMPT_ID)).toBeNull();
+    const again = showUpdatePrompt(apply, doc) as unknown as FakeEl;
+    expect(doc.getElementById(UPDATE_PROMPT_ID)).toBe(again);
   });
 });
 

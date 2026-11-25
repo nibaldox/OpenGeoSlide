@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { resolveSectionPalette } from '../theme/sectionPalette';
+import { useTheme } from '../theme/useTheme';
 import { drawSection } from './drawSection';
 import type { Scene } from './scene';
 
@@ -9,6 +11,8 @@ export function SectionCanvas({ scene }: { scene: Scene }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
+  // Cambia al conmutar el tema (selector o sistema): el Canvas 2D no sigue a CSS, así que se vuelve a dibujar.
+  const { resolved } = useTheme();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -29,8 +33,8 @@ export function SectionCanvas({ scene }: { scene: Scene }) {
     canvas.height = Math.round(SECTION_HEIGHT_PX * dpr);
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    drawSection(ctx, width, SECTION_HEIGHT_PX, dpr, scene);
-  }, [scene, width]);
+    drawSection(ctx, width, SECTION_HEIGHT_PX, dpr, scene, resolveSectionPalette());
+  }, [scene, width, resolved]);
 
   return (
     <div ref={wrapRef} className="section-wrap">

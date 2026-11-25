@@ -71,9 +71,9 @@ describe('EditorCanvas (render estático)', () => {
 
   it('el color de la región sigue al material', () => {
     const html = render();
-    expect(html).toContain('fill="#d8b77a"'); // m1 = índice 0
-    expect(html).toContain('fill="#9cc29a"'); // m2 = índice 1
-    expect(render((d) => (d.regions[0].material = 'no-existe'))).toContain('fill="#cccccc"');
+    expect(html).toContain('fill="var(--canvas-mat-0)"'); // m1 = índice 0
+    expect(html).toContain('fill="var(--canvas-mat-1)"'); // m2 = índice 1
+    expect(render((d) => (d.regions[0].material = 'no-existe'))).toContain('fill="var(--canvas-mat-unknown)"');
   });
 
   it('sin result no dibuja la capa de resultado; con result dibuja dovelas en gris y la superficie crítica en rojo', () => {
@@ -104,7 +104,31 @@ describe('EditorCanvas (render estático)', () => {
     expect(html).toContain('data-layer="result"');
     expect((html.match(/data-slice=/g) ?? []).length).toBe(2);
     expect(html).toContain('data-critical-surface');
-    expect(html).toContain('stroke="#dc2626"');
-    expect(html).toContain('rgba(120, 120, 120, 0.22)');
+    expect(html).toContain('stroke="var(--canvas-surface)"');
+    expect(html).toContain('fill="var(--canvas-slice-fill)"');
+    // UX-06: halo bajo la superficie crítica, para que se lea sobre cualquier material en ambos temas.
+    expect(html).toMatch(/<polyline[^>]*stroke="var\(--canvas-halo\)"[^>]*data-halo="critical-surface"/);
+  });
+
+  it('el lienzo no escribe colores literales: todo sale de los tokens --canvas-*', () => {
+    const html = render((d) => {
+      d.loads = [{ type: 'udl', x1: 40, x2: 60, q: 20 }, { type: 'line', x: 50, p: 15, angle: 10 }];
+      d.analysis.seismic = { kh: 0.1, kv: 0 };
+    });
+    expect(html).not.toMatch(/(#[0-9a-fA-F]{3,8}\b|rgba?\()/);
+    expect(html).toContain('background:var(--canvas-bg)');
+    expect(html).toContain('fill="var(--canvas-seismic-bg)"');
+    expect(html).toContain('paint-order="stroke"'); // etiquetas de las cargas con halo
+  });
+
+  it('UX-20 y UX-06: las etiquetas de los ejes miden 12 px o más y llevan halo (paint-order: stroke)', () => {
+    const html = render();
+    const texts = [...html.matchAll(/<text [^>]*>/g)].map((m) => m[0]).filter((t) => t.includes('var(--canvas-axis-text)'));
+    expect(texts.length).toBeGreaterThan(0);
+    for (const t of texts) {
+      expect(Number(/font-size="(\d+)"/.exec(t)?.[1])).toBeGreaterThanOrEqual(12);
+      expect(t).toContain('paint-order="stroke"');
+      expect(t).toContain('stroke="var(--canvas-halo)"');
+    }
   });
 });

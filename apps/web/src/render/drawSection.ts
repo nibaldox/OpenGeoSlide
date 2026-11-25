@@ -2,16 +2,16 @@
 // superficie crítica en rojo sobre dovelas grises. La piezométrica va en azul discontinuo.
 
 import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport';
-import type { Scene } from './scene';
+import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
+import { materialSlot, type Scene } from './scene';
 
 const MARGIN_PX = 56;
-const COLOR_GRID = '#e5e7eb';
-const COLOR_AXIS = '#374151';
-const COLOR_REGION_EDGE = '#1f2937';
-const COLOR_SURFACE = '#dc2626';
-const COLOR_SLICE_FILL = 'rgba(75, 85, 99, 0.14)';
-const COLOR_SLICE_EDGE = 'rgba(75, 85, 99, 0.55)';
-const COLOR_PIEZO = '#1d4ed8';
+/** Etiquetas de los ejes de 12 px o más (UX-20). */
+const AXIS_FONT = '12px system-ui, sans-serif';
+/** Grosor extra, a cada lado, del halo que separa un trazo del fondo y de los materiales. */
+const HALO_EXTRA_PX = 2;
+/** Grosor del halo de los rótulos. */
+const HALO_TEXT_PX = 3;
 
 /** Paso "bonito" (1, 2 o 5 × 10^k) para unas `target` divisiones del intervalo. */
 export function niceStep(span: number, target = 8): number {
@@ -37,7 +37,7 @@ function decimalsFor(step: number): number {
   return step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step)));
 }
 
-function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene): void {
+function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette): void {
   const { minX, maxX, minY, maxY } = scene.bounds;
   const [left, top] = worldToScreen(vp, minX, maxY);
   const [right, bottom] = worldToScreen(vp, maxX, minY);
@@ -47,10 +47,11 @@ function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene): vo
   const decX = decimalsFor(stepX);
   const decY = decimalsFor(stepY);
 
-  ctx.font = '11px system-ui, sans-serif';
+  ctx.font = AXIS_FONT;
+  ctx.lineJoin = 'round';
   ctx.lineWidth = 1;
 
-  ctx.strokeStyle = COLOR_GRID;
+  ctx.strokeStyle = palette.grid;
   for (const x of ticksBetween(minX, maxX, stepX)) {
     const [sx] = worldToScreen(vp, x, 0);
     ctx.beginPath();
@@ -66,28 +67,35 @@ function drawAxes(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene): vo
     ctx.stroke();
   }
 
-  ctx.strokeStyle = COLOR_AXIS;
+  ctx.strokeStyle = palette.axis;
   ctx.strokeRect(left, top, right - left, bottom - top);
 
-  ctx.fillStyle = COLOR_AXIS;
+  ctx.fillStyle = palette.axisText;
+  const label = (text: string, x: number, y: number): void => {
+    // Halo: el rótulo se lee aunque lo cruce una línea de la cuadrícula o un material.
+    ctx.lineWidth = HALO_TEXT_PX;
+    ctx.strokeStyle = palette.halo;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+  };
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   for (const x of ticksBetween(minX, maxX, stepX)) {
     const [sx] = worldToScreen(vp, x, 0);
-    ctx.fillText(x.toFixed(decX), sx, bottom + 4);
+    label(x.toFixed(decX), sx, bottom + 4);
   }
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
   for (const y of ticksBetween(minY, maxY, stepY)) {
     const [, sy] = worldToScreen(vp, 0, y);
-    ctx.fillText(y.toFixed(decY), left - 6, sy);
+    label(y.toFixed(decY), left - 6, sy);
   }
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
-  ctx.fillText('x (m)', right, bottom + 18);
+  label('x (m)', right, bottom + 18);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('y (m)', left, top - 6);
+  label('y (m)', left, top - 6);
 }
 
 function tracePolygon(ctx: CanvasRenderingContext2D, vp: Viewport, points: [number, number][]): void {
@@ -107,22 +115,23 @@ export function drawSection(
   cssHeight: number,
   dpr: number,
   scene: Scene,
+  palette: SectionPalette = defaultSectionPalette(),
 ): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssWidth, cssHeight);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, cssWidth, cssHeight);
 
   const vp = fitViewport(scene.bounds, cssWidth, cssHeight, MARGIN_PX);
-  drawAxes(ctx, vp, scene);
+  drawAxes(ctx, vp, scene, palette);
 
   // Regiones por material
   for (const region of scene.regions) {
-    const material = scene.materials[region.materialIndex];
+    const known = scene.materials[region.materialIndex] !== undefined;
     tracePolygon(ctx, vp, region.polygon);
-    ctx.fillStyle = material?.color ?? '#cccccc';
+    ctx.fillStyle = known ? palette.materials[materialSlot(region.materialIndex)] : palette.materialUnknown;
     ctx.fill();
-    ctx.strokeStyle = COLOR_REGION_EDGE;
+    ctx.strokeStyle = palette.regionEdge;
     ctx.lineWidth = 1.25;
     ctx.stroke();
   }
@@ -136,9 +145,9 @@ export function drawSection(
         [s.x_right, s.y_top_mid],
         [s.x_left, s.y_top_mid],
       ]);
-      ctx.fillStyle = COLOR_SLICE_FILL;
+      ctx.fillStyle = palette.sliceFill;
       ctx.fill();
-      ctx.strokeStyle = COLOR_SLICE_EDGE;
+      ctx.strokeStyle = palette.sliceEdge;
       ctx.lineWidth = 0.6;
       ctx.stroke();
     }
@@ -156,9 +165,13 @@ export function drawSection(
       if (i === 0) ctx.moveTo(sx, sy);
       else ctx.lineTo(sx, sy);
     }
-    ctx.strokeStyle = COLOR_SURFACE;
-    ctx.lineWidth = 2.2;
     ctx.setLineDash([]);
+    // Halo bajo la superficie crítica (UX-06): conserva el contraste sobre cualquier material.
+    ctx.strokeStyle = palette.halo;
+    ctx.lineWidth = 2.2 + 2 * HALO_EXTRA_PX;
+    ctx.stroke();
+    ctx.strokeStyle = palette.surface;
+    ctx.lineWidth = 2.2;
     ctx.stroke();
   }
 
@@ -170,7 +183,11 @@ export function drawSection(
       if (i === 0) ctx.moveTo(sx, sy);
       else ctx.lineTo(sx, sy);
     });
-    ctx.strokeStyle = COLOR_PIEZO;
+    ctx.setLineDash([]);
+    ctx.strokeStyle = palette.halo;
+    ctx.lineWidth = 2 + 2 * HALO_EXTRA_PX;
+    ctx.stroke();
+    ctx.strokeStyle = palette.piezo;
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 5]);
     ctx.stroke();
