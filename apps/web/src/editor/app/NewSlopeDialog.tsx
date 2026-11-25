@@ -69,8 +69,8 @@ function equivalence(form: SlopeForm): string | null {
 export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
   initialUnits?: 'SI' | 'imperial';
   onCancel: () => void;
-  /** Devuelve `false` si no se creó (p. ej. el usuario no confirmó descartar los cambios): el diálogo sigue abierto. */
-  onCreate: (input: SlopeInput) => boolean;
+  /** Resuelve a `false` si no se creó (p. ej. el usuario no confirmó descartar los cambios): el diálogo sigue abierto. */
+  onCreate: (input: SlopeInput) => boolean | Promise<boolean>;
 }) {
   const [form, setForm] = useState<SlopeForm>(() => slopeFormDefaults(initialUnits));
   const outcome = useMemo(() => slopeFromForm(form), [form]);
@@ -86,7 +86,7 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
         className="ns-form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (outcome.ok && onCreate(outcome.value)) onCancel();
+          if (outcome.ok) void Promise.resolve(onCreate(outcome.value)).then((created) => created && onCancel());
         }}
         noValidate
       >

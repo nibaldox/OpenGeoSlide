@@ -6,8 +6,8 @@ import path from 'node:path';
 
 const SHOTS = path.join(process.env.TMPDIR, 'u3x-walk');
 mkdirSync(SHOTS, { recursive: true });
-const URL_ = 'http://127.0.0.1:5187/';
-const FIX = '/home/xodla/archivos/opengeoslide-wt/u3o/apps/web/src/io/dxf/fixtures/';
+const URL_ = 'http://127.0.0.1:5186/';
+const FIX = '/home/xodla/archivos/opengeoslide-wt/u3i/apps/web/src/io/dxf/fixtures/';
 const out = { steps: [], consoleErrors: [] };
 const step = (name, ok, data = {}) => { out.steps.push({ name, ok, ...data }); console.log(ok ? 'OK ' : 'FAIL', name, JSON.stringify(data)); };
 const num = (t) => Number(String(t).replace(/\s/g, '').replace(',', '.'));
@@ -227,6 +227,9 @@ await mw.fill(mwOld); await mw.press('Enter');
 
 // 12. Abrir el .ogs.json guardado
 await page.setInputFiles('[data-testid="file-open"]', savedPath);
+// U3-I: con cambios sin guardar pregunta el diálogo propio (no window.confirm); este recorrido acepta descartar.
+await page.waitForSelector('[data-testid="confirm-dialog"]', { timeout: 5000 });
+await page.getByRole('button', { name: 'Descartar cambios' }).click();
 await page.waitForTimeout(500);
 const status12 = (await page.textContent('[data-testid="file-status"]')).trim();
 step('12 abrir .ogs.json guardado', /guardado\.ogs\.json/.test(status12) , { estado: status12 });

@@ -40,6 +40,21 @@ describe('readOpenFile', () => {
   });
 });
 
+describe('readOpenFile con confirmación asíncrona (useConfirm)', () => {
+  it('espera la respuesta: si el diálogo se cancela, no se abre ni queda ruido', async () => {
+    const confirmDiscard = vi.fn(async () => false);
+    const r = await readOpenFile(file('a.ogs.json', async () => '{}'), confirmDiscard, () => ({ doc: newDoc(), issues: [aviso] }));
+    expect(confirmDiscard).toHaveBeenCalledTimes(1);
+    expect(r).toEqual({ doc: null, notices: [] });
+  });
+  it('si el diálogo se acepta tras una espera, abre el documento con sus avisos', async () => {
+    const confirmDiscard = () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 5));
+    const r = await readOpenFile(file('a.ogs.json', async () => '{}'), confirmDiscard, () => ({ doc: newDoc(), issues: [aviso] }));
+    expect(r.doc).not.toBeNull();
+    expect(r.notices).toHaveLength(1);
+  });
+});
+
 describe('readTextFile', () => {
   it('devuelve el texto', async () => {
     expect(await readTextFile(file('d.dxf', async () => 'abc'))).toEqual({ ok: true, text: 'abc' });

@@ -30,6 +30,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { scope: 'global', keys: 'Ctrl+Intro', action: 'Comprobar (validar y calcular)', probes: [{ key: 'Enter', ctrl: true }], shortcutAction: 'check' },
   { scope: 'global', keys: 'V', action: 'Herramienta «Seleccionar»', probes: [{ key: 'v' }], shortcutAction: 'tool:select' },
   { scope: 'global', keys: 'A', action: 'Herramienta «Agregar vértice»', probes: [{ key: 'a' }], shortcutAction: 'tool:add_vertex' },
+  { scope: 'global', keys: 'R', action: 'Herramienta «Dibujar región»: clic o toque (o Espacio) colocan un vértice, Intro cierra la región y Esc cancela', probes: [{ key: 'r' }], shortcutAction: 'tool:draw_region' },
   { scope: 'global', keys: 'H', action: 'Herramienta «Mover vista»', probes: [{ key: 'h' }], shortcutAction: 'tool:pan' },
 
   { scope: 'canvas', keys: 'Tab o Mayús+Tab', action: 'Tirador siguiente o anterior; en los extremos, Tab sale del lienzo', probes: [{ key: 'Tab' }, { key: 'Tab', shift: true }] },

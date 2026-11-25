@@ -17,6 +17,14 @@ async function axe(p, label) {
   summary.push({ label, serious_critical: sc, otras: r.filter((v) => !sc.includes(v)).map((v) => `${v.id}:${v.impact}`) });
   console.log(sc.length === 0 ? 'OK  ' : 'FAIL', label, JSON.stringify({ sc, otras: r.filter((v) => !sc.includes(v)).map((v) => `${v.id}:${v.impact}`) }));
 }
+// U3-I: «descartar cambios» es un diálogo propio (`useConfirm`), no window.confirm. Acepta si aparece (solo con cambios sin guardar).
+async function discardIfAsked(page, label = 'Descartar cambios') {
+  const dlg = page.locator('[data-testid="confirm-dialog"]');
+  try { await dlg.waitFor({ state: 'visible', timeout: 1500 }); } catch { return false; }
+  await dlg.getByRole('button', { name: label, exact: true }).click();
+  await dlg.waitFor({ state: 'detached' });
+  return true;
+}
 async function openMenu(p, name) {
   const t = p.getByRole('button', { name, exact: true });
   if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
@@ -26,6 +34,7 @@ for (const theme of ['light', 'dark']) {
   for (const [w, h] of [[1440, 900], [390, 844]]) {
     const ctx = await b.newContext({ viewport: { width: w, height: h } });
     await ctx.addInitScript((t) => { try { localStorage.setItem('ogs.theme.v1', t); } catch {} }, theme);
+    await ctx.addInitScript(() => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); } catch {} }); // guía ya vista
     const p = await ctx.newPage();
     p.on('dialog', (d) => d.accept());
     await p.goto(URL_, { waitUntil: 'networkidle' });
@@ -57,6 +66,7 @@ for (const theme of ['light', 'dark']) {
     await p.screenshot({ path: `${SHOTS}/u3m-${tag}-3-dialogo.png` });
     await axe(p, `${tag} diálogo Talud simple`);
     await p.getByRole('button', { name: 'Crear talud' }).click();
+    await discardIfAsked(p);
     await p.waitForSelector('dialog[open]', { state: 'detached' });
     await p.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
     await p.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });

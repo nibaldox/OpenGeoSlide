@@ -78,15 +78,10 @@ describe('unidades', () => {
     expect(unitsOptions({ kind: 'other', raw: 'm-kg' }).map((o) => o.value)).toEqual(['m-kg', 'SI', 'imperial']);
   });
 
-  it('cambiar de unidades devuelve un doc/replace con solo las unidades cambiadas', () => {
-    const d = doc({ units: 'SI' });
-    const cmd = unitsChangeCommand(d, 'imperial');
-    expect(cmd).toEqual({ type: 'doc/replace', doc: { ...d, units: 'imperial' }, fileName: null });
-    // Ningún valor se convierte: materiales y geometría quedan idénticos.
-    if (cmd?.type === 'doc/replace') {
-      expect(cmd.doc.materials).toBe(d.materials);
-      expect(cmd.doc.regions).toBe(d.regions);
-    }
+  it('cambiar de unidades devuelve un units/set (un solo paso, sin tocar los valores)', () => {
+    expect(unitsChangeCommand(doc({ units: 'SI' }), 'imperial')).toEqual({ type: 'units/set', units: 'imperial' });
+    expect(unitsChangeCommand(doc({ units: undefined }), 'imperial')).toEqual({ type: 'units/set', units: 'imperial' });
+    expect(unitsChangeCommand(doc({ units: 'metric' }), 'SI')).toEqual({ type: 'units/set', units: 'SI' });
   });
   it('elegir las mismas unidades no hace nada', () => {
     expect(unitsChangeCommand(doc({ units: 'SI' }), 'SI')).toBeNull();
@@ -104,8 +99,10 @@ describe('unidades', () => {
     expect(after.doc.units).toBe('imperial');
     expect(after.doc.materials).toEqual(d.materials);
     expect(after.doc.regions).toEqual(d.regions);
-    // Debe quedar con cambios sin guardar (de lo contrario, cerrar la pestaña no avisaría).
+    // Debe quedar con cambios sin guardar (de lo contrario, cerrar la pestaña no avisaría) y conservar el nombre del archivo.
     expect(after.revision).not.toBe(after.file.savedRevision);
+    expect(after.file.name).toBe('talud.ogs.json');
+    expect(after.history.past).toHaveLength(1); // un solo paso
     store.undo();
     expect(store.getState().doc.units).toBe('SI');
   });

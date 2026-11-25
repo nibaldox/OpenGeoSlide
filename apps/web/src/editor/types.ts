@@ -81,6 +81,7 @@ export type EditorCommand =
   | { type: 'analysis/patch'; patch: Partial<AnalysisSettings> }
   | { type: 'slope/setDirection'; direction: Direction }
   | { type: 'meta/patch'; patch: Partial<Meta> }
+  | { type: 'units/set'; units: string }               // cambia el sistema de unidades; NO convierte ningún valor
   | { type: 'seismic/set'; seismic: { kh: number; kv: number } | null }
   | { type: 'loads/set'; loads: Load[] }
   | { type: 'load/upsert'; index: number | null; load: Load }   // index null = agregar

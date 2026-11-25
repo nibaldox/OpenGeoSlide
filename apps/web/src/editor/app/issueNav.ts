@@ -4,7 +4,7 @@
 import { selectionForPath } from '../panels/forms';
 import type { ModelDoc, Selection } from '../types';
 
-export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic';
+export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic' | 'project';
 
 export interface IssueTarget {
   /** Pestaña del panel lateral que se abre (`null`: el destino es el lienzo). */
@@ -16,6 +16,7 @@ export interface IssueTarget {
 
 const ANALYSIS_FIELDS = new Set(['slices', 'tolerance', 'max_iterations', 'min_m_alpha', 'methods']);
 const SEARCH_FIELDS = new Set(['n_entry', 'n_exit', 'n_radius', 'max_radius_factor', 'min_width']);
+const META_FIELDS = new Set(['id', 'title', 'notes']);
 const MATERIAL_FIELDS = new Set(['name', 'unit_weight', 'unit_weight_sat', 'cohesion', 'friction_angle', 'ru']);
 
 function index(seg: string | undefined): number | null {
@@ -44,6 +45,9 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     const field = c !== undefined && MATERIAL_FIELDS.has(c) ? c : 'name';
     return { tab: 'materials', selection, fieldPath: `/materials/${k}/${field}` };
   }
+  // Datos del proyecto: título, id y descripción (`meta`) y sistema de unidades (`units`) viven en la pestaña «Proyecto».
+  if (a === 'meta') return { tab: 'project', selection, fieldPath: `/meta/${b !== undefined && META_FIELDS.has(b) ? b : 'title'}` };
+  if (a === 'units') return { tab: 'project', selection, fieldPath: '/units' };
   if (a === 'water') {
     if (b === 'unit_weight') return { tab: 'water', selection, fieldPath: '/water/unit_weight' };
     if (b === 'piezometric_line') {

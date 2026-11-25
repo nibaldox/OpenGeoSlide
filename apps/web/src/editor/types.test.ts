@@ -99,6 +99,7 @@ describe('tipos congelados v0.2 del editor', () => {
       { type: 'analysis/patch', patch: { slices: 30 } },
       { type: 'slope/setDirection', direction: 'auto' },
       { type: 'meta/patch', patch: { title: 't' } },
+      { type: 'units/set', units: 'SI' },
       { type: 'seismic/set', seismic: { kh: 0.1, kv: 0 } },
       { type: 'loads/set', loads: [udl] },
       { type: 'load/upsert', index: null, load: udl },

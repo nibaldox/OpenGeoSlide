@@ -1,12 +1,12 @@
 // U3-O: demostración en Chrome de la guía de primera visita, la ayuda, la confirmación, el panel Proyecto y «Instalar app».
-// Uso: OGS_URL=http://127.0.0.1:5187/ node u3o_onboarding.mjs   (la pestaña «Proyecto» la registra el coordinador; aquí hay un parche temporal)
+// Uso: OGS_URL=http://127.0.0.1:5186/ node u3o_onboarding.mjs   (la pestaña «Proyecto» la registra el coordinador; aquí hay un parche temporal)
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 const SHOTS = path.join(process.env.TMPDIR, 'u3x-shots');
 mkdirSync(SHOTS, { recursive: true });
-const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5187/';
+const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
 const WITH_PROJECT = process.env.WITH_PROJECT !== '0';
 const out = { steps: [], errors: [] };
 const step = (name, ok, data = {}) => { out.steps.push({ name, ok, ...data }); console.log(ok ? 'OK  ' : 'FAIL', name, JSON.stringify(data)); };
@@ -64,7 +64,9 @@ const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h 
   step('1e la aplicación sigue operable con la guía abierta (menú Archivo)', expanded);
 
   // Recorrido con teclado: Tab hasta el cuadro.
-  await page.evaluate(() => document.activeElement?.blur());
+  // El punto de partida de Tab es el último punto de navegación, no `document.activeElement`: tras cerrar el menú «Archivo» (1e) es ese botón,
+  // que está después de la guía, y `blur()` no lo reinicia. Se parte del primer elemento de la página («Saltar al contenido»).
+  await page.getByRole('link', { name: 'Saltar al contenido' }).focus();
   await page.evaluate(() => window.scrollTo(0, 0));
   let tabs = 0;
   for (; tabs < 30; tabs++) {

@@ -19,11 +19,20 @@ const num = (t) => Number(String(t).replace(/\s/g, '').replace(',', '.'));
 
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', headless: true, args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript(() => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); } catch {} }); // la guía de primera visita ya se vio (no tapa el recorrido)
 const page = await ctx.newPage();
 page.on('pageerror', (e) => out.consoleErrors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !(m.location()?.url ?? '').endsWith('/favicon.ico')) out.consoleErrors.push(m.text()); });
 page.on('dialog', (d) => d.accept());
 const shot = async (n) => { const p = path.join(SHOTS, 'u3m-' + n + '.png'); await page.screenshot({ path: p }); return p; };
+// U3-I: «descartar cambios» y «eliminar» son un diálogo propio (`useConfirm`), no window.confirm. Acepta si aparece (solo con cambios sin guardar).
+async function discardIfAsked(page, label = 'Descartar cambios') {
+  const dlg = page.locator('[data-testid="confirm-dialog"]');
+  try { await dlg.waitFor({ state: 'visible', timeout: 1500 }); } catch { return false; }
+  await dlg.getByRole('button', { name: label, exact: true }).click();
+  await dlg.waitFor({ state: 'detached' });
+  return true;
+}
 async function openMenu(name) {
   const trigger = page.getByRole('button', { name, exact: true });
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
@@ -181,6 +190,7 @@ await page.waitForSelector('dialog[open]');
 const dlgShot = await shot('06-talud-dialogo');
 const prevOk = (await page.locator('[data-testid="slope-preview"]').count()) === 1;
 await page.getByRole('button', { name: 'Crear talud' }).click();
+await discardIfAsked(page);
 await page.waitForSelector('dialog[open]', { state: 'detached' });
 await page.waitForFunction(() => document.querySelectorAll('[data-layer="regions"] polygon').length === 1);
 const slopePoly = (await polys())[0];

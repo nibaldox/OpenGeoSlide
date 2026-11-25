@@ -12,6 +12,7 @@ const errors = [];
 const step = (name, ok, data = {}) => { if (!ok) failed += 1; console.log(ok ? 'OK  ' : 'FAIL', name, JSON.stringify(data)); };
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', headless: true, args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+await ctx.addInitScript(() => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); } catch {} }); // la guía de primera visita ya se vio (no tapa el recorrido)
 const page = await ctx.newPage();
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !(m.location()?.url ?? '').endsWith('/favicon.ico')) errors.push(m.text()); });

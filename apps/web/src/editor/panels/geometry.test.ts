@@ -15,6 +15,7 @@ import {
   polygonArea,
   regionIssues,
   regionRemoveCommand,
+  regionRemoveConfirm,
   regionSummary,
   vertexCoordEdit,
   vertexInsertCommand,
@@ -169,5 +170,22 @@ describe('rejilla de ajuste', () => {
   it('ofrece «Sin rejilla» y pasos en metros', () => {
     expect(GRID_CHOICES[0]).toBe(null);
     expect(GRID_CHOICES).toContain(1);
+  });
+});
+
+describe('regionRemoveConfirm', () => {
+  it('nombra la región, su material y sus vértices, avisa que se deshace y es de tono «danger»', () => {
+    const c = regionRemoveConfirm({ index: 1, materialName: 'Arcilla', vertexCount: 6 });
+    expect(c.title).toBe('Eliminar la región 2');
+    expect(c.message).toContain('región 2');
+    expect(c.message).toContain('Arcilla');
+    expect(c.message).toContain('6 vértices');
+    expect(c.message).toContain('Ctrl+Z');
+    expect(c.tone).toBe('danger');
+    expect(c.confirmLabel).toBe('Eliminar región');
+    expect(c.cancelLabel).toBeTruthy();
+  });
+  it('singular de vértice', () => {
+    expect(regionRemoveConfirm({ index: 0, materialName: 'm', vertexCount: 1 }).message).toContain('1 vértice)');
   });
 });

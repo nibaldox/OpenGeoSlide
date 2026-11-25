@@ -34,7 +34,7 @@ export async function readTextFile(file: TextFileLike): Promise<{ ok: true; text
  */
 export async function readOpenFile(
   file: TextFileLike,
-  confirmDiscard: () => boolean,
+  confirmDiscard: () => boolean | Promise<boolean>,
   open: (text: string) => OpenOgsResult = openOgsJson,
 ): Promise<{ doc: ModelDoc | null; notices: FileNotice[] }> {
   const read = await readTextFile(file);
@@ -47,6 +47,6 @@ export async function readOpenFile(
   }
   const notices: FileNotice[] = opened.issues.map((i) => ({ kind: i.severity === 'error' ? 'error' : 'aviso', text: `${file.name}: ${i.text}` }));
   if (!opened.doc) return { doc: null, notices };
-  if (!confirmDiscard()) return { doc: null, notices: [] };
+  if (!(await confirmDiscard())) return { doc: null, notices: [] };
   return { doc: opened.doc, notices };
 }

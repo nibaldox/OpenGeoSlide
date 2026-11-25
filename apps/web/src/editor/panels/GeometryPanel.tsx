@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Point } from '../../engine/types';
+import { useConfirm } from '../../ui/ConfirmDialog';
 import type { EditorStore, Issue } from '../types';
 import { applyCommands } from './dispatch';
 import { PanelSection, TextInput } from './Fields';
@@ -12,6 +13,7 @@ import {
   pageRange,
   regionIssues,
   regionRemoveCommand,
+  regionRemoveConfirm,
   regionSummary,
   vertexCoordEdit,
   vertexInsertCommand,
@@ -20,14 +22,6 @@ import {
 } from './geometry';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import './geometry.css';
-
-/**
- * Confirmación nativa temporal. El coordinador la cambia por `useConfirm()` (ConfirmDialog de U3-O) al integrar: es el único
- * punto del panel que bloquea, y la acción que protege se puede deshacer con Ctrl+Z.
- */
-function confirmRemoval(message: string): boolean {
-  return window.confirm(message);
-}
 
 const FIELD_PATH = (regionIndex: number, vertexIndex: number, axis: 'x' | 'y'): string => `/regions/${regionIndex}/polygon/${vertexIndex}/${axis}`;
 
@@ -150,11 +144,13 @@ function RegionCard({ store, summary, selected, units }: { store: EditorStore; s
   const materials = useStoreSelector(store, (s) => s.doc.materials);
   const u = unitLabels(units).length;
   const n = summary.index + 1;
-  const remove = (): void => {
+  const confirm = useConfirm();
+  const remove = async (): Promise<void> => {
+    if (!regionRemoveCommand(store.getState().doc, summary.index)) return;
+    if (!(await confirm(regionRemoveConfirm(summary)))) return;
+    // El modelo pudo cambiar mientras el diálogo estaba abierto: el comando se recalcula sobre el documento actual.
     const cmd = regionRemoveCommand(store.getState().doc, summary.index);
-    if (!cmd) return;
-    const ok = confirmRemoval(`¿Eliminar la región ${n} (${summary.materialName}, ${summary.vertexCount} vértices)? Se puede deshacer con Ctrl+Z.`);
-    if (ok) store.dispatch(cmd);
+    if (cmd) store.dispatch(cmd);
   };
   return (
     <li className={selected ? 'gp-region ep-row-selected' : 'gp-region'} data-region-card={summary.index}>
@@ -187,7 +183,7 @@ function RegionCard({ store, summary, selected, units }: { store: EditorStore; s
         >
           Seleccionar en el lienzo
         </button>
-        <button type="button" aria-label={`Eliminar región ${n}`} onClick={remove}>
+        <button type="button" aria-label={`Eliminar región ${n}`} onClick={() => void remove()}>
           Eliminar región
         </button>
       </div>

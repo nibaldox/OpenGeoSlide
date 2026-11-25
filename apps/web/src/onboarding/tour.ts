@@ -20,13 +20,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'open',
     title: 'Abra un ejemplo o empiece un modelo',
-    body: 'En «Archivo» puede abrir un ejemplo publicado (por ejemplo, V047a), abrir un archivo guardado, importar un DXF o un CSV, o empezar un modelo nuevo y editarlo en el lienzo.',
+    body: 'En «Archivo» puede abrir un ejemplo publicado (por ejemplo, V047a), abrir un archivo guardado, importar un DXF o un CSV, o empezar un modelo vacío o un talud simple. Un modelo vacío se dibuja en el lienzo con la herramienta «Dibujar región» (tecla R).',
     target: { selector: '.dd-trigger', text: '^Archivo' },
   },
   {
     id: 'materials',
-    title: 'Defina materiales y agua',
-    body: 'En estas pestañas se editan los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas y el sismo.',
+    title: 'Defina geometría, materiales y agua',
+    body: 'En estas pestañas se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades).',
     target: { selector: '[role="tablist"][aria-label="Paneles del modelo"]' },
   },
   {
