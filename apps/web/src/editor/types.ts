@@ -4,7 +4,7 @@ import type { Viewport } from '../geometry/viewport';
 
 /** Documento = Model v0.2 completo (el editor abre v0.1 y v0.2, y guarda siempre v0.2). Nunca lleva campos de UI (deny_unknown_fields). */
 export type ModelDoc = Model;
-export type Tool = 'select' | 'add_vertex' | 'draw_region' | 'pan';
+export type Tool = 'select' | 'add_vertex' | 'draw_region' | 'split_region' | 'pan';
 
 export type Selection =
   | { kind: 'none' }
@@ -71,6 +71,7 @@ export type EditorCommand =
   | { type: 'vertex/remove'; regionIndex: number; vertexIndex: number }
   | { type: 'region/add'; region: Region }
   | { type: 'region/remove'; regionIndex: number }
+  | { type: 'region/setPolygon'; regionIndex: number; polygon: Point[] }   // reemplaza el contorno (dividir región); mínimo 3 puntos
   | { type: 'region/setMaterial'; regionIndex: number; materialId: string }
   | { type: 'material/upsert'; material: Material }
   | { type: 'material/remove'; materialId: string }   // falla si una región lo usa

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Point } from '../../engine/types';
 import type { EditorCommand, EditorState } from '../types';
 import { baseDoc, mat, square } from './testFixtures';
 import { beginGesture, applyCommand, canApply, createInitialState, HISTORY_LIMIT, markSaved, reduce } from './reducer';
@@ -444,5 +445,27 @@ describe('applyCommand', () => {
     const doc = baseDoc();
     expect(applyCommand(doc, { type: 'region/remove', regionIndex: 7 })).toBeNull();
     expect(doc).toEqual(baseDoc());
+  });
+});
+
+describe('region/setPolygon (dividir región)', () => {
+  it('reemplaza el contorno de la región, sube la revisión y es un paso deshacible', () => {
+    const base = createInitialState(baseDoc());
+    const poly: Point[] = [[0, 0], [10, 0], [10, 4]];
+    const next = reduce(base, { type: 'region/setPolygon', regionIndex: 0, polygon: poly });
+    expect(next.doc.regions[0]!.polygon).toEqual(poly);
+    expect(next.doc.regions[0]!.polygon).not.toBe(poly);
+    expect(next.revision).toBe(base.revision + 1);
+    expect(next.history.past).toHaveLength(1);
+  });
+  it('un índice fuera de rango, menos de 3 puntos o un punto no finito no cambian nada', () => {
+    const base = createInitialState(baseDoc());
+    expect(reduce(base, { type: 'region/setPolygon', regionIndex: 9, polygon: [[0, 0], [1, 0], [1, 1]] })).toBe(base);
+    expect(reduce(base, { type: 'region/setPolygon', regionIndex: 0, polygon: [[0, 0], [1, 0]] })).toBe(base);
+    expect(reduce(base, { type: 'region/setPolygon', regionIndex: 0, polygon: [[0, 0], [1, 0], [NaN, 1]] })).toBe(base);
+  });
+  it('la herramienta «split_region» es válida', () => {
+    const base = createInitialState(baseDoc());
+    expect(reduce(base, { type: 'ui/tool', tool: 'split_region' }).ui.tool).toBe('split_region');
   });
 });

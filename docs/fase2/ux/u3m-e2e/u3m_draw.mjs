@@ -65,10 +65,10 @@ await page.waitForSelector('[data-testid="draw-hint"]');
 const pressed = await toolBtn().getAttribute('aria-pressed');
 const focusOnSvg = await page.evaluate(() => document.activeElement?.getAttribute('role') === 'application');
 const box = await page.locator('svg.ec-svg').boundingBox();
-// Viewport inicial del modelo vacío: encuadre de 60 × 30 con margen 48
-const scale = Math.min((box.width - 96) / 60, (box.height - 96) / 30);
+// Viewport inicial del modelo vacío: encuadre de 60 × 30 con el espacio libre de U4-M (25 % del alto a los lados y bajo la base, 10 % arriba) y margen 24
+const scale = Math.min((box.width - 48) / 75, (box.height - 48) / 40.5);
 const tx = box.width / 2 - scale * 30;
-const ty = box.height / 2 + scale * 15;
+const ty = box.height / 2 + scale * 12.75;
 const px = (x, y) => [box.x + tx + scale * x, box.y + ty - scale * y];
 const click = async (x, y) => { const [sx, sy] = px(x, y); await page.mouse.move(sx, sy); await page.mouse.click(sx, sy); };
 await click(0, -3);

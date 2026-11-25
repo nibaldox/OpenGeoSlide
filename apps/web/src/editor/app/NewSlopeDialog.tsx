@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { LabeledField } from '../panels/Fields';
 import { formatNumber, unitLabels } from '../panels/forms';
 import { Modal } from './ImportDialogs';
-import { simpleSlope, slopeFormDefaults, slopeFromForm, type SlopeForm, type SlopeInput, type SlopeWater } from './newModel';
+import { contactElevation, simpleSlope, slopeFormDefaults, slopeFromForm, type SlopeForm, type SlopeInput, type SlopeWater } from './newModel';
 import './newModel.css';
 
 const WATER_CHOICES: ReadonlyArray<{ value: SlopeWater; label: string; hint: string }> = [
@@ -32,19 +32,22 @@ function Preview({ input }: { input: SlopeInput | null }) {
       </p>
     );
   }
-  const poly = doc.regions[0]!.polygon;
-  const xs = poly.map((p) => p[0]);
-  const ys = poly.map((p) => p[1]);
+  const polys = doc.regions.map((r) => r.polygon);
+  const all = polys.flat();
+  const xs = all.map((p) => p[0]);
+  const ys = all.map((p) => p[1]);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   const pad = Math.max(x1 - x0, y1 - y0) * 0.05;
   const w = x1 - x0 + 2 * pad;
   const h = y1 - y0 + 2 * pad;
   const sy = (y: number): number => y1 + pad - y;
-  const pts = poly.map((p) => `${p[0] - x0 + pad},${sy(p[1])}`).join(' ');
+  const ptsOf = (poly: readonly (readonly number[])[]): string => poly.map((p) => `${p[0]! - x0 + pad},${sy(p[1]!)}`).join(' ');
   const line = doc.water?.piezometric_line;
   return (
     <svg className="ns-preview" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Vista previa del perfil del talud" data-testid="slope-preview" preserveAspectRatio="xMidYMid meet">
-      <polygon points={pts} fill="var(--canvas-mat-0)" stroke="var(--canvas-region-edge)" strokeWidth={Math.max(w, h) / 200} strokeLinejoin="round" />
+      {polys.map((poly, i) => (
+        <polygon key={i} data-preview-region={i} points={ptsOf(poly)} fill={`var(--canvas-mat-${i})`} stroke="var(--canvas-region-edge)" strokeWidth={Math.max(w, h) / 200} strokeLinejoin="round" />
+      ))}
       {line ? (
         <polyline
           points={line.map((p) => `${p[0] - x0 + pad},${sy(p[1])}`).join(' ')}
@@ -64,6 +67,14 @@ function equivalence(form: SlopeForm): string | null {
   if (!r.ok) return null;
   if (r.value.slope.kind === 'angle') return `Equivale a ${formatNumber(Number((1 / Math.tan((r.value.slope.degrees * Math.PI) / 180)).toPrecision(4)))}H:1V.`;
   return `Equivale a β = ${formatNumber(Number(((Math.atan(1 / r.value.slope.horizontal) * 180) / Math.PI).toPrecision(4)))}°.`;
+}
+
+/** Ayuda del campo del contacto: la cota resultante, para ver a qué altura queda respecto del pie. */
+function contactHint(form: SlopeForm, input: SlopeInput | null): string | undefined {
+  if (!input?.lower) return undefined;
+  const y = contactElevation(input.lower.contact);
+  const len = unitLabels(form.units).length;
+  return `El contacto queda en y = ${formatNumber(y)} ${len} (el pie está en y = 0).`;
 }
 
 export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
@@ -91,7 +102,7 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
         noValidate
       >
         <p className="muted small">
-          Crea un modelo nuevo con un talud de un solo material, una búsqueda de superficie crítica y el sentido del deslizamiento de izquierda a derecha.
+          Crea un modelo nuevo con un talud de uno o dos materiales (con estrato inferior), una búsqueda de superficie crítica y el sentido del deslizamiento de izquierda a derecha.
           Reemplaza el modelo actual.
         </p>
         <div className="ns-layout">
@@ -141,6 +152,43 @@ export function NewSlopeDialog({ initialUnits = 'SI', onCancel, onCreate }: {
                 <LabeledField label="Cohesión c" unit={u.stress} value={form.cohesion} error={errors.cohesion} onChange={(v) => set('cohesion', v)} />
                 <LabeledField label="Ángulo de fricción φ" unit="°" value={form.friction_angle} error={errors.friction_angle} onChange={(v) => set('friction_angle', v)} />
               </div>
+            </fieldset>
+            <fieldset className="ns-group" data-testid="slope-lower">
+              <legend>Estrato inferior</legend>
+              <label className="ns-check">
+                <input type="checkbox" checked={form.lowerOn} onChange={(e) => set('lowerOn', e.target.checked)} />
+                Agregar un estrato inferior (material 2)
+              </label>
+              {form.lowerOn ? (
+                <>
+                  <div className="ep-radios">
+                    <label>
+                      <input type="radio" name="ns-contact" checked={form.lowerMode === 'depth'} onChange={() => set('lowerMode', 'depth')} />
+                      Dar la profundidad del contacto
+                    </label>
+                    <label>
+                      <input type="radio" name="ns-contact" checked={form.lowerMode === 'elevation'} onChange={() => set('lowerMode', 'elevation')} />
+                      Dar la cota del contacto
+                    </label>
+                  </div>
+                  <LabeledField
+                    label={form.lowerMode === 'depth' ? 'Contacto: profundidad bajo el pie' : 'Contacto: cota y (el pie está en 0)'}
+                    unit={u.length}
+                    value={form.lowerContact}
+                    error={errors.lowerContact}
+                    hint={contactHint(form, outcome.ok ? outcome.value : null)}
+                    onChange={(v) => set('lowerContact', v)}
+                  />
+                  <div className="ep-grid">
+                    <LabeledField label="Estrato inferior: nombre" mode="text" value={form.lowerName} onChange={(v) => set('lowerName', v)} />
+                    <LabeledField label="Estrato inferior: peso unitario γ" unit={u.unitWeight} value={form.lowerUnitWeight} error={errors.lowerUnitWeight} onChange={(v) => set('lowerUnitWeight', v)} />
+                    <LabeledField label="Estrato inferior: cohesión c" unit={u.stress} value={form.lowerCohesion} error={errors.lowerCohesion} onChange={(v) => set('lowerCohesion', v)} />
+                    <LabeledField label="Estrato inferior: ángulo de fricción φ" unit="°" value={form.lowerFriction} error={errors.lowerFriction} onChange={(v) => set('lowerFriction', v)} />
+                  </div>
+                </>
+              ) : (
+                <p className="muted small">El talud tendrá un solo material. Con un estrato inferior se crean dos regiones que comparten el contacto horizontal.</p>
+              )}
             </fieldset>
             <label className="field ep-field">
               <span>Línea piezométrica</span>

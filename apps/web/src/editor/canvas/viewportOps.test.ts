@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screenToWorld, worldToScreen } from '../../geometry/viewport';
 import { VP } from './fakeStore';
-import { MAX_SCALE, ZOOM_STEP, ensureVisible, pinchViewport, zoomStep } from './viewportOps';
+import { EDGE_SCROLL_MAX_PX, EDGE_SCROLL_ZONE_PX, MAX_SCALE, ZOOM_STEP, edgeScrollDelta, ensureVisible, paddedBounds, pinchViewport, revealCursor, zoomStep } from './viewportOps';
 
 describe('zoom y encuadre por teclado y botones', () => {
   it('zoomStep acerca y aleja por ZOOM_STEP manteniendo fijo el punto ancla', () => {
@@ -65,5 +65,38 @@ describe('pellizco con dos punteros', () => {
     const vp = pinchViewport(VP, [[300, 300], [300, 300]], [[310, 300], [320, 300]]);
     expect(Number.isFinite(vp.scale)).toBe(true);
     expect(vp.scale).toBeCloseTo(VP.scale, 9);
+  });
+});
+
+describe('autodesplazamiento y espacio al dibujar (UX9-01)', () => {
+  it('edgeScrollDelta: nulo en el interior, hacia el lado contrario del borde que se toca y creciente al acercarse', () => {
+    expect(edgeScrollDelta(800, 600, 400, 300)).toEqual([0, 0]);
+    expect(edgeScrollDelta(800, 600, 24, 300)).toEqual([0, 0]); // justo a 24 px: aún no
+    const [dxNear] = edgeScrollDelta(800, 600, 12, 300);
+    const [dxEdge] = edgeScrollDelta(800, 600, 0, 300);
+    expect(dxNear).toBeGreaterThan(0); // borde izquierdo: el contenido va a la derecha
+    expect(dxEdge).toBeGreaterThan(dxNear);
+    expect(edgeScrollDelta(800, 600, 799, 300)[0]).toBeLessThan(0);
+    expect(edgeScrollDelta(800, 600, 400, 599)[1]).toBeLessThan(0); // borde inferior: el contenido sube y aparece lo de abajo
+    expect(edgeScrollDelta(800, 600, 400, 1)[1]).toBeGreaterThan(0);
+    expect(edgeScrollDelta(800, 600, 0, 0)).toEqual([EDGE_SCROLL_MAX_PX, EDGE_SCROLL_MAX_PX]);
+  });
+  it('edgeScrollDelta: un lienzo diminuto no se desplaza solo', () => {
+    expect(edgeScrollDelta(40, 40, 2, 2)).toEqual([0, 0]);
+  });
+  it('revealCursor deja la vista igual dentro de los 24 px y, fuera, deja el punto bien adentro del borde', () => {
+    expect(revealCursor(VP, 400, 300)).toBe(VP);
+    expect(revealCursor(VP, 24, 300)).toBe(VP);
+    const moved = revealCursor(VP, 700 + 90, 580);
+    expect(moved).not.toBe(VP);
+    expect(moved.scale).toBe(VP.scale);
+    const [wx, wy] = screenToWorld(VP, 790, 580);
+    const [sx, sy] = worldToScreen(moved, wx, wy);
+    expect(sx).toBeLessThan(VP.width - EDGE_SCROLL_ZONE_PX);
+    expect(sy).toBeLessThan(VP.height - EDGE_SCROLL_ZONE_PX);
+    expect(sx).toBeGreaterThanOrEqual(EDGE_SCROLL_ZONE_PX);
+  });
+  it('paddedBounds deja 25 % del alto bajo la base y a los lados, y 10 % arriba', () => {
+    expect(paddedBounds({ minX: 0, maxX: 60, minY: -10, maxY: 15 })).toEqual({ minX: -6.25, maxX: 66.25, minY: -16.25, maxY: 17.5 });
   });
 });

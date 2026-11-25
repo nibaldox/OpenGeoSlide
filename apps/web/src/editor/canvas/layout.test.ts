@@ -174,18 +174,29 @@ describe('viewportOps', () => {
     empty.water = null;
     expect(docBounds(empty)).toEqual({ minX: 0, maxX: 60, minY: 0, maxY: 30 });
     const fit = fitToDoc(makeDoc(), 800, 600, 48);
-    expect(fit.scale).toBeCloseTo(Math.min(704 / 60, 504 / 20), 9);
+    // el encuadre deja 25 % del alto (5 m) a los lados y bajo la base, y 10 % (2 m) arriba
+    expect(fit.scale).toBeCloseTo(Math.min(704 / 70, 504 / 27), 9);
   });
 
-  it('fitToDoc centra el modelo con el mismo margen a izquierda y derecha, y arriba y abajo', () => {
+  it('fitToDoc deja al menos 25 % del alto del modelo bajo la base y a los lados, y un margen razonable arriba (UX9-01)', () => {
     for (const [w, h] of [[800, 600], [1400, 700], [500, 900]] as const) {
       const fit = fitToDoc(makeDoc(), w, h, 48);
       const [left, top] = worldToScreen(fit, 0, 20);
       const [right, bottom] = worldToScreen(fit, 60, 0);
-      expect(left).toBeCloseTo(w - right, 6);
-      expect(top).toBeCloseTo(h - bottom, 6);
-      expect(Math.min(left, top)).toBeGreaterThanOrEqual(48 - 1e-9);
+      const quarter = 0.25 * 20 * fit.scale; // 25 % del alto del modelo (20 m) en píxeles
+      expect(h - bottom).toBeGreaterThanOrEqual(quarter - 1e-6);
+      expect(left).toBeGreaterThanOrEqual(quarter - 1e-6);
+      expect(w - right).toBeGreaterThanOrEqual(quarter - 1e-6);
+      expect(top).toBeGreaterThanOrEqual(0.1 * 20 * fit.scale - 1e-6);
+      expect(top).toBeLessThan(h - bottom); // arriba, menos que abajo
+      expect(left).toBeCloseTo(w - right, 6); // centrado a los lados
     }
+  });
+
+  it('fitToDoc con la base a 59 px del borde (X9) ya no ocurre: en 1440 × 540 la base queda a más de 100 px del borde inferior', () => {
+    const fit = fitToDoc(makeDoc(), 1440, 540);
+    const [, bottom] = worldToScreen(fit, 0, 0);
+    expect(540 - bottom).toBeGreaterThan(100);
   });
 
   it('resizeViewport conserva el centro: un modelo centrado en 800 × 600 sigue centrado al medir 1400 × 700', () => {
@@ -197,7 +208,7 @@ describe('viewportOps', () => {
     expect(left).toBeCloseTo(1400 - right, 6);
     const [wx, wy] = screenToWorld(resized, 700, 350);
     expect(wx).toBeCloseTo(30, 6);
-    expect(wy).toBeCloseTo(10, 6);
+    expect(wy).toBeCloseTo(8.5, 6); // centro del cuadro con el espacio libre: (−5 + 22) / 2
   });
 });
 

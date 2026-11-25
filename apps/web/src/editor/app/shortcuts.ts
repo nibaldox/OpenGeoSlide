@@ -1,6 +1,6 @@
 // Atajos de teclado globales del editor. Función pura: del evento al nombre de la acción.
 
-export type ShortcutAction = 'undo' | 'redo' | 'save' | 'open' | 'check' | 'tool:select' | 'tool:add_vertex' | 'tool:draw_region' | 'tool:pan';
+export type ShortcutAction = 'undo' | 'redo' | 'save' | 'open' | 'check' | 'tool:select' | 'tool:add_vertex' | 'tool:draw_region' | 'tool:split_region' | 'tool:pan';
 
 export interface KeyLike {
   key: string;
@@ -37,6 +37,7 @@ export function shortcutFor(e: KeyLike): ShortcutAction | null {
   if (key === 'v') return 'tool:select';
   if (key === 'a') return 'tool:add_vertex';
   if (key === 'r') return 'tool:draw_region';
+  if (key === 'd') return 'tool:split_region';
   if (key === 'h') return 'tool:pan';
   return null;
 }

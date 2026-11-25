@@ -81,6 +81,7 @@ const TOOLS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'select', label: 'Seleccionar', key: 'V' },
   { tool: 'add_vertex', label: 'Agregar vértice', key: 'A' },
   { tool: 'draw_region', label: 'Dibujar región', key: 'R' },
+  { tool: 'split_region', label: 'Dividir región', key: 'D' },
   { tool: 'pan', label: 'Mover vista', key: 'H' },
 ];
 
@@ -449,6 +450,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     'tool:select': () => store.dispatch({ type: 'ui/tool', tool: 'select' }),
     'tool:add_vertex': () => store.dispatch({ type: 'ui/tool', tool: 'add_vertex' }),
     'tool:draw_region': () => store.dispatch({ type: 'ui/tool', tool: 'draw_region' }),
+    'tool:split_region': () => store.dispatch({ type: 'ui/tool', tool: 'split_region' }),
     'tool:pan': () => store.dispatch({ type: 'ui/tool', tool: 'pan' }),
   };
   useEffect(() => {
