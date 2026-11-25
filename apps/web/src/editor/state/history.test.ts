@@ -49,6 +49,14 @@ describe('undo / redo', () => {
     expect(canRedo(n)).toBe(false);
   });
 
+  it('Ctrl+Z tras doc/load no restaura el documento anterior ni su nombre (R7-08)', () => {
+    const s0 = fresh();
+    const other = { ...baseDoc(), meta: { title: 'Abierto' } };
+    const s1 = reduce(s0, { type: 'doc/load', doc: other, fileName: 'b.ogs.json' });
+    expect(canUndo(s1)).toBe(false);
+    expect(undo(s1)).toBe(s1);
+  });
+
   it('deshacer un doc/replace restaura el documento anterior', () => {
     const s0 = fresh();
     const other = { ...baseDoc(), meta: { title: 'Abierto' } };

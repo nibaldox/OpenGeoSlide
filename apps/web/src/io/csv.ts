@@ -95,7 +95,13 @@ function missingColumns(result: CsvImportResult, required: string[], issues: Imp
   return false;
 }
 
-/** Formato `x,y` (piezométrica o cualquier polilínea). */
+/** Texto de un número con coma decimal, para los mensajes. */
+const shown = (n: number): string => String(n).replace('.', ',');
+
+/**
+ * Formato `x,y` de la línea piezométrica: debe tener x estrictamente creciente (la misma regla que aplica el motor).
+ * Si no, es un error y no se devuelve ningún punto (UX-07).
+ */
 export function csvToPoints(result: CsvImportResult): { points: Point[]; issues: ImportIssue[] } {
   const issues: ImportIssue[] = [];
   if (!result.ok || missingColumns(result, ['x', 'y'], issues)) return { points: [], issues };
@@ -105,6 +111,18 @@ export function csvToPoints(result: CsvImportResult): { points: Point[]; issues:
     if (p) points.push(p);
   });
   if (issues.length > 0) return { points: [], issues };
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1] as Point;
+    const cur = points[i] as Point;
+    if (!(cur[0] > prev[0])) {
+      issues.push({
+        severity: 'error',
+        line: i + 2,
+        text: `La línea piezométrica necesita x estrictamente creciente: en la fila de datos ${i + 1}, x = ${shown(cur[0])} no es mayor que la anterior (${shown(prev[0])}). Ordene o corrija las filas del archivo.`,
+      });
+      return { points: [], issues };
+    }
+  }
   return { points, issues };
 }
 

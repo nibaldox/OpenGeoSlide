@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorCommand, EditorState } from '../types';
 import { baseDoc, mat, square } from './testFixtures';
-import { applyCommand, canApply, createInitialState, HISTORY_LIMIT, markSaved, reduce } from './reducer';
+import { beginGesture, applyCommand, canApply, createInitialState, HISTORY_LIMIT, markSaved, reduce } from './reducer';
 
 const fresh = (): EditorState => createInitialState(baseDoc(), 'base.ogs.json');
 
@@ -279,6 +279,35 @@ describe('doc/replace', () => {
     const n = reduce(fresh(), { type: 'doc/replace', doc: baseDoc(), fileName: null });
     expect(n.file.name).toBeNull();
     expect(n.file.savedRevision).not.toBe(n.revision);
+  });
+});
+
+describe('doc/load (R7-08)', () => {
+  it('reinicia el historial: tras cargar otro documento no hay nada que deshacer ni rehacer', () => {
+    const edited = reduce(reduce(fresh(), { type: 'vertex/move', regionIndex: 0, vertexIndex: 0, to: [1, 1] }), { type: 'meta/patch', patch: { title: 'editado' } });
+    expect(edited.history.past.length).toBeGreaterThan(0);
+    const other = { ...baseDoc(), meta: { title: 'Otro' } };
+    const n = reduce(edited, { type: 'doc/load', doc: other, fileName: 'otro.ogs.json' });
+    expect(n.doc).toBe(other);
+    expect(n.history).toEqual({ past: [], future: [] });
+    expect(n.file.name).toBe('otro.ogs.json');
+    expect(n.revision).toBe(edited.revision + 1);
+    expect(n.ui.selection).toEqual({ kind: 'none' });
+    expect(n.gesture).toBeNull();
+  });
+  it('no marca el documento como guardado: lo decide quien llama con markSaved', () => {
+    const n = reduce(fresh(), { type: 'doc/load', doc: baseDoc(), fileName: 'a.ogs.json' });
+    expect(n.file.savedRevision).not.toBe(n.revision);
+  });
+  it('un gesto abierto se descarta al cargar', () => {
+    const g = beginGesture(fresh(), 'mover');
+    const n = reduce(g, { type: 'doc/load', doc: baseDoc(), fileName: null });
+    expect(n.gesture).toBeNull();
+  });
+  it('doc/replace sigue siendo deshacible (importación)', () => {
+    const s = fresh();
+    const n = reduce(s, { type: 'doc/replace', doc: { ...baseDoc(), meta: { title: 'R' } }, fileName: null });
+    expect(n.history.past).toHaveLength(1);
   });
 });
 

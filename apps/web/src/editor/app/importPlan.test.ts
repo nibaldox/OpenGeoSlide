@@ -14,6 +14,7 @@ import {
   importableLayers,
   openPolylines,
   planRegionImport,
+  suggestBaseText,
   suggestBaseY,
   unitFactor,
 } from './importPlan';
@@ -231,5 +232,30 @@ describe('R5-06: capas con nombre de propiedad del prototipo', () => {
     expect(unmapped.regions).toEqual([]);
     const plan = planRegionImport(doc, { ...base, regions: r.regions, mapping: defaultMapping(r.layers) });
     expect(plan.regions.map((x) => typeof x.material)).toEqual(['string', 'string']);
+  });
+});
+
+describe('base de las polilíneas abiertas (R7-06)', () => {
+  const open = [{ layer: 'terreno', points: [[0, 10000], [50000, 12000]] as [number, number][] }];
+  it('la base sugerida depende de la unidad del dibujo: en mm no es la de metros', () => {
+    const enMetros = suggestBaseText(open, 'm', 'SI');
+    const enMm = suggestBaseText(open, 'mm', 'SI');
+    expect(enMetros).toBe('9999');
+    expect(enMm).toBe('9');
+    expect(enMm).not.toBe(enMetros);
+  });
+  it('usa coma decimal y queda vacía sin polilíneas abiertas', () => {
+    expect(suggestBaseText([{ points: [[0, 1.55], [1, 3]] }], 'm', 'SI')).toBe('0,5');
+    expect(suggestBaseText([], 'm', 'SI')).toBe('');
+  });
+  it('las notas del plan no se repiten por cada polilínea abierta', () => {
+    const doc = loadCaseDoc('V047a');
+    const poly = (n: number) => ({ layer: 'terreno', points: [[0, n], [10, n + 1]] as [number, number][] });
+    const plan = planRegionImport(
+      { materials: doc.materials, units: doc.units },
+      { regions: [], open: [poly(0), poly(5), poly(9)], mapping: { terreno: doc.materials[0]!.id }, factor: 1, openMode: 'close', baseY: null },
+    );
+    expect(plan.skipped).toBe(3);
+    expect(plan.notes).toHaveLength(1);
   });
 });

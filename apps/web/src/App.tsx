@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
@@ -7,6 +7,7 @@ import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
 import { EditorApp } from './editor/EditorApp';
+import { createRunGuard } from './editor/app/runGuard';
 import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
 import { CheckTable, type CheckRow } from './ui/CheckTable';
@@ -51,6 +52,9 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [perfRuns, setPerfRuns] = useState(10);
   const [perf, setPerf] = useState<TimeSummary | null>(null);
 
+  // Token de solicitud: solo la última ejecución puede escribir resultados; una respuesta tardía del caso anterior se descarta (R7-09).
+  const guard = useRef(createRunGuard()).current;
+
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
   const selectedMethods = ALL_METHODS.filter((m) => methods[m]);
 
@@ -61,6 +65,8 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   );
 
   function resetOutputs() {
+    guard.invalidate();
+    setBusy(false);
     setRun(null);
     setChecks([]);
     setPerf(null);
@@ -96,6 +102,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
       setError('Seleccione al menos un método.');
       return;
     }
+    const id = guard.next();
     setBusy(true);
     setError(null);
     setPerf(null);
@@ -103,19 +110,23 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     try {
       const model = current.caseData.model;
       const result: AnalyzeResult = await client.analyze(JSON.stringify(runModel(model, selectedMethods)));
+      if (!guard.isCurrent(id)) return;
       setRun({ report: result.report, elapsedMs: result.elapsed_ms });
       setShownMethod(result.report.results[0]?.method ?? null);
 
       const rows: CheckRow[] = [];
       for (const check of current.caseData.checks ?? []) {
-        rows.push(await runCheck(model, check));
+        const row = await runCheck(model, check);
+        if (!guard.isCurrent(id)) return;
+        rows.push(row);
       }
       setChecks(rows);
     } catch (err) {
+      if (!guard.isCurrent(id)) return;
       setRun(null);
       setError(userMessage(err));
     } finally {
-      setBusy(false);
+      if (guard.isCurrent(id)) setBusy(false);
     }
   }
 
@@ -127,19 +138,22 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     }
     const n = Math.min(MAX_PERF_RUNS, Math.max(1, Math.round(perfRuns) || 1));
     const json = JSON.stringify(runModel(current.caseData.model, selectedMethods));
+    const id = guard.next();
     setBusy(true);
     setError(null);
     try {
       const times: number[] = [];
       for (let i = 0; i < n; i++) {
         const result = await client.analyze(json);
+        if (!guard.isCurrent(id)) return;
         times.push(result.elapsed_ms);
       }
       setPerf(summarizeTimes(times));
     } catch (err) {
+      if (!guard.isCurrent(id)) return;
       setError(userMessage(err));
     } finally {
-      setBusy(false);
+      if (guard.isCurrent(id)) setBusy(false);
     }
   }
 
@@ -167,7 +181,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             <h2 id="controls-title">Análisis</h2>
             <label className="field">
               Caso
-              <select value={current?.key} onChange={(e) => selectCase(e.target.value)}>
+              <select value={current?.key} disabled={busy} onChange={(e) => selectCase(e.target.value)}>
                 {cases.map((c) => (
                   <option key={c.key} value={c.key}>
                     {c.label}
@@ -177,7 +191,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             </label>
             <label className="field">
               Cargar modelo o caso (.json)
-              <input type="file" accept=".json,application/json" onChange={onFile} />
+              <input type="file" accept=".json,application/json" disabled={busy} onChange={onFile} />
             </label>
             {current && <p className="muted small">{describeAnalysis(current.caseData.model)}</p>}
 
@@ -322,7 +336,7 @@ export default function App() {
 
       {/* Ambos modos permanecen montados: al volver a «Editar» se conservan el modelo, el historial y los resultados. */}
       <div id="mode-edit-panel" role="tabpanel" aria-labelledby="mode-edit" hidden={mode !== 'edit'}>
-        <EditorApp client={client} />
+        <EditorApp client={client} active={mode === 'edit'} />
       </div>
       <div id="mode-cases-panel" role="tabpanel" aria-labelledby="mode-cases" hidden={mode !== 'cases'}>
         <CasesView client={client} info={info} />

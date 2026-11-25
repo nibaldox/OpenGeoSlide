@@ -182,3 +182,24 @@ describe('parseCsv: límite de tamaño (R5-06)', () => {
     expect(r.rows).toHaveLength(n);
   });
 });
+
+describe('csvToPoints: x estrictamente creciente (UX-07)', () => {
+  it('x no creciente es un error con la fila, y no devuelve puntos', () => {
+    const r = csvToPoints(parseCsv('x,y\n40,5\n20,6\n70,4\n'));
+    expect(r.points).toEqual([]);
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0]).toMatchObject({ severity: 'error', line: 3 });
+    expect(r.issues[0]?.text).toContain('estrictamente creciente');
+    expect(r.issues[0]?.text).toContain('fila de datos 2');
+  });
+  it('x repetida también es un error', () => {
+    const r = csvToPoints(parseCsv('x,y\n0,5\n10,6\n10,4\n'));
+    expect(r.points).toEqual([]);
+    expect(r.issues[0]?.severity).toBe('error');
+  });
+  it('x creciente se acepta tal cual', () => {
+    const r = csvToPoints(parseCsv('x,y\n0,5\n10,6\n20,4\n'));
+    expect(r.issues).toEqual([]);
+    expect(r.points).toEqual([[0, 5], [10, 6], [20, 4]]);
+  });
+});

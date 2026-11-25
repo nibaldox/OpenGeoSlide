@@ -104,6 +104,7 @@ describe('tipos congelados v0.2 del editor', () => {
       { type: 'load/upsert', index: null, load: udl },
       { type: 'load/remove', index: 0 },
       { type: 'doc/replace', doc, fileName: null },
+      { type: 'doc/load', doc, fileName: null },
     ];
     expect(new Set(commands.map((c) => c.type)).size).toBe(commands.length);
     const ui: UiAction[] = [

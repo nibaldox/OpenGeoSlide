@@ -1,16 +1,17 @@
 // Aplicación del editor: lienzo, paneles, diagnósticos y barra de acciones (abrir, guardar, importar, calcular, informe).
 // Parte del documento y llega al informe PDF. Toda la lógica no visual vive en `app/` (con pruebas en Node).
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ComponentType } from 'react';
 import { loadBuiltinCases } from '../cases';
 import type { EngineClient } from '../engine/client';
 import type { MethodKind } from '../engine/types';
 import { clearDraft, loadDraft, resolveDraftStorage, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
 import { parseDxf, type DxfParseResult } from '../io/dxf';
-import { openOgsJson, saveOgsJson, sha256Hex } from '../io/ogsJson';
+import { saveOgsJson, sha256Hex } from '../io/ogsJson';
 import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
+import './app/editor-app.css';
 import { ResultsTable } from '../ui/ResultsTable';
 import { EditorCanvas } from './canvas/EditorCanvas';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
@@ -18,9 +19,13 @@ import { downloadBlob, downloadText } from './app/download';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
 import type { RegionImportPlan } from './app/importPlan';
-import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+import { documentTitle } from './app/docTitle';
+import { checkButtonState } from './app/engineCheck';
+import { readOpenFile, readTextFile } from './app/openFile';
+import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
-import { useDraftAutosave } from './app/useDraftAutosave';
+import { shouldWarnBeforeUnload, useDraftAutosave, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
 import {
   AnalysisPanel,
@@ -76,7 +81,11 @@ function formatWhen(iso: string): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('es');
 }
 
-export function EditorApp({ client }: { client: EngineClient }) {
+/**
+ * `active`: el editor está a la vista. Permanece montado al cambiar a «Casos de verificación» (conserva modelo, historial
+ * y resultados), pero entonces sus atajos de teclado no deben actuar (R7-07).
+ */
+export function EditorApp({ client, active = true }: { client: EngineClient; active?: boolean }) {
   const [store] = useState<EditorStoreWithSave>(() => createEditorStore(initialDoc().doc, null));
   const cases = useMemo(() => loadBuiltinCases(), []);
   const draftStorage = useMemo(() => resolveDraftStorage(), []);
@@ -94,6 +103,13 @@ export function EditorApp({ client }: { client: EngineClient }) {
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
   const [reportBusy, setReportBusy] = useState(false);
+  // El modelo de partida y los de «Ejemplos» son ejemplos hasta que se guardan con nombre propio (UX-11).
+  const [isExample, setIsExample] = useState(true);
+  const saveFlight = useRef(createSingleFlight());
+  const engineStatus = useSyncExternalStore(
+    useCallback((listener: () => void) => client.subscribe(listener), [client]),
+    () => client.getStatus(),
+  );
   const openRef = useRef<HTMLInputElement>(null);
   const dxfRef = useRef<HTMLInputElement>(null);
   const csvRef = useRef<HTMLInputElement>(null);
@@ -105,6 +121,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
   const fileName = useEditorStore(store, (s) => s.file.name);
   const dirty = useEditorStore(store, (s) => s.revision !== s.file.savedRevision);
   const tool = useEditorStore(store, (s) => s.ui.tool);
+  useUnloadGuard(shouldWarnBeforeUnload({ dirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure }));
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
   const canRedo = useEditorStore(store, (s) => s.history.future.length > 0);
 
@@ -122,53 +139,62 @@ export function EditorApp({ client }: { client: EngineClient }) {
     return s.revision === s.file.savedRevision || window.confirm('Hay cambios sin guardar. ¿Descartarlos?');
   }, [store]);
 
-  const replaceDoc = useCallback(
-    (next: ModelDoc, name: string | null) => {
-      store.dispatch({ type: 'doc/replace', doc: next, fileName: name });
-      store.markSaved(name);
+  const resetEngine = engine.reset;
+  /**
+   * Carga otro documento (Nuevo, Abrir, Ejemplos, Recuperar): reinicia el historial (`doc/load`) y descarta el resultado,
+   * el diagnóstico y las respuestas pendientes del modelo anterior (R7-05, R7-08). `saved` marca el documento como guardado.
+   */
+  const loadDoc = useCallback(
+    (next: ModelDoc, name: string | null, opts: { saved: boolean; example: boolean }) => {
+      store.dispatch({ type: 'doc/load', doc: next, fileName: name });
+      if (opts.saved) store.markSaved(name);
       store.dispatch({ type: 'ui/viewport', viewport: null });
+      resetEngine();
       setShownMethod(null);
+      setIsExample(opts.example);
     },
-    [store],
+    [store, resetEngine],
   );
 
   const onNew = useCallback(() => {
     if (!confirmDiscard()) return;
-    replaceDoc(newDoc(), null);
+    loadDoc(newDoc(), null, { saved: true, example: false });
     notify('info', 'Modelo nuevo creado.');
-  }, [confirmDiscard, replaceDoc, notify]);
+  }, [confirmDiscard, loadDoc, notify]);
 
   const onOpenFile = async (e: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    try {
-      const opened = openOgsJson(await file.text());
-      for (const i of opened.issues) notify(i.severity === 'error' ? 'error' : 'aviso', `${file.name}: ${i.text}`);
-      if (!opened.doc) return;
-      if (!confirmDiscard()) return;
-      replaceDoc(opened.doc, file.name);
-      notify('info', `Abierto «${file.name}».`);
-    } catch (err) {
-      notify('error', `No se pudo abrir «${file.name}»: ${err instanceof Error ? err.message : String(err)}`);
-    }
+    // La confirmación de descarte va antes de los avisos del archivo: si se cancela, no queda ruido (R7-28).
+    const opened = await readOpenFile(file, confirmDiscard);
+    for (const n of opened.notices) notify(n.kind, n.text);
+    if (!opened.doc) return;
+    loadDoc(opened.doc, file.name, { saved: true, example: false });
+    notify('info', `Abierto «${file.name}».`);
   };
 
-  const onSave = useCallback(async () => {
-    try {
-      const s = store.getState();
-      const text = saveOgsJson(s.doc);
-      const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
-      const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
-      downloadText(text, finalName, 'application/json');
-      store.markSaved(finalName);
-      clearDraft(draftStorage.storage);
-      const sha = await sha256Hex(text);
-      notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
-    } catch (err) {
-      notify('error', `No se pudo guardar: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [store, draftStorage, notify]);
+  const onSave = useCallback(
+    () =>
+      // Un doble clic (o Ctrl+S repetido) mientras se calcula el SHA-256 no descarga dos veces (R7-28).
+      void saveFlight.current.run(async () => {
+        try {
+          const s = store.getState();
+          const text = saveOgsJson(s.doc);
+          const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
+          const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
+          downloadText(text, finalName, 'application/json');
+          store.markSaved(finalName);
+          setIsExample(false);
+          clearDraft(draftStorage.storage);
+          const sha = await sha256Hex(text);
+          notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
+        } catch (err) {
+          notify('error', `No se pudo guardar: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }),
+    [store, draftStorage, notify],
+  );
 
   const onCase = (key: string): void => {
     const entry = cases.find((c) => c.key === key);
@@ -178,7 +204,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
       notify('error', `No se pudo abrir el caso ${entry.caseData.id}.`);
       return;
     }
-    replaceDoc(opened.doc, null);
+    loadDoc(opened.doc, null, { saved: true, example: true });
     notify('info', `Caso ${entry.caseData.id} abierto como modelo (se descartan sus comprobaciones publicadas).`);
   };
 
@@ -188,8 +214,13 @@ export function EditorApp({ client }: { client: EngineClient }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    const read = await readTextFile(file);
+    if (!read.ok) {
+      notify(read.notice.kind, read.notice.text);
+      return;
+    }
     const s = store.getState();
-    const result = parseDxf(await file.text(), { materials: s.doc.materials.map((m) => ({ id: m.id, name: m.name })) });
+    const result = parseDxf(read.text, { materials: s.doc.materials.map((m) => ({ id: m.id, name: m.name })) });
     if (!result.ok) {
       notify('error', `${file.name}: ${result.issues.filter((i) => i.severity === 'error').map((i) => i.text).join(' ') || 'No se pudo leer el DXF.'}`);
       return;
@@ -201,7 +232,12 @@ export function EditorApp({ client }: { client: EngineClient }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setCsv({ fileName: file.name, result: parseCsv(await file.text()) });
+    const read = await readTextFile(file);
+    if (!read.ok) {
+      notify(read.notice.kind, read.notice.text);
+      return;
+    }
+    setCsv({ fileName: file.name, result: parseCsv(read.text) });
   };
 
   const applyRegions = (plan: RegionImportPlan, mode: 'add' | 'replace', source: string): void => {
@@ -215,7 +251,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
   };
 
   // Solo se exporta el resultado de la revisión actual: tras editar, hay que volver a pulsar «Comprobar» (E12i).
-  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle } = exportAvailability(engine.run, engine.current);
+  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle, hint: exportHint } = exportAvailability(engine.run, engine.current);
 
   const exportResults = (): void => {
     if (!engine.run || !engine.current) return;
@@ -244,19 +280,19 @@ export function EditorApp({ client }: { client: EngineClient }) {
     }
   };
 
+  const checkState = checkButtonState({ busy: engine.busy, engineStatus });
   const onCheck = useCallback(async () => {
+    if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
     if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
-  }, [engine]);
+  }, [engine, engineStatus]);
 
   // ───────── Borrador ─────────
 
   const recoverDraft = (): void => {
     if (!draft) return;
     // Lo recuperado sigue siendo trabajo sin guardar en archivo: no se marca como guardado y el borrador se conserva.
-    store.dispatch({ type: 'doc/replace', doc: draft.doc, fileName: draft.fileName });
-    store.dispatch({ type: 'ui/viewport', viewport: null });
-    setShownMethod(null);
+    loadDoc(draft.doc, draft.fileName, { saved: false, example: false });
     setDraft(null);
     notify('info', `Borrador recuperado (${formatWhen(draft.savedAt)}).`);
   };
@@ -272,7 +308,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
   actions.current = {
     undo: () => store.undo(),
     redo: () => store.redo(),
-    save: () => void onSave(),
+    save: () => onSave(),
     open: () => openRef.current?.click(),
     check: () => void onCheck(),
     'tool:select': () => store.dispatch({ type: 'ui/tool', tool: 'select' }),
@@ -280,6 +316,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
     'tool:pan': () => store.dispatch({ type: 'ui/tool', tool: 'pan' }),
   };
   useEffect(() => {
+    if (!active) return; // en «Casos de verificación» el editor sigue montado pero oculto: sus atajos no actúan (R7-07)
     const onKey = (e: KeyboardEvent): void => {
       if (dxf || csv) return;
       const t = e.target instanceof HTMLElement ? e.target : null;
@@ -298,12 +335,14 @@ export function EditorApp({ client }: { client: EngineClient }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dxf, csv]);
+  }, [dxf, csv, active]);
 
   // ───────── Presentación ─────────
 
   const shown = engine.run?.report.results.find((r) => r.method === shownMethod) ?? engine.run?.report.results[0] ?? null;
   const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices } : undefined;
+  // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
+  const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
 
   return (
@@ -316,7 +355,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
           <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
             Abrir
           </button>
-          <button type="button" onClick={() => void onSave()} title="Ctrl+S">
+          <button type="button" onClick={onSave} title="Ctrl+S">
             Guardar
           </button>
           <label className="ea-select">
@@ -338,10 +377,10 @@ export function EditorApp({ client }: { client: EngineClient }) {
           <button type="button" onClick={() => csvRef.current?.click()}>
             Importar CSV
           </button>
-          <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle}>
+          <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
             Exportar resultados (CSV)
           </button>
-          <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle}>
+          <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
             Exportar superficie (CSV)
           </button>
         </div>
@@ -368,10 +407,26 @@ export function EditorApp({ client }: { client: EngineClient }) {
           ))}
         </div>
         <div className="ea-group ea-group-main" role="group" aria-label="Cálculo">
-          <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={engine.busy} title="Ctrl+Intro">
-            {engine.busy ? 'Calculando…' : 'Comprobar'}
+          <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={checkState.disabled} title="Ctrl+Intro">
+            {checkState.label}
           </button>
-          <button type="button" onClick={() => void onReport()} disabled={reportBusy || engine.busy || !canExport} title={exportBlockedTitle}>
+          {engine.busy && (
+            <button type="button" onClick={engine.cancel} title="Termina el cálculo y reinicia el motor">
+              Cancelar cálculo
+            </button>
+          )}
+          {engineStatus === 'failed' && (
+            <button type="button" onClick={() => client.cancel()}>
+              Reiniciar el motor
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void onReport()}
+            disabled={reportBusy || engine.busy || !canExport}
+            title={exportBlockedTitle}
+            aria-describedby={exportHint ? 'ea-export-hint' : undefined}
+          >
             {reportBusy ? 'Generando…' : 'Informe PDF'}
           </button>
         </div>
@@ -381,9 +436,20 @@ export function EditorApp({ client }: { client: EngineClient }) {
       </div>
 
       <p className="ea-status small" aria-live="polite" data-testid="file-status">
-        <strong>{fileName ?? 'Sin título'}</strong> {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
+        <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
+        {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
         {engine.busy ? ' · calculando…' : ''}
       </p>
+      {checkState.status && (
+        <p className="ea-engine-status small" role="status" data-testid="engine-status">
+          {checkState.status}
+        </p>
+      )}
+      {exportHint && (
+        <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
+          {exportHint}
+        </p>
+      )}
 
       {draft && (
         <div className="banner ea-draft" role="alert" data-testid="draft-banner">
@@ -404,7 +470,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
         </div>
       )}
       {engine.message && (
-        <div className="banner banner-error" role="alert">
+        <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'} role={engine.messageKind === 'error' ? 'alert' : 'status'}>
           {engine.message}
         </div>
       )}
@@ -425,6 +491,7 @@ export function EditorApp({ client }: { client: EngineClient }) {
         <div className="ea-main">
           <section className="panel ea-canvas-panel" aria-label="Sección del modelo">
             <div className="ea-canvas" data-testid="editor-canvas">
+              {/* TODO(U2-B): pasar `surfaceConverged={surfaceConverged}` a EditorCanvas para dibujar la superficie no convergida discontinua. */}
               <EditorCanvas store={store} result={canvasResult} />
             </div>
             {engine.run && !engine.current && (
@@ -432,9 +499,9 @@ export function EditorApp({ client }: { client: EngineClient }) {
                 El resultado mostrado es de una versión anterior del modelo. Pulse «Comprobar» para actualizarlo.
               </p>
             )}
-            {canvasResult && (
-              <p className="small muted" data-testid="result-caption">
-                Superficie crítica en rojo y dovelas en gris ({shown?.method === 'spencer' ? 'Spencer' : 'Bishop simplificado'}).
+            {canvasResult && shown && (
+              <p className={surfaceConverged ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
+                {resultCaption(shown.method, shown.status)}
               </p>
             )}
           </section>

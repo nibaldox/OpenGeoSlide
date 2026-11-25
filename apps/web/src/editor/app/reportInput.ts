@@ -4,7 +4,7 @@ import { toCsv, resultsToCsv, type CsvCell } from '../../io/csv';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { describeWarnings } from '../../engine/warnings';
-import type { AnalysisReport, MethodReport } from '../../engine/types';
+import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from '../../engine/types';
 import type { ModelDoc } from '../types';
 
 /** Último cálculo: el reporte del motor con el documento (y su hash) al que corresponde. */
@@ -67,6 +67,8 @@ export interface ExportAvailability {
   /** Texto del botón bloqueado (`title`); `undefined` si está habilitado. */
   blockedTitle: string | undefined;
   surfaceTitle: string | undefined;
+  /** Motivo visible de que haya exportaciones bloqueadas (R7-17): el `title` de un botón apagado no llega a todos. */
+  hint: string | undefined;
 }
 
 /** Qué exportaciones están permitidas (E12i): solo el resultado de la revisión actual, nunca uno obsoleto. */
@@ -80,7 +82,9 @@ export function exportAvailability(run: EngineRun | null, current: boolean): Exp
         : undefined;
   const canExportSurface = canExport && hasExportableSurface(run.report.results);
   const surfaceTitle = blockedTitle ?? (canExportSurface ? undefined : 'Ningún método convergió: no hay una superficie crítica que exportar.');
-  return { canExport, canExportSurface, blockedTitle, surfaceTitle };
+  const unlock = 'Pulse «Comprobar» para habilitar las exportaciones del modelo actual.';
+  const hint = run === null ? unlock : !current ? `El modelo cambió desde el último cálculo. ${unlock}` : canExportSurface ? undefined : surfaceTitle;
+  return { canExport, canExportSurface, blockedTitle, surfaceTitle, hint };
 }
 
 /** `true` si algún método convergió y tiene dovelas: hay una superficie que exportar. */
@@ -94,4 +98,17 @@ export function baseFileName(fileName: string | null, doc: ModelDoc): string {
   const stripped = raw.replace(/\.ogs\.json$/i, '').replace(/\.json$/i, '');
   const safe = stripped.replace(/[^\p{L}\p{N}._-]+/gu, '_').replace(/^[._]+|_+$/g, '');
   return safe === '' ? 'modelo' : safe;
+}
+
+const CAPTION_METHOD: Record<MethodKind, string> = { bishop: 'Bishop simplificado', spencer: 'Spencer' };
+
+/**
+ * Pie de la sección dibujada. Un método que no convergió no tiene superficie crítica: la superficie mostrada es solo la
+ * última evaluada y no debe leerse como resultado (R7-01).
+ */
+export function resultCaption(method: MethodKind, status: SolveStatus): string {
+  const name = CAPTION_METHOD[method];
+  return status === 'converged'
+    ? `Superficie crítica en rojo y dovelas en gris (${name}).`
+    : `Superficie evaluada (sin convergencia) en rojo y dovelas en gris (${name}). El método no convergió: no es un resultado válido.`;
 }

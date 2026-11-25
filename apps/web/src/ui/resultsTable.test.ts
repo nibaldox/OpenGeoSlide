@@ -33,7 +33,7 @@ describe('ResultsTable', () => {
     });
     expect(formatNumber(null)).toBe('—');
     expect(html).toContain('<td class="num">—</td>');
-    expect(html).toContain('No válido');
+    expect(html).toContain('No válida');
   });
 
   it('muestra "—" en la columna FS cuando el método no convergió, aunque el motor dé un número (R4-06)', () => {
@@ -96,5 +96,50 @@ describe('ResultsTable', () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toContain(METHOD_LABELS.bishop);
     expect(items[1]).toContain(METHOD_LABELS.spencer);
+  });
+
+  it('R7-01: λ solo se muestra si el método convergió', () => {
+    const notConverged = render({
+      engine: 'ogs-core 0.1.0',
+      results: [methodReport({ method: 'spencer', fos: 9.9, status: 'not_converged', lambda: 0.4321 })],
+    });
+    expect(notConverged).not.toContain('0,432');
+    const converged = render({
+      engine: 'ogs-core 0.1.0',
+      results: [methodReport({ method: 'spencer', status: 'converged', lambda: 0.4321 })],
+    });
+    expect(converged).toContain('0,432');
+  });
+
+  it('R7-21: los estados usan los mismos términos que el informe PDF', () => {
+    const html = render({
+      engine: 'ogs-core 0.1.0',
+      results: [
+        methodReport({ method: 'bishop', status: 'converged' }),
+        methodReport({ method: 'spencer', status: 'not_converged', fos: null }),
+      ],
+    });
+    expect(html).toContain('>Convergió<');
+    expect(html).toContain('>No convergió<');
+    expect(html).not.toContain('Convergido');
+  });
+
+  it('R7-21: el tiempo total aparece una sola vez, no en cada método', () => {
+    const html = renderToStaticMarkup(
+      createElement(ResultsTable, {
+        report: { engine: 'ogs-core 0.1.0', results: [methodReport({ method: 'bishop' }), methodReport({ method: 'spencer' })] },
+        elapsedMs: 1234.5,
+        shownMethod: null,
+        onShowMethod: () => {},
+      }),
+    );
+    expect(html.match(/1\.234,5|1234,5/g)).toHaveLength(1);
+    expect(html).toContain('Tiempo total del análisis');
+    expect(html).not.toContain('<th scope="col">Tiempo (ms)</th>');
+  });
+
+  it('UX-14: la tabla tiene <caption> con nombre accesible', () => {
+    const html = render({ engine: 'ogs-core 0.1.0', results: [methodReport({})] });
+    expect(html).toMatch(/<table[^>]*><caption[^>]*>Resultados del análisis por método<\/caption>/);
   });
 });
