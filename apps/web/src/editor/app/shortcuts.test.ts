@@ -21,6 +21,10 @@ describe('shortcutFor', () => {
     expect(shortcutFor(k('v'))).toBe('tool:select');
     expect(shortcutFor(k('a'))).toBe('tool:add_vertex');
     expect(shortcutFor(k('h'))).toBe('tool:pan');
+    expect(shortcutFor(k('r'))).toBe('tool:draw_region');
+    expect(shortcutFor(k('R'))).toBe('tool:draw_region');
+    expect(shortcutFor(k('r', { inField: true }))).toBeNull();
+    expect(shortcutFor(k('r', { ctrlKey: true }))).toBeNull();
     expect(shortcutFor(k('a', { inField: true }))).toBeNull();
   });
 
