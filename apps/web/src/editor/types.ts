@@ -82,7 +82,8 @@ export type EditorCommand =
   | { type: 'loads/set'; loads: Load[] }
   | { type: 'load/upsert'; index: number | null; load: Load }   // index null = agregar
   | { type: 'load/remove'; index: number }
-  | { type: 'doc/replace'; doc: ModelDoc; fileName: string | null };  // deshacible
+  | { type: 'doc/replace'; doc: ModelDoc; fileName: string | null }  // deshacible (importación)
+  | { type: 'doc/load'; doc: ModelDoc; fileName: string | null };    // Nuevo, Abrir, Ejemplos, Recuperar: reinicia el historial
 
 export type UiAction =                 // no entra en historial
   | { type: 'ui/select'; selection: Selection }

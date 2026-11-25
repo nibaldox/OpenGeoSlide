@@ -232,7 +232,8 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
       if (!inRange(cmd.index, loads.length)) return null;
       return { ...doc, loads: loads.filter((_, i) => i !== cmd.index) };
     }
-    case 'doc/replace': {
+    case 'doc/replace':
+    case 'doc/load': {
       if (typeof cmd.doc !== 'object' || cmd.doc === null) return null;
       return cmd.doc;
     }
@@ -347,6 +348,15 @@ export function withDoc(
 function reduceCommand(state: EditorState, cmd: EditorCommand): EditorState {
   const next = applyCommand(state.doc, cmd);
   if (next === null) return state;
+  if (cmd.type === 'doc/load') {
+    // Otro documento: el historial y el gesto del anterior no le pertenecen (Ctrl+Z no debe mezclar modelos, R7-08).
+    // No se marca como guardado: quien carga lo decide (`markSaved`; un borrador recuperado sigue sin guardar).
+    return withDoc({ ...state, gesture: null }, next, {
+      history: { past: [], future: [] },
+      selection: NONE,
+      file: { name: cmd.fileName, savedRevision: state.file.savedRevision },
+    });
+  }
   const isReplace = cmd.type === 'doc/replace';
   if (!isReplace && (next === state.doc || deepEqual(next, state.doc))) return state;
   const history: EditorState['history'] = state.gesture
