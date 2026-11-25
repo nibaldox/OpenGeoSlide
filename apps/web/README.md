@@ -1,8 +1,9 @@
 # OpenGeoSlide: aplicación web (`apps/web`)
 
 SPA en React + TypeScript para el análisis de estabilidad de taludes 2D. El cálculo se ejecuta en un
-Web Worker a través de la interfaz `Engine`. Hoy el worker usa un **motor simulado** en TypeScript; cuando
-exista el wasm de `ogs-core`, se carga automáticamente sin cambiar la interfaz.
+Web Worker a través de la interfaz `Engine`. Con el wasm de `ogs-core` presente (lo genera `scripts/build-wasm.sh`)
+se usa el motor real; si falta, el worker recurre a un **motor simulado** en TypeScript sin cambiar la interfaz.
+Incluye el editor gráfico, la importación DXF y CSV, el informe PDF y una PWA que funciona sin conexión.
 
 ## Requisitos
 
@@ -41,6 +42,36 @@ El script compila `ogs-wasm` (`cargo build -p ogs-wasm --target wasm32-unknown-u
 CLI 0.2.130 (igual que la dependencia del crate). `pnpm build` copia `ogs_wasm_bg.wasm` a `dist/`.
 
 `src/wasm/` está en `.gitignore`.
+
+## PWA y actualizaciones
+
+El build genera `sw.js` y `manifest.webmanifest` (`build/pwa-plugin.ts`). El service worker precachea el shell, el
+JS, el CSS, el glue y el `.wasm` (versionados por SHA-256), de modo que la app carga y calcula sin conexión. Solo se
+registra en producción (`pnpm build` y `pnpm preview`), no en `pnpm dev` ni en `/?bench=1`.
+
+Una versión nueva no reemplaza a la anterior sin que el usuario lo sepa:
+
+1. El navegador detecta un `sw.js` distinto (se registra con `updateViaCache: 'none'` y se vuelve a comprobar al volver
+   a la pestaña) y lo instala en segundo plano. Mientras tanto la pestaña sigue con la versión anterior.
+2. Cuando el worker nuevo queda en espera, la app muestra el aviso **«Hay una versión nueva de OpenGeoSlide»** con el
+   botón **«Actualizar»**.
+3. Al pulsar «Actualizar» la página envía `SKIP_WAITING` al worker en espera. El worker nuevo toma el control y
+   la página se recarga una sola vez en `controllerchange`, con el JS y el wasm nuevos.
+
+Si el usuario ignora el aviso, la versión anterior se mantiene hasta que cierre las pestañas. El código está en
+`src/pwa/` (`updateFlow.ts`, `updatePrompt.ts`, `register.ts`) y en `build/sw-template.js`.
+
+## Pruebas
+
+`pnpm test` ejecuta Vitest. La paridad entre el editor y el motor (`src/editor/state/parity.test.ts`) omite los
+casos contra el motor real si no hay binario; para ejecutarlos:
+
+```bash
+cargo build --release -p ogs-cli
+OGS_BIN=$PWD/target/release/ogs pnpm --dir apps/web exec vitest run src/editor/state/parity.test.ts
+```
+
+En CI, el job `web` descarga el binario del job `acceptance` y exige 0 casos omitidos.
 
 ### Página de benchmark
 
