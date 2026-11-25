@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-24T21:55:45-03:00",
+  "generated_at": "2026-11-24T23:48:26-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -148,11 +148,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.4047263181852743,
+        "fos": 1.4044306252852394,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.3033131167300043,
+        "err_pct": -0.32429912808804817,
         "verdict": "OK"
       },
       "cslope": {
@@ -183,11 +183,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.4047263181852743,
+        "fos": 1.4044306252852394,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.8661737342784591,
+        "err_pct": -0.8870412642738607,
         "verdict": "OK"
       },
       "cslope": {
@@ -218,11 +218,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 0.4192916394340453,
+        "fos": 0.4192993623106625,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.16865727760825977,
+        "err_pct": -0.16681849746130475,
         "verdict": "OK"
       },
       "cslope": {
@@ -253,11 +253,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.1141812407789848,
+        "fos": 1.1140989695524928,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.34157059221961233,
+        "err_pct": -0.3489293781312465,
         "verdict": "OK"
       },
       "cslope": {
@@ -290,11 +290,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.1148706037734706,
+        "fos": 1.1147842184385626,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.27991021704199676,
+        "err_pct": -0.2876369911840372,
         "verdict": "OK"
       },
       "cslope": {
@@ -327,11 +327,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.1141812407789848,
+        "fos": 1.1140989695524928,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.1961547463115772,
+        "err_pct": 0.18875625472056373,
         "verdict": "OK"
       },
       "cslope": {
@@ -398,11 +398,11 @@
         "slices": 60
       },
       "ogs": {
-        "fos": 1.7981134311176887,
+        "fos": 1.7981133764573278,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.39717650015012884,
+        "err_pct": 0.3971734482036797,
         "verdict": "OK"
       },
       "cslope": {
@@ -466,11 +466,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.408282142495701,
+        "fos": 1.3991174356160991,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 2.0494306156305186,
+        "err_pct": 1.385321421456467,
         "verdict": "OK"
       },
       "cslope": {
@@ -501,11 +501,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.4080597192440503,
+        "fos": 1.3988430343261469,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 1.811982591760684,
+        "err_pct": 1.1455556273425067,
         "verdict": "OK"
       },
       "cslope": {
@@ -536,11 +536,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.408282142495701,
+        "fos": 1.3991174356160991,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.735489448905661,
+        "err_pct": 0.07993101688835674,
         "verdict": "OK"
       },
       "cslope": {
@@ -571,11 +571,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.4112023452136622,
+        "fos": 1.4015757033395004,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.7282187875561845,
+        "err_pct": 0.041092315453277,
         "verdict": "OK"
       },
       "cslope": {
@@ -606,11 +606,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.1328356287934966,
+        "fos": 1.1328338309728028,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.8024843438269058,
+        "err_pct": -0.8026417712081555,
         "verdict": "OK"
       },
       "cslope": {
@@ -642,11 +642,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.1329836443505061,
+        "fos": 1.1329835084499666,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.7895232617770375,
+        "err_pct": -0.7895351619994097,
         "verdict": "OK"
       },
       "cslope": {
@@ -711,11 +711,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.4027962547644968,
+        "fos": 1.4027961448305524,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.19973248317834663,
+        "err_pct": 0.1997246307537472,
         "verdict": "OK"
       },
       "cslope": {
@@ -781,11 +781,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.5335883144369216,
+        "fos": 1.533587520451482,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.3000859670975571,
+        "err_pct": 0.30003403868424006,
         "verdict": "OK"
       },
       "cslope": {
@@ -851,11 +851,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 2.072769312990772,
+        "fos": 2.0727685039236046,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.01112817217693697,
+        "err_pct": -0.011167200983858549,
         "verdict": "OK"
       },
       "cslope": {
@@ -917,11 +917,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.7582056491959828,
+        "fos": 1.7582049158253508,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.15867977308444817,
+        "err_pct": -0.15872141820835503,
         "verdict": "OK"
       },
       "cslope": {
@@ -984,11 +984,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.828371325016601,
+        "fos": 1.828371337767052,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.0889986329726304,
+        "err_pct": -0.0889979362266665,
         "verdict": "OK"
       },
       "cslope": {
@@ -1018,11 +1018,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 0.9851701666765443,
+        "fos": 0.9851300636533948,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.18539344715862757,
+        "err_pct": -0.18945657007144376,
         "verdict": "OK"
       },
       "cslope": {
@@ -1051,11 +1051,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 0.984175473198959,
+        "fos": 0.9841488111926618,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.1850432861096297,
+        "err_pct": -0.18774734354342235,
         "verdict": "OK"
       },
       "cslope": {
@@ -1084,11 +1084,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 0.9851701666765443,
+        "fos": 0.9851300636533948,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.6884912624451268,
+        "err_pct": -0.6925339059077776,
         "verdict": "OK"
       },
       "cslope": {
@@ -1117,11 +1117,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 0.984175473198959,
+        "fos": 0.9841488111926618,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -1.5824526801040961,
+        "err_pct": -1.5851188807338157,
         "verdict": "OK"
       },
       "cslope": {
@@ -1150,11 +1150,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.4030628960262017,
+        "fos": 1.4030617776412113,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.13787216895361673,
+        "err_pct": -0.137951769308805,
         "verdict": "OK"
       },
       "cslope": {
@@ -1183,11 +1183,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.37239331800529,
+        "fos": 1.372390019675866,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.18957687234254,
+        "err_pct": -0.18981675084610572,
         "verdict": "OK"
       },
       "cslope": {
@@ -1216,11 +1216,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.4030628960262017,
+        "fos": 1.4030617776412113,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.004482966942386774,
+        "err_pct": 0.0044032531155589,
         "verdict": "OK"
       },
       "cslope": {
@@ -1249,11 +1249,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 2.4514793079444197,
+        "fos": 2.4512639714563416,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.14340904503382346,
+        "err_pct": -0.15218038874372747,
         "verdict": "OK"
       },
       "cslope": {
@@ -1282,11 +1282,11 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 2.4532286456902983,
+        "fos": 2.453013233132842,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.9559113452797591,
+        "err_pct": 0.9470466309811376,
         "verdict": "OK"
       },
       "cslope": {
@@ -1315,11 +1315,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.3430697564309333,
+        "fos": 1.3430681702560037,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.06921455126985052,
+        "err_pct": -0.0693325702378285,
         "verdict": "OK"
       },
       "cslope": {
@@ -1350,11 +1350,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.335470282317176,
+        "fos": 1.3340408536658577,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": 0.11021606575531795,
+        "err_pct": 0.0030624936924736608,
         "verdict": "OK"
       },
       "cslope": {
@@ -1386,11 +1386,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.335470282317176,
+        "fos": 1.3340408536658577,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.3380386330465719,
+        "err_pct": -0.4447124129957019,
         "verdict": "OK"
       },
       "cslope": {
@@ -1422,11 +1422,11 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.335470282317176,
+        "fos": 1.3340408536658577,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "err_pct": -0.5606640121238984,
+        "err_pct": -0.6670995036591436,
         "verdict": "OK"
       },
       "cslope": {
