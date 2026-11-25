@@ -86,7 +86,9 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
 ## Diferencias conocidas (no son errores del harness)
 
 - **γw**: ogs usa 9.81 por defecto; cSlope 0.1.0 fija 9.807 (la opción `waterUnitWeight` se ignora). Efecto
-  esperado en el FS: del orden de 0.1 %. El conversor lo anota en las notas del caso.
+  esperado en el FS: del orden de 0.1 %. Con `piezometric_line`, el conversor acepta |γw − 9.807| ≤ 0.01 y
+  anota la diferencia en la unidad del modelo (kN/m³ o pcf); cualquier otro valor lanza `UnsupportedModel`
+  (R2-05: un valor distinto daría presiones de poros erróneas sin aviso).
 - **Búsqueda**: la búsqueda de cSlope no es la grilla de ogs (entrada×salida×radio + refinado). Se
   iguala el presupuesto de evaluaciones, no el algoritmo. La tolerancia de búsqueda debe reflejar eso.
 - **`min_m_alpha`**: sin equivalente en cSlope (usa su propia regla de validez de Bishop).
@@ -95,17 +97,34 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
   de `slices` nominal.
 - **`ru`**: cSlope toma σv como el peso de la columna sobre la base; no verificado frente a ogs
   (ogs usa la columna en el punto medio de la base). Esta diferencia no se ha medido.
-- **Dirección `auto` con empate**: el contrato dice que con `y_top(x_min) == y_top(x_max)` la masa va a
-  −x (`rtl`). Ver hallazgo V063.
+- **Dirección `auto`**: se resuelve con las cuatro reglas de E1/E1b (`to_cslope.resolve_direction`, espejo de
+  `ogs-core` `resolve_sliding`): rangos de entrada y salida; coronamiento; círculo fijo (cruce más alto =
+  entrada); si ninguna decide, `UnsupportedModel`. Ya no hay un empate que vaya a `rtl`. El caso V063
+  mantiene `left_to_right` explícito (ver hallazgo V063).
 - **Piezométrica fuera del modelo**: cSlope recorta la línea en el borde (aviso `outside-model`) y la
   extiende horizontalmente; es el mismo criterio que la extrapolación constante de ogs.
 
 ## Tests
 
-`test_to_cslope.py` (11 tests): capas apiladas → un contorno, una frontera y dos asignaciones correctas;
-ida y vuelta de la piezométrica (y de su orden) y del círculo fijo; mapeo del fixture (orientación, rangos,
-agua, Spencer); rechazo de `ru` + piezométrica + γsat; línea seca para `ru` con piezométrica;
-`cslope.validate` sin errores sobre el fixture (Bishop y Spencer).
+Ejecución de los tests (desde la raíz del worktree):
+
+```
+uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with pytest \
+  python -m pytest verification/harness/
+uv run --python 3.13 --no-project --with shapely --with jsonschema --with pytest \
+  python -m pytest verification/tools/test_import_cslope.py
+```
+
+- `test_to_cslope.py` (24 tests): capas apiladas → un contorno, una frontera y dos asignaciones correctas;
+  ida y vuelta de la piezométrica (y de su orden) y del círculo fijo; mapeo del fixture (orientación, rangos,
+  agua, Spencer); rechazo de `ru` + piezométrica + γsat; línea seca para `ru` con piezométrica;
+  `cslope.validate` sin errores sobre el fixture (Bishop y Spencer). R2-05: las cuatro reglas de E1 con una
+  presa simétrica (rangos, empate de puntos medios, coronamiento, círculo fijo y empate), la dirección explícita,
+  γw distinto de 9.807 con agua (rechazo), imperial con agua y la nota de unidades.
+- `test_run.py` (5 tests): R2-09 (1), `status` antes que `fos`, con un binario `ogs` falso.
+- `verification/tools/test_import_cslope.py` (22 tests): R2-07. Agua sobre escalones y entre puntos de
+  control, x de la piezométrica estrictamente creciente, `options.tolerance` en las notas, los límites de
+  §4.5 en el schema, los rangos de búsqueda y que los casos generados los cumplen.
 
 ## Hallazgos de la primera ejecución (casos de w0b, 16 casos, 38 checks)
 
@@ -114,4 +133,5 @@ agua, Spencer); rechazo de `ru` + piezométrica + γsat; línea seca para `ru` c
   `rtl` (`y_top(0) = y_top(191.4) = 7.3`, empate), y con esa orientación los rangos de búsqueda del caso
   no contienen superficies válidas. Con `orientation: ltr` y los mismos rangos, cSlope da 2.4528 (Bishop
   y Spencer publicados: 2.43 y 2.455). Esto no se ha corregido en el conversor; es un punto a decidir en el
-  contrato (regla de empate de `auto`).
+  contrato (regla de empate de `auto`). Con E1 implementada, el empate de la presa ya no decide por
+  defecto; sin dirección explícita, V063 quedaría `UnsupportedModel`.
