@@ -4,7 +4,7 @@
 > de la CPU y con el resto del sistema activo. Sirve para orientarse sobre el orden de magnitud; no para comparar
 > versiones con precisión.
 
-Generado por `bench/run_all.sh` el 2026-11-25T02:53:01.299Z.
+Generado por `bench/run_all.sh` el 2026-11-25T03:31:30.124Z.
 
 ## Máquina y versiones
 
@@ -30,22 +30,22 @@ Generado por `bench/run_all.sh` el 2026-11-25T02:53:01.299Z.
 
 | target | método | evaluadas | mediana ms | ms/superficie | FS |
 |---|---|---|---|---|---|
-| native | Bishop simplificado | 8562 | 42,36 | 0,0049 | 0,985130064 |
-| native | Spencer | 8587 | 108,88 | 0,0127 | 0,984148811 |
-| native-parallel | Bishop simplificado | 8562 | 4,69 | 0,0005 | 0,985130064 |
-| native-parallel | Spencer | 8587 | 11,45 | 0,0013 | 0,984148811 |
-| node-wasm | Bishop simplificado | 8562 | 52,84 | 0,0062 | 0,985130064 |
-| node-wasm | Spencer | 8587 | 135,29 | 0,0158 | 0,984148811 |
-| chrome-wasm | Bishop simplificado | 8562 | 44,00 | 0,0051 | 0,985130064 |
-| chrome-wasm | Spencer | 8587 | 111,50 | 0,0130 | 0,984148811 |
+| native | Bishop simplificado | 8543 | 51,08 | 0,0060 | 0,985123362 |
+| native | Spencer | 8655 | 177,75 | 0,0205 | 0,984142025 |
+| native-parallel | Bishop simplificado | 8543 | 5,42 | 0,0006 | 0,985123362 |
+| native-parallel | Spencer | 8655 | 17,48 | 0,0020 | 0,984142025 |
+| node-wasm | Bishop simplificado | 8543 | 61,26 | 0,0072 | 0,985123362 |
+| node-wasm | Spencer | 8655 | 219,34 | 0,0253 | 0,984142025 |
+| chrome-wasm | Bishop simplificado | 8543 | 52,70 | 0,0062 | 0,985123362 |
+| chrome-wasm | Spencer | 8655 | 185,40 | 0,0214 | 0,984142025 |
 
 Razón de tiempo: mediana de cada target dividida por la mediana nativa de un hilo (menor es mejor). Los valores
 menores que 1 indican que el target es más rápido que el nativo de un hilo.
 
 | método | native-parallel | node-wasm | chrome-wasm |
 |---|---|---|---|
-| Bishop simplificado | 0,11 | 1,25 | 1,04 |
-| Spencer | 0,11 | 1,24 | 1,02 |
+| Bishop simplificado | 0,11 | 1,20 | 1,03 |
+| Spencer | 0,10 | 1,23 | 1,04 |
 
 ## Verificación de FS
 
@@ -53,12 +53,12 @@ Tolerancia relativa de referencia: 1e-9. Referencia: `native`.
 
 | método | target | FS | error relativo | ¿coincide? |
 |---|---|---|---|---|
-| Bishop simplificado | native-parallel | 0,985130064 | 0.00e+0 | sí |
-| Bishop simplificado | node-wasm | 0,985130064 | 1.13e-16 | sí |
-| Bishop simplificado | chrome-wasm | 0,985130064 | 1.13e-16 | sí |
-| Spencer | native-parallel | 0,984148811 | 0.00e+0 | sí |
-| Spencer | node-wasm | 0,984148811 | 1.13e-16 | sí |
-| Spencer | chrome-wasm | 0,984148811 | 1.13e-16 | sí |
+| Bishop simplificado | native-parallel | 0,985123362 | 0.00e+0 | sí |
+| Bishop simplificado | node-wasm | 0,985123362 | 2.25e-16 | sí |
+| Bishop simplificado | chrome-wasm | 0,985123362 | 2.25e-16 | sí |
+| Spencer | native-parallel | 0,984142025 | 0.00e+0 | sí |
+| Spencer | node-wasm | 0,984142025 | 1.13e-16 | sí |
+| Spencer | chrome-wasm | 0,984142025 | 1.13e-16 | sí |
 
 Resultado del gate de FS: **CUMPLE**.
 
@@ -68,8 +68,8 @@ Número de superficies con FS válido (`valid` de la búsqueda). No es parte del
 
 | método | native | native-parallel | node-wasm | chrome-wasm |
 |---|---|---|---|---|
-| Bishop simplificado | 6453 | 6453 | 6453 | 6453 |
-| Spencer | 6427 | 6427 | 6427 | 6427 |
+| Bishop simplificado | 6440 | 6440 | 6440 | 6440 |
+| Spencer | 6523 | 6523 | 6523 | 6523 |
 
 Coinciden en todos los targets.
 

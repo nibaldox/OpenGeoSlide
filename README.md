@@ -45,8 +45,8 @@ versión que fija el crate.
 
   | método | nativo, 1 hilo (ms) | Chrome headless, WASM (ms) | Chrome / nativo |
   |---|---:|---:|---:|
-  | Bishop simplificado | 42,36 | 44,00 | 1,04 |
-  | Spencer | 108,88 | 111,50 | 1,02 |
+  | Bishop simplificado | 51,08 | 52,70 | 1,03 |
+  | Spencer | 177,75 | 185,40 | 1,04 |
 
   Es una medición de spike en una sola máquina: sirve para el orden de magnitud, no para comparar versiones.
   Detalle y gate de FS en [`bench/RESULTS.md`](bench/RESULTS.md).

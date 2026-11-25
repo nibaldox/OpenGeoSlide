@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-24T23:48:26-03:00 · harness v1 · casos: `verification/cases` (16 casos, 38 checks)
+Generado: 2026-11-25T00:30:57-03:00 · harness v1 · casos: `verification/cases` (16 casos, 38 checks)
 
 ## Motores
 
@@ -29,10 +29,10 @@ cSlope reproduce el valor publicado dentro de tolerancia en **38/38** checks.
 | V016a | bishop | fixed | 1.7870 | 1.7911 | +0.23 | 1.7905 | +0.19 | 1.03 | OK |
 | V016a | spencer | fixed | 1.7910 | 1.7981 | +0.40 | 1.7975 | +0.36 | 1.03 | OK |
 | V016a | bishop | fixed | 1.7900 | 1.7911 | +0.06 | 1.7905 | +0.03 | 1.28 | OK |
-| V019 | spencer | search | 1.3800 | 1.3991 | +1.39 | 1.3985 | +1.34 | 2.36 | OK |
-| V019 | spencer | search | 1.3830 | 1.3988 | +1.15 | 1.3985 | +1.12 | 2.04 | OK |
-| V019 | spencer | search | 1.3980 | 1.3991 | +0.08 | 1.3985 | +0.04 | 2.04 | OK |
-| V019 | bishop | search | 1.4010 | 1.4016 | +0.04 | 1.4009 | -0.00 | 2.04 | OK |
+| V019 | spencer | search | 1.3800 | 1.3987 | +1.36 | 1.3985 | +1.34 | 2.36 | OK |
+| V019 | spencer | search | 1.3830 | 1.3986 | +1.13 | 1.3985 | +1.12 | 2.04 | OK |
+| V019 | spencer | search | 1.3980 | 1.3987 | +0.05 | 1.3985 | +0.04 | 2.04 | OK |
+| V019 | bishop | search | 1.4010 | 1.4012 | +0.01 | 1.4009 | -0.00 | 2.04 | OK |
 | V025 | bishop | search | 1.1420 | 1.1328 | -0.80 | 1.1323 | -0.85 | 2.04 | OK |
 | V025 | spencer | search | 1.1420 | 1.1330 | -0.79 | 1.1325 | -0.83 | 2.04 | OK |
 | V030 | bishop | search | 1.4120 | 1.4129 | +0.06 | 1.4083 | -0.26 | 2.04 | OK |
@@ -55,9 +55,9 @@ cSlope reproduce el valor publicado dentro de tolerancia en **38/38** checks.
 | V063 | spencer | search | 2.4550 | 2.4513 | -0.15 | 2.4511 | -0.16 | 2.02 | OK |
 | V063 | bishop | search | 2.4300 | 2.4530 | +0.95 | 2.4528 | +0.94 | 2.21 | OK |
 | V093 | bishop | search | 1.3440 | 1.3431 | -0.07 | 1.3427 | -0.10 | 2.04 | OK |
-| V101 | bishop | search | 1.3340 | 1.3340 | +0.00 | 1.3337 | -0.02 | 2.04 | OK |
-| V101 | bishop | search | 1.3400 | 1.3340 | -0.44 | 1.3337 | -0.47 | 2.37 | OK |
-| V101 | bishop | search | 1.3430 | 1.3340 | -0.67 | 1.3337 | -0.69 | 2.04 | OK |
+| V101 | bishop | search | 1.3340 | 1.3339 | -0.01 | 1.3337 | -0.02 | 2.04 | OK |
+| V101 | bishop | search | 1.3400 | 1.3339 | -0.45 | 1.3337 | -0.47 | 2.37 | OK |
+| V101 | bishop | search | 1.3430 | 1.3339 | -0.68 | 1.3337 | -0.69 | 2.04 | OK |
 
 Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no reproduce el publicado, se añade «revisar conversión» (el fallo puede estar en el conversor, en el publicado o en el motor).
 
