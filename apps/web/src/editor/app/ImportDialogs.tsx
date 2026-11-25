@@ -37,8 +37,9 @@ export function Modal({ title, onCancel, children }: { title: string; onCancel: 
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
     titleRef.current?.focus();
+    // Al desmontar, el navegador saca el diálogo de la capa superior y devuelve la inercia al resto de la página;
+    // solo falta devolver el foco. No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
     return () => {
-      if (dialog.open) dialog.close();
       if (previous?.isConnected) previous.focus();
     };
   }, []);
