@@ -19,8 +19,6 @@ export interface ParityCase {
   verdict: 'accept' | 'reject';
   /** Códigos de error del editor esperados (solo si `reject`). */
   codes?: string[];
-  /** El motor solo da este veredicto desde G1 (`material.id` vacío); el binario de G3 aún no lo rechaza. */
-  engineSince?: 'G1';
 }
 
 const surface = { type: 'circle' as const, xc: 50, yc: 120, r: 100 };
@@ -69,7 +67,6 @@ export const PARITY_CASES: ParityCase[] = [
     doc: { ...doc([big]), materials: [mat('')], regions: [{ material: '', polygon: big }] },
     verdict: 'reject',
     codes: ['editor.out_of_range'],
-    engineSince: 'G1',
   },
   // Umbral de área de región degenerada (1e-12 · escala², escala ≈ 100 → 1e-8).
   {

@@ -64,6 +64,10 @@ jobs:
       # upload-artifact no conserva el bit de ejecución.
       - run: chmod +x target/release/ogs
       - uses: astral-sh/setup-uv@v10.4.0
+      # La prueba de ida y vuelta de la web ejecuta openOgsJson/saveOgsJson con Node (--experimental-strip-types).
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
       # cslope 0.1.0 trae wheel precompilado en PyPI: no hay que compilar el oráculo.
       # El --out va fuera del repo: por defecto estos scripts escribirían REPORT.md y report.json en el árbol.
       - name: Harness de verificación cruzada
@@ -75,10 +79,16 @@ jobs:
         run: >
           uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely
           python verification/differential/run.py --ogs target/release/ogs --out "$RUNNER_TEMP/diff"
+      # La ida y vuelta de la web tiene su propio paso (abajo): se excluye aquí para no ejecutarla dos veces.
       - name: pytest de verificación
         run: >
           uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with jsonschema --with pytest
-          python -m pytest -q verification
+          python -m pytest -q verification --ignore=verification/tools/test_web_roundtrip.py
+      # E12g/R5-02: modelo original frente al texto que guarda la web, mismo código de salida y misma salida byte a byte.
+      - name: Ida y vuelta de la web frente al motor real
+        run: >
+          uv run -q --python 3.13 --no-project --with pytest
+          python -m pytest -q verification/tools/test_web_roundtrip.py
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -114,8 +124,11 @@ jobs:
 
   web:
     name: web (typecheck, tests, build)
-    needs: wasm
+    needs: [wasm, acceptance]
     runs-on: ubuntu-latest
+    env:
+      # Paridad editor/motor (E12j): con el CLI real, parity.test.ts ejecuta también el veredicto del motor.
+      OGS_BIN: ${{ github.workspace }}/target/release/ogs
     defaults:
       run:
         working-directory: apps/web
@@ -125,6 +138,12 @@ jobs:
         with:
           name: wasm-bindings
           path: apps/web/src/wasm
+      - uses: actions/download-artifact@v8
+        with:
+          name: ogs-linux-x86_64
+          path: target/release
+      # upload-artifact no conserva el bit de ejecución.
+      - run: chmod +x "$OGS_BIN"
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: apps/web/package.json
@@ -136,6 +155,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      # Sin OGS_BIN la prueba omitiría los casos del motor sin fallar: aquí no puede haber ninguno omitido.
+      - name: Paridad editor/motor con el CLI real (sin casos omitidos)
+        run: |
+          test -x "$OGS_BIN"
+          pnpm exec vitest run src/editor/state/parity.test.ts --reporter=json --outputFile="$RUNNER_TEMP/parity.json"
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP + "/parity.json", "utf8"));
+            console.log(`paridad: ${r.numPassedTests} pasan, ${r.numFailedTests} fallan, ${r.numPendingTests} omitidos`);
+            if (r.numFailedTests !== 0 || r.numPendingTests !== 0 || r.numPassedTests === 0) process.exit(1);
+          '
       - run: pnpm build
       # Sin .wasm en dist/ la app caería en el motor simulado sin que el build fallase.
       - name: dist/ debe contener el .wasm y los archivos de la PWA
