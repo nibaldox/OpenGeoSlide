@@ -264,6 +264,18 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
   motor. Sin esta regla aparecían FS absurdos, del orden de 1e16, reportados como `Converged`.
 - Las dovelas con `m_α` bajo solo invalidan la superficie si tienen peso o resistencia; las dovelas aéreas (§4.1.8) no
   se consideran.
+- **(Enmienda E7b, revisión R2-02; complementa a E4a.)** Para cada dovela de suelo con α < 0:
+  - `m_α(F) ≥ min_m_alpha` ⟺ `F ≥ F_adm,i = (−sin α · tanφ) / (cos α − min_m_alpha)`;
+  - si `cos α ≤ min_m_alpha` y tanφ > 0, la superficie es `Invalid("m_alpha")`.
+
+  Con `F_adm = max_i F_adm,i` (0 si no hay dovelas con α < 0):
+  - la raíz se busca **solo** en `[F_adm·(1+1e-6), 1e3]`;
+  - iteración de punto fijo desde `F₀ = max(F_ordinario, 1.05·F_adm, 0.1)`;
+  - si un iterado sale del intervalo o no converge en `max_iterations/2`, se usa Brent o bisección sobre
+    `h(F) = F − g(F)` en ese intervalo;
+  - sin raíz en el intervalo → `Invalid("m_alpha")`.
+
+  Esta regla reemplaza el aborto por `"m_alpha_pole"` en la iteración 0.
 - **(Enmienda E4a, revisión R1-03.)** Valor inicial `F₀ = max(F_ordinario, 0.1)`, donde
   `F_ordinario = Σ (c·l + (W cos α − u·l)·tanφ) / Σ W sin α` (Fellenius, solo con dovelas de suelo). Si F_ordinario no es
   finito o es ≤ 0, se usa `F₀ = 1`. Durante las iteraciones, solo un **polo** (`m_α ≤ 1e-9` en alguna dovela de suelo)
@@ -291,6 +303,20 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   (`"m_alpha"`). En iteraciones intermedias, `Φᵢ ≤ 1e-9·F` o un iterado `F ≤ 0` → `Invalid` (`"pole"`).
 - **(E4c, revisión R1-02.)** Las dovelas aéreas transmiten E sin cambio (`Eᵢ = Eᵢ₋₁`), **no** aportan a F y se
   **excluyen** de los dos sumatorios de λ.
+  - **E4c queda DEROGADA por E7a (revisión R2-01).** Excluirlas deja un residuo de momento global
+    `E_gap·(λ·Δx_aire − Δy_aire)` que no desaparece al refinar: con φ = 0 y un vacío interior, Spencer quedaba 6,3 %
+    bajo la identidad exacta.
+- **(Enmienda E7a.)** Una dovela aérea es un cuerpo **sin masa** que transmite `E` y `X = λE` sin cambio. **Participa**
+  en los sumatorios de λ con su propio α (el de la cuerda del arco en el aire), lo que conserva el equilibrio global de
+  momentos y la identidad φ = 0. Como el aire no puede transmitir empuje, si un tramo aéreo **interior** (con suelo a
+  ambos lados) lleva `|E_gap| > 1e-3·ΣW`, el resultado conserva su estado y añade el **aviso** `"air_gap_thrust"`.
+- **(Enmienda E7c, revisión R2-03.)** Robustez de Spencer:
+  - si un paso de λ produce un polo (`Φᵢ ≤ 1e-9·F`) o `F ≤ 0`, se **amortigua** (`Δλ ← Δλ/2`, hasta 12 veces) antes de
+    abortar;
+  - el lazo interno de F con λ fijo usa la forma cerrada `F = Σ(R/D)/Σ(T/D)` con salvaguarda: si un iterado sale de la
+    región admisible, se usa bisección en F dentro de `[F_adm(λ)·(1+1e-6), 1e3]`;
+  - solo se declara `Invalid("pole")` si el amortiguamiento se agota;
+  - la admisibilidad final E4b no cambia.
 - **(E4d, revisión R1-07.)** Antes de devolver `Converged`, se recalcula F con el λ final y se exige
   `|F(λ_final) − F|/F < tolerance`. Si no se cumple, se sigue iterando o, agotado el presupuesto, el resultado es
   `NotConverged`.
@@ -306,6 +332,13 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
     coronamiento con cohesión (zona de tracción) y sugiere considerar una grieta de tracción. El test de aceptación
     tolera los códigos de la lista `INFORMATIVE_WARNINGS = ["negative_effective_normal"]` y falla ante cualquier otro.
     La web y el informe deben mostrarlo como nota, no como error.
+  - **(Enmienda E7d, revisión R2-04.)** El aviso se clasifica por magnitud, con `f = Σ_{N'<0} |N'| / ΣW`:
+    - `f ≤ 0.02` → `"negative_effective_normal"` (nota);
+    - `f > 0.02` → `"negative_effective_normal_major"` (aviso: tracción o subpresión generalizada en la base).
+
+    En Spencer, N' se calcula con la forma directa, sin el divisor `m_α`:
+    `N' = W cos α − U + (sin α − λ cos α)·ΔE`, con el signo de ΔE de la convención documentada. Debe coincidir con la
+    forma de E4e en las dovelas sin polo.
 - **Convención de signos**: el implementador debe **documentar** la que use. La **deciden las pruebas** de §5;
   si una de ellas falla, la convención está mal.
 
@@ -348,7 +381,9 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `NoSurface: no hay superficie definida; indique analysis.surface o analysis.search`.
   El prefijo es estable y lo usan la web y Python para clasificar el error.
   Los códigos de aviso (`m_alpha`, `m_alpha_pole`, `pole`, `no_driving`, `negative_effective_normal`,
-  `water_above_ground`, `max_iterations`) son identificadores estables en inglés. Los textos al usuario los traduce
+  `negative_effective_normal_major`, `air_gap_thrust`, `water_above_ground`, `max_iterations`, `non_finite`,
+  `lambda_undefined`, `fos_nonpositive`, `no_slices`) son identificadores estables en inglés; agregar uno nuevo exige
+  actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
   cada interfaz.
 - `slice_circle` acepta círculos cuyo cruce externo coincide con `x_min` o `x_max` (|arco − terreno| ≤ tol en el borde).
   Solo es `OutsideModel` si el arco sale **bajo** el terreno por un borde lateral.
@@ -359,6 +394,9 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
 - **Identidad φ = 0**: en un círculo con φ = 0, Bishop = Σ c·l / Σ W sin α (|Δ| < 1e-9 relativo). Spencer converge a
   ese mismo valor como O(1/n²), porque con base en cuerda la igualdad no es exacta para n finito: |Δ| < 1e-4 con
   n = 50 y < 1e-9 con n ≥ 16000.
+- **Identidad φ = 0 con vacío aéreo interior (E7a)**: en el círculo de R2-01 (talud con muesca), Spencer converge a
+  Σ c·l / Σ W sin α como O(1/n²) (< 0,1 % con n = 500), y el residuo de momento global calculado de forma independiente
+  es menor que 1e-6·(momento motor).
 - **Simetría**: espejar el modelo (x → −x, con la dirección invertida) produce el mismo FS (|Δ| < 1e-9 relativo) en Bishop y Spencer.
 - **Spencer ≈ Bishop**: en un círculo seco homogéneo con c > 0 y φ > 0 difieren < 1,5 %, y λ queda en (0, 1).
 - **Aceptación** (`crates/ogs-core/tests/acceptance.rs`): cada check de `verification/cases/*.json` cumple su tolerancia.
