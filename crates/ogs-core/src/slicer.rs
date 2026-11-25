@@ -3,7 +3,7 @@
 use serde::Serialize;
 
 use crate::geometry::{PreparedModel, Sliding};
-use crate::loads::LoadCase;
+use crate::loads::{LINE_TOUCH_FRACTION, LoadCase};
 use crate::model::Circle;
 
 /// One slice, in the ORIGINAL model frame.
@@ -648,11 +648,64 @@ fn slice_span(
         unsupported.push(false);
     }
 
+    // E12f: the line loads, once the slices of the span are known (a load on a shared boundary needs both neighbours).
+    if active && !loads.lines.is_empty() {
+        let soil: Vec<bool> = air_flags
+            .iter()
+            .zip(&unsupported)
+            .map(|(&a, &u)| !a && !u)
+            .collect();
+        apply_line_loads(pm, circle, loads, &mut slices, &soil);
+    }
+
     Ok(Built {
         slices,
         air: air_flags,
         unsupported,
     })
+}
+
+/// Adds the line loads to the soil slices of a span (E12f).
+///
+/// A line load at `x` acts on the soil slices whose closed interval `[x_l, x_r]` contains `x`, within
+/// `1e-9·model width`. Each of the `n` slices that contain it takes `1/n` of the load: all of it in the interior of a
+/// slice or at an end of the span (entry or exit of the block, or next to an air slice), and half on each side of a
+/// boundary shared by two soil slices. The rule is the same in both sliding directions, so the mirror image of a
+/// model gives the same forces. A load that touches no soil slice is dropped (`load_outside_mass` is noted by the
+/// caller). `V = p·cos θ` is added to `weight_extra`, `H^P = s·p·sin θ` to `h_force`, applied at `y_g = y_top(x)`.
+fn apply_line_loads(
+    pm: &PreparedModel,
+    circle: &Circle,
+    loads: &LoadCase,
+    slices: &mut [Slice],
+    soil: &[bool],
+) {
+    let tol = LINE_TOUCH_FRACTION * (pm.x_max - pm.x_min);
+    let direction = match pm.sliding {
+        Sliding::LeftToRight => 1.0,
+        Sliding::RightToLeft => -1.0,
+    };
+    let (yc, r) = (circle.yc, circle.r);
+    for l in &loads.lines {
+        let touched: Vec<usize> = (0..slices.len())
+            .filter(|&i| soil[i] && slices[i].x_left - tol <= l.x && l.x <= slices[i].x_right + tol)
+            .collect();
+        if touched.is_empty() {
+            continue;
+        }
+        let share = 1.0 / touched.len() as f64;
+        let (sin, cos) = l.angle.sin_cos();
+        for i in touched {
+            let sl = &mut slices[i];
+            let y_base = 0.5 * (sl.y_base_left + sl.y_base_right);
+            let y_g = pm.top_at(l.x).unwrap_or(y_base);
+            let h = share * direction * l.p * sin;
+            sl.weight_extra += share * l.p * cos;
+            sl.h_force += h;
+            sl.h_moment_base += h * (y_g - y_base);
+            sl.driving_extra += h * (yc - y_g) / r;
+        }
+    }
 }
 
 /// The data of a soil slice that the load resolution needs.
@@ -717,8 +770,9 @@ fn soil_centroid(
 /// Seismic force and surface loads of one soil slice (E12b), as the last fields of a [`Slice`] (the rest is zero).
 ///
 /// With `s = +1` for `LeftToRight` and `−1` for `RightToLeft`, `y_b` the base midpoint, and `θ` the angle of a line
-/// load: `Q = Σ q·|[x_l, x_r] ∩ [x1, x2]|`; a line load at `x` with `x_l ≤ x < x_r` adds `V = p·cos θ` and
-/// `H^P = s·p·sin θ`, applied at `y_g = y_top(x)`. Then `W* = W·(1 + kv) + Q + V` and `H = kh·W + H^P`.
+/// load: `Q = Σ q·|[x_l, x_r] ∩ [x1, x2]|`. The line loads, `V = p·cos θ` and `H^P = s·p·sin θ` applied at
+/// `y_g = y_top(x)`, are added afterwards by [`apply_line_loads`] (E12f). Then `W* = W·(1 + kv) + Q + V` and
+/// `H = kh·W + H^P`.
 fn slice_loads(
     pm: &PreparedModel,
     circle: &Circle,
@@ -728,10 +782,6 @@ fn slice_loads(
     scratch: &mut Vec<f64>,
 ) -> Slice {
     let y_base = 0.5 * (s.y_base_left + s.y_base_right);
-    let direction = match pm.sliding {
-        Sliding::LeftToRight => 1.0,
-        Sliding::RightToLeft => -1.0,
-    };
     let (yc, r) = (circle.yc, circle.r);
     let mut vertical = 0.0_f64;
     for u in &loads.udls {
@@ -740,19 +790,7 @@ fn slice_loads(
             vertical += u.q * overlap;
         }
     }
-    // Horizontal force of the line loads, its moment about the base midpoint, and its driving moment about O over R.
-    let (mut h_line, mut moment_base, mut driving) = (0.0_f64, 0.0_f64, 0.0_f64);
-    for l in &loads.lines {
-        if s.xl <= l.x && l.x < s.xr {
-            let (sin, cos) = l.angle.sin_cos();
-            let y_g = pm.top_at(l.x).unwrap_or(y_base);
-            let h = direction * l.p * sin;
-            vertical += l.p * cos;
-            h_line += h;
-            moment_base += h * (y_g - y_base);
-            driving += h * (yc - y_g) / r;
-        }
-    }
+    let (mut moment_base, mut driving) = (0.0_f64, 0.0_f64);
     let h_seismic = loads.kh * s.weight;
     let mut y_centroid = 0.0;
     if h_seismic > 0.0 {
@@ -762,7 +800,7 @@ fn slice_loads(
     }
     Slice {
         weight_extra: loads.kv * s.weight + vertical,
-        h_force: h_seismic + h_line,
+        h_force: h_seismic,
         h_moment_base: moment_base,
         driving_extra: driving,
         y_centroid,

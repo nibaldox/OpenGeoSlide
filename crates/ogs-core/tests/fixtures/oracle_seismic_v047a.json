@@ -298,6 +298,248 @@
       "bishop_warnings": [],
       "spencer": 0.9744289534185984,
       "spencer_warnings": []
+    },
+    {
+      "id": "line_entry_10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 51.29111842105263,
+          "p": 100.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.9199730844986387,
+      "bishop_warnings": [],
+      "spencer": 0.9180123299654822,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line_entry_-10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 51.29111842105263,
+          "p": 100.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 0.8670760782606335,
+      "bishop_warnings": [],
+      "spencer": 0.8644502942731785,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line_toe_10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 30.00000164700758,
+          "p": 100.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 1.1424266287983014,
+      "bishop_warnings": [],
+      "spencer": 1.141162641403703,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line_toe_-10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 30.00000164700758,
+          "p": 100.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 1.0312913600246179,
+      "bishop_warnings": [],
+      "spencer": 1.0303883717751832,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line_crown_15",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 50.0,
+          "p": 100.0,
+          "angle": 15.0
+        }
+      ],
+      "bishop": 0.9432866838714046,
+      "bishop_warnings": [],
+      "spencer": 0.9421495092926533,
+      "spencer_warnings": []
+    },
+    {
+      "id": "line_udl_edge_10",
+      "direction": "rtl",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [
+        {
+          "id": "u1",
+          "x1": 40.0,
+          "x2": 52.0,
+          "q": 15.0
+        }
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "x": 40.0,
+          "p": 100.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.9317187917685373,
+      "bishop_warnings": [],
+      "spencer": 0.930603416884863,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_entry_10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -51.29111842105263,
+          "p": 100.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 0.9199730844986365,
+      "bishop_warnings": [],
+      "spencer": 0.91801232996548,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_entry_-10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -51.29111842105263,
+          "p": 100.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 0.8670760782606293,
+      "bishop_warnings": [],
+      "spencer": 0.8644502942731745,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_toe_10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -30.00000164700758,
+          "p": 100.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 1.1424266287982754,
+      "bishop_warnings": [],
+      "spencer": 1.1411626414036768,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_toe_-10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -30.00000164700758,
+          "p": 100.0,
+          "angle": 10.0
+        }
+      ],
+      "bishop": 1.031291360024596,
+      "bishop_warnings": [],
+      "spencer": 1.0303883717751614,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_crown_15",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -50.0,
+          "p": 100.0,
+          "angle": -15.0
+        }
+      ],
+      "bishop": 0.9432866838714065,
+      "bishop_warnings": [],
+      "spencer": 0.9421495092926553,
+      "spencer_warnings": []
+    },
+    {
+      "id": "ltr_line_udl_edge_10",
+      "direction": "ltr",
+      "kh": 0.0,
+      "kv": 0.0,
+      "udls": [
+        {
+          "id": "u1",
+          "x1": -52.0,
+          "x2": -40.0,
+          "q": 15.0
+        }
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "x": -40.0,
+          "p": 100.0,
+          "angle": -10.0
+        }
+      ],
+      "bishop": 0.9317187917685282,
+      "bishop_warnings": [],
+      "spencer": 0.9306034168848545,
+      "spencer_warnings": []
     }
   ]
 }

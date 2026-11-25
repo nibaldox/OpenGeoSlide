@@ -521,3 +521,42 @@ fn the_example_and_the_harness_fixture_stay_valid() {
         repo_path("verification/harness/fixtures/V047a.json"),
     ]);
 }
+
+// ------------------------------------------------------------ E12j: empty material id (R5-10)
+
+/// E12j: `material.id == ""` is rejected with `InvalidModel`, wherever the material sits in the list and through the
+/// public entry points too. The error names the material by its position.
+#[test]
+fn an_empty_material_id_is_rejected() {
+    let mut doc = doc_with(vec![region("soil", square(0.0, 0.0, 10.0))]);
+    accepted(&doc);
+    doc["materials"][0]["id"] = json!("");
+    doc["regions"][0]["material"] = json!("");
+    assert_eq!(
+        rejected(&doc),
+        "InvalidModel: el id del material 0 está vacío: debe tener al menos un carácter"
+    );
+    // The same through `analyze` and `analyze_json` (the path of the CLI, wasm and python).
+    let model: Model = serde_json::from_value(doc.clone()).unwrap();
+    match analyze(&model) {
+        Err(OgsError::InvalidModel(msg)) => assert!(msg.contains("vacío"), "{msg}"),
+        other => panic!("analyze must reject an empty material id: {other:?}"),
+    }
+    match analyze_json(&doc.to_string()) {
+        Err(msg) => assert!(
+            msg.contains("InvalidModel") && msg.contains("vacío"),
+            "{msg}"
+        ),
+        other => panic!("analyze_json must reject an empty material id: {other:?}"),
+    }
+    // Second material: it is the position 1 that is reported, and the first one is still fine.
+    let mut doc = doc_with(vec![region("soil", square(0.0, 0.0, 10.0))]);
+    doc["materials"][1]["id"] = json!("");
+    assert_eq!(
+        rejected(&doc),
+        "InvalidModel: el id del material 1 está vacío: debe tener al menos un carácter"
+    );
+    // A one-character id (or a blank-looking one that is not empty) stays valid.
+    doc["materials"][1]["id"] = json!(" ");
+    accepted(&doc);
+}

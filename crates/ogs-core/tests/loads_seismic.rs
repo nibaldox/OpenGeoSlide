@@ -26,6 +26,12 @@ const ORACLE: &str = include_str!("fixtures/oracle_seismic_v047a.json");
 /// Circle of the oracle: the Bishop critical circle of V047a (X1 §2.2), exact floats.
 const CIRCLE: (f64, f64, f64) = (29.54334963719809, 53.63784815923435, 28.641487934160704);
 
+/// Ends of the analysed block on that circle (R5-01, E12f): the toe and the entry point, exact floats of the report.
+const X_TOE: f64 = 30.00000164700758;
+const X_ENTRY: f64 = 51.29111842105263;
+/// Model width of V047a (x from 20 to 70) and the tolerance of a line load against a slice end (E12f).
+const WIDTH: f64 = 50.0;
+
 /// Terrain of V047a, in the frame where the mass moves toward −x (`right_to_left`).
 fn terrain_rtl(x: f64) -> f64 {
     if x <= 30.0 {
@@ -479,7 +485,19 @@ struct Forces {
     h: f64,
 }
 
-fn slice_forces(sc: &Scenario, s: &Slice) -> Forces {
+/// Fraction of the line load at `x` that the soil slice `index` of `all` takes (E12f): the load goes to the soil slices
+/// whose closed interval contains `x` (within `1e-9·width`), split in equal parts.
+fn line_share(all: &[Slice], index: usize, x: f64) -> f64 {
+    let tol = 1e-9 * WIDTH;
+    let touches = |s: &Slice| s.weight > 0.0 && s.x_left - tol <= x && x <= s.x_right + tol;
+    if !touches(&all[index]) {
+        return 0.0;
+    }
+    1.0 / all.iter().filter(|s| touches(s)).count() as f64
+}
+
+fn slice_forces(sc: &Scenario, all: &[Slice], index: usize) -> Forces {
+    let s = &all[index];
     let dir = if sc.ltr { 1.0 } else { -1.0 }; // sliding direction along x
     let w = s.weight;
     let xm = 0.5 * (s.x_left + s.x_right);
@@ -495,12 +513,13 @@ fn slice_forces(sc: &Scenario, s: &Slice) -> Forces {
         }
     }
     for &(x, p, angle) in &sc.lines {
-        if s.x_left <= x && x < s.x_right {
+        let share = line_share(all, index, x);
+        if share > 0.0 {
             let t = angle.to_radians();
-            verticals.push((x, p * t.cos()));
-            w_star += p * t.cos();
+            verticals.push((x, share * p * t.cos()));
+            w_star += share * p * t.cos();
             // Component in the sliding direction: H^P = s·p·sin θ, with s = +1 when the mass moves toward +x.
-            let hp = dir * p * t.sin();
+            let hp = share * dir * p * t.sin();
             horizontals.push((sc.terrain(x), hp));
             h += hp;
         }
@@ -526,9 +545,9 @@ fn global_equilibrium(sc: &Scenario, r: &MethodReport) -> (f64, f64, f64, f64) {
     let crest = -dir;
     let (mut e, mut total_w) = (0.0_f64, 0.0_f64);
     let (mut external, mut base) = (0.0_f64, 0.0_f64);
-    for s in &r.slices {
+    for (index, s) in r.slices.iter().enumerate() {
         let (sin, cos) = s.alpha.sin_cos();
-        let fz = slice_forces(sc, s);
+        let fz = slice_forces(sc, &r.slices, index);
         total_w += s.weight;
         // Independent of the solver: closed form of ΔE (X1 §3.2) with m_α·F = F cos α + tan φ sin α.
         let l = s.base_length;
@@ -587,12 +606,26 @@ fn equilibrium_scenarios() -> Vec<Scenario> {
             .udl(36.0, 44.0, 30.0)
             .line(41.0, 35.0, -10.0),
         Scenario::rtl("kv0.1").kv(0.1),
+        // E12f: line loads on the ends of the block, on a terrain vertex and on the edge of a distributed load.
+        Scenario::rtl("line_entry").line(X_ENTRY, 100.0, 10.0),
+        Scenario::rtl("line_toe").line(X_TOE, 100.0, -10.0),
+        Scenario::rtl("line_crown_kh0.1")
+            .kh(0.1)
+            .line(50.0, 100.0, 15.0),
+        Scenario::rtl("line_udl_edge")
+            .udl(40.0, 52.0, 15.0)
+            .line(40.0, 100.0, 10.0),
         Scenario::rtl("layered_kh0.15").kh(0.15).layered(),
         Scenario::rtl("layered_all")
             .kh(0.12)
             .kv(0.04)
             .udl(40.0, 52.0, 15.0)
             .line(38.0, 25.0, 25.0)
+            .layered(),
+        // The terrain vertex x = 36 of the layered model.
+        Scenario::rtl("layered_vertex")
+            .kh(0.1)
+            .line(36.0, 60.0, -20.0)
             .layered(),
     ];
     let mirrors: Vec<Scenario> = base.iter().map(Scenario::mirror).collect();
@@ -624,8 +657,8 @@ fn ii_global_equilibrium_with_seismic_force_and_loads() {
         );
         worst = worst.max((residual / motor).abs());
         // The slicer carries the same forces as the independent recomputation.
-        for sl in &s.slices {
-            let fz = slice_forces(&sc, sl);
+        for (index, sl) in s.slices.iter().enumerate() {
+            let fz = slice_forces(&sc, &s.slices, index);
             let scale = sl.weight.max(1.0);
             assert!(
                 (sl.total_weight() - fz.w_star).abs() <= 1e-12 * scale,
@@ -681,6 +714,14 @@ fn iii_cslope_oracle_on_the_fixed_circle_of_v047a() {
         "line40_0",
         "line40_10",
         "kh0.2_udl20",
+        "line_entry_10",
+        "line_entry_-10",
+        "line_toe_10",
+        "line_toe_-10",
+        "line_crown_15",
+        "line_udl_edge_10",
+        "ltr_line_entry_10",
+        "ltr_line_toe_-10",
     ];
     for id in required {
         assert!(
@@ -964,13 +1005,20 @@ fn bishop_follows_the_contract_formula() {
     let mut f = 1.0_f64;
     for _ in 0..200 {
         let (mut num, mut den) = (0.0, 0.0);
-        for s in r.bishop.slices.iter().filter(|s| s.weight > 0.0) {
+        for (index, s) in r
+            .bishop
+            .slices
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.weight > 0.0)
+        {
             let (sin, cos) = s.alpha.sin_cos();
-            let fz = slice_forces(&sc, s);
+            let fz = slice_forces(&sc, &r.bishop.slices, index);
             let mut m_driving = sc.kh * s.weight * (yc - s.y_centroid) / rad;
             for &(x, p, angle) in &sc.lines {
-                if s.x_left <= x && x < s.x_right {
-                    let hp = -p * angle.to_radians().sin(); // s = −1 (right_to_left)
+                let share = line_share(&r.bishop.slices, index, x);
+                if share > 0.0 {
+                    let hp = -share * p * angle.to_radians().sin(); // s = −1 (right_to_left)
                     m_driving += hp * (yc - sc.terrain(x)) / rad;
                 }
             }
@@ -1168,6 +1216,184 @@ fn load_outside_mass_note() {
     let mirror = run(&Scenario::rtl("m").line(60.0, 20.0, 0.0).mirror());
     assert!(notes(&mirror.bishop) && notes(&mirror.spencer));
     // The note is informative: the contract lists it with the other codes of §4.5 (checked in acceptance/validation).
+}
+
+// ------------------------------------------------- E12f: loads on the edges (R5-01)
+
+/// Slices of a run that carry a share of the line load: `(x_left, x_right, weight_extra, h_force)`.
+fn carriers(r: &MethodReport) -> Vec<(f64, f64, f64, f64)> {
+    r.slices
+        .iter()
+        .filter(|s| s.weight_extra != 0.0)
+        .map(|s| (s.x_left, s.x_right, s.weight_extra, s.h_force))
+        .collect()
+}
+
+/// E12f: a line load exactly at the entry or at the exit of the analysed block acts on the end slice, with the whole
+/// force and without the note `load_outside_mass`. The half-open interval of E12b dropped it at the entry: FS 0.985
+/// against cSlope 0.920 (+7.1 %). The same in both directions, and the factor of safety does not depend on the side
+/// (≤ 1e-9); cSlope agrees within 0.1 % (the oracle scenarios of `iii` cover those ids, here the end slice is checked).
+#[test]
+fn e12f_line_load_at_the_ends_of_the_block_acts_on_the_end_slice() {
+    let control = run(&Scenario::rtl("control"));
+    for (x, angle) in [
+        (X_ENTRY, 10.0),
+        (X_ENTRY, -10.0),
+        (X_TOE, 10.0),
+        (X_TOE, -10.0),
+    ] {
+        let rtl = Scenario::rtl("end").line(x, 100.0, angle);
+        let ltr = rtl.mirror();
+        let (a, b) = (run(&rtl), run(&ltr));
+        for (name, ra, rb, c) in [
+            ("bishop", &a.bishop, &b.bishop, &control.bishop),
+            ("spencer", &a.spencer, &b.spencer, &control.spencer),
+        ] {
+            assert!(!notes(ra) && !notes(rb), "x={x} {name}: {:?}", ra.warnings);
+            assert!(
+                (fos(ra) - fos(c)).abs() > 1e-3,
+                "x={x} θ={angle} {name}: the load changes the FS"
+            );
+            let rel = (fos(ra) - fos(rb)).abs() / fos(ra);
+            println!(
+                "[E12f] x={x:.8} θ={angle:+} {name:<8} rtl={:.9} ltr={:.9} rel={rel:.2e}",
+                fos(ra),
+                fos(rb)
+            );
+            assert!(rel <= 1e-9, "x={x} θ={angle} {name}: {rel:e}");
+            // One carrier: the end slice, whose edge is the load, with the whole force.
+            for run in [ra, rb] {
+                let c = carriers(run);
+                assert_eq!(c.len(), 1, "x={x}: {c:?}");
+                let (xl, xr, v, _) = c[0];
+                let edge = if x > 0.0 { x } else { -x };
+                assert!(
+                    (xl.abs() - edge).abs() < 1e-12 || (xr.abs() - edge).abs() < 1e-12,
+                    "x={x}: slice [{xl}, {xr}]"
+                );
+                assert!((v - 100.0 * angle.to_radians().cos()).abs() < 1e-9, "{v}");
+            }
+        }
+    }
+}
+
+/// E12f: a line load on a boundary shared by two soil slices is split 50/50: the terrain vertex of the crown (x = 50),
+/// the edge of a distributed load, and the vertex of the layered model. The sum is the whole load, the two halves are
+/// equal, and the mirror image gives the same FS (≤ 1e-9; with E12b the right slice took it all, 3.4e-7).
+#[test]
+fn e12f_load_on_a_shared_boundary_is_split_in_half_and_mirrors() {
+    let cases = [
+        (
+            "crown",
+            Scenario::rtl("crown").line(50.0, 100.0, 15.0),
+            50.0,
+            15.0,
+        ),
+        (
+            "udl_edge",
+            Scenario::rtl("udl_edge")
+                .udl(40.0, 52.0, 15.0)
+                .line(40.0, 100.0, 10.0),
+            40.0,
+            10.0,
+        ),
+        (
+            "layered_vertex",
+            Scenario::rtl("layered_vertex")
+                .kh(0.1)
+                .line(36.0, 60.0, -20.0)
+                .layered(),
+            36.0,
+            -20.0,
+        ),
+    ];
+    for (name, sc, x, angle) in cases {
+        let angle: f64 = angle;
+        let p = if name == "layered_vertex" {
+            60.0
+        } else {
+            100.0
+        };
+        let (a, b) = (run(&sc), run(&sc.mirror()));
+        for (method, ra, rb) in [
+            ("bishop", &a.bishop, &b.bishop),
+            ("spencer", &a.spencer, &b.spencer),
+        ] {
+            let rel = (fos(ra) - fos(rb)).abs() / fos(ra);
+            println!(
+                "[E12f] {name:<15} {method:<8} {:.12} vs {:.12} rel={rel:.2e}",
+                fos(ra),
+                fos(rb)
+            );
+            assert!(rel <= 1e-9, "{name} {method}: {rel:e}");
+            for (run, sx) in [(ra, 1.0), (rb, -1.0)] {
+                // Slices that touch the load: their interval contains it.
+                let touching: Vec<&Slice> = run
+                    .slices
+                    .iter()
+                    .filter(|s| {
+                        let (l, r) = (s.x_left.min(s.x_right), s.x_left.max(s.x_right));
+                        s.weight > 0.0 && l - 1e-9 <= sx * x && sx * x <= r + 1e-9
+                    })
+                    .collect();
+                assert_eq!(touching.len(), 2, "{name} {method}: {touching:?}");
+                let udl_part = |s: &Slice| {
+                    // Subtract the distributed load of the slice and the kv part (none here): what is left is V.
+                    let overlap = if name == "udl_edge" {
+                        let (a, b) = if sx > 0.0 {
+                            (40.0, 52.0)
+                        } else {
+                            (-52.0, -40.0)
+                        };
+                        (s.x_right.min(b) - s.x_left.max(a)).max(0.0) * 15.0
+                    } else {
+                        0.0
+                    };
+                    s.weight_extra - overlap
+                };
+                let (v0, v1) = (udl_part(touching[0]), udl_part(touching[1]));
+                let v = p * angle.to_radians().cos();
+                assert!(
+                    (v0 - 0.5 * v).abs() < 1e-9 && (v1 - 0.5 * v).abs() < 1e-9,
+                    "{name}: {v0} {v1} vs {}",
+                    0.5 * v
+                );
+                // The mirror has the opposite direction and the opposite angle: H^P is the same, −p·sin θ.
+                let h = -p * angle.to_radians().sin();
+                let kh_part = |s: &Slice| {
+                    s.h_force - 0.1 * s.weight * if name == "layered_vertex" { 1.0 } else { 0.0 }
+                };
+                assert!(
+                    (kh_part(touching[0]) - 0.5 * h).abs() < 1e-9
+                        && (kh_part(touching[1]) - 0.5 * h).abs() < 1e-9,
+                    "{name}: H"
+                );
+            }
+        }
+    }
+}
+
+/// E12f: outside the block there is no load. The ground at x = 30 lies 1.6e-6 before the toe of the block (more than
+/// `1e-9·width`), x = 60 is beyond the entry: the note `load_outside_mass` and the FS of the model without the load.
+#[test]
+fn e12f_load_outside_the_block_is_noted_and_does_not_change_the_factor() {
+    let control = run(&Scenario::rtl("control"));
+    for x in [30.0, X_ENTRY + 1e-3, 60.0] {
+        let sc = Scenario::rtl("out").line(x, 100.0, 10.0);
+        for sc in [sc.clone(), sc.mirror()] {
+            let r = run(&sc);
+            assert!(notes(&r.bishop) && notes(&r.spencer), "x={x}");
+            // The breakpoints x ± 1e-6·width still cut the block, which moves the FS by ~1e-9.
+            for (a, b) in [(&r.bishop, &control.bishop), (&r.spencer, &control.spencer)] {
+                assert!((fos(a) - fos(b)).abs() <= 1e-8 * fos(b), "x={x}");
+            }
+            assert!(carriers(&r.bishop).is_empty(), "x={x}");
+        }
+    }
+    // Within the tolerance (1e-9 of the width) of the end: still inside.
+    let near = run(&Scenario::rtl("near").line(X_ENTRY + 1e-9 * WIDTH * 0.5, 100.0, 10.0));
+    assert!(!notes(&near.bishop) && !notes(&near.spencer));
+    assert_eq!(carriers(&near.bishop).len(), 1);
 }
 
 // ----------------------------------------------------------------- search
