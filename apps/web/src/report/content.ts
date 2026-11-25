@@ -6,9 +6,10 @@
 import type { ModelDoc } from '../editor/types';
 import type { MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
+import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import type { ReportInput } from './types';
 
-export type Rgb = [number, number, number];
+export type { Rgb };
 
 export interface DrawingRegion {
   polygon: Point[];
@@ -59,20 +60,6 @@ export interface ReportContent {
   title: string;
   sections: ReportSection[];
 }
-
-export const MATERIAL_COLORS: Rgb[] = [
-  [217, 200, 160],
-  [166, 206, 227],
-  [178, 223, 138],
-  [253, 191, 111],
-  [202, 178, 214],
-  [251, 154, 153],
-  [190, 190, 190],
-  [255, 255, 153],
-];
-export const SURFACE_COLOR: Rgb = [200, 0, 0];
-export const PIEZO_COLOR: Rgb = [0, 90, 200];
-export const SLICE_COLOR: Rgb = [120, 120, 120];
 
 const METHOD_LABEL: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
@@ -189,7 +176,7 @@ function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bou
 export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): SectionDrawing {
   const regions: DrawingRegion[] = model.regions.map((region) => {
     const idx = Math.max(0, model.materials.findIndex((m) => m.id === region.material));
-    return { polygon: region.polygon, materialId: region.material, color: MATERIAL_COLORS[idx % MATERIAL_COLORS.length] as Rgb };
+    return { polygon: region.polygon, materialId: region.material, color: pdfMaterialColor(idx) };
   });
 
   let xmin = Infinity;
@@ -247,7 +234,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     const name = model.materials.find((m) => m.id === r.materialId)?.name;
     legend.push({ kind: 'material', label: name && name !== r.materialId ? `${r.materialId} (${name})` : r.materialId, color: r.color });
   }
-  if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: PIEZO_COLOR });
+  if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: [...PDF_PALETTE.piezo] });
   if (surface) {
     // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
     const converged = res?.status === 'converged';
@@ -256,9 +243,9 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
       label: converged
         ? `Superficie crítica (${METHOD_LABEL[surface.method]})`
         : `Superficie evaluada, sin convergencia (${METHOD_LABEL[surface.method]})`,
-      color: SURFACE_COLOR,
+      color: [...PDF_PALETTE.surface],
     });
-    if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: SLICE_COLOR });
+    if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: [...PDF_PALETTE.slices] });
   }
   return { bounds, regions, piezo, surface, legend };
 }

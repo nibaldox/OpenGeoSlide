@@ -112,7 +112,7 @@ describe('buildReportPdf', () => {
 
   it('la sección se dibuja en vectorial: regiones, superficie crítica en rojo y dovelas', async () => {
     const pdf = await pdfText();
-    expect(pdf).toMatch(/0\.78 0\.? 0\.? RG/); // superficie crítica (200, 0, 0)
+    expect(pdf).toMatch(/0\.73 0\.11 0\.11 RG/); // superficie crítica: PDF_PALETTE.surface (185, 28, 28)
     expect(pdf).toMatch(/\nB\n/); // región rellena con borde
     expect((pdf.match(/ l\n/g) ?? []).length).toBeGreaterThan(50);
     expect(pdf).not.toContain('/Subtype /Image');

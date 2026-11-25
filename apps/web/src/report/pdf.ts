@@ -14,6 +14,7 @@ import {
   type Rgb,
   type SectionDrawing,
 } from './content';
+import { PDF_PALETTE as P } from './palette';
 import type { BuildReportPdf, ReportInput } from './types';
 
 export type FontFile = 'DejaVuSans.ttf' | 'DejaVuSans-Bold.ttf';
@@ -107,7 +108,7 @@ class Writer {
       this.y += this.lineHeight(size);
       this.doc.text(line, MARGIN, this.y - 1);
     }
-    this.doc.setDrawColor(150);
+    this.doc.setDrawColor(...P.headingRule);
     this.doc.setLineWidth(0.2);
     this.doc.line(MARGIN, this.y + 0.5, MARGIN + CONTENT_W, this.y + 0.5);
     this.y += 3;
@@ -160,7 +161,7 @@ class Writer {
       const h = lh * n + 1.5;
       this.ensure(h);
       if (fill) {
-        this.doc.setFillColor(230, 230, 230);
+        this.doc.setFillColor(...P.tableHeaderBg);
         this.doc.rect(MARGIN, this.y, CONTENT_W, h, 'F');
       }
       let x = MARGIN;
@@ -168,13 +169,13 @@ class Writer {
         lines.forEach((t, k) => this.doc.text(t, x + 1, this.y + lh * (k + 1) + 0.2));
         x += widths[i] as number;
       });
-      this.doc.setDrawColor(180);
+      this.doc.setDrawColor(...P.tableRule);
       this.doc.setLineWidth(0.15);
       this.doc.line(MARGIN, this.y + h, MARGIN + CONTENT_W, this.y + h);
       this.y += h;
     };
 
-    this.doc.setDrawColor(120);
+    this.doc.setDrawColor(...P.tableTopRule);
     this.doc.setLineWidth(0.3);
     this.doc.line(MARGIN, this.y, MARGIN + CONTENT_W, this.y);
     drawRow(header, true, true);
@@ -214,7 +215,7 @@ class Writer {
 
     // Regiones.
     doc.setLineWidth(0.25);
-    doc.setDrawColor(70, 70, 70);
+    doc.setDrawColor(...P.regionEdge);
     for (const r of d.regions) {
       const first = r.polygon[0];
       if (!first || r.polygon.length < 3) continue;
@@ -246,23 +247,23 @@ class Writer {
 
     // Dovelas, piezométrica y superficie crítica (en ese orden de apilado).
     if (d.surface) {
-      const sliceColor = d.legend.find((l) => l.kind === 'slices')?.color ?? [120, 120, 120];
+      const sliceColor = d.legend.find((l) => l.kind === 'slices')?.color ?? [...P.slices];
       for (const [a, b] of d.surface.sliceLines) polyline([a, b], sliceColor, 0.12);
     }
-    if (d.piezo) polyline(d.piezo, d.legend.find((l) => l.kind === 'piezo')?.color ?? [0, 90, 200], 0.5, [2, 1]);
-    if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [200, 0, 0], 0.7);
+    if (d.piezo) polyline(d.piezo, d.legend.find((l) => l.kind === 'piezo')?.color ?? [...P.piezo], 0.5, [2, 1]);
+    if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [...P.surface], 0.7);
 
     // Marco y extremos de los ejes.
-    doc.setDrawColor(0);
+    doc.setDrawColor(...P.frame);
     doc.setLineWidth(0.25);
     doc.rect(x0, y0, drawW, drawH, 'S');
     this.font('normal', 7.5);
-    doc.setTextColor(60);
+    doc.setTextColor(...P.inkMuted);
     doc.text(`x = ${xmin.toFixed(2).replace('.', ',')}`, x0, y0 + drawH + 3.5);
     doc.text(`x = ${xmax.toFixed(2).replace('.', ',')}`, x0 + drawW, y0 + drawH + 3.5, { align: 'right' });
     doc.text(`y = ${ymax.toFixed(2).replace('.', ',')}`, x0 + 1, y0 + 3);
     doc.text(`y = ${ymin.toFixed(2).replace('.', ',')}`, x0 + 1, y0 + drawH - 1);
-    doc.setTextColor(0);
+    doc.setTextColor(...P.ink);
     this.y = y0 + drawH + 7;
 
     // Leyenda.
@@ -271,7 +272,7 @@ class Writer {
       this.ensure(5);
       if (item.kind === 'material') {
         doc.setFillColor(...item.color);
-        doc.setDrawColor(70);
+        doc.setDrawColor(...P.regionEdge);
         doc.setLineWidth(0.2);
         doc.rect(MARGIN, this.y, 6, 3.4, 'FD');
       } else {
@@ -333,10 +334,10 @@ function draw(doc: jsPDF, content: ReportContent): void {
     doc.setPage(p);
     doc.setFont(FONT, 'normal');
     doc.setFontSize(8);
-    doc.setTextColor(90);
+    doc.setTextColor(...P.inkMuted);
     doc.text(`OpenGeoSlide · ${content.title}`, MARGIN, PAGE_H - 9);
     doc.text(`Página ${p} de ${total}`, PAGE_W - MARGIN, PAGE_H - 9, { align: 'right' });
-    doc.setTextColor(0);
+    doc.setTextColor(...P.ink);
   }
 }
 
