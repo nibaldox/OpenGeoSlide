@@ -91,5 +91,5 @@ Cierre de la Fase 0 (spike). Versión de prueba: ver `docs/fase0_cierre.md`.
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/opengeoslide/opengeoslide/compare/v0.1.0-fase0...HEAD
-[0.1.0-fase0]: https://github.com/opengeoslide/opengeoslide/releases/tag/v0.1.0-fase0
+[Unreleased]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0-fase0...HEAD
+[0.1.0-fase0]: https://github.com/nibaldox/opengeoslide/releases/tag/v0.1.0-fase0

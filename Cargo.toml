@@ -9,9 +9,8 @@ edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.85"
 authors = ["Colaboradores de OpenGeoSlide"]
-# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide): si cambia, actualícelo también en pyproject.toml y CITATION.cff.
-repository = "https://github.com/opengeoslide/opengeoslide"
-homepage = "https://opengeoslide.github.io/opengeoslide/"
+repository = "https://github.com/nibaldox/opengeoslide"
+homepage = "https://nibaldox.github.io/opengeoslide/"
 documentation = "https://docs.rs/ogs-core"
 readme = "README.md"
 keywords = ["geotechnics", "slope-stability", "limit-equilibrium", "bishop", "spencer"]

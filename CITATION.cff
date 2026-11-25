@@ -11,9 +11,8 @@ authors:
 version: "0.1.0"
 date-released: "2026-11-25"
 license: Apache-2.0
-# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide): sustituir al decidir el propietario definitivo.
-repository-code: "https://github.com/opengeoslide/opengeoslide"
-url: "https://opengeoslide.github.io/opengeoslide/"
+repository-code: "https://github.com/nibaldox/opengeoslide"
+url: "https://nibaldox.github.io/opengeoslide/"
 keywords:
   - geotechnics
   - slope stability
