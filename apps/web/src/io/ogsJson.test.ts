@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { VerificationCase } from '../engine/types';
@@ -250,6 +253,77 @@ describe('ogsJson: abrir', () => {
     expect(ok.issues.some((i) => i.code === 'io.checks_discarded')).toBe(true);
     const bad = openOgsJson(JSON.stringify({ model: { ...base(), r_u: 1 }, checks: [] }));
     expect(bad.doc).toBeNull();
+  });
+});
+
+describe('ogsJson: R6-02 números no finitos al abrir', () => {
+  const d01 = (): { text: string } => ({ text: readFileSync(new URL('D01.ogs.json', diffDir), 'utf8') });
+  const withOverflow = (mutate: (m: Json) => void): string => {
+    // `1e400` solo se puede escribir como literal en el texto: JSON.stringify daría `null`.
+    const m = JSON.parse(d01().text) as Json;
+    mutate(m);
+    return JSON.stringify(m).replace('"__INF__"', '1e400');
+  };
+  const analysisOf = (m: Json): Json => m.analysis as Json;
+
+  it.each([
+    ['cohesion', '/materials/0/cohesion', (m: Json) => ((m.materials as Json[])[0] as Json).cohesion = '__INF__'],
+    ['xc', '/analysis/surface/xc', (m: Json) => {
+      const a = analysisOf(m);
+      delete a.search;
+      a.surface = { type: 'circle', xc: '__INF__', yc: 10, r: 5 };
+    }],
+    ['kh', '/analysis/seismic/kh', (m: Json) => (analysisOf(m).seismic = { kh: '__INF__', kv: 0 })],
+    ['q', '/loads/0/q', (m: Json) => (m.loads = [{ type: 'udl', id: 'l', x1: 0, x2: 1, q: '__INF__' }])],
+  ] as [string, string, (m: Json) => void][])('1e400 en %s devuelve doc null y error io.non_finite, sin lanzar', (_n, pointer, mutate) => {
+    const text = withOverflow(mutate);
+    let r: ReturnType<typeof openOgsJson> | undefined;
+    expect(() => {
+      r = openOgsJson(text);
+    }).not.toThrow();
+    expect(r?.doc).toBeNull();
+    expect(r?.issues.filter((i) => i.severity === 'error').map((i) => [i.code, i.path])).toContainEqual(['io.non_finite', pointer]);
+  });
+
+  it('saveOgsJson sigue lanzando con un número no finito', () => {
+    const opened = openOgsJson(readFileSync(new URL('D01.ogs.json', diffDir), 'utf8'));
+    const doc = opened.doc as ModelDoc;
+    const bad = { ...doc, materials: [{ ...doc.materials[0]!, cohesion: Infinity }] } as ModelDoc;
+    expect(() => saveOgsJson(bad)).toThrow(/no finito/);
+  });
+});
+
+describe('ogsJson: R6-03 null en meta, slope y analysis', () => {
+  const OGS_BIN = process.env.OGS_BIN;
+  const haveEngine = OGS_BIN !== undefined && existsSync(OGS_BIN);
+  const d01 = (): Json => JSON.parse(readFileSync(new URL('D01.ogs.json', diffDir), 'utf8')) as Json;
+
+  describe.each(['meta', 'slope', 'analysis'])('%s: null', (field) => {
+    it('el editor lo rechaza con io.shape y su puntero', () => {
+      const r = openOgsJson(JSON.stringify({ ...d01(), [field]: null }));
+      expect(r.doc).toBeNull();
+      expect(r.issues.filter((i) => i.severity === 'error').map((i) => [i.code, i.path])).toContainEqual(['io.shape', `/${field}`]);
+    });
+
+    it.skipIf(!haveEngine)('el motor real también lo rechaza (InvalidModel)', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'ogs-r603-'));
+      try {
+        const file = join(dir, 'm.ogs.json');
+        writeFileSync(file, JSON.stringify({ ...d01(), [field]: null }));
+        const r = spawnSync(OGS_BIN as string, ['analyze', file], { encoding: 'utf8' });
+        expect(r.status).not.toBe(0);
+        expect(`${r.stderr}${r.stdout}`).toMatch(/InvalidModel|invalid type: null/);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it('meta, slope y analysis ausentes o como objeto siguen abriéndose', () => {
+    const base = d01();
+    delete base.meta;
+    delete base.slope;
+    expect(openOgsJson(JSON.stringify(base)).doc).not.toBeNull();
   });
 });
 
