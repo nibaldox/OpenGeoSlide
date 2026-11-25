@@ -364,8 +364,8 @@ describe('validateLocal: neutralidad frente a los casos de verificación', () =>
   const casesDir = fileURLToPath(new URL('../../../../../verification/cases/', import.meta.url));
   const files = readdirSync(casesDir).filter((f) => /^V.+\.json$/.test(f)).sort();
 
-  it('hay 16 casos', () => {
-    expect(files).toHaveLength(16);
+  it('hay al menos los 21 casos de v0.1 y v0.2', () => {
+    expect(files.length).toBeGreaterThanOrEqual(21);
   });
 
   it.each(files)('%s: 0 errores', (file) => {
