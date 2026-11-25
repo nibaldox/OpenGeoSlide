@@ -1,7 +1,16 @@
 name: wheels
 
 # Wheels abi3 (cp311-abi3: un wheel por plataforma sirve para CPython >= 3.11) y sdist.
-# Publica en PyPI con Trusted Publishing (OIDC, sin token) solo con tags v*, desde el environment `pypi`.
+# Con un tag v*, los wheels y el sdist se suben como assets del GitHub Release del tag (job `release-assets`).
+#
+# PyPI está DESACTIVADO por ahora (no hay cuenta). El job `publish` solo corre si la variable de repositorio
+# `PYPI_PUBLISH` vale 'true'. Para activarlo:
+#   1. Crear la cuenta en PyPI y registrar el proyecto `opengeoslide` (o un pending publisher).
+#   2. Configurar Trusted Publishing en PyPI: propietario `nibaldox`, repositorio `opengeoslide`, workflow
+#      `wheels.yml`, environment `pypi`.
+#   3. Crear el environment `pypi` en Settings > Environments del repositorio.
+#   4. Definir la variable en Settings > Secrets and variables > Actions > Variables: PYPI_PUBLISH = true.
+# Sin la variable, el release no falla: el job `publish` se omite y el Release conserva los wheels.
 on:
   push:
     tags: ['v*']
@@ -89,10 +98,34 @@ jobs:
           path: crates/ogs-py/dist/*.tar.gz
           if-no-files-found: error
 
+  release-assets:
+    name: wheels en el GitHub Release
+    needs: [wheels, sdist]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # solo este job puede crear o modificar el Release
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+      - run: ls -l dist
+      # Si el Release del tag ya existe (lo crea release.yml), solo se agregan los assets.
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          fail_on_unmatched_files: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
   publish:
     name: publicar en PyPI
     needs: [wheels, sdist]
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    # Desactivado salvo que la variable de repositorio PYPI_PUBLISH sea 'true' (ver el encabezado del archivo).
+    if: ${{ vars.PYPI_PUBLISH == 'true' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     environment:
       name: pypi
