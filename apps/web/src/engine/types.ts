@@ -151,7 +151,7 @@ export interface Slice {
 
 export interface MethodReport {
   method: MethodKind;
-  /** null cuando serde no puede serializar el FS (NaN). */
+  /** null cuando el FS no es finito (E4f); `status` y los avisos explican el motivo. */
   fos: number | null;
   status: SolveStatus;
   iterations: number;

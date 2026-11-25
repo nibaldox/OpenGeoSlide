@@ -27,10 +27,24 @@ interface Props {
   onShowMethod: (method: MethodKind) => void;
 }
 
+/** Nota o aviso del motor con el método que lo emitió (R2-09: no se aplanan los avisos de todos los métodos). */
+interface MethodWarning {
+  key: string;
+  method: MethodKind;
+  text: string;
+}
+
+function methodWarnings(report: AnalysisReport, severity: 'nota' | 'aviso'): MethodWarning[] {
+  return report.results.flatMap((r) =>
+    describeWarnings(r.warnings)
+      .filter((w) => w.severity === severity)
+      .map((w) => ({ key: `${r.method}:${w.code}`, method: r.method, text: w.text })),
+  );
+}
+
 export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: Props) {
-  const described = describeWarnings(report.results.flatMap((r) => r.warnings));
-  const notes = described.filter((w) => w.severity === 'nota');
-  const avisos = described.filter((w) => w.severity === 'aviso');
+  const notes = methodWarnings(report, 'nota');
+  const avisos = methodWarnings(report, 'aviso');
   return (
     <div className="results">
       <table>
@@ -75,8 +89,8 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
       {notes.length > 0 && (
         <ul className="notes" aria-label="Notas del análisis">
           {notes.map((w) => (
-            <li key={w.code}>
-              <span className="note-tag">Nota:</span> {w.text}
+            <li key={w.key}>
+              <span className="note-tag">Nota:</span> <span className="muted">{METHOD_LABELS[w.method]}:</span> {w.text}
             </li>
           ))}
         </ul>
@@ -84,8 +98,8 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
       {avisos.length > 0 && (
         <ul className="warnings" aria-label="Avisos del análisis">
           {avisos.map((w) => (
-            <li key={w.code}>
-              <strong>Aviso:</strong> {w.text}
+            <li key={w.key}>
+              <strong>Aviso:</strong> <span className="muted">{METHOD_LABELS[w.method]}:</span> {w.text}
             </li>
           ))}
         </ul>

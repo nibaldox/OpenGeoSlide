@@ -21,10 +21,38 @@ interface CatalogEntry {
   text: string;
 }
 
+/**
+ * Códigos de aviso que emite el motor, idénticos a la lista de E6 en briefs/00_CONTRATOS.md (§4.5).
+ * Agregar uno exige actualizar esa lista, este array y CATALOG; warnings.test.ts comprueba el acuerdo.
+ */
+export const ENGINE_WARNING_CODES = [
+  'm_alpha',
+  'm_alpha_pole',
+  'pole',
+  'no_driving',
+  'negative_effective_normal',
+  'negative_effective_normal_major',
+  'air_gap_thrust',
+  'water_above_ground',
+  'max_iterations',
+  'non_finite',
+  'lambda_undefined',
+  'fos_nonpositive',
+  'no_slices',
+] as const;
+
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   negative_effective_normal: {
     severity: 'nota',
     text: 'Normal efectiva negativa en algunas dovelas (zona de tracción; considere una grieta de tracción).',
+  },
+  negative_effective_normal_major: {
+    severity: 'aviso',
+    text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción',
+  },
+  air_gap_thrust: {
+    severity: 'aviso',
+    text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría',
   },
   water_above_ground: {
     severity: 'aviso',

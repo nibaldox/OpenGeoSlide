@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { describeWarning, describeWarnings } from './warnings';
+import { describeWarning, describeWarnings, ENGINE_WARNING_CODES } from './warnings';
 
 describe('describeWarning', () => {
   it('negative_effective_normal es una nota con el texto acordado (E5)', () => {
@@ -16,27 +18,36 @@ describe('describeWarning', () => {
     expect(describeWarning('max_iterations')).toMatchObject({ severity: 'aviso' });
   });
 
-  it('todos los códigos de aviso del motor tienen texto en español sin voseo', () => {
-    const codes = [
-      'negative_effective_normal',
-      'water_above_ground',
-      'max_iterations',
-      'm_alpha',
-      'm_alpha_pole',
-      'pole',
-      'no_driving',
-      'non_finite',
-      'lambda_undefined',
-      'fos_nonpositive',
-      'no_slices',
-    ];
-    for (const code of codes) {
+  it('todos los códigos de la lista E6 tienen texto en español sin voseo', () => {
+    for (const code of ENGINE_WARNING_CODES) {
       const info = describeWarning(code);
-      expect(info.text).not.toBe(code);
-      expect(info.text.length).toBeGreaterThan(10);
+      expect(info.text, code).not.toBe(code);
+      expect(info.text.length, code).toBeGreaterThan(10);
       // Voseo: formas verbales de segunda persona del plural o singular habituales.
-      expect(info.text).not.toMatch(/\b(usted|vos|podés|tenés|sabés|querés|considerá|indicá)\b/i);
+      expect(info.text, code).not.toMatch(/\b(usted|vos|podés|tenés|sabés|querés|considerá|indicá)\b/i);
     }
+  });
+
+  it('negative_effective_normal_major y air_gap_thrust son avisos con el texto acordado', () => {
+    expect(describeWarning('negative_effective_normal_major')).toEqual({
+      code: 'negative_effective_normal_major',
+      severity: 'aviso',
+      text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción',
+    });
+    expect(describeWarning('air_gap_thrust')).toEqual({
+      code: 'air_gap_thrust',
+      severity: 'aviso',
+      text: 'La superficie transmite empuje a través de un tramo sin suelo; revise la geometría',
+    });
+  });
+
+  it('la lista de códigos coincide con la lista E6 de briefs/00_CONTRATOS.md', () => {
+    const contract = readFileSync(fileURLToPath(new URL('../../../../briefs/00_CONTRATOS.md', import.meta.url)), 'utf8');
+    const block = /Los códigos de aviso \(([\s\S]*?)\) son identificadores estables/.exec(contract);
+    expect(block, 'no se encuentra la lista E6 en el contrato').not.toBeNull();
+    const fromContract = [...block![1].matchAll(/`([a-z_]+)`/g)].map((m) => m[1]);
+    expect(fromContract.length).toBeGreaterThan(0);
+    expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
   });
 
   it('un código desconocido se muestra tal cual, como aviso', () => {
