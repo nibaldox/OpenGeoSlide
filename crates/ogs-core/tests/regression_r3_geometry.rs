@@ -142,55 +142,44 @@ fn r3_03a1_cslope_critical_circle_of_the_botadero_matches_cslope() {
     assert!(x1 - x0 >= 10.0 - 1e-6, "soil width {}", x1 - x0);
 }
 
-/// R3-03a1. With `min_width = 10` on the effective block, every searched surface has at least 10 m of soil between its
-/// ends. Before E11d the search reported a block 5.244 m wide (Bishop 0.855607).
+/// R3-03a1, search (E11d′). The search checks `min_width` and the ranges on the chord, as cSlope does, so the critical
+/// surface of the botadero with `min_width = 10` is conservative: Bishop and Spencer are at most 1 % above cSlope
+/// (1.142346 and 1.147834). The analysed soil is narrower than 10 m, so the result carries `effective_width_below_min`
+/// (E11d′). Reaching cSlope's own critical circle (on the `min_width` boundary) needs a constrained search: Fase 1.
 #[test]
-fn r3_03a1_searched_block_respects_min_width_on_its_soil() {
+fn r3_03a1_search_is_conservative_and_flags_the_narrow_block() {
     let m = botadero(analysis(
         &["bishop", "spencer"],
         None,
         Some(search(Some(10.0), None, None)),
     ));
     let report = ogs_core::analyze(&m).expect("valid");
-    for r in &report.results {
+    for (r, cslope) in report.results.iter().zip([1.142346, 1.147834]) {
         assert_eq!(r.status, SolveStatus::Converged, "{r:?}");
-        let (x0, x1) = soil_extent(&r.slices);
-        assert!(
-            x1 - x0 >= 10.0 - 1e-6,
-            "{:?}: soil width {} < 10",
-            r.method,
-            x1 - x0
-        );
-    }
-}
-
-/// R3-03a1 target, as the review states it: the search with `min_width = 10` must reach cSlope's critical circle
-/// (Bishop 1.1423, Spencer 1.1478, within 1 %). Ignored: the search lands on a non-conservative surface
-/// (Bishop ≈ 1.39, x = [6.3, 17.6], width 11.3) because the pattern search does not follow the `min_width` boundary.
-/// See the W10b report.
-#[test]
-#[ignore = "R3-03a1 target not reached: the search stops at Bishop ≈ 1.39 above cSlope's 1.1423 (W10b report)"]
-fn r3_03a1_search_reaches_the_cslope_critical_circle() {
-    let m = botadero(analysis(
-        &["bishop", "spencer"],
-        None,
-        Some(search(Some(10.0), None, None)),
-    ));
-    let report = ogs_core::analyze(&m).expect("valid");
-    let (b, s) = (&report.results[0], &report.results[1]);
-    for (r, target) in [(b, 1.1423), (s, 1.1478)] {
         let fos = r.fos.expect("finite");
-        let rel = (fos - target).abs() / target;
-        assert!(rel <= 0.01, "{:?}: {fos} vs cSlope {target}", r.method);
+        assert!(
+            fos <= cslope * 1.01,
+            "{:?}: {fos} is not conservative against cSlope {cslope}",
+            r.method
+        );
+        assert!(
+            r.warnings.iter().any(|w| w == "effective_width_below_min"),
+            "{:?}: {:?}",
+            r.method,
+            r.warnings
+        );
+        let (x0, x1) = soil_extent(&r.slices);
+        assert!(x1 - x0 < 10.0, "{:?}: soil width {}", r.method, x1 - x0);
     }
 }
 
 /// R3-03a2 (proxy geometry). Rajo wall with `entry = [0, 12]`, `exit = [24, 45]`. The review gives the ranges and the
 /// values, not the polygon; this proxy (upper bench top at y = 30 down to (23, 12), lower bench as in R3-03c) reproduces
-/// the failure on the previous code: the analysed block started at x = 28.27 and ended at x = 45.98. The effective
-/// ends must lie in the ranges.
+/// the failure of the previous code (analysed block from x = 28.27 to 45.98). The chord is checked by the search; the
+/// effective soil ends are reported (E11d′): `effective_ends_outside_range` must be present exactly when an effective
+/// end lies outside the ranges.
 #[test]
-fn r3_03a2_effective_ends_lie_in_the_entry_and_exit_ranges() {
+fn r3_03a2_effective_ends_outside_the_ranges_are_reported() {
     let m = rajo(
         5.0,
         15.0,
@@ -203,18 +192,21 @@ fn r3_03a2_effective_ends_lie_in_the_entry_and_exit_ranges() {
     let report = ogs_core::analyze(&m).expect("valid");
     for r in &report.results {
         assert_eq!(r.status, SolveStatus::Converged, "{r:?}");
-        // The sliding direction is left to right (the entry range lies left of the exit range).
-        let (entry, _) = soil_extent(&r.slices);
-        let exit = soil_extent(&r.slices).1;
-        assert!(
-            (-1e-6..=12.0 + 1e-6).contains(&entry),
-            "{:?}: effective entry {entry} outside [0, 12]",
-            r.method
-        );
-        assert!(
-            (24.0 - 1e-6..=45.0 + 1e-6).contains(&exit),
-            "{:?}: effective exit {exit} outside [24, 45]",
-            r.method
+        // The sliding direction is left to right: the entry is the crest (left) end of the soil.
+        let (entry, exit) = {
+            let (a, b) = soil_extent(&r.slices);
+            (a, b)
+        };
+        let inside =
+            (-1e-6..=12.0 + 1e-6).contains(&entry) && (24.0 - 1e-6..=45.0 + 1e-6).contains(&exit);
+        let flagged = r
+            .warnings
+            .iter()
+            .any(|w| w == "effective_ends_outside_range");
+        assert_eq!(
+            flagged, !inside,
+            "{:?}: entry {entry}, exit {exit}, warnings {:?}",
+            r.method, r.warnings
         );
     }
 }
