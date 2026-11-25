@@ -223,4 +223,3 @@ def test_warnings_cell_lists_only_non_informative_codes_per_check():
     assert run._warnings_cell(check(["negative_lambda"]), check([])) == "—"
     assert run._warnings_cell(check(["truncated_driving_mass"]), check(["negative_effective_normal_major"])) == (
         "búsqueda: truncated_driving_mass · fija: negative_effective_normal_major")
-
