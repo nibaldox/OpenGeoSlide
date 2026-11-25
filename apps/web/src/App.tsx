@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
+import './ui/targets.css';
 import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
 import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';

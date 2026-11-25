@@ -1,0 +1,25 @@
+/*
+ * Objetivos de puntero de al menos 24 × 24 px (WCAG 2.5.8, UX9-08).
+ * Casillas y botones de opción, que el navegador dibuja de 13 px, y el resumen de «Detalle técnico» (18 px de alto).
+ * Selectores con :where() para no subir la especificidad de las reglas de cada panel.
+ */
+:where(input[type='checkbox'], input[type='radio']) {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+
+:where(summary) {
+  box-sizing: border-box;
+  min-height: 24px;
+  padding-block: 3px;
+}
+
+/* Enlaces de la ayuda: 22 px de alto con el interlineado normal; el relleno los lleva a 24 px sin mover el texto. */
+.help-scroll a {
+  display: inline-block;
+  padding-block: 1px;
+  min-height: 24px;
+  box-sizing: border-box;
+}
