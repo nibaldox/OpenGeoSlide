@@ -24,7 +24,7 @@ fn reject(doc: &Value) -> String {
 fn expect_invalid_model(doc: &Value, needle: &str) {
     let msg = reject(doc);
     assert!(
-        msg.starts_with("invalid model:") && msg.contains(needle),
+        msg.starts_with("InvalidModel:") && msg.contains(needle),
         "expected InvalidModel mentioning {needle:?}, got {msg:?}"
     );
 }
@@ -55,7 +55,7 @@ const REVIEW_R1_05: &str = r#"{
 #[test]
 fn r1_05_review_input_is_rejected_as_invalid_model() {
     let msg = analyze_json(REVIEW_R1_05).expect_err("the review input must be rejected");
-    assert!(msg.starts_with("invalid model:"), "{msg}");
+    assert!(msg.starts_with("InvalidModel:"), "{msg}");
     assert!(msg.contains("unknown field"), "{msg}");
 }
 
@@ -207,7 +207,7 @@ fn r1_05_unknown_fields_are_errors_at_every_level() {
         println!("nivel: {level}");
         let msg = reject(&doc);
         assert!(
-            msg.starts_with("invalid model:") && msg.contains("unknown field"),
+            msg.starts_with("InvalidModel:") && msg.contains("unknown field"),
             "{level}: expected an unknown-field InvalidModel, got {msg:?}"
         );
     }
@@ -227,7 +227,7 @@ fn r1_05_empty_methods_is_invalid_model_not_an_empty_success() {
 #[test]
 fn r1_05_malformed_and_incomplete_json_keep_their_error_kinds() {
     let msg = analyze_json("{ esto no es JSON").expect_err("syntax error");
-    assert!(msg.starts_with("invalid model JSON:"), "{msg}");
+    assert!(msg.starts_with("Json:"), "{msg}");
     let mut doc = acads();
     doc.as_object_mut().unwrap().remove("materials");
     expect_invalid_model(&doc, "materials");
@@ -377,7 +377,7 @@ fn r1_08_rounding_level_water_does_not_warn() {
     // 1e-12 above the ground is rounding error (tolerance 1e-9 · scale = 5e-8 for this model).
     let warnings = water_warnings(&acads_water_offset(1e-12));
     assert!(
-        warnings.iter().all(|w| !w.contains("water over ground")),
+        warnings.iter().all(|w| !w.contains("water_above_ground")),
         "rounding-level water must not warn: {warnings:?}"
     );
 }
@@ -387,7 +387,7 @@ fn r1_08_water_above_the_tolerance_warns_on_a_fixed_surface() {
     // 1e-6 above the ground is above the tolerance: the slices of the mass see water over the ground.
     let warnings = water_warnings(&acads_water_offset(1e-6));
     assert!(
-        warnings.iter().any(|w| w.contains("water over ground")),
+        warnings.iter().any(|w| w.contains("water_above_ground")),
         "{warnings:?}"
     );
 }
@@ -407,7 +407,7 @@ fn r1_08_real_water_over_the_ground_still_warns() {
     assert!(
         warnings
             .iter()
-            .any(|w| w.as_str().unwrap().contains("water over ground")),
+            .any(|w| w.as_str().unwrap().contains("water_above_ground")),
         "{warnings:?}"
     );
 }
@@ -418,5 +418,5 @@ fn circle_struct_still_rejects_unknown_type_tags() {
     let mut doc = acads();
     doc["analysis"]["surface"] = json!({"type": "polyline", "xc": 1.0, "yc": 1.0, "r": 1.0});
     let msg = reject(&doc);
-    assert!(msg.starts_with("invalid model:"), "{msg}");
+    assert!(msg.starts_with("InvalidModel:"), "{msg}");
 }
