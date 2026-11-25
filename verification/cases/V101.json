@@ -113,7 +113,8 @@
     "notes": [
       "Li & Lumb (1987), p. 9 and Fig. 5: the slope (10 m, 1:1) and the moments c′ 18 kPa (COV 20 %), γ 18 kN/m³ (5 %), t = tan φ′ = tan 30° (10 %), rᵤ 0.2 (10 %), with ũᵢΔxᵢ = rᵤ·Aᵢγ̄ᵢ (eq. 29), cSlope's rᵤ. They print no factor of safety; their βHL = 2.50 (Hasofer–Lind, with spatial averaging).",
       "Hassan & Wolff (1999), Table 7 and Fig. 13: on the critical deterministic surface A, FS 1.334 and lognormal β 2.336; surfaces B–E 1.190 … 1.360 are the critical surfaces found with one parameter at a time set one standard deviation off its mean. They do not name the method for this example (their other examples use Bishop and Spencer); both program manuals run it with Bishop. cSlope: Spencer 1.332, M-P (half-sine) 1.330.",
-      "cSlope's critical circle (4.063, 19.410, R 14.441) runs from the toe to the crest 2.8 m behind its edge, as Hassan & Wolff's Fig. 13 draws surface A. Commercial program A (verification problem 36) and commercial program B (§2.23) are compared on their own searched surfaces."
+      "cSlope's critical circle (4.063, 19.410, R 14.441) runs from the toe to the crest 2.8 m behind its edge, as Hassan & Wolff's Fig. 13 draws surface A. Commercial program A (verification problem 36) and commercial program B (§2.23) are compared on their own searched surfaces.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

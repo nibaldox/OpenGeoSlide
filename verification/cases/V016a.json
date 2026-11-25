@@ -228,7 +228,8 @@
     "reference": "Cao et al. (2016); Grodecki (2017).",
     "derived_from": "cSlope verification problem V016a (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
-      "Cao et al. (2016) contain no 4 m wall and none of these soils; Grodecki (2017) supports only the equivalent-cohesion method. The geometry and materials are a commercial program's verification problem."
+      "Cao et al. (2016) contain no 4 m wall and none of these soils; Grodecki (2017) supports only the equivalent-cohesion method. The geometry and materials are a commercial program's verification problem.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

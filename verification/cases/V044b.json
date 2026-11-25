@@ -100,7 +100,8 @@
     "derived_from": "cSlope verification problem V044b (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Fredlund & Krahn (1977), Table 2 case 3 (\"Same as 1 except with ru = 0.25\"): ordinary 1.607, Bishop 1.766, Spencer 1.761 (θ = 14.33°, λ = 0.255), Janbu simplified 1.735, Janbu rigorous 1.708, Morgenstern-Price constant 1.765 (λ = 0.244); Table 3: constant 1.772 and half-sine 1.770 (Alberta), constant 1.765, half-sine 1.764 and clipped sine 1.779 (Saskatchewan). Read from the paper's page images (docs/kallor/fredlund-krahn-1977.md).",
-      "Their rᵤ is the pore pressure over the vertical stress of the soil above the base, as cSlope's. Commercial program A (verification problem 21): Bishop 1.763, Spencer 1.760, M-P (half-sine) 1.760, ordinary 1.687."
+      "Their rᵤ is the pore pressure over the vertical stress of the soil above the base, as cSlope's. Commercial program A (verification problem 21): Bishop 1.763, Spencer 1.760, M-P (half-sine) 1.760, ordinary 1.687.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

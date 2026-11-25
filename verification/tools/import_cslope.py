@@ -106,8 +106,8 @@ MODEL_SCHEMA = {
                     "unit_weight": {"type": "number", "exclusiveMinimum": 0},
                     "unit_weight_sat": {"type": ["number", "null"], "exclusiveMinimum": 0},
                     "cohesion": {"type": "number", "minimum": 0},
-                    "friction_angle": {"type": "number", "minimum": 0, "maximum": 90},
-                    "ru": {"type": ["number", "null"], "minimum": 0},
+                    "friction_angle": {"type": "number", "minimum": 0, "exclusiveMaximum": 90},
+                    "ru": {"type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 1},
                 },
             },
         },
@@ -148,10 +148,10 @@ MODEL_SCHEMA = {
                     "type": "array", "minItems": 1, "uniqueItems": True,
                     "items": {"enum": ["bishop", "spencer"]},
                 },
-                "slices": {"type": "integer", "minimum": 2},
-                "tolerance": {"type": "number", "exclusiveMinimum": 0},
-                "max_iterations": {"type": "integer", "minimum": 1},
-                "min_m_alpha": {"type": "number", "minimum": 0},
+                "slices": {"type": "integer", "minimum": 3, "maximum": 2000},
+                "tolerance": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.01},
+                "max_iterations": {"type": "integer", "minimum": 1, "maximum": 100000},
+                "min_m_alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
                 "surface": {
                     "type": "object",
                     "required": ["type", "xc", "yc", "r"],
@@ -171,11 +171,11 @@ MODEL_SCHEMA = {
                         "type": {"const": "circular_entry_exit"},
                         "entry": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
                         "exit": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
-                        "n_entry": {"type": "integer", "minimum": 1},
-                        "n_exit": {"type": "integer", "minimum": 1},
-                        "n_radius": {"type": "integer", "minimum": 1},
-                        "max_radius_factor": {"type": "number", "exclusiveMinimum": 1},
-                        "min_width": {"type": ["number", "null"], "exclusiveMinimum": 0},
+                        "n_entry": {"type": "integer", "minimum": 1, "maximum": 200},
+                        "n_exit": {"type": "integer", "minimum": 1, "maximum": 200},
+                        "n_radius": {"type": "integer", "minimum": 1, "maximum": 200},
+                        "max_radius_factor": {"type": "number", "exclusiveMinimum": 0.51},
+                        "min_width": {"type": ["number", "null"], "minimum": 0},
                         "refine": {"type": "boolean"},
                     },
                 },
@@ -262,7 +262,10 @@ def ground_top(outer: Polygon, x: float):
 
 
 def piezo_y(points: list[list[float]], x: float) -> float:
-    """Piecewise-linear piezometric line with constant extrapolation (contract section 1)."""
+    """Piecewise-linear piezometric line with constant extrapolation (contract section 1).
+
+    ``points`` must have strictly increasing x (checked by ``convert``).
+    """
     pts = sorted(points, key=lambda p: p[0])
     if x <= pts[0][0]:
         return pts[0][1]
@@ -274,6 +277,37 @@ def piezo_y(points: list[list[float]], x: float) -> float:
                 return max(y0, y1)
             return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
     raise AssertionError("unreachable")
+
+
+def water_above_ground(outer: Polygon, piezo: list[list[float]]) -> bool:
+    """True if the piezometric line is above the ground anywhere in the model (contract §1, R2-07).
+
+    The ground and the line are piecewise linear with breakpoints at the outline's vertex x's and at
+    the piezometric x's, so between two consecutive breakpoints their difference is linear. Its
+    supremum on the open interval is therefore at one end, taken as the limit from inside (this covers
+    vertical steps from both sides). The midpoint of each interval is also checked explicitly.
+    """
+    minx, _, maxx, _ = outer.bounds
+    xs = sorted({x for x, _ in outer.exterior.coords} | {x for x, _ in piezo} | {minx, maxx})
+    xs = [x for x in xs if minx <= x <= maxx]
+
+    def excess(x: float) -> float | None:
+        top = ground_top(outer, x)
+        return None if top is None else piezo_y(piezo, x) - top
+
+    for x0, x1 in zip(xs, xs[1:]):
+        if not x1 - x0 > 0:
+            continue
+        p, q = x0 + (x1 - x0) / 3.0, x0 + 2.0 * (x1 - x0) / 3.0   # interior: on the linear pieces
+        dp, dq = excess(p), excess(q)
+        mid = excess(0.5 * (x0 + x1))
+        if dp is None or dq is None or mid is None:
+            continue
+        slope = (dq - dp) / (q - p)
+        at_left, at_right = dp + slope * (x0 - p), dp + slope * (x1 - p)
+        if max(at_left, at_right, mid) > TOL_ABS:
+            return True
+    return False
 
 
 def option_reason(method: str, opts: dict) -> str | None:
@@ -352,6 +386,27 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
     outer = Polygon(coords)
     if not outer.is_valid:
         raise Omit("contorno no válido")
+    # water
+    water = None
+    wt = d.get("waterTable")
+    if wt is not None:
+        if set(wt) - ALLOWED_WATER_KEYS:
+            raise Omit("waterTable con clave no soportada: " + ", ".join(sorted(set(wt) - ALLOWED_WATER_KEYS)))
+        if wt.get("mode") != "custom":
+            raise Omit(f"waterTable modo {wt.get('mode')!r}")
+        if wt.get("followBoundary"):
+            raise Omit("waterTable followBoundary=true")
+        if len(wt["value"]) < 2:
+            raise Omit("piezométrica con menos de 2 puntos")
+        xs_raw = [float(x) for x, _ in wt["value"]]
+        if any(b <= a for a, b in zip(xs_raw, xs_raw[1:])):
+            raise Omit("piezométrica con x no estrictamente creciente (ogs-core exige x creciente)")
+        piezo = [[num(x), num(y)] for x, y in wt["value"]]
+        if water_above_ground(outer, piezo):
+            raise Omit("piezométrica sobre el terreno (agua embalsada)")
+        water = {"unit_weight": GAMMA_W[units], "piezometric_line": piezo}
+
+    # faces (after water: a reservoir is the blocker that matters for the report)
     boundary_lines = [LineString(b["coordinates"]) for b in (d.get("materialBoundaries") or [])]
     closed = LineString(list(coords) + [coords[0]])
     merged = unary_union([closed] + boundary_lines)
@@ -369,34 +424,16 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
             raise Omit("cara con huecos")
         mats = {name2id[a["materialName"]] for a in assignments if f.contains(Point(a["point"]))}
         if not mats:
-            raise Omit("cara sin material asignado")
+            c = f.representative_point()
+            on_edge = [a["materialName"] for a in assignments if f.boundary.distance(Point(a["point"])) <= TOL_ABS]
+            why = (f"un punto de regionAssignments ({', '.join(on_edge)}) está sobre el borde de la cara"
+                   if on_edge else "ninguna regionAssignments la cubre")
+            raise Omit(f"cara sin material asignado en ({c.x:.4g}, {c.y:.4g}): {why}")
         if len(mats) > 1:
             raise Omit("cara con materiales en conflicto: " + ", ".join(sorted(mats)))
         ring = [[num(x), num(y)] for x, y in list(f.exterior.coords)[:-1]]
         regions.append({"material": mats.pop(), "polygon": ring})
     regions.sort(key=lambda r: (r["material"], r["polygon"][0]))
-
-    # water
-    water = None
-    wt = d.get("waterTable")
-    if wt is not None:
-        if set(wt) - ALLOWED_WATER_KEYS:
-            raise Omit("waterTable con clave no soportada: " + ", ".join(sorted(set(wt) - ALLOWED_WATER_KEYS)))
-        if wt.get("mode") != "custom":
-            raise Omit(f"waterTable modo {wt.get('mode')!r}")
-        if wt.get("followBoundary"):
-            raise Omit("waterTable followBoundary=true")
-        piezo = [[num(x), num(y)] for x, y in wt["value"]]
-        if len(piezo) < 2:
-            raise Omit("piezométrica con menos de 2 puntos")
-        minx, _, maxx, _ = outer.bounds
-        xs = sorted({x for x, _ in coords} | {x for x, _ in piezo} | {minx, maxx})
-        xs = [x for x in xs if minx <= x <= maxx]
-        for x in xs:
-            top = ground_top(outer, x)
-            if top is not None and piezo_y(piezo, x) > top + TOL_ABS:
-                raise Omit("piezométrica sobre el terreno (agua embalsada)")
-        water = {"unit_weight": GAMMA_W[units], "piezometric_line": piezo}
 
     # direction
     orientation = d.get("orientation")
@@ -477,6 +514,17 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
     model["slope"] = {"direction": direction}
     model["analysis"] = analysis_block
 
+    # cSlope's per-check solver tolerance is not imported (ogs has one analysis.tolerance); record it.
+    solver_tols = sorted({float(ck["options"]["tolerance"]) for ck in raw["checks"]
+                          if "tolerance" in ck.get("options", {})})
+    solver_notes = []
+    if solver_tols:
+        solver_notes.append(
+            "cSlope fija options.tolerance = " + ", ".join(f"{t:g}" for t in solver_tols)
+            + " (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = "
+            + f"{ANALYSIS_DEFAULTS['tolerance']:g}."
+        )
+
     case = {
         "id": cid,
         "title": raw["title"],
@@ -485,7 +533,7 @@ def convert(raw: dict, prob: dict | None) -> tuple[dict, list[str]]:
         "source": {
             "reference": prob["reference"],
             "derived_from": f"cSlope verification problem {cid} (MIT License), https://github.com/ZilanCiftci/cslope",
-            "notes": prob.get("notes", []) + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
+            "notes": prob.get("notes", []) + solver_notes + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
         },
     }
     return case, discarded
@@ -503,6 +551,29 @@ def gate_schema(case: dict) -> list[str]:
     used = {c.get("method") for c in case.get("checks") or []}
     if not used <= set(analysis.get("methods") or []):
         errors.append("methods no cubre los checks")
+    return errors
+
+
+def gate_search(case: dict) -> list[str]:
+    """Contract §4.5 rules that JSON Schema cannot express: range order, extent and grid size."""
+    errors = []
+    m = case.get("model") or {}
+    search = (m.get("analysis") or {}).get("search")
+    if not search:
+        return errors
+    xs = [x for r in m.get("regions", []) for x, _ in r["polygon"]]
+    minx, maxx = min(xs), max(xs)
+    for name in ("entry", "exit"):
+        rng = search.get(name)
+        if rng is None:
+            continue
+        if rng[0] > rng[1]:
+            errors.append(f"search.{name}: lo > hi")
+        if rng[0] < minx or rng[1] > maxx:
+            errors.append(f"search.{name} fuera de la extensión del modelo [{minx}, {maxx}]")
+    candidates = search["n_entry"] * search["n_exit"] * search["n_radius"]
+    if candidates > 2_000_000:
+        errors.append(f"grilla de búsqueda con {candidates} candidatos (máximo 2000000)")
     return errors
 
 
@@ -537,7 +608,11 @@ def md_cell(text: str) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def build_index(converted, omitted, discarded_by_case, order) -> str:
+def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str:
+    """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
+    sat_ids, sat_reason, sat_included = sat_report
+    n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
+    convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     lines = [
         "# Casos de verificación v0.1 (desde cSlope)",
         "",
@@ -565,6 +640,19 @@ def build_index(converted, omitted, discarded_by_case, order) -> str:
     if overrides:
         lines += ["", "## Sentidos de deslizamiento fijados por el importador", ""]
         lines += [f"- {cid}: {md_cell(DIRECTION_OVERRIDE_NOTE)}" for cid in overrides]
+    lines += ["", "## Problemas con peso saturado (`unitWeightSat`) no incluidos", ""]
+    lines += [
+        f"En la fuente hay **{len(sat_ids)}** problemas con `unitWeightSat` no nulo; **{len(sat_included)}** "
+        f"se incluyen. Casos incluidos con `unit_weight_sat` en el modelo: **{n_sat_in}**. "
+        + ("Ninguno de los no incluidos es convertible con las reglas actuales (contrato §1, §2). "
+           if not convertible else
+           f"Convertibles y no incluidos (decidir si se añaden): {', '.join(convertible)}. ")
+        + "Motivo de cada uno (el primero que lo impide):",
+        "",
+        "| id | motivo |",
+        "|---|---|",
+    ]
+    lines += [f"| {cid} | {md_cell(sat_reason[cid])} |" for cid in sat_ids if cid not in sat_included]
     lines += ["", "## Casos no incluidos", "", "| id | motivo |", "|---|---|"]
     for cid, reason in omitted:
         lines.append(f"| {cid} | {md_cell(reason)} |")
@@ -661,6 +749,12 @@ def main() -> int:
     omitted += [(cid, "convertible, no incluido (el conjunto ya cumple los mínimos)")
                 for cid in order if cid in converted_all and cid not in selected]
     discarded_by_case = {c["id"]: discarded_all[c["id"]] for c in converted}
+    # Problems whose source has a saturated unit weight: why none is in the set (R1-12 b).
+    sat_ids = [cid for cid in order if any(m["model"].get("unitWeightSat") is not None
+                                           for m in raw_by_id[cid]["definition"]["materials"])]
+    sat_reason = {cid: reason_all.get(cid, "convertible, no incluido (el conjunto ya cumple los mínimos)")
+                  for cid in sat_ids}
+    sat_included = [cid for cid in sat_ids if cid in selected]
 
     # ---- gates
     failures = []
@@ -668,6 +762,8 @@ def main() -> int:
         cid = case["id"]
         for err in gate_schema(case):
             failures.append(f"{cid} schema: {err}")
+        for err in gate_search(case):
+            failures.append(f"{cid} rangos: {err}")
         for err in gate_geometry(case, raw_by_id[cid]):
             failures.append(f"{cid} geometría: {err}")
     total_fixed, total_spencer = counts(selected)
@@ -692,7 +788,8 @@ def main() -> int:
         if stale.name not in expected:
             stale.unlink()
             changed += 1
-    changed += write_if_changed(cases_dir / "INDEX.md", build_index(converted, omitted, discarded_by_case, order))
+    changed += write_if_changed(cases_dir / "INDEX.md", build_index(
+        converted, omitted, discarded_by_case, order, (sat_ids, sat_reason, sat_included)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     # ---- summary

@@ -116,7 +116,8 @@
     "reference": "Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3).",
     "derived_from": "cSlope verification problem V045 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
-      "Fredlund & Krahn (1977), Table 2 case 5: ordinary 1.693, Bishop 1.834, Spencer 1.830, Janbu simplified 1.827, Janbu rigorous 1.776, Morgenstern-Price constant 1.833; Table 3: half-sine 1.832 (Saskatchewan), 1.837 (Alberta). The piezometric line runs from (0, 40) ft to the toe (Fig. 8)."
+      "Fredlund & Krahn (1977), Table 2 case 5: ordinary 1.693, Bishop 1.834, Spencer 1.830, Janbu simplified 1.827, Janbu rigorous 1.776, Morgenstern-Price constant 1.833; Table 3: half-sine 1.832 (Saskatchewan), 1.837 (Alberta). The piezometric line runs from (0, 40) ft to the toe (Fig. 8).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

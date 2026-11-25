@@ -129,7 +129,8 @@
     "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.4.",
     "derived_from": "cSlope verification problem V030 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
-      "commercial program A Spencer 1.400, GLE 1.404 (deep circle tangent to the foundation base)."
+      "commercial program A Spencer 1.400, GLE 1.404 (deep circle tangent to the foundation base).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }
