@@ -8,7 +8,10 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
-Fase 1: editor web, nuevas cargas y publicación.
+## [0.1.0] - 2026-11-25
+
+Primera versión pública (cierre de la Fase 1): editor web, sismo y cargas, y publicación en
+<https://github.com/nibaldox/opengeoslide>.
 
 ### Added
 - **Motor (`ogs-core`):**
@@ -42,6 +45,10 @@ Fase 1: editor web, nuevas cargas y publicación.
   clasificadores.
 - **CI y publicación:** workflows de GitHub Actions `ci`, `pages`, `wheels` y `release`. El job `web` de `ci` ejecuta la
   paridad editor/motor con el CLI compilado, sin casos omitidos, y el job `oracle` ejecuta la ida y vuelta de la web.
+- **Distribución:** la web se publica en <https://nibaldox.github.io/opengeoslide/>. Los wheels de Python (`abi3`,
+  CPython ≥ 3.11) y el sdist se suben como assets del GitHub Release del tag `v*`. La publicación en PyPI queda
+  desactivada hasta definir la variable de repositorio `PYPI_PUBLISH` (requiere cuenta y Trusted Publishing);
+  la publicación en crates.io sigue detrás de `workflow_dispatch` y del secret `CARGO_REGISTRY_TOKEN`.
 - `rust-toolchain.toml`, `CITATION.cff`, `CODE_OF_CONDUCT.md`, `SECURITY.md` y `CONTRIBUTING.md`.
 - Documentación de las limitaciones R5-05 (Spencer con tracción) y E12f (carga lineal fuera del bloque) en el README.
   R5-05 se decidió tras X7 (`docs/fase1/exploracion/X7.md`): se mantiene E12e.
@@ -91,5 +98,6 @@ Cierre de la Fase 0 (spike). Versión de prueba: ver `docs/fase0_cierre.md`.
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0-fase0...HEAD
+[Unreleased]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/nibaldox/opengeoslide/compare/v0.1.0-fase0...v0.1.0
 [0.1.0-fase0]: https://github.com/nibaldox/opengeoslide/releases/tag/v0.1.0-fase0
