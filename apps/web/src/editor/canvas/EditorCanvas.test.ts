@@ -75,4 +75,36 @@ describe('EditorCanvas (render estático)', () => {
     expect(html).toContain('fill="#9cc29a"'); // m2 = índice 1
     expect(render((d) => (d.regions[0].material = 'no-existe'))).toContain('fill="#cccccc"');
   });
+
+  it('sin result no dibuja la capa de resultado; con result dibuja dovelas en gris y la superficie crítica en rojo', () => {
+    expect(render()).not.toContain('data-layer="result"');
+    const doc = makeDoc();
+    const store = createFakeStore(doc, {});
+    const slice = (x0: number, x1: number) => ({
+      x_left: x0,
+      x_right: x1,
+      y_base_left: 10,
+      y_base_right: 9,
+      y_top_mid: 20,
+      width: x1 - x0,
+      alpha: 0.1,
+      base_length: 10,
+      weight: 100,
+      cohesion: 5,
+      tan_phi: 0.5,
+      pore_pressure: 0,
+      material: 0,
+    });
+    const html = renderToStaticMarkup(
+      createElement(EditorCanvas, {
+        store,
+        result: { surface: { xc: 30, yc: 40, r: 30 }, slices: [slice(20, 30), slice(30, 40)] },
+      }),
+    );
+    expect(html).toContain('data-layer="result"');
+    expect((html.match(/data-slice=/g) ?? []).length).toBe(2);
+    expect(html).toContain('data-critical-surface');
+    expect(html).toContain('stroke="#dc2626"');
+    expect(html).toContain('rgba(120, 120, 120, 0.22)');
+  });
 });
