@@ -486,7 +486,7 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `NoSurface: no hay superficie definida; indique analysis.surface o analysis.search`.
   El prefijo es estable y lo usan la web y Python para clasificar el error.
   Los códigos de aviso (`m_alpha`, `m_alpha_pole`, `pole`, `no_driving`, `negative_effective_normal`,
-  `negative_effective_normal_major`, `air_gap_thrust`, `water_above_ground`, `max_iterations`, `non_finite`,
+  `negative_effective_normal_major`, `air_gap_thrust`, `truncated_mass`, `water_above_ground`, `max_iterations`, `non_finite`,
   `lambda_undefined`, `fos_nonpositive`, `no_slices`) son identificadores estables en inglés; agregar uno nuevo exige
   actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
   cada interfaz.

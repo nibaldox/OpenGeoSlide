@@ -26,7 +26,7 @@ use methods::{SolveOptions, SolveStatus, is_inert, solve};
 use model::{AnalysisSettings, FORMAT, FORMAT_VERSION, MethodKind, Model, SearchSpec, SurfaceSpec};
 use report::{AnalysisReport, MethodReport};
 use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, search_circular};
-use slicer::{Slice, SurfaceError, slice_circle};
+use slicer::{Slice, SurfaceError, slice_circle, slice_surface};
 
 /// Crate version, as declared in `Cargo.toml`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -264,18 +264,24 @@ fn analyze_method(
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
-    let slices =
-        slice_circle(pm, &circle, n).map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
+    let sliced =
+        slice_surface(pm, &circle, n).map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
+    let slices = sliced.slices;
     let result = solve(&slices, method, opts);
 
     // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is ignored in v0.1.
-    //    The list is the water note, then the reason of the status (E8d), then the notes of the state, without
-    //    duplicates and in a fixed order.
+    //    The list is the water note, then the slicing notes (E10a: `truncated_mass`), then the reason of the
+    //    status (E8d), then the notes of the state, without duplicates and in a fixed order.
     let mut warnings: Vec<String> = Vec::new();
     if water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
     }
-    for code in result.message.into_iter().chain(result.warnings) {
+    for code in sliced
+        .notes
+        .into_iter()
+        .chain(result.message)
+        .chain(result.warnings)
+    {
         if !warnings.contains(&code) {
             warnings.push(code);
         }
@@ -323,10 +329,6 @@ fn surface_reason(e: SurfaceError) -> String {
         SurfaceError::OutsideModel => "el arco de deslizamiento sale del modelo".to_string(),
         SurfaceError::TooFewSlices => "número de dovelas insuficiente".to_string(),
         SurfaceError::NoMaterial => "alguna dovela de la base no tiene material".to_string(),
-        SurfaceError::DisconnectedMass => {
-            "la superficie separa la masa de suelo en bloques desconectados (tramo aéreo interior)"
-                .to_string()
-        }
     }
 }
 

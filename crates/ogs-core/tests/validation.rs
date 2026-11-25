@@ -242,7 +242,12 @@ fn r1_05_the_valid_example_still_runs() {
     for r in results {
         assert_eq!(r["status"], "converged", "{r}");
         assert!(r["fos"].as_f64().is_some_and(f64::is_finite), "{r}");
-        assert_eq!(r["warnings"], json!([]), "{r}");
+        // Only the informative codes of the contract (E5, E10a) may appear; any other warning fails the example.
+        let allowed = ["negative_effective_normal", "truncated_mass"];
+        for w in r["warnings"].as_array().expect("warnings array") {
+            let code = w.as_str().expect("warning code");
+            assert!(allowed.contains(&code), "unexpected warning {code}: {r}");
+        }
     }
 }
 

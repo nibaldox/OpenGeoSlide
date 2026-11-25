@@ -4,7 +4,7 @@ use ogs_core::OgsError;
 use ogs_core::geometry::{Ground, PreparedModel, Sliding};
 use ogs_core::model::{Circle, Model, SearchSpec};
 use ogs_core::search::search_circular;
-use ogs_core::slicer::{Slice, SurfaceError, slice_circle};
+use ogs_core::slicer::{Slice, SurfaceError, slice_circle, slice_surface};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 const SOIL: &str = r#"{"id":"soil","name":"Soil","model":"mohr_coulomb","unit_weight":20.0,"cohesion":3.0,"friction_angle":19.6}"#;
@@ -353,10 +353,165 @@ fn centre_under_crest_ground_is_upper_arc() {
 /// notch are air slices (no weight, no strength); the others carry the soil of the valley.
 /// (Formerly `arc_that_resurfaces_is_above_ground`, which expected `AboveGround`; that rule is now
 /// reserved for the degenerate case where every slice is air.)
-/// E8a. A valley notch whose arc leaves the soil splits the mass in two. E2 still builds its air slices (see the
-/// unit tests of `slicer`); the surface is rejected as `DisconnectedMass`.
+/// Ground through `chain` (vertices of the top of the soil, sorted by x), piecewise linear.
+fn ground_at(chain: &[(f64, f64)], x: f64) -> f64 {
+    let w = chain
+        .windows(2)
+        .find(|w| x >= w[0].0 && x <= w[1].0)
+        .expect("x inside the chain");
+    let ((x0, y0), (x1, y1)) = (w[0], w[1]);
+    y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+}
+
+/// Soil area between the ground and the lower arc over `[x0, x1]`, by the midpoint rule with `strips` strips.
+/// Independent of `slicer`: it uses only the polygon chain and the circle. The range must be soil only.
+fn soil_area_over(chain: &[(f64, f64)], c: &Circle, x0: f64, x1: f64, strips: usize) -> f64 {
+    let h = (x1 - x0) / strips as f64;
+    let mut area = 0.0;
+    for i in 0..strips {
+        let x = x0 + (i as f64 + 0.5) * h;
+        let arc = c.yc - (c.r * c.r - (x - c.xc).powi(2)).max(0.0).sqrt();
+        let depth = ground_at(chain, x) - arc;
+        assert!(
+            depth >= -1e-9,
+            "air inside the main block at x = {x}: {depth}"
+        );
+        area += depth.max(0.0);
+    }
+    area * h
+}
+
+/// Weight range of a slice list: the smallest `x_left` and the largest `x_right`.
+fn x_range_of(sl: &[Slice]) -> (f64, f64) {
+    (
+        sl.iter().map(|s| s.x_left).fold(f64::INFINITY, f64::min),
+        sl.iter()
+            .map(|s| s.x_right)
+            .fold(f64::NEG_INFINITY, f64::max),
+    )
+}
+
+/// E10a′/E10a″. A circle whose lower arc leaves D09 through the side wall `x = 0` under the ground, in a foot lens
+/// separated from the face by a small air window. The lens is not the entry block, so it is discarded and the arc's
+/// wall exit is not checked: the surface is valid with the note `truncated_mass`. The main block is the face, and its
+/// weight is the soil area under the arc over its own range (independent integration).
 #[test]
-fn valley_notch_surface_is_disconnected_mass() {
+fn wall_exit_of_a_discarded_lens_is_valid() {
+    let d09 = doc(
+        SOIL,
+        &region("soil", "[[0,0],[0,15],[15,15],[30,25],[60,25],[60,0]]"),
+        "",
+        "right_to_left",
+        r#"{"surface":null}"#,
+    );
+    let pm = prepared(&d09);
+    let c = Circle {
+        xc: 2.2462194238038085,
+        yc: 56.72885233916507,
+        r: 43.63311939756725,
+    };
+    assert!(c.xc - c.r < 0.0, "the arc must reach the wall");
+    let y_wall = c.yc - (c.r * c.r - c.xc * c.xc).sqrt();
+    assert!(
+        y_wall < 15.0,
+        "the arc leaves through the wall under the ground: y = {y_wall}"
+    );
+    let sliced = slice_surface(&pm, &c, 2000).expect("E10a′: the discarded lens may exit the wall");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let s = &sliced.slices;
+    assert!(
+        s.iter().all(|x| x.weight > 0.0),
+        "no air inside the main block"
+    );
+    let x_face = s.iter().map(|x| x.x_left).fold(f64::INFINITY, f64::min);
+    assert!(
+        x_face > 15.0 - 1e-3,
+        "the kept block starts at the foot: x_left = {x_face}"
+    );
+    let chain = [(15.0, 15.0), (30.0, 25.0), (60.0, 25.0)];
+    let (x0, x1) = x_range_of(s);
+    let sum_w: f64 = s.iter().map(|x| x.weight).sum();
+    let area = soil_area_over(&chain, &c, x0, x1, 400_000);
+    let rel = (sum_w - 20.0 * area).abs() / (20.0 * area);
+    assert!(
+        rel < 1e-3,
+        "ΣW = {sum_w}, γ·area = {}, rel = {rel}",
+        20.0 * area
+    );
+}
+
+/// The D09 differential model, as the oracle runs it (verification/differential/cases/D09.ogs.json).
+const D09_MODEL: &str = include_str!("../../../verification/differential/cases/D09.ogs.json");
+
+/// E10a″. The cSlope critical circle of D09 (Spencer, FS 0.3876). The foot lens (W ≈ 476, heavier) leaves through
+/// `x = 0` under the ground, but the main block is the entry block, the face (W ≈ 389). The surface is valid with
+/// `truncated_mass`, and at 50 slices (the oracle's count) Spencer is within 0.5 % of cSlope. Bishop is reported.
+#[test]
+fn cslope_d09_spencer_circle_is_valid_under_e10a_prime() {
+    let d09 = doc(
+        SOIL,
+        &region("soil", "[[0,0],[0,15],[15,15],[30,25],[60,25],[60,0]]"),
+        "",
+        "right_to_left",
+        r#"{"surface":null}"#,
+    );
+    let pm = prepared(&d09);
+    let c = Circle {
+        xc: 1.302373757508704,
+        yc: 55.1690164837531,
+        r: 42.44024115833943,
+    };
+    let sliced = slice_surface(&pm, &c, 2000).expect("valid under E10a″");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let x_face = sliced
+        .slices
+        .iter()
+        .map(|x| x.x_left)
+        .fold(f64::INFINITY, f64::min);
+    assert!(
+        x_face > 15.0 - 1e-3,
+        "the face is the main block: x_left = {x_face}"
+    );
+
+    // FS at 50 slices, both methods, on the real D09 model (c = 2, φ = 45°, r_u = 0.65), as the oracle.
+    let mut value: serde_json::Value =
+        serde_json::from_str(D09_MODEL).expect("D09 model is valid JSON");
+    value["analysis"] = serde_json::json!({
+        "methods": ["bishop", "spencer"],
+        "slices": 50,
+        "tolerance": 1e-8,
+        "max_iterations": 2000,
+        "min_m_alpha": 0.2,
+        "surface": {"type": "circle", "xc": 1.302373757508704, "yc": 55.1690164837531, "r": 42.44024115833943}
+    });
+    let json = value.to_string();
+    let model: Model = serde_json::from_str(&json).expect("model");
+    let report = ogs_core::analyze(&model).expect("valid under E10a″");
+    let (bishop, spencer) = (&report.results[0], &report.results[1]);
+    for r in [bishop, spencer] {
+        assert_eq!(r.status, ogs_core::methods::SolveStatus::Converged, "{r:?}");
+        assert!(
+            r.warnings.iter().any(|w| w == "truncated_mass"),
+            "{:?}",
+            r.warnings
+        );
+    }
+    let fs = spencer.fos.expect("finite");
+    let rel = (fs - 0.3876).abs() / 0.3876;
+    assert!(rel <= 0.005, "Spencer {fs} vs cSlope 0.3876: {rel}");
+    println!(
+        "[D09 cSlope circle] Bishop {:.6}, Spencer {fs:.6} ({:+.3} %)",
+        bishop.fos.unwrap_or(f64::NAN),
+        100.0 * (fs - 0.3876) / 0.3876
+    );
+}
+
+/// E10a″. A valley notch whose arc leaves the soil splits the mass in two. The surface is valid: only the block that
+/// contains the entry (crest side) is analysed, the note `truncated_mass` is raised, and no air is left in the block.
+/// Its weight equals the soil area under the arc over the block's own range (independent integration, γ = 20).
+/// (Formerly the heavier block, E10a; the entry rule replaces the weight rule in E10a″.)
+#[test]
+fn valley_notch_keeps_the_entry_block() {
     let valley = doc(
         SOIL,
         &region(
@@ -373,25 +528,71 @@ fn valley_notch_surface_is_disconnected_mass() {
         yc: 60.0,
         r: 44.0,
     };
-    assert_eq!(
-        slice_circle(&pm, &c, 50).unwrap_err(),
-        SurfaceError::DisconnectedMass
+    let sliced = slice_surface(&pm, &c, 2000).expect("E10a: the notch surface is valid");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let s = &sliced.slices;
+    assert!(
+        s.iter().all(|x| x.weight > 0.0),
+        "no air inside the main block"
+    );
+    let chain = [
+        (0.0, 20.0),
+        (10.0, 20.0),
+        (20.0, 12.0),
+        (30.0, 20.0),
+        (40.0, 20.0),
+    ];
+    let (x0, x1) = x_range_of(s);
+    let sum_w: f64 = s.iter().map(|x| x.weight).sum();
+    let area = soil_area_over(&chain, &c, x0, x1, 400_000);
+    let rel = (sum_w - 20.0 * area).abs() / (20.0 * area);
+    assert!(
+        rel < 1e-3,
+        "ΣW = {sum_w}, γ·area = {}, rel = {rel}",
+        20.0 * area
     );
 }
 
-/// E8a. A circle that leaves the flat toe and re-enters the 2:1 face: the soil under the flat toe and the soil under
-/// the face are two heavy masses, so the surface is rejected (E2 geometry: `slicer::tests`).
+/// E10a. A circle that leaves the flat toe and re-enters the 2:1 face: the soil under the flat toe and the soil under
+/// the face are two blocks. The surface is valid; the block with the entry (the face, on the crest side) is analysed
+/// and `truncated_mass` is raised. Its weight equals the soil area under the arc over its own range (independent
+/// integration, γ = 20). (Formerly the heavier block, E10a; E10a″ replaces the weight rule.)
 #[test]
-fn toe_gap_surface_is_disconnected_mass() {
+fn toe_gap_keeps_the_entry_block() {
     let c = Circle {
         xc: 25.0,
         yc: 44.0,
         r: 19.5,
     };
     let pm = prepared(&acads("auto", &circle_json(c)));
+    let sliced = slice_surface(&pm, &c, 2000).expect("E10a: the toe-gap surface is valid");
+    assert_eq!(sliced.notes, vec!["truncated_mass".to_string()]);
+    let s = &sliced.slices;
+    assert!(
+        s.iter().all(|x| x.weight > 0.0),
+        "no air inside the main block"
+    );
+    let chain = [(20.0, 25.0), (30.0, 25.0), (50.0, 35.0), (70.0, 35.0)];
+    let (x0, x1) = x_range_of(s);
+    let sum_w: f64 = s.iter().map(|x| x.weight).sum();
+    let area = soil_area_over(&chain, &c, x0, x1, 400_000);
+    let rel = (sum_w - 20.0 * area).abs() / (20.0 * area);
+    assert!(
+        rel < 1e-3,
+        "ΣW = {sum_w}, γ·area = {}, rel = {rel}",
+        20.0 * area
+    );
+}
+
+/// E10a. A surface with no interior air is not truncated: no note, and the slices are the same as `slice_circle`.
+#[test]
+fn connected_surface_has_no_truncation_note() {
+    let pm = prepared(&acads("auto", &circle_json(CIRCLE)));
+    let sliced = slice_surface(&pm, &CIRCLE, 50).expect("circle must slice");
+    assert!(sliced.notes.is_empty(), "{:?}", sliced.notes);
     assert_eq!(
-        slice_circle(&pm, &c, 2000).unwrap_err(),
-        SurfaceError::DisconnectedMass
+        sliced.slices,
+        slice_circle(&pm, &CIRCLE, 50).expect("circle must slice")
     );
 }
 

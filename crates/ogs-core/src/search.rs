@@ -185,7 +185,7 @@ fn pick_seeds(ordered: &[Scored]) -> Vec<Scored> {
         return seeds;
     };
     let same_pair = |s: &Scored| s.params.xe == first.params.xe && s.params.xs == first.params.xs;
-    if seeds.iter().all(|s| same_pair(s))
+    if seeds.iter().all(&same_pair)
         && let Some(other) = ordered.iter().find(|s| !same_pair(s))
     {
         if seeds.len() == N_SEEDS {

@@ -1,20 +1,25 @@
-//! Differential check of the R2-03 slope against the cSlope 0.1.0 oracle (criterion E9b, W7a).
+//! Differential check of the R2-03 slope against the cSlope 0.1.0 oracle (criterion E9b, W7a; E10a, W8a).
 //!
 //! Oracle values, cSlope 0.1.0 through `verification/harness/to_cslope.py`: 50 slices, default search
 //! (20 × 20 × 20, `max_radius_factor` 5, refinement), slope `[[0,0],[0,15],[15,15],[30,25],[60,25],[60,0]]`,
 //! γ = 20, c = 2, φ = 45°, r_u = 0.65, direction auto. Bishop 0.33067891 (exit (15, 15), entry (30.706, 25));
 //! Spencer 0.38760464 (exit (15, 15), entry (31.152, 25)). Constants are the rounded values of the W7 brief.
 //!
-//! The gate `FS_ogs ≤ FS_cSlope · 1.01` is ignored: under the current search, ogs gives Bishop 0.340802 (+3.1 %)
-//! and Spencer 0.413196 (+6.6 %), see the W7a report. The oracle's critical circle is not admissible in ogs (E8a),
-//! which the active test below pins. It replaces the W5a test `r2_03_search_spencer_within_5_percent_of_bishop`.
+//! W8a (E10a): the oracle's Bishop circle is valid. Its toe lens (ahead of the exit (15, 15), split from the
+//! face by an air contact at the vertex) is dropped, and the surface is analysed with its main block only
+//! (`truncated_mass`). The Bishop gate `FS_ogs ≤ FS_cSlope · 1.01` is active: ogs gives 0.33088 (+0.06 %) in the
+//! search and 0.330879 on the oracle circle (+0.06 %). W8a′ (E10a′): the search gives Spencer 0.390586 (+0.77 %),
+//! so the Spencer gate is active too.
 
+use ogs_core::analyze;
+use ogs_core::methods::SolveStatus;
 use ogs_core::model::Model;
-use ogs_core::{OgsError, analyze};
 use serde_json::json;
 
 const ORACLE_BISHOP: f64 = 0.3307;
 const ORACLE_SPENCER: f64 = 0.3876;
+/// cSlope's own FS on its Bishop critical circle (`ORACLE_CIRCLE`), 0.33067891 rounded.
+const ORACLE_BISHOP_ON_CIRCLE: f64 = 0.330679;
 /// E9b: search FS may exceed the oracle by at most 1 %.
 const SEARCH_TOL: f64 = 0.01;
 
@@ -59,29 +64,38 @@ fn search_analysis() -> serde_json::Value {
     })
 }
 
-/// Gate E9b on the R2-03 search. Ignored until the search reaches the oracle within 1 % (see the module docs).
+/// Gate E9b, Bishop (W8a, E10a): the search, with the main block only, is within 1 % of the oracle.
 #[test]
-#[ignore = "E9b open: ogs search gives Bishop 0.340802 (+3.1 %) and Spencer 0.413196 (+6.6 %) vs cSlope 0.3307/0.3876; \
-            the oracle circle is rejected by E8a (DisconnectedMass). Coordinator decision pending (W7a report)."]
-fn r2_03_search_is_not_above_cslope_by_more_than_1_percent() {
+fn r2_03_search_bishop_is_not_above_cslope_by_more_than_1_percent() {
     let report = analyze(&r2_03_model(search_analysis())).expect("analysis");
-    let fb = report.results[0].fos.expect("bishop finite");
-    let fs = report.results[1].fos.expect("spencer finite");
+    let bishop = &report.results[0];
+    let fb = bishop.fos.expect("bishop finite");
     assert!(
         fb <= ORACLE_BISHOP * (1.0 + SEARCH_TOL),
         "Bishop search {fb} above cSlope {ORACLE_BISHOP} + 1 %"
     );
+    assert!(
+        bishop.warnings.iter().any(|w| w == "truncated_mass"),
+        "the oracle's surface is analysed with its main block (E10a): {:?}",
+        bishop.warnings
+    );
+}
+
+/// Gate E9b, Spencer (W8a′, E10a′): the search gives 0.390586 (+0.77 %) against cSlope 0.3876.
+#[test]
+fn r2_03_search_spencer_is_not_above_cslope_by_more_than_1_percent() {
+    let report = analyze(&r2_03_model(search_analysis())).expect("analysis");
+    let fs = report.results[1].fos.expect("spencer finite");
     assert!(
         fs <= ORACLE_SPENCER * (1.0 + SEARCH_TOL),
         "Spencer search {fs} above cSlope {ORACLE_SPENCER} + 1 %"
     );
 }
 
-/// Documents why the gate is open: the oracle's critical circle, as a fixed surface, is rejected by the slicer.
-/// Its arc touches the toe vertex (15, 15), and the slicer reads that contact as an interior air run, which splits
-/// the soil into detached masses (E8a). cSlope keeps the mass from its exit (15, 15) and does not run this check.
+/// W8a (E10a, replaces the E8a test `r2_03_oracle_critical_circle_is_detached_under_e8a`). The oracle's Bishop circle
+/// is a valid surface: the toe lens is dropped (`truncated_mass`), and Bishop agrees with cSlope within 0.5 %.
 #[test]
-fn r2_03_oracle_critical_circle_is_detached_under_e8a() {
+fn r2_03_oracle_critical_circle_bishop_matches_cslope() {
     let (xc, yc, r) = ORACLE_CIRCLE;
     let analysis = json!({
         "methods": ["bishop"],
@@ -91,10 +105,18 @@ fn r2_03_oracle_critical_circle_is_detached_under_e8a() {
         "min_m_alpha": 0.2,
         "surface": {"type": "circle", "xc": xc, "yc": yc, "r": r}
     });
-    match analyze(&r2_03_model(analysis)) {
-        Err(OgsError::NoValidSurface(msg)) => {
-            assert!(msg.contains("desconectados"), "unexpected reason: {msg}");
-        }
-        other => panic!("expected NoValidSurface (DisconnectedMass), got {other:?}"),
-    }
+    let report = analyze(&r2_03_model(analysis)).expect("the oracle circle is valid under E10a");
+    let result = &report.results[0];
+    assert_eq!(result.status, SolveStatus::Converged, "{result:?}");
+    assert!(
+        result.warnings.iter().any(|w| w == "truncated_mass"),
+        "{:?}",
+        result.warnings
+    );
+    let fos = result.fos.expect("finite");
+    let rel = (fos - ORACLE_BISHOP_ON_CIRCLE).abs() / ORACLE_BISHOP_ON_CIRCLE;
+    assert!(
+        rel <= 0.005,
+        "Bishop on the oracle circle {fos} vs cSlope {ORACLE_BISHOP_ON_CIRCLE}: {rel}"
+    );
 }
