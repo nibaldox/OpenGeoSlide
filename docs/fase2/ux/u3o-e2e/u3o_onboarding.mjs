@@ -234,29 +234,30 @@ if (WITH_PROJECT) {
   const before = await units.inputValue();
   await units.focus();
   await units.selectOption('imperial');
-  await page.waitForSelector('dialog[data-testid="confirm-dialog"][open]');
-  const dlg = await page.evaluate(() => {
-    const d = document.querySelector('dialog[data-testid="confirm-dialog"]');
-    return { role: d.getAttribute('role'), modal: d.matches(':modal'), tone: d.dataset.tone, text: d.textContent, focus: document.activeElement?.textContent, name: document.getElementById(d.getAttribute('aria-labelledby')).textContent };
-  });
+  // U5-E (R8 A-02): el cambio de unidades abre un diálogo propio con tres opciones; la opción por defecto es «Convertir los valores».
+  const UNITS = 'dialog:has([data-testid="units-dialog"])';
+  await page.waitForSelector(UNITS + '[open]');
+  await page.waitForTimeout(200);
+  const dlg = await page.evaluate((q) => {
+    const d = document.querySelector(q);
+    return { modal: d.matches(':modal'), text: d.textContent, focus: document.activeElement?.textContent, name: document.getElementById(d.getAttribute('aria-labelledby')).textContent };
+  }, UNITS);
   await shot(page, 'o-confirm-claro-1440');
-  step('11 cambiar unidades abre la confirmación propia (alertdialog modal), con el foco seguro en «Mantener las unidades»', dlg.role === 'alertdialog' && dlg.modal && dlg.tone === 'danger' && /no convierte/.test(dlg.text) && /Mantener/.test(dlg.focus), dlg);
+  step('11 cambiar unidades abre el diálogo propio (modal) con tres opciones y el foco en «Convertir los valores»', dlg.modal && /Convertir los valores/.test(dlg.focus) && /Solo cambiar la etiqueta/.test(dlg.text) && /no cambia/.test(dlg.text), dlg);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
-  const afterCancel = await page.evaluate(() => ({ open: !!document.querySelector('dialog[data-testid="confirm-dialog"]'), units: document.querySelector('select[data-path="/units"]').value, active: document.activeElement?.getAttribute('data-path') }));
+  const afterCancel = await page.evaluate(() => ({ open: !!document.querySelector('[data-testid="units-dialog"]'), units: document.querySelector('select[data-path="/units"]').value, active: document.activeElement?.getAttribute('data-path') }));
   step('11b Esc cancela: las unidades no cambian y el foco vuelve al selector', !afterCancel.open && afterCancel.units === before && afterCancel.active === '/units', afterCancel);
 
-  const matBefore = await page.evaluate(() => null);
-  void matBefore;
   await units.selectOption('imperial');
-  await page.waitForSelector('dialog[data-testid="confirm-dialog"][open]');
-  await page.getByRole('button', { name: /Cambiar a imperial sin convertir/ }).click();
+  await page.waitForSelector(UNITS + '[open]');
+  await page.getByRole('button', { name: 'Solo cambiar la etiqueta' }).click();
   await page.waitForTimeout(200);
-  const afterOk = await page.evaluate(() => ({ units: document.querySelector('select[data-path="/units"]').value, dialog: !!document.querySelector('dialog[data-testid="confirm-dialog"]') }));
+  const afterOk = await page.evaluate(() => ({ units: document.querySelector('select[data-path="/units"]').value, dialog: !!document.querySelector('[data-testid="units-dialog"]') }));
   await page.getByRole('tab', { name: 'Materiales' }).click();
   const unitLabel = await page.locator('#ea-tabpanel').textContent();
   const dirty = (await page.textContent('[data-testid="file-status"]')).includes('con cambios');
-  step('11c confirmar aplica las unidades imperiales (etiquetas pcf/psf) sin convertir valores y deja cambios sin guardar', afterOk.units === 'imperial' && /pcf/.test(unitLabel) && dirty, { afterOk, pcf: /pcf/.test(unitLabel), dirty });
+  step('11c «Solo cambiar la etiqueta» aplica las unidades imperiales (etiquetas pcf/psf) sin convertir valores y deja cambios sin guardar', afterOk.units === 'imperial' && /pcf/.test(unitLabel) && dirty, { afterOk, pcf: /pcf/.test(unitLabel), dirty });
   await page.getByRole('button', { name: 'Deshacer' }).click();
   await page.getByRole('tab', { name: 'Proyecto' }).click();
   step('11d Deshacer vuelve a SI en un solo paso', (await page.getByLabel('Unidades').inputValue()) === 'SI');

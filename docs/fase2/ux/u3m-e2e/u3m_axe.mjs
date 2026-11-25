@@ -48,6 +48,8 @@ for (const theme of ['light', 'dark']) {
     await p.screenshot({ path: `${SHOTS}/u3m-${tag}-1-vacio.png` });
     await axe(p, `${tag} estado vacío (Geometría vacía)`);
     // 2. dibujando
+    // U5-E (B-09): con 480 px o menos Deshacer, Rehacer y las herramientas viven en el menú «Editar»; se abre primero si existe.
+    { const ed = p.getByRole('button', { name: 'Editar', exact: true }); if (await ed.count()) await ed.click(); }
     await p.locator('[role="toolbar"]').getByRole('button', { name: 'Dibujar región' }).click();
     const box = await p.locator('svg.ec-svg').boundingBox();
     const pts = [[0.2, 0.7], [0.7, 0.7], [0.62, 0.35]];

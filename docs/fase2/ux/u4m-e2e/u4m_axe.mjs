@@ -44,6 +44,8 @@ for (const theme of ['light', 'dark']) {
     // 2. talud de un material → Dividir región con una línea en curso
     await makeSlope(p);
     await p.getByRole('tab', { name: 'Geometría' }).click();
+    // U5-E (B-09): con 480 px o menos Deshacer, Rehacer y las herramientas viven en el menú «Editar»; se abre primero si existe.
+    { const ed = p.getByRole('button', { name: 'Editar', exact: true }); if (await ed.count()) await ed.click(); }
     await p.getByRole('button', { name: 'Dividir región', exact: true }).click();
     await p.waitForSelector('[data-testid="split-hint"]');
     const vp = await viewportOf(p);
@@ -62,6 +64,8 @@ for (const theme of ['light', 'dark']) {
     await shot('3-geometria-2-regiones');
     await axe(p, `${tag} Geometría con dos regiones y muestras de material`);
     // 4. Dibujar región con el puntero sobre una arista (indicador de ajuste)
+    // U5-E (B-09): con 480 px o menos Deshacer, Rehacer y las herramientas viven en el menú «Editar»; se abre primero si existe.
+    { const ed = p.getByRole('button', { name: 'Editar', exact: true }); if (await ed.count()) await ed.click(); }
     await p.getByRole('button', { name: 'Dibujar región', exact: true }).click();
     await p.waitForSelector('[data-testid="draw-hint"]');
     const [bx, by] = vp.px(20, -10);

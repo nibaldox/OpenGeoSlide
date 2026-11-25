@@ -62,6 +62,8 @@ await page.touchscreen.tap(fx, fy);
 await page.waitForFunction(() => document.querySelectorAll('[data-layer="regions"] polygon').length === 1);
 const verts = await page.locator('[data-handle-key^="v-0-"]').count();
 step('3 tocar cerca del primer punto cierra la región (4 vértices) y es un solo Deshacer', (await nRegions()) === 1 && verts === 4, { regiones: await nRegions(), verts });
+// U5-E (B-09): con 480 px o menos Deshacer, Rehacer y las herramientas viven en el menú «Editar»; se abre primero si existe.
+{ const ed = page.getByRole('button', { name: 'Editar', exact: true }); if (await ed.count()) await ed.tap(); }
 await page.getByRole('button', { name: 'Deshacer', exact: true }).tap();
 step('3b Deshacer quita la región entera', (await nRegions()) === 0);
 await page.screenshot({ path: path.join(SHOTS, 'u3m-m390-03-cerrada.png') });

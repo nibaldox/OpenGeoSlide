@@ -9,7 +9,7 @@
 //   1 lbf = 4,4482216152605 N        (= 0,45359237 kg × 9,80665 m/s², definición de la libra-fuerza)
 // Resultan 1 m = 3,280840 ft · 1 kN/m³ = 6,365880 pcf · 1 kPa = 20,885434 psf · 1 kN/m = 68,521766 lbf/ft.
 //
-// γw: el agua es 9,81 kN/m³ en SI y, convertida con estos factores, 62,4501 pcf (se muestra 62,45). No se redondea a 62,4 al
+// γw: el agua es 9,81 kN/m³ en SI y, convertida con estos factores, 62,4493 pcf (se muestra 62,45). No se redondea a 62,4 al
 // convertir: ese redondeo cambia el FS en la 6.ª cifra. Con piezométrica, el γw (explícito o el 9,81 por defecto) se escribe
 // siempre explícito al pasar a imperial, porque el motor usaría 9,81 «pcf» si faltara.
 

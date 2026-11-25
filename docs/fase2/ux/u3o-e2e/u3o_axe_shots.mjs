@@ -77,7 +77,8 @@ for (const theme of ['light', 'dark']) {
       await p.screenshot({ path: `${SHOTS}/o-proyecto-${tag}.png` });
       await axe(p, `${tag} panel Proyecto`);
       await p.getByLabel('Unidades').selectOption('imperial');
-      await p.waitForSelector('dialog[data-testid="confirm-dialog"][open]');
+      // U5-E: diálogo propio del cambio de unidades (tres opciones).
+      await p.waitForSelector('dialog:has([data-testid="units-dialog"])[open]');
       await p.waitForTimeout(250);
       await p.screenshot({ path: `${SHOTS}/o-confirmar-${tag}.png` });
       await axe(p, `${tag} confirmación de unidades`);

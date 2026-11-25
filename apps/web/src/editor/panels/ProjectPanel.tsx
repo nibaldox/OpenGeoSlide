@@ -28,7 +28,7 @@ function UnitsDialog({ from, to, onChoose }: { from: ReturnType<typeof currentUn
   const descId = useId();
   useEffect(() => {
     // `Modal` lleva el foco al título al montarse; después, a la opción recomendada.
-    const id = window.setTimeout(() => defaultRef.current?.focus(), 0);
+    const id = window.setTimeout(() => defaultRef.current?.focus(), 50);
     return () => window.clearTimeout(id);
   }, []);
   return (
