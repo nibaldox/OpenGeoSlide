@@ -218,7 +218,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             </fieldset>
 
             <button type="button" className="primary" onClick={calcular} disabled={busy || !info}>
-              {busy ? 'Calculando…' : 'Calcular'}
+              {busy ? 'Comprobando…' : 'Comprobar caso'}
             </button>
           </section>
 
@@ -252,7 +252,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 )}
               </>
             ) : (
-              <p className="muted">Pulse «Calcular» para ver la sección con la superficie crítica y las dovelas.</p>
+              <p className="muted">Pulse «Comprobar caso» para ver la sección con la superficie crítica y las dovelas.</p>
             )}
           </section>
 
