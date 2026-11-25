@@ -78,7 +78,7 @@ const PAIRS: Pair[] = [
   ),
   ['ui-ink-on-accent', 'ui-accent', TEXT, 'botón primario'],
   ['ui-ink-on-accent', 'ui-accent-hover', TEXT, 'botón primario, hover'],
-  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-active'].map((bg): Pair => ['ui-accent', bg, TEXT, 'acento como texto']),
+  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-hover', 'ui-surface-active'].map((bg): Pair => ['ui-accent', bg, TEXT, 'acento como texto']),
   ['ui-ok-ink', 'ui-ok-bg', TEXT, 'estado correcto'],
   ['ui-ok-ink', 'ui-surface', TEXT, 'estado correcto sobre panel'],
   ['ui-warn-ink', 'ui-warn-bg', TEXT, 'aviso'],

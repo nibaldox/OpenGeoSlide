@@ -170,8 +170,20 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
+/* El hover no pisa los botones que ya tienen fondo propio (primario, pestaña y herramienta activas). */
+button:hover:not(:disabled, .primary, .ea-tab-active, .ea-tool-active) {
   background: var(--ui-surface-hover);
+}
+
+input[type='file']::file-selector-button {
+  font: inherit;
+  padding: 4px 10px;
+  margin-right: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-control-border);
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink);
+  cursor: pointer;
 }
 
 button:disabled {
@@ -638,6 +650,7 @@ button.ea-primary {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 10px 14px;
   background: var(--ui-surface);
