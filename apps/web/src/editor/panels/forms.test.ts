@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Load, Material } from '../../engine/types';
+import { RULE_TEXT, validateLocal } from '../state/validateLocal';
 import type { Issue, ModelDoc } from '../types';
 import {
   analysisCommands,
@@ -161,21 +162,13 @@ describe('materiales', () => {
 
   it('aplica los rangos del motor con sus mismos mensajes', () => {
     const base = materialToForm(soil);
-    expect(errorsOf(materialFromForm({ ...base, unit_weight: '0' }, ctx)).unit_weight).toBe(
-      "el material 'soil' debe tener peso unitario > 0",
-    );
-    expect(errorsOf(materialFromForm({ ...base, unit_weight: '' }, ctx)).unit_weight).toContain('peso unitario > 0');
-    expect(errorsOf(materialFromForm({ ...base, unit_weight_sat: '-1' }, ctx)).unit_weight_sat).toBe(
-      "el peso unitario saturado del material 'soil' debe ser > 0",
-    );
-    expect(errorsOf(materialFromForm({ ...base, cohesion: '-0,1' }, ctx)).cohesion).toBe(
-      "la cohesión del material 'soil' debe ser ≥ 0",
-    );
-    expect(errorsOf(materialFromForm({ ...base, friction_angle: '90' }, ctx)).friction_angle).toBe(
-      "el ángulo de fricción del material 'soil' debe estar en [0, 90)",
-    );
+    expect(errorsOf(materialFromForm({ ...base, unit_weight: '0' }, ctx)).unit_weight).toBe(RULE_TEXT.unitWeight);
+    expect(errorsOf(materialFromForm({ ...base, unit_weight: '' }, ctx)).unit_weight).toBe(RULE_TEXT.unitWeight);
+    expect(errorsOf(materialFromForm({ ...base, unit_weight_sat: '-1' }, ctx)).unit_weight_sat).toBe(RULE_TEXT.unitWeightSat);
+    expect(errorsOf(materialFromForm({ ...base, cohesion: '-0,1' }, ctx)).cohesion).toBe(RULE_TEXT.cohesion);
+    expect(errorsOf(materialFromForm({ ...base, friction_angle: '90' }, ctx)).friction_angle).toBe(RULE_TEXT.frictionAngle);
     expect(errorsOf(materialFromForm({ ...base, friction_angle: '-1' }, ctx)).friction_angle).toContain('[0, 90)');
-    expect(errorsOf(materialFromForm({ ...base, ru: '1' }, ctx)).ru).toBe("ru del material 'soil' debe estar en [0, 1)");
+    expect(errorsOf(materialFromForm({ ...base, ru: '1' }, ctx)).ru).toBe(RULE_TEXT.ru);
     expect(errorsOf(materialFromForm({ ...base, ru: '-0,1' }, ctx)).ru).toContain('[0, 1)');
   });
 
@@ -229,8 +222,8 @@ describe('agua', () => {
     expect(waterUnitWeightFromForm('')).toEqual({ ok: true, value: undefined });
     expect(waterUnitWeightFromForm('9,807')).toEqual({ ok: true, value: 9.807 });
     expect(waterUnitWeightFromForm('62.4')).toEqual({ ok: true, value: 62.4 });
-    expect(errorsOf(waterUnitWeightFromForm('0')).unit_weight).toBe('water.unit_weight debe ser > 0');
-    expect(errorsOf(waterUnitWeightFromForm('-1')).unit_weight).toBe('water.unit_weight debe ser > 0');
+    expect(errorsOf(waterUnitWeightFromForm('0')).unit_weight).toBe(RULE_TEXT.waterUnitWeight);
+    expect(errorsOf(waterUnitWeightFromForm('-1')).unit_weight).toBe(RULE_TEXT.waterUnitWeight);
     expect(errorsOf(waterUnitWeightFromForm('abc')).unit_weight).toContain('escriba un número');
   });
 
@@ -246,8 +239,8 @@ describe('agua', () => {
 
   it('exige x estrictamente creciente', () => {
     const e = errorsOf(piezoFromForm([{ x: '0', y: '1' }, { x: '5', y: '1' }, { x: '5', y: '2' }]));
-    expect(e['2.x']).toBe('la piezométrica debe tener x estrictamente creciente');
-    expect(e.table).toBe('la piezométrica debe tener x estrictamente creciente');
+    expect(e['2.x']).toBe(RULE_TEXT.piezoOrder);
+    expect(e.table).toBe(RULE_TEXT.piezoOrder);
     const e2 = errorsOf(piezoFromForm([{ x: '3', y: '1' }, { x: '1', y: '1' }]));
     expect(e2['1.x']).toContain('estrictamente creciente');
   });
@@ -386,18 +379,14 @@ describe('búsqueda', () => {
   });
 
   it('mín ≤ máx y dentro de la extensión del modelo', () => {
-    expect(errorsOf(searchFromForm({ ...full, entry: { lo: '60', hi: '50' } }, ctx))['entry.lo']).toBe(
-      'search.entry = [60, 50]: lo debe ser ≤ hi',
-    );
-    expect(errorsOf(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, ctx))['exit.lo']).toBe(
-      'search.exit = [10, 30] sale de la extensión del modelo [20, 70]',
-    );
+    expect(errorsOf(searchFromForm({ ...full, entry: { lo: '60', hi: '50' } }, ctx))['entry.lo']).toBe(RULE_TEXT.rangeOrder);
+    expect(errorsOf(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, ctx))['exit.lo']).toBe(RULE_TEXT.rangeExtent);
     expect(searchFromForm({ ...full, exit: { lo: '10', hi: '30' } }, { xRange: null }).ok).toBe(true);
     expect(searchFromForm({ ...full, entry: { lo: '50', hi: '50' } }, ctx).ok).toBe(true);
   });
 
   it('n_* enteros en 1–200', () => {
-    expect(errorsOf(searchFromForm({ ...full, n_entry: '0' }, ctx)).n_entry).toBe('search.n_entry debe estar en [1, 200], no 0');
+    expect(errorsOf(searchFromForm({ ...full, n_entry: '0' }, ctx)).n_entry).toBe(RULE_TEXT.searchCount);
     expect(errorsOf(searchFromForm({ ...full, n_exit: '201' }, ctx)).n_exit).toContain('[1, 200]');
     expect(errorsOf(searchFromForm({ ...full, n_radius: '2,5' }, ctx)).n_radius).toBe('debe ser un número entero');
     expect(errorsOf(searchFromForm({ ...full, n_radius: '' }, ctx)).n_radius).toContain('[1, 200]');
@@ -408,15 +397,13 @@ describe('búsqueda', () => {
     // 200·200·50 = 2 000 000: permitido; 200·200·51 = 2 040 000: no.
     expect(searchFromForm({ ...full, n_entry: '200', n_exit: '200', n_radius: '50' }, ctx).ok).toBe(true);
     const e = errorsOf(searchFromForm({ ...full, n_entry: '200', n_exit: '200', n_radius: '51' }, ctx));
-    expect(e.n_radius).toContain('2040000 candidatos (máximo 2000000)');
+    expect(e.n_radius).toBe(RULE_TEXT.searchProduct);
   });
 
   it('max_radius_factor > 0,51 y min_width ≥ 0 o vacío', () => {
-    expect(errorsOf(searchFromForm({ ...full, max_radius_factor: '0,51' }, ctx)).max_radius_factor).toBe(
-      'search.max_radius_factor debe ser finito y mayor que 0,51, no 0,51',
-    );
+    expect(errorsOf(searchFromForm({ ...full, max_radius_factor: '0,51' }, ctx)).max_radius_factor).toBe(RULE_TEXT.maxRadiusFactor);
     expect(searchFromForm({ ...full, max_radius_factor: '0,52' }, ctx).ok).toBe(true);
-    expect(errorsOf(searchFromForm({ ...full, min_width: '-1' }, ctx)).min_width).toBe('search.min_width debe ser finito y ≥ 0, no -1');
+    expect(errorsOf(searchFromForm({ ...full, min_width: '-1' }, ctx)).min_width).toBe(RULE_TEXT.minWidth);
     const r = searchFromForm({ ...full, min_width: '0' }, ctx);
     expect(r.ok && r.value.min_width).toBe(0);
     const r2 = searchFromForm({ ...full, min_width: '0,5', refine: false }, ctx);
@@ -452,26 +439,20 @@ describe('análisis', () => {
   });
 
   it('valida los rangos del motor', () => {
-    expect(errorsOf(analysisFromForm({ ...base(), methods: [] })).methods).toContain('analysis.methods está vacío');
-    expect(errorsOf(analysisFromForm({ ...base(), slices: '2' })).slices).toBe('analysis.slices debe estar en [3, 2000], no 2');
+    expect(errorsOf(analysisFromForm({ ...base(), methods: [] })).methods).toBe(RULE_TEXT.methodsEmpty);
+    expect(errorsOf(analysisFromForm({ ...base(), slices: '2' })).slices).toBe(RULE_TEXT.slices);
     expect(errorsOf(analysisFromForm({ ...base(), slices: '2001' })).slices).toContain('[3, 2000]');
     expect(errorsOf(analysisFromForm({ ...base(), slices: '50,5' })).slices).toBe('debe ser un número entero');
     expect(analysisFromForm({ ...base(), slices: '3' }).ok).toBe(true);
     expect(analysisFromForm({ ...base(), slices: '2000' }).ok).toBe(true);
-    expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0' })).tolerance).toBe(
-      'analysis.tolerance debe ser finita y estar en (0, 0,01], no 0',
-    );
+    expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0' })).tolerance).toBe(RULE_TEXT.tolerance);
     expect(errorsOf(analysisFromForm({ ...base(), tolerance: '0,011' })).tolerance).toContain('(0, 0,01]');
     expect(analysisFromForm({ ...base(), tolerance: '0,01' }).ok).toBe(true);
     expect(analysisFromForm({ ...base(), tolerance: '1e-6' }).ok).toBe(true);
-    expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '0' })).max_iterations).toBe(
-      'analysis.max_iterations debe estar en [1, 100000], no 0',
-    );
+    expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '0' })).max_iterations).toBe(RULE_TEXT.maxIterations);
     expect(errorsOf(analysisFromForm({ ...base(), max_iterations: '100001' })).max_iterations).toContain('[1, 100000]');
     expect(analysisFromForm({ ...base(), max_iterations: '100000' }).ok).toBe(true);
-    expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '0' })).min_m_alpha).toBe(
-      'analysis.min_m_alpha debe ser finito y estar en (0, 1], no 0',
-    );
+    expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '0' })).min_m_alpha).toBe(RULE_TEXT.minMAlpha);
     expect(errorsOf(analysisFromForm({ ...base(), min_m_alpha: '1,1' })).min_m_alpha).toContain('(0, 1]');
     expect(analysisFromForm({ ...base(), min_m_alpha: '1' }).ok).toBe(true);
   });
@@ -540,19 +521,19 @@ describe('cargas', () => {
 
   it('udl: x1 < x2, dentro del modelo y q ≥ 0', () => {
     const f = loadToForm(udl) as ReturnType<typeof loadToForm> & { type: 'udl' };
-    expect(errorsOf(loadFromForm({ ...f, x1: '70', x2: '70' }, ctx)).x1).toBe("la carga 'u1' tiene x1 >= x2");
-    expect(errorsOf(loadFromForm({ ...f, x1: '60', x2: '50' }, ctx)).x1).toBe("la carga 'u1' tiene x1 >= x2");
-    expect(errorsOf(loadFromForm({ ...f, x1: '10' }, ctx)).x1).toContain('fuera del rango x del modelo [20, 70]');
-    expect(errorsOf(loadFromForm({ ...f, x2: '71' }, ctx)).x2).toContain('fuera del rango x del modelo');
-    expect(errorsOf(loadFromForm({ ...f, q: '-1' }, ctx)).q).toBe("la carga 'u1' debe tener q ≥ 0");
+    expect(errorsOf(loadFromForm({ ...f, x1: '70', x2: '70' }, ctx)).x1).toBe(RULE_TEXT.udlOrder);
+    expect(errorsOf(loadFromForm({ ...f, x1: '60', x2: '50' }, ctx)).x1).toBe(RULE_TEXT.udlOrder);
+    expect(errorsOf(loadFromForm({ ...f, x1: '10' }, ctx)).x1).toBe(RULE_TEXT.loadX);
+    expect(errorsOf(loadFromForm({ ...f, x2: '71' }, ctx)).x2).toBe(RULE_TEXT.loadX);
+    expect(errorsOf(loadFromForm({ ...f, q: '-1' }, ctx)).q).toBe(RULE_TEXT.loadQ);
     expect(loadFromForm({ ...f, q: '0', x1: '20' }, ctx).ok).toBe(true);
   });
 
   it('line: x dentro, p ≥ 0 y ángulo en [−90, 90]', () => {
     const f = { type: 'line' as const, id: 'l1', x: '40', p: '20', angle: '10' };
-    expect(errorsOf(loadFromForm({ ...f, x: '80' }, ctx)).x).toContain('fuera del rango x del modelo');
-    expect(errorsOf(loadFromForm({ ...f, p: '-1' }, ctx)).p).toBe("la carga 'l1' debe tener p ≥ 0");
-    expect(errorsOf(loadFromForm({ ...f, angle: '91' }, ctx)).angle).toBe("la carga 'l1' debe tener ángulo en [-90, 90]");
+    expect(errorsOf(loadFromForm({ ...f, x: '80' }, ctx)).x).toBe(RULE_TEXT.loadX);
+    expect(errorsOf(loadFromForm({ ...f, p: '-1' }, ctx)).p).toBe(RULE_TEXT.loadP);
+    expect(errorsOf(loadFromForm({ ...f, angle: '91' }, ctx)).angle).toBe(RULE_TEXT.loadAngle);
     expect(errorsOf(loadFromForm({ ...f, angle: '-90,5' }, ctx)).angle).toContain('[-90, 90]');
     expect(loadFromForm({ ...f, angle: '90' }, ctx).ok).toBe(true);
     expect(loadFromForm({ ...f, angle: '-90' }, ctx).ok).toBe(true);
@@ -563,9 +544,9 @@ describe('cargas', () => {
     expect(loadFromForm({ type: 'line', id: '', x: '999', p: '1', angle: '0' }, { ...ctx, xRange: null }).ok).toBe(true);
   });
 
-  it('sin id, los mensajes numeran la carga', () => {
+  it('sin id, el mensaje de orden es el mismo', () => {
     const e = errorsOf(loadFromForm({ type: 'udl', id: '', x1: '60', x2: '50', q: '1' }, { ...ctx, index: 2 }));
-    expect(e.x1).toBe('la carga 3 tiene x1 >= x2');
+    expect(e.x1).toBe(RULE_TEXT.udlOrder);
   });
 
   it('cargas por defecto: válidas, con id libre; null sin geometría', () => {
@@ -587,9 +568,9 @@ describe('sismo', () => {
   it('kh en [0, 1) y kv en (−1, 1)', () => {
     expect(seismicFromForm({ kh: '0,1', kv: '0' })).toEqual({ ok: true, value: { kh: 0.1, kv: 0 } });
     expect(seismicFromForm({ kh: '0', kv: '-0,5' })).toEqual({ ok: true, value: { kh: 0, kv: -0.5 } });
-    expect(errorsOf(seismicFromForm({ kh: '1', kv: '0' })).kh).toBe('analysis.seismic.kh debe estar en [0, 1)');
+    expect(errorsOf(seismicFromForm({ kh: '1', kv: '0' })).kh).toBe(RULE_TEXT.kh);
     expect(errorsOf(seismicFromForm({ kh: '-0,01', kv: '0' })).kh).toContain('[0, 1)');
-    expect(errorsOf(seismicFromForm({ kh: '0', kv: '1' })).kv).toBe('analysis.seismic.kv debe estar en (-1, 1)');
+    expect(errorsOf(seismicFromForm({ kh: '0', kv: '1' })).kv).toBe(RULE_TEXT.kv);
     expect(errorsOf(seismicFromForm({ kh: '0', kv: '-1' })).kv).toContain('(-1, 1)');
     expect(seismicFromForm({ kh: '0,999', kv: '0,999' }).ok).toBe(true);
     expect(errorsOf(seismicFromForm({ kh: 'x', kv: '' })).kh).toContain('escriba un número');
@@ -651,5 +632,30 @@ describe('diagnósticos', () => {
   it('etiquetas de estado', () => {
     expect(diagnosticsStatusLabel('stale')).toContain('Desactualizado');
     expect(diagnosticsStatusLabel('checking')).toContain('Comprobando');
+  });
+});
+
+describe('unificación de mensajes con validateLocal (RULE_TEXT)', () => {
+  const baseDoc = (): ModelDoc => makeDoc();
+
+  it('el texto que muestra el formulario está contenido en el de la validación local', () => {
+    const doc = baseDoc();
+    doc.analysis.slices = 2;
+    doc.analysis.tolerance = 0.5;
+    doc.analysis.seismic = { kh: 1, kv: 1 };
+    doc.materials[0]!.friction_angle = 90;
+    const texts = validateLocal(doc).map((i) => i.text);
+    const form = (r: { ok: boolean; errors?: Record<string, string> }, key: string): string => (r.ok ? '' : (r.errors?.[key] ?? ''));
+    const pairs: Array<[string, string]> = [
+      [form(analysisFromForm({ ...analysisToForm(doc), slices: '2' }), 'slices'), RULE_TEXT.slices],
+      [form(analysisFromForm({ ...analysisToForm(doc), tolerance: '0,5' }), 'tolerance'), RULE_TEXT.tolerance],
+      [form(seismicFromForm({ kh: '1', kv: '1' }), 'kh'), RULE_TEXT.kh],
+      [form(seismicFromForm({ kh: '1', kv: '1' }), 'kv'), RULE_TEXT.kv],
+      [form(materialFromForm({ ...materialToForm(doc.materials[0]!), friction_angle: '90' }, { otherIds: [], editing: doc.materials[0] }), 'friction_angle'), RULE_TEXT.frictionAngle],
+    ];
+    for (const [fromForm, rule] of pairs) {
+      expect(fromForm).toBe(rule);
+      expect(texts.some((t) => t.includes(rule))).toBe(true);
+    }
   });
 });
