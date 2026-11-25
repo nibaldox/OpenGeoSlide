@@ -45,6 +45,15 @@ describe('TOUR_STEPS', () => {
   it('siguen el flujo del brief: ejemplo, materiales y agua, Comprobar, FS y avisos, informe', () => {
     expect(TOUR_STEPS.map((s) => s.id)).toEqual(['open', 'materials', 'check', 'results', 'report']);
   });
+  it('la guía conoce la herramienta «Dibujar región» (tecla R) y las pestañas Geometría y Proyecto', () => {
+    const open = TOUR_STEPS.find((s) => s.id === 'open')!;
+    const tabs = TOUR_STEPS.find((s) => s.id === 'materials')!;
+    expect(open.body).toContain('Dibujar región');
+    expect(open.body).toContain('tecla R');
+    expect(tabs.title.toLowerCase()).toContain('geometría');
+    expect(tabs.body.toLowerCase()).toContain('geometría');
+    expect(tabs.body.toLowerCase()).toContain('proyecto');
+  });
   it('el texto no usa voseo', () => {
     const text = TOUR_STEPS.map((s) => `${s.title} ${s.body}`).join(' ');
     expect(text).not.toMatch(/\b(pod[eé]s|ten[eé]s|hac[eé]s|abr[ií]|pulsá|elegí)\b/i);

@@ -25,7 +25,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   },
   {
     id: 'materials',
-    title: 'Defina materiales y agua',
+    title: 'Defina geometría, materiales y agua',
     body: 'En estas pestañas se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades).',
     target: { selector: '[role="tablist"][aria-label="Paneles del modelo"]' },
   },
