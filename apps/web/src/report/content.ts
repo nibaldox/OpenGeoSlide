@@ -4,7 +4,7 @@
 // el catálogo de `engine/warnings.ts` y la advertencia profesional es la aprobada en F1.4.
 
 import type { ModelDoc } from '../editor/types';
-import type { MethodKind, MethodReport, Point } from '../engine/types';
+import type { MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
 import type { ReportInput } from './types';
 
@@ -156,6 +156,19 @@ export function clipPolylineX(points: Point[], xmin: number, xmax: number): Poin
   return out;
 }
 
+/**
+ * Puntos de la base de las dovelas en orden de **x creciente** (E12i): `x_left` de cada dovela ordenada y, al final,
+ * `x_right` de la última. El motor entrega las dovelas del pie al coronamiento, que en `left_to_right` es x decreciente;
+ * sin ordenar se omitía el pie y la línea retrocedía.
+ */
+export function baseSurfacePoints(slices: readonly Slice[]): Point[] {
+  const sorted = [...slices].sort((a, b) => a.x_left - b.x_left);
+  const points = sorted.map((s) => [s.x_left, s.y_base_left] as Point);
+  const last = sorted[sorted.length - 1];
+  if (last) points.push([last.x_right, last.y_base_right]);
+  return points;
+}
+
 function primaryResult(results: MethodReport[]): MethodReport | undefined {
   return results.find((r) => r.status === 'converged' && r.slices.length > 0) ?? results.find((r) => r.slices.length > 0) ?? results[0];
 }
@@ -214,9 +227,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     let points: Point[];
     const sliceLines: [Point, Point][] = [];
     if (res.slices.length > 0) {
-      points = res.slices.map((s) => [s.x_left, s.y_base_left] as Point);
-      const last = res.slices[res.slices.length - 1];
-      if (last) points.push([last.x_right, last.y_base_right]);
+      points = baseSurfacePoints(res.slices);
       for (const p of points) {
         const top = terrainY(model, p[0]);
         if (top !== null && top > p[1]) sliceLines.push([p, [p[0], top]]);
@@ -238,7 +249,15 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   }
   if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: PIEZO_COLOR });
   if (surface) {
-    legend.push({ kind: 'surface', label: `Superficie crítica (${METHOD_LABEL[surface.method]})`, color: SURFACE_COLOR });
+    // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
+    const converged = res?.status === 'converged';
+    legend.push({
+      kind: 'surface',
+      label: converged
+        ? `Superficie crítica (${METHOD_LABEL[surface.method]})`
+        : `Superficie evaluada, sin convergencia (${METHOD_LABEL[surface.method]})`,
+      color: SURFACE_COLOR,
+    });
     if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: SLICE_COLOR });
   }
   return { bounds, regions, piezo, surface, legend };
@@ -347,7 +366,7 @@ function resultsSection(results: MethodReport[]): ReportSection {
           STATUS_LABEL[r.status],
           r.status === 'converged' ? fmt(r.fos, 3) : DASH,
           String(r.iterations),
-          r.method === 'spencer' ? fmt(r.lambda, 4) : DASH,
+          r.method === 'spencer' && r.status === 'converged' ? fmt(r.lambda, 4) : DASH,
           r.search ? String(r.search.evaluated) : DASH,
           r.search ? String(r.search.valid) : DASH,
           `${fmt(r.surface.xc, 2)}; ${fmt(r.surface.yc, 2)}`,

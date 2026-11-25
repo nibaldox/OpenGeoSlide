@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import type { ModelDoc } from '../editor/types';
 import { analyzeMock } from '../engine/mockEngine';
-import type { MethodReport, VerificationCase } from '../engine/types';
+import type { AnalysisReport, MethodReport, VerificationCase } from '../engine/types';
 import { openOgsJson, saveOgsJson } from '../io/ogsJson';
 import type { ReportInput } from './types';
 
@@ -33,4 +33,20 @@ export function sampleInput(overrides: Partial<ReportInput> = {}): ReportInput {
     disclaimer: '',
     ...overrides,
   };
+}
+
+const diffCasesDir = new URL('../../../../verification/differential/cases/', import.meta.url);
+
+/** Modelo de la batería diferencial (`verification/differential/cases/<id>.ogs.json`), abierto como el editor. */
+export function loadDifferentialDoc(id: string): ModelDoc {
+  return openOgsJson(readFileSync(new URL(`${id}.ogs.json`, diffCasesDir), 'utf8')).doc as ModelDoc;
+}
+
+/**
+ * Reporte **real** del motor (`ogs analyze`) guardado en `fixtures/`:
+ * - `d01-fixed-ltr`: D01 con la superficie fija, `left_to_right` (slices del pie x = 40 al coronamiento: x decreciente);
+ * - `v047a-search-rtl`: V047a con búsqueda, `right_to_left` (slices del pie x = 30 al coronamiento: x creciente).
+ */
+export function loadEngineReport(name: 'd01-fixed-ltr' | 'v047a-search-rtl'): AnalysisReport {
+  return JSON.parse(readFileSync(new URL(`./fixtures/${name}.report.json`, import.meta.url), 'utf8')) as AnalysisReport;
 }
