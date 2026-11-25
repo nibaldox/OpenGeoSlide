@@ -69,9 +69,8 @@ export function importableLayers(
 
 /** Mapeo inicial: el material sugerido, o crear uno nuevo si no hay coincidencia. */
 export function defaultMapping(layers: { name: string; suggestedMaterialId: string | null }[]): Record<string, string> {
-  const m: Record<string, string> = {};
-  for (const l of layers) m[l.name] = l.suggestedMaterialId ?? NEW_MATERIAL;
-  return m;
+  // `fromEntries` define propiedades propias: una capa llamada «__proto__» no se pierde en el prototipo.
+  return Object.fromEntries(layers.map((l) => [l.name, l.suggestedMaterialId ?? NEW_MATERIAL]));
 }
 
 function slug(text: string): string {
@@ -153,7 +152,8 @@ export function planRegionImport(doc: Pick<ModelDoc, 'materials' | 'units'>, inp
   let skipped = 0;
 
   const materialFor = (layer: string): string | null => {
-    const choice = input.mapping[layer] ?? SKIP_LAYER;
+    // `Object.hasOwn`: una capa llamada «constructor» o «toString» no debe heredar nada de Object.prototype.
+    const choice = Object.hasOwn(input.mapping, layer) ? (input.mapping[layer] ?? SKIP_LAYER) : SKIP_LAYER;
     if (choice === SKIP_LAYER) return null;
     if (choice !== NEW_MATERIAL) return choice;
     let m = created.get(layer);
