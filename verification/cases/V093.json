@@ -91,7 +91,8 @@
     "reference": "Yamagami & Ueta (1988).",
     "derived_from": "cSlope verification problem V093 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
-      "Yamagami & Ueta: Bishop 1.348, Spencer 1.339 (non-circular); Greco 1.33."
+      "Yamagami & Ueta: Bishop 1.348, Spencer 1.339 (non-circular); Greco 1.33.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

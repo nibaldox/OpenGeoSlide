@@ -46,6 +46,23 @@ Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertib
 
 - V063: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4).
 
+## Problemas con peso saturado (`unitWeightSat`) no incluidos
+
+En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen. Casos incluidos con `unit_weight_sat` en el modelo: **0**. Ninguno de los no incluidos es convertible con las reglas actuales (contrato §1, §2). Motivo de cada uno (el primero que lo impide):
+
+| id | motivo |
+|---|---|
+| V082a | opción de check que cambia el problema: tensionCrackDepth |
+| V082b | opción de check que cambia el problema: tensionCrackDepth |
+| V082c | material 'Soil 2 (zero strength)' con modelo 'undrained' |
+| V082d | material 'Soil 2 (zero strength)' con modelo 'undrained' |
+| V088 | opción de check que cambia el problema: tensionCrackDepth |
+| V089 | piezométrica sobre el terreno (agua embalsada) |
+| V105a | material 'Peat, deep' con modelo 'shansep' |
+| V105b | definition con clave que cambia el problema: earlierStage, udls, waternet |
+| V105c | definition con clave que cambia el problema: customSurfaces, earlierStage, udls, waternet |
+| V105d | definition con clave que cambia el problema: customSurfaces, earlierStage, udls, waternet |
+
 ## Casos no incluidos
 
 | id | motivo |
@@ -107,7 +124,7 @@ Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertib
 | V050a | definition con clave que cambia el problema: customSurfaces |
 | V050b | sin checks válidos |
 | V051 | definition con clave que cambia el problema: udls |
-| V099 | campo ausente en cSlope: 'regionAssignments' |
+| V099 | piezométrica sobre el terreno (agua embalsada) |
 | V053 | sin checks válidos |
 | V056 | definition con clave que cambia el problema: customSurfaces |
 | V057a | material 'Slope clay' con modelo 'undrained' |
@@ -162,7 +179,7 @@ Casos convertidos e incluidos: **16**. Casos no incluidos: **171** (no convertib
 | V086e | material 'Soft clay' con modelo 'undrained' |
 | V087 | piezométrica sobre el terreno (agua embalsada) |
 | V088 | opción de check que cambia el problema: tensionCrackDepth |
-| V089 | cara sin material asignado |
+| V089 | piezométrica sobre el terreno (agua embalsada) |
 | V091 | material 'Soil 1' con modelo 'undrained' |
 | V092 | piezométrica sobre el terreno (agua embalsada) |
 | V094 | sin checks válidos |

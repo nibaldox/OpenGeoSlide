@@ -138,6 +138,8 @@
   "source": {
     "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.38.",
     "derived_from": "cSlope verification problem V025 (MIT License), https://github.com/ZilanCiftci/cslope",
-    "notes": []
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
   }
 }

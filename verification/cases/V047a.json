@@ -124,7 +124,8 @@
     "notes": [
       "Geometry (20, 20)–(20, 25)–(30, 25)–(50, 35)–(70, 35)–(70, 20) from Fig. 1.1, strength from Table 1.1. Giam & Donald's reference 1.00.",
       "Domain x = 20…70 as in Fig. 1 (the commercial program A/program D model is wider).",
-      "Table 2 prints Bishop 0.963 / Janbu 0.992, but Fig. 3 (FS vs λ, slip 207) shows the moment FS at λ = 0 = 0.992 and the force FS at λ = 0 = 0.963: the two rows are swapped. commercial program B's Janbu (0.963) is the uncorrected simplified Janbu."
+      "Table 2 prints Bishop 0.963 / Janbu 0.992, but Fig. 3 (FS vs λ, slip 207) shows the moment FS at λ = 0 = 0.992 and the force FS at λ = 0 = 0.963: the two rows are swapped. commercial program B's Janbu (0.963) is the uncorrected simplified Janbu.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

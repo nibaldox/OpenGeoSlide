@@ -149,7 +149,8 @@
     "reference": "Arai & Tagyo (1985), example 2.",
     "derived_from": "cSlope verification problem V002 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
-      "Non-circular: commercial program A 0.414 (random search with optimization); Greco 0.39; Kim et al. 0.44 (a limit-equilibrium program's random search; their Table 1, where 0.39 is Greco's value in a footnote) and their own limit-analysis bounds 0.40–0.45. Before the Morgenstern-Price λ iteration ignored unconverged solutions, cSlope's optimization reached 0.27–0.39 on surfaces where the force and moment curves never cross."
+      "Non-circular: commercial program A 0.414 (random search with optimization); Greco 0.39; Kim et al. 0.44 (a limit-equilibrium program's random search; their Table 1, where 0.39 is Greco's value in a footnote) and their own limit-analysis bounds 0.40–0.45. Before the Morgenstern-Price λ iteration ignored unconverged solutions, cSlope's optimization reached 0.27–0.39 on surfaces where the force and moment curves never cross.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }

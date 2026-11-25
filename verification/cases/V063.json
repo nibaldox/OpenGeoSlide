@@ -125,6 +125,7 @@
       "Search limited to x = 101.7–185.6 (crest to the downstream berm), as in the source.",
       "commercial program A reports the Spencer value only. The steady-seepage and drawdown stages need a seepage analysis.",
       "Until 2026-10-25 the 2.43 check was labeled Spencer and attributed to the finite-element analysis; the paper states it is Bishop (LEM) and gives 2.50 for SSRFEM (docs/kallor/huang-jia-2009.md). cSlope Bishop 2.453, Spencer 2.451 on this search.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
       "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4)."
     ]
   }

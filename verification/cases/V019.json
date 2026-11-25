@@ -127,7 +127,8 @@
     "derived_from": "cSlope verification problem V019 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "commercial program E shear strength reduction 1.38.",
-      "Cheng et al. use 50 slices (p. 146) and search general (non-circular) surfaces by simulated annealing; their strength-reduction value is 1.47 and a local minimum 1.3848. cSlope's circular search gives 1.399, its non-circular optimization 1.377."
+      "Cheng et al. use 50 slices (p. 146) and search general (non-circular) surfaces by simulated annealing; their strength-reduction value is 1.47 and a local minimum 1.3848. cSlope's circular search gives 1.399, its non-circular optimization 1.377.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
     ]
   }
 }
