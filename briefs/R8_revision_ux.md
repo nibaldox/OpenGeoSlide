@@ -1,21 +1,35 @@
-# Revisión adversarial R8 (Antigravity): verificación de la UX tras las olas U1-U3
+# Revisión adversarial R8 (revisor independiente): verificación de la UX tras las olas U1-U4
 
-Eres un revisor **externo e independiente**, experto en UX de herramientas técnicas (CAD/CAE) y en accesibilidad WCAG
-2.2. En R7 (`docs/reviews/R7_agy.md`) revisaste esta web con el veredicto MEJORABLE. Desde entonces hubo tres olas de
+Eres un revisor **externo e independiente**, de una familia de modelos distinta de la que escribió el código, y experto
+en UX de herramientas técnicas (CAD/CAE) y en accesibilidad WCAG 2.2. Tu trabajo es encontrar problemas, no aprobar.
+En R7 (`docs/reviews/R7_agy.md`), otro revisor externo dejó el veredicto MEJORABLE. Desde entonces hubo cuatro olas de
 cambios:
 - **U1:** tema claro/oscuro con tokens, estado y correctitud, y mensajes.
 - **U2:** distribución, menús, regiones vivas, lienzo operable con teclado y táctil, móvil.
 - **U3:** dibujar regiones, panel Geometría, «Talud simple…», guía de primera visita, Ayuda, diálogo de confirmación
   propio y panel Proyecto.
+- **U4:** estratos (margen de dibujo, ajuste a aristas, «Dividir región», «Talud simple…» con estrato inferior) y
+  pulido (posición del error JSON, nombres accesibles únicos, «Usar la corona», títulos de ejemplos, FS con 3
+  decimales, avisos deduplicados, contraste de dovelas, objetivos de 24 px). La verificación práctica está en
+  `docs/fase2/ux/X9_verificacion.md`.
 
 Las decisiones de cada ola están en `docs/fase2/ux/PLAN_UX.md` y en las notas `docs/fase2/ux/U*_*.md`.
 
-**Modo solo lectura:** no edites, no hagas commits ni instales nada global. Responde en **español neutro, sin voseo**.
-Si ejecutas algo, cita la salida real. Para levantar la app: el WASM ya está compilado; usa
-`pnpm --dir apps/web build && pnpm --dir apps/web preview --port 5189 --strictPort`, solo en el puerto 5189.
+**Modo solo lectura:** no edites el código, no hagas commits ni instales nada global. El único archivo que escribes es
+tu informe. Responde en **español neutro, sin voseo**. Si ejecutas algo, cita la salida real. Para levantar la app: el
+WASM ya está compilado; usa `pnpm --dir apps/web build && pnpm --dir apps/web preview --port <tu puerto> --strictPort`,
+solo en tu puerto, y al terminar mata el servidor por PID. Afirma un problema solo con evidencia (`archivo:línea` o una
+salida de Chrome); marca como «sospecha» lo que no pudiste reproducir.
 
-**No reportes** como hallazgo nuevo el FS de Spencer que se ve como «1,2» en el resumen, porque ya está registrado
-(precisión inconsistente en `ResultSummary`). Tampoco el campo «autor», que el esquema no tiene a propósito.
+**No reportes** el campo «autor», que el esquema no tiene a propósito.
+
+## Lentes (cada revisor cubre la suya a fondo; si ve algo grave de la otra, lo anota aparte)
+- **Lente A, estado e interacción:** las herramientas de dibujo y división, los diálogos y `useConfirm`, `units/set`,
+  la guía de primera visita, los avisos, deshacer y rehacer, y los atajos globales (punto 2, salvo tema, rendimiento y
+  textos).
+- **Lente B, cierre y calidad transversal:** cierre de R7 (punto 1), tema, accesibilidad con axe y teclado,
+  rendimiento, textos y móvil.
+- Ambos responden el punto 3, el juicio global.
 
 ## Tarea
 1. **Cierre de R7:** marca cada hallazgo, de R7-01 a R7-29, como `CERRADO | PARCIAL | ABIERTO`, con evidencia del
