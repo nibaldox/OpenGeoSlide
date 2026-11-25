@@ -8,8 +8,8 @@
 //! W8a (E10a): the oracle's Bishop circle is valid. Its toe lens (ahead of the exit (15, 15), split from the
 //! face by an air contact at the vertex) is dropped, and the surface is analysed with its main block only
 //! (`truncated_mass`). The Bishop gate `FS_ogs ≤ FS_cSlope · 1.01` is active: ogs gives 0.33088 (+0.06 %) in the
-//! search and 0.330879 on the oracle circle (+0.06 %). The Spencer gate stays ignored (pendiente E10b): the
-//! Spencer search gives 0.402814 (+3.9 %), while the representative fixed circle agrees with cSlope to 0.01 %.
+//! search and 0.330879 on the oracle circle (+0.06 %). W8a′ (E10a′): the search gives Spencer 0.390586 (+0.77 %),
+//! so the Spencer gate is active too.
 
 use ogs_core::analyze;
 use ogs_core::methods::SolveStatus;
@@ -81,9 +81,8 @@ fn r2_03_search_bishop_is_not_above_cslope_by_more_than_1_percent() {
     );
 }
 
-/// Gate E9b, Spencer: ignored until E10b. The Spencer search gives 0.402814 (+3.9 %) against cSlope 0.3876.
+/// Gate E9b, Spencer (W8a′, E10a′): the search gives 0.390586 (+0.77 %) against cSlope 0.3876.
 #[test]
-#[ignore = "pendiente E10b: la búsqueda Spencer da 0.402814 (+3,9 %) frente a cSlope 0.3876; la superficie fija representativa concuerda a 0,01 %"]
 fn r2_03_search_spencer_is_not_above_cslope_by_more_than_1_percent() {
     let report = analyze(&r2_03_model(search_analysis())).expect("analysis");
     let fs = report.results[1].fos.expect("spencer finite");
