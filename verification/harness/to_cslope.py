@@ -1,7 +1,38 @@
-"""OpenGeoSlide .ogs.json v0.1 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
+
+Seismic coefficients and loads (schema v0.2, contract F1.1)
+-----------------------------------------------------------
+``analysis.seismic {kh, kv}`` -> ``options.seismicHorizontal`` / ``options.seismicVertical`` (a zero
+coefficient is left out: cSlope takes ``kh`` in (0, 1] and treats a missing value as 0).
+``loads[]`` of type ``udl`` -> ``definition.udls[] {magnitude: q, x1, x2, direction: "vertical"}``;
+type ``line`` -> ``definition.lineLoads[] {x, magnitude: p, angle}``. A load with q = 0 or p = 0 is
+left out (cSlope needs magnitude > 0) and noted. The fields are only accepted with ``version "0.2"``.
+The ``id`` of an ogs load is not sent: the installed cslope 0.1.0 reports ``unknown-key`` (severity
+``error``) for ``id`` in ``udls[]`` and ``lineLoads[]`` (checked with ``cslope.validate``; the newer source
+clone does list it). Ids are still checked for repetition here.
+
+Angle convention of the line load, checked against the oracle (cslope 0.1.0, V047a fixed circle
+xc = 29.54334963719809, yc = 53.63784815923435, r = 28.641487934160704, Bishop, 50 slices, P = 20 kN/m,
+load at x = 40 inside the mass; the ``ltr`` model is the mirror image of the ``rtl`` one, x -> -x,
+so the load is at x = -40). The angle goes **unchanged** into ``lineLoads[].angle``: it is measured from
+the downward vertical and a positive value tilts the load towards +x **of the model frame**, for both
+orientations. cSlope mirrors a right-to-left geometry internally (``canonical.rs``: x -> xmin + xmax - x
+and ``angle -> -angle``), so no sign flip is done here. Real output (minFOS)::
+
+    rtl  sin carga          0.9850842466548518
+    rtl  angle = +0         0.9836208911149462
+    rtl  angle = +10        0.9920950618992327   (+x = against the sliding, which goes to -x: F rises)
+    rtl  angle = -10        0.9753135037279751
+    ltr  sin carga          0.9850842466548818
+    ltr  angle = +0         0.9836208911149332
+    ltr  angle = +10        0.9753135037279624   (+x = along the sliding: F falls)
+    ltr  angle = -10        0.9920950618992197
+
+The ``ltr`` mirror with the angle sign reversed reproduces the ``rtl`` value to 1e-13 (relative).
+Seismic ``kh`` acts along the sliding direction in both orientations and ``kv > 0`` is downward.
 """
 
 from __future__ import annotations
@@ -28,6 +59,7 @@ CSLOPE_MAX_SLICES = 500
 CSLOPE_MIN_ITERATIONS = 500
 CSLOPE_MAX_ITERATIONS = 100000
 METHOD_MAP = {"bishop": "Bishop", "spencer": "Morgenstern-Price"}
+SEISMIC_LOADS_VERSION = "0.2"
 
 
 class UnsupportedModel(ValueError):
@@ -244,6 +276,99 @@ def circle_from_plane(plane: dict) -> dict:
     return {"type": "circle", "xc": float(plane["cx"]), "yc": float(plane["cy"]), "r": float(plane["radius"])}
 
 
+# ---------------------------------------------- seismic coefficients and loads (v0.2)
+
+def _finite(value: Any, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise UnsupportedModel(f"{name} debe ser un número finito, no {value!r}")
+    return float(value)
+
+
+def seismic_options(model: dict, notes: list[str]) -> dict[str, float]:
+    """``analysis.seismic`` -> cSlope ``seismicHorizontal`` / ``seismicVertical`` options.
+
+    kh in [0, 1) and kv in (-1, 1) (contract F1.1). A zero coefficient is omitted.
+    """
+    seismic = (model.get("analysis") or {}).get("seismic")
+    if seismic is None:
+        return {}
+    unknown = sorted(set(seismic) - {"kh", "kv"})
+    if unknown:
+        raise UnsupportedModel("analysis.seismic con campos desconocidos: " + ", ".join(unknown))
+    kh = _finite(seismic.get("kh", 0.0), "analysis.seismic.kh")
+    kv = _finite(seismic.get("kv", 0.0), "analysis.seismic.kv")
+    if not 0.0 <= kh < 1.0:
+        raise UnsupportedModel("analysis.seismic.kh debe estar en [0, 1)")
+    if not -1.0 < kv < 1.0:
+        raise UnsupportedModel("analysis.seismic.kv debe estar en (-1, 1)")
+    out: dict[str, float] = {}
+    if kh != 0.0:
+        out["seismicHorizontal"] = kh
+    if kv != 0.0:
+        out["seismicVertical"] = kv
+    if out:
+        notes.append(
+            f"sismo pseudoestático kh={kh:g}, kv={kv:g}: kh en el sentido del deslizamiento, kv>0 hacia abajo "
+            "(misma convención en cSlope, ltr y rtl)."
+        )
+    return out
+
+
+def loads_to_cslope(model: dict, notes: list[str]) -> dict[str, list[dict]]:
+    """``loads[]`` -> ``{"udls": [...], "lineLoads": [...]}`` (only the non-empty lists).
+
+    The line-load angle is passed through unchanged for ltr and rtl (see the module docstring).
+    """
+    udls: list[dict] = []
+    lines: list[dict] = []
+    seen: set[str] = set()
+    for i, load in enumerate(model.get("loads") or []):
+        kind = load.get("type")
+        if kind not in ("udl", "line"):
+            raise UnsupportedModel(f"carga {i}: tipo {kind!r} no soportado")
+        allowed = {"type", "id", "x1", "x2", "q"} if kind == "udl" else {"type", "id", "x", "p", "angle"}
+        unknown = sorted(set(load) - allowed)
+        if unknown:
+            raise UnsupportedModel(f"carga {i} ({kind}) con campos desconocidos: " + ", ".join(unknown))
+        lid = load.get("id") or f"{kind}-{i}"
+        if lid in seen:
+            raise UnsupportedModel(f"id de carga repetido: {lid!r}")
+        seen.add(lid)
+        if kind == "udl":
+            x1, x2 = _finite(load.get("x1"), f"loads[{i}].x1"), _finite(load.get("x2"), f"loads[{i}].x2")
+            q = _finite(load.get("q"), f"loads[{i}].q")
+            if not x1 < x2:
+                raise UnsupportedModel(f"la carga {lid!r} tiene x1 >= x2")
+            if q < 0:
+                raise UnsupportedModel(f"la carga {lid!r} tiene q < 0")
+            if q == 0:
+                notes.append(f"carga {lid!r} con q = 0: omitida (cSlope exige magnitud > 0).")
+                continue
+            udls.append({"magnitude": q, "x1": x1, "x2": x2, "direction": "vertical"})
+        else:
+            x = _finite(load.get("x"), f"loads[{i}].x")
+            p = _finite(load.get("p"), f"loads[{i}].p")
+            angle = _finite(load.get("angle", 0.0), f"loads[{i}].angle")
+            if p < 0:
+                raise UnsupportedModel(f"la carga {lid!r} tiene p < 0")
+            if not -90.0 <= angle <= 90.0:
+                raise UnsupportedModel(f"la carga {lid!r} tiene angle fuera de [-90, 90]")
+            if p == 0:
+                notes.append(f"carga {lid!r} con p = 0: omitida (cSlope exige magnitud > 0).")
+                continue
+            lines.append({"x": x, "magnitude": p, "angle": angle})
+    out: dict[str, list[dict]] = {}
+    if udls:
+        out["udls"] = udls
+    if lines:
+        out["lineLoads"] = lines
+        notes.append(
+            "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; "
+            "cSlope espeja la geometría rtl y el ángulo internamente)."
+        )
+    return out
+
+
 # ------------------------------------------------------------- conversion
 
 def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[list[dict], bool]:
@@ -300,6 +425,12 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         raise UnsupportedModel(f"unsupported method {method!r}")
     analysis = model.get("analysis") or {}
     notes: list[str] = []
+
+    has_seismic = analysis.get("seismic") is not None
+    if (model.get("loads") or has_seismic) and model.get("version") != SEISMIC_LOADS_VERSION:
+        raise UnsupportedModel(
+            f"los campos 'loads' y 'analysis.seismic' requieren version \"{SEISMIC_LOADS_VERSION}\""
+        )
 
     polys = regions_of(model)
     outline = outline_of(polys)
@@ -370,6 +501,8 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         options["intersliceFunction"] = "constant"
     if float(analysis.get("min_m_alpha", 0.2)) != 0.2:
         notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
+    options.update(seismic_options(model, notes))
+    definition.update(loads_to_cslope(model, notes))
 
     if kind == "fixed":
         surface = analysis.get("surface")

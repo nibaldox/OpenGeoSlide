@@ -298,3 +298,234 @@ def test_min_m_alpha_note_also_for_spencer():
                                     "surface": {"type": "circle", "xc": 20.0, "yc": 20.0, "r": 15.0}})
     conv = ogs_to_cslope(model, {"method": "spencer", "kind": "fixed", "published": 1.0, "tolerance": 0.05})
     assert any("min_m_alpha" in n for n in conv.notes)
+
+
+# ------------------------------------------- seismic coefficients and loads (schema v0.2)
+
+V047A_CIRCLE = {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435,
+                "r": 28.641487934160704}
+
+
+def v047a_fixed(mirror: bool = False, **extra) -> dict:
+    """V047a with the fixed circle of its Bishop search (the X1 experiment), version 0.2.
+
+    ``mirror=False`` is the original right-to-left geometry. ``mirror=True`` is its mirror image
+    (x -> -x, left_to_right).
+    """
+    sign = -1.0 if mirror else 1.0
+    circle = dict(V047A_CIRCLE, xc=sign * V047A_CIRCLE["xc"])
+    polygon = [[sign * x, y] for x, y in [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]]]
+    model = {
+        "format": "opengeoslide", "version": "0.2", "meta": {"id": "T-v047a"}, "units": "SI",
+        "materials": [_material("soil", 20.0, cohesion=3.0, friction_angle=19.6)],
+        "regions": [{"material": "soil", "polygon": polygon}],
+        "slope": {"direction": "left_to_right" if mirror else "right_to_left"},
+        "analysis": {"methods": ["bishop"], "slices": 50, "tolerance": 1e-5, "max_iterations": 500,
+                     "min_m_alpha": 0.2, "surface": circle},
+    }
+    model.update(extra)
+    return model
+
+
+def _with(model: dict, *, seismic=None, loads=None) -> dict:
+    model = json.loads(json.dumps(model))
+    if seismic is not None:
+        model["analysis"]["seismic"] = seismic
+    if loads is not None:
+        model["loads"] = loads
+    return model
+
+
+def _mapped(model: dict, method: str = "bishop") -> dict:
+    return ogs_to_cslope(model, {"method": method, "kind": "fixed"}).document
+
+
+def test_seismic_maps_to_options_and_zero_is_omitted():
+    opts = _mapped(_with(v047a_fixed(), seismic={"kh": 0.1, "kv": -0.05}))["options"]
+    assert opts["seismicHorizontal"] == 0.1 and opts["seismicVertical"] == -0.05
+    opts = _mapped(_with(v047a_fixed(), seismic={"kh": 0.2, "kv": 0.0}))["options"]
+    assert opts["seismicHorizontal"] == 0.2 and "seismicVertical" not in opts
+    for seismic in ({"kh": 0.0, "kv": 0.0}, {}, {"kh": 0}):
+        opts = _mapped(_with(v047a_fixed(), seismic=seismic))["options"]
+        assert "seismicHorizontal" not in opts and "seismicVertical" not in opts
+    opts = _mapped(v047a_fixed())["options"]
+    assert "seismicHorizontal" not in opts and "seismicVertical" not in opts
+
+
+def test_seismic_is_the_same_for_both_orientations_and_for_spencer():
+    for mirror in (False, True):
+        for method in ("bishop", "spencer"):
+            d = _mapped(_with(v047a_fixed(mirror), seismic={"kh": 0.1, "kv": 0.05}), method)
+            assert d["options"]["seismicHorizontal"] == 0.1
+            assert d["options"]["seismicVertical"] == 0.05
+
+
+@pytest.mark.parametrize("seismic, match", [
+    ({"kh": 1.0}, r"kh debe estar en \[0, 1\)"),
+    ({"kh": -0.1}, r"kh debe estar en \[0, 1\)"),
+    ({"kv": 1.0}, r"kv debe estar en \(-1, 1\)"),
+    ({"kv": -1.0}, r"kv debe estar en \(-1, 1\)"),
+    ({"kh": float("nan")}, "finito"),
+    ({"kh": float("inf")}, "finito"),
+    ({"kh": "0.1"}, "finito"),
+    ({"kx": 0.1}, "desconocidos"),
+])
+def test_seismic_out_of_range_or_malformed_is_refused(seismic, match):
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(_with(v047a_fixed(), seismic=seismic))
+
+
+def test_loads_map_to_udls_and_line_loads():
+    loads = [
+        {"type": "udl", "id": "u1", "x1": 50.0, "x2": 70.0, "q": 20.0},
+        {"type": "line", "id": "l1", "x": 40.0, "p": 20.0, "angle": 10.0},
+        {"type": "udl", "x1": 20.0, "x2": 30.0, "q": 5.0},
+        {"type": "line", "x": 45.0, "p": 8.0},
+    ]
+    d = _mapped(_with(v047a_fixed(), loads=loads))["definition"]
+    # no `id`: cslope 0.1.0 reports it as an unknown key
+    assert d["udls"] == [
+        {"magnitude": 20.0, "x1": 50.0, "x2": 70.0, "direction": "vertical"},
+        {"magnitude": 5.0, "x1": 20.0, "x2": 30.0, "direction": "vertical"},
+    ]
+    assert d["lineLoads"] == [
+        {"x": 40.0, "magnitude": 20.0, "angle": 10.0},
+        {"x": 45.0, "magnitude": 8.0, "angle": 0.0},
+    ]
+    d = _mapped(v047a_fixed())["definition"]
+    assert "udls" not in d and "lineLoads" not in d
+
+
+def test_line_load_angle_goes_through_unchanged_in_both_orientations():
+    load = {"type": "line", "id": "l1", "x": 40.0, "p": 20.0, "angle": 10.0}
+    for mirror in (False, True):
+        x = -40.0 if mirror else 40.0
+        d = _mapped(_with(v047a_fixed(mirror), loads=[dict(load, x=x)]))["definition"]
+        assert d["lineLoads"][0]["angle"] == 10.0 and d["lineLoads"][0]["x"] == x
+        assert d["orientation"] == ("ltr" if mirror else "rtl")
+
+
+def test_zero_loads_are_omitted_with_a_note():
+    loads = [{"type": "udl", "id": "u0", "x1": 50.0, "x2": 70.0, "q": 0.0},
+             {"type": "line", "id": "l0", "x": 40.0, "p": 0.0, "angle": 5.0}]
+    conv = ogs_to_cslope(_with(v047a_fixed(), loads=loads), _check("fixed"))
+    assert "udls" not in conv.document["definition"] and "lineLoads" not in conv.document["definition"]
+    assert any("u0" in n for n in conv.notes) and any("l0" in n for n in conv.notes)
+
+
+@pytest.mark.parametrize("loads, match", [
+    ([{"type": "udl", "id": "u", "x1": 70.0, "x2": 50.0, "q": 1.0}], "x1 >= x2"),
+    ([{"type": "udl", "id": "u", "x1": 50.0, "x2": 50.0, "q": 1.0}], "x1 >= x2"),
+    ([{"type": "udl", "id": "u", "x1": 50.0, "x2": 70.0, "q": -1.0}], "q < 0"),
+    ([{"type": "line", "id": "l", "x": 40.0, "p": -1.0, "angle": 0.0}], "p < 0"),
+    ([{"type": "line", "id": "l", "x": 40.0, "p": 1.0, "angle": 91.0}], "angle fuera"),
+    ([{"type": "line", "id": "l", "x": 40.0, "p": 1.0, "angle": -90.5}], "angle fuera"),
+    ([{"type": "udl", "id": "a", "x1": 1.0, "x2": 2.0, "q": 1.0},
+      {"type": "udl", "id": "a", "x1": 3.0, "x2": 4.0, "q": 1.0}], "repetido"),
+    ([{"type": "patch", "id": "p"}], "no soportado"),
+    ([{"type": "udl", "id": "u", "x1": 1.0, "x2": 2.0, "q": 1.0, "direction": "normal"}], "desconocidos"),
+    ([{"type": "udl", "id": "u", "x1": 1.0, "x2": 2.0, "q": float("nan")}], "finito"),
+])
+def test_invalid_loads_are_refused(loads, match):
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(_with(v047a_fixed(), loads=loads))
+
+
+def test_loads_and_seismic_need_version_0_2():
+    loads = [{"type": "udl", "id": "u", "x1": 50.0, "x2": 70.0, "q": 20.0}]
+    for kwargs in ({"loads": loads}, {"seismic": {"kh": 0.1, "kv": 0.0}}):
+        model = _with(v047a_fixed(), **kwargs)
+        model["version"] = "0.1"
+        with pytest.raises(UnsupportedModel, match='requieren version "0.2"'):
+            _mapped(model)
+    # a v0.1 model without the new fields converts exactly as before
+    model = v047a_fixed()
+    model["version"] = "0.1"
+    d = _mapped(model)
+    assert "udls" not in d["definition"] and "seismicHorizontal" not in d["options"]
+
+
+def test_v0_1_document_is_identical_to_v0_2_without_the_new_fields():
+    a, b = v047a_fixed(), v047a_fixed()
+    a["version"] = "0.1"
+    assert _mapped(a) == _mapped(b)
+
+
+# --- the oracle: angle convention (ltr and rtl), seismic and udl, mirror symmetry (cslope 0.1.0)
+
+def _fos(cs, model: dict, method: str = "bishop") -> float:
+    doc = _mapped(model, method)
+    errors = [i for i in cs.validate(doc) if i.get("severity") == "error"]
+    assert not errors, errors
+    return cs.analyse(doc)["minFOS"]
+
+
+def _mirror_load(load: dict) -> dict:
+    out = dict(load)
+    if "x" in out:
+        out["x"] = -out["x"]
+        out["angle"] = -out.get("angle", 0.0)
+    else:
+        out["x1"], out["x2"] = -load["x2"], -load["x1"]
+    return out
+
+
+LINE = {"type": "line", "id": "l1", "x": 40.0, "p": 20.0, "angle": 0.0}
+
+
+def test_oracle_line_load_angle_convention_in_both_orientations():
+    cs = pytest.importorskip("cslope")
+    rtl_base = _fos(cs, v047a_fixed())
+    ltr_base = _fos(cs, v047a_fixed(True))
+    assert rtl_base == pytest.approx(ltr_base, rel=1e-9)
+    assert rtl_base == pytest.approx(0.9850842466548518, rel=1e-9)
+
+    def fos(mirror: bool, angle: float) -> float:
+        load = dict(LINE, angle=angle)
+        load = _mirror_load(load) if mirror else load
+        # `_mirror_load` flips the sign for the mirror image; undo it to express the angle in the model frame.
+        if mirror:
+            load["angle"] = angle
+        return _fos(cs, _with(v047a_fixed(mirror), loads=[load]))
+
+    rtl = {a: fos(False, a) for a in (0.0, 10.0, -10.0)}
+    ltr = {a: fos(True, a) for a in (0.0, 10.0, -10.0)}
+    # reference values: oracle output quoted in the module docstring
+    assert rtl[0.0] == pytest.approx(0.9836208911149462, rel=1e-9)
+    assert rtl[10.0] == pytest.approx(0.9920950618992327, rel=1e-9)
+    assert rtl[-10.0] == pytest.approx(0.9753135037279751, rel=1e-9)
+    assert ltr[0.0] == pytest.approx(0.9836208911149332, rel=1e-9)
+    assert ltr[10.0] == pytest.approx(0.9753135037279624, rel=1e-9)
+    assert ltr[-10.0] == pytest.approx(0.9920950618992197, rel=1e-9)
+    # direction of the effect: +x against the sliding raises F, along the sliding lowers it
+    assert rtl[10.0] > rtl[0.0] > rtl[-10.0]
+    assert ltr[10.0] < ltr[0.0] < ltr[-10.0]
+    # mirror symmetry: x -> -x, ltr, and the angle with the opposite sign give the same F
+    for angle in (10.0, -10.0):
+        assert ltr[-angle] == pytest.approx(rtl[angle], rel=1e-9)
+
+
+def test_oracle_seismic_and_udl_are_mirror_symmetric():
+    cs = pytest.importorskip("cslope")
+    base = _fos(cs, v047a_fixed())
+    for seismic in ({"kh": 0.1, "kv": 0.0}, {"kh": 0.0, "kv": 0.1}, {"kh": 0.0, "kv": -0.1}):
+        a = _fos(cs, _with(v047a_fixed(), seismic=seismic))
+        b = _fos(cs, _with(v047a_fixed(True), seismic=seismic))
+        assert a == pytest.approx(b, rel=1e-9), seismic
+    kh = _fos(cs, _with(v047a_fixed(), seismic={"kh": 0.1, "kv": 0.0}))
+    kv_down = _fos(cs, _with(v047a_fixed(), seismic={"kh": 0.0, "kv": 0.1}))
+    kv_up = _fos(cs, _with(v047a_fixed(), seismic={"kh": 0.0, "kv": -0.1}))
+    assert kh == pytest.approx(0.7905926841940195, rel=1e-4)   # X1 §2.2 T1
+    assert kv_down < base < kv_up                                 # kv > 0 is downward: heavier, lower F
+    udl = {"type": "udl", "id": "u1", "x1": 50.0, "x2": 70.0, "q": 20.0}
+    a = _fos(cs, _with(v047a_fixed(), loads=[udl]))
+    b = _fos(cs, _with(v047a_fixed(True), loads=[_mirror_load(udl)]))
+    assert a == pytest.approx(b, rel=1e-9)
+    assert a == pytest.approx(0.9590357325570893, rel=1e-4)    # X1 §2.2 T4
+    assert a < base
+    # Spencer (Morgenstern-Price with a constant function) also accepts the fields
+    sp0 = _fos(cs, v047a_fixed(), "spencer")
+    sp = _fos(cs, _with(v047a_fixed(), seismic={"kh": 0.1, "kv": 0.0}), "spencer")
+    sp_ltr = _fos(cs, _with(v047a_fixed(True), seismic={"kh": 0.1, "kv": 0.0}), "spencer")
+    assert sp < sp0 and sp == pytest.approx(sp_ltr, rel=1e-9)
+    assert sp == pytest.approx(0.7909056976112471, rel=5e-4)   # X1 §2.2 T1 MP-constante (other options)

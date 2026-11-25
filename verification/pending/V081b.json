@@ -1,0 +1,140 @@
+{
+  "id": "V081b",
+  "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.2",
+    "meta": {
+      "id": "V081b",
+      "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
+      "notes": "The V081a sand slope (φ′ = 36°, 40 kPa surcharge) with a 7.6 m reinforced zone of φ = 54.93° (tan φ = 1.96 tan 36°) behind the face, on the reference critical toe circle (8.707, 18.307, R = 13.813)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 36.0,
+        "ru": null
+      },
+      {
+        "id": "reinforced_zone",
+        "name": "Reinforced zone",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 54.93,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            5.0,
+            5.0
+          ],
+          [
+            12.6,
+            5.0
+          ],
+          [
+            24.6,
+            17.0
+          ],
+          [
+            40.0,
+            17.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "reinforced_zone",
+        "polygon": [
+          [
+            5.0,
+            5.0
+          ],
+          [
+            17.0,
+            17.0
+          ],
+          [
+            24.6,
+            17.0
+          ],
+          [
+            12.6,
+            5.0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "type": "udl",
+        "id": "u1",
+        "x1": 17.0,
+        "x2": 30.0,
+        "q": 40.0
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 8.707,
+        "yc": 18.307,
+        "r": 13.813
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.504,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010332446808510639,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Sharma (1996). Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V081b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "φ = 36° and γ = 20 kN/m³ of the slope are not printed in the manual (tan 54.93° = 1.96 tan 36°; γ as V081a). Zone base (5, 5)–(12.6, 5), back face parallel to the slope face; 40 kPa from x = 17 to 30.",
+      "commercial program A's required force 351 kN and zone length 7.6 m (program F 345 kN, 7.5 m) give FOS 1.504 against the target 1.5.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

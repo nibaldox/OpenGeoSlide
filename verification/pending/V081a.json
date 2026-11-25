@@ -1,0 +1,104 @@
+{
+  "id": "V081a",
+  "title": "Sharma (1996) reinforcement example, unreinforced",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.2",
+    "meta": {
+      "id": "V081a",
+      "title": "Sharma (1996) reinforcement example, unreinforced",
+      "notes": "45° cohesionless sand slope with a 40 kPa surcharge behind the crest, on the published toe circle."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 36.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            5.0,
+            5.0
+          ],
+          [
+            17.0,
+            17.0
+          ],
+          [
+            40.0,
+            17.0
+          ],
+          [
+            40.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "type": "udl",
+        "id": "u1",
+        "x1": 17.0,
+        "x2": 30.0,
+        "q": 40.0
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -11.41,
+        "yc": 35.264,
+        "r": 34.426
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.764,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010654450261780106,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Sharma (1996).",
+    "derived_from": "cSlope verification problem V081a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A reports the Bishop value only (Fig. 37.3); cSlope's Spencer is 0.764 as well. V081b is the slope with the reinforced zone.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

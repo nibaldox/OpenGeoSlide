@@ -1,0 +1,145 @@
+{
+  "id": "V102a",
+  "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.2",
+    "meta": {
+      "id": "V102a",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
+      "notes": "25 m high 3:1 slope, c′ = 25 kPa, φ′ = 30°, γ = 20 kN/m³, dry, with the horizontal seismic coefficient kh = 0.432, Loukidis, Bandini & Salgado's critical value; critical-surface searches."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            -50.0,
+            -25.0
+          ],
+          [
+            -50.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            75.0,
+            25.0
+          ],
+          [
+            150.0,
+            25.0
+          ],
+          [
+            150.0,
+            -25.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "seismic": {
+        "kh": 0.432,
+        "kv": 0.0
+      },
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1,
+      "published_by": "Loukidis, Bandini & Salgado",
+      "tolerance": 0.025,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.001,
+      "published_by": "Commercial program B",
+      "tolerance": 0.0204995004995005,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.991,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020504540867810294,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.993,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020503524672708964,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Loukidis, D., Bandini, P. & Salgado, R. (2003). Stability of seismically loaded slopes using limit analysis. Géotechnique 53(5), 463–479.",
+    "derived_from": "cSlope verification problem V102a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The critical seismic coefficients (dry 0.432, rᵤ = 0.5 0.132) are Loukidis, Bandini & Salgado's, quoted identically by commercial program A (verification problem 62) and commercial program B (§2.38); the paper itself (paywalled) was not consulted. They are defined as the horizontal coefficient at which F = 1, from a log-spiral mechanism; both manuals give 'Loukidis factor of safety (Spencer) = 1.000'.",
+      "Geometry and soil from both manuals' figures and tables and a third program's example script of the same problem: 25 m high 3:1 slope from the toe (0, 0) to the crest (75, 25), ground from x = −50 to 150, base at −25; c′ = 25 kPa, φ′ = 30°, γ = 20 kN/m³. Both manuals restrict the circles to the toe; cSlope's unrestricted search ends at the toe as well.",
+      "Commercial program A's non-circular values (path search with optimization): Spencer 0.999, Bishop 0.989.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
