@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { VerificationCase } from '../engine/types';
-import { describePath, openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
+import { describePath, jsonErrorOffset, openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
 
 const casesDir = new URL('../../../../verification/cases/', import.meta.url);
 const caseFiles = readdirSync(casesDir).filter((f) => f.endsWith('.json') && f !== 'ogs-0.1.schema.json').sort();
@@ -434,6 +434,46 @@ describe('ogsJson: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
     );
     expect(issue?.detail).toMatch(/JSON/);
     expect(issue?.path).toBeNull();
+  });
+
+  it('UX-13: línea y columna del primer token inválido, sin depender de «position N» de V8', () => {
+    const where = (t: string) => /\(línea (\d+), columna (\d+)\)/.exec(firstError(t)?.text ?? '')?.slice(1, 3).map(Number);
+    expect(where('{\n"a": x}')).toEqual([2, 6]); // token inválido
+    expect(where('{\n  "a": 1,\n}')).toEqual([3, 1]); // coma final: la llave que sobra
+    expect(where('[1, 2,\n 3,]')).toEqual([2, 4]); // coma final en lista
+    expect(where('{\n  "a": "uno,\n  "b": 2}')).toEqual([2, 13]); // comilla sin cerrar: salto de línea dentro de la cadena
+    expect(where('{\n  "a": 1')).toEqual([2, 9]); // llave sin cerrar: fin del texto
+    expect(where('{"a": 1}\n  x')).toEqual([2, 3]); // basura tras el valor
+    expect(where('{"a" 1}')).toEqual([1, 6]); // falta los dos puntos
+    expect(where('{\r\n"a": tru}')).toEqual([2, 9]); // CRLF y literal truncado
+    expect(where('\ufeff{"a": }')).toEqual([1, 7]); // el BOM no cuenta
+    expect(where('{"a": 01}')).toEqual([1, 8]); // ceros a la izquierda
+    expect(where('{"a": "\\q"}')).toEqual([1, 9]); // escape inválido
+    expect(firstError('{\n"a": x}')?.detail).toMatch(/JSON/);
+  });
+
+  it('UX-13: el escáner coincide con JSON.parse en válidos e inválidos (mutaciones) y no desborda la pila', () => {
+    const seed = JSON.stringify({ a: [1, -2.5e3, true, null, 'x\\u00e9\\n'], b: { c: {}, d: [] } }, null, 2);
+    let r = 12345;
+    const rnd = (n: number): number => {
+      r = (r * 1103515245 + 12345) % 2147483648;
+      return r % n;
+    };
+    const junk = ['', ',', '"', '{', '}', '[', ']', ':', 'x', '0', '\n', '\\'];
+    for (let k = 0; k < 400; k++) {
+      const at = rnd(seed.length);
+      const t = seed.slice(0, at) + junk[rnd(junk.length)] + seed.slice(at + rnd(3));
+      let valid = true;
+      try {
+        JSON.parse(t);
+      } catch {
+        valid = false;
+      }
+      const off = jsonErrorOffset(t);
+      expect(off === null, JSON.stringify(t)).toBe(valid);
+      if (off !== null) expect(off).toBeLessThanOrEqual(t.length);
+    }
+    expect(jsonErrorOffset('['.repeat(200000))).toBe(200000);
   });
 
   it('archivo vacío: lo dice con todas sus letras', () => {
