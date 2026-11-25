@@ -1,4 +1,4 @@
-//! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), amendments E10c, E11a, E11b and E11c.
+//! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), amendments E10c, E11a, E11b, E11c and E12e.
 //!
 //! Sign convention (§4.3 leaves it to the implementer):
 //! - Slices run toe → crest, with `alpha > 0` when the base rises toward the crest, so `W·sin α > 0` drives the slide.
@@ -36,16 +36,17 @@
 //! - **Moment residual without divisor** `r(λ) = Σ b (E_k + E_{k+1}) (tan α_k − λ)`, evaluated at `F_f(λ)` and
 //!   normalised as `ρ(λ) = r / (ΣW · Σb)`. It has no asymptotes from the denominator of Zhu's update.
 //!
-//! The scan covers λ ∈ [−0.5; 1.5] with step 0.05, by levels `|λ| = 0.05·k`, both signs in each level (E11a′). Every
-//! sign change of ρ between two adjacent defined points is refined with Brent until `|ρ| ≤ tol_r =
-//! min(1e-3·tolerance, 1e-6)` (E11c). The final acceptance is `|ρ| ≤ 1e-6`, so every root that Brent accepts passes it.
-//! A bracket that closes on a jump of the closure root is not a root.
+//! The scan covers the whole range λ ∈ [−0.5; 1.5] with step 0.05 (E12e), outward and symmetrically from 0 by levels
+//! `|λ| = 0.05·k`, with no early stop. Every sign change of ρ between two adjacent defined points is refined with Brent
+//! until `|ρ| ≤ tol_r = min(1e-3·tolerance, 1e-6)` (E11c). The final acceptance is `|ρ| ≤ 1e-6`, so every root that
+//! Brent accepts passes it. A bracket that closes on a jump of the closure root is not a root.
 //!
 //! Candidates are the roots that are admissible at their F (E11b): on every soil slice `Φᵢ/F ≥ min_m_alpha`, which is
-//! Bishop's `m_α` at λ = 0, and `m_α(F) ≥ min_m_alpha`. Selection (E11a′): the candidate of smallest `|λ|`, without sign
-//! preference. The scan stops at the end of the first level that holds a candidate. A negative λ adds the note
-//! `negative_lambda`. With no candidate: `NotConverged("no_admissible_root")` if some root existed, otherwise
-//! `NotConverged("no_lambda_root")`.
+//! Bishop's `m_α` at λ = 0, and `m_α(F) ≥ min_m_alpha`. Selection (E12e, replaces E11a′): the candidate of smallest F
+//! (the conservative one); a tie within 1e-9 relative goes to the smaller `|λ|`. A negative λ adds the note
+//! `negative_lambda`, and a second admissible root whose F is more than 1 % above the chosen one adds the note
+//! `multiple_admissible_roots`. With no candidate: `NotConverged("no_admissible_root")` if some root existed,
+//! otherwise `NotConverged("no_lambda_root")`.
 //!
 //! Air slices (E2, E7a): no weight, no strength, `E` passes through unchanged. They take part in the moment sum with
 //! their own α. An interior air run carrying `|E| > 1e-3·ΣW` adds the note `air_gap_thrust`. Surfaces that split the
@@ -76,6 +77,10 @@ const ROOT_BRENT_LIMIT: usize = 100;
 /// Outward steps of the bracket search for one root in F. The step grows by `ROOT_STEP_GROWTH` each time.
 const ROOT_WALK_LIMIT: usize = 60;
 const ROOT_STEP0: f64 = 0.01;
+/// Newton steps of the fast path of the root in F.
+const NEWTON_LIMIT: usize = 8;
+/// Closure residual (`E_n / ΣW`) below which one more Newton step is taken without re-evaluating.
+const NEWTON_TRUST: f64 = 1e-6;
 const ROOT_STEP_GROWTH: f64 = 1.5;
 /// Absolute width at which Brent stops in F.
 const ROOT_XTOL: f64 = 1e-13;
@@ -104,6 +109,12 @@ const DIAGNOSTIC_MIN_M: f64 = 0.2;
 const UNDEFINED: &str = "undefined";
 /// Note of a converged state whose λ is negative (E11a).
 const NEGATIVE_LAMBDA_MESSAGE: &str = "negative_lambda";
+/// Note of a converged state with several admissible roots whose F differ by more than `MULTIPLE_ROOTS_FRACTION` (E12e).
+const MULTIPLE_ROOTS_MESSAGE: &str = "multiple_admissible_roots";
+/// Relative F difference above which a second admissible root is reported (1 %, E12e).
+const MULTIPLE_ROOTS_FRACTION: f64 = 0.01;
+/// Relative F difference within which two admissible roots tie, and the smaller `|λ|` wins (E12e).
+const TIE_FRACTION: f64 = 1e-9;
 
 /// Recurrence pole `D = (sin α − λ cos α) tan φ + (cos α + λ sin α) F` (f = 1).
 fn pole(s: &Slice, fos: f64, lambda: f64) -> f64 {
@@ -284,6 +295,25 @@ fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
     })
 }
 
+/// Closure `E_n` and its derivative `dE_n/dF` at `(fos, λ)`, or `None` at a pole or a non-finite value. The derivative
+/// is exact: `D = a + b·F` is linear in F, so `d(ΔE)/dF = (t·D − (F·t − res)·b) / D²`. Used by the Newton fast path of
+/// the force root only (allocation-free).
+fn closure_slope(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
+    let (mut e, mut de) = (0.0_f64, 0.0_f64);
+    for p in preps.iter().filter(|p| !p.inert) {
+        let b = p.cos + lambda * p.sin;
+        let d = (p.sin - lambda * p.cos) * p.tan_phi + b * fos;
+        if d.is_nan() || d <= POLE_FRACTION * fos {
+            return None;
+        }
+        let q = fos * p.t - p.res;
+        let inv = 1.0 / d;
+        e += q * inv;
+        de += (p.t * d - q * b) * inv * inv;
+    }
+    (e.is_finite() && de.is_finite()).then_some((e, de))
+}
+
 /// Zhu's moment update `[Σ b (E_k + E_{k+1}) tan α − 2·Σ h_moment_base] / Σ b (E_k + E_{k+1})`, for the diagnostic
 /// curves only. `moment_h` is `2·Σ h_moment_base` (E12b), zero without seismic force or line loads.
 fn moment_ratio(b: &Balance, moment_h: f64) -> Option<f64> {
@@ -292,16 +322,34 @@ fn moment_ratio(b: &Balance, moment_h: f64) -> Option<f64> {
         .filter(|v| v.is_finite())
 }
 
+/// Value and derivative of the closure `h(F)`, for the Newton fast path.
+type SlopeFn<'a> = dyn Fn(f64) -> Option<(f64, f64)> + 'a;
+
 /// Root of `h(F) = 0` nearest to `start` on `[lo, FOS_MAX]` (continuation along the λ scan, E10c).
+///
+/// Fast path: when `fast = (slope, guess)` is given (`slope` is the value and derivative of `h`, `guess` a better start
+/// than `start`, e.g. extrapolated along the scan), Newton's method from `guess` is tried first. Its root is accepted only
+/// if it stays on `[lo, FOS_MAX]` and within `ROOT_STEP0` (relative) of `start`, which is the first bracket of the walk
+/// below, so the root is the one the walk finds; otherwise the walk runs as usual.
 ///
 /// The bracket is searched outward from `start`, both sides at the same distance, with growing steps. The first
 /// sign change wins, and it is refined with Brent. A bracket that holds a pole leaves a residual above `ROOT_ACCEPT`
 /// and is discarded. `None` if no admissible root is found.
-fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64> {
+fn root_near(
+    h: &dyn Fn(f64) -> Option<f64>,
+    fast: Option<(&SlopeFn<'_>, f64)>,
+    start: f64,
+    lo: f64,
+) -> Option<f64> {
     if lo > FOS_MAX {
         return None;
     }
     let x0 = start.clamp(lo, FOS_MAX);
+    if let Some((slope, guess)) = fast
+        && let Some(root) = newton_near(slope, guess.clamp(lo, FOS_MAX), x0, lo)
+    {
+        return Some(root);
+    }
     let h0 = h(x0);
     if h0 == Some(0.0) {
         return Some(x0);
@@ -342,6 +390,33 @@ fn root_near(h: &dyn Fn(f64) -> Option<f64>, start: f64, lo: f64) -> Option<f64>
             break;
         }
         step *= ROOT_STEP_GROWTH;
+    }
+    None
+}
+
+/// Newton iteration on `h` from `guess`, around the start `x0` (see [`root_near`]). `None` when it does not settle within a few steps or leaves
+/// `[lo, FOS_MAX]` or the `ROOT_STEP0` neighbourhood of `x0`.
+///
+/// The step taken from a point with `|h| ≤ NEWTON_TRUST` is returned without evaluating `h` again: Newton's error is
+/// quadratic there (about 1e-12 or less), and the caller checks the closure at the returned point (`ROOT_ACCEPT`).
+fn newton_near(slope: &SlopeFn<'_>, guess: f64, x0: f64, lo: f64) -> Option<f64> {
+    let mut x = guess;
+    for _ in 0..NEWTON_LIMIT {
+        let (h, dh) = slope(x)?;
+        if h.abs() <= ROOT_STOP {
+            return Some(x);
+        }
+        if dh == 0.0 {
+            return None;
+        }
+        let next = x - h / dh;
+        if !(lo..=FOS_MAX).contains(&next) || (next - x0).abs() > ROOT_STEP0 * x0 {
+            return None;
+        }
+        if h.abs() <= NEWTON_TRUST {
+            return Some(next);
+        }
+        x = next;
     }
     None
 }
@@ -492,12 +567,20 @@ impl Scheme<'_> {
     }
 
     /// Force root `F_f(λ)` from the warm start `warm`, and the moment residual at it.
-    fn point(&self, lambda: f64, warm: f64) -> Option<Point> {
+    fn point(&self, lambda: f64, warm: f64, guess: f64) -> Option<Point> {
         let preps = &self.preps;
         let total_w = self.total_w;
         let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
-        let fos = root_near(&closure, warm, self.lower(lambda))?;
-        let b = balance_at(preps, lambda, fos)?;
+        let slope =
+            |x: f64| closure_slope(preps, lambda, x).map(|(e, de)| (e / total_w, de / total_w));
+        let lower = self.lower(lambda);
+        let mut fos = root_near(&closure, Some((&slope, guess)), warm, lower)?;
+        let mut b = balance_at(preps, lambda, fos)?;
+        if b.closure.abs() / total_w > ROOT_ACCEPT {
+            // The Newton fast path did not close (a pole nearby): redo it with the bracketing walk.
+            fos = root_near(&closure, None, warm, lower)?;
+            b = balance_at(preps, lambda, fos)?;
+        }
         Some(Point {
             rho: self.residual(&b, lambda),
             fos,
@@ -507,12 +590,17 @@ impl Scheme<'_> {
 
 /// Evaluates `ρ(λ)` from the warm start `warm`, refusing once the budget is spent (`Err("max_iterations")`).
 /// `Ok(None)` when the point is undefined. Each call counts once toward the budget.
-fn eval(scheme: &mut Scheme, lambda: f64, warm: f64) -> Result<Option<Point>, &'static str> {
+fn eval(
+    scheme: &mut Scheme,
+    lambda: f64,
+    warm: f64,
+    guess: f64,
+) -> Result<Option<Point>, &'static str> {
     if scheme.evaluations >= scheme.budget {
         return Err("max_iterations");
     }
     scheme.evaluations += 1;
-    Ok(scheme.point(lambda, warm))
+    Ok(scheme.point(lambda, warm, guess))
 }
 
 /// Refines one sign change of ρ with Brent (E11a, E11c). `Ok(None)` when the bracket does not close on a zero:
@@ -526,7 +614,7 @@ fn refine(
     let mut warm = left.1.fos;
     let found = brent(
         |x| {
-            let p = eval(scheme, x, warm)?;
+            let p = eval(scheme, x, warm, warm)?;
             if let Some(q) = p {
                 warm = q.fos;
             }
@@ -547,24 +635,35 @@ fn refine(
     }
 }
 
-/// Result of the level scan (E11a′): the chosen root, and whether any root (admissible or not) was seen.
+/// Result of the λ scan (E12e): every root of ρ found over [−0.5; 1.5], admissible or not.
 struct Scan {
-    chosen: Option<Root>,
-    any_root: bool,
+    roots: Vec<Root>,
 }
 
-/// Admissible root of smallest `|λ|` in one level, if any. Ties go to the positive λ.
-fn close_level(level: &[Root], admissible: &dyn Fn(&Root) -> bool) -> Option<Root> {
-    level
+/// Admissible root of smallest F (E12e). A tie within `TIE_FRACTION` (relative) goes to the smaller `|λ|`, and then to
+/// the positive λ. Also returns whether a second admissible root exists whose F differs from the chosen one by more
+/// than `MULTIPLE_ROOTS_FRACTION` (the note `multiple_admissible_roots`).
+fn select_root(roots: &[Root], admissible: &dyn Fn(&Root) -> bool) -> Option<(Root, bool)> {
+    let candidates: Vec<Root> = roots.iter().copied().filter(|r| admissible(r)).collect();
+    let (fmin, fmax) = candidates
+        .iter()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), r| {
+            (lo.min(r.fos), hi.max(r.fos))
+        });
+    let chosen = candidates
         .iter()
         .copied()
-        .filter(|r| admissible(r))
+        .filter(|r| r.fos <= fmin * (1.0 + TIE_FRACTION))
         .min_by(|a, b| {
             a.lambda
                 .abs()
                 .total_cmp(&b.lambda.abs())
                 .then(b.lambda.total_cmp(&a.lambda))
-        })
+        })?;
+    Some((
+        chosen,
+        candidates.len() > 1 && fmax > fmin * (1.0 + MULTIPLE_ROOTS_FRACTION),
+    ))
 }
 
 /// Records the grid point at `λ` as a root when `|ρ| ≤ tol_r` (E11a).
@@ -595,76 +694,64 @@ fn bracket(
     Ok(())
 }
 
-/// Scans λ outward and symmetrically from 0 by levels `|λ| = 0.05·k` (E11a′). Level `k` holds `λ = +0.05·k` and
-/// `λ = −0.05·k` (within [−0.5; 1.5]), each side warm-started from its previous level. Level `k` refines the sign
-/// changes between it and level `k − 1` on each side, and checks its roots with `admissible`. The scan stops at the
-/// end of the first level that holds an admissible root, and the root of smallest `|λ|` of that level is chosen.
-/// Every root of every visited level is evaluated for its closure and admissibility, not only the first sign change.
-fn scan(
-    scheme: &mut Scheme,
-    tol_r: f64,
-    admissible: &dyn Fn(&Root) -> bool,
-) -> Result<Scan, &'static str> {
+/// Scans the whole range λ ∈ [−0.5; 1.5] (E12e), outward and symmetrically from 0 by levels `|λ| = 0.05·k` (both signs
+/// in each level, each side warm-started from its previous level), and refines every sign change of ρ between adjacent
+/// defined points with Brent. It returns every root; the choice among them is [`select_root`]. There is no early stop:
+/// the root of smallest F can be at any λ.
+fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
     let at = |k: i32| k as f64 * SCAN_STEP;
-    let zero = eval(scheme, 0.0, scheme.start)?;
-    let mut level = Vec::new();
-    point_root(&mut level, 0.0, zero, tol_r);
-    let mut any_root = !level.is_empty();
-    if let Some(chosen) = close_level(&level, admissible) {
-        return Ok(Scan {
-            chosen: Some(chosen),
-            any_root,
-        });
-    }
+    let zero = eval(scheme, 0.0, scheme.start, scheme.start)?;
+    let mut roots = Vec::new();
+    point_root(&mut roots, 0.0, zero, tol_r);
     let (mut prev_pos, mut prev_neg) = (zero.map(|p| (0.0, p)), zero.map(|p| (0.0, p)));
     let mut warm_pos = zero.map_or(scheme.start, |p| p.fos);
     let mut warm_neg = warm_pos;
+    // F of the point before the previous one on each side, for the linear extrapolation of the Newton start.
+    let (mut before_pos, mut before_neg): (Option<f64>, Option<f64>) = (None, None);
+    let extrapolate =
+        |prev: Option<(f64, Point)>, before: Option<f64>, warm: f64| match (prev, before) {
+            (Some((_, p)), Some(b)) => 2.0 * p.fos - b,
+            _ => warm,
+        };
     for k in 1..=SCAN_POS_STEPS.max(SCAN_NEG_STEPS) {
-        let mut level: Vec<Root> = Vec::new();
         let mut cur_pos = None;
         let mut cur_neg = None;
         if k <= SCAN_POS_STEPS {
-            cur_pos = eval(scheme, at(k), warm_pos)?;
+            let guess = extrapolate(prev_pos, before_pos, warm_pos);
+            cur_pos = eval(scheme, at(k), warm_pos, guess)?;
             if let Some(q) = cur_pos {
                 warm_pos = q.fos;
             }
-            point_root(&mut level, at(k), cur_pos, tol_r);
+            point_root(&mut roots, at(k), cur_pos, tol_r);
         }
         if k <= SCAN_NEG_STEPS {
-            cur_neg = eval(scheme, at(-k), warm_neg)?;
+            let guess = extrapolate(prev_neg, before_neg, warm_neg);
+            cur_neg = eval(scheme, at(-k), warm_neg, guess)?;
             if let Some(q) = cur_neg {
                 warm_neg = q.fos;
             }
-            point_root(&mut level, at(-k), cur_neg, tol_r);
+            point_root(&mut roots, at(-k), cur_neg, tol_r);
         }
         bracket(
             scheme,
             tol_r,
             prev_pos,
             cur_pos.map(|p| (at(k), p)),
-            &mut level,
+            &mut roots,
         )?;
         bracket(
             scheme,
             tol_r,
             prev_neg,
             cur_neg.map(|p| (at(-k), p)),
-            &mut level,
+            &mut roots,
         )?;
-        any_root |= !level.is_empty();
-        if let Some(chosen) = close_level(&level, admissible) {
-            return Ok(Scan {
-                chosen: Some(chosen),
-                any_root,
-            });
-        }
+        before_pos = prev_pos.map(|(_, p)| p.fos);
+        before_neg = prev_neg.map(|(_, p)| p.fos);
         prev_pos = cur_pos.map(|p| (at(k), p));
         prev_neg = cur_neg.map(|p| (at(-k), p));
     }
-    Ok(Scan {
-        chosen: None,
-        any_root,
-    })
+    Ok(Scan { roots })
 }
 
 fn outcome(
@@ -725,13 +812,13 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .map(|&lambda| {
             let preps = &scheme.preps;
             let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
-            let force = root_near(&closure, warm.1, scheme.lower(lambda));
+            let force = root_near(&closure, None, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
                 balance_at(preps, lambda, x)
                     .and_then(|b| moment_ratio(&b, scheme.moment_h))
                     .map(|m| m - lambda)
             };
-            let moment = root_near(&moment_residual, warm.0, scheme.lower(lambda));
+            let moment = root_near(&moment_residual, None, warm.0, scheme.lower(lambda));
             if let (Some(m), Some(f)) = (moment, force) {
                 warm = (m, f);
             }
@@ -744,13 +831,13 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .collect()
 }
 
-/// Spencer solver (E10c, E11a, E11b, E11c). Start: `F` from Bishop (or 1 if Bishop is invalid).
+/// Spencer solver (E10c, E11a, E11b, E11c, E12e). Start: `F` from Bishop (or 1 if Bishop is invalid).
 ///
 /// 1. `no_driving` (E3) and the Bishop lower bound (E8b) are checked first.
-/// 2. The λ scan visits the levels `|λ| = 0.05·k` outward, and stops at the first level that holds a candidate (E11a′).
-///    Each root of a visited level is refined to `|ρ| ≤ tol_r` (E11c).
-/// 3. The candidates are the admissible roots (E11b). λ* is the admissible root of smallest `|λ|` (E11a′), found by
-///    the level scan, with the note `negative_lambda` when it is negative.
+/// 2. The λ scan covers the whole range [−0.5; 1.5], and each root is refined to `|ρ| ≤ tol_r` (E11c).
+/// 3. The candidates are the admissible roots (E11b). λ* is the admissible root of smallest F (E12e), with the notes
+///    `negative_lambda` when it is negative and `multiple_admissible_roots` when another candidate is more than 1 %
+///    above it.
 /// 4. At λ*, the closure `|E_n| ≤ 1e-6·ΣW` is checked, and the normal forces (E7d) and the notes (E7a, E7d) are
 ///    attached to the `Converged` result.
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
@@ -790,7 +877,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let tol_r = (ROOT_FRACTION * opts.tolerance).min(MOMENT_ACCEPT);
 
     let admissible_at = |r: &Root| admissible(slices, r.fos, r.lambda, opts.min_m_alpha);
-    let search = match scan(&mut scheme, tol_r, &admissible_at) {
+    let search = match scan(&mut scheme, tol_r) {
         Ok(search) => search,
         Err(msg) => {
             return outcome(
@@ -803,9 +890,9 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         }
     };
     let iterations = scheme.evaluations;
-    // E11a′: the admissible root of smallest |λ|, without sign preference.
-    let Some(root) = search.chosen else {
-        let msg = if search.any_root {
+    // E12e: the admissible root of smallest F (ties: smallest |λ|).
+    let Some((root, multiple)) = select_root(&search.roots, &admissible_at) else {
+        let msg = if !search.roots.is_empty() {
             "no_admissible_root"
         } else {
             "no_lambda_root"
@@ -848,6 +935,9 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let mut notes = Vec::with_capacity(3);
     if lambda < 0.0 {
         notes.push(NEGATIVE_LAMBDA_MESSAGE);
+    }
+    if multiple {
+        notes.push(MULTIPLE_ROOTS_MESSAGE);
     }
     notes.extend(converged_notes(air, normal_class));
     outcome(fos, SolveStatus::Converged, iterations, Some(lambda), None).with_warnings(notes)
