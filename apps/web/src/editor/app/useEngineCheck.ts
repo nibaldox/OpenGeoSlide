@@ -1,5 +1,8 @@
 // «Comprobar»: ejecuta `analyze` con el motor real (worker), guarda el último cálculo y mantiene el diagnóstico del
 // store (incidencias locales + las del motor). Un segundo cálculo se bloquea mientras hay uno en curso.
+//
+// Al motor se envía exactamente lo que guarda `saveOgsJson`, sin redondeo (E12g, R5-02): el cálculo y el archivo
+// guardado coinciden bit a bit con el modelo del documento.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EngineClient } from '../../engine/client';

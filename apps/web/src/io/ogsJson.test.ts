@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { VerificationCase } from '../engine/types';
-import { openOgsJson, round6, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
+import { openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
 
 const casesDir = new URL('../../../../verification/cases/', import.meta.url);
 const caseFiles = readdirSync(casesDir).filter((f) => f.endsWith('.json') && f !== 'ogs-0.1.schema.json').sort();
@@ -13,14 +13,23 @@ function loadCase(file: string): { text: string; parsed: VerificationCase } {
   return { text, parsed: JSON.parse(text) as VerificationCase };
 }
 
-/** Aplica el mismo redondeo que el guardado (excepto `tolerance`) a un valor JSON. */
-function rounded(v: unknown, key = ''): unknown {
-  if (typeof v === 'number') return key === 'tolerance' ? Number(v.toPrecision(12)) : round6(v);
-  if (Array.isArray(v)) return v.map((x) => rounded(x, key));
-  if (typeof v === 'object' && v !== null) {
-    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rounded(x, k)]));
-  }
-  return v;
+const diffDir = new URL('../../../../verification/differential/cases/', import.meta.url);
+const diffFiles = readdirSync(diffDir).filter((f) => f.endsWith('.ogs.json')).sort();
+
+type Json = Record<string, unknown>;
+
+/** Modelo de la batería con la superficie fija (sin búsqueda), como lo calcula `differential/run.py`. */
+function fixedModel(text: string): Json {
+  const m = JSON.parse(text) as { analysis: Json } & Json;
+  const { search: _search, ...analysis } = m.analysis;
+  return { ...m, analysis };
+}
+
+/** Abre y guarda con los módulos reales y devuelve el JSON guardado. */
+function roundTrip(model: unknown): Json {
+  const opened = openOgsJson(JSON.stringify(model));
+  expect(opened.issues.filter((i) => i.severity === 'error')).toEqual([]);
+  return JSON.parse(saveOgsJson(opened.doc as ModelDoc)) as Json;
 }
 
 const CANONICAL_TOP = ['format', 'version', 'meta', 'units', 'materials', 'regions', 'water', 'loads', 'slope', 'analysis'];
@@ -41,15 +50,14 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
   });
 
   for (const file of caseFiles) {
-    it(`${file}: abrir y guardar conserva el contenido salvo version y redondeo`, () => {
+    it(`${file}: abrir y guardar conserva todos los números (E12g: sin redondeo), salvo version`, () => {
       const { parsed } = loadCase(file);
       const opened = openOgsJson(JSON.stringify(parsed.model));
       expect(opened.doc).not.toBeNull();
       expect(opened.issues.filter((i) => i.severity === 'error')).toEqual([]);
       const saved = JSON.parse(saveOgsJson(opened.doc as ModelDoc)) as Record<string, unknown>;
       expect(saved.version).toBe('0.2');
-      const expected = { ...(rounded(parsed.model) as Record<string, unknown>), version: '0.2' };
-      expect(saved).toEqual(expected);
+      expect(saved).toEqual({ ...(parsed.model as unknown as Json), version: '0.2' });
       expect(isSubsequence(Object.keys(saved), CANONICAL_TOP)).toBe(true);
     });
 
@@ -64,6 +72,60 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
       expect(saveOgsJson(wrapped.doc as ModelDoc)).toBe(first);
     });
   }
+});
+
+describe('ogsJson: ida y vuelta con los 14 modelos de la batería diferencial (E12g, R5-02)', () => {
+  it('hay 14 modelos', () => {
+    expect(diffFiles).toHaveLength(14);
+  });
+
+  for (const file of diffFiles) {
+    const text = readFileSync(new URL(file, diffDir), 'utf8');
+    const original = JSON.parse(text) as Json;
+
+    it(`${file}: con búsqueda y con superficie fija, los números son idénticos al original`, () => {
+      expect(roundTrip(original)).toEqual({ ...original, version: '0.2' });
+      const fixed = fixedModel(text);
+      const saved = roundTrip(fixed);
+      expect(saved).toEqual({ ...fixed, version: '0.2' });
+      // El círculo fijo conserva sus 15-17 cifras: con 6 decimales sacaba el círculo del modelo (6 de 14 modelos).
+      const surface = (original.analysis as { surface: { xc: number; yc: number; r: number } }).surface;
+      expect((saved.analysis as { surface: unknown }).surface).toEqual({ type: 'circle', ...surface });
+      expect(Object.is((saved.analysis as { surface: { r: number } }).surface.r, surface.r)).toBe(true);
+    });
+  }
+
+  it('R5-02: D01 fijo conserva el círculo bit a bit', () => {
+    const original = JSON.parse(readFileSync(new URL('D01.ogs.json', diffDir), 'utf8')) as { analysis: { surface: unknown } };
+    const saved = roundTrip(original) as { analysis: { surface: unknown } };
+    expect(saved.analysis.surface).toEqual({ type: 'circle', xc: 49.57942825454256, yc: 34.823211318713575, r: 36.11677577292455 });
+  });
+});
+
+describe('ogsJson: modelos de frontera (E12g, R5-02)', () => {
+  const base = (): Json => ({
+    format: 'opengeoslide',
+    version: '0.2',
+    meta: {},
+    materials: [{ id: 's', name: 'S', model: 'mohr_coulomb', unit_weight: 20, cohesion: 3, friction_angle: 20, ru: 0.9999999 }],
+    regions: [{ material: 's', polygon: [[0, 0], [10, 0], [10, 5]] }],
+    analysis: { min_m_alpha: 1e-7, tolerance: 1e-8, seismic: { kh: 0.9999999, kv: -0.9999999 }, surface: { type: 'circle', xc: 1.0000001, yc: 2.0000004, r: 3.0000009 } },
+  });
+
+  it('min_m_alpha = 1e-7, kh, kv y ru = 0,9999999 se conservan; no pasan a 0 ni a 1', () => {
+    const saved = roundTrip(base()) as { materials: { ru: number }[]; analysis: { min_m_alpha: number; tolerance: number; seismic: { kh: number; kv: number } } };
+    expect(saved.analysis.min_m_alpha).toBe(1e-7);
+    expect(saved.analysis.tolerance).toBe(1e-8);
+    expect(saved.analysis.seismic).toEqual({ kh: 0.9999999, kv: -0.9999999 });
+    expect(saved.materials[0]?.ru).toBe(0.9999999);
+  });
+
+  it('el texto guardado trae las cifras completas y es idempotente', () => {
+    const text = saveOgsJson(openOgsJson(JSON.stringify(base())).doc as ModelDoc);
+    expect(text).toContain('0.9999999');
+    expect(text).toContain('3.0000009');
+    expect(saveOgsJson(openOgsJson(text).doc as ModelDoc)).toBe(text);
+  });
 });
 
 describe('ogsJson: abrir', () => {
@@ -118,19 +180,76 @@ describe('ogsJson: abrir', () => {
     expect(r.doc?.loads).toHaveLength(1);
   });
 
-  it('v0.1 con cargas o sismo se abre como v0.2 con una nota que lo explica', () => {
-    const m = { ...base(), loads: [{ type: 'line', x: 1, p: 2, angle: 0 }] };
-    const r = openOgsJson(JSON.stringify(m));
-    expect(r.doc?.version).toBe('0.2');
-    expect(r.issues[0]?.text).toContain('cargas o sismo');
+  it('E12h: v0.1 con cargas o con sismo se rechaza, como el motor', () => {
+    const withLoads = openOgsJson(JSON.stringify({ ...base(), loads: [{ type: 'line', x: 1, p: 2, angle: 0 }] }));
+    expect(withLoads.doc).toBeNull();
+    expect(withLoads.issues).toMatchObject([{ severity: 'error', code: 'io.version_fields', path: '/loads' }]);
+
+    const m = base();
+    (m.analysis as Record<string, unknown>).seismic = { kh: 0.1, kv: 0 };
+    const withSeismic = openOgsJson(JSON.stringify(m));
+    expect(withSeismic.doc).toBeNull();
+    expect(withSeismic.issues).toMatchObject([{ severity: 'error', code: 'io.version_fields', path: '/analysis/seismic' }]);
   });
 
-  it('avisa de los campos desconocidos y los descarta', () => {
+  it('E12h: v0.1 con loads: [] o seismic: null cuenta como ausente, igual que el motor', () => {
+    const m = { ...base(), loads: [] } as Record<string, unknown>;
+    (m.analysis as Record<string, unknown>).seismic = null;
+    const r = openOgsJson(JSON.stringify(m));
+    expect(r.doc?.version).toBe('0.2');
+    expect(r.issues.map((i) => i.code)).toEqual(['io.version_upgraded']);
+  });
+
+  it('E12h, R5-07: «r_u» en lugar de «ru» es un error con su puntero, no un aviso', () => {
+    const m = base();
+    (m.materials as Record<string, unknown>[])[0] = { id: 's', name: 'S', model: 'mohr_coulomb', unit_weight: 20, cohesion: 3, friction_angle: 20, r_u: 0.5 };
+    const r = openOgsJson(JSON.stringify(m));
+    expect(r.doc).toBeNull();
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0]).toMatchObject({ severity: 'error', code: 'io.unknown_field', path: '/materials/0/r_u' });
+  });
+
+  it('E12h: rechaza campos desconocidos en todos los niveles, con su puntero', () => {
+    const cases: [string, (m: Json) => void][] = [
+      ['/extra', (m) => (m.extra = 1)],
+      ['/meta/color', (m) => (m.meta = { color: 'rojo' })],
+      ['/materials/0/r_u', (m) => ((m.materials as Json[])[0]!.r_u = 0.5)],
+      ['/regions/0/name', (m) => ((m.regions as Json[])[0]!.name = 'x')],
+      ['/water/gamma', (m) => (m.water = { unit_weight: 9.81, gamma: 1 })],
+      ['/slope/angle', (m) => (m.slope = { direction: 'auto', angle: 1 })],
+      ['/analysis/ru', (m) => ((m.analysis as Json).ru = 0.1)],
+      ['/analysis/surface/z', (m) => ((m.analysis as Json).surface = { type: 'circle', xc: 1, yc: 2, r: 3, z: 0 })],
+      ['/analysis/search/n', (m) => ((m.analysis as Json).search = { type: 'circular_entry_exit', n: 3 })],
+      ['/analysis/seismic/kz', (m) => ((m.analysis as Json).seismic = { kh: 0.1, kz: 1 })],
+      ['/loads/0/angle', (m) => (m.loads = [{ type: 'udl', x1: 1, x2: 2, q: 3, angle: 4 }])],
+      ['/loads/1/q', (m) => (m.loads = [{ type: 'udl', x1: 1, x2: 2, q: 3 }, { type: 'line', x: 1, p: 2, angle: 0, q: 1 }])],
+      ['/extra', (m) => (m.extra = null)],
+    ];
+    for (const [path, edit] of cases) {
+      const m = { ...base(), version: '0.2' } as Json;
+      edit(m);
+      const r = openOgsJson(JSON.stringify(m));
+      expect(r.doc, path).toBeNull();
+      const unknown = r.issues.filter((i) => i.code === 'io.unknown_field');
+      expect(unknown.map((i) => i.path), path).toEqual([path]);
+      expect(unknown[0]?.severity, path).toBe('error');
+    }
+  });
+
+  it('E12h: varios campos desconocidos dan un error por cada uno; ninguno es un aviso', () => {
     const m = { ...base(), extra: 1, meta: { id: 'a', color: 'rojo' } };
     const r = openOgsJson(JSON.stringify(m));
-    const paths = r.issues.filter((i) => i.code === 'io.unknown_field').map((i) => i.path);
-    expect([...paths].sort()).toEqual(['/extra', '/meta/color']);
-    expect(JSON.parse(saveOgsJson(r.doc as ModelDoc))).not.toHaveProperty('extra');
+    expect(r.doc).toBeNull();
+    expect(r.issues.every((i) => i.severity === 'error')).toBe(true);
+    expect(r.issues.map((i) => i.path).sort()).toEqual(['/extra', '/meta/color']);
+  });
+
+  it('el wrapper {model, checks} sigue abriéndose con aviso, pero el modelo también es estricto', () => {
+    const ok = openOgsJson(JSON.stringify({ id: 'X', title: 't', model: base(), checks: [] }));
+    expect(ok.doc).not.toBeNull();
+    expect(ok.issues.some((i) => i.code === 'io.checks_discarded')).toBe(true);
+    const bad = openOgsJson(JSON.stringify({ model: { ...base(), r_u: 1 }, checks: [] }));
+    expect(bad.doc).toBeNull();
   });
 });
 
@@ -178,7 +297,7 @@ describe('ogsJson: guardar', () => {
     expect(text.endsWith('}\n')).toBe(true);
   });
 
-  it('redondea a 6 decimales, conserva null y omite undefined; tolerance no se redondea a 0', () => {
+  it('no redondea: conserva null y omite undefined; tolerance y valores pequeños quedan tal cual', () => {
     const doc = {
       format: 'opengeoslide',
       version: '0.2',
@@ -188,10 +307,9 @@ describe('ogsJson: guardar', () => {
       analysis: { tolerance: 1e-7, min_m_alpha: 0.2000004 },
     } as unknown as ModelDoc;
     const p = JSON.parse(saveOgsJson(doc)) as { materials: Record<string, unknown>[]; analysis: Record<string, number> };
-    expect(p.materials[0]).toEqual({ id: 's', name: 'S', model: 'mohr_coulomb', unit_weight: 20.123457, unit_weight_sat: null, cohesion: 0, friction_angle: 0 });
+    expect(p.materials[0]).toEqual({ id: 's', name: 'S', model: 'mohr_coulomb', unit_weight: 20.123456789, unit_weight_sat: null, cohesion: 0, friction_angle: 0 });
     expect(p.analysis.tolerance).toBe(1e-7);
-    expect(p.analysis.min_m_alpha).toBe(0.2);
-    expect(round6(-0.0000001)).toBe(0);
+    expect(p.analysis.min_m_alpha).toBe(0.2000004);
   });
 
   it('no guarda valores no finitos', () => {
