@@ -8,12 +8,36 @@ dynamic = ["version"]
 description = "Motor de estabilidad de taludes 2D por equilibrio límite (OpenGeoSlide)"
 readme = "README.md"
 license = "Apache-2.0"
+# PEP 639: las rutas son relativas a este pyproject.toml y no admiten «..». LICENSE y NOTICE viven en la raíz del
+# repositorio; scripts/prepare-license-files.sh los copia aquí antes de construir (las copias no se versionan).
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Colaboradores de OpenGeoSlide" }]
+keywords = ["geotechnics", "slope-stability", "limit-equilibrium", "bishop", "spencer", "rust"]
 requires-python = ">=3.11"
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
 ]
+
+[project.urls]
+# PROPIETARIO PROVISIONAL (opengeoslide/opengeoslide)
+Homepage = "https://opengeoslide.github.io/opengeoslide/"
+Repository = "https://github.com/opengeoslide/opengeoslide"
+Issues = "https://github.com/opengeoslide/opengeoslide/issues"
+Changelog = "https://github.com/opengeoslide/opengeoslide/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 module-name = "opengeoslide._core"
