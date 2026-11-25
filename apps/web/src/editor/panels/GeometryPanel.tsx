@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Point } from '../../engine/types';
 import type { EditorStore, Issue } from '../types';
 import { applyCommands } from './dispatch';
@@ -234,13 +234,11 @@ function VertexTable({ store, regionIndex, units }: { store: EditorStore; region
   const count = polygon?.length ?? 0;
   const [page, setPage] = useState(0);
   const selectedVertex = selection.kind === 'vertex' && selection.regionIndex === regionIndex ? selection.vertexIndex : null;
-  const rootRef = useRef<HTMLDivElement>(null);
 
-  // Un vértice elegido en el lienzo lleva a su página y a su fila.
+  // Un vértice elegido en el lienzo lleva a su página. No se desplaza la página del navegador hasta la fila: en móvil el panel
+  // queda debajo del lienzo y arrastrar un tirador no debe mover la vista.
   useEffect(() => {
-    if (selectedVertex === null) return;
-    setPage(pageOf(count, selectedVertex));
-    window.setTimeout(() => rootRef.current?.querySelector(`[data-vertex-row="${selectedVertex}"]`)?.scrollIntoView({ block: 'nearest' }), 0);
+    if (selectedVertex !== null) setPage(pageOf(count, selectedVertex));
   }, [selectedVertex, count]);
 
   const issues = useMemo(() => regionIssues(doc, regionIndex), [doc, regionIndex]);
@@ -248,7 +246,7 @@ function VertexTable({ store, regionIndex, units }: { store: EditorStore; region
   const range = pageRange(count, page);
 
   return (
-    <div ref={rootRef} className="gp-vertices">
+    <div className="gp-vertices">
       <h3 id="gp-vertices-title">Vértices de la región {regionIndex + 1}</h3>
       <p className="muted small">
         Escriba x e y y confirme con Intro. Un vértice compartido con otra región se mueve junto con él. Mínimo 3 vértices por región.

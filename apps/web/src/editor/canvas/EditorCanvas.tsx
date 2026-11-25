@@ -867,7 +867,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         <p className="ec-draw-hint" data-testid="draw-hint">
           <strong>Dibujar región</strong>: {draft.points.length === 0 ? 'ningún punto todavía' : `${draft.points.length} ${draft.points.length === 1 ? 'punto' : 'puntos'}`}.{' '}
           <span className="ec-draw-keys">
-            Clic o Espacio agrega un punto{draft.points.length >= 3 ? '; Intro o clic en el primero cierra' : ''} · Retroceso quita · Esc cancela
+            Clic, toque o Espacio agrega un punto{draft.points.length >= 3 ? '; Intro o clic en el primero cierra' : ''} · Retroceso quita · Esc cancela
           </span>
           {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
         </p>
