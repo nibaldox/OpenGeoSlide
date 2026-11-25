@@ -22,6 +22,13 @@ describe('GeometryPanel (render estático)', () => {
     expect(html).toContain('aria-label="Eliminar región 2"');
     expect(html).toContain('>Eliminar región<');
   });
+  it('cada región muestra su material con su muestra de color (el tono del lienzo) y hay un botón «Dividir región…»', () => {
+    const html = render(createEditorStore(makeDoc()));
+    // región 1 = m2 (Roca, índice 1); región 2 = m1 (Arcilla, índice 0)
+    expect(html).toMatch(/data-testid="region-material-0"[^>]*><span class="gp-swatch" data-swatch="1" style="background:var\(--canvas-mat-1\)" aria-hidden="true"><\/span>Roca/);
+    expect(html).toMatch(/data-testid="region-material-1"[^>]*><span class="gp-swatch" data-swatch="0" style="background:var\(--canvas-mat-0\)" aria-hidden="true"><\/span>Arcilla/);
+    expect(html).toContain('>Dividir región…<');
+  });
   it('la tabla muestra los vértices de la región con x e y editables y sus acciones', () => {
     const store = createEditorStore(makeDoc());
     store.dispatch({ type: 'ui/select', selection: { kind: 'region', regionIndex: 1 } });

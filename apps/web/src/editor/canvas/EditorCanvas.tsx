@@ -50,7 +50,8 @@ import {
   vertexAnnouncement,
   vertexLabel,
 } from './layout';
-import { fitToDoc, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
+import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
+import { edgeScrollDelta, fitToDoc, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
 import './canvas.css';
 
 // Colores: referencias a los tokens `--canvas-*` de styles/tokens.css; el tema los cambia sin volver a dibujar.
@@ -115,7 +116,7 @@ function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
 function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, panning: boolean): string {
   if (panning) return 'grabbing';
   if (tool === 'pan') return 'grab';
-  if (tool === 'draw_region') return 'crosshair';
+  if (tool === 'draw_region' || tool === 'split_region') return 'crosshair';
   if (dragging) return 'grabbing';
   if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius') return 'move';
   if (tool === 'add_vertex') return hover === 'edge' || hover === 'piezo_edge' ? 'copy' : 'crosshair';
@@ -131,7 +132,16 @@ export const CANVAS_INSTRUCTIONS =
   'Supr elimina el vértice o el punto y el foco pasa al vecino. ' +
   'Las teclas + y − acercan y alejan, y 0 encuadra el modelo. ' +
   'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección. ' +
-  'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región.';
+  'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
+  'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
+
+/** Herramientas de trazo: comparten el borrador, el cursor del teclado y el autodesplazamiento. */
+const isTraceTool = (tool: string): boolean => tool === 'draw_region' || tool === 'split_region';
+
+/** Espera, en ms, con el puntero junto al borde antes de que la vista empiece a desplazarse (evita desplazar al cruzar el borde de paso). */
+const EDGE_SCROLL_DWELL_MS = 250;
+/** Período del autodesplazamiento, en ms. */
+const EDGE_SCROLL_TICK_MS = 16;
 
 const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius']);
 
@@ -194,6 +204,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const draftRef = useRef<DrawDraft>(EMPTY_DRAFT);
   const [drawError, setDrawError] = useState<string | null>(null);
   const drawDown = useRef<{ id: number; x: number; y: number; pointerType: string } | null>(null);
+  // Último puntero (ratón o lápiz) sobre el lienzo con una herramienta de trazo: el autodesplazamiento sigue mientras esté junto al borde.
+  const trailPointer = useRef<{ x: number; y: number } | null>(null);
+  const edgeDwell = useRef(0);
   const prevTool = useRef(store.getState().ui.tool);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
@@ -312,21 +325,62 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     svgRef.current?.querySelector<SVGElement>(`[data-handle-key="${key}"]`)?.focus({ preventScroll: true });
   });
 
-  // «Dibujar región»: al elegir la herramienta el foco pasa al lienzo (para operar con el teclado) y se anuncia cómo usarla;
-  // al salir de ella, el dibujo en curso se descarta.
+  // Herramientas de trazo («Dibujar región» y «Dividir región»): al elegirlas el foco pasa al lienzo (para operar con el teclado) y se
+  // anuncia cómo usarlas; al salir de ellas, o al cambiar de una a otra, el trazo en curso se descarta.
   useEffect(() => {
     const was = prevTool.current;
     prevTool.current = ui.tool;
-    if (ui.tool === 'draw_region' && was !== 'draw_region') {
+    if (isTraceTool(ui.tool) && was !== ui.tool) {
+      if (draftRef.current.points.length > 0 || draftRef.current.cursor !== null) {
+        draftRef.current = EMPTY_DRAFT;
+        setDraftState(EMPTY_DRAFT);
+        setDrawError(null);
+      }
       svgRef.current?.focus({ preventScroll: true });
-      if (onAnnounce) onAnnounce(DRAW_INSTRUCTIONS);
-      else setLiveMsg(DRAW_INSTRUCTIONS);
-    } else if (ui.tool !== 'draw_region' && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
+      const text = ui.tool === 'split_region' ? SPLIT_INSTRUCTIONS : DRAW_INSTRUCTIONS;
+      if (onAnnounce) onAnnounce(text);
+      else setLiveMsg(text);
+    } else if (!isTraceTool(ui.tool) && (draftRef.current.points.length > 0 || draftRef.current.cursor !== null)) {
       draftRef.current = EMPTY_DRAFT;
       setDraftState(EMPTY_DRAFT);
       setDrawError(null);
     }
   }, [ui.tool, onAnnounce]);
+
+  // Autodesplazamiento (UX9-01): con una herramienta de trazo, el puntero a menos de 24 px del borde del lienzo desplaza la vista
+  // hacia ese lado (más rápido cuanto más cerca), para poder dibujar fuera de lo que se ve. Empieza tras una breve espera.
+  const edgeTick = useRef<() => void>(() => undefined);
+  edgeTick.current = () => {
+    const p = trailPointer.current;
+    const s = store.getState();
+    const cur = s.ui.viewport;
+    if (!p || !cur || !isTraceTool(s.ui.tool)) {
+      edgeDwell.current = 0;
+      return;
+    }
+    const [dx, dy] = edgeScrollDelta(cur.width, cur.height, p.x, p.y);
+    if (dx === 0 && dy === 0) {
+      edgeDwell.current = 0;
+      return;
+    }
+    edgeDwell.current += EDGE_SCROLL_TICK_MS;
+    if (edgeDwell.current < EDGE_SCROLL_DWELL_MS) return;
+    const next = panBy(cur, dx, dy);
+    store.dispatch({ type: 'ui/viewport', viewport: next });
+    // Bajo el puntero quieto hay ahora otro punto del mundo: el cursor de dibujo lo sigue.
+    const ctx: GestureContext = { doc: s.doc, ui: { ...s.ui, viewport: next } };
+    const moved = drawHover(draftRef.current, ctx, { x: p.x, y: p.y, button: 0, pointerType: 'mouse' });
+    if (moved !== draftRef.current) setDraft(moved);
+  };
+  useEffect(() => {
+    if (!isTraceTool(ui.tool)) {
+      trailPointer.current = null;
+      edgeDwell.current = 0;
+      return;
+    }
+    const id = window.setInterval(() => edgeTick.current(), EDGE_SCROLL_TICK_MS);
+    return () => window.clearInterval(id);
+  }, [ui.tool]);
 
   const vp: Viewport = ui.viewport ?? fitToDoc(doc, size.w, size.h);
   const preview = gesture.mode === 'drag' ? gesture.preview : null;
@@ -384,7 +438,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     }
     const input = localInput(e);
     // «Dibujar región»: el punto se coloca al soltar (si el puntero no se movió), así un arrastre táctil sigue desplazando la página.
-    if (store.getState().ui.tool === 'draw_region' && e.button === 0) {
+    if (isTraceTool(store.getState().ui.tool) && e.button === 0) {
       drawDown.current = { id: e.pointerId, x: input.x, y: input.y, pointerType: e.pointerType };
       setDraft(drawHover(draftRef.current, context(), input));
       return;
@@ -420,7 +474,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (pinching.current) return;
     const input = localInput(e);
     const ctx = context();
-    if (ctx.ui.tool === 'draw_region' && gestureRef.current.mode === 'idle') {
+    if (isTraceTool(ctx.ui.tool) && gestureRef.current.mode === 'idle') {
+      if (e.pointerType !== 'touch') trailPointer.current = { x: input.x, y: input.y };
       const next = drawHover(draftRef.current, ctx, input);
       if (next !== draftRef.current) setDraft(next);
       return;
@@ -452,7 +507,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (down && down.id === e.pointerId) {
       drawDown.current = null;
       const input = localInput(e);
-      if (store.getState().ui.tool === 'draw_region' && Math.hypot(input.x - down.x, input.y - down.y) <= DRAW_TAP_SLOP_PX) runDraw(drawClick(draftRef.current, context(), { ...input, pointerType: down.pointerType }));
+      const traceTool = store.getState().ui.tool;
+      if (isTraceTool(traceTool) && Math.hypot(input.x - down.x, input.y - down.y) <= DRAW_TAP_SLOP_PX) {
+        const click = traceTool === 'split_region' ? splitClick : drawClick;
+        runDraw(click(draftRef.current, context(), { ...input, pointerType: down.pointerType }));
+      }
       return;
     }
     const before = gestureRef.current;
@@ -468,6 +527,10 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (endTouch(e)) return;
     apply(pointerCancel(gestureRef.current));
   };
+  const onPointerLeave = (): void => {
+    trailPointer.current = null;
+    edgeDwell.current = 0;
+  };
   const onDoubleClick = (e: MouseEvent<SVGSVGElement>): void => {
     const rect = e.currentTarget.getBoundingClientRect();
     runActions(store, doubleClick(context(), { x: e.clientX - rect.left, y: e.clientY - rect.top, button: 0 }));
@@ -480,9 +543,10 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       apply(pointerCancel(gestureRef.current));
       return;
     }
-    // «Dibujar región»: las flechas, Espacio, Intro, Retroceso y Esc son del dibujo; el resto (zoom, Tab…) sigue su camino.
-    if (store.getState().ui.tool === 'draw_region') {
-      const d = drawKey(draftRef.current, context(), e);
+    // Herramientas de trazo: las flechas, Espacio, Intro, Retroceso y Esc son del trazo; el resto (zoom, Tab…) sigue su camino.
+    const activeTool = store.getState().ui.tool;
+    if (isTraceTool(activeTool)) {
+      const d = (activeTool === 'split_region' ? splitKey : drawKey)(draftRef.current, context(), e);
       if (d.handled) {
         e.preventDefault();
         runDraw(d.step);
@@ -589,6 +653,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
+        onPointerLeave={onPointerLeave}
         onDoubleClick={onDoubleClick}
         onKeyDown={onKeyDown}
       >
@@ -762,7 +827,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
-        {ui.tool === 'draw_region' && <DrawLayer draft={draft} vp={vp} />}
+        {isTraceTool(ui.tool) && <DrawLayer draft={draft} vp={vp} mode={ui.tool === 'split_region' ? 'split' : 'draw'} />}
 
         <g data-layer="handles">
           {shown.regions.map((region, ri) =>
@@ -873,7 +938,16 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
         </p>
       )}
-      {emptyState && doc.regions.length === 0 && ui.tool !== 'draw_region' ? (
+      {ui.tool === 'split_region' && (
+        <p className="ec-draw-hint" data-testid="split-hint">
+          <strong>Dividir región</strong>: {draft.points.length === 0 ? 'empiece la línea en el borde de la región' : `${draft.points.length} ${draft.points.length === 1 ? 'punto' : 'puntos'}`}.{' '}
+          <span className="ec-draw-keys">
+            Clic, toque o Espacio agrega un punto{draft.points.length >= 1 ? '; un clic en el borde o Intro divide' : ''} · Retroceso quita · Esc cancela
+          </span>
+          {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
+        </p>
+      )}
+      {emptyState && doc.regions.length === 0 && !isTraceTool(ui.tool) ? (
         <div className="ec-empty" data-testid="canvas-empty">
           {emptyState}
         </div>

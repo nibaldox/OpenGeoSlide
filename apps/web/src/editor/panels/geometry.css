@@ -76,3 +76,23 @@
   gap: 8px;
   margin: 4px 0;
 }
+
+/* Material de cada región con su muestra de color (el tono es el del lienzo: tokens --canvas-mat-N). */
+.gp-material {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gp-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: 3px;
+}
+
+.gp-split-actions button {
+  width: auto;
+}

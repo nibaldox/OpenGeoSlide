@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Point } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
+import { materialColor } from '../../render/scene';
 import type { EditorStore, Issue } from '../types';
 import { applyCommands } from './dispatch';
 import { PanelSection, TextInput } from './Fields';
@@ -145,6 +146,8 @@ function RegionCard({ store, summary, selected, units }: { store: EditorStore; s
   const u = unitLabels(units).length;
   const n = summary.index + 1;
   const confirm = useConfirm();
+  const materialIndex = materials.findIndex((m) => m.id === summary.materialId);
+  const materialName = materialIndex >= 0 ? materials[materialIndex]!.name : `${summary.materialId} (no existe)`;
   const remove = async (): Promise<void> => {
     if (!regionRemoveCommand(store.getState().doc, summary.index)) return;
     if (!(await confirm(regionRemoveConfirm(summary)))) return;
@@ -156,6 +159,10 @@ function RegionCard({ store, summary, selected, units }: { store: EditorStore; s
     <li className={selected ? 'gp-region ep-row-selected' : 'gp-region'} data-region-card={summary.index}>
       <div className="gp-region-head">
         <strong>Región {n}</strong>
+        <span className="gp-material" data-testid={`region-material-${summary.index}`}>
+          <span className="gp-swatch" data-swatch={materialIndex >= 0 ? materialIndex : 'unknown'} style={{ background: materialIndex >= 0 ? materialColor(materialIndex) : 'var(--canvas-mat-unknown)' }} aria-hidden="true" />
+          {materialName}
+        </span>
         <span className="muted small">
           {summary.vertexCount} vértices · área {coordText(Number(summary.area.toPrecision(6)))} {u}²
         </span>
@@ -317,9 +324,23 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
       ) : (
         <>
           <p className="muted small">
-            Para crear otra región use la herramienta «Dibujar región» (tecla R) de la barra del lienzo. Aquí se asigna el material de cada
-            región y se editan sus vértices.
+            Para crear otra región use la herramienta «Dibujar región» (tecla R) de la barra del lienzo, o divida una existente con «Dividir
+            región» (tecla D). Aquí se asigna el material de cada región y se editan sus vértices.
           </p>
+          <div className="ep-actions gp-split-actions">
+            <button
+              type="button"
+              className="gp-split"
+              title="Trace una línea que entre y salga del borde de la región (tecla D). La región seleccionada es la que se divide."
+              onClick={() => {
+                // Sin región elegida, se divide la que muestra el panel.
+                if (selectedRegion === null && active !== null) store.dispatch({ type: 'ui/select', selection: { kind: 'region', regionIndex: active } });
+                store.dispatch({ type: 'ui/tool', tool: 'split_region' });
+              }}
+            >
+              Dividir región…
+            </button>
+          </div>
           <ul className="gp-regions" aria-label="Regiones del modelo">
           {summaries.map((s) => (
             <RegionCard key={s.index} store={store} summary={s} selected={active === s.index} units={doc.units} />
