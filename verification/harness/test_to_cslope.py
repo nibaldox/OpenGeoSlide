@@ -280,9 +280,9 @@ def test_piezometric_line_with_9_81_converts_and_notes_the_si_unit():
     assert any("kN/m3" in n and "9.807" in n for n in conv.notes)
 
 
-def test_imperial_water_weight_equal_to_cslope_number_notes_pcf():
+def test_imperial_water_weight_near_cslope_number_notes_pcf():
     model = stacked_model(units="imperial",
-                          water={"unit_weight": 9.807, "piezometric_line": [[0, 5.0], [40, 5.0]]})
+                          water={"unit_weight": 9.81, "piezometric_line": [[0, 5.0], [40, 5.0]]})
     conv = ogs_to_cslope(model, _check("fixed"))
     assert any("pcf" in n for n in conv.notes) and not any("kN/m3" in n for n in conv.notes)
 
