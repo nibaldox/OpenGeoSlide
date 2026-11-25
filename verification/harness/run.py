@@ -134,12 +134,17 @@ def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dic
     if not results:
         res["error"] = "la salida de ogs no tiene 'results'"
         return res
+    # Status first: a non-finite fos (null) with status invalid / not_converged is a method
+    # outcome (contract E4f), not a missing value.
+    res["status"] = results[0].get("status")
     fos = results[0].get("fos")
     if not isinstance(fos, (int, float)) or isinstance(fos, bool) or not math.isfinite(fos):
+        if res["status"] not in (None, "converged"):
+            res["message"] = results[0].get("message")
+            return res
         res["error"] = f"fos no numérico: {fos!r}"
         return res
     res["fos"] = float(fos)
-    res["status"] = results[0].get("status")
     return res
 
 
@@ -172,10 +177,11 @@ def run_cslope(cs, document: dict) -> dict:
 # ------------------------------------------------------------- verdicts
 
 def verdict(fos, status, published: float, tolerance: float) -> str:
-    if fos is None:
-        return "sin dato"
+    # Status is checked first: a method that did not converge has no usable FS (fos may be null).
     if status not in (None, "converged"):
         return "no convergido"
+    if fos is None:
+        return "sin dato"
     return "OK" if abs(fos - published) / published <= tolerance else "FALLA"
 
 
