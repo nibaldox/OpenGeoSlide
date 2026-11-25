@@ -164,5 +164,10 @@ describe('fake store', () => {
     off();
     s.dispatch({ type: 'ui/tool', tool: 'select' });
     expect(n).toBe(1);
+    // la instantánea es estable mientras no cambie nada y nueva después de un cambio
+    const a = s.getState();
+    expect(s.getState()).toBe(a);
+    s.dispatch({ type: 'ui/tool', tool: 'pan' });
+    expect(s.getState()).not.toBe(a);
   });
 });

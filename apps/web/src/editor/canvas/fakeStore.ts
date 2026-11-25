@@ -67,12 +67,16 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
   let revision = 0;
   let diagnostics: Diagnostics = { status: 'idle', issues: [], revision: 0 };
   const listeners = new Set<() => void>();
+  let version = 0;
+  let cache: { version: number; state: EditorState } | null = null;
   const store: FakeStore = {
     past: [],
     future: [],
     log: [],
     getState(): EditorState {
-      return {
+      // Instantánea estable entre cambios (useSyncExternalStore lo exige).
+      if (cache && cache.version === version) return cache.state;
+      const state: EditorState = {
         doc: doc0,
         revision,
         ui,
@@ -81,6 +85,8 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
         diagnostics,
         gesture,
       };
+      cache = { version, state };
+      return state;
     },
     subscribe(l) {
       listeners.add(l);
@@ -162,6 +168,7 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
     beginGesture(label) {
       store.log.push('beginGesture');
       gesture = { label, before: doc0 };
+      version++;
     },
     endGesture() {
       store.log.push('endGesture');
@@ -170,6 +177,7 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
         store.future.length = 0;
       }
       gesture = null;
+      version++;
     },
     cancelGesture() {
       store.log.push('cancelGesture');
@@ -179,6 +187,7 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
     },
     setDiagnostics(d) {
       diagnostics = d;
+      emit();
     },
   };
 
@@ -191,6 +200,7 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
     revision++;
   }
   function emit(): void {
+    version++;
     for (const l of listeners) l();
   }
   return store;

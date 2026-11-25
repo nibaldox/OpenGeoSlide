@@ -1,7 +1,7 @@
 // Lienzo SVG del editor: regiones, vértices, piezométrica, círculo fijo, rangos de búsqueda, cargas y sismo.
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
 import type { Point } from '../../engine/types';
 import { worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
@@ -61,7 +61,10 @@ function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, p
 }
 
 export function EditorCanvas({ store }: { store: EditorStore }) {
-  const state = useSyncExternalStore(store.subscribe, store.getState, store.getState);
+  // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
+  const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
+  const getState = useCallback(() => store.getState(), [store]);
+  const state = useSyncExternalStore(subscribe, getState, getState);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [gesture, setGesture] = useState<GestureState>(IDLE);
