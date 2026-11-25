@@ -123,6 +123,11 @@ fn slices_by(c: Circ, n: usize, material: impl Fn(f64) -> (f64, f64, f64, f64)) 
                 tan_phi: phi_deg.to_radians().tan(),
                 pore_pressure: u,
                 material: 0,
+                weight_extra: 0.0,
+                h_force: 0.0,
+                h_moment_base: 0.0,
+                driving_extra: 0.0,
+                y_centroid: 0.0,
             }
         })
         .collect()
@@ -282,6 +287,11 @@ fn bishop_invalid_when_m_alpha_small() {
             tan_phi,
             pore_pressure: 0.0,
             material: 0,
+            weight_extra: 0.0,
+            h_force: 0.0,
+            h_moment_base: 0.0,
+            driving_extra: 0.0,
+            y_centroid: 0.0,
         }
     };
     // First slice: α = −60°, φ = 45°. Second slice keeps Σ W sin α > 0.
@@ -347,6 +357,11 @@ fn synth_slice(alpha_deg: f64, weight: f64, cohesion: f64, tan_phi: f64) -> Slic
         tan_phi,
         pore_pressure: 0.0,
         material: 0,
+        weight_extra: 0.0,
+        h_force: 0.0,
+        h_moment_base: 0.0,
+        driving_extra: 0.0,
+        y_centroid: 0.0,
     }
 }
 
@@ -820,6 +835,11 @@ fn notch_slices(c: Circ, n: usize, coh: f64, gamma: f64) -> Vec<Slice> {
                 tan_phi: 0.0,
                 pore_pressure: 0.0,
                 material: 0,
+                weight_extra: 0.0,
+                h_force: 0.0,
+                h_moment_base: 0.0,
+                driving_extra: 0.0,
+                y_centroid: 0.0,
             }
         })
         .collect()

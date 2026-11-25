@@ -12,6 +12,24 @@
 //! - Effective normal force (E4e, E7d): `N' = N − u·l`, in the direct form `N' = W cos α − u·l + (sin α − λ cos α)·ΔE`
 //!   (free of `m_α`). With `ΔX = 0` it is Bishop's `N'` (tests).
 //!
+//! Seismic force and loads (E12b). A slice carries `W* = W·(1 + kv) + Q + V` in place of `W`, and a horizontal force
+//! `H = kh·W + H^P` in the sliding direction (`Slice::weight_extra`, `Slice::h_force`). Derivation, in the frame where
+//! the crest is on the right and the slide goes toward −x (a left-to-right slide is the mirror image, and `α` is
+//! already signed toward the crest):
+//! - Horizontal equilibrium: `E[k+1] − E[k] = N sin α − S cos α + H`.
+//! - Vertical equilibrium: `N cos α + S sin α = W* − λ·ΔE` (`H` has no vertical component).
+//! - Eliminating `N'` as before gives `ΔE = [F·W* sin α − R + (F cos α + tan φ sin α)·H] / D`, with
+//!   `R = (W* cos α − U) tan φ + c·l` and the same `D`. Note `F cos α + tan φ sin α = F·m_α`. With `H = 0` this is the
+//!   recurrence above.
+//! - Direct normal: `N' = W* cos α − U − H sin α + (sin α − λ cos α)·ΔE`.
+//! - Moment of the slice about the midpoint of its base, with the thrust line on the base (Zhu): the interslice
+//!   forces give `(b/2)(λ − tan α)(E_k + E_{k+1})`, `W*`, `N` and `S` give nothing, and `H` gives
+//!   `H·(y_application − y_base)`, which the slicer sums in `Slice::h_moment_base`. The sum over the slices is zero:
+//!   `Σ b (E_k + E_{k+1})(tan α − λ) − 2·Σ h_moment_base = 0`.
+//!
+//! Since every slice is in force equilibrium, the sum of the moments about the base midpoints is the moment about
+//! the circle centre, so the same equation is the global moment equilibrium about O (E12b criterion ii).
+//!
 //! Scheme (E11a, E11b, E11c). For each λ of the scan:
 //! - **Force closure** `E_n(F, λ) = 0` (`|E_n| ≤ 1e-6·ΣW`). Its root `F_f(λ)` is the one nearest to the previous point
 //!   of the scan (continuation), searched above the lower bound of F given by the admissibility at this λ.
@@ -93,22 +111,23 @@ fn pole(s: &Slice, fos: f64, lambda: f64) -> f64 {
     (sin - lambda * cos) * s.tan_phi + (cos + lambda * sin) * fos
 }
 
-/// Resisting term `R = (W cos α − U) tan φ + c·l`, with `U = u·l` and `l = b / cos α`.
+/// Resisting term `R = (W* cos α − U) tan φ + c·l`, with `U = u·l` and `l = b / cos α`.
 fn resisting(s: &Slice) -> f64 {
-    (s.weight * s.alpha.cos() - s.pore_pressure * s.base_length) * s.tan_phi
+    (s.total_weight() * s.alpha.cos() - s.pore_pressure * s.base_length) * s.tan_phi
         + s.cohesion * s.base_length
 }
 
-/// Driving term `T = W sin α`.
+/// Driving term `T = W* sin α`.
 fn driving(s: &Slice) -> f64 {
-    s.weight * s.alpha.sin()
+    s.total_weight() * s.alpha.sin()
 }
 
 /// Interslice normal forces `E[0..=n]` for the given `F` and `λ` (f = 1), with `E[0] = 0`.
 ///
-/// `E[k+1] = E[k] + (F·T_k − R_k) / D_k`, the exact solution of the vertical and horizontal equilibrium of slice
-/// `k` with `X = λE`. Values are non-finite if a pole vanishes. Air slices (E2) have `T = R = 0`, so the normal force
-/// passes through them unchanged: `E[k+1] = E[k]`.
+/// `E[k+1] = E[k] + (F·T_k − R_k + (F cos α + tan φ sin α)·H_k) / D_k`, the exact solution of the vertical and
+/// horizontal equilibrium of slice `k` with `X = λE` (E12b: `T` and `R` use `W*`, and `H` is the horizontal force in the
+/// sliding direction). Values are non-finite if a pole vanishes. Air slices (E2) have `T = R = H = 0`, so the normal
+/// force passes through them unchanged: `E[k+1] = E[k]`.
 pub fn spencer_interslice(slices: &[Slice], fos: f64, lambda: f64) -> Vec<f64> {
     let mut e = Vec::with_capacity(slices.len() + 1);
     e.push(0.0);
@@ -119,7 +138,9 @@ pub fn spencer_interslice(slices: &[Slice], fos: f64, lambda: f64) -> Vec<f64> {
             continue;
         }
         let d = pole(s, fos, lambda);
-        e.push(prev + (fos * driving(s) - resisting(s)) / d);
+        let (sin, cos) = s.alpha.sin_cos();
+        let thrust = (fos * cos + s.tan_phi * sin) * s.h_force;
+        e.push(prev + (fos * driving(s) - resisting(s) + thrust) / d);
     }
     e
 }
@@ -145,7 +166,7 @@ pub fn spencer_effective_normals(slices: &[Slice], fos: f64, lambda: f64) -> Vec
 }
 
 /// Effective normal forces `N'` in the direct form of E7d, free of `m_α`:
-/// `N' = W cos α − U + (sin α − λ cos α)·ΔE`, with `ΔE = E_{k+1} − E_k` and `U = u·l`.
+/// `N' = W* cos α − U − H sin α + (sin α − λ cos α)·ΔE`, with `ΔE = E_{k+1} − E_k` and `U = u·l` (E12b).
 /// `e` are the interslice forces of [`spencer_interslice`] at the same `(F, λ)`.
 pub fn spencer_direct_normals(slices: &[Slice], lambda: f64, e: &[f64]) -> Vec<f64> {
     slices
@@ -154,7 +175,8 @@ pub fn spencer_direct_normals(slices: &[Slice], lambda: f64, e: &[f64]) -> Vec<f
         .map(|(k, s)| {
             let (sin, cos) = s.alpha.sin_cos();
             let de = e[k + 1] - e[k];
-            s.weight * cos - s.pore_pressure * s.base_length + (sin - lambda * cos) * de
+            s.total_weight() * cos - s.pore_pressure * s.base_length - s.h_force * sin
+                + (sin - lambda * cos) * de
         })
         .collect()
 }
@@ -187,8 +209,9 @@ fn admissible(slices: &[Slice], fos: f64, lambda: f64, min_m: f64) -> bool {
             .all(|s| pole(s, fos, lambda) / fos >= min_m && m_alpha(s, fos) >= min_m)
 }
 
-/// Per-slice terms that do not depend on `(F, λ)`, computed once per solve (E10c, performance). `res` is the resisting
-/// term `R = (W cos α − U) tan φ + c·l` (f = 1), and `t` the driving term `W sin α`.
+/// Per-slice terms that do not depend on `(F, λ)`, computed once per solve (E10c, performance). With `H` the horizontal
+/// force of the slice (E12b), the recurrence reads `ΔE = (F·t − res) / D`, where `t = W* sin α + H cos α` and
+/// `res = (W* cos α − U) tan φ + c·l − H sin α tan φ`: the terms of `H` are folded in, so the loop costs the same.
 #[derive(Clone, Copy, Debug)]
 struct Prep {
     sin: f64,
@@ -212,9 +235,10 @@ fn prepare(slices: &[Slice]) -> Vec<Prep> {
                 tan: sin / cos,
                 tan_phi: s.tan_phi,
                 width: s.width,
-                t: s.weight * sin,
-                res: (s.weight * cos - s.pore_pressure * s.base_length) * s.tan_phi
-                    + s.cohesion * s.base_length,
+                t: s.total_weight() * sin + s.h_force * cos,
+                res: (s.total_weight() * cos - s.pore_pressure * s.base_length) * s.tan_phi
+                    + s.cohesion * s.base_length
+                    - s.h_force * sin * s.tan_phi,
                 inert: is_inert(s),
             }
         })
@@ -260,10 +284,11 @@ fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
     })
 }
 
-/// Zhu's moment update `Σ b (E_k + E_{k+1}) tan α / Σ b (E_k + E_{k+1})`, for the diagnostic curves only.
-fn moment_ratio(b: &Balance) -> Option<f64> {
+/// Zhu's moment update `[Σ b (E_k + E_{k+1}) tan α − 2·Σ h_moment_base] / Σ b (E_k + E_{k+1})`, for the diagnostic
+/// curves only. `moment_h` is `2·Σ h_moment_base` (E12b), zero without seismic force or line loads.
+fn moment_ratio(b: &Balance, moment_h: f64) -> Option<f64> {
     (b.den.abs() > MOMENT_DENOM_EPS)
-        .then(|| b.num / b.den)
+        .then(|| (b.num - moment_h) / b.den)
         .filter(|v| v.is_finite())
 }
 
@@ -442,6 +467,8 @@ struct Scheme<'a> {
     start: f64,
     total_w: f64,
     total_width: f64,
+    /// `2·Σ h_moment_base`: twice the moment of the horizontal forces about the base midpoints (E12b).
+    moment_h: f64,
     budget: usize,
     evaluations: usize,
 }
@@ -459,9 +486,9 @@ impl Scheme<'_> {
         }
     }
 
-    /// Normalised moment residual `ρ = Σb(E_k + E_{k+1})(tan α_k − λ) / (ΣW · Σb)` (E11a).
+    /// Normalised moment residual `ρ = [Σb(E_k + E_{k+1})(tan α_k − λ) − 2·Σ h_moment_base] / (ΣW · Σb)` (E11a, E12b).
     fn residual(&self, b: &Balance, lambda: f64) -> f64 {
-        (b.num - lambda * b.den) / (self.total_w * self.total_width)
+        (b.num - lambda * b.den - self.moment_h) / (self.total_w * self.total_width)
     }
 
     /// Force root `F_f(λ)` from the warm start `warm`, and the moment residual at it.
@@ -687,6 +714,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         start: start_fos,
         total_w: slices.iter().map(|s| s.weight).sum(),
         total_width: slices.iter().map(|s| s.width).sum(),
+        moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         budget: usize::MAX,
         evaluations: 0,
     };
@@ -700,7 +728,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
             let force = root_near(&closure, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
                 balance_at(preps, lambda, x)
-                    .and_then(|b| moment_ratio(&b))
+                    .and_then(|b| moment_ratio(&b, scheme.moment_h))
                     .map(|m| m - lambda)
             };
             let moment = root_near(&moment_residual, warm.0, scheme.lower(lambda));
@@ -754,6 +782,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         start: start_fos,
         total_w,
         total_width,
+        moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         budget: opts.max_iterations,
         evaluations: 0,
     };

@@ -1,5 +1,8 @@
-//! `.ogs.json` model v0.1 (contract §1). Field names are snake_case and frozen.
+//! `.ogs.json` model v0.1 and v0.2 (contract §1, amendment E12a). Field names are snake_case and frozen.
 //! Angles are in degrees. Units are not converted by the engine.
+//!
+//! v0.2 adds `loads` (surface loads) and `analysis.seismic` (pseudo-static `kh`, `kv`). A document without them
+//! gives the same result in both versions.
 
 use serde::{Deserialize, Serialize};
 
@@ -8,8 +11,10 @@ pub type Point = [f64; 2];
 
 /// Required value of `Model.format`.
 pub const FORMAT: &str = "opengeoslide";
-/// Required value of `Model.version` (the model format version, not the crate version).
+/// Base value of `Model.version` (the model format version, not the crate version).
 pub const FORMAT_VERSION: &str = "0.1";
+/// Version that admits `loads` and `analysis.seismic` (amendment E12a).
+pub const FORMAT_VERSION_V02: &str = "0.2";
 
 fn default_water_unit_weight() -> f64 {
     9.81
@@ -29,6 +34,9 @@ pub struct Model {
     pub regions: Vec<Region>,
     #[serde(default)]
     pub water: Option<Water>,
+    /// Surface loads (v0.2). Empty when absent; a non-empty list needs `version: "0.2"`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub loads: Vec<Load>,
     #[serde(default)]
     pub slope: SlopeSettings,
     #[serde(default)]
@@ -86,6 +94,49 @@ pub struct Water {
     pub unit_weight: f64,
     #[serde(default)]
     pub piezometric_line: Option<Vec<Point>>,
+}
+
+/// Surface load (v0.2). Serialized with a `"type"` tag: `"udl"` or `"line"`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum Load {
+    Udl(UdlLoad),
+    Line(LineLoad),
+}
+
+/// Vertical distributed load `q` (kPa, or psf in imperial units) on the ground between `x1` and `x2`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UdlLoad {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    pub x1: f64,
+    pub x2: f64,
+    pub q: f64,
+}
+
+/// Line load `p` (kN/m, or lbf/ft in imperial units) applied at `(x, y_top(x))`. `angle` is in degrees, measured from
+/// the downward vertical; positive tilts the load toward +x of the model.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LineLoad {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    pub x: f64,
+    pub p: f64,
+    #[serde(default)]
+    pub angle: f64,
+}
+
+/// Pseudo-static seismic coefficients (v0.2). Both default to 0.
+///
+/// `kh` in [0, 1): the horizontal force `kh·W` acts in the sliding direction. `kv` in (−1, 1): with `kv > 0` the force
+/// `kv·W` acts downward. They apply to the soil weight `W` of each slice, never to the loads.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SeismicSettings {
+    pub kh: f64,
+    pub kv: f64,
 }
 
 /// Direction in which the sliding mass moves.
@@ -231,6 +282,9 @@ pub struct AnalysisSettings {
     pub min_m_alpha: f64,
     pub surface: Option<SurfaceSpec>,
     pub search: Option<SearchSpec>,
+    /// Pseudo-static coefficients (v0.2). `None` is the same as `kh = kv = 0`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seismic: Option<SeismicSettings>,
 }
 
 impl Default for AnalysisSettings {
@@ -243,6 +297,7 @@ impl Default for AnalysisSettings {
             min_m_alpha: 0.2,
             surface: None,
             search: None,
+            seismic: None,
         }
     }
 }

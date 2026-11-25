@@ -3,6 +3,7 @@
 use serde::Serialize;
 
 use crate::geometry::{PreparedModel, Sliding};
+use crate::loads::LoadCase;
 use crate::model::Circle;
 
 /// One slice, in the ORIGINAL model frame.
@@ -11,6 +12,10 @@ use crate::model::Circle;
 ///
 /// Air slices (contract §4.1.8, E2) have their base on or above the ground: `weight`, `cohesion`,
 /// `tan_phi` and `pore_pressure` are exactly zero, and they contribute no driving or resisting force.
+///
+/// Seismic force and surface loads (amendment E12b) are resolved by the slicer into the last five fields. `weight`
+/// stays the soil weight `W` and keeps its meaning. They are all zero in an air slice and in any model without
+/// `kh`, `kv` or loads.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Slice {
     pub x_left: f64,
@@ -35,7 +40,56 @@ pub struct Slice {
     pub pore_pressure: f64,
     /// Index into `Model.materials`.
     pub material: usize,
+    /// Vertical force added to the soil weight, downward: `kv·W + Q + V` (E12b). `Q` is the distributed load on the
+    /// slice and `V` the vertical part of the line loads. The vertical force of the slice is `W* = weight + this`.
+    pub weight_extra: f64,
+    /// Horizontal force in the sliding direction: `H = kh·W + H^P` (E12b), with `H^P = s·p·sin θ` of the line loads.
+    pub h_force: f64,
+    /// Moment of `H` about the midpoint of the base: `kh·W·(ȳ − y_b) + Σ H^P·(y_g − y_b)` (E12b, Spencer).
+    pub h_moment_base: f64,
+    /// Contribution of `H` to the driving moment about the circle centre, divided by the radius:
+    /// `M = [kh·W·(yc − ȳ) + Σ H^P·(yc − y_g)] / R` (E12b, Bishop).
+    pub driving_extra: f64,
+    /// Ordinate `ȳ` of the weight-weighted centroid of the soil of the slice. It is computed only when `kh > 0`, and it
+    /// is `0` otherwise (it is not used then).
+    pub y_centroid: f64,
 }
+
+impl Slice {
+    /// Vertical force of the slice, `W* = W·(1 + kv) + Q + V` (E12b).
+    #[inline]
+    pub fn total_weight(&self) -> f64 {
+        self.weight + self.weight_extra
+    }
+
+    /// Driving term of the slice in Bishop's denominator, `W*·sin α + M` (E12b).
+    #[inline]
+    pub fn driving_term(&self) -> f64 {
+        self.total_weight() * self.alpha.sin() + self.driving_extra
+    }
+}
+
+/// A slice with every field zero: the base of the struct updates of the air and unsupported slices (no loads).
+pub(crate) const ZERO_SLICE: Slice = Slice {
+    x_left: 0.0,
+    x_right: 0.0,
+    y_base_left: 0.0,
+    y_base_right: 0.0,
+    y_top_mid: 0.0,
+    width: 0.0,
+    alpha: 0.0,
+    base_length: 0.0,
+    weight: 0.0,
+    cohesion: 0.0,
+    tan_phi: 0.0,
+    pore_pressure: 0.0,
+    material: 0,
+    weight_extra: 0.0,
+    h_force: 0.0,
+    h_moment_base: 0.0,
+    driving_extra: 0.0,
+    y_centroid: 0.0,
+};
 
 /// Reasons a circle cannot be sliced.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -230,7 +284,17 @@ pub fn slice_circle(
     circle: &Circle,
     n: usize,
 ) -> Result<Vec<Slice>, SurfaceError> {
-    slice_surface(pm, circle, n).map(|sliced| sliced.slices)
+    slice_circle_with(pm, circle, n, &LoadCase::default())
+}
+
+/// Like [`slice_circle`], with the seismic coefficients and the loads of `loads` (E12b).
+pub fn slice_circle_with(
+    pm: &PreparedModel,
+    circle: &Circle,
+    n: usize,
+    loads: &LoadCase,
+) -> Result<Vec<Slice>, SurfaceError> {
+    slice_surface_with(pm, circle, n, loads).map(|sliced| sliced.slices)
 }
 
 /// Slices the circle like [`slice_circle`] and returns the notes of the slicing too (E10a).
@@ -248,7 +312,20 @@ pub fn slice_surface(
     circle: &Circle,
     n: usize,
 ) -> Result<SlicedSurface, SurfaceError> {
-    let (built, tramo) = build_slices(pm, circle, n)?;
+    slice_surface_with(pm, circle, n, &LoadCase::default())
+}
+
+/// Like [`slice_surface`], with the seismic coefficients and the loads of `loads` (E12b).
+///
+/// The loads act only on the soil slices that remain in the analysed block: air slices and discarded blocks (E10a)
+/// carry none. The breakpoints of the loads also apply to the second slicing of E11d.
+pub fn slice_surface_with(
+    pm: &PreparedModel,
+    circle: &Circle,
+    n: usize,
+    loads: &LoadCase,
+) -> Result<SlicedSurface, SurfaceError> {
+    let (built, tramo) = build_slices_with(pm, circle, n, loads)?;
     let Built {
         mut slices,
         mut air,
@@ -278,7 +355,7 @@ pub fn slice_surface(
 
     // E11d: the kept block is sliced again over its own span, so `n` divisions apply to it and not to the whole arc.
     let (block, block_air, block_unsupported) = if truncated {
-        let re = slice_span(pm, circle, l, r, &tramo.breaks, n)?;
+        let re = slice_span(pm, circle, l, r, &tramo.breaks, n, loads)?;
         let Built {
             mut slices,
             mut air,
@@ -347,16 +424,27 @@ fn discards_driving(pm: &PreparedModel, slices: &[Slice], air: &[bool]) -> bool 
 /// Builds the slices of `circle` in model order (left to right), over the full sliding range, and its sliding range.
 /// Nothing is truncated and the ends of the arc are not checked here: `slice_surface` applies E10a, E10a′ and E11d.
 /// The tests of E2 geometry use this function directly.
+#[cfg(test)]
 pub(crate) fn build_slices(
     pm: &PreparedModel,
     circle: &Circle,
     n: usize,
 ) -> Result<(Built, Tramo), SurfaceError> {
+    build_slices_with(pm, circle, n, &LoadCase::default())
+}
+
+/// [`build_slices`] with the seismic coefficients and the loads of `loads`.
+fn build_slices_with(
+    pm: &PreparedModel,
+    circle: &Circle,
+    n: usize,
+    loads: &LoadCase,
+) -> Result<(Built, Tramo), SurfaceError> {
     if n == 0 {
         return Err(SurfaceError::TooFewSlices);
     }
     let tramo = sliding_span(pm, circle)?;
-    let built = slice_span(pm, circle, tramo.p, tramo.q, &tramo.breaks, n)?;
+    let built = slice_span(pm, circle, tramo.p, tramo.q, &tramo.breaks, n, loads)?;
     // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
     if !built.slices.iter().any(|s| s.weight > 0.0) {
         return Err(SurfaceError::AboveGround);
@@ -373,6 +461,7 @@ fn slice_span(
     q: f64,
     breaks: &[f64],
     n: usize,
+    loads: &LoadCase,
 ) -> Result<Built, SurfaceError> {
     let span = q - p;
     let min_width = 1e-9 * span;
@@ -381,6 +470,17 @@ fn slice_span(
     let mut nodes: Vec<f64> = Vec::with_capacity(n + breaks.len());
     nodes.extend((1..n).map(|k| p + span * (k as f64) / (n as f64)));
     nodes.extend(breaks.iter().copied().filter(|&x| x > p && x < q));
+    // E12b: a breakpoint at the ends of every distributed load and around every line load.
+    let active = !loads.is_neutral();
+    if active {
+        let width = pm.x_max - pm.x_min;
+        nodes.extend(
+            loads
+                .break_points(width)
+                .into_iter()
+                .filter(|&x| x > p && x < q),
+        );
+    }
     nodes.sort_by(f64::total_cmp);
     let mut bounds: Vec<f64> = Vec::with_capacity(nodes.len() + 2);
     bounds.push(p);
@@ -443,6 +543,7 @@ fn slice_span(
                 tan_phi: 0.0,
                 pore_pressure: 0.0,
                 material: nearest.map_or(0, |&(_, _, mat)| mat),
+                ..ZERO_SLICE
             });
             air_flags.push(true);
             unsupported.push(false);
@@ -490,6 +591,7 @@ fn slice_span(
                 tan_phi: 0.0,
                 pore_pressure: 0.0,
                 material: 0,
+                ..ZERO_SLICE
             });
             air_flags.push(false);
             unsupported.push(true);
@@ -507,6 +609,25 @@ fn slice_span(
             0.0
         };
 
+        // E12b: seismic force and surface loads, resolved on this soil slice. Skipped in a model without them.
+        let mut extra = ZERO_SLICE;
+        if active {
+            extra = slice_loads(
+                pm,
+                circle,
+                loads,
+                &SoilSlice {
+                    xl,
+                    xr,
+                    y_base_left: yl,
+                    y_base_right: yr,
+                    weight,
+                },
+                &mut column,
+                &mut scratch,
+            );
+        }
+
         slices.push(Slice {
             x_left: xl,
             x_right: xr,
@@ -521,6 +642,7 @@ fn slice_span(
             tan_phi: m.tan_phi,
             pore_pressure,
             material: mat,
+            ..extra
         });
         air_flags.push(false);
         unsupported.push(false);
@@ -531,6 +653,121 @@ fn slice_span(
         air: air_flags,
         unsupported,
     })
+}
+
+/// The data of a soil slice that the load resolution needs.
+struct SoilSlice {
+    xl: f64,
+    xr: f64,
+    y_base_left: f64,
+    y_base_right: f64,
+    weight: f64,
+}
+
+/// Ordinate of the weight-weighted centroid of the soil of a slice (E12b).
+///
+/// Per material layer (split at the piezometric level when `unit_weight_sat` applies), the area and its first moment
+/// `γ·(y_hi² − y_lo²)/2` are integrated over the slice with the two-point Gauss rule at `x_mid ± b/(2√3)`. Within a
+/// slice the ground, the layer boundaries and the chord of the base are straight, so the rule is exact: the first
+/// moment is quadratic in x. The ordinate is the ratio of the two integrals, never the average of two heights.
+fn soil_centroid(
+    pm: &PreparedModel,
+    s: &SoilSlice,
+    column: &mut Vec<(f64, f64, usize)>,
+    scratch: &mut Vec<f64>,
+) -> f64 {
+    let width = s.xr - s.xl;
+    let offset = width / (2.0 * 3.0_f64.sqrt());
+    let xm = 0.5 * (s.xl + s.xr);
+    let (mut mass, mut moment) = (0.0_f64, 0.0_f64);
+    for x in [xm - offset, xm + offset] {
+        let y_base = s.y_base_left + (s.y_base_right - s.y_base_left) * (x - s.xl) / width;
+        let Some(y_top) = pm.top_at(x) else { continue };
+        let piezo = pm.piezometric_y(x);
+        pm.column(x, column, scratch);
+        for &(lo, hi, mat) in column.iter() {
+            let (lo, hi) = (lo.max(y_base), hi.min(y_top));
+            if hi <= lo {
+                continue;
+            }
+            let m = &pm.materials[mat];
+            // (lower, upper, unit weight) pieces of the layer.
+            let mut piece = |a: f64, b: f64, gamma: f64| {
+                if b > a {
+                    mass += gamma * (b - a);
+                    moment += gamma * 0.5 * (b * b - a * a);
+                }
+            };
+            match (m.unit_weight_sat, piezo) {
+                (Some(gs), Some(z)) => {
+                    piece(lo, hi.min(z).max(lo), gs);
+                    piece(lo.max(z).min(hi), hi, m.unit_weight);
+                }
+                _ => piece(lo, hi, m.unit_weight),
+            }
+        }
+    }
+    if mass > 0.0 {
+        moment / mass
+    } else {
+        0.5 * (s.y_base_left + s.y_base_right)
+    }
+}
+
+/// Seismic force and surface loads of one soil slice (E12b), as the last fields of a [`Slice`] (the rest is zero).
+///
+/// With `s = +1` for `LeftToRight` and `−1` for `RightToLeft`, `y_b` the base midpoint, and `θ` the angle of a line
+/// load: `Q = Σ q·|[x_l, x_r] ∩ [x1, x2]|`; a line load at `x` with `x_l ≤ x < x_r` adds `V = p·cos θ` and
+/// `H^P = s·p·sin θ`, applied at `y_g = y_top(x)`. Then `W* = W·(1 + kv) + Q + V` and `H = kh·W + H^P`.
+fn slice_loads(
+    pm: &PreparedModel,
+    circle: &Circle,
+    loads: &LoadCase,
+    s: &SoilSlice,
+    column: &mut Vec<(f64, f64, usize)>,
+    scratch: &mut Vec<f64>,
+) -> Slice {
+    let y_base = 0.5 * (s.y_base_left + s.y_base_right);
+    let direction = match pm.sliding {
+        Sliding::LeftToRight => 1.0,
+        Sliding::RightToLeft => -1.0,
+    };
+    let (yc, r) = (circle.yc, circle.r);
+    let mut vertical = 0.0_f64;
+    for u in &loads.udls {
+        let overlap = s.xr.min(u.x2) - s.xl.max(u.x1);
+        if overlap > 0.0 {
+            vertical += u.q * overlap;
+        }
+    }
+    // Horizontal force of the line loads, its moment about the base midpoint, and its driving moment about O over R.
+    let (mut h_line, mut moment_base, mut driving) = (0.0_f64, 0.0_f64, 0.0_f64);
+    for l in &loads.lines {
+        if s.xl <= l.x && l.x < s.xr {
+            let (sin, cos) = l.angle.sin_cos();
+            let y_g = pm.top_at(l.x).unwrap_or(y_base);
+            let h = direction * l.p * sin;
+            vertical += l.p * cos;
+            h_line += h;
+            moment_base += h * (y_g - y_base);
+            driving += h * (yc - y_g) / r;
+        }
+    }
+    let h_seismic = loads.kh * s.weight;
+    let mut y_centroid = 0.0;
+    if h_seismic > 0.0 {
+        y_centroid = soil_centroid(pm, s, column, scratch);
+        moment_base += h_seismic * (y_centroid - y_base);
+        driving += h_seismic * (yc - y_centroid) / r;
+    }
+    Slice {
+        weight_extra: loads.kv * s.weight + vertical,
+        h_force: h_seismic + h_line,
+        h_moment_base: moment_base,
+        driving_extra: driving,
+        y_centroid,
+        ..ZERO_SLICE
+    }
 }
 
 #[cfg(test)]
@@ -562,6 +799,7 @@ mod tests {
             tan_phi: 0.5,
             pore_pressure: 0.0,
             material: 0,
+            ..ZERO_SLICE
         }
     }
 

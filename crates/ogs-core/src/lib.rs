@@ -1,9 +1,12 @@
 //! OpenGeoSlide core: 2D limit-equilibrium slope stability (contracts: `briefs/00_CONTRATOS.md`).
 //!
-//! What the crate does in v0.1:
+//! What the crate does (formats v0.1 and v0.2):
 //! - Reads the `.ogs.json` model (`model`, §1). Input is strict: an unknown field is an error, never
 //!   ignored (`deny_unknown_fields`).
 //! - `analyze` validates `format`, `version` and every `analysis` parameter before computing (§4.5).
+//! - v0.2 (amendments E12a, E12b): `loads` (distributed and line loads) and `analysis.seismic` (pseudo-static `kh`,
+//!   `kv`), validated in `loads` and applied by the slicer and both methods. A model without them gives the same
+//!   result in v0.1 and in v0.2.
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
 //! - Slices circular surfaces (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
@@ -15,6 +18,7 @@
 //! (it is ignored and reported as a warning).
 
 pub mod geometry;
+pub mod loads;
 pub mod methods;
 pub mod model;
 pub mod report;
@@ -22,11 +26,12 @@ pub mod search;
 pub mod slicer;
 
 use geometry::{Ground, PreparedModel};
+use loads::{LOAD_OUTSIDE_MASS, LoadCase};
 use methods::{SolveOptions, SolveStatus, is_inert, solve};
-use model::{AnalysisSettings, FORMAT, FORMAT_VERSION, MethodKind, Model, SearchSpec, SurfaceSpec};
+use model::{AnalysisSettings, FORMAT, MethodKind, Model, SearchSpec, SurfaceSpec};
 use report::{AnalysisReport, MethodReport};
 use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings, search_circular};
-use slicer::{Slice, SurfaceError, slice_circle, slice_surface};
+use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_with};
 
 /// Crate version, as declared in `Cargo.toml`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -69,6 +74,9 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
         return Err(OgsError::NoSurface);
     }
     let pm = PreparedModel::new(model)?;
+    let (x_min, x_max) = pm.x_range();
+    loads::validate_range(model, x_min, x_max, pm.tol())?;
+    let load_case = LoadCase::from_model(model);
     if let Some(spec) = &analysis.search {
         validate_search_ranges(spec, &pm)?;
     }
@@ -80,7 +88,7 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
     let results = analysis
         .methods
         .iter()
-        .map(|&method| analyze_method(model, &pm, method, &opts))
+        .map(|&method| analyze_method(model, &pm, &load_case, method, &opts))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(AnalysisReport {
         engine: format!("ogs-core {VERSION}"),
@@ -108,12 +116,8 @@ fn validate_document(model: &Model) -> Result<(), OgsError> {
             model.format
         )));
     }
-    if model.version != FORMAT_VERSION {
-        return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\", no \"{}\"",
-            model.version
-        )));
-    }
+    // `version` (0.1 or 0.2), and the v0.2 fields `loads` and `analysis.seismic` (E12a).
+    loads::validate_document(model)?;
     validate_analysis(&model.analysis)
 }
 
@@ -231,6 +235,7 @@ fn validate_search_ranges(s: &SearchSpec, pm: &PreparedModel) -> Result<(), OgsE
 fn analyze_method(
     model: &Model,
     pm: &PreparedModel,
+    load_case: &LoadCase,
     method: MethodKind,
     opts: &SolveOptions,
 ) -> Result<MethodReport, OgsError> {
@@ -241,7 +246,7 @@ fn analyze_method(
     let (circle, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
-                let slices = slice_circle(pm, candidate, n).ok()?;
+                let slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
                 let res = solve(&slices, method, opts);
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
@@ -264,8 +269,8 @@ fn analyze_method(
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
-    let sliced =
-        slice_surface(pm, &circle, n).map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
+    let sliced = slice_surface_with(pm, &circle, n, load_case)
+        .map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
     let slices = sliced.slices;
     let result = solve(&slices, method, opts);
 
@@ -275,6 +280,10 @@ fn analyze_method(
     let mut warnings: Vec<String> = Vec::new();
     if water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
+    }
+    // E12b: a declared load that acts on no soil slice of the reported surface (informative note).
+    if load_case.unused(&slices) {
+        warnings.push(LOAD_OUTSIDE_MASS.to_string());
     }
     // E11d′: on a searched surface, the effective soil ends are checked against `min_width` and the ranges (advisory).
     let effective: Vec<String> = match &analysis.search {
