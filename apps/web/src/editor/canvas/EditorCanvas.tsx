@@ -258,8 +258,16 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const hit = hitTest(s.doc, vp, t.clientX - rect.left, t.clientY - rect.top, radius, { bands: false });
       if (DRAG_KINDS.has(hit.kind) || (s.ui.tool === 'add_vertex' && (hit.kind === 'edge' || hit.kind === 'piezo_edge'))) e.preventDefault();
     };
+    // Con dos dedos, o con un arrastre de tirador en curso, también se bloquea el movimiento (mientras el navegador lo permita).
+    const onTouchMove = (e: TouchEvent): void => {
+      if (e.cancelable && (e.touches.length >= 2 || gestureRef.current.mode !== 'idle')) e.preventDefault();
+    };
     el.addEventListener('touchstart', onTouchStart, { passive: false });
-    return () => el.removeEventListener('touchstart', onTouchStart);
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+    };
   }, [store]);
 
   // Si el componente se desmonta durante un arrastre, el gesto se cancela.
@@ -419,6 +427,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     }
     runActions(store, r.actions);
     if (r.announce) announce(r.announce);
+    // Escape sale del modo tirador: la selección se quita y el foco vuelve al lienzo (las flechas desplazan la vista).
+    if (e.key === 'Escape' && r.handled && focused) svgRef.current?.focus({ preventScroll: true });
   };
 
   const onHandleFocus = (h: HandleRef): void => {
