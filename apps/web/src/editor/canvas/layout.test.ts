@@ -7,12 +7,13 @@ import {
   niceStep,
   piezoLabel,
   rangeBand,
+  seismicBadge,
   seismicLabel,
   slideDirection,
   vertexLabel,
 } from './layout';
-import { docBounds, fitToDoc, panBy, wheelFactor, zoomAt } from './viewportOps';
-import { screenToWorld } from '../../geometry/viewport';
+import { docBounds, fitToDoc, panBy, resizeViewport, wheelFactor, zoomAt } from './viewportOps';
+import { screenToWorld, worldToScreen } from '../../geometry/viewport';
 
 describe('formato en español', () => {
   it('coma decimal, mínimo de decimales y recorte de ceros', () => {
@@ -151,6 +152,53 @@ describe('viewportOps', () => {
     expect(docBounds(empty)).toEqual({ minX: 0, maxX: 10, minY: 0, maxY: 10 });
     const fit = fitToDoc(makeDoc(), 800, 600, 48);
     expect(fit.scale).toBeCloseTo(Math.min(704 / 60, 504 / 20), 9);
+  });
+
+  it('fitToDoc centra el modelo con el mismo margen a izquierda y derecha, y arriba y abajo', () => {
+    for (const [w, h] of [[800, 600], [1400, 700], [500, 900]] as const) {
+      const fit = fitToDoc(makeDoc(), w, h, 48);
+      const [left, top] = worldToScreen(fit, 0, 20);
+      const [right, bottom] = worldToScreen(fit, 60, 0);
+      expect(left).toBeCloseTo(w - right, 6);
+      expect(top).toBeCloseTo(h - bottom, 6);
+      expect(Math.min(left, top)).toBeGreaterThanOrEqual(48 - 1e-9);
+    }
+  });
+
+  it('resizeViewport conserva el centro: un modelo centrado en 800 × 600 sigue centrado al medir 1400 × 700', () => {
+    const resized = resizeViewport(fitToDoc(makeDoc(), 800, 600, 48), 1400, 700);
+    expect(resized.width).toBe(1400);
+    expect(resized.height).toBe(700);
+    const [left] = worldToScreen(resized, 0, 20);
+    const [right] = worldToScreen(resized, 60, 0);
+    expect(left).toBeCloseTo(1400 - right, 6);
+    const [wx, wy] = screenToWorld(resized, 700, 350);
+    expect(wx).toBeCloseTo(30, 6);
+    expect(wy).toBeCloseTo(10, 6);
+  });
+});
+
+describe('indicador de sismo', () => {
+  it('va en la esquina superior derecha, dentro del lienzo y lejos de las etiquetas del eje Y (x = 4)', () => {
+    for (const width of [800, 1400, 320]) {
+      const b = seismicBadge({ width }, 1);
+      expect(b.x).toBeGreaterThanOrEqual(Math.min(width - 206, 10));
+      expect(b.x).toBeGreaterThan(30); // las etiquetas del eje Y ocupan x ≈ 4 a 30
+      expect(b.x + b.width).toBeLessThanOrEqual(width);
+      expect(b.y).toBeLessThanOrEqual(10);
+    }
+  });
+
+  it('la flecha apunta en el sentido del deslizamiento y queda dentro del recuadro', () => {
+    const right = seismicBadge({ width: 800 }, 1);
+    const left = seismicBadge({ width: 800 }, -1);
+    expect(right.arrowX2).toBeGreaterThan(right.arrowX1);
+    expect(left.arrowX2).toBeLessThan(left.arrowX1);
+    for (const b of [right, left]) {
+      expect(Math.min(b.arrowX1, b.arrowX2)).toBeGreaterThanOrEqual(b.x);
+      expect(Math.max(b.arrowX1, b.arrowX2)).toBeLessThanOrEqual(b.x + b.width);
+      expect(b.arrowY).toBeLessThan(b.y + b.height);
+    }
   });
 });
 

@@ -19,6 +19,14 @@ export function panBy(vp: Viewport, dx: number, dy: number): Viewport {
   return { ...vp, tx: vp.tx + dx, ty: vp.ty + dy };
 }
 
+/**
+ * Cambia el tamaño del lienzo conservando el punto del mundo que está en su centro, de modo que un modelo
+ * centrado sigue centrado (y no queda un margen vacío en un lado cuando el lienzo crece o se encoge).
+ */
+export function resizeViewport(vp: Viewport, width: number, height: number): Viewport {
+  return { ...vp, width, height, tx: vp.tx + (width - vp.width) / 2, ty: vp.ty + (height - vp.height) / 2 };
+}
+
 /** Factor de zoom para un `deltaY` de rueda (negativo acerca). */
 export function wheelFactor(deltaY: number): number {
   const clamped = Math.max(-200, Math.min(200, deltaY));
