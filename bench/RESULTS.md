@@ -4,7 +4,7 @@
 > de la CPU y con el resto del sistema activo. Sirve para orientarse sobre el orden de magnitud; no para comparar
 > versiones con precisión.
 
-Generado por `bench/run_all.sh` el 2026-11-25T00:06:16.960Z.
+Generado por `bench/run_all.sh` el 2026-11-25T00:56:14.746Z.
 
 ## Máquina y versiones
 
@@ -30,22 +30,22 @@ Generado por `bench/run_all.sh` el 2026-11-25T00:06:16.960Z.
 
 | target | método | evaluadas | mediana ms | ms/superficie | FS |
 |---|---|---|---|---|---|
-| native | Bishop simplificado | 4449 | 19,56 | 0,0044 | 0,985170167 |
-| native | Spencer | 4506 | 54,60 | 0,0121 | 0,984175473 |
-| native-parallel | Bishop simplificado | 4449 | 2,64 | 0,0006 | 0,985170167 |
-| native-parallel | Spencer | 4506 | 6,43 | 0,0014 | 0,984175473 |
-| node-wasm | Bishop simplificado | 4449 | 23,72 | 0,0053 | 0,985170167 |
-| node-wasm | Spencer | 4506 | 67,88 | 0,0151 | 0,984175473 |
-| chrome-wasm | Bishop simplificado | 4449 | 20,40 | 0,0046 | 0,985170167 |
-| chrome-wasm | Spencer | 4506 | 56,90 | 0,0126 | 0,984175473 |
+| native | Bishop simplificado | 4449 | 19,83 | 0,0045 | 0,985170167 |
+| native | Spencer | 4506 | 95,22 | 0,0211 | 0,984175473 |
+| native-parallel | Bishop simplificado | 4449 | 3,28 | 0,0007 | 0,985170167 |
+| native-parallel | Spencer | 4506 | 10,96 | 0,0024 | 0,984175473 |
+| node-wasm | Bishop simplificado | 4449 | 24,68 | 0,0055 | 0,985170167 |
+| node-wasm | Spencer | 4506 | 115,40 | 0,0256 | 0,984175473 |
+| chrome-wasm | Bishop simplificado | 4449 | 21,30 | 0,0048 | 0,985170167 |
+| chrome-wasm | Spencer | 4506 | 92,00 | 0,0204 | 0,984175473 |
 
 Razón de tiempo: mediana de cada target dividida por la mediana nativa de un hilo (menor es mejor). Los valores
 menores que 1 indican que el target es más rápido que el nativo de un hilo.
 
 | método | native-parallel | node-wasm | chrome-wasm |
 |---|---|---|---|
-| Bishop simplificado | 0,13 | 1,21 | 1,04 |
-| Spencer | 0,12 | 1,24 | 1,04 |
+| Bishop simplificado | 0,17 | 1,24 | 1,07 |
+| Spencer | 0,12 | 1,21 | 0,97 |
 
 ## Verificación de FS
 
@@ -68,8 +68,8 @@ Número de superficies con FS válido (`valid` de la búsqueda). No es parte del
 
 | método | native | native-parallel | node-wasm | chrome-wasm |
 |---|---|---|---|---|
-| Bishop simplificado | 3089 | 3089 | 3089 | 3089 |
-| Spencer | 3145 | 3145 | 3145 | 3145 |
+| Bishop simplificado | 2839 | 2839 | 2839 | 2839 |
+| Spencer | 2896 | 2896 | 2896 | 2896 |
 
 Coinciden en todos los targets.
 
