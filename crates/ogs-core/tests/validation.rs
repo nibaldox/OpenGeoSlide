@@ -184,6 +184,7 @@ fn r1_05_absurd_analysis_parameters_are_invalid_model() {
 fn r1_05_unknown_fields_are_errors_at_every_level() {
     type Mutation = fn(&mut Value);
     let cases: &[(&str, Mutation)] = &[
+        // E12a: v0.2 brings `analysis.seismic` and `loads`; the old `seismic_kh` at the top level stays unknown.
         ("top", |v| v["seismic_kh"] = json!(0.3)),
         ("meta", |v| v["meta"]["autor"] = json!("x")),
         ("material", |v| v["materials"][0]["r_u"] = json!(0.5)),
@@ -247,6 +248,7 @@ fn r1_05_the_valid_example_still_runs() {
             "negative_effective_normal",
             "truncated_mass",
             "negative_lambda",
+            "load_outside_mass",
         ];
         for w in r["warnings"].as_array().expect("warnings array") {
             let code = w.as_str().expect("warning code");
