@@ -54,11 +54,14 @@ KINDS = ("search", "fixed")
 EXPECTED_CASES = 10
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
-REPORT_VERSION = "2"
+REPORT_VERSION = "3"
 VERDICT_OK = "OK"
 # Fixed surface where both engines declare no solution (ogs not_converged/invalid, cSlope EngineError): a match.
 VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
 PASS_VERDICTS = (VERDICT_OK, VERDICT_BOTH_NO_SOLUTION)
+# Informative ogs warnings (contract §4.5 / E5, E7d, E10a, E11a′): notes, not warnings. Any other code is a warning
+# that the report lists. The list must match INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs.
+OGS_INFORMATIVE_WARNINGS = ("negative_effective_normal", "truncated_mass", "negative_lambda")
 
 
 # ------------------------------------------------------------------ cases
@@ -141,6 +144,15 @@ def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
     return "FALLA", f"|Δ| = {rel * 100:.2f} % > 0,5 %"
 
 
+def non_informative_warnings(warnings: list[str]) -> list[str]:
+    """ogs warnings that are not informative notes (OGS_INFORMATIVE_WARNINGS), in order, without repeats."""
+    out: list[str] = []
+    for w in warnings:
+        if w not in OGS_INFORMATIVE_WARNINGS and w not in out:
+            out.append(w)
+    return out
+
+
 def run_check(cs_module, ogs_binary: str, case: dict, method: str, kind: str) -> dict:
     check = {"method": method, "kind": kind}
     model = case["model"]
@@ -170,7 +182,7 @@ def run_check(cs_module, ogs_binary: str, case: dict, method: str, kind: str) ->
         "kind": kind,
         "criterion": "búsqueda: ogs ≤ cSlope·1,01" if kind == "search" else "fija: |Δ| ≤ 0,5 %",
         "ogs": {"fos": ogs["fos"], "status": ogs["status"], "error": ogs["error"],
-                "engine": ogs["engine"], "seconds": round(ogs_s, 4)},
+                "engine": ogs["engine"], "seconds": round(ogs_s, 4), "warnings": ogs["warnings"]},
         "cslope": {"fos": cs["fos"], "status": cs["status"], "error": cs["error"],
                    "warnings": cs["warnings"], "seconds": round(cs_s, 4)},
         "delta_pct": None if _rel(ogs["fos"], cs["fos"]) is None else round(_rel(ogs["fos"], cs["fos"]) * 100, 4),
@@ -212,6 +224,16 @@ def _verdict_row(search: dict, fixed: dict) -> str:
     return label + " (" + ", ".join(name for name, _ in failed) + ")"
 
 
+def _warnings_cell(sr: dict, fx: dict) -> str:
+    """Non-informative ogs warnings of the two checks of a row, per check; '—' when there are none."""
+    parts = []
+    for name, c in (("búsqueda", sr), ("fija", fx)):
+        warnings = non_informative_warnings(c["ogs"]["warnings"])
+        if warnings:
+            parts.append(f"{name}: {', '.join(warnings)}")
+    return " · ".join(parts) if parts else "—"
+
+
 def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: dict, meta: dict) -> None:
     by_key = {(c["case_id"], c["method"], c["kind"]): c for c in checks}
     L: list[str] = []
@@ -250,21 +272,29 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
     L.append("")
     L.append("## Tabla de línea base")
     L.append("")
-    L.append("| caso | método | búsqueda ogs | búsqueda cSlope | Δ% búsqueda | fija ogs | fija cSlope | Δ% fija | veredicto |")
-    L.append("|---|---|---:|---:|---:|---:|---:|---:|---|")
+    L.append("| caso | método | búsqueda ogs | búsqueda cSlope | Δ% búsqueda | fija ogs | fija cSlope | Δ% fija "
+             "| avisos ogs (no informativos) | veredicto |")
+    L.append("|---|---|---:|---:|---:|---:|---:|---:|---|---|")
     for case in cases:
         for method in METHODS:
             sr = by_key[(case["id"], method, "search")]
             fx = by_key[(case["id"], method, "fixed")]
-            L.append("| {cid} {title} | {m} | {so} | {sc} | {sd} | {fo} | {fc} | {fd} | {v} |".format(
+            L.append("| {cid} {title} | {m} | {so} | {sc} | {sd} | {fo} | {fc} | {fd} | {w} | {v} |".format(
                 cid=case["id"], title=case["title"], m=method,
                 so=_fmt(sr["ogs"]["fos"], ".4f"), sc=_fmt(sr["cslope"]["fos"], ".4f"),
                 sd=_fmt(sr["delta_pct"], "+.2f"),
                 fo=_fmt(fx["ogs"]["fos"], ".4f"), fc=_fmt(fx["cslope"]["fos"], ".4f"),
                 fd=_fmt(fx["delta_pct"], "+.2f"),
+                w=_warnings_cell(sr, fx),
                 v=_verdict_row(sr, fx)))
     L.append("")
     L.append("Δ% = (FS_ogs − FS_cSlope) / FS_cSlope · 100. El veredicto de la fila combina las dos comprobaciones.")
+    L.append("Avisos de ogs: se listan por comprobación los códigos que no son informativos "
+             "(`negative_effective_normal`, `truncated_mass` y `negative_lambda` son notas informativas). "
+             "`—` significa que no hay avisos no informativos.")
+    L.append("")
+    n_warned = sum(1 for c in checks if non_informative_warnings(c["ogs"]["warnings"]))
+    L.append(f"Checks de ogs con avisos no informativos: {n_warned} de {len(checks)}.")
     L.append("")
     fails = [c for c in checks if c["verdict"] not in PASS_VERDICTS]
     L.append("## Fallos y motivos")

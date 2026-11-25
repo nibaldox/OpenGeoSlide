@@ -194,3 +194,33 @@ def test_run_writes_report_and_exits_zero_with_failures(tmp_path):
     assert len(report["checks"]) == 40
     assert report["summary"]["search"]["N"] == 20 and report["summary"]["fixed"]["N"] == 20
     assert (out / "REPORT.md").read_text(encoding="utf-8").startswith("# Batería diferencial")
+    # R4-04: the ogs warnings of every check are kept in report.json and listed in REPORT.md.
+    for check in report["checks"]:
+        assert isinstance(check["ogs"]["warnings"], list), check["case_id"]
+    text = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert "| avisos ogs (no informativos) | veredicto |" in text
+    assert "Checks de ogs con avisos no informativos:" in text
+
+
+# ------------------------------------------------------------ ogs warnings (R4-04)
+
+def test_informative_ogs_warnings_are_the_three_notes_of_the_contract():
+    # Same list as INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs (E5, E10a, E11a′).
+    assert set(run.OGS_INFORMATIVE_WARNINGS) == {"negative_effective_normal", "truncated_mass", "negative_lambda"}
+
+
+def test_non_informative_warnings_keep_driving_and_major_codes():
+    warnings = ["negative_effective_normal", "truncated_driving_mass", "truncated_mass", "negative_lambda",
+                "negative_effective_normal_major", "truncated_driving_mass"]
+    assert run.non_informative_warnings(warnings) == ["truncated_driving_mass", "negative_effective_normal_major"]
+    assert run.non_informative_warnings([]) == []
+
+
+def test_warnings_cell_lists_only_non_informative_codes_per_check():
+    def check(warnings):
+        return {"ogs": {"warnings": warnings}}
+
+    assert run._warnings_cell(check(["negative_lambda"]), check([])) == "—"
+    assert run._warnings_cell(check(["truncated_driving_mass"]), check(["negative_effective_normal_major"])) == (
+        "búsqueda: truncated_driving_mass · fija: negative_effective_normal_major")
+
