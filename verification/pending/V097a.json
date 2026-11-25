@@ -1,0 +1,128 @@
+{
+  "id": "V097a",
+  "title": "Eurocode 7 cutting with surcharge",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.2",
+    "meta": {
+      "id": "V097a",
+      "title": "Eurocode 7 cutting with surcharge",
+      "notes": "Cutting in clay with an inclined piezometric line and a 35 kPa surcharge on the crest, analyzed on the published circle."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 8.0,
+        "friction_angle": 23.04,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            30.0,
+            5.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            80.0,
+            15.0
+          ],
+          [
+            80.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          5.0
+        ],
+        [
+          30.0,
+          5.0
+        ],
+        [
+          45.5,
+          9.0
+        ],
+        [
+          70.0,
+          12.0
+        ],
+        [
+          80.0,
+          12.0
+        ]
+      ]
+    },
+    "loads": [
+      {
+        "type": "udl",
+        "id": "u1",
+        "x1": 52.0,
+        "x2": 62.0,
+        "q": 35.0
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 35.4,
+        "yc": 25.467,
+        "r": 22.099
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.173,
+      "published_by": "Commercial program B",
+      "tolerance": 0.01042625745950554,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V097a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
