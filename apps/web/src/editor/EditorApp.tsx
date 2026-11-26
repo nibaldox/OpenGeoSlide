@@ -711,6 +711,8 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
               options={{
                 surface: Boolean(canvasResult),
                 unconverged: Boolean(canvasResult) && !surfaceConverged,
+                invalid: shown?.status === 'invalid',
+                fixedCircle: Boolean(canvasResult) && Boolean(shown) && !shown?.search,
                 slices: Boolean(canvasResult),
                 bands: Boolean(doc.analysis.search),
                 loads: (doc.loads?.length ?? 0) > 0,

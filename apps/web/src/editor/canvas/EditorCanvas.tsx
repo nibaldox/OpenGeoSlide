@@ -3,7 +3,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec, isPolylineReport } from '../../engine/surface';
-import type { Point, ReportSurface, Slice } from '../../engine/types';
+import type { MethodReport, Point, ReportSurface, Slice } from '../../engine/types';
+import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, ModelDoc } from '../types';
@@ -104,10 +105,15 @@ export interface CanvasResult {
   slices: Slice[];
 }
 
-/** Puntos (en pantalla) de la superficie del informe: la polilínea ajustada, o el arco inferior entre la primera y la última dovela. */
-function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
+/**
+ * Puntos (en pantalla) de la superficie del informe: la polilínea ajustada **limitada al rango de x de las dovelas analizadas** (R10B-05,
+ * `analyzedPolyline`, igual que el informe y el CSV), o el arco inferior entre la primera y la última dovela.
+ */
+export function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
   if (result.slices.length === 0) return '';
-  if (isPolylineReport(result.surface)) return pointsAttr(vp, result.surface.points);
+  const analyzed = analyzedPolyline(result as Pick<MethodReport, 'surface' | 'slices'>);
+  if (analyzed) return pointsAttr(vp, analyzed);
+  if (isPolylineReport(result.surface)) return '';
   const xmin = Math.min(...result.slices.map((s) => s.x_left));
   const xmax = Math.max(...result.slices.map((s) => s.x_right));
   const { xc, yc, r } = result.surface;

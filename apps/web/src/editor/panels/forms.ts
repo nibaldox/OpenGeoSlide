@@ -25,7 +25,7 @@ import {
   searchCountText,
   searchProductText,
 } from '../state/validateLocal';
-import { fitPolylineToGround, groundPieces } from '../state/polylineGround';
+import { bottomAt, checkPolylineAgainstModel, groundPieces } from '../state/polylineGround';
 import { isImperialUnits } from '../state/units';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
@@ -799,13 +799,51 @@ export function polylineSetCommand(points: readonly Point[]): EditorCommand {
   return { type: 'surface/set', surface: { type: 'polyline', points: points.map(([x, y]): Point => [x, y]) } };
 }
 
-/** Punto nuevo después del `index`: el punto medio del tramo siguiente (o, tras el último, a la derecha a su misma altura). La forma no cambia. */
-export function insertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): Point[] {
-  const a = points[index] as Point;
+/**
+ * x del punto nuevo entre `a` y `b` (R10B-04a): el medio redondeado a 3 decimales si queda estrictamente dentro, a al menos `minDx` de ambos
+ * vecinos; si no, el medio exacto con la misma condición; `null` si no cabe ninguno (el redondeo sacaba antes el punto de `(a, b)`).
+ */
+function midBetween(a: number, b: number, minDx: number): number | null {
+  const inside = (x: number): boolean => x > a && x < b && x - a >= minDx && b - x >= minDx;
+  const rounded = round3((a + b) / 2);
+  if (inside(rounded)) return rounded;
+  const exact = (a + b) / 2;
+  return inside(exact) ? exact : null;
+}
+
+/** Separación mínima de x entre puntos de la polilínea: `1e-9 · ancho del modelo` (`validate_polyline`); 0 sin modelo. */
+function polylineMinDx(xRange?: readonly [number, number] | null): number {
+  return xRange ? 1e-9 * (xRange[1] - xRange[0]) : 0;
+}
+
+/** Posición `x` del punto nuevo tras el `index` de la polilínea, o `null` si no cabe uno con x estrictamente creciente. */
+function polylineInsertX(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): number | null {
+  const a = points[index];
+  if (!a) return null;
+  const minDx = polylineMinDx(xRange);
   const b = points[index + 1];
+  if (b) return midBetween(a[0], b[0], minDx);
   const step = xRange ? (xRange[1] - xRange[0]) / 10 : 1;
-  const at: Point = b ? [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)] : [round3(a[0] + step), a[1]];
-  return [...points.slice(0, index + 1), at, ...points.slice(index + 1)];
+  const x = round3(a[0] + step);
+  return x - a[0] >= Math.max(minDx, Number.MIN_VALUE) ? x : null;
+}
+
+/** ¿Cabe un punto nuevo después del `index` de la polilínea sin duplicar ni invertir la x? */
+export function canInsertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): boolean {
+  return polylineInsertX(points, index, xRange) !== null;
+}
+
+/**
+ * Punto nuevo después del `index`: el punto medio del tramo siguiente (o, tras el último, a la derecha a su misma altura). La forma no cambia y
+ * la x queda siempre estrictamente entre las de sus vecinos; si no cabe (`canInsertPolylinePoint`), devuelve la polilínea sin cambios.
+ */
+export function insertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): Point[] {
+  const x = polylineInsertX(points, index, xRange);
+  const a = points[index];
+  if (x === null || !a) return points.map(([px, py]): Point => [px, py]);
+  const b = points[index + 1];
+  const y = b ? round3((a[1] + b[1]) / 2) : a[1];
+  return [...points.slice(0, index + 1), [x, y], ...points.slice(index + 1)];
 }
 
 /** Quita el punto `index`; `null` si quedarían menos de 2. */
@@ -837,14 +875,45 @@ export function polylineRowsSorted(rows: readonly PolylineRow[]): boolean {
   return sameXs(rows, sortPolylineRows(rows));
 }
 
+/** Terreno y base del modelo en una abscisa, para proponer polilíneas (los tramos del terreno son rectas entre vértices consecutivos). */
+function modelProfile(doc: ModelDoc): {
+  pieces: ReturnType<typeof groundPieces>;
+  side: (x: number, which: 'left' | 'right') => number;
+  low: (x: number) => number;
+  base: (x: number) => number;
+  /** Abscisas de vértice de las regiones donde el terreno o la base cambian de recta (codo o escalón); los vértices colineales no hacen falta. */
+  bends: (a: number, b: number) => number[];
+} {
+  const pieces = groundPieces(doc.regions);
+  const lineAt = (g: { x0: number; x1: number; y0: number; y1: number }, x: number): number => g.y0 + ((x - g.x0) * (g.y1 - g.y0)) / (g.x1 - g.x0);
+  /** Terreno en `x` por el lado derecho (el tramo que empieza en x) o por el izquierdo; en una cara vertical, cada lado el suyo. */
+  const side = (x: number, which: 'left' | 'right'): number => {
+    const g = which === 'right' ? pieces.find((q) => q.x0 <= x && x < q.x1) ?? pieces[pieces.length - 1] : [...pieces].reverse().find((q) => q.x0 < x && x <= q.x1) ?? pieces[0];
+    return g ? lineAt(g, x) : Number.NaN;
+  };
+  const low = (x: number): number => Math.min(side(x, 'left'), side(x, 'right'));
+  const base = (x: number): number => bottomAt(doc.regions, x) ?? Number.NEGATIVE_INFINITY;
+  const vertexXs = Array.from(new Set(doc.regions.flatMap((r) => r.polygon.map((p) => p[0])))).sort((p, q) => p - q);
+  const width = Math.max(1e-300, (vertexXs[vertexXs.length - 1] ?? 0) - (vertexXs[0] ?? 0));
+  const d = 1e-4 * width;
+  const bend = (f: (x: number) => number, x: number): boolean => {
+    const sl = (f(x) - f(x - d)) / d;
+    const sr = (f(x + d) - f(x)) / d;
+    return !(Math.abs(sl - sr) <= 1e-6 * (1 + Math.abs(sl)));
+  };
+  const bends = (a: number, b: number): number[] => vertexXs.filter((x) => x > a && x < b && (bend(low, x) || bend(base, x)));
+  return { pieces, side, low, base, bends };
+}
+
 /**
- * Polilínea inicial al pasar de círculo a polilínea: admisible **por construcción** (F3.3). Se toman los puntos del arco inferior del círculo
- * (el fijo actual o, si no hay, el de partida) bajo el terreno, entre sus dos cruces con él, con 5 puntos equiespaciados en x **más un punto en
- * cada vértice del terreno** que cae dentro del arco, bajado hasta quedar estrictamente bajo el terreno. Como entre dos puntos consecutivos el
- * terreno es una recta y ambos quedan bajo ella, ninguna cuerda pasa sobre el terreno (la cuerda del círculo pasaba sobre el vértice del pie).
- * El resultado se comprueba con la regla del motor (`fitPolylineToGround`); si aun así no la cumple se densifica (9, 17, 33, 65 puntos) y,
- * como último recurso, se baja cada punto una fracción de la altura. Sin cruces, es la recta de dos puntos que baja del pie a media altura
- * bajo la cresta.
+ * Polilínea inicial al pasar de círculo a polilínea: admisible **por construcción contra el modelo completo** (F3.3, R10B-02), es decir, contra el
+ * terreno y también contra la base (`checkPolylineAgainstModel`, la misma regla que el motor). Parte del arco inferior del círculo (el fijo
+ * actual o, si no hay, el de partida) bajo el terreno, entre sus dos cruces con él: los extremos van **sobre el terreno** (el motor no tiene que
+ * prolongarlos) y los puntos interiores, 5 equiespaciados en x **más uno en cada vértice de las regiones** dentro del arco (el terreno y la base son
+ * rectas entre dos puntos consecutivos), bajo el terreno y sobre la base. Si el arco es más profundo de lo que cabe sobre la base, se reduce su
+ * profundidad en el mismo factor en todos sus puntos (queda a lo más a 9/10 del espesor local), de modo que la forma se conserva. Se densifica
+ * (9, 17, 33, 65 puntos) y se prueban profundidades menores hasta cumplir la regla. Sin cruces del arco con el terreno, o si nada lo cumple, es el
+ * respaldo (`fallbackPolyline`): una V que cruza la corona y el pie o, en su defecto, la polilínea paralela al terreno a media altura.
  */
 export function initialPolyline(doc: ModelDoc): Point[] {
   const bounds = modelBounds(doc);
@@ -860,65 +929,131 @@ export function initialPolyline(doc: ModelDoc): Point[] {
     const t = terrainY(doc.regions, x, tol);
     return Number.isFinite(t) && lower(x) < t - margin;
   };
+  const admissible = (pts: readonly Point[]): boolean => pts.length >= 2 && checkPolylineAgainstModel(doc.regions, pts).ok;
+  const { side: groundSide, low: groundLow, base: baseAt, bends } = modelProfile(doc);
+  const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
+
   // Tramo x donde el arco inferior queda bajo el terreno (dentro del círculo y del modelo).
   const lo = Math.max(range[0], circle.xc - circle.r);
   const hi = Math.min(range[1], circle.xc + circle.r);
   const SAMPLES = 2000;
-  let a = Number.NaN;
-  let b = Number.NaN;
+  let first = Number.NaN;
+  let last = Number.NaN;
   for (let k = 0; k <= SAMPLES; k += 1) {
     const x = lo + ((hi - lo) * k) / SAMPLES;
     if (under(x)) {
-      if (Number.isNaN(a)) a = x;
-      b = x;
+      if (Number.isNaN(first)) first = k;
+      last = k;
     }
   }
-  if (Number.isFinite(a) && Number.isFinite(b) && b - a > 1e-6 * (range[1] - range[0])) {
-    // Cota del terreno que no se debe alcanzar en x: bajo el lado más bajo de una cara vertical.
-    const cap = (x: number, depth: number): number => {
-      const g = Math.min(terrainY(doc.regions, x - 2 * tol, tol), terrainY(doc.regions, x + 2 * tol, tol));
-      return Number.isFinite(g) ? g - depth : Number.POSITIVE_INFINITY;
+  if (Number.isFinite(first) && Number.isFinite(last) && ((last - first) * (hi - lo)) / SAMPLES > 1e-6 * (range[1] - range[0])) {
+    // Cruces del arco con el terreno, afinados por bisección entre la última muestra fuera y la primera dentro.
+    const at = (k: number): number => lo + ((hi - lo) * k) / SAMPLES;
+    const refine = (out: number, inn: number): number => {
+      let u = out;
+      let v = inn;
+      for (let i = 0; i < 50; i += 1) {
+        const m = 0.5 * (u + v);
+        if (under(m)) v = m;
+        else u = m;
+      }
+      return v;
     };
-    // Vértices del terreno dentro del arco donde cambia la pendiente o hay un escalón (los colineales no hacen falta), excluidos los extremos.
-    const pieces = groundPieces(doc.regions);
-    const slopeOf = (g: { x0: number; x1: number; y0: number; y1: number }): number => (g.y1 - g.y0) / (g.x1 - g.x0);
-    const groundXs = pieces
-      .map((g, i) => ({ g, x: g.x1, next: pieces[i + 1] }))
-      .filter(({ g, x, next }) => {
-        if (x <= a + 1e-6 * (b - a) || x >= b - 1e-6 * (b - a)) return false;
-        if (!next) return true;
-        const step = Math.abs(next.y0 - g.y1) > tol;
-        return step || Math.abs(slopeOf(next) - slopeOf(g)) > 1e-9 * Math.max(1, Math.abs(slopeOf(g)));
-      })
-      .map(({ x }) => x);
-    const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
-    const build = (n: number, depth: number): Point[] => {
-      const xs = Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
-      const all = [...xs, ...groundXs].sort((p, q) => p - q).filter((x, i, arr) => i === 0 || x - (arr[i - 1] as number) > 1e-6 * (b - a));
-      return all.map((x, i): Point => {
-        const interior = i > 0 && i < all.length - 1;
-        const rx = round3(x);
-        // Los extremos van sobre el arco (el motor los prolonga hasta el terreno); los interiores, bajo el terreno y redondeados hacia abajo.
-        return interior ? [rx, floor3(Math.min(lower(rx), cap(rx, depth)))] : [rx, round3(lower(x))];
-      });
-    };
-    const admissible = (pts: readonly Point[]): boolean => fitPolylineToGround(doc.regions, pts).ok;
-    let first: Point[] | null = null;
-    for (const depth of [Math.max(margin, 1e-3), 1e-3 * height, 1e-2 * height]) {
-      for (const n of [5, 9, 17, 33, 65]) {
-        const pts = build(n, depth);
-        first ??= pts;
-        if (admissible(pts)) return pts;
+    const a = first > 0 ? refine(at(first - 1), at(first)) : at(first);
+    const b = last < SAMPLES ? refine(at(last + 1), at(last)) : at(last);
+    const xa = Math.max(range[0], round3(a));
+    const xb = Math.min(range[1], round3(b));
+    if (xb - xa > 1e-6 * (range[1] - range[0])) {
+      const inner = bends(xa, xb);
+      const nodesFor = (n: number): number[] => {
+        const raw = [...Array.from({ length: n }, (_, i) => xa + ((xb - xa) * i) / (n - 1)).slice(1, -1), ...inner].map(round3);
+        return raw.sort((p, q) => p - q).filter((x, i, arr) => x > xa + 1e-3 && x < xb - 1e-3 && (i === 0 || x - (arr[i - 1] as number) >= 1e-3));
+      };
+      const build = (n: number, shrink: number, depth: number): Point[] => {
+        const xs = nodesFor(n);
+        const dep = (x: number): number => Math.max(0, groundLow(x) - lower(x));
+        const thick = (x: number): number => groundLow(x) - baseAt(x);
+        // Factor de profundidad: ningún punto baja de 1/10 del espesor local sobre la base (la forma del arco se conserva).
+        let s = 1;
+        for (const x of xs) if (dep(x) > 0 && thick(x) > 0) s = Math.min(s, (0.9 * thick(x)) / dep(x));
+        s *= shrink;
+        const mids = xs.map((x): Point => {
+          const g = groundLow(x);
+          const cap = g - Math.min(depth, 0.25 * Math.max(0, thick(x)));
+          return [x, floor3(Math.min(g - s * dep(x), cap))];
+        });
+        return [[xa, groundSide(xa, 'right')], ...mids, [xb, groundSide(xb, 'left')]];
+      };
+      for (const shrink of [1, 0.7, 0.5, 0.3, 0.15]) {
+        for (const depth of [Math.max(margin, 1e-3), 1e-3 * height, 1e-2 * height]) {
+          for (const n of [5, 9, 17, 33, 65]) {
+            const pts = build(n, shrink, depth);
+            if (admissible(pts)) return pts;
+          }
+        }
       }
     }
-    return first ?? [];
   }
+  return fallbackPolyline(doc);
+}
+
+/**
+ * Polilínea de respaldo (sin cruces del arco con el terreno, o si ninguna propuesta del arco cumple la regla): una **V** que cruza la corona y el
+ * pie, con los extremos sobre el terreno a ambos lados del talud y el vértice a media altura entre el terreno y la base; si ninguna V cumple
+ * (R10B-02), la polilínea paralela al terreno a media altura, que la cumple por construcción en cualquier modelo con terreno continuo. Exportada para
+ * probarla por separado.
+ */
+export function fallbackPolyline(doc: ModelDoc): Point[] {
+  const bounds = modelBounds(doc);
+  if (!bounds) return [[0, 0], [1, 0]];
+  const range: [number, number] = [bounds.xMin, bounds.xMax];
   const w = range[1] - range[0];
   const h = bounds.yMax - bounds.yMin;
-  return [
+  const line: Point[] = [
     [round2(range[0] + 0.25 * w), round2(bounds.yMin + 0.4 * h)],
     [round2(range[0] + 0.75 * w), round2(bounds.yMin + 0.4 * h)],
   ];
+  const { pieces, side, low, base, bends } = modelProfile(doc);
+  if (pieces.length === 0 || !(w > 0)) return line;
+  const tol = extentTol(range);
+  const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
+  const ok = (pts: readonly Point[]): boolean => checkPolylineAgainstModel(doc.regions, pts).ok;
+  // Corona y pie: la x de la cota máxima y de la mínima del terreno (el centro de sus tramos llanos).
+  const nodes = Array.from(new Set(pieces.flatMap((g) => [g.x0, g.x1]))).sort((p, q) => p - q);
+  const top = Math.max(...nodes.map((x) => terrainY(doc.regions, x, tol)));
+  const bottom = Math.min(...nodes.map((x) => terrainY(doc.regions, x, tol)));
+  const centre = (y: number): number => {
+    const xs = nodes.filter((x) => Math.abs(terrainY(doc.regions, x, tol) - y) <= 1e-9 * Math.max(1, Math.abs(y)));
+    return 0.5 * (Math.min(...xs) + Math.max(...xs));
+  };
+  const xh = centre(top);
+  const xl = centre(bottom);
+  const mid = (x: number, f: number): number => {
+    const g = low(x);
+    return floor3(g - f * (g - base(x)));
+  };
+  if (xh !== xl) {
+    for (const pad of [0.1, 0.2, 0.05, 0.3]) {
+      const x0 = round3(Math.max(range[0], Math.min(xh, xl) - pad * w));
+      const x2 = round3(Math.min(range[1], Math.max(xh, xl) + pad * w));
+      const xm = round3(0.5 * (x0 + x2));
+      if (!(x0 < xm && xm < x2)) continue;
+      for (const f of [0.5, 0.3, 0.7, 0.15]) {
+        const v: Point[] = [[x0, side(x0, 'right')], [xm, mid(xm, f)], [x2, side(x2, 'left')]];
+        if (ok(v)) return v;
+      }
+    }
+  }
+  for (const [fa, fb] of [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7], [0.05, 0.95]] as const) {
+    const xa = round3(range[0] + fa * w);
+    const xb = round3(range[0] + fb * w);
+    // Además de los vértices de las regiones, 5 puntos equiespaciados: con el terreno llano no hay otro punto interior y la recta quedaría sobre él.
+    const inner = [...bends(xa, xb), ...Array.from({ length: 5 }, (_, i) => xa + ((xb - xa) * (i + 1)) / 6)].map(round3).filter((x) => x > xa + 1e-3 && x < xb - 1e-3);
+    const xs = [xa, ...inner.sort((p, q) => p - q), xb].filter((x, i, arr) => i === 0 || x - (arr[i - 1] as number) >= 1e-3);
+    const pts = xs.map((x, i): Point => (i === 0 ? [x, side(x, 'right')] : i === xs.length - 1 ? [x, side(x, 'left')] : [x, mid(x, 0.5)]));
+    if (ok(pts)) return pts;
+  }
+  return line;
 }
 
 /**
@@ -1189,11 +1324,23 @@ export function dataPointsCommand(points: readonly Point[]): EditorCommand {
   return { type: 'analysis/patch', patch: { interslice: { function: 'data_points', points: points.map(([x, f]): Point => [x, f]) } } };
 }
 
-/** Punto nuevo después del `index` (hay siempre uno siguiente si no es el último): ξ y f a medio camino, así la forma no cambia. */
+/** ¿Cabe un punto nuevo entre el `index` y el siguiente de la tabla (ξ, f), con ξ estrictamente creciente? No tras el último (ξ = 1). */
+export function canInsertDataPoint(points: readonly Point[], index: number): boolean {
+  const a = points[index];
+  const b = points[index + 1];
+  return a !== undefined && b !== undefined && midBetween(a[0], b[0], 0) !== null;
+}
+
+/**
+ * Punto nuevo después del `index`: ξ y f a medio camino, así la forma no cambia, con ξ estrictamente entre las de sus vecinos
+ * (R10B-04a). Si no cabe (`canInsertDataPoint`), devuelve la tabla sin cambios.
+ */
 export function insertDataPoint(points: readonly Point[], index: number): Point[] {
-  const a = points[index] as Point;
-  const b = points[index + 1] ?? [a[0] + 0.1, a[1]];
-  return [...points.slice(0, index + 1), [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)], ...points.slice(index + 1)];
+  const a = points[index];
+  const b = points[index + 1];
+  const xi = a && b ? midBetween(a[0], b[0], 0) : null;
+  if (!a || !b || xi === null) return points.map(([px, py]): Point => [px, py]);
+  return [...points.slice(0, index + 1), [xi, round3((a[1] + b[1]) / 2)], ...points.slice(index + 1)];
 }
 
 /** Quita el punto `index`; `null` si quedarían menos de 2. */
@@ -1533,7 +1680,7 @@ function toIndex(segment: string | undefined): number | null {
 /**
  * Puntero JSON de una incidencia → elemento a seleccionar. Rutas reconocidas:
  * `/regions/i[/material]` → región; `/regions/i/polygon/j` → vértice; `/materials/k` → material;
- * `/water/piezometric_line/k` → punto de la piezométrica; `/analysis/surface[/…]` → círculo;
+ * `/water/piezometric_line/k` → punto de la piezométrica; `/analysis/surface[/…]` → círculo (con una polilínea, `/analysis/surface/points/k` → su vértice k);
  * `/analysis/search/entry|exit` → banda; `/loads/k` → carga. Cualquier otra → `none`.
  */
 export function selectionForPath(path: string | null, doc: ModelDoc): Selection {
@@ -1559,7 +1706,15 @@ export function selectionForPath(path: string | null, doc: ModelDoc): Selection 
     const n = doc.water?.piezometric_line?.length ?? 0;
     return k !== null && k < n ? { kind: 'piezo_point', index: k } : { kind: 'none' };
   }
-  if (a === 'analysis' && b === 'surface') return { kind: 'surface_circle' };
+  if (a === 'analysis' && b === 'surface') {
+    // R10B-11: con una polilínea, `/analysis/surface/points/k` es el vértice k; sin índice no hay un elemento que seleccionar (y nunca un círculo).
+    const surface = doc.analysis.surface;
+    if (surface && surface.type === 'polyline') {
+      const k = c === 'points' ? toIndex(d) : null;
+      return k !== null && k < surface.points.length ? { kind: 'surface_vertex', index: k } : { kind: 'none' };
+    }
+    return { kind: 'surface_circle' };
+  }
   if (a === 'analysis' && b === 'search' && (c === 'entry' || c === 'exit')) return { kind: 'search_range', which: c };
   if (a === 'loads') {
     const k = toIndex(b);

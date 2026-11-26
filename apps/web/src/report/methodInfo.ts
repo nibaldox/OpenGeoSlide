@@ -61,7 +61,8 @@ export function clipPolylineX(points: Point[], xmin: number, xmax: number): Poin
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i] as Point;
     const b = points[i + 1] as Point;
-    if (Math.max(a[0], b[0]) < xmin || Math.min(a[0], b[0]) > xmax) continue;
+    // Un tramo que solo toca el límite (b en xmin, o a en xmax) no aporta longitud: sin él no queda un punto repetido en el extremo.
+    if (b[0] <= xmin || a[0] >= xmax) continue;
     const p0: Point = a[0] < xmin ? [xmin, yAt(a, b, xmin)] : a;
     const p1: Point = b[0] > xmax ? [xmax, yAt(a, b, xmax)] : b;
     if (out.length === 0) out.push(p0);

@@ -195,3 +195,68 @@ export function fitPolylineToGround(regions: Regions, points: readonly Point[]):
   if (!subs || subs.some((s) => s.hu > tol || s.hv > tol)) return { ok: false, reason: 'polyline_outside_ground' };
   return { ok: true, fitted };
 }
+
+/** Envolvente inferior de las regiones en `x` (la base del modelo, `PreparedModel::bottom_at`); `null` fuera del modelo. Las aristas verticales aportan sus dos extremos. */
+export function bottomAt(regions: Regions, x: number): number | null {
+  if (Number.isNaN(x)) return null;
+  let best: number | null = null;
+  for (const r of regions) {
+    const poly = r.polygon;
+    for (let i = 0; i < poly.length; i += 1) {
+      const a = poly[i] as readonly [number, number];
+      const b = poly[(i + 1) % poly.length] as readonly [number, number];
+      const x0 = Math.min(a[0], b[0]);
+      const x1 = Math.max(a[0], b[0]);
+      if (x < x0 || x > x1) continue;
+      const ys = a[0] === b[0] ? [a[1], b[1]] : [a[1] + ((x - a[0]) * (b[1] - a[1])) / (b[0] - a[0])];
+      for (const y of ys) if (best === null || y < best) best = y;
+    }
+  }
+  return best;
+}
+
+/**
+ * La polilínea (ya ajustada al terreno) queda sobre la base del modelo: la regla de `Surface::below_base` del motor. Entre dos abscisas
+ * consecutivas de ruptura (los vértices de la polilínea y los de las regiones, donde la base cambia de recta) `polilínea − base` es lineal, así que
+ * basta mirar los extremos de cada tramo, con la base ajustada por los puntos a 1/4 y 3/4 del tramo (como el motor) y la tolerancia `1e-9·escala`.
+ */
+export function polylineAboveBase(regions: Regions, fitted: readonly Point[]): boolean {
+  if (fitted.length < 2) return true;
+  const tol = 1e-9 * groundScale(regions);
+  const first = (fitted[0] as Point)[0];
+  const last = (fitted[fitted.length - 1] as Point)[0];
+  const raw = [...fitted.map((p) => p[0]), ...regions.flatMap((r) => r.polygon.map((p) => p[0]))].filter((x) => x > first && x < last).sort((a, b) => a - b);
+  const xs: number[] = [first];
+  for (const x of raw) if (x - (xs[xs.length - 1] as number) > tol) xs.push(x);
+  if (last - (xs[xs.length - 1] as number) <= tol && xs.length > 1) xs.pop();
+  xs.push(last);
+  for (let i = 0; i + 1 < xs.length; i += 1) {
+    const lo = xs[i] as number;
+    const hi = xs[i + 1] as number;
+    const p1 = lo + 0.25 * (hi - lo);
+    const q1 = lo + 0.75 * (hi - lo);
+    const b1 = bottomAt(regions, p1);
+    const b2 = bottomAt(regions, q1);
+    if (b1 === null || b2 === null) continue;
+    const s = (b2 - b1) / (q1 - p1);
+    const f = (x: number): number => polylineY(fitted, x) - (b1 + s * (x - p1));
+    if (Math.min(f(lo), f(hi)) < -tol) return false;
+  }
+  return true;
+}
+
+export type PolylineAdmission =
+  | { ok: true; fitted: Point[] }
+  | { ok: false; reason: 'polyline_no_ground_crossing' | 'polyline_outside_ground' | 'polyline_outside_model' };
+
+/**
+ * Admisibilidad de una polilínea fija **contra el modelo completo**, en el orden del motor: primero el ajuste al terreno (`fitPolylineToGround`:
+ * `polyline_no_ground_crossing` y `polyline_outside_ground`) y después la base (`polyline_outside_model`, el `NoValidSurface: la polilínea sale
+ * del modelo` del motor). Es la que usan la propuesta inicial y `validateLocal`.
+ */
+export function checkPolylineAgainstModel(regions: Regions, points: readonly Point[]): PolylineAdmission {
+  const fit = fitPolylineToGround(regions, points);
+  if (!fit.ok) return fit;
+  if (!polylineAboveBase(regions, fit.fitted)) return { ok: false, reason: 'polyline_outside_model' };
+  return fit;
+}

@@ -394,11 +394,11 @@ describe('validateLocal: neutralidad frente a los casos de verificación', () =>
     expect(validateLocal(data.model)).toEqual([]);
   });
 
-  it('cambiar a v0.2 con sismo y cargas válidos tampoco introduce errores', () => {
+  it('añadir sismo y cargas válidos a un caso 0.3 tampoco introduce errores', () => {
     const data = JSON.parse(readFileSync(casesDir + 'V047a.json', 'utf8')) as VerificationCase;
     const doc: ModelDoc = {
       ...data.model,
-      version: '0.2',
+      version: '0.3', // V047a trae campos de la 0.3 (R10B-08)
       loads: [{ type: 'udl', x1: 50, x2: 70, q: 20 }, { type: 'line', x: 40, p: 20, angle: 10 }],
       analysis: { ...data.model.analysis, seismic: { kh: 0.1, kv: 0 } },
     };

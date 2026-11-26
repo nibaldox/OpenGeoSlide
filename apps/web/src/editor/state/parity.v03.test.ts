@@ -44,7 +44,8 @@ function doc(material: Material, analysis: Partial<AnalysisSettings> = {}): Mode
   };
 }
 const poly = (points: [number, number][], analysis: Partial<AnalysisSettings> = {}): ModelDoc => doc(mat('m1'), { surface: { type: 'polyline', points }, ...analysis });
-const GOOD: [number, number][] = [[20, 40], [50, 20], [80, 45]];
+// Admisible contra el terreno (y = 100) y la base (y = 0): los extremos, bajo el terreno, se prolongan hasta él (R10B-04b).
+const GOOD: [number, number][] = [[10, 95], [50, 20], [90, 90]];
 
 interface Case {
   name: string;
@@ -68,7 +69,6 @@ const CASES: Case[] = [
   { name: 'no drenado con límite negativo', doc: doc(su({ strength_datum: 50, strength_gradient: 1, strength_limit: -2 })), verdict: 'reject' },
   { name: 'Mohr-Coulomb con Su', doc: doc(mat('m1', { undrained_strength: 20 })), verdict: 'reject' },
   { name: 'Mohr-Coulomb con gradiente', doc: doc(mat('m1', { strength_gradient: 1 })), verdict: 'reject' },
-  { name: 'polilínea de 2 puntos con Spencer', doc: poly([[20, 40], [80, 45]]), verdict: 'accept' },
   { name: 'polilínea de 3 puntos con Spencer', doc: poly(GOOD), verdict: 'accept' },
   { name: 'polilínea con un solo punto', doc: poly([[20, 40]]), verdict: 'reject' },
   { name: 'polilínea con x repetida', doc: poly([[20, 40], [20, 30], [80, 45]]), verdict: 'reject' },

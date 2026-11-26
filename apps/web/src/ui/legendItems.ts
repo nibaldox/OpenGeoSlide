@@ -13,8 +13,12 @@ export interface LegendExtraItem {
 export interface LegendOptions {
   /** Muestra «Superficie crítica» (por defecto sí). `false` en el editor mientras no hay resultado dibujado. */
   surface?: boolean;
-  /** La superficie dibujada no convergió: se rotula «Superficie evaluada (sin convergencia)» con trazo discontinuo. */
+  /** La superficie dibujada no es un resultado válido (no convergió o no es admisible): se rotula «Superficie evaluada (…)» con trazo discontinuo. */
   unconverged?: boolean;
+  /** La superficie dibujada no es admisible (`invalid`): «Superficie evaluada (no válida)». Solo se lee junto con `unconverged` (R10B-07). */
+  invalid?: boolean;
+  /** La superficie dibujada es un círculo **fijo** (el resultado no viene de una búsqueda): «Superficie fija (círculo)», no «crítica» (R10B-07, como `surfaceLegendLabel` del PDF). */
+  fixedCircle?: boolean;
   /** Muestra «Dovelas» (por defecto sí). */
   slices?: boolean;
   /** Bandas de entrada y salida de la búsqueda de superficie. */
@@ -33,17 +37,20 @@ export interface LegendOptions {
 
 /** Elementos distintos de los materiales, en orden fijo: superficie, dovelas, piezométrica, bandas, cargas, sismo. */
 export const FIXED_POLYLINE_LABEL = 'Superficie fija (polilínea)';
+export const FIXED_CIRCLE_LABEL = 'Superficie fija (círculo)';
+export const UNCONVERGED_LABEL = 'Superficie evaluada (sin convergencia)';
+export const INVALID_LABEL = 'Superficie evaluada (no válida)';
 
 export function legendItems(scene: Pick<Scene, 'piezo'> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
-  const { surface = true, unconverged = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false, fixedPolyline = false } = options;
+  const { surface = true, unconverged = false, invalid = false, fixedCircle = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false, fixedPolyline = false } = options;
   const items: LegendExtraItem[] = [];
   // Con una polilínea la superficie no es «crítica»: la da el usuario (fija) y el cálculo solo la ajusta al terreno.
   const polyline = fixedPolyline || Boolean(scene.surface?.polyline);
   if (surface) {
     items.push(
       unconverged
-        ? { key: 'surface', label: 'Superficie evaluada (sin convergencia)', swatch: 'line-unconverged' }
-        : { key: 'surface', label: polyline ? FIXED_POLYLINE_LABEL : 'Superficie crítica', swatch: 'line-red' },
+        ? { key: 'surface', label: invalid ? INVALID_LABEL : UNCONVERGED_LABEL, swatch: 'line-unconverged' }
+        : { key: 'surface', label: polyline ? FIXED_POLYLINE_LABEL : fixedCircle ? FIXED_CIRCLE_LABEL : 'Superficie crítica', swatch: 'line-red' },
     );
   } else if (fixedPolyline) {
     items.push({ key: 'surface-fixed', label: FIXED_POLYLINE_LABEL, swatch: 'line-polyline-dashed' });

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Material, Point } from '../../engine/types';
 import type { ModelDoc } from '../types';
+import { checkPolylineAgainstModel } from '../state/polylineGround';
 import { applyCommand } from '../state/reducer';
 import { validateLocal, RULE_TEXT } from '../state/validateLocal';
 import { baseDoc, mat } from '../state/testFixtures';
@@ -319,12 +320,15 @@ describe('polilínea inicial y paso entre círculo y polilínea', () => {
     expect(pts[0]![1]).toBeLessThanOrEqual(10);
   });
 
-  it('sin círculo fijo usa el círculo de partida; si no hay cruces, una recta de dos puntos', () => {
+  it('sin círculo fijo usa el círculo de partida; si no hay cruces, el respaldo admisible', () => {
     const none = initialPolyline(slopeDoc({ surface: null, search: undefined }));
     expect(none.length).toBeGreaterThanOrEqual(2);
-    const away = initialPolyline(slopeDoc({ surface: { type: 'circle', xc: 500, yc: 500, r: 5 } }));
-    expect(away).toHaveLength(2);
-    expect(away[1]![0]).toBeGreaterThan(away[0]![0]);
+    // Sin cruces con el terreno: el respaldo (R10B-02), admisible contra el terreno y la base (no la recta horizontal de antes).
+    const doc = slopeDoc({ surface: { type: 'circle', xc: 500, yc: 500, r: 5 } });
+    const away = initialPolyline(doc);
+    expect(away.length).toBeGreaterThanOrEqual(3);
+    for (let i = 1; i < away.length; i += 1) expect(away[i]![0]).toBeGreaterThan(away[i - 1]![0]);
+    expect(checkPolylineAgainstModel(doc.regions, away).ok).toBe(true);
   });
 
   it('con modelo vacío devuelve una polilínea válida de dos puntos', () => {

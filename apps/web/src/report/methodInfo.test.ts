@@ -81,6 +81,10 @@ describe('polilínea analizada (R10B-05)', () => {
   it('un círculo no tiene polilínea', () => {
     expect(analyzedPolyline(rep({}))).toBeNull();
   });
+  it('clipPolylineX no repite el punto cuando un vértice cae justo en el límite', () => {
+    expect(clipPolylineX([[0, 0], [5, 5], [10, 0]], 0, 5)).toEqual([[0, 0], [5, 5]]);
+    expect(clipPolylineX([[0, 0], [5, 5], [10, 0]], 5, 10)).toEqual([[5, 5], [10, 0]]);
+  });
   it('clipPolylineX interpola en ambos extremos', () => {
     expect(clipPolylineX([[0, 0], [10, 10]], 2, 8)).toEqual([[2, 2], [8, 8]]);
   });

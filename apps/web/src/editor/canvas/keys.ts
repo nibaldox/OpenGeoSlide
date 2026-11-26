@@ -21,7 +21,7 @@ import {
   type CirclePart,
   type HandleRef,
 } from './handles';
-import { insertPolylineVertex, movePolylineVertex, polylineCrossingMessage, removePolylineVertex } from './polyline';
+import { insertPolylineVertex, modelWidth, movePolylineVertex, polylineCrossingMessage, polylineMinGap, removePolylineVertex } from './polyline';
 import { circleCenterLabel, circleRadiusLabel, piezoAnnouncement, surfaceVertexAnnouncement, vertexAnnouncement } from './layout';
 import { ensureVisible, fitToDoc, panBy, zoomStep } from './viewportOps';
 
@@ -168,7 +168,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
   if ((k.key === 'Insert' || lower === 'i') && sel.kind === 'surface_vertex') {
     const surface = doc.analysis.surface;
     if (!surface || surface.type !== 'polyline') return NOT_HANDLED;
-    const inserted = insertPolylineVertex(surface.points, sel.index);
+    const inserted = insertPolylineVertex(surface.points, sel.index, polylineMinGap(modelWidth(doc.regions)));
     if (!inserted) return { handled: true, actions: [], announce: 'No se puede insertar: el tramo es demasiado corto' };
     const created: HandleRef = { kind: 'surface_vertex', index: inserted.index };
     const at = inserted.points[inserted.index]!;
@@ -308,7 +308,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     const surface = doc.analysis.surface;
     const cur = surface && surface.type === 'polyline' ? surface.points[sel.index] : undefined;
     if (!surface || surface.type !== 'polyline' || !cur) return NOT_HANDLED;
-    const moved = movePolylineVertex(surface.points, sel.index, shift(cur));
+    const moved = movePolylineVertex(surface.points, sel.index, shift(cur), polylineMinGap(modelWidth(doc.regions)));
     if (!moved) return NOT_HANDLED;
     const to = moved.points[sel.index]!;
     const warn = moved.clamped ? `${polylineCrossingMessage()}. ` : '';
