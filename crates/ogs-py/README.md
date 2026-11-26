@@ -68,6 +68,35 @@ for r0, r1 in zip(base["results"], seismic["results"]):
 
 (Valores obtenidos con el binario `ogs analyze` sobre el mismo modelo; el paquete Python envuelve el mismo motor.)
 
+### Ejemplo con una polilínea (esquema v0.3)
+
+Una polilínea fija exige `analysis.methods` y no admite Bishop; `analysis.interslice` solo viaja con
+`morgenstern_price`. El informe devuelve la polilínea ya ajustada al terreno.
+
+```python
+import json
+import opengeoslide
+
+model = json.load(open("examples/acads1a.ogs.json"))
+model["version"] = "0.3"
+del model["analysis"]["search"]
+model["analysis"]["surface"] = {"type": "polyline", "points": [[30, 25.000001], [35, 25.520953], [40, 26.973391],
+                                                               [45, 29.525055], [51.29111842105263, 35.0]]}
+model["analysis"]["methods"] = ["spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]
+model["analysis"]["interslice"] = {"function": "half_sine"}
+
+for r in opengeoslide.analyze(model)["results"]:
+    print(r["method"], r["status"], round(r["fos"], 4), r["warnings"])
+# spencer converged 0.9991 []
+# morgenstern_price converged 0.9999 []
+# janbu_simplified converged 0.9567 []
+# janbu_corrected converged 0.9994 []
+```
+
+Los estados `invalid` (`polyline_no_ground_crossing`, `polyline_outside_ground`) no son excepciones: el método queda sin
+FS y el motivo va en `warnings`. Los códigos de aviso de la Fase 3a están en el docstring del paquete y en
+`docs/formato-ogs-json.md`.
+
 ## Pánicos
 
 Un pánico de Rust dentro del motor **no** aborta el intérprete. `analyze_json` lo captura con
@@ -83,7 +112,8 @@ OGS_PY_TEST_HOOKS=0 $TMPDIR/ogs-py-venv/bin/python -m pytest tests -v
 OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 ```
 
-Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
+`tests/test_v03.py` cubre el formato v0.3 (polilínea, no drenado, M-P, Janbu y el aviso de E13k) con valores de cSlope
+0.1.0. Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
 ## Licencia
