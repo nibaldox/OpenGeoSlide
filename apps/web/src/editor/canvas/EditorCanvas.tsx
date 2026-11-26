@@ -647,7 +647,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);
-  const badge = seismicBadge(vp, dir);
+  const badge = seismicBadge(vp, dir, seismic?.kv ?? 0); // R9-12c: con kv ≠ 0 trae `kvArrow`
   const dragging = gesture.mode === 'drag' && gesture.moved;
   const guides = preview && preview.kind !== 'circle' ? preview.snap.guides : null;
   const snapTarget = preview && preview.kind === 'vertex' ? preview.snap.target : null;
@@ -889,6 +889,18 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
                 strokeWidth={2.5}
                 markerEnd={`url(#${seismicArrowId})`}
               />
+              {badge.kvArrow && (
+                <line
+                  data-testid="seismic-kv-arrow"
+                  x1={badge.kvArrow.x}
+                  x2={badge.kvArrow.x}
+                  y1={badge.kvArrow.y1}
+                  y2={badge.kvArrow.y2}
+                  stroke={COLOR_SEISMIC}
+                  strokeWidth={2.5}
+                  markerEnd={`url(#${seismicArrowId})`}
+                />
+              )}
             </g>
           )}
         </g>

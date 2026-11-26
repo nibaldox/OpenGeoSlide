@@ -10,3 +10,12 @@
     repeating-linear-gradient(90deg, var(--canvas-slice-edge) 0 1.5px, transparent 1.5px 5.5px),
     linear-gradient(var(--canvas-slice-edge), var(--canvas-slice-edge)) bottom / 100% 1.5px no-repeat;
 }
+
+/* Muestra «Piezométrica (extrapolada)» (R9-05d): punteada, como el tramo que el lienzo dibuja entre el último punto de la línea y el
+   borde del modelo; la línea definida sigue siendo discontinua (`.swatch.line-blue`, App.css). */
+.legend .swatch.line-blue-dotted {
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 2.5px dotted var(--canvas-piezo);
+}

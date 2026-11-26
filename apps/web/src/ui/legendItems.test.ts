@@ -30,6 +30,21 @@ describe('legendItems', () => {
   });
 });
 
+describe('piezométrica extrapolada (R9-05d)', () => {
+  it('con la opción y piezométrica, «Piezométrica (extrapolada)» va justo después de «Piezométrica»', () => {
+    expect(keys(legendItems(wet, { piezoExtrapolated: true, loads: true }))).toEqual(['surface', 'slices', 'piezo', 'piezo-extrapolated', 'loads']);
+    expect(legendItems(wet, { piezoExtrapolated: true }).find((i) => i.key === 'piezo-extrapolated')).toMatchObject({ label: 'Piezométrica (extrapolada)', swatch: 'line-blue-dotted' });
+  });
+  it('sin la opción, o sin piezométrica, no aparece', () => {
+    expect(keys(legendItems(wet))).not.toContain('piezo-extrapolated');
+    expect(keys(legendItems(dry, { piezoExtrapolated: true }))).not.toContain('piezo-extrapolated');
+  });
+  it('la muestra es un trazo punteado con --canvas-piezo', () => {
+    const css = readFileSync(new URL('./legend.css', import.meta.url), 'utf8');
+    expect(css).toMatch(/\.legend \.swatch\.line-blue-dotted[\s\S]*dotted[\s\S]*var\(--canvas-piezo\)/);
+  });
+});
+
 describe('muestra «Dovelas» (B-05)', () => {
   const css = readFileSync(new URL('./legend.css', import.meta.url), 'utf8');
   const legend = readFileSync(new URL('./Legend.tsx', import.meta.url), 'utf8');

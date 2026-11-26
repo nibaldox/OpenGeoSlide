@@ -20,6 +20,8 @@ import { Legend } from '../ui/Legend';
 import { ResultsTable } from '../ui/ResultsTable';
 import { useRovingTabIndex } from '../ui/useRovingTabIndex';
 import { EditorCanvas } from './canvas/EditorCanvas';
+import { lengthUnitOf } from './canvas/layout';
+import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
@@ -517,7 +519,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   // Contrato con el lienzo (U2-C): superficie no convergida discontinua, unidades de las etiquetas y anuncios del teclado.
   const canvasContract = {
     surfaceConverged,
-    units: (doc.units === 'imperial' ? 'imperial' : 'SI') as 'SI' | 'imperial',
+    units: (isImperialUnits(doc.units) ? 'imperial' : 'SI') as 'SI' | 'imperial',
     onAnnounce: announce,
     emptyState: <EmptyCanvasState onDraw={() => void switchTool('draw_region')} onExample={openExamples} />,
   };
@@ -728,7 +730,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           {engine.run && (
             <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
               <h2 id="ea-results-title">Resultados{engine.current ? '' : ' (desactualizados)'}</h2>
-              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} />
+              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} />
               <p className="small muted">
                 Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
               </p>
@@ -760,7 +762,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         </aside>
       </div>
 
-      {slopeOpen && <NewSlopeDialog initialUnits={doc.units === 'imperial' ? 'imperial' : 'SI'} onCancel={() => setSlopeOpen(false)} onCreate={onCreateSlope} />}
+      {slopeOpen && <NewSlopeDialog initialUnits={isImperialUnits(doc.units) ? 'imperial' : 'SI'} onCancel={() => setSlopeOpen(false)} onCreate={onCreateSlope} />}
       {dxf && (
         <DxfImportDialog
           fileName={dxf.fileName}
