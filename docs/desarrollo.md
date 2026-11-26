@@ -32,7 +32,7 @@ cargo build --workspace
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test -p ogs-core --lib                                # tests unitarios (modelo)
-cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 213/213 checks publicados (93 casos)
+cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 243/243 checks publicados (116 casos)
 cargo test -p ogs-core --release --no-fail-fast             # todas las pruebas del motor
 cargo run -p ogs-cli -- --version
 cargo build -p ogs-wasm --target wasm32-unknown-unknown --release
@@ -47,6 +47,9 @@ Para la paralelización de la búsqueda en nativo: `cargo build -p ogs-core --fe
 ```sh
 cargo build --release -p ogs-cli
 target/release/ogs analyze examples/acads1a.ogs.json        # informe JSON; sale con código 2 si el modelo es inválido
+# Tiempos de la búsqueda de un caso con analysis.search (un registro JSON por método; --method all = los cinco).
+# Usa la mayor versión entre la del caso y la que el método necesita: un caso 0.4 con refuerzos se mide tal cual.
+target/release/ogs bench verification/cases/V037.json --reps 5 --method bishop
 
 # Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.4.schema.json y contra ogs analyze
 # (cada ejemplo y fragmento lleva una marca <!-- ogs-ejemplo ... --> u <!-- ogs-fragmento ... -->; véase el docstring del script)

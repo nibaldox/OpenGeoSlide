@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 const USAGE: &str = "uso: ogs bench <caso.json> [--reps N] \
      [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] \
      (all = los cinco métodos)";
-/// Methods that need the format v0.3 (E13a): the benchmark raises the version of the case for them.
+/// Methods that need the format v0.3 (E13a): the benchmark raises the version of the case to 0.3 for them, never lower.
 const V03_METHODS: [&str; 3] = ["morgenstern_price", "janbu_simplified", "janbu_corrected"];
 const WARMUP_RUNS: usize = 1;
 const DEFAULT_REPS: usize = 5;
@@ -135,12 +135,27 @@ fn execute(opts: &Options) -> Result<String, String> {
     serde_json::to_string_pretty(&Value::Array(records)).map_err(|e| e.to_string())
 }
 
+/// The version the benchmark writes for `method` (E14o-15): the greater of the declared one and the one the method needs.
+/// A declared version that is not `"major.minor"` is returned as it is, for the engine to refuse.
+fn bench_version(declared: &str, method: &str) -> String {
+    fn parse(version: &str) -> Option<(u32, u32)> {
+        let (major, minor) = version.split_once('.')?;
+        Some((major.parse().ok()?, minor.parse().ok()?))
+    }
+    if !V03_METHODS.contains(&method) {
+        return declared.to_string();
+    }
+    match parse(declared) {
+        Some(declared_at) if declared_at < (0, 3) => "0.3".to_string(),
+        _ => declared.to_string(),
+    }
+}
+
 fn bench_method(model: &Value, case_id: &str, method: &str, reps: usize) -> Result<Value, String> {
     let mut model = model.clone();
     model["analysis"]["methods"] = json!([method]);
-    if V03_METHODS.contains(&method) {
-        model["version"] = json!("0.3");
-    }
+    let declared = model["version"].as_str().unwrap_or_default().to_string();
+    model["version"] = json!(bench_version(&declared, method));
     let input = serde_json::to_string(&model).map_err(|e| e.to_string())?;
 
     for _ in 0..WARMUP_RUNS {
@@ -195,6 +210,67 @@ mod tests {
         assert_eq!(median(&[3.0, 1.0, 2.0]), 2.0);
         assert_eq!(median(&[4.0, 1.0, 3.0, 2.0]), 2.5);
         assert_eq!(median(&[7.0]), 7.0);
+    }
+
+    /// A v0.4 case with reinforcements and a (small) search, read from the verification cases.
+    fn v04_case_text() -> String {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../verification/cases/V037.json"
+        );
+        let text = std::fs::read_to_string(path).expect("V037.json");
+        let mut root: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let search = &mut root["model"]["analysis"]["search"];
+        for key in ["n_entry", "n_exit", "n_radius"] {
+            search[key] = serde_json::json!(5);
+        }
+        search["refine"] = serde_json::json!(false);
+        root.to_string()
+    }
+
+    /// R11B-04: `ogs bench` lowered `"0.4"` to `"0.3"` for the v0.3 methods, and the engine refused the reinforcements.
+    #[test]
+    fn bench_keeps_version_0_4_for_every_method() {
+        let dir = std::env::temp_dir().join(format!("ogs-bench-v04-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("v037-small.json");
+        std::fs::write(&file, v04_case_text()).unwrap();
+        let methods: Vec<&'static str> = vec![
+            "bishop",
+            "spencer",
+            "morgenstern_price",
+            "janbu_simplified",
+            "janbu_corrected",
+        ];
+        let opts = super::Options {
+            path: file.to_string_lossy().into_owned(),
+            reps: 1,
+            methods: methods.clone(),
+        };
+        let out = super::execute(&opts);
+        std::fs::remove_dir_all(&dir).ok();
+        let records: serde_json::Value =
+            serde_json::from_str(&out.expect("bench of a v0.4 case")).unwrap();
+        for (record, method) in records.as_array().unwrap().iter().zip(methods) {
+            assert_eq!(record["method"], method);
+            assert!(record["fos"].as_f64().is_some(), "{method}: {record}");
+        }
+    }
+
+    #[test]
+    fn bench_version_is_the_greater_of_the_declared_and_the_needed() {
+        use super::bench_version;
+        // v0.1 and v0.2 rise to 0.3 for the v0.3 methods; the others stay as they are.
+        assert_eq!(bench_version("0.1", "janbu_corrected"), "0.3");
+        assert_eq!(bench_version("0.2", "morgenstern_price"), "0.3");
+        assert_eq!(bench_version("0.2", "bishop"), "0.2");
+        // 0.3 and 0.4 never go down.
+        assert_eq!(bench_version("0.3", "janbu_simplified"), "0.3");
+        assert_eq!(bench_version("0.4", "janbu_simplified"), "0.4");
+        assert_eq!(bench_version("0.4", "bishop"), "0.4");
+        // What is not a version is left for the engine to refuse.
+        assert_eq!(bench_version("9.9", "janbu_corrected"), "9.9");
+        assert_eq!(bench_version("", "morgenstern_price"), "");
     }
 
     #[test]

@@ -15,7 +15,8 @@ los leen. El motor acepta cuatro versiones:
 
 - **Un modelo sin campos nuevos da el mismo resultado en las cuatro versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
-  a la salida de la v0.2.0.
+  a la salida de la v0.2.0, con **una sola excepción documentada**: un círculo cuyo arco termina con la tangente vertical
+  sobre el terreno, que la v0.2.0 rechazaba por redondeo (V065), ahora se analiza ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"` y `reinforcements` exige `"0.4"`** (véase
   [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
@@ -501,8 +502,9 @@ Con la búsqueda por defecto, este modelo da Bishop 1,2723 y Spencer 1,2704 (`og
 ## Refuerzos (v0.4)
 
 La versión 0.4 agrega `reinforcements` al nivel raíz, después de `loads`. Es una lista opcional que se omite si está
-vacía. **Con `reinforcements` ausente o vacío, la salida es idéntica byte a byte a la de la v0.2.0** (F4.1). Un modelo
-con refuerzos exige `"version": "0.4"` ([compuerta de versión](#compuerta-de-versión)).
+vacía. **Con `reinforcements` ausente o vacío, la salida es idéntica byte a byte a la de la v0.2.0** (F4.1), salvo la
+excepción de V065 ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
+Un modelo con refuerzos exige `"version": "0.4"` ([compuerta de versión](#compuerta-de-versión)).
 
 > **Límite que debe leer antes de usar pilotes o tablestacas.** Con un `pile` o una `sheet_pile` en el modelo,
 > OpenGeoSlide calcula la estabilidad **global** con el elemento incluido como una fuerza. **No** calcula el empuje
@@ -540,16 +542,27 @@ Las unidades son las del modelo (SI o imperial) y las fuerzas son **por elemento
 | `tensile_capacity` | Número ≥ 0, obligatorio. Tope de la barra o de la tira, por elemento (`Tmax`) |
 | `end1_capacity` | Número ≥ 0, opcional, 0 por defecto. Capacidad de la placa o del anclaje en la cabeza (`T1`) |
 | `end2_capacity` | Número ≥ 0, opcional, 0 por defecto. Capacidad del anclaje en la punta (`T2`) |
-| `spacing` | Número > 0, opcional, 1 por defecto. Espaciamiento fuera del plano, de centro a centro |
+| `spacing` | Número > 0, opcional. Espaciamiento fuera del plano, de centro a centro. **Si se omite, vale 1 en la unidad de longitud del modelo**: 1 m en SI y 1 ft en imperial ([abajo](#el-espaciamiento-por-defecto-depende-de-la-unidad)) |
 | `direction` | **Obligatorio**: `"axial"`, `"tangent"` o `"bisector"` ([dirección](#cruces-dirección-y-compresión)) |
 | `pullout` | Objeto, opcional. Ausente: los dos extremos están totalmente anclados y `T(s) = Tmax/spacing` en todo el elemento |
 
-**`pile`:** `force` (≥ 0, obligatorio, por pilote), `spacing` (> 0, opcional, 1 por defecto) y `direction`
+**`pile`:** `force` (≥ 0, obligatorio, por pilote), `spacing` (> 0, opcional; omitido vale 1 en la unidad de longitud
+del modelo, como arriba) y `direction`
 (`"angle"`, `"tangent"` o `"perpendicular"`, obligatorio). `angle`, en grados dentro de (−90, 90) y medido sobre la
 horizontal, es obligatorio **solo** con `direction: "angle"` y está prohibido con las otras dos.
 
 **`sheet_pile`:** `force` (≥ 0, obligatorio, **por metro de muro**; no lleva `spacing`), `direction` y `angle`, como en
 `pile`. Además, la tablestaca es vertical: `x1 = x2`.
+
+#### El espaciamiento por defecto depende de la unidad
+
+Un `spacing` omitido vale **1 en la unidad de longitud del modelo** (E14o-12): 1 m con `"units": "SI"` y 1 ft con
+`"units": "imperial"`. Las capacidades y la fuerza son por elemento (kN en SI y lbf en imperial) y el motor las divide
+por `spacing`, así que 1 m y 1 ft **no** son lo mismo: el mismo elemento con `spacing` omitido da una fuerza por
+unidad de ancho 3,28084 veces mayor en imperial que en SI. Por eso, al **convertir las unidades** de un modelo, la web
+escribe siempre un `spacing` explícito ya convertido (1 m pasa a 3,28084 ft y 1 ft a 0,3048 m), y el FS no cambia.
+Un archivo que usted edita a mano y cambia de sistema debe hacer lo mismo: escriba el `spacing` de forma explícita.
+El motor no convierte unidades (interpreta los números en las unidades declaradas).
 
 `pile` y `sheet_pile` **no** llevan `location`: con fuerza constante no cambia ningún número (el FS de X17 §3 es
 idéntico a 16 cifras) y el esquema, el motor y TypeScript lo rechazan como campo desconocido (E14m-3). Volvería con
@@ -572,10 +585,16 @@ objeto `pullout` lleva un `model`, y cada modelo rechaza los campos de los otros
 | `interface` | `adhesion` ≥ 0, `friction_angle` en [0, 90), `coverage` en (0, 1] | `r = 2·(a + σ′v·tan δ)·Rc` por metro de talud, y 0 fuera del suelo. El `spacing` se cancela y `Rc` **no** escala las capacidades de la barra ni de los extremos |
 | `development` | `length1` ≥ 0, `length2` ≥ 0 | Una rampa que no mira el suelo: `f1 = T1 + Tmax·s/ℓ1` y `f2 = T2 + Tmax·(L − s)/ℓ2`, con `T = max(0, min(Tmax, f1, f2))/spacing`. Con ℓ = 0 ese extremo queda totalmente anclado (vale +∞). `T1` y `T2` **se suman** a la rampa |
 
-- En `interface`, `σ′v = max(0, σ − u − ru·σ_suelo)`: `σ` es la columna de suelo sobre el punto, con `γsat` bajo la
-  línea de agua del material, más el agua libre sobre el terreno si la hay. **No** incluye sobrecargas ni cargas
-  lineales. ogs **integra exactamente**, con cortes en el terreno y en los contactos. El oráculo (cSlope) discretiza en
-  200 pasos, lo que da hasta −0,47 % en `T` ([Limitaciones](limitaciones.md#la-discretización-del-oráculo-en-interface)).
+- En `interface`, `σ′v` sigue la precedencia del rebanado (E14o-4, que corrige E14m-2): `σ` es la columna de suelo sobre
+  el punto, con `γsat` bajo la línea de agua del material.
+  - Un material **con `ru`** usa `u = ru·σ_suelo` y **no** recibe el agua libre de la piezométrica.
+  - Un material **sin `ru`** usa la línea piezométrica, y el agua libre sobre el terreno cuenta.
+  - En ambos casos `σ′v = max(0, σ − u)`. **No** incluye sobrecargas ni cargas lineales.
+  - Con el punto sobre un **contacto** entre estratos (a menos de `tol` en y, o en x si el contacto es vertical),
+    `σ′v` es el **mínimo** de los dos materiales: es lo conservador, y el resultado no depende del orden de `regions`
+    ni del espejo x → −x (E14o-5, como E13l-5).
+  - ogs **integra exactamente**, con cortes en el terreno y en los contactos. El oráculo (cSlope) discretiza en
+    200 pasos, lo que da hasta −0,47 % en `T` ([Limitaciones](limitaciones.md#la-discretización-del-oráculo-en-interface)).
 - **Tramo libre de un tirante.** Con `bonded_length`, la integral `∫₀ˢ r` vale 0 en el tramo libre. Sin
   `end1_capacity`, un cruce en el tramo libre tiene `T(s) = 0` y no aplica fuerza: su estado es `no_capacity`
   ([ejemplo](#un-fragmento-por-tipo)). Para que el tramo libre transmita la carga, ponga `end1_capacity` igual a
@@ -588,7 +607,17 @@ ajustada) es un punto `(x_c, y_c)` con su estación `s_c = t_c·L`, y recibe su 
 
 - un elemento que cruza dos veces da **dos fuerzas**, cada una con su `T(s_c)` y su dirección;
 - un cruce en un extremo del elemento (`t_c` igual a 0 o a 1, dentro de `tol`) no cuenta;
-- la fuerza actúa en una dovela fina centrada en `x_c`, con nodos `x_c ± 1e-6·ancho`, como una carga lineal;
+- **un elemento tangente no cruza** (E14o-1). En un círculo, el cruce solo cuenta si el elemento **penetra**: la
+  semicuerda de su recta dentro del círculo debe ser mayor que `tol`, y si entra y sale a menos de `tol` a lo largo del
+  arco, los dos cruces se descartan. En una polilínea, un elemento que toca un vértice sin atravesar la superficie
+  tampoco cuenta. Así un anclaje que apenas roza el círculo no suma fuerzas fantasma, y el FS es continuo entre «no
+  toca», «roza» y «penetra por poco» (antes, `eps_r = 0` y −1e-12 m daban −21 % y +111 % respecto del FS sin
+  refuerzo en V047a);
+- la normal `n` y el movimiento `m` de cada cruce se calculan **en el punto exacto del cruce** (la normal radial del
+  círculo o la dirección del tramo de la polilínea), no con la inclinación de la dovela fina;
+- la fuerza actúa en una dovela fina centrada en `x_c`, con nodos `x_c ± 1e-6·ancho`, como una carga lineal. **No se
+  agregan nodos** para un cruce con capacidad disponible nula ni para uno sobre el terreno, que se deciden antes de
+  rebanar (E14o-11): el FS de un elemento sin capacidad es **exactamente** el del talud sin refuerzo;
 - un cruce sobre una dovela aérea o sobre un bloque descartado no aplica fuerza (estado `outside_mass`).
 
 **Dirección de la fuerza sobre la masa** (E14m-1). Con `s = +1` si el deslizamiento va hacia +x y `s = −1` en caso
@@ -623,8 +652,10 @@ al espejo x → −x.
   Clouterre, 1991, y FHWA GEC 7, más de 2° pasada la normal a la base). Su estado es `compression_ignored` y el informe
   trae la nota `reinforcement_compression_ignored`.
 - Un elemento **activo** se aplica **siempre**, también con `along > 0`, axial y con su fuerza completa: es una carga
-  externa conocida, la de bloqueo. Con `along > 0` la fuerza tiene una componente a favor del deslizamiento, así que
-  aplicarla es lo conservador. **Difiere del binario instalado del oráculo** ([Limitaciones](limitaciones.md#el-activo-comprimido-e14m-1-y-el-oráculo-instalado)).
+  externa conocida, la de bloqueo. **No es siempre conservador** (E14o-8): con `along > 0` la fuerza tiene una
+  componente tangencial a favor del deslizamiento, pero su componente normal confina la base y, con `φ > 0`, **puede
+  subir el FS** ([ejemplo](#un-activo-comprimido-puede-subir-el-fs)). El motor emite la nota informativa
+  `reinforcement_active_compression`. **Difiere del binario instalado del oráculo** ([Limitaciones](limitaciones.md#el-activo-comprimido-e14m-1-e14o-8-y-el-oráculo-instalado)).
 - `pile` y `sheet_pile` **no** tienen regla de compresión.
 
 ### Fuerza activa y pasiva
@@ -636,6 +667,19 @@ al espejo x → −x.
   criterio de cSlope): cada componente entra en las ecuaciones del método con el mismo término que una activa,
   multiplicado por 1/F, con el F que se evalúa. Bishop, Spencer, Morgenstern-Price y Janbu lo aplican en cada
   evaluación de F.
+- **Una fuerza pasiva es resistente** (E14o-3): entra en el equilibrio dividida por F y **no** en la comprobación de
+  `no_driving` (E3), que se evalúa **solo antes de resolver**, con el peso, el sismo, las cargas y las fuerzas
+  **activas**. Un suelo muy blando sostenido sobre todo por pilotes o tablestacas pasivos converge, en vez de
+  rechazarse con `invalid (no_driving)`. Janbu no evalúa E3 con el momento de Bishop.
+- **Bishop con pasivas** (E14o-2): el punto de partida incluye las pasivas, y antes de bisecar se acota el cambio de
+  signo de `h(F) = F·D(F) − N(F)` con una malla geométrica. Un pilote o clavo pasivo con componente vertical ascendente
+  converge (cSlope 3,526 frente a 3,512 de Spencer en el talud 1:1 de R11A-02), en lugar de `invalid ("m_alpha")`.
+- **Janbu corregido con pasivas** (E14o-10): la fuerza pasiva se divide por `F₀` y no por `f₀·F₀`, el mismo criterio
+  con que Janbu trata `c` y `tan φ` y el de cSlope. Consecuencia: activo y pasivo dan el **mismo** FS cuando
+  **`F₀ = 1`**, es decir cuando el FS corregido vale `f₀`, **no** cuando vale 1. Con `f₀ = 1,0456` (V047a), en
+  `FS = 1,0000` el activo da 1,0000 y el pasivo 1,0097; con `c = 4` y `φ = 10°` (`F₀ < 1`), el activo da 0,8603 y el
+  pasivo 0,9043 (cSlope, 0,8601 y 0,9041). Entre `FS = 1` y `FS = f₀` el pasivo supera al activo; no es un error, es
+  el significado de `F₀`.
 - El sismo (`kh` y `kv`) **no** actúa sobre las fuerzas de los refuerzos.
 - Los refuerzos funcionan con **todos** los métodos y con las dos superficies. Bishop sigue limitado a los círculos.
   Con una búsqueda, los cruces y los nodos se calculan para cada candidato, y el círculo crítico puede **esquivar** el
@@ -837,6 +881,29 @@ abajo, que empeora el talud (Bishop 0,9601 frente a 0,9851):
 ]
 ```
 
+#### Un activo comprimido puede subir el FS
+
+Sobre el círculo del ejemplo, un anclaje activo de 100 kN con el eje girado 2° pasada la normal a la base (`along`
+= +0,035), centrado en el cruce (40; 26,973), da **más** FS que el talud sin refuerzo, en vez de menos: Bishop 1,0696
+frente a 0,9851 y Spencer 1,0679 frente a 0,9841 (R11A-08). La fuerza se aplica completa y axial, y su componente
+normal, que confina la base, pesa más que la tangencial mientras `0 < θ < atan(tan φ / F)`. En este círculo, con φ de
+19,6°, el FS sigue por encima del que no tiene refuerzo hasta cerca de θ = 20° (Bishop 1,0546 en 5°, 1,0307 en 10° y
+1,0072 en 15°; en 20° ya baja a 0,9846).
+
+<!-- ogs-fragmento base=refuerzos-ancla-activa ruta=reinforcements esperado=ok esquema=acepta estado=converged fos=bishop:1.0696,spencer:1.0679 fuerzas=applied -->
+```json
+[
+  {
+    "type": "anchor", "id": "A1", "application": "active",
+    "x1": 38.3381, "y1": 31.6891, "x2": 41.6619, "y2": 22.2577,
+    "tensile_capacity": 100, "direction": "axial"
+  }
+]
+```
+
+Si un activo queda del lado empujado, compruebe su orientación y la carga de bloqueo: el pretensado se supone que no se
+relaja.
+
 **Fuera de la masa.** Un anclaje en terreno estable, sin cruces con la superficie, no cambia el FS y trae la nota
 `reinforcement_outside_mass`:
 
@@ -963,6 +1030,7 @@ convergidos y sobre la **superficie final**, no para cada candidato de una búsq
 |---|---|
 | `reinforcement_outside_mass` | Algún refuerzo no tiene cruces con la superficie, o todos sus cruces quedan fuera de la masa |
 | `reinforcement_compression_ignored` | Algún cruce queda en `compression_ignored` |
+| `reinforcement_active_compression` | Un refuerzo **activo** se aplica con su fuerza aunque el deslizamiento lo comprimiría (`along > 0`). Nota informativa: «Un refuerzo activo se aplica con su fuerza aunque el deslizamiento lo comprimiría; en suelos con fricción esa fuerza puede aumentar el FS. Verifique la orientación y la carga de bloqueo.» |
 | `structural_checks_not_covered` | Hay un `pile` o una `sheet_pile` en el modelo, lo crucen o no |
 
 ### Rechazos de los refuerzos

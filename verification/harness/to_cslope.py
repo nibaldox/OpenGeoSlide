@@ -535,24 +535,60 @@ def _unknown(item: dict, allowed: set[str], where: str) -> None:
         raise UnsupportedModel(f"{where} con campos desconocidos: " + ", ".join(unknown))
 
 
-def _pullout_to_cslope(pullout: dict, where: str) -> dict:
+def _non_negative(value: Any, name: str) -> float:
+    """Finite and ``>= 0``, like ``non_negative`` of ``reinforcement.rs`` (F4.2)."""
+    v = _finite(value, name)
+    if v < 0.0:
+        raise UnsupportedModel(f"{name} debe ser mayor o igual que 0, no {value!r}")
+    return v
+
+
+def _positive(value: Any, name: str) -> float:
+    """Finite and ``> 0``, like ``positive`` of ``reinforcement.rs`` (F4.2)."""
+    v = _finite(value, name)
+    if v <= 0.0:
+        raise UnsupportedModel(f"{name} debe ser mayor que 0, no {value!r}")
+    return v
+
+
+def _angle_in_range(value: Any, name: str) -> float:
+    """The ``angle`` of a pile, in the open interval (-90, 90) degrees (E14b)."""
+    v = _finite(value, name)
+    if not -90.0 < v < 90.0:
+        raise UnsupportedModel(f"{name} debe estar en (-90, 90) grados, no {value!r}")
+    return v
+
+
+def _pullout_to_cslope(pullout: dict, where: str, length: float) -> dict:
     kind = pullout.get("model")
     if kind not in _PULLOUT_KEYS:
         raise UnsupportedModel(f"{where}.pullout.model {kind!r} desconocido")
     _unknown(pullout, _PULLOUT_KEYS[kind], f"{where}.pullout")
     if kind == "bond":
-        out: dict[str, Any] = {"kind": "bond", "strength": _finite(pullout.get("strength"), f"{where}.pullout.strength")}
+        out: dict[str, Any] = {"kind": "bond",
+                               "strength": _non_negative(pullout.get("strength"), f"{where}.pullout.strength")}
         if pullout.get("bonded_length") is not None:
-            out["bondedLength"] = _finite(pullout["bonded_length"], f"{where}.pullout.bonded_length")
+            name = f"{where}.pullout.bonded_length"
+            out["bondedLength"] = _positive(pullout["bonded_length"], name)
+            if out["bondedLength"] > length:
+                raise UnsupportedModel(f"{name} debe ser menor o igual que la longitud del elemento {length}, "
+                                       f"no {pullout['bonded_length']!r}")
         return out
     if kind == "interface":
+        name = f"{where}.pullout.friction_angle"
+        friction = _finite(pullout.get("friction_angle"), name)
+        if not 0.0 <= friction < 90.0:
+            raise UnsupportedModel(f"{name} debe estar en [0, 90) grados, no {pullout.get('friction_angle')!r}")
+        name = f"{where}.pullout.coverage"
+        coverage = _finite(pullout.get("coverage"), name)
+        if not 0.0 < coverage <= 1.0:
+            raise UnsupportedModel(f"{name} debe estar en (0, 1], no {pullout.get('coverage')!r}")
         return {"kind": "interface",
-                "adhesion": _finite(pullout.get("adhesion"), f"{where}.pullout.adhesion"),
-                "frictionAngle": _finite(pullout.get("friction_angle"), f"{where}.pullout.friction_angle"),
-                "coverage": _finite(pullout.get("coverage"), f"{where}.pullout.coverage")}
+                "adhesion": _non_negative(pullout.get("adhesion"), f"{where}.pullout.adhesion"),
+                "frictionAngle": friction, "coverage": coverage}
     return {"kind": "development",
-            "length1": _finite(pullout.get("length1"), f"{where}.pullout.length1"),
-            "length2": _finite(pullout.get("length2"), f"{where}.pullout.length2")}
+            "length1": _non_negative(pullout.get("length1"), f"{where}.pullout.length1"),
+            "length2": _non_negative(pullout.get("length2"), f"{where}.pullout.length2")}
 
 
 def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[dict]]:
@@ -586,20 +622,24 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
         if application not in ("active", "passive"):
             raise UnsupportedModel(f"{where}.application debe ser active o passive, no {application!r}")
         geometry = {k: _finite(item.get(k), f"{where}.{k}") for k in ("x1", "y1", "x2", "y2")}
+        length = math.hypot(geometry["x2"] - geometry["x1"], geometry["y2"] - geometry["y1"])
+        if length <= 0.0:
+            raise UnsupportedModel(f"{where} tiene longitud 0: (x1, y1) y (x2, y2) coinciden")
         if kind in TENSION_TYPES:
             _unknown(item, _TENSION_KEYS, where)
             direction = item.get("direction")
             if direction not in ("axial", "tangent", "bisector"):
                 raise UnsupportedModel(f"{where}.direction {direction!r} no es axial, tangent ni bisector")
             out: dict[str, Any] = {**geometry,
-                                   "tensileCapacity": _finite(item.get("tensile_capacity"), f"{where}.tensile_capacity"),
+                                   "tensileCapacity": _non_negative(item.get("tensile_capacity"), f"{where}.tensile_capacity"),
                                    "direction": direction, "application": application}
-            for key, name in (("end1_capacity", "end1Capacity"), ("end2_capacity", "end2Capacity"),
-                              ("spacing", "spacing")):
+            for key, name in (("end1_capacity", "end1Capacity"), ("end2_capacity", "end2Capacity")):
                 if item.get(key) is not None:
-                    out[name] = _finite(item[key], f"{where}.{key}")
+                    out[name] = _non_negative(item[key], f"{where}.{key}")
+            if item.get("spacing") is not None:
+                out["spacing"] = _positive(item["spacing"], f"{where}.spacing")
             if item.get("pullout") is not None:
-                out["pullout"] = _pullout_to_cslope(item["pullout"], where)
+                out["pullout"] = _pullout_to_cslope(item["pullout"], where, length)
             tension.append(out)
         elif kind in PILE_TYPES:
             _unknown(item, _PILE_KEYS if kind == "pile" else _SHEET_KEYS, where)
@@ -608,15 +648,18 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
                 raise UnsupportedModel(f"{where}.direction {direction!r} no es angle, tangent ni perpendicular")
             if (direction == "angle") != (item.get("angle") is not None):
                 raise UnsupportedModel(f"{where}.angle va solo con direction \"angle\"")
-            out = {**geometry, "force": _finite(item.get("force"), f"{where}.force"),
+            if kind == "sheet_pile" and geometry["x1"] != geometry["x2"]:
+                raise UnsupportedModel(f"{where}.x2 debe ser igual a x1 (la tablestaca es vertical), "
+                                       f"no {geometry['x2']} frente a {geometry['x1']}")
+            out = {**geometry, "force": _non_negative(item.get("force"), f"{where}.force"),
                    "direction": direction, "application": application, "location": CSLOPE_PILE_LOCATION}
             if direction == "angle":
-                out["angle"] = _finite(item["angle"], f"{where}.angle")
+                out["angle"] = _angle_in_range(item["angle"], f"{where}.angle")
             if kind == "sheet_pile":
                 out["spacing"] = 1.0
                 out["wall"] = True
             elif item.get("spacing") is not None:
-                out["spacing"] = _finite(item["spacing"], f"{where}.spacing")
+                out["spacing"] = _positive(item["spacing"], f"{where}.spacing")
             piles.append(out)
         else:
             raise UnsupportedModel(f"{where}.type {kind!r} no soportado")
