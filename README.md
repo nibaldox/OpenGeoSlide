@@ -32,6 +32,11 @@ La versión publicada es la **0.2.0**: el motor (Bishop, Spencer, Morgenstern-Pr
 con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.3, la CLI, el editor
 web (PWA), el paquete de Python y las pruebas de aceptación.
 
+El código en desarrollo, **todavía sin publicar** (véase el [registro de cambios](CHANGELOG.md#unreleased)), agrega el
+formato v0.4 con **refuerzos**: anclajes, clavos de suelo, geosintéticos, pilotes y tablestacas, activos y pasivos, con
+su fuerza en cada cruce con la superficie de falla. Con un pilote o una tablestaca calcula la estabilidad **global** con
+el elemento incluido, no su diseño estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
+
 ## Por qué es distinto
 
 - **Está verificado y se puede reproducir.** El motor cumple 213 de 213 checks contra valores publicados (93 casos) y
@@ -136,9 +141,15 @@ Esta batería no cubre todo: véanse las limitaciones.
   Morgenstern-Price y Janbu.
 - **Solo Mohr-Coulomb y no drenado** (Su constante o lineal con la cota); no hay Hoek-Brown ni SHANSEP. Sin análisis de
   deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
-- **Sin refuerzos** (tablestacas, pilotes, anclajes, clavos ni geosintéticos). **No sirve para diseñar muros de tierra
-  mecánicamente estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el
-  muro modelado como una región de suelo.
+- **Refuerzos (formato v0.4, aún sin publicar): solo estabilidad global.** Con un pilote o una tablestaca, el FS incluye
+  su fuerza, que es un dato que usted fija; **no se calcula el empuje sobre el elemento, el empotramiento, el momento
+  flector, la deflexión ni las comprobaciones internas o externas de un muro**. **No sirve para diseñar muros de tierra
+  mecánicamente estabilizada (TEM) ni otras estructuras de contención.** Se posponen Ito-Matsui, el pretensado como
+  campo aparte, la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos
+  lanzados, los anclajes helicoidales y la presión de fluido equivalente.
+- **Con refuerzos, la búsqueda circular puede esquivar el elemento** y su FS es discontinuo; un tirante libre sin placa de
+  cabeza no aplica fuerza (estado `no_capacity`); un refuerzo activo comprimido se aplica con su fuerza completa y el
+  oráculo instalado de cSlope lo descarta; el VP 58 de Slide2 sigue pendiente.
 - **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 93 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
@@ -169,10 +180,12 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
-pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
+pseudo-static seismic loads and surface loads; the unreleased v0.4 format adds reinforcements: anchors, soil nails,
+geosynthetics, piles and sheet piles). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 213/213 published values (93 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces and 71/71 Phase 3a checks. The search is circular only, and it has no
-reinforcement (geosynthetics, anchors, nails, piles, sheet piles), so it is not a tool for designing MSE walls or
+28/28 searches, 28/28 fixed surfaces and 71/71 Phase 3a checks. The search is circular only. With piles or sheet piles it checks the global stability
+with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
+moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
 from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).
 It is not a certified tool: a qualified professional must validate every result.

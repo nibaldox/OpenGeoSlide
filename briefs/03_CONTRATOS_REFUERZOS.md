@@ -437,3 +437,29 @@ Prevalece sobre el texto de F4.2 a F4.13 donde difieran.
   su valor disponible, sin dividir por F.
 - R1-M mide en las filas de aceptación que la escala no cambie ningún FS más de 1e-9 respecto de usar solo ΣW, y lo
   reporta.
+
+## F4.17 Enmiendas de la integración R2 (E14n, decisiones del coordinador)
+
+### E14n-1, clasificación E7d en las dovelas finas de un cruce
+
+- **Hallazgo:** con la promoción, V014 (×2), V035b (×2) y V083 dan `negative_effective_normal_major`.
+  - En V035b con Bishop, la dovela fina del cruce mide 2,6e-5 m y pesa 0,0012 kN. Recibe la fuerza pasiva completa:
+    `passive_h` = −131,3 kN y `passive_driving_extra` = −77,7.
+  - Su N′ concentra esa fuerza puntual sobre una base de 4e-5 m.
+  - Es un artefacto de la discretización de F4.4.2. Los nodos `x_c ± 1e-6·ancho` existen para anular el brazo, no
+    para representar la base que resiste la fuerza.
+  - cSlope aplica la fuerza en la dovela normal que contiene el cruce.
+- **Regla:**
+  - Para **clasificar** la N′ negativa (E7d, E8c y E11f), las dovelas finas de un cruce de refuerzo se **suman** con
+    las dos dovelas vecinas que comparten la dovela original antes de agregar los nodos del cruce. La N′ de esa
+    dovela original es la suma de sus N′.
+  - **Solo cambia la clasificación:** el equilibrio, el FS y las dovelas del informe quedan iguales.
+  - Los nodos de las cargas lineales (E12f) no se agregan; así la salida sin refuerzos queda byte a byte.
+- **Criterios de aceptación**, que el integrador mide antes de dejar el cambio:
+  1. identidad byte a byte de todos los modelos sin refuerzos;
+  2. en los 5 checks, el aviso mayor viene **solo** de dovelas finas de cruce, lo que se demuestra con la lista de
+     dovelas con N′ < 0 antes y después;
+  3. un test en el que un refuerzo produce una tracción real sobre una dovela de ancho normal conserva el aviso mayor:
+     por ejemplo, un ancla activa grande hacia afuera sobre una base de varios metros;
+  4. ningún FS cambia.
+- Si algún criterio falla, los 5 checks quedan retenidos con su número y se reporta.

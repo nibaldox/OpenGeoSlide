@@ -13,14 +13,16 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
 - `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
 - `schema/ogs-0.2.schema.json`: JSON Schema del formato `.ogs.json` v0.2 (agrega `loads` y `analysis.seismic`; acepta también v0.1).
 - `schema/ogs-0.3.schema.json`: JSON Schema del formato `.ogs.json` v0.3 (agrega material no drenado, superficie polilínea,
-  Morgenstern-Price, Janbu y `analysis.interslice`; acepta también v0.1 y v0.2). Es el que valida `docs/tools/`.
+  Morgenstern-Price, Janbu y `analysis.interslice`; acepta también v0.1 y v0.2).
+- `schema/ogs-0.4.schema.json`: JSON Schema del formato `.ogs.json` v0.4 (agrega `reinforcements`: anclajes, clavos,
+  geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3). Es el que valida `docs/tools/`.
 - `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](../apps/web/README.md).
 - `verification/`: casos publicados (`cases/`), checks retenidos (`pending/`), harness y batería diferencial frente a
   cSlope, importador (`tools/import_cslope.py`) y pruebas en Python.
 - `docs/tools/validar_ejemplos.py`: valida los ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) contra el
-  esquema 0.3 y contra `ogs analyze`.
+  esquema 0.4 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces` y avisos).
 - `bench/`: medición de rendimiento (`bench/RESULTS.md`).
-- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`).
+- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`).
 - `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
 
 ## Compilar y probar
@@ -46,7 +48,8 @@ Para la paralelización de la búsqueda en nativo: `cargo build -p ogs-core --fe
 cargo build --release -p ogs-cli
 target/release/ogs analyze examples/acads1a.ogs.json        # informe JSON; sale con código 2 si el modelo es inválido
 
-# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.3.schema.json y contra ogs analyze
+# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.4.schema.json y contra ogs analyze
+# (cada ejemplo y fragmento lleva una marca <!-- ogs-ejemplo ... --> u <!-- ogs-fragmento ... -->; véase el docstring del script)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
 
 # Pruebas en Python (importador de cSlope, esquemas, ida y vuelta de la web con Node 22)
@@ -58,6 +61,24 @@ Los comandos para regenerar los informes de verificación están en [`verificaci
 
 Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
 versión que fija el crate.
+
+## Probar el paquete de Python
+
+Los tests de `crates/ogs-py/tests` (incluido `test_v04.py`, con las filas de refuerzos de X17) corren contra el **wheel
+instalado**, no contra el código fuente. Con `uv`, un wheel de producción y un venv en `$TMPDIR`:
+
+```sh
+export TMPDIR=/ruta/a/un/directorio/temporal
+cd crates/ogs-py
+env -u PYTHONPATH -u PYTHONHOME uv run --python 3.13 --no-project --with maturin maturin build --release --out "$TMPDIR/ogs-py-dist"
+uv venv -p 3.13 "$TMPDIR/ogs-py-venv"
+VIRTUAL_ENV="$TMPDIR/ogs-py-venv" uv pip install --reinstall "$TMPDIR"/ogs-py-dist/*.whl pytest
+cd ../..
+OGS_PY_TEST_HOOKS=0 "$TMPDIR/ogs-py-venv/bin/python" -m pytest crates/ogs-py/tests -q
+```
+
+Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tests de pánico
+necesitan un segundo wheel con `--features test-hooks` ([`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
 
 ## Compilar la web en local
 

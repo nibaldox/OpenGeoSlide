@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.3 y contra el binario `ogs`.
+"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.4 y contra el binario `ogs`.
 
 Uso (desde la raíz del repositorio, con el binario compilado: `cargo build --release -p ogs-cli`):
 
@@ -12,12 +12,15 @@ El documento marca cada ejemplo con un comentario HTML justo antes del bloque ``
         Documento completo. Debe validar contra el esquema y `ogs analyze` debe salir con código 0 y dar ese
         estado en **todos** los métodos del informe (los que no se citan, convergidos). Opcional:
         `fos=<metodo>:<valor>,<metodo>:<valor>` compara el FS a 4 decimales.
+        `fuerzas=<estado>,<estado>` (o `ninguna`): los `status` de `reinforcement_forces`, en orden, deben ser esos en
+        **todos** los métodos. `avisos=<codigo>,<codigo>`: cada código debe estar en `warnings` de todos los métodos.
 
     <!-- ogs-fragmento base=<id> ruta=<a.b.0.c> esperado=ok|error:<subcadena> esquema=acepta|rechaza [estado=...] -->
         Reemplaza el valor de `ruta` en el ejemplo `base` por el JSON del bloque (una lista usa índices) y lo
         corre. `esperado=ok`: `ogs analyze` sale con código 0 (y, si hay `estado=`, todos los métodos dan ese
         estado). `esperado=error:<subcadena>`: sale con código 2 y el mensaje contiene la subcadena (use `~` en
-        lugar de espacio). `esquema=` es lo que debe decir el esquema (`rechaza` = hay errores).
+        lugar de espacio). `esquema=` es lo que debe decir el esquema (`rechaza` = hay errores). Con `esperado=ok`,
+        también valen `fos=`, `fuerzas=` y `avisos=`, con el mismo sentido que en `ogs-ejemplo`.
 
 Sale con código 1 si algo no se cumple.
 """
@@ -55,6 +58,25 @@ def fijar(doc: dict, ruta: str, valor) -> dict:
     return d
 
 
+def comprobar_informe(nombre: str, res: list[dict], at: dict[str, str], fallos: list[str]) -> None:
+    """Comprueba `fos=`, `fuerzas=` y `avisos=` sobre los resultados de `ogs analyze`."""
+    for par in filter(None, at.get("fos", "").split(",")):
+        m, _, v = par.partition(":")
+        r = next((r for r in res if r["method"] == m), None)
+        if r is None or r["fos"] is None or round(r["fos"], 4) != round(float(v), 4):
+            fallos.append(f"[{nombre}] FS de {m}: {None if r is None else r['fos']}, se esperaba {v}")
+    if "fuerzas" in at:
+        esperado = [] if at["fuerzas"] == "ninguna" else at["fuerzas"].split(",")
+        for r in res:
+            obtenido = [f["status"] for f in r.get("reinforcement_forces", [])]
+            if obtenido != esperado:
+                fallos.append(f"[{nombre}] {r['method']}: reinforcement_forces {obtenido}, se esperaba {esperado}")
+    for cod in filter(None, at.get("avisos", "").split(",")):
+        for r in res:
+            if cod not in r["warnings"]:
+                fallos.append(f"[{nombre}] {r['method']}: falta el aviso {cod} en {r['warnings']}")
+
+
 def correr(ogs: str, doc: dict) -> subprocess.CompletedProcess:
     with tempfile.NamedTemporaryFile("w", suffix=".ogs.json", delete=False) as f:
         json.dump(doc, f)
@@ -69,7 +91,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ogs", default="target/release/ogs")
     ap.add_argument("--doc", default="docs/formato-ogs-json.md")
-    ap.add_argument("--schema", default="schema/ogs-0.3.schema.json")
+    ap.add_argument("--schema", default="schema/ogs-0.4.schema.json")
     a = ap.parse_args()
 
     validador = Draft202012Validator(json.loads(Path(a.schema).read_text()))
@@ -99,11 +121,7 @@ def main() -> int:
             for r in res:
                 if r["status"] != est or (cod and cod not in r["warnings"]):
                     fallos.append(f"[{nombre}] {r['method']}: estado {r['status']} {r['warnings']}, se esperaba {esperado}")
-            for par in filter(None, at.get("fos", "").split(",")):
-                m, _, v = par.partition(":")
-                r = next((r for r in res if r["method"] == m), None)
-                if r is None or r["fos"] is None or round(r["fos"], 4) != round(float(v), 4):
-                    fallos.append(f"[{nombre}] FS de {m}: {None if r is None else r['fos']}, se esperaba {v}")
+            comprobar_informe(nombre, res, at, fallos)
             print(f"ejemplo {nombre}: esquema OK, ogs " + ", ".join(f"{r['method']} {r['status']}" + (f" {r['fos']:.4f}" if r["fos"] else "") for r in res))
         else:
             n_fr += 1
@@ -121,11 +139,14 @@ def main() -> int:
             if esp == "ok":
                 if p.returncode != 0:
                     fallos.append(f"[{nombre}] ogs salió con {p.returncode}: {p.stderr.strip()[:200]}")
-                elif "estado" in at:
-                    est, _, cod = at["estado"].partition(":")
-                    for r in json.loads(p.stdout)["results"]:
-                        if r["status"] != est or (cod and cod not in r["warnings"]):
-                            fallos.append(f"[{nombre}] {r['method']}: estado {r['status']} {r['warnings']}, se esperaba {at['estado']}")
+                else:
+                    res = json.loads(p.stdout)["results"]
+                    if "estado" in at:
+                        est, _, cod = at["estado"].partition(":")
+                        for r in res:
+                            if r["status"] != est or (cod and cod not in r["warnings"]):
+                                fallos.append(f"[{nombre}] {r['method']}: estado {r['status']} {r['warnings']}, se esperaba {at['estado']}")
+                    comprobar_informe(nombre, res, at, fallos)
             else:
                 sub = esp.split(":", 1)[1].replace("~", " ")
                 if p.returncode != 2 or sub not in p.stderr:

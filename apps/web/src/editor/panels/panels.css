@@ -70,6 +70,14 @@ ul.ep-error-list {
   gap: 0 12px;
 }
 
+.ep-field.ep-wide {
+  grid-column: 1 / -1;
+}
+
+.ep-wide select {
+  width: 100%;
+}
+
 .ep-radios {
   display: flex;
   gap: 16px;

@@ -32,7 +32,7 @@ VIRTUAL_ENV="$TMPDIR/ogs-py-venv-hooks" uv pip install "$TMPDIR"/ogs-py-dist-hoo
 ```python
 import opengeoslide
 
-opengeoslide.version()                  # "0.1.0": versión de ogs-core
+opengeoslide.version()                  # p. ej. "0.2.0": versión de ogs-core
 report_json = opengeoslide.analyze_json(model_json)   # str en, str (JSON del informe) fuera
 report = opengeoslide.analyze(model)    # dict en, dict fuera (envoltorio sobre analyze_json)
 ```
@@ -97,6 +97,60 @@ Los estados `invalid` (`polyline_no_ground_crossing`, `polyline_outside_ground`)
 FS y el motivo va en `warnings`. Los códigos de aviso de la Fase 3a están en el docstring del paquete y en
 `docs/formato-ogs-json.md`.
 
+### Ejemplo con refuerzos (esquema v0.4)
+
+`reinforcements` exige `"version": "0.4"`. Hay cinco tipos (`anchor`, `nail`, `geosynthetic`, `pile` y `sheet_pile`), cada
+uno activo o pasivo (`application`, obligatorio). Este es el ejemplo de la tablestaca anclada de
+[`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md#ejemplo-completo-una-tablestaca-anclada): una `sheet_pile`
+pasiva de 120 kN por metro de muro y un `anchor` activo con un bulbo `bond` en los últimos 10 m, sobre ACADS 1(a) con
+su círculo fijo.
+
+```python
+import json
+import opengeoslide
+
+model = json.load(open("examples/acads1a.ogs.json"))
+model["version"] = "0.4"
+model["slope"] = {"direction": "right_to_left"}
+del model["analysis"]["search"]
+model["analysis"]["surface"] = {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704}
+model["reinforcements"] = [
+    {"type": "sheet_pile", "id": "tablestaca", "application": "passive",
+     "x1": 40, "y1": 33, "x2": 40, "y2": 22, "force": 120, "direction": "angle", "angle": 0},
+    {"type": "anchor", "id": "tirante", "application": "active",
+     "x1": 40, "y1": 29, "x2": 64, "y2": 22.8, "tensile_capacity": 300, "end1_capacity": 300, "spacing": 2.5,
+     "direction": "axial", "pullout": {"model": "bond", "strength": 20, "bonded_length": 10}},
+]
+
+for r in opengeoslide.analyze(model)["results"]:
+    print(r["method"], r["status"], round(r["fos"], 4), r["warnings"])
+    for f in r["reinforcement_forces"]:
+        print("  ", f["id"], f["status"], round(f["x"], 2), round(f["available"], 1), round(f["fx"], 1), round(f["fy"], 1))
+# bishop converged 1.598 ['structural_checks_not_covered', 'truncated_mass']
+#    tablestaca applied 40.0 120.0 120.0 0.0
+#    tirante applied 42.84 80.0 77.5 -20.0
+# spencer converged 1.5921 ['structural_checks_not_covered', 'truncated_mass']
+#    tablestaca applied 40.0 120.0 120.0 0.0
+#    tirante applied 42.84 80.0 77.5 -20.0
+```
+
+- **`reinforcement_forces`** (en cada `results[i]`, solo sobre la superficie final; se omite sin refuerzos): una entrada
+  por cruce con `id`, `crossing`, `x`, `y`, `station`, `available` (por metro), `fx` y `fy` (la fuerza aplicada por metro,
+  en coordenadas del modelo con y hacia arriba; en un pasivo, antes de dividir por F), `application` y `status`
+  (`applied`, `outside_mass`, `compression_ignored` o `no_capacity`).
+- **Notas informativas** en `warnings`: `reinforcement_outside_mass`, `reinforcement_compression_ignored` y
+  `structural_checks_not_covered`. `no_capacity` no emite nota.
+- **Rechazos** como `ValueError`, con la ruta JSON del campo: `InvalidModel: reinforcements[0].pullout.coverage debe
+  estar en (0, 1], no 1.5`, o `reinforcements requiere version "0.4"` con una versión menor. `pile` y `sheet_pile` no
+  admiten `location`.
+- **Límite estructural.** Con un `pile` o una `sheet_pile`, OpenGeoSlide calcula la estabilidad **global** con el
+  elemento incluido como una fuerza dada. **No** calcula el empuje sobre el elemento, el empotramiento, el momento flector,
+  la deflexión ni las comprobaciones internas o externas de un muro
+  ([Limitaciones](../../docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
+- Con una **búsqueda** (`analysis.search`), el círculo crítico puede esquivar el refuerzo: si el resultado trae
+  `reinforcement_outside_mass`, el FS mínimo es el de una superficie que no lo cruza
+  ([Limitaciones](../../docs/limitaciones.md#la-búsqueda-con-refuerzos-tiene-discontinuidades)).
+
 ## Pánicos
 
 Un pánico de Rust dentro del motor **no** aborta el intérprete. `analyze_json` lo captura con
@@ -113,7 +167,10 @@ OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 ```
 
 `tests/test_v03.py` cubre el formato v0.3 (polilínea, no drenado, M-P, Janbu y el aviso de E13k) con valores de cSlope
-0.1.0. Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
+0.1.0. `tests/test_v04.py` cubre el formato v0.4: las 32 filas de `docs/fase3/exploracion/X17.md` (siete de F4.13, 16 de
+dirección inclinada y nueve de capacidad) contra el oráculo, con los cinco tipos y los tres modelos de `pullout`, los
+estados de `reinforcement_forces` (`applied`, `outside_mass`, `compression_ignored` y `no_capacity`), las tres notas
+nuevas, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON. Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
 ## Licencia
