@@ -463,3 +463,21 @@ Prevalece sobre el texto de F4.2 a F4.13 donde difieran.
      por ejemplo, un ancla activa grande hacia afuera sobre una base de varios metros;
   4. ningún FS cambia.
 - Si algún criterio falla, los 5 checks quedan retenidos con su número y se reporta.
+
+### E14n-1b, resultado medido y decisión
+
+I1b midió el criterio 2 en cada check por separado:
+- **V014, Janbu corregido (×2):** el aviso mayor venía **solo** de 8 dovelas finas de cruce de 7,6e-5 m. Con E14n-1
+  quedan 0 dovelas con N′ < 0 y no hay aviso. **Es el artefacto.**
+- **V035b, Bishop (×2) y V083, Janbu corregido:** las N′ < 0 están en dovelas **normales**, de 0,133 m y 0,126 m, y son
+  las mismas con E14n-1 y sin él. **El modelo sin refuerzos también da el aviso mayor.** Es una tracción real del
+  modelo, no un artefacto.
+
+**Decisión:** E14n-1 **se adopta**, porque el mecanismo es correcto donde existe el artefacto.
+- Cumple los criterios 1, 3 y 4: identidad byte a byte sin refuerzos, conserva el aviso con una tracción real sobre
+  bases normales, y ningún FS cambia.
+- El criterio 2 se evalúa por check. V014 vuelve a `verification/cases`.
+- V035b y V083 quedan **retenidos** por `negative_effective_normal_major`, igual que V027, V028 y V068, con la causa
+  «tracción real del modelo, presente también sin refuerzos».
+- Efecto adicional medido: en V010 con M-P y en V014 con Spencer desaparece la nota `negative_effective_normal`, que
+  venía de dovelas finas de cruce. El FS es idéntico.
