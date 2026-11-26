@@ -78,6 +78,9 @@ OGS_INFORMATIVE_WARNINGS = (
     "negative_lambda",
     "load_outside_mass",
     "multiple_admissible_roots",
+    "reinforcement_outside_mass",
+    "reinforcement_compression_ignored",
+    "structural_checks_not_covered",
 )
 
 

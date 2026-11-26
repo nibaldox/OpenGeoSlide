@@ -1,9 +1,10 @@
-//! `.ogs.json` model v0.1, v0.2 and v0.3 (contract §1, amendments E12a and E13a). Field names are snake_case and
+//! `.ogs.json` model v0.1, v0.2, v0.3 and v0.4 (contract §1, amendments E12a, E13a and E14a-E14b). Field names are snake_case and
 //! frozen. Angles are in degrees. Units are not converted by the engine.
 //!
 //! v0.2 adds `loads` (surface loads) and `analysis.seismic` (pseudo-static `kh`, `kv`). v0.3 adds the undrained
-//! material, the polyline surface, the methods Morgenstern-Price and Janbu, and `analysis.interslice`. A document
-//! without the fields of a later version gives the same result in every version.
+//! material, the polyline surface, the methods Morgenstern-Price and Janbu, and `analysis.interslice`. v0.4 adds
+//! `reinforcements` (anchors, nails, geosynthetics, piles and sheet piles). A document without the fields of a later
+//! version gives the same result in every version.
 
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +20,8 @@ pub const FORMAT_VERSION_V02: &str = "0.2";
 /// Version that admits the undrained material, the polyline surface, `morgenstern_price`, `janbu_simplified`,
 /// `janbu_corrected` and `analysis.interslice` (amendment E13a).
 pub const FORMAT_VERSION_V03: &str = "0.3";
+/// Version that admits `reinforcements` (amendment E14a).
+pub const FORMAT_VERSION_V04: &str = "0.4";
 
 fn default_water_unit_weight() -> f64 {
     9.81
@@ -41,6 +44,9 @@ pub struct Model {
     /// Surface loads (v0.2). Empty when absent; a non-empty list needs `version: "0.2"`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub loads: Vec<Load>,
+    /// Reinforcements (v0.4, E14b). Empty when absent; a non-empty list needs `version: "0.4"`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reinforcements: Vec<Reinforcement>,
     #[serde(default)]
     pub slope: SlopeSettings,
     #[serde(default)]
@@ -153,6 +159,218 @@ pub struct LineLoad {
     pub p: f64,
     #[serde(default)]
     pub angle: f64,
+}
+
+// ------------------------------------------------------------------------------------------------ reinforcements
+
+/// How a reinforcement acts (E14b): `Active` is a known external force (not divided by `F`), `Passive` is mobilised
+/// by the sliding (divided by `F`). Required in every reinforcement, with no default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Application {
+    Active,
+    Passive,
+}
+
+/// Direction of the force of an `anchor`, a `nail` or a `geosynthetic` (E14b; the exact vectors are E14e, X17).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TensionDirection {
+    Axial,
+    Tangent,
+    Bisector,
+}
+
+/// Direction of the force of a `pile` or a `sheet_pile`. `Angle` needs the field `angle`; the other two forbid it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PileDirection {
+    Angle,
+    Tangent,
+    Perpendicular,
+}
+
+/// Where the force of a `pile` or a `sheet_pile` is applied (E14b; semantics in E14h, X17).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PileLocation {
+    SlipSurface,
+    Centroid,
+}
+
+/// Pull-out model of a tension element (E14b), tagged by `model`. Without it the element is fully anchored at both
+/// ends: `T(s) = tensile_capacity`.
+///
+/// - `bond`: `strength` is the force per metre of element; with `bonded_length` only the last `ℓ ≤ L` metres towards
+///   the tip (end 2) are bonded;
+/// - `interface`: soil-geosynthetic interaction on both faces (formula: E14c, X17);
+/// - `development`: the capacity grows linearly from each end to `tensile_capacity` over `length1` and `length2`
+///   (shape: E14c, X17).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "model", rename_all = "snake_case", deny_unknown_fields)]
+pub enum Pullout {
+    Bond {
+        strength: f64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bonded_length: Option<f64>,
+    },
+    Interface {
+        adhesion: f64,
+        friction_angle: f64,
+        coverage: f64,
+    },
+    Development {
+        length1: f64,
+        length2: f64,
+    },
+}
+
+/// `anchor`, `nail` and `geosynthetic` (E14b): a segment from the head `(x1, y1)` to the tip `(x2, y2)`.
+/// Forces are per element; the force per metre of slope is divided by `spacing` (1 by default).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TensionElement {
+    pub id: String,
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub application: Application,
+    /// Cap of the bar or strip, per element, ≥ 0.
+    pub tensile_capacity: f64,
+    /// Plate or anchor at the head, ≥ 0 (0 by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end1_capacity: Option<f64>,
+    /// Anchor at the tip, ≥ 0 (0 by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end2_capacity: Option<f64>,
+    /// Out-of-plane centre-to-centre spacing, > 0 (1 by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<f64>,
+    pub direction: TensionDirection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pullout: Option<Pullout>,
+}
+
+/// `pile` (E14b): a vertical or inclined shear element with a constant force per pile; the head is the upper end.
+/// `angle` (degrees in (−90, 90), 0 horizontal) is required with `direction: "angle"` and forbidden otherwise; the
+/// engine checks it (`reinforcement::validate`), not serde.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Pile {
+    pub id: String,
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub application: Application,
+    /// Constant shear force per pile, ≥ 0.
+    pub force: f64,
+    /// Out-of-plane centre-to-centre spacing, > 0 (1 by default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spacing: Option<f64>,
+    pub direction: PileDirection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angle: Option<f64>,
+    pub location: PileLocation,
+}
+
+/// `sheet_pile` (E14b): a continuous row of piles, vertical (`x1 = x2`). `force` is per metre of wall, with no
+/// `spacing`. `angle` as in [`Pile`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SheetPile {
+    pub id: String,
+    pub x1: f64,
+    pub y1: f64,
+    pub x2: f64,
+    pub y2: f64,
+    pub application: Application,
+    /// Constant shear force per metre of wall, ≥ 0.
+    pub force: f64,
+    pub direction: PileDirection,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub angle: Option<f64>,
+    pub location: PileLocation,
+}
+
+/// Reinforcement (v0.4, E14b). Serialized with a `"type"` tag: `anchor`, `nail`, `geosynthetic`, `pile` or
+/// `sheet_pile`. Needs `version: "0.4"` (E14a).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum Reinforcement {
+    Anchor(TensionElement),
+    Nail(TensionElement),
+    Geosynthetic(TensionElement),
+    Pile(Pile),
+    SheetPile(SheetPile),
+}
+
+impl Reinforcement {
+    /// Name of the type, as written in the JSON.
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Reinforcement::Anchor(_) => "anchor",
+            Reinforcement::Nail(_) => "nail",
+            Reinforcement::Geosynthetic(_) => "geosynthetic",
+            Reinforcement::Pile(_) => "pile",
+            Reinforcement::SheetPile(_) => "sheet_pile",
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        match self {
+            Reinforcement::Anchor(t) | Reinforcement::Nail(t) | Reinforcement::Geosynthetic(t) => {
+                &t.id
+            }
+            Reinforcement::Pile(p) => &p.id,
+            Reinforcement::SheetPile(p) => &p.id,
+        }
+    }
+
+    /// Head `(x1, y1)` and tip `(x2, y2)`.
+    pub fn ends(&self) -> (Point, Point) {
+        let (x1, y1, x2, y2) = match self {
+            Reinforcement::Anchor(t) | Reinforcement::Nail(t) | Reinforcement::Geosynthetic(t) => {
+                (t.x1, t.y1, t.x2, t.y2)
+            }
+            Reinforcement::Pile(p) => (p.x1, p.y1, p.x2, p.y2),
+            Reinforcement::SheetPile(p) => (p.x1, p.y1, p.x2, p.y2),
+        };
+        ([x1, y1], [x2, y2])
+    }
+
+    pub fn application(&self) -> Application {
+        match self {
+            Reinforcement::Anchor(t) | Reinforcement::Nail(t) | Reinforcement::Geosynthetic(t) => {
+                t.application
+            }
+            Reinforcement::Pile(p) => p.application,
+            Reinforcement::SheetPile(p) => p.application,
+        }
+    }
+
+    /// Length `L = ‖(x2 − x1, y2 − y1)‖`.
+    pub fn length(&self) -> f64 {
+        let ([x1, y1], [x2, y2]) = self.ends();
+        (x2 - x1).hypot(y2 - y1)
+    }
+
+    /// True for `pile` and `sheet_pile` (the note `structural_checks_not_covered`, E14h).
+    pub fn is_pile(&self) -> bool {
+        matches!(self, Reinforcement::Pile(_) | Reinforcement::SheetPile(_))
+    }
+
+    /// `spacing` with its default of 1; a `sheet_pile` has none, so 1.
+    pub fn spacing(&self) -> f64 {
+        match self {
+            Reinforcement::Anchor(t) | Reinforcement::Nail(t) | Reinforcement::Geosynthetic(t) => {
+                t.spacing.unwrap_or(1.0)
+            }
+            Reinforcement::Pile(p) => p.spacing.unwrap_or(1.0),
+            Reinforcement::SheetPile(_) => 1.0,
+        }
+    }
 }
 
 /// Pseudo-static seismic coefficients (v0.2). Both default to 0.

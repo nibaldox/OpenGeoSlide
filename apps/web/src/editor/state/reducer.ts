@@ -276,6 +276,10 @@ function applyCommandRaw(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
       if (!inRange(cmd.index, loads.length)) return null;
       return { ...doc, loads: loads.filter((_, i) => i !== cmd.index) };
     }
+    // Refuerzos (v0.4): los tipos están congelados (R0); la edición la implementa la ola web. Mientras tanto el comando es inválido.
+    case 'reinforcement/upsert':
+    case 'reinforcement/remove':
+      return null;
     case 'doc/replace':
     case 'doc/load': {
       if (typeof cmd.doc !== 'object' || cmd.doc === null) return null;
@@ -323,6 +327,9 @@ export function isSelectionValid(sel: Selection, doc: ModelDoc): boolean {
       return doc.analysis.search !== undefined && doc.analysis.search !== null;
     case 'load':
       return inRange(sel.index, doc.loads?.length ?? 0);
+    case 'reinforcement':
+    case 'reinforcement_end':
+      return inRange(sel.index, doc.reinforcements?.length ?? 0);
   }
 }
 

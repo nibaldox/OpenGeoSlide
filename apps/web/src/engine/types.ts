@@ -1,6 +1,6 @@
 // Tipos fieles a briefs/00_CONTRATOS.md: §1 (modelo .ogs.json), §2 (caso de verificación)
 // y §3 (AnalysisReport), con las enmiendas de briefs/01_CONTRATOS_FASE1.md (v0.2) y
-// briefs/02_CONTRATOS_FASE3.md (v0.3, F3.1-F3.7). Los nombres son snake_case, igual que el JSON del motor.
+// briefs/02_CONTRATOS_FASE3.md (v0.3, F3.1-F3.7) y briefs/03_CONTRATOS_REFUERZOS.md (v0.4, F4.1-F4.2 y F4.9). Los nombres son snake_case, igual que el JSON del motor.
 // Los campos marcados como opcionales son los que tienen default en el motor (#[serde(default)]).
 
 export type Point = [number, number];
@@ -134,6 +134,97 @@ export interface LineLoad {
 /** Carga externa (v0.2), discriminada por `type`. */
 export type Load = UdlLoad | LineLoad;
 
+/** Refuerzo (v0.4, F4.2). `active` es una fuerza conocida; `passive` se moviliza con el deslizamiento (se divide por F). Obligatorio. */
+export type ReinforcementApplication = 'active' | 'passive';
+
+/** Dirección de la fuerza de `anchor`, `nail` y `geosynthetic` (F4.2). Obligatoria. */
+export type TensionDirection = 'axial' | 'tangent' | 'bisector';
+
+/** Dirección de la fuerza de `pile` y `sheet_pile` (F4.2). `angle` exige el campo `angle` y los otros dos lo prohíben. */
+export type PileDirection = 'angle' | 'tangent' | 'perpendicular';
+
+/** Dónde actúa la fuerza de un pilote o una tablestaca (F4.2). Obligatorio. */
+export type PileLocation = 'slip_surface' | 'centroid';
+
+/** Modelo de arrancamiento, etiquetado por `model` (F4.2). Sin `pullout`, el elemento está totalmente anclado en ambos extremos. */
+export type Pullout =
+  | {
+      model: 'bond';
+      /** Fuerza por metro de elemento, ≥ 0. */
+      strength: number;
+      /** > 0 y ≤ L: la adherencia actúa solo en los últimos metros hacia la punta (extremo 2). Sin él, en todo el elemento. */
+      bonded_length?: number | null;
+    }
+  | {
+      model: 'interface';
+      /** ≥ 0. */
+      adhesion: number;
+      /** Grados en [0, 90). */
+      friction_angle: number;
+      /** En (0, 1]. */
+      coverage: number;
+    }
+  | {
+      model: 'development';
+      /** ≥ 0: la capacidad crece linealmente desde la cabeza hasta `tensile_capacity` en esta longitud. */
+      length1: number;
+      /** ≥ 0: igual, desde la punta. */
+      length2: number;
+    };
+
+/** Campos comunes de todo refuerzo (v0.4). Cabeza (x1, y1) y punta (x2, y2): longitud L > 0. */
+export interface ReinforcementBase {
+  /** No vacío y único en `reinforcements`. */
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  application: ReinforcementApplication;
+}
+
+/** `anchor`, `nail` y `geosynthetic` (v0.4). Fuerzas por elemento; `spacing` las pasa a fuerza por metro de talud. */
+export interface TensionReinforcement extends ReinforcementBase {
+  type: 'anchor' | 'nail' | 'geosynthetic';
+  /** ≥ 0. Tope de la barra o tira, por elemento. */
+  tensile_capacity: number;
+  /** ≥ 0, por defecto 0. Placa o anclaje en la cabeza. */
+  end1_capacity?: number | null;
+  /** ≥ 0, por defecto 0. Anclaje en la punta. */
+  end2_capacity?: number | null;
+  /** > 0, por defecto 1. Espaciamiento fuera del plano, centro a centro. */
+  spacing?: number | null;
+  direction: TensionDirection;
+  pullout?: Pullout | null;
+}
+
+/** `pile` (v0.4): fuerza de corte constante por pilote. */
+export interface PileReinforcement extends ReinforcementBase {
+  type: 'pile';
+  /** ≥ 0, por pilote. */
+  force: number;
+  /** > 0, por defecto 1. */
+  spacing?: number | null;
+  direction: PileDirection;
+  /** Grados en (−90, 90) sobre la horizontal (0 es horizontal). Obligatorio solo con `direction: "angle"`; prohibido con las otras. */
+  angle?: number | null;
+  location: PileLocation;
+}
+
+/** `sheet_pile` (v0.4): una fila continua de pilotes, vertical (x1 = x2). `force` es por metro de muro; no hay `spacing`. */
+export interface SheetPileReinforcement extends ReinforcementBase {
+  type: 'sheet_pile';
+  /** ≥ 0, por metro de muro. */
+  force: number;
+  direction: PileDirection;
+  /** Como en `pile`. */
+  angle?: number | null;
+  location: PileLocation;
+}
+
+/** Refuerzo (v0.4, F4.2), discriminado por `type`. Exige version "0.4". */
+export type Reinforcement = TensionReinforcement | PileReinforcement | SheetPileReinforcement;
+
 export interface AnalysisSettings {
   /** Por defecto ["bishop"]. */
   methods?: MethodKind[];
@@ -152,7 +243,7 @@ export interface AnalysisSettings {
 
 export interface Model {
   format: string;
-  version: '0.1' | '0.2' | '0.3';
+  version: '0.1' | '0.2' | '0.3' | '0.4';
   meta: Meta;
   units?: string;
   materials: Material[];
@@ -160,6 +251,8 @@ export interface Model {
   water?: Water | null;
   /** Solo con version "0.2". Va después de `water` y antes de `slope`. */
   loads?: Load[];
+  /** Solo con version "0.4" (F4.1). Va después de `loads` y antes de `slope`. */
+  reinforcements?: Reinforcement[];
   slope?: SlopeSettings;
   analysis: AnalysisSettings;
 }
@@ -228,6 +321,15 @@ export interface Slice {
   driving_extra: number;
   /** Ordenada ȳ del centroide del suelo de la dovela, ponderado por peso. Solo se calcula con kh > 0; en otro caso es 0. */
   y_centroid: number;
+  // Campos de E14g (v0.4): fuerzas de los refuerzos pasivos, antes de dividir por F. El motor los omite cuando valen 0.
+  /** Fuerza vertical pasiva, hacia abajo, antes de dividir por F. */
+  passive_v?: number;
+  /** Fuerza horizontal pasiva en el sentido del deslizamiento, antes de dividir por F. */
+  passive_h?: number;
+  /** Momento de `passive_h` respecto del punto medio de la base, antes de dividir por F. */
+  passive_h_moment_base?: number;
+  /** Aporte de `passive_h` al momento motor respecto del centro, dividido por el radio y antes de dividir por F. */
+  passive_driving_extra?: number;
 }
 
 /** Superficie de un informe con polilínea (F3.7): la polilínea ajustada, ya prolongada o recortada al terreno. */
@@ -237,6 +339,29 @@ export interface PolylineReportSurface {
 
 /** `surface` del informe, untagged: `{xc, yc, r}` para un círculo o `{points}` para una polilínea. */
 export type ReportSurface = Circle | PolylineReportSurface;
+
+/** Estado de un cruce de un refuerzo con la superficie final (F4.9). */
+export type ReinforcementForceStatus = 'applied' | 'outside_mass' | 'compression_ignored';
+
+/**
+ * Fuerza de un refuerzo en un cruce con la superficie final, por metro de talud (v0.4, F4.9). `fx` y `fy` son la fuerza
+ * aplicada; en un pasivo es la disponible, antes de dividir por F («pasiva: se moviliza dividida por F»).
+ */
+export interface ReinforcementForce {
+  id: string;
+  /** Orden del cruce a lo largo del elemento desde la cabeza (0, 1…). */
+  crossing: number;
+  x: number;
+  y: number;
+  /** Distancia a la cabeza a lo largo del elemento. */
+  station: number;
+  /** T(s_c) por metro, o la fuerza del pilote por metro. */
+  available: number;
+  fx: number;
+  fy: number;
+  application: ReinforcementApplication;
+  status: ReinforcementForceStatus;
+}
 
 export interface MethodReport {
   method: MethodKind;
@@ -253,6 +378,8 @@ export interface MethodReport {
   correction_factor?: number;
   /** Función de fuerzas entre dovelas usada. Solo existe con `morgenstern_price` (F3.7). */
   interslice?: IntersliceSpec;
+  /** Fuerzas de los refuerzos en la superficie final (v0.4, F4.9); el motor lo omite si está vacío. Solo en métodos convergidos. */
+  reinforcement_forces?: ReinforcementForce[];
 }
 
 export interface AnalysisReport {
