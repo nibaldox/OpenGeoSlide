@@ -9,10 +9,10 @@
 //!   result in v0.1 and in v0.2.
 //! - v0.3 (amendments E13a-E13g): the `undrained` material (`strength`), the polyline surface (`surface`), the
 //!   methods `morgenstern_price`, `janbu_simplified` and `janbu_corrected`, and `analysis.interslice`. The format,
-//!   the version gate and the validations are complete; the polyline and the new methods stop at `unimplemented!`
-//!   stubs (`F3-W1a`, `F3-W1b`) until their wave.
+//!   the version gate and the validations are complete. The fixed polyline (E13c) is fitted to the ground, sliced and
+//!   solved here; the new methods stop at an `unimplemented!` stub (`F3-W1b`, in `methods::solve`) until their wave.
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
-//! - Slices circular surfaces (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
+//! - Slices circular surfaces and fixed polylines (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
 //! - Searches the critical circle with the circular entry/exit search (`search`, §4.4).
 //! - Reports one `MethodReport` per method (`report`). `fos` is `None` when it is not finite; the
@@ -39,7 +39,7 @@ use model::{
 };
 use report::{AnalysisReport, MethodReport};
 use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings, search_circular};
-use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_with};
+use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_of};
 use surface::{Surface, validate_polyline};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -97,8 +97,9 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
         tolerance: analysis.tolerance,
         max_iterations: analysis.max_iterations,
         min_m_alpha: analysis.min_m_alpha,
-        // F3-W1a: `false` when the analysed surface is a polyline (E13f).
-        circular: true,
+        // E13f: the analysed surface is a polyline only when it is fixed and there is no search (`search` wins).
+        circular: !(analysis.search.is_none()
+            && matches!(analysis.surface, Some(SurfaceSpec::Polyline { .. }))),
     };
     let results = analysis
         .methods
@@ -336,15 +337,6 @@ fn analyze_method(
     let analysis = &model.analysis;
     let n = analysis.slices;
 
-    // Wave 0 stubs (interfaces frozen, behavior in wave 1): the polyline surface (F3-W1a) and the methods of v0.3
-    // (F3-W1b) are validated and parsed, and stop here. Bishop and Spencer on a circle keep their code unchanged.
-    if analysis.search.is_none() && matches!(analysis.surface, Some(SurfaceSpec::Polyline { .. })) {
-        unimplemented!("F3-W1a");
-    }
-    if !matches!(method, MethodKind::Bishop | MethodKind::Spencer) {
-        unimplemented!("F3-W1b");
-    }
-
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
@@ -369,16 +361,33 @@ fn analyze_method(
         (None, Some(spec)) => (Surface::from_spec(spec), None),
         (None, None) => return Err(OgsError::NoSurface),
     };
-    // The slicer still works on circles; F3-W1a rewires it to `Surface`.
-    let Surface::Circle(circle) = &surface else {
-        unimplemented!("F3-W1a");
+    // E13c: a fixed polyline is fitted to the ground (extended or trimmed at each end) and the report carries the
+    // fitted one. If it cannot be fitted, the method is `Invalid` with the reason, like any method on a fixed surface
+    // that fails, and the report keeps the polyline as it was written, with no slices.
+    let declared = surface;
+    let surface = match declared.fit_to_ground(pm) {
+        Ok(fitted) => fitted,
+        Err(reason) => {
+            return Ok(MethodReport {
+                method,
+                fos: None,
+                status: SolveStatus::Invalid,
+                iterations: 0,
+                lambda: None,
+                surface: declared.to_report(),
+                slices: Vec::new(),
+                search,
+                warnings: vec![reason.to_string()],
+                correction_factor: None,
+                interslice: interslice_report(analysis, method),
+            });
+        }
     };
-    let circle = *circle;
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
-    let sliced = slice_surface_with(pm, &circle, n, load_case)
-        .map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
+    let sliced = slice_surface_of(pm, &surface, n, load_case)
+        .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let slices = sliced.slices;
     let result = solve(&slices, method, opts);
 
@@ -454,7 +463,18 @@ fn water_over_ground(pm: &PreparedModel, slices: &[Slice]) -> bool {
 }
 
 /// Spanish reason for a surface that cannot be sliced.
-fn surface_reason(e: SurfaceError) -> String {
+fn surface_reason(e: SurfaceError, surface: &Surface) -> String {
+    if surface.is_polyline() {
+        return match e {
+            SurfaceError::NoIntersection => "la polilínea no corta el terreno".to_string(),
+            SurfaceError::UpperArc | SurfaceError::AboveGround => {
+                "la polilínea sale sobre el terreno entre la entrada y la salida".to_string()
+            }
+            SurfaceError::OutsideModel => "la polilínea sale del modelo".to_string(),
+            SurfaceError::TooFewSlices => "número de dovelas insuficiente".to_string(),
+            SurfaceError::NoMaterial => "alguna dovela de la base no tiene material".to_string(),
+        };
+    }
     match e {
         SurfaceError::NoIntersection => "el círculo no corta el terreno".to_string(),
         SurfaceError::UpperArc => {

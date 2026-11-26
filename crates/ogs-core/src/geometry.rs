@@ -7,6 +7,7 @@ use crate::OgsError;
 use crate::model::{Circle, Direction, Model, Point, SurfaceSpec};
 use crate::slicer::sliding_span;
 use crate::strength::{ResolvedMaterial, resolve_materials};
+use crate::surface::Surface;
 
 /// Default water unit weight when the `water` block is absent (contract §1).
 const DEFAULT_WATER_UNIT_WEIGHT: f64 = 9.81;
@@ -764,19 +765,37 @@ impl PreparedModel {
                 Sliding::RightToLeft
             });
         }
-        // 3. Fixed circle (only when it is the surface analyzed, i.e. no search): the higher of its two ground
-        //    crossings is the entry. The crossings come from the sliding span alone (R3-07): the ends of the analysed
-        //    block are checked later, in `slice_surface` (E10a′), so a discarded block may leave the model here.
+        // 3. Fixed surface (only when it is the surface analyzed, i.e. no search): the higher of its two ground
+        //    crossings is the entry. For a circle the crossings come from the sliding span alone (R3-07): the ends of
+        //    the analysed block are checked later, in `slice_surface` (E10a′), so a discarded block may leave the
+        //    model here. For a polyline (E13c) they are the ends of the polyline fitted to the ground; if it cannot be
+        //    fitted, the ends as written decide the direction, so that the analysis reports the reason of the
+        //    `Invalid` status (`polyline_no_ground_crossing`, `polyline_outside_ground`) and not a missing direction.
         let fixed = if model.analysis.search.is_none() {
             model.analysis.surface.as_ref()
         } else {
             None
         };
-        if let Some(&SurfaceSpec::Circle(circle)) = fixed
-            && let Ok(tramo) = sliding_span(self, &circle)
-        {
-            let y_p = self.arc_y(&circle, true, tramo.p);
-            let y_q = self.arc_y(&circle, true, tramo.q);
+        let ends = match fixed {
+            Some(&SurfaceSpec::Circle(circle)) => sliding_span(self, &circle).ok().map(|tramo| {
+                (
+                    self.arc_y(&circle, true, tramo.p),
+                    self.arc_y(&circle, true, tramo.q),
+                )
+            }),
+            Some(spec @ SurfaceSpec::Polyline { points }) => {
+                match Surface::from_spec(spec).fit_to_ground(self) {
+                    Ok(Surface::Polyline(fitted)) => fitted
+                        .points
+                        .first()
+                        .zip(fitted.points.last())
+                        .map(|(first, last)| (first[1], last[1])),
+                    _ => points.first().zip(points.last()).map(|(f, l)| (f[1], l[1])),
+                }
+            }
+            None => None,
+        };
+        if let Some((y_p, y_q)) = ends {
             if (y_p - y_q).abs() > threshold {
                 return Ok(if y_p > y_q {
                     Sliding::LeftToRight

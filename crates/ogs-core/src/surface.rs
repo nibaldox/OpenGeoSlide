@@ -81,10 +81,10 @@ impl Surface {
                     return Err(SurfaceError::NoIntersection);
                 };
                 let (a, b) = (first[0], last[0]);
-                if !(a < b) {
+                if a >= b {
                     return Err(SurfaceError::NoIntersection);
                 }
-                let (xs, under) = polyline_break_points(pm, pts, a, b);
+                let (xs, under) = self.break_points(pm, a, b);
                 // Maximal intervals where the surface is under the ground; E2: the range runs between the outermost
                 // ones, and what lies above the ground in between is made of air slices.
                 let first_under = under.iter().position(|&u| u);
@@ -425,7 +425,7 @@ fn fit_polyline(pm: &PreparedModel, points: &[Point]) -> Result<Vec<Point>, &'st
     let start = fit_start(points, &pieces, tol)?;
     let end = fit_start(&mirror_points(&start), &mirror_pieces(&pieces), tol)?;
     let fitted = mirror_points(&end);
-    if fitted.len() < 2 || fitted.windows(2).any(|w| !(w[1][0] > w[0][0])) {
+    if fitted.len() < 2 || fitted.windows(2).any(|w| w[1][0] <= w[0][0]) {
         return Err(POLYLINE_NO_GROUND_CROSSING);
     }
     check_admissible(pm, &fitted, &pieces, tol)?;
@@ -459,7 +459,7 @@ fn check_admissible(
             (Some(g), None) | (None, Some(g)) => g,
             (None, None) => return Err(POLYLINE_OUTSIDE_GROUND),
         };
-        if !(p[1] < ground - tol) {
+        if p[1] >= ground - tol {
             return Err(POLYLINE_OUTSIDE_GROUND);
         }
     }
