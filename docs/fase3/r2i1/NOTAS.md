@@ -110,3 +110,13 @@ patch ya está hecho y verificado (criterios 1, 3 y 4); solo V014 volvería a `c
 `pytest verification`: 913 verdes; batería diferencial `--require-f3r`: 71/71 (fase 3a), 12/12 (v0.4), búsqueda 28/28, fija 28/28;
 identidad: 121 modelos sin refuerzos, 0 diferencias; `REPORT.md`: 116 casos, 241 checks, ogs 241 OK, cSlope 240/241 (V027).
 VP de Slide2 en `docs/fase3/r1v/VP_SLIDE2.md`: ningún VP nuevo transcrito (faltan coordenadas en tablas).
+
+## 7. I1c: E14n-1 adoptada (decisión del coordinador, E14n-1b de §F4.17)
+
+El §5 se superó: el patch se aplicó y se commiteó (`27f07fc`, más `4d70aa3` para los tests que construyen `Slice` a mano).
+El criterio 2 se evalúa por check: V014 (Janbu corregido ×2) vuelve a `verification/cases` (era el artefacto, 8 dovelas
+finas); V035b (×2) y V083 quedan retenidos en `pending/F3R/HOLD.json` por tracción real del modelo (FS sin refuerzos
+0,929 y 0,834). Test `f3r2_e14n1.rs` (4): artefacto eliminado en V014, aviso conservado en V035b y V083 con y sin
+refuerzos, tracción real de 400 kN/m y fuerza puntual de 100 kN/m. Sin el patch fallan los dos que ejercen el artefacto.
+Cifras: 116 casos, 243 checks (ogs 243 OK; cSlope 242/243, V027), 9 retenidos en 6 casos; batería diferencial sin cambios
+(71/71, 12/12, 28/28, 28/28); identidad: 121 modelos sin refuerzos, 0 diferencias.
