@@ -172,6 +172,24 @@ export function forceRecords(results: readonly MethodReport[], list: readonly Re
   );
 }
 
+/** ¿El resultado viene del motor simulado? No calcula fuerzas de refuerzo: la ausencia de cruces no significa nada. */
+export const isMockResult = (r: Pick<MethodReport, 'warnings'>): boolean => (r.warnings ?? []).includes('mock_engine');
+
+/**
+ * Refuerzos del modelo que no aparecen en las fuerzas de un método **convergido** (E14o-16, R11B-06): no cruzaron la superficie final.
+ * Solo cuenta los métodos del motor real que convergieron; vacío si el método no tiene refuerzos sin cruce.
+ */
+export function uncrossedByMethod(results: readonly MethodReport[], list: readonly Reinforcement[] | undefined): { method: MethodKind; ids: string[] }[] {
+  const out: { method: MethodKind; ids: string[] }[] = [];
+  for (const r of results) {
+    if (r.status !== 'converged' || isMockResult(r)) continue;
+    const crossed = new Set((r.reinforcement_forces ?? []).map((f) => f.id));
+    const ids = (list ?? []).map((x) => x.id).filter((id) => !crossed.has(id));
+    if (ids.length > 0) out.push({ method: r.method, ids });
+  }
+  return out;
+}
+
 const cap = (s: string): string => s[0]!.toUpperCase() + s.slice(1);
 
 /** «Activa» o «Pasiva: se moviliza dividida por F» (F4.9). */

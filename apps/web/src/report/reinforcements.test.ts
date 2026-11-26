@@ -89,12 +89,42 @@ describe('sección «Refuerzos» del informe', () => {
     expect(text).toContain('se moviliza dividida por F');
   });
 
-  it('un informe sin fuerzas (motor simulado, método sin converger) lo dice en vez de omitir la tabla', () => {
+  // R11B-06 / E14o-16: con los métodos convergidos y ningún cruce, el informe lo dice (antes: «Ningún método devolvió fuerzas», que sugería un fallo).
+  it('sin ningún cruce en los métodos convergidos, lo dice así y lista los refuerzos sin cruce', () => {
     const input2 = syntheticReinforcedInput();
     input2.results = input2.results.map((r) => ({ ...r, reinforcement_forces: undefined }));
     const sec = buildReportContent(input2).sections.find((s) => s.id === 'reinforcements')!;
     expect(tables(sec.blocks)).toHaveLength(2);
-    expect(flat(sec.blocks.map((b) => (b.kind === 'paragraph' ? b.text : '')).join(' '))).toContain('Ningún método devolvió fuerzas');
+    const text = flat(sec.blocks.map((b) => (b.kind === 'paragraph' ? b.text : '')).join(' '));
+    expect(text).toContain('Ningún refuerzo cruzó la superficie final de los métodos que convergieron (Bishop simplificado, Spencer): no aportaron fuerza.');
+    expect(text).toContain('Refuerzos sin cruce: tablestaca-1, anclaje-1, clavo-1, geosintetico-1.');
+    expect(text).not.toContain('Ningún método devolvió fuerzas');
+  });
+
+  it('si ningún método convergió, no habla de cruces', () => {
+    const input2 = syntheticReinforcedInput();
+    input2.results = input2.results.map((r) => ({ ...r, status: 'not_converged', fos: null, reinforcement_forces: undefined }));
+    const text = flat(buildReportContent(input2).sections.find((s) => s.id === 'reinforcements')!.blocks.map((b) => (b.kind === 'paragraph' ? b.text : '')).join(' '));
+    expect(text).toContain('Ningún método convergió');
+    expect(text).not.toContain('cruzó');
+  });
+
+  it('el motor simulado no calcula fuerzas: no afirma que no hubo cruces', () => {
+    const input2 = syntheticReinforcedInput();
+    input2.results = input2.results.map((r) => ({ ...r, warnings: ['mock_engine'], reinforcement_forces: undefined }));
+    const text = flat(buildReportContent(input2).sections.find((s) => s.id === 'reinforcements')!.blocks.map((b) => (b.kind === 'paragraph' ? b.text : '')).join(' '));
+    expect(text).toContain('El motor simulado no calcula las fuerzas de los refuerzos');
+    expect(text).not.toContain('cruzó');
+  });
+
+  it('si solo algunos refuerzos no cruzan, la tabla trae los demás y el texto nombra los que faltan', () => {
+    const input2 = syntheticReinforcedInput();
+    input2.results = input2.results.map((r) => ({ ...r, reinforcement_forces: (r.reinforcement_forces ?? []).filter((f) => f.id !== 'anclaje-1' && f.id !== 'clavo-1') }));
+    const sec = buildReportContent(input2).sections.find((s) => s.id === 'reinforcements')!;
+    const text = flat(sec.blocks.map((b) => (b.kind === 'paragraph' ? b.text : '')).join(' '));
+    expect(text).toContain('Sin cruce con la superficie final (Bishop simplificado): anclaje-1, clavo-1.');
+    expect(text).toContain('Sin cruce con la superficie final (Spencer): anclaje-1, clavo-1.');
+    expect(text).not.toContain('Ningún refuerzo cruzó');
   });
 
   it('en un modelo imperial las unidades son ft y lbf/ft', () => {

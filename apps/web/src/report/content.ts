@@ -21,8 +21,10 @@ import {
   forceRecords,
   forcesTable,
   hasStructuralElements,
+  isMockResult,
   reinforcementInputTables,
   reinforcementsOf,
+  uncrossedByMethod,
 } from './reinforcementReport';
 import type { ReportInput } from './types';
 
@@ -645,8 +647,18 @@ function reinforcementsSection(input: ReportInput): ReportSection | null {
     const t = forcesTable(records, model.units);
     blocks.push({ kind: 'table', title: `Fuerzas por cruce con la superficie final (${METHOD_LABEL[r.method]})`, header: t.header, rows: t.rows });
   }
+  // E14o-16 (R11B-06): sin fuerzas no siempre es un fallo; el texto distingue el motor simulado, la falta de convergencia y la falta de cruces.
+  const uncrossed = uncrossedByMethod(results, list);
+  const converged = results.filter((r) => r.status === 'converged' && !isMockResult(r));
   if (withForces === 0) {
-    blocks.push({ kind: 'paragraph', text: 'Ningún método devolvió fuerzas de refuerzo: solo se informan los métodos que convergieron, sobre la superficie final.' });
+    let text: string;
+    if (results.some(isMockResult)) text = 'El motor simulado no calcula las fuerzas de los refuerzos.';
+    else if (converged.length === 0) text = 'Ningún método convergió: no hay superficie final ni fuerzas de refuerzo que informar.';
+    else
+      text = `Ningún refuerzo cruzó la superficie final de los métodos que convergieron (${converged.map((r) => METHOD_LABEL[r.method]).join(', ')}): no aportaron fuerza. Refuerzos sin cruce: ${list.map((r) => r.id).join(', ')}.`;
+    blocks.push({ kind: 'paragraph', text });
+  } else {
+    for (const u of uncrossed) blocks.push({ kind: 'paragraph', text: `Sin cruce con la superficie final (${METHOD_LABEL[u.method]}): ${u.ids.join(', ')}. No aportaron fuerza.` });
   }
   if (list.some((r) => r.application === 'passive')) {
     blocks.push({ kind: 'paragraph', text: FORCE_TABLE_NOTE });

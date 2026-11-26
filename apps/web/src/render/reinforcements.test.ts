@@ -147,6 +147,23 @@ describe('tabla de fuerzas en Casos y en el editor', () => {
     expect(renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: 'x', results: [] }, reinforcements: [ANCHOR] }))).toBe('');
   });
 
+  // E14o-16 (R11B-06): los refuerzos que no cruzan la superficie convergida se nombran.
+  it('nombra los refuerzos sin cruce de cada método convergido', () => {
+    const results = input.results.map((r) => ({ ...r, reinforcement_forces: (r.reinforcement_forces ?? []).filter((f) => f.id !== 'anclaje-1') }));
+    const h = renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: input.engineName, results }, reinforcements: input.model.reinforcements, units: 'SI' }));
+    expect(h).toContain('Sin cruce con la superficie final (Bishop simplificado): anclaje-1. No aportaron fuerza.');
+    expect(h).toContain('Sin cruce con la superficie final (Spencer): anclaje-1. No aportaron fuerza.');
+  });
+
+  it('sin ningún cruce en los métodos convergidos, no hay tablas pero sí el aviso de los refuerzos sin cruce', () => {
+    const results = input.results.map((r) => ({ ...r, reinforcement_forces: undefined }));
+    const h = renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: input.engineName, results }, reinforcements: input.model.reinforcements, units: 'SI' }));
+    expect(h).not.toContain('<table');
+    expect(h).toContain('data-testid="uncrossed"');
+    expect(h).toContain('tablestaca-1, anclaje-1, clavo-1, geosintetico-1');
+    expect(h).not.toContain('force-table-note');
+  });
+
   it('con elementos estructurales y sin fuerzas (motor sin cruces) sigue diciendo el límite', () => {
     const h = renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: 'x', results: [] }, reinforcements: [SHEET] }));
     expect(h).toContain('data-testid="structural-limit"');
