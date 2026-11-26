@@ -13,6 +13,7 @@
 //   JSON, no un aviso. Un `null` cuenta como campo ausente, como en el motor.
 
 import type { Issue, ModelDoc } from '../editor/types';
+import { pondPolygons } from '../render/pond';
 
 export const OGS_FORMAT = 'opengeoslide';
 /** Versión que se guarda cuando el modelo no usa ningún campo de la v0.3 (F3.9). */
@@ -899,6 +900,20 @@ function checkShape(model: Rec, issues: Issue[]): void {
   }
 }
 
+/** Nota al abrir un modelo con la piezométrica sobre el terreno (E15l-19). */
+export const POND_CHANGED_TEXT =
+  'La piezométrica pasa sobre el terreno: desde la v0.4.0 se suma el agua embalsada (peso y empuje), así que el FS puede diferir del calculado con la v0.3.0 o anteriores.';
+
+/** ¿La piezométrica del documento queda sobre el terreno en algún tramo (agua embalsada)? */
+function hasPondAboveGround(doc: ModelDoc): boolean {
+  try {
+    const line = doc.water?.piezometric_line;
+    return Array.isArray(line) && line.length >= 2 && pondPolygons(doc.regions, line).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Abre el texto de un `.ogs.json` (v0.1, v0.2 o `{model, checks}`). Con `doc: null` el archivo se rechaza. */
 export function openOgsJson(text: string): OpenOgsResult {
   const issues: Issue[] = [];
@@ -1074,10 +1089,23 @@ export function openOgsJson(text: string): OpenOgsResult {
   }
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 
+  // E15l-19 (R12 B-10): la piezométrica sobre el terreno suma el agua embalsada (peso y empuje) desde la v0.4.0, en cualquier versión del
+  // archivo: el FS puede diferir del que dio la v0.3.0. Por eso el aviso de actualización de v0.1 no puede decir que el cálculo no cambia.
+  const doc = canonical as unknown as ModelDoc;
+  const pond = hasPondAboveGround(doc);
   if (model.version === '0.1') {
-    issues.push(issue('nota', 'io.version_upgraded', 'El archivo usa el formato 0.1; al guardarlo se actualizará al 0.2 (el resultado del cálculo no cambia).'));
+    issues.push(
+      issue(
+        'nota',
+        'io.version_upgraded',
+        pond
+          ? 'El archivo usa el formato 0.1; al guardarlo se actualizará al 0.2.'
+          : 'El archivo usa el formato 0.1; al guardarlo se actualizará al 0.2 (el resultado del cálculo no cambia).',
+      ),
+    );
   }
-  return { doc: canonical as unknown as ModelDoc, issues };
+  if (pond) issues.push(issue('nota', 'io.pond_changed', POND_CHANGED_TEXT));
+  return { doc, issues };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

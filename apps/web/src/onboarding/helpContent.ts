@@ -3,6 +3,7 @@
 // entrada contra el código que realmente atiende la tecla (`shortcutFor` y `keyActions`), de modo que si un atajo cambia, la prueba falla.
 
 import type { ShortcutAction } from '../editor/app/shortcuts';
+import { POND_CHANGED_TEXT } from '../io/ogsJson';
 import { CRACK_PW_NOTE, POND_NOTE } from '../report/crackReport';
 import { ITO_MATSUI_STRUCTURAL_LIMIT_TEXT, STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
@@ -148,7 +149,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'ponded-water',
     term: 'Agua embalsada',
     definition:
-      `Agua libre sobre el terreno (un embalse al pie del talud o contra una cara de presa): es la región entre la línea piezométrica y el terreno donde la piezométrica queda sobre el terreno. No tiene campo propio: se carga sola, en todo el modelo, con la línea piezométrica y en todas las versiones del formato. Pesa sobre las dovelas que cubre y empuja con su presión horizontal (en una cara vertical, el empuje hidrostático sobre ella). ${POND_NOTE} El sismo pseudoestático no actúa sobre el agua embalsada: ni kh ni kv. Con un material con ru, el agua embalsada entra en u = ru · (W + V)/b (ver «ru»). El lienzo la dibuja como un relleno azul bajo la línea piezométrica.`,
+      `Agua libre sobre el terreno (un embalse al pie del talud o contra una cara de presa): es la región entre la línea piezométrica y el terreno donde la piezométrica queda sobre el terreno. No tiene campo propio: se carga sola, en todo el modelo, con la línea piezométrica y en todas las versiones del formato. Pesa sobre las dovelas que cubre y empuja con su presión horizontal (en una cara vertical, el empuje hidrostático sobre ella). ${POND_NOTE} El sismo pseudoestático no actúa sobre el agua embalsada: ni kh ni kv. Con un material con ru, el agua embalsada entra en u = ru · (W + V)/b (ver «ru»). El lienzo la dibuja como un relleno azul bajo la línea piezométrica. ${POND_CHANGED_TEXT}`,
   },
   {
     id: 'tension-crack',
