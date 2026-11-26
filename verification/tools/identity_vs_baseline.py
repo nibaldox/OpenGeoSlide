@@ -19,6 +19,10 @@ The models are the cases of `verification/cases`, the models of `verification/pe
 
 The output compared is stdout, stderr and the exit status of `ogs analyze`, so an error (a polyline with Bishop, an
 undrained material that does not converge) must also be the same. Exit status 1 when any variant differs.
+
+The models with a non-empty `reinforcements` list are **skipped and counted apart** (F3R-R2): the baseline cannot read
+them (v0.2.0 rejects the field), so there is nothing to compare; the identity gate is the one of the models without
+reinforcements.
 """
 
 from __future__ import annotations
@@ -60,6 +64,20 @@ def model_paths() -> dict[str, str]:
             if isinstance(model, dict) and model.get("format") == "opengeoslide":
                 out[os.path.relpath(path, ROOT)] = path
     return out
+
+
+def has_reinforcements(model: dict) -> bool:
+    """`True` when the model has at least one reinforcement (the v0.2.0 baseline cannot read it)."""
+    return bool(model.get("reinforcements"))
+
+
+def split_models(paths: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `paths` into the models the baseline can run and the ones with reinforcements (skipped)."""
+    plain: dict[str, str] = {}
+    skipped: dict[str, str] = {}
+    for name, path in paths.items():
+        (skipped if has_reinforcements(_load(path)) else plain)[name] = path
+    return plain, skipped
 
 
 def run(binary: str, model: dict, path: str) -> tuple[int, bytes, bytes]:
@@ -146,8 +164,9 @@ def main() -> int:
             print(f"error: binario no encontrado: {exe}", file=sys.stderr)
             return 2
     os.makedirs(args.out, exist_ok=True)
-    models = model_paths()
-    print(f"{len(models)} modelos; variantes own, search, fixed, search@0.4 y fixed@0.4")
+    models, skipped = split_models(model_paths())
+    print(f"{len(models)} modelos sin refuerzos; variantes own, search, fixed, search@0.4 y fixed@0.4")
+    print(f"{len(skipped)} modelos con refuerzos saltados aparte (el binario base no los lee)")
     diffs: list[tuple[str, str, str]] = []
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {n: pool.submit(check, n, p, args.base, args.new, args.out) for n, p in models.items()}
@@ -157,7 +176,7 @@ def main() -> int:
         print(f"DIFIERE {model} [{variant}]: {what}")
     for (variant, kind), n in sorted(STATS.items()):
         print(f"  {variant}: {n} comparaciones con salida {kind} del baseline")
-    print(f"{len(diffs)} diferencias en {len(models)} modelos")
+    print(f"{len(diffs)} diferencias en {len(models)} modelos sin refuerzos ({len(skipped)} con refuerzos, saltados)")
     return 1 if diffs else 0
 
 
