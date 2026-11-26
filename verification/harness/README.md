@@ -140,7 +140,11 @@ diferencial lo trata como oráculo sin solución (igual que `EngineError`).
 - **Dirección `auto`**: se resuelve con las cuatro reglas de E1/E1b (`to_cslope.resolve_direction`, espejo de
   `ogs-core` `resolve_sliding`): rangos de entrada y salida; coronamiento; círculo fijo (cruce más alto =
   entrada); si ninguna decide, `UnsupportedModel`. Ya no hay un empate que vaya a `rtl`. El caso V063
-  mantiene `left_to_right` explícito (ver hallazgo V063).
+  mantiene `left_to_right` explícito (ver hallazgo V063). Con una **polilínea fija**, la regla 3 usa los extremos ya
+  **ajustados al terreno** (`to_cslope.fitted_polyline_ends`: prolongados o recortados al primer cruce, E13c), como el
+  motor; con los extremos tal como se escriben el sentido podía salir al revés (R10A-11).
+- **`options.interslice` de un check**: `run.model_for_check` lo aplica a `analysis.interslice` en los checks de
+  `morgenstern_price`, igual que `to_cslope.interslice_options`; en los demás métodos se descarta la función (R10A-11).
 - **Piezométrica fuera del modelo**: cSlope recorta la línea en el borde (aviso `outside-model`) y la
   extiende horizontalmente; es el mismo criterio que la extrapolación constante de ogs.
 

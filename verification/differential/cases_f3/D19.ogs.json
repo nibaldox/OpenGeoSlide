@@ -1,0 +1,127 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D19",
+    "title": "Dos capas, M-P con clipped_sine",
+    "notes": "Talud de 20 m, 1,5H:1V, de relleno (c = 8 kPa, φ = 30°) sobre arcilla (c = 25 kPa, φ = 22°) con la arista compartida a 6 m. Morgenstern-Price con la función `clipped_sine`, que ningún caso cubría. Comparte la geometría con D20."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 8.0,
+      "friction_angle": 30.0,
+      "ru": null
+    },
+    {
+      "id": "clay",
+      "name": "Arcilla de base",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 25.0,
+      "friction_angle": 22.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          0.0,
+          6.0
+        ],
+        [
+          0.0,
+          20.0
+        ],
+        [
+          15.0,
+          20.0
+        ],
+        [
+          36.0,
+          6.0
+        ]
+      ]
+    },
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          6.0
+        ],
+        [
+          36.0,
+          6.0
+        ],
+        [
+          45.0,
+          0.0
+        ],
+        [
+          75.0,
+          0.0
+        ],
+        [
+          75.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer",
+      "morgenstern_price"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        0.0,
+        15.0
+      ],
+      "exit": [
+        45.0,
+        70.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 43.6466144187929,
+      "yc": 36.352819511930406,
+      "r": 36.37800350484352
+    },
+    "interslice": {
+      "function": "clipped_sine"
+    }
+  }
+}

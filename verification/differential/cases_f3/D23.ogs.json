@@ -1,0 +1,90 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D23",
+    "title": "Polilínea en terreno horizontal con carga lineal horizontal",
+    "notes": "Igual que D22 con una carga lineal horizontal de 200 kN/m en x = 15 m (ángulo de 90°) en lugar de sismo. La única fuerza motriz es la carga horizontal (E13l-2). Solo Janbu: con una fuerza horizontal pura cSlope no converge en Spencer y da un M-P cuatro veces el de D22, sin referencia fiable."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "clay",
+      "name": "Arcilla (Su constante)",
+      "model": "undrained",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "undrained_strength": 50.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          40.0,
+          10.0
+        ],
+        [
+          40.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "loads": [
+    {
+      "type": "line",
+      "id": "l1",
+      "x": 15.0,
+      "p": 200.0,
+      "angle": 90.0
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "janbu_simplified",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "polyline",
+      "points": [
+        [
+          10.0,
+          10.0
+        ],
+        [
+          15.0,
+          5.0
+        ],
+        [
+          25.0,
+          5.0
+        ],
+        [
+          30.0,
+          10.0
+        ]
+      ]
+    }
+  }
+}

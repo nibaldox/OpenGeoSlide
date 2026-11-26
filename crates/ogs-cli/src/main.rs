@@ -7,7 +7,8 @@ use std::fs;
 use std::process::ExitCode;
 
 const USAGE: &str = "uso: ogs --version | ogs analyze <archivo.ogs.json> | \
-ogs bench <caso.json> [--reps N] [--method bishop|spencer|all]";
+ogs bench <caso.json> [--reps N] \
+[--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] (all = los cinco métodos)";
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();

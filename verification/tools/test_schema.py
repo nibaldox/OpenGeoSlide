@@ -630,6 +630,12 @@ V03_TABLE = [
     ("polyline in version 0.2", _both(_polyline(_POLY, "spencer"), _set("version", "0.2")), False),
     ("polyline in version 0.1", _both(_polyline(_POLY, "spencer"), _set("version", "0.1"), _set("loads", []), _set("analysis.seismic", None)), False),
     ("polyline with a negative x (x outside the model is judged as Invalid, not as InvalidModel)", _polyline([[-5.0, 1.0], [60.0, 35.0]], "spencer"), True),
+    # E13l-8 (R10A-10): without `methods` the default is ["bishop"], which a polyline rejects, so the schema requires them
+    ("polyline without methods", _both(_polyline(_POLY, "spencer"), _set("analysis.methods", _DEL)), False),
+    ("polyline with methods=null", _both(_polyline(_POLY, "spencer"), _set("analysis.methods", None)), False),
+    ("polyline with a null search and without methods", _both(_polyline(_POLY, "spencer"), _set("analysis.methods", _DEL), _set("analysis.search", None)), False),
+    ("polyline with a search and without methods (the surface is ignored, the default is bishop)", _both(_polyline(_POLY, "spencer"), _set("analysis.methods", _DEL), _set("analysis.search", {"type": "circular_entry_exit", "n_entry": 3, "n_exit": 3, "n_radius": 3})), True),
+    ("polyline with an empty methods list", _both(_polyline(_POLY, "spencer"), _set("analysis.methods", [])), False),
     # methods (F3.4, F3.5)
     ("morgenstern_price", _methods("morgenstern_price"), True),
     ("janbu_simplified", _methods("janbu_simplified"), True),

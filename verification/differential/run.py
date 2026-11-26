@@ -14,7 +14,7 @@ even if checks fail; only execution errors (no cases, no ogs binary, no cslope) 
 
 Phase 3a (contract F3.8) adds a second block, after the one above and without changing it: Morgenstern-Price with
 the half-sine function and corrected Janbu on the fixed circle of each of the 14 models, plus the v0.3 models
-D15-D17 (undrained Su, fixed polyline). Each capability the engine may not have yet (undrained, Morgenstern-Price,
+D15-D23 (undrained Su, M-P functions, fixed polylines). Each capability the engine may not have yet (undrained, Morgenstern-Price,
 Janbu, polyline) is probed first with a tiny model; a check that needs one the engine lacks is `pendiente`, never
 a failure. With `--require-f3` a pending or failing check makes the exit code non-zero (use it at integration).
 
@@ -61,7 +61,7 @@ DEFAULT_OGS = os.environ.get(
 METHODS = ("bishop", "spencer")
 KINDS = ("search", "fixed")
 EXPECTED_CASES = 14
-EXPECTED_CASES_F3 = 3
+EXPECTED_CASES_F3 = 9
 CASES_F3_DIR = os.path.join(HERE, "cases_f3")
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
@@ -253,7 +253,7 @@ def summarize(checks: list[dict]) -> dict:
 # ------------------------------------------------------------------ Phase 3a: v0.3 models, M-P, Janbu, polyline
 
 def load_f3_cases(cases_dir: str) -> list[dict]:
-    """The v0.3 models (D15-D17). A directory without them is an empty list: the block is then skipped."""
+    """The v0.3 models (D15-D23). A directory without them is an empty list: the block is then skipped."""
     cases = []
     for path in sorted(glob.glob(os.path.join(cases_dir, "*.ogs.json"))):
         with open(path, encoding="utf-8") as fh:
@@ -414,9 +414,11 @@ def f3_markdown(cases: list[dict], f3_cases: list[dict], rows: list[dict], probe
         "## Fase 3a: M-P medio seno, Janbu corregido, no drenado y polilínea (F3.8)",
         "",
         "Se corre, sobre el círculo fijo de cada uno de los 14 modelos, Morgenstern-Price con la función `half_sine` y "
-        "Janbu corregido, con el criterio de 0,5 % de E9b. Se agregan tres modelos v0.3 (`cases_f3/`): "
-        "D15 terraplén sobre arcilla blanda con Su lineal, D16 depósito de relaves con Su constante y D17 bloque "
-        "deslizante sobre una capa débil con polilínea fija (sin Bishop, F3.6). Cada capacidad que el motor aún no "
+        "Janbu corregido, con el criterio de 0,5 % de E9b. Se agregan nueve modelos v0.3 (`cases_f3/`): "
+        "D15 terraplén sobre arcilla blanda con Su lineal, D16 depósito de relaves con Su constante, D17 bloque "
+        "deslizante sobre una capa débil con polilínea fija (sin Bishop, F3.6) y, de R10, D18 corte con Su "
+        "decreciente y piso, D19 y D20 M-P con `clipped_sine` y `trapezoidal`, D21 polilínea sobre un contacto de "
+        "materiales y D22 y D23 polilínea en terreno horizontal con kh y con carga lineal horizontal. Cada capacidad que el motor aún no "
         "tiene se sondea antes con un modelo mínimo; el check que la necesita queda **pendiente**, nunca falla. "
         "El valor de cSlope de un check pendiente igual se calcula y queda como línea base.",
         "",
@@ -591,7 +593,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ogs", default=DEFAULT_OGS, help="binario ogs (ogs analyze <modelo>)")
     ap.add_argument("--cases", default=os.path.join(HERE, "cases"), help="directorio con *.ogs.json")
     ap.add_argument("--out", default=HERE, help="directorio de REPORT.md y report.json")
-    ap.add_argument("--cases-f3", default=CASES_F3_DIR, help="directorio con los modelos v0.3 (D15-D17)")
+    ap.add_argument("--cases-f3", default=CASES_F3_DIR, help="directorio con los modelos v0.3 (D15-D23)")
     ap.add_argument("--require-f3", action="store_true",
                     help=f"salir con código {EXIT_F3_PENDING} si algún check de la Fase 3a queda pendiente, "
                          "falla o no tiene dato (para la integración)")

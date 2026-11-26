@@ -14,11 +14,31 @@ El mensaje de ``ValueError`` empieza por el código del error (``InvalidModel``,
 Formato v0.3 (``"version": "0.3"``): material ``undrained`` (``undrained_strength``, ``strength_datum``,
 ``strength_gradient``, ``strength_limit``), superficie ``polyline``, métodos ``morgenstern_price``, ``janbu_simplified``
 y ``janbu_corrected`` y ``analysis.interslice``. Un campo de 0.3 con ``"version": "0.1"`` o ``"0.2"`` es
-``InvalidModel`` (``<campo> requiere version "0.3"``); Bishop con una polilínea también lo es. En el informe,
-``surface`` es ``{"xc", "yc", "r"}`` para un círculo y ``{"points": [[x, y], ...]}`` para una polilínea (ya ajustada al
-terreno), y ``janbu_corrected`` agrega ``correction_factor`` (f₀) y ``morgenstern_price`` agrega ``interslice``.
-Los estados ``Invalid`` nuevos son ``polyline_no_ground_crossing`` y ``polyline_outside_ground``; la Fase 3a no crea
-códigos de aviso nuevos.
+``InvalidModel`` (``<campo> requiere version "0.3"``). Bishop con una polilínea también es ``InvalidModel``, y como sin
+``analysis.methods`` el método por defecto es ``["bishop"]``, una polilínea fija **exige** ``methods`` (E13l-8; el
+esquema ``ogs-0.3.schema.json`` lo exige igual).
+
+El informe (``results[i]``):
+
+- ``surface`` es ``{"xc", "yc", "r"}`` para un círculo y ``{"points": [[x, y], ...]}`` para una polilínea, ya ajustada
+  al terreno (prolongada o recortada en sus extremos). Si la masa se trunca (``truncated_driving_mass``), la polilínea
+  informada se recorta al rango analizado (E13l-7).
+- ``janbu_corrected`` agrega ``correction_factor`` (f₀ ≥ 1: la corrección nunca reduce F₀, E13l-1) y
+  ``morgenstern_price`` agrega ``interslice`` (``function`` y, con ``data_points``, ``points``) y ``lambda``.
+
+Estados y avisos de la Fase 3a, en ``results[i]["status"]`` y ``results[i]["warnings"]``:
+
+- ``status == "invalid"`` con ``polyline_no_ground_crossing`` (un extremo no corta el terreno al prolongarlo) o
+  ``polyline_outside_ground`` (un vértice interior no queda bajo el terreno, o un tramo pasa sobre él). No son
+  excepciones: la corrida termina y el método queda sin FS.
+- ``bishop_non_circular`` (``invalid``): Bishop sobre una superficie no circular; el motor ya lo rechaza al validar, y
+  esta es la defensa.
+- ``interslice_shear_exceeds_strength`` (aviso, E13k): en Spencer y M-P, el cortante entre dovelas supera la
+  resistencia de las caras verticales (Chen y Morgenstern, 1983; ``r_v > 3``). El FS puede no ser físico: compárelo con
+  Janbu. Que no aparezca no garantiza que la solución sea física (``docs/limitaciones.md``).
+- Desde E13l: la nota ``janbu_correction_extrapolated`` (el factor f₀ de Janbu se extrapola más allá del gráfico de 1973)
+  y ``non_positive_fos`` (``not_converged``: el método llegó a un FS no positivo o no finito; ningún método devuelve
+  ``converged`` con un FS ≤ 0).
 """
 
 import json

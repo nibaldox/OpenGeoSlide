@@ -9,7 +9,7 @@ API pueden cambiar entre versiones menores.
 ## [Unreleased]
 
 Fase 3a: formato v0.3, material no drenado, superficies polilínea fijas, Morgenstern-Price y Janbu. El contrato es
-`briefs/02_CONTRATOS_FASE3.md` (enmiendas E13a a E13k). Un modelo sin campos nuevos da el mismo resultado, bit a bit,
+`briefs/02_CONTRATOS_FASE3.md` (enmiendas E13a a E13l). Un modelo sin campos nuevos da el mismo resultado, bit a bit,
 que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y superficie).
 
 ### Added
@@ -46,6 +46,9 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
   caras verticales y el FS puede no ser físico. Severidad aviso; no se rechaza la solución. Calibrado entre el máximo de
   los casos de referencia (1,63) y el mínimo de las soluciones absurdas (3,88). Diagnóstico en
   `docs/fase3/d1/DIAGNOSTICO.md`.
+- **Códigos nuevos de la revisión R10 (E13l-1).** `janbu_correction_extrapolated` (nota de `janbu_corrected` cuando
+  `d/L` supera 0,4, el límite del gráfico de Janbu et al., 1973) y `non_positive_fos` (aviso: el método llegó a un FS
+  menor o igual que cero o no finito y pasa a `not_converged`). Entran en la lista E6 y en `warnings.ts`.
 - **Web (E13i).** Paneles de materiales (modelo no drenado), de análisis (cinco métodos y función entre dovelas) y de
   superficie (círculo o polilínea); el lienzo dibuja la polilínea con tiradores y el resultado con la polilínea ajustada;
   Casos con los cinco métodos; la casilla de Bishop se deshabilita con una polilínea y explica por qué; `validateLocal`
@@ -64,6 +67,13 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
     (terraplén sobre arcilla blanda con Su lineal), D16 (relaves con Su constante) y D17 (bloque sobre capa débil con
     polilínea fija): 43/43 frente a cSlope 0.1.0. Los 56 checks de Bishop y Spencer siguen en 28/28 y 28/28. El
     conversor del oráculo (`verification/harness/to_cslope.py`) traduce no drenado, polilínea, M-P y Janbu.
+  - **Revisión R10 (E13l), modelos D18 a D23** en la batería diferencial: Su con gradiente negativo y piso (D18), M-P con
+    `clipped_sine` y `trapezoidal` (D19 y D20), una polilínea sobre un contacto de materiales (D21) y una polilínea en
+    terreno horizontal con `kh` o con una carga horizontal (D22 y D23). La batería de la Fase 3a pasa de 43 a 71
+    checks. Sobre la base `420baf0`, 61 coinciden con cSlope y los 10 de D21 a D23 fallan hasta que entran E13l-2 y
+    E13l-5.
+  - Tests de Python v0.3 de `ogs-py` (`crates/ogs-py/tests/test_v03.py`, 22 pruebas): polilínea, no drenado, M-P, Janbu y
+    el aviso de E13k, con los valores de cSlope. Test del esquema con la polilínea sin `methods` y del uso de la CLI.
   - Recorridos de extremo a extremo de la web con el WASM real (`docs/fase3/iw/e2e/`).
   - `ogs bench --method` admite los métodos nuevos (`all` corre los cinco).
 - **Documentación.** `docs/formato-ogs-json.md` con el formato v0.3 completo y ejemplos validados por
@@ -83,6 +93,32 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
   `half_sine`. Spencer, Bishop, Janbu simplificado y M-P `constant` siguen idénticos byte a byte.
 - **Un círculo cuyo arco termina tangente al terreno** (centro a la cota de la cresta) deja de ser `NoValidSurface` y se
   analiza (V068).
+- **Revisión R10 (E13l).** Cada punto, con su test RED y su efecto medido sobre todos los modelos:
+  - **E13l-1, `f₀` de Janbu.** `f₀ = máx(1, 1 + b₁·(d/L − 1,4·(d/L)²))`: la corrección nunca reduce F₀. Antes, una polilínea
+    profunda daba un FS de −23,43 (R10A-01) o de −0,752 (R10B-01) marcado `converged`. Ningún método devuelve
+    `converged` con un FS ≤ 0 o no finito.
+  - **E13l-2, fuerza motriz en polilíneas.** E3 (`no_driving`) evalúa `Σ(W*·sen α + H·cos α)` en el sentido del
+    deslizamiento. Antes, una polilínea sobre terreno horizontal con `kh = 0,3` o con una carga horizontal era
+    `invalid` aunque cSlope converge (R10A-02). Los círculos no cambian.
+  - **E13l-4, paso de λ en M-P.** El paso es `0,05 / máx(f̄, f_máx/2)`, con f normalizada internamente por `f_máx`; las
+    cinco funciones estándar dan el mismo resultado de antes. Un `data_points` de pico angosto o de escala muy pequeña
+    deja de caer en `no_lambda_root` (R10A-08).
+  - **E13l-5, base sobre un contacto de materiales.** Si el punto medio de la base está a menos de `tol` de un contacto
+    se toma el material más débil, por `c + máx(0, σ′)·tan φ` (o Su). Antes se tomaba el de arriba: +20,3 % no
+    conservador frente a cSlope en una polilínea sobre el techo de un estrato débil (R10A-04).
+  - **E13l-6, robustez de la polilínea.** Distancia 2D en la prolongación y el recorte de los extremos (R10A-05), los
+    vértices de la polilínea tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol` (R10A-09), y
+    la cara vertical sobre un contacto vertical toma la resistencia del lado más débil.
+  - **E13l-7, superficie informada.** Con `truncated_driving_mass`, `report.surface` de una polilínea se recorta al
+    rango analizado, como el trazo de los círculos (R10B-05). La web dibuja y exporta ese rango.
+  - **E13l-8, esquema.** `ogs-0.3.schema.json` exige `analysis.methods` en una polilínea fija, porque el valor por
+    defecto `["bishop"]` la rechaza (R10A-10, R10B-04). `validateLocal` aplica ese valor por defecto.
+  - **Aclaración de E13k.** Solo cuentan las caras con `E′ > 0`, así que la fórmula usa `E′` y no `máx(E′, 0)`.
+- **Verificación (R10A-11).** `to_cslope.py` resuelve `slope.direction = "auto"` con los extremos de la polilínea ya
+  ajustados al terreno, como el motor (E13c), y `run.py` aplica `options.interslice` de cada check como `to_cslope.py`.
+  Ninguno de los 93 casos cambia (213/213; cSlope 212/213).
+- **`ogs-py` y CLI (R10B-10).** El docstring del paquete describe los códigos y estados de la Fase 3a y E13l (decía que
+  no había códigos de aviso nuevos), y `ogs` sin argumentos lista los cinco métodos de `--method`.
 
 ### Known issues
 - **Bishop solo en círculos y búsqueda solo circular.** La búsqueda no circular, Hoek-Brown y SHANSEP son de la Fase
@@ -95,6 +131,13 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
 - **Retenidos:** V027, V028 y V068 (`negative_effective_normal_major` en la aceptación) y V032a (la búsqueda halla un
   mínimo real, más conservador, que sale de los rangos efectivos). Detalle en `docs/limitaciones.md`.
 - El espejo solo da el mismo FS con funciones simétricas entre dovelas, porque ξ crece con la x del modelo.
+- **`r_v ≤ 3` no garantiza una solución física (R10A-06).** Un caso bicapa con Spencer en 2,9 veces Janbu (12,665 frente a
+  4,356) no recibe el aviso de E13k, y cSlope no converge en él. Compare Spencer y M-P con Janbu sobre la misma polilínea.
+- **Escala de los residuos con cargas verticales grandes (R10A-03, R10A-07).** `máx(ΣW, ΣW*)` puede ocultar un
+  desequilibrio de momento cuando una sobrecarga enorme actúa sobre un tramo horizontal no drenado. La escala motriz de
+  E13l-3 se adopta solo si cumple sus cuatro criterios (`docs/limitaciones.md`).
+- **`force_root_at_zero` de Janbu (R10A-11, 3):** la búsqueda de la raíz cercana a cero no cuenta en `max_iterations`.
+- **`unit_weight_sat` sin cobertura frente a otro programa.**
 
 ## [0.1.0] - 2026-11-25
 
