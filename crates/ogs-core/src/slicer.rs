@@ -160,6 +160,14 @@ pub const TRUNCATED_DRIVING_MASS: &str = "truncated_driving_mass";
 const DRIVING_FRACTION: f64 = 1e-3;
 /// The analysed block needs at least this many soil slices (contract E11d).
 const MIN_SOIL_SLICES: usize = 3;
+/// Hairline of the ground (E2′), in geometric tolerances (`tol = 1e-9 · scale`): an interior air run whose arc is at most
+/// `HAIRLINE_TOLS · tol` above the ground is a touch, not a gap. It is far under the nodes that the search puts around a
+/// vertex (`1e-6 · width`), so the circles of a search keep their slicing, and it covers a circle through a vertex that
+/// misses it by a few ulps of the arithmetic of the circle (D30: 5 tol).
+const HAIRLINE_TOLS: f64 = 10.0;
+/// Longest hairline run, relative to the model width: a surface that runs along the ground over a length (a polyline on
+/// the bottom of a notch, a circle tangent to a bench) is a real gap in the mass, not the touch of a vertex.
+const HAIRLINE_WIDTH_FRACTION: f64 = 1e-6;
 
 /// A sliced surface: the slices (toe first) and the informative notes raised while slicing.
 #[derive(Debug, Clone, PartialEq)]
@@ -832,11 +840,77 @@ fn slice_span(
         apply_line_loads(pm, surface, loads, &mut slices, &soil);
     }
 
-    Ok(Built {
+    let mut built = Built {
         slices,
         air: air_flags,
         unsupported,
-    })
+    };
+    drop_hairline_air(pm, &mut built);
+    Ok(built)
+}
+
+/// How far the base of an air slice is above the ground, at its worst end: the ground is straight inside a slice (the
+/// vertices are nodes), so its height at the ends comes from two interior points; the base is the chord.
+fn clearance_above_ground(pm: &PreparedModel, s: &Slice) -> f64 {
+    let w = s.width;
+    let mid = 0.5 * (s.y_base_left + s.y_base_right) - s.y_top_mid;
+    let (Some(t1), Some(t2)) = (
+        pm.top_at(s.x_left + 0.25 * w),
+        pm.top_at(s.x_right - 0.25 * w),
+    ) else {
+        return mid;
+    };
+    // The ground rises `t2 − t1` over half the slice, so it is `half_rise` higher at the right end than at the middle.
+    let half_rise = t2 - t1;
+    let (top_l, top_r) = (s.y_top_mid - half_rise, s.y_top_mid + half_rise);
+    (s.y_base_left - top_l).max(s.y_base_right - top_r).max(mid)
+}
+
+/// E2′ (M-D30): an interior air run whose arc is at most [`HAIRLINE_TOLS`]` · tol` above the ground is a touch of
+/// the ground, not a gap, so it does not split the mass: its slices are removed from `built` and the two soil
+/// neighbours stay adjacent (they are separated by less than a hair, and a hair carries no weight, strength or water).
+///
+/// The arc of a circle printed with 6 decimals misses a ground vertex by that much, and cSlope's own critical circle
+/// of D30 passes 3.6e-7 m above the toe `(30, 0)` of a vertical cut: over the 1.6e-6 m between the arc's crossing of
+/// the bench and the vertex the arc is above the ground, one air slice, and E10a kept only the entry block and lost
+/// the 0.32 m lens under the bench (117.9 kN/m of cohesion, FS −15.4 %), while 5e-7 m lower, under the vertex, the
+/// whole mass gave +0.13 %. Only interior runs count (soil on both sides, as E10a looks at them); the air at either
+/// end of the sequence is the crest or the toe and stays. The clearance is that of the base of each
+/// slice, at its worse end ([`clearance_above_ground`]); a run whose every slice is within the band and whose total width is
+/// at most [`HAIRLINE_WIDTH_FRACTION`]` · width` is bridged. A run over either bound is a gap, as before.
+fn drop_hairline_air(pm: &PreparedModel, built: &mut Built) {
+    let hair = HAIRLINE_TOLS * pm.tol();
+    let longest = HAIRLINE_WIDTH_FRACTION * (pm.x_max - pm.x_min);
+    let n = built.slices.len();
+    let mut keep = vec![true; n];
+    let mut k = 0;
+    while k < n {
+        if !built.air[k] {
+            k += 1;
+            continue;
+        }
+        let start = k;
+        while k < n && built.air[k] {
+            k += 1;
+        }
+        let interior = start > 0 && k < n;
+        let hairline = built.slices[start..k].iter().map(|s| s.width).sum::<f64>() <= longest
+            && built.slices[start..k]
+                .iter()
+                .all(|s| clearance_above_ground(pm, s) <= hair);
+        if interior && hairline {
+            keep[start..k].fill(false);
+        }
+    }
+    if keep.iter().all(|&b| b) {
+        return;
+    }
+    let mut it = keep.iter();
+    built.slices.retain(|_| *it.next().unwrap_or(&true));
+    let mut it = keep.iter();
+    built.air.retain(|_| *it.next().unwrap_or(&true));
+    let mut it = keep.iter();
+    built.unsupported.retain(|_| *it.next().unwrap_or(&true));
 }
 
 /// E13l-5: the material of a base that lies on a contact between two materials.
