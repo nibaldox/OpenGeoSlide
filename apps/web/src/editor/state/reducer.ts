@@ -8,7 +8,7 @@
 //  - un comando inválido o que no cambia nada devuelve **el mismo objeto de estado** (sin historial ni revisión);
 //  - el último elemento de `past` es el documento inmediatamente anterior; el de `future`, el siguiente al rehacer.
 
-import type { Material, Point, Region } from '../../engine/types';
+import type { Material, Point, Region, Reinforcement } from '../../engine/types';
 import type {
   EditorCommand,
   EditorState,
@@ -17,7 +17,7 @@ import type {
   Selection,
   UiAction,
 } from '../types';
-import { v03Fields } from '../../io/ogsJson';
+import { v03Fields, v04Fields } from '../../io/ogsJson';
 import { allFinite, copyPoints, deepEqual, isFiniteNumber, isPoint, isPointList } from './docUtils';
 import { convertDocUnits, isUnitSystem } from './units';
 
@@ -70,11 +70,13 @@ function ensureV02(doc: ModelDoc): ModelDoc {
 }
 
 /**
- * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9): si un comando deja un campo de la 0.3
- * (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, como hace `saveOgsJson`.
- * Nunca la baja: el motor acepta un modelo 0.3 sin campos de la 0.3, y al guardar se recalcula la versión mínima.
+ * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9, F4.1): si un comando deja un campo de la 0.3
+ * (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, y con refuerzos
+ * (cualquier versión menor que la 0.4) a 0.4, como hace `saveOgsJson`. Nunca la baja: el motor acepta un modelo 0.4 sin refuerzos, y
+ * al guardar se recalcula la versión mínima.
  */
 function syncVersion(doc: ModelDoc): ModelDoc {
+  if (doc.version !== '0.4' && v04Fields(doc).length > 0) return { ...doc, version: '0.4' };
   if ((doc.version === '0.1' || doc.version === '0.2') && v03Fields(doc).length > 0) return { ...doc, version: '0.3' };
   return doc;
 }
@@ -97,6 +99,65 @@ function isLoad(value: unknown): boolean {
 }
 
 const optionalFinite = (v: unknown): boolean => v === undefined || v === null || isFiniteNumber(v);
+
+const TENSION_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'tensile_capacity', 'end1_capacity', 'end2_capacity', 'spacing', 'direction', 'pullout'];
+const PILE_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'force', 'spacing', 'direction', 'angle'];
+const SHEET_PILE_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'force', 'direction', 'angle'];
+
+function isPullout(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const p = value as Record<string, unknown>;
+  const only = (keys: string[]): boolean => Object.keys(p).every((k) => keys.includes(k));
+  if (p.model === 'bond') return only(['model', 'strength', 'bonded_length']) && isFiniteNumber(p.strength) && optionalFinite(p.bonded_length);
+  if (p.model === 'interface') {
+    return only(['model', 'adhesion', 'friction_angle', 'coverage']) && isFiniteNumber(p.adhesion) && isFiniteNumber(p.friction_angle) && isFiniteNumber(p.coverage);
+  }
+  if (p.model === 'development') return only(['model', 'length1', 'length2']) && isFiniteNumber(p.length1) && isFiniteNumber(p.length2);
+  return false;
+}
+
+/**
+ * Forma de un refuerzo (v0.4): tipo conocido, solo las claves de ese tipo (sin `location`, E14m-3), `id` de texto, coordenadas y números
+ * finitos, enumeraciones del contrato. Los rangos, el id vacío o repetido y la tablestaca inclinada los señala `validateLocal` (F4.2).
+ */
+function isReinforcement(value: unknown): value is Reinforcement {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  const tension = v.type === 'anchor' || v.type === 'nail' || v.type === 'geosynthetic';
+  if (!tension && v.type !== 'pile' && v.type !== 'sheet_pile') return false;
+  const allowed = tension ? TENSION_FIELDS : v.type === 'pile' ? PILE_FIELDS : SHEET_PILE_FIELDS;
+  if (!Object.keys(v).every((k) => allowed.includes(k) || v[k] === undefined)) return false;
+  if (typeof v.id !== 'string') return false;
+  if (!(isFiniteNumber(v.x1) && isFiniteNumber(v.y1) && isFiniteNumber(v.x2) && isFiniteNumber(v.y2))) return false;
+  if (v.application !== 'active' && v.application !== 'passive') return false;
+  if (tension) {
+    return (
+      (v.direction === 'axial' || v.direction === 'tangent' || v.direction === 'bisector') &&
+      isFiniteNumber(v.tensile_capacity) &&
+      optionalFinite(v.end1_capacity) &&
+      optionalFinite(v.end2_capacity) &&
+      optionalFinite(v.spacing) &&
+      isPullout(v.pullout)
+    );
+  }
+  return (
+    (v.direction === 'angle' || v.direction === 'tangent' || v.direction === 'perpendicular') &&
+    isFiniteNumber(v.force) &&
+    optionalFinite(v.angle) &&
+    (v.type === 'sheet_pile' || optionalFinite(v.spacing))
+  );
+}
+
+/** Copia del refuerzo sin los opcionales `undefined` o `null` (un `null` es ausente, como en el motor) y sin compartir el `pullout`. */
+function copyReinforcement(r: Reinforcement): Reinforcement {
+  const out: Mutable = {};
+  for (const [key, value] of Object.entries(r)) {
+    if (value === undefined || value === null) continue;
+    out[key] = key === 'pullout' ? Object.fromEntries(Object.entries(value as object).filter(([, x]) => x !== undefined && x !== null)) : value;
+  }
+  return out as unknown as Reinforcement;
+}
 
 function isMaterial(value: unknown): value is Material {
   if (typeof value !== 'object' || value === null) return false;
@@ -276,10 +337,20 @@ function applyCommandRaw(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
       if (!inRange(cmd.index, loads.length)) return null;
       return { ...doc, loads: loads.filter((_, i) => i !== cmd.index) };
     }
-    // Refuerzos (v0.4): los tipos están congelados (R0); la edición la implementa la ola web. Mientras tanto el comando es inválido.
-    case 'reinforcement/upsert':
-    case 'reinforcement/remove':
-      return null;
+    // Refuerzos (v0.4, F4.11): `syncVersion` sube la versión a 0.4. Quitar el último no la baja (se recalcula al guardar).
+    case 'reinforcement/upsert': {
+      const list = doc.reinforcements ?? [];
+      if (!isReinforcement(cmd.reinforcement)) return null;
+      if (cmd.index !== null && !inRange(cmd.index, list.length)) return null;
+      const reinforcement = copyReinforcement(cmd.reinforcement);
+      const next = cmd.index === null ? [...list, reinforcement] : list.map((r, i) => (i === cmd.index ? reinforcement : r));
+      return { ...doc, reinforcements: next };
+    }
+    case 'reinforcement/remove': {
+      const list = doc.reinforcements ?? [];
+      if (!inRange(cmd.index, list.length)) return null;
+      return { ...doc, reinforcements: list.filter((_, i) => i !== cmd.index) };
+    }
     case 'doc/replace':
     case 'doc/load': {
       if (typeof cmd.doc !== 'object' || cmd.doc === null) return null;
@@ -357,6 +428,12 @@ function remapSelection(sel: Selection, cmd: EditorCommand): Selection {
       if (sel.kind === 'load') {
         if (sel.index === cmd.index) return NONE;
         if (sel.index > cmd.index) return { kind: 'load', index: sel.index - 1 };
+      }
+      return sel;
+    case 'reinforcement/remove':
+      if (sel.kind === 'reinforcement' || sel.kind === 'reinforcement_end') {
+        if (sel.index === cmd.index) return NONE;
+        if (sel.index > cmd.index) return { ...sel, index: sel.index - 1 };
       }
       return sel;
     default:
