@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T12:00:07-03:00 · harness v1 · casos: `verification/cases` (116 casos, 241 checks)
+Generado: 2026-11-26T12:08:27-03:00 · harness v1 · casos: `verification/cases` (116 casos, 243 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-26T12:00:07-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 241 | 0 | 0 | 0 |
-| cSlope | 240 | 0 | 0 | 1 |
+| ogs | 243 | 0 | 0 | 0 |
+| cSlope | 242 | 0 | 0 | 1 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **240/241** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 
 ## Tabla
 
@@ -51,6 +51,8 @@ cSlope reproduce el valor publicado dentro de tolerancia en **240/241** checks.
 | V012 | bishop | fixed | 0.9800 | 0.9817 | +0.18 | 0.9818 | +0.18 | 1.51 | OK |
 | V013a | bishop | search | 1.1400 | 1.1430 | +0.26 | 1.1429 | +0.25 | 2.44 | OK |
 | V013a | bishop | search | 1.1300 | 1.1430 | +1.15 | 1.1429 | +1.14 | 2.44 | OK |
+| V014 | janbu_corrected | fixed | 1.4600 | 1.4484 | -0.79 | 1.4482 | -0.81 | 1.34 | OK |
+| V014 | janbu_corrected | fixed | 1.4480 | 1.4484 | +0.03 | 1.4482 | +0.02 | 1.03 | OK |
 | V014 | spencer | fixed | 1.5760 | 1.5754 | -0.04 | 1.5755 | -0.03 | 1.03 | OK |
 | V015 | janbu_corrected | fixed | 1.4790 | 1.4767 | -0.16 | 1.4764 | -0.18 | 1.03 | OK |
 | V015 | janbu_simplified | fixed | 1.4460 | 1.4418 | -0.29 | 1.4418 | -0.29 | 1.03 | OK |
@@ -276,6 +278,8 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V011a | bishop | 1 | 1 | 1 | 2.5e-03 | 0.0e+00 | 0 |
 | V011b | bishop | 1 | 1 | 1 | 8.6e-05 | 0.0e+00 | 0 |
 | V012 | bishop | 1 | 1 | 1 | 2.2e-03 | 0.0e+00 | 0 |
+| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
+| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
 | V014 | spencer | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
 | V015 | janbu_corrected | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
 | V015 | janbu_simplified | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
@@ -299,7 +303,7 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V084f | janbu_corrected | 7 | 7 | 7 | 0.0e+00 | 1.8e-15 | 0 |
 | V095c | bishop | 1 | 1 | 1 | 8.8e-04 | 1.7e-01 | 0 |
 
-**28** checks, **145** cruces emparejados, **0** diferencias sin explicar.
+**30** checks, **161** cruces emparejados, **0** diferencias sin explicar.
 
 Ni ogs ni el oráculo aplican fuerza en: V016b (bishop), V016b (spencer). La superficie no cruza ningún elemento, así que el FS es el del talud sin refuerzo y el acuerdo con lo publicado no prueba nada sobre los refuerzos.
 
@@ -480,7 +484,7 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V011b (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V012 (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V013a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
-- V014 (spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V014 (janbu_corrected/fixed, spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V016b (bishop/fixed, spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
