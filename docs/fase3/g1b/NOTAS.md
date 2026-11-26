@@ -77,7 +77,7 @@ a `z`).
 ## Criterios de F5.5 (test `f3g1b_crack.rs`)
 
 - **Equilibrio global independiente** (fuerzas de la grieta en su punto real, sin recurrencia de momentos ni
-  `h_moment_base`), 8 filas, solver a 1e-12: Spencer y M-P `Fx, Fy, M ≤ 3,6e-14`, `E_n ≤ 3,6e-14`; Janbu simplificado
+  `h_moment_base`), 8 filas, solver a 1e-12: Spencer y M-P `Fx, Fy ≤ 3,6e-14`, `M ≤ 5,7e-14`, `E_n ≤ 3,6e-14`; Janbu simplificado
   `Fx ≤ 2,8e-13`; Bishop (su formulación, mismo `R·sin α`) `≤ 1,2e-13`. El signo invertido da `Fx > 1e-3`: el test
   discrimina.
 - **Espejo** (10 filas con grieta seca, llena, automática y polilínea): `|ΔFS| ≤ 1,3e-15`; `x_c` y `Pw` simétricos.
