@@ -3,6 +3,7 @@
 // entrada contra el código que realmente atiende la tecla (`shortcutFor` y `keyActions`), de modo que si un atajo cambia, la prueba falla.
 
 import type { ShortcutAction } from '../editor/app/shortcuts';
+import { CRACK_PW_NOTE, POND_NOTE } from '../report/crackReport';
 import { STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
 
@@ -135,13 +136,26 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'ru',
     term: 'ru (coeficiente de presión de poros)',
     definition:
-      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1). Si un material tiene ru y el modelo también tiene línea piezométrica, en ese material manda ru y la piezométrica no se usa.',
+      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1). Si un material tiene ru y el modelo también tiene línea piezométrica, en ese material manda ru y la piezométrica no se usa. Con agua embalsada sobre el terreno, la presión de poros es u = ru · (W + V)/b, con W el peso del suelo de la dovela y V el peso del agua embalsada que tiene encima (sin cargas externas ni sismo): es la regla de Slide2 y la conservadora, y da entre 1 % y 4,5 % menos de FS que contar solo el suelo.',
   },
   {
     id: 'piezometric',
     term: 'Línea piezométrica',
     definition:
       'Poligonal que da la cota hasta la que sube el agua. En cada dovela, la presión de poros en el centro de la base es u = γw · (cota de la línea − cota de la base), nunca negativa. Se edita en la pestaña «Agua» y en el lienzo. Fuera de su rango en x el cálculo la prolonga en horizontal hasta los bordes del modelo, con el nivel de su extremo más cercano.',
+  },
+  {
+    id: 'ponded-water',
+    term: 'Agua embalsada',
+    definition:
+      `Agua libre sobre el terreno (un embalse al pie del talud o contra una cara de presa): es la región entre la línea piezométrica y el terreno donde la piezométrica queda sobre el terreno. No tiene campo propio: se carga sola, en todo el modelo, con la línea piezométrica y en todas las versiones del formato. Pesa sobre las dovelas que cubre y empuja con su presión horizontal (en una cara vertical, el empuje hidrostático sobre ella). ${POND_NOTE} El sismo pseudoestático no actúa sobre el agua embalsada: ni kh ni kv. Con un material con ru, el agua embalsada entra en u = ru · (W + V)/b (ver «ru»). El lienzo la dibuja como un relleno azul bajo la línea piezométrica.`,
+  },
+  {
+    id: 'tension-crack',
+    term: 'Grieta de tracción',
+    definition:
+      'Grieta vertical en la cresta del talud, que se activa en el panel «Análisis» con una profundidad (un número o «Automática») y la fracción de agua que la llena (de 0, seca, a 1, llena). No se dibuja ni se coloca a mano: su posición x_c sale de la superficie y de la profundidad, es el primer punto desde la cresta donde el terreno queda a esa profundidad o más sobre la superficie de falla. La masa deslizante termina en una cara vertical en x_c: el suelo del lado de la cresta se quita, su peso no se conserva como carga y la cara no tiene resistencia. Una superficie que nunca llega a esa profundidad no tiene masa y el cálculo la descarta (nota tension_crack_not_reached); si se descartan todas, no hay superficie válida. ' +
+      `${CRACK_PW_NOTE} La fracción 1 es lo conservador y lo que usan Slide2 y USACE EM 1110-2-1902, por eso es la que propone la interfaz al crear la grieta. El agua de la grieta no cambia la presión de poros de la base. Con la profundidad «Automática» se usa z = 2c/(γ·tan(45° − φ/2)) − q/γ con el material bajo el terreno en cada x; no hay tope por la altura del talud. El resultado trae x_c, la profundidad usada y Pw, y el lienzo, el informe PDF, el CSV y Diagnósticos los muestran.`,
   },
   {
     id: 'seismic',
@@ -220,6 +234,8 @@ export const LIMITATIONS: readonly string[] = [
   'Una carga puntual o lineal puede generar círculos diminutos con FS muy bajo bajo ella; fije un «ancho mínimo» de búsqueda y revise aparte la capacidad de soporte local.',
   'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa: cada modelo que usa γsat lleva un aviso en Diagnósticos y en el informe.',
   'Si un material tiene ru y el modelo tiene línea piezométrica, el cálculo usa ru en ese material y no la piezométrica (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
+  'Agua embalsada: se incluye siempre que la línea piezométrica pase sobre el terreno (nota water_above_ground), con su peso y su empuje horizontal; no hay interruptor. El sismo pseudoestático no actúa sobre ella ni sobre el agua de la grieta. Con un material con ru, la presión de poros es u = ru·(W + V)/b, que da entre 1 % y 4,5 % menos de FS que contar solo el suelo; esa regla no se pudo contrastar con otro programa.',
+  'Grieta de tracción: la profundidad «Automática» no tiene tope por la altura del talud, y con la fracción de agua 1 (la que propone la interfaz) el resultado es el conservador. La monotonía con la profundidad de una grieta seca no está garantizada, porque el bloque que se quita cambia con ella. Con una búsqueda, los círculos que no alcanzan la grieta se descartan; los refuerzos que cruzan la superficie del lado de la cresta de x_c quedan fuera de la masa (nota reinforcement_outside_mass).',
   'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',
   `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT} La fuerza de un pilote o de una tablestaca es un dato que usted fija (el motor emite la nota structural_checks_not_covered): el programa no comprueba que el elemento la resista.`,
   'Refuerzos que no se modelan todavía: la fuerza de pilote por el empuje del suelo (Ito-Matsui), el pretensado como campo aparte (use un anclaje activo con la carga de bloqueo como capacidad), la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos lanzados, los anclajes helicoidales, la presión de fluido equivalente y el soporte definido por el usuario. El sismo no actúa sobre las fuerzas de los refuerzos.',
