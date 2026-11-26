@@ -28,7 +28,7 @@ describe('sección «Refuerzos» del informe', () => {
   it('la portada dice formato 0.4 con refuerzos, aunque el modelo en memoria traiga una versión menor, y 0.2 sin ellos', () => {
     const kvOf = (c: ReturnType<typeof buildReportContent>): Record<string, string> =>
       Object.fromEntries((c.sections.find((s) => s.id === 'cover')!.blocks.find((b) => b.kind === 'kv') as Extract<ReportBlock, { kind: 'kv' }>).rows);
-    const old = { ...input, model: { ...input.model, version: '0.2' } };
+    const old = { ...input, model: { ...input.model, version: '0.2' as const } };
     expect(kvOf(buildReportContent(old))['Versión del formato']).toBe('0.4');
     expect(kvOf(buildReportContent(sampleInput()))['Versión del formato']).toBe('0.2');
   });
