@@ -350,6 +350,17 @@ espacio de los círculos y el refinamiento por Hooke-Jeeves puede ver saltos (X1
 - `reinforcement_forces` se emite solo sobre la **superficie final** de cada método, no para cada candidato;
 - el coste de la búsqueda crece con el número de refuerzos.
 
+**La búsqueda puede esquivar el refuerzo.** El círculo crítico no tiene por qué cruzar el elemento: si un círculo
+menor, que no lo toca, tiene un FS más bajo, ese es el mínimo y el refuerzo no aporta. Ejemplo: ACADS 1(a) con su
+búsqueda por defecto y el anclaje activo de 100 kN del [ejemplo del formato](formato-ogs-json.md#ejemplo-un-talud-con-un-anclaje-activo).
+Sin refuerzos, Bishop da 0,9851 y, con el anclaje, 1,0623, con la nota `reinforcement_outside_mass` y sin ninguna fuerza
+en `reinforcement_forces`: la superficie crítica (xc 36,61, yc 46,55, r 18,54) pasa por encima del anclaje. En el mismo
+modelo con una tablestaca activa de 120 kN por metro en x = 40, Bishop da 1,1553 y el elemento también queda
+`outside_mass`; con el círculo fijo que cruza la tablestaca, el FS es 1,4557. **Cuando una búsqueda con refuerzos trae la
+nota `reinforcement_outside_mass`, el FS mínimo es el de una superficie que el refuerzo no cruza:** mueva el refuerzo,
+alárguelo o acote los rangos de entrada y salida para que el refuerzo trabaje donde se espera, y revise el resultado con
+superficies fijas.
+
 Para un diseño, contraste el resultado de la búsqueda con superficies fijas (círculo o polilínea) cercanas a la crítica.
 
 Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte están en

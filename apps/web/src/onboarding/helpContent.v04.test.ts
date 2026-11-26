@@ -56,6 +56,8 @@ describe('limitaciones de los refuerzos (v0.4)', () => {
     expect(text).toContain('El sismo no actúa sobre las fuerzas de los refuerzos');
     expect(text).toContain('no_capacity');
     expect(text).toContain('discontinuo');
+    expect(text).toContain('esquivar el refuerzo');
+    expect(text).toContain('reinforcement_outside_mass');
   });
 
   it('no queda ninguna limitación que diga que no hay refuerzos', () => {
