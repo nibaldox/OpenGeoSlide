@@ -3,7 +3,7 @@
 // Cambiar las unidades abre un diálogo propio con tres opciones: «Convertir los valores» (recomendada: el FS no cambia),
 // «Solo cambiar la etiqueta» (la advertencia de siempre) y «Cancelar» (R8 A-02).
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Modal } from '../app/ImportDialogs';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
@@ -26,13 +26,8 @@ function UnitsDialog({ from, to, onChoose }: { from: ReturnType<typeof currentUn
   const dialog = unitsChangeDialog(from, to);
   const defaultRef = useRef<HTMLButtonElement>(null);
   const descId = useId();
-  useEffect(() => {
-    // `Modal` lleva el foco al título al montarse; después, a la opción recomendada.
-    const id = window.setTimeout(() => defaultRef.current?.focus(), 50);
-    return () => window.clearTimeout(id);
-  }, []);
   return (
-    <Modal title={dialog.title} onCancel={() => onChoose('cancel')}>
+    <Modal title={dialog.title} onCancel={() => onChoose('cancel')} initialFocus={defaultRef}>
       <div className="pj-units-dialog" data-testid="units-dialog">
         <p id={descId}>{dialog.intro}</p>
         <ul className="pj-units-options">
