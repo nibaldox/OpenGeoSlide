@@ -2,6 +2,7 @@
 
 import type { Circle, MethodReport, Model, Point, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
+import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
 
 /** Número de tonos de material del tema (`--canvas-mat-0` … `--canvas-mat-6`); los materiales siguientes los reciclan. */
 export const MATERIAL_SLOTS = 7;
@@ -31,6 +32,8 @@ export interface Scene {
   regions: SceneRegion[];
   materials: SceneMaterial[];
   piezo: Point[] | null;
+  /** Tramos horizontales que el motor extrapola a cada lado de la piezométrica hasta los bordes del modelo (R9-05d); `null` si no hay o ya cubre el ancho. */
+  piezoExtension?: PiezoExtension | null;
   /** `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b). Ausente = convergió. */
   surface: { circle: Circle; slices: Slice[]; converged?: boolean } | null;
   bounds: Bounds;
@@ -78,10 +81,13 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   const padX = (maxX - minX) * 0.04 || 1;
   const padY = (maxY - minY) * 0.04 || 1;
 
+  // La misma regla que el editor (`piezoExtension`), sobre la línea ya ordenada por x como la que se dibuja.
+  const piezoExt = piezo ? piezoExtension({ ...model, water: { ...model.water, piezometric_line: piezo } }) : null;
   return {
     regions,
     materials,
     piezo,
+    piezoExtension: piezoExt,
     surface,
     bounds: { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY },
     units: model.units,

@@ -261,7 +261,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             {scene ? (
               <>
                 <SectionCanvas scene={scene} />
-                <Legend scene={scene} options={{ unconverged: shownResult !== null && shownResult.status !== 'converged' }} />
+                <Legend scene={scene} options={{ unconverged: shownResult !== null && shownResult.status !== 'converged', piezoExtrapolated: scene.piezoExtension != null }} />
                 {shownResult && (
                   <p className={shownResult.status === 'converged' ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
                     Superficie mostrada: {METHOD_LABELS[shownResult.method]}

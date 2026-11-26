@@ -139,3 +139,36 @@ describe('paleta clara por defecto y materiales', () => {
     expect(buildScene(model, null).materials.map((m) => m.color)).toEqual(['var(--canvas-mat-0)', 'var(--canvas-mat-1)']);
   });
 });
+
+describe('R9-05d: piezométrica extrapolada, en Casos', () => {
+  const short = { ...model, water: { piezometric_line: [[3, 4], [7, 6]] } } as unknown as Model;
+
+  it('buildScene calcula los tramos del borde del modelo al primer/último punto (misma regla que el editor)', () => {
+    expect(buildScene(short, null).piezoExtension).toEqual({ left: [[0, 4], [3, 4]], right: [[7, 6], [10, 6]] });
+    expect(buildScene(model, null).piezoExtension).toBeNull(); // la línea ya cubre 0–10
+    expect(buildScene({ ...model, water: undefined } as unknown as Model, null).piezoExtension).toBeNull();
+  });
+
+  it('la línea se ordena por x antes de buscar el primer y el último punto', () => {
+    const shuffled = { ...model, water: { piezometric_line: [[7, 6], [3, 4]] } } as unknown as Model;
+    expect(buildScene(shuffled, null).piezoExtension).toEqual({ left: [[0, 4], [3, 4]], right: [[7, 6], [10, 6]] });
+  });
+
+  it('dibuja los dos tramos punteados `1 5` con el color de la piezométrica, y ninguno si la línea cubre el ancho', () => {
+    const r = recorder();
+    drawSection(r.ctx, 600, 400, 1, buildScene(short, null), dark);
+    expect(r.dashes.filter((d) => d.length === 2 && d[0] === 1 && d[1] === 5)).toHaveLength(2);
+    const full = recorder();
+    drawSection(full.ctx, 600, 400, 1, buildScene(model, null), dark);
+    expect(full.dashes.some((d) => d[0] === 1 && d[1] === 5)).toBe(false);
+  });
+
+  it('solo se dibuja el lado que falta', () => {
+    const rightOnly = { ...model, water: { piezometric_line: [[0, 4], [7, 6]] } } as unknown as Model;
+    const scene = buildScene(rightOnly, null);
+    expect(scene.piezoExtension).toEqual({ left: null, right: [[7, 6], [10, 6]] });
+    const r = recorder();
+    drawSection(r.ctx, 600, 400, 1, scene, dark);
+    expect(r.dashes.filter((d) => d[0] === 1 && d[1] === 5)).toHaveLength(1);
+  });
+});
