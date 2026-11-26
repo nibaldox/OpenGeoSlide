@@ -6,7 +6,7 @@ import type { Material } from '../../engine/types';
 import type { EditorStore, Issue, ModelDoc } from '../types';
 import { AnalysisPanel, DiagnosticsPanel, LoadsPanel, MaterialsPanel, SearchPanel, SeismicPanel, SurfacePanel, WaterPanel } from './index';
 import { applyCommands } from './dispatch';
-import { LabeledField } from './Fields';
+import { ErrorList, LabeledField } from './Fields';
 import { createFakeStore } from './fakeStore';
 import { defaultSearch, surfaceModeCommands } from './forms';
 
@@ -258,5 +258,14 @@ describe('LabeledField (R7-23)', () => {
     const out = field({});
     expect(out).toMatch(/<label for="([^"]+)">kh<\/label>/);
     expect(out).not.toContain('aria-label');
+  });
+});
+
+describe('ErrorList (axe: listitem, I-W)', () => {
+  it('el rol alert va en un contenedor y no en la propia lista: un <ul role="alert"> deja los <li> sin lista (axe serious «listitem»)', () => {
+    const out = renderToStaticMarkup(createElement(ErrorList, { errors: { a: 'ξ debe ser creciente', b: 'f negativa' }, id: 'e1' }));
+    expect(out).not.toMatch(/<ul[^>]*role=/);
+    expect(out).toMatch(/^<div[^>]*role="alert"[^>]*id="e1"|^<div[^>]*id="e1"[^>]*role="alert"/);
+    expect(out).toMatch(/<ul><li>ξ debe ser creciente<\/li><li>f negativa<\/li><\/ul>/);
   });
 });
