@@ -23,6 +23,7 @@ import {
 import { DrawLayer } from './DrawLayer';
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
+import { piezoExtension } from './piezoExtension';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
 import {
   handleKey,
@@ -641,6 +642,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const grid = gridLines(vp);
   const titles = axisTitles(unitsEff);
   const pz = piezoPoints(shown);
+  const pzExtra = piezoExtension(shown);
   const circle = shown.analysis.surface ?? null;
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
@@ -808,6 +810,29 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         {pz.length >= 2 && (
           <g data-layer="piezometric">
             <polyline points={pointsAttr(vp, pz)} fill="none" stroke={COLOR_PIEZO} strokeWidth={2} strokeDasharray="8 4" />
+          </g>
+        )}
+        {pzExtra && (
+          // Tramo que el motor extrapola en horizontal hasta los bordes del modelo (R9-05d): punteado, para distinguirlo de la línea definida.
+          <g data-layer="piezometric-extrapolated" aria-hidden="true" pointerEvents="none">
+            {(['left', 'right'] as const).map((side) => {
+              const seg = pzExtra[side];
+              if (!seg) return null;
+              return (
+                <polyline
+                  key={side}
+                  data-piezo-extrapolated={side}
+                  points={pointsAttr(vp, [...seg])}
+                  fill="none"
+                  stroke={COLOR_PIEZO}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeDasharray="1 5"
+                >
+                  <title>Piezométrica extrapolada: el motor la prolonga en horizontal hasta el borde del modelo</title>
+                </polyline>
+              );
+            })}
           </g>
         )}
 
