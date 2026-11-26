@@ -12,7 +12,7 @@ mod f3_common;
 
 use f3_common::*;
 use ogs_core::methods::SolveStatus;
-use ogs_core::report::MethodReport;
+use ogs_core::report::{MethodReport, SurfaceOut};
 use serde_json::{Value, json};
 
 fn result(doc: &Value, i: usize) -> MethodReport {
@@ -110,4 +110,63 @@ fn polyline_on_the_contact_equals_one_just_inside_the_weak_layer_e13l5() {
         (on - inside).abs() / inside < 1e-3,
         "on the contact {on}, just inside {inside}"
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// E13l-6: robustness of the polyline
+
+/// One material, flat ground at `y = 25` over `x ∈ [0, 100]`, with the slope going down toward the left.
+fn flat_ground(points: &[[f64; 2]], methods: Value) -> Value {
+    json!({
+        "format": "opengeoslide", "version": "0.3",
+        "meta": {"id": "R10A-05", "title": "terreno plano"},
+        "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 19.0, "cohesion": 10.0,
+                       "friction_angle": 25.0, "ru": null}],
+        "regions": [{"material": "s", "polygon": [[0, 0], [0, 25], [100, 25], [100, 0]]}],
+        "water": {"unit_weight": 9.807},
+        "slope": {"direction": "right_to_left"},
+        "analysis": {"methods": methods, "slices": 50, "tolerance": 1e-5, "max_iterations": 500,
+                     "min_m_alpha": 0.2,
+                     "surface": {"type": "polyline", "points": points}}
+    })
+}
+
+fn fitted(doc: &Value) -> Vec<[f64; 2]> {
+    match result(doc, 0).surface {
+        SurfaceOut::Polyline { points } => points,
+        other => panic!("a polyline was expected, got {other:?}"),
+    }
+}
+
+/// R10A-05-1: an end under the ground on a steep segment (the crossing is within `tol` in x of the end, but 5 m away
+/// in 2D) is prolonged to the ground. The base left the polyline as it came, with the end 5 m under the ground.
+#[test]
+fn steep_end_under_the_ground_is_prolonged_e13l6() {
+    let doc = flat_ground(
+        &[[25.0, 20.0], [25.00000015, 10.0], [40.0, 15.0], [55.0, 35.0]],
+        json!(["janbu_simplified"]),
+    );
+    let pts = fitted(&doc);
+    assert!(
+        (pts[0][1] - 25.0).abs() < 1e-6 && pts[0][0] < 25.0,
+        "the end must be on the ground, before the old end: {pts:?}"
+    );
+    assert_eq!(pts[1], [25.0, 20.0], "the old end stays as a vertex: {pts:?}");
+}
+
+/// R10A-05-2: an end over the ground on a steep segment. The vertex that follows (1 m under the ground, within `tol`
+/// in x of the crossing) was dropped; it must stay.
+#[test]
+fn steep_vertex_after_the_crossing_is_kept_e13l6() {
+    let doc = flat_ground(
+        &[[25.0, 29.0], [25.00000015, 24.0], [40.0, 20.0], [55.0, 35.0]],
+        json!(["janbu_simplified"]),
+    );
+    let pts = fitted(&doc);
+    assert!(
+        pts.iter().any(|p| p[0] == 25.00000015 && p[1] == 24.0),
+        "the vertex (25.00000015, 24) is metres under the ground and must stay: {pts:?}"
+    );
+    assert!((pts[0][1] - 25.0).abs() < 1e-6, "{pts:?}");
 }
