@@ -655,7 +655,7 @@ al espejo x → −x.
   externa conocida, la de bloqueo. **No es siempre conservador** (E14o-8): con `along > 0` la fuerza tiene una
   componente tangencial a favor del deslizamiento, pero su componente normal confina la base y, con `φ > 0`, **puede
   subir el FS** ([ejemplo](#un-activo-comprimido-puede-subir-el-fs)). El motor emite la nota informativa
-  `reinforcement_active_compression`. **Difiere del binario instalado del oráculo** ([Limitaciones](limitaciones.md#el-activo-comprimido-e14m-1-y-el-oráculo-instalado)).
+  `reinforcement_active_compression`. **Difiere del binario instalado del oráculo** ([Limitaciones](limitaciones.md#el-activo-comprimido-e14m-1-e14o-8-y-el-oráculo-instalado)).
 - `pile` y `sheet_pile` **no** tienen regla de compresión.
 
 ### Fuerza activa y pasiva
