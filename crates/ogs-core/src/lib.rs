@@ -1,12 +1,16 @@
 //! OpenGeoSlide core: 2D limit-equilibrium slope stability (contracts: `briefs/00_CONTRATOS.md`).
 //!
-//! What the crate does (formats v0.1 and v0.2):
+//! What the crate does (formats v0.1, v0.2 and v0.3):
 //! - Reads the `.ogs.json` model (`model`, §1). Input is strict: an unknown field is an error, never
 //!   ignored (`deny_unknown_fields`).
 //! - `analyze` validates `format`, `version` and every `analysis` parameter before computing (§4.5).
 //! - v0.2 (amendments E12a, E12b): `loads` (distributed and line loads) and `analysis.seismic` (pseudo-static `kh`,
 //!   `kv`), validated in `loads` and applied by the slicer and both methods. A model without them gives the same
 //!   result in v0.1 and in v0.2.
+//! - v0.3 (amendments E13a-E13g): the `undrained` material (`strength`), the polyline surface (`surface`), the
+//!   methods `morgenstern_price`, `janbu_simplified` and `janbu_corrected`, and `analysis.interslice`. The format,
+//!   the version gate and the validations are complete; the polyline and the new methods stop at `unimplemented!`
+//!   stubs (`F3-W1a`, `F3-W1b`) until their wave.
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
 //! - Slices circular surfaces (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
@@ -14,8 +18,7 @@
 //! - Reports one `MethodReport` per method (`report`). `fos` is `None` when it is not finite; the
 //!   status and the warnings explain why.
 //!
-//! Not in v0.1: non-circular surfaces, materials other than Mohr-Coulomb, and water over the ground
-//! (it is ignored and reported as a warning).
+//! Not supported: water over the ground (it is ignored and reported as a warning).
 
 pub mod geometry;
 pub mod loads;
@@ -24,14 +27,20 @@ pub mod model;
 pub mod report;
 pub mod search;
 pub mod slicer;
+pub mod strength;
+pub mod surface;
 
 use geometry::{Ground, PreparedModel};
 use loads::{LOAD_OUTSIDE_MASS, LoadCase};
 use methods::{SolveOptions, SolveStatus, is_inert, solve};
-use model::{AnalysisSettings, FORMAT, MethodKind, Model, SearchSpec, SurfaceSpec};
+use model::{
+    AnalysisSettings, FORMAT, IntersliceFunction, IntersliceSpec, MethodKind, Model, SearchSpec,
+    SurfaceSpec,
+};
 use report::{AnalysisReport, MethodReport};
 use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings, search_circular};
 use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_with};
+use surface::{Surface, validate_polyline};
 
 /// Crate version, as declared in `Cargo.toml`.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -76,6 +85,10 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
     let pm = PreparedModel::new(model)?;
     let (x_min, x_max) = pm.x_range();
     loads::validate_range(model, x_min, x_max, pm.tol())?;
+    // E13c: the separation of the `x` of a polyline needs the model width.
+    if let Some(SurfaceSpec::Polyline { points }) = &analysis.surface {
+        validate_polyline(points, Some(x_max - x_min))?;
+    }
     let load_case = LoadCase::from_model(model);
     if let Some(spec) = &analysis.search {
         validate_search_ranges(spec, &pm)?;
@@ -105,6 +118,9 @@ fn method_name(method: MethodKind) -> &'static str {
     match method {
         MethodKind::Bishop => "bishop",
         MethodKind::Spencer => "spencer",
+        MethodKind::MorgensternPrice => "morgenstern_price",
+        MethodKind::JanbuSimplified => "janbu_simplified",
+        MethodKind::JanbuCorrected => "janbu_corrected",
     }
 }
 
@@ -116,7 +132,8 @@ fn validate_document(model: &Model) -> Result<(), OgsError> {
             model.format
         )));
     }
-    // `version` (0.1 or 0.2), and the v0.2 fields `loads` and `analysis.seismic` (E12a).
+    // `version` (0.1, 0.2 or 0.3), the v0.2 fields `loads` and `analysis.seismic` (E12a) and the gate of the v0.3
+    // fields (E13a).
     loads::validate_document(model)?;
     validate_analysis(&model.analysis)
 }
@@ -157,15 +174,90 @@ fn validate_analysis(a: &AnalysisSettings) -> Result<(), OgsError> {
             a.min_m_alpha
         )));
     }
-    if let Some(SurfaceSpec::Circle(c)) = &a.surface
-        && !(c.xc.is_finite() && c.yc.is_finite() && c.r.is_finite() && c.r > 0.0)
-    {
-        return Err(invalid(
-            "analysis.surface: xc, yc y r deben ser finitos, con r > 0",
-        ));
+    match &a.surface {
+        Some(SurfaceSpec::Circle(c))
+            if !(c.xc.is_finite() && c.yc.is_finite() && c.r.is_finite() && c.r > 0.0) =>
+        {
+            return Err(invalid(
+                "analysis.surface: xc, yc y r deben ser finitos, con r > 0",
+            ));
+        }
+        // E13c: format of the polyline (the separation against the model width is checked once it is prepared).
+        Some(SurfaceSpec::Polyline { points }) => {
+            validate_polyline(points, None)?;
+            // E13f: Bishop needs a circle, because with a polyline its FS depends on the moment axis. It only
+            // matters when the polyline is the surface that is analysed, i.e. there is no search (`search` wins).
+            if a.search.is_none() && a.methods.contains(&MethodKind::Bishop) {
+                return Err(invalid(
+                    "el método 'bishop' solo admite superficies circulares; \
+                     use spencer, morgenstern_price o janbu",
+                ));
+            }
+        }
+        _ => {}
     }
+    validate_interslice(a)?;
     if let Some(spec) = &a.search {
         validate_search_counts(spec)?;
+    }
+    Ok(())
+}
+
+/// `analysis.interslice` (E13d): only with `morgenstern_price`, and `points` only (and always) with `data_points`.
+fn validate_interslice(a: &AnalysisSettings) -> Result<(), OgsError> {
+    let Some(spec) = &a.interslice else {
+        return Ok(());
+    };
+    if !a.methods.contains(&MethodKind::MorgensternPrice) {
+        return Err(invalid(
+            "analysis.interslice requiere el método \"morgenstern_price\" en analysis.methods",
+        ));
+    }
+    match (spec.function, &spec.points) {
+        (IntersliceFunction::DataPoints, None) => Err(invalid(
+            "analysis.interslice: la función data_points requiere 'points'",
+        )),
+        (IntersliceFunction::DataPoints, Some(points)) => validate_interslice_points(points),
+        (_, Some(_)) => Err(invalid(
+            "analysis.interslice: 'points' solo se admite con la función data_points",
+        )),
+        (_, None) => Ok(()),
+    }
+}
+
+/// `data_points` (E13d): at least 2 points `[ξ, f]`, ξ strictly increasing from 0 to 1, `f ≥ 0`, `max f > 0`, all
+/// finite.
+fn validate_interslice_points(points: &[model::Point]) -> Result<(), OgsError> {
+    if points.len() < 2 {
+        return Err(invalid(format!(
+            "analysis.interslice.points necesita al menos 2 puntos, no {}",
+            points.len()
+        )));
+    }
+    if points
+        .iter()
+        .any(|p| !(p[0].is_finite() && p[1].is_finite()))
+    {
+        return Err(invalid(
+            "analysis.interslice.points tiene valores no finitos",
+        ));
+    }
+    if points[0][0] != 0.0 {
+        return Err(invalid("analysis.interslice.points debe empezar en ξ = 0"));
+    }
+    if points[points.len() - 1][0] != 1.0 {
+        return Err(invalid("analysis.interslice.points debe terminar en ξ = 1"));
+    }
+    if points.windows(2).any(|w| w[1][0] <= w[0][0]) {
+        return Err(invalid(
+            "analysis.interslice.points debe tener ξ estrictamente creciente",
+        ));
+    }
+    if points.iter().any(|p| p[1] < 0.0) {
+        return Err(invalid("analysis.interslice.points debe tener f ≥ 0"));
+    }
+    if !points.iter().any(|p| p[1] > 0.0) {
+        return Err(invalid("analysis.interslice.points debe tener algún f > 0"));
     }
     Ok(())
 }
@@ -242,8 +334,17 @@ fn analyze_method(
     let analysis = &model.analysis;
     let n = analysis.slices;
 
+    // Wave 0 stubs (interfaces frozen, behavior in wave 1): the polyline surface (F3-W1a) and the methods of v0.3
+    // (F3-W1b) are validated and parsed, and stop here. Bishop and Spencer on a circle keep their code unchanged.
+    if analysis.search.is_none() && matches!(analysis.surface, Some(SurfaceSpec::Polyline { .. })) {
+        unimplemented!("F3-W1a");
+    }
+    if !matches!(method, MethodKind::Bishop | MethodKind::Spencer) {
+        unimplemented!("F3-W1b");
+    }
+
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
-    let (circle, search) = match (&analysis.search, &analysis.surface) {
+    let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
                 let slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
@@ -261,11 +362,16 @@ fn analyze_method(
                     result.stats.valid
                 ))
             })?;
-            (circle, Some(result.stats))
+            (Surface::Circle(circle), Some(result.stats))
         }
-        (None, Some(SurfaceSpec::Circle(circle))) => (*circle, None),
+        (None, Some(spec)) => (Surface::from_spec(spec), None),
         (None, None) => return Err(OgsError::NoSurface),
     };
+    // The slicer still works on circles; F3-W1a rewires it to `Surface`.
+    let Surface::Circle(circle) = &surface else {
+        unimplemented!("F3-W1a");
+    };
+    let circle = *circle;
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
@@ -311,10 +417,23 @@ fn analyze_method(
         status: result.status,
         iterations: result.iterations,
         lambda: result.lambda,
-        surface: circle,
+        surface: surface.to_report(),
         slices,
         search,
         warnings,
+        // F3-W1b: `f₀` of `janbu_corrected`, from the solver.
+        correction_factor: None,
+        interslice: interslice_report(analysis, method),
+    })
+}
+
+/// The interslice function reported by `morgenstern_price`: the declared one, or `half_sine` by default (E13d).
+fn interslice_report(analysis: &AnalysisSettings, method: MethodKind) -> Option<IntersliceSpec> {
+    (method == MethodKind::MorgensternPrice).then(|| {
+        analysis.interslice.clone().unwrap_or(IntersliceSpec {
+            function: IntersliceFunction::HalfSine,
+            points: None,
+        })
     })
 }
 

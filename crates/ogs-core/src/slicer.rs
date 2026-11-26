@@ -598,6 +598,8 @@ fn slice_span(
             continue;
         };
         let m = &pm.materials[mat];
+        // E13b: the strength of the base, at the elevation of its midpoint.
+        let (cohesion, tan_phi) = crate::strength::resolve(m, y_base_mid);
 
         let weight = width * col;
         let sigma_v = col;
@@ -638,8 +640,8 @@ fn slice_span(
             alpha,
             base_length,
             weight,
-            cohesion: m.cohesion,
-            tan_phi: m.tan_phi,
+            cohesion,
+            tan_phi,
             pore_pressure,
             material: mat,
             ..extra

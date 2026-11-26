@@ -1,8 +1,9 @@
-//! `.ogs.json` model v0.1 and v0.2 (contract §1, amendment E12a). Field names are snake_case and frozen.
-//! Angles are in degrees. Units are not converted by the engine.
+//! `.ogs.json` model v0.1, v0.2 and v0.3 (contract §1, amendments E12a and E13a). Field names are snake_case and
+//! frozen. Angles are in degrees. Units are not converted by the engine.
 //!
-//! v0.2 adds `loads` (surface loads) and `analysis.seismic` (pseudo-static `kh`, `kv`). A document without them
-//! gives the same result in both versions.
+//! v0.2 adds `loads` (surface loads) and `analysis.seismic` (pseudo-static `kh`, `kv`). v0.3 adds the undrained
+//! material, the polyline surface, the methods Morgenstern-Price and Janbu, and `analysis.interslice`. A document
+//! without the fields of a later version gives the same result in every version.
 
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +16,9 @@ pub const FORMAT: &str = "opengeoslide";
 pub const FORMAT_VERSION: &str = "0.1";
 /// Version that admits `loads` and `analysis.seismic` (amendment E12a).
 pub const FORMAT_VERSION_V02: &str = "0.2";
+/// Version that admits the undrained material, the polyline surface, `morgenstern_price`, `janbu_simplified`,
+/// `janbu_corrected` and `analysis.interslice` (amendment E13a).
+pub const FORMAT_VERSION_V03: &str = "0.3";
 
 fn default_water_unit_weight() -> f64 {
     9.81
@@ -55,14 +59,23 @@ pub struct Meta {
     pub notes: Option<String>,
 }
 
-/// Constitutive model. Only Mohr-Coulomb exists in v0.1.
+/// Constitutive model. `Undrained` needs `version: "0.3"` (E13a).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MaterialModel {
     MohrCoulomb,
+    /// φ = 0 with undrained strength `Su` (constant, or linear with the elevation; E13b).
+    Undrained,
 }
 
-/// Soil material. `friction_angle` in degrees; for φ = 0 use `friction_angle: 0` and `cohesion = Su`.
+/// Soil material. `friction_angle` in degrees; for φ = 0 use `friction_angle: 0` and `cohesion = Su`, or the
+/// `undrained` model (v0.3).
+///
+/// Which fields are required or forbidden depends on `model` (F3.2), so the type keeps them optional and
+/// `strength::resolve_materials` checks them:
+/// - `mohr_coulomb`: `cohesion` and `friction_angle` required; the four `undrained_*`/`strength_*` fields forbidden;
+/// - `undrained`: `undrained_strength` required; `cohesion` and `friction_angle` forbidden. `strength_datum` (an
+///   elevation, not a depth) and `strength_gradient` go together; `strength_limit` needs the gradient.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Material {
@@ -72,10 +85,24 @@ pub struct Material {
     pub unit_weight: f64,
     #[serde(default)]
     pub unit_weight_sat: Option<f64>,
-    pub cohesion: f64,
-    pub friction_angle: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cohesion: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub friction_angle: Option<f64>,
     #[serde(default)]
     pub ru: Option<f64>,
+    /// `Su` at the datum elevation (or everywhere, without `strength_datum`). v0.3, `undrained` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub undrained_strength: Option<f64>,
+    /// Elevation `y` where the strength is `undrained_strength`. v0.3, `undrained` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strength_datum: Option<f64>,
+    /// Increase of `Su` per unit of depth below the datum (stress per length; any sign). v0.3, `undrained` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strength_gradient: Option<f64>,
+    /// Cap of `Su` (a maximum for a gradient ≥ 0, a minimum for a gradient < 0). v0.3, `undrained` only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strength_limit: Option<f64>,
 }
 
 /// Simple polygon assigned to a material. Closed implicitly; the first vertex is not repeated.
@@ -163,6 +190,33 @@ pub struct SlopeSettings {
 pub enum MethodKind {
     Bishop,
     Spencer,
+    /// Morgenstern-Price (v0.3, E13d). The interslice function is `analysis.interslice`.
+    MorgensternPrice,
+    /// Janbu simplified, `F₀` (v0.3, E13e).
+    JanbuSimplified,
+    /// Janbu corrected, `F = f₀·F₀` (v0.3, E13e).
+    JanbuCorrected,
+}
+
+/// Function `f(ξ)` of the interslice forces of Morgenstern-Price, `X = λ·f(ξ)·E` (v0.3, E13d).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum IntersliceFunction {
+    Constant,
+    HalfSine,
+    ClippedSine,
+    Trapezoidal,
+    DataPoints,
+}
+
+/// `analysis.interslice` (v0.3, E13d): the function of the interslice forces. `points` is `[[ξ, f], …]` and only
+/// exists, and is required, with `data_points`. Also the form that the report uses.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntersliceSpec {
+    pub function: IntersliceFunction,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub points: Option<Vec<Point>>,
 }
 
 /// Circle `(xc, yc, r)`.
@@ -174,11 +228,15 @@ pub struct Circle {
     pub r: f64,
 }
 
-/// Fixed surface. Serialized as `{"type": "circle", ...}`.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+/// Fixed surface. Serialized as `{"type": "circle", ...}` or `{"type": "polyline", "points": [[x, y], …]}`.
+///
+/// `Polyline` needs `version: "0.3"` (E13a). Its format (at least 2 finite points, `x` strictly increasing) and its
+/// fit to the ground are E13c.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum SurfaceSpec {
     Circle(Circle),
+    Polyline { points: Vec<Point> },
 }
 
 /// Circular entry/exit search (§4.4). Serialized with `"type": "circular_entry_exit"`.
@@ -285,6 +343,9 @@ pub struct AnalysisSettings {
     /// Pseudo-static coefficients (v0.2). `None` is the same as `kh = kv = 0`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub seismic: Option<SeismicSettings>,
+    /// Interslice force function of `morgenstern_price` (v0.3, E13d). `None` is `half_sine`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interslice: Option<IntersliceSpec>,
 }
 
 impl Default for AnalysisSettings {
@@ -298,6 +359,7 @@ impl Default for AnalysisSettings {
             surface: None,
             search: None,
             seismic: None,
+            interslice: None,
         }
     }
 }
@@ -356,7 +418,9 @@ mod tests {
         let s: SurfaceSpec =
             serde_json::from_str(r#"{"type": "circle", "xc": 120.0, "yc": 90.0, "r": 80.0}"#)
                 .unwrap();
-        let SurfaceSpec::Circle(c) = s;
+        let SurfaceSpec::Circle(c) = s else {
+            panic!("expected a circle")
+        };
         assert_eq!((c.xc, c.yc, c.r), (120.0, 90.0, 80.0));
     }
 
@@ -367,8 +431,8 @@ mod tests {
         assert_eq!(m.version, "0.1");
         assert_eq!(m.meta.id.as_deref(), Some("V047a"));
         assert_eq!(m.materials[0].unit_weight, 20.0);
-        assert_eq!(m.materials[0].cohesion, 3.0);
-        assert_eq!(m.materials[0].friction_angle, 19.6);
+        assert_eq!(m.materials[0].cohesion, Some(3.0));
+        assert_eq!(m.materials[0].friction_angle, Some(19.6));
         assert_eq!(m.regions[0].polygon.len(), 6);
         assert_eq!(
             m.analysis.methods,
