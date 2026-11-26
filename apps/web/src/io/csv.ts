@@ -6,6 +6,7 @@
 
 import { parse, unparse } from 'papaparse';
 import { reportCircle } from '../engine/surface';
+import { methodDetails } from '../report/methodInfo';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
@@ -266,13 +267,17 @@ export interface ResultsCsvOptions extends ToCsvOptions {
  */
 export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
+  // Columnas que solo existen cuando algún método las necesita: así el CSV de un modelo sin polilínea ni M-P ni Janbu corregido no cambia.
+  const withSurface = results.some((r) => 'points' in r.surface);
+  const withFunction = results.some((r) => r.interslice !== undefined);
+  const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
   const rows: CsvCell[][] = results.map((r) => [
     r.method,
     r.status,
     r.status === 'converged' ? r.fos : null,
     r.iterations,
     r.status === 'converged' ? r.lambda : null,
-    // Una polilínea no tiene centro ni radio: celdas vacías hasta que F3-W1e defina su exportación.
+    // Una polilínea no tiene centro ni radio: celdas vacías (sus puntos van en el CSV de la superficie).
     reportCircle(r.surface)?.xc ?? null,
     reportCircle(r.surface)?.yc ?? null,
     reportCircle(r.surface)?.r ?? null,
@@ -280,9 +285,37 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     r.search?.valid ?? null,
     r.warnings.join(WARNING_SEPARATOR),
     u.label,
+    ...(withSurface ? ['points' in r.surface ? 'polilinea' : 'circulo'] : []),
+    ...(withFunction ? [r.interslice?.function ?? null] : []),
+    ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
   ]);
-  const header = ['metodo', 'estado', 'fs', 'iteraciones', 'lambda', `xc_${u.length}`, `yc_${u.length}`, `r_${u.length}`, 'evaluadas', 'validas', 'avisos', 'unidades'];
+  const header = [
+    'metodo',
+    'estado',
+    'fs',
+    'iteraciones',
+    'lambda',
+    `xc_${u.length}`,
+    `yc_${u.length}`,
+    `r_${u.length}`,
+    'evaluadas',
+    'validas',
+    'avisos',
+    'unidades',
+    ...(withSurface ? ['superficie'] : []),
+    ...(withFunction ? ['funcion_interslice'] : []),
+    ...(withF0 ? ['f0'] : []),
+  ];
   return toCsv(header, rows, options);
+}
+
+/**
+ * Filas `[método, estado, n, x, y]` de una superficie **polilínea**: un punto del informe por fila (la polilínea ajustada al terreno,
+ * sin redondear). Vacío con un círculo, cuya superficie se exporta con los puntos de la base de las dovelas.
+ */
+export function polylineSurfaceRows(r: MethodReport): CsvCell[][] {
+  if (!('points' in r.surface)) return [];
+  return r.surface.points.map(([x, y], i) => [r.method, r.status, i + 1, x, y]);
 }
 
 /**
