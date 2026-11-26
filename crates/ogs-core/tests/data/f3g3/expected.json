@@ -1,0 +1,421 @@
+{
+ "source": "docs/fase3/exploracion/X22_filas/resultados.json (cSlope 0.1.0, fixed circle, 50 slices)",
+ "tolerance_pct": 0.1,
+ "rows": {
+  "X22-G01-force-pasivo": {
+   "note": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los t\u00e9rminos pasivos/activos contra el motor",
+   "oracle": {
+    "bishop": 1.450915,
+    "spencer": 1.446629,
+    "morgenstern_price": 1.446629,
+    "janbu_simplified": 1.384173,
+    "janbu_corrected": 1.444983
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "gobierna": "given"
+   }
+  },
+  "X22-G02-force-activo": {
+   "note": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los t\u00e9rminos pasivos/activos contra el motor",
+   "oracle": {
+    "bishop": 1.61977,
+    "spencer": 1.612087,
+    "morgenstern_price": 1.612087,
+    "janbu_simplified": 1.509353,
+    "janbu_corrected": 1.575663
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "gobierna": "given"
+   }
+  },
+  "X22-G03-force-tangente": {
+   "note": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los t\u00e9rminos pasivos/activos contra el motor",
+   "oracle": {
+    "bishop": 1.445301,
+    "spencer": 1.440988,
+    "morgenstern_price": 1.440988,
+    "janbu_simplified": 1.378019,
+    "janbu_corrected": 1.438559
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "gobierna": "given"
+   }
+  },
+  "X22-L01-xs-mismo-circulo": {
+   "note": "como X22-V013c (mismo c\u00edrculo) con location slip_surface: a\u00edsla el efecto de la posici\u00f3n de la fuerza",
+   "oracle": {
+    "bishop": 1.450982,
+    "spencer": 1.446695,
+    "morgenstern_price": 1.446695,
+    "janbu_simplified": 1.384233,
+    "janbu_corrected": 1.445046
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "gobierna": "soil"
+   }
+  },
+  "X22-N01-sin-pilote": {
+   "note": "sin pilote (neutralidad: ni X22 ni el motor cambian)",
+   "oracle": {
+    "bishop": 1.169179,
+    "spencer": 1.167415,
+    "morgenstern_price": 1.167415,
+    "janbu_simplified": 1.13017,
+    "janbu_corrected": 1.179821
+   }
+  },
+  "X22-N02-fuera": {
+   "note": "pilote en x = 10 (el pie): el cruce cae en el extremo de la superficie, sin fuerza",
+   "oracle": {
+    "bishop": 1.169179,
+    "spencer": 1.167415,
+    "morgenstern_price": 1.167415,
+    "janbu_simplified": 1.13017,
+    "janbu_corrected": 1.179821
+   },
+   "force_per_metre": {
+    "estado": "outside_mass",
+    "oracle": null,
+    "gobierna": null
+   }
+  },
+  "X22-S01-phi0": {
+   "note": "\u03c6 = 0: arcilla no drenada Su = 30, \u03b3 = 18; presi\u00f3n con tensi\u00f3n total",
+   "oracle": {
+    "bishop": 1.836644,
+    "spencer": 1.836644,
+    "morgenstern_price": 1.836644,
+    "janbu_simplified": 1.797162,
+    "janbu_corrected": 1.906119
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 100.938759,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S02-cphi": {
+   "note": "\u03c6 > 0: c = 5, \u03c6 = 25, \u03b3 = 19, seco",
+   "oracle": {
+    "bishop": 1.447293,
+    "spencer": 1.4434,
+    "morgenstern_price": 1.4434,
+    "janbu_simplified": 1.388415,
+    "janbu_corrected": 1.449413
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 126.973472,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S03-2capas": {
+   "note": "dos capas: c-\u03c6 (c = 8, \u03c6 = 15, \u03b3 = 18) sobre y = 2,5 y arcilla no drenada (Su = 40, \u03b3 = 19) debajo; el pilote cruza el contacto",
+   "oracle": {
+    "bishop": 1.718124,
+    "spencer": 1.664031,
+    "morgenstern_price": 1.664031,
+    "janbu_simplified": 1.600488,
+    "janbu_corrected": 1.670808
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 85.96498,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S04-agua": {
+   "note": "bajo el agua: \u03b3 = 18, \u03b3sat = 20, c = 8, \u03c6 = 22; l\u00ednea piezom\u00e9trica por debajo del terreno (y = 3,5 en el pilote); \u03c3'v = \u03b3\u00b7z - u",
+   "oracle": {
+    "bishop": 1.247167,
+    "spencer": 1.245,
+    "morgenstern_price": 1.245,
+    "janbu_simplified": 1.208642,
+    "janbu_corrected": 1.261741
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 104.468477,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S05-espejo": {
+   "note": "espejo de X22-V013c",
+   "oracle": {
+    "bishop": 1.437196,
+    "spencer": 1.433781,
+    "morgenstern_price": 1.433781,
+    "janbu_simplified": 1.384232,
+    "janbu_corrected": 1.445046
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S06-D1D-pequeno": {
+   "note": "D1/D = 0,25 (spacing 1,0; d 0,8): fuera del rango 2-8 de la f\u00f3rmula",
+   "oracle": {
+    "bishop": 11.572708,
+    "spencer": 11.56039,
+    "morgenstern_price": 11.56039,
+    "janbu_simplified": 10.92301,
+    "janbu_corrected": 11.40289
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 5148.317606,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S07-D1D-grande": {
+   "note": "D1/D = 9 (spacing 8; d 0,8); con c y \u03c6 la f\u00f3rmula c-\u03c6 baja del piso de \u03c6 = 0",
+   "oracle": {
+    "bishop": 1.218832,
+    "spencer": 1.216708,
+    "morgenstern_price": 1.216708,
+    "janbu_simplified": 1.17721,
+    "janbu_corrected": 1.228928
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 21.32779,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S08-cabeza-bajo-terreno": {
+   "note": "cabeza del pilote en y = 3 (2 m bajo el terreno): se carga desde la cabeza",
+   "oracle": {
+    "bishop": 1.313439,
+    "spencer": 1.3105,
+    "morgenstern_price": 1.3105,
+    "janbu_simplified": 1.263155,
+    "janbu_corrected": 1.318649
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 60.918901,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S09-activo": {
+   "note": "como V013c con application active (no se divide por F)",
+   "oracle": {
+    "bishop": 1.590433,
+    "spencer": 1.584859,
+    "morgenstern_price": 1.584859,
+    "janbu_simplified": 1.509471,
+    "janbu_corrected": 1.575786
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S10-tangente": {
+   "note": "como V013c con direction tangent",
+   "oracle": {
+    "bishop": 1.432374,
+    "spencer": 1.42888,
+    "morgenstern_price": 1.42888,
+    "janbu_simplified": 1.378078,
+    "janbu_corrected": 1.438621
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S11-capacidad-corte": {
+   "note": "como V013c con capacidad a corte 150 kN por pilote (< fuerza del suelo 282,9)",
+   "oracle": {
+    "bishop": 1.312951,
+    "spencer": 1.310228,
+    "morgenstern_price": 1.310228,
+    "janbu_simplified": 1.266555,
+    "janbu_corrected": 1.322198
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 62.5,
+    "gobierna": "shear"
+   }
+  },
+  "X22-S12-capacidad-momento": {
+   "note": "como V013c con capacidad a flexi\u00f3n 250 kNm (M/Lm < fuerza del suelo)",
+   "oracle": {
+    "bishop": 1.364105,
+    "spencer": 1.361085,
+    "morgenstern_price": 1.361085,
+    "janbu_simplified": 1.315023,
+    "janbu_corrected": 1.372796
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 85.156341,
+    "gobierna": "bending"
+   }
+  },
+  "X22-S13-MC-phi0": {
+   "note": "Mohr-Coulomb con \u03c6 = 0 (c = 30, \u03b3 = 18): cSlope lo trata como no drenado (tensi\u00f3n total, f\u00f3rmula \u03c6 = 0)",
+   "oracle": {
+    "bishop": 1.836644,
+    "spencer": 1.836644,
+    "morgenstern_price": 1.836644,
+    "janbu_simplified": 1.797162,
+    "janbu_corrected": 1.906119
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 100.938759,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S14-ru": {
+   "note": "raz\u00f3n de presi\u00f3n de poros ru = 0,3 (c = 10, \u03c6 = 20, \u03b3 = 20): \u03c3'v = \u03b3z\u00b7(1 - ru)",
+   "oracle": {
+    "bishop": 1.124068,
+    "spencer": 1.121599,
+    "morgenstern_price": 1.121599,
+    "janbu_simplified": 1.079928,
+    "janbu_corrected": 1.127373
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 94.384137,
+    "gobierna": "soil"
+   }
+  },
+  "X22-S15-piso-phi0": {
+   "note": "D1/D = 19 con \u03c6 = 10\u00b0 (c = 2, \u03b3 = 20): la f\u00f3rmula c-\u03c6 da A1 y A2 menores que las de \u03c6 = 0; cSlope aplica el piso de \u03c6 = 0",
+   "oracle": {
+    "bishop": 0.444922,
+    "spencer": 0.444256,
+    "morgenstern_price": 0.444256,
+    "janbu_simplified": 0.428054,
+    "janbu_corrected": 0.44686
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 6.676441,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013b": {
+   "note": "D1/D = 2; el c\u00edrculo cr\u00edtico de cSlope sale en la cabeza del pilote (17,5; 5,0): sin cruce v\u00e1lido, la fila es neutra",
+   "oracle": {
+    "bishop": 1.540685,
+    "spencer": 1.537235,
+    "morgenstern_price": 1.537235,
+    "janbu_simplified": 1.448084,
+    "janbu_corrected": 1.540971
+   },
+   "force_per_metre": {
+    "estado": "outside_mass",
+    "oracle": null,
+    "gobierna": null
+   }
+  },
+  "X22-V013c": {
+   "note": "D1/D = 2; c\u00edrculo cr\u00edtico de cSlope con location centroid",
+   "oracle": {
+    "bishop": 1.437196,
+    "spencer": 1.433781,
+    "morgenstern_price": 1.433781,
+    "janbu_simplified": 1.384232,
+    "janbu_corrected": 1.445046
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013c-xs": {
+   "note": "D1/D = 2; c\u00edrculo cr\u00edtico de cSlope con location slip-surface; fuerza en el cruce",
+   "oracle": {
+    "bishop": 1.450103,
+    "spencer": 1.446278,
+    "morgenstern_price": 1.446278,
+    "janbu_simplified": 1.389489,
+    "janbu_corrected": 1.447571
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 112.10713,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013d": {
+   "note": "D1/D = 3; c\u00edrculo cr\u00edtico de cSlope con location centroid",
+   "oracle": {
+    "bishop": 1.331525,
+    "spencer": 1.327977,
+    "morgenstern_price": 1.327977,
+    "janbu_simplified": 1.274101,
+    "janbu_corrected": 1.335877
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 80.39626,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013d-xs": {
+   "note": "D1/D = 3; c\u00edrculo cr\u00edtico de cSlope con location slip-surface; fuerza en el cruce",
+   "oracle": {
+    "bishop": 1.341754,
+    "spencer": 1.337948,
+    "morgenstern_price": 1.337948,
+    "janbu_simplified": 1.279386,
+    "janbu_corrected": 1.338711
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 76.24854,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013e": {
+   "note": "D1/D = 5; c\u00edrculo cr\u00edtico de cSlope con location centroid",
+   "oracle": {
+    "bishop": 1.25279,
+    "spencer": 1.249291,
+    "morgenstern_price": 1.249291,
+    "janbu_simplified": 1.192017,
+    "janbu_corrected": 1.253976
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 49.031065,
+    "gobierna": "soil"
+   }
+  },
+  "X22-V013e-xs": {
+   "note": "D1/D = 5; c\u00edrculo cr\u00edtico de cSlope con location slip-surface; fuerza en el cruce",
+   "oracle": {
+    "bishop": 1.259916,
+    "spencer": 1.256236,
+    "morgenstern_price": 1.256236,
+    "janbu_simplified": 1.195383,
+    "janbu_corrected": 1.25593
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 47.525139,
+    "gobierna": "soil"
+   }
+  }
+ }
+}
