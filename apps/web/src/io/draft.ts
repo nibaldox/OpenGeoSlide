@@ -107,7 +107,7 @@ export function saveDraft(storage: DraftStorage, doc: ModelDoc, fileName: string
   try {
     storage.setItem(DRAFT_KEY, payload);
   } catch {
-    return { ok: false, reason: 'storage_error', text: 'No se pudo guardar el borrador (almacenamiento lleno o bloqueado).' };
+    return { ok: false, reason: 'storage_error', text: 'No se pudo guardar el borrador (almacenamiento lleno o bloqueado). Guarde un archivo con Ctrl+S para no perder el trabajo.' };
   }
   return { ok: true, bytes, savedAt };
 }
@@ -156,6 +156,20 @@ export function loadDraft(storage: DraftStorage): LoadDraftResult {
   const opened = openOgsJson(JSON.stringify(r.doc));
   if (opened.doc === null) return discard('el modelo no es válido');
   return { draft: { schema: 1, savedAt: r.savedAt, fileName: r.fileName, doc: opened.doc }, issues: [] };
+}
+
+/**
+ * Como `loadDraft`, pero si el borrador ofrecido no sirve (corrupto, otro esquema, incluido uno heredado en la clave antigua),
+ * se limpia, se avisa (`io.draft_invalid`) y se prueba con el siguiente en vez de perder la oferta (R9-08b). Tope de 8 vueltas.
+ */
+export function loadDraftChain(storage: DraftStorage): LoadDraftResult {
+  const issues: Issue[] = [];
+  for (let i = 0; i < 8; i += 1) {
+    const r = loadDraft(storage);
+    issues.push(...r.issues);
+    if (r.draft !== null || r.issues.length === 0 || r.issues.every((x) => x.code !== 'io.draft_invalid')) return { draft: r.draft, issues };
+  }
+  return { draft: null, issues };
 }
 
 export function clearDraft(storage: DraftStorage): void {
