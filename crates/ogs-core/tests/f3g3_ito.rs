@@ -840,3 +840,175 @@ fn the_balance_detects_a_missing_pile_force() {
     let b = balance(&no_pile, r, -1.0, [[cx, cy], [cx + 15.0, cy - 12.0]]);
     assert!(b.moment[0].abs() / b.moment_scale[0] > 1e-5);
 }
+
+// ------------------------------------------------------------------------------- the formula (E15i-2), search
+
+/// The formula as cSlope and XSLOPE write it (`R`, `E`, `F`), with its floor: `S = D1` of the paper, `d = D`.
+fn cslope_form(spacing: f64, d: f64, phi_deg: f64) -> (f64, f64) {
+    let s = spacing;
+    let d1 = s - d;
+    let tan_pi8 = (std::f64::consts::PI / 8.0).tan();
+    let a1_0 = s * (3.0 * (s / d1).ln() + (d / d1) * tan_pi8 - 2.0) + 2.0 * d1;
+    if phi_deg < 0.01 {
+        return (a1_0, d);
+    }
+    let phi = phi_deg.to_radians();
+    let n = (std::f64::consts::PI / 4.0 + phi / 2.0).tan().powi(2);
+    let (sn, tp) = (n.sqrt(), phi.tan());
+    let r = (s / d1).powf(sn * tp + n - 1.0);
+    let e = ((d / d1) * n * tp * (std::f64::consts::PI / 8.0 + phi / 4.0).tan()).exp();
+    let a2 = (s * r * e - d1) / n;
+    let f = (2.0 * tp + 2.0 * sn + 1.0 / sn) / (sn * tp + n - 1.0);
+    let a1 = (s * r * (e - 2.0 * sn * tp - 1.0)) / (n * tp) + s * f * (r - 1.0) + (2.0 * d1) / sn;
+    (a1.max(a1_0), a2.max(d))
+}
+
+#[test]
+fn the_coefficients_are_those_of_the_paper_and_of_cslope() {
+    use ogs_core::reinforcement::ito_matsui_coefficients as coeffs;
+    // `python3 im.py 2.4 0.8 20` of X22: (3.02768318889085, 1.901986559544445)
+    let (a1, a2) = coeffs(2.4, 0.8, 20.0);
+    assert!((a1 / 3.02768318889085 - 1.0).abs() < 1e-12, "{a1}");
+    assert!((a2 / 1.901986559544445 - 1.0).abs() < 1e-12, "{a2}");
+    // the two ways of writing it agree (X22: 1.6e-14 in 56 combinations)
+    let mut worst = 0.0_f64;
+    for sd in [1.25, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 20.0] {
+        for phi in [0.0, 0.005, 0.02, 1.0, 5.0, 10.0, 20.0, 30.0, 35.0, 45.0] {
+            let (a, b) = coeffs(sd * 0.8, 0.8, phi);
+            let (c, d) = cslope_form(sd * 0.8, 0.8, phi);
+            worst = worst.max((a / c - 1.0).abs()).max((b / d - 1.0).abs());
+        }
+    }
+    println!("worst relative difference with the form of cSlope: {worst:e}");
+    assert!(worst < 1e-11, "{worst:e}");
+    // φ = 0 (equation 23): A2 = d, A1 = S·(3·ln(S/D2) + (d/D2)·tan(π/8)) − 2d
+    let (a1, a2) = coeffs(2.4, 0.8, 0.0);
+    assert_eq!(a2, 0.8);
+    let (s, d, d2) = (2.4_f64, 0.8_f64, 1.6_f64);
+    let want = s * (3.0 * (s / d2).ln() + d / d2 * (std::f64::consts::PI / 8.0).tan()) - 2.0 * d;
+    assert!((a1 - want).abs() < 1e-14);
+}
+
+#[test]
+fn the_floor_of_phi_zero_acts_only_at_a_large_spacing() {
+    use ogs_core::reinforcement::ito_matsui_coefficients as coeffs;
+    // S/D = 20, φ = 10°: the formula c-φ gives less than φ = 0, and the floor keeps the φ = 0 value (X22 §1.3)
+    let (a1_0, a2_0) = coeffs(16.0, 0.8, 0.0);
+    let (a1, a2) = coeffs(16.0, 0.8, 10.0);
+    assert!(a1 >= a1_0 && a2 >= a2_0);
+    assert!(a1 == a1_0 || a2 == a2_0, "the floor acts at S/D = 20");
+    // S/D = 3 .. 6: the floor never acts, the coefficients grow with φ
+    for sd in [3.0, 4.0, 6.0] {
+        let (b1, b2) = coeffs(sd * 0.8, 0.8, 0.0);
+        let (c1, c2) = coeffs(sd * 0.8, 0.8, 20.0);
+        assert!(c1 > b1 && c2 > b2, "S/D = {sd}");
+    }
+}
+
+#[test]
+fn the_grid_step_is_005_m_or_its_equivalent_in_feet() {
+    use ogs_core::reinforcement::pressure_step;
+    assert_eq!(pressure_step(None), 0.05);
+    assert_eq!(pressure_step(Some("SI")), 0.05);
+    assert!((pressure_step(Some("imperial")) - 0.05 / 0.3048).abs() < 1e-15);
+}
+
+fn search_doc(row: &str) -> Value {
+    let mut doc = row_doc(row);
+    let a = doc["analysis"].as_object_mut().unwrap();
+    a.remove("surface");
+    a.remove("interslice");
+    a.insert("methods".into(), json!(["bishop"]));
+    a.insert(
+        "search".into(),
+        json!({"type": "circular_entry_exit", "n_entry": 20, "n_exit": 20, "n_radius": 20,
+            "max_radius_factor": 5.0, "min_width": null, "refine": true}),
+    );
+    doc
+}
+
+#[test]
+fn a_search_with_an_ito_matsui_pile_finds_the_published_fs() {
+    // E15i-10 / X22 §5.1: V013c (D1/D = 2) is 1.43 in Program A and 1.4372 in the oracle's search; the search of the
+    // engine lands within the 2.3 % of the checks, with the pile crossing the critical circle.
+    for (row, published) in [
+        ("X22-V013c", 1.43),
+        ("X22-V013d", 1.33),
+        ("X22-V013e", 1.25),
+    ] {
+        let report = run(&search_doc(row));
+        let r = result(&report, "bishop");
+        let fos = r.fos.unwrap();
+        println!("{row}: search Bishop {fos:.6} (published {published})");
+        assert!(pct(fos, published).abs() <= 2.3, "{row}: {fos}");
+        assert!(
+            forces(r).iter().any(|f| f["status"] == "applied"),
+            "{row}: the critical circle must cross the pile"
+        );
+    }
+    // the force with lateral_pressure is a different, smaller FS than the slope without the pile
+    let no_pile = {
+        let mut d = search_doc("X22-V013c");
+        d.as_object_mut().unwrap().remove("reinforcements");
+        d
+    };
+    let base = run(&no_pile);
+    assert!(result(&base, "bishop").fos.unwrap() < 1.15);
+}
+
+#[test]
+fn a_much_smaller_spacing_still_converges_in_bishop() {
+    // S06 is D1/D = 0.25 (S/D = 1.25). Closer rows give a larger force; Bishop must still end at a root, never at 0.
+    // (below S/D ≈ 1.1 the FS passes the 1e3 of the bracket of E7b and the method is `Invalid`: absurd input)
+    for spacing in [1.0, 0.95, 0.9] {
+        let mut doc = row_doc("X22-S06-D1D-pequeno");
+        pile_mut(&mut doc)["spacing"] = json!(spacing);
+        let report = run(&doc);
+        let r = result(&report, "bishop");
+        println!("spacing {spacing}: {:?} {:?}", r.status, r.fos);
+        assert_eq!(
+            r.status,
+            ogs_core::methods::SolveStatus::Converged,
+            "{spacing}"
+        );
+        assert!(r.fos.unwrap() > 1.0, "{spacing}");
+        assert!(r.warnings.iter().any(|w| w == "ito_matsui_spacing_range"));
+    }
+}
+
+#[test]
+fn a_pile_on_a_vertical_contact_takes_the_smaller_pressure() {
+    // A pile on the abscissa of a vertex (a vertical contact between two materials) must work: both sides count and
+    // the smaller pressure is taken. With the same material on both sides the result is that of the pile just off it.
+    let doc = row_doc("X22-V013c");
+    let mut split = doc.clone();
+    let poly = doc["regions"][0]["polygon"].clone();
+    // two regions of the same material split at x = 17.5, on the pile
+    let left: Vec<Value> = vec![
+        json!([0.0, -10.0]),
+        json!([0.0, 0.0]),
+        json!([10.0, 0.0]),
+        json!([17.5, 5.0]),
+        json!([17.5, -10.0]),
+    ];
+    let right: Vec<Value> = vec![
+        json!([17.5, -10.0]),
+        json!([17.5, 5.0]),
+        json!([25.0, 10.0]),
+        json!([35.0, 10.0]),
+        json!([35.0, -10.0]),
+    ];
+    assert!(poly.as_array().unwrap().len() == 6);
+    split["regions"] = json!([
+        {"material": "soil", "polygon": left},
+        {"material": "soil", "polygon": right},
+    ]);
+    let a = forces(result(&run(&doc), "bishop"))[0]["soil_force"]
+        .as_f64()
+        .unwrap();
+    let b = forces(result(&run(&split), "bishop"))[0]["soil_force"]
+        .as_f64()
+        .unwrap();
+    // the two sides are read at `x ± 4e-9·scale`, where the ground is a hair off: 4e-8 relative
+    assert!((a / b - 1.0).abs() < 1e-6, "{a} against {b}");
+}
