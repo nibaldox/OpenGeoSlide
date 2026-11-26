@@ -143,9 +143,6 @@ export type TensionDirection = 'axial' | 'tangent' | 'bisector';
 /** Dirección de la fuerza de `pile` y `sheet_pile` (F4.2). `angle` exige el campo `angle` y los otros dos lo prohíben. */
 export type PileDirection = 'angle' | 'tangent' | 'perpendicular';
 
-/** Dónde actúa la fuerza de un pilote o una tablestaca (F4.2). Obligatorio. */
-export type PileLocation = 'slip_surface' | 'centroid';
-
 /** Modelo de arrancamiento, etiquetado por `model` (F4.2). Sin `pullout`, el elemento está totalmente anclado en ambos extremos. */
 export type Pullout =
   | {
@@ -208,7 +205,6 @@ export interface PileReinforcement extends ReinforcementBase {
   direction: PileDirection;
   /** Grados en (−90, 90) sobre la horizontal (0 es horizontal). Obligatorio solo con `direction: "angle"`; prohibido con las otras. */
   angle?: number | null;
-  location: PileLocation;
 }
 
 /** `sheet_pile` (v0.4): una fila continua de pilotes, vertical (x1 = x2). `force` es por metro de muro; no hay `spacing`. */
@@ -219,7 +215,6 @@ export interface SheetPileReinforcement extends ReinforcementBase {
   direction: PileDirection;
   /** Como en `pile`. */
   angle?: number | null;
-  location: PileLocation;
 }
 
 /** Refuerzo (v0.4, F4.2), discriminado por `type`. Exige version "0.4". */
@@ -341,7 +336,7 @@ export interface PolylineReportSurface {
 export type ReportSurface = Circle | PolylineReportSurface;
 
 /** Estado de un cruce de un refuerzo con la superficie final (F4.9). */
-export type ReinforcementForceStatus = 'applied' | 'outside_mass' | 'compression_ignored';
+export type ReinforcementForceStatus = 'applied' | 'outside_mass' | 'compression_ignored' | 'no_capacity';
 
 /**
  * Fuerza de un refuerzo en un cruce con la superficie final, por metro de talud (v0.4, F4.9). `fx` y `fy` son la fuerza
