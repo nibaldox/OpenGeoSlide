@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec, isPolylineReport } from '../../engine/surface';
-import type { MethodReport, Point, ReportSurface, Slice } from '../../engine/types';
+import type { MethodReport, Point, ReinforcementForce, ReportSurface, Slice } from '../../engine/types';
 import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
@@ -23,6 +23,23 @@ import {
   type PointerInput,
 } from './gesture';
 import { DrawLayer } from './DrawLayer';
+import {
+  REINFORCEMENT_TYPES,
+  REINFORCEMENT_TYPE_LABEL,
+  forceShapes,
+  reinforcementCenterLabel,
+  reinforcementEndAnnouncement,
+  reinforcementEndLabel,
+  reinforcementMoveAnnouncement,
+  reinforcementShapes,
+  refCenter,
+  refEnd,
+  type ForceShape,
+  type ReinforcementShape,
+  type ReinforcementType,
+  type ShapePart,
+} from './reinforcements';
+import { REINFORCE_INSTRUCTIONS, constrainReinforceDraft, reinforceClick, reinforceKey } from './reinforce';
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { piezoExtension } from './piezoExtension';
@@ -90,6 +107,9 @@ const UNCONVERGED_DASH = '10 6';
 const COLOR_RESULT = COLOR_SURFACE;
 const COLOR_SLICE_FILL = 'var(--canvas-slice-fill)';
 const COLOR_SLICE_EDGE = 'var(--canvas-slice-edge)';
+const COLOR_REINFORCEMENT = 'var(--canvas-reinforcement)';
+/** Fuerzas que no se aplicaron (fuera de la masa, compresión, sin capacidad): gris, el de las etiquetas de los ejes. */
+const COLOR_FORCE_INACTIVE = 'var(--canvas-axis-text)';
 
 /** Rótulos del lienzo: el halo (`paint-order: stroke`) los separa de líneas y materiales en ambos temas. */
 const HALO_LABEL = { stroke: COLOR_HALO, strokeWidth: 3, paintOrder: 'stroke', strokeLinejoin: 'round' } as const;
@@ -103,6 +123,8 @@ export interface CanvasResult {
   /** Círculo `{xc, yc, r}` o polilínea ajustada al terreno `{points}` del informe (F3.7). */
   surface: ReportSurface;
   slices: Slice[];
+  /** Fuerzas de los refuerzos en la superficie final (`reinforcement_forces` del informe, v0.4): una flecha por cruce. */
+  reinforcementForces?: ReinforcementForce[];
 }
 
 /**
@@ -131,9 +153,9 @@ export function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): str
 function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, panning: boolean): string {
   if (panning) return 'grabbing';
   if (tool === 'pan') return 'grab';
-  if (tool === 'draw_region' || tool === 'split_region') return 'crosshair';
+  if (tool === 'draw_region' || tool === 'split_region' || tool === 'draw_reinforcement') return 'crosshair';
   if (dragging) return 'grabbing';
-  if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius' || hover === 'surface_vertex') return 'move';
+  if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius' || hover === 'surface_vertex' || hover === 'reinforcement_end' || hover === 'reinforcement_center') return 'move';
   if (tool === 'add_vertex') return hover === 'edge' || hover === 'piezo_edge' || hover === 'surface_edge' ? 'copy' : 'crosshair';
   return 'default';
 }
@@ -149,7 +171,8 @@ export const CANVAS_INSTRUCTIONS =
   'Las teclas + y − acercan y alejan, y 0 encuadra el modelo. ' +
   'Sin tirador seleccionado las flechas desplazan la vista. Escape quita la selección. ' +
   'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
-  'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
+  'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos. ' +
+  'La tecla E elige Dibujar refuerzo: dos clics, o Espacio con el cursor del teclado, marcan la cabeza y la punta. Cada refuerzo tiene tres tiradores (cabeza, punta y centro): las flechas los mueven, el centro mueve el refuerzo entero y la tablestaca solo cambia de y en sus extremos.';
 
 /**
  * Versión breve de las instrucciones para el tirador con el foco (R9-10): los lectores de pantalla leen el `aria-describedby` del
@@ -162,7 +185,7 @@ const EDGE_SCROLL_DWELL_MS = 250;
 /** Período del autodesplazamiento, en ms. */
 const EDGE_SCROLL_TICK_MS = 16;
 
-const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius', 'surface_vertex']);
+const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius', 'surface_vertex', 'reinforcement_end', 'reinforcement_center']);
 
 function handleFromKey(list: readonly HandleRef[], key: string | null): HandleRef | null {
   if (!key) return null;
@@ -197,6 +220,26 @@ function ToolIcon({ children }: { children: ReactNode }) {
   );
 }
 
+const roundPx = (v: number): number => Math.round(v * 100) / 100;
+
+/** Una parte del símbolo de un refuerzo (SVG). `extra` ensancha el trazo para el halo. */
+function SymbolPart({ part, stroke, extra = 0 }: { part: ShapePart; stroke: string; extra?: number }) {
+  if (part.kind === 'circle') {
+    return <circle cx={roundPx(part.cx)} cy={roundPx(part.cy)} r={part.r} fill={part.fill && extra === 0 ? stroke : 'none'} stroke={stroke} strokeWidth={part.width + extra} />;
+  }
+  const pts = part.pts.map((p) => `${roundPx(p[0])},${roundPx(p[1])}`).join(' ');
+  return part.closed ? (
+    <polygon points={pts} fill={part.fill && extra === 0 ? stroke : 'none'} stroke={stroke} strokeWidth={part.width + extra} strokeLinejoin="round" />
+  ) : (
+    <polyline points={pts} fill="none" stroke={stroke} strokeWidth={part.width + extra} strokeLinecap="round" strokeLinejoin="round" />
+  );
+}
+
+/** Hexágono de radio `r` centrado en (cx, cy): el tirador de los extremos de un refuerzo (los vértices son círculos y la piezométrica, cuadrados). */
+function hexagon(cx: number, cy: number, r: number): string {
+  return Array.from({ length: 6 }, (_, i) => `${roundPx(cx + r * Math.cos((Math.PI / 3) * i))},${roundPx(cy + r * Math.sin((Math.PI / 3) * i))}`).join(' ');
+}
+
 export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState }: EditorCanvasProps) {
   // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
   const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
@@ -222,6 +265,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const [draft, setDraftState] = useState<DrawDraft>(EMPTY_DRAFT);
   const draftRef = useRef<DrawDraft>(EMPTY_DRAFT);
   const [drawError, setDrawError] = useState<string | null>(null);
+  // Tipo de refuerzo que dibuja «Dibujar refuerzo» (estado local del lienzo, como el trazo): se elige sobre el lienzo.
+  const [reinforceType, setReinforceType] = useState<ReinforcementType>('anchor');
   const drawDown = useRef<{ id: number; x: number; y: number; pointerType: string } | null>(null);
   // Último puntero (ratón o lápiz) sobre el lienzo con una herramienta de trazo: el autodesplazamiento sigue mientras esté junto al borde.
   const trailPointer = useRef<{ x: number; y: number } | null>(null);
@@ -247,11 +292,15 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   };
   /** Aplica un paso del dibujo: borrador, acciones sobre el store y anuncio. */
   const runDraw = (step: DrawStep): void => {
-    setDraft(step.draft);
+    setDraft(constrainReinforceDraft(store.getState().ui.tool, reinforceType, step.draft));
     setDrawError(step.error ?? null);
     runActions(store, step.actions);
     if (step.announce) announce(step.announce);
   };
+
+  /** Cursor de un trazo con el ajuste; con una tablestaca, la punta conserva la x de la cabeza. */
+  const hoverDraft = (draft: DrawDraft, ctx: GestureContext, input: PointerInput): DrawDraft =>
+    constrainReinforceDraft(ctx.ui.tool, reinforceType, drawHover(draft, ctx, input));
 
   // Tamaño del lienzo (ResizeObserver solo existe en el navegador).
   useEffect(() => {
@@ -365,8 +414,13 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         setDraft(EMPTY_DRAFT);
         setDrawError(null);
       }
+      if (ui.tool === 'draw_reinforcement') {
+        const sel0 = store.getState().ui.selection;
+        const picked = sel0.kind === 'reinforcement' || sel0.kind === 'reinforcement_end' ? store.getState().doc.reinforcements?.[sel0.index]?.type : undefined;
+        if (picked) setReinforceType(picked);
+      }
       svgRef.current?.focus({ preventScroll: true });
-      const text = ui.tool === 'split_region' ? SPLIT_INSTRUCTIONS : DRAW_INSTRUCTIONS;
+      const text = ui.tool === 'split_region' ? SPLIT_INSTRUCTIONS : ui.tool === 'draw_reinforcement' ? REINFORCE_INSTRUCTIONS : DRAW_INSTRUCTIONS;
       announce(reset.announce ? `${reset.announce} ${text}` : text);
     } else if (reset.announce) {
       announce(reset.announce);
@@ -425,7 +479,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     store.dispatch({ type: 'ui/viewport', viewport: next });
     // Bajo el puntero quieto hay ahora otro punto del mundo: el cursor de dibujo lo sigue.
     const ctx: GestureContext = { doc: s.doc, ui: { ...s.ui, viewport: next } };
-    const moved = drawHover(draftRef.current, ctx, { x: p.x, y: p.y, button: 0, pointerType: 'mouse' });
+    const moved = hoverDraft(draftRef.current, ctx, { x: p.x, y: p.y, button: 0, pointerType: 'mouse' });
     if (moved !== draftRef.current) setDraft(moved);
   };
   useEffect(() => {
@@ -473,6 +527,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const p = surface && surface.type === 'polyline' ? surface.points[sel.index] : undefined;
       return p ? surfaceVertexAnnouncement(sel.index, p, unitsEff) : null;
     }
+    if (sel.kind === 'reinforcement_end' || sel.kind === 'reinforcement') {
+      const r = s.doc.reinforcements?.[sel.index];
+      if (!r) return null;
+      return sel.kind === 'reinforcement_end' ? reinforcementEndAnnouncement(sel.index, r, sel.end, unitsEff) : reinforcementMoveAnnouncement(sel.index, r, unitsEff);
+    }
     const c = circleSpec(s.doc.analysis.surface);
     if (sel.kind === 'surface_circle' && c) return target === 'circle_radius' ? circleRadiusLabel(c.r, unitsEff) : circleCenterLabel(c.xc, c.yc, unitsEff);
     return null;
@@ -501,7 +560,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     // «Dibujar región»: el punto se coloca al soltar (si el puntero no se movió), así un arrastre táctil sigue desplazando la página.
     if (isTraceTool(store.getState().ui.tool) && e.button === 0) {
       drawDown.current = { id: e.pointerId, x: input.x, y: input.y, pointerType: e.pointerType };
-      setDraft(drawHover(draftRef.current, context(), input));
+      setDraft(hoverDraft(draftRef.current, context(), input));
       return;
     }
     // El círculo recuerda qué parte se tocó (centro o radio) para que las flechas sepan qué cambiar.
@@ -540,7 +599,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     }
     if (isTraceTool(ctx.ui.tool) && gestureRef.current.mode === 'idle') {
       if (e.pointerType !== 'touch') trailPointer.current = { x: input.x, y: input.y };
-      const next = drawHover(draftRef.current, ctx, input);
+      const next = hoverDraft(draftRef.current, ctx, input);
       if (next !== draftRef.current) setDraft(next);
       return;
     }
@@ -573,8 +632,14 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const input = localInput(e);
       const traceTool = store.getState().ui.tool;
       if (isTraceTool(traceTool) && Math.hypot(input.x - down.x, input.y - down.y) <= DRAW_TAP_SLOP_PX) {
-        const click = traceTool === 'split_region' ? splitClick : drawClick;
-        runDraw(click(draftRef.current, context(), { ...input, pointerType: down.pointerType }));
+        const at = { ...input, pointerType: down.pointerType };
+        runDraw(
+          traceTool === 'split_region'
+            ? splitClick(draftRef.current, context(), at)
+            : traceTool === 'draw_reinforcement'
+              ? reinforceClick(reinforceType, draftRef.current, context(), at)
+              : drawClick(draftRef.current, context(), at),
+        );
       }
       return;
     }
@@ -612,7 +677,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     // Herramientas de trazo: las flechas, Espacio, Intro, Retroceso y Esc son del trazo; el resto (zoom, Tab…) sigue su camino.
     const activeTool = store.getState().ui.tool;
     if (isTraceTool(activeTool)) {
-      const d = (activeTool === 'split_region' ? splitKey : drawKey)(draftRef.current, context(), e);
+      const d =
+        activeTool === 'split_region'
+          ? splitKey(draftRef.current, context(), e)
+          : activeTool === 'draw_reinforcement'
+            ? reinforceKey(reinforceType, draftRef.current, context(), e)
+            : drawKey(draftRef.current, context(), e);
       if (d.handled) {
         e.preventDefault();
         runDraw(d.step);
@@ -636,6 +706,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (r.announce) announce(r.announce);
     // Escape sale del modo tirador: la selección se quita y el foco vuelve al lienzo (las flechas desplazan la vista).
     if (e.key === 'Escape' && r.handled && focused) svgRef.current?.focus({ preventScroll: true });
+    // Eliminar un refuerzo sin otro al que pasar el foco: el tirador desaparece y el foco vuelve al lienzo.
+    if ((e.key === 'Delete' || e.key === 'Backspace') && r.handled && focused && !r.focus && r.actions.some((a) => a.type === 'reinforcement/remove')) svgRef.current?.focus({ preventScroll: true });
   };
 
   const onHandleFocus = (h: HandleRef): void => {
@@ -665,6 +737,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const circle = circleSpec(shown.analysis.surface);
   const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
+  const reinforcements = reinforcementShapes(shown.reinforcements, vp, unitsEff);
+  const forces: ForceShape[] = forceShapes(result?.reinforcementForces, vp, unitsEff);
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);
   const badge = seismicBadge(vp, dir, seismic?.kv ?? 0); // R9-12c: con kv ≠ 0 trae `kvArrow`
@@ -675,6 +749,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const snapTarget = preview && preview.kind === 'vertex' ? preview.snap.target : null;
   const arrowId = `${markerBase}-load`;
   const seismicArrowId = `${markerBase}-seismic`;
+  const forceArrowId = `${markerBase}-force`;
 
   // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero). Tab entra y sale
   // del lienzo; los tiradores se recorren con [ ] y RePág/AvPág (`keys.ts`), no con Tab (B-01).
@@ -732,6 +807,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         <defs>
           <marker id={arrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" fill={COLOR_LOAD} />
+          </marker>
+          <marker id={forceArrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill={COLOR_REINFORCEMENT} />
           </marker>
           <marker id={seismicArrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" fill={COLOR_SEISMIC} />
@@ -874,6 +952,43 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
+        <g data-layer="reinforcements" aria-hidden="true" pointerEvents="none">
+          {reinforcements.map((rs: ReinforcementShape) => {
+            const selected = (sel.kind === 'reinforcement' || sel.kind === 'reinforcement_end') && sel.index === rs.index;
+            return (
+              <g key={`rf${rs.index}`} data-reinforcement={rs.index} data-reinforcement-type={rs.type} data-application={rs.application}>
+                <title>{rs.title}</title>
+                {selected && <line data-reinforcement-selected x1={rs.p1[0]} y1={rs.p1[1]} x2={rs.p2[0]} y2={rs.p2[1]} stroke={COLOR_SELECTED} strokeWidth={11} strokeLinecap="round" strokeOpacity={0.45} />}
+                <g>{rs.parts.map((part, i) => <SymbolPart key={`h${i}`} part={part} stroke={COLOR_HALO} extra={3.5} />)}</g>
+                <g>{rs.parts.map((part, i) => <SymbolPart key={`c${i}`} part={part} stroke={COLOR_REINFORCEMENT} />)}</g>
+                <text x={rs.label.x} y={rs.label.y} fontSize={12} fill={COLOR_REINFORCEMENT} {...HALO_LABEL} textAnchor="middle">{rs.label.text}</text>
+              </g>
+            );
+          })}
+        </g>
+
+        {forces.length > 0 && (
+          <g data-layer="reinforcement-forces" aria-hidden="true" pointerEvents="none">
+            {forces.map((f) => (
+              <g key={f.key} data-force={f.id} data-force-crossing={f.crossing} data-force-status={f.status} data-force-applied={f.applied ? 'true' : 'false'}>
+                <title>{f.title}</title>
+                {f.tip ? (
+                  <>
+                    <line x1={f.at[0]} y1={f.at[1]} x2={f.tip[0]} y2={f.tip[1]} stroke={COLOR_HALO} strokeWidth={6.5} strokeLinecap="round" />
+                    <line data-force-arrow x1={f.at[0]} y1={f.at[1]} x2={f.tip[0]} y2={f.tip[1]} stroke={COLOR_REINFORCEMENT} strokeWidth={3} markerEnd={`url(#${forceArrowId})`} />
+                  </>
+                ) : (
+                  <>
+                    <path d={`M${f.at[0] - 6},${f.at[1] - 6}L${f.at[0] + 6},${f.at[1] + 6}M${f.at[0] - 6},${f.at[1] + 6}L${f.at[0] + 6},${f.at[1] - 6}`} stroke={COLOR_HALO} strokeWidth={6} strokeLinecap="round" />
+                    <path data-force-inactive d={`M${f.at[0] - 6},${f.at[1] - 6}L${f.at[0] + 6},${f.at[1] + 6}M${f.at[0] - 6},${f.at[1] + 6}L${f.at[0] + 6},${f.at[1] - 6}`} stroke={COLOR_FORCE_INACTIVE} strokeWidth={2.5} strokeLinecap="round" />
+                  </>
+                )}
+                <text x={f.label.x} y={f.label.y} fontSize={12} fill={f.applied ? COLOR_REINFORCEMENT : COLOR_FORCE_INACTIVE} {...HALO_LABEL} textAnchor="middle">{f.label.text}</text>
+              </g>
+            ))}
+          </g>
+        )}
+
         <g data-layer="loads" aria-hidden="true">
           {loads.map((l) =>
             l.kind === 'udl' ? (
@@ -939,7 +1054,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
-        {isTraceTool(ui.tool) && <DrawLayer draft={draft} vp={vp} mode={ui.tool === 'split_region' ? 'split' : 'draw'} />}
+        {isTraceTool(ui.tool) && <DrawLayer draft={draft} vp={vp} mode={ui.tool === 'split_region' ? 'split' : ui.tool === 'draw_reinforcement' ? 'reinforce' : 'draw'} />}
 
         <g data-layer="handles">
           {shown.regions.map((region, ri) =>
@@ -1004,6 +1119,44 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
                 </g>
               );
             })}
+          {(shown.reinforcements ?? []).map((r, ri) => {
+            const [h1x, h1y] = toS(refEnd(r, 1));
+            const [h2x, h2y] = toS(refEnd(r, 2));
+            const [cx, cy] = toS(refCenter(r));
+            const selEnd = sel.kind === 'reinforcement_end' && sel.index === ri ? sel.end : null;
+            const selBody = sel.kind === 'reinforcement' && sel.index === ri;
+            const hs: HandleRef[] = [
+              { kind: 'reinforcement_end', index: ri, end: 1 },
+              { kind: 'reinforcement_end', index: ri, end: 2 },
+              { kind: 'reinforcement_center', index: ri },
+            ];
+            return (
+              <g key={`rh${ri}`} data-reinforcement-handles={ri}>
+                <g {...handleProps(hs[0], reinforcementEndLabel(ri, r, 1, unitsEff), selEnd === 1)}>
+                  <circle cx={h1x} cy={h1y} {...hitProps} />
+                  <polygon data-handle-shape="reinforcement_head" points={hexagon(h1x, h1y, selEnd === 1 ? HANDLE_R + 2 : HANDLE_R + 1)} fill={selEnd === 1 ? COLOR_HANDLE_SEL : COLOR_REINFORCEMENT} stroke={COLOR_HANDLE_RING} strokeWidth={2} />
+                </g>
+                <g {...handleProps(hs[1], reinforcementEndLabel(ri, r, 2, unitsEff), selEnd === 2)}>
+                  <circle cx={h2x} cy={h2y} {...hitProps} />
+                  <polygon data-handle-shape="reinforcement_tip" points={hexagon(h2x, h2y, selEnd === 2 ? HANDLE_R + 2 : HANDLE_R + 1)} fill={selEnd === 2 ? COLOR_HANDLE_SEL : COLOR_HANDLE_FILL} stroke={COLOR_HANDLE_RING} strokeWidth={2} />
+                </g>
+                <g {...handleProps(hs[2], reinforcementCenterLabel(ri, r, unitsEff), selBody)}>
+                  <circle cx={cx} cy={cy} {...hitProps} />
+                  <rect
+                    data-handle-shape="reinforcement_center"
+                    x={cx - HANDLE_R + 1}
+                    y={cy - HANDLE_R + 1}
+                    width={(HANDLE_R - 1) * 2}
+                    height={(HANDLE_R - 1) * 2}
+                    transform={`rotate(45 ${cx} ${cy})`}
+                    fill={selBody ? COLOR_HANDLE_SEL : COLOR_REINFORCEMENT}
+                    stroke={COLOR_HANDLE_RING}
+                    strokeWidth={2}
+                  />
+                </g>
+              </g>
+            );
+          })}
           {circle && (
             <>
               {(() => {
@@ -1086,6 +1239,35 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </span>
           {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
         </p>
+      )}
+      {ui.tool === 'draw_reinforcement' && (
+        <div className="ec-draw-hint ec-reinforce-hint" data-testid="reinforce-hint">
+          <p className="ec-reinforce-text">
+            <strong>Dibujar refuerzo</strong>: {draft.points.length === 0 ? 'marque la cabeza (en el paramento o en el terreno)' : 'marque la punta, dentro del suelo'}.{' '}
+            <span className="ec-draw-keys">Clic, toque o Espacio coloca el punto · Retroceso quita · Esc cancela</span>
+            {drawError ? <span className="ec-draw-error"> {drawError}</span> : null}
+          </p>
+          <div className="ec-reinforce-types" role="group" aria-label="Tipo de refuerzo">
+            {REINFORCEMENT_TYPES.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className="ec-type"
+                aria-pressed={reinforceType === t}
+                aria-label={`Tipo a dibujar: ${REINFORCEMENT_TYPE_LABEL[t]}`}
+                onClick={() => {
+                  setReinforceType(t);
+                  // El punto ya colocado de otro tipo no vale para una tablestaca (vertical): se reinicia el trazo.
+                  if (draftRef.current.points.length > 0 && (t === 'sheet_pile' || reinforceType === 'sheet_pile')) setDraft(EMPTY_DRAFT);
+                  svgRef.current?.focus({ preventScroll: true });
+                  announce(`Tipo a dibujar: ${REINFORCEMENT_TYPE_LABEL[t]}.`);
+                }}
+              >
+                {REINFORCEMENT_TYPE_LABEL[t]}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       {emptyState && doc.regions.length === 0 && !isTraceTool(ui.tool) ? (
         <div className="ec-empty" data-testid="canvas-empty">

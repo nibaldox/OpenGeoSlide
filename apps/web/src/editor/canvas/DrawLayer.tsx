@@ -16,15 +16,16 @@ const POINT_R = 6;
 const CLOSE_R = 11;
 const CROSS_ARM = 9;
 
-export function DrawLayer({ draft, vp, mode = 'draw' }: { draft: DrawDraft; vp: Viewport; mode?: 'draw' | 'split' }) {
-  const split = mode === 'split';
+export function DrawLayer({ draft, vp, mode = 'draw' }: { draft: DrawDraft; vp: Viewport; mode?: 'draw' | 'split' | 'reinforce' }) {
+  // «Dividir región» y «Dibujar refuerzo» trazan una línea abierta: sin relleno ni cierre.
+  const split = mode !== 'draw';
   const pts = draft.points.map((p) => worldToScreen(vp, p[0], p[1]));
   const cur = draft.cursor ? worldToScreen(vp, draft.cursor[0], draft.cursor[1]) : null;
   const last = pts[pts.length - 1];
   const first = pts[0];
   const joined = pts.map((p) => `${p[0]},${p[1]}`).join(' ');
   return (
-    <g data-layer={split ? 'split' : 'draw'} data-points={draft.points.length} aria-hidden="true" pointerEvents="none">
+    <g data-layer={mode === 'reinforce' ? 'reinforce' : split ? 'split' : 'draw'} data-points={draft.points.length} aria-hidden="true" pointerEvents="none">
       {!split && pts.length >= 3 && cur && <polygon points={`${joined} ${cur[0]},${cur[1]}`} fill={COLOR_PATH} fillOpacity={0.12} stroke="none" />}
       {!split && pts.length >= 3 && !cur && <polygon points={joined} fill={COLOR_PATH} fillOpacity={0.12} stroke="none" />}
       {pts.length >= 2 && <polyline points={joined} fill="none" stroke={COLOR_HALO} strokeWidth={5.5} strokeLinejoin="round" strokeLinecap="round" />}
