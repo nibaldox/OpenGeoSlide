@@ -52,6 +52,16 @@ describe('describeWarning', () => {
     expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
   });
 
+  it('reinforcement_active_compression es una nota con el texto exacto de E14o-8 y lleva a /reinforcements', () => {
+    expect(describeWarning('reinforcement_active_compression')).toEqual({
+      code: 'reinforcement_active_compression',
+      severity: 'nota',
+      text: 'Un refuerzo activo se aplica con su fuerza aunque el deslizamiento lo comprimiría; en suelos con fricción esa fuerza puede aumentar el FS. Verifique la orientación y la carga de bloqueo.',
+    });
+    expect(ENGINE_WARNING_CODES).toContain('reinforcement_active_compression');
+    expect(warningPath('reinforcement_active_compression')).toBe('/reinforcements');
+  });
+
   it('truncated_mass es una nota con el texto acordado (E10a)', () => {
     expect(describeWarning('truncated_mass')).toEqual({
       code: 'truncated_mass',

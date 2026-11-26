@@ -84,6 +84,7 @@ export const ENGINE_WARNING_CODES = [
   'non_positive_fos',
   'reinforcement_outside_mass',
   'reinforcement_compression_ignored',
+  'reinforcement_active_compression',
   'structural_checks_not_covered',
 ] as const;
 
@@ -201,6 +202,11 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'nota',
     text: 'Un refuerzo pasivo quedaría comprimido por el deslizamiento y no aporta fuerza (solo trabaja a tracción; Clouterre, 1991; FHWA GEC 7).',
   },
+  // E14o-8 (R11A-08): el activo comprimido se aplica con su fuerza; con φ > 0 su componente normal confina la base y puede subir el FS.
+  reinforcement_active_compression: {
+    severity: 'nota',
+    text: 'Un refuerzo activo se aplica con su fuerza aunque el deslizamiento lo comprimiría; en suelos con fricción esa fuerza puede aumentar el FS. Verifique la orientación y la carga de bloqueo.',
+  },
   structural_checks_not_covered: {
     severity: 'nota',
     text: 'El modelo tiene pilotes o tablestacas. OpenGeoSlide calcula la estabilidad global con el elemento incluido; no calcula el empuje sobre el elemento, su empotramiento, el momento flector ni la deflexión.',
@@ -225,6 +231,7 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   load_outside_mass: '/loads',
   reinforcement_outside_mass: '/reinforcements',
   reinforcement_compression_ignored: '/reinforcements',
+  reinforcement_active_compression: '/reinforcements',
   structural_checks_not_covered: '/reinforcements',
   max_iterations: '/analysis/max_iterations',
   m_alpha: '/analysis/search',
