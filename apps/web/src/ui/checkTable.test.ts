@@ -36,7 +36,8 @@ describe('R10B-06: la vista Casos muestra los avisos y el estado real', () => {
   });
 
   it('con un aviso de severidad «aviso» no es «Cumple» sin más: «Cumple, con aviso» y el texto del aviso', () => {
-    for (const code of ['interslice_shear_exceeds_strength', 'negative_effective_normal_major', 'air_gap_thrust', 'water_above_ground']) {
+    for (const code of ['interslice_shear_exceeds_strength', 'negative_effective_normal_major', 'air_gap_thrust']) {
+      // water_above_ground ya no es un aviso: desde F3G (E15) el agua embalsada se calcula y es una nota (ver el test siguiente).
       const r = checkRowFromResult(check, result({ warnings: [code] }));
       expect(r.ok, code).toBe(true); // el FS está dentro de la tolerancia: el aviso no altera la comparación numérica
       const html = render([r]);
@@ -52,6 +53,15 @@ describe('R10B-06: la vista Casos muestra los avisos y el estado real', () => {
     const html = render([r]);
     expect(html).toContain('>Cumple<');
     expect(html).toContain('Normal efectiva negativa');
+  });
+
+  it('F3G: water_above_ground es una nota (agua embalsada calculada): el caso sigue siendo «Cumple», sin el texto viejo «se ignora»', () => {
+    const r = checkRowFromResult(check, result({ warnings: ['water_above_ground'] }));
+    const html = render([r]);
+    expect(html).toContain('>Cumple<');
+    expect(html).not.toContain('con aviso');
+    expect(html).toContain('el agua embalsada se incluye con su peso y su empuje horizontal');
+    expect(html).not.toContain('se ignora');
   });
 
   it('un caso que no cumple conserva «No cumple» y también muestra sus avisos', () => {
