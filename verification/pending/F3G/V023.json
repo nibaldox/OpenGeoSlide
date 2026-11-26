@@ -1,0 +1,131 @@
+{
+  "id": "V023",
+  "title": "LASH terminal trench, Duncan's Taylor series example",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V023",
+      "title": "LASH terminal trench, Duncan's Taylor series example",
+      "notes": "Underwater trench in San Francisco Bay Mud: Su = 100 psf at el. −20 ft increasing 9.8 psf/ft, γ = 100 pcf, water at el. 0. Duncan's surface as a circle, Spencer; σγ = 3.3 pcf and σ of the Su gradient 1.2 psf/ft (a commercial program's Table 29.2). Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "san_francisco_bay_mud",
+        "name": "San Francisco Bay Mud",
+        "model": "undrained",
+        "unit_weight": 15.70875,
+        "unit_weight_sat": null,
+        "undrained_strength": 4.78803,
+        "strength_datum": -6.096,
+        "strength_gradient": 1.53946,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "san_francisco_bay_mud",
+        "polygon": [
+          [
+            -8.5344,
+            -43.5864
+          ],
+          [
+            -8.5344,
+            -12.192
+          ],
+          [
+            0.0,
+            -12.192
+          ],
+          [
+            21.6408,
+            -36.576
+          ],
+          [
+            42.0624,
+            -36.576
+          ],
+          [
+            69.4944,
+            -5.4864
+          ],
+          [
+            86.2584,
+            -5.1816
+          ],
+          [
+            106.68,
+            -2.4384
+          ],
+          [
+            118.5672,
+            6.7056
+          ],
+          [
+            140.5128,
+            6.7056
+          ],
+          [
+            140.5128,
+            -43.5864
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -8.5344,
+          0.0
+        ],
+        [
+          140.5128,
+          0.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -2.00833,
+        "yc": 125.03841,
+        "r": 167.5129
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.145,
+      "published_by": "Program D",
+      "tolerance": 0.010436681222707423,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan (2000), J. Geotech. Geoenviron. Eng. 126(4).",
+    "derived_from": "cSlope verification problem V023 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Above el. −20 ft cSlope extrapolates Su linearly (below 100 psf); program D keeps 100 psf there (F = 1.146, β = 0.947 when cSlope does the same). Duncan's F is 1.17; commercial program A's Latin hypercube Monte Carlo gives Pf = 14 % with a rate-only σ.",
+      "commercial program A analyses Duncan's non-circular surface (Spencer 1.157, GLE 1.160, Janbu corrected 1.168, Janbu 1.127). Its polyline, digitised from its fig. 29.2 (300 dpi, calibrated on the printed endpoints (137.767, −120.245) and (350.168, −7.761)), gives in cSlope Spencer 1.174, M-P 1.177, Janbu corrected 1.186, Janbu 1.149: +1.4 to +1.9 % on every method, so the surface's position, not the mechanics. Its interior vertices 2 ft higher give +2.7 %, 2 ft lower −2.2 % (Su grows with depth). Duncan (2000) fig. 4 is a sketch with an elevation axis only; read with the 0.875:1 slopes as scale, its estimated failure surface lies within 2–3 ft of the program's polyline, the drawing's precision, so the 1.5 % cannot be settled from the source. Fig. 2(b) confirms Su = 100 psf at el. −20 ft and 9.8 psf/ft.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

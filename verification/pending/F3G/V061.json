@@ -1,0 +1,336 @@
+{
+  "id": "V061",
+  "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V061",
+      "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+      "notes": "Phase I and II fills with a chimney drain, a horizontal drain blanket (el. 548.2–552.8 ft) and a cutoff trench to rock, flat water table at el. 557 ft; the printed non-circular surface. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "phase_ii_fill",
+        "name": "Phase II fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.56312,
+        "unit_weight_sat": null,
+        "cohesion": 138.92936,
+        "friction_angle": 14.8,
+        "ru": null
+      },
+      {
+        "id": "sand_drain",
+        "name": "Sand drain",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8505,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "phase_i_fill",
+        "name": "Phase I fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.56312,
+        "unit_weight_sat": null,
+        "cohesion": 106.77298,
+        "friction_angle": 6.34,
+        "ru": null
+      },
+      {
+        "id": "foundation_sand",
+        "name": "Foundation sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8505,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "foundation_sand",
+        "polygon": [
+          [
+            181.0512,
+            156.972
+          ],
+          [
+            181.0512,
+            138.684
+          ],
+          [
+            -111.252,
+            138.684
+          ],
+          [
+            -111.252,
+            156.972
+          ],
+          [
+            -96.012,
+            156.972
+          ],
+          [
+            -55.7784,
+            140.208
+          ],
+          [
+            -31.94304,
+            140.208
+          ],
+          [
+            -1.8288,
+            156.972
+          ]
+        ]
+      },
+      {
+        "material": "phase_i_fill",
+        "polygon": [
+          [
+            181.0512,
+            167.09136
+          ],
+          [
+            181.0512,
+            156.972
+          ],
+          [
+            -1.8288,
+            156.972
+          ],
+          [
+            -31.94304,
+            140.208
+          ],
+          [
+            -55.7784,
+            140.208
+          ],
+          [
+            -96.012,
+            156.972
+          ],
+          [
+            -111.252,
+            156.972
+          ],
+          [
+            -111.252,
+            167.09136
+          ],
+          [
+            -42.73296,
+            167.09136
+          ],
+          [
+            -40.5384,
+            167.09136
+          ]
+        ]
+      },
+      {
+        "material": "phase_ii_fill",
+        "polygon": [
+          [
+            -111.252,
+            167.09136
+          ],
+          [
+            -111.252,
+            186.11088
+          ],
+          [
+            -48.85944,
+            200.8632
+          ],
+          [
+            -37.39896,
+            200.8632
+          ],
+          [
+            6.94944,
+            186.2328
+          ],
+          [
+            59.25312,
+            176.1744
+          ],
+          [
+            81.56448,
+            176.1744
+          ],
+          [
+            110.49,
+            168.49344
+          ],
+          [
+            -40.5384,
+            168.49344
+          ],
+          [
+            -40.5384,
+            197.0532
+          ],
+          [
+            -42.73296,
+            197.0532
+          ],
+          [
+            -42.73296,
+            167.09136
+          ]
+        ]
+      },
+      {
+        "material": "sand_drain",
+        "polygon": [
+          [
+            -40.5384,
+            168.49344
+          ],
+          [
+            -40.5384,
+            167.09136
+          ],
+          [
+            -42.73296,
+            167.09136
+          ],
+          [
+            -42.73296,
+            197.0532
+          ],
+          [
+            -40.5384,
+            197.0532
+          ]
+        ]
+      },
+      {
+        "material": "sand_drain",
+        "polygon": [
+          [
+            110.49,
+            168.49344
+          ],
+          [
+            181.0512,
+            168.49344
+          ],
+          [
+            181.0512,
+            167.09136
+          ],
+          [
+            -40.5384,
+            167.09136
+          ],
+          [
+            -40.5384,
+            168.49344
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -111.252,
+          169.7736
+        ],
+        [
+          181.0512,
+          169.7736
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            -48.85944,
+            200.8632
+          ],
+          [
+            -14.6304,
+            166.7256
+          ],
+          [
+            -1.8288,
+            157.24632
+          ],
+          [
+            87.20328,
+            157.24632
+          ],
+          [
+            104.63784,
+            170.04792
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.36,
+      "published_by": "Wolff & Harr",
+      "tolerance": 0.01211864406779661,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.343,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010213401621852327,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.383,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010209819555182542,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Wolff & Harr (1987).",
+    "derived_from": "cSlope verification problem V061 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Horizontal drain blanket added (2026-10-24 input audit): Wolff & Harr's section (reproduced in commercial program A's Fig. 34.1) shows the chimney drain continuing as a horizontal blanket to the downstream toe, and both programs' models have it (commercial program A Fig. 34.2, commercial program B Fig. 76, where it has the filter's color), between the Phase I fill and the Phase II fill at el. 548.2–552.8 ft (the two elevations the model already had at its right edge). It is given the sand drain's strength (c = 0, φ = 30°, γ = 120 pcf, commercial program A Table 34.1). The surface crosses the blanket on both legs. Without it cSlope gave Spencer 2.423 and Morgenstern-Price 2.384, 1.7 % above both programs; with it 2.388 (commercial program A Spencer 2.383) and 2.348 (commercial program B M-P 2.343, commercial program A GLE 2.333). Program D's 2.423 and 2.384 were computed without the blanket and are no longer checks.",
+      "Commercial program B uses φ = 6.33° for the Phase I fill and φ = 35° for the filter (Table 63); commercial program A 6.34° and 30° (Table 34.1), used here.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "id": "V041a",
+  "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "notes": "Fully submerged homogeneous slope (c = 100 psf, φ = 20°, γ = 128 pcf) with the pool 30 ft above the crest: the extra water weight and pore pressure cancel. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.10719,
+        "unit_weight_sat": null,
+        "cohesion": 4.78803,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.572
+          ],
+          [
+            9.144,
+            4.572
+          ],
+          [
+            32.004,
+            13.716
+          ],
+          [
+            42.672,
+            13.716
+          ],
+          [
+            42.672,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          22.86
+        ],
+        [
+          42.672,
+          22.86
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.603,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02031191515907673,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.599,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020312695434646654,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.6,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.023125,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27.",
+    "derived_from": "cSlope verification problem V041a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan, Wright & Brandon (2014, Table 6.4, p. 110): Modified Swedish 2.38 / 2.60 with total forces and 1.62 with effective forces, θ = 21.8°.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

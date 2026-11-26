@@ -1,0 +1,302 @@
+{
+  "id": "V088",
+  "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "notes": "Symmetric 50 ft embankment (crest ±12 ft, toes ±206.18 ft) with c = 1000 psf, φ = 5°, a core trench through a 10 ft sand blanket over foundation clay (Su = 3000 psf) and rock; groundwater at the sand top, 7 ft dry crest crack; moist/saturated unit weights. Specified circle (102, 163, R = 163). Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0650579,
+        "unit_weight_sat": 18.8504952,
+        "cohesion": 47.88026,
+        "friction_angle": 5.0,
+        "ru": null
+      },
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.6359325,
+        "unit_weight_sat": 20.4213698,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_clay",
+        "name": "Foundation clay",
+        "model": "undrained",
+        "unit_weight": 17.2796206,
+        "unit_weight_sat": 18.0650579,
+        "undrained_strength": 143.64078,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "rock",
+        "name": "Rock",
+        "model": "mohr_coulomb",
+        "unit_weight": 25.1339936,
+        "unit_weight_sat": 25.9194309,
+        "cohesion": 0.0,
+        "friction_angle": 45.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            -62.843664,
+            0.0
+          ],
+          [
+            -3.6576,
+            15.24
+          ],
+          [
+            3.6576,
+            15.24
+          ],
+          [
+            62.843664,
+            0.0
+          ],
+          [
+            5.1816,
+            0.0
+          ],
+          [
+            2.4384,
+            -3.048
+          ],
+          [
+            -2.4384,
+            -3.048
+          ],
+          [
+            -5.1816,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation_clay",
+        "polygon": [
+          [
+            68.58,
+            -3.048
+          ],
+          [
+            68.58,
+            -11.2776
+          ],
+          [
+            -68.58,
+            -11.2776
+          ],
+          [
+            -68.58,
+            -3.048
+          ],
+          [
+            -2.4384,
+            -3.048
+          ],
+          [
+            2.4384,
+            -3.048
+          ]
+        ]
+      },
+      {
+        "material": "rock",
+        "polygon": [
+          [
+            68.58,
+            -11.2776
+          ],
+          [
+            68.58,
+            -12.192
+          ],
+          [
+            -68.58,
+            -12.192
+          ],
+          [
+            -68.58,
+            -11.2776
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            -68.58,
+            -3.048
+          ],
+          [
+            -68.58,
+            0.0
+          ],
+          [
+            -62.843664,
+            0.0
+          ],
+          [
+            -5.1816,
+            0.0
+          ],
+          [
+            -2.4384,
+            -3.048
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            62.843664,
+            0.0
+          ],
+          [
+            68.58,
+            0.0
+          ],
+          [
+            68.58,
+            -3.048
+          ],
+          [
+            2.4384,
+            -3.048
+          ],
+          [
+            5.1816,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -68.58,
+          0.0
+        ],
+        [
+          -5.1816,
+          0.0
+        ],
+        [
+          -2.4384,
+          -3.048
+        ],
+        [
+          2.4384,
+          -3.048
+        ],
+        [
+          5.1816,
+          0.0
+        ],
+        [
+          68.58,
+          0.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 31.0896,
+        "yc": 49.6824,
+        "r": 49.6824
+      },
+      "tension_crack": {
+        "depth": 2.1336,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.445,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204498977505113,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.447,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204331834899877,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.43,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02205761316872428,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.447,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204331834899877,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "USACE EM 1110-2-1902 (2003), fig. 4-1.",
+    "derived_from": "cSlope verification problem V088 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Neither figure labels its vertices. The crest (±12 ft) and toes (±206.18 ft) are inferred from commercial program A's printed exit point (161.895, 11.403 ft), which lies on this face; commercial program A GLE 2.447, USACE 2.44.",
+      "The earlier outline after program D (crest ±17 ft, toes ±217 ft, from USACE's slice table) misses that exit point by 2.4 ft and gave 2.489 / 2.488 (program D and cSlope alike, 1.8 % above commercial program A).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 2.1336 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

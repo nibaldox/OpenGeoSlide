@@ -1,0 +1,176 @@
+{
+  "id": "V073",
+  "title": "Pockoski & Duncan test slope 3, clay seam and dry crack",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V073",
+      "title": "Pockoski & Duncan test slope 3, clay seam and dry crack",
+      "notes": "Sandy clay over a 5 ft highly plastic clay seam on the model base, water table and a dry 6 ft tension crack; circular search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "sandy_clay",
+        "name": "Sandy clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.4213698,
+        "unit_weight_sat": null,
+        "cohesion": 14.364078,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "plastic_clay_seam",
+        "name": "Plastic clay seam",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.4213698,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 25.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "plastic_clay_seam",
+        "polygon": [
+          [
+            -21.336,
+            25.908
+          ],
+          [
+            -21.336,
+            27.432
+          ],
+          [
+            60.96,
+            27.432
+          ],
+          [
+            60.96,
+            25.908
+          ]
+        ]
+      },
+      {
+        "material": "sandy_clay",
+        "polygon": [
+          [
+            -21.336,
+            27.432
+          ],
+          [
+            -21.336,
+            30.48
+          ],
+          [
+            0.0,
+            30.48
+          ],
+          [
+            38.1,
+            45.72
+          ],
+          [
+            60.96,
+            45.72
+          ],
+          [
+            60.96,
+            27.432
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -21.336,
+          30.48
+        ],
+        [
+          0.0,
+          30.48
+        ],
+        [
+          38.1,
+          42.672
+        ],
+        [
+          60.96,
+          42.672
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          -15.24,
+          50.0
+        ],
+        "exit": [
+          -15.24,
+          50.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 1.8288,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.417,
+      "published_by": "Commercial program A (circles)",
+      "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.422,
+      "published_by": "Commercial program A (circles)",
+      "tolerance": 0.020351617440225036,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Pockoski & Duncan (2000).",
+    "derived_from": "cSlope verification problem V073 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The circle checks are circles only (compositeSurfaces off), as their references; the composite checks are cSlope's search with composite circles along the model base (compositeBase), against commercial program A's composite surfaces.",
+      "Search limited to x = −15.24 to 50 m (−50 to 164 ft: the toe bench to the crest), as in the source.",
+      "commercial program A's composite surfaces (circles cut off at the base) give 1.392 / 1.400; cSlope's non-circular optimization, which is not restricted to that shape, finds 1.353 / 1.369 along the seam.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 1.8288 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

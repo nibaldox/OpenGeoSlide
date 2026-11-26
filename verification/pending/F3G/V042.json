@@ -1,0 +1,209 @@
+{
+  "id": "V042",
+  "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V042",
+      "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
+      "notes": "Symmetric dam with a thick clay core (φ′ = 20°) in a shell (φ′ = 38°), pond at el. 315 ft, a commercial program's piezometric line; the deep circle. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "shell",
+        "name": "Shell",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.99224,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 38.0,
+        "ru": null
+      },
+      {
+        "id": "core",
+        "name": "Core",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8505,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "core",
+        "polygon": [
+          [
+            288.5694,
+            38.7096
+          ],
+          [
+            89.535,
+            38.7096
+          ],
+          [
+            181.4322,
+            99.9744
+          ],
+          [
+            196.6722,
+            99.9744
+          ]
+        ]
+      },
+      {
+        "material": "shell",
+        "polygon": [
+          [
+            0.0,
+            38.7096
+          ],
+          [
+            89.535,
+            71.26778
+          ],
+          [
+            176.8602,
+            103.0224
+          ],
+          [
+            181.4322,
+            103.0224
+          ],
+          [
+            196.6722,
+            103.0224
+          ],
+          [
+            201.2442,
+            103.0224
+          ],
+          [
+            288.5694,
+            71.26778
+          ],
+          [
+            378.1044,
+            38.7096
+          ],
+          [
+            288.5694,
+            38.7096
+          ],
+          [
+            196.6722,
+            99.9744
+          ],
+          [
+            181.4322,
+            99.9744
+          ],
+          [
+            89.535,
+            38.7096
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          96.012
+        ],
+        [
+          157.5816,
+          96.012
+        ],
+        [
+          174.3456,
+          95.21952
+        ],
+        [
+          178.308,
+          92.59824
+        ],
+        [
+          254.508,
+          56.0832
+        ],
+        [
+          270.0528,
+          49.53
+        ],
+        [
+          273.7104,
+          48.64608
+        ],
+        [
+          352.3488,
+          46.23816
+        ],
+        [
+          360.36504,
+          45.1104
+        ],
+        [
+          378.1044,
+          38.7096
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 316.33577,
+        "yc": 216.7003,
+        "r": 177.9907
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.584,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010315656565656566,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.648,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010303398058252427,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 7.24.",
+    "derived_from": "cSlope verification problem V042 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "With FE seepage: commercial program A 1.658/1.724.",
+      "Piezometric line corrected 2026-10-24: commercial program A's line (verification manual, problem 77, figs. 77.2 and 77.4) has ten vertices; the earlier transcription missed (585, 303.8) ft just downstream of the core's upstream face and (1156, 151.7) ft near the toe, read from fig. 77.4 at 400 dpi. With them cSlope gives 1.582 / 1.649 on the printed circle against the program's 1.584 / 1.648 (before 1.591 / 1.659). Program D's 1.591 (Bishop) and 1.670 (Morgenstern-Price) were computed on the incomplete line and are no longer checks.",
+      "Duncan, Wright & Brandon (2014, Table 7.9, p. 156): 1.67 is Spencer (two of their programs; the third 1.69); their Bishop spreadsheet gives 1.61 (Fig. 7.40). The circle of one of their programs is (−225.3, 748.9), R 621.88 (Fig. 7.38), not this one.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

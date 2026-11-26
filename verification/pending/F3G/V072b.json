@@ -1,0 +1,145 @@
+{
+  "id": "V072b",
+  "title": "Pockoski & Duncan slope 2, circular search",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V072b",
+      "title": "Pockoski & Duncan slope 2, circular search",
+      "notes": "The V072a slope (dry 5.5 ft tension crack) with a circular search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "sandy_clay",
+        "name": "Sandy clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8505,
+        "unit_weight_sat": null,
+        "cohesion": 14.36408,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "sandy_clay",
+        "polygon": [
+          [
+            -21.336,
+            22.86
+          ],
+          [
+            -21.336,
+            30.48
+          ],
+          [
+            0.0,
+            30.48
+          ],
+          [
+            30.48,
+            45.72
+          ],
+          [
+            51.816,
+            45.72
+          ],
+          [
+            51.816,
+            22.86
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -21.336,
+          30.48
+        ],
+        [
+          0.0,
+          30.48
+        ],
+        [
+          30.48,
+          42.672
+        ],
+        [
+          51.816,
+          42.672
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "janbu_simplified"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 1.6764,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.285,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020389105058365758,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023875968992248062,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.141,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020438212094653813,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Pockoski & Duncan (2000). Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V072b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 1.6764 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "id": "V092",
+  "title": "USACE example F-6, steady-seepage dam",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "notes": "112 ft embankment on a granular foundation under steady seepage: piezometric line from the pool through the chimney drain to the tailwater, which stands on the downstream toe (free water). The upstream face rises from (30.2, 100) ft to the crest (60.8, 112). USACE's circle. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.4213698,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "foundation",
+        "name": "Foundation",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.6359325,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            30.48
+          ],
+          [
+            9.20496,
+            30.48
+          ],
+          [
+            18.53184,
+            34.1376
+          ],
+          [
+            24.6888,
+            34.1376
+          ],
+          [
+            59.40552,
+            22.46376
+          ],
+          [
+            121.92,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation",
+        "polygon": [
+          [
+            0.0,
+            -22.86
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            121.92,
+            0.0
+          ],
+          [
+            137.16,
+            0.0
+          ],
+          [
+            137.16,
+            -22.86
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          30.48
+        ],
+        [
+          11.70432,
+          30.48
+        ],
+        [
+          36.91128,
+          21.0312
+        ],
+        [
+          54.68112,
+          6.858
+        ],
+        [
+          137.16,
+          6.858
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 81.9912,
+        "yc": 75.5904,
+        "r": 85.344
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02273224043715847,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "USACE EM 1110-2-1902, example F-6.",
+    "derived_from": "cSlope verification problem V092 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "USACE's piezometric line, from the piezometric heights of its slice table (fig. F-17a: 16, 32, 46, 39, 39, 48, 53, 51, 35 ft above the slice bases of widths 31, 21, 56, 23, 35, 35, 35, 64, 68 ft, on the circle (269, 248, R 280) ft). The table's widths sum to 368 ft; with slice 1 starting at the circle's entry x = 32 ft they end 3 ft short of the toe, with slices 1–2 ending at the crest corner x = 81 ft (as the figure draws them) they start at 29 ft. Fitted line (least squares through slices 1–3, the drain segment through slice 4 at 1:1): start 29 ft → el. 100 at x = 37.0, kink (128.7, 54.1), el. 22.5 from 160.3; start 32 ft → el. 100 at 31.4, kink (131.7, 52.6), el. 22.5 from 161.8; the figure reading of docs/kallor/usace-em-1110-2-1902.md gives kink (124, 59), el. 22.5 from 161. cSlope on these three lines: Bishop 2.057 / 2.062 / 2.050, Spencer 2.069 / 2.075 / 2.063 (50 slices; 9 or 200 slices change Bishop by < 0.3 %). The line here is the program's (its fig. 69.1), which its checks were computed with; USACE's 2.01 is a nine-slice hand calculation with R = 281 in the formula and R = 280 in the figure, and its Modified Swedish value is 2.07. Checked 2026-10-25.",
+      "The kink of the piezometric line is located from the figure to about a foot; program D also reads 0.6 % low.",
+      "The upstream face starts at x = 30.2 ft, not 38.4 ft: commercial program A prints its slip surface entering at (31.096, 100.345), which lies on the face from (30.2, 100) to the crest (60.8, 112) but above the level ground of a face starting at 38.4 ft, and its Fig. 69.1 shows the face starting at about 30 ft (vertices calibrated on the labeled section) with the piezometric line leaving el. 100 at the second vertex, 38.4 ft. USACE's slices (Fig. F-17: widths 31 and 21 ft up to the crest corner) agree. On the corrected outline cSlope gives Bishop 1.990, Spencer 2.005, Janbu corrected 1.824 (before: 1.998 / 2.012 / 1.833).",
+      "commercial program A's fig. 69.1 (digitised at 250 dpi, calibrated on the crest 60.8–81 ft and the toe at 400 ft) puts the piezometric line's kinks at (122.4, 69.9) and (182.8, 22.5) against (121.1, 69) and (179.4, 22.5) here; with its kinks cSlope gives Bishop 1.988, so the line does not explain the 1 % gap (middle kink ±2 ft: ∓0.4 %; lower kink ±10 ft in x: ±0.7 %). Its model has two undocumented extra materials, a vertical strip under the crest (x = 61.8–80.1 ft) and the whole downstream part (x > 200 ft), with the tabulated strengths; a drained strip would give 2.039 (+1.4 % over the program), a cos²θ pore-pressure correction 2.084 (+3.6 %), 25–400 slices change < 0.15 %. Program D also lies 0.6 % below program A.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

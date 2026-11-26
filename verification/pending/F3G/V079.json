@@ -1,0 +1,139 @@
+{
+  "id": "V079",
+  "title": "Priest (1993) rigid block on a plane, water-filled crack",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V079",
+      "title": "Priest (1993) rigid block on a plane, water-filled crack",
+      "notes": "Priest's example 8.1 as two commercial programs model it: a 30 m face with the crest at x = 17.0 (60.46°, Priest's is 60° with the crest at 17.32, see V080), a 30° plane from the toe, a vertical 15 m tension crack holding 3.75 m of water, and a water table rising from the toe to 3.75 m above the plane at the crack, which gives Priest's linear pressure along the plane."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "block",
+        "name": "Block",
+        "model": "mohr_coulomb",
+        "unit_weight": 25.0,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "block",
+        "polygon": [
+          [
+            -25.0,
+            -15.0
+          ],
+          [
+            -25.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            17.0,
+            30.0
+          ],
+          [
+            60.0,
+            30.0
+          ],
+          [
+            60.0,
+            -15.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -25.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          25.981,
+          18.75
+        ],
+        [
+          60.0,
+          18.75
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "janbu_simplified"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            51.962,
+            30.0
+          ]
+        ]
+      },
+      "tension_crack": {
+        "depth": 15.0,
+        "water_fill": 0.25
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program A, commercial program C, Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program A, commercial program C, Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Priest, S.D. (1993). Discontinuity Analysis for Rock Engineering. Chapman & Hall, London; example 8.1, pp. 224–225.",
+    "derived_from": "cSlope verification problem V079 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Priest's corners A (0, 0), B (17.32, 30), C (25.98, 30), D (25.98, 15); G = 8119 kN, U = 551 kN, V = 68.9 kN, F = 1.049 by his eq. 8.10 (γw = 9.8 in his solution; docs/kallor/priest-1993.md). The programs' crest at x = 17.0 makes the face 60.46° and the crack 8.98 m behind the crest, 1.5 % more block weight: cSlope 1.0483 here against 1.0490 on Priest's geometry (V080), where the programs also give 1.049.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 15 m, fracción de agua 0.25 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

@@ -1,0 +1,378 @@
+{
+  "id": "V085",
+  "title": "Bradwell excavated slope, stiff-fissured London clay",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V085",
+      "title": "Bradwell excavated slope, stiff-fissured London clay",
+      "notes": "Excavation in London clay (six sublayers with Su increasing with depth, S = f(datum)) under Marsh clay and a clay fill cracked to its full depth (11.4 ft); search for the deep failure, entering on the crest and leaving at the excavation toe."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "clay_fill",
+        "name": "Clay fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 110.0,
+        "unit_weight_sat": null,
+        "cohesion": 1.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "marsh_clay",
+        "name": "Marsh clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 105.0,
+        "unit_weight_sat": null,
+        "cohesion": 300.0,
+        "friction_angle": 0.0,
+        "ru": null
+      },
+      {
+        "id": "brown_london_clay_1",
+        "name": "Brown London clay 1",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 750.0,
+        "strength_datum": -3.0,
+        "strength_gradient": 90.0,
+        "ru": null
+      },
+      {
+        "id": "brown_london_clay_2",
+        "name": "Brown London clay 2",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 1335.0,
+        "strength_datum": -9.5,
+        "strength_gradient": 82.0,
+        "ru": null
+      },
+      {
+        "id": "brown_london_clay_3",
+        "name": "Brown London clay 3",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 1704.0,
+        "strength_datum": -14.0,
+        "strength_gradient": 53.0,
+        "ru": null
+      },
+      {
+        "id": "brown_london_clay_4",
+        "name": "Brown London clay 4",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 2234.0,
+        "strength_datum": -24.0,
+        "strength_gradient": 47.0,
+        "ru": null
+      },
+      {
+        "id": "blue_london_clay_1",
+        "name": "Blue London clay 1",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 2375.0,
+        "strength_datum": -27.0,
+        "strength_gradient": 47.0,
+        "ru": null
+      },
+      {
+        "id": "blue_london_clay_2",
+        "name": "Blue London clay 2",
+        "model": "undrained",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 2469.0,
+        "strength_datum": -29.0,
+        "strength_gradient": 39.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "blue_london_clay_1",
+        "polygon": [
+          [
+            0.0,
+            -29.0
+          ],
+          [
+            0.0,
+            -27.0
+          ],
+          [
+            95.4,
+            -27.0
+          ],
+          [
+            96.4,
+            -29.0
+          ]
+        ]
+      },
+      {
+        "material": "blue_london_clay_2",
+        "polygon": [
+          [
+            0.0,
+            -50.0
+          ],
+          [
+            0.0,
+            -29.0
+          ],
+          [
+            96.4,
+            -29.0
+          ],
+          [
+            97.5,
+            -31.2
+          ],
+          [
+            145.0,
+            -31.2
+          ],
+          [
+            145.0,
+            -50.0
+          ]
+        ]
+      },
+      {
+        "material": "brown_london_clay_1",
+        "polygon": [
+          [
+            0.0,
+            -9.5
+          ],
+          [
+            0.0,
+            -3.0
+          ],
+          [
+            77.4,
+            -3.0
+          ],
+          [
+            83.4,
+            -3.0
+          ],
+          [
+            86.65,
+            -9.5
+          ]
+        ]
+      },
+      {
+        "material": "brown_london_clay_2",
+        "polygon": [
+          [
+            0.0,
+            -14.0
+          ],
+          [
+            0.0,
+            -9.5
+          ],
+          [
+            86.65,
+            -9.5
+          ],
+          [
+            88.9,
+            -14.0
+          ]
+        ]
+      },
+      {
+        "material": "brown_london_clay_3",
+        "polygon": [
+          [
+            0.0,
+            -24.0
+          ],
+          [
+            0.0,
+            -14.0
+          ],
+          [
+            88.9,
+            -14.0
+          ],
+          [
+            93.9,
+            -24.0
+          ]
+        ]
+      },
+      {
+        "material": "brown_london_clay_4",
+        "polygon": [
+          [
+            0.0,
+            -27.0
+          ],
+          [
+            0.0,
+            -24.0
+          ],
+          [
+            93.9,
+            -24.0
+          ],
+          [
+            95.4,
+            -27.0
+          ]
+        ]
+      },
+      {
+        "material": "clay_fill",
+        "polygon": [
+          [
+            0.0,
+            6.0
+          ],
+          [
+            0.0,
+            17.4
+          ],
+          [
+            45.0,
+            17.4
+          ],
+          [
+            56.4,
+            6.0
+          ]
+        ]
+      },
+      {
+        "material": "marsh_clay",
+        "polygon": [
+          [
+            0.0,
+            -3.0
+          ],
+          [
+            0.0,
+            6.0
+          ],
+          [
+            56.4,
+            6.0
+          ],
+          [
+            68.4,
+            6.0
+          ],
+          [
+            77.4,
+            -3.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "janbu_simplified",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          0.0,
+          45.0
+        ],
+        "exit": [
+          83.4,
+          145.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 11.4,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.762,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020283768444948922,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.758,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020284414106939704,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.736,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020288018433179723,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.628,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020307125307125307,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Skempton, A.W. & La Rochelle, P. (1965). The Bradwell slip: a short-term failure in London clay. Géotechnique 15(3), 221–242; Duncan, Wright & Brandon (2014), Soil Strength and Slope Stability, 2nd ed., §7.7.3.",
+    "derived_from": "cSlope verification problem V085 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Not compared with Duncan, Wright & Brandon's strength reduction value 1.79: the clay fill (c = 1 psf, φ = 35°) has a 45° face, which on its own fails at F ≈ tan 35°/tan 45° ≈ 0.7, and the finite element analysis finds that local mechanism (0.83); the limit equilibrium checks keep the surfaces off it with search limits, and the book does not say how its strength reduction did.",
+      "Without limits the search finds shallower mechanisms: a sliver in the cohesionless 1:1 fill (0.74) and, with the crack, a surface through the fill and Marsh clay (1.15). The published value is the deep failure.",
+      "The source searches the whole model and models the fill as a tension-crack zone, so its circles start at the base of the fill; these limits stand in for that.",
+      "Duncan, Wright & Brandon (2014, Table 7.4 p. 141; text p. 140: 1.08 × 1.63 = 1.76) give Janbu corrected 1.76, Modified Swedish 1.80, strength reduction 1.79; their circle is (81.25, 117.6, R 151.27) in their Fig. 7.13 frame, (126.25, 117.6) here, on which cSlope gives 1.765. Skempton & La Rochelle back-calculate F = 1.0 with the fissured strength; the ratio of the intact to the mobilised average strength is 2000/1120 = 1.79 (\"would be 1.8\", p. 235). Their section has the crest at +17.5 and the base at −31 O.D. and an 11½ ft fill (here 17.4, −31.2, 11.4; under 0.05 % on the result).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 11.4 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "id": "V086b-auto",
+  "title": "Tandjiria embankment, clay fill, water-filled crack (auto)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V086b-auto",
+      "title": "Tandjiria embankment, clay fill, water-filled crack",
+      "notes": "Half-embankment (9 m crest, 10 m wide crest, 1V:1.67H face) of clay fill (Su = 20 kPa) on soft clay (Su = 20 kPa), γ = 19.4; 2 m water-filled tension crack, unreinforced; circular search. Also run with the automatic (Rankine) crack depth."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "undrained",
+        "unit_weight": 19.4,
+        "unit_weight_sat": null,
+        "undrained_strength": 20.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "soft_clay",
+        "name": "Soft clay",
+        "model": "undrained",
+        "unit_weight": 19.4,
+        "unit_weight_sat": null,
+        "undrained_strength": 20.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            3.0
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            10.0,
+            9.0
+          ],
+          [
+            20.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "soft_clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            3.0
+          ],
+          [
+            20.0,
+            3.0
+          ],
+          [
+            30.0,
+            3.0
+          ],
+          [
+            30.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": "auto",
+        "water_fill": 1.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.975,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020512820512820513,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443.",
+    "derived_from": "cSlope verification problem V086b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "program D gives 0.968 on the reference circle, as cSlope does; Tandjiria 0.981.",
+      "This is commercial program A's version (face 1V:1.67H, 2 m crack). Tandjiria et al. give a 30° face (1V:1.732H, p. 431, Fig. 4) and a water-filled crack 2c/γ = 2.06 m deep (Table 2 note); their 0.981 is checked on that input in V086d. Their soft-clay unit weight is not printed; 19.4 here and 20 in V086c are assumptions (docs/kallor/tandjiria-low-teh-2002.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad automática (Rankine), fracción de agua 1 (cSlope tensionCrackAuto y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2).",
+      "derivado de V086b: la grieta es un campo del modelo y este problema tiene checks con otra grieta; este caso tiene los checks con la grieta auto."
+    ]
+  }
+}

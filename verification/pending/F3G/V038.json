@@ -1,0 +1,159 @@
+{
+  "id": "V038",
+  "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V038",
+      "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+      "notes": "Homogeneous embankment (c′ = 100 psf, φ′ = 30°, γ = 100 pcf) with the pool at el. 40 ft and a commercial program's piezometric line; critical-circle search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 15.70875,
+        "unit_weight_sat": null,
+        "cohesion": 4.78803,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            30.48,
+            12.192
+          ],
+          [
+            36.576,
+            14.6304
+          ],
+          [
+            41.148,
+            14.6304
+          ],
+          [
+            77.724,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          30.48,
+          12.192
+        ],
+        [
+          31.15361,
+          11.86495
+        ],
+        [
+          36.7854,
+          10.85576
+        ],
+        [
+          41.148,
+          10.08888
+        ],
+        [
+          54.09651,
+          7.56178
+        ],
+        [
+          62.5477,
+          5.64459
+        ],
+        [
+          65.09187,
+          4.98531
+        ],
+        [
+          77.724,
+          0.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.09,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024587155963302753,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.1,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024545454545454544,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.07,
+      "published_by": "Program D",
+      "tolerance": 0.024672897196261683,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 7.19.",
+    "derived_from": "cSlope verification problem V038 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Circles only (compositeSurfaces off), as the references: the dam sits on a rigid foundation at y = 0, along which composite circles (compositeBase) give 1.061 (Bishop).",
+      "commercial program A 1.068/1.075 and program D 1.065/1.072 with FE seepage. Duncan, Wright & Brandon (2014): Spencer 1.16 with the piezometric line in all three of their programs (Table 7.8), 1.19 with FE pore pressures, Ordinary method 1.19 and 1.08 (Figs. 7.34–7.35), Janbu's chart 1.08 (Fig. 7.36). Their figures say γ = 100 pcf but their hand calculations and slice weights use 125; their line (Fig. 7.31) lies 0.3–0.7 ft above this one between x = 120 and 210 ft (docs/kallor/duncan-wright-2005-kap6-7.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,0693 (Bishop) y con rtl 2,0808 en el primer check, frente al publicado 1,09.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

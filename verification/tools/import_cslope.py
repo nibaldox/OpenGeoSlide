@@ -24,6 +24,11 @@ The source clone is read only. The script writes:
                                  «Casos con refuerzos» section of `cases/INDEX.md` is built from `verification/report.json`
                                  (written by `verification/harness/run.py` over `verification/cases`)
 - verification/pending/F3R/      only an `INDEX.md` that says where the batches went
+- verification/pending/F3G/      batch F3G (contract F5.6): the cases with a tension crack and / or ponded water (the
+                                 piezometric line above the ground), written as v0.5 models (v0.3 when they have no
+                                 crack); `<id>.json` holds the checks that the oracle reproduces and is promoted by the
+                                 integrator when the engine is ready, `hold/<id>.json` and `HOLD.json` the ones that it
+                                 does not (the cause is X18's); the harness table and the index are generated
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 Batch 0 is every problem that converts today (no cap, no selection). The output is deterministic: running the
@@ -77,6 +82,17 @@ F3R_TENSION_TYPE = {
     "V084e": "nail", "V084f": "nail",   # nailed walls
     "V015": "anchor",   # soldier-pile tieback wall
 }
+PHREATIC_NOTE = (
+    "porePressureHead = phreatic-correction en los checks de la fuente: ogs solo tiene la altura vertical (E3), que es también "
+    "la opción por defecto de cSlope y la que usa el harness (no emite porePressureHead). Con la corrección freática "
+    "cSlope da el FS de Bishop en 1,5338 (V082a) y 1,5126 (V082b); con la vertical, 1,5204 y 1,4994, que siguen dentro de "
+    "la tolerancia del valor publicado.")
+# Batch F3G (F5.6, X18 §3.1 D): tension crack and ponded water, v0.5.
+F5_VERSION = "0.5"
+F3G_DIR = Path("verification") / "pending" / "F3G"
+F3G_SCHEMA = Path("schema") / "ogs-0.5.schema.json"
+HOLD_F3G_FILE = F3G_DIR / "HOLD.json"
+CRACK_OPTION_KEYS = ("tensionCrackDepth", "tensionCrackAuto", "tensionCrackWater")
 F3R_DIR = Path("verification") / "pending" / "F3R"
 F3R_SCHEMA = Path("schema") / "ogs-0.4.schema.json"
 TENSION_KEYS = {"x1", "y1", "x2", "y2", "tensileCapacity", "spacing", "end1Capacity", "end2Capacity", "direction",
@@ -133,7 +149,8 @@ TOL_REL = 1e-9
 # no search ranges, so `auto` has no hint. cSlope's rule takes `ltr` with equal crests; the critical circle that the
 # source note gives, (500, 174), lies on the right-hand face, which is a mass moving toward +x (`ltr`); the search is
 # symmetric, so ogs and cSlope give the same FS with `ltr` and with `rtl` (checked in the I-M run, see the note).
-DIRECTION_OVERRIDES = {"V026": "left_to_right", "V063": "left_to_right", "V077": "left_to_right"}
+DIRECTION_OVERRIDES = {"V026": "left_to_right", "V063": "left_to_right", "V077": "left_to_right",
+                       "V038": "left_to_right", "V038b": "left_to_right", "V058": "left_to_right"}
 DIRECTION_OVERRIDE_NOTES = {
     "V026": (
         "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terraplén simétrico sobre "
@@ -147,6 +164,14 @@ DIRECTION_OVERRIDE_NOTES = {
         "resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el "
         "círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4)."
     ),
+    **{cid: (
+        "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma "
+        "cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales "
+        "(infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el "
+        f"oráculo (F3G-V): con ltr da {fos_ltr} y con rtl {fos_rtl} en el primer check, frente al publicado {pub}."
+    ) for cid, (fos_ltr, fos_rtl, pub) in {"V038": ("1,0693 (Bishop)", "2,0808", "1,09"),
+                                           "V038b": ("1,1578 (Spencer)", "1,9342", "1,16"),
+                                           "V058": ("1,9152 (Spencer)", "3,2688", "1,9")}.items()},
     "V077": (
         "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terreno plano y una "
         "polilínea simétrica con los dos extremos a la misma cota, así que auto no tiene pista; cSlope toma ltr "
@@ -485,7 +510,7 @@ def water_above_ground(outer: Polygon, piezo: list[list[float]]) -> bool:
     return False
 
 
-def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False) -> str | None:
+def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False, f3g: bool = False) -> str | None:
     """Return why a check cannot be used with our engine, or None if its options are neutral.
 
     With ``v02`` the seismic coefficients are not an obstacle: they go to ``analysis.seismic``. With ``f3``
@@ -499,6 +524,10 @@ def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False) 
             continue
         if (v02 or f3) and key in SEISMIC_OPTION_KEYS:
             continue
+        if f3g and key in CRACK_OPTION_KEYS:
+            continue
+        if f3g and key == "porePressureHead" and value == "phreatic-correction":
+            continue    # ogs has only the vertical head (E3); noted in the case (PHREATIC_NOTE)
         if key == "porePressureHead" and value == "vertical":
             continue
         if key == "intersliceFunction" and value == "constant" and method == "Morgenstern-Price":
@@ -672,7 +701,18 @@ def convert_f3(raw: dict, prob: dict | None) -> tuple[dict, list[str], list[int]
     return _convert(raw, prob, v02=True, f3=True)
 
 
-def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, list[str], list[int]]:
+def crack_signature(opts: dict) -> tuple | None:
+    """The tension crack of one cSlope check: ``(depth | "auto", water fraction)`` or None (no crack)."""
+    water = float(opts.get("tensionCrackWater") or 0.0)
+    if opts.get("tensionCrackAuto"):
+        return ("auto", water)
+    depth = opts.get("tensionCrackDepth")
+    if depth:
+        return (float(depth), water)
+    return None
+
+
+def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = False) -> tuple[dict, list[str], list[int]]:
     cid = raw["id"]
     if prob is None:
         raise Omit("sin entrada en problems.ts")
@@ -694,7 +734,8 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
     omit_prefixes = CASE_OMIT_OPTION_PREFIXES_V02 if v02 else CASE_OMIT_OPTION_PREFIXES
     for ck in raw["checks"]:
         for key in ck.get("options", {}):
-            if key.startswith(omit_prefixes):
+            # F3G: the crack is a model field; partialFactors and compositeBase only discard their own check
+            if key.startswith(omit_prefixes) and not f3g:
                 raise Omit(f"opción de check que cambia el problema: {key}")
 
     # materials
@@ -751,7 +792,7 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
         if any(b <= a for a, b in zip(xs_raw, xs_raw[1:])):
             raise Omit("piezométrica con x no estrictamente creciente (ogs-core exige x creciente)")
         piezo = [[num(x), num(y)] for x, y in wt["value"]]
-        if water_above_ground(outer, piezo):
+        if water_above_ground(outer, piezo) and not f3g:
             raise Omit("piezométrica sobre el terreno (agua embalsada)")
         water = {"unit_weight": GAMMA_W[units], "piezometric_line": piezo}
 
@@ -772,6 +813,11 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
         if f.interiors:
             raise Omit("cara con huecos")
         mats = {name2id[a["materialName"]] for a in assignments if f.contains(Point(a["point"]))}
+        if not mats and f3g:
+            # a point that float noise leaves on the edge of its face (V089: x = -3.6e-15): it belongs to the one face it touches
+            mats = {name2id[a["materialName"]] for a in assignments
+                    if f.buffer(1e-6).contains(Point(a["point"]))
+                    and sum(1 for g in faces if g.buffer(1e-6).contains(Point(a["point"]))) == 1}
         if not mats:
             c = f.representative_point()
             on_edge = [a["materialName"] for a in assignments if f.boundary.distance(Point(a["point"])) <= TOL_ABS]
@@ -858,7 +904,7 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
         else:
             discarded.append(f"{label}: método no soportado")
             continue
-        reason = option_reason(ck["method"], opts, v02, f3)
+        reason = option_reason(ck["method"], opts, v02, f3, f3g)
         if reason:
             discarded.append(f"{label}: {reason}")
             continue
@@ -923,8 +969,22 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
                       "slices": slices, **ANALYSIS_DEFAULTS,
                       **({"seismic": seismic} if seismic is not None else {}), **analysis}
 
+    crack = None
+    if f3g:
+        sigs = {crack_signature(ck.get("options", {})) for ck in kept_raw}
+        if len(sigs) > 1:
+            raise Omit("checks con grietas distintas en un mismo modelo: " + ", ".join(sorted(map(str, sigs))))
+        sig = sigs.pop()
+        if sig is not None:
+            crack = {"depth": sig[0] if sig[0] == "auto" else num(sig[0]), "water_fill": num(sig[1])}
+            if not 0.0 <= crack["water_fill"] <= 1.0:
+                raise Omit(f"tensionCrackWater = {sig[1]:g} fuera de [0, 1] (contrato F5.2)")
+            analysis_block["tension_crack"] = crack
+            if sig[1] > 0 and water is None:
+                # no piezometric line: the crack uses water.unit_weight (E12e); the oracle uses 9.807
+                water = {"unit_weight": GAMMA_W[units]}
     if f3:
-        version = F3_VERSION
+        version = F5_VERSION if crack else F3_VERSION
     else:
         version = "0.2" if v02 else "0.1"
     model = {
@@ -1235,6 +1295,164 @@ def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], 
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------- tension crack and ponded water (batch F3G, v0.5)
+def raw_ponded(d: dict) -> bool:
+    """True if the piezometric line of the cSlope definition goes above the ground (ponded water)."""
+    wt = d.get("waterTable")
+    if not wt or wt.get("mode") != "custom" or wt.get("followBoundary") or len(wt.get("value") or []) < 2:
+        return False
+    piezo = [[num(x), num(y)] for x, y in wt["value"]]
+    if any(b[0] <= a[0] for a, b in zip(piezo, piezo[1:])):
+        return False
+    return water_above_ground(Polygon(d["coordinates"]), piezo)
+
+
+def crack_suffix(sig: tuple) -> str:
+    return "auto" if sig[0] == "auto" else f"d{sig[0]:g}"
+
+
+def convert_f3g(raw: dict, prob: dict | None) -> list[tuple[dict, list[str], list[int]]]:
+    """Convert one cSlope case with a tension crack and / or ponded water into v0.5 cases (batch F3G).
+
+    The crack is a field of the model (`analysis.tension_crack`), not of the check: the checks of a problem that
+    ask for different cracks (V086b: a fixed depth of 2 m and the automatic one) go to different cases. The first
+    group keeps the id; the others are `<id>-auto` or `<id>-d<depth>`. A case without a crack is written as v0.3 (the
+    minimum version of its fields, F3.1); the ponded water has no field (F5.3). Returns [] if the problem has neither a
+    crack nor ponded water (it belongs to the earlier batches). Raises Omit if no group converts.
+    """
+    d = raw["definition"]
+    sigs: list = []
+    for ck in raw["checks"]:
+        sig = crack_signature(ck.get("options", {}))
+        if sig not in sigs:
+            sigs.append(sig)
+    ponded = raw_ponded(d)
+    if not ponded and not any(s is not None for s in sigs):
+        return []
+    out, reasons = [], []
+    for sig in sigs:
+        group = [ck for ck in raw["checks"] if crack_signature(ck.get("options", {})) == sig]
+        try:
+            case, discarded, batches = _convert({**raw, "checks": group}, prob, v02=True, f3=True, f3g=True)
+        except Omit as exc:
+            reasons.append(str(exc))
+            continue
+        notes = []
+        if any((ck.get("options") or {}).get("porePressureHead") == "phreatic-correction" for ck in group):
+            notes.append(PHREATIC_NOTE)
+        if sig is not None:
+            notes.append(
+                f"grieta de tracción: profundidad {'automática (Rankine)' if sig[0] == 'auto' else format(sig[0], 'g') + ' m'}, "
+                f"fracción de agua {sig[1]:g} (cSlope tensionCrack{'Auto' if sig[0] == 'auto' else 'Depth'} y tensionCrackWater); "
+                "en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2).")
+        if ponded:
+            notes.append("agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su "
+                         "peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`.")
+        if out:   # not the first group
+            new_id = f"{raw['id']}-{crack_suffix(sig)}"
+            notes.append(f"derivado de {raw['id']}: la grieta es un campo del modelo y este problema tiene checks con otra grieta; "
+                         f"este caso tiene los checks con la grieta {crack_suffix(sig)}.")
+            model = {**case["model"], "meta": {**case["model"]["meta"], "id": new_id}}
+            case = {**case, "id": new_id, "title": f"{case['title']} ({crack_suffix(sig)})", "model": model}
+        case["source"] = {**case["source"], "notes": case["source"]["notes"] + notes}
+        out.append((case, discarded, batches))
+    if not out:
+        raise Omit(reasons[0] if reasons else "sin checks válidos")
+    return out
+
+
+def gate_f3g(case: dict, schema: dict) -> list[str]:
+    """The model against the real `schema/ogs-0.5.schema.json` plus what the schema cannot say (F5.1, F5.2)."""
+    errors = gate_schema_f3r(case, schema)
+    m = case.get("model") or {}
+    a = m.get("analysis") or {}
+    crack = a.get("tension_crack")
+    if crack is not None:
+        if m.get("version") != F5_VERSION:
+            errors.append('tension_crack requiere version "0.5"')
+        depth = crack.get("depth")
+        if not (depth == "auto" or (isinstance(depth, (int, float)) and depth > 0)):
+            errors.append("tension_crack.depth debe ser un número > 0 o \"auto\"")
+        if not 0.0 <= crack.get("water_fill", -1.0) <= 1.0:
+            errors.append("tension_crack.water_fill fuera de [0, 1]")
+        if crack.get("water_fill", 0) > 0 and not (m.get("water") or {}).get("unit_weight"):
+            errors.append("grieta con agua sin water.unit_weight")
+    elif m.get("version") == F5_VERSION:
+        errors.append("version 0.5 sin tension_crack (la versión mínima es otra)")
+    return errors
+
+
+def build_f3g_index(cases: list[dict], held_cases: list[dict], hold: dict[tuple, dict], omitted: list[tuple[str, str]],
+                    discarded: dict[str, list[str]], raw_by_id: dict[str, dict]) -> str:
+    """INDEX.md of pending/F3G: the cases, what each one needs from the engine, the held checks and the omitted problems."""
+    def feats(case: dict):
+        a = case["model"]["analysis"]
+        crack = a.get("tension_crack")
+        c = "—" if crack is None else (f"{'auto' if crack['depth'] == 'auto' else format(crack['depth'], 'g') + ' m'}, "
+                                      f"water_fill {crack['water_fill']:g}")
+        base = raw_by_id[case["id"].split("-")[0]]["definition"] if case["id"].split("-")[0] in raw_by_id else {}
+        piezo = (base.get("waterTable") or {}).get("value") or []
+        top = max((y for _, y in piezo), default=None)
+        pond = "sí" if raw_ponded(base) else "no"
+        return c, pond, top
+    all_cases = {c["id"]: c for c in cases}
+    for c in held_cases:
+        all_cases.setdefault(c["id"], c)
+    n_ok = sum(len(c["checks"]) for c in cases)
+    n_held = sum(len(c["checks"]) for c in held_cases)
+    lines = [
+        "# Grieta de tracción y agua embalsada (F3G, formato v0.5): casos preparados",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+        f"**{len(cases)}** casos con **{n_ok}** checks que el oráculo cSlope reproduce dentro de la tolerancia de su fuente, "
+        f"listos para promover a `verification/cases/` cuando el motor tenga la grieta y el agua embalsada (los promueve el "
+        f"integrador). Otros **{n_held}** checks están retenidos (`HOLD.json`, carpeta `hold/`): X18 los dio por fuera de "
+        "tolerancia (ver la nota de convención abajo). No se relaja ninguna tolerancia ni se toca ningún dato.",
+        "",
+        "Un caso sin grieta se escribe en v0.3 (versión mínima de sus campos); con grieta, en v0.5. El agua embalsada no "
+        "tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del "
+        "check: los checks de V086b con otra grieta van a `V086b-auto`.",
+        "",
+        "| caso | v | grieta | agua embalsada | cota máx. de la piezométrica | checks | retenidos |",
+        "|---|---|---|---|---:|---:|---:|",
+    ]
+    held_n = {c["id"]: len(c["checks"]) for c in held_cases}
+    for cid in sorted(all_cases, key=lambda k: (k.split("-")[0], k)):
+        case = all_cases[cid]
+        c, pond, top = feats(case)
+        ok = len(next((x["checks"] for x in cases if x["id"] == cid), []))
+        lines.append(f"| {cid} | {case['model']['version']} | {c} | {pond} | {'—' if top is None else format(top, 'g')} "
+                     f"| {ok} | {held_n.get(cid, 0)} |")
+    lines += ["", "## Checks retenidos", "",
+              "La causa es la que diagnosticó X18 (`docs/fase3/exploracion/X18.md` §3.1). **Convención de tolerancia:** X18 compara "
+              "|Δ %| con `tolerance/publicado` (toma la tolerancia como absoluta) y por eso los da por fuera; el harness y "
+              "`acceptance.rs` usan `tolerance` como relativa (`|Δ|/publicado ≤ tolerance`), y con ella el oráculo reproduce "
+              "estos cinco checks (columna «tol %» de abajo; [`hold/REPORT.md`](hold/REPORT.md) da 5/5). Se retienen por la "
+              "decisión de F5.6 hasta que el integrador decida: promoverlos es quitarlos de `HOLD.json` y regenerar.",
+              "",
+              "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+              "|---|---|---:|---|---:|---:|---:|---|"]
+
+    def f(v):
+        return "—" if v is None else f"{v:.4f}"
+    for case in held_cases:
+        for c in case["checks"]:
+            e = hold[check_key(case["id"], c)]
+            lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                         f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} | {md_cell(e.get('diagnosis', ''))} |")
+    lines += ["", "## Problemas con grieta o agua embalsada que no entran en F3G", ""]
+    lines += [f"- {cid}: {md_cell(r)}" for cid, r in omitted] or ["- ninguno"]
+    dropped = {k: v for k, v in discarded.items() if v}
+    if dropped:
+        lines += ["", "## Checks descartados dentro de los casos", ""]
+        lines += [f"- {cid}: {md_cell(x)}" for cid, v in sorted(dropped.items()) for x in v]
+    lines += ["", "El cotejo publicado frente a cSlope de cada check está en [`REPORT.md`](REPORT.md) "
+              "(`verification/harness/run.py --oracle-only` sobre esta carpeta y sobre `hold/`).", ""]
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------- gates
 def gate_schema(case: dict) -> list[str]:
     errors = [f"{e.json_path}: {e.message}" for e in jsonschema.Draft202012Validator(CASE_SCHEMA).iter_errors(case)]
@@ -1279,7 +1497,7 @@ def gate_loads(case: dict) -> list[str]:
     m = case.get("model") or {}
     loads = m.get("loads") or []
     seismic = (m.get("analysis") or {}).get("seismic")
-    if (loads or seismic) and m.get("version") not in ("0.2", F3_VERSION, F4_VERSION):
+    if (loads or seismic) and m.get("version") not in ("0.2", F3_VERSION, F4_VERSION, F5_VERSION):
         errors.append('loads y analysis.seismic requieren version "0.2"')
     xs = [x for r in m.get("regions", []) for x, _ in r["polygon"]]
     ids = [load["id"] for load in loads if "id" in load]
@@ -1304,7 +1522,7 @@ def gate_features(case: dict) -> list[str]:
     needs_03 = (any(mat.get("model") == "undrained" for mat in m.get("materials", []))
                 or surface.get("type") == "polyline" or "interslice" in a
                 or any(x in methods for x in ("morgenstern_price", "janbu_simplified", "janbu_corrected")))
-    if needs_03 and m.get("version") not in (F3_VERSION, F4_VERSION):
+    if needs_03 and m.get("version") not in (F3_VERSION, F4_VERSION, F5_VERSION):
         errors.append('los campos de v0.3 requieren version "0.3"')
     if "interslice" in a:
         if "morgenstern_price" not in methods:
@@ -1801,6 +2019,52 @@ def main() -> int:
     f3r_held_checks = [c for case in f3r_held for c in case["checks"]]
     f3r_cases = f3r_kept
 
+    # ---- batch F3G (F5.6): tension crack and ponded water, v0.5, in pending/F3G
+    f3g_all: list[dict] = []
+    f3g_dropped: dict[str, list[str]] = {}
+    f3g_omitted: list[tuple[str, str]] = []
+    f3g_schema = json.loads((root / F3G_SCHEMA).read_text(encoding="utf-8"))
+    for cid in order:
+        try:
+            groups = convert_f3g(raw_by_id[cid], problems.get(cid))
+        except Omit as exc:
+            f3g_omitted.append((cid, str(exc)))
+            continue
+        except KeyError as exc:
+            f3g_omitted.append((cid, f"campo ausente en cSlope: {exc}"))
+            continue
+        for case, disc, _ in groups:
+            f3g_all.append(case)
+            f3g_dropped[case["id"]] = disc
+    hold_f3g = load_hold(root / HOLD_F3G_FILE)
+    f3g_ok: list[dict] = []
+    f3g_held: list[dict] = []
+    for case in f3g_all:
+        rest, held_case = split_hold(case, hold_f3g)
+        if held_case is not None:
+            f3g_held.append(held_case)
+        if rest is not None:
+            f3g_ok.append(rest)
+    for case in f3g_all:
+        cid = case["id"]
+        base = raw_by_id[cid.split("-")[0]] if cid.split("-")[0] in raw_by_id else raw_by_id[cid]
+        for err in gate_f3g(case, f3g_schema):
+            failures.append(f"{cid} (F3G) schema: {err}")
+        for err in gate_search(case):
+            failures.append(f"{cid} (F3G) rangos: {err}")
+        for err in gate_loads(case):
+            failures.append(f"{cid} (F3G) cargas: {err}")
+        for err in gate_features(case):
+            failures.append(f"{cid} (F3G) v0.3: {err}")
+        for err in gate_geometry(case, base):
+            failures.append(f"{cid} (F3G) geometría: {err}")
+    unknown_hold_f3g = sorted(set(hold_f3g) - {check_key(c["id"], k) for c in f3g_held for k in c["checks"]})
+    if unknown_hold_f3g:
+        failures.append(f"pending/F3G/HOLD.json con checks que no existen en F3G: {unknown_hold_f3g}")
+    if failures:
+        print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
+        return 1
+
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
     # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
@@ -1863,6 +2127,25 @@ def main() -> int:
             changed += 1
     changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_all, f3r_omitted, f3r_held, hold_f3r))
 
+    # F3G: the checks that the oracle reproduces wait here for the engine (the integrator promotes them); the held ones in hold/
+    f3g_dir = root / F3G_DIR
+    keep_ok = {f"{c['id']}.json" for c in f3g_ok}
+    keep_held = {f"{c['id']}.json" for c in f3g_held}
+    for stale in sorted(f3g_dir.glob("V*.json")) if f3g_dir.is_dir() else []:
+        if stale.name not in keep_ok:
+            stale.unlink()
+            changed += 1
+    for stale in sorted((f3g_dir / "hold").glob("V*.json")) if (f3g_dir / "hold").is_dir() else []:
+        if stale.name not in keep_held:
+            stale.unlink()
+            changed += 1
+    for case in f3g_ok:
+        changed += write_if_changed(f3g_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    for case in f3g_held:
+        changed += write_if_changed(f3g_dir / "hold" / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    changed += write_if_changed(f3g_dir / "INDEX.md", build_f3g_index(
+        f3g_ok, f3g_held, hold_f3g, f3g_omitted, f3g_dropped, raw_by_id))
+
     # ---- summary
     n_checks = sum(len(c["checks"]) for c in all_cases)
     n_v02 = sum(c["model"]["version"] == "0.2" for c in converted)
@@ -1878,6 +2161,9 @@ def main() -> int:
     print(f"verification/pending/F3 (retenidos): {len(f3_held)} casos, {sum(len(c['checks']) for c in f3_held)} checks")
     print(f"verification/cases (v0.4, refuerzos, R1 a R4): {len(f3r_cases)} casos, "
           f"{sum(len(c['checks']) for c in f3r_cases)} checks; no entran: {[c for c, _ in f3r_omitted]}")
+    print(f"verification/pending/F3G (v0.5): {len(f3g_ok)} casos, {sum(len(c['checks']) for c in f3g_ok)} checks listos; "
+          f"retenidos: {len(f3g_held)} casos, {sum(len(c['checks']) for c in f3g_held)} checks; "
+          f"casos derivados: {[c['id'] for c in f3g_all if c['id'] not in raw_by_id]}")
     print("Omitidos del lote 0:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")
