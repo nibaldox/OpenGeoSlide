@@ -104,6 +104,12 @@ export const REINFORCEMENT_LABEL = {
   spacing: 'Espaciamiento',
   force: 'Fuerza de corte',
   angle: 'Ángulo',
+  pressureModel: 'Modelo de presión del suelo',
+  diameter: 'Diámetro',
+  location: 'Ubicación de la fuerza',
+  shear: 'Capacidad al corte',
+  moment: 'Capacidad a momento',
+  capacity: 'Capacidad',
   strength: 'Resistencia de adherencia por metro',
   bonded_length: 'Longitud adherida',
   adhesion: 'Adhesión de la interfaz',
@@ -124,6 +130,12 @@ export const REINFORCEMENT_RULE = {
   angleRange: 'use un valor entre −90° y 90°, sin incluirlos (0 es horizontal)',
   angleRequired: 'es obligatorio con la dirección «Ángulo»; escriba un valor entre −90° y 90°, sin incluirlos (0 es horizontal)',
   angleForbidden: 'solo se admite con la dirección «Ángulo»; quítelo o cambie la dirección',
+  pressureBoth: 'un pilote lleva la fuerza de corte o la presión del suelo (Ito-Matsui), no las dos; quite una',
+  pressureNeither: 'falta el dato; indique la fuerza de corte o elija la presión del suelo (Ito-Matsui)',
+  pressureModel: 'solo se admite «ito_matsui»',
+  pressureLocation: 'elija el centroide de la resultante («centroid») o la superficie de falla («slip_surface»)',
+  capacityAlone: 'solo se admite junto con la presión del suelo (Ito-Matsui); quítela o elija la presión del suelo',
+  capacityEmpty: 'indique la capacidad al corte, a momento o ambas; no puede quedar vacía',
 } as const;
 
 /** Mensaje de un campo del refuerzo `index` (base 0): `Refuerzo 2, capacidad a tracción: use un valor…`. */
@@ -134,6 +146,11 @@ export function reinforcementFieldText(index: number, label: string, rule: strin
 /** Texto del motor (`reinforcements requiere version "0.4"`) con las palabras de la interfaz (E14a). */
 function version04Text(declared: string): string {
   return `Formato del archivo: los refuerzos requieren el formato 0.4, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.4`;
+}
+
+/** Texto del motor (`lateral_pressure requiere version "0.5"`, E15i-1) con las palabras de la interfaz. */
+function version05PressureText(declared: string): string {
+  return `Formato del archivo: la presión del suelo de un pilote (Ito-Matsui) y su capacidad requieren el formato 0.5, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.5`;
 }
 
 /** Texto del motor (`tension_crack requiere version "0.5"`) con las palabras de la interfaz (E15a). */
@@ -791,7 +808,7 @@ function lengthText(v: number, unit: string): string {
  * finitos, longitud > 0, capacidades y fuerza ≥ 0, `spacing` > 0, `pullout`, `bonded_length` ≤ L, `angle` solo con
  * `direction: "angle"` y en (−90, 90), y `x1 = x2` en la tablestaca. Un campo no finito no genera además un error de rango.
  */
-function validateReinforcements(doc: ModelDoc, issues: Issue[]): void {
+function validateReinforcements(doc: ModelDoc, tol: number, issues: Issue[]): void {
   const list: readonly Reinforcement[] = doc.reinforcements ?? [];
   const unit = lengthUnit(doc.units);
   const L = REINFORCEMENT_LABEL;
@@ -874,9 +891,59 @@ function validateReinforcements(doc: ModelDoc, issues: Issue[]): void {
         }
       }
     } else if (r.type === 'pile' || r.type === 'sheet_pile') {
-      atLeastZero('editor.reinforcement_capacity', `${base}/force`, L.force, r.force);
+      // E15i-1: en un pilote, `force` y `lateral_pressure` se excluyen y tiene que haber exactamente uno.
+      const lat = r.type === 'pile' && isPresent(r.lateral_pressure) ? r.lateral_pressure : null;
+      const forcePresent = isPresent(r.force);
+      if (r.type === 'pile' && lat && forcePresent) {
+        put('editor.reinforcement_pressure_xor', `${base}/lateral_pressure`, L.pressureModel, R.pressureBoth, undefined, false);
+      } else if (r.type === 'pile' && !lat && !forcePresent) {
+        put('editor.reinforcement_pressure_xor', `${base}/force`, L.force, R.pressureNeither, undefined, false);
+      } else if (!lat) {
+        atLeastZero('editor.reinforcement_capacity', `${base}/force`, L.force, r.force);
+      }
       if (r.type === 'pile' && optional(`${base}/spacing`, L.spacing, r.spacing) && !(r.spacing > 0)) {
         put('editor.reinforcement_spacing', `${base}/spacing`, L.spacing, R.positive, r.spacing);
+      }
+      if (r.type === 'pile') {
+        const cap = r.capacity;
+        if (lat) {
+          const lb = `${base}/lateral_pressure`;
+          if (lat.model !== 'ito_matsui') put('editor.reinforcement_pressure_model', `${lb}/model`, L.pressureModel, R.pressureModel, lat.model);
+          const diameterOk = finite(`${lb}/diameter`, L.diameter, lat.diameter);
+          if (diameterOk && !(lat.diameter > 0)) put('editor.reinforcement_pressure_diameter', `${lb}/diameter`, L.diameter, R.positive, lat.diameter);
+          if (lat.location !== 'centroid' && lat.location !== 'slip_surface') {
+            put('editor.reinforcement_pressure_location', `${lb}/location`, L.location, R.pressureLocation, lat.location, lat.location !== undefined && lat.location !== null);
+          }
+          // E15i-1: el pilote es vertical, |x2 − x1| ≤ tol, y `spacing > diameter` (sin `spacing`, vale 1).
+          if (coordsOk && Math.abs(r.x2 - r.x1) > tol) {
+            issues.push(
+              error(
+                'editor.reinforcement_pile_vertical',
+                `Refuerzo ${i + 1}, punta x2: un pilote con presión del suelo es vertical; la x de la punta debe ser igual a la de la cabeza (x1 = ${lengthText(r.x1, unit)}). Valor actual: ${fmt(r.x2)}.`,
+                `${base}/x2`,
+              ),
+            );
+          }
+          const s = isNum(r.spacing) ? r.spacing : isPresent(r.spacing) ? Number.NaN : 1;
+          if (diameterOk && lat.diameter > 0 && Number.isFinite(s) && s > 0 && !(s > lat.diameter)) {
+            put(
+              'editor.reinforcement_spacing',
+              `${base}/spacing`,
+              L.spacing,
+              `debe ser mayor que el diámetro del pilote (${lengthText(lat.diameter, unit)}); aumente el espaciamiento o reduzca el diámetro`,
+              isNum(r.spacing) ? r.spacing : s,
+            );
+          }
+        }
+        if (cap !== undefined && cap !== null) {
+          const cb = `${base}/capacity`;
+          if (!lat) put('editor.reinforcement_capacity_alone', cb, L.capacity, R.capacityAlone, undefined, false);
+          else if (!isPresent(cap.shear) && !isPresent(cap.moment)) put('editor.reinforcement_capacity_empty', cb, L.capacity, R.capacityEmpty, undefined, false);
+          for (const key of ['shear', 'moment'] as const) {
+            const v = cap[key];
+            if (isPresent(v) && finite(`${cb}/${key}`, L[key], v) && !(v > 0)) put('editor.reinforcement_capacity', `${cb}/${key}`, L[key], R.positive, v);
+          }
+        }
       }
       if (r.type === 'sheet_pile' && coordsOk && r.x1 !== r.x2) {
         issues.push(
@@ -928,15 +995,19 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   if (doc.version !== '0.4' && doc.version !== '0.5' && v04Fields(doc).length > 0) {
     issues.push(error('editor.reinforcement_version', `${version04Text(String(doc.version))}.`, '/version'));
   }
-  // F5.1: como el motor (`tension_crack requiere version "0.5"`).
-  if (doc.version !== '0.5' && v05Fields(doc).length > 0) {
-    issues.push(error('editor.crack_version', `${version05Text(String(doc.version))}.`, '/version'));
+  // F5.1: como el motor (`tension_crack requiere version "0.5"`); E15i-1: `lateral_pressure` y `capacity` también.
+  if (doc.version !== '0.5') {
+    const fields = v05Fields(doc);
+    if (fields.some((f) => f.path.startsWith('/analysis/'))) issues.push(error('editor.crack_version', `${version05Text(String(doc.version))}.`, '/version'));
+    if (fields.some((f) => f.path.startsWith('/reinforcements/'))) {
+      issues.push(error('editor.reinforcement_pressure_version', `${version05PressureText(String(doc.version))}.`, '/version'));
+    }
   }
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
   validateWater(doc, issues);
   validateLoads(doc, extent, tol, issues);
-  validateReinforcements(doc, issues);
+  validateReinforcements(doc, tol, issues);
   validateAnalysis(doc, extent, tol, issues);
   for (const a of geotechAdvisories(doc)) issues.push(warning(a.code, a.text, a.path));
   return issues;
