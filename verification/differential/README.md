@@ -5,7 +5,7 @@ sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0
 
 ## Archivos
 
-- `build_cases.py`: genera `cases/D01.ogs.json` … `cases/D14.ogs.json` y `cases_f3/D15.ogs.json` … `cases_f3/D17.ogs.json` (contrato §1, SI, γw = 9.807,
+- `build_cases.py`: genera `cases/D01.ogs.json` … `cases/D14.ogs.json` y `cases_f3/D15.ogs.json` … `cases_f3/D23.ogs.json` (contrato §1, SI, γw = 9.807,
   50 dovelas, búsqueda por defecto o con rangos explícitos, y una superficie fija representativa).
   Cada modelo lleva su intención en `meta.notes` y un comentario en el código.
 - `run.py`: para cada caso y método (bishop, spencer) compara búsqueda y superficie fija. Escribe
@@ -44,6 +44,27 @@ de antes):
   del motor) y el valor de cSlope igual se calcula como línea base. El código de salida sigue siendo 0.
   Con `--require-f3` sale con código 3 si queda algo pendiente, con fallo o sin dato: úsese al integrar.
 - `report.json` gana la clave `f3` (capacidades, resumen y checks); `REPORT.md` gana la sección «Fase 3a».
+
+## R10: modelos D18 a D23 (E13l)
+
+La revisión R10 (hallazgos R10A-02, R10A-04 y R10A-11) mostró cinco usos del formato v0.3 que ningún caso ni modelo
+cubría. Los seis modelos nuevos están en `cases_f3/` y siguen el mismo plan que D15 a D17 (círculo: Bishop y Spencer en
+búsqueda y fija, más M-P y Janbu corregido fijos; polilínea: los métodos de `analysis.methods`, fijos).
+
+| caso | modelo | qué cubre |
+|---|---|---|
+| D18 | corte de 10 m, 2H:1V, en arcilla con Su = 70 kPa en la cota 10, gradiente de −2 kPa/m y piso de 25 kPa | `strength_gradient < 0` con `strength_limit`; el círculo fijo baja de la cota −12,5, donde empieza el piso (FS 1,207 con piso y 1,189 sin él) |
+| D19 | talud de 20 m, 1,5H:1V, relleno sobre arcilla (arista a 6 m) | M-P con `clipped_sine` |
+| D20 | la misma geometría de D19 | M-P con `trapezoidal` |
+| D21 | corte de 20 m, 1:1, estrato fuerte sobre estrato débil, techo del débil en y = 10 m | polilínea de tres puntos cuyo tramo central corre sobre el contacto (E13l-5) |
+| D22 | terreno horizontal (y = 10), Su = 50 kPa, polilínea simétrica de 5 m de profundidad, `kh = 0,3` | E3 en polilíneas (E13l-2): la única fuerza motriz es la inercia horizontal |
+| D23 | igual que D22 con una carga lineal horizontal de 200 kN/m en lugar del sismo | E13l-2 con carga; solo Janbu, porque cSlope no converge en Spencer y su M-P da cuatro veces el de D22 |
+
+**Estado sobre la base `420baf0` (antes de M1 y M2).** D18, D19 y D20 coinciden con cSlope (|Δ| ≤ 0,16 % en
+superficie fija; la búsqueda de D18 da +0,56 %, dentro del 1 % de E9b). D21, D22 y D23 **fallan hasta que entren
+E13l-2 y E13l-5**: en D21 ogs toma el material de arriba y da +85,6 % (Janbu) a +159,7 % (Spencer) sobre cSlope; en D22
+y D23 ogs responde `invalid` con `no_driving` en los seis checks mientras cSlope da 3,333 (Janbu simplificado de D22) y
+7,500 (Janbu simplificado de D23). El motor no se corrige aquí.
 
 ## Criterio (E9b, briefs/00_CONTRATOS.md §4.4.6)
 

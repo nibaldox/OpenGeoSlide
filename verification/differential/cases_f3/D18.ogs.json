@@ -1,0 +1,94 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D18",
+    "title": "Corte en arcilla con Su decreciente y piso",
+    "notes": "Corte de 10 m, 2H:1V, en arcilla preconsolidada con Su decreciente en profundidad: 70 kPa en la cota del coronamiento (strength_datum = 10), gradiente de −2 kPa/m y piso de 25 kPa (strength_limit); el piso se alcanza a 22,5 m de profundidad bajo la cota 10. Prueba el gradiente negativo con límite, que ningún caso cubría."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "clay",
+      "name": "Arcilla preconsolidada (Su decreciente)",
+      "model": "undrained",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "undrained_strength": 70.0,
+      "strength_datum": 10.0,
+      "strength_gradient": -2.0,
+      "strength_limit": 25.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -20.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          40.0,
+          10.0
+        ],
+        [
+          60.0,
+          0.0
+        ],
+        [
+          95.0,
+          0.0
+        ],
+        [
+          95.0,
+          -20.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        0.0,
+        40.0
+      ],
+      "exit": [
+        55.0,
+        85.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 45.0,
+      "yc": 32.0,
+      "r": 46.0
+    }
+  }
+}
