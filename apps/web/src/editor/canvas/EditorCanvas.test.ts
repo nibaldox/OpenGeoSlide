@@ -99,6 +99,11 @@ describe('EditorCanvas (render estático)', () => {
       tan_phi: 0.5,
       pore_pressure: 0,
       material: 0,
+      weight_extra: 0,
+      h_force: 0,
+      h_moment_base: 0,
+      driving_extra: 0,
+      y_centroid: 0,
     });
     const html = renderToStaticMarkup(
       createElement(EditorCanvas, {
@@ -275,6 +280,7 @@ describe('U2-C: props del contrato', () => {
   const slice = {
     x_left: 20, x_right: 30, y_base_left: 10, y_base_right: 9, y_top_mid: 20, width: 10, alpha: 0.1, base_length: 10,
     weight: 100, cohesion: 5, tan_phi: 0.5, pore_pressure: 0, material: 0,
+    weight_extra: 0, h_force: 0, h_moment_base: 0, driving_extra: 0, y_centroid: 0,
   };
   const result = { surface: { xc: 30, yc: 40, r: 30 }, slices: [slice] };
 

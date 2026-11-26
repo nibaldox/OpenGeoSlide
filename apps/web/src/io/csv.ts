@@ -5,6 +5,7 @@
 // Exportación: los textos que empiezan por `= + - @` (o tabulación / retorno) llevan un `'` delante (R10).
 
 import { parse, unparse } from 'papaparse';
+import { reportCircle } from '../engine/surface';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
@@ -271,9 +272,10 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     r.status === 'converged' ? r.fos : null,
     r.iterations,
     r.status === 'converged' ? r.lambda : null,
-    r.surface.xc,
-    r.surface.yc,
-    r.surface.r,
+    // Una polilínea no tiene centro ni radio: celdas vacías hasta que F3-W1e defina su exportación.
+    reportCircle(r.surface)?.xc ?? null,
+    reportCircle(r.surface)?.yc ?? null,
+    reportCircle(r.surface)?.r ?? null,
     r.search?.evaluated ?? null,
     r.search?.valid ?? null,
     r.warnings.join(WARNING_SEPARATOR),

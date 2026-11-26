@@ -1,3 +1,4 @@
+import { reportCircle } from '../engine/surface';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
 import { describeWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
@@ -86,10 +87,10 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
               <td className="num">{r.search ? r.search.valid : '—'}</td>
               {lengthUnit && (
                 <td className="num">
-                  {formatNumber(r.surface.xc, 2)}; {formatNumber(r.surface.yc, 2)}
+                  {formatNumber(reportCircle(r.surface)?.xc ?? null, 2)}; {formatNumber(reportCircle(r.surface)?.yc ?? null, 2)}
                 </td>
               )}
-              {lengthUnit && <td className="num">{formatNumber(r.surface.r, 2)}</td>}
+              {lengthUnit && <td className="num">{formatNumber(reportCircle(r.surface)?.r ?? null, 2)}</td>}
               <td>
                 <button
                   type="button"

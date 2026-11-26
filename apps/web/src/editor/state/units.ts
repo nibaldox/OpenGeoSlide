@@ -77,7 +77,9 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
   const pt = (p: Point): Point => [k.length(p[0]), k.length(p[1])];
 
   const materials = doc.materials.map((m): Material => {
-    const out: Material = { ...m, unit_weight: k.unitWeight(m.unit_weight), cohesion: k.stress(m.cohesion) };
+    const out: Material = { ...m, unit_weight: k.unitWeight(m.unit_weight) };
+    // Los campos del material no drenado (undrained_strength, strength_*) los convierte F3-W1e.
+    if (typeof m.cohesion === 'number') out.cohesion = k.stress(m.cohesion);
     if (typeof m.unit_weight_sat === 'number') out.unit_weight_sat = k.unitWeight(m.unit_weight_sat);
     return out;
   });
@@ -96,7 +98,8 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
   const loads = doc.loads?.map((l): Load => (l.type === 'udl' ? { ...l, x1: k.length(l.x1), x2: k.length(l.x2), q: k.stress(l.q) } : { ...l, x: k.length(l.x), p: k.lineForce(l.p) }));
 
   const analysis = { ...doc.analysis };
-  if (doc.analysis.surface) analysis.surface = { ...doc.analysis.surface, xc: k.length(doc.analysis.surface.xc), yc: k.length(doc.analysis.surface.yc), r: k.length(doc.analysis.surface.r) } as SurfaceSpec;
+  const surf = doc.analysis.surface;
+  if (surf) analysis.surface = (surf.type === 'polyline' ? { ...surf, points: surf.points.map(pt) } : { ...surf, xc: k.length(surf.xc), yc: k.length(surf.yc), r: k.length(surf.r) }) as SurfaceSpec;
   if (doc.analysis.search) {
     const s = doc.analysis.search;
     const search: SearchSpec = { ...s };

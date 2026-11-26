@@ -1,5 +1,6 @@
 // Pruebas de impacto (hit testing) en coordenadas de pantalla, con tolerancia en píxeles.
 
+import { circleSpec } from '../../engine/surface';
 import type { Circle, Point } from '../../engine/types';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import type { ModelDoc } from '../types';
@@ -80,7 +81,7 @@ export function hitTest(
   piezoPoints(doc).forEach((p, index) => {
     push({ kind: 'piezo_point', index, distPx: 0 }, screenDist(vp, p, sx, sy), 1);
   });
-  const circle = doc.analysis.surface;
+  const circle = circleSpec(doc.analysis.surface);
   if (circle) {
     push({ kind: 'circle_center', distPx: 0 }, screenDist(vp, [circle.xc, circle.yc], sx, sy), 2);
     push({ kind: 'circle_radius', distPx: 0 }, screenDist(vp, radiusHandlePoint(circle), sx, sy), 3);

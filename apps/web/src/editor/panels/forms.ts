@@ -10,6 +10,7 @@ import type {
   MethodKind,
   Point,
   SearchSpec,
+  CircleSurfaceSpec,
   SurfaceSpec,
 } from '../../engine/types';
 import {
@@ -549,7 +550,7 @@ export function defaultSearch(): SearchSpec {
 }
 
 /** Círculo inicial: centrado sobre el modelo, a la altura de su cota máxima, con radio de medio lado mayor. */
-export function defaultCircle(doc: ModelDoc): SurfaceSpec {
+export function defaultCircle(doc: ModelDoc): CircleSurfaceSpec {
   const b = modelBounds(doc);
   if (!b) return { type: 'circle', xc: 0, yc: 0, r: 1 };
   const width = b.xMax - b.xMin;
@@ -586,11 +587,13 @@ export interface CircleForm {
 }
 
 export function circleToForm(surface: SurfaceSpec): CircleForm {
+  // Una polilínea no tiene centro ni radio: el panel de círculo queda vacío (F3-W1f añade su editor).
+  if (surface.type === 'polyline') return { xc: '', yc: '', r: '' };
   return { xc: formatNumber(surface.xc), yc: formatNumber(surface.yc), r: formatNumber(surface.r) };
 }
 
 /** Círculo fijo: xc e yc finitos y r > 0 (misma regla que el motor). */
-export function circleFromForm(form: CircleForm): FormOutcome<SurfaceSpec> {
+export function circleFromForm(form: CircleForm): FormOutcome<CircleSurfaceSpec> {
   const errors: FieldErrors = {};
   const xc = take(errors, 'xc', form.xc, { required: true, missing: RULE_TEXT.surfaceCenterX, accept: finite, range: RULE_TEXT.surfaceCenterX });
   const yc = take(errors, 'yc', form.yc, { required: true, missing: RULE_TEXT.surfaceCenterY, accept: finite, range: RULE_TEXT.surfaceCenterY });
@@ -604,7 +607,7 @@ export function circleFromForm(form: CircleForm): FormOutcome<SurfaceSpec> {
 }
 
 export function circlesEqual(a: SurfaceSpec, b: SurfaceSpec): boolean {
-  return a.xc === b.xc && a.yc === b.yc && a.r === b.r;
+  return a.type !== 'polyline' && b.type !== 'polyline' && a.xc === b.xc && a.yc === b.yc && a.r === b.r;
 }
 
 export function surfaceSetCommand(surface: SurfaceSpec | null): EditorCommand {
