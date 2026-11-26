@@ -95,12 +95,12 @@ describe('buildReportContent', () => {
 
   it('materiales con símbolos y unidades; imperial cambia las unidades', () => {
     const t = section(content, 'materials').blocks[0];
-    expect(t && t.kind === 'table' ? t.header : null).toEqual(['Id', 'Nombre', 'γ (kN/m³)', 'γsat (kN/m³)', 'c (kPa)', 'φ (°)', 'ru']);
-    expect(t && t.kind === 'table' ? t.rows[0] : null).toEqual(['soil', 'Arcilla φ ≤ 20°', '20', '—', '3', '19,6', '—']);
+    expect(t && t.kind === 'table' ? t.header : null).toEqual(['Id', 'Nombre', 'Modelo', 'γ (kN/m³)', 'γsat (kN/m³)', 'c (kPa)', 'φ (°)', 'ru']);
+    expect(t && t.kind === 'table' ? t.rows[0] : null).toEqual(['soil', 'Arcilla φ ≤ 20°', 'Mohr-Coulomb', '20', '—', '3', '19,6', '—']);
     const imp = structuredClone(input.model);
     imp.units = 'imperial';
     const t2 = section(buildReportContent({ ...input, model: imp }), 'materials').blocks[0];
-    expect(t2 && t2.kind === 'table' ? t2.header[2] : null).toBe('γ (pcf)');
+    expect(t2 && t2.kind === 'table' ? t2.header[3] : null).toBe('γ (pcf)');
   });
 
   it('B-04: las tablas de resultados y de cargas declaran las unidades (SI e imperial)', () => {
@@ -119,7 +119,7 @@ describe('buildReportContent', () => {
     imp.units = 'imperial';
     expect(tableOf(imp, 'results')?.header.slice(-2)).toEqual(['Centro (xc; yc) (ft)', 'Radio (ft)']);
     expect(tableOf(imp, 'model')?.rows.map((r) => r.slice(2, 4))).toEqual([['50 a 70 ft', '20 psf'], ['40 ft', '20 lbf/ft']]);
-    expect(tableOf(imp, 'materials')?.header.slice(2, 5)).toEqual(['γ (pcf)', 'γsat (pcf)', 'c (psf)']);
+    expect(tableOf(imp, 'materials')?.header.slice(3, 6)).toEqual(['γ (pcf)', 'γsat (pcf)', 'c (psf)']);
   });
 
   it('FS y λ solo si el método convergió; datos de la superficie crítica', () => {
@@ -287,8 +287,22 @@ describe('E12i: rótulo de la superficie y λ en el dibujo (R5-04)', () => {
   const results = loadEngineReport('d01-fixed-ltr').results;
   const label = (rs: MethodReport[]): string | undefined => buildSectionDrawing(doc, rs).legend.find((l) => l.kind === 'surface')?.label;
 
-  it('con un método convergido se rotula «Superficie crítica»', () => {
-    expect(label(results)).toBe('Superficie crítica (Bishop simplificado)');
+  it('R10B-07: un círculo fijo convergido no es «crítica» (no es el resultado de una búsqueda): «Superficie fija, círculo»', () => {
+    expect(results[0]?.search).toBeNull();
+    expect(label(results)).toBe('Superficie fija, círculo (Bishop simplificado)');
+    expect(label(results)).not.toContain('crítica');
+  });
+
+  it('con un círculo de búsqueda convergido se rotula «Superficie crítica»', () => {
+    const searched = results.map((r) => ({ ...r, search: { evaluated: 400, valid: 120 } }));
+    expect(label(searched)).toBe('Superficie crítica (Bishop simplificado)');
+  });
+
+  it('R10B-07: invalid y not_converged tienen leyendas distintas', () => {
+    const notConverged = results.map((r) => ({ ...r, status: 'not_converged' as const }));
+    const invalid = results.map((r) => ({ ...r, status: 'invalid' as const, fos: null }));
+    expect(label(notConverged)).toBe('Superficie evaluada, sin convergencia (Bishop simplificado)');
+    expect(label(invalid)).toBe('Superficie evaluada, no válida (Bishop simplificado)');
   });
 
   it('si ningún método convergió no dice «Superficie crítica»', () => {
@@ -300,7 +314,8 @@ describe('E12i: rótulo de la superficie y λ en el dibujo (R5-04)', () => {
   });
 
   it('si el primero no convergió y el segundo sí, la superficie crítica es la del que convergió', () => {
-    const mixed = [{ ...(results[0] as MethodReport), status: 'not_converged' as const }, results[1] as MethodReport];
+    const searched = results.map((r) => ({ ...r, search: { evaluated: 400, valid: 120 } }));
+    const mixed = [{ ...(searched[0] as MethodReport), status: 'not_converged' as const }, searched[1] as MethodReport];
     expect(label(mixed)).toBe('Superficie crítica (Spencer)');
   });
 });

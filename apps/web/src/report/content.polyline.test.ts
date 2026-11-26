@@ -175,3 +175,74 @@ describe('Portada: versión del formato del archivo guardado (I-W)', () => {
     expect(cover(d)['Versión del formato']).toBe('0.2');
   });
 });
+
+describe('R10B-07: polilínea ajustada, leyendas y columna «Modelo»', () => {
+  const fitted = (c: ReturnType<typeof buildReportContent>) => tables(sec(c, 'results')).find((t) => t.title?.startsWith('Polilínea ajustada'));
+
+  it('imprime la polilínea ajustada cuando difiere de la de entrada (extremos prolongados al terreno)', () => {
+    const three = polyDoc((d) => { d.analysis.surface = { type: 'polyline', points: [[32, 26], [40, 26.973391], [48, 33]] }; });
+    const t = fitted(buildReportContent(input(three)));
+    expect(t, 'falta la tabla de la polilínea ajustada').toBeDefined();
+    expect(t!.header).toEqual(['N.º', 'x (m)', 'y (m)']);
+    expect(t!.rows).toHaveLength(5);
+    expect(t!.rows[0]).toEqual(['1', '30', '25']);
+    expect(t!.rows[4]).toEqual(['5', '51,291118', '35']);
+    // El resumen «Polilínea (5 puntos)» ya es auditable: la tabla tiene 5 filas.
+    expect(tables(sec(buildReportContent(input(three)), 'results'))[0]!.rows[0]!.slice(-1)).toEqual(['Polilínea (5 puntos)']);
+  });
+
+  it('no la repite cuando coincide con la de entrada, y la imprime una sola vez si varios métodos comparten la misma', () => {
+    const same = polyDoc((d) => { d.analysis.surface = { type: 'polyline', points: FITTED }; });
+    expect(fitted(buildReportContent(input(same)))).toBeUndefined();
+    const two = polyDoc((d) => { d.analysis.surface = { type: 'polyline', points: [[32, 26], [48, 33]] }; });
+    const titled = tables(sec(buildReportContent(input(two)), 'results')).filter((x) => x.title?.startsWith('Polilínea ajustada'));
+    expect(titled).toHaveLength(1); // M-P y Janbu corregido comparten la misma polilínea ajustada
+  });
+
+  it('con diferencias de redondeo (1e-6) también la imprime: es lo que realmente calculó el motor', () => {
+    expect(fitted(buildReportContent(input()))).toBeDefined(); // USER difiere de FITTED en 1e-6
+  });
+
+  it('ATT3_FIXED: con el bloque truncado, la tabla y el dibujo se limitan al rango analizado', () => {
+    const att3: Point[] = [[5, 15], [12, 6], [35, 6], [42, 3]];
+    const block = [
+      { ...slices[0]!, x_left: 5, x_right: 10 },
+      { ...slices[0]!, x_left: 10, x_right: 15 },
+    ];
+    const r = [rep({ surface: { points: att3 }, slices: block, warnings: ['truncated_driving_mass'] })];
+    const model = polyDoc((d) => { d.analysis.surface = { type: 'polyline', points: att3 }; });
+    const c = buildReportContent(input(model, r));
+    expect(fitted(c)!.rows.map((row) => row.slice(1))).toEqual([['5', '15'], ['12', '6'], ['15', '6']]);
+    expect(tables(sec(c, 'results'))[0]!.rows[0]!.slice(-1)).toEqual(['Polilínea (3 puntos)']);
+    expect(buildSectionDrawing(model, r).surface?.points).toEqual([[5, 15], [12, 6], [15, 6]]);
+  });
+
+  it('leyendas: polilínea fija, sin convergencia o no válida se distinguen', () => {
+    const label = (st: MethodReport['status']) => buildSectionDrawing(polyDoc(), [rep({ status: st })]).legend.find((l) => l.kind === 'surface')?.label;
+    expect(label('converged')).toBe('Superficie fija, polilínea (Morgenstern-Price)');
+    expect(label('not_converged')).toBe('Superficie evaluada, sin convergencia (Morgenstern-Price)');
+    expect(label('invalid')).toBe('Superficie evaluada, no válida (Morgenstern-Price)');
+  });
+
+  it('la tabla de materiales lleva la columna «Modelo»: Mohr-Coulomb o No drenado (Su)', () => {
+    const doc = polyDoc((d) => {
+      d.materials = [
+        { id: 'a', name: 'A', model: 'mohr_coulomb', unit_weight: 18, cohesion: 5, friction_angle: 30 },
+        { id: 'b', name: 'B', model: 'undrained', unit_weight: 18, undrained_strength: 20 },
+        { id: 'c', name: 'C', model: undefined as unknown as 'mohr_coulomb', unit_weight: 19, cohesion: 1, friction_angle: 20 },
+      ];
+      d.regions.forEach((r) => (r.material = 'a'));
+    });
+    const t = tables(sec(buildReportContent(input(doc)), 'materials'))[0]!;
+    expect(t.header.slice(0, 3)).toEqual(['Id', 'Nombre', 'Modelo']);
+    expect(t.rows.map((row) => row[2])).toEqual(['Mohr-Coulomb', 'No drenado (Su)', 'Mohr-Coulomb']);
+  });
+
+  it('D1-B: el aviso de M-P sobre una polilínea no nombra a Spencer ni sugiere Bishop', () => {
+    const c = buildReportContent(input(polyDoc(), [rep({ status: 'not_converged', warnings: ['no_lambda_root', 'multiple_admissible_roots'] })]));
+    const list = sec(c, 'warnings').blocks.find((b) => b.kind === 'list') as Extract<ReportBlock, { kind: 'list' }>;
+    const text = list.items.map((i) => i.text).join('\n');
+    expect(text).not.toMatch(/Spencer|Bishop/);
+    expect(text).toMatch(/compare con Janbu/);
+  });
+});

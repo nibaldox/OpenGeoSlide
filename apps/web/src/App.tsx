@@ -284,7 +284,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 {shownResult && (
                   <p className={shownResult.status === 'converged' ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
                     Superficie mostrada: {METHOD_LABELS[shownResult.method]}
-                    {shownResult.search ? ' (de la búsqueda)' : ' (superficie fija)'}. {resultCaption(shownResult.method, shownResult.status)}
+                    {shownResult.search ? ' (de la búsqueda)' : ' (superficie fija)'}. {resultCaption(shownResult.method, shownResult.status, !shownResult.search)}
                   </p>
                 )}
               </>

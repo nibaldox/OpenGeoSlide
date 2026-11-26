@@ -279,6 +279,18 @@ function drawingLoads(model: ModelDoc): DrawingLoad[] {
   return out;
 }
 
+/**
+ * Rótulo de la superficie del dibujo (R10B-07). Solo un círculo **de búsqueda** convergido es «crítica»: un círculo o una
+ * polilínea fijos son la superficie que el usuario pidió. Sin convergencia, `not_converged` (el método no cerró) e `invalid`
+ * (la superficie no es admisible) se dicen distinto, porque la acción del usuario es distinta.
+ */
+export function surfaceLegendLabel(res: MethodReport | undefined, methodLabel: string): string {
+  if (res === undefined || res.status === 'not_converged') return `Superficie evaluada, sin convergencia (${methodLabel})`;
+  if (res.status === 'invalid') return `Superficie evaluada, no válida (${methodLabel})`;
+  if (isPolylineReport(res.surface)) return `Superficie fija, polilínea (${methodLabel})`;
+  return res.search == null ? `Superficie fija, círculo (${methodLabel})` : `Superficie crítica (${methodLabel})`;
+}
+
 export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): SectionDrawing {
   const regions: DrawingRegion[] = model.regions.map((region) => {
     const idx = Math.max(0, model.materials.findIndex((m) => m.id === region.material));
@@ -367,18 +379,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: [...PDF_PALETTE.piezo] });
   if (piezoExt.length > 0) legend.push({ kind: 'piezo_ext', label: 'Piezométrica (extrapolada)', color: [...PDF_PALETTE.piezo] });
   if (surface) {
-    // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
-    const converged = res?.status === 'converged';
-    const fixedPolyline = res !== undefined && isPolylineReport(res.surface);
-    legend.push({
-      kind: 'surface',
-      label: converged
-        ? fixedPolyline
-          ? `Superficie fija, polilínea (${METHOD_LABEL[surface.method]})`
-          : `Superficie crítica (${METHOD_LABEL[surface.method]})`
-        : `Superficie evaluada, sin convergencia (${METHOD_LABEL[surface.method]})`,
-      color: [...PDF_PALETTE.surface],
-    });
+    legend.push({ kind: 'surface', label: surfaceLegendLabel(res, METHOD_LABEL[surface.method]), color: [...PDF_PALETTE.surface] });
     if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: [...PDF_PALETTE.slices] });
   }
   return { bounds, regions, piezo, piezoExtension: piezoExt, surface, loads, seismic, unit: units(model).length, legend };
@@ -492,10 +493,11 @@ function materialsSection(model: ModelDoc): ReportSection {
     blocks: [
       {
         kind: 'table',
-        header: ['Id', 'Nombre', `γ (${u.gamma})`, `γsat (${u.gamma})`, `c (${u.stress})`, 'φ (°)', 'ru'],
+        header: ['Id', 'Nombre', 'Modelo', `γ (${u.gamma})`, `γsat (${u.gamma})`, `c (${u.stress})`, 'φ (°)', 'ru'],
         rows: model.materials.map((m) => [
           m.id,
           m.name,
+          m.model === 'undrained' ? 'No drenado (Su)' : 'Mohr-Coulomb',
           fmtParam(m.unit_weight),
           fmtParam(m.unit_weight_sat),
           fmtParam(m.cohesion),
@@ -526,6 +528,37 @@ function methodParameterRows(results: MethodReport[]): string[][] {
   return rows;
 }
 
+/** Las dos polilíneas son la misma salvo ruido de coma flotante (1e-9 de la mayor coordenada). */
+function samePolyline(a: readonly Point[], b: readonly Point[]): boolean {
+  if (a.length !== b.length) return false;
+  const scale = Math.max(1, ...a.flat().map(Math.abs), ...b.flat().map(Math.abs));
+  return a.every((p, i) => Math.abs(p[0] - (b[i] as Point)[0]) <= 1e-9 * scale && Math.abs(p[1] - (b[i] as Point)[1]) <= 1e-9 * scale);
+}
+
+/**
+ * Tabla de la polilínea **ajustada** que analizó el motor, cuando difiere de la de entrada (R10B-07): sin ella, «Polilínea
+ * (5 puntos)» no se puede auditar con los 3 puntos de «Datos del modelo». Es la polilínea del informe, ya prolongada o
+ * recortada al terreno y limitada al rango de las dovelas. Los métodos que comparten la misma comparten tabla.
+ */
+function fittedPolylineTables(results: MethodReport[], model: ModelDoc): ReportBlock[] {
+  const u = units(model);
+  const input = model.analysis.surface?.type === 'polyline' ? model.analysis.surface.points : null;
+  const groups: { points: Point[]; methods: MethodKind[] }[] = [];
+  for (const r of results) {
+    const pts = analyzedPolyline(r);
+    if (!pts || (input && samePolyline(pts, input))) continue;
+    const g = groups.find((x) => samePolyline(x.points, pts));
+    if (g) g.methods.push(r.method);
+    else groups.push({ points: pts, methods: [r.method] });
+  }
+  return groups.map((g) => ({
+    kind: 'table',
+    title: groups.length === 1 ? 'Polilínea ajustada al terreno (superficie analizada)' : `Polilínea ajustada al terreno (${g.methods.map((m) => METHOD_LABEL[m]).join(', ')})`,
+    header: ['N.º', `x (${u.length})`, `y (${u.length})`],
+    rows: g.points.map((p, i) => [String(i + 1), fmtCoord(p[0]), fmtCoord(p[1])]),
+  }));
+}
+
 function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection {
   const u = units(model);
   const summaries = results.map((r) => resultSurfaceSummary(r));
@@ -553,6 +586,8 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
       ]),
     },
   ];
+  const fitted = fittedPolylineTables(results, model);
+  blocks.push(...fitted);
   const params = methodParameterRows(results);
   if (params.length > 0) blocks.push({ kind: 'table', title: 'Parámetros por método', header: ['Método', 'Parámetro', 'Valor'], rows: params });
   return { id: 'results', title: 'Factor de seguridad por método', blocks };
