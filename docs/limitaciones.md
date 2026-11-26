@@ -4,7 +4,8 @@ OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
 y con el bloque de refuerzos: formato v0.4),
 los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
-quedó retenido tras la revisión R10 (enmiendas E13l). El resumen está en el
+quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
+(enmiendas E14o). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
 
 ## Alcance: lo que la versión actual no hace
@@ -272,7 +273,28 @@ La Fase 3b tendrá su propio bloque de enmiendas. Hoy **no** existe:
 El bloque de refuerzos incorpora al formato `anchor`, `nail`, `geosynthetic`, `pile` y `sheet_pile`, activos y
 pasivos ([formato](formato-ogs-json.md#refuerzos-v04)). Cada cruce del refuerzo con la superficie de deslizamiento
 aporta una **fuerza puntual** al equilibrio; el resto del motor no cambia, y sin refuerzos la salida es idéntica byte a
-byte a la de la v0.2.0. Lo que sigue son sus límites.
+byte a la de la v0.2.0, con [una excepción](#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065).
+Lo que sigue son sus límites.
+
+### Excepción a la identidad con la v0.2.0: círculos con la tangente vertical (V065)
+
+La identidad byte a byte de un modelo sin refuerzos con la v0.2.0 (F4.1) tiene **una sola excepción**, una corrección
+de un defecto (E14o-11). Un círculo con el centro a la cota de la coronación termina su arco con la tangente vertical
+sobre el terreno, en `x = xc ± r`. La v0.2.0 perdía cifras en `(xc + r) − xc` y rechazaba el círculo con
+`NoValidSurface: el círculo no corta el terreno`; ahora `check_block_ends_circle` toma la altura `yc` por construcción y
+el modelo se analiza. Ejemplo medido: V065 **sin refuerzos** (versión 0.3), con el binario de la v0.2.0 el código de
+salida es 2 y con el actual el código es 0 y Spencer da 0,9260. Es una mejora: un modelo que antes se rechazaba por
+redondeo ahora da un resultado; ninguno de los modelos sin refuerzos que la v0.2.0 analizaba cambia.
+
+### Los cruces con refuerzos: tangencia, capacidad nula y notas (E14o-1, E14o-11)
+
+- **Un elemento tangente a la superficie no cruza.** En un círculo, un cruce solo cuenta si el elemento **penetra**: la
+  semicuerda de su recta dentro del círculo debe ser mayor que `tol`; si entra y sale a menos de `tol` a lo largo del
+  arco, se descartan los dos cruces. La normal y el movimiento se calculan en el punto exacto del cruce. Antes, un
+  anclaje tangente a un círculo de V047a inyectaba dos fuerzas completas en la misma dovela fina (FS 2,0768 con
+  `eps_r = −1e-12` frente a 0,9851 sin refuerzo, R11A-01).
+- **Un cruce con capacidad nula o sobre el terreno no agrega nodos.** El FS con `force = 0` o con `no_capacity` es
+  **exactamente** el del talud sin refuerzo, y no cambia el número de dovelas.
 
 ### Pilotes y tablestacas: el límite estructural (F4.8)
 
@@ -314,6 +336,44 @@ No existen hoy, ni en el formato ni en el motor:
 Además, el **sismo** (`kh` y `kv`) no actúa sobre las fuerzas de los refuerzos, y `interface` no cuenta las sobrecargas
 ni las cargas lineales en el esfuerzo vertical `σ′v` del arrancamiento.
 
+### El arrancamiento `interface`: agua y contactos (E14o-4, E14o-5)
+
+- **`ru` o piezométrica, nunca las dos.** En `interface`, `σ′v` sigue la precedencia del rebanado: un material con `ru`
+  usa `u = ru·σ_suelo` y **no** recibe el agua libre de la línea piezométrica; un material sin `ru` usa la piezométrica,
+  y el agua libre sobre el terreno cuenta. Antes, un material con `ru` sumaba el agua libre sin restar la presión de
+  poros: en V047a (`ru = 0,3`, piezométrica en y = 32) el arrancamiento daba 334,18 kN/m frente a 161,01 kN/m sin
+  piezométrica (cSlope, 161,00), y el FS 1,5549 frente a 1,1247 de cSlope (R11A-04).
+- **En un contacto entre estratos, el mínimo.** Si el elemento corre sobre un contacto (en y, o en x si es vertical),
+  `σ′v` es el **mínimo** de los dos materiales, como E13l-5. Antes dependía del orden de `regions`: en un contacto
+  horizontal de `ru` 0,5 y 0, el FS iba de 1,3278 a 1,6258 (+22,4 %) al invertir el orden (R11A-05). Es lo conservador y el resultado no depende del orden de `regions` ni del espejo x → −x.
+
+### Las fuerzas pasivas en los métodos (E14o-2, E14o-3, E14o-10)
+
+- **`no_driving` solo mira lo motriz** (E14o-3). La comprobación de que hay momento o fuerza motriz se evalúa **una vez,
+  antes de resolver**, con el peso, el sismo, las cargas y las fuerzas **activas**. Una fuerza pasiva es resistente y
+  no entra en esa comprobación; antes, un suelo muy blando (por ejemplo `Su = 0` con una tablestaca pasiva de
+  500 kN/m) o un pilote pasivo inclinado daban `invalid (no_driving)` en los cinco métodos (o solo en Janbu), mientras
+  cSlope daba Bishop 1,3397 y Janbu 1,2209 (R11A-03). Janbu ya no usa el momento motor de Bishop.
+- **Bishop con pasivas** (E14o-2). El arranque del punto fijo incluye las pasivas, y antes de bisecar se acota el
+  cambio de signo con una malla geométrica. Antes, un pilote pasivo con componente vertical ascendente daba
+  `invalid ("m_alpha")` (cSlope 3,526; Spencer 3,512) (R11A-02).
+- **Janbu corregido: el punto de igualdad activo/pasivo es `F₀ = 1`** (E14o-10). La fuerza pasiva se divide por `F₀`, no
+  por `f₀·F₀`: es coherente con el tratamiento de `c` y `tan φ` en Janbu (donde `f₀` es una corrección empírica
+  posterior al equilibrio) y con cSlope. Por eso un elemento activo y el mismo elemento pasivo dan el mismo FS cuando
+  `F₀ = 1`, es decir cuando el FS **corregido** vale `f₀`, y **no** cuando vale 1. Con `f₀ = 1,0456` (V047a),
+  Bishop, Spencer, M-P y Janbu simplificado dan 1,0000 en los dos con FS = 1, y Janbu corregido da 1,0000 (activo)
+  frente a 1,0097 (pasivo). Entre `FS = 1` y `FS = f₀` el pasivo supera al activo; no es un error.
+
+### El espaciamiento por defecto depende de la unidad (E14o-12)
+
+Un `spacing` omitido vale **1 en la unidad de longitud del modelo**: 1 m en SI y 1 ft en imperial. Las capacidades y la
+`force` son por elemento y el motor las divide por `spacing`, así que el mismo elemento con `spacing` omitido da una fuerza
+por unidad de ancho **3,28084 veces mayor** en imperial que en SI. El motor no convierte unidades. Antes de E14o, al
+convertir un modelo con `spacing` omitido de SI a imperial, la web dejaba el campo vacío mientras multiplicaba las
+capacidades, y el FS de V047a con un anclaje y un pilote subía de 1,4914 a 4,5258 en Bishop (R11B-01, +203 %). Ahora la
+web escribe siempre un `spacing` explícito convertido, y el FS no cambia con el motor real. **Si usted cambia de sistema
+a mano en un `.ogs.json`, escriba el `spacing` de forma explícita.**
+
 ### El tramo libre sin placa (`no_capacity`)
 
 Un `anchor` con `pullout.bond` y `bonded_length` solo tiene arrancamiento en los últimos `bonded_length` metros. Un cruce
@@ -323,12 +383,34 @@ del oráculo y de Slide2 (la placa de cabeza transmite la carga al tramo libre).
 `end1_capacity` debe valer al menos lo que se espera del elemento; la web lo propone igual a `tensile_capacity` al crear
 un `anchor`. El ejemplo está en el [formato](formato-ogs-json.md#un-fragmento-por-tipo).
 
-### El activo comprimido (E14m-1) y el oráculo instalado
+### El activo comprimido (E14m-1, E14o-8) y el oráculo instalado
 
 Un elemento **activo** se aplica siempre, también cuando el deslizamiento lo comprimiría (`along > 0`), axial y con su
 fuerza completa: es una carga externa conocida, la de bloqueo (Duncan y Wright, método A). Es la regla vigente de
 cSlope en su código fuente. El **binario instalado del oráculo** (`cslope` 0.1.0, `a80f9a0`) es anterior y descarta esos
-cruces, con la misma regla de compresión que a un pasivo (X17 §1.5). Consecuencias:
+cruces, con la misma regla de compresión que a un pasivo (X17 §1.5).
+
+**Es falso que aplicarlo sea siempre conservador.** La justificación de E14m-1 («con `along > 0` la fuerza tiene una
+componente a favor del deslizamiento, así que aplicarla es lo conservador») se corrige en E14o-8: la componente
+tangencial `T·sin θ` sí empuja a favor del deslizamiento, pero la normal `T·cos θ` **confina la base** y aumenta la
+resistencia friccionante en `T·cos θ·tan φ / F`. En un suelo con `φ > 0`, esa segunda componente domina mientras
+`0 < θ < atan(tan φ / F)`, y el FS **sube**. Medido en V047a (`φ` = 19,6°; Bishop sin refuerzo 0,9851) con un anclaje
+activo de 100 kN/m en (40; 26,973) girado `θ` pasada la normal (R11A-08):
+
+| `θ` | `along` | Bishop | Spencer |
+|---:|---:|---:|---:|
+| +2° | +0,0349 | 1,0696 (+8,6 %) | 1,0679 |
+| +5° | +0,0872 | 1,0549 (+7,1 %) | 1,0533 |
+| +10° | +0,1736 | 1,0307 (+4,6 %) | 1,0294 |
+| +15° | +0,2588 | 1,0072 (+2,2 %) | 1,0061 |
+| +20° | +0,3420 | 0,9846 | 0,9837 |
+
+(Spencer sin refuerzo, 0,9841. Un ejemplo ejecutable está en el
+[formato](formato-ogs-json.md#un-activo-comprimido-puede-subir-el-fs).) Por eso el motor **sigue aplicando** el activo
+comprimido, pero emite la nota informativa `reinforcement_active_compression`: «Un refuerzo activo se aplica con su
+fuerza aunque el deslizamiento lo comprimiría; en suelos con fricción esa fuerza puede aumentar el FS. Verifique la
+orientación y la carga de bloqueo.» La carga de bloqueo es un dato suyo: si el tirante pierde pretensado, el aporte
+desaparece. Consecuencias con el oráculo:
 
 - OpenGeoSlide y el oráculo instalado **dan FS distintos** en un activo con `along > 0` (por ejemplo, anclajes activos
   que suben hacia el macizo, más empinados que la base). Las filas de aceptación con el oráculo solo usan cruces con
@@ -338,7 +420,9 @@ cruces, con la misma regla de compresión que a un pasivo (X17 §1.5). Consecuen
   quedan dentro del círculo, sin cruce, y ni ogs ni el oráculo aplican fuerza, así que su acuerdo con lo publicado no
   prueba nada sobre los refuerzos (`verification/cases/INDEX.md`, sección «Casos con refuerzos»).
 - Los **pasivos** comprimidos se descartan en los dos (`compression_ignored`, con la nota
-  `reinforcement_compression_ignored`).
+  `reinforcement_compression_ignored`). El umbral `cos 88°` es **discontinuo**: el pasivo aporta la fuerza completa a un lado y nada
+  al otro (barrido de R11 en V047a: Bishop 1,1331 con el ángulo en 88,00° y 0,9851 en 87,99°, un salto de −13,1 %). Es la
+  regla de Clouterre y de FHWA GEC 7; revise los pasivos cuya orientación esté cerca de ese umbral.
 
 ### La discretización del oráculo en `interface`
 
@@ -371,6 +455,17 @@ espacio de los círculos y el refinamiento por Hooke-Jeeves puede ver saltos (X1
 - `reinforcement_forces` se emite solo sobre la **superficie final** de cada método, no para cada candidato;
 - el coste de la búsqueda crece con el número de refuerzos.
 
+**La búsqueda por defecto puede perder el mínimo real (R11A-07, E14o-7).** Medido en V047a con Bishop, la búsqueda por
+defecto (20 × 20 × 20 con refinamiento) frente a una malla fina (60 × 60 × 40 con refinamiento): con dos anclajes
+pasivos de 400 kN en y = 25,5 y y = 30,0, 1,6842 frente a 1,5717 (**+7,15 %, del lado inseguro**; cSlope, 1,7190), y con
+un anclaje activo de 300 kN en (33; 26,5)-(48; 26,5), 0,9621 frente a 0,9427 (+2,06 %). La búsqueda converge a veces a
+un círculo con dos cruces de fuerza opuesta que se anulan, sin la nota `reinforcement_outside_mass`. El contrato E14o-7
+agrega, **solo con refuerzos**, candidatos que pasan por las puntas y las cabezas de los refuerzos (como los vértices del
+terreno de E9a) y diversifica las semillas del refinamiento por el número de cruces aplicados, con el criterio de una
+brecha de menos de 1 % frente a la malla fina; sin refuerzos no cambia nada. Si el cierre no la alcanza, la
+recomendación es **comprobar con una malla fina** (por ejemplo 60 × 60 × 40 con refinamiento) y con superficies fijas;
+las cifras finales están en [`docs/fase3/r11c/NOTAS.md`](fase3/r11c/NOTAS.md).
+
 **La búsqueda puede esquivar el refuerzo.** El círculo crítico no tiene por qué cruzar el elemento: si un círculo
 menor, que no lo toca, tiene un FS más bajo, ese es el mínimo y el refuerzo no aporta. Ejemplo: ACADS 1(a) con su
 búsqueda por defecto y el anclaje activo de 100 kN del [ejemplo del formato](formato-ogs-json.md#ejemplo-un-talud-con-un-anclaje-activo).
@@ -392,7 +487,7 @@ el plan recomienda la **grieta de tracción** y el **agua embalsada**, que desbl
 
 Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF:
 
-- **`unit_weight_sat` (γsat) no está verificado frente a otro programa.** Ninguno de los 93 casos de verificación lo
+- **`unit_weight_sat` (γsat) no está verificado frente a otro programa.** Ninguno de los 116 casos de verificación lo
   usa ([índice de casos](../verification/cases/INDEX.md)). Cada modelo que lo usa lleva un aviso en Diagnósticos y en
   el informe.
 - **La piezométrica se prolonga en horizontal hasta los bordes del modelo** cuando no cubre todo su ancho, con el nivel
@@ -411,15 +506,17 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 - **Aviso de cortante entre dovelas** (`interslice_shear_exceeds_strength`): véase
   [arriba](#aviso-interslice_shear_exceeds_strength).
 - **Notas de refuerzos** (informativas): `reinforcement_outside_mass` (un refuerzo no aplica fuerza sobre la
-  superficie), `reinforcement_compression_ignored` (un pasivo comprimido no aporta) y `structural_checks_not_covered`
+  superficie), `reinforcement_compression_ignored` (un pasivo comprimido no aporta), `reinforcement_active_compression` (un activo
+  se aplica comprimido y, en suelos con fricción, puede subir el FS: [el activo comprimido](#el-activo-comprimido-e14m-1-e14o-8-y-el-oráculo-instalado))
+  y `structural_checks_not_covered`
   (hay pilotes o tablestacas: [el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). El estado
   `no_capacity` de un cruce **no** emite nota: se ve en la tabla de fuerzas.
 
 ## Limitaciones numéricas conocidas del motor
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
-verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (213/213
-checks en 93 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
+verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (243/243
+checks en 116 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
 con Bishop y Spencer; M-P, Janbu corregido y D15-D23 en
 [`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en
 [`verificacion.md`](verificacion.md)). Las limitaciones de Spencer
@@ -465,5 +562,5 @@ con Bishop y Spencer; M-P, Janbu corregido y D15-D23 en
   fuerzas que mueven la masa. Sin cargas y con kv ≤ 0 la salida es idéntica; en 1206 corridas solo cambian V018, V077 y
   V078. Con cargas verticales grandes la escala puede ocultar un desequilibrio: véase
   [lo que sigue abierto](#lo-que-sigue-abierto) (R10A-03).
-- **`unit_weight_sat` sin cobertura:** ninguno de los 93 casos de verificación usa `unit_weight_sat`. La ruta de peso
+- **`unit_weight_sat` sin cobertura:** ninguno de los 116 casos de verificación usa `unit_weight_sat`. La ruta de peso
   saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
