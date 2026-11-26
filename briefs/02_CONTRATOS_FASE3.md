@@ -171,7 +171,12 @@ pilotes.
     resuelve en esa dovela.
 - **Identidad:** `morgenstern_price` con `constant` reproduce a `spencer` (F, λ y estado) en los 21 casos y en la
   batería, con `|ΔF| ≤ 1e-10`.
-- **`spencer`** sigue siendo su propio método, con su código y sus resultados actuales intactos.
+- **`spencer`** sigue siendo su propio método, con resultados idénticos bit a bit a los actuales en los 36 modelos de
+  referencia: los 21 casos, los 14 de la batería y `examples/acads1a`.
+  - Puede compartir código con M-P, por ejemplo con un solver genérico en f, solo si se mantiene esa identidad.
+- **Congelado por el coordinador para la ola 1** (commit `b133003`):
+  - `SolveOptions.circular: bool`. `lib.rs` la pone en `false` en una polilínea;
+  - `MethodResult.correction_factor: Option<f64>`, que `lib.rs` copia al informe.
 
 ## F3.5 Janbu (enmienda E13e)
 
