@@ -192,7 +192,7 @@ impl Surface {
         let (Some(first), Some(last)) = (pts.first(), pts.last()) else {
             return self.to_report();
         };
-        if !(x0 > first[0] || x1 < last[0]) || !(x0 < x1) {
+        if (x0 <= first[0] && x1 >= last[0]) || x0 >= x1 {
             return self.to_report();
         }
         let mut out = Vec::with_capacity(pts.len());
