@@ -102,8 +102,9 @@ def test_every_case_validates_against_the_current_schema_and_the_index_counts_th
     models = _case_models()
     assert len(models) == _index_case_count() and set(V02_CASE_IDS) <= set(models)
     for cid, model in models.items():
-        assert _errors(model) == [], cid
-        assert model["version"] in ("0.1", "0.2", "0.3"), cid
+        assert _errors(model, SCHEMA_04 if model["version"] == "0.4" else SCHEMA_03) == [], cid
+        assert model["version"] in ("0.1", "0.2", "0.3", "0.4"), cid
+        assert (model["version"] == "0.4") == bool(model.get("reinforcements")), cid
         if cid in V02_CASE_IDS:
             assert model["version"] == "0.2", cid
         # the schemas that came before keep accepting what they accepted

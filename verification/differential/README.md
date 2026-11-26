@@ -180,5 +180,5 @@ criterio de 0,5 % de E9b, **12 checks**. No hay búsqueda: las fuerzas dependen 
 - `report.json` gana la clave `f3r` (capacidades, resumen y checks) y `REPORT.md` la sección «v0.4: refuerzos»; `report_version` pasa a 4.
 - El oráculo instalado descarta los activos con `along > 0`, que ogs aplica (E14m-1): los modelos solo usan cruces con `along < 0`.
   La interface de D25 se integra exacta en ogs y en 200 pasos en cSlope (hasta 0,5 % en T, X17 §2.1).
-- Queda por agregar, cuando R1-C defina `report.reinforcement_forces`, la comparación de las fuerzas cruce por cruce con las del oráculo.
+- La comparación de las fuerzas cruce por cruce con las del oráculo (`report.reinforcement_forces`) está en el harness: `verification/harness/forces.py` y la sección «Comparación por cruce» de `verification/REPORT.md` (F3R-R2, 25 casos).
 

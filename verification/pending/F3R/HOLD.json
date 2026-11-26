@@ -1,0 +1,29 @@
+[
+  {
+    "id": "V035b",
+    "method": "bishop",
+    "published": 1.324,
+    "published_by": "Commercial program A",
+    "ogs": 1.321,
+    "cslope": 1.3206,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). Causa: tracción real del modelo, presente también sin refuerzos. E14n-1 (§F4.17) está adoptada y no la elimina: los N′<0 no están en la dovela fina del cruce (ancho 2,56e-5, peso 0,0012, passive_h −131,3), que no tiene N′<0: el ancla es horizontal, passive_v = 0, y en Bishop passive_h solo entra en el momento. Son 4 dovelas normales k = 59 a 62 (x 12,03 a 12,56, ancho 0,133; N′ −2,14, −6,21, −13,45, −30,57 kN; piso E8c −4,35e-4), idénticas con E14n-1 y sin ella. El mismo modelo sin refuerzos también da negative_effective_normal_major (FS 0,929). Viene de la cohesión no drenada (φ = 0) en la base empinada junto a la coronación, como V027 y V028; no del cruce."
+  },
+  {
+    "id": "V035b",
+    "method": "bishop",
+    "published": 1.32,
+    "published_by": "Duncan & Wright",
+    "ogs": 1.321,
+    "cslope": 1.3206,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). Causa: tracción real del modelo, presente también sin refuerzos. E14n-1 (§F4.17) está adoptada y no la elimina: los N′<0 no están en la dovela fina del cruce (ancho 2,56e-5, peso 0,0012, passive_h −131,3), que no tiene N′<0: el ancla es horizontal, passive_v = 0, y en Bishop passive_h solo entra en el momento. Son 4 dovelas normales k = 59 a 62 (x 12,03 a 12,56, ancho 0,133; N′ −2,14, −6,21, −13,45, −30,57 kN; piso E8c −4,35e-4), idénticas con E14n-1 y sin ella. El mismo modelo sin refuerzos también da negative_effective_normal_major (FS 0,929). Viene de la cohesión no drenada (φ = 0) en la base empinada junto a la coronación, como V027 y V028; no del cruce."
+  },
+  {
+    "id": "V083",
+    "method": "janbu_corrected",
+    "published": 0.89,
+    "published_by": "Commercial program A",
+    "ogs": 0.8845,
+    "cslope": 0.8845,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). Causa: tracción real del modelo, presente también sin refuerzos. E14n-1 (§F4.17) está adoptada y no la elimina: los N′<0 son 12 dovelas normales k = 45 a 56 (x 4,77 a 6,28, ancho 0,1256; N′ −0,16 a −4,61 kN; piso E8c −3,77e-4), idénticas con E14n-1 y sin ella; las dovelas finas de los dos cruces (k = 24 y 35, passive_h −19,84 y −8,61 kN) no son negativas. El mismo modelo sin refuerzos también da negative_effective_normal_major (FS 0,834)."
+  }
+]

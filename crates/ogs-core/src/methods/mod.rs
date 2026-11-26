@@ -145,15 +145,29 @@ pub(crate) fn negative_normal_message(
     let mut negative_sum = 0.0_f64;
     let mut soil_length = 0.0_f64;
     let mut negative_length = 0.0_f64;
-    for (k, s) in slices.iter().enumerate().filter(|(_, s)| !is_inert(s)) {
-        let n = normal(k, s);
-        soil_length += s.base_length;
+    // E14n-1: the thin slice of a reinforcement crossing, with the slice before and the one after it (the three that
+    // came from the same slice before the nodes of the crossing), is one slice: its `N'` is the sum of theirs. Without
+    // a crossing every range is one slice and the loop is the plain one, term by term.
+    for (start, end) in classification_ranges(slices) {
+        let (mut n, mut length, mut any) = (0.0_f64, 0.0_f64, false);
+        for (j, s) in slices.iter().enumerate().take(end).skip(start) {
+            if is_inert(s) {
+                continue;
+            }
+            n += normal(j, s);
+            length += s.base_length;
+            any = true;
+        }
+        if !any {
+            continue;
+        }
+        soil_length += length;
         if n < floor {
             triggered = true;
         }
         if n < 0.0 {
             negative_sum += -n;
-            negative_length += s.base_length;
+            negative_length += length;
         }
     }
     if !triggered {
@@ -177,6 +191,36 @@ pub(crate) fn negative_normal_message(
             NEGATIVE_NORMAL_MESSAGE
         },
     )
+}
+
+/// The ranges `[start, end)` of the slices that are classified as one (E14n-1). A slice without a reinforcement crossing
+/// next to it is a range of its own. The thin slice of a crossing (`Slice::crossing`) is joined with the slice before it
+/// and the one after it, which came from the same slice before the nodes `x_c ± 1e-6·width` were added; thin slices that
+/// follow each other (two crossings together) are one run, with the slice before the first and the one after the last.
+/// A slice belongs to one range only.
+fn classification_ranges(slices: &[Slice]) -> Vec<(usize, usize)> {
+    let n = slices.len();
+    let mut ranges = Vec::with_capacity(n);
+    let mut k = 0;
+    while k < n {
+        let start = k;
+        let mut end = k;
+        if !slices[end].crossing && slices.get(end + 1).is_some_and(|s| s.crossing) {
+            end += 1; // the slice before the crossing
+        }
+        while end < n && slices[end].crossing {
+            end += 1;
+        }
+        if end > start && end < n {
+            end += 1; // the slice after the last crossing of the run
+        }
+        if end == start {
+            end += 1;
+        }
+        ranges.push((start, end.min(n)));
+        k = end.min(n);
+    }
+    ranges
 }
 
 /// Air-gap check (E7a): true when an interior run of air slices (soil on both sides) transmits

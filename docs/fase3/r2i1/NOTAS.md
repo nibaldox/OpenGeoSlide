@@ -1,0 +1,122 @@
+# F3R-R2 · I1: verificación y promoción (notas de trabajo)
+
+Rama `f3r2i1-verif`, base `5c63019`. Se completa por tarea.
+
+## 1. V065 con Spencer «sin dato»: error real del motor (corregido)
+
+**Síntoma.** `ogs analyze` sobre el modelo de V065 devuelve `NoValidSurface: el círculo no corta el terreno` (exit 2).
+El harness lo anota como «sin dato». No es de Spencer: falla igual con Bishop, Janbu corregido y M-P, y falla también
+sin refuerzos (talud homogéneo con el mismo círculo).
+
+**Causa.** El círculo publicado (xc 4,658; yc 15,000; r 10,934) tiene el centro a la cota de la coronación (y = 15), así
+que su arco inferior termina en la tangente vertical, `x = xc + r`, sobre la coronación. `4,658 + 10,934` redondea a
+`15,591999999999999`; `(xc + r) − xc` vale `r − 1,8e-15` y `sqrt(r² − t²)` da `2,06e-7` en lugar de 0. La holgura en el
+extremo del arco salía `−2,06e-7`, sobre la tolerancia geométrica (`1e-9·escala`), y el arco se tomaba como bajo el
+terreno en su propio extremo: pérdida de cifras de la raíz, no un hecho geométrico. La regla de V068 (I-M) admitía ese
+extremo solo si la holgura era ≤ tol, y V068 pasaba por suerte del redondeo.
+
+**Corrección** (`crates/ogs-core/src/slicer.rs`, `check_block_ends_circle`): en el extremo propio del círculo
+(`x == xc ± r`) la altura del arco es `yc` por construcción. No cambia la regla (solo un toque cuenta; un arco sobre el
+terreno sigue rechazado, un arco bajo el terreno sigue siendo `UpperArc`).
+Test RED antes: `crates/ogs-core/tests/f3r2_tangent_end.rs` (3 tests: V065 sin refuerzos con ambos métodos, espejo con
+el extremo a la izquierda, 40 pares decimales con el extremo redondeado).
+
+**Resultado.** Spencer 0,96037 (estado `converged`, aviso `reinforcement_outside_mass`: R3 a R15 no cruzan la masa;
+cruzan R1 y R2, igual que las «2 de 15» del oráculo). cSlope 0,9585 (+0,20 %), publicado 0,964 (−0,38 %, tolerancia 1,05 %).
+
+## 4. Identidad (`identity_vs_baseline.py`)
+
+`model_paths()` se divide con `split_models()`: los modelos con `reinforcements` no vacío se saltan y se cuentan aparte
+(el binario base v0.2.0 no los lee). Test RED antes: `verification/tools/test_identity_vs_baseline.py` (3 tests).
+Corrida con la corrección de V065 incluida, base `$TMPDIR/f3r-base-target/release/ogs` (v0.2.0):
+**121 modelos sin refuerzos, 0 diferencias** (las cinco variantes, 121 comparaciones cada una, todas con salida ok del
+baseline), **29 modelos con refuerzos saltados**. La corrección de V065 no cambia ninguna salida de los 121.
+
+## 2. Comparación por cruce (ogs `reinforcement_forces` frente al oráculo `reinforcementForces`)
+
+Módulo `verification/harness/forces.py` (con `test_forces.py`, 7 tests) y la sección «Comparación por cruce» de
+`REPORT.md` (más `forces_comparison` por check en `report.json`). Los cruces se emparejan por elemento y por orden de
+`x`. En la búsqueda (V037) ogs se vuelve a correr sobre el círculo crítico del oráculo.
+
+Resultado sobre los 33 checks (binario de esta rama): **165 cruces emparejados, 0 sin explicar**, mismo número de
+cruces aplicados en los dos motores en los 33 checks (ogs aplica 0 donde el oráculo aplica 0). Diferencias:
+
+- **Posición** (`|Δx,y|` hasta 3,3e-3 en V065; 1e-15 en los casos con superficie poligonal de V014, V015, V083, V084):
+  el oráculo cruza con la poligonal de las cuerdas de sus dovelas, ogs con el arco exacto. En V095c el cruce del pilote
+  es el mismo punto (x = 9) porque la cabeza es vertical.
+- **Fuerza constante** (`force`, `tensile_capacity` sin rampa): `ΔF` = 0 en V010, V010b, V011, V012, V035, V037, V065,
+  V066a, V066c, V066e, y ≤ 7e-11 en V014 y ≤ 1e-14 en V015, V083 y V084 (precisión de máquina).
+- **`development`, rampa** (V064 R1 y R3, V066b R11): `ΔF = (Tmax/ℓ)·Δs`. V064 R3: Tmax/ℓ1 = 5,8277 por Δs = −3,7565e-4
+  da −2,189e-3, y ΔF medido −2,1892e-3; V064 R1: 29,139 × (−4,0e-6) = −1,165e-4 frente a −1,1649e-4; V066b R11 (a
+  0,0048 m del extremo 2): 52,45 × 2,3e-5 = 1,2e-3 frente a 1,2250e-3.
+- **Dirección** (V095c, pilote pasivo, `direction: tangent`): misma magnitud (10,7 kN/m); ogs (6,6852; 8,3545) a 51,33°,
+  oráculo (6,8170; 8,2473) a 50,42°; ΔF = 0,17. ogs usa la tangente exacta del círculo en el cruce (una dovela de ancho
+  cero en x = 9, `alpha` 51,3334° = atan(6,326/5,062)); el oráculo usa el `alpha` de su dovela (0,88006 rad = 50,42°,
+  la cuerda de [8,8156; 9,0196]). El efecto en el FS es de 1e-4 (ogs 1,1956, oráculo 1,1957, publicado 1,193).
+- **V016b**: **no es E14m-1.** Ni ogs ni el oráculo aplican fuerza (0 cruces de 3 elementos). Los tres elementos quedan
+  enteramente dentro del círculo fijo (xc 16,087; yc 10,358; r 6,052): las intersecciones de la recta de cada elemento
+  con el círculo caen en t ∈ [−1,517; 1,463] (R1), [−3,146; 2,064] (R2) y [−7,765; 3,601] (R3), todas fuera de [0, 1].
+  Sin cruce no hay compresión que descartar; ogs avisa `reinforcement_outside_mass`. El FS de los tres checks es el del
+  talud sin refuerzo, y lo publicado (1,83 a 1,839) no prueba nada sobre los refuerzos. La explicación del brief, de
+  X17 y de `INDEX.md` («el binario descarta los activos con along > 0 que ogs aplica») no se cumple en estas 25 filas: en
+  ninguna ogs aplica un activo que el oráculo descarta. E14m-1 se apoya en X17 §1.4 (barrido de ángulos con el binario), no
+  en V016b; ninguno de los 25 casos lo ejercita contra el oráculo.
+
+## 5. E14n-1 (§F4.17): el mecanismo se midió y **no se deja**; los 5 checks quedan retenidos
+
+**Mecanismo mínimo propuesto** (`docs/fase3/r2i1/E14n-1.patch`, 4 archivos, +111/−4; se aplica con `git apply`): un campo
+`Slice.crossing: bool` con `#[serde(skip)]` (nunca se serializa, el informe no cambia), puesto por
+`reinforcement::apply_to_slices` en la dovela que recibe la fuerza de un cruce; `negative_normal_message` agrupa cada
+dovela con `crossing` con la anterior y la siguiente (rangos disjuntos; una racha de cruces seguidos es un grupo) y
+clasifica la suma de sus N′. Sin ninguna dovela `crossing` los rangos son de a una y el bucle es el de siempre, término a
+término. Equilibrio, FS y dovelas del informe no se tocan. Se mide con el patch aplicado; luego se revierte.
+
+**Los cuatro criterios** (binario `ogs_e14n` del patch frente a `ogs_merge` de la rama sin patch, 118 modelos de `cases`):
+
+1. **Identidad: cumple.** `identity_vs_baseline.py --base $TMPDIR/f3r-base-target/release/ogs`: 121 modelos sin refuerzos,
+   0 diferencias (5 variantes × 121 comparaciones), 29 con refuerzos saltados.
+2. **Aviso mayor solo de dovelas finas de cruce: NO cumple en 3 de los 5 checks.** Listas de N′<0 (`e14n1/before_*.neg`,
+   `after_*.neg`; piso E8c −8,95e-4 en V014, −4,35e-4 en V035b, −3,77e-4 en V083):
+   - **V014 (Janbu corregido, ×2):** antes 8 dovelas finas de 7,62e-5 m (k = 25, 30, 34, 42, 50, 57, 64, 71; N′ −12,6 a
+     −0,37 kN; `passive_h` −26,2 a −0,77); después 0 (sin aviso). Aquí sí es el artefacto; sin refuerzos el modelo no da aviso.
+   - **V035b (Bishop, ×2):** la dovela fina del cruce (ancho 2,56e-5; peso 0,0012; `passive_h` −131,3) **no tiene N′<0**: el
+     ancla es horizontal (`passive_v` = 0) y en Bishop `passive_h` solo entra al momento. Los N′<0 son 4 dovelas normales
+     (k = 59 a 62, x 12,03 a 12,56, ancho 0,133; N′ −2,14, −6,21, −13,45, −30,57 kN; f = 12 %): antes y después idénticas. El mismo
+     modelo **sin refuerzos** da `negative_effective_normal_major` (FS 0,929). Es la cohesión no drenada (φ = 0) en la base empinada
+     junto a la coronación, no el cruce.
+   - **V083 (Janbu corregido):** 12 dovelas normales (k = 45 a 56, x 4,77 a 6,28, ancho 0,1256; N′ −0,16 a −4,61 kN), idénticas antes
+     y después; las dovelas finas de los dos cruces (k = 24, 35) no son negativas. Sin refuerzos también da el aviso (FS 0,834).
+3. **Tracción real sobre dovela normal conserva el aviso: cumple.** Pilote activo (`angle` 80°, 400 kN/m) en x = 6 del talud
+   c = 5, φ = 25° con 10 dovelas de 1,7 m: Bishop 1,173 y Spencer 1,184 conservan `negative_effective_normal_major`. Con 100 kN/m en
+   x = 9 (dovelas más pesadas que la fuerza) el aviso desaparece, como debe (test `f3r2_e14n1.rs` dentro del patch).
+4. **Ningún FS cambia: cumple.** De los 118 modelos 116 dan la salida idéntica byte a byte; 2 difieren solo en `warnings`:
+   V014 (Spencer pierde la nota, Janbu corregido pierde el mayor) y V010 (M-P pierde la nota `negative_effective_normal`).
+   Ningún FS, iteración, λ ni dovela cambia.
+
+**Decisión (contrato §F4.17: «si algún criterio falla, los 5 checks quedan retenidos»):** el cambio de motor no se deja. Los 5
+checks (V014 janbu_corrected 1,46 y 1,448; V035b bishop 1,324 y 1,32; V083 janbu_corrected 0,89) salen a
+`verification/pending/F3R` con `HOLD.json` (números y diagnóstico) como los de lote 0 (V027/V028). `verification/cases`
+queda con 116 casos y 241 checks, y el test de aceptación sin fallas. El importador lee `pending/F3R/HOLD.json`.
+
+**Para el coordinador.** La hipótesis de E14n-1 vale solo para V014. V035b y V083 muestran negativos de dovelas normales, que
+el modelo tiene también sin refuerzos: una regla que los acepte pertenece a la clasificación E7d/E8c (p. ej. φ = 0 con
+cohesión alta junto a la coronación, como V027/V028), no a las dovelas de cruce. Si se decide reducir E14n-1 a V014 el
+patch ya está hecho y verificado (criterios 1, 3 y 4); solo V014 volvería a `cases`.
+
+## 6. Gates finales (I1b)
+
+`cargo fmt --all --check` limpio; `clippy --workspace --exclude ogs-py --all-targets -D warnings` limpio; `cargo test -p ogs-core
+--release --no-fail-fast`, también con `--features parallel`: 502 pasan, 0 fallan, 1 ignorado; aceptación: **241 checks, 0 fallas**;
+`pytest verification`: 913 verdes; batería diferencial `--require-f3r`: 71/71 (fase 3a), 12/12 (v0.4), búsqueda 28/28, fija 28/28;
+identidad: 121 modelos sin refuerzos, 0 diferencias; `REPORT.md`: 116 casos, 241 checks, ogs 241 OK, cSlope 240/241 (V027).
+VP de Slide2 en `docs/fase3/r1v/VP_SLIDE2.md`: ningún VP nuevo transcrito (faltan coordenadas en tablas).
+
+## 7. I1c: E14n-1 adoptada (decisión del coordinador, E14n-1b de §F4.17)
+
+El §5 se superó: el patch se aplicó y se commiteó (`27f07fc`, más `4d70aa3` para los tests que construyen `Slice` a mano).
+El criterio 2 se evalúa por check: V014 (Janbu corregido ×2) vuelve a `verification/cases` (era el artefacto, 8 dovelas
+finas); V035b (×2) y V083 quedan retenidos en `pending/F3R/HOLD.json` por tracción real del modelo (FS sin refuerzos
+0,929 y 0,834). Test `f3r2_e14n1.rs` (4): artefacto eliminado en V014, aviso conservado en V035b y V083 con y sin
+refuerzos, tracción real de 400 kN/m y fuerza puntual de 100 kN/m. Sin el patch fallan los dos que ejercen el artefacto.
+Cifras: 116 casos, 243 checks (ogs 243 OK; cSlope 242/243, V027), 9 retenidos en 6 casos; batería diferencial sin cambios
+(71/71, 12/12, 28/28, 28/28); identidad: 121 modelos sin refuerzos, 0 diferencias.

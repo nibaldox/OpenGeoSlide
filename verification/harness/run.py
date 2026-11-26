@@ -28,6 +28,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+from forces import compare_forces  # noqa: E402
 from to_cslope import UnsupportedModel, ogs_to_cslope  # noqa: E402
 
 HARNESS_VERSION = "1"
@@ -109,7 +110,7 @@ def model_for_check(model: dict, check: dict) -> dict:
 
 
 def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dict:
-    res = {"fos": None, "status": None, "error": None, "engine": None, "warnings": []}
+    res = {"fos": None, "status": None, "error": None, "engine": None, "warnings": [], "forces": [], "surface": None}
     if binary == ORACLE_ONLY:
         res["error"] = "solo oráculo (--oracle-only): el motor no se ejecuta"
         return res
@@ -150,6 +151,8 @@ def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dic
     # (MethodReport has no `message` field, R3-05).
     res["status"] = results[0].get("status")
     res["warnings"] = list(results[0].get("warnings") or [])
+    res["forces"] = list(results[0].get("reinforcement_forces") or [])
+    res["surface"] = results[0].get("surface")
     fos = results[0].get("fos")
     if not isinstance(fos, (int, float)) or isinstance(fos, bool) or not math.isfinite(fos):
         if res["status"] not in (None, "converged"):
@@ -184,6 +187,7 @@ def run_cslope(cs, document: dict) -> dict:
     res["status"] = "converged" if crit.get("converged", True) else "not_converged"
     res["forces"] = [{k: f.get(k) for k in ("index", "pile", "x", "y", "fx", "fy", "force", "passive")}
                      for f in crit.get("reinforcementForces") or []]
+    res["surface"] = {"xc": crit.get("cx"), "yc": crit.get("cy"), "r": crit.get("radius")}
     res["warnings"] += [f"{w.get('code')}: {w.get('message')}" for w in result.get("warnings") or []]
     return res
 
@@ -239,6 +243,7 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
             cs_v = verdict(cs_res["fos"], cs_res["status"], published, tolerance)
 
             applied = cs_res.pop("forces", None)
+            cs_surface = cs_res.pop("surface", None)
             rows.append({
                 "case_id": case["id"],
                 "title": case.get("title", ""),
@@ -266,7 +271,38 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
                 # v0.4: how many forces the oracle applied on its critical surface (a force of 0 kN/m is not applied)
                 rows[-1]["cslope"]["reinforcement_forces"] = {"elements": n_items, "applied": len(applied),
                                                               "forces": applied}
+                if ogs_binary != ORACLE_ONLY:
+                    rows[-1]["forces_comparison"] = _forces_comparison(
+                        ogs_binary, case["model"], ch, og, applied, cs_surface)
     return rows
+
+
+def _forces_comparison(binary: str | None, model: dict, check: dict, og: dict, applied: list[dict],
+                       cs_surface: dict | None) -> dict | None:
+    """Per-crossing comparison of the forces of ogs and of the oracle on the same surface.
+
+    On a fixed surface both engines use the circle of the model. In a search each engine finds its own circle, so
+    ogs is run again on the oracle's critical circle (`on_oracle_circle: true`): the crossings are compared there.
+    """
+    on_oracle = False
+    surface = og["surface"]
+    forces = og["forces"]
+    if check["kind"] == "search":
+        if not cs_surface or None in cs_surface.values():
+            return None
+        fixed_model = copy.deepcopy(model)
+        fixed_model["analysis"]["surface"] = {"type": "circle", **cs_surface}
+        fixed_check = dict(check, kind="fixed")
+        again = run_ogs(binary, fixed_model, fixed_check, OGS_TIMEOUT_S)
+        if again["error"] or again["status"] != "converged":
+            return None
+        forces, surface, on_oracle = again["forces"], again["surface"], True
+    elif og["error"] or og["status"] != "converged":
+        return None
+    circle = surface if surface and {"xc", "yc", "r"} <= set(surface) else None
+    out = compare_forces(model, forces, applied, circle)
+    out["on_oracle_circle"] = on_oracle
+    return out
 
 
 def summarize(rows: list[dict]) -> dict:
@@ -291,6 +327,99 @@ def summarize(rows: list[dict]) -> dict:
 
 def _fmt(v, spec: str) -> str:
     return "—" if v is None else format(v, spec)
+
+
+EXPLAIN_TEXT = {
+    "igual": "igual (|ΔF| ≤ 1e-9 de la fuerza)",
+    "direccion": "misma magnitud, otra dirección: el oráculo mide la base en la cuerda de su dovela, ogs en la "
+                 "tangente exacta del círculo en el cruce",
+    "rampa": "rampa `development`: ΔF = (Tmax/ℓ)·Δs, con Δs la diferencia de posición del cruce (el oráculo cruza "
+             "con la poligonal de sus dovelas, ogs con el arco)",
+    "sin explicar": "SIN EXPLICAR",
+}
+
+
+def _deg(fx: float, fy: float) -> str:
+    return "—" if fx == 0 and fy == 0 else format(math.degrees(math.atan2(fy, fx)), "+.2f")
+
+
+def write_forces_section(L: list[str], rows: list[dict]) -> None:
+    """Section «Comparación por cruce» of REPORT.md: one line per check, the differences and the crossings."""
+    comp = [r for r in rows if r.get("forces_comparison")]
+    if not comp:
+        return
+    L.append("## Comparación por cruce de las fuerzas de los refuerzos")
+    L.append("")
+    L.append("Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a las del oráculo "
+             "(`reinforcementForces`), emparejadas por elemento y por orden de `x`. En una búsqueda cada motor "
+             "halla su círculo: ogs se vuelve a correr sobre el círculo crítico del oráculo (marca «◇»). "
+             "`fx`, `fy` en coordenadas del modelo; la dirección es el ángulo del vector de la fuerza sobre la masa.")
+    L.append("")
+    L.append("| caso | método | cruces ogs | cruces oráculo | emparejados | máx \\|Δx,y\\| | máx \\|ΔF\\| | sin explicar |")
+    L.append("|---|---|---:|---:|---:|---:|---:|---:|")
+    for r in comp:
+        c = r["forces_comparison"]
+        mark = " ◇" if c.get("on_oracle_circle") else ""
+        L.append(f"| {r['case_id']}{mark} | {r['method']} | {c['n_ogs']} | {c['n_oracle']} | {len(c['pairs'])} | "
+                 f"{c['max_dxy']:.1e} | {c['max_dF']:.1e} | {c['unexplained']} |")
+    total = sum(len(r["forces_comparison"]["pairs"]) for r in comp)
+    unexplained = sum(r["forces_comparison"]["unexplained"] for r in comp)
+    L.append("")
+    L.append(f"**{len(comp)}** checks, **{total}** cruces emparejados, **{unexplained}** diferencias sin explicar.")
+    L.append("")
+    zero = [r for r in comp if r["forces_comparison"]["n_ogs"] == 0 and r["forces_comparison"]["n_oracle"] == 0]
+    if zero:
+        L.append("Ni ogs ni el oráculo aplican fuerza en: "
+                 + ", ".join(sorted({f"{r['case_id']} ({r['method']})" for r in zero}))
+                 + ". La superficie no cruza ningún elemento, así que el FS es el del talud sin refuerzo y el acuerdo "
+                 "con lo publicado no prueba nada sobre los refuerzos.")
+        L.append("")
+    diffs = [(r, p) for r in comp for p in r["forces_comparison"]["pairs"] if p["explanation"] != "igual"]
+    lone = [(r, "solo ogs", p) for r in comp for p in r["forces_comparison"]["only_ogs"]] + \
+           [(r, "solo oráculo", p) for r in comp for p in r["forces_comparison"]["only_oracle"]]
+    if diffs or lone:
+        L.append("### Diferencias por cruce")
+        L.append("")
+        L.append("| caso | método | elemento | x ogs | x oráculo | Δx | fuerza ogs | fuerza oráculo | ΔF | dirección ogs → oráculo (°) | explicación |")
+        L.append("|---|---|---|---:|---:|---:|---:|---:|---:|---|---|")
+        seen = set()
+        for r, p in diffs:
+            key = (r["case_id"], p["id"], round(p["ogs"]["x"], 9), round(p["dfx"], 12), round(p["dfy"], 12))
+            if key in seen:
+                continue
+            seen.add(key)
+            o, c = p["ogs"], p["oracle"]
+            L.append(f"| {r['case_id']} | {r['method']} | {p['id']} | {o['x']:.5f} | {c['x']:.5f} | {p['dx']:+.1e} | "
+                     f"({o['fx']:.4f}; {o['fy']:.4f}) | ({c['fx']:.4f}; {c['fy']:.4f}) | "
+                     f"{math.hypot(p['dfx'], p['dfy']):.1e} | {_deg(o['fx'], o['fy'])} → {_deg(c['fx'], c['fy'])} | "
+                     f"{EXPLAIN_TEXT[p['explanation']]} |")
+        for r, side, p in lone:
+            L.append(f"| {r['case_id']} | {r['method']} | {p['id']} | | | | {side}: ({p['fx']:.4f}; {p['fy']:.4f}) "
+                     f"en x = {p['x']:.5f} | | | | SIN EXPLICAR |")
+        L.append("")
+    L.append("### Cruces")
+    L.append("")
+    L.append("Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuerzas se listan una vez). "
+             "`Δr` es la distancia del punto del oráculo al círculo exacto: el oráculo cruza con la poligonal de sus "
+             "dovelas, que queda por dentro del arco.")
+    L.append("")
+    L.append("| caso | elemento | x | y | fx ogs | fy ogs | dir ogs (°) | fx oráculo | fy oráculo | dir oráculo (°) | Δx | Δr oráculo |")
+    L.append("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    seen_checks = set()
+    for r in comp:
+        c = r["forces_comparison"]
+        key = (r["case_id"], tuple((p["id"], round(p["ogs"]["x"], 9), round(p["ogs"]["fx"], 9), round(p["ogs"]["fy"], 9))
+                                   for p in c["pairs"]))
+        if key in seen_checks or not c["pairs"]:
+            continue
+        seen_checks.add(key)
+        for p in c["pairs"]:
+            o, q = p["ogs"], p["oracle"]
+            radial = f"{p['radial_oracle']:+.1e}" if "radial_oracle" in p else "—"
+            L.append(f"| {r['case_id']} | {p['id']} | {o['x']:.5f} | {o['y']:.5f} | {o['fx']:.4f} | {o['fy']:.4f} | "
+                     f"{_deg(o['fx'], o['fy'])} | {q['fx']:.4f} | {q['fy']:.4f} | {_deg(q['fx'], q['fy'])} | "
+                     f"{p['dx']:+.1e} | {radial} |")
+    L.append("")
 
 
 def write_markdown(path: str, rows: list[dict], meta: dict, summary: dict) -> None:
@@ -350,6 +479,7 @@ def write_markdown(path: str, rows: list[dict], meta: dict, summary: dict) -> No
         for e in errors:
             L.append(f"- {e}")
         L.append("")
+    write_forces_section(L, rows)
     notes: dict[tuple[str, str], list[str]] = {}
     for r in rows:
         for n in r["cslope"]["notes"]:

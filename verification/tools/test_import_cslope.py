@@ -168,7 +168,10 @@ def test_generated_cases_pass_the_schema_and_search_gates():
     for path in paths:
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
-        errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
+        if case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
+            errors = imp.gate_schema_f3r(case, F3R_SCHEMA)
+        else:
+            errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
         assert errors == [], (path, errors)
         assert imp.gate_search(case) == [], path
 
@@ -447,13 +450,16 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # Not every case of verification/cases is v0.1 or v0.2 any more: the cases with M-P, Janbu, undrained strength or a
     # polyline are v0.3 (F3.1). So each case is checked against the version it declares, and the declared version must
     # be the minimal one (F3.9): 0.1 without loads, seismic or v0.3 fields; 0.2 with loads or seismic only; 0.3 otherwise.
-    counts = {"0.1": 0, "0.2": 0, "0.3": 0}
+    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0}
     for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
         model = case["model"]
         version = model["version"]
         counts[version] += 1
+        if version == "0.4":      # promoted batches R1 to R4: their own schema and gates (test_the_promoted_...)
+            assert model["reinforcements"], path
+            continue
         has_v02 = "loads" in model or "seismic" in model["analysis"]
         expected = "0.3" if _uses_v03(model) else ("0.2" if has_v02 else "0.1")
         if case["id"] in V02_IDS:
@@ -465,8 +471,8 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # the number comes from the index, never from a literal (contract F3.8)
     with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
         index = fh.read()
-    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*", index, re.S)
-    assert m and (counts["0.1"], counts["0.2"], counts["0.3"]) == tuple(int(g) for g in m.groups())
+    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*", index, re.S)
+    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"]) == tuple(int(g) for g in m.groups())
 
 
 # ------------------------------------------------------------ batch 0 (F3.8): no cap, no selection
@@ -712,6 +718,7 @@ def test_schema_v0_3_rejects_malformed_undrained_polyline_and_interslice():
 # ------------------------------------------------------------ batches R1 to R4: reinforcements (v0.4, F4.12)
 
 F3R_DIR = os.path.join(ROOT, "verification", "pending", "F3R")
+CASES_DIR = os.path.join(ROOT, "verification", "cases")
 F3R_SCHEMA = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
 _TENSION = {"x1": 1.0, "y1": 6.0, "x2": 9.0, "y2": 6.0, "tensileCapacity": 40.0, "spacing": 0.5, "end1Capacity": 0,
             "end2Capacity": 0, "direction": "axial", "application": "passive",
@@ -822,8 +829,33 @@ def test_f3r_batches_are_the_ones_of_f4_12():
     }
 
 
-def _f3r_cases():
-    return [json.load(open(p, encoding="utf-8")) for p in sorted(glob.glob(os.path.join(F3R_DIR, "V*.json")))]
+def _held_keys():
+    """(id, method, published) of the checks retained in `pending/F3R/HOLD.json` (E14n-1 of F4.17)."""
+    path = os.path.join(F3R_DIR, "HOLD.json")
+    if not os.path.isfile(path):
+        return set()
+    return {(e["id"], e["method"], e["published"]) for e in json.load(open(path, encoding="utf-8"))}
+
+
+def _f3r_cases(with_held=True):
+    """The batches R1 to R4: promoted ones live in `verification/cases`, held checks in `verification/pending/F3R`. With
+    `with_held` each case has all its checks again (the converted case of the importer)."""
+    ids = sorted(i for _, ids in imp.F3R_BATCHES.values() for i in ids)
+    out = []
+    for i in ids:
+        parts = []
+        for d in (CASES_DIR, F3R_DIR):
+            path = os.path.join(d, f"{i}.json")
+            if os.path.isfile(path) and (d == CASES_DIR or with_held):
+                parts.append(json.load(open(path, encoding="utf-8")))
+        if not parts:
+            continue
+        case = parts[0]
+        for extra in parts[1:]:
+            assert extra["model"] == case["model"], i
+            case["checks"] = case["checks"] + extra["checks"]
+        out.append(case)
+    return out
 
 
 def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
@@ -839,11 +871,43 @@ def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
             assert r["application"] in ("active", "passive") and r["direction"], case["id"]
 
 
-def test_the_f3r_index_lists_every_check_with_the_oracle_figure():
-    index = open(os.path.join(F3R_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "**25** casos con **33** checks" in index
-    for case in _f3r_cases():
+def test_the_held_f3r_checks_are_the_three_with_a_real_tension_and_nothing_else_is_pending():
+    held = _held_keys()      # E14n-1b: V014 went back to cases/, V035b and V083 keep a real tension of the model
+    assert held == {("V035b", "bishop", 1.324), ("V035b", "bishop", 1.32), ("V083", "janbu_corrected", 0.89)}
+    pending = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(F3R_DIR, "V*.json")))
+    assert pending == ["V035b", "V083"]
+    assert "V014" not in {e["id"] for e in json.load(open(os.path.join(F3R_DIR, "HOLD.json"), encoding="utf-8"))}
+    for pid in pending:      # the pending file holds only held checks, the case in cases/ holds none of them
+        file = json.load(open(os.path.join(F3R_DIR, f"{pid}.json"), encoding="utf-8"))
+        assert {(pid, c["method"], c["published"]) for c in file["checks"]} <= held
+        in_cases = os.path.join(CASES_DIR, f"{pid}.json")
+        if os.path.isfile(in_cases):
+            kept = json.load(open(in_cases, encoding="utf-8"))["checks"]
+            assert not {(pid, c["method"], c["published"]) for c in kept} & held
+    stub = open(os.path.join(F3R_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "promovidos" in stub and "**25** casos" in stub and "**3** checks retenidos" in stub and "V013b a V013e" in stub
+
+
+def test_the_cases_index_lists_every_promoted_check_with_ogs_and_the_oracle():
+    index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "## Casos con refuerzos (v0.4, lotes R1 a R4)" in index
+    assert "**23** casos con **30** checks" in index and "V013b a V013e" in index
+    assert "**3** checks más (V035b ×2, V083) quedan retenidos" in index
+    for case in _f3r_cases(with_held=False):
         assert f"| {case['id']} |" in index
-    report = json.load(open(os.path.join(F3R_DIR, "report.json"), encoding="utf-8"))
-    assert len(report["checks"]) == 33 and report["summary"]["cslope_reproduces"] == {"n": 33, "N": 33}
-    assert "retenidos 0" in index and "V013b a V013e" in index
+        assert case["model"]["version"] == "0.4"
+    report = json.load(open(os.path.join(ROOT, "verification", "report.json"), encoding="utf-8"))
+    f3r = {i for _, ids in imp.F3R_BATCHES.values() for i in ids}
+    rows = [r for r in report["checks"] if r["case_id"] in f3r]
+    assert len(rows) == 30 and not {(r["case_id"], r["method"], r["published"]) for r in rows} & _held_keys()
+    assert all(r["ogs"]["verdict"] == "OK" and r["cslope"]["verdict"] == "OK" for r in rows)
+
+
+def test_f3r_section_marks_the_checks_without_crossings():
+    case = {"id": "V0", "model": {"reinforcements": [{}]}, "checks": [
+        {"method": "bishop", "published": 1.5, "published_by": "x", "tolerance": 0.01}]}
+    report = {"checks": [{"case_id": "V0", "method": "bishop", "published": 1.5,
+                          "ogs": {"fos": 1.5, "err_pct": 0.0}, "cslope": {"fos": 1.5, "err_pct": 0.0},
+                          "forces_comparison": {"n_ogs": 0, "n_oracle": 0}}]}
+    text = imp.build_f3r_section([case], {"V0": "R1"}, report)
+    assert "| 0 / 0 |" in text and "no prueba nada" in text

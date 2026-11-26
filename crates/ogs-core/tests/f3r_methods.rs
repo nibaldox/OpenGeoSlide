@@ -115,6 +115,7 @@ fn hand_slices(n: usize) -> Vec<Slice> {
                 passive_h: 0.0,
                 passive_h_moment_base: 0.0,
                 passive_driving_extra: 0.0,
+                crossing: false,
             }
         })
         .collect()

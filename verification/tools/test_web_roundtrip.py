@@ -61,11 +61,13 @@ V03_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 
 
 def minimal_version(model: dict) -> str:
-    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
+    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.4"`` con refuerzos, ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
 
     Independiente del código de la web: los campos de la v0.3 son los de F3.1 (material no drenado y sus parámetros,
     polilínea fija, métodos M-P y Janbu, función entre dovelas).
     """
+    if model.get("reinforcements"):      # v0.4: refuerzos
+        return "0.4"
     analysis = model.get("analysis") or {}
     v03_material = any(
         m.get("model") == "undrained" or any(k in m for k in

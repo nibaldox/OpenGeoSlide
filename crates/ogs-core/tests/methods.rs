@@ -132,6 +132,7 @@ fn slices_by(c: Circ, n: usize, material: impl Fn(f64) -> (f64, f64, f64, f64)) 
                 passive_h: 0.0,
                 passive_h_moment_base: 0.0,
                 passive_driving_extra: 0.0,
+                crossing: false,
             }
         })
         .collect()
@@ -301,6 +302,7 @@ fn bishop_invalid_when_m_alpha_small() {
             passive_h: 0.0,
             passive_h_moment_base: 0.0,
             passive_driving_extra: 0.0,
+            crossing: false,
         }
     };
     // First slice: α = −60°, φ = 45°. Second slice keeps Σ W sin α > 0.
@@ -375,6 +377,7 @@ fn synth_slice(alpha_deg: f64, weight: f64, cohesion: f64, tan_phi: f64) -> Slic
         passive_h: 0.0,
         passive_h_moment_base: 0.0,
         passive_driving_extra: 0.0,
+        crossing: false,
     }
 }
 
@@ -857,6 +860,7 @@ fn notch_slices(c: Circ, n: usize, coh: f64, gamma: f64) -> Vec<Slice> {
                 passive_h: 0.0,
                 passive_h_moment_base: 0.0,
                 passive_driving_extra: 0.0,
+                crossing: false,
             }
         })
         .collect()

@@ -19,10 +19,11 @@ The source clone is read only. The script writes:
 - verification/pending/F3/       batches 1 and 2 (contract F3.8): undrained / s-f-datum materials, fixed polylines,
                                  Morgenstern-Price with every interslice function and Janbu, written as v0.3 models.
                                  They wait for the engine; each file holds every convertible check of the problem
-- verification/pending/F3R/      batches R1 to R4 (contract F4.12): the published cases with reinforcements and piles of constant
-                                 force, written as v0.4 models. They wait for the engine of the reinforcements (R1-C and
-                                 R1-M); `INDEX.md` holds the table of published vs. cSlope, built from the `report.json`
-                                 that `verification/harness/run.py --oracle-only` writes in the same directory
+- verification/cases/ (v0.4)     batches R1 to R4 (contract F4.12), promoted: the published cases with reinforcements and
+                                 piles of constant force, written as v0.4 models after the v0.1 to v0.3 ones; the
+                                 «Casos con refuerzos» section of `cases/INDEX.md` is built from `verification/report.json`
+                                 (written by `verification/harness/run.py` over `verification/cases`)
+- verification/pending/F3R/      only an `INDEX.md` that says where the batches went
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 Batch 0 is every problem that converts today (no cap, no selection). The output is deterministic: running the
@@ -84,6 +85,7 @@ PILE_KEYS = {"x1", "y1", "x2", "y2", "force", "diameter", "spacing", "direction"
              "wall"}
 HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
 HOLD_F3_FILE = Path("verification") / "pending" / "F3" / "HOLD.json"
+HOLD_F3R_FILE = Path("verification") / "pending" / "F3R" / "HOLD.json"
 
 # ---------------------------------------------------------------- conversion constants
 GAMMA_W = {"SI": 9.807, "imperial": 62.4}  # cSlope constant 9.807 kN/m3; 62.4 pcf for imperial
@@ -1128,84 +1130,109 @@ def gate_schema_f3r(case: dict, schema: dict) -> list[str]:
     return errors
 
 
-def build_f3r_index(cases: list[dict], lots: dict[str, str], omitted: list[tuple[str, str]],
-                    dropped: dict[str, list[str]], report: dict | None) -> str:
-    """INDEX.md of pending/F3R: the cases, and the table of the published value against cSlope (from report.json)."""
+def held_label(held_cases: list[dict]) -> str:
+    """«V035b ×2, V083»: the held checks of F3R per case."""
+    return ", ".join(c["id"] + (f" ×{len(c['checks'])}" if len(c["checks"]) > 1 else "") for c in held_cases)
+
+
+def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, held_cases: list[dict] | None = None) -> str:
+    """Section of `cases/INDEX.md` for the promoted batches R1 to R4: published value, ogs and cSlope per check (from
+    the `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
     rows = {}
     for r in (report or {}).get("checks", []):
         rows[(r["case_id"], r["method"], r["published"])] = r
     n_checks = sum(len(c["checks"]) for c in cases)
     lines = [
-        "# Casos con refuerzos (lotes R1 a R4, formato v0.4): publicado frente a cSlope",
+        "## Casos con refuerzos (v0.4, lotes R1 a R4)",
         "",
-        "Generado por `verification/tools/import_cslope.py`; la tabla sale de `report.json`, que escribe "
-        "`verification/harness/run.py --oracle-only` en este directorio. No editar a mano.",
-        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
-        "",
-        f"**{len(cases)}** casos con **{n_checks}** checks. Esperan al motor de refuerzos (R1-C y R1-M) y a la integración: "
-        "mientras tanto solo se comparan el valor publicado y el oráculo (`--oracle-only`). No se relaja ninguna "
-        "tolerancia ni se toca ningún dato del problema.",
-        "",
-        "Los lotes son los de F4.12: " + "; ".join(
+        f"**{len(cases)}** casos con **{n_checks}** checks, promovidos desde `verification/pending/F3R` cuando el motor de "
+        "los refuerzos reproduce el valor publicado dentro de su tolerancia. No se relajó ninguna tolerancia ni se tocó "
+        "ningún dato del problema. Los lotes son los de F4.12: " + "; ".join(
             f"**{lot}** {name} ({', '.join(ids)})" for lot, (name, ids) in F3R_BATCHES.items()) + ".",
         "",
+        "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.",
+        "",
     ]
-    if report is None:
-        lines += ["No hay `report.json`: corra el harness con `--oracle-only` y regenere este índice.", ""]
-    else:
-        ok = [r for r in rows.values() if r["cslope"]["verdict"] == "OK"]
-        held = [r for r in rows.values() if r["cslope"]["verdict"] != "OK"]
-        lines += [
-            f"cSlope reproduce el valor publicado, dentro de su tolerancia, en **{len(ok)}** de **{len(rows)}** checks. "
-            f"Quedan **retenidos {len(held)}** checks: el oráculo no los reproduce, así que no pueden ser el "
-            "criterio de aceptación del motor, y se listan con su número.",
-            "",
-        ]
-    lines += ["| lote | caso | refuerzos | método | publicado | por | tol % | cSlope | Δ % | fuerzas del oráculo | estado |",
-              "|---|---|---:|---|---:|---|---:|---:|---:|---:|---|"]
+    n_held = sum(len(c["checks"]) for c in held_cases or [])
+    if n_held:
+        lines += [f"**{n_held}** checks más ({held_label(held_cases)}) quedan retenidos en `verification/pending/F3R` "
+                  "(`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test "
+                  "de aceptación lo rechaza. Es una tracción real del modelo, presente también sin refuerzos; E14n-1 de §F4.17 "
+                  "(adoptada) solo elimina el aviso en V014, donde venía de dovelas finas de cruce.", ""]
+    if not rows:
+        lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
+                  "regenere este índice.", ""]
+    lines += ["| lote | caso | refuerzos | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % "
+              "| cruces ogs / oráculo |",
+              "|---|---|---:|---|---:|---|---:|---:|---:|---:|---:|---|"]
     idle = []
     for case in cases:
         n_items = len(case["model"]["reinforcements"])
         for c in case["checks"]:
             r = rows.get((case["id"], c["method"], c["published"]))
-            forces = "—"
-            if r is None:
-                cs, delta, state = "—", "—", "sin dato (falta report.json)"
-            else:
-                applied = (r["cslope"].get("reinforcement_forces") or {}).get("applied")
-                if applied is not None:
-                    forces = f"{applied} de {n_items}"
-                    if applied == 0:
+            og = cs = d_og = d_cs = crossings = "—"
+            if r is not None:
+                fmt = lambda v, f: "—" if v is None else format(v, f)  # noqa: E731
+                og, d_og = fmt(r["ogs"]["fos"], ".4f"), fmt(r["ogs"]["err_pct"], "+.2f")
+                cs, d_cs = fmt(r["cslope"]["fos"], ".4f"), fmt(r["cslope"]["err_pct"], "+.2f")
+                cmp_ = r.get("forces_comparison")
+                if cmp_:
+                    crossings = f"{cmp_['n_ogs']} / {cmp_['n_oracle']}"
+                    if cmp_["n_ogs"] == 0 and cmp_["n_oracle"] == 0:
                         idle.append((case["id"], c["method"], c["published"]))
-                cs_fos = r["cslope"]["fos"]
-                cs = "—" if cs_fos is None else f"{cs_fos:.4f}"
-                delta = "—" if r["cslope"]["err_pct"] is None else f"{r['cslope']['err_pct']:+.2f}"
-                state = "cSlope reproduce" if r["cslope"]["verdict"] == "OK" else "**retenido**: " + (
-                    r["cslope"]["error"] or r["cslope"]["verdict"])
             lines.append(f"| {lots[case['id']]} | {case['id']} | {n_items} | {c['method']} | {c['published']} "
-                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {cs} | {delta} | {forces} | {md_cell(state)} |")
+                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {og} | {d_og} | {cs} | {d_cs} "
+                         f"| {crossings} |")
     if idle:
-        lines += ["", "## Checks en los que el oráculo no aplica ninguna fuerza", "",
-                  "La columna «fuerzas del oráculo» cuenta las fuerzas que cSlope aplica en su superficie crítica. Con 0 el "
-                  "valor de cSlope es el del talud sin refuerzo, así que el acuerdo con el publicado **no prueba nada "
-                  "sobre los refuerzos**; el binario instalado (`a80f9a0`) descarta los activos con `along > 0`, que ogs "
-                  "aplica (E14m-1). El motor no debe usar estos checks como criterio de las fuerzas: "
-                  + ", ".join(f"{cid} ({m}, {pub})" for cid, m, pub in idle) + "."]
-    lines += ["", "## Checks descartados en la conversión", ""]
-    any_dropped = False
-    for cid in sorted(dropped):
-        for reason in dropped[cid]:
-            lines.append(f"- {cid}: {md_cell(reason)}")
-            any_dropped = True
-    if not any_dropped:
-        lines.append("Ninguno.")
-    lines += ["", "## Problemas de los lotes que no entran", ""]
-    if omitted:
-        lines += ["| id | motivo |", "|---|---|"] + [f"| {cid} | {md_cell(reason)} |" for cid, reason in omitted]
-    else:
-        lines.append("Ninguno.")
-    lines += ["", "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."]
-    return "\n".join(lines) + "\n"
+        lines += ["", "### Checks en los que ningún motor aplica fuerza", "",
+                  "Con 0 / 0 cruces la superficie fija no corta ningún elemento (en V016b, los tres quedan dentro del "
+                  "círculo), así que el FS es el del talud sin refuerzo y el acuerdo con el publicado **no prueba nada "
+                  "sobre los refuerzos**: " + ", ".join(f"{cid} ({m}, {pub})" for cid, m, pub in idle) + ".", ""]
+    lines += ["", "La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs y del oráculo) está en "
+              "[`../REPORT.md`](../REPORT.md), sección «Comparación por cruce».", ""]
+    return "\n".join(lines)
+
+
+def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], held: list[dict] | None = None,
+                             hold: dict[tuple, dict] | None = None) -> str:
+    """INDEX.md left in pending/F3R once the batches are promoted (`cases` are all the converted ones, held included)."""
+    held = held or []
+    n_held = sum(len(c["checks"]) for c in held)
+    n_all = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "# Casos con refuerzos (lotes R1 a R4): promovidos y retenidos",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "",
+        f"Los **{len(cases)}** casos de los lotes R1 a R4 (**{n_all}** checks, formato v0.4) pasaron a "
+        "[`../../cases/`](../../cases/INDEX.md), con su tabla en la sección «Casos con refuerzos»"
+        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`: tracción real del modelo, también sin refuerzos; E14n-1 de §F4.17 adoptada); "
+           "la tabla de abajo los lista con su número y el diagnóstico." if held else ". No queda ninguno retenido."),
+        "",
+    ]
+    if held:
+        lines += [
+            "Cada check retenido está convertido igual que los de `verification/cases/`; el FS reproduce el publicado, pero "
+            "el motor emite `negative_effective_normal_major` y el test de aceptación rechaza ese aviso (E5). No se relaja "
+            "ninguna tolerancia ni se toca ningún dato. Se promueven quitándolos de `HOLD.json` y regenerando.",
+            "",
+            "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+            "|---|---|---:|---|---:|---:|---:|---|",
+        ]
+        for case in held:
+            for c in case["checks"]:
+                e = (hold or {})[check_key(case["id"], c)]
+
+                def f(v):
+                    return "—" if v is None else f"{v:.4f}"
+                lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                             f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
+                             f"| {md_cell(e.get('diagnosis', ''))} |")
+        lines.append("")
+    lines.append("V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."
+                 + ("" if not omitted else " No entran: " + "; ".join(f"{cid} ({md_cell(r)})" for cid, r in omitted) + "."))
+    lines.append("")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------- gates
@@ -1332,7 +1359,8 @@ def md_cell(text: str) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def build_index(converted, omitted, discarded_by_case, order, sat_report, promoted_batches=None) -> str:
+def build_index(converted, omitted, discarded_by_case, order, sat_report, promoted_batches=None,
+                f3r_section: str = "") -> str:
     """converted: v0.1, v0.2 and v0.3 cases (v0.2: `loads` or `analysis.seismic`; v0.3: lots 1 and 2, promoted)."""
     """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
     sat_ids, sat_reason, sat_included = sat_report
@@ -1340,7 +1368,7 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     n_checks = sum(len(c["checks"]) for c in converted)
     lines = [
-        "# Casos de verificación v0.1, v0.2 y v0.3 (desde cSlope)",
+        "# Casos de verificación v0.1 a v0.4 (desde cSlope)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
@@ -1348,10 +1376,12 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
         f"Casos convertidos e incluidos: **{len(converted)}** "
         f"(v0.1: **{sum(c['model']['version'] == '0.1' for c in converted)}**, "
         f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**, "
-        f"v0.3: **{sum(c['model']['version'] == '0.3' for c in converted)}**), "
+        f"v0.3: **{sum(c['model']['version'] == '0.3' for c in converted)}**, "
+        f"v0.4 con refuerzos: **{sum(c['model']['version'] == '0.4' for c in converted)}**), "
         f"con **{n_checks}** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. "
         "Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde "
-        "`verification/pending/F3` cuando el motor reproduce sus checks. "
+        "`verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, "
+        "promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). "
         f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
         "[`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en "
@@ -1397,6 +1427,8 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
     lines += ["", "## Casos no incluidos", "", "| id | motivo |", "|---|---|"]
     for cid, reason in omitted:
         lines.append(f"| {cid} | {md_cell(reason)} |")
+    if f3r_section:
+        lines += ["", f3r_section.rstrip("\n")]
     return "\n".join(lines) + "\n"
 
 
@@ -1750,19 +1782,44 @@ def main() -> int:
         print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
         return 1
 
+    # ---- F3R holds (F4.17, E14n-1): the checks that the acceptance test rejects stay in pending/F3R (HOLD.json)
+    hold_f3r = load_hold(root / HOLD_F3R_FILE)
+    f3r_held: list[dict] = []
+    f3r_kept: list[dict] = []
+    for case in f3r_cases:
+        rest, held_case = split_hold(case, hold_f3r)
+        if held_case is not None:
+            f3r_held.append(held_case)
+        if rest is not None:
+            f3r_kept.append(rest)
+    unknown_hold_f3r = sorted(set(hold_f3r) - {check_key(c["id"], k) for c in f3r_held for k in c["checks"]})
+    if unknown_hold_f3r:
+        print("GATE FAILURES:", f"pending/F3R/HOLD.json con checks que no existen en F3R: {unknown_hold_f3r}",
+              sep="\n  ", file=sys.stderr)
+        return 1
+    f3r_all = f3r_cases
+    f3r_held_checks = [c for case in f3r_held for c in case["checks"]]
+    f3r_cases = f3r_kept
+
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
-    expected = {f"{c['id']}.json" for c in converted}
+    # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
+    all_cases = converted + f3r_cases
+    expected = {f"{c['id']}.json" for c in all_cases}
     changed = 0
-    for case in converted:
+    for case in all_cases:
         text = json.dumps(case, indent=2, ensure_ascii=False) + "\n"
         changed += write_if_changed(cases_dir / f"{case['id']}.json", text)
     for stale in sorted(cases_dir.glob("*.json")):
         if stale.name not in expected:
             stale.unlink()
             changed += 1
+    cases_report = None
+    if (root / "verification" / "report.json").is_file():
+        cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
-        converted, omitted, discarded_by_case, order, (sat_ids, sat_reason, sat_included)))
+        all_cases, omitted, {**discarded_by_case, **f3r_dropped}, order + [c["id"] for c in f3r_cases],
+        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
@@ -1791,35 +1848,35 @@ def main() -> int:
         changed += write_if_changed(f3_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
     changed += write_if_changed(f3_dir / "INDEX.md", build_f3_index(
         converted, promoted, promoted_batches, f3_held, hold_f3, lote0_ids, f3_dropped, f3_omitted))
-    # F3R: the cases wait for the engine of the reinforcements; the table comes from report.json of the harness
+    # F3R: promoted to cases/ above; only a short INDEX stays in pending/F3R
     f3r_dir = root / F3R_DIR
-    keep_f3r = {f"{c['id']}.json" for c in f3r_cases}
+    keep_f3r = {f"{c['id']}.json" for c in f3r_held}
     for stale in sorted(f3r_dir.glob("V*.json")) if f3r_dir.is_dir() else []:
         if stale.name not in keep_f3r:
             stale.unlink()
             changed += 1
-    for case in f3r_cases:
+    for case in f3r_held:
         changed += write_if_changed(f3r_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
-    f3r_report = None
-    if (f3r_dir / "report.json").is_file():
-        f3r_report = json.loads((f3r_dir / "report.json").read_text(encoding="utf-8"))
-    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_index(
-        f3r_cases, f3r_lots, f3r_omitted, f3r_dropped, f3r_report))
+    for old_file in ("report.json", "REPORT.md"):
+        if (f3r_dir / old_file).is_file():
+            (f3r_dir / old_file).unlink()
+            changed += 1
+    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_all, f3r_omitted, f3r_held, hold_f3r))
 
     # ---- summary
-    n_checks = sum(len(c["checks"]) for c in converted)
+    n_checks = sum(len(c["checks"]) for c in all_cases)
     n_v02 = sum(c["model"]["version"] == "0.2" for c in converted)
     print(f"Fuente: {src}")
     print(f"Problemas en verification.json: {len(order)}; en problems.ts: {len(problems)}")
     print(f"Lote 0 convertible hoy: {len(batch0)} casos, {sum(len(c['checks']) for c in batch0.values())} checks")
     print(f"Lote 0 retenido: {len(held_cases)} casos, {sum(len(c['checks']) for c in held_cases)} checks")
     n_v03 = sum(c["model"]["version"] == "0.3" for c in converted)
-    print(f"verification/cases: {len(converted)} casos ({len(converted) - n_v02 - n_v03} v0.1 + {n_v02} v0.2 + {n_v03} v0.3), "
-          f"{n_checks} checks")
+    print(f"verification/cases: {len(all_cases)} casos ({len(converted) - n_v02 - n_v03} v0.1 + {n_v02} v0.2 + {n_v03} v0.3 "
+          f"+ {len(f3r_cases)} v0.4), {n_checks} checks")
     nb = {b: sum(x == b for bs in promoted_batches.values() for x in bs) for b in (0, 1, 2)}
     print(f"Promovidos desde F3 a verification/cases: {len(promoted)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}")
     print(f"verification/pending/F3 (retenidos): {len(f3_held)} casos, {sum(len(c['checks']) for c in f3_held)} checks")
-    print(f"verification/pending/F3R (v0.4, refuerzos): {len(f3r_cases)} casos, "
+    print(f"verification/cases (v0.4, refuerzos, R1 a R4): {len(f3r_cases)} casos, "
           f"{sum(len(c['checks']) for c in f3r_cases)} checks; no entran: {[c for c, _ in f3r_omitted]}")
     print("Omitidos del lote 0:")
     for cid, reason in omitted:

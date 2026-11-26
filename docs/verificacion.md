@@ -9,16 +9,17 @@ un recuento propio de una tabla de esos informes, se dice.
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (93 casos, 213 checks) | **213/213** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados (116 casos, 243 checks) | **243/243** | [`verification/REPORT.md`](../verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
 | cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
-| Web y `ogs` (ida y vuelta, 275 modelos) | **275/275** | `verification/tools/test_web_roundtrip.py` |
+| cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
+| Web y `ogs` (ida y vuelta, 305 modelos) | **305/305** | `verification/tools/test_web_roundtrip.py` |
 
 ## Aceptación: casos publicados
 
-- **213 de 213 checks** publicados cumplen su tolerancia, en **93 casos** (`verification/cases/`). El informe
-  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 213 OK, 0 fallas, 0 sin dato, 0 no convergidos.
+- **243 de 243 checks** publicados cumplen su tolerancia, en **116 casos** (`verification/cases/`). El informe
+  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 243 OK, 0 fallas, 0 sin dato, 0 no convergidos.
   Test: `cargo test -p ogs-core --test acceptance`. Todo aviso que no sea informativo hace fallar un check (E5).
 - **Por versión del formato** (de [`verification/cases/INDEX.md`](../verification/cases/INDEX.md)):
 
@@ -27,36 +28,48 @@ un recuento propio de una tabla de esos informes, se dice.
   | v0.1 | 41 | 78 |
   | v0.2 (sismo o cargas) | 5 | 13 |
   | v0.3 (no drenado, polilínea, M-P, Janbu) | 47 | 122 |
-  | **Total** | **93** | **213** |
+  | v0.4 (refuerzos, lotes R1 a R4) | 23 | 30 |
+  | **Total** | **116** | **243** |
 
 - **Por método** (suma de la columna «checks» del índice; coincide con el recuento de la tabla de `REPORT.md`):
 
   | Método | Checks |
   |---|---:|
-  | Bishop simplificado | 95 |
-  | Spencer | 76 |
-  | Morgenstern-Price | 27 |
-  | Janbu simplificado | 7 |
-  | Janbu corregido | 8 |
-  | **Total** | **213** |
+  | Bishop simplificado | 108 |
+  | Spencer | 81 |
+  | Morgenstern-Price | 29 |
+  | Janbu simplificado | 8 |
+  | Janbu corregido | 17 |
+  | **Total** | **243** |
 
-  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 112 de búsqueda y 101 de superficie fija.
+  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 114 de búsqueda y 129 de superficie fija.
 - Los **47 casos v0.3** vienen de los lotes 1 y 2 de la importación desde cSlope (`undrained` y `s-f-datum`; polilíneas
   fijas, M-P y Janbu), promovidos desde `verification/pending/F3/` cuando el motor reproduce sus checks. El lote 0
   (todo lo convertible con v0.1 o v0.2) no tiene tope ni selección. El índice declara 122 checks para esos 47 casos, de
   ellos 32 del lote 0, 39 del lote 1 y 51 del lote 2
   ([`pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md)).
-- **Retenidos:** el motor no reproduce **6 checks en 4 casos**, que no cuentan en los 213 y se documentan con su
+- **Los 23 casos v0.4** (30 checks) son los lotes R1 a R4 de los refuerzos (`verification/cases/INDEX.md`, sección «Casos
+  con refuerzos»); el informe agrega la comparación de las fuerzas cruce por cruce con el oráculo (161 cruces
+  emparejados en los 30 checks, 0 sin explicar; con los 3 retenidos eran 165 en 33 checks). **V016b no prueba los refuerzos:** sus tres elementos quedan dentro del círculo, sin
+  cruce, y ni ogs ni el oráculo aplican fuerza.
+- **Retenidos:** el motor no reproduce **9 checks en 6 casos**, que no cuentan en los 243 y se documentan con su
   diagnóstico (sin relajar ninguna tolerancia):
   - V027 y V028 (Bishop, 1 check cada uno) y V068 (Bishop, 1 check): el FS cae dentro de la tolerancia, pero el motor
     emite `negative_effective_normal_major` y la aceptación rechaza ese aviso;
   - V032a (3 checks): la búsqueda halla un mínimo real, más conservador (FS 1,1706 frente a 1,209 a 1,23 publicados),
-    que sale de los rangos efectivos.
+    que sale de los rangos efectivos;
+  - V035b (Bishop, 2 checks) y V083 (Janbu corregido, 1 check): el FS cae dentro de la tolerancia y el motor emite
+    `negative_effective_normal_major`. Es una tracción real del modelo, presente también sin refuerzos (FS sin refuerzos
+    0,929 y 0,834): en V035b son 4 dovelas normales de 0,133 m con N′ de −2,1 a −30,6 kN y en V083, 12 de 0,126 m. La
+    enmienda E14n-1 (sumar las dovelas finas de cruce con sus vecinas, adoptada) no los toca; queda en
+    `pending/F3R/HOLD.json` ([`pending/F3R/INDEX.md`](../verification/pending/F3R/INDEX.md),
+    [`docs/fase3/r2i1/NOTAS.md`](fase3/r2i1/NOTAS.md) §5). V014 (Janbu corregido, 2 checks) sí era el artefacto de 8
+    dovelas finas de cruce y volvió a `verification/cases`.
 
   Detalle en [`docs/limitaciones.md`](limitaciones.md#checks-retenidos-y-casos-especiales),
   [`pending/lote0/INDEX.md`](../verification/pending/lote0/INDEX.md) y
   [`pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md).
-- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **212 de 213** de esos checks; el restante es V027, donde cSlope
+- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **242 de 243** de esos checks; el restante es V027, donde cSlope
   no converge (`REPORT.md`).
 
 ## Criterios de la Fase 3a (F3.8)
@@ -81,7 +94,7 @@ Los valores de referencia del oráculo para V047a están en `briefs/02_CONTRATOS
 - **Paridad** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos. La prueba
   `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`; sin él
   se omiten) y corre en CI sin casos omitidos.
-- **Ida y vuelta de la web** (E12g): para **275 modelos** (213 checks de los 93 casos, 56 de la batería diferencial y 6
+- **Ida y vuelta de la web** (E12g): para **305 modelos** (243 checks de los 116 casos, 56 de la batería diferencial y 6
   de frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit
   a bit, que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario
   compilado). El número de modelos lo calcula el test a partir del índice de casos.
@@ -192,7 +205,7 @@ env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python 
 - [`verification/REPORT.md`](../verification/REPORT.md): aceptación y harness frente a cSlope.
 - [`verification/differential/REPORT.md`](../verification/differential/REPORT.md): batería diferencial, incluida la
   Fase 3a y los modelos D18 a D23 de R10.
-- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 93 casos, con sus checks por método y versión.
+- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 116 casos, con sus checks por método y versión.
 - [`verification/pending/`](../verification/pending/INDEX.md): checks retenidos y problemas que el importador no
   convierte, con el motivo de cada uno.
 - [`bench/RESULTS.md`](../bench/RESULTS.md): rendimiento.

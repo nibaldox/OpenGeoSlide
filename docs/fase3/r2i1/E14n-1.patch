@@ -1,0 +1,173 @@
+diff --git a/crates/ogs-core/src/methods/mod.rs b/crates/ogs-core/src/methods/mod.rs
+index 379dcfb..c5a2889 100644
+--- a/crates/ogs-core/src/methods/mod.rs
++++ b/crates/ogs-core/src/methods/mod.rs
+@@ -145,15 +145,29 @@ pub(crate) fn negative_normal_message(
+     let mut negative_sum = 0.0_f64;
+     let mut soil_length = 0.0_f64;
+     let mut negative_length = 0.0_f64;
+-    for (k, s) in slices.iter().enumerate().filter(|(_, s)| !is_inert(s)) {
+-        let n = normal(k, s);
+-        soil_length += s.base_length;
++    // E14n-1: the thin slice of a reinforcement crossing, with the slice before and the one after it (the three that
++    // came from the same slice before the nodes of the crossing), is one slice: its `N'` is the sum of theirs. Without
++    // a crossing every range is one slice and the loop is the plain one, term by term.
++    for (start, end) in classification_ranges(slices) {
++        let (mut n, mut length, mut any) = (0.0_f64, 0.0_f64, false);
++        for (j, s) in slices.iter().enumerate().take(end).skip(start) {
++            if is_inert(s) {
++                continue;
++            }
++            n += normal(j, s);
++            length += s.base_length;
++            any = true;
++        }
++        if !any {
++            continue;
++        }
++        soil_length += length;
+         if n < floor {
+             triggered = true;
+         }
+         if n < 0.0 {
+             negative_sum += -n;
+-            negative_length += s.base_length;
++            negative_length += length;
+         }
+     }
+     if !triggered {
+@@ -179,6 +193,36 @@ pub(crate) fn negative_normal_message(
+     )
+ }
+ 
++/// The ranges `[start, end)` of the slices that are classified as one (E14n-1). A slice without a reinforcement crossing
++/// next to it is a range of its own. The thin slice of a crossing (`Slice::crossing`) is joined with the slice before it
++/// and the one after it, which came from the same slice before the nodes `x_c ± 1e-6·width` were added; thin slices that
++/// follow each other (two crossings together) are one run, with the slice before the first and the one after the last.
++/// A slice belongs to one range only.
++fn classification_ranges(slices: &[Slice]) -> Vec<(usize, usize)> {
++    let n = slices.len();
++    let mut ranges = Vec::with_capacity(n);
++    let mut k = 0;
++    while k < n {
++        let start = k;
++        let mut end = k;
++        if !slices[end].crossing && slices.get(end + 1).is_some_and(|s| s.crossing) {
++            end += 1; // the slice before the crossing
++        }
++        while end < n && slices[end].crossing {
++            end += 1;
++        }
++        if end > start && end < n {
++            end += 1; // the slice after the last crossing of the run
++        }
++        if end == start {
++            end += 1;
++        }
++        ranges.push((start, end.min(n)));
++        k = end.min(n);
++    }
++    ranges
++}
++
+ /// Air-gap check (E7a): true when an interior run of air slices (soil on both sides) transmits
+ /// `|E| > 1e-3 · Σ W`. `e[k]` is the normal interslice force on the face below slice `k`, and it is
+ /// constant across the air run.
+diff --git a/crates/ogs-core/src/reinforcement.rs b/crates/ogs-core/src/reinforcement.rs
+index b1dff43..dc3a76e 100644
+--- a/crates/ogs-core/src/reinforcement.rs
++++ b/crates/ogs-core/src/reinforcement.rs
+@@ -767,6 +767,7 @@ pub fn apply_to_slices(
+             force.fy = py;
+             force.status = ForceStatus::Applied;
+             let sl = &mut slices[k];
++            sl.crossing = true; // E14n-1
+             let y_base = 0.5 * (sl.y_base_left + sl.y_base_right);
+             let h = s_dir * px;
+             let (v, hm, de) = (
+diff --git a/crates/ogs-core/src/slicer.rs b/crates/ogs-core/src/slicer.rs
+index bb2277f..3204862 100644
+--- a/crates/ogs-core/src/slicer.rs
++++ b/crates/ogs-core/src/slicer.rs
+@@ -79,6 +79,12 @@ pub struct Slice {
+     /// dividing by `F` (E14g, Bishop).
+     #[serde(skip_serializing_if = "is_zero")]
+     pub passive_driving_extra: f64,
++    /// E14n-1: this slice carries the force of a reinforcement crossing (`reinforcement::apply_to_slices` sets it on the
++    /// thin slice `x_c ± 1e-6·width` that receives the force). It is only read by the classification of the negative
++    /// effective normal forces, which adds it to the two slices around it; it does not enter any equilibrium. It is
++    /// never serialized, so the report is the same.
++    #[serde(skip)]
++    pub crossing: bool,
+ }
+ 
+ /// `skip_serializing_if` of the passive fields: they are 0 without reinforcements, and the slices are part of the
+@@ -125,6 +131,7 @@ pub(crate) const ZERO_SLICE: Slice = Slice {
+     passive_h: 0.0,
+     passive_h_moment_base: 0.0,
+     passive_driving_extra: 0.0,
++    crossing: false,
+ };
+ 
+ /// Reasons a circle cannot be sliced.
+diff --git a/crates/ogs-core/tests/f3r2_e14n1.rs b/crates/ogs-core/tests/f3r2_e14n1.rs
+new file mode 100644
+index 0000000..dbfaacb
+--- /dev/null
++++ b/crates/ogs-core/tests/f3r2_e14n1.rs
+@@ -0,0 +1,55 @@
++//! F3R-R2 (I1b), E14n-1: the classification of the negative effective normal forces adds the thin slice of a
++//! reinforcement crossing to the slice before and the slice after it. Criterion 3 of F4.17: a real tension on slices of
++//! a normal width keeps the major warning; the artifact of a point force on a base of 1e-4 m does not.
++
++mod f3_common;
++
++use f3_common::*;
++use serde_json::{Value, json};
++
++fn model(x: f64, angle: f64, force: f64) -> Value {
++    json!({
++        "format": "opengeoslide", "version": "0.4",
++        "meta": {"id": "e14n1", "title": "active pile pulling the mass up"},
++        "units": "SI",
++        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 18.0, "cohesion": 5.0, "friction_angle": 25.0}],
++        "regions": [{"material": "s", "polygon": [[-6.0, 0.0], [-6.0, 6.0], [6.0, 6.0], [8.7, 15.0], [24.0, 15.0], [24.0, 0.0]]}],
++        "reinforcements": [{"id": "P1", "type": "pile", "x1": x, "y1": 14.0, "x2": x, "y2": -5.0, "application": "active",
++                            "force": force, "direction": "angle", "angle": angle, "spacing": 1.0}],
++        "slope": {"direction": "right_to_left"},
++        "analysis": {
++            "methods": ["bishop", "spencer"], "slices": 10, "tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2,
++            "surface": {"type": "circle", "xc": 4.658, "yc": 15.0, "r": 10.934}
++        }
++    })
++}
++
++fn warnings(doc: &Value, i: usize) -> Vec<String> {
++    run(doc).results[i].warnings.clone()
++}
++
++fn has(w: &[String], code: &str) -> bool {
++    w.iter().any(|c| c == code)
++}
++
++/// 400 kN/m at 80° from the horizontal, over slices of 1.7 m: the weight of a slice is 40 to 200 kN, so the force
++/// lifts the mass and the normal of the slice (and of its neighbours) is negative: the major warning stays.
++#[test]
++fn a_real_tension_on_slices_of_normal_width_keeps_the_major_warning() {
++    let doc = model(6.0, 80.0, 400.0);
++    for i in 0..2 {
++        let w = warnings(&doc, i);
++        assert!(has(&w, "negative_effective_normal_major"), "method {i}: {w:?}");
++    }
++}
++
++/// 100 kN/m at 80° at x = 9 crosses where the slices weigh more than the force: the only negative normal was the one of
++/// the thin slice (base 1e-4 m, W 0.005 kN), and with its neighbours the sum is positive: no note.
++#[test]
++fn the_point_force_on_a_thin_slice_is_not_a_negative_normal() {
++    let doc = model(9.0, 80.0, 100.0);
++    for i in 0..2 {
++        let w = warnings(&doc, i);
++        assert!(!has(&w, "negative_effective_normal_major") && !has(&w, "negative_effective_normal"), "method {i}: {w:?}");
++    }
++}

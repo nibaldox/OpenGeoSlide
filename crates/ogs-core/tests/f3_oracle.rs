@@ -237,7 +237,12 @@ fn morgenstern_price_constant_reproduces_spencer_on_every_verification_case() {
         };
         let spencer: Value = serde_json::from_str(&spencer_json).unwrap();
         let mut mp_doc = model.clone();
-        mp_doc["version"] = json!("0.3");
+        // M-P and `interslice` need v0.3 at least; a case with reinforcements keeps its v0.4 and stays covered.
+        let version = model["version"]
+            .as_str()
+            .filter(|v| *v >= "0.3")
+            .unwrap_or("0.3");
+        mp_doc["version"] = json!(version);
         mp_doc["analysis"]["methods"] = json!(["morgenstern_price"]);
         mp_doc["analysis"]["interslice"] = json!({"function": "constant"});
         let mp: Value = serde_json::from_str(&run_json(&mp_doc)).unwrap();
