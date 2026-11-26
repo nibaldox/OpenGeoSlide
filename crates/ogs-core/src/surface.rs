@@ -180,6 +180,36 @@ impl Surface {
         }
     }
 
+    /// [`Surface::to_report`] of the part of the surface over `[x0, x1]`, the range of the slices that were analysed
+    /// (E13l-7). A circle is reported whole, as the web draws its arc over the range of the slices. A polyline is cut
+    /// to the range: the ends are on the polyline at `x0` and `x1`, and the vertices between them stay. A range that
+    /// contains the polyline gives it back unchanged.
+    pub fn to_report_within(&self, x0: f64, x1: f64) -> SurfaceOut {
+        let Surface::Polyline(p) = self else {
+            return self.to_report();
+        };
+        let pts = &p.points;
+        let (Some(first), Some(last)) = (pts.first(), pts.last()) else {
+            return self.to_report();
+        };
+        if (x0 <= first[0] && x1 >= last[0]) || x0 >= x1 {
+            return self.to_report();
+        }
+        let mut out = Vec::with_capacity(pts.len());
+        out.push(if x0 > first[0] {
+            [x0, polyline_y(pts, x0)]
+        } else {
+            *first
+        });
+        out.extend(pts.iter().filter(|q| q[0] > x0 && q[0] < x1).copied());
+        out.push(if x1 < last[0] {
+            [x1, polyline_y(pts, x1)]
+        } else {
+            *last
+        });
+        SurfaceOut::Polyline { points: out }
+    }
+
     /// The surface as the report emits it: `{xc, yc, r}` for a circle, `{points}` for a polyline.
     pub fn to_report(&self) -> SurfaceOut {
         match self {
@@ -323,6 +353,28 @@ fn stretches(pts: &[Point], pieces: &[GroundPiece]) -> Option<Vec<Stretch>> {
     Some(out)
 }
 
+/// E13l-6: the ordinate `y` of a point that a fit puts on the ground at `x`, kept as it is unless it is off the
+/// ground by more than `tol`. On a steep segment the abscissa of the crossing carries a rounding error of one ulp that
+/// the slope multiplies (a slope of 7e7 turns 4e-15 into 3e-7), so the point would end over the ground. Then it is
+/// clamped to the one-sided limits of the ground at `x` (two at a vertical face).
+fn clamp_to_ground(pieces: &[GroundPiece], x: f64, y: f64, tol: f64) -> f64 {
+    let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+    for g in pieces.iter().filter(|g| g.x0 <= x && x <= g.x1) {
+        let v = g.y(x);
+        lo = lo.min(v);
+        hi = hi.max(v);
+    }
+    if lo > hi {
+        y
+    } else if y > hi + tol {
+        hi
+    } else if y < lo - tol {
+        lo
+    } else {
+        y
+    }
+}
+
 /// Fits the first end of `pts` (the one with the smallest `x`) to the ground: it is extended to the first crossing if
 /// it is under the ground, trimmed at the first crossing from over to under if it is over, and kept if it is on it.
 /// The other end is fitted by calling this on the mirror image.
@@ -370,12 +422,13 @@ fn fit_start(pts: &[Point], pieces: &[GroundPiece], tol: f64) -> Result<Vec<Poin
             reach = lo;
         }
         let xc = found.ok_or(POLYLINE_NO_GROUND_CROSSING)?;
-        if p0[0] - xc <= tol {
-            // The end was already on the ground, at a face.
+        // E13l-6: the end was already on the ground, at a face, only if the crossing is within `tol` in 2D. A steep end
+        // segment puts the crossing within `tol` in x of an end that is metres under the ground.
+        if (p0[0] - xc).hypot(p0[1] - line(xc)) <= tol {
             return Ok(pts.to_vec());
         }
         let mut out = Vec::with_capacity(pts.len() + 1);
-        out.push([xc, line(xc)]);
+        out.push([xc, clamp_to_ground(pieces, xc, line(xc), tol)]);
         out.extend_from_slice(pts);
         return Ok(out);
     }
@@ -388,8 +441,15 @@ fn fit_start(pts: &[Point], pieces: &[GroundPiece], tol: f64) -> Result<Vec<Poin
             } else {
                 s.u
             };
-            let mut out = vec![[xc, polyline_y(pts, xc)]];
-            out.extend(pts.iter().filter(|p| p[0] > xc + tol).copied());
+            let yc = polyline_y(pts, xc);
+            let mut out = vec![[xc, clamp_to_ground(pieces, xc, yc, tol)]];
+            // E13l-6: a vertex is dropped only if it is the crossing itself (within `tol` in 2D). One within `tol` in x
+            // of a steep stretch can be metres under the ground, and it must stay.
+            out.extend(
+                pts.iter()
+                    .filter(|p| p[0] > xc && (p[0] - xc).hypot(p[1] - yc) > tol)
+                    .copied(),
+            );
             if out.len() < 2 {
                 return Err(POLYLINE_NO_GROUND_CROSSING);
             }
@@ -513,18 +573,24 @@ fn polyline_break_points(
     }
     // A breakpoint within `tol` of a vertex of the polyline is the vertex.
     others.retain(|&x| vertices.iter().all(|&v| (x - v).abs() > tol));
-    let mut raw = vertices;
-    raw.extend(others);
-    raw.sort_by(f64::total_cmp);
+    // E13l-6: the vertices win over the merge by `tol`. `validate_polyline` separates two of them by
+    // `1e-9·width`, which is less than `tol = 1e-9·max(width, height)` in a model taller than wide, so merging them
+    // here would drop a valid vertex and leave a base that is a chord across it. Only the other breakpoints merge.
+    let mut raw: Vec<(f64, bool)> = vertices.into_iter().map(|x| (x, true)).collect();
+    raw.extend(others.into_iter().map(|x| (x, false)));
+    raw.sort_by(|p, q| p.0.total_cmp(&q.0));
 
     let mut xs = Vec::with_capacity(raw.len() + 2);
     xs.push(a);
-    for &x in &raw {
-        if x - xs[xs.len() - 1] > tol {
+    let mut last_is_vertex = false;
+    for &(x, vertex) in &raw {
+        let gap = x - xs[xs.len() - 1];
+        if gap > if vertex { 0.0 } else { tol } {
             xs.push(x);
+            last_is_vertex = vertex;
         }
     }
-    if b - xs[xs.len() - 1] <= tol && xs.len() > 1 {
+    if b - xs[xs.len() - 1] <= tol && xs.len() > 1 && !last_is_vertex {
         xs.pop();
     }
     xs.push(b);

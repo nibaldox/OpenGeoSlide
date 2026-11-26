@@ -6,7 +6,37 @@
 //
 // Un código que no está en el catálogo se muestra tal cual, como `aviso`: nunca se oculta.
 
+import type { MethodKind, MethodReport } from './types';
+import { isPolylineReport } from './surface';
+
 export type WarningSeverity = 'nota' | 'aviso';
+
+/**
+ * Contexto de un aviso (R10B-03): la superficie y el método que lo emitió. Algunos textos sugieren otro método y la
+ * sugerencia depende de la superficie: Bishop simplificado solo existe en círculos, Janbu es el contraste en polilíneas.
+ * Sin contexto (el aviso no se asocia a un método) la sugerencia es genérica.
+ */
+export interface WarningContext {
+  surface?: 'circle' | 'polyline';
+  method?: MethodKind;
+}
+
+/** Contexto de los avisos de un resultado: su método y el tipo de superficie que informó. */
+export function warningContext(r: Pick<MethodReport, 'method' | 'surface'>): WarningContext {
+  return { method: r.method, surface: isPolylineReport(r.surface) ? 'polyline' : 'circle' };
+}
+
+/** «compare con Bishop simplificado» (círculos), «compare con Janbu» (polilíneas) o «compare con otro método». */
+export function compareSuggestion(ctx: WarningContext = {}): string {
+  if (ctx.surface === 'polyline') {
+    // Un resultado de Janbu no se compara con Janbu: el contraste es otro método de equilibrio.
+    return ctx.method === 'janbu_simplified' || ctx.method === 'janbu_corrected'
+      ? 'compare con Spencer o Morgenstern-Price'
+      : 'compare con Janbu';
+  }
+  if (ctx.surface === 'circle') return 'compare con Bishop simplificado';
+  return 'compare con otro método (Bishop simplificado en círculos, Janbu en polilíneas)';
+}
 
 export interface WarningInfo {
   /** Código tal como lo emite el motor. */
@@ -18,7 +48,8 @@ export interface WarningInfo {
 
 interface CatalogEntry {
   severity: WarningSeverity;
-  text: string;
+  /** Texto fijo, o función del contexto cuando incluye una sugerencia que depende de la superficie. */
+  text: string | ((ctx: WarningContext) => string);
 }
 
 /**
@@ -49,6 +80,8 @@ export const ENGINE_WARNING_CODES = [
   'polyline_outside_ground',
   'bishop_non_circular',
   'interslice_shear_exceeds_strength',
+  'janbu_correction_extrapolated',
+  'non_positive_fos',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -98,7 +131,8 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   pole: {
     severity: 'aviso',
-    text: 'El cálculo de Spencer llegó a un punto singular (división por un valor casi nulo): la superficie no es admisible. Pruebe otra superficie o revise el sentido de deslizamiento.',
+    text: (ctx) =>
+      `El cálculo llegó a un punto singular (división por un valor casi nulo): la superficie no es admisible. Pruebe otra superficie, revise el sentido de deslizamiento o ${compareSuggestion(ctx)}.`,
   },
   no_driving: {
     severity: 'aviso',
@@ -110,19 +144,23 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   no_lambda_root: {
     severity: 'aviso',
-    text: 'Spencer no encontró ningún equilibrio (ningún λ lo satisface) en el rango de búsqueda. El FS no es un resultado definitivo; pruebe otra superficie o compare con Bishop simplificado.',
+    text: (ctx) =>
+      `El método no encontró ningún equilibrio (ningún λ lo satisface) en el rango de búsqueda. El FS no es un resultado definitivo; pruebe otra superficie o ${compareSuggestion(ctx)}.`,
   },
   no_admissible_root: {
     severity: 'aviso',
-    text: 'Spencer halló soluciones de equilibrio, pero ninguna cumple los límites de admisibilidad (Φ/F y m_α): la superficie no es admisible. Revise el sentido de deslizamiento, la superficie o el m_α mínimo en «Análisis».',
+    text: (ctx) =>
+      `El método halló soluciones de equilibrio, pero ninguna cumple los límites de admisibilidad (cierre de fuerzas, Φ/F y m_α): la superficie no es admisible. Revise el sentido de deslizamiento, la superficie o el m_α mínimo en «Análisis», o ${compareSuggestion(ctx)}.`,
   },
   negative_lambda: {
     severity: 'nota',
-    text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado.',
+    text: (ctx) =>
+      `El método seleccionó una raíz de equilibrio con λ negativo; revise el resultado o ${compareSuggestion(ctx)}.`,
   },
   multiple_admissible_roots: {
     severity: 'nota',
-    text: 'Spencer tiene varias soluciones de equilibrio admisibles; se reporta la de menor factor de seguridad.',
+    text: (ctx) =>
+      `Hay varias soluciones de equilibrio admisibles; se reporta la de menor factor de seguridad. Para contrastarla, ${compareSuggestion(ctx)}.`,
   },
   no_slices: {
     severity: 'aviso',
@@ -143,6 +181,14 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   interslice_shear_exceeds_strength: {
     severity: 'aviso',
     text: 'Las fuerzas de corte entre dovelas superan la resistencia de las caras verticales (Chen y Morgenstern, 1983): este FS puede no ser físico. Compárelo con Janbu o revise la forma de la superficie.',
+  },
+  janbu_correction_extrapolated: {
+    severity: 'nota',
+    text: 'La superficie es más profunda que el rango del gráfico de Janbu (1973) (d/L mayor que su límite); el factor de corrección f₀ es una extrapolación.',
+  },
+  non_positive_fos: {
+    severity: 'aviso',
+    text: 'El método llegó a un factor de seguridad no positivo o no finito; no se informa ningún FS. Revise la superficie.',
   },
   mock_engine: {
     severity: 'aviso',
@@ -176,6 +222,8 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   polyline_outside_ground: '/analysis/surface',
   bishop_non_circular: '/analysis/methods',
   interslice_shear_exceeds_strength: '/analysis/surface',
+  janbu_correction_extrapolated: '/analysis/methods',
+  non_positive_fos: '/analysis/methods',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */
@@ -183,16 +231,21 @@ export function warningPath(code: string): string | null {
   return Object.prototype.hasOwnProperty.call(WARNING_PATH, code) ? (WARNING_PATH[code] as string) : null;
 }
 
-/** Describe un código de aviso. Desconocido → su propio código como texto, severidad `aviso`. */
-export function describeWarning(code: string): WarningInfo {
+/** Describe un código de aviso. Desconocido → su propio código como texto, severidad `aviso`. `ctx` ajusta las sugerencias (R10B-03). */
+export function describeWarning(code: string, ctx: WarningContext = {}): WarningInfo {
   const entry = Object.prototype.hasOwnProperty.call(CATALOG, code) ? CATALOG[code] : undefined;
   if (!entry) {
     return { code, severity: 'aviso', text: code };
   }
-  return { code, severity: entry.severity, text: entry.text };
+  return { code, severity: entry.severity, text: typeof entry.text === 'function' ? entry.text(ctx) : entry.text };
 }
 
 /** Avisos sin repetir, en orden de aparición, con su descripción. */
-export function describeWarnings(codes: readonly string[]): WarningInfo[] {
-  return Array.from(new Set(codes), describeWarning);
+export function describeWarnings(codes: readonly string[], ctx: WarningContext = {}): WarningInfo[] {
+  return Array.from(new Set(codes), (code) => describeWarning(code, ctx));
+}
+
+/** Avisos de un resultado, con el contexto de su método y su superficie. */
+export function describeResultWarnings(r: Pick<MethodReport, 'method' | 'surface' | 'warnings'>): WarningInfo[] {
+  return describeWarnings(r.warnings, warningContext(r));
 }

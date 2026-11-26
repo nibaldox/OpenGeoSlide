@@ -2,7 +2,8 @@
 
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu),
-los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor. El resumen está en el
+los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+quedó retenido tras la revisión R10 (enmiendas E13l). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
 
 ## Alcance: lo que la versión actual no hace
@@ -108,13 +109,44 @@ informativo) en Spencer y en M-P. En Janbu no aplica (X = 0).
   estrato no drenado y en 281 de 1761 (16 %) con suelo homogéneo (`DIAGNOSTICO.md`, §3). Es un riesgo de las
   polilíneas, no de los círculos.
 
+### Límite del aviso `interslice_shear_exceeds_strength` (R10A-06)
+
+**Que el aviso no salga no garantiza que la solución sea física.** La revisión R10 construyó un caso bicapa en que
+Spencer da un FS casi triple que Janbu, con `r_v ≤ 3` y sin ningún aviso:
+
+- Capa superior resistente (`c = 20 kPa`, `φ = 45°`) sobre un estrato débil (`c = 2 kPa`, `φ = 10°`) y la polilínea
+  `[[5, 20], [12, 10], [17, 9.9], [22, 10], [30, 30]]`: Spencer **12,665** (λ = 0,227) frente a **4,356** de Janbu
+  simplificado (2,91 veces) y 4,598 de Janbu corregido. cSlope coincide con Janbu (4,356) y **no converge** en Spencer.
+- Con `c = 40 kPa` arriba, `c = 1 kPa` abajo y el vértice a `y = 9,8`: Spencer 12,100 frente a 4,788 (2,53 veces).
+
+La capacidad vertical `c_v·h + E′·tan φ_v` de la cara usa el promedio en altura de la capa fuerte, y eso mantiene
+`r_v ≤ 3`. El umbral 3 queda como está: es una clasificación calibrada entre los casos de referencia y las soluciones
+absurdas de D-1, no una garantía. Además:
+
+- **Solo cuentan las caras con `E′ > 0`** (aclaración de E13k, E13l): la fórmula usa `E′` y no `máx(E′, 0)`. Una cara
+  en tracción o con presión de agua mayor que el empuje no entra en el criterio, aunque tenga cohesión; esa condición se
+  trata con los avisos de tracción (`negative_effective_normal`, `negative_effective_normal_major`) y no con este.
+- La resistencia de una cara vertical sobre un **contacto vertical** entre dos materiales se toma del lado más débil
+  (E13l-6); en cualquier otro punto de la cara, del promedio en altura de los materiales que cruza.
+
+**Qué hacer.** Compare siempre Spencer y Morgenstern-Price con Janbu sobre la misma polilínea: un cociente mayor que 2
+es una señal de alarma aunque no haya aviso, y el FS de Janbu es entonces la referencia conservadora. Esta es una
+limitación del criterio, no un error que se vaya a corregir con otro umbral.
+
 ### Janbu: raíz de F₀ y corrección empírica
 
 - F₀ de Janbu es la **menor raíz admisible**, con la nota `multiple_admissible_roots` si hay más de una (E13j-4), igual
   que Spencer (E12e). Dos raíces dentro de un mismo paso de la malla de búsqueda de la raíz no se distinguen.
 - Janbu **simplificado** no usa la ecuación de momento. El **corregido** multiplica por un factor empírico
-  `f₀ = 1 + b₁·(d/L − 1,4·(d/L)²)`, informado como `correction_factor`; `L` y `d` se miden sobre el **bloque de suelo**
-  (sin las dovelas aéreas de los extremos), como en cSlope.
+  `f₀ = máx(1, 1 + b₁·(d/L − 1,4·(d/L)²))`, informado como `correction_factor`; `L` y `d` se miden sobre el **bloque de
+  suelo** (sin las dovelas aéreas de los extremos), como en cSlope. **La corrección nunca reduce F₀** (E13l-1).
+- **Límite del gráfico (E13l-1).** La parábola ajusta el gráfico de Janbu et al. (1973), cuyo eje `d/L` llega a 0,4
+  (Abramson et al., 2002). Con `d/L > 0,4`, `f₀` es una **extrapolación** y el motor agrega la nota
+  `janbu_correction_extrapolated`. Sin el piso de 1, `f₀` baja de 1 desde `d/L = 0,714` y se vuelve negativo desde
+  `d/L ≈ 1,4`: la revisión R10 obtuvo con una polilínea profunda un FS de −23,43 marcado `converged` (R10A-01) y de
+  −0,752 (R10B-01). Para esas superficies, F₀ de Janbu simplificado es la cota que no depende de la corrección.
+- **Ningún método devuelve `converged` con un FS menor o igual que cero o no finito** (E13l-1): el resultado pasa a
+  `not_converged`, sin FS, con el motivo `non_positive_fos`.
 
 ### Material no drenado
 
@@ -123,6 +155,49 @@ informativo) en Spencer y en M-P. En Janbu no aplica (X = 0).
 - `ru` no cambia la resistencia de un material no drenado, porque φ = 0.
 - Un material con Su = 0 no aporta resistencia: sus caras quedan excluidas del criterio `r_v`.
 - No hay SHANSEP ni Su dependiente de la tensión efectiva (queda para la Fase 3b).
+
+## Revisión R10: lo que cambió (E13l) y lo que sigue abierto
+
+La revisión adversarial R10 (Antigravity, dos lentes: [`R10_agy_A.md`](reviews/R10_agy_A.md) y
+[`R10_agy_B.md`](reviews/R10_agy_B.md)) encontró hallazgos que el contrato resuelve en las enmiendas E13l
+(`briefs/02_CONTRATOS_FASE3.md`, F3.10c). Lo que el usuario nota:
+
+| Enmienda | Qué cambia | Hallazgo |
+|---|---|---|
+| E13l-1 | `f₀` de Janbu nunca baja de 1, con la nota `janbu_correction_extrapolated` más allá de `d/L = 0,4`; ningún método da `converged` con FS ≤ 0 (`not_converged`, `non_positive_fos`) | R10A-01, R10B-01 |
+| E13l-2 | En polilíneas, la comprobación `no_driving` (E3) evalúa `Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento, la misma `t` del equilibrio de fuerzas. Antes, una polilínea sobre terreno horizontal con `kh` o con una carga horizontal era `invalid` (`no_driving`) aunque cSlope converge. Los círculos no cambian | R10A-02 |
+| E13l-4 | En M-P el paso del barrido de λ es `0,05 / máx(f̄, f_máx/2)`, así que `λ·f` no salta más de 0,1 por paso; f se normaliza internamente por `f_máx` y λ se informa en la escala del usuario. Las cinco funciones estándar dan el mismo resultado de antes. Un `data_points` de pico angosto (D10: `[0,0],[0.88,0],[0.90,1],[0.92,0],[1,0]`) o de escala muy pequeña ya no cae en `no_lambda_root` | R10A-08 |
+| E13l-5 | Si el punto medio de la base está a menos de `tol` de un **contacto entre dos materiales**, se toma el **más débil**, por `c + máx(0, σ′)·tan φ` (o Su) con `σ′ = W·cos²α/b − u`. Antes se tomaba siempre el de arriba: una polilínea sobre el techo de un estrato débil daba 3,630 frente a 3,018 de cSlope (+20,3 %, no conservador) | R10A-04 |
+| E13l-6 | La prolongación y el recorte de los extremos de la polilínea usan la **distancia 2D** (un tramo casi vertical ya no se corta ni se deja bajo el terreno); los **vértices de la polilínea** tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol`, así que la base de cada dovela sigue siendo recta; la cara vertical sobre un contacto vertical toma la resistencia del lado más débil | R10A-05, R10A-09 |
+| E13l-7 | Con `truncated_driving_mass`, `report.surface` de una polilínea se recorta al **rango analizado**, como el trazo de los círculos; la web dibuja y exporta ese rango | R10B-05 |
+| E13l-8 | El esquema `ogs-0.3.schema.json` exige `analysis.methods` en una polilínea fija (el valor por defecto `["bishop"]` la rechaza); `validateLocal` aplica ese valor por defecto | R10A-10, R10B-04 |
+
+Los modelos D18 a D23 de la batería diferencial cubren lo que R10 señaló sin cobertura: Su con gradiente negativo y
+piso (D18), M-P con `clipped_sine` y `trapezoidal` (D19 y D20), una polilínea sobre un contacto (D21, E13l-5) y una
+polilínea en terreno horizontal con `kh` o con carga horizontal (D22 y D23, E13l-2). Véase
+[`verificacion.md`](verificacion.md#batería-diferencial-frente-a-cslope).
+
+### Lo que sigue abierto
+
+- **Escala de los residuos con cargas verticales grandes (R10A-03 y R10A-07).** La escala `máx(ΣW, ΣW*)` de E13j-6
+  puede ocultar un desequilibrio real cuando una sobrecarga vertical enorme actúa sobre un tramo que no aporta al
+  equilibrio (suelo no drenado con un tramo de base horizontal): con `Su = 20 kPa`, `γ = 18 kN/m³` y una carga de 1e9 kPa
+  sobre un tramo plano, Spencer da `converged` con 1,252 en vez de 1,601, con un residuo de momento de 4,25 % de `ΣW·Σb`. Con suelo casi sin
+  peso (`γ = 1e-6`) y una carga lineal puramente horizontal, `ΣW` es mucho menor que las fuerzas y Spencer puede no
+  converger donde cSlope sí lo hace (5,562). La misma escala puede degradar `negative_effective_normal_major` a nota en
+  V068 si hay una carga en el pie (f de 0,190 del peso del suelo, pero 0,035 de `ΣW*`). La corrección prevista (E13l-3)
+  es una **escala motriz**, `máx(ΣW, Σ|t_i|, Σ|H_i|)`, y solo se adopta si cumple los cuatro criterios del contrato (V018,
+  V077 y V078 siguen convergiendo; todos los demás modelos quedan idénticos; el contraejemplo de la sobrecarga inerte no
+  converge falsamente; V068 conserva el aviso). Mientras no se implemente, la limitación vale: no use cargas
+  verticales enormes sobre tramos horizontales no drenados sin comparar con Janbu.
+- **Criterio de cortante entre dovelas:** `r_v ≤ 3` no garantiza una solución física
+  ([arriba](#límite-del-aviso-interslice_shear_exceeds_strength-r10a-06)).
+- **Raíz de Janbu en `F₀ = 0` (R10A-11, 3):** la búsqueda de la raíz de E13j-4 (`force_root_at_zero`) explora el
+  intervalo `[máx(lo, near/100), mín(3·near, 1e3)]` y esas evaluaciones **no cuentan** en el presupuesto
+  `max_iterations`, que se comprueba antes de llamarla. Es un límite acotado, no un lazo abierto; se documenta y no se
+  cambia.
+- **`unit_weight_sat` sin cobertura frente a otro programa** (R10A-11, 4): véase la última entrada de
+  [Limitaciones numéricas](#limitaciones-numéricas-conocidas-del-motor).
 
 ## Checks retenidos y casos especiales
 
@@ -220,8 +295,9 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
 verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (213/213
 checks en 93 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
-con Bishop y Spencer, 43/43 con M-P, Janbu corregido y D15-D17,
-[`verification/differential/REPORT.md`](../verification/differential/REPORT.md)). Las limitaciones de Spencer
+con Bishop y Spencer; M-P, Janbu corregido y D15-D23 en
+[`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en
+[`verificacion.md`](verificacion.md)). Las limitaciones de Spencer
 (R4-01, R4-02, R5-05) valen también para Morgenstern-Price, que comparte su solver y sus guardas.
 
 - **R4-01, selección de la raíz de λ en Spencer (resuelto por E12e):** entre varias raíces admisibles, Spencer elige
@@ -248,7 +324,9 @@ con Bishop y Spencer, 43/43 con M-P, Janbu corregido y D15-D17,
 - **R4-02, paso fijo de 0,05 en el barrido de λ:** dos raíces admisibles dentro del mismo paso no se detectan y el
   resultado es `no_lambda_root`, aunque cSlope converge (p. ej., c_top = 74,05: cSlope 1,914138 y ogs sin FS).
   Aviso: `no_lambda_root`, con estado `not_converged` y sin FS. En Morgenstern-Price el barrido es sobre `λ·f̄`, con paso
-  `0,05/f̄`; si `f̄ ≤ 0`, el estado es `no_lambda_root`.
+  `0,05 / máx(f̄, f_máx/2)` (E13l-4); si `f̄ ≤ 0`, el estado es `no_lambda_root`. Un pico de `f` más angosto que una
+  dovela, que cae entre dos fronteras, puede dar `f̄ = 0` y el estado `invalid` con `no_lambda_root`: use una función más
+  ancha o más dovelas.
 - **R4-03a, avisos de búsqueda:** `truncated_driving_mass` solo se evalúa en la superficie final. Si el círculo crítico
   ganador no está truncado, el aviso de un bloque descartado motriz de un candidato truncado se pierde.
   Aviso: ninguno en ese caso.
@@ -260,6 +338,7 @@ con Bishop y Spencer, 43/43 con M-P, Janbu corregido y D15-D17,
 - **Cierre de fuerzas con suelo casi sin peso (E13j-6):** el cierre y el residuo de momento se miden sobre
   `max(ΣW, ΣW*)` (W* es el peso con sismo y cargas), porque con γ = 1e-6 (problemas de Prandtl) ΣW es mucho menor que las
   fuerzas que mueven la masa. Sin cargas y con kv ≤ 0 la salida es idéntica; en 1206 corridas solo cambian V018, V077 y
-  V078.
+  V078. Con cargas verticales grandes la escala puede ocultar un desequilibrio: véase
+  [lo que sigue abierto](#lo-que-sigue-abierto) (R10A-03).
 - **`unit_weight_sat` sin cobertura:** ninguno de los 93 casos de verificación usa `unit_weight_sat`. La ruta de peso
   saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.

@@ -47,6 +47,9 @@ def model_for_check(model: dict, check: dict) -> dict:
     # Como el arnés: la función entre dovelas solo viaja con Morgenstern-Price (el motor rechaza `interslice` sin él).
     if check["method"] != "morgenstern_price":
         analysis.pop("interslice", None)
+    elif (check.get("options") or {}).get("interslice"):
+        # like to_cslope.interslice_options: the check's function wins over the model's (R10A-11)
+        analysis["interslice"] = copy.deepcopy(check["options"]["interslice"])
     if "slices" in check.get("options", {}):
         analysis["slices"] = int(check["options"]["slices"])
     if check["kind"] == "fixed":

@@ -2,7 +2,7 @@
 // con las incidencias locales en un único `Diagnostics` para el store. Lógica pura (sin React).
 
 import { engineErrorCode, userMessage } from '../../engine/errors';
-import { describeWarning, warningPath } from '../../engine/warnings';
+import { describeWarning, warningContext, warningPath } from '../../engine/warnings';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types';
 import type { Diagnostics, Issue } from '../types';
 
@@ -44,8 +44,9 @@ export function issuesFromReport(report: AnalysisReport): Issue[] {
         path: null,
       });
     }
+    const ctx = warningContext(r);
     for (const code of r.warnings) {
-      const info = describeWarning(code);
+      const info = describeWarning(code, ctx);
       issues.push({
         source: 'engine',
         severity: info.severity,

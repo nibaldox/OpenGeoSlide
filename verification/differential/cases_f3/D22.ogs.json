@@ -1,0 +1,87 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D22",
+    "title": "Polilínea en terreno horizontal con kh",
+    "notes": "Terreno horizontal (y = 10) en arcilla con Su = 50 kPa y γ = 20 kN/m³. Polilínea fija simétrica (bloque de 5 m de profundidad) con kh = 0,3: la única fuerza motriz es el sismo horizontal. Ejercita E3 con t = W·sen α + H·cos α en superficies no circulares (E13l-2)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "clay",
+      "name": "Arcilla (Su constante)",
+      "model": "undrained",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "undrained_strength": 50.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          40.0,
+          10.0
+        ],
+        [
+          40.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "spencer",
+      "morgenstern_price",
+      "janbu_simplified",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "polyline",
+      "points": [
+        [
+          10.0,
+          10.0
+        ],
+        [
+          15.0,
+          5.0
+        ],
+        [
+          25.0,
+          5.0
+        ],
+        [
+          30.0,
+          10.0
+        ]
+      ]
+    },
+    "seismic": {
+      "kh": 0.3,
+      "kv": 0.0
+    }
+  }
+}

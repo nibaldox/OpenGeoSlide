@@ -98,3 +98,19 @@ def test_cslope_not_converged_is_never_a_reference_value():
     assert res["status"] == "not_converged" and res["fos"] == pytest.approx(0.0830)
     assert run.verdict(res["fos"], res["status"], 0.0830, 0.05) == "no convergido"
     assert run.estado("OK", "no convergido") == "OK · cSlope no convergido"
+
+
+# --- R10A-11: the check's `options.interslice` travels to ogs like it does to cSlope
+
+def test_model_for_check_applies_options_interslice_to_morgenstern_price():
+    model = {"analysis": {"interslice": {"function": "half_sine"}, "methods": ["spencer"]}}
+    check = {"method": "morgenstern_price", "kind": "fixed", "options": {"interslice": {"function": "trapezoidal"}}}
+    doc = run.model_for_check(model, check)
+    assert doc["analysis"]["interslice"] == {"function": "trapezoidal"}
+    assert model["analysis"]["interslice"] == {"function": "half_sine"}      # the case is not touched
+
+
+def test_model_for_check_drops_interslice_for_the_other_methods_even_if_the_check_has_it():
+    model = {"analysis": {"interslice": {"function": "half_sine"}}}
+    check = {"method": "spencer", "kind": "fixed", "options": {"interslice": {"function": "trapezoidal"}}}
+    assert "interslice" not in run.model_for_check(model, check)["analysis"]

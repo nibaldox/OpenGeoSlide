@@ -267,8 +267,8 @@ def test_warnings_cell_lists_only_non_informative_codes_per_check():
 F3_MODELS = build_cases.build_all_f3()
 
 
-def test_v0_3_models_d15_d17_are_committed_and_designed_as_intended():
-    assert sorted(F3_MODELS) == ["D15", "D16", "D17"]
+def test_v0_3_models_d15_d23_are_committed_and_designed_as_intended():
+    assert sorted(F3_MODELS) == [f"D{i}" for i in range(15, 24)]
     for case_id, model in F3_MODELS.items():
         path = HERE / "cases_f3" / f"{case_id}.ogs.json"
         assert path.read_text(encoding="utf-8") == build_cases.serialize(model), f"{path.name} is stale"
@@ -282,12 +282,40 @@ def test_v0_3_models_d15_d17_are_committed_and_designed_as_intended():
     assert "cohesion" not in linear and "friction_angle" not in linear
     constant = {m["id"]: m for m in F3_MODELS["D16"]["materials"]}["tailings"]
     assert constant["model"] == "undrained" and "strength_gradient" not in constant
-    for case_id in ("D15", "D16"):
+    for case_id in ("D15", "D16", "D18", "D19", "D20"):
         a = F3_MODELS[case_id]["analysis"]
-        assert a["methods"] == ["bishop", "spencer"] and a["surface"]["type"] == "circle" and a["search"]
+        assert a["methods"][:2] == ["bishop", "spencer"] and a["surface"]["type"] == "circle" and a["search"]
     d17 = F3_MODELS["D17"]["analysis"]
     assert d17["surface"]["type"] == "polyline" and len(d17["surface"]["points"]) >= 3 and "search" not in d17
     assert "bishop" not in d17["methods"] and set(d17["methods"]) == {"spencer", "morgenstern_price", "janbu_corrected"}
+
+
+def test_r10_models_d18_d23_cover_what_the_93_cases_and_d01_d17_did_not():
+    """R10A-11 4 and the contrapositives of E13l-2 and E13l-5: each model is there for one thing."""
+    d18 = {m["id"]: m for m in F3_MODELS["D18"]["materials"]}["clay"]
+    assert d18["model"] == "undrained" and d18["strength_gradient"] < 0 and d18["strength_limit"] > 0
+    # the floor is reached inside the fixed circle: its lowest point is under the depth where Su gets to the limit
+    circle = F3_MODELS["D18"]["analysis"]["surface"]
+    floor_y = d18["strength_datum"] + (d18["undrained_strength"] - d18["strength_limit"]) / d18["strength_gradient"]
+    assert circle["yc"] - circle["r"] < floor_y
+    for cid, fn in (("D19", "clipped_sine"), ("D20", "trapezoidal")):
+        a = F3_MODELS[cid]["analysis"]
+        assert a["interslice"] == {"function": fn} and "morgenstern_price" in a["methods"], cid
+    assert F3_MODELS["D19"]["regions"] == F3_MODELS["D20"]["regions"]        # only the function differs
+    assert F3_MODELS["D19"]["analysis"]["surface"] == F3_MODELS["D20"]["analysis"]["surface"]
+    # D21: a segment of the polyline lies exactly on the edge shared by two regions
+    d21 = F3_MODELS["D21"]
+    shared = {y for r in d21["regions"] for _, y in r["polygon"]}
+    pts = d21["analysis"]["surface"]["points"]
+    assert any(a[1] == b[1] and a[1] in shared and a[1] == 10.0 for a, b in zip(pts, pts[1:]))
+    assert len(d21["regions"]) == 2 and len(d21["materials"]) == 2
+    # D22 and D23: level ground, a driving force that is only horizontal (kh, or a line load at 90 degrees)
+    for cid in ("D22", "D23"):
+        m = F3_MODELS[cid]
+        ground = {y for r in m["regions"] for x, y in r["polygon"] if y > 0}
+        assert ground == {10.0} and m["analysis"]["surface"]["type"] == "polyline", cid
+    assert F3_MODELS["D22"]["analysis"]["seismic"]["kh"] == 0.3 and "loads" not in F3_MODELS["D22"]
+    assert F3_MODELS["D23"]["loads"][0]["angle"] == 90.0 and "seismic" not in F3_MODELS["D23"]["analysis"]
 
 
 def _plan():
@@ -314,7 +342,14 @@ def test_f3_plan_runs_m_p_and_janbu_corrected_on_every_circle_and_the_new_models
     assert by_case["D17"] == [("spencer", "fixed", ("polyline",)),
                               ("morgenstern_price", "fixed", ("morgenstern_price", "polyline")),
                               ("janbu_corrected", "fixed", ("janbu_corrected", "polyline"))]
-    assert len(plan) == 28 + 12 + 3
+    for cid in ("D18", "D19", "D20"):             # circles: the same plan as D15 and D16
+        assert [(m, k) for m, k, _ in by_case[cid]] == [
+            ("bishop", "search"), ("bishop", "fixed"), ("spencer", "search"), ("spencer", "fixed"),
+            ("morgenstern_price", "fixed"), ("janbu_corrected", "fixed")], cid
+    assert [m for m, _, _ in by_case["D21"]] == ["spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]
+    assert [m for m, _, _ in by_case["D22"]] == ["spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]
+    assert [m for m, _, _ in by_case["D23"]] == ["janbu_simplified", "janbu_corrected"]
+    assert len(plan) == 28 + 12 + 3 + 28
 
 
 def test_f3_models_use_version_0_3_for_the_new_methods_even_when_the_case_is_older():
@@ -408,8 +443,8 @@ def test_f3_section_of_the_report_says_pending_and_lists_the_capabilities(tmp_pa
     assert "## Fase 3a" in text and "pendiente" in text
     assert "| morgenstern_price | no |" in text and "| undrained | sí |" in text
     summary = run.summarize_f3(rows)
-    assert summary["N"] == 43 and summary["pendiente"] > 0 and summary["pendiente"] + summary["FALLA"] \
-        + summary["OK"] + summary["sin dato"] == 43
+    assert summary["N"] == 71 and summary["pendiente"] > 0 and summary["pendiente"] + summary["FALLA"] \
+        + summary["OK"] + summary["sin dato"] == 71
     # undrained is supported by the fake engine: Bishop and Spencer on D15 and D16 are compared, not pending
     assert any(r["case_id"] == "D15" and r["method"] == "bishop" and r["verdict"] == "FALLA" for r in rows)
 
@@ -425,8 +460,8 @@ def test_run_keeps_the_old_report_and_adds_the_f3_section(tmp_path):
     assert len(report["checks"]) == 56 and report["summary"]["search"]["N"] == 28 and report["summary"]["fixed"]["N"] == 28
     assert report["report_version"] == "3"
     f3 = report["f3"]
-    assert f3["summary"]["N"] == 43 and set(f3["capabilities"]) == set(run.CAPABILITIES)
-    assert f3["summary"]["FALLA"] + f3["summary"]["sin dato"] + f3["summary"]["pendiente"] + f3["summary"]["OK"] == 43
+    assert f3["summary"]["N"] == 71 and set(f3["capabilities"]) == set(run.CAPABILITIES)
+    assert f3["summary"]["FALLA"] + f3["summary"]["sin dato"] + f3["summary"]["pendiente"] + f3["summary"]["OK"] == 71
     text = (out / "REPORT.md").read_text(encoding="utf-8")
     assert text.startswith("# Batería diferencial") and "## Fase 3a" in text
     assert text.index("## Tabla de línea base") < text.index("## Fase 3a") < text.index("## Reproducir")

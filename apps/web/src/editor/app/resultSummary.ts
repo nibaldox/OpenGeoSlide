@@ -3,7 +3,7 @@
 
 import { convergedFos } from '../../analysis/runner';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types';
-import { describeWarnings } from '../../engine/warnings';
+import { describeResultWarnings } from '../../engine/warnings';
 import { formatFs } from '../../ui/formatFs';
 
 const SHORT_NAME: Record<MethodKind, string> = {
@@ -30,6 +30,10 @@ export interface SummaryItem {
   fs: string;
   converged: boolean;
   status: string;
+  /** Avisos de severidad `aviso` del método (códigos distintos); las notas no cuentan (R10B-09). */
+  warnings: number;
+  /** El método tiene avisos de severidad `aviso`: la franja muestra «Con aviso» junto a su FS. */
+  flagged: boolean;
 }
 
 export interface WarningCounts {
@@ -40,12 +44,15 @@ export interface WarningCounts {
 export function summaryItems(report: AnalysisReport): SummaryItem[] {
   return report.results.map((r) => {
     const fos = convergedFos(r);
+    const warnings = describeResultWarnings(r).filter((w) => w.severity === 'aviso').length;
     return {
       method: r.method,
       name: FULL_NAME[r.method],
       fs: formatFs(fos),
       converged: r.status === 'converged',
       status: STATUS_TEXT[r.status],
+      warnings,
+      flagged: warnings > 0,
     };
   });
 }
@@ -54,7 +61,7 @@ export function warningCounts(report: AnalysisReport): WarningCounts {
   let avisos = 0;
   let notas = 0;
   for (const r of report.results) {
-    for (const w of describeWarnings(r.warnings)) {
+    for (const w of describeResultWarnings(r)) {
       if (w.severity === 'aviso') avisos += 1;
       else notas += 1;
     }
@@ -74,7 +81,7 @@ export function warningCountsText({ avisos, notas }: WarningCounts): string | nu
 
 /** Mensaje para la región `aria-live="polite"` al terminar un cálculo: «Cálculo completado: Bishop FS 0,985; Spencer FS 0,984; 2 notas». */
 export function calcAnnouncement(report: AnalysisReport): string {
-  const parts = summaryItems(report).map((i) => (i.converged ? `${SHORT_NAME[i.method]} FS ${i.fs}` : `${SHORT_NAME[i.method]} sin convergencia`));
+  const parts = summaryItems(report).map((i) => (i.converged ? `${SHORT_NAME[i.method]} FS ${i.fs}${i.flagged ? ' con aviso' : ''}` : `${SHORT_NAME[i.method]} sin convergencia`));
   const counts = warningCountsText(warningCounts(report));
   if (counts) parts.push(counts);
   return `Cálculo completado: ${parts.join('; ')}`;
