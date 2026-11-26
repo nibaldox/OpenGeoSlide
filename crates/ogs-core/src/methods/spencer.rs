@@ -1,5 +1,12 @@
 //! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), amendments E10c, E11a, E11b, E11c and E12e.
 //!
+//! The scheme below is written once for Spencer and for Morgenstern-Price (E13d, `morgenstern_price.rs`). With the
+//! interslice function `f` on the faces of the slices, `X_k = λ f_k E_k`, the closure of a slice is
+//! `E_{k+1} D_r = E_k D_l + q` and the moment residual has `Σ b (X_k + X_{k+1})` where Spencer has `λ Σ b (E_k + E_{k+1})`
+//! (see `balance_at`, [`interslice_forces`] and `Scheme`). Spencer runs the loops with `G = false`, which are the
+//! original ones, so its results do not change by a bit. On a polyline (`SolveOptions::circular == false`) the F of the
+//! start of the scan is Janbu's F₀ (E13f, `janbu.rs`) instead of Bishop's FS.
+//!
 //! Sign convention (§4.3 leaves it to the implementer):
 //! - Slices run toe → crest, with `alpha > 0` when the base rises toward the crest, so `W·sin α > 0` drives the slide.
 //! - `E[k]` is the normal interslice force on the face below slice `k` (`E[0]` toe face, `E[n]` crest face).
@@ -57,7 +64,7 @@
 
 use super::{
     MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, converged_notes, is_inert,
-    lacks_driving, m_alpha, negative_normal_message,
+    janbu, lacks_driving, m_alpha, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -193,31 +200,37 @@ pub fn spencer_direct_normals(slices: &[Slice], lambda: f64, e: &[f64]) -> Vec<f
 }
 
 /// Lower bound of F from the admissibility at `λ` (E11b): `Φ_i / F ≥ min_m` reads `p_i + (a_i − min_m)·F ≥ 0`, with
-/// `p_i = (sin α − λ cos α) tan φ` and `a_i = cos α + λ sin α`. For `a_i > min_m` it gives
+/// `p_i = (sin α − λ f_i cos α) tan φ` and `a_i = cos α + λ f_i sin α`. For `a_i > min_m` it gives
 /// `F ≥ −p_i/(a_i − min_m)`; the bound is the largest of these (0 if none). Slices with `a_i ≤ min_m` give an upper
-/// bound, which the admissibility test of the candidates checks.
-fn pole_bound(slices: &[Slice], lambda: f64, min_m: f64) -> f64 {
+/// bound, which the admissibility test of the candidates checks. `f_i` is the interslice function of the face that the
+/// march resolves in the slice (E13d; `1` in Spencer, so `λ f_i = λ` bit for bit).
+fn pole_bound(preps: &[Prep], lambda: f64, min_m: f64) -> f64 {
     let mut bound = 0.0_f64;
-    for s in slices.iter().filter(|s| !is_inert(s)) {
-        let (sin, cos) = s.alpha.sin_cos();
-        let p = (sin - lambda * cos) * s.tan_phi;
-        let a = cos + lambda * sin;
+    for p in preps.iter().filter(|p| !p.inert) {
+        let sf = lambda * p.fr;
+        let q = (p.sin - sf * p.cos) * p.tan_phi;
+        let a = p.cos + sf * p.sin;
         if a - min_m > 0.0 {
-            bound = bound.max(-p / (a - min_m));
+            bound = bound.max(-q / (a - min_m));
         }
     }
     bound
 }
 
 /// Admissibility of a root at `(F, λ)` (E11b). On every soil slice: `Φ_i / F ≥ min_m_alpha` (at λ = 0 this is
-/// Bishop's `m_α`), and `m_α(F) ≥ min_m_alpha`. NaN fails.
-fn admissible(slices: &[Slice], fos: f64, lambda: f64, min_m: f64) -> bool {
+/// Bishop's `m_α`), and `m_α(F) ≥ min_m_alpha`. NaN fails. In Morgenstern-Price `Φ_i` uses `λ f_i` (E13d).
+fn admissible(slices: &[Slice], preps: &[Prep], fos: f64, lambda: f64, min_m: f64) -> bool {
     fos.is_finite()
         && fos > 0.0
         && slices
             .iter()
-            .filter(|s| !is_inert(s))
-            .all(|s| pole(s, fos, lambda) / fos >= min_m && m_alpha(s, fos) >= min_m)
+            .zip(preps)
+            .filter(|(s, _)| !is_inert(s))
+            .all(|(s, p)| {
+                let sf = lambda * p.fr;
+                ((p.sin - sf * p.cos) * p.tan_phi + (p.cos + sf * p.sin) * fos) / fos >= min_m
+                    && m_alpha(s, fos) >= min_m
+            })
 }
 
 /// Per-slice terms that do not depend on `(F, λ)`, computed once per solve (E10c, performance). With `H` the horizontal
@@ -233,12 +246,18 @@ struct Prep {
     t: f64,
     res: f64,
     inert: bool,
+    /// Interslice function on the left face of the slice (the one the march carries in) and on the right face (the one
+    /// it resolves, E13d). `1` in Spencer: every product `λ·f` and `f·E` below is then exact.
+    fl: f64,
+    fr: f64,
 }
 
-fn prepare(slices: &[Slice]) -> Vec<Prep> {
+/// Per-slice terms. `faces` are the values of `f` on the `n + 1` faces (`None` is Spencer, `f ≡ 1`).
+fn prepare(slices: &[Slice], faces: Option<&[f64]>) -> Vec<Prep> {
     slices
         .iter()
-        .map(|s| {
+        .enumerate()
+        .map(|(k, s)| {
             let (sin, cos) = s.alpha.sin_cos();
             Prep {
                 sin,
@@ -251,6 +270,8 @@ fn prepare(slices: &[Slice]) -> Vec<Prep> {
                     + s.cohesion * s.base_length
                     - s.h_force * sin * s.tan_phi,
                 inert: is_inert(s),
+                fl: faces.map_or(1.0, |f| f[k]),
+                fr: faces.map_or(1.0, |f| f[k + 1]),
             }
         })
         .collect()
@@ -263,27 +284,41 @@ struct Balance {
     closure: f64,
     /// `Σ b (E_k + E_{k+1}) tan α_k`: the numerator of Zhu's moment update, without divisor.
     num: f64,
-    /// `Σ b (E_k + E_{k+1})`: the denominator of Zhu's update.
+    /// `Σ b (f_k E_k + f_{k+1} E_{k+1})`: the denominator of Zhu's update. The interslice shear is `λ` times this
+    /// (`X = λ f E`, E13d); with `f ≡ 1` it is `Σ b (E_k + E_{k+1})`.
     den: f64,
 }
 
 /// Balance at `(fos, λ)`, or `None` at a pole (`D ≤ 1e-9·F` on a soil slice) or a non-finite recurrence.
-fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
+///
+/// `G` selects the code with an interslice function (E13d). `G = false` is Spencer's loop with no `f` in it, so Spencer
+/// keeps its exact arithmetic and its speed; `G = true` with `f ≡ 1` gives the same bits, since every product by `1` is
+/// exact.
+fn balance_at<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
     let mut e = 0.0_f64;
     let (mut num, mut den) = (0.0_f64, 0.0_f64);
     for p in preps {
         let e_prev = e;
         if !p.inert {
-            let d = (p.sin - lambda * p.cos) * p.tan_phi + (p.cos + lambda * p.sin) * fos;
+            let sf = if G { lambda * p.fr } else { lambda };
+            let d = (p.sin - sf * p.cos) * p.tan_phi + (p.cos + sf * p.sin) * fos;
             if d.is_nan() || d <= POLE_FRACTION * fos {
                 return None;
             }
-            e = e_prev + (fos * p.t - p.res) / d;
+            if !G || p.fl == p.fr {
+                e = e_prev + (fos * p.t - p.res) / d;
+            } else {
+                // E13d: `E_{k+1} D_r = E_k D_l + q`, with `D_l` the pole of the left face. Written as the increment
+                // `(D_l − D_r) E_k + q` over `D_r`, which is exactly the recurrence of Spencer when `D_l = D_r`.
+                let sfl = lambda * p.fl;
+                let dl = (p.sin - sfl * p.cos) * p.tan_phi + (p.cos + sfl * p.sin) * fos;
+                e = e_prev + ((dl - d) * e_prev + (fos * p.t - p.res)) / d;
+            }
         }
         // Air slices keep E, and they take part in the sums with their own α (E7a).
         let sum_e = e_prev + e;
         num += p.width * sum_e * p.tan;
-        den += p.width * sum_e;
+        den += p.width * if G { p.fl * e_prev + p.fr * e } else { sum_e };
     }
     if !(e.is_finite() && num.is_finite() && den.is_finite()) {
         return None;
@@ -298,18 +333,29 @@ fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
 /// Closure `E_n` and its derivative `dE_n/dF` at `(fos, λ)`, or `None` at a pole or a non-finite value. The derivative
 /// is exact: `D = a + b·F` is linear in F, so `d(ΔE)/dF = (t·D − (F·t − res)·b) / D²`. Used by the Newton fast path of
 /// the force root only (allocation-free).
-fn closure_slope(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
+fn closure_slope<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
     let (mut e, mut de) = (0.0_f64, 0.0_f64);
     for p in preps.iter().filter(|p| !p.inert) {
-        let b = p.cos + lambda * p.sin;
-        let d = (p.sin - lambda * p.cos) * p.tan_phi + b * fos;
+        let sf = if G { lambda * p.fr } else { lambda };
+        let b = p.cos + sf * p.sin;
+        let d = (p.sin - sf * p.cos) * p.tan_phi + b * fos;
         if d.is_nan() || d <= POLE_FRACTION * fos {
             return None;
         }
         let q = fos * p.t - p.res;
         let inv = 1.0 / d;
-        e += q * inv;
-        de += (p.t * d - q * b) * inv * inv;
+        if !G || p.fl == p.fr {
+            e += q * inv;
+            de += (p.t * d - q * b) * inv * inv;
+        } else {
+            // E13d: `E' = E + (g E + q)/D_r`, with `g = D_l − D_r = (λ f_l − λ f_r)(F sin α − cos α tan φ)`.
+            let sfl = lambda * p.fl;
+            let g = (sfl - sf) * (fos * p.sin - p.cos * p.tan_phi);
+            let dg = (sfl - sf) * p.sin;
+            let num = (dg * e + g * de + p.t) * d - (g * e + q) * b;
+            de += num * inv * inv;
+            e += (g * e + q) * inv;
+        }
     }
     (e.is_finite() && de.is_finite()).then_some((e, de))
 }
@@ -525,8 +571,7 @@ struct Root {
 }
 
 /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
-struct Scheme<'a> {
-    slices: &'a [Slice],
+struct Scheme {
     preps: Vec<Prep>,
     m_bound: f64,
     /// `min_m_alpha` of the admissibility (E11b).
@@ -536,16 +581,20 @@ struct Scheme<'a> {
     total_width: f64,
     /// `2·Σ h_moment_base`: twice the moment of the horizontal forces about the base midpoints (E12b).
     moment_h: f64,
+    /// Mean of the interslice function on the interior faces (E13d); the scan covers `λ·f̄ ∈ [−0.5; 1.5]`. `1` in Spencer.
+    fbar: f64,
+    /// `true` with an interslice function (Morgenstern-Price): the loops carry `f` (see [`balance_at`]).
+    general: bool,
     budget: usize,
     evaluations: usize,
 }
 
-impl Scheme<'_> {
+impl Scheme {
     /// Lower bound of F at `λ`: Bishop's `m_α` bound (E8b) and the admissibility of the poles (E11b).
     fn lower(&self, lambda: f64) -> f64 {
         let bound = self
             .m_bound
-            .max(pole_bound(self.slices, lambda, self.min_m));
+            .max(pole_bound(&self.preps, lambda, self.min_m));
         if bound > 0.0 {
             bound * (1.0 + ADM_MARGIN)
         } else {
@@ -560,12 +609,14 @@ impl Scheme<'_> {
         fos >= FOS_FLOOR
             && (self.m_bound <= 0.0 || fos >= self.m_bound * (1.0 + ADM_MARGIN))
             && self.preps.iter().filter(|p| !p.inert).all(|p| {
-                let a = p.cos + lambda * p.sin - self.min_m;
-                a <= 0.0 || (p.sin - lambda * p.cos) * p.tan_phi + a * scaled >= 0.0
+                let sf = lambda * p.fr;
+                let a = p.cos + sf * p.sin - self.min_m;
+                a <= 0.0 || (p.sin - sf * p.cos) * p.tan_phi + a * scaled >= 0.0
             })
     }
 
     /// Normalised moment residual `ρ = [Σb(E_k + E_{k+1})(tan α_k − λ) − 2·Σ h_moment_base] / (ΣW · Σb)` (E11a, E12b).
+    /// With an interslice function (E13d) the term `λ·Σb(E_k + E_{k+1})` is `Σb(X_k + X_{k+1})`.
     fn residual(&self, b: &Balance, lambda: f64) -> f64 {
         (b.num - lambda * b.den - self.moment_h) / (self.total_w * self.total_width)
     }
@@ -574,18 +625,32 @@ impl Scheme<'_> {
     fn point(&self, lambda: f64, warm: f64, guess: f64) -> Option<Point> {
         let preps = &self.preps;
         let total_w = self.total_w;
+        let general = self.general;
         let closed = |b: &Balance| b.closure.abs() / total_w <= ROOT_ACCEPT;
-        let slope =
-            |x: f64| closure_slope(preps, lambda, x).map(|(e, de)| (e / total_w, de / total_w));
+        let balance = |x: f64| {
+            if general {
+                balance_at::<true>(preps, lambda, x)
+            } else {
+                balance_at::<false>(preps, lambda, x)
+            }
+        };
+        let slope = |x: f64| {
+            let s = if general {
+                closure_slope::<true>(preps, lambda, x)
+            } else {
+                closure_slope::<false>(preps, lambda, x)
+            };
+            s.map(|(e, de)| (e / total_w, de / total_w))
+        };
         let fast = newton_near(&slope, guess, warm)
             .filter(|&x| self.above_lower(lambda, x))
-            .and_then(|x| balance_at(preps, lambda, x).filter(closed).map(|b| (x, b)));
+            .and_then(|x| balance(x).filter(closed).map(|b| (x, b)));
         let (fos, b) = match fast {
             Some(found) => found,
             None => {
-                let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+                let closure = |x: f64| balance(x).map(|b| b.closure / total_w);
                 let fos = root_near(&closure, warm, self.lower(lambda))?;
-                (fos, balance_at(preps, lambda, fos)?)
+                (fos, balance(fos)?)
             }
         };
         Some(Point {
@@ -706,7 +771,9 @@ fn bracket(
 /// defined points with Brent. It returns every root; the choice among them is [`select_root`]. There is no early stop:
 /// the root of smallest F can be at any λ.
 fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
-    let at = |k: i32| k as f64 * SCAN_STEP;
+    // E13d: the scan covers `λ·f̄ ∈ [−0.5; 1.5]` with step `0.05/f̄`. With `f̄ = 1` this is the grid of Spencer, bit for bit.
+    let fbar = scheme.fbar;
+    let at = |k: i32| (k as f64 * SCAN_STEP) / fbar;
     let zero = eval(scheme, 0.0, scheme.start, scheme.start)?;
     let mut roots = Vec::new();
     point_root(&mut roots, 0.0, zero, tol_r);
@@ -762,20 +829,14 @@ fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
 }
 
 fn outcome(
+    kind: MethodKind,
     fos: f64,
     status: SolveStatus,
     iterations: usize,
     lambda: Option<f64>,
     message: Option<&str>,
 ) -> MethodResult {
-    MethodResult::new(
-        MethodKind::Spencer,
-        fos,
-        status,
-        iterations,
-        lambda,
-        message,
-    )
+    MethodResult::new(kind, fos, status, iterations, lambda, message)
 }
 
 /// Diagnostic curves of the scheme (E10c): for each λ, `(λ, F_m(λ), F_f(λ))`.
@@ -802,14 +863,15 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
             1.0
         };
     let scheme = Scheme {
-        slices,
-        preps: prepare(slices),
+        preps: prepare(slices, None),
         m_bound,
         min_m: DIAGNOSTIC_MIN_M,
         start: start_fos,
         total_w: slices.iter().map(|s| s.weight).sum(),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+        fbar: 1.0,
+        general: false,
         budget: usize::MAX,
         evaluations: 0,
     };
@@ -819,10 +881,11 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .iter()
         .map(|&lambda| {
             let preps = &scheme.preps;
-            let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+            let closure =
+                |x: f64| balance_at::<false>(preps, lambda, x).map(|b| b.closure / total_w);
             let force = root_near(&closure, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
-                balance_at(preps, lambda, x)
+                balance_at::<false>(preps, lambda, x)
                     .and_then(|b| moment_ratio(&b, scheme.moment_h))
                     .map(|m| m - lambda)
             };
@@ -839,52 +902,62 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .collect()
 }
 
+/// Mean of the interslice function over the interior faces of the block (E13d). A block of one slice has none, and the
+/// mean is then over its two faces.
+fn mean_interior(faces: &[f64]) -> f64 {
+    let n = faces.len().saturating_sub(1);
+    let interior = if n >= 2 { &faces[1..n] } else { faces };
+    interior.iter().sum::<f64>() / interior.len() as f64
+}
+
+/// Starting factor of safety of the λ scan (E13f). On a circle it is Bishop's FS, or 1 if Bishop is invalid. On a
+/// polyline Bishop is not defined (F3.6), and the start is Janbu's simplified F₀, or 1 if that does not converge.
+fn start_value(slices: &[Slice], opts: &SolveOptions) -> f64 {
+    let start = if opts.circular {
+        let b = bishop::solve(slices, opts);
+        (b.status != SolveStatus::Invalid).then_some(b.fos)
+    } else {
+        janbu::start_fos(slices, opts)
+    };
+    start.filter(|f| f.is_finite() && *f > 0.0).unwrap_or(1.0)
+}
+
 /// The λ search state and its Brent stop `tol_r` (E11c), or the early result: `no_slices`, `no_driving` (E3) or `m_alpha`
-/// (E8b, a slice that Bishop's criterion rejects for every F makes every Spencer state inadmissible too).
-fn setup<'a>(slices: &'a [Slice], opts: &SolveOptions) -> Result<(Scheme<'a>, f64), MethodResult> {
+/// (E8b, a slice that Bishop's criterion rejects for every F makes every Spencer state inadmissible too). `faces` are
+/// the values of the interslice function on the `n + 1` faces (`None`: Spencer, `f ≡ 1`). `Invalid("no_lambda_root")`
+/// if their mean over the interior faces is not positive (E13d).
+fn setup(
+    kind: MethodKind,
+    slices: &[Slice],
+    opts: &SolveOptions,
+    faces: Option<&[f64]>,
+) -> Result<(Scheme, f64), MethodResult> {
+    let early =
+        |message: &str| outcome(kind, f64::NAN, SolveStatus::Invalid, 0, None, Some(message));
     if slices.is_empty() {
-        return Err(outcome(
-            f64::NAN,
-            SolveStatus::Invalid,
-            0,
-            None,
-            Some("no_slices"),
-        ));
+        return Err(early("no_slices"));
     }
     if lacks_driving(slices) {
-        return Err(outcome(
-            f64::NAN,
-            SolveStatus::Invalid,
-            0,
-            None,
-            Some("no_driving"),
-        ));
+        return Err(early("no_driving"));
     }
     let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
-        return Err(outcome(
-            f64::NAN,
-            SolveStatus::Invalid,
-            0,
-            None,
-            Some("m_alpha"),
-        ));
+        return Err(early("m_alpha"));
     };
-    let start = bishop::solve(slices, opts);
-    let start_fos =
-        if start.status != SolveStatus::Invalid && start.fos.is_finite() && start.fos > 0.0 {
-            start.fos
-        } else {
-            1.0
-        };
+    let fbar = faces.map_or(1.0, mean_interior);
+    if !(fbar.is_finite() && fbar > 0.0) {
+        return Err(early("no_lambda_root"));
+    }
+    let start_fos = start_value(slices, opts);
     let scheme = Scheme {
-        slices,
-        preps: prepare(slices),
+        preps: prepare(slices, faces),
         m_bound,
         min_m: opts.min_m_alpha,
         start: start_fos,
         total_w: slices.iter().map(|s| s.weight).sum(),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+        fbar,
+        general: faces.is_some(),
         budget: opts.max_iterations,
         evaluations: 0,
     };
@@ -906,7 +979,7 @@ pub struct SpencerRoot {
 /// scan (no slices, no driving moment, `m_alpha`) or the evaluation budget runs out. It is the list from which
 /// [`solve`] picks the admissible root of smallest F (E12e), so a test can check that choice.
 pub fn spencer_roots(slices: &[Slice], opts: &SolveOptions) -> Option<Vec<SpencerRoot>> {
-    let (mut scheme, tol_r) = setup(slices, opts).ok()?;
+    let (mut scheme, tol_r) = setup(MethodKind::Spencer, slices, opts, None).ok()?;
     let found = scan(&mut scheme, tol_r).ok()?;
     Some(
         found
@@ -915,32 +988,133 @@ pub fn spencer_roots(slices: &[Slice], opts: &SolveOptions) -> Option<Vec<Spence
             .map(|r| SpencerRoot {
                 lambda: r.lambda,
                 fos: r.fos,
-                admissible: admissible(slices, r.fos, r.lambda, opts.min_m_alpha),
+                admissible: admissible(slices, &scheme.preps, r.fos, r.lambda, opts.min_m_alpha),
             })
             .collect(),
     )
 }
 
-/// Spencer solver (E10c, E11a, E11b, E11c, E12e). Start: `F` from Bishop (or 1 if Bishop is invalid).
+/// Root `F₀` of the force closure at `λ = 0`, `E_n(F, 0) = 0` (Janbu's simplified method, E13e), and the number of
+/// evaluations of the closure. It is the closure of Spencer with no interslice shear: the same march, with `H`, `W*`
+/// and the loads of E12b, and no moment equation. The root is the one nearest to Fellenius' start inside the region of
+/// the admissibility at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, E4b). `Err` carries the status, the reason and the
+/// evaluations: `no_slices`, `no_driving` (E3) and `m_alpha` are `Invalid`; `max_iterations` and `no_admissible_root`
+/// are `NotConverged`.
+pub(super) fn force_root_at_zero(
+    slices: &[Slice],
+    opts: &SolveOptions,
+) -> Result<(f64, usize), (SolveStatus, &'static str, usize)> {
+    if slices.is_empty() {
+        return Err((SolveStatus::Invalid, "no_slices", 0));
+    }
+    if lacks_driving(slices) {
+        return Err((SolveStatus::Invalid, "no_driving", 0));
+    }
+    let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
+        return Err((SolveStatus::Invalid, "m_alpha", 0));
+    };
+    let preps = prepare(slices, None);
+    let bound = m_bound.max(pole_bound(&preps, 0.0, opts.min_m_alpha));
+    let lo = if bound > 0.0 {
+        bound * (1.0 + ADM_MARGIN)
+    } else {
+        FOS_FLOOR
+    };
+    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let evaluations = std::cell::Cell::new(0_usize);
+    let closure = |x: f64| {
+        evaluations.set(evaluations.get() + 1);
+        balance_at::<false>(&preps, 0.0, x).map(|b| b.closure / total_w)
+    };
+    let root = root_near(&closure, bishop::start_fos(slices).max(1.05 * lo), lo);
+    let used = evaluations.get();
+    if used > opts.max_iterations {
+        return Err((SolveStatus::NotConverged, "max_iterations", used));
+    }
+    match root {
+        Some(f0) if admissible(slices, &preps, f0, 0.0, opts.min_m_alpha) => Ok((f0, used)),
+        _ => Err((SolveStatus::NotConverged, "no_admissible_root", used)),
+    }
+}
+
+/// Interslice normal forces `E[0..=n]` with the interslice function `faces` (E13d: `X_k = λ f_k E_k`) at `(F, λ)`,
+/// and `E[0] = 0`. The march of [`spencer_interslice`] with two faces: `E_{k+1} D_r = E_k D_l + q`, with `D_l` and
+/// `D_r` the poles of the left and right faces and `q = F·T − R + (F cos α + tan φ sin α)·H`. Air slices pass `E`
+/// unchanged. With `f ≡ 1` it is [`spencer_interslice`] bit for bit.
+pub fn interslice_forces(slices: &[Slice], faces: &[f64], fos: f64, lambda: f64) -> Vec<f64> {
+    let mut e = Vec::with_capacity(slices.len() + 1);
+    e.push(0.0);
+    for (k, s) in slices.iter().enumerate() {
+        let prev = e[k];
+        if is_inert(s) {
+            e.push(prev);
+            continue;
+        }
+        let d = pole(s, fos, lambda * faces[k + 1]);
+        let (sin, cos) = s.alpha.sin_cos();
+        let thrust = (fos * cos + s.tan_phi * sin) * s.h_force;
+        let q = fos * driving(s) - resisting(s) + thrust;
+        if faces[k] == faces[k + 1] {
+            e.push(prev + q / d);
+        } else {
+            let dl = pole(s, fos, lambda * faces[k]);
+            e.push(prev + ((dl - d) * prev + q) / d);
+        }
+    }
+    e
+}
+
+/// Effective normal forces `N'` for an interslice function (E13d), free of `m_α`:
+/// `N' = W* cos α − U − H sin α + sin α·ΔE − cos α·ΔX`, with `ΔX = X_{k+1} − X_k = λ (f_{k+1} E_{k+1} − f_k E_k)`.
+/// With `f ≡ 1` this is [`spencer_direct_normals`].
+pub fn direct_normals_with(slices: &[Slice], faces: &[f64], lambda: f64, e: &[f64]) -> Vec<f64> {
+    slices
+        .iter()
+        .enumerate()
+        .map(|(k, s)| {
+            let (sin, cos) = s.alpha.sin_cos();
+            let de = e[k + 1] - e[k];
+            let dx = lambda * (faces[k + 1] * e[k + 1] - faces[k] * e[k]);
+            s.total_weight() * cos - s.pore_pressure * s.base_length - s.h_force * sin + sin * de
+                - cos * dx
+        })
+        .collect()
+}
+
+/// Spencer solver (E10c, E11a, E11b, E11c, E12e). Start: `F` from Bishop (or 1 if Bishop is invalid); on a polyline,
+/// Janbu's simplified F₀ (E13f).
 ///
 /// 1. `no_driving` (E3) and the Bishop lower bound (E8b) are checked first.
-/// 2. The λ scan covers the whole range [−0.5; 1.5], and each root is refined to `|ρ| ≤ tol_r` (E11c).
+/// 2. The λ scan covers the whole range [−0.5; 1.5] (for `λ·f̄` with an interslice function, E13d), and each root is
+///    refined to `|ρ| ≤ tol_r` (E11c).
 /// 3. The candidates are the admissible roots (E11b). λ* is the admissible root of smallest F (E12e), with the notes
 ///    `negative_lambda` when it is negative and `multiple_admissible_roots` when another candidate is more than 1 %
 ///    above it.
 /// 4. At λ*, the closure `|E_n| ≤ 1e-6·ΣW` is checked, and the normal forces (E7d) and the notes (E7a, E7d) are
 ///    attached to the `Converged` result.
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
-    let (mut scheme, tol_r) = match setup(slices, opts) {
+    solve_with_faces(MethodKind::Spencer, slices, opts, None)
+}
+
+/// The solver of [`solve`] for any interslice function (E13d): `kind` is the method that the result reports, and
+/// `faces` the values of `f` on the `n + 1` faces of the block (`None`: `f ≡ 1`, Spencer). Morgenstern-Price calls it
+/// with its function; the scheme, the guards and the root selection are the same.
+pub(super) fn solve_with_faces(
+    kind: MethodKind,
+    slices: &[Slice],
+    opts: &SolveOptions,
+    faces: Option<&[f64]>,
+) -> MethodResult {
+    let (mut scheme, tol_r) = match setup(kind, slices, opts, faces) {
         Ok(setup) => setup,
         Err(result) => return result,
     };
     let total_w = scheme.total_w;
-    let admissible_at = |r: &Root| admissible(slices, r.fos, r.lambda, opts.min_m_alpha);
     let search = match scan(&mut scheme, tol_r) {
         Ok(search) => search,
         Err(msg) => {
             return outcome(
+                kind,
                 f64::NAN,
                 SolveStatus::NotConverged,
                 scheme.evaluations,
@@ -951,6 +1125,8 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     };
     let iterations = scheme.evaluations;
     // E12e: the admissible root of smallest F (ties: smallest |λ|).
+    let admissible_at =
+        |r: &Root| admissible(slices, &scheme.preps, r.fos, r.lambda, opts.min_m_alpha);
     let Some((root, multiple)) = select_root(&search.roots, &admissible_at) else {
         let msg = if !search.roots.is_empty() {
             "no_admissible_root"
@@ -958,6 +1134,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
             "no_lambda_root"
         };
         return outcome(
+            kind,
             f64::NAN,
             SolveStatus::NotConverged,
             iterations,
@@ -968,9 +1145,13 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let (lambda, fos) = (root.lambda, root.fos);
 
     // Forces at the root: the exact recurrence at (F, λ*).
-    let e = spencer_interslice(slices, fos, lambda);
+    let e = match faces {
+        None => spencer_interslice(slices, fos, lambda),
+        Some(f) => interslice_forces(slices, f, fos, lambda),
+    };
     if e.iter().any(|v| !v.is_finite()) {
         return outcome(
+            kind,
             fos,
             SolveStatus::Invalid,
             iterations,
@@ -981,6 +1162,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let closure = e.last().copied().unwrap_or(0.0).abs();
     if closure > CLOSURE_FRACTION * total_w {
         return outcome(
+            kind,
             fos,
             SolveStatus::NotConverged,
             iterations,
@@ -989,7 +1171,10 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         );
     }
 
-    let normals = spencer_direct_normals(slices, lambda, &e);
+    let normals = match faces {
+        None => spencer_direct_normals(slices, lambda, &e),
+        Some(f) => direct_normals_with(slices, f, lambda, &e),
+    };
     let normal_class = negative_normal_message(slices, |k, _| normals[k]);
     let air = air_gap_thrust(slices, &e);
     let mut notes = Vec::with_capacity(3);
@@ -1000,7 +1185,15 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         notes.push(MULTIPLE_ROOTS_MESSAGE);
     }
     notes.extend(converged_notes(air, normal_class));
-    outcome(fos, SolveStatus::Converged, iterations, Some(lambda), None).with_warnings(notes)
+    outcome(
+        kind,
+        fos,
+        SolveStatus::Converged,
+        iterations,
+        Some(lambda),
+        None,
+    )
+    .with_warnings(notes)
 }
 
 #[cfg(test)]

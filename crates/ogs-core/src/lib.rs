@@ -10,7 +10,7 @@
 //! - v0.3 (amendments E13a-E13g): the `undrained` material (`strength`), the polyline surface (`surface`), the
 //!   methods `morgenstern_price`, `janbu_simplified` and `janbu_corrected`, and `analysis.interslice`. The format,
 //!   the version gate and the validations are complete. The fixed polyline (E13c) is fitted to the ground, sliced and
-//!   solved here; the new methods stop at an `unimplemented!` stub (`F3-W1b`, in `methods::solve`) until their wave.
+//!   solved here, and the methods of v0.3 (Morgenstern-Price and Janbu) are dispatched by `methods::solve_with`.
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
 //! - Slices circular surfaces and fixed polylines (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
@@ -32,7 +32,7 @@ pub mod surface;
 
 use geometry::{Ground, PreparedModel};
 use loads::{LOAD_OUTSIDE_MASS, LoadCase};
-use methods::{SolveOptions, SolveStatus, is_inert, solve};
+use methods::{SolveOptions, SolveStatus, is_inert, solve_with};
 use model::{
     AnalysisSettings, FORMAT, IntersliceFunction, IntersliceSpec, MethodKind, Model, SearchSpec,
     SurfaceSpec,
@@ -342,7 +342,7 @@ fn analyze_method(
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
                 let slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
-                let res = solve(&slices, method, opts);
+                let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
                 valid.then_some(res.fos)
@@ -389,7 +389,7 @@ fn analyze_method(
     let sliced = slice_surface_of(pm, &surface, n, load_case)
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let slices = sliced.slices;
-    let result = solve(&slices, method, opts);
+    let result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
 
     // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is ignored in v0.1.
     //    The list is the water note, then the slicing notes (E10a: `truncated_mass`), then the reason of the

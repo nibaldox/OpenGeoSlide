@@ -1,0 +1,45 @@
+diff --git a/crates/ogs-cli/src/bench.rs b/crates/ogs-cli/src/bench.rs
+index fe1d68d..525635a 100644
+--- a/crates/ogs-cli/src/bench.rs
++++ b/crates/ogs-cli/src/bench.rs
+@@ -15,7 +15,7 @@ use serde_json::{Value, json};
+ 
+ const USAGE: &str = "uso: ogs bench <caso.json> [--reps N] \
+      [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] \
+-     (all = bishop y spencer)";
++     (all = los cinco métodos)";
+ /// Methods that need the format v0.3 (E13a): the benchmark raises the version of the case for them.
+ const V03_METHODS: [&str; 3] = ["morgenstern_price", "janbu_simplified", "janbu_corrected"];
+ const WARMUP_RUNS: usize = 1;
+@@ -87,7 +87,13 @@ fn parse(args: &[&str]) -> Result<Options, String> {
+     }
+     let path = path.ok_or("falta el archivo de caso")?;
+     let methods = match method {
+-        "all" => vec!["bishop", "spencer"],
++        "all" => vec![
++            "bishop",
++            "spencer",
++            "morgenstern_price",
++            "janbu_simplified",
++            "janbu_corrected",
++        ],
+         "bishop" => vec!["bishop"],
+         "spencer" => vec!["spencer"],
+         "morgenstern_price" => vec!["morgenstern_price"],
+@@ -200,8 +206,14 @@ mod tests {
+         let all = parse(&["caso.json"]).unwrap();
+         assert_eq!(
+             all.methods,
+-            vec!["bishop", "spencer"],
+-            "all keeps the two original methods"
++            vec![
++                "bishop",
++                "spencer",
++                "morgenstern_price",
++                "janbu_simplified",
++                "janbu_corrected"
++            ],
++            "all runs the five methods"
+         );
+         assert!(parse(&["caso.json", "--method", "janbu"]).is_err());
+     }

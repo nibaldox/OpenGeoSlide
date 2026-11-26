@@ -1,11 +1,14 @@
-//! Limit-equilibrium solvers: simplified Bishop (§4.2) and Spencer, i.e. Morgenstern-Price with f = 1 (§4.3).
+//! Limit-equilibrium solvers: simplified Bishop (§4.2), Spencer, i.e. Morgenstern-Price with f = 1 (§4.3), Morgenstern-Price
+//! with the interslice functions of E13d, and Janbu simplified and corrected (E13e).
 
 mod bishop;
+mod janbu;
+pub mod morgenstern_price;
 pub mod spencer;
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::MethodKind;
+use crate::model::{IntersliceSpec, MethodKind};
 use crate::slicer::Slice;
 
 /// Relative driving threshold of amendment E3: `Σ W·sin α ≤ 1e-6 · Σ W` means no driving moment.
@@ -166,8 +169,8 @@ pub struct SolveOptions {
     pub max_iterations: usize,
     /// Bishop: `m_α` below this value marks the solution as `Invalid`.
     pub min_m_alpha: f64,
-    /// `true` when the slices come from a circle (E13f). On a polyline (`false`) Bishop is not admissible and
-    /// Spencer / Morgenstern-Price start from Janbu's F₀ instead of Bishop's FS. Set by `lib.rs` (F3-W1a).
+    /// `true` when the slices come from a circle (E13f). On a polyline (`false`) Bishop is not admissible (`Invalid`)
+    /// and Spencer / Morgenstern-Price start from Janbu's F₀ instead of Bishop's FS. Set by `lib.rs`.
     pub circular: bool,
 }
 
@@ -194,7 +197,7 @@ pub struct MethodResult {
     pub lambda: Option<f64>,
     pub message: Option<String>,
     pub warnings: Vec<String>,
-    /// `f₀` of `janbu_corrected` (E13e); `None` for every other method. Filled by F3-W1b.
+    /// `f₀` of `janbu_corrected` (E13e); `None` for every other method.
     pub correction_factor: Option<f64>,
 }
 
@@ -227,17 +230,28 @@ impl MethodResult {
     }
 }
 
-/// Solves the slices with the given method. Dispatches to `bishop::solve` or `spencer::solve`.
+/// Solves the slices with the given method; Morgenstern-Price uses its default function (`half_sine`). See
+/// [`solve_with`].
+pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> MethodResult {
+    solve_with(slices, method, opts, None)
+}
+
+/// Solves the slices with the given method. `interslice` is `analysis.interslice` (E13d) and only
+/// `morgenstern_price` reads it: without it the function is `half_sine`.
 ///
 /// `slices` must be ordered toe → crest, with `alpha > 0` when the base rises toward the crest.
-pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> MethodResult {
+pub fn solve_with(
+    slices: &[Slice],
+    method: MethodKind,
+    opts: &SolveOptions,
+    interslice: Option<&IntersliceSpec>,
+) -> MethodResult {
     match method {
         MethodKind::Bishop => bishop::solve(slices, opts),
         MethodKind::Spencer => spencer::solve(slices, opts),
-        // Wave 0 stub: F3-W1b replaces this arm with the solvers of the new methods.
-        MethodKind::MorgensternPrice | MethodKind::JanbuSimplified | MethodKind::JanbuCorrected => {
-            unimplemented!("F3-W1b")
-        }
+        MethodKind::MorgensternPrice => morgenstern_price::solve(slices, opts, interslice),
+        MethodKind::JanbuSimplified => janbu::solve(slices, opts, false),
+        MethodKind::JanbuCorrected => janbu::solve(slices, opts, true),
     }
 }
 
