@@ -1,10 +1,12 @@
-// Tipos fieles a briefs/00_CONTRATOS.md: §1 (modelo .ogs.json v0.1), §2 (caso de verificación)
-// y §3 (AnalysisReport). Los nombres son snake_case, igual que el JSON del motor.
+// Tipos fieles a briefs/00_CONTRATOS.md: §1 (modelo .ogs.json), §2 (caso de verificación)
+// y §3 (AnalysisReport), con las enmiendas de briefs/01_CONTRATOS_FASE1.md (v0.2) y
+// briefs/02_CONTRATOS_FASE3.md (v0.3, F3.1-F3.7). Los nombres son snake_case, igual que el JSON del motor.
 // Los campos marcados como opcionales son los que tienen default en el motor (#[serde(default)]).
 
 export type Point = [number, number];
 
-export type MaterialModel = 'mohr_coulomb';
+/** `undrained` exige version "0.3" (F3.2). */
+export type MaterialModel = 'mohr_coulomb' | 'undrained';
 
 export interface Meta {
   id?: string | null;
@@ -19,11 +21,19 @@ export interface Material {
   /** kN/m³ (SI) o pcf (imperial). */
   unit_weight: number;
   unit_weight_sat?: number | null;
-  /** kPa (SI) o psf. Para φ = 0 (no drenado) es Su. */
-  cohesion: number;
-  /** Grados. */
-  friction_angle: number;
+  /** kPa (SI) o psf. Obligatoria con `mohr_coulomb` y prohibida con `undrained` (F3.2). */
+  cohesion?: number | null;
+  /** Grados. Obligatoria con `mohr_coulomb` y prohibida con `undrained` (F3.2). */
+  friction_angle?: number | null;
   ru?: number | null;
+  /** Su en `strength_datum` (kPa o psf, ≥ 0). Obligatoria con `undrained`; prohibida con `mohr_coulomb`. Solo version "0.3". */
+  undrained_strength?: number | null;
+  /** Cota y de referencia de Su (no una profundidad). Va junto con `strength_gradient`. Solo version "0.3". */
+  strength_datum?: number | null;
+  /** Variación de Su por unidad de longitud en y (kPa/m o psf/ft, finito y de cualquier signo): Su = Su₀ + (datum − y)·gradient. Solo version "0.3". */
+  strength_gradient?: number | null;
+  /** Tope de Su (≥ 0); solo con `strength_gradient`. Solo version "0.3". */
+  strength_limit?: number | null;
 }
 
 export interface Region {
@@ -44,7 +54,8 @@ export interface SlopeSettings {
   direction?: Direction;
 }
 
-export type MethodKind = 'bishop' | 'spencer';
+/** `morgenstern_price`, `janbu_simplified` y `janbu_corrected` exigen version "0.3" (F3.4-F3.5). */
+export type MethodKind = 'bishop' | 'spencer' | 'morgenstern_price' | 'janbu_simplified' | 'janbu_corrected';
 
 export interface Circle {
   xc: number;
@@ -52,8 +63,25 @@ export interface Circle {
   r: number;
 }
 
-export interface SurfaceSpec extends Circle {
+export interface CircleSurfaceSpec extends Circle {
   type: 'circle';
+}
+
+/** Superficie polilínea fija (v0.3, F3.3): x estrictamente creciente, al menos 2 puntos. */
+export interface PolylineSurfaceSpec {
+  type: 'polyline';
+  points: Point[];
+}
+
+export type SurfaceSpec = CircleSurfaceSpec | PolylineSurfaceSpec;
+
+/** Función de fuerzas entre dovelas de Morgenstern-Price (v0.3, F3.4). */
+export type IntersliceFunction = 'constant' | 'half_sine' | 'clipped_sine' | 'trapezoidal' | 'data_points';
+
+/** `analysis.interslice` (v0.3, F3.4). `points` [[ξ, f], …] solo con `data_points` y obligatorio con ella. */
+export interface IntersliceSpec {
+  function: IntersliceFunction;
+  points?: Point[];
 }
 
 export interface SearchSpec {
@@ -116,13 +144,15 @@ export interface AnalysisSettings {
   min_m_alpha?: number;
   surface?: SurfaceSpec | null;
   search?: SearchSpec | null;
-  /** Solo con version "0.2". */
+  /** Solo con version "0.2" o superior. */
   seismic?: Seismic | null;
+  /** Solo con version "0.3", y solo con `morgenstern_price` en `methods`. Por defecto `half_sine`. */
+  interslice?: IntersliceSpec | null;
 }
 
 export interface Model {
   format: string;
-  version: '0.1' | '0.2';
+  version: '0.1' | '0.2' | '0.3';
   meta: Meta;
   units?: string;
   materials: Material[];
@@ -187,7 +217,26 @@ export interface Slice {
   pore_pressure: number;
   /** Índice en Model.materials. */
   material: number;
+  // Campos de E12b (v0.2): cargas y sismo resueltos por el motor. Todos son 0 en una dovela aérea y en un modelo sin kh, kv ni cargas.
+  /** Fuerza vertical añadida al peso del suelo, hacia abajo: kv·W + Q + V. La fuerza vertical de la dovela es W* = weight + weight_extra. */
+  weight_extra: number;
+  /** Fuerza horizontal en el sentido del deslizamiento: H = kh·W + H^P. */
+  h_force: number;
+  /** Momento de H respecto del punto medio de la base (Spencer y M-P). */
+  h_moment_base: number;
+  /** Aporte de H al momento motor respecto del centro del círculo, dividido por el radio (Bishop). */
+  driving_extra: number;
+  /** Ordenada ȳ del centroide del suelo de la dovela, ponderado por peso. Solo se calcula con kh > 0; en otro caso es 0. */
+  y_centroid: number;
 }
+
+/** Superficie de un informe con polilínea (F3.7): la polilínea ajustada, ya prolongada o recortada al terreno. */
+export interface PolylineReportSurface {
+  points: Point[];
+}
+
+/** `surface` del informe, untagged: `{xc, yc, r}` para un círculo o `{points}` para una polilínea. */
+export type ReportSurface = Circle | PolylineReportSurface;
 
 export interface MethodReport {
   method: MethodKind;
@@ -196,10 +245,14 @@ export interface MethodReport {
   status: SolveStatus;
   iterations: number;
   lambda: number | null;
-  surface: Circle;
+  surface: ReportSurface;
   slices: Slice[];
   search: SearchStats | null;
   warnings: string[];
+  /** F₀·f₀ = fos / correction_factor. Solo existe con `janbu_corrected` (F3.5). */
+  correction_factor?: number;
+  /** Función de fuerzas entre dovelas usada. Solo existe con `morgenstern_price` (F3.7). */
+  interslice?: IntersliceSpec;
 }
 
 export interface AnalysisReport {

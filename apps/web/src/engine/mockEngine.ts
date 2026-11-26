@@ -2,6 +2,9 @@
 // para cada método pedido, con ~30 dovelas, y reproduce la estructura del AnalysisReport (§3).
 // Es determinista: el mismo modelo produce el mismo JSON byte a byte.
 //
+// Solo simula la versión 0.2 del formato: rechaza con un error explícito todo modelo con campos de la versión 0.3
+// (material no drenado, polilínea, Morgenstern-Price, Janbu, interslice; F3.9). Nunca inventa un FS para ellos.
+//
 // Diferencias con el motor real (se avisan en `warnings` de cada resultado):
 // - Fellenius en lugar de Bishop/Spencer; `lambda` es null e `iterations` vale 1.
 // - Búsqueda de rejilla sin refinamiento de patrones.
@@ -38,6 +41,29 @@ export const MOCK_WARNING = 'mock_engine';
 const GAMMA_W_DEFAULT = 9.81;
 const GROUND_TOL = 1e-7;
 const KNOWN_METHODS: readonly MethodKind[] = ['bishop', 'spencer'];
+
+/**
+ * Primer campo de la versión 0.3 (F3.1) que usa el modelo, o null si no usa ninguno. Cada uno exige el motor real:
+ * el simulado no sabe resolverlos y no debe devolver un FS que no calculó.
+ */
+function firstV03Field(model: Model): string | null {
+  const analysis = (model.analysis ?? {}) as Partial<Model['analysis']>;
+  for (const [i, m] of (Array.isArray(model.materials) ? model.materials : []).entries()) {
+    const mat = m as Partial<Material>;
+    if (mat.model === 'undrained') return `materials[${i}].model "undrained"`;
+    for (const key of ['undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'] as const) {
+      if (mat[key] != null) return `materials[${i}].${key}`;
+    }
+  }
+  if (analysis.surface?.type === 'polyline') return 'analysis.surface.type "polyline"';
+  for (const method of analysis.methods ?? []) {
+    if (method === 'morgenstern_price' || method === 'janbu_simplified' || method === 'janbu_corrected') {
+      return `analysis.methods "${method}"`;
+    }
+  }
+  if (analysis.interslice != null) return 'analysis.interslice';
+  return null;
+}
 
 /** Motivo por el que una superficie candidata no es válida. No es un error de la petición. */
 class SliceFailure extends Error {}
@@ -81,6 +107,12 @@ function validateModel(model: Model): void {
   if (model.format !== 'opengeoslide') {
     throw new EngineError(`InvalidModel: format "${String(model.format)}" no reconocido`);
   }
+  const v03 = firstV03Field(model);
+  if (v03 !== null) {
+    throw new EngineError(
+      `InvalidModel: el motor simulado no admite ${v03}, un campo de la versión 0.3; use el motor WASM`,
+    );
+  }
   if (!Array.isArray(model.materials) || model.materials.length === 0) {
     throw new EngineError('InvalidModel: el modelo no tiene materiales');
   }
@@ -95,6 +127,12 @@ function validateModel(model: Model): void {
       throw new EngineError(`InvalidModel: el material "${region.material}" no está definido`);
     }
   });
+  model.materials.forEach((m, i) => {
+    // En 0.2 solo existe mohr_coulomb, que exige cohesión y ángulo de fricción (F3.2).
+    if (m.cohesion == null || m.friction_angle == null) {
+      throw new EngineError(`InvalidModel: el material ${i} (mohr_coulomb) requiere cohesion y friction_angle`);
+    }
+  });
   if (!model.analysis) {
     throw new EngineError('InvalidModel: falta el bloque analysis');
   }
@@ -107,6 +145,10 @@ function validateModel(model: Model): void {
     throw new EngineError('NoSurface: falta analysis.surface o analysis.search');
   }
 }
+
+/** `cohesion` y `friction_angle` son opcionales en el tipo; validateModel garantiza que existen en 0.2. */
+const cohesion = (m: Material): number => m.cohesion ?? 0;
+const frictionAngle = (m: Material): number => m.friction_angle ?? 0;
 
 function makeContext(model: Model): Context {
   const regionMaterialIndex = model.regions.map((region) =>
@@ -211,10 +253,16 @@ function buildSlices(ctx: Context, circle: Circle, bounds: number[]): Slice[] {
       alpha,
       base_length: baseLength,
       weight,
-      cohesion: mat.cohesion,
-      tan_phi: Math.tan((mat.friction_angle * Math.PI) / 180),
+      cohesion: cohesion(mat),
+      tan_phi: Math.tan((frictionAngle(mat) * Math.PI) / 180),
       pore_pressure: pore,
       material: ctx.regionMaterialIndex[baseInt.region],
+      // El simulado no resuelve sismo ni cargas (E12b): los cinco campos de la dovela valen 0.
+      weight_extra: 0,
+      h_force: 0,
+      h_moment_base: 0,
+      driving_extra: 0,
+      y_centroid: 0,
     });
   }
   return slices;
@@ -395,6 +443,8 @@ export function analyzeMock(modelJson: string): AnalysisReport {
     };
   } else {
     const surface = analysis.surface as NonNullable<typeof analysis.surface>;
+    // validateModel ya rechazó la polilínea (campo de la versión 0.3).
+    if (surface.type === 'polyline') throw new EngineError('InvalidModel: el motor simulado no admite polilíneas');
     const circle: Circle = { xc: surface.xc, yc: surface.yc, r: surface.r };
     try {
       outcome = fixedOutcome(ctx, circle);
