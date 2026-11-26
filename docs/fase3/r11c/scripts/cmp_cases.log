@@ -1,0 +1,46 @@
+V010     own    IDENTICAL 
+V010     search IDENTICAL 
+V010b    own    IDENTICAL 
+V010b    search IDENTICAL 
+V011a    own    IDENTICAL 
+V011a    search CHANGED  bishop:1.206362->1.206361
+V011b    own    IDENTICAL 
+V011b    search CHANGED  bishop:1.206361->1.206361
+V012     own    IDENTICAL 
+V012     search CHANGED  bishop:0.971543->0.971543
+V014     own    IDENTICAL 
+V014     search CHANGED  rc 2->2
+V015     own    IDENTICAL 
+V015     search CHANGED  rc 2->2
+V016b    own    IDENTICAL 
+V016b    search CHANGED  bishop:1.029386->1.029386
+V035a    own    IDENTICAL 
+V035a    search CHANGED  bishop:1.127101->1.127101
+V037     own    CHANGED  bishop:1.613486->1.613486 spencer:1.607872->1.607872
+V064     own    IDENTICAL 
+V064     search CHANGED  rc 2->2
+V065     own    IDENTICAL 
+V065     search CHANGED  rc 2->2
+V066a    own    IDENTICAL 
+V066a    search CHANGED  rc 2->2
+V066b    own    IDENTICAL 
+V066b    search CHANGED  rc 2->2
+V066c    own    IDENTICAL 
+V066c    search CHANGED  rc 2->2
+V066e    own    IDENTICAL 
+V066e    search CHANGED  rc 2->2
+V084a    own    IDENTICAL 
+V084a    search CHANGED  bishop:0.921642->0.921642
+V084b    own    IDENTICAL 
+V084b    search CHANGED  bishop:1.010768->1.010768
+V084c    own    IDENTICAL 
+V084c    search CHANGED  bishop:0.960121->0.960121
+V084d    own    IDENTICAL 
+V084d    search CHANGED  bishop:0.895542->0.895542
+V084e    own    IDENTICAL 
+V084e    search CHANGED  bishop:0.852951->0.852951
+V084f    own    IDENTICAL 
+V084f    search CHANGED  bishop:0.812086->0.812086
+V095c    own    IDENTICAL 
+V095c    search CHANGED  rc 2->2
+models with reinforcements 23 runs same 24 changed 21
