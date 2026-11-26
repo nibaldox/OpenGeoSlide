@@ -37,17 +37,18 @@ Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** c
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
 
 El código en desarrollo, **todavía sin publicar** (véase el [registro de cambios](CHANGELOG.md#unreleased)), agrega el
-formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundidad fija o automática, seca o con agua) y
-el **agua embalsada**: cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
-su peso y su empuje, en todas las versiones del formato. **Esto cambia el resultado de los modelos con agua sobre el
+formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundidad fija o automática, seca o con agua), el
+**agua embalsada** (cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
+su peso y su empuje, en todas las versiones del formato) y la **fuerza de un pilote por la presión del suelo de
+Ito-Matsui** (`lateral_pressure`, con una capacidad de corte y de momento opcional). **Esto cambia el resultado de los modelos con agua sobre el
 terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 323 de 323 checks contra valores publicados (147 casos) y
+- **Está verificado y se puede reproducir.** El motor cumple 327 de 327 checks contra valores publicados (151 casos) y
   coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
-  Fase 3a (más 12 de 12 de los refuerzos v0.4 y 46 de 48 del bloque de grieta y agua embalsada v0.5, con 2 explicados y ninguna
-  falla abierta). Es la batería real
+  Fase 3a (más 12 de 12 de los refuerzos v0.4 y 58 de 60 del bloque v0.5 de grieta, agua embalsada y pilotes de
+  Ito-Matsui, con 2 explicados y ninguna falla abierta). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
@@ -119,18 +120,19 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (147 casos) | **323/323** | [REPORT](verification/REPORT.md) |
+| Valores publicados (151 casos) | **327/327** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
-| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **46/48** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
-| cSlope 0.1.0 como segundo oráculo de los 323 checks | **322/323** | [REPORT](verification/REPORT.md) |
-| Web y `ogs` (385 modelos) | **385/385** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** | [REPORT](verification/REPORT.md) |
+| Web y `ogs` (389 modelos) | **389/389** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 323 checks de 147 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
-  v0.2, 53 en v0.3, 23 con refuerzos en v0.4 y 17 con grieta de tracción en v0.5), cada uno dentro de su tolerancia:
-  132 de Bishop, 113 de Spencer, 43 de Morgenstern-Price, 10 de Janbu simplificado y 25 de Janbu corregido. Otros 15
+- **Valores publicados:** 327 checks de 151 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2, 53 en v0.3, 23 con refuerzos en v0.4 y 21 en v0.5: 17 con grieta de tracción y 4 con pilotes de Ito-Matsui),
+  cada uno dentro de su tolerancia: 136 de Bishop, 113 de Spencer, 43 de Morgenstern-Price, 10 de Janbu simplificado y
+  25 de Janbu corregido. Otros 15
   checks, en 9 casos, quedan retenidos con su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
@@ -138,6 +140,9 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 - **cSlope, Fase 3a:** Morgenstern-Price y Janbu corregido sobre el círculo fijo de esos 14 modelos, más tres modelos
   nuevos (terraplén sobre arcilla blanda con Su lineal, relaves con Su constante y un bloque sobre una capa débil con
   polilínea fija), con el mismo criterio de 0,5 %.
+- **cSlope, v0.5:** los 12 modelos de grieta y agua embalsada (D28 a D39) y los 3 de pilotes de Ito-Matsui (D40 a D42),
+  en búsqueda y en superficie fija, con Bishop y Spencer: 58 de 60 checks, con 2 explicados (D39 fija, E15f) y ninguna
+  falla abierta.
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 
 Reproducción y detalle (paridad del editor, rendimiento nativo y WASM) en [`docs/verificacion.md`](docs/verificacion.md).
@@ -151,9 +156,10 @@ Esta batería no cubre todo: véanse las limitaciones.
 - **Solo Mohr-Coulomb y no drenado** (Su constante o lineal con la cota); no hay Hoek-Brown ni SHANSEP. Sin análisis de
   deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
 - **Refuerzos (formato v0.4): solo estabilidad global.** Con un pilote o una tablestaca, el FS incluye
-  su fuerza, que es un dato que usted fija; **no se calcula el empuje sobre el elemento, el empotramiento, el momento
+  su fuerza, que es un dato que usted fija (salvo el pilote de Ito-Matsui de la v0.5, descrito más abajo); **no se
+  calcula el empuje sobre el elemento, el empotramiento, el momento
   flector, la deflexión ni las comprobaciones internas o externas de un muro**. **No sirve para diseñar muros de tierra
-  mecánicamente estabilizada (TEM) ni otras estructuras de contención.** Se posponen Ito-Matsui, el pretensado como
+  mecánicamente estabilizada (TEM) ni otras estructuras de contención.** Se posponen el pretensado como
   campo aparte, la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos
   lanzados, los anclajes helicoidales y la presión de fluido equivalente.
 - **Con refuerzos, la búsqueda circular puede esquivar el elemento**, su FS es discontinuo y la búsqueda por defecto
@@ -171,6 +177,11 @@ Esta batería no cubre todo: véanse las limitaciones.
   retenido es la fila diferencial D39 fija, marcada «explicado» (E15j-7). **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a
   propósito: por ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
   ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
+- **Pilotes de Ito-Matsui (formato v0.5, aún sin publicar).** La fórmula es para pilotes **rígidos y verticales**, en
+  deformación plana, y solo vale con S/D de 2 a 8 (el motor avisa fuera de ese rango; Ukritchon y Keawsawasvong, 2017:
+  sobrestima con S/D pequeño y subestima con S/D grande). El piso de φ = 0 no viene del artículo, sino de cSlope y
+  XSLOPE, y las cargas de superficie no entran en la sobrecarga del pilote. La `capacity` es un tope, no una
+  comprobación del perfil ([detalle](docs/limitaciones.md#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no)).
 - **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
   piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
   y sin línea piezométrica γsat no interviene en el cálculo.
@@ -206,9 +217,9 @@ OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stabil
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
-the result of models with water above the ground compared with v0.3.0). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 323/323 published values (147 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 46/48 tension-crack and ponded-water checks (2 explained, no open failures). The search is circular only. With piles or sheet piles it checks the global stability
+the result of models with water above the ground compared with v0.3.0, and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
+runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
 moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
