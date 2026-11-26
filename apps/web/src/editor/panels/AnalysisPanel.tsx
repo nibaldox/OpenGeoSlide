@@ -15,6 +15,7 @@ import {
   dataPointsCommand,
   dataPointsFromForm,
   dataPointsToForm,
+  canInsertDataPoint,
   insertDataPoint,
   intersliceFunctionCommand,
   intersliceFunctionOf,
@@ -101,8 +102,14 @@ function IntersliceSection({ store }: { store: EditorStore }) {
                       <td>
                         <button
                           type="button"
-                          disabled={i >= points.length - 1}
-                          title={i >= points.length - 1 ? 'Agregue el punto antes del último' : 'Agregar un punto a medio camino del siguiente'}
+                          disabled={!canInsertDataPoint(points, i)}
+                          title={
+                            i >= points.length - 1
+                              ? 'Agregue el punto antes del último'
+                              : canInsertDataPoint(points, i)
+                                ? 'Agregar un punto a medio camino del siguiente'
+                                : 'No cabe un punto entre estos dos: ξ debe seguir creciendo'
+                          }
                           aria-label={`Agregar un punto después del punto ${i + 1} de la función entre dovelas`}
                           onClick={() => store.dispatch(dataPointsCommand(insertDataPoint(points, i)))}
                         >

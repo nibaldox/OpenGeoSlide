@@ -9,6 +9,7 @@ import {
   circleToForm,
   circlesEqual,
   hasIgnoredSurface,
+  canInsertPolylinePoint,
   insertPolylinePoint,
   modelXRange,
   polylineFromForm,
@@ -92,8 +93,12 @@ function PolylineTable({ store }: { store: EditorStore }) {
                   <td>
                     <button
                       type="button"
-                      disabled={!table.ok || i >= points.length}
-                      title="Agregar un punto a medio camino del siguiente (o a la derecha del último)"
+                      disabled={!table.ok || i >= points.length || !canInsertPolylinePoint(points, i, xRange)}
+                      title={
+                        table.ok && i < points.length && !canInsertPolylinePoint(points, i, xRange)
+                          ? 'No cabe un punto entre estos dos: la x debe seguir creciendo con la separación mínima'
+                          : 'Agregar un punto a medio camino del siguiente (o a la derecha del último)'
+                      }
                       aria-label={`Agregar un punto después del punto ${i + 1} de la polilínea`}
                       onClick={() => store.dispatch(polylineSetCommand(insertPolylinePoint(points, i, xRange)))}
                     >

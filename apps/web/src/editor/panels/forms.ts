@@ -799,13 +799,51 @@ export function polylineSetCommand(points: readonly Point[]): EditorCommand {
   return { type: 'surface/set', surface: { type: 'polyline', points: points.map(([x, y]): Point => [x, y]) } };
 }
 
-/** Punto nuevo después del `index`: el punto medio del tramo siguiente (o, tras el último, a la derecha a su misma altura). La forma no cambia. */
-export function insertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): Point[] {
-  const a = points[index] as Point;
+/**
+ * x del punto nuevo entre `a` y `b` (R10B-04a): el medio redondeado a 3 decimales si queda estrictamente dentro, a al menos `minDx` de ambos
+ * vecinos; si no, el medio exacto con la misma condición; `null` si no cabe ninguno (el redondeo sacaba antes el punto de `(a, b)`).
+ */
+function midBetween(a: number, b: number, minDx: number): number | null {
+  const inside = (x: number): boolean => x > a && x < b && x - a >= minDx && b - x >= minDx;
+  const rounded = round3((a + b) / 2);
+  if (inside(rounded)) return rounded;
+  const exact = (a + b) / 2;
+  return inside(exact) ? exact : null;
+}
+
+/** Separación mínima de x entre puntos de la polilínea: `1e-9 · ancho del modelo` (`validate_polyline`); 0 sin modelo. */
+function polylineMinDx(xRange?: readonly [number, number] | null): number {
+  return xRange ? 1e-9 * (xRange[1] - xRange[0]) : 0;
+}
+
+/** Posición `x` del punto nuevo tras el `index` de la polilínea, o `null` si no cabe uno con x estrictamente creciente. */
+function polylineInsertX(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): number | null {
+  const a = points[index];
+  if (!a) return null;
+  const minDx = polylineMinDx(xRange);
   const b = points[index + 1];
+  if (b) return midBetween(a[0], b[0], minDx);
   const step = xRange ? (xRange[1] - xRange[0]) / 10 : 1;
-  const at: Point = b ? [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)] : [round3(a[0] + step), a[1]];
-  return [...points.slice(0, index + 1), at, ...points.slice(index + 1)];
+  const x = round3(a[0] + step);
+  return x - a[0] >= Math.max(minDx, Number.MIN_VALUE) ? x : null;
+}
+
+/** ¿Cabe un punto nuevo después del `index` de la polilínea sin duplicar ni invertir la x? */
+export function canInsertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): boolean {
+  return polylineInsertX(points, index, xRange) !== null;
+}
+
+/**
+ * Punto nuevo después del `index`: el punto medio del tramo siguiente (o, tras el último, a la derecha a su misma altura). La forma no cambia y
+ * la x queda siempre estrictamente entre las de sus vecinos; si no cabe (`canInsertPolylinePoint`), devuelve la polilínea sin cambios.
+ */
+export function insertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): Point[] {
+  const x = polylineInsertX(points, index, xRange);
+  const a = points[index];
+  if (x === null || !a) return points.map(([px, py]): Point => [px, py]);
+  const b = points[index + 1];
+  const y = b ? round3((a[1] + b[1]) / 2) : a[1];
+  return [...points.slice(0, index + 1), [x, y], ...points.slice(index + 1)];
 }
 
 /** Quita el punto `index`; `null` si quedarían menos de 2. */
@@ -1189,11 +1227,23 @@ export function dataPointsCommand(points: readonly Point[]): EditorCommand {
   return { type: 'analysis/patch', patch: { interslice: { function: 'data_points', points: points.map(([x, f]): Point => [x, f]) } } };
 }
 
-/** Punto nuevo después del `index` (hay siempre uno siguiente si no es el último): ξ y f a medio camino, así la forma no cambia. */
+/** ¿Cabe un punto nuevo entre el `index` y el siguiente de la tabla (ξ, f), con ξ estrictamente creciente? No tras el último (ξ = 1). */
+export function canInsertDataPoint(points: readonly Point[], index: number): boolean {
+  const a = points[index];
+  const b = points[index + 1];
+  return a !== undefined && b !== undefined && midBetween(a[0], b[0], 0) !== null;
+}
+
+/**
+ * Punto nuevo después del `index`: ξ y f a medio camino, así la forma no cambia, con ξ estrictamente entre las de sus vecinos
+ * (R10B-04a). Si no cabe (`canInsertDataPoint`), devuelve la tabla sin cambios.
+ */
 export function insertDataPoint(points: readonly Point[], index: number): Point[] {
-  const a = points[index] as Point;
-  const b = points[index + 1] ?? [a[0] + 0.1, a[1]];
-  return [...points.slice(0, index + 1), [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)], ...points.slice(index + 1)];
+  const a = points[index];
+  const b = points[index + 1];
+  const xi = a && b ? midBetween(a[0], b[0], 0) : null;
+  if (!a || !b || xi === null) return points.map(([px, py]): Point => [px, py]);
+  return [...points.slice(0, index + 1), [xi, round3((a[1] + b[1]) / 2)], ...points.slice(index + 1)];
 }
 
 /** Quita el punto `index`; `null` si quedarían menos de 2. */
