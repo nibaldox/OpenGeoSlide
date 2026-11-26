@@ -8,6 +8,8 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-26
+
 Bloque de refuerzos (F3R): formato v0.4 con anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos.
 El contrato es `briefs/03_CONTRATOS_REFUERZOS.md` (enmiendas E14a a E14o); la evidencia, `docs/fase3/exploracion/X14.md`
 a `X17.md` y `docs/fase3/PLAN_REFUERZOS.md`. **Un modelo con `reinforcements` ausente o vacío da la misma salida, byte a
@@ -184,6 +186,11 @@ rechazaba por redondeo (V065), y que ahora se analiza (E14o-11, véase «Fixed»
 - **La búsqueda con refuerzos tiene discontinuidades** por los cruces y puede esquivar el refuerzo: con
   `reinforcement_outside_mass` en el resultado de una búsqueda, el FS mínimo es el de una superficie que no lo cruza.
 - **Ito-Matsui** (V013b a V013e) queda en `pending/`.
+- **Búsqueda con refuerzos (E14o-7).** Los candidatos por cabezas y puntas bajan la brecha frente a la malla fina a
+  menos de 1 % en los contraejemplos de R11, pero en valles estrechos con dos activos queda hasta +1,6 %, y un modelo
+  mal condicionado (FS ≈ 0,1, 14 activos de poca capacidad) conserva +14 %. Para certeza, use la malla `60×60×40`.
+- **Rótulos con muchos refuerzos en el lienzo.** En V084a todos se leen y ninguno se encima, pero algunos quedan
+  dentro del suelo o cruzan su propia flecha.
 
 ## [0.2.0] - 2026-11-26
 
@@ -411,7 +418,8 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0
 [hito-fase0]: https://github.com/nibaldox/OpenGeoSlide/tree/hito-fase0

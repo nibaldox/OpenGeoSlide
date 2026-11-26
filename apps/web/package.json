@@ -1,6 +1,6 @@
 {
   "name": "@opengeoslide/web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "OpenGeoSlide: interfaz web para análisis de estabilidad de taludes 2D",
   "license": "Apache-2.0",
