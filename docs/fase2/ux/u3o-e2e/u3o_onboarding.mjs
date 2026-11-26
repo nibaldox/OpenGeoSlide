@@ -150,7 +150,7 @@ const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h 
       links: [...d.querySelectorAll('a[target="_blank"]')].map((a) => a.href),
     };
   });
-  step('6 «Ayuda» abre un <dialog> modal con índice, glosario, atajos y enlaces', helpInfo.modal && helpInfo.index.length === 6 && helpInfo.terms.length === 21 && // F3R: 21 y no 17: la ayuda de refuerzos (R2) añadió cuatro términos al glosario (Refuerzos, Arrancamiento, Refuerzo activo y pasivo, Estado de un cruce). // I-W: 17 y no 12: F3a (W1e) añadió cinco términos al glosario (M-P, función f(ξ), Janbu corregido y f₀, Su, superficie polilínea). // U6-I: 12 y no 11: U6-G (R9-05b) añadió el término «Ángulo de la carga lineal» al glosario
+  step('6 «Ayuda» abre un <dialog> modal con índice, glosario, atajos y enlaces', helpInfo.modal && helpInfo.index.length === 6 && helpInfo.terms.length === 23 && // F3G (I-W): 23 y no 21: la Ayuda agregó «Agua embalsada» y «Grieta de tracción» (F5.7). F3R: 21 y no 17: la ayuda de refuerzos (R2) añadió cuatro términos al glosario (Refuerzos, Arrancamiento, Refuerzo activo y pasivo, Estado de un cruce). // I-W: 17 y no 12: F3a (W1e) añadió cinco términos al glosario (M-P, función f(ξ), Janbu corregido y f₀, Su, superficie polilínea). // U6-I: 12 y no 11: U6-G (R9-05b) añadió el término «Ángulo de la carga lineal» al glosario
      helpInfo.kbd >= 16 && helpInfo.links.length === 4, helpInfo);
   await shot(page, 'o-ayuda-claro-1440');
   // Índice: ir al glosario
