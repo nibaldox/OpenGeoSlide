@@ -1,0 +1,91 @@
+{
+  "id": "V004b",
+  "title": "Baker (2003) ex. 2 slope, Mohr-Coulomb iteration parameters",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V004b",
+      "title": "Baker (2003) ex. 2 slope, Mohr-Coulomb iteration parameters",
+      "notes": "The V004a 4:1 slope with Baker's iterated Mohr-Coulomb parameters (c′ = 2.439 kPa, φ′ = 30.392°); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 2.439,
+        "friction_angle": 30.392,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            48.0,
+            12.0
+          ],
+          [
+            100.0,
+            12.0
+          ],
+          [
+            100.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.696,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02018545994065282,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V004b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Baker (2003) non-linear 2.64.",
+      "Baker (2003) prints only F = 2.64 and σmax = 78.1 kPa for this example (p. 390, Fig. 5); the iterated parameters c′ = 2.439 kPa, φ′ = 30.392° are a commercial program manual's. Baker's eq. (3) gives c ≈ 2.54, φ ≈ 30.30 (docs/kallor/baker-2003.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

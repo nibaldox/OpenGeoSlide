@@ -1,0 +1,269 @@
+{
+  "id": "V054",
+  "title": "Greco (1996) example 5 / Chen & Shao (1988)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V054",
+      "title": "Greco (1996) example 5 / Chen & Shao (1988)",
+      "notes": "Four layers including a weak seam, with a water table; critical-circle search, vertical pore-pressure head."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 9.8,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.0,
+        "unit_weight_sat": null,
+        "cohesion": 58.8,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.5,
+        "unit_weight_sat": null,
+        "cohesion": 19.8,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "seam",
+        "name": "Seam",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.5,
+        "unit_weight_sat": null,
+        "cohesion": 9.8,
+        "friction_angle": 16.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            100.0,
+            40.0
+          ],
+          [
+            145.0,
+            70.0
+          ],
+          [
+            240.0,
+            70.0
+          ],
+          [
+            240.0,
+            55.0
+          ],
+          [
+            190.0,
+            55.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            75.0,
+            30.0
+          ],
+          [
+            95.0,
+            40.0
+          ],
+          [
+            100.0,
+            40.0
+          ],
+          [
+            190.0,
+            55.0
+          ],
+          [
+            240.0,
+            55.0
+          ],
+          [
+            240.0,
+            30.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            0.0,
+            0.5
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            55.0,
+            20.0
+          ],
+          [
+            75.0,
+            30.0
+          ],
+          [
+            240.0,
+            30.0
+          ],
+          [
+            240.0,
+            16.498901099
+          ],
+          [
+            150.0,
+            15.5
+          ]
+        ]
+      },
+      {
+        "material": "seam",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.5
+          ],
+          [
+            150.0,
+            15.5
+          ],
+          [
+            240.0,
+            16.498901099
+          ],
+          [
+            240.0,
+            16.0
+          ],
+          [
+            150.0,
+            15.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          20.0
+        ],
+        [
+          55.0,
+          20.0
+        ],
+        [
+          75.0,
+          30.0
+        ],
+        [
+          95.0,
+          40.0
+        ],
+        [
+          100.0,
+          40.0
+        ],
+        [
+          190.0,
+          55.0
+        ],
+        [
+          240.0,
+          55.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          55.0,
+          240.0
+        ],
+        "exit": [
+          55.0,
+          55.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.087,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02045998160073597,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.093,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020457456541628546,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Greco (1996), example 5; Chen & Shao (1988).",
+    "derived_from": "cSlope verification problem V054 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Circles pass through the toe (55, 20), as in the source.",
+      "With the phreatic correction (cos²θ) cSlope gives 1.141 (Bishop).",
+      "Chen & Shao (1988, test problem 3, Figs. 10–13) draw layer 4 as a seam line without thickness or density, give no stratum below it and mark water only by a ▽ on the I/II boundary near x = 197; the 0.5 m seam, the water table along the ground and the boundary, and (V054) the base rising to (240, 16) are the programs' modeling. Their Table 4 gives densities in g/cm³ (2.00, 1.90, 2.15); with g = 9.81 the unit weights are 19.62 / 18.64 / 21.09 instead of the programs' 20 / 19 / 21.5, which lowers cSlope's result by 0.4–0.7 % (docs/kallor/chen-shao-1988.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": "V027",
+  "title": "Duncan & Wright fig. 14.3, undrained clay",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V027",
+      "title": "Duncan & Wright fig. 14.3, undrained clay",
+      "notes": "Homogeneous undrained clay slope (φ = 0); critical-circle search."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 100.0,
+        "unit_weight_sat": null,
+        "cohesion": 1000.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            30.0
+          ],
+          [
+            90.0,
+            30.0
+          ],
+          [
+            130.0,
+            80.0
+          ],
+          [
+            240.0,
+            80.0
+          ],
+          [
+            240.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.124,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020444839857651245,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.3.",
+    "derived_from": "cSlope verification problem V027 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A's toe circle; its circle tangent to the foundation base gives Bishop 1.141, Spencer 1.139. V028 and V029 are the deeper foundations.",
+      "commercial program A's optimized non-circular surface gives 0.878 (Spencer); cSlope's optimization stops at 0.927 (+5.6 %), so it is not a check.",
+      "Spencer's critical circle (1.132) is deeper than Bishop's toe circle (1.123), although for phi = 0 the two methods agree on any circle where both solve: on the toe circle Fm = 1.1215 for every lambda, but Ff stays above 1.176 for interslice inclinations of -10 to +80 deg (Edris & Wright 1987), so Spencer has no admissible solution there and the circle is rejected; the only formal root lies near -45 deg. An independent GLE solver gives the same curves (2026-10-25). Commercial program A reports Spencer about equal to Bishop on a toe circle (Duncan & Wright name no method), so it evidently accepts a solution there; cSlope's 1.132 is +0.7 % against Duncan & Wright's 1.124.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

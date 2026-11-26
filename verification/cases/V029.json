@@ -1,0 +1,111 @@
+{
+  "id": "V029",
+  "title": "Duncan & Wright fig. 14.3, undrained clay on a 60 ft foundation",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V029",
+      "title": "Duncan & Wright fig. 14.3, undrained clay on a 60 ft foundation",
+      "notes": "As V028 with a 60 ft thick foundation (Tables 78.6–78.7)."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 100.0,
+        "unit_weight_sat": null,
+        "cohesion": 1000.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            -10.0,
+            -30.0
+          ],
+          [
+            -10.0,
+            30.0
+          ],
+          [
+            90.0,
+            30.0
+          ],
+          [
+            130.0,
+            80.0
+          ],
+          [
+            270.0,
+            80.0
+          ],
+          [
+            270.0,
+            -30.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.125,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020444444444444446,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.119,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020446827524575516,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V029 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The model runs from x = −10 to 270 ft, as in the source, whose base-tangent circle starts at x = −4.8 ft.",
+      "commercial program A's base-tangent circle gives 1.125 (Bishop), 1.124 (Spencer).",
+      "Duncan & Wright's reference for the 60 ft foundation is 1.119 for the circle tangent to the base and 1.124 for the toe circle (commercial program A's Tables 78.6 and 78.7). The search finds the base-tangent circle, so the check is 1.119; it was 1.124, the toe-circle value, until 2026-10-24. On commercial program A's printed base-tangent circle (center (111.147, 112.308) in these coordinates, R 142.208, endpoints as printed) exact integration gives 1.1187 and cSlope 1.1173 with 60 slices.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "id": "V069b",
+  "title": "Morgenstern complete drawdown, the reference circle",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V069b",
+      "title": "Morgenstern complete drawdown, the reference circle",
+      "notes": "The V069a slope after complete drawdown on the reference critical circle (Fig. 100.2); pore pressure from the vertical head. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.60452,
+        "unit_weight_sat": null,
+        "cohesion": 14.93864,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            91.44,
+            30.48
+          ],
+          [
+            113.6904,
+            30.48
+          ],
+          [
+            113.6904,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          91.44,
+          30.48
+        ],
+        [
+          113.6904,
+          30.48
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 26.60294,
+        "yc": 97.52167,
+        "r": 97.17969
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.212,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010412541254125413,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Morgenstern, N. (1963). Stability charts for earth slopes during rapid drawdown. Géotechnique 13(2). Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V069b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "id": "V020",
+  "title": "Cheng et al. benched slope, global minimum",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V020",
+      "title": "Cheng et al. benched slope, global minimum",
+      "notes": "Homogeneous benched slope; the global minimum on the mid-lower face by circular search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            10.0
+          ],
+          [
+            10.0,
+            10.0
+          ],
+          [
+            20.0,
+            15.0
+          ],
+          [
+            26.0,
+            20.0
+          ],
+          [
+            32.0,
+            20.0
+          ],
+          [
+            35.0,
+            23.0
+          ],
+          [
+            43.0,
+            27.0
+          ],
+          [
+            55.0,
+            27.0
+          ],
+          [
+            55.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.336,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020374251497005988,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.33,
+      "published_by": "Cheng et al.",
+      "tolerance": 0.0237593984962406,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.338,
+      "published_by": "Program D",
+      "tolerance": 0.02037369207772795,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.342,
+      "published_by": "Program D",
+      "tolerance": 0.0203725782414307,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150.",
+    "derived_from": "cSlope verification problem V020 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program E shear strength reduction 1.35.",
+      "Geometry from Cheng et al.'s Fig. 13a (read at 400 dpi): every corner falls on whole meters, (0, 10), (10, 10), (20, 15), (26, 20), (32, 20), (35, 23), (43, 27), (55, 27), base 0; until 2026-10-25 the model used a digitisation 0.06–0.2 m off them. Cheng et al.'s limit-equilibrium global minimum is 1.33 (p. 146, Fig. 13a, simulated-annealing search over general surfaces); 1.327 is their strength-reduction value, which the check carried before. Local minima 1.375, 1.415, 1.40, 1.383 (docs/kallor/cheng-lansivaara-wei-2007.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

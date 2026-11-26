@@ -1,0 +1,268 @@
+{
+  "id": "V031a",
+  "title": "Duncan & Wright fig. 14.5, R = 87 ft",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V031a",
+      "title": "Duncan & Wright fig. 14.5, R = 87 ft",
+      "notes": "Embankment over alternating cohesive and frictional layers; circle of radius 87 ft."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 1.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "l60",
+        "name": "L60",
+        "model": "mohr_coulomb",
+        "unit_weight": 110.0,
+        "unit_weight_sat": null,
+        "cohesion": 950.0,
+        "friction_angle": 0.0,
+        "ru": null
+      },
+      {
+        "id": "l45",
+        "name": "L45",
+        "model": "mohr_coulomb",
+        "unit_weight": 122.0,
+        "unit_weight_sat": null,
+        "cohesion": 1.0,
+        "friction_angle": 32.0,
+        "ru": null
+      },
+      {
+        "id": "l35",
+        "name": "L35",
+        "model": "mohr_coulomb",
+        "unit_weight": 98.0,
+        "unit_weight_sat": null,
+        "cohesion": 500.0,
+        "friction_angle": 0.0,
+        "ru": null
+      },
+      {
+        "id": "l25",
+        "name": "L25",
+        "model": "mohr_coulomb",
+        "unit_weight": 131.0,
+        "unit_weight_sat": null,
+        "cohesion": 1.0,
+        "friction_angle": 37.0,
+        "ru": null
+      },
+      {
+        "id": "l20",
+        "name": "L20",
+        "model": "mohr_coulomb",
+        "unit_weight": 103.0,
+        "unit_weight_sat": null,
+        "cohesion": 600.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            80.0,
+            60.0
+          ],
+          [
+            205.0,
+            110.0
+          ],
+          [
+            330.0,
+            110.0
+          ],
+          [
+            330.0,
+            60.0
+          ]
+        ]
+      },
+      {
+        "material": "l20",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            330.0,
+            20.0
+          ],
+          [
+            330.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "l25",
+        "polygon": [
+          [
+            0.0,
+            20.0
+          ],
+          [
+            0.0,
+            25.0
+          ],
+          [
+            330.0,
+            25.0
+          ],
+          [
+            330.0,
+            20.0
+          ]
+        ]
+      },
+      {
+        "material": "l35",
+        "polygon": [
+          [
+            0.0,
+            25.0
+          ],
+          [
+            0.0,
+            35.0
+          ],
+          [
+            330.0,
+            35.0
+          ],
+          [
+            330.0,
+            25.0
+          ]
+        ]
+      },
+      {
+        "material": "l45",
+        "polygon": [
+          [
+            0.0,
+            35.0
+          ],
+          [
+            0.0,
+            45.0
+          ],
+          [
+            330.0,
+            45.0
+          ],
+          [
+            330.0,
+            35.0
+          ]
+        ]
+      },
+      {
+        "material": "l60",
+        "polygon": [
+          [
+            0.0,
+            45.0
+          ],
+          [
+            0.0,
+            60.0
+          ],
+          [
+            80.0,
+            60.0
+          ],
+          [
+            330.0,
+            60.0
+          ],
+          [
+            330.0,
+            45.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 142.0,
+        "yc": 147.0,
+        "r": 87.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.549,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010196155355041193,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.545,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01019646365422397,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.56,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.011953125,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.5.",
+    "derived_from": "cSlope verification problem V031a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan & Wright's reference values: Spencer's method, two digits. commercial program A GLE 2.550.",
+      "commercial program A prints its circle as R = 86.728 (endpoints (103.372, 69.349) and (220.440, 110.000)), not 87. On it cSlope gives Bishop 2.5257 and Spencer 2.5227, and an independent Bishop calculation 2.5253: about 0.9 % below commercial program A's 2.549 on the same circle and the same geometry (the endpoints agree to 0.001 ft).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

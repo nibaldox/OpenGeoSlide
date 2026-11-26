@@ -1,0 +1,368 @@
+{
+  "id": "V016c",
+  "title": "Gabion wall with weak joint layers",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V016c",
+      "title": "Gabion wall with weak joint layers",
+      "notes": "The V016 wall with 6 cm weak bands at the course interfaces (φ = 37.8°, c = 20.4 kPa from the joint tensile strength); the V016a reference circle, which passes below the wall and crosses no joint."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil #1",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "soil_2",
+        "name": "Soil #2",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "gabion_wall",
+        "name": "Gabion wall",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.0,
+        "unit_weight_sat": null,
+        "cohesion": 59.7,
+        "friction_angle": 42.0,
+        "ru": null
+      },
+      {
+        "id": "weak_joint",
+        "name": "Weak joint",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.0,
+        "unit_weight_sat": null,
+        "cohesion": 20.4,
+        "friction_angle": 37.8,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            14.472,
+            5.456
+          ],
+          [
+            14.611,
+            6.4465
+          ],
+          [
+            15.6015,
+            6.3075
+          ],
+          [
+            15.5932,
+            6.2481
+          ],
+          [
+            18.5647,
+            5.8311
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            15.6015,
+            6.3075
+          ],
+          [
+            15.7405,
+            7.298
+          ],
+          [
+            16.731,
+            7.159
+          ],
+          [
+            16.7227,
+            7.0996
+          ],
+          [
+            18.7037,
+            6.8216
+          ],
+          [
+            18.573,
+            5.8905
+          ]
+        ]
+      },
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            16.731,
+            7.159
+          ],
+          [
+            16.87,
+            8.1495
+          ],
+          [
+            17.8605,
+            8.0105
+          ],
+          [
+            17.8522,
+            7.9511
+          ],
+          [
+            18.8427,
+            7.8121
+          ],
+          [
+            18.712,
+            6.881
+          ]
+        ]
+      },
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            17.8605,
+            8.0105
+          ],
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            18.99,
+            8.862
+          ],
+          [
+            18.851,
+            7.8715
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.456
+          ],
+          [
+            14.472,
+            5.456
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            30.0,
+            9.0
+          ],
+          [
+            30.0,
+            7.0
+          ],
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.7037,
+            6.8216
+          ],
+          [
+            18.712,
+            6.881
+          ],
+          [
+            18.8427,
+            7.8121
+          ],
+          [
+            18.851,
+            7.8715
+          ],
+          [
+            18.99,
+            8.862
+          ]
+        ]
+      },
+      {
+        "material": "soil_2",
+        "polygon": [
+          [
+            30.0,
+            7.0
+          ],
+          [
+            30.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.453,
+            5.178
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            18.5647,
+            5.8311
+          ],
+          [
+            18.573,
+            5.8905
+          ]
+        ]
+      },
+      {
+        "material": "weak_joint",
+        "polygon": [
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.5647,
+            5.8311
+          ],
+          [
+            15.5932,
+            6.2481
+          ],
+          [
+            15.6015,
+            6.3075
+          ]
+        ]
+      },
+      {
+        "material": "weak_joint",
+        "polygon": [
+          [
+            18.712,
+            6.881
+          ],
+          [
+            18.7037,
+            6.8216
+          ],
+          [
+            16.7227,
+            7.0996
+          ],
+          [
+            16.731,
+            7.159
+          ]
+        ]
+      },
+      {
+        "material": "weak_joint",
+        "polygon": [
+          [
+            18.851,
+            7.8715
+          ],
+          [
+            18.8427,
+            7.8121
+          ],
+          [
+            17.8522,
+            7.9511
+          ],
+          [
+            17.8605,
+            8.0105
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 15.956,
+        "yc": 10.016,
+        "r": 5.722
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.79,
+      "published_by": "Program D",
+      "tolerance": 0.012793296089385476,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cao et al. (2016); Grodecki (2017).",
+    "derived_from": "cSlope verification problem V016c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A's block search along the joints gives 1.516 at the wall face.",
+      "The circle (V016a's: center (15.956, 10.016), R 5.722) passes below the wall and crosses no weak layer: with the joints set to c = 0, φ = 5° cSlope still gives 1.7905, the V016a value. commercial program A's 1.799 and 1.803 are block-search (non-circular) minima along the weak layers (its Table 109.2), not values on this circle; the description said the circle ran through the joints until 2026-10-24. Commercial program A's block search places the surface along polylines on the weak layers with projection angles of ±45° and 135-225° (manual §109.3), a search type cSlope does not have; a free search in cSlope between the same limits goes lower (circular Bishop 1.764, non-circular Spencer 1.711), so commercial program A's 1.799 (Bishop), 1.803 (Spencer), 1.804 (GLE) and 1.610 (Janbu) are not checks (until 2026-10-25 they were checked against the circle, which agreed within 0.5 % by coincidence). The check is program D's Bishop on the circle.",
+      "Cao et al. (2016) contain no 4 m wall and none of these soils; Grodecki (2017) supports only the equivalent-cohesion method. The geometry and materials are a commercial program's verification problem.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

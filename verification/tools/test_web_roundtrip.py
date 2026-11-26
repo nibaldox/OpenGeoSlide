@@ -1,6 +1,6 @@
 """Ida y vuelta de la web contra el motor real (E12g, R5-02).
 
-Para los 21 casos de verificación (51 checks), los 14 modelos diferenciales (búsqueda y superficie fija, por método) y
+Para los casos de verificación de ``verification/cases`` (su número lo declara ``INDEX.md``), los 14 modelos diferenciales (búsqueda y superficie fija, por método) y
 los modelos de frontera de R5-02, se ejecuta ``ogs analyze`` sobre:
 
 - el modelo original, y
@@ -21,6 +21,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -136,10 +137,19 @@ def roundtrip(tmp_path_factory: pytest.TempPathFactory) -> dict[str, dict]:
             for n, o, s in zip(names, originals, saved)}
 
 
+def _index_counts() -> tuple[int, int]:
+    """(casos, checks) que declara verification/cases/INDEX.md: nunca un literal (contrato F3.8)."""
+    text = (CASES / "INDEX.md").read_text(encoding="utf-8")
+    m = re.search(r"Casos convertidos e incluidos: \*\*(\d+)\*\*.*?con \*\*(\d+)\*\* checks", text, re.S)
+    assert m, "INDEX.md no declara el número de casos y de checks"
+    return int(m.group(1)), int(m.group(2))
+
+
 def test_cantidad_de_modelos() -> None:
-    assert len(verification_models()) == 51
+    n_cases, n_checks = _index_counts()
+    assert len(verification_models()) == n_checks
     assert len(differential_models()) == 14 * 2 * 2
-    assert len([p for p in CASES.glob("*.json") if not p.name.endswith(".schema.json")]) == 21
+    assert len([p for p in CASES.glob("*.json") if not p.name.endswith(".schema.json")]) == n_cases
 
 
 def test_el_texto_guardado_conserva_los_numeros(roundtrip: dict[str, dict]) -> None:

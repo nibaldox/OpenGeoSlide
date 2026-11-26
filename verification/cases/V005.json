@@ -1,0 +1,155 @@
+{
+  "id": "V005",
+  "title": "Baker (1993) dam, end of construction, infinite-slope face",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V005",
+      "title": "Baker (1993) dam, end of construction, infinite-slope face",
+      "notes": "Compacted-clay embankment (c′ = 6.5 kPa, φ′ = 40°) on a deep natural-clay foundation (c′ = 0, φ′ = 32°) with a 6 m crest and a straight 4H:1V downstream face, whose natural-clay part governs; dry; circular search. Theoretical (infinite slope) F = tan 32°/tan 14.04° = 2.50."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "compacted_clay",
+        "name": "Compacted clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 6.5,
+        "friction_angle": 40.0,
+        "ru": null
+      },
+      {
+        "id": "natural_clay",
+        "name": "Natural clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 32.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "compacted_clay",
+        "polygon": [
+          [
+            80.0,
+            95.0
+          ],
+          [
+            98.0,
+            101.0
+          ],
+          [
+            104.0,
+            101.0
+          ],
+          [
+            128.0,
+            95.0
+          ]
+        ]
+      },
+      {
+        "material": "natural_clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            95.0
+          ],
+          [
+            80.0,
+            95.0
+          ],
+          [
+            128.0,
+            95.0
+          ],
+          [
+            148.0,
+            90.0
+          ],
+          [
+            220.0,
+            90.0
+          ],
+          [
+            220.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          104.0,
+          148.0
+        ],
+        "exit": [
+          104.0,
+          148.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 2.5,
+      "published_by": "Theory (infinite slope)",
+      "tolerance": 0.022,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.5,
+      "published_by": "Theory (infinite slope)",
+      "tolerance": 0.022,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Baker, R., Frydman, S. & Talesnick, M. (1993). Slope stability analysis for undrained loading conditions. Int. J. Numer. Anal. Meth. Geomech. 17, 15–43.",
+    "derived_from": "cSlope verification problem V005 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to the downstream face, x = 104–148, as in the source (the left limit marker sits on the downstream crest vertex).",
+      "Crest corrected from a single apex (100, 101) to the 6 m crest (98, 101)–(104, 101) of commercial program A's Fig. 46.1 (vertices read at 400 dpi: 98.0 and 103.2–104, scale checked on the vertices at x = 80, 128 and 148): upstream face 3:1, downstream face one straight 4:1 line (104, 101)–(128, 95)–(148, 90). The apex had made the compacted-clay part of the downstream face 4.67:1. The critical slabs lie on the natural-clay face (x = 128–148), so neither change moves the answer beyond search scatter: 2.516 → 2.520 with the short search, 2.523 → 2.524 with the full one (theory 2.50).",
+      "The critical surfaces are shallow slabs on the cohesionless face; a minimum sliding area in proportion to the model area (here 20 000 m²) would skip them and read 3 % high. With no minimum slip area (the default since 2026-11-04) the critical circle is a slab 0.1 m deep (0.36 m²) and F = 2.506 by Bishop; the former automatic minimum, 1 % of the squared ground relief (1.21 m²), read 2.519.",
+      "commercial program A 2.534 (noncircular, minimum depth 5 m). Baker, Frydman & Talesnick give 2.41 (Spencer, dynamic programming, empty reservoir; p. 37, Fig. 15), below the infinite-slope value 2.50 they do not explain. They call the 4:1 face the upstream (reservoir) face and the 3:1 face the downstream one (p. 32, Fig. 10a); their crest is 5 m wide and the whole profile 2 m lower (crest 99, ground 93 / 88 over a base at 0), with the same 6 m and 11 m heights (docs/kallor/baker-frydman-talesnick-1993.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

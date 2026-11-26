@@ -1,0 +1,106 @@
+{
+  "id": "V008a",
+  "title": "Baker (2003) example 1, Mohr-Coulomb fit",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V008a",
+      "title": "Baker (2003) example 1, Mohr-Coulomb fit",
+      "notes": "6 m high slope at about 43° in soil with a linear Mohr-Coulomb fit to a curved envelope; critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 11.64,
+        "friction_angle": 24.7,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            -6.0,
+            -4.0
+          ],
+          [
+            -6.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.43,
+            6.0
+          ],
+          [
+            20.0,
+            6.0
+          ],
+          [
+            20.0,
+            -4.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          0.0,
+          20.0
+        ],
+        "exit": [
+          0.0,
+          20.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.536,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020325520833333333,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Baker (2003), example 1.",
+    "derived_from": "cSlope verification problem V008a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 0–20, the model of the source; the level ground left of the toe is not searched.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

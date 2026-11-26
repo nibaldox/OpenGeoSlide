@@ -1,0 +1,108 @@
+{
+  "id": "V013a",
+  "title": "Cai & Ugai (2000) slope, no pile (see V013b, V013c, V013d and V013e for the pile rows)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V013a",
+      "title": "Cai & Ugai (2000) slope, no pile (see V013b, V013c, V013d and V013e for the pile rows)",
+      "notes": "Homogeneous 1:1.5 slope, 10 m high, without piles; critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            -10.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            25.0,
+            10.0
+          ],
+          [
+            35.0,
+            10.0
+          ],
+          [
+            35.0,
+            -10.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.14,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024385964912280702,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.13,
+      "published_by": "Cai & Ugai",
+      "tolerance": 0.024424778761061947,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cai & Ugai (2000), Soils and Foundations 40(1).",
+    "derived_from": "cSlope verification problem V013a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Both values are Bishop searches, printed to two digits.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
