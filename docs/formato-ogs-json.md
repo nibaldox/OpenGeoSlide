@@ -638,7 +638,9 @@ al espejo x → −x.
   evaluación de F.
 - El sismo (`kh` y `kv`) **no** actúa sobre las fuerzas de los refuerzos.
 - Los refuerzos funcionan con **todos** los métodos y con las dos superficies. Bishop sigue limitado a los círculos.
-  Con una búsqueda, los cruces y los nodos se calculan para cada candidato ([Limitaciones](limitaciones.md#la-búsqueda-con-refuerzos-tiene-discontinuidades)).
+  Con una búsqueda, los cruces y los nodos se calculan para cada candidato, y el círculo crítico puede **esquivar** el
+  refuerzo: si el resultado trae `reinforcement_outside_mass`, el FS mínimo es el de una superficie que no lo cruza
+  ([Limitaciones](limitaciones.md#la-búsqueda-con-refuerzos-tiene-discontinuidades)).
 
 ### Ejemplo: un talud con un anclaje activo
 
