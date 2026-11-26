@@ -595,14 +595,46 @@ pub struct TensionCrack {
 impl<'de> Deserialize<'de> for TensionCrack {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
+        #[serde(
+            deny_unknown_fields,
+            expecting = "un objeto analysis.tension_crack con depth y water_fill"
+        )]
         struct Raw {
             #[serde(default)]
             depth: Option<CrackDepth>,
-            #[serde(default)]
+            #[serde(default, deserialize_with = "number_with_path")]
             water_fill: Option<f64>,
         }
-        let raw = Raw::deserialize(deserializer)?;
+        /// A number, or `null` (absent); anything else is an error that names the path of the field.
+        fn number_with_path<'de, D: serde::Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<f64>, D::Error> {
+            #[derive(Deserialize)]
+            #[serde(untagged)]
+            enum Either {
+                Number(f64),
+                Other(serde::de::IgnoredAny),
+            }
+            match Option::<Either>::deserialize(deserializer)? {
+                Some(Either::Number(n)) => Ok(Some(n)),
+                Some(Either::Other(_)) => Err(serde::de::Error::custom(
+                    "analysis.tension_crack.water_fill debe ser un número en [0, 1]",
+                )),
+                None => Ok(None),
+            }
+        }
+        /// Only a JSON object: serde would also take an array as the fields in order, and the schema would not.
+        struct OnlyMap;
+        impl<'de> serde::de::Visitor<'de> for OnlyMap {
+            type Value = Raw;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("un objeto analysis.tension_crack con depth y water_fill")
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<Raw, A::Error> {
+                Raw::deserialize(serde::de::value::MapAccessDeserializer::new(map))
+            }
+        }
+        let raw = deserializer.deserialize_map(OnlyMap)?;
         let missing = |field: &str| {
             serde::de::Error::custom(format!("analysis.tension_crack.{field} es obligatorio"))
         };
