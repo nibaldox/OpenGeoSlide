@@ -283,18 +283,22 @@ struct Balance {
 }
 
 /// Balance at `(fos, λ)`, or `None` at a pole (`D ≤ 1e-9·F` on a soil slice) or a non-finite recurrence.
-fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
+///
+/// `G` selects the code with an interslice function (E13d). `G = false` is Spencer's loop with no `f` in it, so Spencer
+/// keeps its exact arithmetic and its speed; `G = true` with `f ≡ 1` gives the same bits, since every product by `1` is
+/// exact.
+fn balance_at<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
     let mut e = 0.0_f64;
     let (mut num, mut den) = (0.0_f64, 0.0_f64);
     for p in preps {
         let e_prev = e;
         if !p.inert {
-            let sf = lambda * p.fr;
+            let sf = if G { lambda * p.fr } else { lambda };
             let d = (p.sin - sf * p.cos) * p.tan_phi + (p.cos + sf * p.sin) * fos;
             if d.is_nan() || d <= POLE_FRACTION * fos {
                 return None;
             }
-            if p.fl == p.fr {
+            if !G || p.fl == p.fr {
                 e = e_prev + (fos * p.t - p.res) / d;
             } else {
                 // E13d: `E_{k+1} D_r = E_k D_l + q`, with `D_l` the pole of the left face. Written as the increment
@@ -307,7 +311,7 @@ fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
         // Air slices keep E, and they take part in the sums with their own α (E7a).
         let sum_e = e_prev + e;
         num += p.width * sum_e * p.tan;
-        den += p.width * (p.fl * e_prev + p.fr * e);
+        den += p.width * if G { p.fl * e_prev + p.fr * e } else { sum_e };
     }
     if !(e.is_finite() && num.is_finite() && den.is_finite()) {
         return None;
@@ -322,10 +326,10 @@ fn balance_at(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
 /// Closure `E_n` and its derivative `dE_n/dF` at `(fos, λ)`, or `None` at a pole or a non-finite value. The derivative
 /// is exact: `D = a + b·F` is linear in F, so `d(ΔE)/dF = (t·D − (F·t − res)·b) / D²`. Used by the Newton fast path of
 /// the force root only (allocation-free).
-fn closure_slope(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
+fn closure_slope<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
     let (mut e, mut de) = (0.0_f64, 0.0_f64);
     for p in preps.iter().filter(|p| !p.inert) {
-        let sf = lambda * p.fr;
+        let sf = if G { lambda * p.fr } else { lambda };
         let b = p.cos + sf * p.sin;
         let d = (p.sin - sf * p.cos) * p.tan_phi + b * fos;
         if d.is_nan() || d <= POLE_FRACTION * fos {
@@ -333,7 +337,7 @@ fn closure_slope(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
         }
         let q = fos * p.t - p.res;
         let inv = 1.0 / d;
-        if p.fl == p.fr {
+        if !G || p.fl == p.fr {
             e += q * inv;
             de += (p.t * d - q * b) * inv * inv;
         } else {
@@ -572,6 +576,8 @@ struct Scheme {
     moment_h: f64,
     /// Mean of the interslice function on the interior faces (E13d); the scan covers `λ·f̄ ∈ [−0.5; 1.5]`. `1` in Spencer.
     fbar: f64,
+    /// `true` with an interslice function (Morgenstern-Price): the loops carry `f` (see [`balance_at`]).
+    general: bool,
     budget: usize,
     evaluations: usize,
 }
@@ -612,18 +618,32 @@ impl Scheme {
     fn point(&self, lambda: f64, warm: f64, guess: f64) -> Option<Point> {
         let preps = &self.preps;
         let total_w = self.total_w;
+        let general = self.general;
         let closed = |b: &Balance| b.closure.abs() / total_w <= ROOT_ACCEPT;
-        let slope =
-            |x: f64| closure_slope(preps, lambda, x).map(|(e, de)| (e / total_w, de / total_w));
+        let balance = |x: f64| {
+            if general {
+                balance_at::<true>(preps, lambda, x)
+            } else {
+                balance_at::<false>(preps, lambda, x)
+            }
+        };
+        let slope = |x: f64| {
+            let s = if general {
+                closure_slope::<true>(preps, lambda, x)
+            } else {
+                closure_slope::<false>(preps, lambda, x)
+            };
+            s.map(|(e, de)| (e / total_w, de / total_w))
+        };
         let fast = newton_near(&slope, guess, warm)
             .filter(|&x| self.above_lower(lambda, x))
-            .and_then(|x| balance_at(preps, lambda, x).filter(closed).map(|b| (x, b)));
+            .and_then(|x| balance(x).filter(closed).map(|b| (x, b)));
         let (fos, b) = match fast {
             Some(found) => found,
             None => {
-                let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+                let closure = |x: f64| balance(x).map(|b| b.closure / total_w);
                 let fos = root_near(&closure, warm, self.lower(lambda))?;
-                (fos, balance_at(preps, lambda, fos)?)
+                (fos, balance(fos)?)
             }
         };
         Some(Point {
@@ -844,6 +864,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar: 1.0,
+        general: false,
         budget: usize::MAX,
         evaluations: 0,
     };
@@ -853,10 +874,11 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .iter()
         .map(|&lambda| {
             let preps = &scheme.preps;
-            let closure = |x: f64| balance_at(preps, lambda, x).map(|b| b.closure / total_w);
+            let closure =
+                |x: f64| balance_at::<false>(preps, lambda, x).map(|b| b.closure / total_w);
             let force = root_near(&closure, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
-                balance_at(preps, lambda, x)
+                balance_at::<false>(preps, lambda, x)
                     .and_then(|b| moment_ratio(&b, scheme.moment_h))
                     .map(|m| m - lambda)
             };
@@ -928,6 +950,7 @@ fn setup(
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar,
+        general: faces.is_some(),
         budget: opts.max_iterations,
         evaluations: 0,
     };
@@ -994,7 +1017,7 @@ pub(super) fn force_root_at_zero(
     let evaluations = std::cell::Cell::new(0_usize);
     let closure = |x: f64| {
         evaluations.set(evaluations.get() + 1);
-        balance_at(&preps, 0.0, x).map(|b| b.closure / total_w)
+        balance_at::<false>(&preps, 0.0, x).map(|b| b.closure / total_w)
     };
     let root = root_near(&closure, bishop::start_fos(slices).max(1.05 * lo), lo);
     let used = evaluations.get();

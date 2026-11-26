@@ -1,0 +1,40 @@
+diff --git a/crates/ogs-core/src/lib.rs b/crates/ogs-core/src/lib.rs
+index f8b647c..5738a7a 100644
+--- a/crates/ogs-core/src/lib.rs
++++ b/crates/ogs-core/src/lib.rs
+@@ -32,7 +32,7 @@ pub mod surface;
+ 
+ use geometry::{Ground, PreparedModel};
+ use loads::{LOAD_OUTSIDE_MASS, LoadCase};
+-use methods::{SolveOptions, SolveStatus, is_inert, solve};
++use methods::{SolveOptions, SolveStatus, is_inert, solve_with};
+ use model::{
+     AnalysisSettings, FORMAT, IntersliceFunction, IntersliceSpec, MethodKind, Model, SearchSpec,
+     SurfaceSpec,
+@@ -341,16 +341,13 @@ fn analyze_method(
+     if analysis.search.is_none() && matches!(analysis.surface, Some(SurfaceSpec::Polyline { .. })) {
+         unimplemented!("F3-W1a");
+     }
+-    if !matches!(method, MethodKind::Bishop | MethodKind::Spencer) {
+-        unimplemented!("F3-W1b");
+-    }
+ 
+     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
+     let (surface, search) = match (&analysis.search, &analysis.surface) {
+         (Some(spec), _) => {
+             let result = search_circular(pm, spec, |candidate| {
+                 let slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
+-                let res = solve(&slices, method, opts);
++                let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+                 let valid =
+                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
+                 valid.then_some(res.fos)
+@@ -380,7 +377,7 @@ fn analyze_method(
+     let sliced = slice_surface_with(pm, &circle, n, load_case)
+         .map_err(|e| OgsError::NoValidSurface(surface_reason(e)))?;
+     let slices = sliced.slices;
+-    let result = solve(&slices, method, opts);
++    let result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+ 
+     // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is ignored in v0.1.
+     //    The list is the water note, then the slicing notes (E10a: `truncated_mass`), then the reason of the

@@ -56,7 +56,8 @@ fn interslice_functions_have_their_known_values() {
     let xis = [0.0, 0.1, 0.2, 0.5, 0.8, 1.0];
     let sine = |x: f64| (pi * x).sin();
     let triangle: Vec<[f64; 2]> = vec![[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]];
-    let table: [(F, Option<&[[f64; 2]]>, [f64; 6]); 5] = [
+    type Row<'a> = (F, Option<&'a [[f64; 2]]>, [f64; 6]);
+    let table: [Row; 5] = [
         (F::Constant, None, [1.0; 6]),
         (
             F::HalfSine,
