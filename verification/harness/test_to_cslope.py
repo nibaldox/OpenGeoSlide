@@ -22,6 +22,7 @@ from to_cslope import (  # noqa: E402
     plane_from_circle,
     resolve_direction,
     water_table_from_piezo,
+    water_above_ground,
     outline_of,
 )
 
@@ -95,7 +96,8 @@ def test_piezometric_line_round_trip():
     pts = [[0.0, 12.0], [40.0, 6.0], [55.0, 6.0]]
     wt = water_table_from_piezo(pts)
     assert wt["mode"] == "custom"
-    assert wt["freeWater"] is False
+    # F5.3: ponded water is automatic in every version -> free water, line not clipped to the ground
+    assert wt["freeWater"] is True and wt["followBoundary"] is False
     assert piezo_from_water_table(wt) == pts
 
 
@@ -1059,3 +1061,163 @@ def test_oracle_drops_the_active_element_in_compression_that_ogs_applies():
     for x2, y2 in ((59.382686, 41.5), (55.091883, 47.091883)):
         item = dict(ANCHOR, x1=36, y1=28, x2=x2, y2=y2)
         assert _oracle_fos(cs, v047a_v04([item]), "bishop") == pytest.approx(base, rel=1e-9)
+
+
+# ------------------------------------------------ tension crack and ponded water (schema v0.5, F5.2 / F5.3)
+
+F5_ROWS = os.path.normpath(os.path.join(HERE, "..", "..", "crates", "ogs-core", "tests", "data", "f3g"))
+
+
+def v05(crack=None, **overrides) -> dict:
+    model = stacked_model(**overrides)
+    model["version"] = "0.5"
+    if crack is not None:
+        model["analysis"]["tension_crack"] = crack
+    return model
+
+
+def _options(model: dict, method: str = "bishop") -> dict:
+    return ogs_to_cslope(model, _check("fixed", method)).document["options"]
+
+
+def test_crack_fixed_depth_maps_to_depth_and_water_fraction():
+    o = _options(v05({"depth": 2.5, "water_fill": 0.25}))
+    assert o["tensionCrackDepth"] == 2.5 and o["tensionCrackWater"] == 0.25
+    assert "tensionCrackAuto" not in o
+
+
+def test_crack_auto_maps_to_auto_without_depth():
+    o = _options(v05({"depth": "auto", "water_fill": 1.0}))
+    assert o["tensionCrackAuto"] is True and o["tensionCrackWater"] == 1.0
+    assert "tensionCrackDepth" not in o
+
+
+def test_dry_crack_writes_water_zero_explicitly():
+    o = _options(v05({"depth": 2, "water_fill": 0}))
+    assert o["tensionCrackDepth"] == 2.0 and o["tensionCrackWater"] == 0.0
+
+
+def test_no_crack_writes_no_crack_option():
+    for model in (stacked_model(), v05()):
+        assert not [k for k in _options(model) if k.startswith("tensionCrack")]
+
+
+@pytest.mark.parametrize("crack, match", [
+    ({"depth": 2.0}, "water_fill"),                                   # water_fill is required, no default
+    ({"water_fill": 1.0}, "depth"),
+    ({"depth": 0, "water_fill": 1.0}, "depth"),
+    ({"depth": -1.0, "water_fill": 1.0}, "depth"),
+    ({"depth": "deep", "water_fill": 1.0}, "depth"),
+    ({"depth": float("nan"), "water_fill": 1.0}, "depth"),
+    ({"depth": 2.0, "water_fill": 1.5}, "water_fill"),
+    ({"depth": 2.0, "water_fill": -0.1}, "water_fill"),
+    ({"depth": 2.0, "water_fill": 1.0, "x": 10.0}, "desconocido"),   # deny_unknown_fields, no position field
+    ([1, 2], "objeto"),
+])
+def test_malformed_crack_is_refused_like_the_engine(crack, match):
+    with pytest.raises(UnsupportedModel, match=match):
+        ogs_to_cslope(v05(crack), _check("fixed"))
+
+
+def test_crack_needs_version_0_5():
+    for version in ("0.1", "0.2", "0.3", "0.4"):
+        model = v05({"depth": 2.0, "water_fill": 0.0})
+        model["version"] = version
+        with pytest.raises(UnsupportedModel, match='tension_crack requiere version "0.5"'):
+            ogs_to_cslope(model, _check("fixed"))
+
+
+def test_version_0_5_admits_everything_of_the_earlier_versions():
+    model = v05({"depth": 2.0, "water_fill": 0.0}, loads=[{"type": "line", "x": 30, "p": 20}])
+    model["analysis"].update(seismic={"kh": 0.1}, methods=["janbu_corrected"])
+    model["reinforcements"] = [dict(ANCHOR)]
+    doc = ogs_to_cslope(model, _check("fixed", "janbu_corrected")).document
+    assert doc["options"]["seismicHorizontal"] == 0.1 and doc["options"]["janbuCorrection"] is True
+    assert doc["options"]["tensionCrackDepth"] == 2.0
+    assert doc["definition"]["lineLoads"] and doc["definition"]["reinforcements"]
+
+
+def test_crack_with_water_has_the_same_water_weight_rule_as_the_piezometric_line():
+    imperial = v05({"depth": 2.0, "water_fill": 1.0}, units="imperial", water={"unit_weight": 62.4})
+    with pytest.raises(UnsupportedModel, match="waterUnitWeight"):
+        ogs_to_cslope(imperial, _check("fixed"))
+    dry = v05({"depth": 2.0, "water_fill": 0.0}, units="imperial", water={"unit_weight": 62.4})
+    ogs_to_cslope(dry, _check("fixed"))          # a dry crack uses no water weight
+    si = ogs_to_cslope(v05({"depth": 2.0, "water_fill": 0.5}), _check("fixed"))
+    assert any("9.807" in n for n in si.notes)
+
+
+def test_piezometric_line_is_always_free_water_not_clipped():
+    for version in ("0.1", "0.3", "0.5"):
+        model = stacked_model(water={"unit_weight": 9.807, "piezometric_line": [[0, 5.0], [40, 5.0]]})
+        model["version"] = version
+        wt = ogs_to_cslope(model, _check("fixed")).document["definition"]["waterTable"]
+        assert wt == {"mode": "custom", "value": [[0.0, 5.0], [40.0, 5.0]], "freeWater": True, "followBoundary": False}
+
+
+def test_water_above_ground_helper():
+    outline = Polygon([(0, 0), (0, 15), (40, 15), (40, 0)])
+    assert not water_above_ground(outline, [[0, 5.0], [40, 5.0]])
+    assert not water_above_ground(outline, [[0, 15.0], [40, 15.0]])         # at the ground: nothing is ponded
+    assert water_above_ground(outline, [[0, 17.0], [40, 5.0]])
+    assert water_above_ground(outline, [[0, 5.0], [40, 15.5]])
+
+
+def test_ru_under_ponded_water_is_noted_as_not_comparable():
+    materials = [_material("fill", 18.0, ru=0.2), _material("clay", 17.0)]
+    ponded = stacked_model(materials=materials, water={"unit_weight": 9.807, "piezometric_line": [[0, 17.0], [40, 17.0]]})
+    assert any("E15c-ru" in n for n in ogs_to_cslope(ponded, _check("fixed")).notes)
+    below = stacked_model(materials=materials, water={"unit_weight": 9.807, "piezometric_line": [[0, 5.0], [40, 5.0]]})
+    assert not any("E15c-ru" in n for n in ogs_to_cslope(below, _check("fixed")).notes)
+
+
+def _rows():
+    path = os.path.join(F5_ROWS, "expected.json")
+    if not os.path.isfile(path):
+        return []
+    with open(path, encoding="utf-8") as fh:
+        exp = json.load(fh)
+    return [(rid, row) for rid, row in sorted(exp["rows"].items())]
+
+
+@pytest.mark.parametrize("rid, row", _rows())
+def test_oracle_rows_of_x21_through_the_converter(rid, row):
+    """The 55 rows of X21 (migrated to v0.5 in ``crates/ogs-core/tests/data/f3g``): the converter must reproduce the oracle
+    figures that ``expected.json`` records, to 1e-6 (they come from the prototype adapter ``X21_proto/oracle.py``)."""
+    cs = pytest.importorskip("cslope")
+    with open(os.path.join(F5_ROWS, "rows", f"{rid}.json"), encoding="utf-8") as fh:
+        model = json.load(fh)
+    if "expect_error" in row:
+        # X21-A07: the oracle finds no valid surface (the crack is deeper than the circle)
+        doc = ogs_to_cslope(model, {"method": "bishop", "kind": "fixed"}).document
+        with pytest.raises(Exception):
+            cs.analyse(doc)
+        return
+    assert row["oracle"], rid
+    for method, expected in row["oracle"].items():
+        got = _oracle_fos(cs, model, method)
+        assert got == pytest.approx(expected, rel=1e-6), (rid, method)
+
+
+@pytest.mark.parametrize("piezo", [
+    [[0, 24.0], [100, 24.0]],                                  # X21-N02: flat, under the ground
+    [[0, 24.0], [45, 24.0], [60, 33.0], [100, 33.5]],          # follows the slope from under it
+    [[0, 25.0], [30, 25.0], [100, 25.0]],                       # on the ground along the bench (y = 25)
+])
+@pytest.mark.parametrize("method", ["bishop", "spencer", "janbu_corrected"])
+def test_oracle_is_unchanged_without_ponded_water(piezo, method):
+    """F5.3 / identity: a piezometric line that never goes above the ground gives the same FS with the old document
+    (line clipped to the ground, ``freeWater: false``) and with the new one (free water, not clipped)."""
+    cs = pytest.importorskip("cslope")
+    with open(os.path.join(F5_ROWS, "rows", "X21-N02.json"), encoding="utf-8") as fh:
+        model = json.load(fh)
+    model["water"] = {"unit_weight": 9.807, "piezometric_line": piezo}
+    assert not water_above_ground(outline_of(regions_of(model)), piezo)
+    doc = ogs_to_cslope(model, {"method": method, "kind": "fixed"}).document
+    assert doc["definition"]["waterTable"]["freeWater"] is True
+    new = cs.analyse(doc)["minFOS"]
+    old_doc = json.loads(json.dumps(doc))
+    old_doc["definition"]["waterTable"] = {"mode": "custom", "value": doc["definition"]["waterTable"]["value"],
+                                           "freeWater": False}
+    old = cs.analyse(old_doc)["minFOS"]
+    assert new == pytest.approx(old, rel=1e-9)
