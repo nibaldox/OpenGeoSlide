@@ -1112,7 +1112,8 @@ fn the_soil_force_matches_the_closed_form_of_a_uniform_column() {
     // (1 − ru)·γ (ru), and the total stress γ·z + γw·h with φ = 0 (the equation 23 takes the total stress).
     use ogs_core::reinforcement::ito_matsui_coefficients as coeffs;
     let gw = 9.807;
-    let cases: Vec<(&str, Box<dyn Fn(&mut Value)>, f64, f64, f64, f64)> = vec![
+    type Edit = Box<dyn Fn(&mut Value)>;
+    let cases: Vec<(&str, Edit, f64, f64, f64, f64)> = vec![
         // (name, edit, phi, c, k (slope of σ with z), σ at z = 0)
         (
             "dry c-phi",
