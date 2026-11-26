@@ -12,7 +12,7 @@ const load = (f: string): VerificationCase => JSON.parse(readFileSync(new URL(f,
 
 // El índice generado (verification/cases/INDEX.md) es la fuente del número de casos: nunca un literal.
 const index = readFileSync(new URL('INDEX.md', dir), 'utf8');
-const indexed = [...index.matchAll(/^\| (V\w+) \| .*\| (0\.[1234]) \|$/gm)].map((m) => m[1]!);
+const indexed = [...index.matchAll(/^\| (V[\w-]+) \| .*\| (0\.\d+) \|$/gm)].map((m) => m[1]!);
 const declared = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(index)?.[1]);
 
 describe('exampleTitles', () => {
