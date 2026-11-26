@@ -148,10 +148,13 @@ Esta batería no cubre todo: véanse las limitaciones.
   mecánicamente estabilizada (TEM) ni otras estructuras de contención.** Se posponen Ito-Matsui, el pretensado como
   campo aparte, la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos
   lanzados, los anclajes helicoidales y la presión de fluido equivalente.
-- **Con refuerzos, la búsqueda circular puede esquivar el elemento** y su FS es discontinuo; un tirante libre sin placa de
-  cabeza no aplica fuerza (estado `no_capacity`); un refuerzo activo comprimido se aplica con su fuerza completa y el
-  oráculo instalado de cSlope lo descarta; el VP 58 de Slide2 sigue pendiente.
-- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 93 casos lo usa.
+- **Con refuerzos, la búsqueda circular puede esquivar el elemento**, su FS es discontinuo y la búsqueda por defecto
+  puede perder el mínimo real (hasta +7,15 % en un caso medido en la revisión R11): compruebe con una malla fina y con
+  superficies fijas. Un tirante libre sin placa de cabeza no aplica fuerza (estado `no_capacity`). Un refuerzo activo
+  comprimido se aplica con su fuerza completa y **no siempre es conservador**: con φ > 0 su componente normal confina la
+  base y puede subir el FS, y el motor lo avisa con una nota; el oráculo instalado de cSlope lo descarta. Un `spacing`
+  omitido vale 1 m en SI y 1 ft en imperial. El VP 58 de Slide2 sigue pendiente.
+- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 116 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
 - **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
