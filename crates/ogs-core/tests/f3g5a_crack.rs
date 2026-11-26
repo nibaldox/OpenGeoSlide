@@ -130,3 +130,72 @@ fn e15l1_without_crack_is_unchanged_at_the_edge() {
     let v = fos(&rtl, 0);
     assert!(v.is_finite());
 }
+
+// ------------------------------------------------------------------------------------------------------- E15l-2 (A-04)
+
+/// Lower arc of the circle of `a04_udl` at `x`.
+fn a04_base(x: f64) -> f64 {
+    let (xc, yc, r) = (-42.421052631578945_f64, 55.0_f64, 32.46971740678465_f64);
+    yc - (r * r - (x - xc) * (x - xc)).sqrt()
+}
+
+/// A `udl` on the crest cancels `d(x)` at its edge: the crack that cuts the mass is the real face
+/// `ground(x_c) − base(x_c)`, and its water is `water_fill` times that face (before: `depth 0`, `Pw 0`).
+#[test]
+fn e15l2_discontinuity_reports_the_real_face() {
+    let doc = tight(data("a04_udl"));
+    let report = run(&doc);
+    let (x, depth, force) = crack_of(&report, 0);
+    let h_face = 35.0 - a04_base(x);
+    assert!(h_face > 1.0, "{h_face}");
+    assert!(
+        (x + 66.5).abs() < 1e-9,
+        "the face is at the edge of the udl: {x}"
+    );
+    assert!(
+        (depth - h_face).abs() <= 1e-9,
+        "depth {depth} vs face {h_face}"
+    );
+    let pw = 0.5 * 9.81 * h_face * h_face;
+    assert!((force - pw).abs() <= 1e-9 * pw, "Pw {force} vs {pw}");
+    // The force acts on the slice of the face and is the whole horizontal thrust of the model.
+    let sum_h: f64 = report.results[0].slices.iter().map(|s| s.h_force).sum();
+    assert!((sum_h - pw).abs() <= 1e-9 * pw, "{sum_h}");
+    // Half the water: the thrust follows the water, quadratically.
+    let mut half = doc.clone();
+    half["analysis"]["tension_crack"]["water_fill"] = json!(0.5);
+    let (_, d2, f2) = crack_of(&run(&half), 0);
+    assert!((d2 - h_face).abs() <= 1e-9 && (f2 - 0.25 * pw).abs() <= 1e-9 * pw);
+}
+
+/// If the face that the discontinuity leaves is nothing (`h_face ≤ tol`), there is no crack: depth 0, no cut and the
+/// factor of the model without the crack.
+#[test]
+fn e15l2_no_face_means_no_crack_and_no_cut() {
+    let mut plain = tight(data("a04_udl"));
+    plain["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tension_crack");
+    plain["loads"] = json!([]);
+    let entry = run(&plain).results[0].slices.last().unwrap().x_left;
+    // The udl starts 1e-10 inside the sliding range: d(x_entry) > 0 and the face at the jump is ~1e-10.
+    let mut doc = tight(data("a04_udl"));
+    doc["loads"] =
+        json!([{"type": "udl", "id": "u1", "x1": entry + 1e-10, "x2": -55.0, "q": 100.0}]);
+    let mut nocrack = doc.clone();
+    nocrack["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tension_crack");
+    let (with, without) = (run(&doc), run(&nocrack));
+    let (_, depth, force) = crack_of(&with, 0);
+    assert_eq!((depth, force), (0.0, 0.0));
+    for i in 0..2 {
+        let (a, b) = (
+            with.results[i].fos.unwrap(),
+            without.results[i].fos.unwrap(),
+        );
+        assert!((a - b).abs() <= 1e-9 * b, "method {i}: {a} vs {b}");
+    }
+}

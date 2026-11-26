@@ -424,7 +424,10 @@ fn analyze_method(
                     case = load_case.with_extra_breaks(nodes);
                     &case
                 };
-                let crack_x = plan.as_ref().map(|plan| plan.x_c);
+                let crack_x = plan
+                    .as_ref()
+                    .filter(|plan| plan.depth > 0.0)
+                    .map(|plan| plan.x_c);
                 let mut slices = slice_surface_cracked(pm, &surface, n, load_case, crack_x)
                     .ok()?
                     .slices;
@@ -535,7 +538,10 @@ fn analyze_method(
         &surface,
         n,
         slicing_case,
-        crack_plan.as_ref().map(|plan| plan.x_c),
+        crack_plan
+            .as_ref()
+            .filter(|plan| plan.depth > 0.0)
+            .map(|plan| plan.x_c),
     )
     .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;

@@ -86,7 +86,9 @@ pub struct CrackPlan {
     /// steps and a bisection down to the tolerance `tol` of the model. When the automatic depth is 0 at the entry
     /// (nothing to cut), `x_c` is the entry itself and nothing is truncated.
     pub x_c: f64,
-    /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7).
+    /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7). Where the bisection ends on a jump
+    /// of `d(x)` (a `udl` edge, a change of material) it is the real face `ground(x_c) − base(x_c)` (E15l-2); `0` if
+    /// that face is not larger than the tolerance (no crack, nothing is cut).
     pub depth: f64,
     /// Extra nodes of the cut: a node at `x_c` (pass them to `LoadCase::with_extra_breaks`). The slicer of the
     /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut.
@@ -228,6 +230,12 @@ pub fn locate(
                 return Err(CrackError::NotReached);
             }
             let d = depth.at(hi);
+            // E15l-2: across a discontinuity of `d(x)` (a `udl` edge, a lateral change of material) the bisection ends
+            // where the depth jumps and the real face is the ground over the base at `x_c`, not `d`.
+            let face = pm.top_at(hi).map_or(d, |g| g - surface.y_at(pm, hi));
+            if (face - d).abs() > pm.tol() {
+                return Ok(finish(hi, if face > pm.tol() { face } else { 0.0 }));
+            }
             return Ok(finish(hi, d));
         }
         prev = x;
