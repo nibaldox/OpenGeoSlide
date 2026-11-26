@@ -104,7 +104,7 @@ PILE_KEYS = {"x1", "y1", "x2", "y2", "force", "diameter", "spacing", "direction"
 # engine reproduces them; the integrator promotes them with `import_cslope.py --promote-f3i` and flips this constant.
 F3I_IDS = ("V013b", "V013c", "V013d", "V013e")
 F3I_DIR = Path("verification") / "pending" / "F3I"
-F3I_PROMOTED = False
+F3I_PROMOTED = True
 F3I_F3R_NOTE_PROMOTED = (
     "V013b a V013e (Ito-Matsui, sin `force`) no son de v0.4: son de v0.5 con `lateral_pressure` y están en el lote F3I.")
 PILE_KEYS_F3I = PILE_KEYS | {"shearCapacity", "momentCapacity"}

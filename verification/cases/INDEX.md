@@ -3,7 +3,7 @@
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **147** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **17**), con **323** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Casos no incluidos: **41** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **151** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **21**), con **327** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Casos no incluidos: **37** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -156,6 +156,10 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V096a | Zhu & Lee heterogeneous slope, dry, deep circle | Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590. | SI | — | 1 / 1 / 1 / 0 / 0 | search | 0.5 |
 | V096b | Zhu & Lee heterogeneous slope with a water table, deep circle | Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590. | SI | — | 1 / 1 / 1 / 0 / 0 | search | 0.5 |
 | V096c | Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack | Zhu & Lee (2002), Int. J. Numer. Anal. Meth. Geomech. 26(15). Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.5 |
+| V013b | Cai & Ugai slope, pile row D1/D = 2 | Cai & Ugai (2000), Soils and Foundations 40(1). | SI | — | 1 / 0 / 0 / 0 / 0 | search | 0.5 |
+| V013c | Cai & Ugai slope, pile row D1/D = 3 | Cai & Ugai (2000), Soils and Foundations 40(1). | SI | — | 1 / 0 / 0 / 0 / 0 | search | 0.5 |
+| V013d | Cai & Ugai slope, pile row D1/D = 4 | Cai & Ugai (2000), Soils and Foundations 40(1). | SI | — | 1 / 0 / 0 / 0 / 0 | search | 0.5 |
+| V013e | Cai & Ugai slope, pile row D1/D = 6 | Cai & Ugai (2000), Soils and Foundations 40(1). | SI | — | 1 / 0 / 0 / 0 / 0 | search | 0.5 |
 
 ## Checks descartados en casos convertidos
 
@@ -220,10 +224,6 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 | V009a | opción de check que cambia el problema: tensionCrackDepth |
 | V009b | definition con clave que cambia el problema: customSurfaces |
 | V009c | opción de check que cambia el problema: tensionCrackDepth |
-| V013b | definition con clave que cambia el problema: piles, reinforcements |
-| V013c | definition con clave que cambia el problema: piles, reinforcements |
-| V013d | definition con clave que cambia el problema: piles, reinforcements |
-| V013e | definition con clave que cambia el problema: piles, reinforcements |
 | V017a | contorno no válido (Self-intersection[13.8160684182133 100.095038741757]) |
 | V017b | definition con clave que cambia el problema: reinforcements |
 | V035b | definition con clave que cambia el problema: reinforcements |
@@ -263,7 +263,7 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 
 **23** casos con **30** checks, promovidos desde `verification/pending/F3R` cuando el motor de los refuerzos reproduce el valor publicado dentro de su tolerancia. No se relajó ninguna tolerancia ni se tocó ningún dato del problema. Los lotes son los de F4.12: **R1** anclajes (V016b, V035a, V035b, V037); **R2** clavos y geosintéticos con development (V011a, V011b, V012, V064, V065, V066a, V066b, V066c, V066e); **R3** geosintéticos con interface y clavos de pared (V010, V010b, V014, V083, V084a, V084b, V084c, V084d, V084e, V084f); **R4** pilotes de fuerza constante (V015, V095c).
 
-V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.
+V013b a V013e (Ito-Matsui, sin `force`) no son de v0.4: son de v0.5 con `lateral_pressure` y están en el lote F3I.
 
 **3** checks más (V035b ×2, V083) quedan retenidos en `verification/pending/F3R` (`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test de aceptación lo rechaza. Es una tracción real del modelo, presente también sin refuerzos; E14n-1 de §F4.17 (adoptada) solo elimina el aviso en V014, donde venía de dovelas finas de cruce.
 
@@ -395,3 +395,14 @@ La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs 
 | V096b | 0.5 | 1.015 m, water_fill 0 | no | morgenstern_price | 1.174 | Commercial program A | 2.04 | 1.1745 | +0.04 | 1.1720 | -0.17 |
 | V096c | 0.5 | 1.015 m, water_fill 0 | no | spencer | 1.804 | Commercial program A | 1.03 | 1.8000 | -0.22 | 1.7997 | -0.24 |
 | V096c | 0.5 | 1.015 m, water_fill 0 | no | bishop | 1.804 | Commercial program A | 1.03 | 1.7996 | -0.25 | 1.7992 | -0.26 |
+
+## Pilotes de Ito-Matsui (lote F3I, v0.5)
+
+**4** casos con **4** checks (V013b a V013e, Cai y Ugai 2000, filas de D1/D = 2, 3, 4 y 6), promovidos desde `verification/pending/F3I` cuando el motor de E15i reproduce el valor publicado dentro de su tolerancia. Cada pilote lleva `lateral_pressure` (`ito_matsui`, `diameter`, `location`) y no `force`; la fuente no trae `direction` ni `location`, y se escriben los valores de cSlope (`angle` 0 y `centroid`). No se relajó ninguna tolerancia ni se tocó ningún dato del problema.
+
+| caso | D1/D | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |
+|---|---:|---|---:|---|---:|---:|---:|---:|---:|
+| V013b | 2 | bishop | 1.54 | Commercial program A | 2.32 | 1.5412 | +0.07 | 1.5408 | +0.05 |
+| V013c | 3 | bishop | 1.43 | Commercial program A | 2.35 | 1.4374 | +0.52 | 1.4371 | +0.49 |
+| V013d | 4 | bishop | 1.33 | Commercial program A | 2.38 | 1.3317 | +0.13 | 1.3314 | +0.11 |
+| V013e | 6 | bishop | 1.25 | Commercial program A | 2.40 | 1.2530 | +0.24 | 1.2528 | +0.22 |

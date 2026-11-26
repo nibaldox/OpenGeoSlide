@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T18:00:04-03:00",
+  "generated_at": "2026-11-26T19:38:47-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -125,6 +125,30 @@
       "title": "Cai & Ugai (2000) slope, no pile (see V013b, V013c, V013d and V013e for the pile rows)",
       "path": "verification/cases/V013a.json",
       "n_checks": 2
+    },
+    {
+      "id": "V013b",
+      "title": "Cai & Ugai slope, pile row D1/D = 2",
+      "path": "verification/cases/V013b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V013c",
+      "title": "Cai & Ugai slope, pile row D1/D = 3",
+      "path": "verification/cases/V013c.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V013d",
+      "title": "Cai & Ugai slope, pile row D1/D = 4",
+      "path": "verification/cases/V013d.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V013e",
+      "title": "Cai & Ugai slope, pile row D1/D = 6",
+      "path": "verification/cases/V013e.json",
+      "n_checks": 1
     },
     {
       "id": "V014",
@@ -902,22 +926,22 @@
     }
   ],
   "summary": {
-    "checks": 323,
+    "checks": 327,
     "ogs": {
-      "OK": 323,
+      "OK": 327,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 322,
+      "OK": 326,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 1
     },
     "cslope_reproduces": {
-      "n": 322,
-      "N": 323
+      "n": 326,
+      "N": 327
     }
   },
   "checks": [
@@ -2372,6 +2396,374 @@
         ]
       },
       "estado": "OK"
+    },
+    {
+      "case_id": "V013b",
+      "title": "Cai & Ugai slope, pile row D1/D = 2",
+      "source_path": "verification/cases/V013b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.54,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023246753246753248,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5411535763516584,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "reinforcement_outside_mass",
+          "structural_checks_not_covered",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.07490755530249082,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.540762742276387,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.04952871924590596,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": true,
+              "x": 17.5,
+              "y": 4.999999999999998,
+              "fx": 6.909987844010305e-14,
+              "fy": 0.0,
+              "force": 6.909987844010305e-14,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "OK",
+      "forces_comparison": {
+        "n_ogs": 0,
+        "n_oracle": 1,
+        "pairs": [],
+        "only_ogs": [],
+        "only_oracle": [
+          {
+            "id": "P1",
+            "x": 17.5,
+            "y": 4.999999999999998,
+            "fx": 6.909987844010305e-14,
+            "fy": 0.0
+          }
+        ],
+        "ogs_not_applied": [],
+        "max_dxy": 0.0,
+        "max_dF": 0.0,
+        "max_radial_oracle": null,
+        "unexplained": 1,
+        "on_oracle_circle": true
+      }
+    },
+    {
+      "case_id": "V013c",
+      "title": "Cai & Ugai slope, pile row D1/D = 3",
+      "source_path": "verification/cases/V013c.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.43,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023496503496503496,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.4374253245265294,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "structural_checks_not_covered",
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.5192534633936673,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4370635956237785,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.49395773592857084,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": true,
+              "x": 17.5,
+              "y": 1.8569258309785919,
+              "fx": 117.94318427539358,
+              "fy": 0.0,
+              "force": 117.94318427539358,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "OK",
+      "forces_comparison": {
+        "n_ogs": 1,
+        "n_oracle": 1,
+        "pairs": [
+          {
+            "id": "P1",
+            "ogs": {
+              "x": 17.5,
+              "y": 1.855689915378825,
+              "fx": 118.01999179104399,
+              "fy": 0.0
+            },
+            "oracle": {
+              "x": 17.5,
+              "y": 1.8569258309785919,
+              "fx": 117.94318427539358,
+              "fy": 0.0
+            },
+            "dx": 0.0,
+            "dy": 0.0012359155997667681,
+            "dfx": -0.07680751565041533,
+            "dfy": 0.0,
+            "explanation": "sin explicar",
+            "dF": 0.07680751565041533,
+            "dangle_deg": 0.0,
+            "radial_oracle": -0.0011433689992585983
+          }
+        ],
+        "only_ogs": [],
+        "only_oracle": [],
+        "ogs_not_applied": [],
+        "max_dxy": 0.0012359155997667681,
+        "max_dF": 0.07680751565041533,
+        "max_radial_oracle": 0.0011433689992585983,
+        "unexplained": 1,
+        "on_oracle_circle": true
+      }
+    },
+    {
+      "case_id": "V013d",
+      "title": "Cai & Ugai slope, pile row D1/D = 4",
+      "source_path": "verification/cases/V013d.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.33,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0237593984962406,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.331715175847053,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "structural_checks_not_covered",
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.12896059000397217,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3314309210069362,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.10758804563429265,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": true,
+              "x": 17.5,
+              "y": 1.6500728882680846,
+              "fx": 80.28643354108598,
+              "fy": 0.0,
+              "force": 80.28643354108598,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "OK",
+      "forces_comparison": {
+        "n_ogs": 1,
+        "n_oracle": 1,
+        "pairs": [
+          {
+            "id": "P1",
+            "ogs": {
+              "x": 17.5,
+              "y": 1.648697130517288,
+              "fx": 80.3430245117734,
+              "fy": 0.0
+            },
+            "oracle": {
+              "x": 17.5,
+              "y": 1.6500728882680846,
+              "fx": 80.28643354108598,
+              "fy": 0.0
+            },
+            "dx": 0.0,
+            "dy": 0.00137575775079668,
+            "dfx": -0.05659097068740948,
+            "dfy": 0.0,
+            "explanation": "sin explicar",
+            "dF": 0.05659097068740948,
+            "dangle_deg": 0.0,
+            "radial_oracle": -0.0012772201222439605
+          }
+        ],
+        "only_ogs": [],
+        "only_oracle": [],
+        "ogs_not_applied": [],
+        "max_dxy": 0.00137575775079668,
+        "max_dF": 0.05659097068740948,
+        "max_radial_oracle": 0.0012772201222439605,
+        "unexplained": 1,
+        "on_oracle_circle": true
+      }
+    },
+    {
+      "case_id": "V013e",
+      "title": "Cai & Ugai slope, pile row D1/D = 6",
+      "source_path": "verification/cases/V013e.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.25,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.2529860570936895,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "structural_checks_not_covered",
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.23888456749515896,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2527964165670709,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.22371332536566868,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": true,
+              "x": 17.5,
+              "y": 1.481111202600221,
+              "fx": 49.00385993308212,
+              "fy": 0.0,
+              "force": 49.00385993308212,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "OK",
+      "forces_comparison": {
+        "n_ogs": 1,
+        "n_oracle": 1,
+        "pairs": [
+          {
+            "id": "P1",
+            "ogs": {
+              "x": 17.5,
+              "y": 1.481111024413046,
+              "fx": 49.003864272443664,
+              "fy": 0.0
+            },
+            "oracle": {
+              "x": 17.5,
+              "y": 1.481111202600221,
+              "fx": 49.00385993308212,
+              "fy": 0.0
+            },
+            "dx": 0.0,
+            "dy": 1.7818717501505432e-07,
+            "dfx": -4.339361545646625e-06,
+            "dfy": 0.0,
+            "explanation": "sin explicar",
+            "dF": 4.339361545646625e-06,
+            "dangle_deg": 0.0,
+            "radial_oracle": -1.659014721155927e-07
+          }
+        ],
+        "only_ogs": [],
+        "only_oracle": [],
+        "ogs_not_applied": [],
+        "max_dxy": 1.7818717501505432e-07,
+        "max_dF": 4.339361545646625e-06,
+        "max_radial_oracle": 1.659014721155927e-07,
+        "unexplained": 1,
+        "on_oracle_circle": true
+      }
     },
     {
       "case_id": "V014",

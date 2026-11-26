@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T18:00:04-03:00 · harness v1 · casos: `verification/cases` (147 casos, 323 checks)
+Generado: 2026-11-26T19:38:47-03:00 · harness v1 · casos: `verification/cases` (151 casos, 327 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-26T18:00:04-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 323 | 0 | 0 | 0 |
-| cSlope | 322 | 0 | 0 | 1 |
+| ogs | 327 | 0 | 0 | 0 |
+| cSlope | 326 | 0 | 0 | 1 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **322/323** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **326/327** checks.
 
 ## Tabla
 
@@ -51,6 +51,10 @@ cSlope reproduce el valor publicado dentro de tolerancia en **322/323** checks.
 | V012 | bishop | fixed | 0.9800 | 0.9817 | +0.18 | 0.9818 | +0.18 | 1.51 | OK |
 | V013a | bishop | search | 1.1400 | 1.1430 | +0.26 | 1.1429 | +0.25 | 2.44 | OK |
 | V013a | bishop | search | 1.1300 | 1.1430 | +1.15 | 1.1429 | +1.14 | 2.44 | OK |
+| V013b | bishop | search | 1.5400 | 1.5412 | +0.07 | 1.5408 | +0.05 | 2.32 | OK |
+| V013c | bishop | search | 1.4300 | 1.4374 | +0.52 | 1.4371 | +0.49 | 2.35 | OK |
+| V013d | bishop | search | 1.3300 | 1.3317 | +0.13 | 1.3314 | +0.11 | 2.38 | OK |
+| V013e | bishop | search | 1.2500 | 1.2530 | +0.24 | 1.2528 | +0.22 | 2.40 | OK |
 | V014 | janbu_corrected | fixed | 1.4600 | 1.4484 | -0.79 | 1.4482 | -0.81 | 1.34 | OK |
 | V014 | janbu_corrected | fixed | 1.4480 | 1.4484 | +0.03 | 1.4482 | +0.02 | 1.03 | OK |
 | V014 | spencer | fixed | 1.5760 | 1.5754 | -0.04 | 1.5755 | -0.03 | 1.03 | OK |
@@ -358,6 +362,10 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V011a | bishop | 1 | 1 | 1 | 2.5e-03 | 0.0e+00 | 0 |
 | V011b | bishop | 1 | 1 | 1 | 8.6e-05 | 0.0e+00 | 0 |
 | V012 | bishop | 1 | 1 | 1 | 2.2e-03 | 0.0e+00 | 0 |
+| V013b ◇ | bishop | 0 | 1 | 0 | 0.0e+00 | 0.0e+00 | 1 |
+| V013c ◇ | bishop | 1 | 1 | 1 | 1.2e-03 | 7.7e-02 | 1 |
+| V013d ◇ | bishop | 1 | 1 | 1 | 1.4e-03 | 5.7e-02 | 1 |
+| V013e ◇ | bishop | 1 | 1 | 1 | 1.8e-07 | 4.3e-06 | 1 |
 | V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
 | V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
 | V014 | spencer | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
@@ -383,7 +391,7 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V084f | janbu_corrected | 7 | 7 | 7 | 0.0e+00 | 1.8e-15 | 0 |
 | V095c | bishop | 1 | 1 | 1 | 8.8e-04 | 1.7e-01 | 0 |
 
-**30** checks, **161** cruces emparejados, **0** diferencias sin explicar.
+**34** checks, **164** cruces emparejados, **4** diferencias sin explicar.
 
 Ni ogs ni el oráculo aplican fuerza en: V016b (bishop), V016b (spencer). La superficie no cruza ningún elemento, así que el FS es el del talud sin refuerzo y el acuerdo con lo publicado no prueba nada sobre los refuerzos.
 
@@ -391,10 +399,14 @@ Ni ogs ni el oráculo aplican fuerza en: V016b (bishop), V016b (spencer). La sup
 
 | caso | método | elemento | x ogs | x oráculo | Δx | fuerza ogs | fuerza oráculo | ΔF | dirección ogs → oráculo (°) | explicación |
 |---|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| V013c | bishop | P1 | 17.50000 | 17.50000 | +0.0e+00 | (118.0200; 0.0000) | (117.9432; 0.0000) | 7.7e-02 | +0.00 → +0.00 | SIN EXPLICAR |
+| V013d | bishop | P1 | 17.50000 | 17.50000 | +0.0e+00 | (80.3430; 0.0000) | (80.2864; 0.0000) | 5.7e-02 | +0.00 → +0.00 | SIN EXPLICAR |
+| V013e | bishop | P1 | 17.50000 | 17.50000 | +0.0e+00 | (49.0039; 0.0000) | (49.0039; 0.0000) | 4.3e-06 | +0.00 → +0.00 | SIN EXPLICAR |
 | V064 | bishop | R1 | 6.30037 | 6.30037 | -4.0e-06 | (7.2955; 0.0000) | (7.2954; 0.0000) | 1.2e-04 | +0.00 → +0.00 | rampa `development`: ΔF = (Tmax/ℓ)·Δs, con Δs la diferencia de posición del cruce (el oráculo cruza con la poligonal de sus dovelas, ogs con el arco) |
 | V064 | bishop | R3 | 7.60257 | 7.60219 | -3.8e-04 | (9.0480; 0.0000) | (9.0458; 0.0000) | 2.2e-03 | +0.00 → +0.00 | rampa `development`: ΔF = (Tmax/ℓ)·Δs, con Δs la diferencia de posición del cruce (el oráculo cruza con la poligonal de sus dovelas, ogs con el arco) |
 | V066b | spencer | R11 | 12.89523 | 12.89520 | -2.3e-05 | (0.2504; 0.0000) | (0.2516; 0.0000) | 1.2e-03 | +0.00 → +0.00 | rampa `development`: ΔF = (Tmax/ℓ)·Δs, con Δs la diferencia de posición del cruce (el oráculo cruza con la poligonal de sus dovelas, ogs con el arco) |
 | V095c | bishop | P1 | 9.00000 | 9.00000 | +0.0e+00 | (6.6852; 8.3545) | (6.8170; 8.2473) | 1.7e-01 | +51.33 → +50.42 | misma magnitud, otra dirección: el oráculo mide la base en la cuerda de su dovela, ogs en la tangente exacta del círculo en el cruce |
+| V013b | bishop | P1 | | | | solo oráculo: (0.0000; 0.0000) en x = 17.50000 | | | | SIN EXPLICAR |
 
 ### Cruces
 
@@ -407,6 +419,9 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 | V011a | R1 | -25.44313 | 0.90000 | -200.0000 | -0.0000 | -180.00 | -200.0000 | -0.0000 | -180.00 | +2.5e-03 | -2.3e-03 |
 | V011b | R1 | -31.93451 | 0.90000 | -200.0000 | -0.0000 | -180.00 | -200.0000 | -0.0000 | -180.00 | +8.6e-05 | -7.7e-05 |
 | V012 | R1 | -30.44820 | 0.90000 | -200.0000 | -0.0000 | -180.00 | -200.0000 | -0.0000 | -180.00 | +2.2e-03 | -2.0e-03 |
+| V013c | P1 | 17.50000 | 1.85569 | 118.0200 | 0.0000 | +0.00 | 117.9432 | 0.0000 | +0.00 | +0.0e+00 | -1.1e-03 |
+| V013d | P1 | 17.50000 | 1.64870 | 80.3430 | 0.0000 | +0.00 | 80.2864 | 0.0000 | +0.00 | +0.0e+00 | -1.3e-03 |
+| V013e | P1 | 17.50000 | 1.48111 | 49.0039 | 0.0000 | +0.00 | 49.0039 | 0.0000 | +0.00 | +0.0e+00 | -1.7e-07 |
 | V014 | R2 | 11.19085 | 6.52272 | 0.7679 | 0.5522 | +35.72 | 0.7679 | 0.5522 | +35.72 | +0.0e+00 | — |
 | V014 | R4 | 9.66482 | 5.42544 | 7.2001 | 5.1772 | +35.72 | 7.2001 | 5.1772 | +35.72 | -1.8e-15 | — |
 | V014 | R6 | 8.13880 | 4.32816 | 13.0692 | 9.3974 | +35.72 | 13.0692 | 9.3974 | +35.72 | +0.0e+00 | — |
@@ -564,6 +579,22 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V011b (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V012 (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V013a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V013b (bishop/search): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
+- V013b (bishop/search): pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.
+- V013b (bishop/search): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V013b (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V013c (bishop/search): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
+- V013c (bishop/search): pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.
+- V013c (bishop/search): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V013c (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V013d (bishop/search): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
+- V013d (bishop/search): pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.
+- V013d (bishop/search): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V013d (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V013e (bishop/search): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
+- V013e (bishop/search): pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva.
+- V013e (bishop/search): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V013e (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V014 (janbu_corrected/fixed, spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
