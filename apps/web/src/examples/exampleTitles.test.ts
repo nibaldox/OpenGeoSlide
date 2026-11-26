@@ -10,7 +10,20 @@ const dir = new URL('../../../../verification/cases/', import.meta.url);
 const files = readdirSync(dir).filter((f) => /^V.*\.json$/.test(f));
 const load = (f: string): VerificationCase => JSON.parse(readFileSync(new URL(f, dir), 'utf8')) as VerificationCase;
 
+// El índice generado (verification/cases/INDEX.md) es la fuente del número de casos: nunca un literal.
+const index = readFileSync(new URL('INDEX.md', dir), 'utf8');
+const indexed = [...index.matchAll(/^\| (V\w+) \| .*\| (0\.[123]) \|$/gm)].map((m) => m[1]!);
+const declared = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(index)?.[1]);
+
 describe('exampleTitles', () => {
+  it('el índice declara los mismos casos que hay en verification/cases y cada uno tiene su título en español', () => {
+    expect(Number.isInteger(declared)).toBe(true);
+    expect(indexed.length).toBe(declared);
+    expect(files.length).toBe(declared);
+    expect([...indexed].sort()).toEqual(files.map((f) => load(f).id).sort());
+    for (const id of indexed) expect(exampleTitles[id], `falta el título de ${id}`).toBeDefined();
+  });
+
   it('hay un nombre para cada caso publicado y ninguno de más', () => {
     const ids = files.map((f) => load(f).id).sort();
     expect(ids.length).toBeGreaterThanOrEqual(21);

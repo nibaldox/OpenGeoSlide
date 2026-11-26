@@ -25,6 +25,7 @@ import {
   searchCountText,
   searchProductText,
 } from '../state/validateLocal';
+import { fitPolylineToGround, groundPieces } from '../state/polylineGround';
 import { isImperialUnits } from '../state/units';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
@@ -837,21 +838,27 @@ export function polylineRowsSorted(rows: readonly PolylineRow[]): boolean {
 }
 
 /**
- * Polilínea inicial al pasar de círculo a polilínea: la cuerda del círculo (el fijo actual o, si no hay, el círculo de partida) entre sus dos
- * cruces con el terreno, con 5 puntos en x equiespaciados sobre su arco inferior. Si alguna cuerda queda sobre el terreno se prueba con más
- * puntos (9, 17, 33). Sin cruces, la polilínea es la recta de dos puntos que baja del pie a media altura bajo la cresta.
+ * Polilínea inicial al pasar de círculo a polilínea: admisible **por construcción** (F3.3). Se toman los puntos del arco inferior del círculo
+ * (el fijo actual o, si no hay, el de partida) bajo el terreno, entre sus dos cruces con él, con 5 puntos equiespaciados en x **más un punto en
+ * cada vértice del terreno** que cae dentro del arco, bajado hasta quedar estrictamente bajo el terreno. Como entre dos puntos consecutivos el
+ * terreno es una recta y ambos quedan bajo ella, ninguna cuerda pasa sobre el terreno (la cuerda del círculo pasaba sobre el vértice del pie).
+ * El resultado se comprueba con la regla del motor (`fitPolylineToGround`); si aun así no la cumple se densifica (9, 17, 33, 65 puntos) y,
+ * como último recurso, se baja cada punto una fracción de la altura. Sin cruces, es la recta de dos puntos que baja del pie a media altura
+ * bajo la cresta.
  */
 export function initialPolyline(doc: ModelDoc): Point[] {
   const bounds = modelBounds(doc);
   if (!bounds) return [[0, 0], [1, 0]];
   const range: [number, number] = [bounds.xMin, bounds.xMax];
   const tol = extentTol(range);
+  const height = Math.max(1, bounds.yMax - bounds.yMin);
+  const margin = 1e-6 * height;
   const current = doc.analysis.surface;
   const circle = current && current.type !== 'polyline' ? current : defaultCircle(doc);
   const lower = (x: number): number => circle.yc - Math.sqrt(Math.max(0, circle.r * circle.r - (x - circle.xc) ** 2));
   const under = (x: number): boolean => {
     const t = terrainY(doc.regions, x, tol);
-    return Number.isFinite(t) && lower(x) < t - 1e-6 * Math.max(1, bounds.yMax - bounds.yMin);
+    return Number.isFinite(t) && lower(x) < t - margin;
   };
   // Tramo x donde el arco inferior queda bajo el terreno (dentro del círculo y del modelo).
   const lo = Math.max(range[0], circle.xc - circle.r);
@@ -866,29 +873,45 @@ export function initialPolyline(doc: ModelDoc): Point[] {
       b = x;
     }
   }
-  const chordBelowGround = (pts: readonly Point[]): boolean => {
-    for (let i = 1; i < pts.length; i += 1) {
-      const p = pts[i - 1] as Point;
-      const q = pts[i] as Point;
-      for (let k = 1; k < 20; k += 1) {
-        const x = p[0] + ((q[0] - p[0]) * k) / 20;
-        const y = p[1] + ((q[1] - p[1]) * k) / 20;
-        if (y > terrainY(doc.regions, x, tol)) return false;
+  if (Number.isFinite(a) && Number.isFinite(b) && b - a > 1e-6 * (range[1] - range[0])) {
+    // Cota del terreno que no se debe alcanzar en x: bajo el lado más bajo de una cara vertical.
+    const cap = (x: number, depth: number): number => {
+      const g = Math.min(terrainY(doc.regions, x - 2 * tol, tol), terrainY(doc.regions, x + 2 * tol, tol));
+      return Number.isFinite(g) ? g - depth : Number.POSITIVE_INFINITY;
+    };
+    // Vértices del terreno dentro del arco donde cambia la pendiente o hay un escalón (los colineales no hacen falta), excluidos los extremos.
+    const pieces = groundPieces(doc.regions);
+    const slopeOf = (g: { x0: number; x1: number; y0: number; y1: number }): number => (g.y1 - g.y0) / (g.x1 - g.x0);
+    const groundXs = pieces
+      .map((g, i) => ({ g, x: g.x1, next: pieces[i + 1] }))
+      .filter(({ g, x, next }) => {
+        if (x <= a + 1e-6 * (b - a) || x >= b - 1e-6 * (b - a)) return false;
+        if (!next) return true;
+        const step = Math.abs(next.y0 - g.y1) > tol;
+        return step || Math.abs(slopeOf(next) - slopeOf(g)) > 1e-9 * Math.max(1, Math.abs(slopeOf(g)));
+      })
+      .map(({ x }) => x);
+    const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
+    const build = (n: number, depth: number): Point[] => {
+      const xs = Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+      const all = [...xs, ...groundXs].sort((p, q) => p - q).filter((x, i, arr) => i === 0 || x - (arr[i - 1] as number) > 1e-6 * (b - a));
+      return all.map((x, i): Point => {
+        const interior = i > 0 && i < all.length - 1;
+        const rx = round3(x);
+        // Los extremos van sobre el arco (el motor los prolonga hasta el terreno); los interiores, bajo el terreno y redondeados hacia abajo.
+        return interior ? [rx, floor3(Math.min(lower(rx), cap(rx, depth)))] : [rx, round3(lower(x))];
+      });
+    };
+    const admissible = (pts: readonly Point[]): boolean => fitPolylineToGround(doc.regions, pts).ok;
+    let first: Point[] | null = null;
+    for (const depth of [Math.max(margin, 1e-3), 1e-3 * height, 1e-2 * height]) {
+      for (const n of [5, 9, 17, 33, 65]) {
+        const pts = build(n, depth);
+        first ??= pts;
+        if (admissible(pts)) return pts;
       }
     }
-    return true;
-  };
-  if (Number.isFinite(a) && Number.isFinite(b) && b - a > 1e-6 * (range[1] - range[0])) {
-    let best: Point[] = [];
-    for (const n of [5, 9, 17, 33]) {
-      const pts: Point[] = Array.from({ length: n }, (_, i) => {
-        const x = a + ((b - a) * i) / (n - 1);
-        return [round3(x), round3(lower(x))];
-      });
-      if (best.length === 0) best = pts;
-      if (chordBelowGround(pts)) return pts;
-    }
-    return best;
+    return first ?? [];
   }
   const w = range[1] - range[0];
   const h = bounds.yMax - bounds.yMin;

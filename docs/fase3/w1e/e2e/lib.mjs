@@ -38,10 +38,29 @@ export async function start(page) {
   await page.waitForFunction(() => /ogs-core/.test(document.querySelector('[data-testid="engine-banner"]')?.textContent ?? ''));
 }
 
+// C-W (F3A-C): I-W vio una caída tras el paso 8d de w1e_polilinea (`Guardar` no encontrado: `getByRole` omite lo oculto, así que el menú estaba cerrado
+// aunque `aria-expanded` ya había pasado por «true»). No se reproduce (7 ejecuciones, 3 en serie y 4 en paralelo, y la sonda dbg_foco.mjs, 12 aperturas
+// con CPU saturada y un borrador inválido en la tabla de la función: el menú queda abierto y el foco en «Archivo»). El foco no se pierde, así que no hay
+// defecto en la app que corregir: es una carrera del guion (clic y lectura de estado en el mismo instante). Ahora espera a que el menú esté abierto
+// de verdad (`:popover-open`) y, si se cerró, vuelve a pulsar el botón (hasta 3 intentos).
 export async function openMenu(page, name) {
   const trigger = page.getByRole('button', { name, exact: true });
-  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
-  await page.waitForFunction((n) => [...document.querySelectorAll('button.dd-trigger')].some((b) => b.textContent.trim().startsWith(n) && b.getAttribute('aria-expanded') === 'true'), name);
+  const isOpen = () => page.evaluate((n) => {
+    const b = [...document.querySelectorAll('button.dd-trigger')].find((x) => x.textContent.trim().startsWith(n));
+    const menu = b && document.getElementById(b.getAttribute('aria-controls'));
+    return !!b && b.getAttribute('aria-expanded') === 'true' && !!menu && menu.matches(':popover-open');
+  }, name);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (!(await isOpen())) await trigger.click();
+    try { await page.waitForFunction((n) => {
+      const b = [...document.querySelectorAll('button.dd-trigger')].find((x) => x.textContent.trim().startsWith(n));
+      const menu = b && document.getElementById(b.getAttribute('aria-controls'));
+      return !!b && b.getAttribute('aria-expanded') === 'true' && !!menu && menu.matches(':popover-open');
+    }, name, { timeout: 3000 }); } catch { continue; }
+    await page.waitForTimeout(120);
+    if (await isOpen()) return;
+  }
+  throw new Error(`el menú ${name} no se abrió`);
 }
 
 export async function openMenuDebug(page, name) {
