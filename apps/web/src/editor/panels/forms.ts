@@ -224,6 +224,23 @@ export function terrainY(regions: ModelDoc['regions'], x: number, tol: number): 
   return best;
 }
 
+/** Cota de la base del suelo (envolvente inferior de todas las regiones) en `x`; `Infinity` fuera. */
+export function terrainBottomY(regions: ModelDoc['regions'], x: number, tol: number): number {
+  let best = Infinity;
+  for (const { polygon } of regions) {
+    for (let i = 0; i < polygon.length; i += 1) {
+      const a = polygon[i] as readonly [number, number];
+      const b = polygon[(i + 1) % polygon.length] as readonly [number, number];
+      const lo = Math.min(a[0], b[0]);
+      const hi = Math.max(a[0], b[0]);
+      if (x < lo - tol || x > hi + tol) continue;
+      if (hi - lo <= tol) best = Math.min(best, a[1], b[1]);
+      else best = Math.min(best, a[1] + ((Math.min(Math.max(x, lo), hi) - a[0]) / (b[0] - a[0])) * (b[1] - a[1]));
+    }
+  }
+  return best;
+}
+
 /**
  * Terreno y corona del modelo, calculados de la geometría (sin usar el nombre de ninguna región). La corona es el
  * tramo más ancho de la envolvente superior que está a la cota máxima del terreno; `null` si no hay ninguno

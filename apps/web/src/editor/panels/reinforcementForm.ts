@@ -13,7 +13,7 @@ import { deepEqual } from '../state/docUtils';
 import { isImperialUnits } from '../state/units';
 import { REINFORCEMENT_LABEL, REINFORCEMENT_RULE } from '../state/validateLocal';
 import type { EditorCommand, ModelDoc } from '../types';
-import { done, finite, formatNumber, modelBounds, parseNumber, take, terrainY, type FieldErrors, type FormOutcome, type NumberRule } from './forms';
+import { done, finite, formatNumber, modelBounds, parseNumber, take, terrainBottomY, terrainY, type FieldErrors, type FormOutcome, type NumberRule } from './forms';
 
 export type ReinforcementType = Reinforcement['type'];
 
@@ -108,7 +108,8 @@ const DEFAULTS = {
   anchor: { capacity: [200, 45000], spacing: [2.5, 8] },
   nail: { capacity: [100, 22000], spacing: [1.5, 5], bond: [50, 3400] },
   geosynthetic: { capacity: [40, 2700], spacing: [1, 1] },
-  pile: { force: [100, 22000], spacing: [2, 6] },
+  // 22 500 lbf entre 6,5 ft = 3460 lbf/ft = 50,5 kN/m, como los 100 kN entre 2 m de SI.
+  pile: { force: [100, 22500], spacing: [2, 6.5] },
   sheet_pile: { force: [100, 6800] },
 } as const;
 
@@ -131,17 +132,36 @@ export function defaultReinforcement(type: ReinforcementType, doc: ModelDoc): Re
     const y = terrainY(doc.regions, x, tol);
     return Number.isFinite(y) ? y : bounds.yMax;
   };
-  const x1 = round2(bounds.xMin + 0.5 * width);
-  const y1 = round2(ground(x1));
+  const bottom = (x: number): number => {
+    const y = terrainBottomY(doc.regions, x, tol);
+    return Number.isFinite(y) ? y : bounds.yMin;
+  };
+  const thickness = (x: number): number => ground(x) - bottom(x);
+  const mid = round2(bounds.xMin + 0.5 * width);
   const id = nextReinforcementId(doc.reinforcements ?? [], type);
 
   if (type === 'pile' || type === 'sheet_pile') {
-    const y2 = round2(Math.max(bounds.yMin + 0.05 * height, y1 - 0.4 * height));
+    // E14o-16 (R11B-08): la columna de suelo debe dar espacio a un elemento vertical de 0,4·H hacia abajo. Se prefiere el centro del modelo;
+    // si ahí el suelo es delgado (pie o berma larga), se toma la columna con espesor suficiente más cercana al centro, o la más gruesa.
+    const need = 0.25 * height;
+    const columns = Array.from({ length: 41 }, (_, i) => round2(bounds.xMin + (width * i) / 40));
+    const best = thickness(mid) >= need ? mid : (columns.filter((x) => thickness(x) >= need).sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))[0] ?? columns.reduce((a, b) => (thickness(b) > thickness(a) ? b : a), mid));
+    const x1 = best;
+    const y1 = round2(ground(x1));
+    const base = bottom(x1);
+    // La punta queda dentro del suelo, sobre la base, y siempre bajo la cabeza (la longitud nunca es 0 ni la punta sube).
+    const floor = Math.max(base + 0.05 * height, thickness(x1) >= need ? -Infinity : base + 0.2 * thickness(x1));
+    let y2 = round2(Math.max(floor, y1 - 0.4 * height));
+    if (!(y2 < y1) || !(y2 > base)) y2 = round2((y1 + base) / 2);
+    if (!(y2 < y1) || !(y2 > base)) return null; // sin espesor de suelo en ninguna columna: no hay dónde situar el elemento
     const common = { id, x1, y1, x2: x1, y2, application: 'passive' as const, direction: 'tangent' as const };
     return type === 'pile'
       ? { type, ...common, force: DEFAULTS.pile.force[k], spacing: DEFAULTS.pile.spacing[k] }
       : { type, ...common, force: DEFAULTS.sheet_pile.force[k] };
   }
+
+  const x1 = mid;
+  const y1 = round2(ground(x1));
 
   // Lado estable: el de la cota más alta del terreno (con un sentido explícito, el opuesto al del deslizamiento).
   const dir = doc.slope?.direction;
