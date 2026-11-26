@@ -8,17 +8,17 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
-Bloque de grieta de tracción y agua embalsada (F3G): formato v0.5, **en desarrollo y sin publicar**. El contrato es
-`briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15h); la evidencia, `docs/fase3/exploracion/X18.md` a `X21.md` y
-`docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a
-byte, que la v0.3.0** (salvo el número de versión del motor), con dos excepciones documentadas: los modelos cuya
+Bloque de grieta de tracción, agua embalsada y pilotes de Ito-Matsui (F3G): formato v0.5, **en desarrollo y sin
+publicar**. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15k); la evidencia,
+`docs/fase3/exploracion/X18.md` a `X22.md` y `docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack`, sin
+`lateral_pressure` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0** (salvo el número de versión del motor), con dos excepciones documentadas: los modelos cuya
 piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»), y V019 con búsqueda, donde solo
 cambian dos contadores (E15j-8, véase «Changed»).
 
 ### Added
 - **Formato `.ogs.json` v0.5 (E15a).** El motor acepta 0.1 a 0.5. `analysis.tension_crack` exige `"version": "0.5"`; con
   una versión menor el error es `InvalidModel: tension_crack requiere version "0.5"`. La web guarda `"0.5"` solo si
-  existe `analysis.tension_crack`.
+  existe `analysis.tension_crack` o algún pilote lleva `lateral_pressure`.
 - **Grieta de tracción (E15b, E15d).** `analysis.tension_crack: { depth, water_fill }`, un solo objeto y sin campo de
   posición.
   - `depth` es un número finito > 0 o la cadena `"auto"`; `water_fill` es la fracción llena de agua, en [0, 1],
@@ -41,20 +41,52 @@ cambian dos contadores (E15j-8, véase «Changed»).
   - **Sin sismo** sobre el agua ni sobre la fuerza de la grieta.
   - **Profundidad bajo la tolerancia:** una altura de agua menor o igual que `1e-9·escala` se toma como 0, de modo que
     una piezométrica que toca el terreno no agrega términos.
+- **Pilote con la presión del suelo de Ito-Matsui (E15i, ola G3).** Un `pile` lleva `lateral_pressure` en lugar de
+  `force`, según Ito y Matsui (1975), ecuaciones 13, 14 y 23. Exige `"version": "0.5"`; con una versión menor el error es
+  `InvalidModel: lateral_pressure requiere version "0.5"`.
+  - **Formato.** `lateral_pressure: { model: "ito_matsui", diameter, location: "centroid" | "slip_surface" }`
+    **reemplaza** a `force` (exactamente uno de los dos; `force` pasa a ser opcional) y `capacity: { shear, moment }` es
+    opcional (al menos uno, > 0, solo con `lateral_pressure`). El pilote es vertical y `spacing > diameter`. Los errores
+    llevan su ruta JSON, salvo `model` y `location` inválidos, que da el deserializador sin ruta. Va en el esquema 0.5.
+  - **Presión por capas.** `p(z) = c·A1 + σ′v·A2`, con el material, `c` y φ de cada punto; con φ = 0 (o `undrained`), la
+    ecuación 23 con la tensión **total**; `σ′v = σv − u − ru·σ_suelo`, sin las cargas de superficie. **Piso de φ = 0**
+    (`A = max(A_cφ, A_φ=0)`), que no viene del artículo sino de cSlope y XSLOPE y solo actúa con S/D ≥ 8. El perfil se
+    integra una vez por análisis (`PileProfiles`, paso de 0,05 m).
+  - **Fuerza y salida.** Por pilote, `min(∫p dz, shear, moment/L_m)`, y por metro, dividida por `spacing`. Cada cruce del
+    informe agrega `soil_force`, `governs` (`soil`, `shear` o `bending`) y `arm` (`L_m`); con `centroid` la fuerza actúa a
+    `L_m` sobre el cruce y con `slip_surface`, en el cruce. Un pilote con `force` no trae esos campos (identidad).
+  - **Aviso `ito_matsui_spacing_range`** con S/D fuera de 2 a 8 (la fórmula sobrestima con S/D pequeño y subestima con
+    S/D grande; Ukritchon y Keawsawasvong, 2017). Va a la lista E6 y a `warnings.ts`.
+  - **Medido.** Las 28 filas de X22 coinciden con cSlope a ≤ 0,06 % en los cinco métodos; V013b a V013e pasan.
+    Tests en `crates/ogs-core/tests/f3g3_ito.rs`.
 - **Informe.** Cada resultado cuya superficie se truncó lleva `tension_crack: { x, depth, water_force }`; se omite sin
   grieta.
-- **Esquema (E15a).** `schema/ogs-0.5.schema.json`, que acepta 0.1 a 0.5 y rechaza lo mismo que el motor, con la tabla
-  de acuerdo de `verification/tools/test_schema.py` extendida.
+- **Esquema (E15a, E15i-1).** `schema/ogs-0.5.schema.json`, que acepta 0.1 a 0.5 y rechaza lo mismo que el motor
+  (incluidos `lateral_pressure` y `capacity` de un `pile`), con la tabla de acuerdo de `verification/tools/test_schema.py`
+  extendida.
 - **Web (E15g).** Panel «Análisis» con la grieta (casilla, profundidad numérica o «Automática» y fracción de agua; 1 por
   defecto al crearla), el agua embalsada como relleno azul bajo la piezométrica (token `--canvas-pond`, claro y oscuro),
   la grieta en `x_c` de la superficie crítica con su `Pw`, y la grieta y el agua embalsada en el informe PDF, el CSV, los
   Diagnósticos y la Ayuda.
+- **Web: pilote de Ito-Matsui (E15i).**
+  - La tarjeta del pilote elige el origen de la fuerza (dada o Ito-Matsui, que se propone con `"centroid"`) y pide
+    diámetro, ubicación y capacidad, con la validación local con ruta y el aviso de rango de S/D.
+  - La conversión de unidades convierte `diameter`, `shear` y `moment`; el FS no cambia.
+  - La tabla de fuerzas, el informe PDF y el CSV agregan las columnas «Fuerza del suelo», «Gobierna» y «Brazo», con el
+    ancho de columnas de la tabla del PDF corregido; Diagnósticos lleva a los campos de Ito-Matsui.
+  - El aviso `ito_matsui_spacing_range`, la nota estructural y la Ayuda explican el límite de S/D de 2 a 8 y los
+    supuestos (pilotes rígidos, deformación plana y dos superficies plásticas).
 - **Verificación.**
   - **Bloque diferencial F3G:** los modelos D28 a D39 de `verification/differential/cases_f3g/` (embalse al pie y en una
     cara de presa, grieta seca, llena y automática, y sus combinaciones, con sismo y con arcilla no drenada), cada uno en
     búsqueda y en superficie fija, con Bishop y Spencer; una sonda de capacidades y `--require-f3g` en `run.py`.
-  - **Importador de cSlope:** convierte la grieta y el agua embalsada y promueve 31 casos con 80 checks a
-    `verification/cases/` (147 casos y 323 checks en total; aceptación 323/323, cSlope 322/323). Quedan 6 checks retenidos
+    **D40 a D42** agregan los pilotes de Ito-Matsui (φ = 0, c-φ con tope de corte y bajo el agua; la sonda de
+    `lateral_pressure` usa X22-V013c). Con el motor de E15i, los 12 checks nuevos pasan.
+  - **Importador y conversor de cSlope:** convierte la grieta y el agua embalsada y promueve 31 casos con 80 checks a
+    `verification/cases/`. `to_cslope.py` convierte un `pile` con `lateral_pressure` (`diameter`, sin `force`,
+    `location` y `capacity` a `shearCapacity` y `momentCapacity`); los 728 documentos de cSlope del corpus **no cambian**
+    sin él (728 huellas iguales). El lote **F3I** (V013b a V013e, Ito-Matsui) se promueve con `--promote-f3i`.
+    **Total: 151 casos y 327 checks; aceptación 327/327 y cSlope 326/327** (V027 no converge). Quedan 6 checks retenidos
     en `verification/pending/F3G/HOLD.json`, con su causa (E15j-6): V085 ×4 (la búsqueda de ogs halla un círculo más
     crítico que el del oráculo) y V009a y V009b (aviso `interslice_shear_exceeds_strength`).
   - **Identidad:** `verification/tools/identity_vs_baseline.py` gana `--normalize-version` y `--include-reinforced`, y
@@ -62,11 +94,16 @@ cambian dos contadores (E15j-8, véase «Changed»).
     `verification/tools/identity_exceptions.json` (`{modelo, variante, campos, motivo, enmienda}`): V019 en `search` y
     `search@0.4` por E15j-8 se informa aparte («EXCEPCIÓN V019 [search]: E15j-8») y no cuenta, y cualquier otra
     diferencia sigue contando. Medido contra la v0.3.0: 0 diferencias, 2 excepciones y 18 modelos con agua listados.
-  - **Tests del motor:** `f3g_types`, `f3g1a_water`, `f3g1b_crack` y `f3g_rows` (55 filas de X21 migradas al formato final).
-- **Documentación.** `docs/formato-ogs-json.md` con las secciones «Agua embalsada» y «Grieta de tracción (v0.5)» y siete
-  ejemplos o fragmentos ejecutables; `docs/tools/validar_ejemplos.py` valida contra el esquema 0.5 y gana `grieta=`;
-  `docs/limitaciones.md` con los límites nuevos y `docs/desarrollo.md` con `water.rs`, `crack.rs` y la herramienta de
-  identidad.
+  - **Tests del motor:** `f3g_types`, `f3g1a_water`, `f3g1b_crack` y `f3g_rows` (55 filas de X21 migradas al formato
+    final), y `f3g3_ito` (28 filas de X22, S06 en Bishop, neutralidad, espejo, equilibrio global y monotonía de la fuerza
+    con S/D).
+- **Documentación.** `docs/formato-ogs-json.md` con las secciones «Agua embalsada», «Grieta de tracción (v0.5)» y
+  «Pilotes con presión de suelo de Ito-Matsui (v0.5)», con ejemplos y fragmentos ejecutables (el de Ito-Matsui, medido con
+  el binario: el pilote con `centroid` y con `slip_surface`, con `capacity` de corte y de momento, con S/D fuera de
+  rango y seis rechazos); `docs/tools/validar_ejemplos.py` valida contra el esquema 0.5 y gana `grieta=` y `cruce=`;
+  `docs/limitaciones.md` con los límites nuevos (entre ellos los de Ito-Matsui) y `docs/desarrollo.md` con `water.rs`,
+  `crack.rs`, `PileProfiles`, D40 a D42 y la herramienta de identidad. La D30 fija pasa de −15,4 % a +0,13 % respecto de
+  cSlope por E15j-8 (el bloque D28 a D39 pasa de 44 a 46 OK de 48 y, con D40 a D42, es 58 de 60).
 
 ### Changed
 - **El agua embalsada se incluye automáticamente, en todas las versiones del formato (D1, E15c).** Con la piezométrica
@@ -95,6 +132,21 @@ cambian dos contadores (E15j-8, véase «Changed»).
 - **Web: la nota de normal efectiva negativa con grieta.** Si el resultado trae `tension_crack`, el texto ya no sugiere
   «considere una grieta de tracción»: dice «a pesar de la grieta de tracción del análisis; revise su profundidad» (en
   `negative_effective_normal_major`, «revise la presión de poros y la profundidad de la grieta»).
+- **γsat verificado (E15k).** V082a, V082b, V088 y V089 usan un `unit_weight_sat` distinto de `unit_weight` bajo la
+  piezométrica, cumplen sus checks y cSlope los reproduce. La web **retira** el aviso `editor.gamma_sat_unverified` y la
+  Ayuda, el README y `docs/limitaciones.md` ya no dicen que γsat no está verificado; la nota
+  `editor.gamma_sat_lt_gamma` se mantiene.
+- **Web: títulos de los casos.** Los 31 casos promovidos en F3G tienen título en español en el selector «Casos» (el
+  índice acepta la versión 0.5 y los ids con guion).
+- **Web: la polilínea inicial alcanza una grieta fija.** Con una grieta de profundidad fija, la polilínea que la web
+  propone al pasar a superficie fija baja al menos a 1,05 veces esa profundidad bajo el terreno (sin pasar de 9/10 del
+  espesor local), para que la grieta tenga masa y el motor no dé `tension_crack_not_reached`. Si el espesor del modelo no
+  lo permite, queda la propuesta de siempre. El barrido de los casos con grieta fija declara el sentido de deslizamiento
+  de V024 y V088, que traen `slope.direction: "auto"`.
+- **Punto de lectura de la profundidad automática (E15j-1, G6).** El motor lee `c`, `φ` y `γ` a `2e-5·escala` bajo el
+  terreno, y no a `1e-3·escala` como decía G6: cSlope usa 1e-3 unidades absolutas y con `1e-3·escala` la profundidad bajo
+  un gradiente de `Su` se desvía 0,6 % en X21-A04. En los modelos del corpus las dos reglas dan el mismo material; solo
+  difieren con un gradiente de `Su` o una capa de menos de eso en la coronación. No es un problema abierto.
 - **La CLI** indica el formato v0.1 a v0.5 en su ayuda. Los tests de otras olas que usaban `"0.5"` como versión
   desconocida pasan a `"0.6"`.
 - Los modelos sin grieta y sin agua sobre el terreno no cambian: la identidad byte a byte con la v0.3.0 es un gate de
@@ -112,19 +164,19 @@ cambian dos contadores (E15j-8, véase «Changed»).
   V065. No se relaja la tolerancia: con el fondo 1e-6 más bajo el círculo pasa y queda a 0,022 % y 0,016 % del oráculo.
   Los checks de V096a y V086b pasan, porque la búsqueda de ogs halla su propio círculo válido (E15j-7); la fila
   diferencial D39 fija se informa como «explicado (E15f, E15j-7)».
-- **Punto de lectura de la profundidad automática (enmienda E15j-1, no es un problema).** El motor lee `c`, `φ` y `γ` a
-  `2e-5·escala` bajo el terreno, y no a `1e-3·escala` como decía G6: cSlope usa 1e-3 unidades absolutas y con
-  `1e-3·escala` la profundidad bajo un gradiente de `Su` se desvía 0,6 % en X21-A04. En los modelos del corpus las dos
-  reglas dan el mismo material; solo difieren con un gradiente de `Su` o una capa de menos de eso en la coronación.
 - **Seis checks retenidos** (E15j-6: V085 ×4, V009a y V009b) en `verification/pending/F3G/HOLD.json`, cada uno con su
   causa medida. V085: la búsqueda de ogs halla un círculo más crítico que el del oráculo (cSlope evalúa ese círculo igual,
   a 0,002 %). V009a y V009b (Spencer): el FS está en tolerancia, pero el motor emite `interslice_shear_exceeds_strength`
   con `r_v` de 3,12 y 5,57, sobre el umbral de 3. X18 había dado por fuera de tolerancia V009b, V087 y V092 por leerla
   como absoluta; la del corpus es relativa (E15j-5) y V087 y V092 se promovieron. No se relaja ninguna tolerancia.
-- **Diferencial v0.5 (D28 a D39): 44 OK de 48.** D39 fija (×2) está explicada por E15f y E15j-7 (el círculo de cSlope
-  pasa 9,2e-7 bajo el fondo; el informe la marca «explicado», sin relajar la tolerancia). D30 fija (×2) es una falla
-  abierta en investigación.
-- **Ito-Matsui** (ola G3) sigue sin existir.
+- **Diferencial v0.5 (D28 a D42): 58 OK de 60.** D39 fija (×2) está explicada por E15f y E15j-7 (el círculo de cSlope
+  pasa 9,2e-7 bajo el fondo; el informe la marca «explicado», sin relajar la tolerancia). No quedan fallas abiertas: D30
+  fija se corrigió con E15j-8 (véase «Changed») y D40 a D42 pasan con el motor de Ito-Matsui.
+- **Pilotes de Ito-Matsui (E15i): una estimación, no un diseño.** La fórmula es para pilotes rígidos y verticales, en
+  deformación plana, y vale con S/D de 2 a 8: fuera de ese rango el motor avisa (`ito_matsui_spacing_range`) y la fuerza
+  se sobrestima con S/D pequeño y se subestima con S/D grande (Ukritchon y Keawsawasvong, 2017). El piso de φ = 0 no
+  viene del artículo, y las cargas de superficie no entran en `σv`. Con `ru`, `σ′v = σv − u − ru·σ_suelo` (la regla de
+  cSlope) convive con la de las dovelas, `ru·(W + V)/b`. La `capacity` es un tope, no una comprobación del perfil.
 
 ## [0.3.0] - 2026-11-26
 

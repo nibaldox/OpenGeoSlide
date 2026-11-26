@@ -9,19 +9,19 @@ un recuento propio de una tabla de esos informes, se dice.
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (147 casos, 323 checks) | **323/323** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados (151 casos, 327 checks) | **327/327** | [`verification/REPORT.md`](../verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
 | cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
-| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **46/48** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-y-agua-embalsada-v05-d28-a-d39)) | ídem |
-| cSlope 0.1.0 como segundo oráculo de los 323 checks | **322/323** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Web y `ogs` (ida y vuelta, 385 modelos) | **385/385** | `verification/tools/test_web_roundtrip.py` |
+| cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-agua-embalsada-y-pilotes-de-ito-matsui-v05-d28-a-d42)) | ídem |
+| cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Web y `ogs` (ida y vuelta, 389 modelos) | **389/389** | `verification/tools/test_web_roundtrip.py` |
 
 ## Aceptación: casos publicados
 
-- **323 de 323 checks** publicados cumplen su tolerancia, en **147 casos** (`verification/cases/`). El informe
-  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 323 OK, 0 fallas, 0 sin dato, 0 no convergidos.
+- **327 de 327 checks** publicados cumplen su tolerancia, en **151 casos** (`verification/cases/`). El informe
+  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 327 OK, 0 fallas, 0 sin dato, 0 no convergidos.
   Test: `cargo test -p ogs-core --test acceptance`. Todo aviso que no sea informativo hace fallar un check (E5).
 - **Por versión del formato** (de [`verification/cases/INDEX.md`](../verification/cases/INDEX.md)):
 
@@ -31,25 +31,26 @@ un recuento propio de una tabla de esos informes, se dice.
   | v0.2 (sismo o cargas) | 5 | 13 |
   | v0.3 (no drenado, polilínea, M-P, Janbu) | 53 | 139 |
   | v0.4 (refuerzos, lotes R1 a R4) | 23 | 30 |
-  | v0.5 (grieta de tracción, lote F3G) | 17 | 42 |
-  | **Total** | **147** | **323** |
+  | v0.5 (grieta de tracción, lote F3G; pilotes de Ito-Matsui, lote F3I) | 21 | 46 |
+  | **Total** | **151** | **327** |
 
   El lote F3G (31 casos, 80 checks) usa la versión mínima de los campos de cada caso: los 17 casos con grieta van en
   v0.5; los 14 con solo agua embalsada, en v0.1 (8 casos, 21 checks) o v0.3 (6 casos, 17 checks). Por eso v0.1 y v0.3
-  incluyen casos del lote F3G.
+  incluyen casos del lote F3G. Los 4 casos del lote F3I (V013b a V013e, un check cada uno) llevan `lateral_pressure` y
+  son v0.5: con los 17 de grieta (42 checks) suman los 21 casos y 46 checks de la fila v0.5.
 
 - **Por método** (suma de la columna «checks» del índice; coincide con el recuento de la tabla de `REPORT.md`):
 
   | Método | Checks |
   |---|---:|
-  | Bishop simplificado | 132 |
+  | Bishop simplificado | 136 |
   | Spencer | 113 |
   | Morgenstern-Price | 43 |
   | Janbu simplificado | 10 |
   | Janbu corregido | 25 |
-  | **Total** | **323** |
+  | **Total** | **327** |
 
-  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 151 de búsqueda y 172 de superficie fija.
+  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 155 de búsqueda y 172 de superficie fija.
 - De los **53 casos v0.3**, 47 vienen de los lotes 1 y 2 de la importación desde cSlope (`undrained` y `s-f-datum`; polilíneas
   fijas, M-P y Janbu), promovidos desde `verification/pending/F3/` cuando el motor reproduce sus checks. El lote 0
   (todo lo convertible con v0.1 o v0.2) no tiene tope ni selección. El índice declara 122 checks para esos 47 casos, de
@@ -59,12 +60,18 @@ un recuento propio de una tabla de esos informes, se dice.
   con refuerzos»); el informe agrega la comparación de las fuerzas cruce por cruce con el oráculo (161 cruces
   emparejados en los 30 checks, 0 sin explicar; con los 3 retenidos eran 165 en 33 checks). **V016b no prueba los refuerzos:** sus tres elementos quedan dentro del círculo, sin
   cruce, y ni ogs ni el oráculo aplican fuerza.
+- **El lote F3I** (pilotes de Ito-Matsui, 4 casos y 4 checks, de Bishop con búsqueda; sección «Pilotes de Ito-Matsui» de
+  `verification/cases/INDEX.md`) se promovió desde `verification/pending/F3I/` con el motor de E15i: ogs da entre +0,07 %
+  y +0,52 % del valor publicado (V013b 1,5412, V013c 1,4374, V013d 1,3317 y V013e 1,2530 frente a 1,54, 1,43, 1,33 y
+  1,25), y cSlope entre +0,05 % y +0,49 %. El conversor escribe `diameter` y quita `force`, convierte
+  `location: slip_surface` en `slip-surface` y pasa `capacity` a `shearCapacity` y `momentCapacity`; la fuente no trae
+  `direction` ni `location`, y se escriben los valores de cSlope (`angle` 0 y `centroid`).
 - **El lote F3G** (grieta de tracción y agua embalsada, 31 casos y 80 checks; sección «Grieta de tracción y agua
   embalsada» de `verification/cases/INDEX.md`) se promovió desde `verification/pending/F3G/`. La tolerancia del corpus
   es **relativa**, `|Δ|/publicado ≤ tolerancia`, la misma de los demás casos (E15j-5): X18 la había leído como absoluta y
   había dado por fuera V009b, V087 y V092; con la convención del repositorio V087 y V092 se reproducen y se promueven.
   No se relajó ninguna tolerancia ni se tocó ningún dato.
-- **Retenidos:** el motor no reproduce **15 checks en 9 casos**, que no cuentan en los 323 y se documentan con su
+- **Retenidos:** el motor no reproduce **15 checks en 9 casos**, que no cuentan en los 327 y se documentan con su
   diagnóstico (sin relajar ninguna tolerancia):
   - V027 y V028 (Bishop, 1 check cada uno) y V068 (Bishop, 1 check): el FS cae dentro de la tolerancia, pero el motor
     emite `negative_effective_normal_major` y la aceptación rechaza ese aviso;
@@ -89,7 +96,7 @@ un recuento propio de una tabla de esos informes, se dice.
   Detalle en [`docs/limitaciones.md`](limitaciones.md#checks-retenidos-y-casos-especiales),
   [`pending/lote0/INDEX.md`](../verification/pending/lote0/INDEX.md) y
   [`pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md).
-- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **322 de 323** de esos checks; el restante es V027, donde cSlope
+- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **326 de 327** de esos checks; el restante es V027, donde cSlope
   no converge (`REPORT.md`).
 
 ## Criterios de la Fase 3a (F3.8)
@@ -114,7 +121,7 @@ Los valores de referencia del oráculo para V047a están en `briefs/02_CONTRATOS
 - **Paridad** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos. La prueba
   `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`; sin él
   se omiten) y corre en CI sin casos omitidos.
-- **Ida y vuelta de la web** (E12g): para **385 modelos** (323 checks de los 147 casos, 56 de la batería diferencial y 6
+- **Ida y vuelta de la web** (E12g): para **389 modelos** (327 checks de los 151 casos, 56 de la batería diferencial y 6
   de frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit
   a bit, que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario
   compilado). El número de modelos lo calcula el test a partir del índice de casos.
@@ -168,16 +175,25 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
   sobre el contacto, porque E13l-5 toma el material más débil.
 - Un resultado de cSlope con `converged: false` es un oráculo sin solución, nunca un valor de referencia.
 
-## Grieta de tracción y agua embalsada (v0.5, D28 a D39)
+## Grieta de tracción, agua embalsada y pilotes de Ito-Matsui (v0.5, D28 a D42)
 
-Doce modelos sintéticos en `verification/differential/cases_f3g/` (embalse al pie y en el talud, cara vertical, presa;
-grieta seca, llena y automática; combinados, con sismo y con arcilla no drenada), cada uno en búsqueda y en su círculo
-fijo, con Bishop y Spencer y los criterios de E9b: 48 checks. Antes de correr, una sonda comprueba que el motor tiene
-el agua embalsada y la grieta (V047a, Bishop a 0,1 %); el check que necesita una capacidad ausente queda pendiente y no
-falla. Resultado, de [`verification/differential/REPORT.md`](../verification/differential/REPORT.md):
-**46 OK de 48**, 2 explicados, 0 fallas, 0 sin dato, 0 pendientes (D30 fija pasó de falla a OK con E15j-8).
+Quince modelos sintéticos en `verification/differential/cases_f3g/`, cada uno en búsqueda y en su círculo fijo, con
+Bishop y Spencer y los criterios de E9b: 60 checks.
 
-- **Búsqueda:** 24/24 OK. **Superficie fija:** 22/24 OK (la mayor diferencia entre los OK es +0,13 %, en D30), 2 explicados y 0 fallas.
+- **D28 a D39 (12 modelos, 48 checks):** embalse al pie y en el talud, cara vertical, presa; grieta seca, llena y
+  automática; combinados, con sismo y con arcilla no drenada.
+- **D40 a D42 (3 modelos, 12 checks):** pilotes de Ito-Matsui sobre el talud de Cai y Ugai: φ = 0 (D40), c-φ con la
+  fuerza en el cruce y tope de corte (D41) y bajo el agua (D42).
+
+Antes de correr, una sonda comprueba que el motor tiene el agua embalsada, la grieta (V047a, Bishop a 0,1 %) y
+`lateral_pressure` (X22-V013c, a 0,1 %); el check que necesita una capacidad ausente queda pendiente y no falla.
+Resultado, medido con `verification/differential/run.py --ogs target/release/ogs --require-f3r --require-f3g` y el
+binario de la rama `f3g4d`: **58 OK de 60**, 2 explicados, 0 fallas, 0 sin dato, 0 pendientes (D30 fija pasó de falla
+a OK con E15j-8; D40 a D42 estaban pendientes mientras el motor no tenía E15i).
+
+- **Búsqueda:** 30/30 OK. **Superficie fija:** 28/30 OK (la mayor diferencia entre los OK es +0,13 %, en D30), 2 explicados y 0 fallas.
+- **D40 a D42, pilotes de Ito-Matsui:** los 12 checks coinciden con cSlope a `|Δ| ≤ 0,07 %` (D40 de +0,06 % a +0,07 %,
+  D41 de −0,01 % a +0,01 % y D42 de +0,02 %).
 - **D39 fija, Bishop y Spencer: explicado (E15f, E15j-7).** El círculo de cSlope pasa 9,2e-7 bajo el fondo del modelo
   (el límite de su búsqueda es 1e-6) y ogs lo rechaza con `NoValidSurface: el arco de deslizamiento sale del modelo`.
   El informe lo marca «explicado (E15f, E15j-7)», con su causa: no cuenta como OK ni como falla, y **no se relaja la
@@ -238,7 +254,7 @@ falla. Resultado, de [`verification/differential/REPORT.md`](../verification/dif
 - **Esquema:** `verification/tools/test_schema.py` compara el esquema con el binario en una tabla de documentos; con
   E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan), y con el bloque de refuerzos compara
   también [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) (que acepta 0.1 a 0.4 y rechaza lo mismo que el
-  motor). Con `test_cli_usage.py`, 434 pruebas pasan (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
+  motor). Con `test_cli_usage.py`, 489 pruebas (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
 
 ## Rendimiento (bench)
 
@@ -285,8 +301,8 @@ env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python 
 
 - [`verification/REPORT.md`](../verification/REPORT.md): aceptación y harness frente a cSlope.
 - [`verification/differential/REPORT.md`](../verification/differential/REPORT.md): batería diferencial, incluida la
-  Fase 3a, los modelos D18 a D23 de R10 y el bloque v0.5 (D28 a D39).
-- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 147 casos, con sus checks por método y versión.
+  Fase 3a, los modelos D18 a D23 de R10 y el bloque v0.5 (D28 a D42).
+- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 151 casos, con sus checks por método y versión.
 - [`verification/pending/`](../verification/pending/INDEX.md): checks retenidos y problemas que el importador no
   convierte, con el motivo de cada uno.
 - [`bench/RESULTS.md`](../bench/RESULTS.md): rendimiento.

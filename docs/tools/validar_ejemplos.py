@@ -16,6 +16,8 @@ El documento marca cada ejemplo con un comentario HTML justo antes del bloque ``
         **todos** los métodos. `avisos=<codigo>,<codigo>`: cada código debe estar en `warnings` de todos los métodos.
         `grieta=x:<v>,depth:<v>,water_force:<v>` (o `ninguna`): el objeto `tension_crack` del informe de **todos** los
         métodos, comparado a 4 decimales (`ninguna` = ningún método lo trae).
+        `cruce=soil_force:<v>,governs:<soil|shear|bending>,arm:<v>`: el primer cruce de `reinforcement_forces` de
+        **todos** los métodos (pilote de Ito-Matsui); los números a 4 decimales, `governs` por igualdad.
 
     <!-- ogs-fragmento base=<id> ruta=<a.b.0.c> esperado=ok|error:<subcadena> esquema=acepta|rechaza [estado=...] -->
         Reemplaza el valor de `ruta` en el ejemplo `base` por el JSON del bloque (una lista usa índices) y lo
@@ -84,6 +86,23 @@ def comprobar_informe(nombre: str, res: list[dict], at: dict[str, str], fallos: 
                 k, _, v = par.partition(":")
                 if tc is None or round(tc[k], 4) != round(float(v), 4):
                     fallos.append(f"[{nombre}] {r['method']}: tension_crack.{k} {None if tc is None else tc[k]}, se esperaba {v}")
+    if "cruce" in at:
+        # El primer cruce de `reinforcement_forces` de cada método (pilote de Ito-Matsui, E15i-7): `soil_force` y `arm`
+        # se comparan a 4 decimales; `governs` (soil, shear o bending), por igualdad.
+        for r in res:
+            rf = r.get("reinforcement_forces") or []
+            if not rf:
+                fallos.append(f"[{nombre}] {r['method']}: sin reinforcement_forces, se esperaba cruce={at['cruce']}")
+                continue
+            for par in at["cruce"].split(","):
+                k, _, v = par.partition(":")
+                obt = rf[0].get(k)
+                if k == "governs":
+                    ok = obt == v
+                else:
+                    ok = obt is not None and round(obt, 4) == round(float(v), 4)
+                if not ok:
+                    fallos.append(f"[{nombre}] {r['method']}: cruce.{k} {obt}, se esperaba {v}")
     for cod in filter(None, at.get("avisos", "").split(",")):
         for r in res:
             if cod not in r["warnings"]:

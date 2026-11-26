@@ -16,6 +16,15 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
     si existe `analysis.tension_crack`; en una búsqueda, un candidato que no alcanza la grieta se descarta.
   - Ninguno de los dos agrega campos a `Slice`: usan `weight_extra`, `h_force`, `h_moment_base` y `driving_extra`
     (E15h, [`fase3/g0/NOTAS.md`](fase3/g0/NOTAS.md)).
+  - `src/reinforcement.rs` incluye el **pilote de Ito-Matsui** (formato v0.5, E15i): `PileProfiles` guarda, por cada
+    `pile` con `lateral_pressure`, un `PileProfile` con `z`, `F(z) = ∫p dz` y `Q(z) = ∫p·z dz` en los nodos de una
+    rejilla de 0,05 m (`pressure_step` da el equivalente en pies). Se construye **una sola vez por análisis**, porque la
+    presión no depende de la superficie, y la búsqueda lo reutiliza en cada candidato (`crossing_nodes_with` y
+    `apply_with_state_using`); sin ese pilote está vacío y no cuesta nada, de modo que el código de un modelo sin él es el
+    de la v0.4. En un cruce, `force_at` interpola `F(zf)`, calcula el brazo `L_m = (zf·F − Q)/F` y aplica el tope de
+    `capacity` (`min(F, shear, moment/L_m)`, con `governs` en `soil`, `shear` o `bending`). Los coeficientes de la
+    fórmula, con el piso de φ = 0, están en `ito_matsui_coefficients`, y el aviso `ito_matsui_spacing_range` en
+    `ito_matsui_out_of_range`.
 - `crates/ogs-cli/`: binario `ogs`.
 - `crates/ogs-wasm/`: wrapper WebAssembly (`wasm-bindgen`).
 - `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
@@ -24,13 +33,14 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
   Morgenstern-Price, Janbu y `analysis.interslice`; acepta también v0.1 y v0.2).
 - `schema/ogs-0.4.schema.json`: JSON Schema del formato `.ogs.json` v0.4 (agrega `reinforcements`: anclajes, clavos,
   geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3).
-- `schema/ogs-0.5.schema.json`: JSON Schema del formato `.ogs.json` v0.5 (agrega `analysis.tension_crack`; acepta también
-  v0.1 a v0.4). Es el que valida `docs/tools/`.
+- `schema/ogs-0.5.schema.json`: JSON Schema del formato `.ogs.json` v0.5 (agrega `analysis.tension_crack` y, en un `pile`,
+  `lateral_pressure` y `capacity`; acepta también v0.1 a v0.4). Es el que valida `docs/tools/`.
 - `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](../apps/web/README.md).
 - `verification/`: casos publicados (`cases/`), checks retenidos (`pending/`), harness y batería diferencial frente a
   cSlope, importador (`tools/import_cslope.py`) y pruebas en Python.
 - `docs/tools/validar_ejemplos.py`: valida los ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) contra el
-  esquema 0.5 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces`, avisos y el objeto `tension_crack`).
+  esquema 0.5 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces`, avisos, el objeto `tension_crack` y
+  los campos `soil_force`, `governs` y `arm` del pilote de Ito-Matsui).
 - `bench/`: medición de rendimiento (`bench/RESULTS.md`).
 - `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`, `04_CONTRATOS_GRIETA_AGUA.md`).
 - `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
@@ -42,7 +52,7 @@ cargo build --workspace
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test -p ogs-core --lib                                # tests unitarios (modelo)
-cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 243/243 checks publicados (116 casos)
+cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 327/327 checks publicados (151 casos)
 cargo test -p ogs-core --release --no-fail-fast             # todas las pruebas del motor
 cargo run -p ogs-cli -- --version
 cargo build -p ogs-wasm --target wasm32-unknown-unknown --release
@@ -107,16 +117,21 @@ El resultado esperado es «0 diferencias» para todo lo demás, con salida `ok` 
 
 ## Batería diferencial F3G
 
-El bloque F3G de [`verification/differential/`](../verification/differential/README.md) (modelos D28 a D39, en
-`cases_f3g/`) compara el motor con cSlope en grieta de tracción y agua embalsada: embalse al pie y en una cara de presa,
-grieta seca, llena y automática, y sus combinaciones (también con sismo y con arcilla no drenada), cada uno en búsqueda y
-en superficie fija, con Bishop y Spencer. Es el cuarto bloque de `run.py`; antes de correr, una sonda comprueba que el
-motor tenga las dos capacidades y, si no, deja los checks en pendiente en lugar de fallar. `--require-f3g` hace que un
-check pendiente, con fallo o sin dato termine con código 5; úsese al integrar. Los comandos para regenerarlo están en
+El bloque F3G de [`verification/differential/`](../verification/differential/README.md) (modelos D28 a D42, en
+`cases_f3g/`) compara el motor con cSlope en grieta de tracción y agua embalsada (D28 a D39): embalse al pie y en una
+cara de presa, grieta seca, llena y automática, y sus combinaciones (también con sismo y con arcilla no drenada), y en
+pilotes de Ito-Matsui (D40 a D42, sobre el talud de Cai y Ugai: φ = 0, c-φ con la fuerza en el cruce y tope de corte, y
+bajo el agua). Cada uno va en búsqueda y en superficie fija, con Bishop y Spencer. Es el cuarto bloque de `run.py`; antes
+de correr, una sonda comprueba que el motor tenga las **tres** capacidades (agua embalsada, grieta y `lateral_pressure`,
+esta última con X22-V013c) y, si no, deja los checks en pendiente en lugar de fallar. `--require-f3g` hace que un check
+pendiente, con fallo o sin dato termine con código 5; úsese al integrar. Los comandos para regenerarlo están en
 [`verificacion.md`](verificacion.md#reproducir).
 
 Los tests del motor de este bloque están en `crates/ogs-core/tests/` (`f3g_types.rs`, `f3g1a_water.rs`,
-`f3g1b_crack.rs` y `f3g_rows.rs`, con las filas de `tests/data/f3g/rows/` migradas desde el oráculo).
+`f3g1b_crack.rs` y `f3g_rows.rs`, con las filas de `tests/data/f3g/rows/` migradas desde el oráculo; y `f3g3_ito.rs`,
+con las 28 filas de X22 de `tests/data/f3g3/rows/`, el espejo, el equilibrio global y la monotonía de la fuerza con
+S/D). El importador promueve V013b a V013e desde `verification/pending/F3I/` a `verification/cases/` (`import_cslope.py
+--promote-f3i`, idempotente), y el conversor `to_cslope.py` traduce `lateral_pressure` y `capacity` al oráculo.
 
 Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
 versión que fija el crate.
