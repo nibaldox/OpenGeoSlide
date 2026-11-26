@@ -10,7 +10,40 @@ Antes de empezar, lee completa la skill
 **Modo:** README completo, autorizado por el usuario. **Sin animación**: solo SVG estático y capturas PNG o WebP.
 
 ## Directorio
-Worktree `/home/xodla/archivos/opengeoslide-wt/f2r`, rama `f2r-readme`, desde `main`.
+Worktree `/home/xodla/archivos/opengeoslide-wt/f2r`, rama `f2r-readme`, desde `main` (U1-U6 ya publicadas).
+
+## Actualización del coordinador (Fase 2 de UX cerrada; tiene prioridad sobre lo que siga en este brief)
+- **La app cambió mucho desde que se escribió este brief:**
+  - tema claro y oscuro;
+  - modelado desde cero: «Dibujar región», «Dividir región» (estratos) y «Talud simple…» con estrato inferior;
+  - guía de primera visita, Ayuda con glosario y atajos, panel Proyecto y conversión de unidades SI ↔ imperial con el
+    FS invariante;
+  - avisos geotécnicos: γw imperial bloqueado, γsat sin verificar, precedencia de `ru` y piezométrica extrapolada;
+  - informe PDF con convenciones de signo;
+  - uso completo con teclado y en el móvil, y axe con 0 violaciones;
+  - exportación a CSV compatible con Excel y pandas.
+
+  Revisa `docs/fase2/ux/U*_*.md` y la Ayuda (`apps/web/src/onboarding/helpContent.ts`) para describirlo **con exactitud**.
+- **Capturas reales en claro y oscuro.** Toma la captura de la app del punto 2 en los dos temas: `app-editor-light.png`
+  y `app-editor-dark.png`. Insértalas con `<picture>` y `prefers-color-scheme`, para que GitHub muestre la que
+  corresponde, y con `alt` descriptivo. Usa un ejemplo de **dos estratos con piezométrica**, por ejemplo «Talud
+  simple…» con estrato inferior (arcilla sobre roca, H = 15 m, 1,5H:1V, contacto 5 m bajo el pie, piezométrica en el
+  pie). Así se ven en la misma imagen la geometría, el agua, el círculo crítico y el FS.
+  - Tienes recorridos que ya crean ese modelo en `docs/fase2/ux/u4m-e2e/u4m_t2.mjs` y `lib.mjs`. Marca la guía como
+    vista con `localStorage` `ogs.onboarding.v1` y fija el tema con `localStorage` `ogs.theme.v1` en `light` o `dark`.
+  - Opcional: una tercera captura, pequeña, de la página 2 del informe PDF. Ya hay una de referencia en
+    `docs/fase2/ux/u6g-e2e/evidencia/informe-imp-full-p2.png`, pero toma la tuya del modelo del README.
+- **Limitaciones.** El resumen debe decir con claridad lo que **no** hace la versión actual:
+  - solo superficies circulares;
+  - solo Mohr-Coulomb;
+  - **sin refuerzos** (geosintéticos, anclajes y pernos): no sirve para diseñar muros TEM ni estructuras de
+    contención, solo para revisar la estabilidad global con el muro modelado como una región;
+  - γsat no está verificado frente a otro programa;
+  - la piezométrica se extiende horizontalmente hasta los bordes del modelo.
+
+  Toma los datos de `docs/limitaciones` y de la Ayuda.
+- **Cifras de verificación.** Vuelve a confirmarlas en `verification/REPORT.md` y `verification/differential/REPORT.md`
+  antes de escribirlas; el motor no cambió desde la Fase 1.
 
 ## Historia del proyecto (fijada por el coordinador)
 ```text
