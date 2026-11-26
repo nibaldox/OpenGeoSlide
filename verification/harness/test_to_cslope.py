@@ -529,3 +529,232 @@ def test_oracle_seismic_and_udl_are_mirror_symmetric():
     sp_ltr = _fos(cs, _with(v047a_fixed(True), seismic={"kh": 0.1, "kv": 0.0}), "spencer")
     assert sp < sp0 and sp == pytest.approx(sp_ltr, rel=1e-9)
     assert sp == pytest.approx(0.7909056976112471, rel=5e-4)   # X1 §2.2 T1 MP-constante (other options)
+
+
+# --- schema v0.3 (contract F3.8): undrained, polyline, Morgenstern-Price and Janbu
+
+V047A_POLYLINE = [[30, 25.000001], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35.0]]
+
+
+def v03_model(**analysis) -> dict:
+    """V047a fixed circle as a v0.3 model; `analysis` entries replace the ones of the circle model."""
+    model = v047a_fixed()
+    model["version"] = "0.3"
+    model["analysis"].update(analysis)
+    return model
+
+
+def _undrained(model: dict, **fields) -> dict:
+    mat = model["materials"][0]
+    mat.pop("cohesion"), mat.pop("friction_angle")
+    mat.update(model="undrained", undrained_strength=25.0, **fields)
+    return model
+
+
+def _doc(model: dict, method: str, kind: str = "fixed", **options) -> dict:
+    return ogs_to_cslope(model, {"method": method, "kind": kind, "options": options}).document
+
+
+def test_undrained_maps_to_cslope_undrained_without_gradient():
+    d = _doc(_undrained(v03_model()), "bishop")["definition"]
+    assert d["materials"][0]["model"] == {"kind": "undrained", "unitWeight": 20.0, "undrainedShearStrength": 25.0}
+
+
+def test_undrained_gradient_datum_and_limit_map_to_surefdepth_surateofchange_sumax():
+    model = _undrained(v03_model(), strength_datum=35.0, strength_gradient=1.5, strength_limit=60.0)
+    model["materials"][0]["undrained_strength"] = 10.0
+    mdl = _doc(model, "bishop")["definition"]["materials"][0]["model"]
+    assert mdl == {"kind": "undrained", "unitWeight": 20.0, "undrainedShearStrength": 10.0,
+                   "suRefDepth": 35.0, "suRateOfChange": 1.5, "suMax": 60.0}
+
+
+def test_undrained_keeps_unit_weight_sat_and_ru_like_mohr_coulomb():
+    model = _undrained(v03_model())
+    model["materials"][0].update(unit_weight_sat=21.0, ru=0.2)
+    mdl = _doc(model, "bishop")["definition"]["materials"][0]["model"]
+    assert mdl["unitWeightSat"] == 21.0 and mdl["ru"] == 0.2
+
+
+@pytest.mark.parametrize("fields, match", [
+    ({"strength_datum": 35.0}, "van juntos"),
+    ({"strength_gradient": 1.0, "strength_datum": None}, "van juntos"),
+    ({"strength_limit": 50.0}, "sin strength_gradient"),
+    ({"undrained_strength": float("nan")}, "finito"),
+    ({"bogus": 1}, "desconocidos"),
+])
+def test_undrained_with_inconsistent_fields_is_refused(fields, match):
+    model = _undrained(v03_model())
+    model["materials"][0].update(fields)
+    with pytest.raises(UnsupportedModel, match=match):
+        _doc(model, "bishop")
+
+
+def test_polyline_maps_to_customsurfaces_with_customplanesonly_and_no_axis():
+    model = v03_model(surface={"type": "polyline", "points": V047A_POLYLINE})
+    d = _doc(model, "spencer")["definition"]
+    assert d["customSurfaces"] == [{"points": [[float(x), float(y)] for x, y in V047A_POLYLINE]}]
+    assert d["customPlanesOnly"] is True and "customSearchPlanes" not in d
+
+
+def test_polyline_with_x_not_increasing_is_refused():
+    model = v03_model(surface={"type": "polyline", "points": [[30, 25], [30, 26], [40, 27]]})
+    with pytest.raises(UnsupportedModel, match="strictly increasing"):
+        _doc(model, "spencer")
+
+
+def test_bishop_on_a_polyline_is_refused_like_the_engine_does():
+    model = v03_model(surface={"type": "polyline", "points": V047A_POLYLINE})
+    with pytest.raises(UnsupportedModel, match="solo admite superficies circulares"):
+        _doc(model, "bishop")
+
+
+def test_direction_of_a_fixed_polyline_is_its_higher_end_to_its_lower_end():
+    model = v03_model(surface={"type": "polyline", "points": V047A_POLYLINE})
+    model["slope"] = {"direction": "auto"}
+    d = _doc(model, "spencer")
+    assert d["definition"]["orientation"] == "rtl"            # the right end (y = 35) is the entry
+
+
+@pytest.mark.parametrize("function, expected", [
+    ("constant", "constant"), ("half_sine", "half-sine"), ("clipped_sine", "clipped-sine"),
+    ("trapezoidal", "trapezoidal"),
+])
+def test_morgenstern_price_functions_map_to_kebab_case(function, expected):
+    model = v03_model(methods=["morgenstern_price"], interslice={"function": function})
+    doc = _doc(model, "morgenstern_price")
+    assert doc["options"]["method"] == "Morgenstern-Price" and doc["options"]["intersliceFunction"] == expected
+    assert "intersliceDataPoints" not in doc["options"]
+
+
+def test_morgenstern_price_data_points_and_default_function():
+    pts = [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]]
+    model = v03_model(methods=["morgenstern_price"], interslice={"function": "data_points", "points": pts})
+    opts = _doc(model, "morgenstern_price")["options"]
+    assert opts["intersliceFunction"] == "data-point-specified" and opts["intersliceDataPoints"] == pts
+    # without `interslice` the function is half_sine (F3.4), cSlope's default
+    assert _doc(v03_model(methods=["morgenstern_price"]), "morgenstern_price")["options"][
+        "intersliceFunction"] == "half-sine"
+    # a check can carry its own function (the importer writes one per model, but the converter is general)
+    opts = _doc(model, "morgenstern_price", interslice={"function": "constant"})["options"]
+    assert opts["intersliceFunction"] == "constant"
+
+
+@pytest.mark.parametrize("interslice, match", [
+    ({"function": "parabolic"}, "desconocida"),
+    ({"function": "data_points"}, "al menos 2 puntos"),
+    ({"function": "half_sine", "points": [[0, 1], [1, 1]]}, "solo se admite con data_points"),
+])
+def test_invalid_interslice_is_refused(interslice, match):
+    with pytest.raises(UnsupportedModel, match=match):
+        _doc(v03_model(methods=["morgenstern_price"], interslice=interslice), "morgenstern_price")
+
+
+def test_spencer_is_still_morgenstern_price_with_a_constant_function():
+    opts = _doc(v03_model(), "spencer")["options"]
+    assert opts["method"] == "Morgenstern-Price" and opts["intersliceFunction"] == "constant"
+
+
+def test_janbu_maps_to_janbu_with_the_correction_flag():
+    simple = _doc(v03_model(), "janbu_simplified")["options"]
+    corrected = _doc(v03_model(), "janbu_corrected")["options"]
+    assert simple["method"] == corrected["method"] == "Janbu"
+    assert simple["janbuCorrection"] is False and corrected["janbuCorrection"] is True
+    assert "intersliceFunction" not in simple
+
+
+def test_v0_3_fields_need_version_0_3_and_name_the_first_one():
+    cases = [
+        (lambda m: _undrained(m), "bishop", 'model: "undrained" requiere version "0.3"'),
+        (lambda m: m["analysis"].update(surface={"type": "polyline", "points": V047A_POLYLINE}), "spencer",
+         'surface.type: "polyline" requiere version "0.3"'),
+        (lambda m: None, "morgenstern_price", "methods: morgenstern_price requiere version"),
+        (lambda m: None, "janbu_corrected", "methods: janbu_corrected requiere version"),
+    ]
+    for mutate, method, match in cases:
+        model = v03_model(methods=[method])
+        mutate(model)
+        model["version"] = "0.2"
+        with pytest.raises(UnsupportedModel, match=match):
+            _doc(model, method)
+    old = v047a_fixed()
+    assert _doc(old, "bishop")["options"]["method"] == "Bishop"      # 0.1 / 0.2 without v0.3 fields: as before
+
+
+def test_v0_3_loads_and_seismic_are_accepted():
+    model = _with(v03_model(), seismic={"kh": 0.1, "kv": 0.0})
+    assert _doc(model, "spencer")["options"]["seismicHorizontal"] == 0.1
+
+
+# --- the oracle reproduces the F3.8 values (cslope 0.1.0, 50 slices, tolerance 1e-5; reproduced by the coordinator)
+
+ORACLE_CIRCLE = [
+    ("M-P constant", "spencer", None, 0.9841002710),
+    ("M-P half_sine", "morgenstern_price", None, 0.9840779260),
+    ("Janbu simplificado", "janbu_simplified", None, 0.9452285578),
+    ("Janbu corregido", "janbu_corrected", None, 0.9883537594),
+]
+ORACLE_POLYLINE = [
+    ("M-P constant", "spencer", 0.9991304877),
+    ("M-P half_sine", "morgenstern_price", 0.9999384297),
+    ("Janbu corregido", "janbu_corrected", 0.9993458659),
+]
+
+
+def _oracle_fos(cs, model: dict, method: str) -> float:
+    doc = _doc(model, method)
+    errors = [i for i in cs.validate(doc) if i.get("severity") == "error"]
+    assert not errors, errors
+    result = cs.analyse(doc)
+    assert result["criticalSurface"].get("converged", True), (method, result["criticalSurface"])
+    return result["minFOS"]
+
+
+@pytest.mark.parametrize("name, method, interslice, expected", ORACLE_CIRCLE)
+def test_oracle_circle_values_of_f3_8(name, method, interslice, expected):
+    cs = pytest.importorskip("cslope")
+    model = v03_model(methods=[method])
+    assert _oracle_fos(cs, model, method) == pytest.approx(expected, rel=1e-9), name
+
+
+@pytest.mark.parametrize("name, method, expected", ORACLE_POLYLINE)
+def test_oracle_polyline_values_of_f3_8(name, method, expected):
+    cs = pytest.importorskip("cslope")
+    model = v03_model(methods=[method], surface={"type": "polyline", "points": V047A_POLYLINE})
+    assert _oracle_fos(cs, model, method) == pytest.approx(expected, rel=1e-9), name
+
+
+def test_oracle_undrained_values_of_f3_8():
+    cs = pytest.importorskip("cslope")
+    constant = _undrained(v03_model())
+    assert _oracle_fos(cs, constant, "bishop") == pytest.approx(1.5697595025, rel=1e-9)
+    linear = _undrained(v03_model(), strength_datum=35.0, strength_gradient=1.0)
+    linear["materials"][0]["undrained_strength"] = 10.0
+    assert _oracle_fos(cs, linear, "bishop") == pytest.approx(1.0373275799, rel=1e-9)
+    # the limit does not bite here (X11 1.2): a limit of 22 leaves the value as it is
+    limited = _undrained(v03_model(), strength_datum=35.0, strength_gradient=1.0, strength_limit=22.0)
+    limited["materials"][0]["undrained_strength"] = 10.0
+    assert _oracle_fos(cs, limited, "bishop") == pytest.approx(1.0373275799, rel=1e-9)
+
+
+def test_oracle_other_interslice_functions_on_the_circle():
+    cs = pytest.importorskip("cslope")
+    expected = {"clipped_sine": 0.9840846639, "trapezoidal": 0.9840713928}      # X11 §2.2
+    for fn, value in expected.items():
+        model = v03_model(methods=["morgenstern_price"], interslice={"function": fn})
+        assert _oracle_fos(cs, model, "morgenstern_price") == pytest.approx(value, rel=1e-9), fn
+    model = v03_model(methods=["morgenstern_price"], interslice={
+        "function": "data_points", "points": [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]]})
+    assert _oracle_fos(cs, model, "morgenstern_price") == pytest.approx(0.9840869415, rel=1e-9)
+
+
+def test_oracle_mirror_gives_the_same_fos_for_the_new_methods():
+    """Contract F3.8 criterion 4 on the oracle side: x -> -x, with the direction reversed."""
+    cs = pytest.importorskip("cslope")
+    for method in ("morgenstern_price", "janbu_corrected"):
+        a = _oracle_fos(cs, v03_model(methods=[method], surface={"type": "polyline", "points": V047A_POLYLINE}), method)
+        mirrored = v03_model(methods=[method], surface={
+            "type": "polyline", "points": [[-x, y] for x, y in reversed(V047A_POLYLINE)]})
+        mirrored["regions"] = [{"material": "soil", "polygon": [[-x, y] for x, y in
+                                                                 [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]]]}]
+        mirrored["slope"] = {"direction": "left_to_right"}
+        assert _oracle_fos(cs, mirrored, method) == pytest.approx(a, rel=1e-9), method

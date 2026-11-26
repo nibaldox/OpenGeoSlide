@@ -1,13 +1,13 @@
 {
   "report_version": "3",
-  "generated_at": "2026-11-25T10:44:45-03:00",
+  "generated_at": "2026-11-26T06:03:39-03:00",
   "criteria": {
     "search_max_rel": 0.01,
     "fixed_max_rel": 0.005,
     "source": "briefs/00_CONTRATOS.md §4.4.6 (E9b)"
   },
   "engines": {
-    "generated_at": "2026-11-25T10:44:45-03:00",
+    "generated_at": "2026-11-26T06:03:39-03:00",
     "ogs": {
       "binary": "target/release/ogs",
       "version": "ogs-core 0.1.0"
@@ -107,8 +107,8 @@
       "sin dato": 0,
       "N": 28
     },
-    "ogs_seconds": 4.122,
-    "cslope_seconds": 2.079
+    "ogs_seconds": 3.911,
+    "cslope_seconds": 1.822
   },
   "checks": [
     {
@@ -122,7 +122,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0369,
+        "seconds": 0.0463,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -134,7 +134,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0629
+        "seconds": 0.0502
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -154,7 +154,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -184,7 +184,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1193,
+        "seconds": 0.1123,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -196,7 +196,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0947
+        "seconds": 0.0742
       },
       "delta_pct": 0.0063,
       "verdict": "OK",
@@ -216,7 +216,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -246,7 +246,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.037,
+        "seconds": 0.0346,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -258,7 +258,7 @@
         "warnings": [
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0549
+        "seconds": 0.045
       },
       "delta_pct": 0.0204,
       "verdict": "OK",
@@ -278,7 +278,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0013,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -290,7 +290,7 @@
         "warnings": [
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0006
+        "seconds": 0.0005
       },
       "delta_pct": 0.0202,
       "verdict": "OK",
@@ -308,7 +308,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.166,
+        "seconds": 0.1555,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -320,7 +320,7 @@
         "warnings": [
           "negative-effective-normal: 12 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0913
+        "seconds": 0.0762
       },
       "delta_pct": 0.011,
       "verdict": "OK",
@@ -340,7 +340,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0018,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -352,7 +352,7 @@
         "warnings": [
           "negative-effective-normal: 14 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": 0.0155,
       "verdict": "OK",
@@ -370,7 +370,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0517,
+        "seconds": 0.0482,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -383,7 +383,7 @@
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0515
+        "seconds": 0.0454
       },
       "delta_pct": 0.213,
       "verdict": "OK",
@@ -403,7 +403,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0013,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -416,7 +416,7 @@
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0011
+        "seconds": 0.0007
       },
       "delta_pct": 0.1786,
       "verdict": "OK",
@@ -434,7 +434,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1688,
+        "seconds": 0.1575,
         "warnings": [
           "negative_lambda",
           "multiple_admissible_roots",
@@ -449,7 +449,7 @@
           "negative-effective-normal: 7 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 89° and 7 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0941
+        "seconds": 0.0833
       },
       "delta_pct": 0.5614,
       "verdict": "OK",
@@ -469,7 +469,7 @@
         "status": "not_converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0012,
         "warnings": [
           "no_lambda_root"
         ]
@@ -479,7 +479,7 @@
         "status": null,
         "error": "EngineError: No valid slip surface was found. Moment and force equilibrium do not meet where the surface enters the slope at 90°: cohesion along a nearly vertical base can only hold it with tension at the base. A ",
         "warnings": [],
-        "seconds": 0.0009
+        "seconds": 0.0008
       },
       "delta_pct": null,
       "verdict": "OK (concordancia: ambos sin solución)",
@@ -497,7 +497,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1177,
+        "seconds": 0.1117,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -509,7 +509,7 @@
         "warnings": [
           "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.037
+        "seconds": 0.0325
       },
       "delta_pct": 0.0069,
       "verdict": "OK",
@@ -529,7 +529,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0012,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -559,7 +559,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.4058,
+        "seconds": 0.3874,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -571,7 +571,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0646
+        "seconds": 0.0604
       },
       "delta_pct": 0.0087,
       "verdict": "OK",
@@ -591,7 +591,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -603,7 +603,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": 0.0086,
       "verdict": "OK",
@@ -621,7 +621,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0417,
+        "seconds": 0.039,
         "warnings": []
       },
       "cslope": {
@@ -631,7 +631,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0544
+        "seconds": 0.0467
       },
       "delta_pct": 0.5796,
       "verdict": "OK",
@@ -651,7 +651,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": []
       },
       "cslope": {
@@ -661,7 +661,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": -0.0003,
       "verdict": "OK",
@@ -679,7 +679,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1338,
+        "seconds": 0.1258,
         "warnings": []
       },
       "cslope": {
@@ -689,7 +689,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0947
+        "seconds": 0.0791
       },
       "delta_pct": 0.5796,
       "verdict": "OK",
@@ -709,7 +709,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": []
       },
       "cslope": {
@@ -719,7 +719,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0008
       },
       "delta_pct": 0.0,
       "verdict": "OK",
@@ -737,7 +737,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0403,
+        "seconds": 0.0391,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -751,7 +751,7 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0517
+        "seconds": 0.0442
       },
       "delta_pct": 0.0275,
       "verdict": "OK",
@@ -771,7 +771,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -785,7 +785,7 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0008
+        "seconds": 0.0007
       },
       "delta_pct": 0.0272,
       "verdict": "OK",
@@ -803,7 +803,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1237,
+        "seconds": 0.1167,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -817,7 +817,7 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 75° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0852
+        "seconds": 0.0745
       },
       "delta_pct": 0.0276,
       "verdict": "OK",
@@ -837,7 +837,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -851,7 +851,7 @@
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 76° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0009
+        "seconds": 0.0007
       },
       "delta_pct": 0.0264,
       "verdict": "OK",
@@ -869,7 +869,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0294,
+        "seconds": 0.0271,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -881,7 +881,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0477
+        "seconds": 0.043
       },
       "delta_pct": 0.142,
       "verdict": "OK",
@@ -901,7 +901,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -931,7 +931,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1419,
+        "seconds": 0.1336,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -943,7 +943,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0807
+        "seconds": 0.0738
       },
       "delta_pct": 0.1422,
       "verdict": "OK",
@@ -963,7 +963,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0018,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -975,7 +975,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0005
       },
       "delta_pct": 0.0257,
       "verdict": "OK",
@@ -993,7 +993,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0604,
+        "seconds": 0.0586,
         "warnings": []
       },
       "cslope": {
@@ -1001,7 +1001,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0558
+        "seconds": 0.0449
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -1021,7 +1021,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0019,
+        "seconds": 0.0014,
         "warnings": []
       },
       "cslope": {
@@ -1029,7 +1029,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0372
+        "seconds": 0.035
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -1047,7 +1047,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.2644,
+        "seconds": 0.2508,
         "warnings": []
       },
       "cslope": {
@@ -1055,7 +1055,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0739
+        "seconds": 0.066
       },
       "delta_pct": 0.0046,
       "verdict": "OK",
@@ -1075,7 +1075,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0015,
         "warnings": []
       },
       "cslope": {
@@ -1083,7 +1083,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0373
+        "seconds": 0.0353
       },
       "delta_pct": 0.0046,
       "verdict": "OK",
@@ -1101,7 +1101,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0701,
+        "seconds": 0.0674,
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -1114,7 +1114,7 @@
         "warnings": [
           "negative-effective-normal: 5 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0523
+        "seconds": 0.0483
       },
       "delta_pct": 0.0153,
       "verdict": "OK",
@@ -1134,7 +1134,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1164,7 +1164,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.3636,
+        "seconds": 0.3429,
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -1177,7 +1177,7 @@
         "warnings": [
           "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.1823
+        "seconds": 0.1734
       },
       "delta_pct": -0.0127,
       "verdict": "OK",
@@ -1197,7 +1197,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0019,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -1209,7 +1209,7 @@
         "warnings": [
           "negative-effective-normal: 13 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.001
+        "seconds": 0.0008
       },
       "delta_pct": 0.0111,
       "verdict": "OK",
@@ -1227,7 +1227,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0349,
+        "seconds": 0.0331,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1240,7 +1240,7 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0539
+        "seconds": 0.0469
       },
       "delta_pct": 0.0361,
       "verdict": "OK",
@@ -1260,7 +1260,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0013,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1273,7 +1273,7 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": 0.0359,
       "verdict": "OK",
@@ -1291,7 +1291,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1437,
+        "seconds": 0.1377,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1304,7 +1304,7 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 72° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0911
+        "seconds": 0.0796
       },
       "delta_pct": 0.0342,
       "verdict": "OK",
@@ -1355,7 +1355,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1891,
+        "seconds": 0.1812,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1367,7 +1367,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0357
+        "seconds": 0.0333
       },
       "delta_pct": 0.0066,
       "verdict": "OK",
@@ -1388,7 +1388,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1420,7 +1420,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.4598,
+        "seconds": 0.4351,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1432,7 +1432,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0689
+        "seconds": 0.0602
       },
       "delta_pct": 0.0068,
       "verdict": "OK",
@@ -1453,7 +1453,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0018,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1465,7 +1465,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0009
+        "seconds": 0.0007
       },
       "delta_pct": 0.0068,
       "verdict": "OK",
@@ -1485,7 +1485,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0453,
+        "seconds": 0.0423,
         "warnings": []
       },
       "cslope": {
@@ -1493,7 +1493,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0576
+        "seconds": 0.0476
       },
       "delta_pct": 0.6008,
       "verdict": "OK",
@@ -1514,7 +1514,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0014,
         "warnings": []
       },
       "cslope": {
@@ -1522,7 +1522,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0007
+        "seconds": 0.0005
       },
       "delta_pct": -0.0003,
       "verdict": "OK",
@@ -1542,7 +1542,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1522,
+        "seconds": 0.145,
         "warnings": []
       },
       "cslope": {
@@ -1550,7 +1550,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.091
+        "seconds": 0.0805
       },
       "delta_pct": 0.1937,
       "verdict": "OK",
@@ -1571,7 +1571,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0015,
         "warnings": []
       },
       "cslope": {
@@ -1599,7 +1599,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0504,
+        "seconds": 0.048,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1611,7 +1611,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0443
+        "seconds": 0.0409
       },
       "delta_pct": 0.0318,
       "verdict": "OK",
@@ -1632,7 +1632,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0021,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1664,7 +1664,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.1997,
+        "seconds": 0.189,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1676,7 +1676,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0653
+        "seconds": 0.0571
       },
       "delta_pct": 0.0364,
       "verdict": "OK",
@@ -1697,7 +1697,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1709,7 +1709,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0008
+        "seconds": 0.0007
       },
       "delta_pct": -0.2079,
       "verdict": "OK",
@@ -1729,7 +1729,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0913,
+        "seconds": 0.0862,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1742,7 +1742,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.057
+        "seconds": 0.0512
       },
       "delta_pct": 0.0492,
       "verdict": "OK",
@@ -1763,7 +1763,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0017,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1796,7 +1796,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.3346,
+        "seconds": 0.3181,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1809,7 +1809,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.091
+        "seconds": 0.076
       },
       "delta_pct": 0.041,
       "verdict": "OK",
@@ -1830,7 +1830,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.1.0",
-        "seconds": 0.0022,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1843,7 +1843,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0008
+        "seconds": 0.0006
       },
       "delta_pct": 0.0426,
       "verdict": "OK",
@@ -1852,5 +1852,1501 @@
         "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
       ]
     }
-  ]
+  ],
+  "f3": {
+    "criteria": {
+      "fixed_max_rel": 0.005,
+      "search_max_rel": 0.01,
+      "source": "briefs/02_CONTRATOS_FASE3.md F3.8"
+    },
+    "capabilities": {
+      "undrained": {
+        "supported": false,
+        "detail": "exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, expected `mohr_coulomb` at line 14 column 26"
+      },
+      "morgenstern_price": {
+        "supported": false,
+        "detail": "exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_price`, expected `bishop` or `spencer` at line 53 column 25"
+      },
+      "janbu_corrected": {
+        "supported": false,
+        "detail": "exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected`, expected `bishop` or `spencer` at line 53 column 23"
+      },
+      "polyline": {
+        "supported": false,
+        "detail": "exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `polyline`, expected `circle` at line 130 column 24"
+      }
+    },
+    "cases": [
+      {
+        "id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "path": "verification/differential/cases_f3/D15.ogs.json"
+      },
+      {
+        "id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "path": "verification/differential/cases_f3/D16.ogs.json"
+      },
+      {
+        "id": "D17",
+        "title": "Bloque sobre capa débil, polilínea fija",
+        "path": "verification/differential/cases_f3/D17.ogs.json"
+      }
+    ],
+    "summary": {
+      "OK": 0,
+      "ambos_sin_solucion": 0,
+      "FALLA": 0,
+      "sin dato": 0,
+      "pendiente": 43,
+      "N": 43
+    },
+    "checks": [
+      {
+        "case_id": "D01",
+        "title": "Talud homogéneo 1:1, seco",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.8550904741324555,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0006
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D01",
+        "title": "Talud homogéneo 1:1, seco",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.8570299095075163,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D02",
+        "title": "Talud 1:1 con r_u = 0,5",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.38542642821147816,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 21 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D02",
+        "title": "Talud 1:1 con r_u = 0,5",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.3383351378958607,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D03",
+        "title": "Dos capas con capa débil en la base",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": null,
+          "status": null,
+          "error": "EngineError: No valid slip surface was found. Moment and force equilibrium do not meet where the surface enters the slope at 90°: cohesion along a nearly vertical base can only hold it with tension at the base. A ",
+          "warnings": [],
+          "seconds": 0.0005
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D03",
+        "title": "Dos capas con capa débil en la base",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.6859540688692211,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0004
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D04",
+        "title": "Pared de rajo, 3 bancos",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.5914214583800026,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D04",
+        "title": "Pared de rajo, 3 bancos",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.6007243372310433,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D05",
+        "title": "Botadero, ángulo de reposo 37°",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0063003733124023,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D05",
+        "title": "Botadero, ángulo de reposo 37°",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0106663452664493,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.011. The analysis cannot represent so thin a slide; the slope face governs."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D06",
+        "title": "Talud con piezométrica inclinada",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.7145090955081104,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D06",
+        "title": "Talud con piezométrica inclinada",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.7078204816963857,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D07",
+        "title": "Arcilla blanda, φ = 0",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0516613718035739,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D07",
+        "title": "Arcilla blanda, φ = 0",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.1139743626254455,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D08",
+        "title": "Presa simétrica con rangos de búsqueda",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.604013338025978,
+          "status": "converged",
+          "error": null,
+          "warnings": [],
+          "seconds": 0.0345
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D08",
+        "title": "Presa simétrica con rangos de búsqueda",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.6107198326910686,
+          "status": "converged",
+          "error": null,
+          "warnings": [],
+          "seconds": 0.0354
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D09",
+        "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.4253437074086093,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 23 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0004
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D09",
+        "title": "Talud R2-03 (c = 2, φ = 45°, r_u = 0,65)",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 0.3124723163327505,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D10",
+        "title": "Talud con c alto y φ bajo, círculo profundo",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0414402801295657,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D10",
+        "title": "Talud con c alto y φ bajo, círculo profundo",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0570170881415544,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D11",
+        "title": "Pared de rajo, 3 bancos, kh = 0,15",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0864828501767558,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "sismo pseudoestático kh=0.15, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D11",
+        "title": "Pared de rajo, 3 bancos, kh = 0,15",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0754231155497094,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": [
+          "sismo pseudoestático kh=0.15, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D12",
+        "title": "Botadero con sobrecarga en la corona y kv = −0,05",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0483384604967596,
+          "status": "converged",
+          "error": null,
+          "warnings": [],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "sismo pseudoestático kh=0, kv=-0.05: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D12",
+        "title": "Botadero con sobrecarga en la corona y kv = −0,05",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.054256426245293,
+          "status": "converged",
+          "error": null,
+          "warnings": [],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": [
+          "sismo pseudoestático kh=0, kv=-0.05: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D13",
+        "title": "Talud civil con carga lineal de 100 kN/m a 15°",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.4554297769110123,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente)."
+        ]
+      },
+      {
+        "case_id": "D13",
+        "title": "Talud civil con carga lineal de 100 kN/m a 15°",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.4052623060130067,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente)."
+        ]
+      },
+      {
+        "case_id": "D14",
+        "title": "Terraplén con kh = 0,1 y piezométrica",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.1332985522050976,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0003
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D14",
+        "title": "Terraplén con kh = 0,1 y piezométrica",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0906459267027122,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0002
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": [
+          "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
+        ]
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "bishop",
+        "kind": "search",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0828378779625254,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.044
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "bishop",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0828378779625254,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0008
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": []
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "spencer",
+        "kind": "search",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0774447570488088,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0575
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "spencer",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0774657237989191,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0008
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": []
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained",
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0802610778583381,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0005
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp), morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D15",
+        "title": "Terraplén sobre arcilla blanda, Su lineal",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained",
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.0742521685642152,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0004
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp), janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "bishop",
+        "kind": "search",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.1712535748113486,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0433
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "bishop",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.7480381681122614,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0007
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": []
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "spencer",
+        "kind": "search",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "búsqueda: ogs ≤ cSlope·1,01",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.1712535748113486,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0567
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "spencer",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.831335826685506,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0008
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp)",
+        "notes": []
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained",
+          "morgenstern_price"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.8312205795593848,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0005
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp), morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D16",
+        "title": "Depósito de relaves, Su constante",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "circle",
+        "capabilities": [
+          "undrained",
+          "janbu_corrected"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.747469566755211,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+          ],
+          "seconds": 0.0004
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de undrained (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, exp), janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected)",
+        "notes": []
+      },
+      {
+        "case_id": "D17",
+        "title": "Bloque sobre capa débil, polilínea fija",
+        "method": "spencer",
+        "kind": "fixed",
+        "surface": "polyline",
+        "capabilities": [
+          "polyline"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.672068539505869,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 71° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0005
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de polyline (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `polyline`, expe)",
+        "notes": []
+      },
+      {
+        "case_id": "D17",
+        "title": "Bloque sobre capa débil, polilínea fija",
+        "method": "morgenstern_price",
+        "kind": "fixed",
+        "surface": "polyline",
+        "capabilities": [
+          "morgenstern_price",
+          "polyline"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.5937213981403358,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 71° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0005
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de morgenstern_price (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_pri), polyline (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `polyline`, expe)",
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      {
+        "case_id": "D17",
+        "title": "Bloque sobre capa débil, polilínea fija",
+        "method": "janbu_corrected",
+        "kind": "fixed",
+        "surface": "polyline",
+        "capabilities": [
+          "janbu_corrected",
+          "polyline"
+        ],
+        "criterion": "fija: |Δ| ≤ 0,5 %",
+        "ogs": {
+          "fos": null,
+          "status": null,
+          "error": null,
+          "engine": null,
+          "seconds": 0.0,
+          "warnings": []
+        },
+        "cslope": {
+          "fos": 1.4735318926304826,
+          "status": "converged",
+          "error": null,
+          "warnings": [
+            "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+            "steep-entry-tension: The surface enters the slope at 71° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+          ],
+          "seconds": 0.0004
+        },
+        "delta_pct": null,
+        "verdict": "pendiente",
+        "reason": "motor sin soporte de janbu_corrected (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected), polyline (exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `polyline`, expe)",
+        "notes": []
+      }
+    ]
+  }
 }

@@ -1,7 +1,21 @@
-"""OpenGeoSlide .ogs.json v0.1 / v0.2 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
+
+Schema v0.3 (contract F3.8)
+---------------------------
+- material ``undrained`` -> cSlope ``undrained``: ``undrained_strength`` -> ``undrainedShearStrength``,
+  ``strength_datum`` -> ``suRefDepth`` (an elevation, not a depth), ``strength_gradient`` -> ``suRateOfChange``,
+  ``strength_limit`` -> ``suMax``. (``s-f-datum`` is the same law with other names.)
+- ``analysis.surface`` of type ``polyline`` -> ``definition.customSurfaces = [{points}]`` with
+  ``customPlanesOnly`` (no axis: the method must not need one).
+- ``morgenstern_price`` -> ``Morgenstern-Price`` with ``intersliceFunction`` in kebab-case (``half-sine`` by
+  default, ``clipped-sine``, ``trapezoidal``, ``constant``, ``data-point-specified`` with ``intersliceDataPoints``).
+  ``spencer`` stays ``Morgenstern-Price`` with ``constant``.
+- ``janbu_simplified`` / ``janbu_corrected`` -> ``Janbu`` with ``janbuCorrection`` false / true.
+- ``bishop`` on a polyline is refused (``UnsupportedModel``): contract F3.6, its FS would depend on the moment axis
+  (the oracle accepts it, with the warning ``bishop-non-circular``).
 
 Seismic coefficients and loads (schema v0.2, contract F1.1)
 -----------------------------------------------------------
@@ -58,8 +72,18 @@ CSLOPE_MIN_SLICES = 10
 CSLOPE_MAX_SLICES = 500
 CSLOPE_MIN_ITERATIONS = 500
 CSLOPE_MAX_ITERATIONS = 100000
-METHOD_MAP = {"bishop": "Bishop", "spencer": "Morgenstern-Price"}
+METHOD_MAP = {
+    "bishop": "Bishop", "spencer": "Morgenstern-Price", "morgenstern_price": "Morgenstern-Price",
+    "janbu_simplified": "Janbu", "janbu_corrected": "Janbu",
+}
 SEISMIC_LOADS_VERSION = "0.2"
+F3_VERSION = "0.3"
+F3_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
+# ogs interslice function -> cSlope `intersliceFunction`
+INTERSLICE_MAP = {
+    "constant": "constant", "half_sine": "half-sine", "clipped_sine": "clipped-sine",
+    "trapezoidal": "trapezoidal", "data_points": "data-point-specified",
+}
 
 
 class UnsupportedModel(ValueError):
@@ -206,9 +230,15 @@ def resolve_direction(model: dict, outline: Polygon, kind: str | None = None) ->
         return "ltr" if y_left > y_right else "rtl"
 
     # 3. fixed circle: its higher outermost ground crossing is the entry
-    if surface is not None and search is None:
+    if surface is not None and search is None and surface.get("type") == "polyline":
+        # the higher end of the polyline is the entry (its ends, as written, stand for the ones fitted to the ground)
+        pts = surface["points"]
+        y_p, y_q = float(pts[0][1]), float(pts[-1][1])
+        if abs(y_p - y_q) > 1e-6 * height:
+            return "ltr" if y_p > y_q else "rtl"
+    elif surface is not None and search is None:
         if surface.get("type") != "circle":
-            raise UnsupportedModel("only circular fixed surfaces are supported")
+            raise UnsupportedModel("only circular and polyline fixed surfaces are supported")
         crossings = arc_terrain_crossings(surface, outline)
         if crossings is not None:
             y_p, y_q = arc_y(surface, crossings[0]), arc_y(surface, crossings[1])
@@ -269,6 +299,16 @@ def plane_from_circle(circle: dict) -> dict:
     if circle.get("type") != "circle":
         raise UnsupportedModel("only circular fixed surfaces are supported")
     return {"cx": float(circle["xc"]), "cy": float(circle["yc"]), "radius": float(circle["r"])}
+
+
+def polyline_surface(surface: dict) -> dict:
+    """OpenGeoSlide fixed polyline {points} -> cSlope customSurfaces entry (no axis)."""
+    if surface.get("type") != "polyline":
+        raise UnsupportedModel("only polyline surfaces map to customSurfaces")
+    pts = [[float(x), float(y)] for x, y in surface["points"]]
+    if len(pts) < 2 or any(b[0] <= a[0] for a, b in zip(pts, pts[1:])):
+        raise UnsupportedModel("polyline with fewer than 2 points or x not strictly increasing")
+    return {"points": pts}
 
 
 def circle_from_plane(plane: dict) -> dict:
@@ -379,14 +419,18 @@ def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[l
     defs: list[dict] = []
     needs_dry_line = False
     for m in materials:
-        if m.get("model", "mohr_coulomb") != "mohr_coulomb":
-            raise UnsupportedModel(f"material model {m.get('model')!r} is not mohr_coulomb")
-        model_def: dict[str, Any] = {
-            "kind": "mohr-coulomb",
-            "unitWeight": float(m["unit_weight"]),
-            "cohesion": float(m["cohesion"]),
-            "frictionAngle": float(m["friction_angle"]),
-        }
+        kind = m.get("model", "mohr_coulomb")
+        if kind == "undrained":
+            model_def = _undrained_definition(m)
+        elif kind == "mohr_coulomb":
+            model_def = {
+                "kind": "mohr-coulomb",
+                "unitWeight": float(m["unit_weight"]),
+                "cohesion": float(m["cohesion"]),
+                "frictionAngle": float(m["friction_angle"]),
+            }
+        else:
+            raise UnsupportedModel(f"material model {m.get('model')!r} is not mohr_coulomb or undrained")
         if m.get("unit_weight_sat") is not None:
             model_def["unitWeightSat"] = float(m["unit_weight_sat"])
         mdef: dict[str, Any] = {"name": m["id"], "model": model_def}
@@ -412,6 +456,67 @@ def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[l
     return defs, needs_dry_line
 
 
+def _undrained_definition(m: dict) -> dict:
+    """ogs ``undrained`` -> cSlope ``undrained`` (F3.2 / F3.8). The datum is an elevation in both."""
+    unknown = sorted(set(m) - {"id", "name", "model", "unit_weight", "unit_weight_sat", "undrained_strength",
+                               "strength_datum", "strength_gradient", "strength_limit", "ru"})
+    if unknown:
+        raise UnsupportedModel(f"material {m['id']} (undrained) con campos desconocidos: " + ", ".join(unknown))
+    out: dict[str, Any] = {
+        "kind": "undrained",
+        "unitWeight": float(m["unit_weight"]),
+        "undrainedShearStrength": _finite(m.get("undrained_strength"), f"material {m['id']}.undrained_strength"),
+    }
+    if m.get("strength_datum") is not None or m.get("strength_gradient") is not None:
+        if m.get("strength_datum") is None or m.get("strength_gradient") is None:
+            raise UnsupportedModel(f"material {m['id']}: strength_datum y strength_gradient van juntos")
+        out["suRefDepth"] = _finite(m["strength_datum"], f"material {m['id']}.strength_datum")
+        out["suRateOfChange"] = _finite(m["strength_gradient"], f"material {m['id']}.strength_gradient")
+    if m.get("strength_limit") is not None:
+        if m.get("strength_gradient") is None:
+            raise UnsupportedModel(f"material {m['id']}: strength_limit sin strength_gradient")
+        out["suMax"] = _finite(m["strength_limit"], f"material {m['id']}.strength_limit")
+    return out
+
+
+def v03_features(model: dict) -> list[str]:
+    """Names of the fields of the model that need version "0.3" (contract F3.1), in order of appearance."""
+    analysis = model.get("analysis") or {}
+    found = []
+    for m in model.get("materials", []):
+        if m.get("model") == "undrained":
+            found.append("model: \"undrained\"")
+            break
+    if (analysis.get("surface") or {}).get("type") == "polyline":
+        found.append("surface.type: \"polyline\"")
+    found += [f"methods: {x}" for x in analysis.get("methods", []) if x in F3_METHODS]
+    if "interslice" in analysis:
+        found.append("analysis.interslice")
+    return found
+
+
+def interslice_options(model: dict, check: dict, notes: list[str]) -> dict[str, Any]:
+    """Options of a ``morgenstern_price`` check: ``intersliceFunction`` and, for data points, the points.
+
+    The function is ``check.options.interslice`` if the check carries one, else ``analysis.interslice``, else
+    ``half_sine`` (contract F3.4).
+    """
+    spec = (check.get("options") or {}).get("interslice") or (model.get("analysis") or {}).get("interslice")
+    fn = (spec or {}).get("function", "half_sine")
+    if fn not in INTERSLICE_MAP:
+        raise UnsupportedModel(f"interslice.function {fn!r} desconocida")
+    out: dict[str, Any] = {"intersliceFunction": INTERSLICE_MAP[fn]}
+    if fn == "data_points":
+        pts = (spec or {}).get("points")
+        if not pts or len(pts) < 2:
+            raise UnsupportedModel("interslice data_points necesita al menos 2 puntos")
+        out["intersliceDataPoints"] = [[_finite(x, "interslice.points"), _finite(f, "interslice.points")] for x, f in pts]
+    elif spec and "points" in spec:
+        raise UnsupportedModel("interslice.points solo se admite con data_points")
+    notes.append(f"Morgenstern-Price con la función interslice {INTERSLICE_MAP[fn]} (kebab-case de cSlope).")
+    return out
+
+
 def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     """Build the cSlope analysis document for one check of a verification case.
 
@@ -427,9 +532,16 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     notes: list[str] = []
 
     has_seismic = analysis.get("seismic") is not None
-    if (model.get("loads") or has_seismic) and model.get("version") != SEISMIC_LOADS_VERSION:
+    if (model.get("loads") or has_seismic) and model.get("version") not in (SEISMIC_LOADS_VERSION, F3_VERSION):
         raise UnsupportedModel(
             f"los campos 'loads' y 'analysis.seismic' requieren version \"{SEISMIC_LOADS_VERSION}\""
+        )
+    features = v03_features(model)
+    if features and model.get("version") != F3_VERSION:
+        raise UnsupportedModel(f"{features[0]} requiere version \"{F3_VERSION}\"")
+    if method == "bishop" and (analysis.get("surface") or {}).get("type") == "polyline" and kind == "fixed":
+        raise UnsupportedModel(
+            "el método 'bishop' solo admite superficies circulares; use spencer, morgenstern_price o janbu (F3.6)"
         )
 
     polys = regions_of(model)
@@ -499,6 +611,10 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     if method == "spencer":
         # Morgenstern-Price with a constant interslice function f(x) = 1 is Spencer.
         options["intersliceFunction"] = "constant"
+    elif method == "morgenstern_price":
+        options.update(interslice_options(model, check, notes))
+    elif method in ("janbu_simplified", "janbu_corrected"):
+        options["janbuCorrection"] = method == "janbu_corrected"
     if float(analysis.get("min_m_alpha", 0.2)) != 0.2:
         notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
     options.update(seismic_options(model, notes))
@@ -508,7 +624,10 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         surface = analysis.get("surface")
         if not surface:
             raise UnsupportedModel("kind 'fixed' but analysis.surface is missing")
-        definition["customSearchPlanes"] = [plane_from_circle(surface)]
+        if surface.get("type") == "polyline":
+            definition["customSurfaces"] = [polyline_surface(surface)]
+        else:
+            definition["customSearchPlanes"] = [plane_from_circle(surface)]
         definition["customPlanesOnly"] = True
     elif kind == "search":
         search = analysis.get("search")

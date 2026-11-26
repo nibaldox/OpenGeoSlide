@@ -260,3 +260,186 @@ def test_warnings_cell_lists_only_non_informative_codes_per_check():
     assert run._warnings_cell(check(["negative_lambda"]), check([])) == "—"
     assert run._warnings_cell(check(["truncated_driving_mass"]), check(["negative_effective_normal_major"])) == (
         "búsqueda: truncated_driving_mass · fija: negative_effective_normal_major")
+
+
+# ------------------------------------------------------------ Phase 3a: v0.3 models, M-P, Janbu, polyline (F3.8)
+
+F3_MODELS = build_cases.build_all_f3()
+
+
+def test_v0_3_models_d15_d17_are_committed_and_designed_as_intended():
+    assert sorted(F3_MODELS) == ["D15", "D16", "D17"]
+    for case_id, model in F3_MODELS.items():
+        path = HERE / "cases_f3" / f"{case_id}.ogs.json"
+        assert path.read_text(encoding="utf-8") == build_cases.serialize(model), f"{path.name} is stale"
+        assert model["version"] == "0.3" and model["units"] == "SI" and model["meta"]["notes"].strip()
+        assert model["analysis"]["slices"] == 50
+    # the v0.1 / v0.2 battery does not move: D01-D14 stay where they were
+    assert sorted(p.name for p in (HERE / "cases").glob("*.ogs.json")) == [f"D{i:02d}.ogs.json" for i in range(1, 15)]
+    linear = {m["id"]: m for m in F3_MODELS["D15"]["materials"]}["clay"]
+    assert linear["model"] == "undrained" and (linear["undrained_strength"], linear["strength_datum"],
+                                               linear["strength_gradient"]) == (15.0, 0.0, 1.5)
+    assert "cohesion" not in linear and "friction_angle" not in linear
+    constant = {m["id"]: m for m in F3_MODELS["D16"]["materials"]}["tailings"]
+    assert constant["model"] == "undrained" and "strength_gradient" not in constant
+    for case_id in ("D15", "D16"):
+        a = F3_MODELS[case_id]["analysis"]
+        assert a["methods"] == ["bishop", "spencer"] and a["surface"]["type"] == "circle" and a["search"]
+    d17 = F3_MODELS["D17"]["analysis"]
+    assert d17["surface"]["type"] == "polyline" and len(d17["surface"]["points"]) >= 3 and "search" not in d17
+    assert "bishop" not in d17["methods"] and set(d17["methods"]) == {"spencer", "morgenstern_price", "janbu_corrected"}
+
+
+def _plan():
+    return run.f3_plan(list(MODELS_AS_CASES), list(F3_AS_CASES))
+
+
+MODELS_AS_CASES = [{"id": k, "title": v["meta"]["title"], "model": v} for k, v in MODELS.items()]
+F3_AS_CASES = [{"id": k, "title": v["meta"]["title"], "model": v} for k, v in F3_MODELS.items()]
+
+
+def test_f3_plan_runs_m_p_and_janbu_corrected_on_every_circle_and_the_new_models():
+    plan = _plan()
+    by_case = {}
+    for case, method, kind, caps in plan:
+        by_case.setdefault(case["id"], []).append((method, kind, tuple(caps)))
+    for i in range(1, 15):                      # D01-D14: only the fixed circle, M-P half_sine and Janbu corrected
+        assert by_case[f"D{i:02d}"] == [("morgenstern_price", "fixed", ("morgenstern_price",)),
+                                        ("janbu_corrected", "fixed", ("janbu_corrected",))], i
+    for cid in ("D15", "D16"):                  # undrained: Bishop and Spencer in search and fixed, then the new ones
+        assert [(m, k) for m, k, _ in by_case[cid]] == [
+            ("bishop", "search"), ("bishop", "fixed"), ("spencer", "search"), ("spencer", "fixed"),
+            ("morgenstern_price", "fixed"), ("janbu_corrected", "fixed")]
+        assert all("undrained" in caps for _, _, caps in by_case[cid])
+    assert by_case["D17"] == [("spencer", "fixed", ("polyline",)),
+                              ("morgenstern_price", "fixed", ("morgenstern_price", "polyline")),
+                              ("janbu_corrected", "fixed", ("janbu_corrected", "polyline"))]
+    assert len(plan) == 28 + 12 + 3
+
+
+def test_f3_models_use_version_0_3_for_the_new_methods_even_when_the_case_is_older():
+    model = run.f3_model(MODELS["D01"], "morgenstern_price")
+    assert model["version"] == "0.3" and MODELS["D01"]["version"] == "0.1"      # the original is not modified
+
+
+def test_cslope_accepts_every_f3_document_and_gives_a_converged_value():
+    import cslope
+
+    for case, method, kind, _ in _plan():
+        conv = ogs_to_cslope(run.f3_model(case["model"], method), {"method": method, "kind": kind})
+        errors = [i for i in cslope.validate(conv.document) if i.get("severity") == "error"]
+        assert not errors, (case["id"], method, errors)
+        cs = run.harness_run.run_cslope(cslope, conv.document)
+        if case["id"] == "D03" and method == "morgenstern_price":
+            continue                                    # the oracle has no valid surface here (as Spencer on D03)
+        assert cs["fos"] is not None and cs["status"] == "converged", (case["id"], method, kind, cs)
+
+
+def _all_supported():
+    return {cap: {"supported": True, "detail": ""} for cap in run.CAPABILITIES}
+
+
+def _fake_ogs(unsupported=()):
+    """A stand-in for run_ogs: the capabilities in `unsupported` fail like an engine that does not have them."""
+    def runner(binary, model, check, timeout):
+        needs = set()
+        if any(m["model"] == "undrained" for m in model["materials"]):
+            needs.add("undrained")
+        if model["analysis"].get("surface", {}).get("type") == "polyline":
+            needs.add("polyline")
+        needs.add(check["method"])
+        if needs & set(unsupported):
+            return {"fos": None, "status": None, "error": "exit 101: not implemented: F3-W1b", "engine": None,
+                    "warnings": []}
+        return {"fos": 1.0, "status": "converged", "error": None, "engine": "fake", "warnings": []}
+    return runner
+
+
+def test_probe_marks_a_capability_pending_with_the_engine_message_and_keeps_the_others():
+    probe = run.probe_capabilities("ogs", runner=_fake_ogs(unsupported=("morgenstern_price",)))
+    assert set(probe) == set(run.CAPABILITIES)
+    assert probe["morgenstern_price"]["supported"] is False
+    assert "F3-W1b" in probe["morgenstern_price"]["detail"]
+    for cap in ("undrained", "janbu_corrected", "polyline"):
+        assert probe[cap]["supported"] is True, cap
+    assert all(c["supported"] for c in run.probe_capabilities("ogs", runner=_fake_ogs()).values())
+
+
+def test_a_check_that_needs_an_unsupported_capability_is_pending_not_failed():
+    import cslope
+
+    case = next(c for c in MODELS_AS_CASES if c["id"] == "D01")
+    probe = run.probe_capabilities("ogs", runner=_fake_ogs(unsupported=("morgenstern_price",)))
+    row = run.run_f3_check(cslope, "ogs", case, "morgenstern_price", "fixed", ["morgenstern_price"], probe,
+                           ogs_runner=_fake_ogs(unsupported=("morgenstern_price",)))
+    assert row["verdict"] == run.VERDICT_PENDING == "pendiente"
+    assert "morgenstern_price" in row["reason"] and "F3-W1b" in row["reason"]
+    assert row["ogs"]["fos"] is None and row["cslope"]["fos"] is not None      # the oracle value is still recorded
+    assert row["verdict"] not in run.PASS_VERDICTS
+
+
+def test_a_supported_capability_is_compared_with_the_oracle_and_can_fail():
+    import cslope
+
+    case = next(c for c in MODELS_AS_CASES if c["id"] == "D01")
+    row = run.run_f3_check(cslope, "ogs", case, "janbu_corrected", "fixed", ["janbu_corrected"], _all_supported(),
+                           ogs_runner=_fake_ogs())          # the fake engine answers 1.0, far from 0.857
+    assert row["verdict"] == "FALLA" and "0,5 %" in row["reason"]
+
+
+def test_f3_summary_counts_pending_apart_and_the_old_summary_keys_do_not_change():
+    checks = [{"kind": "fixed", "verdict": v, "ogs": {"seconds": 0.0}, "cslope": {"seconds": 0.0}}
+              for v in ("OK", "pendiente", "pendiente", "FALLA", "sin dato", run.VERDICT_BOTH_NO_SOLUTION)]
+    s = run.summarize_f3(checks)
+    assert s == {"OK": 2, "ambos_sin_solucion": 1, "FALLA": 1, "sin dato": 1, "pendiente": 2, "N": 6}
+    old = run.summarize([{"kind": "fixed", "verdict": "OK", "ogs": {"seconds": 0.1}, "cslope": {"seconds": 0.1}}])
+    assert set(old) == {"search", "fixed", "ogs_seconds", "cslope_seconds"}
+    assert "pendiente" not in old["fixed"]
+
+
+def test_f3_section_of_the_report_says_pending_and_lists_the_capabilities(tmp_path):
+    import cslope
+
+    unsupported = ("morgenstern_price", "janbu_corrected", "polyline")
+    probe = run.probe_capabilities("ogs", runner=_fake_ogs(unsupported=unsupported))
+    rows = [run.run_f3_check(cslope, "ogs", c, m, k, caps, probe, ogs_runner=_fake_ogs(unsupported=unsupported))
+            for c, m, k, caps in _plan()]
+    text = "\n".join(run.f3_markdown(MODELS_AS_CASES, F3_AS_CASES, rows, probe))
+    assert "## Fase 3a" in text and "pendiente" in text
+    assert "| morgenstern_price | no |" in text and "| undrained | sí |" in text
+    summary = run.summarize_f3(rows)
+    assert summary["N"] == 43 and summary["pendiente"] > 0 and summary["pendiente"] + summary["FALLA"] \
+        + summary["OK"] + summary["sin dato"] == 43
+    # undrained is supported by the fake engine: Bishop and Spencer on D15 and D16 are compared, not pending
+    assert any(r["case_id"] == "D15" and r["method"] == "bishop" and r["verdict"] == "FALLA" for r in rows)
+
+
+def test_run_keeps_the_old_report_and_adds_the_f3_section(tmp_path):
+    """Full path: the 56 checks and their summary are the ones of before; F3 is an extra section, exit code 0."""
+    cases = tmp_path / "cases"
+    shutil.copytree(HERE / "cases", cases)
+    out = tmp_path / "out"
+    code = run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)])
+    assert code == 0
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert len(report["checks"]) == 56 and report["summary"]["search"]["N"] == 28 and report["summary"]["fixed"]["N"] == 28
+    assert report["report_version"] == "3"
+    f3 = report["f3"]
+    assert f3["summary"]["N"] == 43 and set(f3["capabilities"]) == set(run.CAPABILITIES)
+    assert f3["summary"]["FALLA"] + f3["summary"]["sin dato"] + f3["summary"]["pendiente"] + f3["summary"]["OK"] == 43
+    text = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert text.startswith("# Batería diferencial") and "## Fase 3a" in text
+    assert text.index("## Tabla de línea base") < text.index("## Fase 3a") < text.index("## Reproducir")
+    # every F3 check that is not pending was compared with the oracle (never silently skipped)
+    for row in f3["checks"]:
+        assert row["verdict"] in ("OK", run.VERDICT_BOTH_NO_SOLUTION, "FALLA", "sin dato", "pendiente"), row
+
+
+def test_require_f3_turns_pending_into_a_failing_exit_code(tmp_path, monkeypatch):
+    monkeypatch.setattr(run, "probe_capabilities", lambda *a, **k: {
+        cap: {"supported": cap == "undrained", "detail": "exit 2: no soportado"} for cap in run.CAPABILITIES})
+    cases = tmp_path / "cases"
+    shutil.copytree(HERE / "cases", cases)
+    out = tmp_path / "out"
+    assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)]) == 0
+    assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out), "--require-f3"]) == 3

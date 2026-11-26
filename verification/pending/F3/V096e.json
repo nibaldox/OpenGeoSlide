@@ -1,0 +1,232 @@
+{
+  "id": "V096e",
+  "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V096e",
+      "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
+      "notes": "As V096d with the water table of the paper's fig. 3 (the points of V096b, which match the drawn line within 0.3 m)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 18.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.5,
+        "unit_weight_sat": null,
+        "cohesion": 40.0,
+        "friction_angle": 22.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.4,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 26.0,
+        "ru": null
+      },
+      {
+        "id": "layer_4",
+        "name": "Layer 4",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            18.0,
+            9.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            50.0,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            6.0,
+            3.0
+          ],
+          [
+            18.0,
+            9.0
+          ],
+          [
+            50.0,
+            9.0
+          ],
+          [
+            50.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            -20.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            3.0
+          ],
+          [
+            50.0,
+            3.0
+          ],
+          [
+            50.0,
+            -6.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_4",
+        "polygon": [
+          [
+            -20.0,
+            -9.0
+          ],
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -9.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -20.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          6.0,
+          3.0
+        ],
+        [
+          10.568,
+          5.284
+        ],
+        [
+          25.314,
+          9.002
+        ],
+        [
+          39.149,
+          10.269
+        ],
+        [
+          50.0,
+          10.269
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 9.7,
+        "yc": 21.3,
+        "r": 29.8
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.211,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.02041288191577209,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.197,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.020417710944026734,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590.",
+    "derived_from": "cSlope verification problem V096e (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope on this circle: Bishop 1.1986, Spencer 1.2122, M-P 1.1967, Janbu corrected 1.1958 (50 slices, vertical pore-pressure head). The water table is not drawn left of the slope face in the paper; following the lower bench there is the program's assumption, kept from V096b.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

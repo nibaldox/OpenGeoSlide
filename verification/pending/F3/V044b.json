@@ -1,0 +1,118 @@
+{
+  "id": "V044b",
+  "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V044b",
+      "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+      "notes": "The V044 slope and circle with a pore pressure ratio rᵤ = 0.25 (Fredlund & Krahn's case 3)."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 600.0,
+        "friction_angle": 20.0,
+        "ru": 0.25
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            60.0
+          ],
+          [
+            60.0,
+            60.0
+          ],
+          [
+            140.0,
+            20.0
+          ],
+          [
+            180.0,
+            20.0
+          ],
+          [
+            180.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 120.0,
+        "yc": 90.0,
+        "r": 80.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.766,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01028312570781427,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.764,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01028344671201814,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.761,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010283929585462806,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977). Comparison of slope stability methods of analysis. Can. Geotech. J. 14(3), 429–439.",
+    "derived_from": "cSlope verification problem V044b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fredlund & Krahn (1977), Table 2 case 3 (\"Same as 1 except with ru = 0.25\"): ordinary 1.607, Bishop 1.766, Spencer 1.761 (θ = 14.33°, λ = 0.255), Janbu simplified 1.735, Janbu rigorous 1.708, Morgenstern-Price constant 1.765 (λ = 0.244); Table 3: constant 1.772 and half-sine 1.770 (Alberta), constant 1.765, half-sine 1.764 and clipped sine 1.779 (Saskatchewan). Read from the paper's page images (docs/kallor/fredlund-krahn-1977.md).",
+      "Their rᵤ is the pore pressure over the vertical stress of the soil above the base, as cSlope's. Commercial program A (verification problem 21): Bishop 1.763, Spencer 1.760, M-P (half-sine) 1.760, ordinary 1.687.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

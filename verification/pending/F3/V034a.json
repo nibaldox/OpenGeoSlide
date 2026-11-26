@@ -1,0 +1,137 @@
+{
+  "id": "V034a",
+  "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V034a",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+      "notes": "Granular fill over clay with undrained strength increasing linearly with depth; critical-circle search."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 123.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 36.0,
+        "ru": null
+      },
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "undrained",
+        "unit_weight": 97.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 200.0,
+        "strength_datum": 30.0,
+        "strength_gradient": 15.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            30.0
+          ],
+          [
+            75.0,
+            30.0
+          ],
+          [
+            140.0,
+            30.0
+          ],
+          [
+            140.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            30.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            55.0,
+            40.0
+          ],
+          [
+            75.0,
+            30.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.313,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020380807311500382,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.276,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020391849529780563,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.20b.",
+    "derived_from": "cSlope verification problem V034a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan, Wright & Brandon (2014, Table 14.1) give 1.276 at θs = 1° and 3° and up to 1.323 at larger θs; until 2026-10-25 the check carried 1.300, the midpoint of that range, which is not in the table. Profile I goes with the shallow circle I. commercial program A Spencer 1.285 (circle).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

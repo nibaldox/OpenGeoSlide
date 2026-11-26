@@ -1,0 +1,169 @@
+{
+  "id": "V104a",
+  "title": "Embankment on clay, no excess pore pressure (B-bar tutorial, step 1)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V104a",
+      "title": "Embankment on clay, no excess pore pressure (B-bar tutorial, step 1)",
+      "notes": "A 2 m embankment (crest x = 13–20.6 at y = 7, 1.5:1 faces to y = 5 at x = 10 and 23.6; γ = 20 kN/m³, c′ = 5 kPa, φ′ = 32°) on 1 m of upper clay (c′ = 10 kPa, φ′ = 20°) over 4 m of lower clay (c′ = 15 kPa, φ′ = 20°; both γ = 17 kN/m³), water table at the clay surface (y = 5), dry embankment; failure towards −x; circular search, Bishop simplified. Step 1: no excess pore pressure; the critical circle stays in the embankment."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 32.0,
+        "ru": null
+      },
+      {
+        "id": "upper_clay",
+        "name": "upper clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "lower_clay",
+        "name": "lower clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "cohesion": 15.0,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            10.0,
+            5.0
+          ],
+          [
+            13.0,
+            7.0
+          ],
+          [
+            20.6,
+            7.0
+          ],
+          [
+            23.6,
+            5.0
+          ]
+        ]
+      },
+      {
+        "material": "lower_clay",
+        "polygon": [
+          [
+            23.6,
+            4.0
+          ],
+          [
+            23.6,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.0
+          ]
+        ]
+      },
+      {
+        "material": "upper_clay",
+        "polygon": [
+          [
+            0.0,
+            4.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            10.0,
+            5.0
+          ],
+          [
+            23.6,
+            5.0
+          ],
+          [
+            23.6,
+            4.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          5.0
+        ],
+        [
+          23.6,
+          5.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 2.3,
+      "published_by": "Commercial program A",
+      "tolerance": 0.022173913043478263,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Tutorial of a commercial slope stability program: undrained loading by the B-bar method (its tutorial pages and the tutorial's project file).",
+    "derived_from": "cSlope verification problem V104a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Geometry, materials and water from the tutorial's project file (scenario \"Master Scenario\" of group 1); the FOS from the tutorial text (\"FS = 2.30\"). cSlope's circle (10.32, 8.70, R 3.70) is tangent to the embankment base, as the tutorial describes.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

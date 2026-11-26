@@ -1,0 +1,118 @@
+{
+  "id": "V069a",
+  "title": "Morgenstern (1963) complete drawdown, 3:1",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V069a",
+      "title": "Morgenstern (1963) complete drawdown, 3:1",
+      "notes": "3:1 slope after complete drawdown: piezometric line on the slope face, base at the toe (D = 1). Pore pressure from the vertical head. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.604515008,
+        "unit_weight_sat": null,
+        "cohesion": 14.93864112,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            91.44,
+            30.48
+          ],
+          [
+            113.6904,
+            30.48
+          ],
+          [
+            113.6904,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          91.44,
+          30.48
+        ],
+        [
+          113.6904,
+          30.48
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.2,
+      "published_by": "Morgenstern (chart)",
+      "tolerance": 0.034166666666666665,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.2,
+      "published_by": "Morgenstern (chart)",
+      "tolerance": 0.034166666666666665,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Morgenstern, N. (1963). Stability charts for earth slopes during rapid drawdown. Géotechnique 13(2).",
+    "derived_from": "cSlope verification problem V069a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A reports 1.212 (Bishop) on its critical circle, checked in V069b. With the phreatic correction (cos²θ) cSlope gives 1.303.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

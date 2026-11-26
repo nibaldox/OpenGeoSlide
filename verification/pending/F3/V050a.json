@@ -1,0 +1,207 @@
+{
+  "id": "V050a",
+  "title": "ACADS 3(b), weak layer, specified non-circular surface",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V050a",
+      "title": "ACADS 3(b), weak layer, specified non-circular surface",
+      "notes": "Slope with a 0.5 m weak layer (c′ = 0, φ′ = 10°) and a water table at its base, analyzed on the published four-point non-circular surface that runs along the weak layer."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 28.5,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "weak_layer",
+        "name": "Weak layer",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 10.0,
+        "ru": null
+      },
+      {
+        "id": "soil_1_below",
+        "name": "Soil 1 below",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 28.5,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            20.0,
+            27.0
+          ],
+          [
+            20.0,
+            27.75
+          ],
+          [
+            43.0,
+            27.75
+          ],
+          [
+            67.5,
+            40.0
+          ],
+          [
+            84.0,
+            40.0
+          ],
+          [
+            84.0,
+            27.0
+          ]
+        ]
+      },
+      {
+        "material": "soil_1_below",
+        "polygon": [
+          [
+            20.0,
+            20.0
+          ],
+          [
+            20.0,
+            26.5
+          ],
+          [
+            84.0,
+            26.5
+          ],
+          [
+            84.0,
+            20.0
+          ]
+        ]
+      },
+      {
+        "material": "weak_layer",
+        "polygon": [
+          [
+            20.0,
+            26.5
+          ],
+          [
+            20.0,
+            27.0
+          ],
+          [
+            84.0,
+            27.0
+          ],
+          [
+            84.0,
+            26.5
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          20.0,
+          26.5
+        ],
+        [
+          84.0,
+          26.5
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            41.85,
+            27.75
+          ],
+          [
+            44.0,
+            26.5
+          ],
+          [
+            63.5,
+            27.0
+          ],
+          [
+            73.31,
+            40.0
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.294,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010386398763523957,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.277,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010391542678151918,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.261,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010396510705789057,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989), ACADS problem 3(b).",
+    "derived_from": "cSlope verification problem V050a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Bishop on a non-circular surface depends on the moment axis; cSlope gives 1.250 about its default axis, commercial program B 1.259.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

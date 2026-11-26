@@ -4,8 +4,13 @@
 D01-D10 are v0.1 models. D11-D14 are v0.2 models with pseudo-static seismic coefficients and surface loads
 (briefs/01_CONTRATOS_FASE1.md F1.1).
 
-Writes verification/differential/cases/<id>.ogs.json. Nothing here is a published value: the
-models only feed two engines, and run.py compares the engines with each other (contract E9b).
+D15-D17 are the v0.3 models of Phase 3a (contract F3.8): an embankment on soft clay with a linear Su, a tailings
+deposit with a constant Su, and a sliding block on a weak layer with a fixed polyline. They are written to
+`cases_f3/`, apart from the 14 models above, because the consumers of `cases/` (the Rust and web tests, the
+web round trip and the 0.2 schema test) do not read version 0.3 yet; run.py reads both directories.
+
+Writes verification/differential/cases/<id>.ogs.json and cases_f3/<id>.ogs.json. Nothing here is a published
+value: the models only feed two engines, and run.py compares the engines with each other (contract E9b).
 
 Usage (from the worktree root):
 
@@ -26,6 +31,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CASES_DIR = HERE / "cases"
+CASES_F3_DIR = HERE / "cases_f3"
 
 GAMMA_W = 9.807
 SLICES = 50
@@ -67,6 +73,20 @@ def _material(mat_id: str, name: str, gamma: float, c: float, phi: float,
         "friction_angle": phi,
         "ru": ru,
     }
+
+
+def _undrained(mat_id: str, name: str, gamma: float, su: float, datum: float | None = None,
+               gradient: float | None = None, limit: float | None = None) -> dict:
+    """v0.3 `undrained` material (contract F3.2): Su = su + (datum - y)·gradient, an elevation datum."""
+    mat: dict = {"id": mat_id, "name": name, "model": "undrained", "unit_weight": gamma, "unit_weight_sat": None,
+                 "undrained_strength": su}
+    if gradient is not None:
+        mat["strength_datum"] = datum
+        mat["strength_gradient"] = gradient
+        if limit is not None:
+            mat["strength_limit"] = limit
+    mat["ru"] = None
+    return mat
 
 
 def _region(material: str, polygon: list[tuple[float, float]]) -> dict:
@@ -328,6 +348,108 @@ def d14() -> dict:
     )
 
 
+# ---------------------------------------------------------------- v0.3 models (Phase 3a, contract F3.8)
+
+# Representative fixed circles of D15 and D16. D15: the critical circle of cSlope's own Bishop search (the engine of
+# ogs could not run undrained materials in the commit that created these models), unrounded for the reason above.
+FIXED_SURFACES_F3: dict[str, tuple[float, float, float]] = {
+    "D15": (37.77554433830855, 8.248956174132008, 13.190940630872689),
+    # D16: not the search optimum (a circle tangent to the foundation, with a 4e-7 sliver of it, is a trap for any
+    # slicer) but a circle that enters at the crest (x = 3.9), dips 0.5 m into the foundation and leaves on its top.
+    "D16": (52.0, 82.0, 82.5),
+}
+# D17: a fixed polyline along a thin weak layer (active wedge, base along the layer). Its ends lie on the ground.
+D17_POLYLINE = [(8.0, 20.0), (14.0, 3.0), (37.0, 3.0)]
+
+
+def _model_f3(case_id: str, title: str, intent: str, direction: str, materials: list[dict], regions: list[dict],
+              methods: list[str], search: dict | None, surface: dict | None) -> dict:
+    analysis: dict = {
+        "methods": methods,
+        "slices": SLICES,
+        "tolerance": 1e-5,
+        "max_iterations": 500,
+        "min_m_alpha": 0.2,
+    }
+    if search is not None:
+        analysis["search"] = search
+    if surface is not None:
+        analysis["surface"] = surface
+    return {
+        "format": "opengeoslide",
+        "version": "0.3",
+        "meta": {"id": case_id, "title": title, "notes": intent},
+        "units": "SI",
+        "materials": materials,
+        "regions": regions,
+        "water": {"unit_weight": GAMMA_W},
+        "slope": {"direction": direction},
+        "analysis": analysis,
+    }
+
+
+def d15() -> dict:
+    # Embankment (6 m, 2H:1V, crest of 10 m) on 12 m of soft clay whose Su grows with depth: Su = 15 kPa at the
+    # surface (y = 0), +1.5 kPa per metre. The classic case of an undrained foundation with a linear profile.
+    intent = ("Terraplén de 6 m, 2H:1V, sobre 12 m de arcilla blanda con Su lineal: 15 kPa en la superficie "
+              "(strength_datum = 0) y 1,5 kPa por metro de profundidad. Relleno friccional. Prueba el gradiente de Su.")
+    fill = [(10.0, 0.0), (22.0, 6.0), (32.0, 6.0), (44.0, 0.0)]
+    clay = [(0.0, -12.0), (0.0, 0.0), (10.0, 0.0), (44.0, 0.0), (60.0, 0.0), (60.0, -12.0)]
+    surface = None
+    if "D15" in FIXED_SURFACES_F3:
+        xc, yc, r = FIXED_SURFACES_F3["D15"]
+        surface = {"type": "circle", "xc": xc, "yc": yc, "r": r}
+    return _model_f3(
+        "D15", "Terraplén sobre arcilla blanda, Su lineal", intent, "left_to_right",
+        [_material("fill", "Relleno compactado", 19.0, 8.0, 34.0),
+         _undrained("clay", "Arcilla blanda (Su lineal)", 16.5, 15.0, datum=0.0, gradient=1.5)],
+        [_region("fill", fill), _region("clay", clay)],
+        ["bishop", "spencer"], _search(entry=(22.0, 32.0), exit_=(44.0, 58.0)), surface)
+
+
+def d16() -> dict:
+    # Tailings deposit: a 15 m stack, 2.5H:1V, with a constant Su of 45 kPa on a firm foundation. Phi = 0 slope in
+    # the Taylor sense: the circle goes deep, into the tailings, and its factor depends on Su alone.
+    intent = ("Depósito de relaves de 15 m, talud 2,5H:1V, con Su constante de 25 kPa (sin gradiente) sobre una "
+              "cimentación firme de 8 m. Talud φ = 0: la superficie crítica va dentro de los relaves y el factor depende "
+              "casi solo de Su. Prueba el no drenado constante.")
+    found = [(0.0, -8.0), (0.0, 0.0), (85.0, 0.0), (85.0, -8.0)]
+    tailings = [(0.0, 0.0), (0.0, 15.0), (15.0, 15.0), (52.5, 0.0)]
+    surface = None
+    if "D16" in FIXED_SURFACES_F3:
+        xc, yc, r = FIXED_SURFACES_F3["D16"]
+        surface = {"type": "circle", "xc": xc, "yc": yc, "r": r}
+    return _model_f3(
+        "D16", "Depósito de relaves, Su constante", intent, "left_to_right",
+        [_material("found", "Cimentación firme", 22.0, 40.0, 38.0),
+         _undrained("tailings", "Relaves (Su constante)", 17.0, 25.0)],
+        [_region("found", found), _region("tailings", tailings)],
+        ["bishop", "spencer"], _search(entry=(5.0, 15.0), exit_=(52.5, 75.0)), surface)
+
+
+def d17() -> dict:
+    # Rock slope of 20 m, 1:1, with a thin weak layer (y between 2 and 4) that daylights on the face: a sliding
+    # block. Fixed polyline: back scarp, base along the layer, exit on the face. Only Spencer, M-P and Janbu
+    # (contract F3.6: no Bishop on a polyline).
+    intent = ("Bloque deslizante sobre una capa débil delgada (c = 2 kPa, φ = 10°, cota 2 a 4 m) que aflora en el "
+              "talud de 20 m, 1:1. Superficie fija: polilínea de tres puntos (escarpe, base sobre la capa, salida en "
+              "la cara). Sin Bishop (F3.6). Prueba Spencer, Morgenstern-Price y Janbu sobre una polilínea.")
+    upper = [(0.0, 4.0), (0.0, 20.0), (20.0, 20.0), (36.0, 4.0)]
+    weak = [(0.0, 2.0), (0.0, 4.0), (36.0, 4.0), (38.0, 2.0)]
+    lower = [(0.0, -10.0), (0.0, 2.0), (38.0, 2.0), (40.0, 0.0), (60.0, 0.0), (60.0, -10.0)]
+    return _model_f3(
+        "D17", "Bloque sobre capa débil, polilínea fija", intent, "left_to_right",
+        [_material("rock", "Roca competente", 25.0, 30.0, 38.0),
+         _material("weak", "Capa débil", 19.0, 2.0, 10.0),
+         _material("base", "Roca de base", 26.0, 60.0, 40.0)],
+        [_region("rock", upper), _region("weak", weak), _region("base", lower)],
+        ["spencer", "morgenstern_price", "janbu_corrected"], None,
+        {"type": "polyline", "points": [[x, y] for x, y in D17_POLYLINE]})
+
+
+BUILDERS_F3: list[Callable[[], dict]] = [d15, d16, d17]
+
+
 BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14]
 
 
@@ -340,13 +462,27 @@ def build_all() -> dict[str, dict]:
     return models
 
 
+def build_all_f3() -> dict[str, dict]:
+    """The v0.3 models D15-D17, keyed by id, in order."""
+    models = {}
+    for build in BUILDERS_F3:
+        model = build()
+        models[model["meta"]["id"]] = model
+    return models
+
+
 def serialize(model: dict) -> str:
     return json.dumps(model, ensure_ascii=False, indent=2) + "\n"
 
 
-def write_cases(directory: Path = CASES_DIR) -> list[Path]:
+def write_cases(directory: Path = CASES_DIR, f3_directory: Path = CASES_F3_DIR) -> list[Path]:
     directory.mkdir(parents=True, exist_ok=True)
+    f3_directory.mkdir(parents=True, exist_ok=True)
     paths = []
+    for case_id, model in build_all_f3().items():
+        path = f3_directory / f"{case_id}.ogs.json"
+        path.write_text(serialize(model), encoding="utf-8")
+        paths.append(path)
     for case_id, model in build_all().items():
         path = directory / f"{case_id}.ogs.json"
         path.write_text(serialize(model), encoding="utf-8")

@@ -1,0 +1,99 @@
+{
+  "id": "V028",
+  "title": "Duncan & Wright fig. 14.3, undrained clay on a 46.5 ft foundation",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V028",
+      "title": "Duncan & Wright fig. 14.3, undrained clay on a 46.5 ft foundation",
+      "notes": "The V027 φ = 0 clay slope with a 46.5 ft thick foundation; critical-circle search (the minimum of the toe and base-tangent circles of Tables 78.4–78.5)."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 100.0,
+        "unit_weight_sat": null,
+        "cohesion": 1000.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            -16.5
+          ],
+          [
+            0.0,
+            30.0
+          ],
+          [
+            90.0,
+            30.0
+          ],
+          [
+            130.0,
+            80.0
+          ],
+          [
+            240.0,
+            80.0
+          ],
+          [
+            240.0,
+            -16.5
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.124,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020444839857651245,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V028 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A's base-tangent circle gives 1.130 (Bishop), 1.129 (Spencer). Duncan & Wright's reference 1.124 (two digits, Spencer).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

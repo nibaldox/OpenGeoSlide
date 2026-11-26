@@ -1,0 +1,74 @@
+[
+  {
+    "id": "V026",
+    "method": "bishop",
+    "published": 1.228,
+    "published_by": "Commercial program A",
+    "ogs": null,
+    "cslope": null,
+    "diagnosis": "InvalidModel del motor: slope.direction = auto no se resuelve (modelo simétrico: ambos extremos a y = 50, sin rangos de búsqueda); el conversor al oráculo rechaza lo mismo. Con la dirección fijada a mano (left_to_right o right_to_left, el resultado es idéntico) el motor da 1.2213 y cSlope 1.2198: dentro de la tolerancia. Falta una decisión de importación (DIRECTION_OVERRIDES con evidencia, como V063), no es un fallo numérico."
+  },
+  {
+    "id": "V026",
+    "method": "bishop",
+    "published": 1.22,
+    "published_by": "Duncan & Wright",
+    "ogs": null,
+    "cslope": null,
+    "diagnosis": "InvalidModel del motor: slope.direction = auto no se resuelve (modelo simétrico: ambos extremos a y = 50, sin rangos de búsqueda); el conversor al oráculo rechaza lo mismo. Con la dirección fijada a mano (left_to_right o right_to_left, el resultado es idéntico) el motor da 1.2213 y cSlope 1.2198: dentro de la tolerancia. Falta una decisión de importación (DIRECTION_OVERRIDES con evidencia, como V063), no es un fallo numérico."
+  },
+  {
+    "id": "V026",
+    "method": "spencer",
+    "published": 1.19,
+    "published_by": "Duncan & Wright",
+    "ogs": null,
+    "cslope": null,
+    "diagnosis": "InvalidModel del motor: slope.direction = auto no se resuelve (modelo simétrico: ambos extremos a y = 50, sin rangos de búsqueda); el conversor al oráculo rechaza lo mismo. Con la dirección fijada a mano (left_to_right o right_to_left, el resultado es idéntico) el motor da 1.1965 y cSlope 1.1949: dentro de la tolerancia. Falta una decisión de importación (DIRECTION_OVERRIDES con evidencia, como V063), no es un fallo numérico."
+  },
+  {
+    "id": "V027",
+    "method": "bishop",
+    "published": 1.126,
+    "published_by": "Commercial program A",
+    "ogs": 1.1234,
+    "cslope": 1.1231,
+    "diagnosis": "El FS reproduce el publicado (ogs 1.1234, error -0.23 %, tol 2.04 %; cSlope 1.1231 ), pero el motor emite el aviso no informativo negative_effective_normal_major (esfuerzo normal efectivo muy negativo en bases del círculo de pie, φ = 0) y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). Decisión del coordinador: tratar el aviso como informativo o dejar el caso retenido."
+  },
+  {
+    "id": "V028",
+    "method": "bishop",
+    "published": 1.126,
+    "published_by": "Commercial program A",
+    "ogs": 1.1234,
+    "cslope": 1.1235,
+    "diagnosis": "El FS reproduce el publicado (ogs 1.1234, error -0.23 %, tol 2.04 %; cSlope 1.1235 ), pero el motor emite el aviso no informativo negative_effective_normal_major (esfuerzo normal efectivo muy negativo en bases del círculo de pie, φ = 0) y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). Decisión del coordinador: tratar el aviso como informativo o dejar el caso retenido."
+  },
+  {
+    "id": "V032a",
+    "method": "bishop",
+    "published": 1.23,
+    "published_by": "Commercial program A",
+    "ogs": 1.1706,
+    "cslope": 1.224,
+    "diagnosis": "FALLA numérica: ogs 1.1706 frente a publicado 1.2300 (-4.83 %), cSlope 1.2240 (-0.49 %). El motor encuentra un círculo casi plano (xc -40.52, yc 223.50, r 221.42) con avisos truncated_mass y effective_ends_outside_range (los extremos efectivos caen fuera de los rangos entry [74, 128] y exit [0, 34]); cSlope devuelve el círculo xc 54.27, yc 43.86, r 43.86 con entrada (97.0, 34.0) y salida (21.24, 15.0), dentro de los rangos. Es un problema de cobertura o admisibilidad de la búsqueda del motor (la nota del caso ya advierte del «infinite-slope sliver» del relleno c = 0), no de datos."
+  },
+  {
+    "id": "V032a",
+    "method": "spencer",
+    "published": 1.209,
+    "published_by": "Commercial program A",
+    "ogs": 1.1706,
+    "cslope": 1.2049,
+    "diagnosis": "FALLA numérica: ogs 1.1706 frente a publicado 1.2090 (-3.18 %), cSlope 1.2049 (-0.34 %). El motor encuentra un círculo casi plano (xc -40.52, yc 223.50, r 221.42) con avisos truncated_mass y effective_ends_outside_range (los extremos efectivos caen fuera de los rangos entry [74, 128] y exit [0, 34]); cSlope devuelve el círculo xc 54.27, yc 43.86, r 43.86 con entrada (97.0, 34.0) y salida (21.24, 15.0), dentro de los rangos. Es un problema de cobertura o admisibilidad de la búsqueda del motor (la nota del caso ya advierte del «infinite-slope sliver» del relleno c = 0), no de datos."
+  },
+  {
+    "id": "V032a",
+    "method": "spencer",
+    "published": 1.21,
+    "published_by": "Duncan & Wright (reference)",
+    "ogs": 1.1706,
+    "cslope": 1.2049,
+    "diagnosis": "FALLA numérica: ogs 1.1706 frente a publicado 1.2100 (-3.26 %), cSlope 1.2049 (-0.43 %). El motor encuentra un círculo casi plano (xc -40.52, yc 223.50, r 221.42) con avisos truncated_mass y effective_ends_outside_range (los extremos efectivos caen fuera de los rangos entry [74, 128] y exit [0, 34]); cSlope devuelve el círculo xc 54.27, yc 43.86, r 43.86 con entrada (97.0, 34.0) y salida (21.24, 15.0), dentro de los rangos. Es un problema de cobertura o admisibilidad de la búsqueda del motor (la nota del caso ya advierte del «infinite-slope sliver» del relleno c = 0), no de datos."
+  }
+]

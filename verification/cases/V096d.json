@@ -1,0 +1,190 @@
+{
+  "id": "V096d",
+  "title": "Zhu & Lee slope, the paper's surface 3, dry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V096d",
+      "title": "Zhu & Lee slope, the paper's surface 3, dry",
+      "notes": "The V096a slope, dry, no tension crack, on the paper's surface 3 digitized from its fig. 3: least-squares circle (9.7, 21.3, R = 29.8) through the drawn surface, leaving the lower bench at x = −11.1 and entering the crest at x = 38.8 (±0.3 m)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 18.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.5,
+        "unit_weight_sat": null,
+        "cohesion": 40.0,
+        "friction_angle": 22.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.4,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 26.0,
+        "ru": null
+      },
+      {
+        "id": "layer_4",
+        "name": "Layer 4",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            18.0,
+            9.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            50.0,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            6.0,
+            3.0
+          ],
+          [
+            18.0,
+            9.0
+          ],
+          [
+            50.0,
+            9.0
+          ],
+          [
+            50.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            -20.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            3.0
+          ],
+          [
+            50.0,
+            3.0
+          ],
+          [
+            50.0,
+            -6.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_4",
+        "polygon": [
+          [
+            -20.0,
+            -9.0
+          ],
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -9.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 9.7,
+        "yc": 21.3,
+        "r": 29.8
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.836,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.020272331154684096,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590.",
+    "derived_from": "cSlope verification problem V096d (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Circle from docs/kallor/zhu-lee-2002.md (fig. 3 at 600 dpi, isotropic scale 34.7 px/m): points (−11.2, 0), (32.5, 2.4), (37.5, 9.6), (38.6, 15); the program's circle (10.911, 23.208, R 32.106) enters the crest at 41.95 m, beyond the reading error.",
+      "cSlope on this circle: Bishop 1.8227, Spencer 1.8236, M-P 1.8080, Janbu corrected 1.7667 (50 slices). Sensitivity, Spencer: cx ±0.3 m → 1.8227/1.8251, cy ±0.3 m → 1.8394/1.8107, R ±0.3 m → 1.8097/1.8403.",
+      "The paper mentions no tension crack; fig. 3 draws vertical end segments for surface 4 and one shallow surface, not for surface 3. The paper's Morgenstern-Price interslice function is the half-sine (Table II note).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

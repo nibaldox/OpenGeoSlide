@@ -1,0 +1,391 @@
+{
+  "id": "V046c",
+  "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V046c",
+      "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+      "notes": "As V046a (weak seam at el. 15–16 ft, composite surface) with a pore pressure ratio rᵤ = 0.25 in both materials: Fredlund & Krahn's case 4."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "upper_soil",
+        "name": "Upper soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 600.0,
+        "friction_angle": 20.0,
+        "ru": 0.25
+      },
+      {
+        "id": "weak_seam",
+        "name": "Weak seam",
+        "model": "mohr_coulomb",
+        "unit_weight": 120.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 10.0,
+        "ru": 0.25
+      }
+    ],
+    "regions": [
+      {
+        "material": "upper_soil",
+        "polygon": [
+          [
+            0.0,
+            16.0
+          ],
+          [
+            0.0,
+            60.0
+          ],
+          [
+            60.0,
+            60.0
+          ],
+          [
+            140.0,
+            20.0
+          ],
+          [
+            180.0,
+            20.0
+          ],
+          [
+            180.0,
+            16.0
+          ]
+        ]
+      },
+      {
+        "material": "weak_seam",
+        "polygon": [
+          [
+            0.0,
+            15.0
+          ],
+          [
+            0.0,
+            16.0
+          ],
+          [
+            180.0,
+            16.0
+          ],
+          [
+            180.0,
+            15.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            45.5,
+            60.849528306
+          ],
+          [
+            47.391666667,
+            56.413843171
+          ],
+          [
+            49.283333333,
+            52.594745616
+          ],
+          [
+            51.175,
+            49.218639368
+          ],
+          [
+            53.066666667,
+            46.183006848
+          ],
+          [
+            54.958333333,
+            43.421232335
+          ],
+          [
+            56.85,
+            40.887094364
+          ],
+          [
+            58.741666667,
+            38.546947639
+          ],
+          [
+            60.633333333,
+            36.375389149
+          ],
+          [
+            62.525,
+            34.352678636
+          ],
+          [
+            64.416666667,
+            32.463115695
+          ],
+          [
+            66.308333333,
+            30.693972224
+          ],
+          [
+            68.2,
+            29.034764004
+          ],
+          [
+            70.091666667,
+            27.476738218
+          ],
+          [
+            71.983333333,
+            26.012503392
+          ],
+          [
+            73.875,
+            24.635756143
+          ],
+          [
+            75.766666667,
+            23.34107545
+          ],
+          [
+            77.658333333,
+            22.123765102
+          ],
+          [
+            79.55,
+            20.979731238
+          ],
+          [
+            81.441666667,
+            19.905385866
+          ],
+          [
+            83.333333333,
+            18.897569974
+          ],
+          [
+            85.225,
+            17.953491584
+          ],
+          [
+            87.116666667,
+            17.070675384
+          ],
+          [
+            89.008333333,
+            16.246921439
+          ],
+          [
+            90.9,
+            15.480271069
+          ],
+          [
+            92.791666667,
+            15.0
+          ],
+          [
+            94.683333333,
+            15.0
+          ],
+          [
+            96.575,
+            15.0
+          ],
+          [
+            98.466666667,
+            15.0
+          ],
+          [
+            100.358333333,
+            15.0
+          ],
+          [
+            102.25,
+            15.0
+          ],
+          [
+            104.141666667,
+            15.0
+          ],
+          [
+            106.033333333,
+            15.0
+          ],
+          [
+            107.925,
+            15.0
+          ],
+          [
+            109.816666667,
+            15.0
+          ],
+          [
+            111.708333333,
+            15.0
+          ],
+          [
+            113.6,
+            15.0
+          ],
+          [
+            115.491666667,
+            15.0
+          ],
+          [
+            117.383333333,
+            15.0
+          ],
+          [
+            119.275,
+            15.0
+          ],
+          [
+            121.166666667,
+            15.0
+          ],
+          [
+            123.058333333,
+            15.0
+          ],
+          [
+            124.95,
+            15.0
+          ],
+          [
+            126.841666667,
+            15.0
+          ],
+          [
+            128.733333333,
+            15.0
+          ],
+          [
+            130.625,
+            15.0
+          ],
+          [
+            132.516666667,
+            15.0
+          ],
+          [
+            134.408333333,
+            15.0
+          ],
+          [
+            136.3,
+            15.0
+          ],
+          [
+            138.191666667,
+            15.0
+          ],
+          [
+            140.083333333,
+            15.0
+          ],
+          [
+            141.975,
+            15.0
+          ],
+          [
+            143.866666667,
+            15.0
+          ],
+          [
+            145.758333333,
+            15.0
+          ],
+          [
+            147.65,
+            15.0
+          ],
+          [
+            149.541666667,
+            15.654254119
+          ],
+          [
+            151.433333333,
+            16.434073407
+          ],
+          [
+            153.325,
+            17.27143357
+          ],
+          [
+            155.216666667,
+            18.168346887
+          ],
+          [
+            157.108333333,
+            19.1270743
+          ],
+          [
+            159.0,
+            20.15016106
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.124,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010444839857651246,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.118,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010447227191413238,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.118,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010447227191413238,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3), 429–439.",
+    "derived_from": "cSlope verification problem V046c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fredlund & Krahn (1977), Table 2 case 4 (\"Same as 2 except with ru = 0.25 for both materials\"): ordinary 1.029, Bishop 1.124, Spencer 1.118 (θ = 7.93°, λ = 0.139), Janbu simplified 1.191, Janbu rigorous 1.162, Morgenstern-Price constant 1.124 (λ = 0.116); Table 3: constant 1.137 and half-sine 1.117 (Alberta), constant 1.124, half-sine 1.118 and clipped sine 1.113 (Saskatchewan). Read from the paper's page image: the text layer drops the case 4 row of Table 2 (docs/kallor/fredlund-krahn-1977.md).",
+      "The seam's level is cSlope's choice, as in V046a. Commercial program A (verification problem 22, case 2): Bishop 1.124, Spencer 1.124, GLE/M-P (half-sine) 1.114, ordinary 1.121.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,357 @@
+{
+  "id": "V062h",
+  "title": "Clarence Cannon Dam, surface 8G",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V062h",
+      "title": "Clarence Cannon Dam, surface 8G",
+      "notes": "Six-zone embankment dam on sand over limestone, analyzed on the published circle 8G (center 314.856, 305.604; tangent elevation 165.756), Bishop."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "phase_ii_fill",
+        "name": "Phase II fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "cohesion": 143.64,
+        "friction_angle": 15.0,
+        "ru": null
+      },
+      {
+        "id": "phase_i_fill",
+        "name": "Phase I fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "cohesion": 117.79,
+        "friction_angle": 8.5,
+        "ru": null
+      },
+      {
+        "id": "sand_filter",
+        "name": "Sand filter",
+        "model": "mohr_coulomb",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "spoil_fill",
+        "name": "Spoil fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 25.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_sand",
+        "name": "Foundation sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 18.0,
+        "ru": null
+      },
+      {
+        "id": "limestone",
+        "name": "Limestone",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 100.0,
+        "friction_angle": 35.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "foundation_sand",
+        "polygon": [
+          [
+            0.937,
+            139.853
+          ],
+          [
+            0.937,
+            156.598
+          ],
+          [
+            40.517,
+            156.598
+          ],
+          [
+            174.098,
+            156.598
+          ],
+          [
+            204.163,
+            139.853
+          ]
+        ]
+      },
+      {
+        "material": "foundation_sand",
+        "polygon": [
+          [
+            423.373,
+            155.837
+          ],
+          [
+            423.373,
+            139.853
+          ],
+          [
+            225.856,
+            139.853
+          ],
+          [
+            255.921,
+            155.837
+          ],
+          [
+            379.607,
+            155.837
+          ]
+        ]
+      },
+      {
+        "material": "limestone",
+        "polygon": [
+          [
+            0.937,
+            121.205
+          ],
+          [
+            0.937,
+            139.853
+          ],
+          [
+            204.163,
+            139.853
+          ],
+          [
+            225.856,
+            139.853
+          ],
+          [
+            423.373,
+            139.853
+          ],
+          [
+            423.373,
+            120.824
+          ]
+        ]
+      },
+      {
+        "material": "phase_i_fill",
+        "polygon": [
+          [
+            40.517,
+            156.598
+          ],
+          [
+            66.125,
+            165.456
+          ],
+          [
+            215.2,
+            165.456
+          ],
+          [
+            218.625,
+            165.456
+          ],
+          [
+            357.596,
+            163.266
+          ],
+          [
+            379.607,
+            155.837
+          ],
+          [
+            255.921,
+            155.837
+          ],
+          [
+            225.856,
+            139.853
+          ],
+          [
+            204.163,
+            139.853
+          ],
+          [
+            174.098,
+            156.598
+          ]
+        ]
+      },
+      {
+        "material": "phase_ii_fill",
+        "polygon": [
+          [
+            66.125,
+            165.456
+          ],
+          [
+            101.028,
+            177.529
+          ],
+          [
+            158.875,
+            182.857
+          ],
+          [
+            210.633,
+            198.842
+          ],
+          [
+            219.767,
+            198.842
+          ],
+          [
+            258.205,
+            185.141
+          ],
+          [
+            306.537,
+            175.627
+          ],
+          [
+            320.999,
+            174.865
+          ],
+          [
+            349.162,
+            166.112
+          ],
+          [
+            357.596,
+            163.266
+          ],
+          [
+            218.625,
+            165.456
+          ],
+          [
+            218.244,
+            193.894
+          ],
+          [
+            215.2,
+            193.894
+          ],
+          [
+            215.2,
+            165.456
+          ]
+        ]
+      },
+      {
+        "material": "sand_filter",
+        "polygon": [
+          [
+            218.625,
+            165.456
+          ],
+          [
+            215.2,
+            165.456
+          ],
+          [
+            215.2,
+            193.894
+          ],
+          [
+            218.244,
+            193.894
+          ]
+        ]
+      },
+      {
+        "material": "spoil_fill",
+        "polygon": [
+          [
+            349.162,
+            166.112
+          ],
+          [
+            423.373,
+            166.112
+          ],
+          [
+            423.373,
+            155.837
+          ],
+          [
+            379.607,
+            155.837
+          ],
+          [
+            357.596,
+            163.266
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 314.856,
+        "yc": 305.604,
+        "r": 139.848
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 6.069,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010082385895534684,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 6.074,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01008231807704972,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Hassan & Wolff (1999).",
+    "derived_from": "cSlope verification problem V062h (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Both programs use Bishop's method here (commercial program B §2.22, commercial program A Table 35.2). commercial program B's values come from its own model of the dam, with the circles placed by its own digitisation, and differ from commercial program A's by up to 0.5 % on the same nominal circle. commercial program B's manual prints commercial program A's values under the heading \"Hassan and Wolff\"; Hassan & Wolff's own factors of safety differ (e.g. 2.753 on 7A).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

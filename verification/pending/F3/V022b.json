@@ -1,0 +1,170 @@
+{
+  "id": "V022b",
+  "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V022b",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5",
+      "notes": "As V022a with the circle tangent to the base of the soft clay."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "undrained",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 40.0,
+        "ru": null
+      },
+      {
+        "id": "hard_layer",
+        "name": "Hard layer",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 1000.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "hard_layer",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            90.0,
+            5.0
+          ],
+          [
+            90.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            30.0,
+            15.0
+          ],
+          [
+            55.0,
+            25.0
+          ],
+          [
+            60.0,
+            25.0
+          ],
+          [
+            80.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            0.0,
+            5.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            80.0,
+            15.0
+          ],
+          [
+            90.0,
+            15.0
+          ],
+          [
+            90.0,
+            5.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 40.313,
+        "yc": 28.685,
+        "r": 23.685
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.178,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010424448217317488,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.185,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010421940928270042,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Chowdhury & Xu (1995).",
+    "derived_from": "cSlope verification problem V022b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fixed circle = cSlope's critical M-P circle among circles tangent to the base of the clay layer (cSlope has no tangent-line search; commercial program B's own circle is not printed), so the comparison is that of two searches within the same circle family.",
+      "commercial program B PF 21.39 %, C&X PF 19.733 %. Geometry as commercial program A's Fig. 28.2.",
+      "Critical circle (model coordinates): center (40.313, 28.685), R 23.685, tangent to y = 5.",
+      "On commercial program A's printed circle (Fig. 28.12: center (40.256, 29.437), R 24.437) cSlope gives Bishop 1.1782 (commercial program A 1.185). The circle grazes the hard layer at y = 5: 0.001 m more radius cuts it and gives 1.43, so the printed radius cannot settle the last 0.6 %.",
+      "Chowdhury & Xu's 1.1479 is not checked: it is 2.5 % below both commercial program B (1.178) and commercial program A (1.185, V022b) on this circle family.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

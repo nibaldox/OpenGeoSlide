@@ -1,0 +1,125 @@
+{
+  "id": "V086e",
+  "title": "Tandjiria embankment, sand fill, the paper's geometry",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V086e",
+      "title": "Tandjiria embankment, sand fill, the paper's geometry",
+      "notes": "The V086c sand-fill embankment as the paper gives it: a 30° face and no tension crack (the paper mentions one only for the clay fill), unreinforced; circular search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 37.0,
+        "ru": null
+      },
+      {
+        "id": "soft_clay",
+        "name": "Soft clay",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 20.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            3.0
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            9.608,
+            9.0
+          ],
+          [
+            20.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "soft_clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            3.0
+          ],
+          [
+            20.0,
+            3.0
+          ],
+          [
+            30.0,
+            3.0
+          ],
+          [
+            30.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.219,
+      "published_by": "Tandjiria, Low & Teh",
+      "tolerance": 0.02041017227235439,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443; problem 2.",
+    "derived_from": "cSlope verification problem V086e (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

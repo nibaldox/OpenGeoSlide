@@ -1,0 +1,152 @@
+{
+  "id": "V026",
+  "title": "Duncan & Wright fig. 7.12, embankment on clay",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V026",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay",
+      "notes": "Sand embankment on a thick undrained clay foundation; critical-circle search."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 140.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 40.0,
+        "ru": null
+      },
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 140.0,
+        "unit_weight_sat": null,
+        "cohesion": 2500.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            50.0
+          ],
+          [
+            100.0,
+            50.0
+          ],
+          [
+            600.0,
+            50.0
+          ],
+          [
+            700.0,
+            50.0
+          ],
+          [
+            700.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            100.0,
+            50.0
+          ],
+          [
+            300.0,
+            150.0
+          ],
+          [
+            400.0,
+            150.0
+          ],
+          [
+            600.0,
+            50.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.228,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020407166123778502,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.22,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.024098360655737706,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.19,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.02420168067226891,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 7.12.",
+    "derived_from": "cSlope verification problem V026 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan & Wright (Table 7.5 in the 2nd edition, p. 143; a commercial manual's Table 74.2): Bishop 1.22, Spencer 1.19, Janbu simplified 1.07, corrected 1.16 (two digits). commercial program A Spencer 1.201 (circle).",
+      "cSlope's optimized non-circular surface is 1.9 % below commercial program A's: a search difference.",
+      "Duncan, Wright & Brandon's Spencer 1.19 is from one of their three programs on circles (the other two give 1.20); their critical circle is (−100, 124), r = 174, which is (500, 174) in this model's frame. Ordinary method 1.08 (Fig. 7.20), strength reduction 1.19.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -12,6 +12,12 @@ For each case and method (bishop, spencer) it compares two checks:
 The verdict goes into REPORT.md and report.json. The script exits 0 whenever it can run,
 even if checks fail; only execution errors (no cases, no ogs binary, no cslope) exit non-zero.
 
+Phase 3a (contract F3.8) adds a second block, after the one above and without changing it: Morgenstern-Price with
+the half-sine function and corrected Janbu on the fixed circle of each of the 14 models, plus the v0.3 models
+D15-D17 (undrained Su, fixed polyline). Each capability the engine may not have yet (undrained, Morgenstern-Price,
+Janbu, polyline) is probed first with a tiny model; a check that needs one the engine lacks is `pendiente`, never
+a failure. With `--require-f3` a pending or failing check makes the exit code non-zero (use it at integration).
+
 Usage (from the worktree root):
 
   export TMPDIR="$(mktemp -d)"
@@ -22,6 +28,7 @@ Usage (from the worktree root):
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as _dt
 import glob
 import importlib.util
@@ -35,7 +42,9 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 HARNESS = os.path.normpath(os.path.join(HERE, "..", "harness"))
 sys.path.insert(0, HARNESS)  # to_cslope.py and harness run.py are reused, not copied
+sys.path.insert(0, HERE)     # build_cases.py: the models of the capability probes
 
+import build_cases  # noqa: E402
 from to_cslope import UnsupportedModel, ogs_to_cslope  # noqa: E402
 
 # harness/run.py is imported by file path under a distinct module name: both scripts are named run.py.
@@ -52,6 +61,8 @@ DEFAULT_OGS = os.environ.get(
 METHODS = ("bishop", "spencer")
 KINDS = ("search", "fixed")
 EXPECTED_CASES = 14
+EXPECTED_CASES_F3 = 3
+CASES_F3_DIR = os.path.join(HERE, "cases_f3")
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
 REPORT_VERSION = "3"
@@ -68,6 +79,13 @@ OGS_INFORMATIVE_WARNINGS = (
     "load_outside_mass",
     "multiple_admissible_roots",
 )
+
+
+# Phase 3a (contract F3.8)
+F3_NEW_METHODS = ("morgenstern_price", "janbu_corrected")
+CAPABILITIES = ("undrained", "morgenstern_price", "janbu_corrected", "polyline")
+VERDICT_PENDING = "pendiente"
+EXIT_F3_PENDING = 3
 
 
 # ------------------------------------------------------------------ cases
@@ -232,6 +250,204 @@ def summarize(checks: list[dict]) -> dict:
     return out
 
 
+# ------------------------------------------------------------------ Phase 3a: v0.3 models, M-P, Janbu, polyline
+
+def load_f3_cases(cases_dir: str) -> list[dict]:
+    """The v0.3 models (D15-D17). A directory without them is an empty list: the block is then skipped."""
+    cases = []
+    for path in sorted(glob.glob(os.path.join(cases_dir, "*.ogs.json"))):
+        with open(path, encoding="utf-8") as fh:
+            model = json.load(fh)
+        if model.get("format") != "opengeoslide" or not (model.get("analysis") or {}).get("surface"):
+            raise SystemExit(f"caso inválido: {path}")
+        cases.append({"id": model["meta"]["id"], "title": model["meta"].get("title", ""), "model": model,
+                      "path": os.path.relpath(path, start=os.getcwd())})
+    return cases
+
+
+def f3_model(model: dict, method: str) -> dict:
+    """The model as the v0.3 block runs it: a copy with version "0.3" (the 0.1 / 0.2 originals are not touched)."""
+    out = copy.deepcopy(model)
+    out["version"] = "0.3"
+    return out
+
+
+def capabilities_needed(model: dict, method: str) -> list[str]:
+    """Engine capabilities a check needs, in the order of CAPABILITIES."""
+    needs = set()
+    if any(m.get("model") == "undrained" for m in model.get("materials", [])):
+        needs.add("undrained")
+    if ((model.get("analysis") or {}).get("surface") or {}).get("type") == "polyline":
+        needs.add("polyline")
+    if method in F3_NEW_METHODS:
+        needs.add(method)
+    return [c for c in CAPABILITIES if c in needs]
+
+
+def f3_plan(cases: list[dict], f3_cases: list[dict]) -> list[tuple[dict, str, str, list[str]]]:
+    """(case, method, kind, capabilities) of the v0.3 block: contract F3.8.
+
+    - D01-D14: M-P (half_sine, the default) and corrected Janbu on the fixed circle (criterion E9b, 0.5 %);
+    - undrained models on a circle: Bishop and Spencer in search and fixed, then the two new methods fixed;
+    - the polyline model: Spencer, M-P and corrected Janbu fixed (no Bishop, F3.6; a polyline has no search).
+    """
+    plan = []
+    for case in cases:
+        for method in F3_NEW_METHODS:
+            plan.append((case, method, "fixed", capabilities_needed(f3_model(case["model"], method), method)))
+    for case in f3_cases:
+        model = case["model"]
+        if model["analysis"]["surface"]["type"] == "polyline":
+            for method in model["analysis"]["methods"]:
+                plan.append((case, method, "fixed", capabilities_needed(model, method)))
+            continue
+        for method in ("bishop", "spencer"):
+            for kind in KINDS_BY_ORDER:
+                plan.append((case, method, kind, capabilities_needed(model, method)))
+        for method in F3_NEW_METHODS:
+            plan.append((case, method, "fixed", capabilities_needed(model, method)))
+    return plan
+
+
+KINDS_BY_ORDER = ("search", "fixed")
+
+
+def _probe_model(capability: str) -> tuple[dict, dict]:
+    """A tiny, valid model and check for one capability, on a circle that every engine handles (D01)."""
+    if capability == "polyline":
+        model = build_cases.build_all_f3()["D17"]
+        return model, {"method": "spencer", "kind": "fixed"}
+    model = build_cases.build_all()["D01"]
+    model["version"] = "0.3"
+    if capability == "undrained":
+        model["materials"] = [build_cases._undrained("soil", "Suelo", 18.0, 40.0)]
+        model["regions"][0]["material"] = "soil"
+        return model, {"method": "bishop", "kind": "fixed"}
+    return model, {"method": capability, "kind": "fixed"}
+
+
+def probe_capabilities(ogs_binary: str, runner=None) -> dict[str, dict]:
+    """Does the engine run each Phase 3a capability? {capability: {supported, detail}}.
+
+    Supported means a converged, finite FS on a tiny model. Anything else is reported as not supported with the
+    engine's own message, so the report shows why (an engine that rejects "0.3" or panics at `unimplemented!`).
+    """
+    runner = runner or run_ogs
+    out = {}
+    for cap in CAPABILITIES:
+        model, check = _probe_model(cap)
+        res = runner(ogs_binary, model, check, OGS_TIMEOUT_S)
+        ok = not res["error"] and res["fos"] is not None and res["status"] in (None, "converged")
+        detail = "" if ok else (res["error"] or f"sin FS (status {res['status']})")
+        out[cap] = {"supported": ok, "detail": detail}
+    return out
+
+
+def run_f3_check(cs_module, ogs_binary: str, case: dict, method: str, kind: str, caps: list[str], probe: dict,
+                 ogs_runner=None) -> dict:
+    ogs_runner = ogs_runner or run_ogs
+    check = {"method": method, "kind": kind}
+    model = f3_model(case["model"], method)
+    missing = [c for c in caps if not probe[c]["supported"]]
+
+    ogs: dict = {"fos": None, "status": None, "error": None, "engine": None, "warnings": []}
+    ogs_s = 0.0
+    if not missing:
+        t0 = time.perf_counter()
+        ogs = ogs_runner(ogs_binary, model, check, OGS_TIMEOUT_S)
+        ogs_s = time.perf_counter() - t0
+
+    cs: dict = {"fos": None, "status": None, "error": None, "warnings": []}
+    notes: list[str] = []
+    t0 = time.perf_counter()
+    try:
+        conv = ogs_to_cslope(model, check)
+        notes = conv.notes
+        cs = run_cslope(cs_module, conv.document)
+    except UnsupportedModel as exc:
+        cs["error"] = f"conversión no soportada: {exc}"
+    except Exception as exc:  # keep the battery running; the failure is recorded
+        cs["error"] = f"conversión fallida: {type(exc).__name__}: {exc}"
+    cs_s = time.perf_counter() - t0
+
+    if missing:
+        verdict = VERDICT_PENDING
+        reason = "motor sin soporte de " + ", ".join(
+            f"{c} ({probe[c]['detail'][:100]})" for c in missing)
+    else:
+        verdict, reason = evaluate(kind, ogs, cs)
+    return {
+        "case_id": case["id"],
+        "title": case["title"],
+        "method": method,
+        "kind": kind,
+        "surface": model["analysis"]["surface"]["type"],
+        "capabilities": caps,
+        "criterion": "búsqueda: ogs ≤ cSlope·1,01" if kind == "search" else "fija: |Δ| ≤ 0,5 %",
+        "ogs": {"fos": ogs["fos"], "status": ogs["status"], "error": ogs["error"], "engine": ogs["engine"],
+                "seconds": round(ogs_s, 4), "warnings": ogs["warnings"]},
+        "cslope": {"fos": cs["fos"], "status": cs["status"], "error": cs["error"], "warnings": cs["warnings"],
+                   "seconds": round(cs_s, 4)},
+        "delta_pct": None if _rel(ogs["fos"], cs["fos"]) is None else round(_rel(ogs["fos"], cs["fos"]) * 100, 4),
+        "verdict": verdict,
+        "reason": reason,
+        "notes": notes,
+    }
+
+
+
+def summarize_f3(rows: list[dict]) -> dict:
+    return {
+        "OK": sum(1 for r in rows if r["verdict"] in PASS_VERDICTS),
+        "ambos_sin_solucion": sum(1 for r in rows if r["verdict"] == VERDICT_BOTH_NO_SOLUTION),
+        "FALLA": sum(1 for r in rows if r["verdict"] == "FALLA"),
+        "sin dato": sum(1 for r in rows if r["verdict"] == "sin dato"),
+        "pendiente": sum(1 for r in rows if r["verdict"] == VERDICT_PENDING),
+        "N": len(rows),
+    }
+
+
+def f3_markdown(cases: list[dict], f3_cases: list[dict], rows: list[dict], probe: dict) -> list[str]:
+    """The `## Fase 3a` section of REPORT.md, as lines."""
+    s = summarize_f3(rows)
+    L = [
+        "## Fase 3a: M-P medio seno, Janbu corregido, no drenado y polilínea (F3.8)",
+        "",
+        "Se corre, sobre el círculo fijo de cada uno de los 14 modelos, Morgenstern-Price con la función `half_sine` y "
+        "Janbu corregido, con el criterio de 0,5 % de E9b. Se agregan tres modelos v0.3 (`cases_f3/`): "
+        "D15 terraplén sobre arcilla blanda con Su lineal, D16 depósito de relaves con Su constante y D17 bloque "
+        "deslizante sobre una capa débil con polilínea fija (sin Bishop, F3.6). Cada capacidad que el motor aún no "
+        "tiene se sondea antes con un modelo mínimo; el check que la necesita queda **pendiente**, nunca falla. "
+        "El valor de cSlope de un check pendiente igual se calcula y queda como línea base.",
+        "",
+        "| capacidad | soportada por el motor | detalle |",
+        "|---|---|---|",
+    ]
+    for cap in CAPABILITIES:
+        L.append(f"| {cap} | {'sí' if probe[cap]['supported'] else 'no'} | {probe[cap]['detail'] or '—'} |")
+    L += [
+        "",
+        f"**OK {s['OK']}/{s['N']}** · FALLA {s['FALLA']} · sin dato {s['sin dato']} · pendiente {s['pendiente']} "
+        f"(de los OK, {s['ambos_sin_solucion']} por concordancia: ambos sin solución).",
+        "",
+        "| caso | método | tipo | ogs | cSlope | Δ% | veredicto |",
+        "|---|---|---|---:|---:|---:|---|",
+    ]
+    for r in rows:
+        L.append("| {cid} | {m} | {k} | {o} | {c} | {d} | {v} |".format(
+            cid=r["case_id"], m=r["method"], k=r["kind"] + (" (polilínea)" if r["surface"] == "polyline" else ""),
+            o=_fmt(r["ogs"]["fos"], ".4f"), c=_fmt(r["cslope"]["fos"], ".4f"),
+            d=_fmt(r["delta_pct"], "+.2f"), v=r["verdict"]))
+    fails = [r for r in rows if r["verdict"] not in PASS_VERDICTS and r["verdict"] != VERDICT_PENDING]
+    L += ["", "### Fallos y datos faltantes de la Fase 3a", ""]
+    if not fails:
+        L.append("Ninguno.")
+    for r in fails:
+        L.append(f"- {r['case_id']} {r['method']}/{r['kind']}: **{r['verdict']}**. {r['reason']}")
+    L.append("")
+    return L
+
+
 # ------------------------------------------------------------------ outputs
 
 def _fmt(v, spec: str) -> str:
@@ -258,7 +474,8 @@ def _warnings_cell(sr: dict, fx: dict) -> str:
     return " · ".join(parts) if parts else "—"
 
 
-def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: dict, meta: dict) -> None:
+def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: dict, meta: dict,
+                   f3_lines: list[str] | None = None) -> None:
     by_key = {(c["case_id"], c["method"], c["kind"]): c for c in checks}
     L: list[str] = []
     L.append("# Batería diferencial: ogs vs cSlope 0.1.0 (W9)")
@@ -356,6 +573,8 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
         for e in errs:
             L.append(f"- {e}")
         L.append("")
+    if f3_lines:
+        L.extend(f3_lines)
     L.append("## Reproducir")
     L.append("")
     L.append("```")
@@ -372,6 +591,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ogs", default=DEFAULT_OGS, help="binario ogs (ogs analyze <modelo>)")
     ap.add_argument("--cases", default=os.path.join(HERE, "cases"), help="directorio con *.ogs.json")
     ap.add_argument("--out", default=HERE, help="directorio de REPORT.md y report.json")
+    ap.add_argument("--cases-f3", default=CASES_F3_DIR, help="directorio con los modelos v0.3 (D15-D17)")
+    ap.add_argument("--require-f3", action="store_true",
+                    help=f"salir con código {EXIT_F3_PENDING} si algún check de la Fase 3a queda pendiente, "
+                         "falla o no tiene dato (para la integración)")
     args = ap.parse_args(argv)
 
     exe = args.ogs if os.path.isfile(args.ogs) else shutil.which(args.ogs)
@@ -397,6 +620,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{case['id']} listo", flush=True)
     summary = summarize(checks)
 
+    # Phase 3a block: after the one above, which it does not touch
+    f3_cases = load_f3_cases(args.cases_f3) if os.path.isdir(args.cases_f3) else []
+    f3_rows: list[dict] = []
+    probe: dict = {}
+    if f3_cases:
+        if len(f3_cases) != EXPECTED_CASES_F3:
+            print(f"error: se esperaban {EXPECTED_CASES_F3} modelos v0.3 y hay {len(f3_cases)}", file=sys.stderr)
+            return 1
+        probe = probe_capabilities(exe)
+        for case, method, kind, caps in f3_plan(cases, f3_cases):
+            f3_rows.append(run_f3_check(cs_module, exe, case, method, kind, caps, probe))
+        print(f"fase 3a: {summarize_f3(f3_rows)}", flush=True)
+
     ogs_version = next((c["ogs"]["engine"] for c in checks if c["ogs"]["engine"]), None)
     meta = {
         "generated_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -416,14 +652,27 @@ def main(argv: list[str] | None = None) -> int:
         "summary": summary,
         "checks": checks,
     }
+    if f3_cases:
+        report["f3"] = {
+            "criteria": {"fixed_max_rel": FIXED_MAX_REL, "search_max_rel": SEARCH_MAX_REL,
+                         "source": "briefs/02_CONTRATOS_FASE3.md F3.8"},
+            "capabilities": probe,
+            "cases": [{"id": c["id"], "title": c["title"], "path": c["path"]} for c in f3_cases],
+            "summary": summarize_f3(f3_rows),
+            "checks": f3_rows,
+        }
     with open(os.path.join(args.out, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
-    write_markdown(os.path.join(args.out, "REPORT.md"), cases, checks, summary, meta)
+    write_markdown(os.path.join(args.out, "REPORT.md"), cases, checks, summary, meta,
+                   f3_markdown(cases, f3_cases, f3_rows, probe) if f3_cases else None)
 
     print(f"búsqueda OK {summary['search']['OK']}/{summary['search']['N']}")
     print(f"fija OK {summary['fixed']['OK']}/{summary['fixed']['N']}")
     print(f"wrote {os.path.join(args.out, 'REPORT.md')} and report.json")
+    if args.require_f3 and f3_rows and summarize_f3(f3_rows)["OK"] != len(f3_rows):
+        print("--require-f3: hay checks de la Fase 3a pendientes, con fallo o sin dato", file=sys.stderr)
+        return EXIT_F3_PENDING
     return 0
 
 

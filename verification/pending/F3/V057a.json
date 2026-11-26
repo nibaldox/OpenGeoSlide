@@ -1,0 +1,133 @@
+{
+  "id": "V057a",
+  "title": "Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V057a",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle)",
+      "notes": "Undrained clay slope over a foundation of the same strength; the deep base circle. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "slope_clay",
+        "name": "Slope clay",
+        "model": "undrained",
+        "unit_weight": 19.63593,
+        "unit_weight_sat": null,
+        "undrained_strength": 74.8129,
+        "ru": null
+      },
+      {
+        "id": "foundation_clay",
+        "name": "Foundation clay",
+        "model": "undrained",
+        "unit_weight": 19.63593,
+        "unit_weight_sat": null,
+        "undrained_strength": 74.8129,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "foundation_clay",
+        "polygon": [
+          [
+            60.96,
+            15.24
+          ],
+          [
+            91.44,
+            15.24
+          ],
+          [
+            91.44,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            15.24
+          ]
+        ]
+      },
+      {
+        "material": "slope_clay",
+        "polygon": [
+          [
+            0.0,
+            15.24
+          ],
+          [
+            0.0,
+            30.48
+          ],
+          [
+            30.48,
+            30.48
+          ],
+          [
+            60.96,
+            15.24
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.46,
+      "published_by": "Griffiths & Lane (LE curve)",
+      "tolerance": 0.033424657534246574,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.468,
+      "published_by": "Program D",
+      "tolerance": 0.020340599455040874,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Griffiths & Lane (1999), Géotechnique 49(3).",
+    "derived_from": "cSlope verification problem V057a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "FE 1.45 and the limit-equilibrium 1.46 are read from their fig. 10 (the check's source string says so, which widens its tolerance); the text gives Taylor's chart value 1.47.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

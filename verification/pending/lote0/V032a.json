@@ -1,0 +1,156 @@
+{
+  "id": "V032a",
+  "title": "Duncan & Wright fig. 14.7, deep circle",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V032a",
+      "title": "Duncan & Wright fig. 14.7, deep circle",
+      "notes": "Cohesionless embankment on an undrained clay foundation. Entry is limited to the crest and exit to the toe flat to find the published deep circle."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 124.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "foundation",
+        "name": "Foundation",
+        "model": "mohr_coulomb",
+        "unit_weight": 98.0,
+        "unit_weight_sat": null,
+        "cohesion": 500.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            35.0,
+            15.0
+          ],
+          [
+            73.0,
+            34.0
+          ],
+          [
+            128.0,
+            34.0
+          ],
+          [
+            128.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            35.0,
+            15.0
+          ],
+          [
+            128.0,
+            15.0
+          ],
+          [
+            128.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          74.0,
+          128.0
+        ],
+        "exit": [
+          0.0,
+          34.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.23,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024065040650406506,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.209,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020413564929693963,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.21,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.024132231404958678,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.7.",
+    "derived_from": "cSlope verification problem V032a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "An unrestricted search finds the infinite-slope sliver in the c = 0 fill (tan 30° / tan 26.6° = 1.155), which is correct mechanics but not the published deep surface; V032b checks it.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "analysisLimits.entry viene con left > right (128 > 74) en la fuente; se escribe [74, 128] (cSlope toma min y max al espejar la orientación rtl).",
+      "analysisLimits.exit viene con left > right (34 > 0) en la fuente; se escribe [0, 34] (cSlope toma min y max al espejar la orientación rtl)."
+    ]
+  }
+}

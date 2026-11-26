@@ -1,0 +1,147 @@
+{
+  "id": "V036a",
+  "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V036a",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "notes": "Embankment (c′ = 0, φ′ = 35°, γ = 125 pcf) on a 20 ft undrained foundation, cu = 300 psf, constant; circular search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.63593,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "foundation",
+        "name": "Foundation",
+        "model": "undrained",
+        "unit_weight": 15.70875,
+        "unit_weight_sat": null,
+        "undrained_strength": 14.36408,
+        "strength_datum": 6.096,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            12.192,
+            6.096
+          ],
+          [
+            27.432,
+            12.192
+          ],
+          [
+            42.672,
+            12.192
+          ],
+          [
+            42.672,
+            6.096
+          ]
+        ]
+      },
+      {
+        "material": "foundation",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            6.096
+          ],
+          [
+            12.192,
+            6.096
+          ],
+          [
+            42.672,
+            6.096
+          ],
+          [
+            42.672,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.761,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020657030223390275,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.756,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020661375661375662,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.75,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.02666666666666667,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 15.9.",
+    "derived_from": "cSlope verification problem V036a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan & Wright's reference values: Spencer's method, printed in the table of fig. 15.9 (fig. 15.11, p. 257, in the 2nd edition, 2014), two digits.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

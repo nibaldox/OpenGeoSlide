@@ -5,7 +5,7 @@ sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0
 
 ## Archivos
 
-- `build_cases.py`: genera `cases/D01.ogs.json` … `cases/D14.ogs.json` (contrato §1, SI, γw = 9.807,
+- `build_cases.py`: genera `cases/D01.ogs.json` … `cases/D14.ogs.json` y `cases_f3/D15.ogs.json` … `cases_f3/D17.ogs.json` (contrato §1, SI, γw = 9.807,
   50 dovelas, búsqueda por defecto o con rangos explícitos, y una superficie fija representativa).
   Cada modelo lleva su intención en `meta.notes` y un comentario en el código.
 - `run.py`: para cada caso y método (bishop, spencer) compara búsqueda y superficie fija. Escribe
@@ -23,6 +23,27 @@ sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0
 - `test_differential.py`: pytest. Comprueba que los casos coinciden con el generador, que ogs acepta
   cada modelo (búsqueda y fija, sin `InvalidModel`), que cSlope valida cada documento, y las reglas de
   veredicto E9b.
+
+## Fase 3a: M-P, Janbu, no drenado y polilínea (F3.8)
+
+`run.py` agrega un bloque **después** del de Bishop y Spencer, sin cambiarlo (los 56 checks, su resumen y su tabla son los
+de antes):
+
+- **M-P `half_sine` y Janbu corregido** sobre el círculo fijo de cada uno de los 14 modelos, con el criterio de 0,5 % de E9b.
+- **Tres modelos v0.3** en `cases_f3/` (aparte de `cases/`, porque los consumidores de `cases/` —las pruebas de Rust y de la web,
+  la ida y vuelta y el esquema 0.2— aún no leen la versión 0.3):
+
+  | caso | modelo | superficie y métodos |
+  |---|---|---|
+  | D15 | terraplén de 6 m sobre 12 m de arcilla blanda con Su lineal (15 kPa en la superficie, +1,5 kPa/m) | círculo: Bishop y Spencer en búsqueda y fija; M-P y Janbu corregido fijos |
+  | D16 | depósito de relaves de 15 m, 2,5H:1V, con Su constante de 25 kPa sobre cimentación firme | ídem |
+  | D17 | bloque sobre una capa débil delgada que aflora en el talud de 20 m | polilínea fija de tres puntos: Spencer, M-P y Janbu corregido (sin Bishop, F3.6) |
+
+- **Pendiente, no falla.** Antes de correr, el runner sondea cada capacidad (`undrained`, `morgenstern_price`, `janbu_corrected`,
+  `polyline`) con un modelo mínimo. Si el motor no la tiene, los checks que la necesitan quedan **pendiente** (con el mensaje
+  del motor) y el valor de cSlope igual se calcula como línea base. El código de salida sigue siendo 0.
+  Con `--require-f3` sale con código 3 si queda algo pendiente, con fallo o sin dato: úsese al integrar.
+- `report.json` gana la clave `f3` (capacidades, resumen y checks); `REPORT.md` gana la sección «Fase 3a».
 
 ## Criterio (E9b, briefs/00_CONTRATOS.md §4.4.6)
 

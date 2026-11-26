@@ -1,0 +1,107 @@
+{
+  "id": "V008b",
+  "title": "Baker (2003) London clay slope, Mohr-Coulomb fit",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V008b",
+      "title": "Baker (2003) London clay slope, Mohr-Coulomb fit",
+      "notes": "43° slope, 6 m high, with the Mohr-Coulomb envelope fitted to London clay data (c′ = 6 kPa, φ′ = 32°); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "london_clay",
+        "name": "London clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 6.0,
+        "friction_angle": 32.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "london_clay",
+        "polygon": [
+          [
+            -6.0,
+            -4.0
+          ],
+          [
+            -6.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.43,
+            6.0
+          ],
+          [
+            20.0,
+            6.0
+          ],
+          [
+            20.0,
+            -4.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          0.0,
+          13.7
+        ],
+        "exit": [
+          0.0,
+          13.7
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.366,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020366032210834554,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Baker (2003) example 3.",
+    "derived_from": "cSlope verification problem V008b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 0–13.7 (toe to the crest), as in the source; the level ground left of the toe is not searched.",
+      "Baker (2003) also gives 1.48 for this slope with the non-linear envelope through a local linear approximation in Taylor's chart (p. 393, Fig. 7). The search limits x = 0–13.7 are the program manual's; Baker draws the crest to x ≈ 16 and gives none.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,310 @@
+{
+  "id": "V021b",
+  "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V021b",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+      "notes": "As V021a on the critical circle tangent to the base of clay 3."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "undrained",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 0.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_1",
+        "name": "Clay 1",
+        "model": "undrained",
+        "unit_weight": 21.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 55.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_2",
+        "name": "Clay 2",
+        "model": "undrained",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 43.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_3",
+        "name": "Clay 3",
+        "model": "undrained",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 56.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "bed",
+        "name": "Bed",
+        "model": "mohr_coulomb",
+        "unit_weight": 22.0,
+        "unit_weight_sat": null,
+        "cohesion": 200.0,
+        "friction_angle": 35.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "bed",
+        "polygon": [
+          [
+            -56.525,
+            -14.993
+          ],
+          [
+            -56.525,
+            -12.19
+          ],
+          [
+            5.0,
+            -12.19
+          ],
+          [
+            5.0,
+            -14.993
+          ]
+        ]
+      },
+      {
+        "material": "clay_1",
+        "polygon": [
+          [
+            -56.525,
+            -3.041
+          ],
+          [
+            -56.525,
+            1.229
+          ],
+          [
+            -30.958642157,
+            1.229
+          ],
+          [
+            -28.19,
+            -0.81
+          ],
+          [
+            -26.3,
+            -0.81
+          ],
+          [
+            -21.533,
+            -3.04
+          ],
+          [
+            -21.53083541,
+            -3.041
+          ]
+        ]
+      },
+      {
+        "material": "clay_2",
+        "polygon": [
+          [
+            -56.525,
+            -9.141
+          ],
+          [
+            -56.525,
+            -3.041
+          ],
+          [
+            -21.53083541,
+            -3.041
+          ],
+          [
+            -8.329,
+            -9.14
+          ],
+          [
+            -8.32677963,
+            -9.141
+          ]
+        ]
+      },
+      {
+        "material": "clay_3",
+        "polygon": [
+          [
+            -56.525,
+            -12.19
+          ],
+          [
+            -56.525,
+            -9.141
+          ],
+          [
+            -8.32677963,
+            -9.141
+          ],
+          [
+            -7.13,
+            -9.68
+          ],
+          [
+            5.0,
+            -9.68
+          ],
+          [
+            5.0,
+            -12.19
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            -56.525,
+            1.229
+          ],
+          [
+            -56.525,
+            4.579
+          ],
+          [
+            -35.51,
+            4.58
+          ],
+          [
+            -30.96,
+            1.23
+          ],
+          [
+            -30.958642157,
+            1.229
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -56.525,
+          2.43
+        ],
+        [
+          -32.59,
+          2.43
+        ],
+        [
+          -30.96,
+          1.23
+        ],
+        [
+          -28.19,
+          -0.81
+        ],
+        [
+          -26.3,
+          -0.81
+        ],
+        [
+          -21.533,
+          -3.04
+        ],
+        [
+          -8.329,
+          -9.14
+        ],
+        [
+          -7.13,
+          -9.68
+        ],
+        [
+          5.0,
+          -9.68
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -19.961,
+        "yc": 21.899,
+        "r": 34.089
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.116,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020448028673835127,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1088,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020045093795093796,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.109,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020450856627592426,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Chowdhury & Xu (1995); Ireland (1954).",
+    "derived_from": "cSlope verification problem V021b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fixed circle = cSlope's critical M-P circle among circles tangent to the base of the clay layer (cSlope has no tangent-line search; commercial program B's own circle is not printed), so the comparison is that of two searches within the same circle family.",
+      "Sand cap strength ignored (Su = 0); its unit weight is not printed: γ = 22 (as commercial program A a related problem / cSlope V021a) reproduces commercial program B to ≤ 0.3 % on example 1, while γ = 21 (program D's reading of the vendor .gsz) gives +1.5 %. Bed (c′ = 200, φ′ = 35°, γ = 22) is never reached. Piezometric line digitised from Fig. 51 (y ≈ 2.43 m, then the ground surface); it matters only for example 4 (φ > 0): without it cSlope is 11–14 % above commercial program B.",
+      "A free search is meaningless here (the zero-strength sand gives FOS → 0); the critical circle must be searched within the family tangent to the layer base.",
+      "Critical circle (model coordinates): center (-19.961, 21.899), R 34.089, tangent to y = -12.19.",
+      "On commercial program A's printed circle (Fig. 28.4: center (−19.814, 20.872), R 33.062) cSlope gives Bishop 1.1106 (commercial program A 1.109).",
+      "commercial program B's probability of failure, 26.15 %, is not checked: cSlope's Monte Carlo on this circle gives 28.6 % (Δ 0.025). On commercial program A's similar circle (V021b) cSlope gives 28.2 % against commercial program A's 27.89 %.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

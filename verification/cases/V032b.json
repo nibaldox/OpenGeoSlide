@@ -1,0 +1,145 @@
+{
+  "id": "V032b",
+  "title": "Duncan & Wright fig. 14.7, infinite-slope mechanism",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.1",
+    "meta": {
+      "id": "V032b",
+      "title": "Duncan & Wright fig. 14.7, infinite-slope mechanism",
+      "notes": "The V032a embankment without search limits: the critical surface is the shallow infinite-slope sliver in the cohesionless fill (tan 30° / tan 26.6° = 1.155)."
+    },
+    "units": "imperial",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 124.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "foundation",
+        "name": "Foundation",
+        "model": "mohr_coulomb",
+        "unit_weight": 98.0,
+        "unit_weight_sat": null,
+        "cohesion": 500.0,
+        "friction_angle": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            35.0,
+            15.0
+          ],
+          [
+            73.0,
+            34.0
+          ],
+          [
+            128.0,
+            34.0
+          ],
+          [
+            128.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            35.0,
+            15.0
+          ],
+          [
+            128.0,
+            15.0
+          ],
+          [
+            128.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.155,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020432900432900435,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.155,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020432900432900435,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.15,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.02434782608695652,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 14.7. Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V032b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "id": "V045",
+  "title": "Fredlund & Krahn (1977), with water table",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V045",
+      "title": "Fredlund & Krahn (1977), with water table",
+      "notes": "The Fredlund & Krahn slope with a piezometric line, analyzed on the published circle. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8504952,
+        "unit_weight_sat": null,
+        "cohesion": 28.728156,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            18.288
+          ],
+          [
+            18.288,
+            18.288
+          ],
+          [
+            42.672,
+            6.096
+          ],
+          [
+            54.864,
+            6.096
+          ],
+          [
+            54.864,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          42.672,
+          6.096
+        ],
+        [
+          54.864,
+          6.096
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 36.576,
+        "yc": 27.432,
+        "r": 24.384
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.834,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010272628135223555,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.832,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01027292576419214,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01273224043715847,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3).",
+    "derived_from": "cSlope verification problem V045 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fredlund & Krahn (1977), Table 2 case 5: ordinary 1.693, Bishop 1.834, Spencer 1.830, Janbu simplified 1.827, Janbu rigorous 1.776, Morgenstern-Price constant 1.833; Table 3: half-sine 1.832 (Saskatchewan), 1.837 (Alberta). The piezometric line runs from (0, 40) ft to the toe (Fig. 8).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

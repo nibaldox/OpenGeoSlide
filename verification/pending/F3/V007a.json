@@ -1,0 +1,87 @@
+{
+  "id": "V007a",
+  "title": "Baker (2003) ex. 1, Mohr-Coulomb, Janbu simplified on the reference circle",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V007a",
+      "title": "Baker (2003) ex. 1, Mohr-Coulomb, Janbu simplified on the reference circle",
+      "notes": "The V008a slope (Mohr-Coulomb fit c′ = 11.64 kPa, φ′ = 24.7°) with Janbu simplified (uncorrected) on the reference critical circle (Fig. 44.3)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 11.64,
+        "friction_angle": 24.7,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.43,
+            6.0
+          ],
+          [
+            20.0,
+            6.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_simplified"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 0.389,
+        "yc": 8.311,
+        "r": 8.195
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.469,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010340367597004765,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V007a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Confirms V008a's strength (c′ = 11.64 kPa, φ′ = 24.7°, γ = 18 kN/m³): the manual's Table 44.1 lists other soils by mistake. Baker (2003) M-C 1.50.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
