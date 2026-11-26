@@ -1,7 +1,7 @@
 // I-W tareas 3 y 5: axe en claro y oscuro en las vistas nuevas de F3a (Chrome, vite preview en 5186, WASM real):
 // materiales no drenados (con Su variable), análisis con M-P (función «Definida por puntos», con su error), Bishop deshabilitado,
 // superficie polilínea (tabla), lienzo con polilínea y resultado, Casos con polilínea y Ayuda. Debe dar 0 serious/critical.
-// Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node iw_axe.mjs  (necesita iw_b.mjs ejecutado antes: usa iw-b3.ogs.json)
+// Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node iw_h_axe.mjs  (necesita iw_b.mjs ejecutado antes: usa iw-b3.ogs.json)
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { launchTap, start, tab, step, summary, shot, axe, checkReport, openFile } from './lib.mjs';
