@@ -6,9 +6,9 @@
 //! the mass into the entry block (x ≥ 30) and the 0.32 m lens under the bench (24.15 ≤ x ≤ 30), `main_block_range`
 //! kept only the entry block, and the 117.9 kN/m of cohesion of the lens was gone: FS 1.2807 against cSlope's 1.5143
 //! (−15.4 %). Moving the arc 5e-7 down, under the vertex, gave 1.5163 (+0.13 %), so the answer jumped 18 % over a
-//! displacement of the circle of 1e-6 m. An interior air run whose arc is at most `1e-6 · width` above the ground is
-//! a touch, not a gap: it does not split the mass (a circle printed with 6 decimals misses a vertex by that much).
-//! A gap above that stays a gap: the lens is a separate block and is dropped, as before.
+//! displacement of the circle of 1e-6 m. An interior air run whose arc is at most 10 tol (`10 · 1e-9 · scale`, 7e-7 m
+//! here) above the ground is a touch, not a gap: it does not split the mass. The nodes that the search puts around a
+//! vertex (`1e-6 · width`) are far over that, so the search keeps its slicing. A gap above the hairline stays a gap: the lens is a separate block and is dropped, as before.
 
 use ogs_core::analyze;
 use ogs_core::model::Model;
@@ -83,20 +83,24 @@ fn the_toe_circle_of_d30_keeps_the_lens_under_the_bench() {
         for method in ["bishop", "spencer"] {
             let m = run(R, method, wet, false);
             assert!(!truncated(&m), "{method} wet={wet}: {:?}", m.warnings);
-            let x0 = m.slices.iter().map(|s| s.x_left).fold(f64::INFINITY, f64::min);
+            let x0 = m
+                .slices
+                .iter()
+                .map(|s| s.x_left)
+                .fold(f64::INFINITY, f64::min);
             assert!(x0 < 24.2, "{method} wet={wet}: the mass starts at x = {x0}");
         }
     }
 }
 
 /// The FS does not jump while the circle moves through the hair-thin band around the vertex: the circle of cSlope,
-/// the same circle 5e-7 under the vertex, and ± 1e-6, 1e-5 (arc 1.4e-6 … 1.1e-5 above the toe).
+/// the same circle 5e-7 under the vertex, 3e-7 over it and 1e-5 (arc up to 1e-5 above the toe).
 #[test]
 fn the_fs_is_continuous_across_the_hairline_band() {
     for wet in [true, false] {
         for method in ["bishop", "spencer"] {
             let under = fos(R + 1e-3, method, wet); // arc 1e-3 under the vertex: the whole mass, no doubt
-            for d in [-1e-5, -1e-6, 0.0, 3e-7, 5e-7, 1e-6, 1e-5] {
+            for d in [-3e-7, -1e-7, 0.0, 3e-7, 5e-7, 1e-6, 1e-5] {
                 let f = fos(R + d, method, wet);
                 assert!(
                     rel(f, under) < 5e-3,
@@ -111,11 +115,18 @@ fn the_fs_is_continuous_across_the_hairline_band() {
 #[test]
 fn a_real_gap_still_separates_the_lens() {
     for wet in [true, false] {
-        for d in [-1e-4, -1e-3, -1e-2] {
+        for d in [-1e-5, -1e-4, -1e-3, -1e-2] {
             let m = run(R + d, "bishop", wet, false);
             assert!(truncated(&m), "wet={wet} dr={d:e}: {:?}", m.warnings);
-            let x0 = m.slices.iter().map(|s| s.x_left).fold(f64::INFINITY, f64::min);
-            assert!(x0 > 29.99, "wet={wet} dr={d:e}: the mass starts at x = {x0}");
+            let x0 = m
+                .slices
+                .iter()
+                .map(|s| s.x_left)
+                .fold(f64::INFINITY, f64::min);
+            assert!(
+                x0 > 29.99,
+                "wet={wet} dr={d:e}: the mass starts at x = {x0}"
+            );
         }
     }
 }
@@ -125,7 +136,7 @@ fn a_real_gap_still_separates_the_lens() {
 fn the_band_is_mirror_symmetric() {
     for wet in [true, false] {
         for method in ["bishop", "spencer"] {
-            for d in [-1e-5, 0.0, 1e-6] {
+            for d in [-3e-7, 0.0, 1e-6] {
                 let a = fos(R + d, method, wet);
                 let b = run(R + d, method, wet, true).fos.expect("finite FS");
                 assert!(
