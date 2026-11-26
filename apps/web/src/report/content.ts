@@ -10,6 +10,7 @@ import type { ModelDoc } from '../editor/types';
 import { reportCircle } from '../engine/surface';
 import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
+import { INTERSLICE_LABEL, correctionFactorText, intersliceText, methodDetails, surfaceSummary } from './methodInfo';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import type { ReportInput } from './types';
 
@@ -116,6 +117,12 @@ export function professionalDisclaimer(engineName: string): string {
 export function fmt(n: number | null | undefined, digits = 3): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return DASH;
   return n.toFixed(digits).replace('.', ',');
+}
+
+/** Coordenada con hasta 6 decimales (sin ceros sobrantes) y coma decimal: los puntos de una polilínea no se redondean a 6 cifras significativas. */
+export function fmtCoord(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return DASH;
+  return String(Number(n.toFixed(6))).replace('.', ',');
 }
 
 /** Número sin decimales fijos (hasta 6 cifras significativas) y coma decimal; para parámetros de entrada. */
@@ -227,11 +234,15 @@ function primaryResult(results: MethodReport[]): MethodReport | undefined {
   return results.find((r) => r.status === 'converged' && r.slices.length > 0) ?? results.find((r) => r.slices.length > 0) ?? results[0];
 }
 
+/** Puntos de la polilínea ajustada del informe (ya prolongada o recortada al terreno por el motor, F3.7); null si la superficie es un círculo. */
+function reportPolyline(r: MethodReport): Point[] | null {
+  return 'points' in r.surface ? r.surface.points.map((p): Point => [p[0], p[1]]) : null;
+}
+
 function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bounds']): Point[] {
   const pts: Point[] = [];
   const c = reportCircle(r.surface);
-  // Polilínea: sus propios vértices (ya ajustados al terreno por el motor).
-  if (!c) return 'points' in r.surface ? r.surface.points.map((p): Point => [p[0], p[1]]) : pts;
+  if (!c) return reportPolyline(r) ?? pts;
   const n = 180;
   for (let i = 0; i <= n; i++) {
     const t = Math.PI + (Math.PI * i) / n; // semicírculo inferior
@@ -342,14 +353,17 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   if (res) {
     let points: Point[];
     const sliceLines: [Point, Point][] = [];
+    const polyline = reportPolyline(res);
     if (res.slices.length > 0) {
-      points = baseSurfacePoints(res.slices);
-      for (const p of points) {
+      // Los límites de las dovelas salen de su base; la línea de la superficie, con una polilínea, es la del informe.
+      const base = baseSurfacePoints(res.slices);
+      points = polyline ?? base;
+      for (const p of base) {
         const top = terrainY(model, p[0]);
         if (top !== null && top > p[1]) sliceLines.push([p, [p[0], top]]);
       }
     } else {
-      points = circleArc(model, res, bounds);
+      points = polyline ?? circleArc(model, res, bounds);
     }
     for (const [, y] of points) bounds.ymin = Math.min(bounds.ymin, y);
     const circle = reportCircle(res.surface);
@@ -369,10 +383,13 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   if (surface) {
     // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
     const converged = res?.status === 'converged';
+    const fixedPolyline = res !== undefined && 'points' in res.surface;
     legend.push({
       kind: 'surface',
       label: converged
-        ? `Superficie crítica (${METHOD_LABEL[surface.method]})`
+        ? fixedPolyline
+          ? `Superficie fija, polilínea (${METHOD_LABEL[surface.method]})`
+          : `Superficie crítica (${METHOD_LABEL[surface.method]})`
         : `Superficie evaluada, sin convergencia (${METHOD_LABEL[surface.method]})`,
       color: [...PDF_PALETTE.surface],
     });
@@ -390,12 +407,16 @@ function modelSection(model: ModelDoc): ReportSection {
   const u = units(model);
   const blocks: ReportBlock[] = [];
   if (model.meta.notes) blocks.push({ kind: 'paragraph', text: model.meta.notes });
+  let polylinePoints: Point[] | null = null;
 
   const dflt = (v: unknown, text: string): string => (v === undefined || v === null ? `${text} (por defecto)` : text);
   const methods = a.methods ?? ['bishop'];
   const rows: [string, string][] = [
     ['Sentido del deslizamiento', DIRECTION_LABEL[model.slope?.direction ?? 'auto'] ?? String(model.slope?.direction)],
     ['Métodos', dflt(a.methods, methods.map((m) => METHOD_LABEL[m]).join(', '))],
+    ...(methods.includes('morgenstern_price')
+      ? [['Función entre dovelas (Morgenstern-Price)', intersliceText(a.interslice) ?? `${INTERSLICE_LABEL.half_sine} (por defecto)`] as [string, string]]
+      : []),
     ['Dovelas', dflt(a.slices, fmtParam(a.slices ?? 50))],
     ['Tolerancia (relativa en FS)', dflt(a.tolerance, fmtParam(a.tolerance ?? 1e-5))],
     ['Iteraciones máximas', dflt(a.max_iterations, fmtParam(a.max_iterations ?? 500))],
@@ -419,8 +440,8 @@ function modelSection(model: ModelDoc): ReportSection {
       ['Refinamiento', (s.refine ?? true) ? 'Sí' : 'No'],
     );
   } else if (a.surface && a.surface.type === 'polyline') {
-    // La descripción completa de la polilínea en el informe llega con F3-W1f.
-    rows.push(['Superficies', 'Polilínea fija'], ['Vértices', String(a.surface.points.length)]);
+    rows.push(['Superficies', 'Polilínea fija'], ['Puntos de la polilínea', String(a.surface.points.length)]);
+    polylinePoints = a.surface.points;
   } else if (a.surface) {
     rows.push(
       ['Superficies', 'Círculo fijo'],
@@ -434,6 +455,18 @@ function modelSection(model: ModelDoc): ReportSection {
     rows.push(['Sismo pseudoestático', `kh = ${fmtParam(a.seismic.kh ?? 0)} · kv = ${fmtParam(a.seismic.kv ?? 0)}`]);
   }
   blocks.push({ kind: 'kv', rows });
+  if (polylinePoints) {
+    blocks.push({
+      kind: 'paragraph',
+      text: 'La polilínea se prolonga o se recorta hasta el terreno al calcular: la superficie ajustada que se dibuja y se exporta es la que devuelve el motor. Bishop no se ofrece con una polilínea.',
+    });
+    blocks.push({
+      kind: 'table',
+      title: 'Polilínea fija de falla (puntos del modelo)',
+      header: ['N.º', `x (${u.length})`, `y (${u.length})`],
+      rows: polylinePoints.map((p, i) => [String(i + 1), fmtCoord(p[0]), fmtCoord(p[1])]),
+    });
+  }
   blocks.push({ kind: 'bullets', title: 'Convenciones de signo', items: conventionNotes(model) });
 
   const loads = model.loads ?? [];
@@ -454,6 +487,19 @@ function modelSection(model: ModelDoc): ReportSection {
 
 function materialsSection(model: ModelDoc): ReportSection {
   const u = units(model);
+  // Un material no drenado no tiene c ni φ: su resistencia (Su, constante o lineal con la cota) va en su propia tabla.
+  const undrained = model.materials.filter((m) => m.model === 'undrained');
+  const undrainedBlocks: ReportBlock[] =
+    undrained.length === 0
+      ? []
+      : [
+          {
+            kind: 'table',
+            title: 'Materiales no drenados (Su)',
+            header: ['Id', `Su (${u.stress})`, `Cota de referencia (${u.length})`, `Gradiente (${u.stress}/${u.length})`, `Límite (${u.stress})`],
+            rows: undrained.map((m) => [m.id, fmtParam(m.undrained_strength), fmtParam(m.strength_datum), fmtParam(m.strength_gradient), fmtParam(m.strength_limit)]),
+          },
+        ];
   return {
     id: 'materials',
     title: 'Materiales',
@@ -471,33 +517,59 @@ function materialsSection(model: ModelDoc): ReportSection {
           fmtParam(m.ru),
         ]),
       },
+      ...undrainedBlocks,
     ],
   };
 }
 
+/** Filas de «Parámetros por método»: la función de Morgenstern-Price y, en Janbu corregido, f₀ y F₀ = FS / f₀ (F3.5, F3.7). */
+function methodParameterRows(results: MethodReport[]): string[][] {
+  const rows: string[][] = [];
+  for (const r of results) {
+    const d = methodDetails(r);
+    if (d.interslice !== undefined) {
+      rows.push([METHOD_LABEL[r.method], 'Función de fuerzas entre dovelas', d.interslice]);
+      const pts = r.interslice?.function === 'data_points' ? r.interslice.points : undefined;
+      if (pts && pts.length > 0) rows.push([METHOD_LABEL[r.method], 'Puntos (ξ; f)', pts.map((p) => `(${fmtParam(p[0])}; ${fmtParam(p[1])})`).join(' ')]);
+    }
+    if (d.f0 !== undefined) {
+      rows.push([METHOD_LABEL[r.method], 'Factor de corrección f₀', correctionFactorText(d.f0)]);
+      if (d.F0 !== undefined) rows.push([METHOD_LABEL[r.method], 'F₀ (Janbu simplificado) = FS / f₀', fmt(d.F0, 3)]);
+    }
+  }
+  return rows;
+}
+
 function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection {
   const u = units(model);
-  return {
-    id: 'results',
-    title: 'Factor de seguridad por método',
-    blocks: [
-      {
-        kind: 'table',
-        header: ['Método', 'Estado', 'FS', 'Iter.', 'λ', 'Evaluadas', 'Válidas', `Centro (xc; yc) (${u.length})`, `Radio (${u.length})`],
-        rows: results.map((r) => [
-          METHOD_LABEL[r.method],
-          STATUS_LABEL[r.status],
-          r.status === 'converged' ? fmt(r.fos, 3) : DASH,
-          String(r.iterations),
-          r.method === 'spencer' && r.status === 'converged' ? fmt(r.lambda, 4) : DASH,
-          r.search ? String(r.search.evaluated) : DASH,
-          r.search ? String(r.search.valid) : DASH,
-          reportCircle(r.surface) ? `${fmt(reportCircle(r.surface)?.xc ?? null, 2)}; ${fmt(reportCircle(r.surface)?.yc ?? null, 2)}` : DASH,
-          reportCircle(r.surface) ? fmt(reportCircle(r.surface)?.r ?? null, 2) : DASH,
-        ]),
-      },
-    ],
+  const summaries = results.map((r) => surfaceSummary(r.surface));
+  // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
+  const allPolyline = results.length > 0 && summaries.every((x) => x !== null);
+  const surfaceHeader = allPolyline ? ['Superficie fija'] : [`Centro (xc; yc) (${u.length})`, `Radio (${u.length})`];
+  const surfaceCells = (r: MethodReport, i: number): string[] => {
+    const c = reportCircle(r.surface);
+    if (allPolyline) return [summaries[i] as string];
+    return c ? [`${fmt(c.xc, 2)}; ${fmt(c.yc, 2)}`, fmt(c.r, 2)] : [summaries[i] ?? DASH, DASH];
   };
+  const blocks: ReportBlock[] = [
+    {
+      kind: 'table',
+      header: ['Método', 'Estado', 'FS', 'Iter.', 'λ', 'Evaluadas', 'Válidas', ...surfaceHeader],
+      rows: results.map((r, i) => [
+        METHOD_LABEL[r.method],
+        STATUS_LABEL[r.status],
+        r.status === 'converged' ? fmt(r.fos, 3) : DASH,
+        String(r.iterations),
+        (r.method === 'spencer' || r.method === 'morgenstern_price') && r.status === 'converged' ? fmt(r.lambda, 4) : DASH,
+        r.search ? String(r.search.evaluated) : DASH,
+        r.search ? String(r.search.valid) : DASH,
+        ...surfaceCells(r, i),
+      ]),
+    },
+  ];
+  const params = methodParameterRows(results);
+  if (params.length > 0) blocks.push({ kind: 'table', title: 'Parámetros por método', header: ['Método', 'Parámetro', 'Valor'], rows: params });
+  return { id: 'results', title: 'Factor de seguridad por método', blocks };
 }
 
 function checksSection(input: ReportInput): ReportSection | null {
