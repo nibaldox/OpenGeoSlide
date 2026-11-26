@@ -5,6 +5,7 @@ import type { Circle, Point } from '../../engine/types';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import type { ModelDoc } from '../types';
 import { piezoPoints, pointInPolygon, projectOnSegment, topY } from './geom';
+import { refCenter } from './reinforcements';
 
 /** Alto en píxeles de la banda de un rango de búsqueda, sobre el terreno. */
 export const BAND_HEIGHT_PX = 14;
@@ -27,6 +28,12 @@ export type Hit =
   | { kind: 'circle_center'; distPx: number }
   | { kind: 'circle_radius'; distPx: number }
   | { kind: 'surface_vertex'; index: number; distPx: number }
+  /** Extremo de un refuerzo (v0.4): 1 es la cabeza y 2 la punta. */
+  | { kind: 'reinforcement_end'; index: number; end: 1 | 2; distPx: number }
+  /** Tirador del centro de un refuerzo: arrastrarlo mueve los dos extremos. */
+  | { kind: 'reinforcement_center'; index: number; distPx: number }
+  /** Cuerpo del segmento de un refuerzo (solo selecciona). */
+  | { kind: 'reinforcement'; index: number; distPx: number }
   | { kind: 'edge'; regionIndex: number; afterIndex: number; point: Point; distPx: number }
   | { kind: 'piezo_edge'; afterIndex: number; point: Point; distPx: number }
   /** Tramo de la polilínea fija de falla (solo se acierta con `surfaceEdge`: «Agregar vértice»). */
@@ -94,6 +101,11 @@ export function hitTest(
   if (surface && surface.type === 'polyline') {
     surface.points.forEach((p, index) => push({ kind: 'surface_vertex', index, distPx: 0 }, screenDist(vp, p, sx, sy), 2));
   }
+  (doc.reinforcements ?? []).forEach((r, index) => {
+    push({ kind: 'reinforcement_end', index, end: 1, distPx: 0 }, screenDist(vp, [r.x1, r.y1], sx, sy), 2);
+    push({ kind: 'reinforcement_end', index, end: 2, distPx: 0 }, screenDist(vp, [r.x2, r.y2], sx, sy), 2);
+    push({ kind: 'reinforcement_center', index, distPx: 0 }, screenDist(vp, refCenter(r), sx, sy), 3);
+  });
   const circle = circleSpec(doc.analysis.surface);
   if (circle) {
     push({ kind: 'circle_center', distPx: 0 }, screenDist(vp, [circle.xc, circle.yc], sx, sy), 2);
@@ -161,6 +173,14 @@ export function hitTest(
       }
     }
   }
+  // Cuerpo de un refuerzo: gana a una arista a igual distancia (el segmento se dibuja encima de las regiones).
+  (doc.reinforcements ?? []).forEach((r, index) => {
+    const proj = projectOnSegment(pointer, toScreen([r.x1, r.y1]), toScreen([r.x2, r.y2]));
+    if (proj.distance <= bestDist) {
+      bestDist = proj.distance;
+      bestEdge = { kind: 'reinforcement', index, distPx: proj.distance };
+    }
+  });
   if (bestEdge) return bestEdge;
 
   // Interior de región: la última en el orden de dibujo queda encima.

@@ -142,6 +142,14 @@ export function createFakeStore(doc: ModelDoc = makeDoc(), patch: Partial<Editor
         case 'surface/set':
           change({ ...doc0, analysis: { ...doc0.analysis, surface: a.surface } });
           break;
+        case 'reinforcement/upsert': {
+          const list = doc0.reinforcements ?? [];
+          change({ ...doc0, version: '0.4', reinforcements: a.index === null ? [...list, a.reinforcement] : list.map((r, i) => (i === a.index ? a.reinforcement : r)) });
+          break;
+        }
+        case 'reinforcement/remove':
+          change({ ...doc0, reinforcements: (doc0.reinforcements ?? []).filter((_, i) => i !== a.index) });
+          break;
         default:
           break;
       }
