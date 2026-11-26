@@ -43,7 +43,10 @@ fn the_mirrored_model_puts_the_tangent_end_on_the_left_and_gives_the_same_fs() {
     let doc = slope(4.658, 15.0, 10.934);
     for i in 0..2 {
         let (a, b) = (fos(&doc, i), fos(&mirror(&doc), i));
-        assert!((a - b).abs() / a < 1e-6, "method {i}: {a} against mirrored {b}");
+        assert!(
+            (a - b).abs() / a < 1e-6,
+            "method {i}: {a} against mirrored {b}"
+        );
     }
 }
 
