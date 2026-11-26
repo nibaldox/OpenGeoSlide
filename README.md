@@ -20,20 +20,23 @@
 
 ## Qué es
 
-OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado** y
-**Spencer**. Usted dibuja o importa la sección (estratos, línea piezométrica, sismo pseudoestático y cargas), el programa
-busca la superficie de falla circular con el menor FS y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
+OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado**,
+**Spencer**, **Morgenstern-Price** y **Janbu**. Usted dibuja o importa la sección (estratos Mohr-Coulomb o no drenados,
+línea piezométrica, sismo pseudoestático y cargas), el programa busca la superficie de falla circular con el menor FS o
+analiza la polilínea que usted fija, y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión actual es la **0.1.0**: el motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA), el paquete
-de Python y las pruebas de aceptación están implementados.
+La versión publicada es la **0.1.0**: el motor (Bishop y Spencer, con sismo pseudoestático y cargas), la CLI, el editor
+web (PWA), el paquete de Python y las pruebas de aceptación. El repositorio ya incluye la **Fase 3a** (formato v0.3:
+material no drenado, superficie polilínea, Morgenstern-Price y Janbu), que se publicará en la v0.2.0.
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 51 de 51 checks contra valores publicados (21 casos) y
-  coincide con el programa independiente cSlope en 28 de 28 búsquedas y 28 de 28 superficies fijas. Es la batería real
+- **Está verificado y se puede reproducir.** El motor cumple 213 de 213 checks contra valores publicados (93 casos) y
+  coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 43 de 43 checks de la
+  Fase 3a. Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
@@ -98,7 +101,7 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo, con
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.3), con
 sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
@@ -164,10 +167,12 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 
 ## In English
 
-OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop and Spencer,
-circular surfaces, Mohr-Coulomb, pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 51/51 published values and cSlope in
-28/28 searches and 28/28 fixed surfaces. It has no reinforcement (geosynthetics, anchors, nails), so it is not a tool
-for designing MSE walls or retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
+OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
+Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
+pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
+runs in your browser and works offline, a Python package and a CLI. It matches 213/213 published values (93 cases) and cSlope in
+28/28 searches, 28/28 fixed surfaces and 43/43 Phase 3a checks. The search is circular only, and it has no
+reinforcement (geosynthetics, anchors, nails, piles, sheet piles), so it is not a tool for designing MSE walls or
+retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
 from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).
 It is not a certified tool: a qualified professional must validate every result.
