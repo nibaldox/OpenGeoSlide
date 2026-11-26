@@ -457,21 +457,22 @@ mod tests {
         );
     }
 
-    /// E13j-6 applied to E7d: `f = Σ_{N'<0}|N'| / ΣW` is measured over `max(ΣW, ΣW*)`. Two soil slices that weigh 5e-5
-    /// each (V018, γ = 1e-6) carry vertical loads of 750 each; one normal force is −1 (and the other 10). Over the soil
-    /// weight `f` would be 1e4 (major); over the force scale `ΣW* ≈ 1.5e3` it is 6.7e-4 (note). With a negative force
-    /// of 100 the share over the force scale is 0.067, still above the threshold, so the loads do not silence the major
-    /// class; and without loads the scale is the soil weight, as before.
+    /// E13j-6 applied to E7d: `f = Σ_{N'<0}|N'| / ΣW` is measured over the force scale. Two soil slices that weigh 5e-5
+    /// each (V018, γ = 1e-6) carry vertical loads of 750 each on inclined bases (α = 0.5, so the loads drive the mass);
+    /// one normal force is −1 (and the other 10). Over the soil weight `f` would be 1e4 (major); over the force scale
+    /// `ΣW* ≈ 1.5e3` it is 6.7e-4 (note). With a negative force of 100 the share over the force scale is 0.067, still
+    /// above the threshold, so the loads do not silence the major class; without loads the scale is the soil weight, as
+    /// before; and (E13l-3) loads on flat bases (α = 0), which drive nothing, do not enlarge the scale: `−1` is major.
     #[test]
     fn e13j6_the_negative_normal_share_is_over_the_force_scale() {
-        let slice = |weight: f64, extra: f64| Slice {
+        let slice_at = |alpha: f64, weight: f64, extra: f64| Slice {
             x_left: 0.0,
             x_right: 1.0,
             y_base_left: 0.0,
             y_base_right: 0.0,
             y_top_mid: 1.0,
             width: 1.0,
-            alpha: 0.0,
+            alpha,
             base_length: 1.0,
             weight,
             weight_extra: extra,
@@ -480,6 +481,7 @@ mod tests {
             material: 0,
             ..crate::slicer::ZERO_SLICE
         };
+        let slice = |weight: f64, extra: f64| slice_at(0.5, weight, extra);
         // The negative slice is 1 of 10 base lengths, so E11f (length share) does not decide the class.
         let long = |s: Slice| Slice {
             base_length: 9.0,
@@ -496,6 +498,9 @@ mod tests {
         // Without loads the scale is ΣW, as before: f = 1/1e-4.
         let bare = vec![slice(5e-5, 0.0), long(slice(5e-5, 0.0))];
         assert_eq!(class(&bare, -1.0), Some("negative_effective_normal_major"));
+        // E13l-3: the same loads on flat bases drive nothing, and the scale stays the soil weight.
+        let flat = vec![slice_at(0.0, 5e-5, 750.0), long(slice_at(0.0, 5e-5, 750.0))];
+        assert_eq!(class(&flat, -1.0), Some("negative_effective_normal_major"));
     }
 
     /// E13l-1: a `converged` result with an FS that is not positive, or not finite, becomes `not_converged` with the
