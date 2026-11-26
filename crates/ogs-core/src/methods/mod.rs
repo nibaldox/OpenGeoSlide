@@ -349,12 +349,21 @@ pub(crate) fn lacks_driving_on(slices: &[Slice], circular: bool) -> bool {
     !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
 }
 
-/// Amendment E3 at a given factor of safety, with the passive forces included and divided by `F` (E14g): the guard of
-/// the converged state of a model with passive reinforcements. [`lacks_driving_on`] has them out (`F → ∞`), which is
-/// the guard of the state before the solve. Only called when some slice carries a passive force.
-pub(crate) fn lacks_driving_at(slices: &[Slice], circular: bool, fos: f64) -> bool {
-    let at: Vec<Slice> = slices.iter().map(|s| slice_at_fos(s, fos)).collect();
-    lacks_driving_on(&at, circular)
+/// Lower bound of F where the passive forces do not lift the mass (E14o-3): the net vertical load at `F`,
+/// `Σ W* + Σ passive_v / F` (E14g, downward), is positive iff `F > −Σ passive_v / Σ W*` when the passive forces point up
+/// (`Σ passive_v < 0`) and the load `Σ W*` is positive. Below that bound the mass is lifted off its base and a root of
+/// the closure of a method is an artefact of the `1/F` of the passive force at a small F, no equilibrium on the base (a
+/// force of 2000 kN/m at 45° gave a Janbu root of 0.127 for a state of 3.08). Returns 0 without passive forces and
+/// whenever there is no such bound, so the models without them do not change.
+pub(crate) fn lift_bound(slices: &[Slice]) -> f64 {
+    let (load, passive): (f64, f64) = slices.iter().fold((0.0, 0.0), |(w, p), s| {
+        (w + s.total_weight(), p + s.passive_v)
+    });
+    if passive < 0.0 && load > 0.0 {
+        -passive / load
+    } else {
+        0.0
+    }
 }
 
 /// Solver tolerances, taken from `AnalysisSettings`.

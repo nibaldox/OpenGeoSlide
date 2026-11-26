@@ -28,8 +28,8 @@
 
 use super::spencer::{self, spencer_direct_normals_at, spencer_interslice};
 use super::{
-    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, any_passive, converged_notes,
-    is_inert, lacks_driving_at, negative_normal_message,
+    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, converged_notes, is_inert,
+    negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -146,10 +146,6 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     };
     if !fos.is_finite() {
         return stop(fos, SolveStatus::Invalid, iterations, "non_finite");
-    }
-    // E14g, E3 at F₀ with the passive forces included (they enter the closure divided by F, like every other term).
-    if any_passive(slices) && lacks_driving_at(slices, opts.circular, f0) {
-        return stop(f64::NAN, SolveStatus::Invalid, iterations, "no_driving");
     }
     let normals = spencer_direct_normals_at(slices, f0, 0.0, &e);
     let mut notes = Vec::with_capacity(3);

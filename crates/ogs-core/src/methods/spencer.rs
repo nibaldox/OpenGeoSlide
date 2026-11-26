@@ -66,15 +66,17 @@
 //! `q(F) = F·t − res = F·t₀ − res₀ + tp − rp/F` and `dq/dF = t₀ + rp/F²`; the moment residual takes
 //! `2·Σ h_moment_base + 2·Σ passive_h_moment_base/F` at the F of the point. The loops carry them behind a `const P: bool`
 //! (like `G` for the interslice function): with `P = false` they are the original ones, so a model **without passive
-//! forces runs the same code and gives the same bits** (E14a). The guards (`Φ`, `m_α`, E3, the negative normal forces)
-//! are evaluated at the converged F with the passive forces included.
+//! forces runs the same code and gives the same bits** (E14a). The guards (`Φ`, `m_α`, the negative normal forces)
+//! are evaluated at the converged F with the passive forces included. E3 (`no_driving`) is not: it is evaluated only
+//! before the solve, with the weight, the seismic force, the loads and the **active** forces (E14o-3). A passive force is
+//! resisting, like `c` and `tan φ`, and does not enter it.
 //!
 //! Budget: each evaluation of ρ(λ) (one closure root) and each Brent step counts once toward `max_iterations`.
 //! Exhausting it gives `NotConverged("max_iterations")`.
 
 use super::{
     MethodResult, SolveOptions, SolveStatus, air_gap_thrust, any_passive, at_fos, bishop,
-    converged_notes, has_passive, is_inert, janbu, lacks_driving_at, lacks_driving_on, m_alpha,
+    converged_notes, has_passive, is_inert, janbu, lacks_driving_on, lift_bound, m_alpha,
     negative_normal_message,
 };
 use crate::model::MethodKind;
@@ -1272,7 +1274,10 @@ pub(super) fn force_root_at_zero(
         return Err((SolveStatus::Invalid, "m_alpha", 0));
     };
     let preps = prepare(slices, None);
-    let bound = m_bound.max(pole_bound(&preps, 0.0, opts.min_m_alpha));
+    // E14o-3: with passive forces, F above the bound where they lift the mass (`lift_bound`, 0 without them).
+    let bound = m_bound
+        .max(pole_bound(&preps, 0.0, opts.min_m_alpha))
+        .max(lift_bound(slices));
     let lo = if bound > 0.0 {
         bound * (1.0 + ADM_MARGIN)
     } else {
@@ -1289,7 +1294,13 @@ pub(super) fn force_root_at_zero(
             balance_at::<false, false>(&preps, 0.0, x).map(|b| b.closure / total_w)
         }
     };
-    let start = bishop::start_fos(slices).max(1.05 * lo);
+    // E14o-2: with passive forces the start sees them, like Bishop's.
+    let start = if passive {
+        bishop::start_fos_passive(slices)
+    } else {
+        bishop::start_fos(slices)
+    }
+    .max(1.05 * lo);
     let root = root_near(&closure, start, lo);
     let used = evaluations.get();
     if used > opts.max_iterations {
@@ -1472,17 +1483,6 @@ pub(super) fn solve_with_faces(
         );
     }
 
-    // E14g, E3 at the converged F with the passive forces included (the guard before the solve has them out).
-    if any_passive(slices) && lacks_driving_at(slices, opts.circular, fos) {
-        return outcome(
-            kind,
-            f64::NAN,
-            SolveStatus::Invalid,
-            iterations,
-            None,
-            Some("no_driving"),
-        );
-    }
     let normals = match faces {
         None => spencer_direct_normals_at(slices, fos, lambda, &e),
         Some(f) => direct_normals_with_at(slices, fos, f, lambda, &e),
