@@ -1,6 +1,7 @@
 // Destino de una incidencia de Diagnósticos (R7-11): pestaña del panel lateral, elemento a seleccionar y campo donde
 // poner el foco. Lógica pura. Una incidencia sin destino real no se muestra como botón.
 
+import { isCrackNotReached } from '../../engine/errors';
 import { selectionForPath } from '../panels/forms';
 import { matchesTarget, type TargetSpec } from '../../onboarding/tour';
 import type { Issue, ModelDoc, Selection } from '../types';
@@ -126,17 +127,20 @@ export function fieldSelector(fieldPath: string): string {
 
 /**
  * Destino de una incidencia completa. Manda el puntero (`issueTarget`); sin puntero, algunos códigos tienen destino propio:
+ * - `NoValidSurface` por la grieta (`tension_crack_not_reached`, E15l-16): el control de la grieta, `/analysis/tension_crack`;
  * - `NoValidSurface` (error del motor) y `engine.invalid` (método sin superficie válida): la búsqueda, si el modelo busca,
  *   o la superficie fija en otro caso;
  * - `NoSurface`: el panel de superficie (el modelo no define ninguna).
  */
-export function issueTargetFor(issue: Pick<Issue, 'path' | 'code'>, doc: ModelDoc): IssueTarget | null {
+export function issueTargetFor(issue: Pick<Issue, 'path' | 'code'> & { text?: string }, doc: ModelDoc): IssueTarget | null {
   const byPath = issueTarget(issue.path, doc);
   if (byPath) return byPath;
   if (issue.path !== null && issue.path !== '') return null;
   switch (issue.code) {
     case 'NoValidSurface':
     case 'engine.invalid':
+      // E15l-16: si la causa es la grieta de tracción, el control es la grieta y no la superficie ni la búsqueda.
+      if (issue.code === 'NoValidSurface' && typeof issue.text === 'string' && isCrackNotReached(issue.text)) return issueTarget('/analysis/tension_crack', doc);
       return doc.analysis?.search ? issueTarget('/analysis/search', doc) : issueTarget('/analysis/surface', doc);
     case 'NoSurface':
       return issueTarget('/analysis', doc);
