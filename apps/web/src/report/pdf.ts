@@ -307,7 +307,10 @@ class Writer {
     const doc = this.doc;
     doc.setDrawColor(255, 255, 255);
     doc.setLineWidth(0.9);
-    doc.text(text, x, y, { align, renderingMode: 'fillThenStroke' });
+    // Primero el halo (solo trazo) y encima el relleno: con `fillThenStroke` el trazo blanco de 0,9 mm cubre el relleno y el rótulo desaparece
+    // (en el PDF de U6-G solo quedaban puntos). El texto va dos veces en el archivo, pero se lee una sola vez como texto seleccionable.
+    doc.text(text, x, y, { align, renderingMode: 'stroke' });
+    doc.text(text, x, y, { align, renderingMode: 'fill' });
     doc.setLineWidth(0.25);
     doc.setDrawColor(...P.frame);
   }
@@ -400,14 +403,18 @@ class Writer {
     // Cargas de superficie: flechas sobre el terreno y rótulo con su unidad. Los rótulos se reparten en dos filas si chocan.
     this.font('normal', 7.5);
     const labelBoxes: { x1: number; x2: number; row: number }[] = [];
+    // Los rótulos se dibujan al final: el halo tapa la flecha de otra carga que los cruce (la flecha de `p` cruzaba el rótulo de `q`).
+    const pendingLabels: (() => void)[] = [];
     const placeLabel = (text: string, cx: number, tailY: number): void => {
       const half = doc.getTextWidth(text) / 2;
       const cxc = Math.min(Math.max(cx, x0 + half + 1), x0 + drawW - half - 1);
       let row = 0;
       while (labelBoxes.some((b) => b.row === row && cxc - half < b.x2 + 1 && cxc + half > b.x1 - 1)) row += 1;
       labelBoxes.push({ x1: cxc - half, x2: cxc + half, row });
-      doc.setTextColor(...P.load);
-      this.haloText(text, cxc, tailY - 1.5 - row * LABEL_ROW, 'center');
+      pendingLabels.push(() => {
+        doc.setTextColor(...P.load);
+        this.haloText(text, cxc, tailY - 1.5 - row * LABEL_ROW, 'center');
+      });
     };
     for (const load of d.loads) {
       if (load.kind === 'udl') {
@@ -442,6 +449,8 @@ class Writer {
         placeLabel(load.label, tailX, tailY);
       }
     }
+
+    for (const draw of pendingLabels) draw();
 
     // Indicador sísmico: flechas de kh (en el sentido del deslizamiento) y de kv (kv > 0 hacia abajo) con su texto, arriba a la derecha.
     if (d.seismic) {

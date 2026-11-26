@@ -20,6 +20,7 @@ import {
   type LengthUnit,
   type RegionImportPlan,
 } from './importPlan';
+import { isImperialUnits } from '../state/units';
 import { layerChoice } from './layerChoice';
 import { restoreFocus } from '../../ui/focusReturn';
 
@@ -223,7 +224,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
           ))}
         </select>
       </label>
-      <p className="small muted">El modelo usa {units === 'imperial' ? 'pies' : 'metros'}; las coordenadas se reescalan al importar.</p>
+      <p className="small muted">El modelo usa {isImperialUnits(units) ? 'pies' : 'metros'}; las coordenadas se reescalan al importar.</p>
 
       {layers.length === 0 ? (
         <p role="alert">El DXF no contiene polilíneas cerradas ni abiertas para formar regiones.</p>

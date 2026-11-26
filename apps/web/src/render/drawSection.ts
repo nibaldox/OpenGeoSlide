@@ -13,6 +13,8 @@ const AXIS_FONT = '12px system-ui, sans-serif';
 const HALO_EXTRA_PX = 2;
 /** Trazo de la superficie evaluada sin convergencia: el mismo `10 6` del lienzo del editor. */
 const UNCONVERGED_DASH = [10, 6];
+/** Tramo extrapolado de la piezométrica: punteado `1 5` con extremos redondos, como en el lienzo del editor. */
+const PIEZO_EXTRAPOLATED_DASH = [1, 5];
 /** Grosor del halo de los rótulos. */
 const HALO_TEXT_PX = 3;
 
@@ -201,5 +203,27 @@ export function drawSection(
     ctx.setLineDash([8, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  // R9-05d: el motor prolonga la piezométrica en horizontal hasta los bordes del modelo; ese tramo va punteado para que el agua no parezca terminar en el último punto.
+  const ext = scene.piezoExtension;
+  if (scene.piezo && scene.piezo.length > 0 && ext) {
+    for (const seg of [ext.left, ext.right]) {
+      if (!seg) continue;
+      ctx.beginPath();
+      seg.forEach(([x, y], i) => {
+        const [sx, sy] = worldToScreen(vp, x, y);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+      // Sin halo continuo: un halo blanco de trazo lleno convertiría los puntos en una línea blanca con motas azules.
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = palette.piezo;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash(PIEZO_EXTRAPOLATED_DASH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineCap = 'butt';
+    }
   }
 }

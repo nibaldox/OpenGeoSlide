@@ -94,8 +94,10 @@ for (const theme of ['light', 'dark']) {
   if (theme === 'light') {
     const r = noBom(readFileSync(await download('Exportar', /Exportar resultados/), 'utf8')).split(/\r?\n/);
     const s = noBom(readFileSync(await download('Exportar', /Exportar superficie/), 'utf8')).split(/\r?\n/);
-    step('4a CSV de resultados SI: comentario y cabecera con unidad', r[0] === '# unidades: SI (m, kN/m³, kPa)' && /xc_m,yc_m,r_m/.test(r[1]), { l0: r[0], l1: r[1] });
-    step('4b CSV de superficie SI', s[0] === '# unidades: SI (m, kN/m³, kPa)' && s[1] === 'metodo,estado,punto,x_m,y_m', { l0: s[0], l1: s[1] });
+    // U6-I (R9-12a): el CSV ya NO lleva la línea `# unidades: …` (un comentario rompía `pd.read_csv` sin opciones). La unidad va en la cabecera
+    // (`xc_m`, `x_m`…) y en una columna final `unidades` (SI / imperial): la primera línea es la cabecera y todas las filas llevan la unidad.
+    step('4a CSV de resultados SI: sin comentario, cabecera con unidad y columna «unidades»', !r[0].startsWith('#') && /(^|,)xc_m,yc_m,r_m(,|$)/.test(r[0]) && r[0].endsWith(',unidades') && r[1].endsWith(',SI'), { l0: r[0], l1: r[1] });
+    step('4b CSV de superficie SI: cabecera con x_m/y_m y columna «unidades»', s[0] === 'metodo,estado,punto,x_m,y_m,unidades' && s[1].endsWith(',SI'), { l0: s[0], l1: s[1] });
     // imperial
     await p.getByRole('tab', { name: 'Proyecto' }).click();
     await p.locator('[data-path="/units"]').selectOption('imperial');
@@ -106,7 +108,7 @@ for (const theme of ['light', 'dark']) {
     await p.waitForFunction(() => document.querySelector('[data-testid="fs-bishop"]'), null, { timeout: 60000 });
     await p.waitForTimeout(800);
     const ri = noBom(readFileSync(await download('Exportar', /Exportar resultados/), 'utf8')).split(/\r?\n/);
-    step('4c CSV imperial: «# unidades: imperial» y _ft', ri[0] === '# unidades: imperial (ft, pcf, psf)' && /xc_ft,yc_ft,r_ft/.test(ri[1]), { l0: ri[0], l1: ri[1] });
+    step('4c CSV imperial: cabecera _ft y columna «unidades» = imperial (sin comentario `#`, ver 4a)', !ri[0].startsWith('#') && /(^|,)xc_ft,yc_ft,r_ft(,|$)/.test(ri[0]) && ri[0].endsWith(',unidades') && ri[1].endsWith(',imperial'), { l0: ri[0], l1: ri[1] });
   }
   if (theme === 'light') {
     // PDF

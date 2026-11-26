@@ -20,6 +20,7 @@ import { Legend } from '../ui/Legend';
 import { ResultsTable } from '../ui/ResultsTable';
 import { useRovingTabIndex } from '../ui/useRovingTabIndex';
 import { EditorCanvas } from './canvas/EditorCanvas';
+import { piezoExtension } from './canvas/piezoExtension';
 import { lengthUnitOf } from './canvas/layout';
 import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
@@ -713,6 +714,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
                 bands: Boolean(doc.analysis.search),
                 loads: (doc.loads?.length ?? 0) > 0,
                 seismic: Boolean(doc.analysis.seismic),
+                piezoExtrapolated: piezoExtension(doc) !== null,
               }}
             />
             {engine.run && !engine.current && (
