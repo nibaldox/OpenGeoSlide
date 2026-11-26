@@ -14,7 +14,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
 | cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
-| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **44/48** (2 explicados por E15f y E15j-7, 2 fallas abiertas en D30 fija; véase [abajo](#grieta-de-tracción-y-agua-embalsada-v05-d28-a-d39)) | ídem |
+| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **46/48** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-y-agua-embalsada-v05-d28-a-d39)) | ídem |
 | cSlope 0.1.0 como segundo oráculo de los 323 checks | **322/323** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
 | Web y `ogs` (ida y vuelta, 385 modelos) | **385/385** | `verification/tools/test_web_roundtrip.py` |
 
@@ -175,16 +175,21 @@ grieta seca, llena y automática; combinados, con sismo y con arcilla no drenada
 fijo, con Bishop y Spencer y los criterios de E9b: 48 checks. Antes de correr, una sonda comprueba que el motor tiene
 el agua embalsada y la grieta (V047a, Bishop a 0,1 %); el check que necesita una capacidad ausente queda pendiente y no
 falla. Resultado, de [`verification/differential/REPORT.md`](../verification/differential/REPORT.md):
-**44 OK de 48**, 2 explicados, 2 fallas, 0 sin dato, 0 pendientes.
+**46 OK de 48**, 2 explicados, 0 fallas, 0 sin dato, 0 pendientes (D30 fija pasó de falla a OK con E15j-8).
 
-- **Búsqueda:** 24/24 OK. **Superficie fija:** 20/24 OK (la mayor diferencia entre los OK es 0,05 %), 2 explicados y 2 fallas.
+- **Búsqueda:** 24/24 OK. **Superficie fija:** 22/24 OK (la mayor diferencia entre los OK es +0,13 %, en D30), 2 explicados y 0 fallas.
 - **D39 fija, Bishop y Spencer: explicado (E15f, E15j-7).** El círculo de cSlope pasa 9,2e-7 bajo el fondo del modelo
   (el límite de su búsqueda es 1e-6) y ogs lo rechaza con `NoValidSurface: el arco de deslizamiento sale del modelo`.
   El informe lo marca «explicado (E15f, E15j-7)», con su causa: no cuenta como OK ni como falla, y **no se relaja la
   tolerancia**, porque aceptarlo admitiría superficies que salen del modelo. En la búsqueda, ogs encuentra su propio
   círculo válido y D39 coincide con cSlope a +0,05 %.
-- **D30 fija, Bishop y Spencer: FALLA abierta** (cara vertical con embalse de 8 m al pie: ogs 1,2807 y 1,2809 frente a
-  1,5143 y 1,5128, −15,4 % y −15,3 %). Está en investigación y no se ha explicado ni relajado.
+- **D30 fija, Bishop y Spencer: OK tras E15j-8 (contacto de aire capilar).** El círculo crítico de cSlope pasa 3,6e-7 m
+  sobre el pie de un corte vertical; ogs lo partía en dos masas y descartaba 23,5 kN/m de suelo y 117,9 kN/m de
+  cohesión (−15,4 % y −15,3 %). Un tramo de aire interior de ancho ≤ 1e-6·ancho del modelo y a ≤ 10·tol sobre el
+  terreno ahora cuenta como contacto. Con el binario de esta rama, D30 fija da 1,5163 (Bishop, +0,13 % frente a 1,5143) y
+  1,5146 (Spencer, +0,12 % frente a 1,5128); en seco D30 pasa de −13,2 % a +0,07 %. El umbral sigue siendo discontinuo:
+  un arco entre unos 7e-7 y 3e-6 sobre un vértice todavía puede diferir de cSlope. En D30, la búsqueda de ogs halla
+  círculos más críticos que la de cSlope (0,8248 frente a 1,5143), coherentes con la altura crítica del corte (E15j-9).
 
 ## Refuerzos (v0.4): qué se verifica y con qué
 

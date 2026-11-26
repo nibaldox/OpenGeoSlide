@@ -618,9 +618,11 @@ uno; los otros 31 casos (80 checks) están promovidos a `verification/cases/`.
 
 Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF:
 
-- **`unit_weight_sat` (γsat) no está verificado frente a otro programa.** Ninguno de los 147 casos de verificación lo
-  usa ([índice de casos](../verification/cases/INDEX.md)). Cada modelo que lo usa lleva un aviso en Diagnósticos y en
-  el informe.
+- **`unit_weight_sat` (γsat) está verificado en cuatro casos publicados** (E15k): V082a, V082b, V088 y V089, que usan un
+  `unit_weight_sat` distinto de `unit_weight` bajo la piezométrica. Cumplen sus checks y cSlope los reproduce
+  ([índice de casos](../verification/cases/INDEX.md)). La aplicación ya **no** emite el aviso «γsat sin verificar»; sigue
+  la nota de que γsat sea menor que γ. Sin línea piezométrica, γsat no interviene en el cálculo, y la verificación no
+  cubre otras combinaciones (por ejemplo, γsat con `ru`).
 - **La piezométrica se prolonga en horizontal hasta los bordes del modelo** cuando no cubre todo su ancho, con el nivel
   de su extremo más cercano. Se dibuja punteada y la leyenda dice «Piezométrica (extrapolada)».
 - **`ru` tiene precedencia sobre la piezométrica:** si un material tiene `ru` y el modelo también tiene línea

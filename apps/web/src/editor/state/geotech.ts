@@ -1,7 +1,7 @@
 // Avisos geotécnicos del modelo (R9-05c/d, R9-12a). Puro: lo usan `validateLocal` (Diagnósticos) y el informe PDF, de modo que
 // los dos dicen lo mismo. Ninguno bloquea el cálculo ni cambia el contrato del motor (E12): solo hacen visible lo que el motor hace.
 //
-// - γsat: el cálculo con γsat todavía no se ha contrastado con otro programa (`helpContent.ts`).
+// - γsat: ya no lleva aviso de «sin verificar»: lo verifican V082a, V082b, V088 y V089 (E15k); solo avisa γsat < γ.
 // - γsat < γ: un suelo saturado no pesa menos que el seco; casi siempre es un error de captura.
 // - ru y piezométrica a la vez: en un material con `ru`, la presión de poros es `ru·σv` y la piezométrica **no se usa** para esa
 //   presión (`crates/ogs-core/src/slicer.rs:604-610`: `if let Some(ru) = m.ru { ru·σv } else if let Some(z) = piezo {…}`).
@@ -16,7 +16,7 @@ import { isImperialUnits } from './units';
 
 export interface GeotechAdvisory {
   /** Código estable (`editor.*`). */
-  code: 'editor.gamma_sat_unverified' | 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated' | 'editor.undrained_ru';
+  code: 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated' | 'editor.undrained_ru';
   text: string;
   /** Puntero JSON al dato que lo causa. */
   path: string | null;
@@ -72,24 +72,11 @@ export function piezoExtension(doc: ModelDoc): { left: [Point, Point] | null; ri
   return left || right ? { left, right } : null;
 }
 
-/** Avisos geotécnicos del documento, en el orden γsat, γsat < γ, ru + piezométrica, piezométrica corta. */
+/** Avisos geotécnicos del documento, en el orden γsat < γ, ru + piezométrica, piezométrica corta. */
 export function geotechAdvisories(doc: ModelDoc): GeotechAdvisory[] {
   const out: GeotechAdvisory[] = [];
   const materials = Array.isArray(doc.materials) ? doc.materials : [];
   const piezo = validPiezo(doc);
-
-  const withSat = materials.map((m, i) => ({ m, i })).filter(({ m }) => isNum(m.unit_weight_sat));
-  if (withSat.length > 0) {
-    const names = withSat.map(({ m }) => materialName(m)).join(', ');
-    const noEffect = piezo ? '' : ' Sin línea piezométrica γsat no interviene en el cálculo.';
-    out.push({
-      code: 'editor.gamma_sat_unverified',
-      text:
-        `${withSat.length === 1 ? 'El material' : 'Los materiales'} ${names} usa${withSat.length === 1 ? '' : 'n'} γsat: ` +
-        `el cálculo con γsat todavía no está verificado frente a otro programa. Contraste el resultado antes de usarlo.${noEffect}`,
-      path: `/materials/${(withSat[0] as { i: number }).i}/unit_weight_sat`,
-    });
-  }
 
   for (let i = 0; i < materials.length; i += 1) {
     const m = materials[i] as Material;

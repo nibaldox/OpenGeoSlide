@@ -7,7 +7,7 @@ import type { Issue, ModelDoc } from '../types';
 import { baseDoc, mat, singleRegionDoc, square, twoRegionDoc } from './testFixtures';
 import { RULE_TEXT, validateLocal, validateLocalCached } from './validateLocal';
 
-const GEOTECH_CODES = new Set(['editor.gamma_sat_unverified', 'editor.gamma_sat_lt_gamma', 'editor.ru_over_piezo', 'editor.piezo_extrapolated']);
+const GEOTECH_CODES = new Set(['editor.gamma_sat_lt_gamma', 'editor.ru_over_piezo', 'editor.piezo_extrapolated']);
 const codes = (issues: Issue[]): string[] => issues.map((i) => i.code);
 
 describe('validateLocal: modelo válido', () => {
@@ -198,9 +198,9 @@ describe('validateLocal: materiales', () => {
       mat('m1', { cohesion: 0, friction_angle: 0, ru: 0, unit_weight_sat: null }),
       mat('m2', { friction_angle: 89.9, ru: 0.99, unit_weight_sat: 21 }),
     ];
-    // Sin errores; solo los avisos geotécnicos (γsat sin verificar y ru con piezométrica).
+    // Sin errores; solo los avisos geotécnicos (ru con piezométrica; γsat ≥ γ ya no avisa, E15k).
     expect(validateLocal(doc).filter((i) => i.severity === 'error')).toEqual([]);
-    expect(codes(validateLocal(doc))).toEqual(['editor.gamma_sat_unverified', 'editor.ru_over_piezo']);
+    expect(codes(validateLocal(doc))).toEqual(['editor.ru_over_piezo']);
   });
 });
 
