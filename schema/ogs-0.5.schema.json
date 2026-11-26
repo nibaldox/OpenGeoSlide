@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "ogs-0.5.schema.json",
   "title": "OpenGeoSlide model (.ogs.json) v0.5",
-  "description": "Formato de modelo v0.5 (briefs/00_CONTRATOS.md §1, briefs/01_CONTRATOS_FASE1.md F1.1, briefs/02_CONTRATOS_FASE3.md F3.1 y briefs/03_CONTRATOS_REFUERZOS.md F4.1 y F4.2 y briefs/04_CONTRATOS_GRIETA_AGUA.md F5.1 y F5.2). Admite version 0.1, 0.2, 0.3, 0.4 y 0.5. Con version 0.1, loads solo puede ser [] y analysis.seismic solo null o ausente (igual que ogs-core); el resto de usos de loads y seismic exigen version 0.2 o posterior. Cada campo o variante nueva de la Fase 3a exige version 0.3: model \"undrained\", los campos undrained_strength, strength_datum, strength_gradient y strength_limit, surface.type \"polyline\", los métodos morgenstern_price, janbu_simplified y janbu_corrected, y analysis.interslice (un valor null cuenta como ausente, igual que en ogs-core). La lista reinforcements (anchor, nail, geosynthetic, pile y sheet_pile) exige version 0.4: con una versión menor solo puede ser [] (null no se admite, igual que loads). analysis.tension_crack (depth: número finito mayor que 0 o la cadena \\\"auto\\\"; water_fill: número en [0, 1], obligatorio y sin valor por defecto; sin otros campos) exige version 0.5: con una versión menor solo puede ser null o estar ausente (igual que en ogs-core). El agua embalsada (la piezométrica sobre el terreno) no tiene campo y se aplica en todas las versiones (D1). Las cotas son las de briefs/00_CONTRATOS.md §4.5 y las del motor: el esquema y el binario ogs aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede expresar y valida solo el motor: material de cada región existente, ids de material y de carga únicos, x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, polígonos simples sin solapes ni áreas degeneradas, piezométrica con x estrictamente creciente, rangos entry/exit con lo ≤ hi y dentro del modelo, n_entry·n_exit·n_radius ≤ 2 000 000, x estrictamente creciente (con separación de al menos 1e-9 por el ancho del modelo) en analysis.surface de tipo polyline, los puntos de interslice.data_points (ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0), y, en reinforcements, los ids únicos, la longitud mayor que 0, x1 = x2 en sheet_pile y pullout.bonded_length ≤ longitud del elemento. Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados.",
+  "description": "Formato de modelo v0.5 (briefs/00_CONTRATOS.md §1, briefs/01_CONTRATOS_FASE1.md F1.1, briefs/02_CONTRATOS_FASE3.md F3.1 y briefs/03_CONTRATOS_REFUERZOS.md F4.1 y F4.2 y briefs/04_CONTRATOS_GRIETA_AGUA.md F5.1 y F5.2). Admite version 0.1, 0.2, 0.3, 0.4 y 0.5. Con version 0.1, loads solo puede ser [] y analysis.seismic solo null o ausente (igual que ogs-core); el resto de usos de loads y seismic exigen version 0.2 o posterior. Cada campo o variante nueva de la Fase 3a exige version 0.3: model \"undrained\", los campos undrained_strength, strength_datum, strength_gradient y strength_limit, surface.type \"polyline\", los métodos morgenstern_price, janbu_simplified y janbu_corrected, y analysis.interslice (un valor null cuenta como ausente, igual que en ogs-core). La lista reinforcements (anchor, nail, geosynthetic, pile y sheet_pile) exige version 0.4: con una versión menor solo puede ser [] (null no se admite, igual que loads). analysis.tension_crack (depth: número finito mayor que 0 o la cadena \\\"auto\\\"; water_fill: número en [0, 1], obligatorio y sin valor por defecto; sin otros campos) exige version 0.5: con una versión menor solo puede ser null o estar ausente (igual que en ogs-core). El agua embalsada (la piezométrica sobre el terreno) no tiene campo y se aplica en todas las versiones (D1). Las cotas son las de briefs/00_CONTRATOS.md §4.5 y las del motor: el esquema y el binario ogs aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede expresar y valida solo el motor: material de cada región existente, ids de material y de carga únicos, x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, polígonos simples sin solapes ni áreas degeneradas, piezométrica con x estrictamente creciente, rangos entry/exit con lo ≤ hi y dentro del modelo, n_entry·n_exit·n_radius ≤ 2 000 000, x estrictamente creciente (con separación de al menos 1e-9 por el ancho del modelo) en analysis.surface de tipo polyline, los puntos de interslice.data_points (ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0), y, en reinforcements, los ids únicos, la longitud mayor que 0, x1 = x2 en sheet_pile y pullout.bonded_length ≤ longitud del elemento. Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados. En un pile (E15i-1, solo version 0.5): force pasa a ser opcional y aparecen lateral_pressure (model ito_matsui, diameter > 0, location centroid o slip_surface, obligatorio) y capacity (shear y/o moment > 0); exactamente uno de force y lateral_pressure; capacity solo con lateral_pressure; con una versión menor ambos solo pueden ser null o estar ausentes (igual que en ogs-core).",
   "type": "object",
   "required": [
     "format",
@@ -146,6 +146,37 @@
             "properties": {
               "tension_crack": {
                 "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 a 0.4: lateral_pressure y capacity de un pile solo pueden ser null o estar ausentes (E15i-1).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3",
+              "0.4"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reinforcements": {
+            "items": {
+              "properties": {
+                "lateral_pressure": {
+                  "type": "null"
+                },
+                "capacity": {
+                  "type": "null"
+                }
               }
             }
           }
@@ -689,7 +720,7 @@
       }
     },
     "pile": {
-      "description": "pile (F4.2): pilote o micropilote con fuerza de corte constante por pilote (force, ≥ 0) y spacing (por defecto 1). La cabeza (x1, y1) es el extremo superior; longitud mayor que 0. direction angle exige angle en (−90, 90), medido sobre la horizontal (0 es horizontal); con tangent y perpendicular angle está prohibido. La fuerza actúa en el cruce con la superficie de deslizamiento (E14m-3: no hay campo location; se rechaza como campo desconocido).",
+      "description": "pile (F4.2, E15i-1): pilote o micropilote. La cabeza (x1, y1) es el extremo superior; longitud mayor que 0. Con force (≥ 0, fuerza de corte constante por pilote) o, solo con version 0.5, con lateral_pressure (fuerza por la presión del suelo, Ito y Matsui 1975): exactamente uno de los dos (null cuenta como ausente). capacity (shear, moment, al menos uno, > 0) solo se admite junto con lateral_pressure. spacing por defecto 1; con lateral_pressure el pilote es vertical (|x2 − x1| ≤ 1e-9·L) y spacing > diameter (solo el motor lo valida). direction angle exige angle en (−90, 90), medido sobre la horizontal (0 es horizontal); con tangent y perpendicular angle está prohibido. La fuerza actúa en el cruce con la superficie de deslizamiento (E14m-3: no hay campo location en el pilote; el de lateral_pressure es otro y se rechaza aquí como campo desconocido).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -700,7 +731,6 @@
         "x2",
         "y2",
         "application",
-        "force",
         "direction"
       ],
       "properties": {
@@ -730,7 +760,10 @@
           ]
         },
         "force": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "spacing": {
@@ -754,6 +787,26 @@
           ],
           "exclusiveMinimum": -90,
           "exclusiveMaximum": 90
+        },
+        "lateral_pressure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/lateral_pressure"
+            }
+          ]
+        },
+        "capacity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pile_capacity"
+            }
+          ]
         }
       },
       "allOf": [
@@ -778,6 +831,39 @@
           "else": {
             "properties": {
               "angle": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "description": "force o lateral_pressure, exactamente uno (E15i-1); capacity solo con lateral_pressure.",
+          "if": {
+            "required": [
+              "lateral_pressure"
+            ],
+            "properties": {
+              "lateral_pressure": {
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "force": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "force"
+            ],
+            "properties": {
+              "force": {
+                "type": "number"
+              },
+              "capacity": {
                 "type": "null"
               }
             }
@@ -1376,6 +1462,74 @@
           "default": true
         }
       }
+    },
+    "lateral_pressure": {
+      "description": "Presión lateral del suelo sobre un pilote (solo version 0.5, E15i-1). model: ito_matsui (Ito y Matsui 1975, ecs. 13, 14 y 23). diameter: número finito > 0 en la unidad de longitud del modelo. location: obligatorio, sin valor por defecto; centroid (la fuerza actúa sobre el eje del pilote a L_m sobre el cruce, Cai y Ugai 2000) o slip_surface (en el cruce).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "diameter",
+        "location"
+      ],
+      "properties": {
+        "model": {
+          "const": "ito_matsui"
+        },
+        "diameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "location": {
+          "enum": [
+            "centroid",
+            "slip_surface"
+          ]
+        }
+      }
+    },
+    "pile_capacity": {
+      "description": "Topes de la fuerza del suelo de un pilote con lateral_pressure (solo version 0.5, E15i-1): shear (fuerza por pilote) y moment (momento por pilote, fuerza por longitud), cada uno finito y > 0; al menos uno de los dos (null cuenta como ausente).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shear": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "moment": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "shear"
+          ],
+          "properties": {
+            "shear": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "required": [
+            "moment"
+          ],
+          "properties": {
+            "moment": {
+              "type": "number"
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -30,6 +30,15 @@
 //! `crossing_nodes` it is the one centred on `x_c`. A crossing that cannot apply a force and that is decided before
 //! slicing (over the ground, no capacity, a passive element that the sliding compresses) adds no nodes (E14o-11).
 //!
+//! Pile with `lateral_pressure` (v0.5, E15i): the force is not given but comes from the pressure of the soil between
+//! the piles (Ito and Matsui 1975, equations 13, 14 and 23, with the floor of `φ = 0` of cSlope and XSLOPE). The
+//! profile `F(z) = ∫p dz`, `Q(z) = ∫p·z dz` of each such pile is built **once per analysis** ([`PileProfiles`]); at a
+//! crossing, `F(zf)` and the arm `L_m = (zf·F − Q)/F` of the resultant above it give the force, capped by the shear and
+//! the bending capacity (`min(F, shear, moment/L_m)`), at the arm `L_m` over the crossing with `centroid` and at the
+//! crossing with `slip_surface`. The report adds `soil_force`, `governs` and `arm` to those crossings only, and the
+//! note `ito_matsui_spacing_range` goes with `S/D` outside 2 to 8. Without such a pile the code is the one of v0.4
+//! (identity byte for byte).
+//!
 //! Capacity (E14c, E14m-2): `bond` and `interface` integrate `r` **exactly** along the element (piecewise linear
 //! between the cuts at the ground, the contacts and the water, and where `σ′v` changes sign); `development` is the
 //! closed ramp; without `pullout`, `T = Tmax/spacing`. Direction and compression: E14m-1 (see `apply_to_slices`).
@@ -38,9 +47,10 @@ use crate::OgsError;
 use crate::geometry::{PreparedModel, Sliding};
 use crate::loads::LINE_TOUCH_FRACTION;
 use crate::model::{
-    Application, PileDirection, Point, Pullout, Reinforcement, TensionDirection, TensionElement,
+    Application, Pile, PileCapacity, PileDirection, PileLocation, Point, Pullout, Reinforcement,
+    TensionDirection, TensionElement,
 };
-use crate::report::{ForceStatus, ReinforcementForce};
+use crate::report::{ForceStatus, Governs, ReinforcementForce};
 use crate::slicer::Slice;
 use crate::surface::Surface;
 
@@ -57,6 +67,9 @@ pub const REINFORCEMENT_ACTIVE_COMPRESSION: &str = "reinforcement_active_compres
 
 /// Offset of the nodes around a crossing, relative to the model width (E14d.2): `x_c ± 1e-6 · width`.
 pub const CROSSING_BREAK_FRACTION: f64 = 1e-6;
+
+/// A pile with `lateral_pressure` is vertical if `|x2 − x1| ≤ 1e-9·L` (E15i-1).
+pub const VERTICAL_TOLERANCE: f64 = 1e-9;
 
 /// Tangency tolerance of a circle (E14o-1), relative to the model width: an element that enters the circle less than
 /// `1e-6 · width` deep (the sagitta `r − |perp|`, the same scale as the nodes around a crossing, so the whole
@@ -197,7 +210,7 @@ pub fn validate(reinforcements: &[Reinforcement]) -> Result<(), OgsError> {
                 }
             }
             Reinforcement::Pile(p) => {
-                non_negative(&format!("{path}.force"), p.force)?;
+                check_pile_source(&path, p, length)?;
                 if let Some(s) = p.spacing {
                     positive(&format!("{path}.spacing"), s)?;
                 }
@@ -221,6 +234,65 @@ pub fn validate(reinforcements: &[Reinforcement]) -> Result<(), OgsError> {
                     pile_direction_name(p.direction),
                     p.angle,
                 )?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// `force` or `lateral_pressure`, exactly one (E15i-1), and the rules of `lateral_pressure` and `capacity`, with the
+/// JSON path of each field: `diameter` finite and > 0, a vertical pile (`|x2 − x1| ≤ 1e-9·L`), `spacing > diameter`,
+/// and a `capacity` that is not empty, with `shear` and `moment` finite and > 0 and only with `lateral_pressure`.
+fn check_pile_source(path: &str, p: &Pile, length: f64) -> Result<(), OgsError> {
+    match (&p.force, &p.lateral_pressure) {
+        (Some(_), Some(_)) => {
+            return Err(invalid(format!(
+                "{path}: force y lateral_pressure se excluyen; el pilote debe tener exactamente uno"
+            )));
+        }
+        (None, None) => {
+            return Err(invalid(format!(
+                "{path}.force: el pilote necesita force o lateral_pressure (exactamente uno)"
+            )));
+        }
+        (Some(force), None) => {
+            non_negative(&format!("{path}.force"), *force)?;
+            if p.capacity.is_some() {
+                return Err(invalid(format!(
+                    "{path}.capacity solo se admite junto con lateral_pressure"
+                )));
+            }
+            return Ok(());
+        }
+        (None, Some(_)) => {}
+    }
+    let lp = p
+        .lateral_pressure
+        .as_ref()
+        .expect("lateral_pressure checked above");
+    positive(&format!("{path}.lateral_pressure.diameter"), lp.diameter)?;
+    if (p.x2 - p.x1).abs() > VERTICAL_TOLERANCE * length {
+        return Err(invalid(format!(
+            "{path}.x2 debe ser igual a x1 (lateral_pressure exige un pilote vertical), no {} frente a {}",
+            p.x2, p.x1
+        )));
+    }
+    let spacing = p.spacing.unwrap_or(1.0);
+    if spacing.is_finite() && spacing <= lp.diameter {
+        return Err(invalid(format!(
+            "{path}.spacing debe ser mayor que lateral_pressure.diameter {}, no {spacing}",
+            lp.diameter
+        )));
+    }
+    if let Some(cap) = &p.capacity {
+        if cap.shear.is_none() && cap.moment.is_none() {
+            return Err(invalid(format!(
+                "{path}.capacity debe tener shear, moment o ambos"
+            )));
+        }
+        for (name, v) in [("shear", cap.shear), ("moment", cap.moment)] {
+            if let Some(v) = v {
+                positive(&format!("{path}.capacity.{name}"), v)?;
             }
         }
     }
@@ -389,11 +461,27 @@ pub fn crossing_nodes(
     pm: &PreparedModel,
     surface: &Surface,
 ) -> Vec<f64> {
+    crossing_nodes_with(
+        reinforcements,
+        pm,
+        surface,
+        &PileProfiles::new(reinforcements, pm),
+    )
+}
+
+/// [`crossing_nodes`] with the profiles of pressure of the piles with `lateral_pressure`, built once per analysis by
+/// [`PileProfiles::new`] (E15i-3): the search calls it for each candidate, and only the depth of the crossing changes.
+pub fn crossing_nodes_with(
+    reinforcements: &[Reinforcement],
+    pm: &PreparedModel,
+    surface: &Surface,
+    profiles: &PileProfiles,
+) -> Vec<f64> {
     let d = CROSSING_BREAK_FRACTION * (pm.x_max - pm.x_min);
     let rule = CrossingRule::new(pm);
     let s_dir = -rule.sign;
     let mut xs = Vec::new();
-    for r in reinforcements {
+    for (i, r) in reinforcements.iter().enumerate() {
         let (head, tip) = r.ends();
         let len = r.length();
         let found = crossings(head, tip, len, surface, rule);
@@ -401,7 +489,7 @@ pub fn crossing_nodes(
             continue;
         }
         let a = [(tip[0] - head[0]) / len, (tip[1] - head[1]) / len];
-        let mut profile = LazyProfile::new(r);
+        let mut profile = LazyProfile::new(profiles.get(i));
         for c in &found {
             if on_ground(pm, c, rule.tol) {
                 continue;
@@ -412,7 +500,7 @@ pub fn crossing_nodes(
             {
                 continue;
             }
-            if profile.available(pm, r, head, tip, len, c.s) <= 0.0 {
+            if profile.available(pm, r, head, tip, len, c) <= 0.0 {
                 continue;
             }
             xs.push(c.x - d);
@@ -423,17 +511,57 @@ pub fn crossing_nodes(
 }
 
 /// The profile of `bond` and `interface` of an element, built the first time that a capacity needs it (the
-/// profile does not depend on the surface, only on the element and the ground).
-struct LazyProfile {
+/// profile does not depend on the surface, only on the element and the ground). A pile with `lateral_pressure` brings
+/// its profile of pressure, built once per analysis by [`PileProfiles`] (E15i-3).
+struct LazyProfile<'a> {
     built: Option<Option<RateProfile>>,
+    pressure: Option<&'a PileProfile>,
 }
 
-impl LazyProfile {
-    fn new(_r: &Reinforcement) -> Self {
-        LazyProfile { built: None }
+impl<'a> LazyProfile<'a> {
+    fn new(pressure: Option<&'a PileProfile>) -> Self {
+        LazyProfile {
+            built: None,
+            pressure,
+        }
     }
 
-    /// `T(s)` per metre of slope, or the force of a pile or a sheet pile, at the station `s` of `r`.
+    /// `T(s)` per metre of slope, or the force of a pile or a sheet pile, at the crossing `c` of `r`; and, for a pile
+    /// with `lateral_pressure`, the detail of its force (E15i-4).
+    fn evaluate(
+        &mut self,
+        pm: &PreparedModel,
+        r: &Reinforcement,
+        head: Point,
+        tip: Point,
+        len: f64,
+        c: &Crossing,
+    ) -> (f64, Option<PileForce>) {
+        match r {
+            Reinforcement::Anchor(el)
+            | Reinforcement::Nail(el)
+            | Reinforcement::Geosynthetic(el) => {
+                if el.tensile_capacity <= 0.0 {
+                    return (0.0, None);
+                }
+                let profile = self
+                    .built
+                    .get_or_insert_with(|| rate_profile(pm, el, head, tip, len));
+                (tension_capacity(el, len, c.s, profile.as_ref()), None)
+            }
+            Reinforcement::Pile(p) => match (p.lateral_pressure.as_ref(), self.pressure) {
+                (Some(_), Some(profile)) => {
+                    let force = profile.force_at(c.y);
+                    (force.per_pile / profile.spacing, Some(force))
+                }
+                // `lateral_pressure` on a pile outside the model: no soil, no force.
+                (Some(_), None) => (0.0, None),
+                (None, _) => (p.force.unwrap_or(0.0) / p.spacing.unwrap_or(1.0), None),
+            },
+            Reinforcement::SheetPile(p) => (p.force, None),
+        }
+    }
+
     fn available(
         &mut self,
         pm: &PreparedModel,
@@ -441,23 +569,9 @@ impl LazyProfile {
         head: Point,
         tip: Point,
         len: f64,
-        s: f64,
+        c: &Crossing,
     ) -> f64 {
-        match r {
-            Reinforcement::Anchor(el)
-            | Reinforcement::Nail(el)
-            | Reinforcement::Geosynthetic(el) => {
-                if el.tensile_capacity <= 0.0 {
-                    return 0.0;
-                }
-                let profile = self
-                    .built
-                    .get_or_insert_with(|| rate_profile(pm, el, head, tip, len));
-                tension_capacity(el, len, s, profile.as_ref())
-            }
-            Reinforcement::Pile(p) => p.force / p.spacing.unwrap_or(1.0),
-            Reinforcement::SheetPile(p) => p.force,
-        }
+        self.evaluate(pm, r, head, tip, len, c).0
     }
 }
 
@@ -909,6 +1023,34 @@ pub fn apply_with_state(
     surface: &Surface,
     slices: &mut [Slice],
 ) -> (Vec<ReinforcementForce>, bool) {
+    apply_with_state_using(
+        reinforcements,
+        pm,
+        surface,
+        slices,
+        &PileProfiles::new(reinforcements, pm),
+    )
+}
+
+/// [`apply_to_slices`] with the profiles of pressure built once per analysis (see [`crossing_nodes_with`]).
+pub fn apply_to_slices_with(
+    reinforcements: &[Reinforcement],
+    pm: &PreparedModel,
+    surface: &Surface,
+    slices: &mut [Slice],
+    profiles: &PileProfiles,
+) -> Vec<ReinforcementForce> {
+    apply_with_state_using(reinforcements, pm, surface, slices, profiles).0
+}
+
+/// [`apply_with_state`] with the profiles of pressure built once per analysis (see [`crossing_nodes_with`]).
+pub fn apply_with_state_using(
+    reinforcements: &[Reinforcement],
+    pm: &PreparedModel,
+    surface: &Surface,
+    slices: &mut [Slice],
+    profiles: &PileProfiles,
+) -> (Vec<ReinforcementForce>, bool) {
     let rule = CrossingRule::new(pm);
     let s_dir = -rule.sign;
     let touch = LINE_TOUCH_FRACTION * (pm.x_max - pm.x_min);
@@ -916,7 +1058,7 @@ pub fn apply_with_state(
     let compressed_from = near_normal();
     let mut out = Vec::new();
     let mut active_compressed = false;
-    for r in reinforcements {
+    for (index, r) in reinforcements.iter().enumerate() {
         let (head, tip) = r.ends();
         let len = r.length();
         let found = crossings(head, tip, len, surface, rule);
@@ -926,9 +1068,9 @@ pub fn apply_with_state(
         let a = [(tip[0] - head[0]) / len, (tip[1] - head[1]) / len];
         let application = r.application();
         // The profile of `bond` and `interface` is built once per element, and only if it crosses.
-        let mut profile = LazyProfile::new(r);
+        let mut profile = LazyProfile::new(profiles.get(index));
         for (crossing, c) in found.iter().enumerate() {
-            let available = profile.available(pm, r, head, tip, len, c.s);
+            let (available, pile_force) = profile.evaluate(pm, r, head, tip, len, c);
             let mut force = ReinforcementForce {
                 id: r.id().to_string(),
                 crossing,
@@ -940,6 +1082,9 @@ pub fn apply_with_state(
                 fy: 0.0,
                 application,
                 status: ForceStatus::OutsideMass,
+                soil_force: pile_force.map(|f| f.soil_per_pile / f.spacing),
+                governs: pile_force.map(|f| f.governs),
+                arm: pile_force.map(|f| f.arm),
             };
             // On the ground there is no soil slice to take the force, and `crossing_nodes` added no nodes (E14o-11).
             if on_ground(pm, c, rule.tol) {
@@ -983,10 +1128,22 @@ pub fn apply_with_state(
             sl.crossing = true; // E14n-1
             let y_base = 0.5 * (sl.y_base_left + sl.y_base_right);
             let h = s_dir * px;
+            // E15i-5: with `centroid` the force of a pile with `lateral_pressure` acts on the axis of the pile at the
+            // arm `L_m` of the resultant above the crossing; in every other case, at the crossing.
+            let y_app = match (r, pile_force) {
+                (Reinforcement::Pile(p), Some(f))
+                    if f.arm > 0.0
+                        && p.lateral_pressure.map(|lp| lp.location)
+                            == Some(PileLocation::Centroid) =>
+                {
+                    c.y + f.arm
+                }
+                _ => c.y,
+            };
             let (v, hm, de) = (
                 -py,
-                h * (c.y - y_base),
-                arm.map_or(0.0, |(yc, rad)| h * (yc - c.y) / rad),
+                h * (y_app - y_base),
+                arm.map_or(0.0, |(yc, rad)| h * (yc - y_app) / rad),
             );
             match application {
                 Application::Active => {
@@ -1014,7 +1171,8 @@ pub fn apply_with_state(
 /// - `reinforcement_compression_ignored`: some crossing is `compression_ignored`;
 /// - `reinforcement_active_compression`: `active_compressed` of [`apply_with_state`], an active element applied while
 ///   the sliding compresses it;
-/// - `structural_checks_not_covered`: the model has a `pile` or a `sheet_pile`, crossed or not.
+/// - `structural_checks_not_covered`: the model has a `pile` or a `sheet_pile`, crossed or not;
+/// - `ito_matsui_spacing_range`: some pile with `lateral_pressure` has `S/D` outside 2 to 8 (E15i-8), crossed or not.
 ///
 /// `no_capacity` raises no note (E14m-2).
 pub fn notes_with(
@@ -1042,10 +1200,301 @@ pub fn notes_with(
     if reinforcements.iter().any(Reinforcement::is_pile) {
         out.push(STRUCTURAL_CHECKS_NOT_COVERED);
     }
+    if ito_matsui_out_of_range(reinforcements) {
+        out.push(ITO_MATSUI_SPACING_RANGE);
+    }
     out
 }
 
 /// [`notes_with`] without the note of the active compressed element.
 pub fn notes(reinforcements: &[Reinforcement], forces: &[ReinforcementForce]) -> Vec<&'static str> {
     notes_with(reinforcements, forces, false)
+}
+
+// ------------------------------------------------------------------------------------------------ Ito-Matsui
+
+/// Note (E15i-8): `S/D` of a pile with `lateral_pressure` outside 2 to 8, where the formula loses validity.
+pub const ITO_MATSUI_SPACING_RANGE: &str = "ito_matsui_spacing_range";
+
+/// Range of `S/D` of the formula of Ito and Matsui (E15i-8): below 2 it overestimates the force, above 8 it
+/// underestimates it (Ukritchon and Keawsawasvong 2017).
+pub const ITO_MATSUI_SD_RANGE: (f64, f64) = (2.0, 8.0);
+
+/// Step of the grid of the profile of pressure (E15i-3): 0.05 m, or its equivalent in feet in an imperial model.
+const PRESSURE_STEP_M: f64 = 0.05;
+
+/// The step of the grid of the profile of pressure in the length unit of the model (`units`): 0.05 m, or 0.05 m in
+/// feet (`0.164 ft`) with `"imperial"` (E15i-3).
+pub fn pressure_step(units: Option<&str>) -> f64 {
+    if units.is_some_and(|u| u.eq_ignore_ascii_case("imperial")) {
+        PRESSURE_STEP_M / 0.3048
+    } else {
+        PRESSURE_STEP_M
+    }
+}
+
+/// `φ` under which the formula of `φ = 0` and the total stress are used (E15i-2): 0.01°, as cSlope.
+const PHI_ZERO_DEG: f64 = 0.01;
+
+/// `(A1, A2)` of `p(z) = c·A1 + σ′v·A2`, force per pile per unit of depth, from the equations 13 and 14 of Ito and
+/// Matsui (1975) with `φ > 0` and the equation 23 with `φ = 0`, **without** the floor of `φ = 0`. `spacing` is
+/// `S = D1` of the paper (between axes), `d` the diameter, `D2 = S − d`, `Nφ = tan²(45° + φ/2)` and
+/// `X = √Nφ·tanφ + Nφ − 1`:
+///
+/// ```text
+/// A2 = (S·(S/D2)^X·exp[(d/D2)·Nφ·tanφ·tan(π/8 + φ/4)] − D2) / Nφ
+/// A1 = S·(S/D2)^X·[(E − 2√Nφ·tanφ − 1)/(Nφ·tanφ) + G] − S·G + 2·D2/√Nφ,   G = (2tanφ + 2√Nφ + Nφ^-½)/X
+/// φ = 0:  A1 = S·(3·ln(S/D2) + (d/D2)·tan(π/8)) − 2d,  A2 = d
+/// ```
+fn ito_matsui_paper(spacing: f64, d: f64, phi_deg: f64) -> (f64, f64) {
+    let (s, d2) = (spacing, spacing - d);
+    if phi_deg < PHI_ZERO_DEG {
+        let tan_pi8 = (std::f64::consts::FRAC_PI_8).tan();
+        return (s * (3.0 * (s / d2).ln() + d / d2 * tan_pi8) - 2.0 * d, d);
+    }
+    let phi = phi_deg.to_radians();
+    let n = (std::f64::consts::FRAC_PI_4 + 0.5 * phi).tan().powi(2);
+    let (sn, tp) = (n.sqrt(), phi.tan());
+    let x = sn * tp + n - 1.0;
+    let ratio = (s / d2).powf(x);
+    let e = (d / d2 * n * tp * (std::f64::consts::FRAC_PI_8 + 0.25 * phi).tan()).exp();
+    let g = (2.0 * tp + 2.0 * sn + 1.0 / sn) / x;
+    let a1 = s * ratio * ((e - 2.0 * sn * tp - 1.0) / (n * tp) + g) - (s * g - 2.0 * d2 / sn);
+    let a2 = (s * ratio * e - d2) / n;
+    (a1, a2)
+}
+
+/// `(A1, A2)` of the pressure of Ito and Matsui (E15i-2): the equations 13, 14 and 23 of the paper with the **floor of
+/// `φ = 0`**, `A = max(A_cφ, A_φ=0)`. The floor is not in the paper: it is the rule of cSlope and XSLOPE; it keeps the
+/// force from dropping when `φ` grows and only acts with `S/D ≥ 8` (X22 §1.3). `spacing > d`.
+pub fn ito_matsui_coefficients(spacing: f64, d: f64, phi_deg: f64) -> (f64, f64) {
+    let (a1, a2) = ito_matsui_paper(spacing, d, phi_deg);
+    if phi_deg < PHI_ZERO_DEG {
+        return (a1, a2);
+    }
+    let (b1, b2) = ito_matsui_paper(spacing, d, 0.0);
+    (a1.max(b1), a2.max(b2))
+}
+
+/// `S/D` outside 2 to 8 of some pile with `lateral_pressure` (E15i-8): the model gets the note
+/// [`ITO_MATSUI_SPACING_RANGE`], crossed or not.
+pub fn ito_matsui_out_of_range(reinforcements: &[Reinforcement]) -> bool {
+    reinforcements.iter().any(|r| match r {
+        Reinforcement::Pile(p) => p.lateral_pressure.is_some_and(|lp| {
+            let ratio = p.spacing.unwrap_or(1.0) / lp.diameter;
+            ratio < ITO_MATSUI_SD_RANGE.0 || ratio > ITO_MATSUI_SD_RANGE.1
+        }),
+        _ => false,
+    })
+}
+
+/// The force of a pile with `lateral_pressure` at one crossing (E15i-4), per pile unless it says otherwise.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct PileForce {
+    /// `∫p dz` from the head (or the ground) to the crossing, before the caps.
+    soil_per_pile: f64,
+    /// `min(∫p dz, shear, moment / L_m)`.
+    per_pile: f64,
+    /// `L_m`, the arm of the resultant above the crossing; 0 if there is no pressure.
+    arm: f64,
+    governs: Governs,
+    spacing: f64,
+}
+
+/// Profile of the pressure of the soil on one pile with `lateral_pressure`, from the head (or the ground) down to the
+/// tip, integrated **once per analysis** (the pressure does not depend on the surface, E15i-3): the depth `z` under
+/// the ground, `F(z) = ∫p dz` and `Q(z) = ∫p·z dz` at the nodes of the grid, with the rule of the midpoint and a step
+/// of at most 0.05 m. The force at a crossing is `F(zf)` by linear interpolation between nodes, and the arm of the
+/// resultant above it `L_m = (zf·F − Q)/F`.
+#[derive(Debug, Clone)]
+pub struct PileProfile {
+    z: Vec<f64>,
+    f: Vec<f64>,
+    q: Vec<f64>,
+    ground: f64,
+    spacing: f64,
+    capacity: Option<PileCapacity>,
+}
+
+impl PileProfile {
+    /// The force at the crossing at height `y_c` (E15i-3, E15i-4).
+    fn force_at(&self, y_c: f64) -> PileForce {
+        let zf = self.ground - y_c;
+        let none = PileForce {
+            soil_per_pile: 0.0,
+            per_pile: 0.0,
+            arm: 0.0,
+            governs: Governs::Soil,
+            spacing: self.spacing,
+        };
+        // `zf ≤ z_top`: the crossing is over the head of the pile (or over the ground), no force.
+        if zf.partial_cmp(&self.z[0]) != Some(std::cmp::Ordering::Greater) {
+            return none;
+        }
+        let last = self.z.len() - 1;
+        let mut k = 1;
+        while k < last && self.z[k] < zf {
+            k += 1;
+        }
+        let span = self.z[k] - self.z[k - 1];
+        let t = if span > 0.0 {
+            ((zf - self.z[k - 1]) / span).min(1.0)
+        } else {
+            1.0
+        };
+        let soil = self.f[k - 1] + t * (self.f[k] - self.f[k - 1]);
+        if soil <= 0.0 {
+            return none;
+        }
+        let moment = zf * soil - (self.q[k - 1] + t * (self.q[k] - self.q[k - 1]));
+        let arm = (moment / soil).max(0.0);
+        let (mut per_pile, mut governs) = (soil, Governs::Soil);
+        if let Some(cap) = &self.capacity {
+            if let Some(shear) = cap.shear
+                && shear < per_pile
+            {
+                (per_pile, governs) = (shear, Governs::Shear);
+            }
+            if let Some(m) = cap.moment
+                && arm > 0.0
+                && m / arm < per_pile
+            {
+                (per_pile, governs) = (m / arm, Governs::Bending);
+            }
+        }
+        PileForce {
+            soil_per_pile: soil,
+            per_pile,
+            arm,
+            governs,
+            spacing: self.spacing,
+        }
+    }
+}
+
+/// The profiles of pressure of the piles with `lateral_pressure`, one per reinforcement (`None` for the others and for
+/// a pile outside the ground of the model). Built once per analysis by `lib.rs` and passed to
+/// [`crossing_nodes_with`] and [`apply_with_state_using`] for every candidate; without such a pile it is empty and
+/// costs nothing.
+#[derive(Debug, Clone, Default)]
+pub struct PileProfiles {
+    by_reinforcement: Vec<Option<PileProfile>>,
+}
+
+impl PileProfiles {
+    /// With the grid of 0.05 m (a model in SI units).
+    pub fn new(reinforcements: &[Reinforcement], pm: &PreparedModel) -> Self {
+        Self::with_step(reinforcements, pm, PRESSURE_STEP_M)
+    }
+
+    /// With the step of the grid in the length unit of the model: [`pressure_step`] of its `units`.
+    pub fn with_step(reinforcements: &[Reinforcement], pm: &PreparedModel, step: f64) -> Self {
+        let by_reinforcement = reinforcements
+            .iter()
+            .map(|r| match r {
+                Reinforcement::Pile(p) if p.lateral_pressure.is_some() => {
+                    build_profile(pm, p, step)
+                }
+                _ => None,
+            })
+            .collect();
+        PileProfiles { by_reinforcement }
+    }
+
+    fn get(&self, i: usize) -> Option<&PileProfile> {
+        self.by_reinforcement.get(i).and_then(Option::as_ref)
+    }
+}
+
+/// The material, its strength and the vertical stress on the column `x` at a height `y`: `p(y)` of E15i-2 and E15i-3,
+/// or `None` if there is no soil at that point.
+fn pressure_at(
+    pm: &PreparedModel,
+    x: f64,
+    y: f64,
+    spacing: f64,
+    diameter: f64,
+    column: &mut Vec<(f64, f64, usize)>,
+    scratch: &mut Vec<f64>,
+) -> Option<f64> {
+    pm.column(x, column, scratch);
+    let top = pm.top_at(x)?;
+    let tol = pm.tol();
+    let &(_, _, mat_index) = column
+        .iter()
+        .find(|&&(lo, hi, _)| lo - tol <= y && y <= hi + tol)?;
+    let piezo = pm.piezometric_y(x);
+    let mut sigma_soil = 0.0;
+    for &(lo, hi, mat) in column.iter() {
+        let (lo_c, hi_c) = (lo.max(y), hi.min(top));
+        if hi_c <= lo_c {
+            continue;
+        }
+        let m = &pm.materials[mat];
+        sigma_soil += match (m.unit_weight_sat, piezo) {
+            (Some(gs), Some(z)) => {
+                let below = (hi_c.min(z) - lo_c).max(0.0);
+                gs * below + m.unit_weight * ((hi_c - lo_c) - below)
+            }
+            _ => m.unit_weight * (hi_c - lo_c),
+        };
+    }
+    // The ponded water over the ground adds its weight to `σv` (E15c, E15i-3); loads do not.
+    let sigma_total = sigma_soil + piezo.map_or(0.0, |z| pm.gamma_w * (z - top).max(0.0));
+    let material = &pm.materials[mat_index];
+    let (c, tan_phi) = crate::strength::resolve(material, y);
+    let phi_deg = tan_phi.atan().to_degrees();
+    let (a1, a2) = ito_matsui_coefficients(spacing, diameter, phi_deg);
+    // φ < 0.01° (or undrained): the equation 23 with the **total** stress; otherwise `σ′v = σv − u − ru·σ_soil`.
+    let sigma = if phi_deg < PHI_ZERO_DEG {
+        sigma_total
+    } else {
+        let u = piezo.map_or(0.0, |z| pm.gamma_w * (z - y).max(0.0));
+        let ru = material.ru.unwrap_or(0.0);
+        (sigma_total - u - ru * sigma_soil).max(0.0)
+    };
+    Some(c * a1 + sigma * a2)
+}
+
+/// The profile of a pile with `lateral_pressure` (E15i-3). `None` if the pile is outside the ground of the model.
+fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfile> {
+    let lp = pile.lateral_pressure?;
+    let (x, spacing, d) = (pile.x1, pile.spacing.unwrap_or(1.0), lp.diameter);
+    let ground = pm.top_at(x)?;
+    let (head, tip) = (pile.y1.max(pile.y2), pile.y1.min(pile.y2));
+    let z_top = (ground - head).max(0.0);
+    let z_tip = (ground - tip).max(z_top);
+    let n = (((z_tip - z_top) / step).ceil() as usize).max(1);
+    let dz = (z_tip - z_top) / n as f64;
+    // On a vertical contact (`x` on the abscissa of a vertex) both sides count and the smaller pressure is taken
+    // (the conservative one, like E14o-5); a model edge has only its inner side.
+    let tol = pm.tol();
+    let xs: Vec<f64> = if pm.vertex_xs.iter().any(|&v| (v - x).abs() <= tol) {
+        vec![x - 4.0 * tol, x + 4.0 * tol]
+    } else {
+        vec![x]
+    };
+    let mut column = Vec::with_capacity(8);
+    let mut scratch = Vec::with_capacity(8);
+    let (mut z, mut f, mut q) = (vec![z_top], vec![0.0], vec![0.0]);
+    for k in 0..n {
+        let zm = z_top + (k as f64 + 0.5) * dz;
+        let y = ground - zm;
+        let p = xs
+            .iter()
+            .filter_map(|&xe| pressure_at(pm, xe, y, spacing, d, &mut column, &mut scratch))
+            .reduce(f64::min)
+            .unwrap_or(0.0);
+        z.push(z_top + (k as f64 + 1.0) * dz);
+        f.push(f[k] + p * dz);
+        q.push(q[k] + p * zm * dz);
+    }
+    Some(PileProfile {
+        z,
+        f,
+        q,
+        ground,
+        spacing,
+        capacity: pile.capacity,
+    })
 }

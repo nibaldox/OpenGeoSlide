@@ -1,0 +1,97 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X22-V013d",
+  "title": "X22-V013d",
+  "notes": "D1/D = 3; c\u00edrculo cr\u00edtico de cSlope con location centroid"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "model": "mohr_coulomb",
+   "unit_weight": 20.0,
+   "unit_weight_sat": null,
+   "cohesion": 10.0,
+   "friction_angle": 20.0,
+   "ru": null
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     0.0,
+     -10.0
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     10.0,
+     0.0
+    ],
+    [
+     25.0,
+     10.0
+    ],
+    [
+     35.0,
+     10.0
+    ],
+    [
+     35.0,
+     -10.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "interslice": {
+   "function": "constant"
+  },
+  "surface": {
+   "type": "circle",
+   "xc": 8.788499680024017,
+   "yc": 23.42301170483189,
+   "r": 23.453520125607504
+  }
+ },
+ "reinforcements": [
+  {
+   "type": "pile",
+   "id": "P1",
+   "x1": 17.5,
+   "y1": 5.0,
+   "x2": 17.5,
+   "y2": -10.0,
+   "spacing": 3.2,
+   "direction": "angle",
+   "angle": 0.0,
+   "application": "passive",
+   "lateral_pressure": {
+    "model": "ito_matsui",
+    "diameter": 0.8,
+    "location": "centroid"
+   }
+  }
+ ]
+}

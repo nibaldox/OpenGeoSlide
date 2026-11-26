@@ -377,6 +377,13 @@ fn analyze_method(
     let analysis = &model.analysis;
     let n = analysis.slices;
 
+    // E15i-3: the profile of pressure of each pile with `lateral_pressure`, once per analysis (it does not depend on
+    // the surface); empty, and free, without such a pile.
+    let pile_profiles = reinforcement::PileProfiles::with_step(
+        &model.reinforcements,
+        pm,
+        reinforcement::pressure_step(model.units.as_deref()),
+    );
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
@@ -403,7 +410,12 @@ fn analyze_method(
                     let mut nodes = if model.reinforcements.is_empty() {
                         Vec::new()
                     } else {
-                        reinforcement::crossing_nodes(&model.reinforcements, pm, &surface)
+                        reinforcement::crossing_nodes_with(
+                            &model.reinforcements,
+                            pm,
+                            &surface,
+                            &pile_profiles,
+                        )
                     };
                     crossings = (nodes.len() / 2) as u32;
                     if let Some(plan) = &plan {
@@ -421,11 +433,12 @@ fn analyze_method(
                 }
                 water::apply_ponded(pm, &surface, &mut slices);
                 if !model.reinforcements.is_empty() {
-                    reinforcement::apply_to_slices(
+                    reinforcement::apply_to_slices_with(
                         &model.reinforcements,
                         pm,
                         &surface,
                         &mut slices,
+                        &pile_profiles,
                     );
                 }
                 let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
@@ -471,6 +484,10 @@ fn analyze_method(
                             .any(model::Reinforcement::is_pile)
                             .then(|| reinforcement::STRUCTURAL_CHECKS_NOT_COVERED.to_string()),
                     )
+                    .chain(
+                        reinforcement::ito_matsui_out_of_range(&model.reinforcements)
+                            .then(|| reinforcement::ITO_MATSUI_SPACING_RANGE.to_string()),
+                    )
                     .collect(),
                 correction_factor: None,
                 interslice: interslice_report(analysis, method),
@@ -505,7 +522,7 @@ fn analyze_method(
         let mut nodes = if model.reinforcements.is_empty() {
             Vec::new()
         } else {
-            reinforcement::crossing_nodes(&model.reinforcements, pm, &surface)
+            reinforcement::crossing_nodes_with(&model.reinforcements, pm, &surface, &pile_profiles)
         };
         if let Some(plan) = &crack_plan {
             nodes.extend_from_slice(&plan.breaks);
@@ -532,7 +549,13 @@ fn analyze_method(
     let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
         (Vec::new(), false)
     } else {
-        reinforcement::apply_with_state(&model.reinforcements, pm, &surface, &mut slices)
+        reinforcement::apply_with_state_using(
+            &model.reinforcements,
+            pm,
+            &surface,
+            &mut slices,
+            &pile_profiles,
+        )
     };
     // E14d.3, E14e, E14h: the notes come from the forces of the final surface (also for a method that did not
     // converge), before they are cleared below.
