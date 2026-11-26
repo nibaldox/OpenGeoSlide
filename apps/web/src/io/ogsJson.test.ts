@@ -17,7 +17,12 @@ function loadCase(file: string): { text: string; parsed: VerificationCase } {
 }
 
 const diffDir = new URL('../../../../verification/differential/cases/', import.meta.url);
-const diffFiles = readdirSync(diffDir).filter((f) => f.endsWith('.ogs.json')).sort();
+const allDiffFiles = readdirSync(diffDir).filter((f) => f.endsWith('.ogs.json')).sort();
+const declaredVersion = (file: string): string => (JSON.parse(readFileSync(new URL(file, diffDir), 'utf8')) as { version: string }).version;
+/** Los modelos de la batería anteriores a la Fase 3 (v0.1 y v0.2): deben seguir guardándose en 0.2 y bit a bit. */
+const diffFiles = allDiffFiles.filter((f) => declaredVersion(f) !== '0.3');
+/** Los de la v0.3 (los agrega la verificación de la Fase 3a): se guardan en 0.3. */
+const diffFilesV03 = allDiffFiles.filter((f) => declaredVersion(f) === '0.3');
 
 type Json = Record<string, unknown>;
 
@@ -48,7 +53,7 @@ function isSubsequence(keys: string[], order: string[]): boolean {
 }
 
 describe('ogsJson: ida y vuelta con los casos de verificación', () => {
-  it('hay al menos los 21 casos de v0.1 y v0.2', () => {
+  it('hay al menos los 21 casos de v0.1 y v0.2', () => {  // el índice crece con el lote 0 de W1v
     expect(caseFiles.length).toBeGreaterThanOrEqual(21);
   });
 
@@ -59,8 +64,10 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
       expect(opened.doc).not.toBeNull();
       expect(opened.issues.filter((i) => i.severity === 'error')).toEqual([]);
       const saved = JSON.parse(saveOgsJson(opened.doc as ModelDoc)) as Record<string, unknown>;
-      expect(saved.version).toBe('0.2');
-      expect(saved).toEqual({ ...(parsed.model as unknown as Json), version: '0.2' });
+      // F3.9: los casos de v0.1 y v0.2 se guardan en 0.2; uno que ya declare 0.3 conserva su versión.
+      const version = parsed.model.version === '0.3' ? '0.3' : '0.2';
+      expect(saved.version).toBe(version);
+      expect(saved).toEqual({ ...(parsed.model as unknown as Json), version });
       expect(isSubsequence(Object.keys(saved), CANONICAL_TOP)).toBe(true);
     });
 
@@ -78,9 +85,16 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
 });
 
 describe('ogsJson: ida y vuelta con los 14 modelos de la batería diferencial (E12g, R5-02)', () => {
-  it('hay 14 modelos', () => {
-    expect(diffFiles).toHaveLength(14);
+  it('hay al menos los 14 modelos de v0.1 y v0.2', () => {
+    expect(diffFiles.length).toBeGreaterThanOrEqual(14);
   });
+
+  for (const file of diffFilesV03) {
+    it(`${file} (v0.3): abrir y guardar conserva todos los números y la versión 0.3`, () => {
+      const original = JSON.parse(readFileSync(new URL(file, diffDir), 'utf8')) as Json;
+      expect(roundTrip(original)).toEqual(original);
+    });
+  }
 
   for (const file of diffFiles) {
     const text = readFileSync(new URL(file, diffDir), 'utf8');
@@ -146,7 +160,7 @@ describe('ogsJson: abrir', () => {
     const badFormat = openOgsJson(JSON.stringify({ ...base(), format: 'otro' }));
     expect(badFormat.doc).toBeNull();
     expect(badFormat.issues[0]).toMatchObject({ severity: 'error', code: 'io.format' });
-    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.3' }));
+    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.4' }));
     expect(badVersion.doc).toBeNull();
     expect(badVersion.issues[0]?.code).toBe('io.version');
     expect(openOgsJson(JSON.stringify({ ...base(), version: undefined })).doc).toBeNull();
@@ -493,11 +507,11 @@ describe('ogsJson: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
     );
     expect(f?.detail).toBe('format = "otro"');
     expect(firstError({ ...base(), format: undefined })?.text).toContain('no tiene marca de formato');
-    const v = firstError({ ...base(), version: '0.3' });
+    const v = firstError({ ...base(), version: '0.4' });
     expect(v?.text).toBe(
-      'El archivo declara la versión "0.3" del formato, y esta aplicación solo abre las versiones 0.1 y 0.2. Guárdelo de nuevo con una versión compatible.',
+      'El archivo declara la versión "0.4" del formato, y esta aplicación solo abre las versiones 0.1, 0.2 y 0.3. Guárdelo de nuevo con una versión compatible.',
     );
-    expect(v?.detail).toBe('version = "0.3"');
+    expect(v?.detail).toBe('version = "0.4"');
     expect(firstError({ ...base(), version: undefined })?.text).toContain('ninguna versión');
   });
 
