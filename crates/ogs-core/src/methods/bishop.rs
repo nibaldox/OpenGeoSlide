@@ -31,6 +31,8 @@ use super::{
 use crate::model::MethodKind;
 use crate::slicer::Slice;
 
+/// Reason of the `Invalid` state of Bishop on a non-circular surface (E13f).
+const NON_CIRCULAR_MESSAGE: &str = "bishop_non_circular";
 /// Upper end of the root search interval (E7b).
 const FOS_MAX: f64 = 1e3;
 /// Relative margin above `F_adm` (E7b).
@@ -100,6 +102,17 @@ fn admissible(slices: &[Slice], fos: f64, min_m: f64) -> bool {
 
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let method = MethodKind::Bishop;
+    // E13f: Bishop is defined on circles only. The validation already rejects it on a polyline; this is the defence.
+    if !opts.circular {
+        return MethodResult::new(
+            method,
+            f64::NAN,
+            SolveStatus::Invalid,
+            0,
+            None,
+            Some(NON_CIRCULAR_MESSAGE),
+        );
+    }
     if lacks_driving(slices) {
         return MethodResult::new(
             method,
