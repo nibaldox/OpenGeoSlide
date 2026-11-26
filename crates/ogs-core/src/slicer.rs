@@ -1012,6 +1012,73 @@ mod tests {
         PreparedModel::new(&model).expect("valid model")
     }
 
+    /// The guards of the block hold on a polyline (E13c). The polyline here is **not** fitted: it rises over the valley
+    /// notch of the ground (`(20, 13.5)` is over the ground at 12), which a fitted polyline never does, so the slicer's
+    /// own handling of air shows: E2 turns the slices over the notch into air slices (no weight, no strength), and E10a
+    /// keeps the entry block, on the crest side, with the note `truncated_mass`. A polyline has no centre, so no slice
+    /// carries a moment arm for Bishop.
+    #[test]
+    fn a_polyline_over_the_notch_gives_air_slices_and_keeps_the_entry_block() {
+        let pm = pm_of(
+            json!([
+                [0, 10],
+                [0, 20],
+                [10, 20],
+                [20, 12],
+                [30, 20],
+                [40, 20],
+                [40, 10]
+            ]),
+            "right_to_left",
+        );
+        let surface = Surface::Polyline(crate::surface::Polyline {
+            points: vec![
+                [3.0, 19.0],
+                [8.0, 18.0],
+                [14.0, 13.5],
+                [20.0, 13.5],
+                [26.0, 13.5],
+                [32.0, 18.0],
+                [37.0, 19.0],
+            ],
+        });
+        let (built, tramo) = build_slices_with(&pm, &surface, 50, &LoadCase::default())
+            .expect("the notch is air, not an error (E2)");
+        assert_eq!((tramo.p, tramo.q), (3.0, 37.0));
+        let air = built.air.iter().filter(|&&a| a).count();
+        assert!(air > 0, "the slices over the notch are air slices");
+        for (s, &is_air) in built.slices.iter().zip(&built.air) {
+            assert_eq!(s.driving_extra, 0.0);
+            if is_air {
+                assert_eq!(
+                    (s.weight, s.cohesion, s.tan_phi, s.pore_pressure),
+                    (0.0, 0.0, 0.0, 0.0)
+                );
+                assert!(
+                    s.x_left > 18.0 && s.x_right < 22.0,
+                    "air only over the notch: {s:?}"
+                );
+            }
+        }
+        // The vertices are nodes of the cut, so the bases are straight.
+        for v in [8.0, 14.0, 20.0, 26.0, 32.0] {
+            assert!(
+                built.slices.iter().any(|s| s.x_left == v),
+                "the vertex {v} is not a node"
+            );
+        }
+        let sliced = slice_surface_of(&pm, &surface, 50, &LoadCase::default()).expect("main block");
+        assert_eq!(sliced.notes, vec![TRUNCATED_MASS.to_string()]);
+        assert!(
+            sliced.slices.iter().all(|s| s.weight > 0.0),
+            "no air in the main block"
+        );
+        assert!(
+            sliced.slices[0].x_left > 21.0 && sliced.slices.last().unwrap().x_right == 37.0,
+            "the kept block is the one with the entry, on the crest side"
+        );
+    }
+
     /// E2 geometry (moved from `slicer_geometry`, which now expects `DisconnectedMass` for this surface):
     /// a valley notch whose arc leaves the soil. The notch is air, not an error, and the air slices carry nothing.
     #[test]
