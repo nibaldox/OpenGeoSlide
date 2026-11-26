@@ -91,12 +91,22 @@ for (const theme of ['light', 'dark']) {
   await p.getByRole('button', { name: 'Comprobar', exact: true }).click();
   await p.waitForSelector('[data-testid="fs-bishop"]', { timeout: 60000 });
   const download = async (menu, item) => { const [d] = await Promise.all([p.waitForEvent('download'), (async () => { await p.getByRole('button', { name: new RegExp('^' + menu) }).click(); await p.getByRole('button', { name: item }).click(); })()]); const f = path.join(OUT, `${theme}-${d.suggestedFilename()}`); await d.saveAs(f); return f; };
+  // W1f (F3.9): el CSV de resultados agrega al final, solo cuando algún método las necesita, las columnas `superficie` (polilínea),
+  // `funcion_interslice` (M-P) y `f0` (Janbu corregido). V047a se promovió con M-P y Janbu corregido, así que su cabecera ya no
+  // termina en `unidades` sino en `unidades,funcion_interslice,f0` (ver csv.ts y csv.polyline.test.ts). Lo que importa es que la
+  // columna `unidades` exista en la cabecera, que los extras (si hay) vayan después y en ese orden, y que la fila repita la unidad.
+  const unidadesOk = (lines, unidad) => {
+    const h = lines[0].split(','); const i = h.indexOf('unidades');
+    const extras = h.slice(i + 1);
+    const ordenOk = extras.every((c) => ['superficie', 'funcion_interslice', 'f0'].includes(c)) && extras.join() === ['superficie', 'funcion_interslice', 'f0'].filter((c) => extras.includes(c)).join();
+    return i === 11 && ordenOk && lines[1].split(',').length === h.length && lines[1].split(',')[i] === unidad;
+  };
   if (theme === 'light') {
     const r = noBom(readFileSync(await download('Exportar', /Exportar resultados/), 'utf8')).split(/\r?\n/);
     const s = noBom(readFileSync(await download('Exportar', /Exportar superficie/), 'utf8')).split(/\r?\n/);
     // U6-I (R9-12a): el CSV ya NO lleva la línea `# unidades: …` (un comentario rompía `pd.read_csv` sin opciones). La unidad va en la cabecera
     // (`xc_m`, `x_m`…) y en una columna final `unidades` (SI / imperial): la primera línea es la cabecera y todas las filas llevan la unidad.
-    step('4a CSV de resultados SI: sin comentario, cabecera con unidad y columna «unidades»', !r[0].startsWith('#') && /(^|,)xc_m,yc_m,r_m(,|$)/.test(r[0]) && r[0].endsWith(',unidades') && r[1].endsWith(',SI'), { l0: r[0], l1: r[1] });
+    step('4a CSV de resultados SI: sin comentario, cabecera con unidad y columna «unidades»', !r[0].startsWith('#') && /(^|,)xc_m,yc_m,r_m(,|$)/.test(r[0]) && unidadesOk(r, 'SI'), { l0: r[0], l1: r[1] });
     step('4b CSV de superficie SI: cabecera con x_m/y_m y columna «unidades»', s[0] === 'metodo,estado,punto,x_m,y_m,unidades' && s[1].endsWith(',SI'), { l0: s[0], l1: s[1] });
     // imperial
     await p.getByRole('tab', { name: 'Proyecto' }).click();
@@ -108,7 +118,7 @@ for (const theme of ['light', 'dark']) {
     await p.waitForFunction(() => document.querySelector('[data-testid="fs-bishop"]'), null, { timeout: 60000 });
     await p.waitForTimeout(800);
     const ri = noBom(readFileSync(await download('Exportar', /Exportar resultados/), 'utf8')).split(/\r?\n/);
-    step('4c CSV imperial: cabecera _ft y columna «unidades» = imperial (sin comentario `#`, ver 4a)', !ri[0].startsWith('#') && /(^|,)xc_ft,yc_ft,r_ft(,|$)/.test(ri[0]) && ri[0].endsWith(',unidades') && ri[1].endsWith(',imperial'), { l0: ri[0], l1: ri[1] });
+    step('4c CSV imperial: cabecera _ft y columna «unidades» = imperial (sin comentario `#`, ver 4a)', !ri[0].startsWith('#') && /(^|,)xc_ft,yc_ft,r_ft(,|$)/.test(ri[0]) && unidadesOk(ri, 'imperial'), { l0: ri[0], l1: ri[1] });
   }
   if (theme === 'light') {
     // PDF
