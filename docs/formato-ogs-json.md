@@ -71,9 +71,10 @@ resultado, bit a bit, que Mohr-Coulomb con `cohesion = Su` y `friction_angle = 0
 `s-f-datum` de cSlope (`suRefDepth` = `strength_datum`, `suRateOfChange` = `strength_gradient`, `suMax` =
 `strength_limit`).
 
-El ejemplo siguiente es un terraplén friccional sobre una arcilla blanda con Su = 20 kPa en la superficie (cota 0), que
-crece 1,5 kPa por metro de profundidad hasta un tope de 28 kPa (a 5,3 m de profundidad). Pide los cinco métodos, con la búsqueda circular. `ogs analyze` da Bishop 1,3172, Spencer 1,3069, M-P 1,3121,
-Janbu simplificado 1,1809 y Janbu corregido 1,2863:
+El ejemplo siguiente es un terraplén friccional sobre una arcilla blanda con Su = 20 kPa en la superficie (cota 0),
+que crece 1,5 kPa por metro de profundidad hasta un tope de 28 kPa (a 5,3 m de profundidad). Pide los cinco métodos,
+con la búsqueda circular. `ogs analyze` da Bishop 1,3172, Spencer 1,3069, M-P 1,3121, Janbu simplificado 1,1809 y
+Janbu corregido 1,2863:
 
 <!-- ogs-ejemplo nombre=terraplen-su-lineal estado=converged fos=bishop:1.3172,spencer:1.3069,morgenstern_price:1.3121,janbu_simplified:1.1809,janbu_corrected:1.2863 -->
 ```json
@@ -163,8 +164,9 @@ no circular queda para la Fase 3b ([Limitaciones](limitaciones.md)).
 - Con `slope.direction = "auto"`, el sentido se lee de los extremos de la polilínea ajustada.
 
 El ejemplo siguiente usa la geometría de ACADS 1(a) con una polilínea de cinco puntos inscrita en el círculo fijo
-(`xc` 29,543, `yc` 53,638, `r` 28,641) y cuatro métodos (**sin Bishop**, que no admite polilíneas). La función entre dovelas de Morgenstern-Price es de puntos. `ogs analyze` da Spencer 0,9991, M-P 1,0004, Janbu
-simplificado 0,9567 y Janbu corregido 0,9994:
+(`xc` 29,543, `yc` 53,638, `r` 28,641) y cuatro métodos (**sin Bishop**, que no admite polilíneas). La función entre
+dovelas de Morgenstern-Price es de puntos. `ogs analyze` da Spencer 0,9991, M-P 1,0004, Janbu simplificado 0,9567 y
+Janbu corregido 0,9994:
 
 <!-- ogs-ejemplo nombre=polilinea-mp-data-points estado=converged fos=spencer:0.9991,morgenstern_price:1.0004,janbu_simplified:0.9567,janbu_corrected:0.9994 -->
 ```json
@@ -214,7 +216,8 @@ La recta a y = 21 no corta el terreno dentro del modelo: `polyline_no_ground_cro
 [[36, 25], [36.5, 21], [44, 21.5], [50, 35]]
 ```
 
-El primer tramo baja 4 m en 0,5 m (cerca de 83° con la horizontal) y deja `m_α` por debajo de `min_m_alpha` (0,2 por omisión): `m_alpha`.
+El primer tramo baja 4 m en 0,5 m (cerca de 83° con la horizontal) y deja `m_α` por debajo de `min_m_alpha` (0,2 por
+omisión): `m_alpha`.
 
 ## Métodos
 

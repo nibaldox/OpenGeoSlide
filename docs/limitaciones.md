@@ -63,9 +63,9 @@ En Morgenstern-Price, `ξ = (x − x₀)/(x₁ − x₀)` crece con la x del mod
 
 Una polilínea con un tramo muy empinado puede dar `m_α < min_m_alpha` (0,2 por omisión) en la base de una dovela y se
 rechaza como `invalid` con el código `m_alpha`. cSlope no aplica esta guarda: puede entregar un FS donde OpenGeoSlide
-declara la superficie inválida. **Se mantiene la guarda** (E4b), que descarta las bases con `m_α` casi nulo. Si necesita analizar esa superficie, suavice el tramo (más vértices, o una inclinación menor) y
-compare con Janbu. Ejemplo reproducible: un tramo que baja 4 m en 0,5 m
-([`formato-ogs-json.md`](formato-ogs-json.md#polilínea-fija)).
+declara la superficie inválida. **Se mantiene la guarda** (E4b), que descarta las bases con `m_α` casi nulo. Si
+necesita analizar esa superficie, suavice el tramo (más vértices, o una inclinación menor) y compare con Janbu.
+Ejemplo reproducible: un tramo que baja 4 m en 0,5 m ([`formato-ogs-json.md`](formato-ogs-json.md#polilínea-fija)).
 
 ### Aviso `interslice_shear_exceeds_strength`
 
