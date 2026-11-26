@@ -6,6 +6,8 @@ mod janbu;
 pub mod morgenstern_price;
 pub mod spencer;
 
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
 
 use crate::geometry::PreparedModel;
@@ -57,6 +59,48 @@ pub(crate) fn is_inert(s: &Slice) -> bool {
     s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0
 }
 
+/// A slice that carries a passive reinforcement force (E14g): one of the four `passive_*` fields is not zero. A model
+/// without reinforcements has none, and every method then runs the code that it ran before (E14a).
+#[inline]
+pub(crate) fn has_passive(s: &Slice) -> bool {
+    s.passive_v != 0.0
+        || s.passive_h != 0.0
+        || s.passive_h_moment_base != 0.0
+        || s.passive_driving_extra != 0.0
+}
+
+/// Whether any slice of the block carries a passive force (E14g).
+pub(crate) fn any_passive(slices: &[Slice]) -> bool {
+    slices.iter().any(has_passive)
+}
+
+/// The slice as the equilibrium sees it at the factor of safety `fos` (E14g, F4.7): each passive force enters in the
+/// same terms as an active one of F4.6, **divided by `F`** (Duncan and Wright, method B):
+///
+/// `W* + passive_v/F`, `H + passive_h/F`, `h_moment_base + passive_h_moment_base/F` and
+/// `driving_extra + passive_driving_extra/F`.
+///
+/// A slice with no passive force is returned as it is (borrowed), so that the arithmetic of a model without
+/// reinforcements does not change by a bit.
+pub(crate) fn at_fos(s: &Slice, fos: f64) -> Cow<'_, Slice> {
+    if !has_passive(s) {
+        return Cow::Borrowed(s);
+    }
+    Cow::Owned(Slice {
+        weight_extra: s.weight_extra + s.passive_v / fos,
+        h_force: s.h_force + s.passive_h / fos,
+        h_moment_base: s.h_moment_base + s.passive_h_moment_base / fos,
+        driving_extra: s.driving_extra + s.passive_driving_extra / fos,
+        ..*s
+    })
+}
+
+/// [`at_fos`] by value: the slice at the factor of safety `fos`, with the passive forces divided by `F` and added to
+/// the active fields (the passive fields keep their value, which is the force **before** dividing).
+pub fn slice_at_fos(s: &Slice, fos: f64) -> Slice {
+    *at_fos(s, fos)
+}
+
 /// Bishop's `m_α = cos α + sin α · tan φ / F` (§4.2) of a slice at factor of safety `fos`.
 pub(crate) fn m_alpha(s: &Slice, fos: f64) -> f64 {
     let (sin, cos) = s.alpha.sin_cos();
@@ -71,7 +115,10 @@ pub(crate) fn m_alpha(s: &Slice, fos: f64) -> f64 {
 /// `W* = W·(1 + kv) + Q + V` is the vertical force of the slice (E12b; it is `W` without seismic force or loads).
 /// The horizontal force `H` does not appear in the vertical equilibrium: in Bishop it enters only the moment, and in
 /// Spencer it acts through `ΔX = λ·ΔE`. `delta_x` is the net interslice shear `X_right − X_left`; Bishop has `ΔX = 0`.
+/// A passive reinforcement force (E14g) enters `W*` divided by `fos`.
 pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
+    // E14g: a passive force enters `W*` divided by `F`.
+    let s = &*at_fos(s, fos);
     (s.total_weight()
         - delta_x
         - s.pore_pressure * s.width
@@ -256,6 +303,14 @@ pub(crate) fn lacks_driving_on(slices: &[Slice], circular: bool) -> bool {
         .map(|s| s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos())
         .sum();
     !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
+}
+
+/// Amendment E3 at a given factor of safety, with the passive forces included and divided by `F` (E14g): the guard of
+/// the converged state of a model with passive reinforcements. [`lacks_driving_on`] has them out (`F → ∞`), which is
+/// the guard of the state before the solve. Only called when some slice carries a passive force.
+pub(crate) fn lacks_driving_at(slices: &[Slice], circular: bool, fos: f64) -> bool {
+    let at: Vec<Slice> = slices.iter().map(|s| slice_at_fos(s, fos)).collect();
+    lacks_driving_on(&at, circular)
 }
 
 /// Solver tolerances, taken from `AnalysisSettings`.

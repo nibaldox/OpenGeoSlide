@@ -18,6 +18,13 @@
 //! the root of `h(F) = F − g(F)` is bracketed in the interval and bisected. No sign change means no root:
 //! `Invalid("m_alpha")`. A pole (`m_α ≤ 1e-9`) is never an abort; it is an iterate outside the interval.
 //!
+//! Passive reinforcement forces (E14g, F4.7). A passive force is divided by `F`: `W*(F) = W* + passive_v/F` in the normal
+//! force and in the numerator, and `Σ [W*(F)·sin α + M(F)]` in the denominator, with `M(F) = driving_extra +
+//! passive_driving_extra/F`. With them the iteration is `F = N(F)/D(F)`; the Brent safeguard works on the divisor-free
+//! `h(F) = F·D(F) − N(F)` (`D(F)` can vanish below the root, `F·D(F) = F·D₀ + P_d` is linear). **Without passive forces
+//! this module runs the code that it ran before, bit for bit.** The guards (`m_α`, E3, the negative normal forces) are
+//! evaluated at the converged F with the passive forces included.
+//!
 //! The converged F is checked against `m_α ≥ min_m_alpha` (E4a): otherwise `Invalid("m_alpha")`.
 //! `Invalid` also if `Σ [W*·sin α + M] ≤ 1e-6 · Σ W` (amendments E3 and E12b, message `"no_driving"`). `NotConverged` when the
 //! budget is exhausted; such a value is never reported as converged. Air slices (E2) are not tested.
@@ -25,8 +32,8 @@
 //! message of E4e and E7d.
 
 use super::{
-    M_ALPHA_POLE, MethodResult, SolveOptions, SolveStatus, effective_normal, is_inert,
-    lacks_driving, m_alpha, negative_normal_message,
+    M_ALPHA_POLE, MethodResult, SolveOptions, SolveStatus, any_passive, at_fos, effective_normal,
+    is_inert, lacks_driving, lacks_driving_at, m_alpha, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -92,6 +99,28 @@ fn rhs(slices: &[Slice], driving: f64, fos: f64) -> Option<f64> {
     Some(numerator / driving)
 }
 
+/// `(N(F), D(F))` of Bishop's iteration `F = N/D` with the passive reinforcement forces divided by `F` (E14g): the
+/// numerator `Σ (c·b + (W*(F) − u·b)·tan φ)/m_α` and the driving term `Σ [W*(F)·sin α + M(F)]`, over all the slices as
+/// the denominator of [`solve`]. `None` at a pole (`m_α ≤ 1e-9` or NaN).
+fn terms_passive(slices: &[Slice], fos: f64) -> Option<(f64, f64)> {
+    let (mut numerator, mut driving) = (0.0_f64, 0.0_f64);
+    for s in slices {
+        let at = at_fos(s, fos);
+        driving += at.driving_term();
+        if is_inert(s) {
+            continue;
+        }
+        let m = m_alpha(s, fos);
+        if m.is_nan() || m <= M_ALPHA_POLE {
+            return None;
+        }
+        numerator += (at.cohesion * at.width
+            + (at.total_weight() - at.pore_pressure * at.width) * at.tan_phi)
+            / m;
+    }
+    Some((numerator, driving))
+}
+
 /// E4a admissibility of a converged F: `m_α(F) ≥ min_m_alpha` on every soil slice. NaN fails.
 fn admissible(slices: &[Slice], fos: f64, min_m: f64) -> bool {
     slices
@@ -124,6 +153,16 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
         );
     }
     let driving: f64 = slices.iter().map(Slice::driving_term).sum();
+    // E14g: with passive forces `g(F) = N(F)/D(F)` has the force divided by F in both; without them it is `rhs`, as always.
+    let passive = any_passive(slices);
+    let g = |f: f64| -> Option<f64> {
+        if passive {
+            let (n, d) = terms_passive(slices, f)?;
+            (d > 0.0).then(|| n / d)
+        } else {
+            rhs(slices, driving, f)
+        }
+    };
     let min_m = opts.min_m_alpha;
     let invalid_m = |fos: f64, iterations: usize| {
         MethodResult::new(
@@ -151,7 +190,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let mut fos = start_fos(slices).max(1.05 * f_adm);
     let mut root: Option<f64> = None;
     while inside(fos) && iterations < opts.max_iterations / 2 {
-        let Some(next) = rhs(slices, driving, fos) else {
+        let Some(next) = g(fos) else {
             break;
         };
         iterations += 1;
@@ -170,7 +209,15 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let root = match root {
         Some(r) => r,
         None => {
-            let h = |f: f64| rhs(slices, driving, f).map(|g| f - g);
+            // `F − g(F)`; with passive forces its divisor-free form `F·D(F) − N(F)`, which has the same sign where
+            // `D(F) > 0` (E14g).
+            let h = |f: f64| {
+                if passive {
+                    terms_passive(slices, f).map(|(n, d)| f * d - n)
+                } else {
+                    rhs(slices, driving, f).map(|g| f - g)
+                }
+            };
             let (mut a, mut b) = (lo, FOS_MAX);
             let (Some(mut ha), Some(hb)) = (h(a), h(b)) else {
                 return invalid_m(f64::NAN, iterations);
@@ -215,6 +262,17 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     // E4a: the m_α limit applies to the converged F.
     if !admissible(slices, root, min_m) {
         return invalid_m(root, iterations);
+    }
+    // E14g, E3 at the converged F: the driving term with the passive forces included (`D(F) = N(F)/F`).
+    if passive && lacks_driving_at(slices, true, root) {
+        return MethodResult::new(
+            method,
+            f64::NAN,
+            SolveStatus::Invalid,
+            iterations,
+            None,
+            Some("no_driving"),
+        );
     }
     // E4e: Bishop has ΔX = 0. The class of the negative normal forces is a note of the converged state (E8d).
     let warning = negative_normal_message(slices, |_, s| effective_normal(s, root, 0.0));

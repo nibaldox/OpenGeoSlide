@@ -20,13 +20,16 @@
 //!   E13l-1 floors it at 1: **the correction never reduces F₀**. For `d/L > 0.4` the factor is an extrapolation of the
 //!   chart, and the note `janbu_correction_extrapolated` says so.
 //!
+//! Passive reinforcement forces (E14g, F4.7): the closure at each F carries them divided by F (`W* + passive_v/F`,
+//! `H + passive_h/F`), so `F₀` is the root of that closure, and the correction `f₀` does not change with them (E13l-1).
+//!
 //! The state, the guards, `N'` and the forces of the slices are those of `F₀`. The report carries `fos = f₀·F₀` and
 //! `correction_factor = f₀`. The search minimises the corrected FS.
 
-use super::spencer::{self, spencer_direct_normals, spencer_interslice};
+use super::spencer::{self, spencer_direct_normals_at, spencer_interslice};
 use super::{
-    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, converged_notes, is_inert,
-    negative_normal_message,
+    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, any_passive, converged_notes,
+    is_inert, lacks_driving_at, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -144,7 +147,11 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     if !fos.is_finite() {
         return stop(fos, SolveStatus::Invalid, iterations, "non_finite");
     }
-    let normals = spencer_direct_normals(slices, 0.0, &e);
+    // E14g, E3 at F₀ with the passive forces included (they enter the closure divided by F, like every other term).
+    if any_passive(slices) && lacks_driving_at(slices, opts.circular, f0) {
+        return stop(f64::NAN, SolveStatus::Invalid, iterations, "no_driving");
+    }
+    let normals = spencer_direct_normals_at(slices, f0, 0.0, &e);
     let mut notes = Vec::with_capacity(3);
     if multiple {
         notes.push(spencer::MULTIPLE_ROOTS_MESSAGE);

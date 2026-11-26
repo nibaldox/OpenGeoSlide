@@ -59,12 +59,23 @@
 //! their own α. An interior air run carrying `|E| > 1e-3·ΣW` adds the note `air_gap_thrust`. Surfaces that split the
 //! soil into detached masses never reach this solver (E10a, in the slicer).
 //!
+//! Passive reinforcement forces (E14g, F4.7, wave R1-M). A passive force is divided by `F`: at each F the slice carries
+//! `W* + passive_v/F`, `H + passive_h/F`, `h_moment_base + passive_h_moment_base/F` (and `driving_extra + …/F`, for
+//! Bishop). In the recurrence this makes the per-slice terms functions of F: `t = t₀ + tp/F` and `res = res₀ + rp/F`, with
+//! `tp = passive_v·sin α + passive_h·cos α` and `rp = (passive_v·cos α − passive_h·sin α)·tan φ`, so that
+//! `q(F) = F·t − res = F·t₀ − res₀ + tp − rp/F` and `dq/dF = t₀ + rp/F²`; the moment residual takes
+//! `2·Σ h_moment_base + 2·Σ passive_h_moment_base/F` at the F of the point. The loops carry them behind a `const P: bool`
+//! (like `G` for the interslice function): with `P = false` they are the original ones, so a model **without passive
+//! forces runs the same code and gives the same bits** (E14a). The guards (`Φ`, `m_α`, E3, the negative normal forces)
+//! are evaluated at the converged F with the passive forces included.
+//!
 //! Budget: each evaluation of ρ(λ) (one closure root) and each Brent step counts once toward `max_iterations`.
 //! Exhausting it gives `NotConverged("max_iterations")`.
 
 use super::{
-    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, converged_notes, is_inert,
-    janbu, lacks_driving_on, m_alpha, negative_normal_message,
+    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, any_passive, at_fos, bishop,
+    converged_notes, has_passive, is_inert, janbu, lacks_driving_at, lacks_driving_on, m_alpha,
+    negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -163,6 +174,8 @@ pub fn spencer_interslice(slices: &[Slice], fos: f64, lambda: f64) -> Vec<f64> {
             e.push(prev);
             continue;
         }
+        // E14g: the passive forces of the slice, divided by `fos`.
+        let s = &*at_fos(s, fos);
         let d = pole(s, fos, lambda);
         let (sin, cos) = s.alpha.sin_cos();
         let thrust = (fos * cos + s.tan_phi * sin) * s.h_force;
@@ -194,11 +207,21 @@ pub fn spencer_effective_normals(slices: &[Slice], fos: f64, lambda: f64) -> Vec
 /// Effective normal forces `N'` in the direct form of E7d, free of `m_α`:
 /// `N' = W* cos α − U − H sin α + (sin α − λ cos α)·ΔE`, with `ΔE = E_{k+1} − E_k` and `U = u·l` (E12b).
 /// `e` are the interslice forces of [`spencer_interslice`] at the same `(F, λ)`.
+///
+/// The passive reinforcement forces (E14g) are **not** included here, because the function does not know `F`: use
+/// [`spencer_direct_normals_at`]. Without passive forces both are the same.
 pub fn spencer_direct_normals(slices: &[Slice], lambda: f64, e: &[f64]) -> Vec<f64> {
+    spencer_direct_normals_at(slices, f64::INFINITY, lambda, e)
+}
+
+/// [`spencer_direct_normals`] at the factor of safety `fos`, with the passive reinforcement forces divided by `fos`
+/// (E14g): `W*` and `H` of the slice are those of `F = fos`.
+pub fn spencer_direct_normals_at(slices: &[Slice], fos: f64, lambda: f64, e: &[f64]) -> Vec<f64> {
     slices
         .iter()
         .enumerate()
         .map(|(k, s)| {
+            let s = &*at_fos(s, fos);
             let (sin, cos) = s.alpha.sin_cos();
             let de = e[k + 1] - e[k];
             s.total_weight() * cos - s.pore_pressure * s.base_length - s.h_force * sin
@@ -253,6 +276,10 @@ struct Prep {
     width: f64,
     t: f64,
     res: f64,
+    /// Passive force of the slice, before dividing by `F` (E14g): `t = t + tp/F` and `res = res + rp/F`. Both are `0`
+    /// without passive forces, and only the `P = true` loops read them.
+    tp: f64,
+    rp: f64,
     inert: bool,
     /// Interslice function on the left face of the slice (the one the march carries in) and on the right face (the one
     /// it resolves, E13d). `1` in Spencer: every product `λ·f` and `f·E` below is then exact.
@@ -277,6 +304,8 @@ fn prepare(slices: &[Slice], faces: Option<&[f64]>) -> Vec<Prep> {
                 res: (s.total_weight() * cos - s.pore_pressure * s.base_length) * s.tan_phi
                     + s.cohesion * s.base_length
                     - s.h_force * sin * s.tan_phi,
+                tp: s.passive_v * sin + s.passive_h * cos,
+                rp: (s.passive_v * cos - s.passive_h * sin) * s.tan_phi,
                 inert: is_inert(s),
                 fl: faces.map_or(1.0, |f| f[k]),
                 fr: faces.map_or(1.0, |f| f[k + 1]),
@@ -299,10 +328,17 @@ struct Balance {
 
 /// Balance at `(fos, λ)`, or `None` at a pole (`D ≤ 1e-9·F` on a soil slice) or a non-finite recurrence.
 ///
+/// `P` selects the code with passive reinforcement forces (E14g): `q(F) = F·t − res` becomes
+/// `F·t − res + (tp − rp/F)`. `P = false` is the loop of always, with no passive term in it.
+///
 /// `G` selects the code with an interslice function (E13d). `G = false` is Spencer's loop with no `f` in it, so Spencer
 /// keeps its exact arithmetic and its speed; `G = true` with `f ≡ 1` gives the same bits, since every product by `1` is
 /// exact.
-fn balance_at<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<Balance> {
+fn balance_at<const G: bool, const P: bool>(
+    preps: &[Prep],
+    lambda: f64,
+    fos: f64,
+) -> Option<Balance> {
     let mut e = 0.0_f64;
     let (mut num, mut den) = (0.0_f64, 0.0_f64);
     for p in preps {
@@ -313,14 +349,19 @@ fn balance_at<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<Ba
             if d.is_nan() || d <= POLE_FRACTION * fos {
                 return None;
             }
+            let q = if P {
+                fos * p.t - p.res + (p.tp - p.rp / fos)
+            } else {
+                fos * p.t - p.res
+            };
             if !G || p.fl == p.fr {
-                e = e_prev + (fos * p.t - p.res) / d;
+                e = e_prev + q / d;
             } else {
                 // E13d: `E_{k+1} D_r = E_k D_l + q`, with `D_l` the pole of the left face. Written as the increment
                 // `(D_l − D_r) E_k + q` over `D_r`, which is exactly the recurrence of Spencer when `D_l = D_r`.
                 let sfl = lambda * p.fl;
                 let dl = (p.sin - sfl * p.cos) * p.tan_phi + (p.cos + sfl * p.sin) * fos;
-                e = e_prev + ((dl - d) * e_prev + (fos * p.t - p.res)) / d;
+                e = e_prev + ((dl - d) * e_prev + q) / d;
             }
         }
         // Air slices keep E, and they take part in the sums with their own α (E7a).
@@ -341,7 +382,11 @@ fn balance_at<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<Ba
 /// Closure `E_n` and its derivative `dE_n/dF` at `(fos, λ)`, or `None` at a pole or a non-finite value. The derivative
 /// is exact: `D = a + b·F` is linear in F, so `d(ΔE)/dF = (t·D − (F·t − res)·b) / D²`. Used by the Newton fast path of
 /// the force root only (allocation-free).
-fn closure_slope<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option<(f64, f64)> {
+fn closure_slope<const G: bool, const P: bool>(
+    preps: &[Prep],
+    lambda: f64,
+    fos: f64,
+) -> Option<(f64, f64)> {
     let (mut e, mut de) = (0.0_f64, 0.0_f64);
     for p in preps.iter().filter(|p| !p.inert) {
         let sf = if G { lambda * p.fr } else { lambda };
@@ -350,17 +395,25 @@ fn closure_slope<const G: bool>(preps: &[Prep], lambda: f64, fos: f64) -> Option
         if d.is_nan() || d <= POLE_FRACTION * fos {
             return None;
         }
-        let q = fos * p.t - p.res;
+        // E14g: with passive forces `q = F·t − res + tp − rp/F` and `dq/dF = t + rp/F²`.
+        let (q, dq) = if P {
+            (
+                fos * p.t - p.res + (p.tp - p.rp / fos),
+                p.t + p.rp / (fos * fos),
+            )
+        } else {
+            (fos * p.t - p.res, p.t)
+        };
         let inv = 1.0 / d;
         if !G || p.fl == p.fr {
             e += q * inv;
-            de += (p.t * d - q * b) * inv * inv;
+            de += (dq * d - q * b) * inv * inv;
         } else {
             // E13d: `E' = E + (g E + q)/D_r`, with `g = D_l − D_r = (λ f_l − λ f_r)(F sin α − cos α tan φ)`.
             let sfl = lambda * p.fl;
             let g = (sfl - sf) * (fos * p.sin - p.cos * p.tan_phi);
             let dg = (sfl - sf) * p.sin;
-            let num = (dg * e + g * de + p.t) * d - (g * e + q) * b;
+            let num = (dg * e + g * de + dq) * d - (g * e + q) * b;
             de += num * inv * inv;
             e += (g * e + q) * inv;
         }
@@ -588,11 +641,30 @@ const SCALE_INFLATION_MAX: f64 = 3.0;
 /// flat base (`α = 0`) is none of them, because it drives nothing.
 pub(crate) fn driving_scale(slices: &[Slice]) -> f64 {
     let soil: f64 = slices.iter().map(|s| s.weight).sum();
+    // E14m-6: the passive reinforcement forces enter `t_i` and `H_i` with their available value, **not** divided by F
+    // (the scale does not depend on the F that is being solved). A slice without passive force keeps its old terms.
     let driving: f64 = slices
         .iter()
-        .map(|s| (s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos()).abs())
+        .map(|s| {
+            if has_passive(s) {
+                ((s.total_weight() + s.passive_v) * s.alpha.sin()
+                    + (s.h_force + s.passive_h) * s.alpha.cos())
+                .abs()
+            } else {
+                (s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos()).abs()
+            }
+        })
         .sum();
-    let horizontal: f64 = slices.iter().map(|s| s.h_force.abs()).sum();
+    let horizontal: f64 = slices
+        .iter()
+        .map(|s| {
+            if has_passive(s) {
+                (s.h_force + s.passive_h).abs()
+            } else {
+                s.h_force.abs()
+            }
+        })
+        .sum();
     soil.max(driving).max(horizontal)
 }
 
@@ -616,11 +688,28 @@ pub(crate) fn driving_scale(slices: &[Slice]) -> f64 {
 /// `negative_normal_message`) uses this scale, so that the share `f` is not measured over a weight 1e7 times smaller
 /// than the loads (V018), nor over a load that drives nothing (R10A-07, V068 with a load on the flat toe).
 pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
+    if let Some(scale) = SCALE_OVERRIDE.with(std::cell::Cell::get) {
+        return scale;
+    }
     let soil: f64 = slices.iter().map(|s| s.weight).sum();
     let with_loads: f64 = slices.iter().map(|s| s.total_weight()).sum();
     let vertical = soil.max(with_loads);
     let driving = driving_scale(slices);
     driving.max(vertical.min(SCALE_INFLATION_MAX * driving))
+}
+
+thread_local! {
+    /// Measurement hook of E14m-6 (see [`set_force_scale_override`]). `None` in every normal run.
+    static SCALE_OVERRIDE: std::cell::Cell<Option<f64>> = const { std::cell::Cell::new(None) };
+}
+
+/// **Measurement hook of E14m-6**, for the tests: with `Some(scale)`, [`force_scale`] returns `scale` on this thread, so
+/// that a test can solve the same slices with the scale of the bare slope (`ΣW`) and with the scale that includes the
+/// forces of the reinforcements, and compare the FS. `None` (the default) restores the scale of the contract. It is
+/// per thread and it is never set by the engine.
+#[doc(hidden)]
+pub fn set_force_scale_override(scale: Option<f64>) {
+    SCALE_OVERRIDE.with(|c| c.set(scale));
 }
 
 /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
@@ -634,6 +723,11 @@ struct Scheme {
     total_width: f64,
     /// `2·Σ h_moment_base`: twice the moment of the horizontal forces about the base midpoints (E12b).
     moment_h: f64,
+    /// `2·Σ passive_h_moment_base`: the moment of the passive horizontal forces about the base midpoints, before dividing
+    /// by `F` (E14g). It enters the residual as `moment_hp / F`, at the F of the point.
+    moment_hp: f64,
+    /// `true` when some slice carries a passive force (E14g): the loops are those of `P = true`.
+    passive: bool,
     /// Mean of the interslice function on the interior faces (E13d). `1` in Spencer.
     fbar: f64,
     /// Largest value of the interslice function on the interior faces (E13l-4). `1` in Spencer.
@@ -675,28 +769,38 @@ impl Scheme {
 
     /// Normalised moment residual `ρ = [Σb(E_k + E_{k+1})(tan α_k − λ) − 2·Σ h_moment_base] / (ΣW · Σb)` (E11a, E12b).
     /// With an interslice function (E13d) the term `λ·Σb(E_k + E_{k+1})` is `Σb(X_k + X_{k+1})`.
-    fn residual(&self, b: &Balance, lambda: f64) -> f64 {
-        (b.num - lambda * b.den - self.moment_h) / (self.total_w * self.total_width)
+    fn residual(&self, b: &Balance, lambda: f64, fos: f64) -> f64 {
+        (b.num - lambda * b.den - self.moment_h_at(fos)) / (self.total_w * self.total_width)
+    }
+
+    /// `2·Σ h_moment_base` at the factor of safety `fos`: with passive forces (E14g) it adds their moment divided by `F`.
+    /// Without them it is the sum of always.
+    fn moment_h_at(&self, fos: f64) -> f64 {
+        if self.passive {
+            self.moment_h + self.moment_hp / fos
+        } else {
+            self.moment_h
+        }
     }
 
     /// Force root `F_f(λ)` from the warm start `warm`, and the moment residual at it.
     fn point(&self, lambda: f64, warm: f64, guess: f64) -> Option<Point> {
         let preps = &self.preps;
         let total_w = self.total_w;
-        let general = self.general;
+        let (general, passive) = (self.general, self.passive);
         let closed = |b: &Balance| b.closure.abs() / total_w <= ROOT_ACCEPT;
-        let balance = |x: f64| {
-            if general {
-                balance_at::<true>(preps, lambda, x)
-            } else {
-                balance_at::<false>(preps, lambda, x)
-            }
+        let balance = |x: f64| match (general, passive) {
+            (false, false) => balance_at::<false, false>(preps, lambda, x),
+            (true, false) => balance_at::<true, false>(preps, lambda, x),
+            (false, true) => balance_at::<false, true>(preps, lambda, x),
+            (true, true) => balance_at::<true, true>(preps, lambda, x),
         };
         let slope = |x: f64| {
-            let s = if general {
-                closure_slope::<true>(preps, lambda, x)
-            } else {
-                closure_slope::<false>(preps, lambda, x)
+            let s = match (general, passive) {
+                (false, false) => closure_slope::<false, false>(preps, lambda, x),
+                (true, false) => closure_slope::<true, false>(preps, lambda, x),
+                (false, true) => closure_slope::<false, true>(preps, lambda, x),
+                (true, true) => closure_slope::<true, true>(preps, lambda, x),
             };
             s.map(|(e, de)| (e / total_w, de / total_w))
         };
@@ -712,7 +816,7 @@ impl Scheme {
             }
         };
         Some(Point {
-            rho: self.residual(&b, lambda),
+            rho: self.residual(&b, lambda, fos),
             fos,
         })
     }
@@ -963,6 +1067,8 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         total_w: force_scale(slices),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+        moment_hp: 2.0 * slices.iter().map(|s| s.passive_h_moment_base).sum::<f64>(),
+        passive: any_passive(slices),
         fbar: 1.0,
         fmax: 1.0,
         fine: false,
@@ -976,12 +1082,18 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         .iter()
         .map(|&lambda| {
             let preps = &scheme.preps;
-            let closure =
-                |x: f64| balance_at::<false>(preps, lambda, x).map(|b| b.closure / total_w);
+            let balance = |x: f64| {
+                if scheme.passive {
+                    balance_at::<false, true>(preps, lambda, x)
+                } else {
+                    balance_at::<false, false>(preps, lambda, x)
+                }
+            };
+            let closure = |x: f64| balance(x).map(|b| b.closure / total_w);
             let force = root_near(&closure, warm.1, scheme.lower(lambda));
             let moment_residual = |x: f64| {
-                balance_at::<false>(preps, lambda, x)
-                    .and_then(|b| moment_ratio(&b, scheme.moment_h))
+                balance(x)
+                    .and_then(|b| moment_ratio(&b, scheme.moment_h_at(x)))
                     .map(|m| m - lambda)
             };
             let moment = root_near(&moment_residual, warm.0, scheme.lower(lambda));
@@ -1059,6 +1171,8 @@ fn setup(
         total_w: force_scale(slices),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+        moment_hp: 2.0 * slices.iter().map(|s| s.passive_h_moment_base).sum::<f64>(),
+        passive: any_passive(slices),
         fbar,
         fmax: faces.map_or(1.0, max_interior),
         fine,
@@ -1166,9 +1280,14 @@ pub(super) fn force_root_at_zero(
     };
     let total_w: f64 = force_scale(slices);
     let evaluations = std::cell::Cell::new(0_usize);
+    let passive = any_passive(slices);
     let closure = |x: f64| {
         evaluations.set(evaluations.get() + 1);
-        balance_at::<false>(&preps, 0.0, x).map(|b| b.closure / total_w)
+        if passive {
+            balance_at::<false, true>(&preps, 0.0, x).map(|b| b.closure / total_w)
+        } else {
+            balance_at::<false, false>(&preps, 0.0, x).map(|b| b.closure / total_w)
+        }
     };
     let start = bishop::start_fos(slices).max(1.05 * lo);
     let root = root_near(&closure, start, lo);
@@ -1214,6 +1333,8 @@ pub fn interslice_forces(slices: &[Slice], faces: &[f64], fos: f64, lambda: f64)
             e.push(prev);
             continue;
         }
+        // E14g: the passive forces of the slice, divided by `fos`.
+        let s = &*at_fos(s, fos);
         let d = pole(s, fos, lambda * faces[k + 1]);
         let (sin, cos) = s.alpha.sin_cos();
         let thrust = (fos * cos + s.tan_phi * sin) * s.h_force;
@@ -1231,11 +1352,26 @@ pub fn interslice_forces(slices: &[Slice], faces: &[f64], fos: f64, lambda: f64)
 /// Effective normal forces `N'` for an interslice function (E13d), free of `m_α`:
 /// `N' = W* cos α − U − H sin α + sin α·ΔE − cos α·ΔX`, with `ΔX = X_{k+1} − X_k = λ (f_{k+1} E_{k+1} − f_k E_k)`.
 /// With `f ≡ 1` this is [`spencer_direct_normals`].
+///
+/// The passive reinforcement forces (E14g) are **not** included here (the function does not know `F`): use
+/// [`direct_normals_with_at`].
 pub fn direct_normals_with(slices: &[Slice], faces: &[f64], lambda: f64, e: &[f64]) -> Vec<f64> {
+    direct_normals_with_at(slices, f64::INFINITY, faces, lambda, e)
+}
+
+/// [`direct_normals_with`] at the factor of safety `fos`, with the passive reinforcement forces divided by `fos` (E14g).
+pub fn direct_normals_with_at(
+    slices: &[Slice],
+    fos: f64,
+    faces: &[f64],
+    lambda: f64,
+    e: &[f64],
+) -> Vec<f64> {
     slices
         .iter()
         .enumerate()
         .map(|(k, s)| {
+            let s = &*at_fos(s, fos);
             let (sin, cos) = s.alpha.sin_cos();
             let de = e[k + 1] - e[k];
             let dx = lambda * (faces[k + 1] * e[k + 1] - faces[k] * e[k]);
@@ -1336,9 +1472,20 @@ pub(super) fn solve_with_faces(
         );
     }
 
+    // E14g, E3 at the converged F with the passive forces included (the guard before the solve has them out).
+    if any_passive(slices) && lacks_driving_at(slices, opts.circular, fos) {
+        return outcome(
+            kind,
+            f64::NAN,
+            SolveStatus::Invalid,
+            iterations,
+            None,
+            Some("no_driving"),
+        );
+    }
     let normals = match faces {
-        None => spencer_direct_normals(slices, lambda, &e),
-        Some(f) => direct_normals_with(slices, f, lambda, &e),
+        None => spencer_direct_normals_at(slices, fos, lambda, &e),
+        Some(f) => direct_normals_with_at(slices, fos, f, lambda, &e),
     };
     let normal_class = negative_normal_message(slices, |k, _| normals[k]);
     let air = air_gap_thrust(slices, &e);
