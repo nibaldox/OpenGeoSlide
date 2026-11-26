@@ -1,4 +1,4 @@
-import type { AnalysisReport, MethodKind, MethodReport, ReinforcementApplication, ReinforcementForceStatus, SolveStatus } from './types';
+import type { AnalysisReport, MethodKind, MethodReport, PileGoverns, ReinforcementApplication, ReinforcementForceStatus, SolveStatus } from './types';
 
 const METHODS: readonly MethodKind[] = [
   'bishop',
@@ -10,6 +10,7 @@ const METHODS: readonly MethodKind[] = [
 
 const STATUSES: readonly SolveStatus[] = ['converged', 'not_converged', 'invalid'];
 const FORCE_STATUSES: readonly ReinforcementForceStatus[] = ['applied', 'outside_mass', 'compression_ignored', 'no_capacity'];
+const GOVERNS: readonly PileGoverns[] = ['soil', 'shear', 'bending'];
 const APPLICATIONS: readonly ReinforcementApplication[] = ['active', 'passive'];
 const PASSIVE_SLICE_FIELDS = ['passive_v', 'passive_h', 'passive_h_moment_base', 'passive_driving_extra'] as const;
 
@@ -52,7 +53,11 @@ function isReinforcementForce(value: unknown): boolean {
     typeof value.id === 'string' &&
     ['crossing', 'x', 'y', 'station', 'available', 'fx', 'fy'].every((k) => isFiniteNumber(value[k])) &&
     APPLICATIONS.includes(value.application as ReinforcementApplication) &&
-    FORCE_STATUSES.includes(value.status as ReinforcementForceStatus)
+    FORCE_STATUSES.includes(value.status as ReinforcementForceStatus) &&
+    // Ito-Matsui (v0.5, E15i-7): solo los trae un pilote con `lateral_pressure`.
+    (value.soil_force === undefined || isFiniteNumber(value.soil_force)) &&
+    (value.arm === undefined || isFiniteNumber(value.arm)) &&
+    (value.governs === undefined || GOVERNS.includes(value.governs as PileGoverns))
   );
 }
 

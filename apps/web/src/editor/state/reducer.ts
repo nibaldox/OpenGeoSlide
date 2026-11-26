@@ -102,8 +102,29 @@ function isLoad(value: unknown): boolean {
 const optionalFinite = (v: unknown): boolean => v === undefined || v === null || isFiniteNumber(v);
 
 const TENSION_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'tensile_capacity', 'end1_capacity', 'end2_capacity', 'spacing', 'direction', 'pullout'];
-const PILE_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'force', 'spacing', 'direction', 'angle'];
+const PILE_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'force', 'spacing', 'direction', 'angle', 'lateral_pressure', 'capacity'];
 const SHEET_PILE_FIELDS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application', 'force', 'direction', 'angle'];
+
+/** `lateral_pressure` de un pilote (v0.5, E15i-1): `model` y `location` de la lista, `diameter` finito, sin otras claves. Ausente o `null` vale. */
+function isLateralPressure(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const p = value as Record<string, unknown>;
+  return (
+    Object.keys(p).every((k) => k === 'model' || k === 'diameter' || k === 'location') &&
+    p.model === 'ito_matsui' &&
+    isFiniteNumber(p.diameter) &&
+    (p.location === 'centroid' || p.location === 'slip_surface')
+  );
+}
+
+/** `capacity` de un pilote (v0.5, E15i-1): `shear` y `moment` finitos opcionales, sin otras claves. El rango y que no esté vacía los señala `validateLocal`. */
+function isPileCapacity(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const p = value as Record<string, unknown>;
+  return Object.keys(p).every((k) => k === 'shear' || k === 'moment') && optionalFinite(p.shear) && optionalFinite(p.moment);
+}
 
 function isPullout(value: unknown): boolean {
   if (value === undefined || value === null) return true;
@@ -142,11 +163,15 @@ function isReinforcement(value: unknown): value is Reinforcement {
       isPullout(v.pullout)
     );
   }
+  // Pilote (E15i-1): `force` o `lateral_pressure` (la exclusión de los dos la señala `validateLocal`); la tablestaca siempre lleva `force`.
+  const forceOk = v.type === 'pile' ? isFiniteNumber(v.force) || (v.force == null && v.lateral_pressure != null) : isFiniteNumber(v.force);
   return (
     (v.direction === 'angle' || v.direction === 'tangent' || v.direction === 'perpendicular') &&
-    isFiniteNumber(v.force) &&
+    forceOk &&
     optionalFinite(v.angle) &&
-    (v.type === 'sheet_pile' || optionalFinite(v.spacing))
+    (v.type === 'sheet_pile' || optionalFinite(v.spacing)) &&
+    isLateralPressure(v.lateral_pressure) &&
+    isPileCapacity(v.capacity)
   );
 }
 
@@ -155,7 +180,7 @@ function copyReinforcement(r: Reinforcement): Reinforcement {
   const out: Mutable = {};
   for (const [key, value] of Object.entries(r)) {
     if (value === undefined || value === null) continue;
-    out[key] = key === 'pullout' ? Object.fromEntries(Object.entries(value as object).filter(([, x]) => x !== undefined && x !== null)) : value;
+    out[key] = key === 'pullout' || key === 'capacity' || key === 'lateral_pressure' ? Object.fromEntries(Object.entries(value as object).filter(([, x]) => x !== undefined && x !== null)) : value;
   }
   return out as unknown as Reinforcement;
 }

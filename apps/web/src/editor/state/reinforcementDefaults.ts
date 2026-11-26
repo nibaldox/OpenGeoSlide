@@ -70,3 +70,8 @@ export function reinforcementDefaults(type: ReinforcementType, units?: string | 
       return { type, application: 'passive', direction: TANGENT, force: perLengthIn(imp, SI.sheet_pile.force) };
   }
 }
+
+/** Diámetro por omisión de un pilote con presión del suelo (E15i-1): 0,8 m, o su equivalente en pies con tres cifras (2,62 ft). */
+export function itoMatsuiDiameterDefault(units?: string | null): number {
+  return spacingIn(isImperialUnits(units), 0.8);
+}

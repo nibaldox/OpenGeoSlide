@@ -138,6 +138,11 @@ export const REINFORCEMENT_RULE = {
   capacityEmpty: 'indique la capacidad al corte, a momento o ambas; no puede quedar vacía',
 } as const;
 
+/** Regla del espaciamiento de un pilote con presión del suelo (E15i-1: `spacing > diameter`), con el diámetro ya escrito con su unidad. */
+export function spacingOverDiameterRule(diameterText: string): string {
+  return `debe ser mayor que el diámetro del pilote (${diameterText}); aumente el espaciamiento o reduzca el diámetro`;
+}
+
 /** Mensaje de un campo del refuerzo `index` (base 0): `Refuerzo 2, capacidad a tracción: use un valor…`. */
 export function reinforcementFieldText(index: number, label: string, rule: string): string {
   return `Refuerzo ${index + 1}, ${lcFirst(label)}: ${rule}`;
@@ -930,7 +935,7 @@ function validateReinforcements(doc: ModelDoc, tol: number, issues: Issue[]): vo
               'editor.reinforcement_spacing',
               `${base}/spacing`,
               L.spacing,
-              `debe ser mayor que el diámetro del pilote (${lengthText(lat.diameter, unit)}); aumente el espaciamiento o reduzca el diámetro`,
+              spacingOverDiameterRule(lengthText(lat.diameter, unit)),
               isNum(r.spacing) ? r.spacing : s,
             );
           }
