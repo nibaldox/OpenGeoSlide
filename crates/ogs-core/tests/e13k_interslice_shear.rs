@@ -203,3 +203,109 @@ fn no_reference_case_receives_the_warning() {
     assert_eq!(evaluated + 2 * rejected.len(), 2 * names.len());
     assert!(evaluated >= 150, "{evaluated} results evaluated");
 }
+
+/// `r_v` of `admiss.py` (D-1) on the differential battery D01 to D17 and `acads1a`, Spencer and M-P (`half_sine`, the
+/// default), as written but with these two methods. It covers layered soils (D03, D15 to D17), a piezometric line
+/// (D06, D14) and `ru` (D02, D09), which the reference integrates by sampling the face (2000 midpoints, 40 in D02 and
+/// D09; the 40 of its default give up to 0.8 % in D15). The largest is D13 Spencer, 1.63, the one that fixes the limit at 3.
+const BATTERY_R_V: [(&str, &str, f64); 36] = [
+    ("D01", "spencer", 0.740560924275905),
+    ("D01", "morgenstern_price", 0.8461163976106287),
+    ("D02", "spencer", 0.8364279418278842),
+    ("D02", "morgenstern_price", 0.847602069429624),
+    ("D03", "spencer", 0.13373100866189094),
+    ("D03", "morgenstern_price", 0.31308690428478364),
+    ("D04", "spencer", 0.8110630923516594),
+    ("D04", "morgenstern_price", 0.832540069646304),
+    ("D05", "spencer", 1.0026966150012468),
+    ("D05", "morgenstern_price", 1.201738683385841),
+    ("D06", "spencer", 0.8330224666392125),
+    ("D06", "morgenstern_price", 0.9969817204544492),
+    ("D07", "spencer", 0.3011899592999714),
+    ("D07", "morgenstern_price", 0.293409625489546),
+    ("D08", "spencer", 0.8903383622937059),
+    ("D08", "morgenstern_price", 1.08455184995674),
+    ("D09", "spencer", 0.9336825428328506),
+    ("D09", "morgenstern_price", 0.4701705567315261),
+    ("D10", "spencer", 0.4997978662146211),
+    ("D10", "morgenstern_price", 0.5189664461982327),
+    ("D11", "spencer", 1.0597115865423048),
+    ("D11", "morgenstern_price", 1.109262941744515),
+    ("D12", "spencer", 0.9626882815849858),
+    ("D12", "morgenstern_price", 1.2270108396954074),
+    ("D13", "spencer", 1.6332266854112891),
+    ("D13", "morgenstern_price", 1.1764467241212362),
+    ("D14", "spencer", 0.8607183193379055),
+    ("D14", "morgenstern_price", 1.0616716100717323),
+    ("D15", "spencer", 0.37245869591602904),
+    ("D15", "morgenstern_price", 0.2577732715156895),
+    ("D16", "spencer", 0.5771160106773174),
+    ("D16", "morgenstern_price", 0.5445138986297446),
+    ("D17", "spencer", 0.4794754022968632),
+    ("D17", "morgenstern_price", 0.43144573470320624),
+    ("acads1a", "spencer", 0.8920141971213494),
+    ("acads1a", "morgenstern_price", 1.0866463257359222),
+];
+
+fn battery_model(name: &str) -> Value {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let path = if name == "acads1a" {
+        root.join("examples/acads1a.ogs.json")
+    } else {
+        let dir = if name <= "D14" { "cases" } else { "cases_f3" };
+        root.join(format!("verification/differential/{dir}/{name}.ogs.json"))
+    };
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"));
+    let doc: Value = serde_json::from_str(&text).expect("model");
+    doc.get("model").cloned().unwrap_or(doc)
+}
+
+/// Models of the battery whose faces the reference integrates without discretization error: one material, no water.
+fn exact_reference(name: &str) -> bool {
+    !matches!(
+        name,
+        "D02" | "D03" | "D06" | "D09" | "D14" | "D15" | "D16" | "D17"
+    )
+}
+
+/// `r_v` of the engine against `admiss.py` on the battery: the same value to 1e-6 relative in homogeneous dry soil (to
+/// 1e-3 with layers, water or `ru`, where the reference samples the face), and no result above the limit (no warning).
+#[test]
+fn the_battery_matches_the_reference_r_v_and_has_no_warning() {
+    let mut names: Vec<&str> = BATTERY_R_V.iter().map(|r| r.0).collect();
+    names.dedup();
+    let mut worst = 0.0_f64;
+    for name in names {
+        let mut doc = battery_model(name);
+        doc["version"] = json!("0.3");
+        doc["analysis"]["methods"] = json!(["spencer", "morgenstern_price"]);
+        if doc["analysis"].get("interslice").is_none() {
+            doc["analysis"]["interslice"] = json!({"function": "half_sine"});
+        }
+        let model = model_of(&doc);
+        for r in run(&model) {
+            let key = if r.method == ogs_core::model::MethodKind::Spencer {
+                "spencer"
+            } else {
+                "morgenstern_price"
+            };
+            let want = BATTERY_R_V
+                .iter()
+                .find(|row| row.0 == name && row.1 == key)
+                .unwrap_or_else(|| panic!("{name} {key}"))
+                .2;
+            let value = rv(&model, &r);
+            worst = worst.max((value - want).abs() / want);
+            println!("{name} {key}: r_v {value:.9} against {want:.9}");
+            // The reference samples the face (the kink of the water level and the interfaces of the layers are
+            // discretized there); the engine integrates them exactly.
+            let tolerance = if exact_reference(name) { 1e-6 } else { 1e-3 };
+            assert!(
+                (value - want).abs() <= tolerance * want,
+                "{name} {key}: r_v {value} against the reference {want}"
+            );
+            assert!(value <= 3.0 && r.warnings.iter().all(|w| w != WARNING));
+        }
+    }
+    println!("largest relative difference: {worst:e}");
+}
