@@ -111,7 +111,7 @@ sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 | Valores publicados (93 casos) | **213/213** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
-| cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D17) | **43/43** | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | Web y `ogs` (275 modelos) | **275/275** | [detalle](docs/verificacion.md) |
 
 - **Valores publicados:** 213 checks de 93 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
@@ -171,7 +171,7 @@ OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stabil
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 213/213 published values (93 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces and 43/43 Phase 3a checks. The search is circular only, and it has no
+28/28 searches, 28/28 fixed surfaces and 71/71 Phase 3a checks. The search is circular only, and it has no
 reinforcement (geosynthetics, anchors, nails, piles, sheet piles), so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
 from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).

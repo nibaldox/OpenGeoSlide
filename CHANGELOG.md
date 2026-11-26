@@ -70,8 +70,8 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
   - **Revisión R10 (E13l), modelos D18 a D23** en la batería diferencial: Su con gradiente negativo y piso (D18), M-P con
     `clipped_sine` y `trapezoidal` (D19 y D20), una polilínea sobre un contacto de materiales (D21) y una polilínea en
     terreno horizontal con `kh` o con una carga horizontal (D22 y D23). La batería de la Fase 3a pasa de 43 a 71
-    checks. Sobre la base `420baf0`, 61 coinciden con cSlope y los 10 de D21 a D23 fallan hasta que entran E13l-2 y
-    E13l-5.
+    checks, y los 71 coinciden con cSlope una vez integrados E13l-2 y E13l-5 (antes, D21 daba hasta +160 % y D22 y D23
+    eran `invalid`).
   - Tests de Python v0.3 de `ogs-py` (`crates/ogs-py/tests/test_v03.py`, 22 pruebas): polilínea, no drenado, M-P, Janbu y
     el aviso de E13k, con los valores de cSlope. Test del esquema con la polilínea sin `methods` y del uso de la CLI.
   - Recorridos de extremo a extremo de la web con el WASM real (`docs/fase3/iw/e2e/`).

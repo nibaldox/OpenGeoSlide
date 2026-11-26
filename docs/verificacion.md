@@ -12,7 +12,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | Valores publicados (93 casos, 213 checks) | **213/213** | [`verification/REPORT.md`](../verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
-| cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **61/71** sobre la base `420baf0`; los 10 que fallan son de D21 a D23 y dependen de E13l-2 y E13l-5 (véase [abajo](#batería-diferencial-frente-a-cslope)) | ídem |
+| cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
 | Web y `ogs` (ida y vuelta, 275 modelos) | **275/275** | `verification/tools/test_web_roundtrip.py` |
 
 ## Aceptación: casos publicados
@@ -124,23 +124,15 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
   | D22 | polilínea en **terreno horizontal con `kh = 0,3`** (E13l-2) | ídem |
   | D23 | la misma polilínea con una **carga lineal horizontal** de 200 kN/m en lugar del sismo (E13l-2) | solo Janbu: con una fuerza horizontal pura, cSlope no converge en Spencer y su M-P da cuatro veces el de D22 |
 
-  Resultado sobre la base `420baf0` (antes de las correcciones de E13l-2 y E13l-5), 71 checks en la Fase 3a: **61 OK,
-  10 FALLA, 0 sin dato, 0 pendientes**. D18, D19 y D20 coinciden con cSlope (|Δ| ≤ 0,16 % en superficie fija; la
-  búsqueda de D18 da +0,56 %, dentro del 1 % de E9b). **D21 a D23 fallan hasta que entren E13l-2 y E13l-5:**
+  Resultado con E13l-2 y E13l-5 integrados, 71 checks en la Fase 3a: **71 OK, 0 FALLA, 0 sin dato, 0 pendientes**
+  (D03 con M-P es concordancia: ninguno de los dos motores encuentra solución). D18, D19 y D20 coinciden con cSlope
+  (|Δ| ≤ 0,16 % en superficie fija; la búsqueda de D18 da +0,56 %, dentro del 1 % de E9b). D21 a D23 coinciden a
+  ≤ 0,02 %. Antes de E13l-5, D21 daba Spencer +159,67 %, M-P +137,95 % y Janbu +85,6 % sobre cSlope (no
+  conservador), y D22 y D23 eran `invalid (no_driving)`. Cifras en
+  [`verification/differential/REPORT.md`](../verification/differential/REPORT.md).
 
-  | Check | ogs (base `420baf0`) | cSlope | Δ |
-  |---|---:|---:|---:|
-  | D21 Spencer | 5,5886 | 2,1522 | +159,67 % |
-  | D21 M-P | 4,3839 | 1,8424 | +137,95 % |
-  | D21 Janbu simplificado | 2,7825 | 1,4990 | +85,63 % |
-  | D21 Janbu corregido | 3,0276 | 1,6313 | +85,60 % |
-  | D22 Spencer, M-P, Janbu simplificado y corregido | `invalid` (`no_driving`) | 3,9855 · 3,9306 · 3,3333 · 3,7071 | — |
-  | D23 Janbu simplificado y corregido | `invalid` (`no_driving`) | 7,5000 · 8,3409 | — |
-
-  En D21 ogs toma el material de arriba en el tramo que corre sobre el contacto (E13l-5); como control, la misma
-  polilínea más abajo, dentro del estrato débil (base de 8 a 10 m), coincide con cSlope (M-P −0,02 %, Janbu simplificado +0,00 % y corregido −0,04 %; Spencer queda sin referencia porque cSlope rechaza el escarpe de 80°). En D22 y D23
-  `no_driving` es el hallazgo R10A-02 (E13l-2). El informe `verification/differential/REPORT.md` se generó sobre esa
-  base y se regenera al integrar las correcciones.
+  Como control de D21, la misma polilínea más abajo, dentro del estrato débil (base de 8 a 10 m), da el mismo FS que
+  sobre el contacto, porque E13l-5 toma el material más débil.
 - Un resultado de cSlope con `converged: false` es un oráculo sin solución, nunca un valor de referencia.
 
 ## Bindings y CLI
