@@ -365,7 +365,7 @@ Prevalece sobre el texto de F4.2 a F4.13 donde difieran.
   `along > 0`, axial y con su fuerza completa.
   - **Motivo:** es una carga externa conocida, la de bloqueo (F4.6; Duncan y Wright, método A). Es la regla vigente de
     cSlope (`CHANGELOG.md:24` del clon).
-  - Con `along > 0` la fuerza tiene una componente a favor del deslizamiento, así que aplicarla es lo conservador.
+  - Con `along > 0` la fuerza tiene una componente a favor del deslizamiento; **no** es siempre conservador aplicarla, porque con φ > 0 su componente normal confina la base (corregido en E14o-8, que agrega la nota `reinforcement_active_compression`).
   - El binario instalado del oráculo es anterior y descarta esos cruces, por lo que **las filas de aceptación con el
     oráculo solo usan cruces con `along < 0`**.
   - Los activos con `along > 0` se verifican con el equilibrio global independiente y con un test que fija `u = d`.
@@ -579,3 +579,37 @@ idéntico byte a byte**, salvo la corrección de V065, que es la única excepci�
     `x2 = x1`.
 - **E14o-17, documentación (R11B-11):** las cifras actualizadas en `limitaciones.md` y en el README, y `test_v04.py` y
   el esquema 0.4 en `verificacion.md`. El coordinador sube la versión a 0.3.0 al publicar.
+
+### F4.18b, forma final de E14o tras la implementación
+
+- **E14o-1:** el umbral de penetración es la **sagita** `r − |perp|`, que debe superar `1e-6·ancho`, la misma escala
+  que los nodos de cruce. Una semicuerda mayor que `tol = 1e-9·escala` no descarta las penetraciones de 1e-12 m.
+  Límite documentado:
+  - con una penetración real mayor que el umbral, un pasivo casi tangente puede saltar por la regla de compresión: un
+    cruce se descarta y el otro se aplica;
+  - cSlope no sirve de referencia a esa escala, porque cruza la recta con las cuerdas de las dovelas.
+- **E14o-2 y E14o-3:** con pasivas que levantan, F tiene una **cota inferior física**,
+  `lift_bound = −Σpassive_v / ΣW*`, por debajo de la cual las pasivas levantan la masa.
+  - Bishop la suma a `F_adm`.
+  - Janbu busca raíces solo por encima de ella, porque sin la comprobación E3 posterior aparecía una raíz espuria de
+    0,127.
+  - Sin pasivas vale cero, y todo queda bit a bit.
+  - Bishop acota el cambio de signo con una malla geométrica de 600 pasos y elige el cruce más cercano al arranque.
+- **E14o-5:** el contacto vertical se muestrea a ±4·tol en x. El mínimo es deliberado: en el contraejemplo horizontal,
+  ogs da 1,0355 y cSlope 1,3293, que depende del orden de `regions`.
+- **E14o-6:** la agrupación crece desde el cruce, sobre las piezas finas y los cruces vecinos, hasta la primera dovela
+  de ancho normal. Una pieza es fina si su ancho es menor que `1e-2` del de la dovela más ancha.
+  - La identificación exacta por dovela original, con un campo `origin` en `Slice`, queda como mejora futura.
+- **E14o-7:** con refuerzos, la búsqueda agrega:
+  - candidatos que pasan por puntos situados a `±1e-4·ancho` de cada cabeza y punta, sobre el eje del elemento, con ρ
+    despejado y refinados sobre el borde;
+  - 20 semillas de refinamiento en lugar de 10;
+  - hasta 8 semillas extra, una por número de cruces.
+
+  **Medido:**
+  - la brecha frente a `60×60×40 + refine` baja de +7,15 % y +2,06 % a −0,44 % y −0,66 %;
+  - en 40 modelos aleatorios, el peor caso pasa de +20,8 % a +1,55 %;
+  - el tiempo crece entre ×1,15 y ×1,5;
+  - sin refuerzos, todo queda bit a bit.
+
+  Límite documentado: los valles estrechos con dos activos (+1,55 %) y los modelos mal condicionados, con FS ≈ 0,1.
