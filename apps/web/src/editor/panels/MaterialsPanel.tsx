@@ -1,34 +1,101 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Material } from '../../engine/types';
-import type { EditorStore } from '../types';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { Material, MaterialModel } from '../../engine/types';
+import type { EditorStore, ModelDoc } from '../types';
 import { LabeledField, PanelSection } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
+  MATERIAL_MODEL_OPTIONS,
+  defaultStrengthGradient,
+  formatNumber,
   materialFromForm,
   materialRemoveCommand,
   materialToForm,
+  materialTopElevation,
   materialUpsertCommand,
   materialUsage,
   materialsEqual,
   newMaterialForm,
   regionMaterialCommand,
+  setSuVariable,
+  switchMaterialModel,
   unitLabels,
   type MaterialForm,
   type UnitLabels,
 } from './forms';
 
-type FieldKey = Exclude<keyof MaterialForm, 'id'>;
+type FieldKey = Exclude<keyof MaterialForm, 'id' | 'model' | 'variable'>;
 
-/** Campos editables de un material: clave del formulario, etiqueta visible y unidad (según el sistema del modelo). */
-function materialFields(u: UnitLabels): ReadonlyArray<{ key: FieldKey; label: string; unit?: string; mode: 'text' | 'decimal'; hint?: string }> {
-  return [
+interface FieldSpec {
+  key: FieldKey;
+  label: string;
+  unit?: string;
+  mode: 'text' | 'decimal';
+  hint?: string;
+}
+
+/**
+ * Campos editables de un material según su modelo (F3.2): clave del formulario, etiqueta visible y unidad (según el sistema del modelo).
+ * `part` separa los que van antes de la casilla «Su variable con la cota» de los que van después.
+ */
+function materialFields(u: UnitLabels, model: MaterialModel, variable: boolean): { before: FieldSpec[]; variable: FieldSpec[]; after: FieldSpec[] } {
+  const common: FieldSpec[] = [
     { key: 'name', label: 'Nombre', mode: 'text' },
     { key: 'unit_weight', label: 'Peso unitario γ', unit: u.unitWeight, mode: 'decimal' },
     { key: 'unit_weight_sat', label: 'Peso unitario saturado γsat', unit: u.unitWeight, mode: 'decimal', hint: 'Vacío = no definido' },
-    { key: 'cohesion', label: 'Cohesión c', unit: u.stress, mode: 'decimal' },
-    { key: 'friction_angle', label: 'Ángulo de fricción φ', unit: '°', mode: 'decimal' },
-    { key: 'ru', label: 'Coeficiente de presión de poros ru', mode: 'decimal', hint: 'Vacío = no definido' },
   ];
+  const ru: FieldSpec = { key: 'ru', label: 'Coeficiente de presión de poros ru', mode: 'decimal', hint: 'Vacío = no definido' };
+  if (model === 'undrained') {
+    return {
+      before: [...common, { key: 'undrained_strength', label: 'Su', unit: u.stress, mode: 'decimal', hint: 'Resistencia al corte no drenada (φ = 0)' }],
+      variable: variable
+        ? [
+            { key: 'strength_datum', label: 'Cota de referencia de Su', unit: u.length, mode: 'decimal', hint: 'Cota y donde Su vale el valor de arriba' },
+            { key: 'strength_gradient', label: 'Gradiente de Su', unit: u.stressGradient, mode: 'decimal', hint: 'Positivo si Su crece hacia abajo' },
+            { key: 'strength_limit', label: 'Límite de Su', unit: u.stress, mode: 'decimal', hint: 'Vacío = sin límite' },
+          ]
+        : [],
+      after: [ru],
+    };
+  }
+  return {
+    before: [
+      ...common,
+      { key: 'cohesion', label: 'Cohesión c', unit: u.stress, mode: 'decimal' },
+      { key: 'friction_angle', label: 'Ángulo de fricción φ', unit: '°', mode: 'decimal' },
+      ru,
+    ],
+    variable: [],
+    after: [],
+  };
+}
+
+/** Selector del modelo constitutivo con el prefijo para lectores de pantalla («Material arcilla: Modelo»), como los demás campos. */
+function ModelSelect({ scope, value, onChange }: { scope: string; value: MaterialModel; onChange: (model: MaterialModel) => void }) {
+  const id = useId();
+  return (
+    <div className="field ep-field">
+      <label htmlFor={id}>
+        <span className="visually-hidden">{scope}: </span>Modelo
+      </label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value as MaterialModel)}>
+        {MATERIAL_MODEL_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Casilla «Su variable con la cota», con el mismo prefijo accesible. */
+function VariableCheckbox({ scope, checked, onChange }: { scope: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="checkbox">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span className="visually-hidden">{scope}: </span>Su variable con la cota
+    </label>
+  );
 }
 
 /** Un material como tarjeta apilada: etiquetas visibles, sin tabla ancha (R7-13). El id es de solo lectura y se ve como texto. */
@@ -52,6 +119,29 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'material', materialId: material.id } });
   const remove = materialRemoveCommand(store.getState().doc, material.id);
 
+  const scope = `Material ${material.id}`;
+  const model: MaterialModel = form.model ?? 'mohr_coulomb';
+  const fields = materialFields(units, model, form.variable === true);
+  const field = ({ key, label, unit, mode, hint }: FieldSpec) => (
+    <LabeledField
+      key={key}
+      label={label}
+      scope={scope}
+      unit={unit}
+      hint={hint}
+      value={form[key] ?? ''}
+      mode={mode}
+      path={`/materials/${index}/${key}`}
+      error={key in errors ? errors[key] : undefined}
+      onChange={(v) => setForm({ ...form, [key]: v })}
+      onCommit={commit}
+      onReset={reset}
+      onFocus={select}
+    />
+  );
+  // El cambio de modelo y la casilla de Su variable escriben el material de una vez: un solo paso deshacible cada uno.
+  const doc = (): ModelDoc => store.getState().doc;
+
   return (
     <fieldset className={selected ? 'ep-card ep-row-selected' : 'ep-card'}>
       <legend>Material {material.id}</legend>
@@ -59,23 +149,13 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         Identificador: <code>{material.id}</code> (no se puede cambiar)
       </p>
       <div className="ep-grid">
-        {materialFields(units).map(({ key, label, unit, mode, hint }) => (
-          <LabeledField
-            key={key}
-            label={label}
-            scope={`Material ${material.id}`}
-            unit={unit}
-            hint={hint}
-            value={form[key]}
-            mode={mode}
-            path={`/materials/${index}/${key}`}
-            error={key in errors ? errors[key] : undefined}
-            onChange={(v) => setForm({ ...form, [key]: v })}
-            onCommit={commit}
-            onReset={reset}
-            onFocus={select}
-          />
-        ))}
+        <ModelSelect scope={scope} value={material.model} onChange={(m) => store.dispatch(materialUpsertCommand(switchMaterialModel(material, m, doc().units)))} />
+        {fields.before.map(field)}
+        {model === 'undrained' ? (
+          <VariableCheckbox scope={scope} checked={form.variable === true} onChange={(on) => store.dispatch(materialUpsertCommand(setSuVariable(material, on, doc())))} />
+        ) : null}
+        {fields.variable.map(field)}
+        {fields.after.map(field)}
       </div>
       <div className="ep-actions">
         <button
@@ -130,6 +210,34 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
   }
   const outcome = materialFromForm(form, { otherIds: ids, editing: null });
   const errors = outcome.ok ? {} : outcome.errors;
+  const model: MaterialModel = form.model ?? 'mohr_coulomb';
+  const fields = materialFields(u, model, form.variable === true);
+  const field = ({ key, label, unit, mode, hint }: FieldSpec) => (
+    <LabeledField
+      key={key}
+      label={label}
+      scope={NEW_MATERIAL_SCOPE}
+      unit={unit}
+      hint={hint}
+      value={form[key] ?? ''}
+      mode={mode}
+      error={key in errors ? errors[key] : undefined}
+      onChange={(v) => setForm({ ...form, [key]: v })}
+    />
+  );
+  const setVariable = (on: boolean): void => {
+    if (!on) {
+      setForm({ ...form, variable: false });
+      return;
+    }
+    const top = materialTopElevation(store.getState().doc, form.id);
+    setForm({
+      ...form,
+      variable: true,
+      strength_datum: form.strength_datum && form.strength_datum !== '' ? form.strength_datum : formatNumber(top === null ? 0 : Math.round(top * 100) / 100),
+      strength_gradient: form.strength_gradient && form.strength_gradient !== '' ? form.strength_gradient : formatNumber(defaultStrengthGradient(units)),
+    });
+  };
   return (
     <fieldset ref={fieldsetRef} className="field ep-new">
       <legend>{NEW_MATERIAL_SCOPE}</legend>
@@ -142,19 +250,11 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
           error={'id' in errors ? errors.id : undefined}
           onChange={(v) => setForm({ ...form, id: v })}
         />
-        {materialFields(u).map(({ key, label, unit, mode, hint }) => (
-          <LabeledField
-            key={key}
-            label={label}
-            scope={NEW_MATERIAL_SCOPE}
-            unit={unit}
-            hint={hint}
-            value={form[key]}
-            mode={mode}
-            error={key in errors ? errors[key] : undefined}
-            onChange={(v) => setForm({ ...form, [key]: v })}
-          />
-        ))}
+        <ModelSelect scope={NEW_MATERIAL_SCOPE} value={model} onChange={(m) => setForm({ ...form, model: m })} />
+        {fields.before.map(field)}
+        {model === 'undrained' ? <VariableCheckbox scope={NEW_MATERIAL_SCOPE} checked={form.variable === true} onChange={setVariable} /> : null}
+        {fields.variable.map(field)}
+        {fields.after.map(field)}
       </div>
       <div className="ep-actions">
         <button
@@ -200,7 +300,7 @@ export function MaterialsPanel({ store }: { store: EditorStore }) {
           />
         ))}
       </div>
-      <p className="muted small">γsat y ru vacíos = no definidos. Rangos: γ mayor que 0, c ≥ 0, φ en [0, 90), ru en [0, 1).</p>
+      <p className="muted small">γsat y ru vacíos = no definidos. Rangos: γ mayor que 0, c ≥ 0 y φ en [0, 90) en Mohr-Coulomb, Su ≥ 0 en «No drenado (Su)», ru en [0, 1).</p>
       <NewMaterial store={store} ids={ids} units={units} />
 
       <h3>Material por región</h3>
