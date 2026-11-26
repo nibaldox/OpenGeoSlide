@@ -127,3 +127,32 @@ describe('issueTargetFor: incidencias sin puntero', () => {
     for (const code of ['NoValidSurface', 'engine.invalid', 'NoSurface']) expect(issueTargetFor(issue(code), doc()), code).not.toBeNull();
   });
 });
+
+describe('issueTarget: refuerzos (v0.4)', () => {
+  const withR = (): ModelDoc =>
+    ({
+      ...doc(),
+      version: '0.4',
+      reinforcements: [
+        { type: 'anchor', id: 'a1', x1: 0, y1: 5, x2: 4, y2: 4, application: 'active', direction: 'axial', tensile_capacity: 100 },
+        { type: 'nail', id: 'n1', x1: 1, y1: 3, x2: 5, y2: 2, application: 'passive', direction: 'axial', tensile_capacity: 50, pullout: { model: 'bond', strength: 10 } },
+      ],
+    }) as ModelDoc;
+  it('un campo de un refuerzo abre «Refuerzos», selecciona el elemento y enfoca el campo', () => {
+    expect(issueTarget('/reinforcements/1/tensile_capacity', withR())).toMatchObject({
+      tab: 'reinforcements',
+      selection: { kind: 'reinforcement', index: 1 },
+      fieldPath: '/reinforcements/1/tensile_capacity',
+    });
+    expect(issueTarget('/reinforcements/0/id', withR())).toMatchObject({ tab: 'reinforcements', fieldPath: '/reinforcements/0/id' });
+  });
+  it('los campos de pullout apuntan al control plano del panel', () => {
+    expect(issueTarget('/reinforcements/1/pullout/strength', withR())).toMatchObject({ tab: 'reinforcements', fieldPath: '/reinforcements/1/strength' });
+    expect(issueTarget('/reinforcements/1/pullout/bonded_length', withR())).toMatchObject({ fieldPath: '/reinforcements/1/bonded_length' });
+    expect(issueTarget('/reinforcements/1/pullout', withR())).toMatchObject({ fieldPath: '/reinforcements/1/pullout' });
+  });
+  it('sin índice abre la pestaña; un índice inexistente no es navegable', () => {
+    expect(issueTarget('/reinforcements', withR())).toMatchObject({ tab: 'reinforcements', fieldPath: null });
+    expect(issueTarget('/reinforcements/9/id', withR())).toBeNull();
+  });
+});
