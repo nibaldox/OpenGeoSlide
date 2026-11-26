@@ -837,7 +837,9 @@ ORACLE_ROWS = _oracle_rows_from_the_rust_test()
 
 def test_the_rust_oracle_file_has_every_row_and_method():
     labels = {r[0] for r in ORACLE_ROWS}
-    assert len(ORACLE_ROWS) == 120 and len(labels) == 30
+    # E14o-9 (R11A-09): the two trivial rows inc_up30_pas / inc_up45_pas became cmp30_pas / cmp45_pas (embedded and
+    # compressed) and three capx_* rows (bond, interface and tieback below tensile_capacity) were added: 33 labels x 4.
+    assert len(ORACLE_ROWS) == 132 and len(labels) == 33
     assert {r[1] for r in ORACLE_ROWS} == set(_R_METHODS)
 
 

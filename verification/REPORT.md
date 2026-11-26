@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T12:08:27-03:00 · harness v1 · casos: `verification/cases` (116 casos, 243 checks)
+Generado: 2026-11-26T13:17:18-03:00 · harness v1 · casos: `verification/cases` (116 casos, 243 checks)
 
 ## Motores
 
@@ -278,9 +278,9 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V011a | bishop | 1 | 1 | 1 | 2.5e-03 | 0.0e+00 | 0 |
 | V011b | bishop | 1 | 1 | 1 | 8.6e-05 | 0.0e+00 | 0 |
 | V012 | bishop | 1 | 1 | 1 | 2.2e-03 | 0.0e+00 | 0 |
-| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
-| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
-| V014 | spencer | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
+| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
+| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
+| V014 | spencer | 8 | 8 | 8 | 1.8e-15 | 8.9e-14 | 0 |
 | V015 | janbu_corrected | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
 | V015 | janbu_simplified | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
 | V016b | bishop | 0 | 0 | 0 | 0.0e+00 | 0.0e+00 | 0 |
