@@ -8,7 +8,10 @@ use std::process::ExitCode;
 
 const USAGE: &str = "uso: ogs --version | ogs analyze <archivo.ogs.json> | \
 ogs bench <caso.json> [--reps N] \
-[--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] (all = los cinco métodos)";
+[--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] (all = los cinco métodos)\n\
+el modelo es un .ogs.json v0.1 a v0.4; con refuerzos (anchor, nail, geosynthetic, pile y sheet_pile) pide \"version\": \"0.4\" \
+y cada método del informe trae reinforcement_forces; con pilotes o tablestacas solo se calcula la estabilidad global \
+(formato y limitaciones: docs/formato-ogs-json.md y docs/limitaciones.md)";
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
