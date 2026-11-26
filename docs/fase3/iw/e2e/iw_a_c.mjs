@@ -4,12 +4,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { launchTap, start, tab, step, summary, shot, axe, checkReport, openFile, compare, cli, OGS_BIN } from './lib.mjs';
+import { launchTap, start, tab, step, summary, shot, axe, checkReport, openFile, compare, cli, OGS_BIN, casePath } from './lib.mjs';
 
 const REPO = process.env.OGS_REPO ?? process.cwd();
 const T = process.env.TMPDIR;
 const variant = (id, mut) => {
-  const m = JSON.parse(readFileSync(path.join(REPO, `verification/pending/F3/${id}.json`), 'utf8')).model;
+  const m = JSON.parse(readFileSync(casePath(REPO, id), 'utf8')).model;
   mut(m);
   const f = path.join(T, `iw-1a-${id}.ogs.json`);
   writeFileSync(f, JSON.stringify(m));

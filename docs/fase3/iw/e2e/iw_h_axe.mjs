@@ -4,7 +4,7 @@
 // Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node iw_h_axe.mjs  (necesita iw_b.mjs ejecutado antes: usa iw-b3.ogs.json)
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { launchTap, start, tab, step, summary, shot, axe, checkReport, openFile } from './lib.mjs';
+import { launchTap, start, tab, step, summary, shot, axe, checkReport, openFile, casePath } from './lib.mjs';
 
 const T = process.env.TMPDIR;
 const REPO = process.env.OGS_REPO ?? process.cwd();
@@ -37,7 +37,7 @@ for (const scheme of ['light', 'dark']) {
   await page.waitForTimeout(300);
   await vw('casos-con-polilinea', async () => {
     await page.getByRole('tab', { name: 'Casos de verificación' }).click();
-    await page.locator('#mode-cases-panel input[type="file"]').setInputFiles(path.join(REPO, 'verification/pending/F3/V046a.json'));
+    await page.locator('#mode-cases-panel input[type="file"]').setInputFiles(casePath(REPO, 'V046a'));
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: 'Comprobar caso' }).click();
     await page.locator('[data-results-table]').last().waitFor({ state: 'visible', timeout: 60000 });
