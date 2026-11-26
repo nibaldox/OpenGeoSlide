@@ -110,6 +110,8 @@ const PAIRS: Pair[] = [
   // Dovelas (UX9-07): el trazo se compone sobre cada material y sobre el panel, donde está la muestra de la leyenda
   // La muestra de la leyenda (B-05) es una línea con este mismo token sobre el panel: se cubren todas las superficies de la interfaz.
   ...['canvas-bg', ...UI_SURFACES, 'ui-row-warn', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
+  // Muestras de la leyenda (F5.3, F5.4): el borde del «Agua embalsada» y la línea de la «Grieta de tracción» sobre el panel.
+  ...UI_SURFACES.flatMap((bg): Pair[] => ['canvas-piezo', 'canvas-surface'].map((fg): Pair => [fg, bg, UI, 'muestra de la leyenda (agua embalsada y grieta)'])),
   // Tiradores: relleno y aro, y el tirador de la piezométrica
   ['canvas-handle-ring', 'canvas-handle-sel', UI, 'tirador seleccionado'],
   ['canvas-handle-ring', 'canvas-handle-snap', UI, 'tirador con imán'],
