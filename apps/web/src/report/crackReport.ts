@@ -17,11 +17,15 @@ export const POND_CONVENTIONS: readonly string[] = [
   'Un material con ru reemplaza a la piezométrica en la presión de poros, con u = ru·(W + V)/b: W es el peso del suelo de la dovela y V el del agua embalsada que tiene encima, sin cargas externas ni sismo. Es la regla de Slide2 y la conservadora (de 1 a 4,5 % menos de FS que contar solo el suelo). No se pudo comparar con un oráculo externo.',
 ];
 
+/** Fuerza del agua en la grieta (F5.4, G3): la nota breve de la tabla de resultados. */
+export const CRACK_PW_NOTE =
+  'Pw = ½·γw·hw², con hw = profundidad × fracción de agua. Es horizontal, va en el sentido del deslizamiento y se aplica a un tercio de hw sobre la base de la grieta. Sin sismo.';
+
 /** Convenciones de la grieta de tracción (F5.4). */
 export const CRACK_CONVENTIONS: readonly string[] = [
   'Grieta de tracción: es vertical y se ubica en x_c, el primer punto desde la cresta donde el terreno queda a una profundidad igual o mayor que la de la grieta sobre la superficie de falla. Si la superficie nunca llega a esa profundidad, no tiene masa y el motor la descarta (tension_crack_not_reached).',
   'La masa termina en una cara vertical en x_c: el suelo del lado de la cresta se quita y su peso no se conserva como carga. La cara no tiene resistencia y el agua de la grieta no cambia la presión de poros de la base ni pesa.',
-  'Pw = ½·γw·hw², con hw = profundidad × fracción de agua. Es horizontal, va en el sentido del deslizamiento y se aplica a un tercio de hw sobre la base de la grieta. Sin sismo.',
+  CRACK_PW_NOTE,
   'La fracción de agua va de 0 (grieta seca) a 1 (llena). 1 es lo conservador y lo que usan Slide2 y USACE EM 1110-2-1902; por eso es lo que propone la interfaz al crear la grieta.',
   'Con profundidad «Automática» se usa z = 2c/(γ·tan(45° − φ/2)) − q/γ, con c, φ y γ del material bajo el terreno en cada x, y q la sobrecarga y el agua embalsada en ese punto. No hay tope por la altura del talud.',
 ];

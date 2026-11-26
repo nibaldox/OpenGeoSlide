@@ -1,10 +1,11 @@
 import { reportCircle } from '../engine/surface';
-import type { AnalysisReport, MethodKind, Reinforcement, SolveStatus } from '../engine/types';
+import type { AnalysisReport, MethodKind, Reinforcement, SolveStatus, TensionCrack } from '../engine/types';
 import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
 import { correctionFactorText, methodDetails, resultSurfaceSummary } from '../report/methodInfo';
 import { formatFs } from './formatFs';
 import { METHOD_LABELS } from './methodLabels';
+import { CrackTable } from './CrackResults';
 import { ReinforcementForces } from './ReinforcementForces';
 
 export { METHOD_LABELS };
@@ -37,6 +38,8 @@ interface Props {
   lengthUnit?: string;
   /** Refuerzos del modelo calculado: con ellos la tabla de fuerzas dice el tipo y, con pilotes o tablestacas, el límite de F4.8. */
   reinforcements?: readonly Reinforcement[];
+  /** `analysis.tension_crack` del modelo calculado (F5.2): con ella la tabla de la grieta dice la fracción de agua. */
+  tensionCrack?: TensionCrack | null;
 }
 
 /** Nota o aviso del motor con el método que lo emitió (R2-09: no se aplanan los avisos de todos los métodos). */
@@ -54,7 +57,7 @@ function methodWarnings(report: AnalysisReport, severity: 'nota' | 'aviso'): Met
   );
 }
 
-export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, lengthUnit, reinforcements }: Props) {
+export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, lengthUnit, reinforcements, tensionCrack }: Props) {
   const notes = methodWarnings(report, 'nota');
   const avisos = methodWarnings(report, 'aviso');
   // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
@@ -138,6 +141,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
           </tr>
         </tfoot>
       </table>
+      <CrackTable report={report} tensionCrack={tensionCrack} units={lengthUnit === 'ft' ? 'imperial' : 'SI'} />
       <ReinforcementForces report={report} reinforcements={reinforcements} units={lengthUnit === 'ft' ? 'imperial' : 'SI'} />
       {notes.length > 0 && (
         <ul className="notes" aria-label="Notas del análisis">
