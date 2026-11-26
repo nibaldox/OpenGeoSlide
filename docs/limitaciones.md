@@ -551,7 +551,7 @@ reemplaza a la piezométrica. Queda como decisión de diseño, no como resultado
 - **El sismo pseudoestático no actúa sobre el agua** (E7): ni `kh·V` ni `kv·V`, y tampoco sobre la fuerza `Pw` de la
   grieta. Solo se aplica al peso del suelo, como siempre (y nunca a las cargas). Es lo que hace el oráculo: en V047a con
   `kh = 0,1`, `kv = 0,05` y Spencer, el prototipo sin sismo sobre el agua quedó a +0,02 % de cSlope, y aplicarlo
-  habría dado −1,05 % con `kh` (X21, pregunta 6). El agua embalsada **no recibe** la inercia sísmica: un análisis que
+  habría dado −1,05 % respecto del oráculo con `kh` (X21, pregunta 6). El agua embalsada **no recibe** la inercia sísmica: un análisis que
   la considere sacudida daría otro FS.
 
 ### Círculos tangentes al fondo (V096a y V086b)
