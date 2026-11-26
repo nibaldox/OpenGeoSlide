@@ -24,10 +24,11 @@ and corrected Janbu, at 0.5 % of the oracle. Its probe (`reinforcements_active`,
 anchor of the rows 1 and 2 of F4.13 and compares Bishop with the oracle figure to 0.1 %: an engine that has no forces, or
 whose methods lack the terms divided by F, leaves the checks `pendiente`. `--require-f3r` makes pending checks fail.
 
-The v0.5 block (briefs/F3G_G1.md, task V; contracts F5.2 and F5.3) comes fourth: the models D28-D39 of `cases_f3g/` (reservoirs
-at the toe and on a dam face, dry, filled and automatic tension cracks, and combinations), each one in search and on its
-fixed circle, with Bishop and Spencer, at E9b's criteria. Its probe (`ponded_water`, `tension_crack`) runs V047a with a
-reservoir 2 m above the toe and with a crack of 2 m filled at 25 % and compares Bishop with the oracle figure to 0.1 %: an
+The v0.5 block (briefs/F3G_G1.md, task V; contracts F5.2, F5.3 and, for D40-D42, F5.10) comes fourth: the models D28-D42 of
+`cases_f3g/` (reservoirs at the toe and on a dam face, dry, filled and automatic tension cracks, combinations, and three
+Ito-Matsui pile rows), each one in search and on its fixed circle, with Bishop and Spencer, at E9b's criteria. Its probe
+(`ponded_water`, `tension_crack`, `lateral_pressure`) runs V047a with a reservoir 2 m above the toe and with a crack of 2 m
+filled at 25 %, and the row X22-V013c with an Ito-Matsui pile, and compares Bishop with the oracle figure to 0.1 %: an
 engine without them leaves the checks `pendiente`. `--require-f3g` makes pending checks fail (use it when integrating).
 
 Usage (from the worktree root):
@@ -75,7 +76,7 @@ KINDS = ("search", "fixed")
 EXPECTED_CASES = 14
 EXPECTED_CASES_F3 = 9
 EXPECTED_CASES_F3R = 4
-EXPECTED_CASES_F3G = 12
+EXPECTED_CASES_F3G = 15
 CASES_F3_DIR = os.path.join(HERE, "cases_f3")
 CASES_F3R_DIR = os.path.join(HERE, "cases_f3r")
 CASES_F3G_DIR = os.path.join(HERE, "cases_f3g")
@@ -118,7 +119,7 @@ EXIT_F3G_PENDING = 5
 # v0.4 (reinforcements): what the engine must have to run a check; see probe_f3r
 CAPABILITIES_F3R = ("reinforcements_active", "reinforcements_passive")
 # v0.5 (tension crack and ponded water): what the engine must have to run a check; see probe_f3g
-CAPABILITIES_F3G = ("ponded_water", "tension_crack")
+CAPABILITIES_F3G = ("ponded_water", "tension_crack", "lateral_pressure")
 
 
 # ------------------------------------------------------------------ cases
@@ -607,7 +608,7 @@ def f3r_markdown(rows: list[dict], probe: dict) -> list[str]:
 # ------------------------------------------------------------------ v0.5: tension crack and ponded water (D28-D39)
 
 def load_f3g_cases(cases_dir: str) -> list[dict]:
-    """The v0.5 models D28-D39. A directory without them is an empty list: the block is then skipped."""
+    """The v0.5 models D28-D42. A directory without them is an empty list: the block is then skipped."""
     cases = load_f3_cases(cases_dir)
     for case in cases:
         model = case["model"]
@@ -625,13 +626,16 @@ def f3g_model(model: dict, method: str) -> dict:
 
 
 def f3g_capabilities_needed(model: dict) -> list[str]:
-    """Capabilities of F3G a model needs: ponded water (the piezometric line above the ground) and the crack."""
+    """Capabilities of F3G a model needs: ponded water (the piezometric line above the ground), the crack and the
+    Ito-Matsui pile (`lateral_pressure`, E15i)."""
     needs = set()
     piezo = (model.get("water") or {}).get("piezometric_line")
     if piezo and water_above_ground(outline_of(regions_of(model)), piezo):
         needs.add("ponded_water")
     if (model.get("analysis") or {}).get("tension_crack") is not None:
         needs.add("tension_crack")
+    if any("lateral_pressure" in r for r in model.get("reinforcements") or []):
+        needs.add("lateral_pressure")
     return [c for c in CAPABILITIES_F3G if c in needs]
 
 
@@ -668,13 +672,15 @@ def f3g_markdown(rows: list[dict], probe: dict) -> list[str]:
     """The `## v0.5` section of REPORT.md, as lines."""
     s = summarize_f3(rows)
     L = [
-        "## v0.5: grieta de tracción y agua embalsada (D28 a D39)",
+        "## v0.5: grieta de tracción, agua embalsada y pilotes de Ito-Matsui (D28 a D42)",
         "",
-        "Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vertical con embalse (D30), presa con "
+        "Quince modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vertical con embalse (D30), presa con "
         "embalse (D31), grieta seca, llena y automática (D32 a D35), y combinados: embalse y grieta llena (D36), presa con "
-        "grieta automática (D37), sismo con embalse y grieta (D38) y arcilla no drenada (D39). Cada uno en búsqueda y en su "
-        "círculo fijo, con Bishop y Spencer, con los criterios de E9b. La sonda de cada capacidad es V047a: el embalse de "
-        "2 m al pie (X21-P01) y la grieta de 2 m llena al 25 % (X21-W025); se acepta si Bishop da la cifra del oráculo a "
+        "grieta automática (D37), sismo con embalse y grieta (D38) y arcilla no drenada (D39); y tres filas de pilotes de "
+        "Ito-Matsui (E15i) en el talud de Cai y Ugai: φ = 0 (D40), c-φ con la fuerza en el cruce y tope de corte (D41) y bajo "
+        "el agua (D42). Cada uno en búsqueda y en su círculo fijo, con Bishop y Spencer, con los criterios de E9b. La sonda de "
+        "cada capacidad es V047a: el embalse de 2 m al pie (X21-P01) y la grieta de 2 m llena al 25 % (X21-W025); para "
+        "`lateral_pressure`, la fila X22-V013c con un pilote de Ito-Matsui. Se acepta si Bishop da la cifra del oráculo a "
         "0,1 %. El check que necesita una capacidad que el motor no tiene queda **pendiente**, nunca falla; el valor de "
         "cSlope se calcula igual y queda como línea base.",
         "",

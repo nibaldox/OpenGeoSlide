@@ -740,6 +740,10 @@ FIXED_SURFACES_F3G: dict[str, tuple[float, float, float]] = {
     "D37": (15.447592648615313, 67.7349718204107, 69.47431565988484),
     "D38": (32.828659913418406, 46.92813142699123, 22.109917764737766),
     "D39": (29.989896919681446, 17.775518182062456, 27.77551910225396),
+    # Ito-Matsui (E15i): the critical circle of cSlope's Bishop search with the row of piles (D41: the shear capacity governs)
+    "D40": (17.04546820060584, 15.9819711350568, 18.924830007059743),
+    "D41": (8.958027817698397, 21.61427694291874, 21.63937428568462),
+    "D42": (11.151989479463179, 20.30802658489032, 20.340732994028784),
 }
 # ACADS 1(a), the V047a profile: a 10 m slope of 2H:1V with its toe at (30, 25), c = 3, phi = 19.6, gamma = 20.
 V047A_PROFILE = [(20.0, 20.0), (20.0, 25.0), (30.0, 25.0), (50.0, 35.0), (70.0, 35.0), (70.0, 20.0)]
@@ -752,7 +756,8 @@ F3G_METHODS = ["bishop", "spencer"]
 
 def _model_f3g(case_id: str, title: str, intent: str, direction: str, version: str, materials: list[dict],
                regions: list[dict], search: dict, *, piezo: list[tuple[float, float]] | None = None,
-               crack: dict | None = None, loads: list[dict] | None = None, seismic: dict | None = None) -> dict:
+               crack: dict | None = None, loads: list[dict] | None = None, seismic: dict | None = None,
+               reinforcements: list[dict] | None = None) -> dict:
     """A model of F3G: a search and a fixed circle (once `FIXED_SURFACES_F3G` has it), Bishop and Spencer."""
     water: dict = {"unit_weight": GAMMA_W}
     if piezo:
@@ -783,6 +788,8 @@ def _model_f3g(case_id: str, title: str, intent: str, direction: str, version: s
     }
     if loads:
         model["loads"] = [dict(load) for load in loads]
+    if reinforcements:
+        model["reinforcements"] = [dict(r) for r in reinforcements]
     model["slope"] = {"direction": direction}
     model["analysis"] = analysis
     return model
@@ -900,17 +907,62 @@ def d39() -> dict:
                       crack={"depth": "auto", "water_fill": 1.0})
 
 
-BUILDERS_F3G: list[Callable[[], dict]] = [d28, d29, d30, d31, d32, d33, d34, d35, d36, d37, d38, d39]
+# ---- Ito-Matsui piles (E15i, v0.5): the slope of X22 and Cai and Ugai (2000), 10 m high at 1.5H:1V, with one row of piles of
+# d = 0.8 m at S = 2.4 m (S/D = 3) in the middle of the face (x = 17.5, head on the ground). The model is the one of the rows
+# X22-S01, S02 and S04 and the search is the one of the oracle of X22: entry on the crest, exit at the toe.
+SLOPE_IM = [(0.0, -10.0), (0.0, 0.0), (10.0, 0.0), (25.0, 10.0), (35.0, 10.0), (35.0, -10.0)]
+
+
+def _im_pile(location: str = "centroid", **extra) -> dict:
+    pile = {"type": "pile", "id": "P1", "x1": 17.5, "y1": 5.0, "x2": 17.5, "y2": -10.0, "spacing": 2.4,
+            "direction": "angle", "angle": 0.0, "application": "passive",
+            "lateral_pressure": {"model": "ito_matsui", "diameter": 0.8, "location": location}}
+    pile.update(extra)
+    return pile
+
+
+def _model_im(case_id: str, title: str, intent: str, materials: list[dict], pile: dict, **kw) -> dict:
+    return _model_f3g(case_id, title, intent, "right_to_left", "0.5", materials, [_region(materials[0]["id"], SLOPE_IM)],
+                      _search(entry=(25.0, 35.0), exit_=(0.0, 10.0)), reinforcements=[pile], **kw)
+
+
+def d40() -> dict:
+    intent = ("Talud de 10 m, 1,5H:1V, en arcilla no drenada (Su = 30 kPa, γ = 18) con una fila de pilotes de Ito-Matsui "
+              "(d = 0,8 m, S = 2,4 m, pasivos, horizontales, fuerza en el centroide, sin capacidad): la presión de φ = 0 con la "
+              "tensión total (E15i-2, ecuación 23). Fila X22-S01.")
+    return _model_im("D40", "Ito-Matsui, φ = 0", intent, [_undrained("clay", "Arcilla", 18.0, 30.0)], _im_pile())
+
+
+def d41() -> dict:
+    intent = ("El mismo talud en un suelo c-φ (c = 5 kPa, φ = 25°, γ = 19) con la fuerza del pilote aplicada en el cruce con la "
+              "superficie (`slip_surface`, E15i-5) y un tope de corte de 100 kN por pilote (`capacity.shear`, E15i-4; la presión del "
+              "suelo da más en el círculo crítico, así que gobierna `shear`): la presión c-φ de las ecuaciones 13 y 14. Fila "
+              "X22-S02 y S11.")
+    return _model_im("D41", "Ito-Matsui, c-φ, en el cruce y con capacidad", intent, [_material("soil", "Suelo", 19.0, 5.0, 25.0)],
+                     _im_pile("slip_surface", capacity={"shear": 100.0}))
+
+
+def d42() -> dict:
+    intent = ("El mismo talud en un suelo c-φ (c = 8 kPa, φ = 22°, γ = 18, γsat = 20) con la piezométrica bajo el terreno "
+              "(y = 3,5 en el pilote): la tensión efectiva σ'v = σv − u de E15i-3 con γsat bajo el agua. Fila X22-S04.")
+    piezo = [(0.0, 0.0), (10.0, 0.0), (25.0, 7.0), (35.0, 7.0)]
+    return _model_im("D42", "Ito-Matsui bajo el agua", intent, [_material("soil", "Suelo", 18.0, 8.0, 22.0, gamma_sat=20.0)],
+                     _im_pile(), piezo=piezo)
+
+
+BUILDERS_F3G: list[Callable[[], dict]] = [d28, d29, d30, d31, d32, d33, d34, d35, d36, d37, d38, d39, d40, d41, d42]
 
 # The probes of the engine: V047a with the fixed circle of F3.8, Bishop, and the oracle figures of the rows X21-P01 (ponded
 # water: the piezometric line at y = 27) and X21-W025 (a crack of 2 m filled at 25 %). An engine that does not reproduce them
 # to 0.1 % does not have the capability yet (the base v0.3.0 gives 0.848 for the pond: it leaves the water out).
-PROBE_F3G_BISHOP = {"ponded_water": 0.9390165587785071, "tension_crack": 1.0231892959389508}
+# The Ito-Matsui probe is the row X22-V013c (the critical circle of Cai and Ugai's D1/D = 3 row, one pile): 1.437196 of the oracle.
+PROBE_F3G_BISHOP = {"ponded_water": 0.9390165587785071, "tension_crack": 1.0231892959389508,
+                    "lateral_pressure": 1.437196}
 PROBE_F3G_TOLERANCE = 1e-3
 
 
 def probe_f3g_model(capability: str) -> dict:
-    """The model of the probe of one capability of F3G: V047a, the fixed circle, Bishop, version 0.5."""
+    """The model of the probe of one capability of F3G: V047a (X22-V013c for the Ito-Matsui pile), the fixed circle, Bishop, 0.5."""
     model = {
         "format": "opengeoslide", "version": "0.5", "meta": {"id": "V047a-probe", "title": "ACADS 1(a), sonda F3G"},
         "units": "SI",
@@ -927,6 +979,13 @@ def probe_f3g_model(capability: str) -> dict:
         model["water"]["piezometric_line"] = [[0.0, 27.0], [100.0, 27.0]]
     elif capability == "tension_crack":
         model["analysis"]["tension_crack"] = {"depth": 2.0, "water_fill": 0.25}
+    elif capability == "lateral_pressure":
+        # X22-V013c: Cai and Ugai (2000) slope (c = 10, phi = 20, gamma = 20), D1/D = 3, the critical circle of cSlope's search
+        model["materials"] = [_material("soil", "Soil", 20.0, 10.0, 20.0)]
+        model["regions"] = [_region("soil", SLOPE_IM)]
+        model["reinforcements"] = [_im_pile()]
+        model["analysis"]["surface"] = {"type": "circle", "xc": 7.4728309668902995, "yc": 26.312711798202947,
+                                        "r": 26.430944193312815}
     else:
         raise ValueError(capability)
     return model

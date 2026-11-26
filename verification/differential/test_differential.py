@@ -727,23 +727,25 @@ def test_require_f3r_turns_pending_into_a_failing_exit_code(tmp_path, monkeypatc
     assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out), "--require-f3r"]) == 4
 
 
-# ------------------------------------------------------------------ v0.5 block: tension crack and ponded water (D28-D39)
+# ------------------------------------------------------------------ v0.5 block: crack, ponded water and Ito-Matsui piles (D28-D42)
 
 F3G_MODELS = build_cases.build_all_f3g()
 F3G_AS_CASES = [{"id": k, "title": v["meta"]["title"], "model": v, "path": f"cases_f3g/{k}.ogs.json"}
                 for k, v in F3G_MODELS.items()]
-F3G_IDS = [f"D{n}" for n in range(28, 40)]
+F3G_IDS = [f"D{n}" for n in range(28, 43)]
+IM_IDS = ["D40", "D41", "D42"]
 # What each model needs from the engine: the reservoir (the piezometric line above the ground), the crack, or both.
 F3G_CAPS = {
     "D28": ("ponded_water",), "D29": ("ponded_water",), "D30": ("ponded_water",), "D31": ("ponded_water",),
     "D32": ("tension_crack",), "D33": ("tension_crack",), "D34": ("tension_crack",), "D35": ("tension_crack",),
     "D36": ("ponded_water", "tension_crack"), "D37": ("ponded_water", "tension_crack"),
     "D38": ("ponded_water", "tension_crack"), "D39": ("tension_crack",),
+    "D40": ("lateral_pressure",), "D41": ("lateral_pressure",), "D42": ("lateral_pressure",),      # D42: water under the ground
 }
 
 
-def test_v0_5_models_d28_d39_are_committed_and_designed_as_intended():
-    assert list(F3G_MODELS) == F3G_IDS and run.EXPECTED_CASES_F3G == 12
+def test_v0_5_models_d28_d42_are_committed_and_designed_as_intended():
+    assert list(F3G_MODELS) == F3G_IDS and run.EXPECTED_CASES_F3G == 15
     for case_id, model in F3G_MODELS.items():
         path = build_cases.CASES_F3G_DIR / f"{case_id}.ogs.json"
         assert path.read_text(encoding="utf-8") == build_cases.serialize(model), f"{case_id} drifts from the builder"
@@ -755,6 +757,8 @@ def test_v0_5_models_d28_d39_are_committed_and_designed_as_intended():
         if crack is not None:                                  # F5.1: the crack needs 0.5; the pond has no field
             assert model["version"] == "0.5", case_id
             assert crack["depth"] == "auto" or crack["depth"] > 0 and 0.0 <= crack["water_fill"] <= 1.0
+        elif case_id in IM_IDS:
+            assert model["version"] == "0.5", case_id          # lateral_pressure needs 0.5 (E15i-1)
         else:
             assert model["version"] == "0.1", case_id          # ponded water is applied in every version (D1)
 
@@ -784,14 +788,14 @@ def test_v0_5_models_ponded_water_is_above_the_ground_only_where_intended(case_i
 
 def test_f3g_plan_runs_search_and_fixed_with_two_methods_per_model():
     plan = run.f3g_plan(F3G_AS_CASES)
-    assert len(plan) == 48
+    assert len(plan) == 60
     assert {(m, k) for _, m, k, _ in plan} == {("bishop", "search"), ("bishop", "fixed"), ("spencer", "search"),
                                                ("spencer", "fixed")}
     for case, _, _, caps in plan:
         assert tuple(caps) == F3G_CAPS[case["id"]]
 
 
-def _f3g_probe(supported=(True, True)):
+def _f3g_probe(supported=(True, True, True)):
     return {cap: {"supported": ok, "detail": "" if ok else "exit 101: not implemented: G1"}
             for cap, ok in zip(run.CAPABILITIES_F3G, supported)}
 
@@ -803,7 +807,8 @@ def _f3g_fake_ogs(factors=None, error=None):
     def runner(binary, model, check, timeout):
         if error:
             return {"fos": None, "status": None, "error": error, "engine": None, "warnings": []}
-        cap = "tension_crack" if model["analysis"].get("tension_crack") else "ponded_water"
+        cap = ("lateral_pressure" if model.get("reinforcements") else
+               "tension_crack" if model["analysis"].get("tension_crack") else "ponded_water")
         return {"fos": build_cases.PROBE_F3G_BISHOP[cap] * factors.get(cap, 1.0), "status": "converged",
                 "error": None, "engine": "fake", "warnings": []}
     return runner
@@ -816,6 +821,9 @@ def test_the_f3g_probe_models_are_the_rows_p01_and_w025_of_x21():
     crack = build_cases.probe_f3g_model("tension_crack")
     assert crack["version"] == "0.5" and crack["analysis"]["tension_crack"] == {"depth": 2.0, "water_fill": 0.25}
     assert crack["water"] == {"unit_weight": 9.807} and set(build_cases.PROBE_F3G_BISHOP) == set(run.CAPABILITIES_F3G)
+    pile = build_cases.probe_f3g_model("lateral_pressure")                 # X22-V013c: version 0.5 with the pile
+    assert pile["version"] == "0.5" and pile["reinforcements"][0]["lateral_pressure"] == {
+        "model": "ito_matsui", "diameter": 0.8, "location": "centroid"} and pile["reinforcements"][0]["spacing"] == 2.4
     with pytest.raises(ValueError):
         build_cases.probe_f3g_model("other")
 
@@ -832,11 +840,25 @@ def test_the_f3g_probe_figures_are_what_the_oracle_gives_and_what_the_x21_rows_r
         assert run.run_cslope(cslope, conv.document)["fos"] == pytest.approx(want, rel=1e-6), cap
 
 
+def test_the_lateral_pressure_probe_is_the_row_x22_v013c_and_its_figure_is_the_oracle_of_x22():
+    import cslope
+
+    rows = json.loads((HERE.parents[1] / "docs" / "fase3" / "exploracion" / "X22_filas" / "resultados.json")
+                      .read_text(encoding="utf-8"))["filas"]
+    want = build_cases.PROBE_F3G_BISHOP["lateral_pressure"]
+    assert want == pytest.approx(rows["X22-V013c"]["metodos"]["bishop"]["oracle"], abs=1e-9)
+    conv = ogs_to_cslope(build_cases.probe_f3g_model("lateral_pressure"), {"method": "bishop", "kind": "fixed"})
+    assert run.run_cslope(cslope, conv.document)["fos"] == pytest.approx(want, abs=1e-6)
+
+
 def test_probe_f3g_supported_only_when_bishop_reproduces_the_oracle_to_0_1_percent():
     ok = run.probe_f3g("ogs", runner=_f3g_fake_ogs())
     assert all(v["supported"] for v in ok.values()) and set(ok) == set(run.CAPABILITIES_F3G)
     pond_missing = run.probe_f3g("ogs", runner=_f3g_fake_ogs({"ponded_water": 0.9033}))        # the base gives 0.848
     assert not pond_missing["ponded_water"]["supported"] and pond_missing["tension_crack"]["supported"]
+    assert pond_missing["lateral_pressure"]["supported"]
+    no_pile = run.probe_f3g("ogs", runner=_f3g_fake_ogs({"lateral_pressure": 0.99}))                 # a pile without force: -1 %
+    assert not no_pile["lateral_pressure"]["supported"] and "oráculo" in no_pile["lateral_pressure"]["detail"]
     assert "frente a 0.939017" in pond_missing["ponded_water"]["detail"]
     assert run.probe_f3g("ogs", runner=_f3g_fake_ogs({"tension_crack": 1.0005}))["tension_crack"]["supported"]
     stub = run.probe_f3g("ogs", runner=_f3g_fake_ogs(error="exit 101: not yet implemented: G1: grieta de tracción"))
@@ -848,7 +870,7 @@ def test_an_f3g_check_without_the_capability_is_pending_and_with_it_can_fail():
 
     case = F3G_AS_CASES[8]                                    # D36: pond and crack
     caps = ["ponded_water", "tension_crack"]
-    pending = run.run_f3_check(cslope, "ogs", case, "bishop", "fixed", caps, _f3g_probe((True, False)),
+    pending = run.run_f3_check(cslope, "ogs", case, "bishop", "fixed", caps, _f3g_probe((True, False, True)),
                                ogs_runner=_f3g_fake_ogs(), prepare=run.f3g_model)
     assert pending["verdict"] == run.VERDICT_PENDING and "tension_crack" in pending["reason"]
     assert pending["ogs"]["fos"] is None and pending["cslope"]["fos"] is not None and pending["kind"] == "fixed"
@@ -881,7 +903,7 @@ def test_the_v0_5_run_keeps_the_model_as_written():
 
 
 def test_the_oracle_solves_every_check_of_the_v0_5_block_and_converts_each_document():
-    """The cSlope line of the report is there pending or not: the 12 models convert, validate and converge in search and fixed."""
+    """The cSlope line of the report is there pending or not: the 15 models convert, validate and converge in search and fixed."""
     import cslope
 
     for case, method, kind, _ in run.f3g_plan(F3G_AS_CASES):
@@ -906,13 +928,13 @@ def test_cslope_crack_options_and_free_water_reach_the_documents_of_the_block():
 def test_f3g_section_of_the_report_lists_the_capabilities_and_the_pending_checks():
     import cslope
 
-    probe = _f3g_probe((False, False))
+    probe = _f3g_probe((False, False, False))
     rows = [run.run_f3_check(cslope, "ogs", c, m, k, caps, probe, ogs_runner=_f3g_fake_ogs(), prepare=run.f3g_model)
             for c, m, k, caps in run.f3g_plan(F3G_AS_CASES)]
     text = "\n".join(run.f3g_markdown(rows, probe))
-    assert text.startswith("## v0.5: grieta de tracción y agua embalsada (D28 a D39)")
-    assert "| ponded_water | no |" in text and "| tension_crack | no |" in text
-    assert "**OK 0/48**" in text and "pendiente 48" in text and text.count("| pendiente |") == 48
+    assert text.startswith("## v0.5: grieta de tracción, agua embalsada y pilotes de Ito-Matsui (D28 a D42)")
+    assert "| ponded_water | no |" in text and "| tension_crack | no |" in text and "| lateral_pressure | no |" in text
+    assert "**OK 0/60**" in text and "pendiente 60" in text and text.count("| pendiente |") == 60
 
 
 def _empty_dir(tmp_path, name):
@@ -922,7 +944,7 @@ def _empty_dir(tmp_path, name):
 
 
 def test_run_adds_the_v0_5_block_and_require_f3g_turns_pending_into_a_failing_exit_code(tmp_path, monkeypatch):
-    monkeypatch.setattr(run, "probe_f3g", lambda *a, **k: _f3g_probe((True, False)))
+    monkeypatch.setattr(run, "probe_f3g", lambda *a, **k: _f3g_probe((True, False, True)))
     cases = tmp_path / "cases"
     shutil.copytree(HERE / "cases", cases)
     out = tmp_path / "out"
@@ -932,7 +954,7 @@ def test_run_adds_the_v0_5_block_and_require_f3g_turns_pending_into_a_failing_ex
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["report_version"] == "5" and len(report["checks"]) == 56 and "f3" not in report and "f3r" not in report
     f3g = report["f3g"]
-    assert f3g["summary"]["N"] == 48 and set(f3g["capabilities"]) == set(run.CAPABILITIES_F3G)
+    assert f3g["summary"]["N"] == 60 and set(f3g["capabilities"]) == set(run.CAPABILITIES_F3G)
     assert [c["id"] for c in f3g["cases"]] == F3G_IDS
     for row in f3g["checks"]:
         assert row["verdict"] in ("OK", run.VERDICT_BOTH_NO_SOLUTION, "FALLA", "sin dato", "pendiente"), row
@@ -940,5 +962,41 @@ def test_run_adds_the_v0_5_block_and_require_f3g_turns_pending_into_a_failing_ex
         if row["capabilities"] and "tension_crack" in row["capabilities"]:
             assert row["verdict"] == "pendiente"
     text = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "## v0.5: grieta de tracción y agua embalsada" in text
+    assert "## v0.5: grieta de tracción, agua embalsada y pilotes de Ito-Matsui" in text
     assert run.main(argv + ["--require-f3g"]) == 5
+
+
+def test_the_ito_matsui_models_d40_d41_d42_cover_phi_0_c_phi_and_water():
+    d40, d41, d42 = (F3G_MODELS[i] for i in IM_IDS)
+    for model in (d40, d41, d42):
+        pile, = model["reinforcements"]
+        assert model["version"] == "0.5" and "tension_crack" not in model["analysis"] and "force" not in pile
+        assert pile["type"] == "pile" and pile["application"] == "passive" and pile["x1"] == pile["x2"] == 17.5
+        assert pile["lateral_pressure"]["model"] == "ito_matsui" and pile["spacing"] == 2.4
+        assert pile["lateral_pressure"]["diameter"] == 0.8 and pile["spacing"] > pile["lateral_pressure"]["diameter"]
+        assert model["analysis"]["search"]["entry"] == [25.0, 35.0] and model["analysis"]["search"]["exit"] == [0.0, 10.0]
+    assert d40["materials"][0]["model"] == "undrained" and "piezometric_line" not in d40["water"]               # phi = 0
+    assert d41["materials"][0]["friction_angle"] == 25.0 and d41["materials"][0]["cohesion"] == 5.0           # c-phi
+    assert d41["reinforcements"][0]["lateral_pressure"]["location"] == "slip_surface"
+    assert d41["reinforcements"][0]["capacity"] == {"shear": 100.0} and "capacity" not in d40["reinforcements"][0]
+    assert d42["materials"][0]["unit_weight_sat"] == 20.0 and d42["water"]["piezometric_line"]                  # under the water
+    assert run.f3g_capabilities_needed(d42) == ["lateral_pressure"]                  # the line stays under the ground: no pond
+
+
+@pytest.mark.parametrize("case_id", IM_IDS)
+@pytest.mark.parametrize("kind", ["fixed", "search"])
+def test_the_oracle_applies_the_pile_of_d40_d41_d42_in_search_and_fixed(case_id, kind):
+    """The pile is crossed by the circle of the oracle (it gives a force) and it raises the FS: the check is not idle."""
+    import cslope
+
+    model = F3G_MODELS[case_id]
+    doc = ogs_to_cslope(model, {"method": "bishop", "kind": kind}).document
+    result = cslope.analyse(doc)
+    forces = result["criticalSurface"]["reinforcementForces"]
+    assert len(forces) == 1 and forces[0]["passive"] is True and forces[0]["force"] > 40.0, (case_id, kind, forces)
+    bare = copy.deepcopy(model)
+    del bare["reinforcements"]
+    plain = cslope.analyse(ogs_to_cslope(bare, {"method": "bishop", "kind": kind}).document)["minFOS"]
+    assert result["minFOS"] > plain * 1.10, (case_id, kind, result["minFOS"], plain)
+    if case_id == "D41":                                    # the shear capacity governs: 100 kN per pile / 2.4 m
+        assert forces[0]["force"] == pytest.approx(100.0 / 2.4, rel=1e-9)
