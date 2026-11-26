@@ -77,7 +77,7 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 4b un símbolo por refuerzo (tablestaca y anclaje)`, syms.join() === 'sheet_pile,anchor', { syms });
   const tables = await page.locator('[data-testid="reinforcement-forces"] table').count();
   const tableText = (await page.locator('[data-testid="reinforcement-forces"]').innerText()).replace(/\s+/g, ' ');
-  step(`(${tag}) 4c una tabla de fuerzas por método con id, tipo, cruce, estación, disponible, aplicada y estado`, tables === 5 && /Id Tipo Cruce Estación \(m\) Disponible \(kN\/m\) Aplicada fx; fy \(kN\/m\) Aplicación Estado/.test(tableText) && /tablestaca-1 Tablestaca 1/.test(tableText) && /a1 Anclaje 1/.test(tableText) && /Aplicada/.test(tableText), { tables, tableText: tableText.slice(0, 400) });
+  step(`(${tag}) 4c una tabla de fuerzas por método con id, tipo, cruce, estación, disponible, aplicada, movilizada y estado (E14o-14)`, tables === 5 && /Id Tipo Cruce Estación \(m\) Disponible \(kN\/m\) Aplicada fx; fy \(kN\/m\) Movilizada fx; fy \(kN\/m\) Aplicación Estado/.test(tableText) && /tablestaca-1 Tablestaca 1/.test(tableText) && /a1 Anclaje 1/.test(tableText) && /Aplicada/.test(tableText), { tables, tableText: tableText.slice(0, 400) });
   step(`(${tag}) 4d el texto del límite de F4.8 está en los resultados`, LIMIT.test(tableText) && (await page.getByTestId('structural-limit').count()) === 1);
   await page.getByTestId('reinforcement-forces').scrollIntoViewIfNeeded();
   await shot(page, `tablestaca-${scheme}-2-tabla`);
