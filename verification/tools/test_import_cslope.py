@@ -1138,3 +1138,180 @@ def test_the_importer_is_idempotent_and_reproduces_the_promoted_f3g(tmp_path):
             assert fh.read() == data, rel
     assert "verification/pending/F3G/V085.json" in first and "verification/cases/V087.json" in first
     assert not any(rel.startswith("verification/pending/F3G/hold") for rel in first)
+
+
+# ------------------------------------------------------------ batch F3I: Ito-Matsui piles (v0.5, E15i-10)
+
+F3I_DIR = os.path.join(ROOT, "verification", "pending", "F3I")
+_IM_PILE = {"x1": 9, "y1": 4, "x2": 9, "y2": -2, "diameter": 0.6, "spacing": 2.0, "application": "passive"}
+
+
+def _f3i_case(**pile):
+    return imp.convert_f3i(_raw_f3r(piles=[dict(_IM_PILE, **pile)]), PROB)[0]
+
+
+def test_f3i_converts_an_ito_matsui_pile_to_lateral_pressure_with_explicit_fields():
+    case = _f3i_case()
+    pile, = case["model"]["reinforcements"]
+    assert case["model"]["version"] == "0.5" and list(case["model"]).index("reinforcements") == list(case["model"]).index("slope") - 1
+    assert pile == {"id": "P1", "type": "pile", "x1": 9.0, "y1": 4.0, "x2": 9.0, "y2": -2.0, "application": "passive",
+                    "direction": "angle", "angle": 0.0, "spacing": 2.0,
+                    "lateral_pressure": {"model": "ito_matsui", "diameter": 0.6, "location": "centroid"}}
+    assert "force" not in pile and "capacity" not in pile
+    assert any("Ito-Matsui" in n and "centroid" in n and "angle 0" in n for n in case["source"]["notes"])
+    assert imp.gate_f3i(case, F3G_SCHEMA) == []
+
+
+def test_f3i_location_direction_and_capacity_come_from_the_source():
+    pile, = _f3i_case(location="slip-surface", direction="tangent", shearCapacity=150.0,
+                      momentCapacity=250.0, application="active")["model"]["reinforcements"]
+    assert pile["lateral_pressure"]["location"] == "slip_surface" and pile["direction"] == "tangent" and "angle" not in pile
+    assert pile["capacity"] == {"shear": 150.0, "moment": 250.0} and pile["application"] == "active"
+    only, = _f3i_case(momentCapacity=90.0)["model"]["reinforcements"]
+    assert only["capacity"] == {"moment": 90.0}
+
+
+@pytest.mark.parametrize("change, match", [
+    ({"x2": 9.5}, "no vertical"),
+    ({"spacing": 0.6}, "spacing"),
+    ({"spacing": 0.5}, "spacing"),
+    ({"diameter": 0}, "diameter"),
+    ({"location": "somewhere"}, "location"),
+    ({"shearCapacity": 0}, "shearCapacity"),
+    ({"direction": "tangent", "angle": 3}, "angle"),
+])
+def test_f3i_omits_what_ogs_would_reject(change, match):
+    with pytest.raises(imp.Omit, match=match):
+        _f3i_case(**change)
+
+
+def test_f3i_a_force_pile_with_a_capacity_is_omitted_and_the_other_batches_still_omit_ito_matsui():
+    with pytest.raises(imp.Omit, match="capacity solo con lateral_pressure"):
+        imp.convert_f3i(_raw_f3r(piles=[_IM_PILE, dict(_IM_PILE, force=5.0, shearCapacity=9.0)]), PROB)
+    with pytest.raises(imp.Omit, match="sin pilotes Ito-Matsui"):
+        imp.convert_f3i(_raw_f3r(piles=[dict(_IM_PILE, force=5.0)]), PROB)
+    with pytest.raises(imp.Omit, match="Ito-Matsui"):                       # batches R1 to R4 are unchanged
+        imp.convert_f3r(_raw_f3r(piles=[_IM_PILE]), PROB)
+
+
+def test_f3i_gate_rejects_what_e15i_1_rejects():
+    base = _f3i_case()
+
+    def broken(mutate):
+        case = copy.deepcopy(base)
+        mutate(case["model"]["reinforcements"][0], case["model"])
+        return imp.gate_f3i(case, F3G_SCHEMA)
+    assert any("se excluyen" in e for e in broken(lambda r, m: r.update(force=5.0)))
+    assert any("se excluyen" in e for e in broken(lambda r, m: r.pop("lateral_pressure")))
+    assert any("capacity sin lateral_pressure" in e for e in broken(lambda r, m: (r.pop("lateral_pressure"), r.update(force=1, capacity={"shear": 1}))))
+    assert any("vertical" in e for e in broken(lambda r, m: r.update(x2=10.0)))
+    assert any("spacing" in e for e in broken(lambda r, m: r.update(spacing=0.5)))
+    assert any('requiere version "0.5"' in e for e in broken(lambda r, m: m.update(version="0.4")))
+    assert broken(lambda r, m: r["lateral_pressure"].update(diameter=-1.0))                      # schema
+    assert broken(lambda r, m: r["lateral_pressure"].update(location="slip-surface"))            # schema
+    assert broken(lambda r, m: r.update(capacity={}))                                            # schema
+
+
+def test_f3i_schema_extension_is_a_noop_once_the_schema_knows_lateral_pressure():
+    assert imp.schema_with_ito_matsui(F3G_SCHEMA) is not F3G_SCHEMA or "lateral_pressure" in F3G_SCHEMA["$defs"]["pile"]["properties"]
+    known = copy.deepcopy(F3G_SCHEMA)
+    known["$defs"]["pile"]["properties"]["lateral_pressure"] = {"type": "object"}
+    assert imp.schema_with_ito_matsui(known) is known
+
+
+def _f3i_files():
+    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8")) for p in sorted(glob.glob(os.path.join(F3I_DIR, "V*.json")))}
+
+
+def test_the_f3i_batch_is_v013b_to_e_with_four_bishop_search_checks():
+    cases = _f3i_files()
+    if not cases:      # promoted: the integrator moved them to cases/ (F3I_PROMOTED)
+        cases = {cid: json.load(open(os.path.join(CASES_DIR, f"{cid}.json"), encoding="utf-8")) for cid in imp.F3I_IDS}
+    assert sorted(cases) == ["V013b", "V013c", "V013d", "V013e"] == sorted(imp.F3I_IDS)
+    ratios = []
+    for cid, case in cases.items():
+        assert imp.gate_f3i(case, F3G_SCHEMA) == [] and imp.gate_search(case) == [], cid
+        assert imp.gate_features(case) == [] and case["id"] == cid and case["model"]["meta"]["id"] == cid
+        pile, = case["model"]["reinforcements"]
+        assert "force" not in pile and pile["application"] == "passive" and pile["direction"] == "angle" and pile["angle"] == 0.0
+        assert pile["lateral_pressure"] == {"model": "ito_matsui", "diameter": 0.8, "location": "centroid"}, cid
+        assert case["model"]["version"] == "0.5"
+        assert [(c["method"], c["kind"]) for c in case["checks"]] == [("bishop", "search")], cid
+        ratios.append(pile["spacing"] / pile["lateral_pressure"]["diameter"])
+    assert ratios == pytest.approx([2, 3, 4, 6])
+    assert [cases[c]["checks"][0]["published"] for c in sorted(cases)] == [1.54, 1.43, 1.33, 1.25]
+
+
+def test_the_f3i_index_lists_the_cases_the_oracle_and_the_promotion_command():
+    index = open(os.path.join(F3I_DIR, "INDEX.md"), encoding="utf-8").read()
+    if "pasaron a" in index:
+        pytest.skip("promoted")
+    assert "**4** casos con **4** checks" in index and "--promote-f3i" in index and "sed -i" in index
+    for cid in imp.F3I_IDS:
+        assert f"| {cid} |" in index
+    report = json.load(open(os.path.join(F3I_DIR, "report.json"), encoding="utf-8"))
+    assert len(report["checks"]) == 4
+    for r in report["checks"]:      # the oracle: between +0.05 % and +0.50 % of the published value (X22 §5.1)
+        assert 0.0 < r["cslope"]["err_pct"] < 0.51
+
+
+def _run_importer(root, *flags):
+    import sys
+    old = sys.argv
+    try:
+        sys.argv = ["import_cslope.py", "--src", _clone(), "--root", str(root), *flags]
+        assert imp.main() == 0
+    finally:
+        sys.argv = old
+
+
+def _tree(root):
+    return {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification").rglob("*") if p.is_file()}
+
+
+@pytest.mark.skipif(_clone() is None, reason="needs the cSlope clone (CSLOPE_SRC or $TMPDIR/cslope-src)")
+def test_the_importer_is_idempotent_with_f3i_pending_and_leaves_cases_untouched(tmp_path):
+    import shutil
+    root = tmp_path / "repo"
+    for sub in ("verification", "schema", "NOTICE"):
+        src = os.path.join(ROOT, sub)
+        (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
+    before = _tree(root)
+    _run_importer(root)
+    first = _tree(root)
+    _run_importer(root)
+    assert _tree(root) == first
+    assert first == before                       # the committed files are what the importer writes
+    assert {k for k in first if k.startswith("verification/cases/")} == {k for k in before if k.startswith("verification/cases/")}
+    assert all(f"verification/pending/F3I/V013{x}.json" in first for x in "bcde")
+
+
+@pytest.mark.skipif(_clone() is None, reason="needs the cSlope clone (CSLOPE_SRC or $TMPDIR/cslope-src)")
+def test_promote_f3i_moves_the_four_cases_to_cases_and_is_idempotent(tmp_path):
+    import shutil
+    root = tmp_path / "repo"
+    for sub in ("verification", "schema", "NOTICE"):
+        src = os.path.join(ROOT, sub)
+        (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
+    pending = _tree(root)
+    _run_importer(root, "--promote-f3i")
+    first = _tree(root)
+    _run_importer(root, "--promote-f3i")
+    assert _tree(root) == first
+    for x in "bcde":
+        cid = f"V013{x}"
+        assert f"verification/pending/F3I/{cid}.json" not in first
+        assert first[f"verification/cases/{cid}.json"] == pending[f"verification/pending/F3I/{cid}.json"]
+    assert not any(k.endswith(("pending/F3I/report.json", "pending/F3I/REPORT.md")) for k in first)
+    cases_before = {k for k in pending if k.startswith("verification/cases/V")}
+    cases_after = {k for k in first if k.startswith("verification/cases/V")}
+    assert cases_after - cases_before == {f"verification/cases/V013{x}.json" for x in "bcde"} and cases_before <= cases_after
+    changed = {k for k in first if k in pending and first[k] != pending[k]}
+    assert changed <= {"verification/cases/INDEX.md", "verification/pending/F3I/INDEX.md", "verification/pending/F3/INDEX.md",
+                       "verification/pending/F3R/INDEX.md"}
+    index = first["verification/cases/INDEX.md"].decode()
+    assert "## Pilotes de Ito-Matsui (lote F3I, v0.5)" in index and "**4** casos con **4** checks" in index
+    assert "| V013c | 3 | bishop | 1.43 |" in index
+    assert "Casos convertidos e incluidos: **151**" in index
+    assert "no son de v0.4" in first["verification/pending/F3R/INDEX.md"].decode()
+    assert "pasaron a" in first["verification/pending/F3I/INDEX.md"].decode()
