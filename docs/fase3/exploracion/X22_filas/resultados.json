@@ -1,0 +1,1789 @@
+{
+ "descripcion": "Filas de aceptación X22 (Ito-Matsui). oracle = cSlope 0.1.0 (círculo fijo); proto = prototipo X22 sobre dovelas del motor (ogs 0.3.0, base f3g-integracion 1c30f92). Cifras con 6 decimales; diff_pct = 100·(proto - oracle)/oracle.",
+ "filas": {
+  "X22-G01-force-pasivo": {
+   "nota": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los términos pasivos/activos contra el motor",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.450915,
+     "proto": 1.451043,
+     "diff_pct": 0.0088
+    },
+    "spencer": {
+     "oracle": 1.446629,
+     "proto": 1.446774,
+     "diff_pct": 0.01
+    },
+    "morgenstern_price": {
+     "oracle": 1.446629,
+     "proto": 1.446774,
+     "diff_pct": 0.01
+    },
+    "janbu_simplified": {
+     "oracle": 1.384173,
+     "proto": 1.384356,
+     "diff_pct": 0.0133
+    },
+    "janbu_corrected": {
+     "oracle": 1.444983,
+     "proto": 1.445154,
+     "diff_pct": 0.0118
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "proto": 117.820833,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": null,
+    "gobierna": "given",
+    "diff_pct": 0.0
+   },
+   "equilibrio_global": {
+    "bishop": 3.534e-06,
+    "janbu_simplified": 1.537e-17,
+    "spencer": 1.023e-16
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   },
+   "motor_con_force": {
+    "bishop": 1.451043,
+    "spencer": 1.446774,
+    "morgenstern_price": 1.446774,
+    "janbu_simplified": 1.384356,
+    "janbu_corrected": 1.445154
+   },
+   "proto_menos_motor": {
+    "bishop": -1.86e-07,
+    "spencer": 3.25e-09,
+    "morgenstern_price": 3.25e-09,
+    "janbu_simplified": -5.08e-10,
+    "janbu_corrected": -5.3e-10
+   }
+  },
+  "X22-G02-force-activo": {
+   "nota": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los términos pasivos/activos contra el motor",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.61977,
+     "proto": 1.619994,
+     "diff_pct": 0.0138
+    },
+    "spencer": {
+     "oracle": 1.612087,
+     "proto": 1.612342,
+     "diff_pct": 0.0158
+    },
+    "morgenstern_price": {
+     "oracle": 1.612087,
+     "proto": 1.612342,
+     "diff_pct": 0.0158
+    },
+    "janbu_simplified": {
+     "oracle": 1.509353,
+     "proto": 1.509633,
+     "diff_pct": 0.0186
+    },
+    "janbu_corrected": {
+     "oracle": 1.575663,
+     "proto": 1.575933,
+     "diff_pct": 0.0171
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "proto": 117.820833,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": null,
+    "gobierna": "given",
+    "diff_pct": 0.0
+   },
+   "equilibrio_global": {
+    "bishop": 4.736e-06,
+    "janbu_simplified": 6.147e-17,
+    "spencer": 3.074e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   },
+   "motor_con_force": {
+    "bishop": 1.619993,
+    "spencer": 1.612342,
+    "morgenstern_price": 1.612342,
+    "janbu_simplified": 1.509633,
+    "janbu_corrected": 1.575933
+   },
+   "proto_menos_motor": {
+    "bishop": 2.41e-07,
+    "spencer": 8.93e-09,
+    "morgenstern_price": 8.93e-09,
+    "janbu_simplified": -7.78e-10,
+    "janbu_corrected": -8.13e-10
+   }
+  },
+  "X22-G03-force-tangente": {
+   "nota": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los términos pasivos/activos contra el motor",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.445301,
+     "proto": 1.445437,
+     "diff_pct": 0.0094
+    },
+    "spencer": {
+     "oracle": 1.440988,
+     "proto": 1.441141,
+     "diff_pct": 0.0106
+    },
+    "morgenstern_price": {
+     "oracle": 1.440988,
+     "proto": 1.441141,
+     "diff_pct": 0.0106
+    },
+    "janbu_simplified": {
+     "oracle": 1.378019,
+     "proto": 1.378201,
+     "diff_pct": 0.0132
+    },
+    "janbu_corrected": {
+     "oracle": 1.438559,
+     "proto": 1.438728,
+     "diff_pct": 0.0117
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.820833,
+    "proto": 117.820833,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": null,
+    "gobierna": "given",
+    "diff_pct": 0.0
+   },
+   "equilibrio_global": {
+    "bishop": 3.535e-06,
+    "janbu_simplified": 3.074e-17,
+    "spencer": 3.842e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   },
+   "motor_con_force": {
+    "bishop": 1.445438,
+    "spencer": 1.441141,
+    "morgenstern_price": 1.441141,
+    "janbu_simplified": 1.378201,
+    "janbu_corrected": 1.438729
+   },
+   "proto_menos_motor": {
+    "bishop": -3.17e-07,
+    "spencer": 1.99e-10,
+    "morgenstern_price": 1.99e-10,
+    "janbu_simplified": -1.4e-07,
+    "janbu_corrected": -1.46e-07
+   }
+  },
+  "X22-L01-xs-mismo-circulo": {
+   "nota": "como X22-V013c (mismo círculo) con location slip_surface: aísla el efecto de la posición de la fuerza",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.450982,
+     "proto": 1.451225,
+     "diff_pct": 0.0168
+    },
+    "spencer": {
+     "oracle": 1.446695,
+     "proto": 1.446955,
+     "diff_pct": 0.018
+    },
+    "morgenstern_price": {
+     "oracle": 1.446695,
+     "proto": 1.446955,
+     "diff_pct": 0.018
+    },
+    "janbu_simplified": {
+     "oracle": 1.384233,
+     "proto": 1.384521,
+     "diff_pct": 0.0208
+    },
+    "janbu_corrected": {
+     "oracle": 1.445046,
+     "proto": 1.445326,
+     "diff_pct": 0.0194
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "proto": 117.898999,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "soil",
+    "diff_pct": 0.0421
+   },
+   "equilibrio_global": {
+    "bishop": 3.536e-06,
+    "janbu_simplified": 1.537e-17,
+    "spencer": 4.611e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-N01-sin-pilote": {
+   "nota": "sin pilote (neutralidad: ni X22 ni el motor cambian)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.169179,
+     "proto": 1.169249,
+     "diff_pct": 0.006
+    },
+    "spencer": {
+     "oracle": 1.167415,
+     "proto": 1.16749,
+     "diff_pct": 0.0065
+    },
+    "morgenstern_price": {
+     "oracle": 1.167415,
+     "proto": 1.16749,
+     "diff_pct": 0.0065
+    },
+    "janbu_simplified": {
+     "oracle": 1.13017,
+     "proto": 1.130299,
+     "diff_pct": 0.0114
+    },
+    "janbu_corrected": {
+     "oracle": 1.179821,
+     "proto": 1.179939,
+     "diff_pct": 0.01
+    }
+   },
+   "fuerza_por_metro": null,
+   "equilibrio_global": {
+    "bishop": 8.566e-07,
+    "janbu_simplified": 3.842e-18,
+    "spencer": 4.178e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169248,
+    "spencer": 1.16749,
+    "morgenstern_price": 1.16749,
+    "janbu_simplified": 1.130299,
+    "janbu_corrected": 1.179939
+   }
+  },
+  "X22-N02-fuera": {
+   "nota": "pilote en x = 10 (el pie): el cruce cae en el extremo de la superficie, sin fuerza",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.169179,
+     "proto": 1.169249,
+     "diff_pct": 0.006
+    },
+    "spencer": {
+     "oracle": 1.167415,
+     "proto": 1.16749,
+     "diff_pct": 0.0065
+    },
+    "morgenstern_price": {
+     "oracle": 1.167415,
+     "proto": 1.16749,
+     "diff_pct": 0.0065
+    },
+    "janbu_simplified": {
+     "oracle": 1.13017,
+     "proto": 1.130299,
+     "diff_pct": 0.0114
+    },
+    "janbu_corrected": {
+     "oracle": 1.179821,
+     "proto": 1.179939,
+     "diff_pct": 0.01
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "outside_mass",
+    "oracle": null,
+    "proto": null,
+    "y_cruce_proto": 0.002861,
+    "y_cruce_oracle": null,
+    "brazo_resultante_proto": null,
+    "gobierna": null
+   },
+   "equilibrio_global": {
+    "bishop": 8.566e-07,
+    "janbu_simplified": 3.842e-18,
+    "spencer": 4.178e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169248,
+    "spencer": 1.16749,
+    "morgenstern_price": 1.16749,
+    "janbu_simplified": 1.130299,
+    "janbu_corrected": 1.179939
+   }
+  },
+  "X22-S01-phi0": {
+   "nota": "φ = 0: arcilla no drenada Su = 30, γ = 18; presión con tensión total",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.836644,
+     "proto": 1.837056,
+     "diff_pct": 0.0224
+    },
+    "spencer": {
+     "oracle": 1.836644,
+     "proto": 1.837065,
+     "diff_pct": 0.0229
+    },
+    "morgenstern_price": {
+     "oracle": 1.836644,
+     "proto": 1.837065,
+     "diff_pct": 0.0229
+    },
+    "janbu_simplified": {
+     "oracle": 1.797162,
+     "proto": 1.797653,
+     "diff_pct": 0.0273
+    },
+    "janbu_corrected": {
+     "oracle": 1.906119,
+     "proto": 1.906603,
+     "diff_pct": 0.0254
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 100.938759,
+    "proto": 100.971864,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.417487,
+    "gobierna": "soil",
+    "diff_pct": 0.0328
+   },
+   "equilibrio_global": {
+    "bishop": 2.333e-06,
+    "janbu_simplified": 0.0,
+    "spencer": 1.708e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.615589,
+    "spencer": 1.61559,
+    "morgenstern_price": 1.61559,
+    "janbu_simplified": 1.588453,
+    "janbu_corrected": 1.684724
+   }
+  },
+  "X22-S02-cphi": {
+   "nota": "φ > 0: c = 5, φ = 25, γ = 19, seco",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.447293,
+     "proto": 1.447518,
+     "diff_pct": 0.0156
+    },
+    "spencer": {
+     "oracle": 1.4434,
+     "proto": 1.443643,
+     "diff_pct": 0.0169
+    },
+    "morgenstern_price": {
+     "oracle": 1.4434,
+     "proto": 1.443643,
+     "diff_pct": 0.0169
+    },
+    "janbu_simplified": {
+     "oracle": 1.388415,
+     "proto": 1.388695,
+     "diff_pct": 0.0201
+    },
+    "janbu_corrected": {
+     "oracle": 1.449413,
+     "proto": 1.449683,
+     "diff_pct": 0.0187
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 126.973472,
+    "proto": 127.03132,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.151772,
+    "gobierna": "soil",
+    "diff_pct": 0.0456
+   },
+   "equilibrio_global": {
+    "bishop": 3.833e-06,
+    "janbu_simplified": 1.294e-16,
+    "spencer": 3.236e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.132219,
+    "spencer": 1.130896,
+    "morgenstern_price": 1.130896,
+    "janbu_simplified": 1.090007,
+    "janbu_corrected": 1.137878
+   }
+  },
+  "X22-S03-2capas": {
+   "nota": "dos capas: c-φ (c = 8, φ = 15, γ = 18) sobre y = 2,5 y arcilla no drenada (Su = 40, γ = 19) debajo; el pilote cruza el contacto",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.718124,
+     "proto": 1.718382,
+     "diff_pct": 0.015
+    },
+    "spencer": {
+     "oracle": 1.664031,
+     "proto": 1.664545,
+     "diff_pct": 0.0309
+    },
+    "morgenstern_price": {
+     "oracle": 1.664031,
+     "proto": 1.664545,
+     "diff_pct": 0.0309
+    },
+    "janbu_simplified": {
+     "oracle": 1.600488,
+     "proto": 1.600802,
+     "diff_pct": 0.0197
+    },
+    "janbu_corrected": {
+     "oracle": 1.670808,
+     "proto": 1.671106,
+     "diff_pct": 0.0178
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 85.96498,
+    "proto": 85.979725,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.857963,
+    "brazo_resultante_proto": 1.167793,
+    "gobierna": "soil",
+    "diff_pct": 0.0172
+   },
+   "equilibrio_global": {
+    "bishop": 3.727e-06,
+    "janbu_simplified": 4.223e-17,
+    "spencer": 4.223e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.520705,
+    "spencer": 1.470438,
+    "morgenstern_price": 1.470438,
+    "janbu_simplified": 1.414185,
+    "janbu_corrected": 1.476293
+   }
+  },
+  "X22-S04-agua": {
+   "nota": "bajo el agua: γ = 18, γsat = 20, c = 8, φ = 22; línea piezométrica por debajo del terreno (y = 3,5 en el pilote); σ'v = γ·z - u",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.247167,
+     "proto": 1.247562,
+     "diff_pct": 0.0317
+    },
+    "spencer": {
+     "oracle": 1.245,
+     "proto": 1.245414,
+     "diff_pct": 0.0332
+    },
+    "morgenstern_price": {
+     "oracle": 1.245,
+     "proto": 1.245414,
+     "diff_pct": 0.0332
+    },
+    "janbu_simplified": {
+     "oracle": 1.208642,
+     "proto": 1.209141,
+     "diff_pct": 0.0413
+    },
+    "janbu_corrected": {
+     "oracle": 1.261741,
+     "proto": 1.262244,
+     "diff_pct": 0.0399
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 104.468477,
+    "proto": 104.433777,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.266191,
+    "gobierna": "soil",
+    "diff_pct": -0.0332
+   },
+   "equilibrio_global": {
+    "bishop": 3.422e-06,
+    "janbu_simplified": 6.55e-17,
+    "spencer": 1.146e-16
+   },
+   "motor_sin_pilote": {
+    "bishop": 0.98403,
+    "spencer": 0.983824,
+    "morgenstern_price": 0.983824,
+    "janbu_simplified": 0.957847,
+    "janbu_corrected": 0.999914
+   }
+  },
+  "X22-S05-espejo": {
+   "nota": "espejo de X22-V013c",
+   "circulo": {
+    "type": "circle",
+    "xc": -7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.437196,
+     "proto": 1.437428,
+     "diff_pct": 0.0162
+    },
+    "spencer": {
+     "oracle": 1.433781,
+     "proto": 1.43403,
+     "diff_pct": 0.0173
+    },
+    "morgenstern_price": {
+     "oracle": 1.433781,
+     "proto": 1.43403,
+     "diff_pct": 0.0173
+    },
+    "janbu_simplified": {
+     "oracle": 1.384232,
+     "proto": 1.384521,
+     "diff_pct": 0.0208
+    },
+    "janbu_corrected": {
+     "oracle": 1.445046,
+     "proto": 1.445326,
+     "diff_pct": 0.0194
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "proto": 117.898999,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "soil",
+    "diff_pct": 0.0421
+   },
+   "equilibrio_global": {
+    "bishop": 3.427e-06,
+    "janbu_simplified": 1.537e-17,
+    "spencer": 1.537e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S06-D1D-pequeno": {
+   "nota": "D1/D = 0,25 (spacing 1,0; d 0,8): fuera del rango 2-8 de la fórmula",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 11.572708,
+     "proto": 11.578953,
+     "diff_pct": 0.054
+    },
+    "spencer": {
+     "oracle": 11.56039,
+     "proto": 11.567001,
+     "diff_pct": 0.0572
+    },
+    "morgenstern_price": {
+     "oracle": 11.56039,
+     "proto": 11.567001,
+     "diff_pct": 0.0572
+    },
+    "janbu_simplified": {
+     "oracle": 10.92301,
+     "proto": 10.929246,
+     "diff_pct": 0.0571
+    },
+    "janbu_corrected": {
+     "oracle": 11.40289,
+     "proto": 11.409235,
+     "diff_pct": 0.0556
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 5148.317606,
+    "proto": 5150.326299,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.287984,
+    "gobierna": "soil",
+    "diff_pct": 0.039
+   },
+   "equilibrio_global": {
+    "bishop": 1.482e-05,
+    "janbu_simplified": 1.229e-16,
+    "spencer": 1.229e-16
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S07-D1D-grande": {
+   "nota": "D1/D = 9 (spacing 8; d 0,8); con c y φ la fórmula c-φ baja del piso de φ = 0",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.218832,
+     "proto": 1.218932,
+     "diff_pct": 0.0082
+    },
+    "spencer": {
+     "oracle": 1.216708,
+     "proto": 1.216816,
+     "diff_pct": 0.0089
+    },
+    "morgenstern_price": {
+     "oracle": 1.216708,
+     "proto": 1.216816,
+     "diff_pct": 0.0089
+    },
+    "janbu_simplified": {
+     "oracle": 1.17721,
+     "proto": 1.177368,
+     "diff_pct": 0.0134
+    },
+    "janbu_corrected": {
+     "oracle": 1.228928,
+     "proto": 1.229075,
+     "diff_pct": 0.012
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 21.32779,
+    "proto": 21.337231,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.178679,
+    "gobierna": "soil",
+    "diff_pct": 0.0443
+   },
+   "equilibrio_global": {
+    "bishop": 1.425e-06,
+    "janbu_simplified": 1.537e-17,
+    "spencer": 3.098e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S08-cabeza-bajo-terreno": {
+   "nota": "cabeza del pilote en y = 3 (2 m bajo el terreno): se carga desde la cabeza",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.313439,
+     "proto": 1.313651,
+     "diff_pct": 0.0162
+    },
+    "spencer": {
+     "oracle": 1.3105,
+     "proto": 1.310724,
+     "diff_pct": 0.0171
+    },
+    "morgenstern_price": {
+     "oracle": 1.3105,
+     "proto": 1.310724,
+     "diff_pct": 0.0171
+    },
+    "janbu_simplified": {
+     "oracle": 1.263155,
+     "proto": 1.263418,
+     "diff_pct": 0.0208
+    },
+    "janbu_corrected": {
+     "oracle": 1.318649,
+     "proto": 1.318905,
+     "diff_pct": 0.0194
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 60.918901,
+    "proto": 60.96853,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 0.538759,
+    "gobierna": "soil",
+    "diff_pct": 0.0815
+   },
+   "equilibrio_global": {
+    "bishop": 2.363e-06,
+    "janbu_simplified": 7.684e-17,
+    "spencer": 5.582e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S09-activo": {
+   "nota": "como V013c con application active (no se divide por F)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.590433,
+     "proto": 1.59087,
+     "diff_pct": 0.0275
+    },
+    "spencer": {
+     "oracle": 1.584859,
+     "proto": 1.585323,
+     "diff_pct": 0.0293
+    },
+    "morgenstern_price": {
+     "oracle": 1.584859,
+     "proto": 1.585323,
+     "diff_pct": 0.0293
+    },
+    "janbu_simplified": {
+     "oracle": 1.509471,
+     "proto": 1.509956,
+     "diff_pct": 0.0322
+    },
+    "janbu_corrected": {
+     "oracle": 1.575786,
+     "proto": 1.57627,
+     "diff_pct": 0.0307
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "proto": 117.898999,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "soil",
+    "diff_pct": 0.0421
+   },
+   "equilibrio_global": {
+    "bishop": 4.545e-06,
+    "janbu_simplified": 4.611e-17,
+    "spencer": 7.443e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S10-tangente": {
+   "nota": "como V013c con direction tangent",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.432374,
+     "proto": 1.432615,
+     "diff_pct": 0.0168
+    },
+    "spencer": {
+     "oracle": 1.42888,
+     "proto": 1.429137,
+     "diff_pct": 0.0179
+    },
+    "morgenstern_price": {
+     "oracle": 1.42888,
+     "proto": 1.429137,
+     "diff_pct": 0.0179
+    },
+    "janbu_simplified": {
+     "oracle": 1.378078,
+     "proto": 1.378364,
+     "diff_pct": 0.0208
+    },
+    "janbu_corrected": {
+     "oracle": 1.438621,
+     "proto": 1.438899,
+     "diff_pct": 0.0193
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "proto": 117.898999,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "soil",
+    "diff_pct": 0.0421
+   },
+   "equilibrio_global": {
+    "bishop": 3.433e-06,
+    "janbu_simplified": 4.611e-17,
+    "spencer": 5.582e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S11-capacidad-corte": {
+   "nota": "como V013c con capacidad a corte 150 kN por pilote (< fuerza del suelo 282,9)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.312951,
+     "proto": 1.313048,
+     "diff_pct": 0.0074
+    },
+    "spencer": {
+     "oracle": 1.310228,
+     "proto": 1.310337,
+     "diff_pct": 0.0083
+    },
+    "morgenstern_price": {
+     "oracle": 1.310228,
+     "proto": 1.310337,
+     "diff_pct": 0.0083
+    },
+    "janbu_simplified": {
+     "oracle": 1.266555,
+     "proto": 1.266712,
+     "diff_pct": 0.0124
+    },
+    "janbu_corrected": {
+     "oracle": 1.322198,
+     "proto": 1.322343,
+     "diff_pct": 0.011
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 62.5,
+    "proto": 62.5,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "shear",
+    "diff_pct": 0.0
+   },
+   "equilibrio_global": {
+    "bishop": 2.357e-06,
+    "janbu_simplified": 1.229e-16,
+    "spencer": 1.537e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S12-capacidad-momento": {
+   "nota": "como V013c con capacidad a flexión 250 kNm (M/Lm < fuerza del suelo)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.364105,
+     "proto": 1.364167,
+     "diff_pct": 0.0045
+    },
+    "spencer": {
+     "oracle": 1.361085,
+     "proto": 1.361161,
+     "diff_pct": 0.0056
+    },
+    "morgenstern_price": {
+     "oracle": 1.361085,
+     "proto": 1.361161,
+     "diff_pct": 0.0056
+    },
+    "janbu_simplified": {
+     "oracle": 1.315023,
+     "proto": 1.315148,
+     "diff_pct": 0.0095
+    },
+    "janbu_corrected": {
+     "oracle": 1.372796,
+     "proto": 1.372907,
+     "diff_pct": 0.0081
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 85.156341,
+    "proto": 85.136113,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "bending",
+    "diff_pct": -0.0238
+   },
+   "equilibrio_global": {
+    "bishop": 2.817e-06,
+    "janbu_simplified": 3.074e-17,
+    "spencer": 4.652e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-S13-MC-phi0": {
+   "nota": "Mohr-Coulomb con φ = 0 (c = 30, γ = 18): cSlope lo trata como no drenado (tensión total, fórmula φ = 0)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.836644,
+     "proto": 1.837056,
+     "diff_pct": 0.0224
+    },
+    "spencer": {
+     "oracle": 1.836644,
+     "proto": 1.837065,
+     "diff_pct": 0.0229
+    },
+    "morgenstern_price": {
+     "oracle": 1.836644,
+     "proto": 1.837065,
+     "diff_pct": 0.0229
+    },
+    "janbu_simplified": {
+     "oracle": 1.797162,
+     "proto": 1.797653,
+     "diff_pct": 0.0273
+    },
+    "janbu_corrected": {
+     "oracle": 1.906119,
+     "proto": 1.906603,
+     "diff_pct": 0.0254
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 100.938759,
+    "proto": 100.971864,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.417487,
+    "gobierna": "soil",
+    "diff_pct": 0.0328
+   },
+   "equilibrio_global": {
+    "bishop": 2.333e-06,
+    "janbu_simplified": 0.0,
+    "spencer": 1.708e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.615589,
+    "spencer": 1.61559,
+    "morgenstern_price": 1.61559,
+    "janbu_simplified": 1.588453,
+    "janbu_corrected": 1.684724
+   }
+  },
+  "X22-S14-ru": {
+   "nota": "razón de presión de poros ru = 0,3 (c = 10, φ = 20, γ = 20): σ'v = γz·(1 - ru)",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.124068,
+     "proto": 1.124275,
+     "diff_pct": 0.0184
+    },
+    "spencer": {
+     "oracle": 1.121599,
+     "proto": 1.121819,
+     "diff_pct": 0.0196
+    },
+    "morgenstern_price": {
+     "oracle": 1.121599,
+     "proto": 1.121819,
+     "diff_pct": 0.0196
+    },
+    "janbu_simplified": {
+     "oracle": 1.079928,
+     "proto": 1.080182,
+     "diff_pct": 0.0235
+    },
+    "janbu_corrected": {
+     "oracle": 1.127373,
+     "proto": 1.127621,
+     "diff_pct": 0.022
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 94.384137,
+    "proto": 94.421899,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.267312,
+    "gobierna": "soil",
+    "diff_pct": 0.04
+   },
+   "equilibrio_global": {
+    "bishop": 3.518e-06,
+    "janbu_simplified": 1.537e-16,
+    "spencer": 1.229e-16
+   },
+   "motor_sin_pilote": {
+    "bishop": 0.903174,
+    "spencer": 0.902561,
+    "morgenstern_price": 0.902561,
+    "janbu_simplified": 0.869504,
+    "janbu_corrected": 0.90769
+   }
+  },
+  "X22-S15-piso-phi0": {
+   "nota": "D1/D = 19 con φ = 10° (c = 2, γ = 20): la fórmula c-φ da A1 y A2 menores que las de φ = 0; cSlope aplica el piso de φ = 0",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 0.444922,
+     "proto": 0.444942,
+     "diff_pct": 0.0045
+    },
+    "spencer": {
+     "oracle": 0.444256,
+     "proto": 0.444279,
+     "diff_pct": 0.0052
+    },
+    "morgenstern_price": {
+     "oracle": 0.444256,
+     "proto": 0.444279,
+     "diff_pct": 0.0052
+    },
+    "janbu_simplified": {
+     "oracle": 0.428054,
+     "proto": 0.428095,
+     "diff_pct": 0.0097
+    },
+    "janbu_corrected": {
+     "oracle": 0.44686,
+     "proto": 0.446896,
+     "diff_pct": 0.0083
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 6.676441,
+    "proto": 6.679697,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.084739,
+    "gobierna": "soil",
+    "diff_pct": 0.0488
+   },
+   "equilibrio_global": {
+    "bishop": 1.444e-06,
+    "janbu_simplified": 8.453e-17,
+    "spencer": 4.995e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 0.428607,
+    "spencer": 0.428105,
+    "morgenstern_price": 0.428105,
+    "janbu_simplified": 0.412635,
+    "janbu_corrected": 0.430757
+   }
+  },
+  "X22-V013b": {
+   "nota": "D1/D = 2; el círculo crítico de cSlope sale en la cabeza del pilote (17,5; 5,0): sin cruce válido, la fila es neutra",
+   "circulo": {
+    "type": "circle",
+    "xc": 18.820152081921115,
+    "yc": 13.6257688748641,
+    "r": 8.726207091398583
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.540685,
+     "proto": 1.540923,
+     "diff_pct": 0.0155
+    },
+    "spencer": {
+     "oracle": 1.537235,
+     "proto": 1.537482,
+     "diff_pct": 0.0161
+    },
+    "morgenstern_price": {
+     "oracle": 1.537235,
+     "proto": 1.537482,
+     "diff_pct": 0.0161
+    },
+    "janbu_simplified": {
+     "oracle": 1.448084,
+     "proto": 1.448413,
+     "diff_pct": 0.0227
+    },
+    "janbu_corrected": {
+     "oracle": 1.540971,
+     "proto": 1.541311,
+     "diff_pct": 0.0221
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "outside_mass",
+    "oracle": null,
+    "proto": null,
+    "y_cruce_proto": 5.0,
+    "y_cruce_oracle": null,
+    "brazo_resultante_proto": null,
+    "gobierna": null
+   },
+   "equilibrio_global": {
+    "bishop": 3.049e-06,
+    "janbu_simplified": 4.432e-17,
+    "spencer": 4.953e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.540922,
+    "spencer": 1.537482,
+    "morgenstern_price": 1.537482,
+    "janbu_simplified": 1.448413,
+    "janbu_corrected": 1.541311
+   }
+  },
+  "X22-V013c": {
+   "nota": "D1/D = 2; círculo crítico de cSlope con location centroid",
+   "circulo": {
+    "type": "circle",
+    "xc": 7.4728309668902995,
+    "yc": 26.312711798202947,
+    "r": 26.430944193312815
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.437196,
+     "proto": 1.437428,
+     "diff_pct": 0.0162
+    },
+    "spencer": {
+     "oracle": 1.433781,
+     "proto": 1.43403,
+     "diff_pct": 0.0173
+    },
+    "morgenstern_price": {
+     "oracle": 1.433781,
+     "proto": 1.43403,
+     "diff_pct": 0.0173
+    },
+    "janbu_simplified": {
+     "oracle": 1.384232,
+     "proto": 1.384521,
+     "diff_pct": 0.0208
+    },
+    "janbu_corrected": {
+     "oracle": 1.445046,
+     "proto": 1.445326,
+     "diff_pct": 0.0194
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 117.84937,
+    "proto": 117.898999,
+    "y_cruce_proto": 1.857637,
+    "y_cruce_oracle": 1.858435,
+    "brazo_resultante_proto": 1.223531,
+    "gobierna": "soil",
+    "diff_pct": 0.0421
+   },
+   "equilibrio_global": {
+    "bishop": 3.427e-06,
+    "janbu_simplified": 1.537e-17,
+    "spencer": 2.858e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.169247,
+    "spencer": 1.167489,
+    "morgenstern_price": 1.167489,
+    "janbu_simplified": 1.130297,
+    "janbu_corrected": 1.179937
+   }
+  },
+  "X22-V013c-xs": {
+   "nota": "D1/D = 2; círculo crítico de cSlope con location slip-surface; fuerza en el cruce",
+   "circulo": {
+    "type": "circle",
+    "xc": 6.762149471329682,
+    "yc": 27.88411054920436,
+    "r": 28.068493957731533
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.450103,
+     "proto": 1.450337,
+     "diff_pct": 0.0161
+    },
+    "spencer": {
+     "oracle": 1.446278,
+     "proto": 1.446526,
+     "diff_pct": 0.0171
+    },
+    "morgenstern_price": {
+     "oracle": 1.446278,
+     "proto": 1.446526,
+     "diff_pct": 0.0171
+    },
+    "janbu_simplified": {
+     "oracle": 1.389489,
+     "proto": 1.389767,
+     "diff_pct": 0.02
+    },
+    "janbu_corrected": {
+     "oracle": 1.447571,
+     "proto": 1.447846,
+     "diff_pct": 0.019
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 112.10713,
+    "proto": 112.152862,
+    "y_cruce_proto": 1.950755,
+    "y_cruce_oracle": 1.95151,
+    "brazo_resultante_proto": 1.190802,
+    "gobierna": "soil",
+    "diff_pct": 0.0408
+   },
+   "equilibrio_global": {
+    "bishop": 2.889e-06,
+    "janbu_simplified": 7.823e-17,
+    "spencer": 4.459e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.177857,
+    "spencer": 1.176258,
+    "morgenstern_price": 1.176258,
+    "janbu_simplified": 1.142307,
+    "janbu_corrected": 1.190045
+   }
+  },
+  "X22-V013d": {
+   "nota": "D1/D = 3; círculo crítico de cSlope con location centroid",
+   "circulo": {
+    "type": "circle",
+    "xc": 8.788499680024017,
+    "yc": 23.42301170483189,
+    "r": 23.453520125607504
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.331525,
+     "proto": 1.331637,
+     "diff_pct": 0.0084
+    },
+    "spencer": {
+     "oracle": 1.327977,
+     "proto": 1.328094,
+     "diff_pct": 0.0088
+    },
+    "morgenstern_price": {
+     "oracle": 1.327977,
+     "proto": 1.328094,
+     "diff_pct": 0.0088
+    },
+    "janbu_simplified": {
+     "oracle": 1.274101,
+     "proto": 1.274312,
+     "diff_pct": 0.0166
+    },
+    "janbu_corrected": {
+     "oracle": 1.335877,
+     "proto": 1.336073,
+     "diff_pct": 0.0147
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 80.39626,
+    "proto": 80.396514,
+    "y_cruce_proto": 1.647398,
+    "y_cruce_oracle": 1.647404,
+    "brazo_resultante_proto": 1.281286,
+    "gobierna": "soil",
+    "diff_pct": 0.0003
+   },
+   "equilibrio_global": {
+    "bishop": 3.384e-06,
+    "janbu_simplified": 5.159e-17,
+    "spencer": 4.399e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.154782,
+    "spencer": 1.152655,
+    "morgenstern_price": 1.152655,
+    "janbu_simplified": 1.107816,
+    "janbu_corrected": 1.161507
+   }
+  },
+  "X22-V013d-xs": {
+   "nota": "D1/D = 3; círculo crítico de cSlope con location slip-surface; fuerza en el cruce",
+   "circulo": {
+    "type": "circle",
+    "xc": 8.20071318073304,
+    "yc": 24.683634792535443,
+    "r": 24.74806270610379
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.341754,
+     "proto": 1.341938,
+     "diff_pct": 0.0137
+    },
+    "spencer": {
+     "oracle": 1.337948,
+     "proto": 1.338145,
+     "diff_pct": 0.0148
+    },
+    "morgenstern_price": {
+     "oracle": 1.337948,
+     "proto": 1.338145,
+     "diff_pct": 0.0148
+    },
+    "janbu_simplified": {
+     "oracle": 1.279386,
+     "proto": 1.279622,
+     "diff_pct": 0.0185
+    },
+    "janbu_corrected": {
+     "oracle": 1.338711,
+     "proto": 1.338928,
+     "diff_pct": 0.0162
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 76.24854,
+    "proto": 76.282631,
+    "y_cruce_proto": 1.749166,
+    "y_cruce_oracle": 1.750015,
+    "brazo_resultante_proto": 1.245905,
+    "gobierna": "soil",
+    "diff_pct": 0.0447
+   },
+   "equilibrio_global": {
+    "bishop": 2.987e-06,
+    "janbu_simplified": 3.012e-17,
+    "spencer": 5.272e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.160806,
+    "spencer": 1.158852,
+    "morgenstern_price": 1.158852,
+    "janbu_simplified": 1.117685,
+    "janbu_corrected": 1.169486
+   }
+  },
+  "X22-V013e": {
+   "nota": "D1/D = 5; círculo crítico de cSlope con location centroid",
+   "circulo": {
+    "type": "circle",
+    "xc": 9.64936424953298,
+    "yc": 21.524368978334536,
+    "r": 21.52694898506118
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.25279,
+     "proto": 1.252888,
+     "diff_pct": 0.0078
+    },
+    "spencer": {
+     "oracle": 1.249291,
+     "proto": 1.249399,
+     "diff_pct": 0.0086
+    },
+    "morgenstern_price": {
+     "oracle": 1.249291,
+     "proto": 1.249399,
+     "diff_pct": 0.0086
+    },
+    "janbu_simplified": {
+     "oracle": 1.192017,
+     "proto": 1.192217,
+     "diff_pct": 0.0168
+    },
+    "janbu_corrected": {
+     "oracle": 1.253976,
+     "proto": 1.254168,
+     "diff_pct": 0.0153
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 49.031065,
+    "proto": 49.031117,
+    "y_cruce_proto": 1.479992,
+    "y_cruce_oracle": 1.479994,
+    "brazo_resultante_proto": 1.322084,
+    "gobierna": "soil",
+    "diff_pct": 0.0001
+   },
+   "equilibrio_global": {
+    "bishop": 3.489e-06,
+    "janbu_simplified": 5.71e-17,
+    "spencer": 6.424e-17
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.14752,
+    "spencer": 1.145071,
+    "morgenstern_price": 1.145071,
+    "janbu_simplified": 1.093584,
+    "janbu_corrected": 1.15041
+   }
+  },
+  "X22-V013e-xs": {
+   "nota": "D1/D = 5; círculo crítico de cSlope con location slip-surface; fuerza en el cruce",
+   "circulo": {
+    "type": "circle",
+    "xc": 9.339440106287814,
+    "yc": 22.22564016717659,
+    "r": 22.23496299244844
+   },
+   "metodos": {
+    "bishop": {
+     "oracle": 1.259916,
+     "proto": 1.260014,
+     "diff_pct": 0.0078
+    },
+    "spencer": {
+     "oracle": 1.256236,
+     "proto": 1.256343,
+     "diff_pct": 0.0086
+    },
+    "morgenstern_price": {
+     "oracle": 1.256236,
+     "proto": 1.256343,
+     "diff_pct": 0.0086
+    },
+    "janbu_simplified": {
+     "oracle": 1.195383,
+     "proto": 1.19558,
+     "diff_pct": 0.0165
+    },
+    "janbu_corrected": {
+     "oracle": 1.25593,
+     "proto": 1.256118,
+     "diff_pct": 0.015
+    }
+   },
+   "fuerza_por_metro": {
+    "estado": "applied",
+    "oracle": 47.525139,
+    "proto": 47.525231,
+    "y_cruce_proto": 1.542342,
+    "y_cruce_oracle": 1.542345,
+    "brazo_resultante_proto": 1.300712,
+    "gobierna": "soil",
+    "diff_pct": 0.0002
+   },
+   "equilibrio_global": {
+    "bishop": 3.183e-06,
+    "janbu_simplified": 5.051e-17,
+    "spencer": 1.155e-16
+   },
+   "motor_sin_pilote": {
+    "bishop": 1.149879,
+    "spencer": 1.14756,
+    "morgenstern_price": 1.14756,
+    "janbu_simplified": 1.09869,
+    "janbu_corrected": 1.154322
+   }
+  }
+ },
+ "criterios": {
+  "oraculo_fija_max_diff_pct": 0.0572,
+  "neutralidad_sin_pilote_proto_menos_motor": {
+   "bishop": 3.18e-07,
+   "spencer": -1.09e-09,
+   "morgenstern_price": -1.09e-09,
+   "janbu_simplified": 2.22e-16,
+   "janbu_corrected": 2.22e-16
+  },
+  "neutralidad_pilote_fuera_proto_menos_sin_pilote": {
+   "bishop": 0.0,
+   "spencer": 0.0,
+   "morgenstern_price": 0.0,
+   "janbu_simplified": 0.0,
+   "janbu_corrected": 0.0
+  },
+  "neutralidad_V013b_cruce_en_la_cabeza": {
+   "bishop": 1.42e-06,
+   "spencer": 1.7e-10,
+   "morgenstern_price": 1.7e-10,
+   "janbu_simplified": -2e-15,
+   "janbu_corrected": -2e-15
+  },
+  "equilibrio_global_max_residuo": {
+   "bishop": 1.48e-05,
+   "janbu_simplified": 1.54e-16,
+   "spencer": 1.23e-16
+  },
+  "espejo_proto_diff_max": 6.66e-16,
+  "espejo_oracle_diff_max": 4.44e-16,
+  "fuerza_dada_proto_menos_motor_max": {
+   "X22-G01-force-pasivo": 1.86e-07,
+   "X22-G02-force-activo": 2.41e-07,
+   "X22-G03-force-tangente": 3.17e-07
+  },
+  "monotonia_fuerza": [
+   {
+    "D1_D": 0.25,
+    "spacing": 1.0,
+    "A1": 75.281512,
+    "A2": 28.20023,
+    "fuerza_por_pilote_zf3": 4796.466,
+    "fuerza_por_metro_zf3": 4796.466
+   },
+   {
+    "D1_D": 0.5,
+    "spacing": 1.2,
+    "A1": 16.683653,
+    "A2": 6.872353,
+    "fuerza_por_pilote_zf3": 1119.0213,
+    "fuerza_por_metro_zf3": 932.5178
+   },
+   {
+    "D1_D": 1,
+    "spacing": 1.6,
+    "A1": 6.073436,
+    "A2": 3.01055,
+    "fuerza_por_pilote_zf3": 453.1526,
+    "fuerza_por_metro_zf3": 283.2204
+   },
+   {
+    "D1_D": 2,
+    "spacing": 2.4,
+    "A1": 3.027683,
+    "A2": 1.901987,
+    "fuerza_por_pilote_zf3": 262.0093,
+    "fuerza_por_metro_zf3": 109.1705
+   },
+   {
+    "D1_D": 3,
+    "spacing": 3.2,
+    "A1": 2.248202,
+    "A2": 1.618279,
+    "fuerza_por_pilote_zf3": 213.0911,
+    "fuerza_por_metro_zf3": 66.591
+   },
+   {
+    "D1_D": 4,
+    "spacing": 4.0,
+    "A1": 1.89623,
+    "A2": 1.490171,
+    "fuerza_por_pilote_zf3": 191.0023,
+    "fuerza_por_metro_zf3": 47.7506
+   },
+   {
+    "D1_D": 6,
+    "spacing": 5.6,
+    "A1": 1.567756,
+    "A2": 1.370616,
+    "fuerza_por_pilote_zf3": 170.3882,
+    "fuerza_por_metro_zf3": 30.4265
+   },
+   {
+    "D1_D": 8,
+    "spacing": 7.2,
+    "A1": 1.411957,
+    "A2": 1.31391,
+    "fuerza_por_pilote_zf3": 160.6107,
+    "fuerza_por_metro_zf3": 22.307
+   },
+   {
+    "D1_D": 9,
+    "spacing": 8.0,
+    "A1": 1.361239,
+    "A2": 1.295451,
+    "fuerza_por_pilote_zf3": 157.4277,
+    "fuerza_por_metro_zf3": 19.6785
+   }
+  ],
+  "monotonia_fuerza_decrece_con_D1_D": {
+   "por_pilote": true,
+   "por_metro": true
+  },
+  "monotonia_FS_V013b_e_bishop": {
+   "proto": [
+    1.540923,
+    1.437428,
+    1.331637,
+    1.252888
+   ],
+   "oracle": [
+    1.540685,
+    1.437196,
+    1.331525,
+    1.25279
+   ],
+   "decrece": true
+  }
+ }
+}
