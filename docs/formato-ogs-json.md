@@ -25,7 +25,9 @@ los leen. El motor acepta cinco versiones:
   (salvo el número de versión del motor). **Excepción documentada:** un modelo cuya piezométrica pasa **sobre el
   terreno** cambia de resultado en las cinco versiones, porque ahora incluye el agua embalsada
   ([Agua embalsada](#agua-embalsada-todas-las-versiones) y
-  [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+  [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)). **Segunda excepción
+  (E15j-8):** en V019 con búsqueda solo cambian los contadores `search.evaluated` y `search.valid`
+  ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"` y `analysis.tension_crack`
   exige `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.

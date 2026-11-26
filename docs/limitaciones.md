@@ -507,7 +507,9 @@ embalsada** (la piezométrica sobre el terreno, en todas las versiones). Ambas e
 ### Excepción a la identidad con la v0.3.0: agua sobre el terreno
 
 Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0 (salvo el número
-de versión del motor). **La excepción documentada** (F5.1, D1) son los modelos cuya piezométrica pasa sobre el terreno,
+de versión del motor), con **dos excepciones documentadas**: esta (F5.1) y
+[el contacto de aire capilar de V019](#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)
+(E15j-8). **La primera** (F5.1, D1) son los modelos cuya piezométrica pasa sobre el terreno,
 los que la v0.3.0 marcaba con `water_above_ground`: **cambian de resultado a propósito**, porque ahora incluyen el agua
 embalsada con su peso y su empuje. Es una corrección de física, del mismo tipo que la de V065: la v0.3.0 contaba la
 presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el FS salía muy bajo.
@@ -524,6 +526,28 @@ Con la v0.3.0, ese modelo traía además la nota `negative_effective_normal` (su
 `verification/tools/identity_vs_baseline.py` **separa** estos modelos y los informa por su nombre; no los oculta ni los
 cuenta como diferencias. Si usted tiene resultados guardados de un modelo con agua sobre el terreno, **vuelva a
 calcularlos**: los de la v0.3.0 no incluían el agua libre.
+
+### Segunda excepción a la identidad con la v0.3.0: contacto de aire capilar (V019, E15j-8)
+
+Un tramo de aire **interior**, con suelo a ambos lados, se trata ahora como contacto y **no parte la masa** cuando cumple
+dos condiciones: su ancho total es ≤ 1e-6 del ancho del modelo y el arco queda, como mucho, a 10 veces la tolerancia
+sobre el terreno. Se halló con el caso D30 (corte vertical de 12 m): el círculo crítico de cSlope pasa 3,6e-7 m sobre el
+pie y ogs lo partía en dos masas, con lo que descartaba 23,5 kN/m de suelo y 117,9 kN/m de cohesión. Con la regla, la
+fila D30 de superficie fija pasa de −15,4 % a +0,13 % y la seca de −13,2 % a +0,07 % respecto de cSlope.
+
+Frente a la v0.3.0, **un solo modelo del corpus cambia**: V019, en las variantes `search` y `search@0.4` (búsqueda de
+cinco métodos), y solo en los **contadores** de la búsqueda de Janbu simplificado: `search.evaluated` pasa de 10040 a
+10088 y `search.valid` de 7451 a 7499, porque ahora hay 48 círculos más que se evalúan y son válidos. El FS, la superficie
+crítica, los avisos y las dovelas son **idénticos**, y los demás métodos y variantes de V019 también.
+
+- **Cómo se declara.** La herramienta `verification/tools/identity_vs_baseline.py` lee
+  [`verification/tools/identity_exceptions.json`](../verification/tools/identity_exceptions.json), con una entrada
+  `{modelo, variante, campos, motivo, enmienda}` por modelo y variante. Si la **única** diferencia está en los campos JSON
+  permitidos (`results.*.search.evaluated` y `results.*.search.valid`), la informa aparte
+  («EXCEPCIÓN V019 [search]: E15j-8») y no la cuenta. Cualquier otro campo, otro modelo, otra variante, otro estado u
+  otro stderr sigue contando como diferencia. El resultado de la compuerta es **0 diferencias, 2 excepciones** (V019 en
+  `search` y en `search@0.4`) y los 18 modelos con agua sobre el terreno, listados aparte.
+- **Límite.** El umbral es discontinuo: un arco entre unos 7e-7 y 3e-6 sobre un vértice todavía puede diferir de cSlope.
 
 ### La grieta: solo vertical, una por superficie (F5.2, F5.4)
 
