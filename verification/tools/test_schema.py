@@ -1,4 +1,5 @@
-"""Tests of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of the 0.2 and 0.1 schemas, which are kept. Run
+"""Tests of schema/ogs-0.4.schema.json (contract F4.2), of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of
+the 0.2 and 0.1 schemas, which are kept. Run
 from the worktree root:
 
     env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with jsonschema --with pytest \\
@@ -12,6 +13,9 @@ from the worktree root:
 - version "0.1" with non-empty `loads` or non-null `analysis.seismic` fails (`loads: []` and `seismic: null` count as
   absent, as in the engine), and ogs-0.1 stays as it was (it rejects them too);
 - malformed loads and seismic coefficients fail;
+- version "0.4" (reinforcements): the table at the end of the file, with the schema and the engine in agreement (a
+  document that reaches the `todo!("R1: ...")` stub of the engine counts as accepted), and the rules that only the
+  engine enforces;
 - the same documents are accepted or rejected by the ogs binary (it must exist: the tests fail otherwise), including a
   table of boundary values of every bound in briefs/00_CONTRATOS.md §4.5 (E12h, R5-07).
 """
@@ -31,10 +35,11 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_04 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
 SCHEMA_03 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.3.schema.json"), encoding="utf-8"))
 SCHEMA_02 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.2.schema.json"), encoding="utf-8"))
 SCHEMA_01 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.1.schema.json"), encoding="utf-8"))
-STUB_MARK = "not implemented: F3-W1"
+STUB_MARKS = ("not implemented: F3-W1", "not yet implemented: R1: fuerzas de refuerzo")
 OGS_BIN = os.environ.get("OGS_BIN", os.path.join(ROOT, "target", "release", "ogs"))
 
 V02_CASE_IDS = ("V081a", "V081b", "V097a", "V102a", "V102b")
@@ -233,9 +238,10 @@ def _engine_accepts(model: dict, tmp_path) -> tuple[bool, str]:
     path = tmp_path / "model.ogs.json"
     path.write_text(json.dumps(model), encoding="utf-8")
     proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
-    if proc.returncode != 0 and STUB_MARK in proc.stderr:
-        # The document got past every validation and stopped at an `unimplemented!("F3-W1a" / "F3-W1b")` stub of the
-        # engine: it is accepted. Once the stubs are gone this branch is never taken.
+    if proc.returncode != 0 and any(mark in proc.stderr for mark in STUB_MARKS):
+        # The document got past every validation and stopped at an `unimplemented!("F3-W1a" / "F3-W1b")` or
+        # `todo!("R1: fuerzas de refuerzo")` stub of the engine: it is accepted. Once the stubs are gone this branch is
+        # never taken.
         return True, ""
     return proc.returncode == 0, proc.stderr.strip()
 
@@ -263,7 +269,7 @@ def test_engine_accepts_every_v0_2_case_and_the_complete_model(tmp_path):
     lambda m: m["analysis"]["seismic"].update(kv=-1.0),
     lambda m: m["analysis"]["seismic"].update(kz=0.1),
     lambda m: m.update(version="0.1"),
-    lambda m: m.update(version="0.4"),
+    lambda m: m.update(version="0.5"),
 ])
 def test_schema_and_engine_both_reject_the_same_malformed_documents(mutate, tmp_path):
     model = _base_v02()
@@ -473,7 +479,7 @@ BOUNDARY_TABLE = [
     ("v0.1, loads=null", _both(_set("version", "0.1"), _set("loads", None), _set("analysis.seismic", None)), False),
     ("v0.2, loads=[] and seismic=null", _both(_set("loads", []), _set("analysis.seismic", None)), True),
     ("version='0.3' without fields of 0.3", _set("version", "0.3"), True),
-    ("version='0.4'", _set("version", "0.4"), False),
+    ("version='0.5'", _set("version", "0.5"), False),
     ("version=0.2 (number)", _set("version", 0.2), False),
 ]
 
@@ -732,3 +738,239 @@ def test_the_engine_gate_names_the_field_and_the_schema_rejects_the_same_documen
             path.write_text(json.dumps(model), encoding="utf-8")
             proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
             assert proc.returncode != 0 and 'requiere version "0.3"' in proc.stderr and token in proc.stderr, proc.stderr
+
+
+# ------------------------------------------------------------ version 0.4: reinforcements (F4.1, F4.2, E14a, E14b)
+
+def _base_v04() -> dict:
+    """The complete v0.2 model, declared as version 0.4 and without reinforcements yet."""
+    model = _base_v02()
+    model["version"] = "0.4"
+    return model
+
+
+def _item(base: dict, **fields) -> dict:
+    out = dict(base)
+    for key, value in fields.items():
+        if value is _DEL:
+            out.pop(key, None)
+        else:
+            out[key] = value
+    return out
+
+
+def _anchor(**f):
+    return _item({"id": "a1", "type": "anchor", "x1": 44.0, "y1": 12.0, "x2": 30.0, "y2": 8.0,
+                  "tensile_capacity": 100.0, "application": "active", "direction": "axial"}, **f)
+
+
+def _pile(**f):
+    return _item({"id": "p1", "type": "pile", "x1": 40.0, "y1": 12.0, "x2": 40.0, "y2": 2.0,
+                  "application": "passive", "force": 60.0, "spacing": 1.5, "direction": "angle", "angle": 0.0,
+                  "location": "slip_surface"}, **f)
+
+
+def _sheet(**f):
+    return _item({"id": "s1", "type": "sheet_pile", "x1": 40.0, "y1": 12.5, "x2": 40.0, "y2": 0.5,
+                  "application": "active", "force": 120.0, "direction": "perpendicular", "location": "centroid"}, **f)
+
+
+def _reinf(*items):
+    def mutate(m: dict) -> None:
+        m["reinforcements"] = list(items)
+    return mutate
+
+
+def _pull(**f):
+    return _anchor(pullout=f)
+
+
+_BOND = {"model": "bond", "strength": 30.0}
+_IFACE = {"model": "interface", "adhesion": 10.0, "friction_angle": 20.0, "coverage": 0.8}
+_DEVEL = {"model": "development", "length1": 3.0, "length2": 4.0}
+_OLD = (_set("loads", []), _set("analysis.seismic", None))  # a version 0.1 document admits no loads and no seismic
+
+V04_TABLE = [
+    # accepted
+    ("anchor", _reinf(_anchor()), True),
+    ("empty list in 0.4", _reinf(), True),
+    ("no reinforcements in 0.4", _set("version", "0.4"), True),
+    ("nail with every optional field", _reinf(_anchor(type="nail", end1_capacity=5.0, end2_capacity=7.0, spacing=2.5, direction="bisector")), True),
+    ("geosynthetic tangent, application passive", _reinf(_anchor(type="geosynthetic", direction="tangent", application="passive")), True),
+    ("null optionals", _reinf(_anchor(end1_capacity=None, end2_capacity=None, spacing=None, pullout=None)), True),
+    ("tensile_capacity 0", _reinf(_anchor(tensile_capacity=0)), True),
+    ("pullout bond", _reinf(_anchor(pullout=_BOND)), True),
+    ("pullout bond strength 0", _reinf(_pull(**{**_BOND, "strength": 0})), True),
+    ("pullout bond with bonded_length 5", _reinf(_pull(**{**_BOND, "bonded_length": 5.0})), True),
+    ("pullout bond with bonded_length=null", _reinf(_pull(**{**_BOND, "bonded_length": None})), True),
+    ("pullout interface", _reinf(_anchor(pullout=_IFACE)), True),
+    ("pullout interface, coverage 1, friction 0, adhesion 0", _reinf(_pull(**{**_IFACE, "coverage": 1.0, "friction_angle": 0.0, "adhesion": 0.0})), True),
+    ("pullout development", _reinf(_anchor(pullout=_DEVEL)), True),
+    ("pullout development 0 and 0", _reinf(_pull(model="development", length1=0, length2=0)), True),
+    ("pile, direction angle 0", _reinf(_pile()), True),
+    ("pile, angle 89.99", _reinf(_pile(angle=89.99)), True),
+    ("pile, angle -89.99", _reinf(_pile(angle=-89.99)), True),
+    ("pile tangent without angle", _reinf(_pile(direction="tangent", angle=_DEL)), True),
+    ("pile perpendicular with angle=null", _reinf(_pile(direction="perpendicular", angle=None)), True),
+    ("pile without spacing", _reinf(_pile(spacing=_DEL)), True),
+    ("pile force 0", _reinf(_pile(force=0)), True),
+    ("sheet_pile", _reinf(_sheet()), True),
+    ("sheet_pile with direction angle", _reinf(_sheet(direction="angle", angle=-20.0)), True),
+    ("the five types", _reinf(_anchor(), _anchor(id="n", type="nail"), _anchor(id="g", type="geosynthetic"), _pile(), _sheet()), True),
+    # version gate (F4.1)
+    ("reinforcements in version 0.3", _both(_set("version", "0.3"), _reinf(_anchor())), False),
+    ("reinforcements in version 0.2", _both(_set("version", "0.2"), _reinf(_anchor())), False),
+    ("reinforcements in version 0.1", _both(_set("version", "0.1"), *_OLD, _reinf(_anchor())), False),
+    ("empty reinforcements in version 0.3", _both(_set("version", "0.3"), _reinf()), True),
+    ("empty reinforcements in version 0.1", _both(_set("version", "0.1"), *_OLD, _reinf()), True),
+    ("reinforcements=null", _set("reinforcements", None), False),
+    ("reinforcements=null in version 0.3", _both(_set("version", "0.3"), _set("reinforcements", None)), False),
+    ("reinforcements that is not a list", _set("reinforcements", {"type": "anchor"}), False),
+    ("version 0.5", _both(_set("version", "0.5"), _reinf(_anchor())), False),
+    # the tag, the fields and the enums
+    ("unknown type", _reinf(_anchor(type="strut")), False),
+    ("without type", _reinf(_anchor(type=_DEL)), False),
+    ("unknown field (prestress)", _reinf(_anchor(prestress=50.0)), False),
+    ("unknown field in a pile", _reinf(_pile(diameter=0.6)), False),
+    ("without id", _reinf(_anchor(id=_DEL)), False),
+    ("without application", _reinf(_anchor(application=_DEL)), False),
+    ("application null", _reinf(_anchor(application=None)), False),
+    ("application=both", _reinf(_anchor(application="both")), False),
+    ("without direction", _reinf(_anchor(direction=_DEL)), False),
+    ("direction=angle in an anchor", _reinf(_anchor(direction="angle")), False),
+    ("direction=axial in a pile", _reinf(_pile(direction="axial", angle=_DEL)), False),
+    ("without tensile_capacity", _reinf(_anchor(tensile_capacity=_DEL)), False),
+    ("without x2", _reinf(_anchor(x2=_DEL)), False),
+    ("x1 as a string", _reinf(_anchor(x1="44")), False),
+    ("anchor with force", _reinf(_anchor(force=5.0)), False),
+    ("pile with tensile_capacity", _reinf(_pile(tensile_capacity=5.0)), False),
+    ("pile without location", _reinf(_pile(location=_DEL)), False),
+    ("pile with location=bottom", _reinf(_pile(location="bottom")), False),
+    ("pile without force", _reinf(_pile(force=_DEL)), False),
+    ("sheet_pile with spacing", _reinf(_sheet(spacing=1.0)), False),
+    # ranges
+    ("empty id", _reinf(_anchor(id="")), False),
+    ("tensile_capacity=-1", _reinf(_anchor(tensile_capacity=-1.0)), False),
+    ("end1_capacity=-0.5", _reinf(_anchor(end1_capacity=-0.5)), False),
+    ("end2_capacity=-0.5", _reinf(_anchor(end2_capacity=-0.5)), False),
+    ("spacing=0", _reinf(_anchor(spacing=0)), False),
+    ("spacing=-1", _reinf(_pile(spacing=-1.0)), False),
+    ("force=-1 in a pile", _reinf(_pile(force=-1.0)), False),
+    ("force=-1 in a sheet_pile", _reinf(_sheet(force=-1.0)), False),
+    ("pullout without model", _reinf(_pull(strength=30.0)), False),
+    ("pullout model=grout", _reinf(_pull(model="grout")), False),
+    ("pullout bond without strength", _reinf(_anchor(pullout={"model": "bond"})), False),
+    ("pullout bond strength=-1", _reinf(_pull(**{**_BOND, "strength": -1.0})), False),
+    ("pullout bond bonded_length=0", _reinf(_pull(**{**_BOND, "bonded_length": 0})), False),
+    ("pullout bond bonded_length=-1", _reinf(_pull(**{**_BOND, "bonded_length": -1.0})), False),
+    ("pullout bond with adhesion", _reinf(_pull(**{**_BOND, "adhesion": 1.0})), False),
+    ("pullout interface coverage=0", _reinf(_pull(**{**_IFACE, "coverage": 0})), False),
+    ("pullout interface coverage=1.0001", _reinf(_pull(**{**_IFACE, "coverage": 1.0001})), False),
+    ("pullout interface friction_angle=90", _reinf(_pull(**{**_IFACE, "friction_angle": 90})), False),
+    ("pullout interface friction_angle=-0.1", _reinf(_pull(**{**_IFACE, "friction_angle": -0.1})), False),
+    ("pullout interface adhesion=-1", _reinf(_pull(**{**_IFACE, "adhesion": -1.0})), False),
+    ("pullout interface without coverage", _reinf(_anchor(pullout={k: v for k, v in _IFACE.items() if k != "coverage"})), False),
+    ("pullout development length1=-1", _reinf(_pull(**{**_DEVEL, "length1": -1.0})), False),
+    ("pullout development length2=-1", _reinf(_pull(**{**_DEVEL, "length2": -1.0})), False),
+    ("pullout development without length2", _reinf(_anchor(pullout={"model": "development", "length1": 1.0})), False),
+    # angle (F4.2): required only with direction "angle", in (-90, 90)
+    ("pile angle required with direction angle", _reinf(_pile(angle=_DEL)), False),
+    ("pile angle null with direction angle", _reinf(_pile(angle=None)), False),
+    ("pile angle with tangent", _reinf(_pile(direction="tangent", angle=10.0)), False),
+    ("pile angle with perpendicular", _reinf(_pile(direction="perpendicular", angle=10.0)), False),
+    ("pile angle=90", _reinf(_pile(angle=90)), False),
+    ("pile angle=-90", _reinf(_pile(angle=-90)), False),
+    ("pile angle=95", _reinf(_pile(angle=95.0)), False),
+    ("sheet_pile angle required with direction angle", _reinf(_sheet(direction="angle")), False),
+    ("sheet_pile angle with tangent", _reinf(_sheet(direction="tangent", angle=10.0)), False),
+    ("sheet_pile angle=90", _reinf(_sheet(direction="angle", angle=90)), False),
+]
+
+# Rules of 0.4 that only the engine enforces (JSON Schema cannot express them): the schema accepts, the engine rejects.
+V04_ENGINE_ONLY_TABLE = [
+    ("repeated id", _reinf(_anchor(), _pile(id="a1"))),
+    ("repeated id between two anchors", _reinf(_anchor(), _anchor())),
+    ("anchor with length 0", _reinf(_anchor(x2=44.0, y2=12.0))),
+    ("pile with length 0", _reinf(_pile(y2=12.0))),
+    ("inclined sheet_pile", _reinf(_sheet(x2=41.0))),
+    ("sheet_pile with x1 != x2 by 1e-9", _reinf(_sheet(x2=40.000000001))),
+    ("bonded_length > L", _reinf(_pull(**{**_BOND, "bonded_length": 15.0}))),
+]
+
+
+def _prepare_v04(mutate) -> dict:
+    model = _base_v04()
+    mutate(model)
+    return model
+
+
+def test_every_case_the_battery_and_the_examples_validate_against_the_0_4_schema():
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_04)
+    assert SCHEMA_04["$id"] == "ogs-0.4.schema.json"
+    assert SCHEMA_04["properties"]["version"] == {"enum": ["0.1", "0.2", "0.3", "0.4"]}
+    models = {**_case_models(), **_battery_models()}
+    for path in glob.glob(os.path.join(ROOT, "examples", "*.ogs.json")):
+        models[os.path.basename(path)] = _load(path)
+    assert len(models) >= _index_case_count()
+    for cid, model in models.items():
+        assert _errors(model, SCHEMA_04) == [], cid
+    # and the older versions are still rejected by the older schemas: 0.3 does not know 0.4
+    model = _base_v04()
+    assert _errors(model, SCHEMA_03)
+
+
+def test_the_complete_v0_4_model_validates_in_the_schema_and_the_engine(tmp_path):
+    model = _prepare_v04(_reinf(_anchor(), _pile(), _sheet()))
+    assert _errors(model, SCHEMA_04) == []
+    ok, err = _engine_accepts(model, tmp_path)
+    assert ok, err
+
+
+def test_the_v0_4_table_has_at_least_25_rows():
+    assert len(V04_TABLE) >= 25 and len(V04_ENGINE_ONLY_TABLE) >= 5
+
+
+@pytest.mark.parametrize("name,mutate,accepted", V04_TABLE, ids=[row[0] for row in V04_TABLE])
+def test_schema_and_engine_agree_on_the_v0_4_table(name, mutate, accepted, tmp_path):
+    model = _prepare_v04(mutate)
+    schema_ok = _errors(model, SCHEMA_04) == []
+    engine_ok, err = _engine_accepts(model, tmp_path)
+    assert engine_ok == accepted, f"motor: esperado {'aceptar' if accepted else 'rechazar'}, dio {err or 'OK'}"
+    assert schema_ok == accepted, f"esquema: esperado {'aceptar' if accepted else 'rechazar'}: {_errors(model, SCHEMA_04)[:2]}"
+
+
+@pytest.mark.parametrize("name,mutate", V04_ENGINE_ONLY_TABLE, ids=[row[0] for row in V04_ENGINE_ONLY_TABLE])
+def test_v0_4_engine_only_rules_pass_the_schema_and_fail_in_the_engine(name, mutate, tmp_path):
+    model = _prepare_v04(mutate)
+    assert _errors(model, SCHEMA_04) == [], name
+    ok, err = _engine_accepts(model, tmp_path)
+    assert not ok and "InvalidModel" in err and "reinforcements[" in err, (name, err)
+
+
+def test_the_engine_errors_carry_the_json_path_of_the_field(tmp_path):
+    for mutate, path in (
+        (_reinf(_anchor(), _pile(id="p"), _anchor(id="a3", pullout={**_IFACE, "coverage": 0})), "reinforcements[2].pullout.coverage"),
+        (_reinf(_anchor(tensile_capacity=-1.0)), "reinforcements[0].tensile_capacity"),
+        (_reinf(_pile(direction="tangent", angle=10.0)), "reinforcements[0].angle"),
+        (_reinf(_sheet(x2=41.0)), "reinforcements[0].x2"),
+        (_reinf(_pull(**{**_BOND, "bonded_length": 15.0})), "reinforcements[0].pullout.bonded_length"),
+    ):
+        model = _prepare_v04(mutate)
+        path_file = tmp_path / "path.ogs.json"
+        path_file.write_text(json.dumps(model), encoding="utf-8")
+        proc = subprocess.run([_ogs(), "analyze", str(path_file)], capture_output=True, text=True, timeout=120)
+        assert proc.returncode != 0 and "InvalidModel" in proc.stderr and path in proc.stderr, proc.stderr
+
+
+def test_the_engine_gate_names_reinforcements_and_the_schema_rejects_the_same_documents(tmp_path):
+    """F4.1: with a version below 0.4 the error is `reinforcements requiere version "0.4"`."""
+    for old in ("0.1", "0.2", "0.3"):
+        model = _prepare_v04(_reinf(_anchor()))
+        model["version"] = old
+        if old == "0.1":
+            model["loads"], model["analysis"]["seismic"] = [], None
+        assert _errors(model, SCHEMA_04), old
+        path = tmp_path / "gate.ogs.json"
+        path.write_text(json.dumps(model), encoding="utf-8")
+        proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+        assert proc.returncode != 0 and 'reinforcements requiere version "0.4"' in proc.stderr, proc.stderr
