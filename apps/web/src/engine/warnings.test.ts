@@ -75,11 +75,8 @@ describe('describeWarning', () => {
     expect(block, 'no se encuentra la lista E6 en el contrato').not.toBeNull();
     const fromContract = [...block![1].matchAll(/`([a-z_]+)`/g)].map((m) => m[1]);
     expect(fromContract.length).toBeGreaterThan(0);
-    // G3 (E15i-8): `ito_matsui_spacing_range` entra en la lista de E6 con la rama de M-ito. Hasta la integración el contrato de esta rama no lo trae:
-    // se exige que el resto coincida, y cuando el contrato ya lo trae, la coincidencia es exacta.
-    const awaitingIntegration = ['ito_matsui_spacing_range'].filter((c) => !fromContract.includes(c));
-    const web = [...ENGINE_WARNING_CODES].filter((c) => !awaitingIntegration.includes(c));
-    expect(web.sort()).toEqual([...fromContract].sort());
+    // G3 (E15i-8): `ito_matsui_spacing_range` ya está en la lista de E6 (integrado en F3G): la coincidencia es exacta.
+    expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
   });
 
   it('reinforcement_active_compression es una nota con el texto exacto de E14o-8 y lleva a /reinforcements', () => {

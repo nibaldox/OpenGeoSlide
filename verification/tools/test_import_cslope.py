@@ -171,8 +171,12 @@ def test_generated_cases_pass_the_schema_and_search_gates():
             case = json.load(fh)
         if case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
             errors = imp.gate_schema_f3r(case, F3R_SCHEMA)
-        elif case["model"]["version"] == "0.5":      # the promoted batch F3G (tension crack)
-            errors = imp.gate_f3g(case, json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8")))
+        elif case["model"]["version"] == "0.5":      # the promoted batches F3G (tension crack) and F3I (Ito-Matsui piles)
+            schema_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
+            # V013b-e (F3I) were promoted into cases/ (cc66c2e): v0.5 because of `lateral_pressure`, with no tension_crack,
+            # so they go through gate_f3i (the F3G gate demands a crack in every v0.5 case).
+            f3i = any("lateral_pressure" in r for r in case["model"].get("reinforcements") or [])
+            errors = (imp.gate_f3i if f3i else imp.gate_f3g)(case, schema_05)
         else:
             errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
         assert errors == [], (path, errors)
@@ -463,8 +467,8 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
         if version == "0.4":      # promoted batches R1 to R4: their own schema and gates (test_the_promoted_...)
             assert model["reinforcements"], path
             continue
-        if version == "0.5":      # promoted batch F3G: the crack; its own schema and gates (test_the_f3g_...)
-            assert model["analysis"]["tension_crack"], path
+        if version == "0.5":      # promoted batches F3G (the crack) and F3I (Ito-Matsui: V013b-e since cc66c2e, v0.5 by `lateral_pressure`)
+            assert model["analysis"].get("tension_crack") or any("lateral_pressure" in r for r in model.get("reinforcements") or []), path
             continue
         has_v02 = "loads" in model or "seismic" in model["analysis"]
         expected = "0.3" if _uses_v03(model) else ("0.2" if has_v02 else "0.1")
@@ -1283,32 +1287,29 @@ def test_the_importer_is_idempotent_with_f3i_pending_and_leaves_cases_untouched(
     assert _tree(root) == first
     assert first == before                       # the committed files are what the importer writes
     assert {k for k in first if k.startswith("verification/cases/")} == {k for k in before if k.startswith("verification/cases/")}
-    assert all(f"verification/pending/F3I/V013{x}.json" in first for x in "bcde")
+    # F3I was promoted into cases/ (cc66c2e): the four Ito-Matsui cases are in cases/ and pending/F3I keeps only its INDEX.md.
+    assert all(f"verification/cases/V013{x}.json" in first and f"verification/pending/F3I/V013{x}.json" not in first for x in "bcde")
 
 
 @pytest.mark.skipif(_clone() is None, reason="needs the cSlope clone (CSLOPE_SRC or $TMPDIR/cslope-src)")
-def test_promote_f3i_moves_the_four_cases_to_cases_and_is_idempotent(tmp_path):
+def test_promote_f3i_is_idempotent_on_the_promoted_tree_and_cases_hold_the_four_cases(tmp_path):
+    # F3I was promoted in cc66c2e (V013b-e live in cases/, F3I_PROMOTED = True). The old test ran the promotion over a tree
+    # that still had them in pending/F3I; now the tree is already promoted, so `--promote-f3i` must change nothing.
     import shutil
     root = tmp_path / "repo"
     for sub in ("verification", "schema", "NOTICE"):
         src = os.path.join(ROOT, sub)
         (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
-    pending = _tree(root)
+    promoted = _tree(root)
     _run_importer(root, "--promote-f3i")
     first = _tree(root)
     _run_importer(root, "--promote-f3i")
-    assert _tree(root) == first
+    assert _tree(root) == first == promoted
     for x in "bcde":
         cid = f"V013{x}"
         assert f"verification/pending/F3I/{cid}.json" not in first
-        assert first[f"verification/cases/{cid}.json"] == pending[f"verification/pending/F3I/{cid}.json"]
+        assert f"verification/cases/{cid}.json" in first
     assert not any(k.endswith(("pending/F3I/report.json", "pending/F3I/REPORT.md")) for k in first)
-    cases_before = {k for k in pending if k.startswith("verification/cases/V")}
-    cases_after = {k for k in first if k.startswith("verification/cases/V")}
-    assert cases_after - cases_before == {f"verification/cases/V013{x}.json" for x in "bcde"} and cases_before <= cases_after
-    changed = {k for k in first if k in pending and first[k] != pending[k]}
-    assert changed <= {"verification/cases/INDEX.md", "verification/pending/F3I/INDEX.md", "verification/pending/F3/INDEX.md",
-                       "verification/pending/F3R/INDEX.md"}
     index = first["verification/cases/INDEX.md"].decode()
     assert "## Pilotes de Ito-Matsui (lote F3I, v0.5)" in index and "**4** casos con **4** checks" in index
     assert "| V013c | 3 | bishop | 1.43 |" in index

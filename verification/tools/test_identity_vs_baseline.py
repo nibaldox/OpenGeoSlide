@@ -136,6 +136,16 @@ def test_split_cracked_separates_the_models_that_the_v0_3_baseline_cannot_read(t
     assert sorted(cracked) == ["cracked-ponded.json", "cracked.json"]
 
 
+def test_split_ito_matsui_separates_the_piles_with_lateral_pressure(tmp_path):
+    ito = {"reinforcements": [{"id": "P1", "type": "pile", "lateral_pressure": {"model": "ito_matsui", "diameter": 0.8}}]}
+    force = {"reinforcements": [{"id": "P1", "type": "pile", "force": 100.0}]}
+    assert ivb.has_lateral_pressure(ito) and not ivb.has_lateral_pressure(force) and not ivb.has_lateral_pressure({})
+    paths = {"ito.json": _write(tmp_path, "ito.json", **ito), "force.json": _write(tmp_path, "force.json", **force),
+             "plain.json": _write(tmp_path, "plain.json", analysis={"methods": ["bishop"]})}
+    rest, skipped = ivb.split_ito_matsui(paths)
+    assert sorted(rest) == ["force.json", "plain.json"] and sorted(skipped) == ["ito.json"]
+
+
 # ------------------------------------------------------------ E15j-8: declared exceptions to the identity
 
 def _out(evaluated=10040, valid=7451, fos=1.25, extra=None):

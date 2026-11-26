@@ -1345,19 +1345,30 @@ def test_force_piles_convert_exactly_as_before_in_v0_4_and_v0_5():
 
 
 def test_corpus_documents_carry_no_ito_matsui_key():
-    """Neutrality over the published corpus: no check of ``cases/`` gets a ``diameter`` or a capacity key."""
+    """Neutrality over the published corpus: no force pile of ``cases/`` gets a ``diameter`` or a capacity key.
+
+    V013b-e (Ito-Matsui, promoted into ``cases/`` in cc66c2e) are the only ones with ``lateral_pressure``: their pile
+    document must carry ``diameter`` (and no ``force``), so they are checked on the other side of the rule.
+    """
     import glob
     root = os.path.normpath(os.path.join(HERE, "..", "cases"))
     seen = 0
+    ito_seen = 0
     for path in sorted(glob.glob(os.path.join(root, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
         for check in case["checks"][:1]:
             doc = ogs_to_cslope(case["model"], check).document
+            ito = any("lateral_pressure" in r for r in case["model"].get("reinforcements") or [])
             for pile in doc["definition"].get("piles", []):
+                if ito:
+                    ito_seen += 1
+                    assert "diameter" in pile and "force" not in pile, path
+                    continue
                 seen += 1
                 assert not {"diameter", "shearCapacity", "momentCapacity"} & set(pile), path
     assert seen >= 2
+    assert ito_seen >= 4      # V013b-e
 
 
 @pytest.mark.parametrize("rid", sorted(_x22_rows()))

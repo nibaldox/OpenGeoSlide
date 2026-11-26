@@ -43,10 +43,9 @@ describe('structural_checks_not_covered con Ito-Matsui', () => {
 });
 
 describe('E6 de briefs/00_CONTRATOS.md', () => {
-  // M-ito agrega el código a la lista de E6 en su rama; hasta la integración esa lista puede no traerlo (SKIP en ese caso).
+  // Integrado (F3G, I-G): el contrato ya trae el código; el test deja de saltarse.
   const contract = readFileSync(fileURLToPath(new URL('../../../../briefs/00_CONTRATOS.md', import.meta.url)), 'utf8');
-  const hasCode = contract.includes('ito_matsui_spacing_range');
-  it.skipIf(!hasCode)('la lista de E6 trae el código nuevo (activo tras integrar la rama de M-ito)', () => {
+  it('la lista de E6 trae el código nuevo', () => {
     expect(contract).toContain('`ito_matsui_spacing_range`');
   });
 });

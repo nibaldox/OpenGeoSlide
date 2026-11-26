@@ -28,6 +28,11 @@ export const exampleTitles: Readonly<Record<string, ExampleTitle>> = {
   V011b: { title: 'Terraplén 3 de Borges y Cardoso, H = 7 m, círculo B', source: 'Borges y Cardoso, 2002' },
   V012: { title: 'Terraplén 3 de Borges y Cardoso, H = 8,75 m, círculo C', source: 'Borges y Cardoso, 2002' },
   V013a: { title: 'Talud de Cai y Ugai (2000), sin pilote', source: 'Cai y Ugai, 2000' },
+  // V013b-e: promovidos a verification/cases/ (F3G, I-G); pilotes de Ito-Matsui (v0.5, `lateral_pressure`).
+  V013b: { title: 'Talud de Cai y Ugai (2000), fila de pilotes con Ito-Matsui, S/D = 2', source: 'Cai y Ugai, 2000' },
+  V013c: { title: 'Talud de Cai y Ugai (2000), fila de pilotes con Ito-Matsui, S/D = 3', source: 'Cai y Ugai, 2000' },
+  V013d: { title: 'Talud de Cai y Ugai (2000), fila de pilotes con Ito-Matsui, S/D = 4', source: 'Cai y Ugai, 2000' },
+  V013e: { title: 'Talud de Cai y Ugai (2000), fila de pilotes con Ito-Matsui, S/D = 6', source: 'Cai y Ugai, 2000' },
   V014: { title: 'Muro con clavos de 14 filas, cuña profunda', source: 'manual de referencia de clavos de suelo de Caltrans' },
   V015: { title: 'Muro de pilotes verticales con anclajes', source: 'manual de referencia de clavos de suelo de Caltrans' },
   V016a: { title: 'Muro de gaviones escalonado, cohesión equivalente', source: 'Cao et al., 2016; Grodecki, 2017' },

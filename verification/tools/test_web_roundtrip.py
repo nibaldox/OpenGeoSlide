@@ -61,13 +61,15 @@ V03_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 
 
 def minimal_version(model: dict) -> str:
-    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.5"`` con grieta de tracción, ``"0.4"`` con refuerzos, ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
+    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.5"`` con grieta de tracción o pilote de Ito-Matsui (``lateral_pressure``), ``"0.4"`` con refuerzos, ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
 
     Independiente del código de la web: los campos de la v0.3 son los de F3.1 (material no drenado y sus parámetros,
     polilínea fija, métodos M-P y Janbu, función entre dovelas).
     """
     analysis = model.get("analysis") or {}
     if analysis.get("tension_crack") is not None:      # v0.5: grieta de tracción (F5.1)
+        return "0.5"
+    if any("lateral_pressure" in r for r in model.get("reinforcements") or []):      # v0.5: pilote de Ito-Matsui (V013b-e)
         return "0.5"
     if model.get("reinforcements"):      # v0.4: refuerzos
         return "0.4"
