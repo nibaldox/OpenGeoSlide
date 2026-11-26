@@ -8,6 +8,30 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+### Added
+- **Fase 3a, ola 0 (motor, formato v0.3):**
+  - Formato `.ogs.json` v0.3 (E13a) con JSON Schema `schema/ogs-0.3.schema.json`. Se aceptan 0.1, 0.2 y 0.3. Cada campo
+    nuevo exige `"0.3"`: con una versión menor el error es `InvalidModel: <campo> requiere version "0.3"`. Un modelo sin
+    campos nuevos da el mismo resultado, bit a bit, en 0.1, 0.2 y 0.3.
+  - Material no drenado (E13b): `model: "undrained"` con `undrained_strength`, y opcionalmente `strength_datum` y
+    `strength_gradient` (Su lineal con la cota) y `strength_limit`. La resistencia por dovela se resuelve en
+    `strength::resolve` en el punto medio de la base; Mohr-Coulomb no cambia ningún bit y un no drenado sin gradiente es
+    idéntico a Mohr-Coulomb con φ = 0.
+  - Tipos y validaciones del formato para la superficie `polyline` (E13c), los métodos `morgenstern_price`,
+    `janbu_simplified` y `janbu_corrected` y `analysis.interslice` (E13d, E13e). Bishop con una polilínea es
+    `InvalidModel` (E13f).
+  - Informe (E13g): `surface` es `{xc, yc, r}` o `{points}`; campos opcionales `correction_factor` e `interslice`.
+  - Interfaces congeladas para la ola 1: `surface::Surface` y el despacho de polilínea y de métodos nuevos, que por
+    ahora terminan en `unimplemented!("F3-W1a")` y `unimplemented!("F3-W1b")`.
+  - `ogs bench --method` acepta los métodos nuevos.
+- **Verificación:** `tests/f3_oracle.rs` con los valores del oráculo de F3.8 (los de no drenado pasan; los de M-P, Janbu y
+  polilínea fallan a propósito en el stub hasta la ola 1), `tests/v03_format.rs` y `tests/v03_undrained.rs`.
+
+### Changed
+- `Material.cohesion` y `Material.friction_angle` son opcionales en el tipo; la validación los exige según `model`.
+  Un material Mohr-Coulomb sin ellos sigue siendo `InvalidModel`, ahora con un mensaje propio.
+- `SurfaceSpec` deja de ser `Copy` (la polilínea lleva una lista de puntos).
+
 ## [0.1.0] - 2026-11-25
 
 Primera versión pública (cierre de la Fase 1): editor web, sismo y cargas, y publicación en

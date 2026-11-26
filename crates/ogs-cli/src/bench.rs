@@ -13,7 +13,11 @@ use std::time::Instant;
 
 use serde_json::{Value, json};
 
-const USAGE: &str = "uso: ogs bench <caso.json> [--reps N] [--method bishop|spencer|all]";
+const USAGE: &str = "uso: ogs bench <caso.json> [--reps N] \
+     [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] \
+     (all = bishop y spencer)";
+/// Methods that need the format v0.3 (E13a): the benchmark raises the version of the case for them.
+const V03_METHODS: [&str; 3] = ["morgenstern_price", "janbu_simplified", "janbu_corrected"];
 const WARMUP_RUNS: usize = 1;
 const DEFAULT_REPS: usize = 5;
 
@@ -69,9 +73,7 @@ fn parse(args: &[&str]) -> Result<Options, String> {
             }
             "--method" => {
                 i += 1;
-                method = args
-                    .get(i)
-                    .ok_or("--method requiere bishop, spencer o all")?;
+                method = args.get(i).ok_or("--method requiere un método o all")?;
             }
             flag if flag.starts_with("--") => return Err(format!("opción desconocida: {flag}")),
             file => {
@@ -88,6 +90,9 @@ fn parse(args: &[&str]) -> Result<Options, String> {
         "all" => vec!["bishop", "spencer"],
         "bishop" => vec!["bishop"],
         "spencer" => vec!["spencer"],
+        "morgenstern_price" => vec!["morgenstern_price"],
+        "janbu_simplified" => vec!["janbu_simplified"],
+        "janbu_corrected" => vec!["janbu_corrected"],
         other => return Err(format!("método no válido: {other}")),
     };
     Ok(Options {
@@ -127,6 +132,9 @@ fn execute(opts: &Options) -> Result<String, String> {
 fn bench_method(model: &Value, case_id: &str, method: &str, reps: usize) -> Result<Value, String> {
     let mut model = model.clone();
     model["analysis"]["methods"] = json!([method]);
+    if V03_METHODS.contains(&method) {
+        model["version"] = json!("0.3");
+    }
     let input = serde_json::to_string(&model).map_err(|e| e.to_string())?;
 
     for _ in 0..WARMUP_RUNS {
@@ -174,12 +182,27 @@ fn median(values: &[f64]) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::median;
+    use super::{median, parse};
 
     #[test]
     fn median_odd_and_even() {
         assert_eq!(median(&[3.0, 1.0, 2.0]), 2.0);
         assert_eq!(median(&[4.0, 1.0, 3.0, 2.0]), 2.5);
         assert_eq!(median(&[7.0]), 7.0);
+    }
+
+    #[test]
+    fn method_names_include_the_v03_methods() {
+        for name in ["morgenstern_price", "janbu_simplified", "janbu_corrected"] {
+            let opts = parse(&["caso.json", "--method", name]).expect(name);
+            assert_eq!(opts.methods, vec![name]);
+        }
+        let all = parse(&["caso.json"]).unwrap();
+        assert_eq!(
+            all.methods,
+            vec!["bishop", "spencer"],
+            "all keeps the two original methods"
+        );
+        assert!(parse(&["caso.json", "--method", "janbu"]).is_err());
     }
 }

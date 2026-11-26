@@ -10,6 +10,15 @@ Errores: ``ValueError`` si el motor rechaza el modelo o si el ``dict`` contiene 
 ``RuntimeError`` si el motor entra en pánico.
 El mensaje de ``ValueError`` empieza por el código del error (``InvalidModel``, ``NoSurface``,
 ``NoValidSurface`` o ``Json``), seguido de ``: `` y el detalle en español.
+
+Formato v0.3 (``"version": "0.3"``): material ``undrained`` (``undrained_strength``, ``strength_datum``,
+``strength_gradient``, ``strength_limit``), superficie ``polyline``, métodos ``morgenstern_price``, ``janbu_simplified``
+y ``janbu_corrected`` y ``analysis.interslice``. Un campo de 0.3 con ``"version": "0.1"`` o ``"0.2"`` es
+``InvalidModel`` (``<campo> requiere version "0.3"``); Bishop con una polilínea también lo es. En el informe,
+``surface`` es ``{"xc", "yc", "r"}`` para un círculo y ``{"points": [[x, y], ...]}`` para una polilínea (ya ajustada al
+terreno), y ``janbu_corrected`` agrega ``correction_factor`` (f₀) y ``morgenstern_price`` agrega ``interslice``.
+Los estados ``Invalid`` nuevos son ``polyline_no_ground_crossing`` y ``polyline_outside_ground``; la Fase 3a no crea
+códigos de aviso nuevos.
 """
 
 import json
