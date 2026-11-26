@@ -7,6 +7,7 @@ import { slideDirection } from '../editor/canvas/layout';
 import { geotechAdvisories, piezoExtension } from '../editor/state/geotech';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
+import { minimalVersion } from '../io/ogsJson';
 import { reportCircle } from '../engine/surface';
 import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
@@ -640,7 +641,8 @@ export function buildReportContent(input: ReportInput): ReportContent {
           ['Motor', input.engineName],
           ['SHA-256 del .ogs.json', input.modelSha256],
           ['Unidades', model.units ?? 'no indicadas'],
-          ['Versión del formato', model.version],
+          // La del texto guardado, del que sale el SHA-256 (no la que el modelo trae en memoria: un modelo abierto como 0.2 y editado con polilínea se guarda como 0.3).
+          ['Versión del formato', minimalVersion(model)],
         ],
       },
     ],

@@ -163,3 +163,15 @@ describe('Materiales no drenados', () => {
     expect(tables(sec(buildReportContent(sampleInput()), 'materials'))).toHaveLength(1);
   });
 });
+
+describe('Portada: versión del formato del archivo guardado (I-W)', () => {
+  const cover = (model: ModelDoc) => kv(sec(buildReportContent(input(model)), 'cover'));
+  it('un modelo con campos de la 0.3 pero versión en memoria 0.2 se guarda (y se resume) como 0.3', () => {
+    expect(cover(polyDoc((d) => { d.version = '0.2'; }))['Versión del formato']).toBe('0.3');
+  });
+  it('un modelo sin campos de la 0.3 se resume como 0.2, la versión del texto del que sale el SHA-256', () => {
+    const d = loadCaseDoc('V047a');
+    d.version = '0.1';
+    expect(cover(d)['Versión del formato']).toBe('0.2');
+  });
+});
