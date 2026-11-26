@@ -1,9 +1,10 @@
 // Abrir y guardar `.ogs.json` (X3 §2.6, F1.1, F1.4).
 //
-// - `openOgsJson` acepta v0.1, v0.2 y v0.3 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
-//   mínima que lo describe (F3.9): `"0.2"` sin campos de la v0.3 y `"0.3"` con alguno.
+// - `openOgsJson` acepta v0.1 a v0.4 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
+//   mínima que lo describe (F3.9, F4.1): `"0.2"` sin campos de la v0.3, `"0.3"` con alguno y `"0.4"` solo si hay refuerzos.
 // - `saveOgsJson` escribe esa versión mínima, con el orden de claves canónico de 00_CONTRATOS.md §1
-//   (`loads` después de `water`, `analysis.seismic` e `interslice` al final de `analysis`) y 2 espacios. Los números se escriben
+//   (`loads` después de `water`, `reinforcements` después de `loads`, `analysis.seismic` e `interslice` al final de
+//   `analysis`) y 2 espacios. Los números se escriben
 //   **sin redondear**, con la representación de ida y vuelta más corta de JS (E12g): abrir y guardar no cambia el
 //   resultado del motor ni un bit.
 // - `openOgsJson` es estricto, igual que el motor (`deny_unknown_fields`, E12h): un campo desconocido, o `loads` o
@@ -17,8 +18,10 @@ export const OGS_FORMAT = 'opengeoslide';
 export const OGS_SAVE_VERSION = '0.2';
 /** Versión que se guarda cuando el modelo usa algún campo de la v0.3 (F3.9). */
 export const OGS_V03 = '0.3';
+/** Versión que se guarda cuando el modelo tiene refuerzos (F4.1). */
+export const OGS_V04 = '0.4';
 
-type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03;
+type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04;
 
 export interface OpenOgsResult {
   /** `null` si el archivo se rechaza (hay al menos una incidencia con severidad `error`). */
@@ -30,7 +33,19 @@ export interface OpenOgsResult {
 // Orden canónico de claves
 // ---------------------------------------------------------------------------------------------------------------
 
-const TOP_KEYS = ['format', 'version', 'meta', 'units', 'materials', 'regions', 'water', 'loads', 'slope', 'analysis'] as const;
+const TOP_KEYS = [
+  'format',
+  'version',
+  'meta',
+  'units',
+  'materials',
+  'regions',
+  'water',
+  'loads',
+  'reinforcements',
+  'slope',
+  'analysis',
+] as const;
 const META_KEYS = ['id', 'title', 'notes'] as const;
 const MATERIAL_V03_KEYS = ['undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'] as const;
 const MATERIAL_KEYS = [
@@ -48,6 +63,18 @@ const REGION_KEYS = ['material', 'polygon'] as const;
 const WATER_KEYS = ['unit_weight', 'piezometric_line'] as const;
 const UDL_KEYS = ['type', 'id', 'x1', 'x2', 'q'] as const;
 const LINE_LOAD_KEYS = ['type', 'id', 'x', 'p', 'angle'] as const;
+// Refuerzos (v0.4, F4.2): `type` primero, como el motor (serde con `tag = "type"`). Cada variante rechaza las claves de las otras.
+const REINFORCEMENT_COMMON_KEYS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application'] as const;
+const TENSION_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'tensile_capacity', 'end1_capacity', 'end2_capacity', 'spacing', 'direction', 'pullout'] as const;
+const PILE_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'force', 'spacing', 'direction', 'angle'] as const;
+const SHEET_PILE_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'force', 'direction', 'angle'] as const;
+const PULLOUT_BOND_KEYS = ['model', 'strength', 'bonded_length'] as const;
+const PULLOUT_INTERFACE_KEYS = ['model', 'adhesion', 'friction_angle', 'coverage'] as const;
+const PULLOUT_DEVELOPMENT_KEYS = ['model', 'length1', 'length2'] as const;
+/** Opcionales de un refuerzo: un `null` cuenta como ausente (igual que en el motor) y no se escribe. */
+const REINFORCEMENT_OPTIONAL_KEYS = ['end1_capacity', 'end2_capacity', 'spacing', 'angle', 'pullout'] as const;
+const TENSION_TYPES: readonly string[] = ['anchor', 'nail', 'geosynthetic'];
+const REINFORCEMENT_TYPES: readonly string[] = [...TENSION_TYPES, 'pile', 'sheet_pile'];
 const SLOPE_KEYS = ['direction'] as const;
 const ANALYSIS_KEYS = [
   'methods',
@@ -133,6 +160,33 @@ const FIELD_NAME: Readonly<Record<string, string>> = {
   points: 'puntos',
 };
 
+/** Campos de un refuerzo en palabras de la interfaz (v0.4). */
+const REINFORCEMENT_FIELD_NAME: Readonly<Record<string, string>> = {
+  type: 'tipo',
+  id: 'identificador',
+  x1: 'cabeza x1',
+  y1: 'cabeza y1',
+  x2: 'punta x2',
+  y2: 'punta y2',
+  application: 'aplicación activa o pasiva',
+  tensile_capacity: 'capacidad a tracción',
+  end1_capacity: 'capacidad del extremo 1',
+  end2_capacity: 'capacidad del extremo 2',
+  spacing: 'espaciamiento',
+  direction: 'dirección de la fuerza',
+  angle: 'ángulo',
+  force: 'fuerza',
+  pullout: 'arrancamiento',
+  model: 'modelo de arrancamiento',
+  strength: 'resistencia por metro',
+  bonded_length: 'longitud adherida',
+  adhesion: 'adhesión',
+  friction_angle: 'ángulo de fricción de la interfaz',
+  coverage: 'cobertura Rc',
+  length1: 'longitud de desarrollo 1',
+  length2: 'longitud de desarrollo 2',
+};
+
 /** Describe un puntero JSON (`/regions/0/polygon/2/1`) con palabras de la interfaz («región 1, vértice 3»). */
 export function describePath(path: string): string {
   const seg = path.split('/').filter((x) => x !== '');
@@ -153,6 +207,13 @@ export function describePath(path: string): string {
       return b === undefined ? 'los datos de agua' : `los datos de agua (${field(b)})`;
     case 'loads':
       return b === undefined ? 'la lista de cargas' : c === undefined ? `la carga ${n(b)}` : `la carga ${n(b)} (${field(c)})`;
+    case 'reinforcements': {
+      if (b === undefined) return 'la lista de refuerzos';
+      if (c === undefined) return `el refuerzo ${n(b)}`;
+      const rf = (k: string | undefined): string => (k !== undefined && REINFORCEMENT_FIELD_NAME[k]) || (k ?? 'valor');
+      if (c === 'pullout') return d === undefined ? `el refuerzo ${n(b)} (arrancamiento)` : `el refuerzo ${n(b)} (arrancamiento, ${rf(d)})`;
+      return `el refuerzo ${n(b)} (${rf(c)})`;
+    }
     case 'analysis': {
       const section: Record<string, string> = {
         surface: 'la superficie fija',
@@ -389,6 +450,23 @@ const dropNull =
     return out;
   };
 
+const pulloutSub: Sub = (v, path, ctx) => {
+  const keys = !isRecord(v)
+    ? PULLOUT_BOND_KEYS
+    : v.model === 'interface'
+      ? PULLOUT_INTERFACE_KEYS
+      : v.model === 'development'
+        ? PULLOUT_DEVELOPMENT_KEYS
+        : PULLOUT_BOND_KEYS;
+  return dropNull(orderedWith(keys), ['bonded_length'])(v, path, ctx);
+};
+
+const reinforcementSub: Sub = (v, path, ctx) => {
+  if (!isRecord(v) || typeof v.type !== 'string' || !REINFORCEMENT_TYPES.includes(v.type)) return plain(v, path, '', ctx);
+  const keys = TENSION_TYPES.includes(v.type) ? TENSION_KEYS : v.type === 'pile' ? PILE_KEYS : SHEET_PILE_KEYS;
+  return dropNull(orderedWith(keys, { pullout: pulloutSub }), REINFORCEMENT_OPTIONAL_KEYS)(v, path, ctx);
+};
+
 const analysisSub: Sub = (v, path, ctx) => {
   const out = orderedWith(ANALYSIS_KEYS, {
     surface: orderedWith(SURFACE_KEYS),
@@ -453,8 +531,21 @@ export function v03Fields(model: unknown): V03Field[] {
   return out;
 }
 
-/** Versión mínima con la que se guarda el modelo (F3.9): `"0.3"` si usa algún campo de la v0.3, si no `"0.2"`. */
+/**
+ * Campos de la v0.4 que usa un modelo (F4.1): `reinforcements` no vacío. Una lista vacía o `null` cuenta como ausente, como en el
+ * motor (`first_v04_field`).
+ */
+export function v04Fields(model: unknown): V03Field[] {
+  if (!isRecord(model) || !Array.isArray(model.reinforcements) || model.reinforcements.length === 0) return [];
+  return [{ path: '/reinforcements', what: 'los refuerzos' }];
+}
+
+/**
+ * Versión mínima con la que se guarda el modelo (F3.9, F4.1): `"0.4"` si hay refuerzos, `"0.3"` si usa algún campo de la v0.3, si
+ * no `"0.2"`.
+ */
 export function minimalVersion(model: unknown): OgsVersion {
+  if (v04Fields(model).length > 0) return OGS_V04;
   return v03Fields(model).length > 0 ? OGS_V03 : OGS_SAVE_VERSION;
 }
 
@@ -465,9 +556,12 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
     regions: listOf(orderedWith(REGION_KEYS)),
     water: orderedWith(WATER_KEYS),
     loads: listOf(loadSub),
+    reinforcements: listOf(reinforcementSub),
     slope: orderedWith(SLOPE_KEYS),
     analysis: analysisSub,
   }) as Rec;
+  // Una lista de refuerzos vacía no se escribe (el motor la omite igual): el archivo vuelve a ser el de la v0.2 o v0.3.
+  if (Array.isArray(out.reinforcements) && out.reinforcements.length === 0) delete out.reinforcements;
   // Se reconstruye para fijar el valor de `format` y `version` sin perder la posición de las claves.
   const result: Rec = {};
   for (const key of Object.keys(out)) {
@@ -479,7 +573,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
   return result;
 }
 
-/** Documento en orden canónico y con la versión mínima (`"0.2"` o `"0.3"`), sin serializar (para borradores y pruebas). Sin redondeo. */
+/** Documento en orden canónico y con la versión mínima (`"0.2"`, `"0.3"` o `"0.4"`), sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const version = minimalVersion(doc);
   const withVersion = { ...doc, format: OGS_FORMAT, version } as ModelDoc;
@@ -492,7 +586,7 @@ export function saveOgsJson(doc: ModelDoc): string {
 }
 
 /**
- * Copia del modelo lista para el motor: con la versión `"0.3"` si su contenido la exige (los modelos de los casos pueden traer una
+ * Copia del modelo lista para el motor: con la versión `"0.4"` si tiene refuerzos y `"0.3"` si su contenido la exige (los modelos de los casos pueden traer una
  * versión menor que la que piden los métodos que se eligen en «Casos») y sin `analysis.interslice` cuando `morgenstern_price` no
  * está entre los métodos (el motor lo rechaza: solo tiene sentido con ese método).
  */
@@ -500,8 +594,9 @@ export function engineModel(model: ModelDoc): ModelDoc {
   const analysis = { ...model.analysis };
   if (analysis.interslice !== undefined && !(analysis.methods ?? []).includes('morgenstern_price')) delete analysis.interslice;
   const copy: ModelDoc = { ...model, analysis };
-  // Solo se sube la versión si hace falta: un modelo de la v0.1 o v0.2 sin campos nuevos se envía tal cual.
-  return v03Fields(copy).length > 0 ? { ...copy, version: OGS_V03 } : copy;
+  // Solo se sube la versión si hace falta: un modelo de la v0.1 o v0.2 sin campos nuevos se envía tal cual. Con refuerzos, 0.4.
+  if (v04Fields(copy).length > 0) return { ...copy, version: OGS_V04 };
+  return v03Fields(copy).length > 0 && copy.version !== OGS_V04 ? { ...copy, version: OGS_V03 } : copy;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -514,6 +609,70 @@ function issue(severity: Issue['severity'], code: string, text: string, path: st
 
 function isPoint(v: unknown): boolean {
   return Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
+}
+
+const isNum = (v: unknown): boolean => typeof v === 'number';
+const OPTIONAL_ABSENT = (v: unknown): boolean => v === undefined || v === null;
+
+/**
+ * Forma de `reinforcements` (v0.4): lista de objetos con `type` conocido, `id` de texto, números donde van números y las
+ * enumeraciones del contrato (F4.2). Los rangos (≥ 0, ángulos, longitudes…) y los ids repetidos los señala `validateLocal`,
+ * como con los materiales y las cargas. Un número no finito lo registra `canonicalObject` (`io.non_finite`).
+ */
+function checkReinforcementsShape(model: Rec, issues: Issue[]): void {
+  const list = model.reinforcements;
+  if (list === undefined) return;
+  const err = (text: string, path: string, detail?: string): void => {
+    issues.push(issue('error', 'io.shape', text, path, detail));
+  };
+  if (!Array.isArray(list)) {
+    err('Los refuerzos deben ser una lista (puede estar vacía).', '/reinforcements');
+    return;
+  }
+  list.forEach((r, i) => {
+    const base = `/reinforcements/${i}`;
+    if (!isRecord(r) || typeof r.type !== 'string' || !REINFORCEMENT_TYPES.includes(r.type)) {
+      err(
+        `El refuerzo ${i + 1} no tiene un tipo reconocible: debe ser anclaje, clavo, geosintético, pilote o tablestaca.`,
+        `${base}`,
+        isRecord(r) ? `type = ${JSON.stringify(r.type) ?? 'ausente'}` : undefined,
+      );
+      return;
+    }
+    const where = describePath(base);
+    const bad = (key: string, what: string): void =>
+      err(`En ${where} falta ${what} o no tiene la forma esperada; revise ese dato.`, `${base}/${key}`, `${key} = ${JSON.stringify(r[key]) ?? 'ausente'}`);
+    if (typeof r.id !== 'string') bad('id', 'el identificador de texto');
+    for (const key of ['x1', 'y1', 'x2', 'y2'] as const) if (!isNum(r[key])) bad(key, `la coordenada ${key}`);
+    if (r.application !== 'active' && r.application !== 'passive') bad('application', 'la aplicación («active» o «passive»)');
+    const tension = TENSION_TYPES.includes(r.type);
+    const directions: readonly string[] = tension ? ['axial', 'tangent', 'bisector'] : ['angle', 'tangent', 'perpendicular'];
+    if (typeof r.direction !== 'string' || !directions.includes(r.direction)) bad('direction', `la dirección de la fuerza (${directions.join(', ')})`);
+    if (tension) {
+      if (!isNum(r.tensile_capacity)) bad('tensile_capacity', 'la capacidad a tracción');
+      for (const key of ['end1_capacity', 'end2_capacity', 'spacing'] as const) if (!OPTIONAL_ABSENT(r[key]) && !isNum(r[key])) bad(key, `un número en ${key}`);
+      const p = r.pullout;
+      if (OPTIONAL_ABSENT(p)) return;
+      if (!isRecord(p)) {
+        bad('pullout', 'el modelo de arrancamiento como un bloque { … }');
+        return;
+      }
+      const pb = `${base}/pullout`;
+      const need = (keys: readonly string[]): void => {
+        for (const key of keys) if (!isNum(p[key])) err(`En ${describePath(`${pb}/${key}`)} falta el valor numérico.`, `${pb}/${key}`);
+      };
+      if (p.model === 'bond') {
+        need(['strength']);
+        if (!OPTIONAL_ABSENT(p.bonded_length) && !isNum(p.bonded_length)) need(['bonded_length']);
+      } else if (p.model === 'interface') need(['adhesion', 'friction_angle', 'coverage']);
+      else if (p.model === 'development') need(['length1', 'length2']);
+      else err(`El modelo de arrancamiento de ${where} no se reconoce: debe ser adherencia (bond), interfaz (interface) o desarrollo (development).`, `${pb}/model`, `model = ${JSON.stringify(p.model) ?? 'ausente'}`);
+    } else {
+      if (!isNum(r.force)) bad('force', 'la fuerza');
+      if (r.type === 'pile' && !OPTIONAL_ABSENT(r.spacing) && !isNum(r.spacing)) bad('spacing', 'un número en spacing');
+      if (!OPTIONAL_ABSENT(r.angle) && !isNum(r.angle)) bad('angle', 'un número en el ángulo');
+    }
+  });
 }
 
 function checkShape(model: Rec, issues: Issue[]): void {
@@ -622,6 +781,8 @@ function checkShape(model: Rec, issues: Issue[]): void {
     }
   }
 
+  checkReinforcementsShape(model, issues);
+
   if (model.loads !== undefined) {
     if (!Array.isArray(model.loads)) err('io.shape', 'Las cargas deben ser una lista (puede estar vacía).', '/loads');
     else {
@@ -695,11 +856,11 @@ export function openOgsJson(text: string): OpenOgsResult {
       `format = ${JSON.stringify(model.format) ?? 'ausente'}`,
     );
   }
-  if (model.version !== '0.1' && model.version !== '0.2' && model.version !== '0.3') {
+  if (model.version !== '0.1' && model.version !== '0.2' && model.version !== '0.3' && model.version !== '0.4') {
     const shown = typeof model.version === 'string' ? `la versión "${model.version}"` : 'ninguna versión';
     return reject(
       'io.version',
-      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2 y 0.3. Guárdelo de nuevo con una versión compatible.`,
+      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3 y 0.4. Guárdelo de nuevo con una versión compatible.`,
       '/version',
       `version = ${JSON.stringify(model.version) ?? 'ausente'}`,
     );
@@ -735,13 +896,27 @@ export function openOgsJson(text: string): OpenOgsResult {
   }
 
   // Como el motor (E13a): un campo de la v0.3 en un archivo v0.1 o v0.2 es un error.
-  if (model.version !== '0.3') {
+  if (model.version !== '0.3' && model.version !== '0.4') {
     for (const { path, what } of v03Fields(model)) {
       issues.push(
         issue(
           'error',
           'io.version_fields',
           `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.3" o quite ese dato.`,
+          path,
+        ),
+      );
+    }
+  }
+
+  // Como el motor (E14a): `reinforcements` no vacío exige la versión 0.4.
+  if (model.version !== '0.4') {
+    for (const { path, what } of v04Fields(model)) {
+      issues.push(
+        issue(
+          'error',
+          'io.version_fields',
+          `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.4" o quite ese dato.`,
           path,
         ),
       );

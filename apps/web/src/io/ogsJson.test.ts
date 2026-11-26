@@ -160,7 +160,7 @@ describe('ogsJson: abrir', () => {
     const badFormat = openOgsJson(JSON.stringify({ ...base(), format: 'otro' }));
     expect(badFormat.doc).toBeNull();
     expect(badFormat.issues[0]).toMatchObject({ severity: 'error', code: 'io.format' });
-    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.4' }));
+    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.5' }));
     expect(badVersion.doc).toBeNull();
     expect(badVersion.issues[0]?.code).toBe('io.version');
     expect(openOgsJson(JSON.stringify({ ...base(), version: undefined })).doc).toBeNull();
@@ -507,11 +507,11 @@ describe('ogsJson: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
     );
     expect(f?.detail).toBe('format = "otro"');
     expect(firstError({ ...base(), format: undefined })?.text).toContain('no tiene marca de formato');
-    const v = firstError({ ...base(), version: '0.4' });
+    const v = firstError({ ...base(), version: '0.5' });
     expect(v?.text).toBe(
-      'El archivo declara la versión "0.4" del formato, y esta aplicación solo abre las versiones 0.1, 0.2 y 0.3. Guárdelo de nuevo con una versión compatible.',
+      'El archivo declara la versión "0.5" del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3 y 0.4. Guárdelo de nuevo con una versión compatible.',
     );
-    expect(v?.detail).toBe('version = "0.4"');
+    expect(v?.detail).toBe('version = "0.5"');
     expect(firstError({ ...base(), version: undefined })?.text).toContain('ninguna versión');
   });
 
