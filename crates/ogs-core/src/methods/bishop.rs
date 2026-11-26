@@ -22,8 +22,16 @@
 //! force and in the numerator, and `Σ [W*(F)·sin α + M(F)]` in the denominator, with `M(F) = driving_extra +
 //! passive_driving_extra/F`. With them the iteration is `F = N(F)/D(F)`; the Brent safeguard works on the divisor-free
 //! `h(F) = F·D(F) − N(F)` (`D(F)` can vanish below the root, `F·D(F) = F·D₀ + P_d` is linear). **Without passive forces
-//! this module runs the code that it ran before, bit for bit.** The guards (`m_α`, E3, the negative normal forces) are
+//! this module runs the code that it ran before, bit for bit.** The guards (`m_α`, the negative normal forces) are
 //! evaluated at the converged F with the passive forces included.
+//!
+//! E14o-2 (R11A-02). With passive forces: the start is Fellenius' value with them (`start_fos_passive`); the fixed point
+//! runs as before; and when the ends of `[lo, 1e3]` have the same sign of `h` (a force that lifts the mass makes
+//! `N(lo) ≪ 0`, so `h(lo) > 0` like `h(1e3)`, and that is not "no root"), the sign change is bracketed on a geometric grid
+//! of 600 steps over `[F_adm or 1e-3, 1e3]`, the one nearest to the start, before the bisection. The lower end also
+//! includes `lift_bound` (E14o-3): below it the passive forces lift the whole mass and a root is no equilibrium.
+//! E3 (`no_driving`) is evaluated **only before the solve**, with the weight, the seismic force, the loads and the
+//! **active** forces; a passive force is resisting and does not enter it (E14o-3, R11A-03).
 //!
 //! The converged F is checked against `m_α ≥ min_m_alpha` (E4a): otherwise `Invalid("m_alpha")`.
 //! `Invalid` also if `Σ [W*·sin α + M] ≤ 1e-6 · Σ W` (amendments E3 and E12b, message `"no_driving"`). `NotConverged` when the
@@ -33,7 +41,7 @@
 
 use super::{
     M_ALPHA_POLE, MethodResult, SolveOptions, SolveStatus, any_passive, at_fos, effective_normal,
-    is_inert, lacks_driving, lacks_driving_at, m_alpha, negative_normal_message,
+    is_inert, lacks_driving, lift_bound, m_alpha, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -46,6 +54,11 @@ const FOS_MAX: f64 = 1e3;
 const ADM_MARGIN: f64 = 1e-6;
 /// Lower end of the search interval when no slice bounds F from below.
 const FOS_FLOOR: f64 = 1e-9;
+/// Lower end of the bracketing grid with passive forces when no slice bounds F from below (E14o-2).
+const GRID_FLOOR: f64 = 1e-3;
+/// Intervals of the geometric grid of the bracketing with passive forces (E14o-2): 600 steps over `[1e-3, 1e3]` are a
+/// ratio of 1.023 between two neighbouring values of F.
+const GRID_STEPS: usize = 600;
 
 /// Starting factor of safety (E4a): Fellenius' ordinary method over the soil slices, floored at 0.1.
 /// Falls back to 1 when the Fellenius value is not finite or not positive.
@@ -64,6 +77,63 @@ pub(crate) fn start_fos(slices: &[Slice]) -> f64 {
     } else {
         1.0
     }
+}
+
+/// Starting factor of safety with passive reinforcement forces (E14o-2): Fellenius' value of [`start_fos`] again, with the
+/// passive forces of the slices divided by that first value (`W*(F) = W* + passive_v/F`, `M(F) = M + passive_driving_extra/F`
+/// in the numerator and the driving term). The result of a force that lifts the mass is a start that sees it, as the form
+/// without poles of cSlope does. When it is not finite or not positive, the value without passive forces stays.
+pub(super) fn start_fos_passive(slices: &[Slice]) -> f64 {
+    let f_ord = start_fos(slices);
+    let (mut num, mut den) = (0.0_f64, 0.0_f64);
+    for s in slices.iter().filter(|s| !is_inert(s)) {
+        let at = at_fos(s, f_ord);
+        let (sin, cos) = at.alpha.sin_cos();
+        let w = at.total_weight();
+        num += at.cohesion * at.base_length
+            + (w * cos - at.pore_pressure * at.base_length) * at.tan_phi;
+        den += w * sin + at.driving_extra;
+    }
+    let f = num / den;
+    if f.is_finite() && f > 0.0 {
+        f.max(0.1)
+    } else {
+        f_ord
+    }
+}
+
+/// Bracket of a root of `h` for the bisection with passive forces (E14o-2): a pair `(a, b, h(a))` of neighbouring points of
+/// the geometric grid over `[lo, FOS_MAX]` where `h` changes sign, the one nearest to `start` in `ln F`. Points where `h`
+/// is not defined (a pole of `m_α`) split the grid: a sign change is only taken between two defined neighbours.
+fn bracket_on_grid(
+    h: &impl Fn(f64) -> Option<f64>,
+    lo: f64,
+    start: f64,
+) -> Option<(f64, f64, f64)> {
+    let ratio = (FOS_MAX / lo).powf(1.0 / GRID_STEPS as f64);
+    let mut best: Option<((f64, f64, f64), f64)> = None;
+    let mut previous: Option<(f64, f64)> = None;
+    for k in 0..=GRID_STEPS {
+        let f = if k == GRID_STEPS {
+            FOS_MAX
+        } else {
+            lo * ratio.powi(k as i32)
+        };
+        let Some(value) = h(f) else {
+            previous = None;
+            continue;
+        };
+        if let Some((fp, hp)) = previous
+            && (hp * value <= 0.0)
+        {
+            let distance = (0.5 * (fp.ln() + f.ln()) - start.ln()).abs();
+            if best.as_ref().is_none_or(|(_, d)| distance < *d) {
+                best = Some(((fp, f, hp), distance));
+            }
+        }
+        previous = Some((f, value));
+    }
+    best.map(|(bracket, _)| bracket)
 }
 
 /// Lower bound `F_adm = max_i (−sin α·tan φ)/(cos α − min_m_alpha)` over the soil slices with `α < 0` (E7b).
@@ -178,6 +248,8 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     let Some(f_adm) = lower_bound(slices, min_m) else {
         return invalid_m(f64::NAN, 0);
     };
+    // E14o-3: and above the F where the passive forces lift the mass (0 without them).
+    let f_adm = f_adm.max(lift_bound(slices));
     let lo = if f_adm > 0.0 {
         f_adm * (1.0 + ADM_MARGIN)
     } else {
@@ -187,7 +259,12 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
 
     // Fixed-point phase (E7b): F₀ = max(F_ord, 1.05·F_adm, 0.1), budget max_iterations / 2.
     let mut iterations = 0usize;
-    let mut fos = start_fos(slices).max(1.05 * f_adm);
+    let start = if passive {
+        start_fos_passive(slices)
+    } else {
+        start_fos(slices)
+    };
+    let mut fos = start.max(1.05 * f_adm);
     let mut root: Option<f64> = None;
     while inside(fos) && iterations < opts.max_iterations / 2 {
         let Some(next) = g(fos) else {
@@ -219,13 +296,26 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
                 }
             };
             let (mut a, mut b) = (lo, FOS_MAX);
-            let (Some(mut ha), Some(hb)) = (h(a), h(b)) else {
-                return invalid_m(f64::NAN, iterations);
-            };
-            if ha * hb > 0.0 {
+            let ends = (h(a), h(b));
+            let mut ha = match ends {
+                (Some(ha), Some(hb)) if ha * hb <= 0.0 => ha,
+                // E14o-2: with passive forces the ends can have the same sign without that meaning that there is no
+                // root (`h(lo) > 0` because `passive_v / lo` is huge, the mass lifted): the sign change is bracketed
+                // on a geometric grid before the bisection.
+                _ if passive => {
+                    let floor = if f_adm > 0.0 { lo } else { GRID_FLOOR };
+                    match bracket_on_grid(&h, floor, start.max(1.05 * f_adm)) {
+                        Some((fa, fb, hfa)) => {
+                            a = fa;
+                            b = fb;
+                            hfa
+                        }
+                        None => return invalid_m(f64::NAN, iterations),
+                    }
+                }
                 // No sign change in the interval: no root that satisfies m_α ≥ min_m_alpha.
-                return invalid_m(f64::NAN, iterations);
-            }
+                _ => return invalid_m(f64::NAN, iterations),
+            };
             loop {
                 if iterations >= opts.max_iterations {
                     return MethodResult::new(
@@ -262,17 +352,6 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
     // E4a: the m_α limit applies to the converged F.
     if !admissible(slices, root, min_m) {
         return invalid_m(root, iterations);
-    }
-    // E14g, E3 at the converged F: the driving term with the passive forces included (`D(F) = N(F)/F`).
-    if passive && lacks_driving_at(slices, true, root) {
-        return MethodResult::new(
-            method,
-            f64::NAN,
-            SolveStatus::Invalid,
-            iterations,
-            None,
-            Some("no_driving"),
-        );
     }
     // E4e: Bishop has ΔX = 0. The class of the negative normal forces is a note of the converged state (E8d).
     let warning = negative_normal_message(slices, |_, s| effective_normal(s, root, 0.0));

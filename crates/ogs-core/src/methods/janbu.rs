@@ -2,7 +2,7 @@
 //!
 //! **Simplified.** `F₀` is the root of the force closure `E_n(F, λ = 0) = 0`: the march of Spencer (`spencer.rs`) with no
 //! interslice shear, so `ΔX = 0`, with `H`, `W*` and the loads of E12b included and without the moment equation
-//! ([`spencer::force_root_at_zero`]). Guards: E3 (`no_driving`), and E4b at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, and
+//! ([`spencer::force_root_at_zero`]). Guards: E3 (`no_driving`, before the solve and with the active forces only, E14o-3), and E4b at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, and
 //! `Φ_i > 1e-9·F`). The report carries no `lambda`. The result is the horizontal force equilibrium of the whole
 //! mass, as Janbu's method asks. When the closure has several admissible roots, the **lowest** one is taken, as in
 //! Spencer (E12e, E13j-4), with the note `multiple_admissible_roots` if another lies more than 1 % above it.
@@ -28,8 +28,8 @@
 
 use super::spencer::{self, spencer_direct_normals_at, spencer_interslice};
 use super::{
-    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, any_passive, converged_notes,
-    is_inert, lacks_driving_at, negative_normal_message,
+    MethodResult, SolveOptions, SolveStatus, air_gap_thrust, converged_notes, is_inert,
+    negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -146,10 +146,6 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     };
     if !fos.is_finite() {
         return stop(fos, SolveStatus::Invalid, iterations, "non_finite");
-    }
-    // E14g, E3 at F₀ with the passive forces included (they enter the closure divided by F, like every other term).
-    if any_passive(slices) && lacks_driving_at(slices, opts.circular, f0) {
-        return stop(f64::NAN, SolveStatus::Invalid, iterations, "no_driving");
     }
     let normals = spencer_direct_normals_at(slices, f0, 0.0, &e);
     let mut notes = Vec::with_capacity(3);
