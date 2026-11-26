@@ -1,5 +1,7 @@
 // F3-W1f: la polilínea fija en el lienzo (puntero, teclado, táctil), el resultado con polilínea, Casos, CSV y PDF.
 //
+// (Nota de I-W: con el motor integrado el WASM sí calcula polilíneas; este guion sigue usando el informe falso porque comprueba
+// la presentación con valores exactos. El cálculo real está en docs/fase3/iw/e2e/.)
 // El motor de esta rama no calcula polilíneas: el Worker se sustituye por uno que responde a `analyze` con un informe FALSO
 // (M-P con interslice, Janbu corregido con correction_factor, superficie `{points}`), así que «Comprobar» nunca llega al WASM.
 // La web de esta rama tampoco abre un .ogs.json con polilínea (es de W1e): el modelo se carga con `window.__ogsStore`, que solo
@@ -274,12 +276,13 @@ for (const scheme of ['light', 'dark']) {
     await page.getByRole('button', { name: 'Exportar', exact: true }).click();
     const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar superficie (CSV)' }).click()]);
     await dl.saveAs(path.join(OUT, 'superficie.csv'));
-    const csv = readFileSync(path.join(OUT, 'superficie.csv'), 'utf8').split('\r\n');
+    // I-W: el CSV empieza con BOM (UTF-8, para Excel); se quita antes de comparar la cabecera.
+    const csv = readFileSync(path.join(OUT, 'superficie.csv'), 'utf8').replace(/^\uFEFF/, '').split('\r\n');
     step('32 CSV de superficie: una fila por punto de la polilínea ajustada, con x_m, y_m y unidades', csv[0] === 'metodo,estado,punto,x_m,y_m,unidades' && csv.length === 1 + 3 * 5 && csv[1] === 'spencer,converged,1,30,25,SI', { cab: csv[0], filas: csv.length - 1, f1: csv[1] });
     await page.getByRole('button', { name: 'Exportar', exact: true }).click();
     const [dl2] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar resultados (CSV)' }).click()]);
     await dl2.saveAs(path.join(OUT, 'resultados.csv'));
-    const rcsv = readFileSync(path.join(OUT, 'resultados.csv'), 'utf8').split('\r\n');
+    const rcsv = readFileSync(path.join(OUT, 'resultados.csv'), 'utf8').replace(/^\uFEFF/, '').split('\r\n');
     step('33 CSV de resultados: superficie polilínea, función y f0', rcsv[0].endsWith('unidades,superficie,funcion_interslice,f0') && /morgenstern_price.*SI,polilinea,half_sine,$/.test(rcsv[2]) && /janbu_corrected.*SI,polilinea,,1\.0482$/.test(rcsv[3]), { cab: rcsv[0], r2: rcsv[2], r3: rcsv[3] });
     // PDF
     await page.getByRole('button', { name: 'Informe PDF' }).click();
@@ -302,21 +305,26 @@ for (const scheme of ['light', 'dark']) {
 // ───────── 5. Casos con un informe falso de polilínea ─────────
 for (const scheme of ['light', 'dark']) {
   const { ctx, page } = await newPage(scheme);
-  await page.getByRole('button', { name: /Casos de verificación/ }).click();
+  // I-W: desde U2 «Casos de verificación» es una pestaña (role=tab), no un botón.
+  await page.getByRole('tab', { name: 'Casos de verificación' }).click();
   await page.waitForSelector('button:has-text("Comprobar caso")');
   await page.getByRole('button', { name: 'Comprobar caso' }).click();
   await page.waitForSelector('[data-results-table]', { timeout: 15000 });
   await sleep(500);
   const tag = scheme === 'light' ? '' : ' (oscuro)';
-  const legend = await page.locator('ul.legend').first().innerText();
+  // I-W: Casos tiene dos leyendas (materiales y bandas, y la de la sección): se juntan.
+  const legend = (await page.locator('ul.legend').allInnerTexts()).join(' | ');
   step(`37${tag} Casos: la leyenda dice «Superficie fija (polilínea)»`, /Superficie fija \(polilínea\)/.test(legend), { legend });
   const table = await page.locator('[data-results-table]').innerText();
   step(`38${tag} Casos: la tabla muestra «Polilínea (5 puntos)», la función y f₀`, /Polilínea \(5 puntos\)/.test(table) && /Función: Medio seno/.test(table) && /f₀ = 1,048/.test(table), { table: table.slice(0, 300) });
   // Casos dibuja en un <canvas> 2D: se comprueba que hay píxeles del color de la superficie (rojo) y se revisa la captura con visión.
+  // I-W: el color de la superficie es el token --canvas-surface (rojo en claro, rosa en oscuro): se lee de la página y se cuentan sus píxeles.
   const px = await page.evaluate(() => {
+    const probe = document.createElement('i'); probe.style.color = 'var(--canvas-surface)'; document.body.appendChild(probe);
+    const [r0, g0, b0] = getComputedStyle(probe).color.match(/[\d.]+/g).map(Number); probe.remove();
     const c = document.querySelector('canvas'); const g = c.getContext('2d'); const d = g.getImageData(0, 0, c.width, c.height).data; let reds = 0;
-    for (let i = 0; i < d.length; i += 4) if (d[i] > 150 && d[i + 1] < 90 && d[i + 2] < 90) reds++;
-    return { w: c.width, h: c.height, reds };
+    for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) < 60) reds++;
+    return { w: c.width, h: c.height, token: [r0, g0, b0], reds };
   });
   step(`39${tag} Casos: el lienzo 2D dibuja la polilínea (píxeles de superficie)`, px.reds > 150, px);
   await page.locator('canvas').first().scrollIntoViewIfNeeded();
