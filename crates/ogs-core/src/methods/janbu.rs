@@ -54,20 +54,23 @@ fn b1(slices: &[Slice]) -> f64 {
 
 /// `f₀ = 1 + b₁ (d/L − 1.4 (d/L)²)` of the block (E13e). `L` is the distance from the left end of the base of the first
 /// slice to the right end of the last one (the two ends of the block, whatever the sliding direction). `d` is the
-/// greatest distance below the chord of the midpoint of a base, over all slices. `1` for an empty block or a chord of
-/// zero length.
+/// greatest distance below the chord of the midpoint of a base. Both are taken over the **soil** slices: an aerial slice
+/// at an end of the block (the arc runs over the ground near the toe, E7a) is no part of the sliding mass, and with it
+/// D09 ran +0.98 % over cSlope (`L` = 22.36 instead of 17.60). `1` for an empty block or a chord of zero length.
 pub fn janbu_correction_factor(slices: &[Slice]) -> f64 {
-    let ends = slices
-        .iter()
-        .fold(None, |acc: Option<(&Slice, &Slice)>, s| {
-            Some(match acc {
-                None => (s, s),
-                Some((l, r)) => (
-                    if s.x_left < l.x_left { s } else { l },
-                    if s.x_right > r.x_right { s } else { r },
-                ),
-            })
-        });
+    let ends =
+        slices
+            .iter()
+            .filter(|s| !is_inert(s))
+            .fold(None, |acc: Option<(&Slice, &Slice)>, s| {
+                Some(match acc {
+                    None => (s, s),
+                    Some((l, r)) => (
+                        if s.x_left < l.x_left { s } else { l },
+                        if s.x_right > r.x_right { s } else { r },
+                    ),
+                })
+            });
     let Some((first, last)) = ends else {
         return 1.0;
     };
@@ -78,7 +81,7 @@ pub fn janbu_correction_factor(slices: &[Slice]) -> f64 {
         return 1.0;
     }
     let mut d = 0.0_f64;
-    for s in slices {
+    for s in slices.iter().filter(|s| !is_inert(s)) {
         let x = 0.5 * (s.x_left + s.x_right);
         let y = 0.5 * (s.y_base_left + s.y_base_right);
         // Signed distance of the base midpoint below the chord line.

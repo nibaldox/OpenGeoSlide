@@ -164,3 +164,41 @@ fn janbu_corrected_applies_f0_to_the_lowest_root() {
             .any(|w| w == "multiple_admissible_roots")
     );
 }
+
+/// D09 (R2-03 slope, c = 2, φ = 45°, r_u = 0.65, fixed circle that grazes the flat toe): the arc runs over the ground
+/// from x = 10.59 to x = 15.77, so the first 15 slices are aerial. The chord of Janbu's correction runs between the ends
+/// of the **soil** block (x = 15.77 … 30.59, L = 17.60, d/L = 0.0923, f₀ = 1.04017); with the aerial slices it was
+/// 10.59 … 30.59 (L = 22.36, f₀ = 1.04988) and Janbu corrected ran +0.98 % over cSlope (0.3124723, f₀ = 1.04019).
+#[test]
+fn the_correction_chord_of_janbu_ends_at_the_soil_block_not_at_the_aerial_slices() {
+    use serde_json::json;
+    let doc = json!({
+        "format": "opengeoslide", "version": "0.3",
+        "meta": {"id": "D09", "title": "Talud R2-03, círculo que roza el pie"},
+        "units": "SI",
+        "materials": [{"id": "soil", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 2.0, "friction_angle": 45.0, "ru": 0.65}],
+        "regions": [{"material": "soil", "polygon": [[0.0, 0.0], [0.0, 15.0], [15.0, 15.0], [30.0, 25.0], [60.0, 25.0], [60.0, 0.0]]}],
+        "slope": {"direction": "auto"},
+        "analysis": {"methods": ["janbu_simplified", "janbu_corrected"], "slices": 50, "tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2,
+                     "surface": {"type": "circle", "xc": 10.77159214833143, "yc": 39.640974335435686, "r": 24.641649084951563}}
+    });
+    let r: serde_json::Value =
+        serde_json::from_str(&ogs_core::analyze_json(&doc.to_string()).unwrap()).unwrap();
+    let (simple, corrected) = (
+        r["results"][0]["fos"].as_f64().unwrap(),
+        r["results"][1]["fos"].as_f64().unwrap(),
+    );
+    let f0 = r["results"][1]["correction_factor"].as_f64().unwrap();
+    assert!(
+        (simple - 0.300_399_312_644_530_24).abs() / 0.3004 < 1e-3,
+        "Janbu simplified {simple}"
+    );
+    assert!(
+        (f0 - 1.040_189_85).abs() < 2e-4,
+        "f0 {f0} against cSlope 1.0401899"
+    );
+    assert!(
+        (corrected - 0.312_472_316_332_850_5).abs() / 0.3125 < 1e-3,
+        "Janbu corrected {corrected} against cSlope 0.3124723"
+    );
+}
