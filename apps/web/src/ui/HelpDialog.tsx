@@ -13,6 +13,7 @@ import {
   SHORTCUTS,
   type Shortcut,
 } from '../onboarding/helpContent';
+import { restoreFocus } from './focusReturn';
 
 function ExternalLink({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -66,7 +67,7 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
     titleRef.current?.focus();
     // Al desmontar el navegador saca el diálogo de la capa superior; solo falta devolver el foco al botón «Ayuda».
     return () => {
-      if (previous?.isConnected) previous.focus();
+      restoreFocus(null, previous); // el foco nunca cae en <body>, aunque el botón «Ayuda» ya no se pueda enfocar (R9-11c)
     };
   }, [opener]);
 

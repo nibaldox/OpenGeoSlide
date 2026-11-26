@@ -21,6 +21,7 @@ import {
   type RegionImportPlan,
 } from './importPlan';
 import { layerChoice } from './layerChoice';
+import { restoreFocus } from '../../ui/focusReturn';
 
 /** Elemento que recibe el foco al abrir un `Modal`: el pedido, si sigue conectado; si no, el título. */
 export function pickInitialFocus<T extends { isConnected: boolean }>(requested: T | null | undefined, title: T | null | undefined): T | null {
@@ -50,9 +51,11 @@ export function Modal({ title, onCancel, children, initialFocus }: {
     if (!dialog.open) dialog.showModal();
     pickInitialFocus(initialFocus?.current, titleRef.current)?.focus();
     // Al desmontar, el navegador saca el diálogo de la capa superior y devuelve la inercia al resto de la página;
-    // solo falta devolver el foco. No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
+    // solo falta devolver el foco (`restoreFocus`). No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
     return () => {
-      if (previous?.isConnected) previous.focus();
+      // Si el disparador ya no se puede enfocar (elemento de un menú cerrado, botón retirado), va al botón del menú o a #main-content:
+      // el foco nunca cae en <body> (R9-11c).
+      restoreFocus(null, previous);
     };
   }, []);
   return (
