@@ -20,6 +20,7 @@ import {
   reinforcementCenterLabel,
   reinforcementEndLabel,
   reinforcementShape,
+  reinforcementShapes,
   reinforcementTitle,
 } from './reinforcements';
 import { makeDoc } from './fakeStore';
@@ -157,6 +158,19 @@ describe('símbolo de cada tipo', () => {
       expect(s.label.text).toBe(`${REINFORCEMENT_TYPE_LABEL[r.type]} 4`);
       expect(s.label.y).toBeLessThanOrEqual(s.mid[1] + 1e-9);
     }
+  });
+});
+
+describe('rótulos de refuerzos vecinos', () => {
+  it('no se pisan: el segundo se desplaza en vertical', () => {
+    const two = reinforcementShapes([PILE, { ...PILE, id: 'pilote-2', x1: 45.5, x2: 45.5 }], VP, 'SI');
+    expect(two[0].label.text).not.toBe(two[1].label.text);
+    expect(Math.abs(two[1].label.y - two[0].label.y)).toBeGreaterThanOrEqual(14);
+  });
+
+  it('un refuerzo solo conserva su rótulo en el sitio natural', () => {
+    const one = reinforcementShapes([ANCHOR], VP, 'SI')[0];
+    expect(one.label.y).toBeCloseTo(reinforcementShape(ANCHOR, 0, VP, 'SI').label.y, 9);
   });
 });
 

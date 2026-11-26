@@ -230,8 +230,26 @@ export function reinforcementShape(r: Reinforcement, index: number, vp: Viewport
   return { index, type: r.type, application: r.application, p1, p2, mid, parts, label, title: reinforcementTitle(index, r, units) };
 }
 
+/** Ancho aproximado de un carácter del rótulo (12 px) y alto de la línea, para que los rótulos de refuerzos vecinos no se pisen. */
+const LABEL_CHAR_PX = 6.6;
+const LABEL_LINE_PX = 14;
+
 export function reinforcementShapes(list: readonly Reinforcement[] | undefined, vp: Viewport, units?: string | null): ReinforcementShape[] {
-  return (list ?? []).map((r, i) => reinforcementShape(r, i, vp, units));
+  const shapes = (list ?? []).map((r, i) => reinforcementShape(r, i, vp, units));
+  // Los rótulos se desplazan en vertical (alternando arriba y abajo) hasta no pisar a los ya colocados.
+  const boxes: { x1: number; x2: number; y1: number; y2: number }[] = [];
+  for (const s of shapes) {
+    const half = (s.label.text.length * LABEL_CHAR_PX) / 2;
+    for (let k = 0; k < 10; k += 1) {
+      const dy = (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * LABEL_LINE_PX;
+      const box = { x1: s.label.x - half, x2: s.label.x + half, y1: s.label.y + dy - LABEL_LINE_PX, y2: s.label.y + dy };
+      if (boxes.some((b) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1) && k < 9) continue;
+      s.label = { ...s.label, y: s.label.y + dy };
+      boxes.push(box);
+      break;
+    }
+  }
+  return shapes;
 }
 
 // ───────────────────────── Fuerzas del resultado ─────────────────────────
