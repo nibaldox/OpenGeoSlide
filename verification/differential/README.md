@@ -1,7 +1,7 @@
 # Batería diferencial ogs vs cSlope (W7b)
 
 Compara el FS de `ogs` (binario CLI) con el oráculo independiente cSlope 0.1.0 (MIT) en catorce modelos
-sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas); D15-D23 son los modelos v0.3, D24-D27 los de refuerzos (v0.4) y D28-D39 los de grieta de tracción y agua embalsada (v0.5). Compara motores entre sí: **no contiene valores publicados**.
+sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas); D15-D23 son los modelos v0.3, D24-D27 los de refuerzos (v0.4) y D28-D39 los de grieta de tracción y agua embalsada (v0.5), con D40-D42, filas de pilotes de Ito-Matsui (v0.5, E15i). Compara motores entre sí: **no contiene valores publicados**.
 
 ## Archivos
 
@@ -45,11 +45,11 @@ de antes):
   Con `--require-f3` sale con código 3 si queda algo pendiente, con fallo o sin dato: úsese al integrar.
 - `report.json` gana la clave `f3` (capacidades, resumen y checks); `REPORT.md` gana la sección «Fase 3a».
 
-## F3G: grieta de tracción y agua embalsada, modelos D28 a D39 (v0.5)
+## F3G: grieta de tracción, agua embalsada y pilotes de Ito-Matsui, modelos D28 a D42 (v0.5)
 
-Cuarto bloque de `run.py`, después de los tres anteriores y sin cambiarlos. Doce modelos sintéticos en `cases_f3g/`, cada uno en
+Cuarto bloque de `run.py`, después de los tres anteriores y sin cambiarlos. Quince modelos sintéticos en `cases_f3g/`, cada uno en
 **búsqueda** y en su **círculo fijo** (el crítico de la búsqueda de cSlope sobre ese mismo modelo, sin redondear), con Bishop y
-Spencer y los criterios de E9b (48 checks). Los de agua sin grieta están en versión 0.1: el agua embalsada se aplica en todas
+Spencer y los criterios de E9b (60 checks: 48 de D28 a D39 y 12 de D40 a D42). Los de agua sin grieta están en versión 0.1: el agua embalsada se aplica en todas
 las versiones (D1). Los de grieta, en 0.5.
 
 | caso | modelo | qué cubre |
@@ -66,20 +66,28 @@ las versiones (D1). Los de grieta, en 0.5.
 | D37 | la presa de D31 | embalse más grieta automática llena en la corona |
 | D38 | ACADS 1(a), kh = 0,10 | sismo, embalse y grieta: el sismo no actúa sobre el agua (E7) |
 | D39 | arcilla no drenada (Su = 40 kPa), corte de 10 m | grieta automática z = 2·Su/γ (G7) llena |
+| D40 | talud de 10 m, 1,5H:1V (el de X22 y Cai y Ugai 2000), arcilla no drenada Su = 30, γ = 18; una fila de pilotes de Ito-Matsui (d = 0,8 m, S = 2,4 m, pasivos, `angle` 0, `centroid`) en x = 17,5 | presión de φ = 0 con la tensión total (E15i-2, ec. 23); fila X22-S01 |
+| D41 | el mismo talud, c = 5 kPa, φ = 25°, γ = 19; fuerza `slip_surface` y `capacity.shear` = 100 kN | presión c-φ (ecs. 13 y 14), punto de aplicación en el cruce (E15i-5) y el tope de corte, que gobierna: 41,667 kN/m = 100/2,4 (E15i-4); filas X22-S02 y S11 |
+| D42 | el mismo talud, c = 8 kPa, φ = 22°, γ = 18, γsat = 20; piezométrica en y = 0 al pie y 7 en la corona (3,5 en el pilote) | σ'v = σv − u bajo el agua (E15i-3); fila X22-S04 |
 
-- **Sonda.** Antes de correr, `probe_f3g` prueba cada capacidad (`ponded_water`, `tension_crack`) con V047a: el embalse de 2 m
-  (fila X21-P01, Bishop 0,939017) y una grieta de 2 m llena al 25 % (X21-W025, Bishop 1,023189). Se acepta si Bishop da la cifra
+En D40 a D42 el círculo fijo es el crítico de la búsqueda Bishop de cSlope **con** la fila de pilotes, y el oráculo aplica la fuerza en los dos modos (369,08, 41,67 y 151,69 kN/m); sin el pilote el FS de la búsqueda baja de 1,335 a 1,000 (D40), de 1,231 a 1,109 (D41) y de 1,213 a 0,890 (D42), así que los checks no son ociosos. Los modelos son v0.5 con `lateral_pressure`; el motor de E15i es el que los resuelve, y el conversor (`harness/to_cslope.py`) escribe `diameter` sin `force`.
+
+- **Sonda.** Antes de correr, `probe_f3g` prueba cada capacidad (`ponded_water`, `tension_crack`, `lateral_pressure`) con V047a: el embalse de 2 m
+  (fila X21-P01, Bishop 0,939017) y una grieta de 2 m llena al 25 % (X21-W025, Bishop 1,023189); `lateral_pressure` con la fila X22-V013c (talud de Cai y Ugai, una fila de pilotes de Ito-Matsui con D1/D = 3, Bishop 1,437196). Se acepta si Bishop da la cifra
   del oráculo a 0,1 %. Un motor que deja el agua fuera (la base v0.3.0 da 0,848) o que rechaza la versión 0.5 deja los checks que
   necesitan esa capacidad en **pendiente**, nunca en falla; el valor de cSlope se calcula igual y queda como línea base.
 - **Explicado (E15f, E15j-7).** Un círculo fijo que pasa por debajo del fondo del modelo en menos de 1e-6 (el límite de la búsqueda de
   cSlope) lo rechaza ogs con `NoValidSurface`, y cSlope lo da por válido. El veredicto es `explicado (E15f, E15j-7)` con la causa en
   la columna del motivo: no es OK (no cuenta como acierto) ni falla, tiene su propia columna en el resumen y no relaja ninguna
   tolerancia. Es el caso de D39 fija (Bishop y Spencer: el círculo de cSlope pasa 9,2e-7 bajo el fondo). Cualquier otra causa de
-  «sin dato» o un círculo más lejos del fondo sigue siendo lo que era. D30 fija ×2 sigue como FALLA abierta (en investigación).
+  «sin dato» o un círculo más lejos del fondo sigue siendo lo que era. D30 fija ya no falla con el motor de E15j-8: +0,13 % (Bishop) y +0,12 % (Spencer), OK.
 - **`--require-f3g`** sale con código 5 si algún check del bloque queda pendiente, con fallo o sin dato (los explicados no cuentan como fallo): úsese al integrar.
 - `report.json` gana la clave `f3g` (capacidades, resumen y checks; `report_version` 5); `REPORT.md` gana la sección «v0.5».
-- **Estado con el motor de la base de esta rama** (los stubs de G0): **0 de 48 OK, 48 pendientes** (la sonda del agua da 0,848 y
-  la de la grieta ve el pánico `crack.rs`); cSlope resuelve los 48 (convergidos). El resto de la batería no cambia.
+- **Estado con el binario del árbol principal** (`f3g-integracion`, ogs 0.3.0, sin `lateral_pressure`): **46 de 60 OK, 2 explicados
+  (D39 fija ×2) y 12 pendientes** (D40 a D42: la sonda `lateral_pressure` no pasa); cSlope resuelve los 60 (convergidos). El resto de la
+  batería **no cambia**: con el mismo binario, la base de esta rama (`f556a9d`) y esta dan idénticas las 135 filas de D01 a D39
+  (veredicto, FS de ogs, FS de cSlope y Δ %, sin una diferencia). Antes de E15i el informe daba 44 OK, 2 explicados y 2 FALLA de 48 con un
+  binario anterior; la diferencia son las dos filas de D30 fija, ya resueltas por E15j-8.
 - `build_cases.py` escribe también `cases_f3g/`. Los círculos fijos de `FIXED_SURFACES_F3G` salen de la búsqueda de cSlope sobre cada
   modelo (oráculo `analyse` con el conversor de este directorio).
 

@@ -45,6 +45,18 @@ Tension crack and ponded water (schema v0.5, contracts F5.2 and F5.3)
 - A material with ``ru`` under ponded water is not comparable: ogs adds ``ru·V/b`` (E15c-ru, the Slide2 rule) and
   cSlope does not. The conversion notes it.
 
+Ito-Matsui piles (schema v0.5, contract E15i)
+---------------------------------------------
+- A ``pile`` carries **exactly one** of ``force`` and ``lateral_pressure {model: "ito_matsui", diameter, location}``;
+  ``capacity {shear, moment}`` (at least one, each finite and > 0) goes only with ``lateral_pressure``. Both new fields
+  need version ``"0.5"``. A pile without ``lateral_pressure`` converts byte for byte as before.
+- ``lateral_pressure`` -> ``definition.piles[]`` with ``diameter`` and **no** ``force`` (cSlope reads that as
+  Ito-Matsui); ``location`` ``"centroid"`` -> ``"centroid"``, ``"slip_surface"`` -> ``"slip-surface"``;
+  ``capacity.shear`` -> ``shearCapacity`` (force per pile) and ``capacity.moment`` -> ``momentCapacity`` (moment per
+  pile). Same checks as the engine: the pile is vertical (``|x2 - x1| <= 1e-6``) and ``spacing > diameter``
+  (``spacing`` defaults to 1).
+- ``direction`` and ``angle`` keep the flat v0.4 spelling (``"direction": "angle", "angle": 0``).
+
 Seismic coefficients and loads (schema v0.2, contract F1.1)
 -----------------------------------------------------------
 ``analysis.seismic {kh, kv}`` -> ``options.seismicHorizontal`` / ``options.seismicVertical`` (a zero
@@ -566,8 +578,15 @@ PILE_TYPES = ("pile", "sheet_pile")
 CSLOPE_PILE_LOCATION = "slip-surface"
 _TENSION_KEYS = {"id", "type", "x1", "y1", "x2", "y2", "application", "tensile_capacity", "end1_capacity",
                  "end2_capacity", "spacing", "direction", "pullout"}
-_PILE_KEYS = {"id", "type", "x1", "y1", "x2", "y2", "application", "force", "spacing", "direction", "angle"}
-_SHEET_KEYS = _PILE_KEYS - {"spacing"}
+_SHEET_KEYS = {"id", "type", "x1", "y1", "x2", "y2", "application", "force", "direction", "angle"}
+_PILE_KEYS = _SHEET_KEYS | {"spacing"}
+# E15i-1 (v0.5): a pile takes either ``force`` or ``lateral_pressure``, and ``capacity`` only with the latter
+_PILE_KEYS_V05 = _PILE_KEYS | {"lateral_pressure", "capacity"}
+_LATERAL_PRESSURE_KEYS = {"model", "diameter", "location"}
+_CAPACITY_KEYS = {"shear", "moment"}
+# cSlope's own tolerance for a vertical pile (|x2 - x1| <= 1e-6, ``model/slope.rs``)
+PILE_VERTICAL_TOL = 1e-6
+_LP_LOCATIONS = {"centroid": "centroid", "slip_surface": "slip-surface"}
 _PULLOUT_KEYS = {"bond": {"model", "strength", "bonded_length"},
                  "interface": {"model", "adhesion", "friction_angle", "coverage"},
                  "development": {"model", "length1", "length2"}}
@@ -635,6 +654,46 @@ def _pullout_to_cslope(pullout: dict, where: str, length: float) -> dict:
             "length2": _non_negative(pullout.get("length2"), f"{where}.pullout.length2")}
 
 
+def _ito_matsui_pile(item: dict, lateral: Any, geometry: dict, where: str) -> dict[str, Any]:
+    """The ``pile`` entry of cSlope for a ``lateral_pressure`` pile (E15i-1, E15i-10): ``diameter`` and no ``force``.
+
+    Validates like the engine: exactly one of ``force`` and ``lateral_pressure``, ``model`` ``"ito_matsui"``,
+    ``diameter`` finite and > 0, ``location`` mandatory, ``capacity`` with at least one finite value > 0, a vertical
+    pile and ``spacing > diameter``. ``direction``, ``application`` and ``angle`` are added by the caller.
+    """
+    if item.get("force") is not None:
+        raise UnsupportedModel(f"{where}: force y lateral_pressure se excluyen; tiene que haber exactamente uno")
+    if not isinstance(lateral, dict):
+        raise UnsupportedModel(f"{where}.lateral_pressure debe ser un objeto")
+    _unknown(lateral, _LATERAL_PRESSURE_KEYS, f"{where}.lateral_pressure")
+    if lateral.get("model") != "ito_matsui":
+        raise UnsupportedModel(f"{where}.lateral_pressure.model debe ser \"ito_matsui\", no {lateral.get('model')!r}")
+    diameter = _positive(lateral.get("diameter"), f"{where}.lateral_pressure.diameter")
+    location = lateral.get("location")
+    if location not in _LP_LOCATIONS:
+        raise UnsupportedModel(
+            f"{where}.lateral_pressure.location es obligatorio y debe ser centroid o slip_surface, no {location!r}")
+    if abs(geometry["x2"] - geometry["x1"]) > PILE_VERTICAL_TOL:
+        raise UnsupportedModel(f"{where}.x2 debe ser igual a x1 (el pilote con lateral_pressure es vertical), "
+                               f"no {geometry['x2']} frente a {geometry['x1']}")
+    spacing = _positive(item["spacing"], f"{where}.spacing") if item.get("spacing") is not None else 1.0
+    if not spacing > diameter:
+        raise UnsupportedModel(f"{where}.spacing debe ser mayor que el diameter {diameter}, no {spacing}")
+    out: dict[str, Any] = {**geometry, "diameter": diameter, "location": _LP_LOCATIONS[location], "spacing": spacing}
+    capacity = item.get("capacity")
+    if capacity is not None:
+        if not isinstance(capacity, dict):
+            raise UnsupportedModel(f"{where}.capacity debe ser un objeto")
+        _unknown(capacity, _CAPACITY_KEYS, f"{where}.capacity")
+        present = [k for k in ("shear", "moment") if capacity.get(k) is not None]
+        if not present:
+            raise UnsupportedModel(f"{where}.capacity no puede ir vacío: shear, moment o ambos")
+        for key, name in (("shear", "shearCapacity"), ("moment", "momentCapacity")):
+            if key in present:
+                out[name] = _positive(capacity[key], f"{where}.capacity.{key}")
+    return out
+
+
 def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[dict]]:
     """``reinforcements[]`` (v0.4) -> ``{"reinforcements": [...], "piles": [...]}`` (only the non-empty lists).
 
@@ -686,7 +745,11 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
                 out["pullout"] = _pullout_to_cslope(item["pullout"], where, length)
             tension.append(out)
         elif kind in PILE_TYPES:
-            _unknown(item, _PILE_KEYS if kind == "pile" else _SHEET_KEYS, where)
+            _unknown(item, _PILE_KEYS_V05 if kind == "pile" else _SHEET_KEYS, where)
+            lateral = item.get("lateral_pressure")
+            if lateral is not None or item.get("capacity") is not None:
+                if model.get("version") != F5_VERSION:
+                    raise UnsupportedModel(f'lateral_pressure requiere version "{F5_VERSION}"')
             direction = item.get("direction")
             if direction not in ("angle", "tangent", "perpendicular"):
                 raise UnsupportedModel(f"{where}.direction {direction!r} no es angle, tangent ni perpendicular")
@@ -695,8 +758,14 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
             if kind == "sheet_pile" and geometry["x1"] != geometry["x2"]:
                 raise UnsupportedModel(f"{where}.x2 debe ser igual a x1 (la tablestaca es vertical), "
                                        f"no {geometry['x2']} frente a {geometry['x1']}")
-            out = {**geometry, "force": _non_negative(item.get("force"), f"{where}.force"),
-                   "direction": direction, "application": application, "location": CSLOPE_PILE_LOCATION}
+            if lateral is not None:
+                out = _ito_matsui_pile(item, lateral, geometry, where)
+                out.update({"direction": direction, "application": application})
+            else:
+                if item.get("capacity") is not None:
+                    raise UnsupportedModel(f"{where}.capacity solo se admite junto con lateral_pressure (E15i-1)")
+                out = {**geometry, "force": _non_negative(item.get("force"), f"{where}.force"),
+                       "direction": direction, "application": application, "location": CSLOPE_PILE_LOCATION}
             if direction == "angle":
                 out["angle"] = _angle_in_range(item["angle"], f"{where}.angle")
             if kind == "sheet_pile":
@@ -716,6 +785,11 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
             "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca "
             "va con spacing 1, force por metro y wall true."
         )
+        if any("diameter" in p for p in piles):
+            notes.append(
+                "pilotes Ito-Matsui (E15i): diameter sin force, location centroid o slip-surface y las capacidades "
+                "shearCapacity y momentCapacity por pilote; cSlope aplica el piso de φ = 0 y la tensión efectiva."
+            )
     notes.append(
         "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los "
         "activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."

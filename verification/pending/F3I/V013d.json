@@ -1,0 +1,118 @@
+{
+  "id": "V013d",
+  "title": "Cai & Ugai slope, pile row D1/D = 4",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V013d",
+      "title": "Cai & Ugai slope, pile row D1/D = 4",
+      "notes": "As V013b at 3.2 m spacing."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            -10.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0
+          ],
+          [
+            25.0,
+            10.0
+          ],
+          [
+            35.0,
+            10.0
+          ],
+          [
+            35.0,
+            -10.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "P1",
+        "type": "pile",
+        "x1": 17.5,
+        "y1": 5.0,
+        "x2": 17.5,
+        "y2": -10.0,
+        "application": "passive",
+        "direction": "angle",
+        "angle": 0.0,
+        "spacing": 3.2,
+        "lateral_pressure": {
+          "model": "ito_matsui",
+          "diameter": 0.8,
+          "location": "centroid"
+        }
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.33,
+      "published_by": "Commercial program A",
+      "tolerance": 0.0237593984962406,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cai & Ugai (2000), Soils and Foundations 40(1).",
+    "derived_from": "cSlope verification problem V013d (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Cai & Ugai 1.31.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "piles[0]: pilote Ito-Matsui (E15i): diameter 0.8 pasa a lateral_pressure; location centroid (por defecto de cSlope); direction angle 0 (la fuente no lleva el campo: cSlope toma `angle` 0, horizontal, perpendicular a un pilote vertical)."
+    ]
+  }
+}

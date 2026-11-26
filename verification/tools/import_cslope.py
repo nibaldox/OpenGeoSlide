@@ -100,6 +100,16 @@ TENSION_KEYS = {"x1", "y1", "x2", "y2", "tensileCapacity", "spacing", "end1Capac
                 "application", "pullout", "prestress"}
 PILE_KEYS = {"x1", "y1", "x2", "y2", "force", "diameter", "spacing", "direction", "angle", "application", "location",
              "wall"}
+# Batch F3I (E15i-10): the Ito-Matsui piles of Cai & Ugai (2000), v0.5 with `lateral_pressure`. Written to pending/F3I until the
+# engine reproduces them; the integrator promotes them with `import_cslope.py --promote-f3i` and flips this constant.
+F3I_IDS = ("V013b", "V013c", "V013d", "V013e")
+F3I_DIR = Path("verification") / "pending" / "F3I"
+F3I_PROMOTED = False
+F3I_F3R_NOTE_PROMOTED = (
+    "V013b a V013e (Ito-Matsui, sin `force`) no son de v0.4: son de v0.5 con `lateral_pressure` y están en el lote F3I.")
+PILE_KEYS_F3I = PILE_KEYS | {"shearCapacity", "momentCapacity"}
+F3I_LOCATIONS = {"centroid": "centroid", "slip-surface": "slip_surface"}
+PILE_VERTICAL_TOL = 1e-6
 HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
 HOLD_F3_FILE = Path("verification") / "pending" / "F3" / "HOLD.json"
 HOLD_F3R_FILE = Path("verification") / "pending" / "F3R" / "HOLD.json"
@@ -1063,14 +1073,15 @@ def convert_pullout(pullout: dict, where: str) -> dict:
     raise Omit(f"{where}: pullout {kind!r} no soportado")
 
 
-def convert_reinforcements(cid: str, d: dict) -> tuple[list[dict], list[str]]:
+def convert_reinforcements(cid: str, d: dict, ito_matsui: bool = False) -> tuple[list[dict], list[str]]:
     """``reinforcements`` and ``piles`` of a cSlope definition -> ogs v0.4 ``reinforcements`` (F4.2).
 
     Returns (list, notes). ``direction`` and ``application`` are always written (cSlope would take ``axial`` /
     ``active`` for tension elements and ``angle`` / ``active`` for piles; E14b has no default). ``prestress`` (only
     the finite element analysis uses it), ``diameter`` and ``location`` (no effect with a given force, E14m-3) are not
-    written, and the case says so. Raises Omit for what ogs cannot express: Ito-Matsui piles (no ``force``) or a
-    ``shearCapacity`` / ``momentCapacity``.
+    written, and the case says so. Raises Omit for what v0.4 cannot express: Ito-Matsui piles (no ``force``) or a
+    ``shearCapacity`` / ``momentCapacity``. With ``ito_matsui`` (batch F3I, v0.5) a pile without ``force`` becomes a
+    ``lateral_pressure`` pile and ``shearCapacity`` / ``momentCapacity`` become its ``capacity`` (E15i-1).
     """
     out: list[dict] = []
     notes: list[str] = []
@@ -1102,11 +1113,16 @@ def convert_reinforcements(cid: str, d: dict) -> tuple[list[dict], list[str]]:
     dropped_diameter = 0
     for i, p in enumerate(d.get("piles") or []):
         where = f"piles[{i}]"
-        extra = sorted(set(p) - PILE_KEYS)
+        extra = sorted(set(p) - (PILE_KEYS_F3I if ito_matsui else PILE_KEYS))
         if extra:
             raise Omit(f"{where} con propiedad no soportada: " + ", ".join(extra))
         if p.get("force") is None:
-            raise Omit(f"{where}: pilote Ito-Matsui (sin force), fuera de v0.4")
+            if not ito_matsui:
+                raise Omit(f"{where}: pilote Ito-Matsui (sin force), fuera de v0.4")
+            out.append(convert_ito_matsui_pile(i, p, where, notes))
+            continue
+        if ito_matsui and (p.get("shearCapacity") is not None or p.get("momentCapacity") is not None):
+            raise Omit(f"{where}: shearCapacity o momentCapacity con force (E15i-1: capacity solo con lateral_pressure)")
         direction = p.get("direction") or "angle"
         if direction not in ("angle", "tangent", "perpendicular"):
             raise Omit(f"{where}: direction {direction!r} no soportada")
@@ -1158,6 +1174,117 @@ def convert_f3r(raw: dict, prob: dict | None) -> tuple[dict, list[str], list[int
     return case, discarded, batches
 
 
+def convert_ito_matsui_pile(i: int, p: dict, where: str, notes: list[str]) -> dict:
+    """A cSlope pile without ``force`` (Ito-Matsui, ``diameter``) -> an ogs v0.5 ``pile`` with ``lateral_pressure`` (E15i-1).
+
+    ``application``, ``direction`` and ``angle`` are written as for the other piles (cSlope's defaults, ``active`` and
+    ``angle`` 0, become explicit); ``location`` defaults to ``centroid`` like cSlope and is always written, as E15i-1
+    asks. ``shearCapacity`` and ``momentCapacity`` become ``capacity.shear`` and ``capacity.moment``. Raises Omit when
+    ogs would reject it: a pile that is not vertical, ``diameter`` <= 0, ``spacing`` <= ``diameter``.
+    """
+    diameter = p.get("diameter")
+    if not isinstance(diameter, (int, float)) or not diameter > 0:
+        raise Omit(f"{where}: pilote Ito-Matsui sin diameter > 0")
+    if abs(float(p["x2"]) - float(p["x1"])) > PILE_VERTICAL_TOL:
+        raise Omit(f"{where}: pilote Ito-Matsui no vertical (E15i-1)")
+    spacing = p.get("spacing")
+    spacing = 1.0 if spacing is None else float(spacing)
+    if not spacing > float(diameter):
+        raise Omit(f"{where}: spacing {spacing:g} no es mayor que diameter {float(diameter):g} (E15i-1)")
+    direction = p.get("direction") or "angle"
+    if direction not in ("angle", "tangent", "perpendicular"):
+        raise Omit(f"{where}: direction {direction!r} no soportada")
+    location = p.get("location") or "centroid"
+    if location not in F3I_LOCATIONS:
+        raise Omit(f"{where}: location {location!r} no soportada")
+    item: dict = {"id": f"P{i + 1}", "type": "pile", "x1": num(p["x1"]), "y1": num(p["y1"]),
+                  "x2": num(p["x2"]), "y2": num(p["y2"]), "application": p.get("application") or "active",
+                  "direction": direction}
+    if direction == "angle":
+        item["angle"] = num(p.get("angle") or 0.0)
+    elif p.get("angle") is not None:
+        raise Omit(f"{where}: angle con direction {direction!r}")
+    item["spacing"] = num(spacing)
+    item["lateral_pressure"] = {"model": "ito_matsui", "diameter": num(diameter), "location": F3I_LOCATIONS[location]}
+    capacity = {}
+    for src, dst in (("shearCapacity", "shear"), ("momentCapacity", "moment")):
+        if p.get(src) is not None:
+            if not p[src] > 0:
+                raise Omit(f"{where}: {src} {p[src]!r} no es mayor que 0")
+            capacity[dst] = num(p[src])
+    if capacity:
+        item["capacity"] = capacity
+    how = "de la fuente" if p.get("location") else "por defecto de cSlope"
+    angle = f" {item['angle']:g}" if direction == "angle" else ""
+    notes.append(f"{where}: pilote Ito-Matsui (E15i): diameter {float(diameter):g} pasa a lateral_pressure; location "
+                 f"{location} ({how}); direction {direction}{angle} (la fuente no lleva el campo: cSlope toma `angle` 0, "
+                 "horizontal, perpendicular a un pilote vertical).")
+    return item
+
+
+def convert_f3i(raw: dict, prob: dict | None) -> tuple[dict, list[str], list[int]]:
+    """Convert one cSlope case with Ito-Matsui piles into a v0.5 case with ``lateral_pressure`` (batch F3I, E15i-10)."""
+    d = raw["definition"]
+    if not any(p.get("force") is None for p in d.get("piles") or []):
+        raise Omit("sin pilotes Ito-Matsui")
+    stripped = {**raw, "definition": {k: v for k, v in d.items() if k not in ("reinforcements", "piles")}}
+    case, discarded, batches = _convert(stripped, prob, v02=True, f3=True)
+    items, notes = convert_reinforcements(raw["id"], d, ito_matsui=True)
+    model = {}
+    for key, value in case["model"].items():
+        if key == "slope":
+            model["reinforcements"] = items
+        model[key] = value
+    model["version"] = F5_VERSION
+    case = {**case, "model": model}
+    case["source"] = {**case["source"], "notes": case["source"]["notes"] + notes}
+    return case, discarded, batches
+
+
+def schema_with_ito_matsui(schema: dict) -> dict:
+    """The 0.5 schema with the pile of E15i-1: ``force`` optional, ``lateral_pressure`` and ``capacity`` added.
+
+    Used while ``schema/ogs-0.5.schema.json`` does not know ``lateral_pressure`` (the engine side adds it with E15i); once
+    it does, the schema is used as it is. ``force`` and ``lateral_pressure`` excluding each other is checked by ``gate_f3i``.
+    """
+    if "lateral_pressure" in schema["$defs"]["pile"]["properties"]:
+        return schema
+    s = json.loads(json.dumps(schema))
+    pile = s["$defs"]["pile"]
+    pile["required"] = [k for k in pile["required"] if k != "force"]
+    pile["properties"]["lateral_pressure"] = {
+        "type": "object", "additionalProperties": False, "required": ["model", "diameter", "location"],
+        "properties": {"model": {"const": "ito_matsui"}, "diameter": {"type": "number", "exclusiveMinimum": 0},
+                       "location": {"enum": ["centroid", "slip_surface"]}}}
+    pile["properties"]["capacity"] = {
+        "type": "object", "additionalProperties": False, "minProperties": 1,
+        "properties": {"shear": {"type": "number", "exclusiveMinimum": 0},
+                       "moment": {"type": "number", "exclusiveMinimum": 0}}}
+    return s
+
+
+def gate_f3i(case: dict, schema: dict) -> list[str]:
+    """E15i-1: the model against the 0.5 schema, plus what the schema cannot say."""
+    errors = gate_schema_f3r(case, schema_with_ito_matsui(schema))
+    m = case.get("model") or {}
+    if m.get("version") != F5_VERSION:
+        errors.append('lateral_pressure requiere version "0.5"')
+    errors += gate_reinforcements({**case, "model": {**m, "version": F4_VERSION}})
+    for r in m.get("reinforcements") or []:
+        if r["type"] != "pile":
+            continue
+        if ("force" in r) == ("lateral_pressure" in r):
+            errors.append(f"pilote {r['id']}: force y lateral_pressure se excluyen y debe haber uno")
+        if "capacity" in r and "lateral_pressure" not in r:
+            errors.append(f"pilote {r['id']}: capacity sin lateral_pressure")
+        if "lateral_pressure" in r:
+            if abs(r["x2"] - r["x1"]) > PILE_VERTICAL_TOL:
+                errors.append(f"pilote {r['id']}: no es vertical")
+            if not r.get("spacing", 1.0) > r["lateral_pressure"]["diameter"]:
+                errors.append(f"pilote {r['id']}: spacing no es mayor que diameter")
+    return errors
+
+
 def gate_reinforcements(case: dict) -> list[str]:
     """F4.2 rules that JSON Schema cannot express: version, unique ids, length > 0, sheet_pile vertical, bonded_length."""
     errors = []
@@ -1202,7 +1329,8 @@ def held_label(held_cases: list[dict]) -> str:
     return ", ".join(c["id"] + (f" ×{len(c['checks'])}" if len(c["checks"]) > 1 else "") for c in held_cases)
 
 
-def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, held_cases: list[dict] | None = None) -> str:
+def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, held_cases: list[dict] | None = None,
+                      ito_promoted: bool = False) -> str:
     """Section of `cases/INDEX.md` for the promoted batches R1 to R4: published value, ogs and cSlope per check (from
     the `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
     rows = {}
@@ -1217,7 +1345,7 @@ def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | No
         "ningún dato del problema. Los lotes son los de F4.12: " + "; ".join(
             f"**{lot}** {name} ({', '.join(ids)})" for lot, (name, ids) in F3R_BATCHES.items()) + ".",
         "",
-        "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.",
+        F3I_F3R_NOTE_PROMOTED if ito_promoted else "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.",
         "",
     ]
     n_held = sum(len(c["checks"]) for c in held_cases or [])
@@ -1261,7 +1389,7 @@ def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | No
 
 
 def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], held: list[dict] | None = None,
-                             hold: dict[tuple, dict] | None = None) -> str:
+                             hold: dict[tuple, dict] | None = None, ito_promoted: bool = False) -> str:
     """INDEX.md left in pending/F3R once the batches are promoted (`cases` are all the converted ones, held included)."""
     held = held or []
     n_held = sum(len(c["checks"]) for c in held)
@@ -1296,7 +1424,8 @@ def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], 
                              f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
                              f"| {md_cell(e.get('diagnosis', ''))} |")
         lines.append("")
-    lines.append("V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."
+    lines.append((F3I_F3R_NOTE_PROMOTED if ito_promoted else
+                  "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.")
                  + ("" if not omitted else " No entran: " + "; ".join(f"{cid} ({md_cell(r)})" for cid, r in omitted) + "."))
     lines.append("")
     return "\n".join(lines)
@@ -1492,6 +1621,117 @@ def build_f3g_index(cases: list[dict], held_cases: list[dict], hold: dict[tuple,
         lines += ["", "## Checks descartados dentro de los casos", ""]
         lines += [f"- {cid}: {md_cell(x)}" for cid, v in sorted(dropped.items()) for x in v]
     lines.append("")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- Ito-Matsui piles (batch F3I, v0.5, E15i-10)
+F3I_PROMOTE_COMMAND = (
+    "uv run --python 3.13 --no-project --with shapely --with jsonschema python verification/tools/import_cslope.py "
+    "--src $TMPDIR/cslope-src --promote-f3i")
+F3I_REPORT_COMMAND = (
+    "uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely python verification/harness/run.py "
+    "--cases verification/cases --ogs target/release/ogs --out verification")
+
+
+def _f3i_rows(report: dict | None) -> dict:
+    return {(r["case_id"], r["method"], r["published"]): r for r in (report or {}).get("checks", [])}
+
+
+def _f3i_table(cases: list[dict], report: dict | None, lead: str = "") -> list[str]:
+    rows = _f3i_rows(report)
+    lines = [f"| {lead}caso | D1/D | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |",
+             f"|{'---|' if lead else ''}---|---:|---|---:|---|---:|---:|---:|---:|---:|"]
+    fmt = lambda v, f: "—" if v is None else format(v, f)  # noqa: E731
+    for case in cases:
+        pile = next(r for r in case["model"]["reinforcements"] if "lateral_pressure" in r)
+        ratio = pile["spacing"] / pile["lateral_pressure"]["diameter"]
+        for c in case["checks"]:
+            r = rows.get((case["id"], c["method"], c["published"]))
+            og = d_og = cs = d_cs = "—"
+            if r is not None:
+                og, d_og = fmt(r["ogs"]["fos"], ".4f"), fmt(r["ogs"]["err_pct"], "+.2f")
+                cs, d_cs = fmt(r["cslope"]["fos"], ".4f"), fmt(r["cslope"]["err_pct"], "+.2f")
+            lines.append(f"| {lead and 'F3I | '}{case['id']} | {ratio:g} | {c['method']} | {c['published']} "
+                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {og} | {d_og} | {cs} | {d_cs} |")
+    return lines
+
+
+def build_f3i_section(cases: list[dict], report: dict | None) -> str:
+    """Section of `cases/INDEX.md` for the promoted batch F3I: published value, ogs and cSlope per check."""
+    n_checks = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "## Pilotes de Ito-Matsui (lote F3I, v0.5)",
+        "",
+        f"**{len(cases)}** casos con **{n_checks}** checks (V013b a V013e, Cai y Ugai 2000, filas de D1/D = 2, 3, 4 y 6), "
+        "promovidos desde `verification/pending/F3I` cuando el motor de E15i reproduce el valor publicado dentro de su "
+        "tolerancia. Cada pilote lleva `lateral_pressure` (`ito_matsui`, `diameter`, `location`) y no `force`; la fuente no trae "
+        "`direction` ni `location`, y se escriben los valores de cSlope (`angle` 0 y `centroid`). No se relajó ninguna "
+        "tolerancia ni se tocó ningún dato del problema.",
+        "",
+    ]
+    if not _f3i_rows(report):
+        lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
+                  "regenere este índice.", ""]
+    lines += _f3i_table(cases, report)
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_f3i_index(cases: list[dict], report: dict | None, promoted: bool) -> str:
+    """INDEX.md of pending/F3I: the cases that wait for the engine of E15i (or, once promoted, where they went)."""
+    n_checks = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "# Pilotes de Ito-Matsui (lote F3I, formato v0.5): V013b a V013e",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+    ]
+    if promoted:
+        lines += [f"Los **{len(cases)}** casos (**{n_checks}** checks) pasaron a [`../../cases/`](../../cases/INDEX.md) (sección "
+                  "«Pilotes de Ito-Matsui»). Aquí no queda ningún caso.", ""]
+        return "\n".join(lines)
+    lines += [
+        f"**{len(cases)}** casos con **{n_checks}** checks de búsqueda de Bishop, en v0.5 con `lateral_pressure` (E15i-1). "
+        "Esperan al motor de E15i (G3): hoy los excluye de `cases/` el motivo «Ito-Matsui» (el pilote no lleva `force`). "
+        "Cada caso es el de `verification/cases/` de cSlope más el pilote: `lateral_pressure {model: \"ito_matsui\", "
+        "diameter: 0.8, location: \"centroid\"}`, `application: passive` (la fuente), `direction: angle` con `angle: 0` "
+        "(horizontal: perpendicular a un pilote vertical, E15i-6; cSlope toma `angle` 0 si la fuente no trae `direction`) y "
+        "`location` `centroid` (el valor por defecto de cSlope, el de Cai y Ugai 2000, ecuación 9). Sin `capacity`: la fuente "
+        "no trae capacidades. No se relaja ninguna tolerancia ni se toca ningún dato del problema.",
+        "",
+        "La columna del oráculo sale de `harness/run.py --oracle-only` sobre este directorio (`report.json`, `REPORT.md`); "
+        "la de ogs queda vacía hasta que el motor de E15i exista. El oráculo da entre +0,05 % y +0,50 % sobre el publicado "
+        "(X22 §5.1).",
+        "",
+    ]
+    if not _f3i_rows(report):
+        lines += ["No hay `report.json` en este directorio: genérelo con `run.py --oracle-only` y regenere este índice.", ""]
+    lines += _f3i_table(cases, report)
+    lines += [
+        "",
+        "## Promoción a `verification/cases/` (la hace el integrador)",
+        "",
+        "Cuando el motor de E15i está integrado (`ogs analyze` acepta `lateral_pressure` y el esquema 0.5 lo trae), desde la "
+        "raíz del worktree:",
+        "",
+        "```",
+        "export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch",
+        "cargo build --release -p ogs-cli",
+        "env -u PYTHONPATH -u PYTHONHOME " + F3I_PROMOTE_COMMAND,
+        "env -u PYTHONPATH -u PYTHONHOME " + F3I_REPORT_COMMAND,
+        "env -u PYTHONPATH -u PYTHONHOME " + F3I_PROMOTE_COMMAND,
+        "sed -i 's/^F3I_PROMOTED = False/F3I_PROMOTED = True/' verification/tools/import_cslope.py",
+        "```",
+        "",
+        "La primera orden escribe los 4 casos en `verification/cases/` (y vacía este directorio); la segunda regenera "
+        "`verification/report.json` y `REPORT.md` con el motor real; la tercera arma el `INDEX.md` de `cases/` con las cifras "
+        "(sección «Pilotes de Ito-Matsui»); la cuarta deja la promoción como comportamiento por defecto del importador, para "
+        "que una ejecución sin la opción no los borre. Después: `verification/cases` pasa de 147 a 151 casos y de 323 a 327 "
+        "checks (la aceptación de Rust cuenta los checks por el directorio), y el informe de cSlope da 326 de 327 si el "
+        "oráculo los reproduce (322 de 323 hoy).",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -1861,10 +2101,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--src", required=True, help="path to the read-only cSlope clone")
     ap.add_argument("--root", default=None, help="repository root (default: two levels above this script)")
+    ap.add_argument("--promote-f3i", action="store_true",
+                    help="write the Ito-Matsui cases V013b to V013e (batch F3I, v0.5) to verification/cases instead of "
+                         "verification/pending/F3I (the integrator's promotion, see pending/F3I/INDEX.md)")
     args = ap.parse_args()
 
     src = Path(args.src).expanduser().resolve()
     root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[2]
+    promote_f3i = bool(args.promote_f3i or F3I_PROMOTED)
     golden = src / "packages/engine-rs/golden/verification.json"
     problems_path = src / "packages/engine/src/verification/problems.ts"
     license_path = src / "LICENSE"
@@ -2114,10 +2358,39 @@ def main() -> int:
         print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
         return 1
 
+    # ---- batch F3I (E15i-10): the Ito-Matsui piles, v0.5 with lateral_pressure, in pending/F3I (or in cases/ once promoted)
+    f3i_cases: list[dict] = []
+    f3i_omitted: list[tuple[str, str]] = []
+    for cid in F3I_IDS:
+        try:
+            case, _, _ = convert_f3i(raw_by_id[cid], problems.get(cid))
+        except (Omit, KeyError) as exc:
+            f3i_omitted.append((cid, str(exc)))
+            continue
+        f3i_cases.append(case)
+        for err in gate_f3i(case, f3g_schema):
+            failures.append(f"{cid} (F3I) E15i-1: {err}")
+        for err in gate_search(case):
+            failures.append(f"{cid} (F3I) rangos: {err}")
+        for err in gate_features(case):
+            failures.append(f"{cid} (F3I) v0.3: {err}")
+        for err in gate_geometry(case, raw_by_id[cid]):
+            failures.append(f"{cid} (F3I) geometría: {err}")
+    if f3i_omitted:
+        failures.append(f"F3I: no se convierten {f3i_omitted}")
+    if failures:
+        print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
+        return 1
+    f3i_ids = {c["id"] for c in f3i_cases}
+    f3_omitted = [(cid, ("Ito-Matsui: pilote sin `force`; v0.5 con `lateral_pressure`, " + (
+        "promovido a `verification/cases` (lote F3I)" if promote_f3i else "en `verification/pending/F3I`"))
+        if cid in f3i_ids else r) for cid, r in f3_omitted]
+
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
     # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
-    all_cases = converted + f3r_cases + f3g_ok
+    f3i_promoted = f3i_cases if promote_f3i else []
+    all_cases = converted + f3r_cases + f3g_ok + f3i_promoted
     expected = {f"{c['id']}.json" for c in all_cases}
     changed = 0
     for case in all_cases:
@@ -2131,11 +2404,13 @@ def main() -> int:
     if (root / "verification" / "report.json").is_file():
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
-        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok}],
+        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok + f3i_promoted}],
         {**discarded_by_case, **f3r_dropped, **f3g_dropped},
-        order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok],
-        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held),
-        f3g_section=build_f3g_section(f3g_ok, cases_report, f3g_held)))
+        order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok] + [c["id"] for c in f3i_promoted],
+        (sat_ids, sat_reason, sat_included),
+        f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held, ito_promoted=promote_f3i),
+        f3g_section=build_f3g_section(f3g_ok, cases_report, f3g_held) + (
+            "\n" + build_f3i_section(f3i_promoted, cases_report) if f3i_promoted else "")))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
@@ -2177,7 +2452,8 @@ def main() -> int:
         if (f3r_dir / old_file).is_file():
             (f3r_dir / old_file).unlink()
             changed += 1
-    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_all, f3r_omitted, f3r_held, hold_f3r))
+    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(
+        f3r_all, f3r_omitted, f3r_held, hold_f3r, ito_promoted=promote_f3i))
 
     # F3G: promoted to cases/ above; only the checks that the engine does not reproduce (HOLD.json) stay in pending/F3G
     f3g_dir = root / F3G_DIR
@@ -2200,6 +2476,26 @@ def main() -> int:
     changed += write_if_changed(f3g_dir / "INDEX.md", build_f3g_index(
         f3g_ok, f3g_held, hold_f3g, f3g_omitted, f3g_dropped, raw_by_id))
 
+    # F3I: the Ito-Matsui cases wait here for the engine of E15i, or are gone once promoted
+    f3i_dir = root / F3I_DIR
+    keep_f3i = set() if promote_f3i else {f"{c['id']}.json" for c in f3i_cases}
+    for stale in sorted(f3i_dir.glob("V*.json")) if f3i_dir.is_dir() else []:
+        if stale.name not in keep_f3i:
+            stale.unlink()
+            changed += 1
+    f3i_report = None
+    if promote_f3i:
+        for old_file in ("report.json", "REPORT.md"):
+            if (f3i_dir / old_file).is_file():
+                (f3i_dir / old_file).unlink()
+                changed += 1
+    elif (f3i_dir / "report.json").is_file():
+        f3i_report = json.loads((f3i_dir / "report.json").read_text(encoding="utf-8"))
+    for case in f3i_cases:
+        if not promote_f3i:
+            changed += write_if_changed(f3i_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    changed += write_if_changed(f3i_dir / "INDEX.md", build_f3i_index(f3i_cases, f3i_report, promote_f3i))
+
     # ---- summary
     n_checks = sum(len(c["checks"]) for c in all_cases)
     n_v02 = sum(c["model"]["version"] == "0.2" for c in converted)
@@ -2218,6 +2514,8 @@ def main() -> int:
     print(f"verification/cases (F3G, v0.3 y v0.5): {len(f3g_ok)} casos, {sum(len(c['checks']) for c in f3g_ok)} checks; "
           f"retenidos en pending/F3G: {len(f3g_held)} casos, {sum(len(c['checks']) for c in f3g_held)} checks; "
           f"casos derivados: {[c['id'] for c in f3g_all if c['id'] not in raw_by_id]}")
+    print(f"Ito-Matsui (F3I, v0.5): {len(f3i_cases)} casos, {sum(len(c['checks']) for c in f3i_cases)} checks, en "
+          + ("verification/cases (promovidos)" if promote_f3i else "verification/pending/F3I"))
     print("Omitidos del lote 0:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")

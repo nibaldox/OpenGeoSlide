@@ -37,10 +37,10 @@ Checks retenidos: **1** en **1** casos.
 | V011a | definition con clave que cambia el problema: reinforcements |
 | V011b | definition con clave que cambia el problema: reinforcements |
 | V012 | definition con clave que cambia el problema: reinforcements |
-| V013b | definition con clave que cambia el problema: piles, reinforcements |
-| V013c | definition con clave que cambia el problema: piles, reinforcements |
-| V013d | definition con clave que cambia el problema: piles, reinforcements |
-| V013e | definition con clave que cambia el problema: piles, reinforcements |
+| V013b | Ito-Matsui: pilote sin `force`; v0.5 con `lateral_pressure`, en `verification/pending/F3I` |
+| V013c | Ito-Matsui: pilote sin `force`; v0.5 con `lateral_pressure`, en `verification/pending/F3I` |
+| V013d | Ito-Matsui: pilote sin `force`; v0.5 con `lateral_pressure`, en `verification/pending/F3I` |
+| V013e | Ito-Matsui: pilote sin `force`; v0.5 con `lateral_pressure`, en `verification/pending/F3I` |
 | V014 | definition con clave que cambia el problema: reinforcements |
 | V015 | definition con clave que cambia el problema: piles, reinforcements |
 | V016b | definition con clave que cambia el problema: reinforcements |

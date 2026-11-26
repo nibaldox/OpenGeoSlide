@@ -1,10 +1,10 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-26T18:18:13-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-26T19:26:28-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
-- **ogs**: `target/release/ogs` · versión: ogs-core 0.3.0
+- **ogs**: `/home/xodla/archivos/opengeoslide-wt/f3g3v/target/release/ogs` · versión: ogs-core 0.3.0
 - **cSlope**: cslope 0.1.0 · motor 0.1.0+a80f9a024954 · esquema 0.1.0 · Python 3.13.14
 
 ## Criterio (E9b, briefs/00_CONTRATOS.md §4.4.6)
@@ -24,7 +24,7 @@ Generado: 2026-11-26T18:18:13-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 4.036 s · cSlope 1.797 s.
+Tiempo total: ogs 4.091 s · cSlope 1.869 s.
 
 ## Tabla de línea base
 
@@ -72,61 +72,61 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.047 | 0.049 |
-| D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.120 | 0.074 |
+| D01 | bishop | search | 0.041 | 0.054 |
+| D01 | bishop | fixed | 0.001 | 0.001 |
+| D01 | spencer | search | 0.122 | 0.084 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.039 | 0.045 |
-| D02 | bishop | fixed | 0.001 | 0.001 |
-| D02 | spencer | search | 0.155 | 0.075 |
+| D02 | bishop | search | 0.040 | 0.049 |
+| D02 | bishop | fixed | 0.002 | 0.001 |
+| D02 | spencer | search | 0.156 | 0.079 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.053 | 0.046 |
-| D03 | bishop | fixed | 0.001 | 0.001 |
-| D03 | spencer | search | 0.164 | 0.081 |
+| D03 | bishop | search | 0.056 | 0.050 |
+| D03 | bishop | fixed | 0.002 | 0.001 |
+| D03 | spencer | search | 0.170 | 0.088 |
 | D03 | spencer | fixed | 0.002 | 0.001 |
-| D04 | bishop | search | 0.127 | 0.032 |
-| D04 | bishop | fixed | 0.001 | 0.001 |
-| D04 | spencer | search | 0.407 | 0.060 |
-| D04 | spencer | fixed | 0.001 | 0.001 |
-| D05 | bishop | search | 0.043 | 0.046 |
-| D05 | bishop | fixed | 0.001 | 0.001 |
-| D05 | spencer | search | 0.131 | 0.078 |
+| D04 | bishop | search | 0.128 | 0.034 |
+| D04 | bishop | fixed | 0.002 | 0.001 |
+| D04 | spencer | search | 0.417 | 0.063 |
+| D04 | spencer | fixed | 0.002 | 0.001 |
+| D05 | bishop | search | 0.046 | 0.048 |
+| D05 | bishop | fixed | 0.002 | 0.001 |
+| D05 | spencer | search | 0.132 | 0.082 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.043 | 0.044 |
-| D06 | bishop | fixed | 0.001 | 0.001 |
-| D06 | spencer | search | 0.121 | 0.074 |
-| D06 | spencer | fixed | 0.001 | 0.001 |
-| D07 | bishop | search | 0.036 | 0.043 |
-| D07 | bishop | fixed | 0.001 | 0.001 |
-| D07 | spencer | search | 0.137 | 0.071 |
+| D06 | bishop | search | 0.044 | 0.045 |
+| D06 | bishop | fixed | 0.002 | 0.001 |
+| D06 | spencer | search | 0.123 | 0.075 |
+| D06 | spencer | fixed | 0.002 | 0.001 |
+| D07 | bishop | search | 0.032 | 0.042 |
+| D07 | bishop | fixed | 0.002 | 0.001 |
+| D07 | spencer | search | 0.137 | 0.074 |
 | D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.064 | 0.044 |
-| D08 | bishop | fixed | 0.002 | 0.035 |
-| D08 | spencer | search | 0.251 | 0.062 |
+| D08 | bishop | search | 0.066 | 0.047 |
+| D08 | bishop | fixed | 0.002 | 0.036 |
+| D08 | spencer | search | 0.252 | 0.066 |
 | D08 | spencer | fixed | 0.002 | 0.035 |
-| D09 | bishop | search | 0.073 | 0.047 |
+| D09 | bishop | search | 0.075 | 0.048 |
 | D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.321 | 0.170 |
+| D09 | spencer | search | 0.325 | 0.171 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
 | D10 | bishop | search | 0.039 | 0.046 |
-| D10 | bishop | fixed | 0.001 | 0.001 |
-| D10 | spencer | search | 0.141 | 0.079 |
+| D10 | bishop | fixed | 0.002 | 0.001 |
+| D10 | spencer | search | 0.141 | 0.082 |
 | D10 | spencer | fixed | 0.002 | 0.001 |
-| D11 | bishop | search | 0.190 | 0.034 |
+| D11 | bishop | search | 0.195 | 0.033 |
 | D11 | bishop | fixed | 0.002 | 0.001 |
-| D11 | spencer | search | 0.453 | 0.059 |
+| D11 | spencer | search | 0.457 | 0.061 |
 | D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.047 | 0.048 |
+| D12 | bishop | search | 0.048 | 0.049 |
 | D12 | bishop | fixed | 0.002 | 0.001 |
-| D12 | spencer | search | 0.150 | 0.080 |
+| D12 | spencer | search | 0.152 | 0.082 |
 | D12 | spencer | fixed | 0.002 | 0.001 |
-| D13 | bishop | search | 0.053 | 0.039 |
+| D13 | bishop | search | 0.054 | 0.041 |
 | D13 | bishop | fixed | 0.002 | 0.001 |
-| D13 | spencer | search | 0.189 | 0.057 |
+| D13 | spencer | search | 0.191 | 0.058 |
 | D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.093 | 0.050 |
+| D14 | bishop | search | 0.096 | 0.051 |
 | D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.306 | 0.076 |
+| D14 | spencer | search | 0.309 | 0.080 |
 | D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
@@ -275,16 +275,17 @@ Cuatro modelos en `cases_f3r/` con su círculo fijo, que cruza los refuerzos: D2
 
 Ninguno.
 
-## v0.5: grieta de tracción y agua embalsada (D28 a D39)
+## v0.5: grieta de tracción, agua embalsada y pilotes de Ito-Matsui (D28 a D42)
 
-Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vertical con embalse (D30), presa con embalse (D31), grieta seca, llena y automática (D32 a D35), y combinados: embalse y grieta llena (D36), presa con grieta automática (D37), sismo con embalse y grieta (D38) y arcilla no drenada (D39). Cada uno en búsqueda y en su círculo fijo, con Bishop y Spencer, con los criterios de E9b. La sonda de cada capacidad es V047a: el embalse de 2 m al pie (X21-P01) y la grieta de 2 m llena al 25 % (X21-W025); se acepta si Bishop da la cifra del oráculo a 0,1 %. El check que necesita una capacidad que el motor no tiene queda **pendiente**, nunca falla; el valor de cSlope se calcula igual y queda como línea base.
+Quince modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vertical con embalse (D30), presa con embalse (D31), grieta seca, llena y automática (D32 a D35), y combinados: embalse y grieta llena (D36), presa con grieta automática (D37), sismo con embalse y grieta (D38) y arcilla no drenada (D39); y tres filas de pilotes de Ito-Matsui (E15i) en el talud de Cai y Ugai: φ = 0 (D40), c-φ con la fuerza en el cruce y tope de corte (D41) y bajo el agua (D42). Cada uno en búsqueda y en su círculo fijo, con Bishop y Spencer, con los criterios de E9b. La sonda de cada capacidad es V047a: el embalse de 2 m al pie (X21-P01) y la grieta de 2 m llena al 25 % (X21-W025); para `lateral_pressure`, la fila X22-V013c con un pilote de Ito-Matsui. Se acepta si Bishop da la cifra del oráculo a 0,1 %. El check que necesita una capacidad que el motor no tiene queda **pendiente**, nunca falla; el valor de cSlope se calcula igual y queda como línea base.
 
 | capacidad | soportada por el motor | detalle |
 |---|---|---|
 | ponded_water | sí | — |
 | tension_crack | sí | — |
+| lateral_pressure | no | exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown field `lateral_pressure`, expected one of `id`, `x1`, `y1`, `x2`, `y2`, `application`, `force`, `spacing`, `direction`, `angle` at l |
 
-**OK 44/48** · explicado 2 · FALLA 2 · sin dato 0 · pendiente 0. «Explicado» no cuenta como OK ni como falla: el motor rechaza un círculo fijo que pasa por debajo del fondo del modelo en menos de 1e-6 (E15f, E15j-7) y no se relaja la tolerancia.
+**OK 46/60** · explicado 2 · FALLA 0 · sin dato 0 · pendiente 12. «Explicado» no cuenta como OK ni como falla: el motor rechaza un círculo fijo que pasa por debajo del fondo del modelo en menos de 1e-6 (E15f, E15j-7) y no se relaja la tolerancia.
 
 | caso | método | tipo | ogs | cSlope | Δ% | veredicto |
 |---|---|---|---:|---:|---:|---|
@@ -297,9 +298,9 @@ Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vert
 | D29 | spencer | search | 0.9553 | 0.9549 | +0.04 | OK |
 | D29 | spencer | fixed | 0.9554 | 0.9549 | +0.04 | OK |
 | D30 | bishop | search | 0.8248 | 1.5143 | -45.53 | OK |
-| D30 | bishop | fixed | 1.2807 | 1.5143 | -15.42 | FALLA |
+| D30 | bishop | fixed | 1.5163 | 1.5143 | +0.13 | OK |
 | D30 | spencer | search | 0.9702 | 1.5128 | -35.87 | OK |
-| D30 | spencer | fixed | 1.2809 | 1.5128 | -15.33 | FALLA |
+| D30 | spencer | fixed | 1.5146 | 1.5128 | +0.12 | OK |
 | D31 | bishop | search | 2.6132 | 2.6121 | +0.04 | OK |
 | D31 | bishop | fixed | 2.6133 | 2.6121 | +0.05 | OK |
 | D31 | spencer | search | 2.6134 | 2.6121 | +0.05 | OK |
@@ -336,11 +337,22 @@ Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vert
 | D39 | bishop | fixed | — | 1.2263 | — | explicado (E15f, E15j-7) |
 | D39 | spencer | search | 1.2270 | 1.2263 | +0.05 | OK |
 | D39 | spencer | fixed | — | 1.2263 | — | explicado (E15f, E15j-7) |
+| D40 | bishop | search | — | 1.3351 | — | pendiente |
+| D40 | bishop | fixed | — | 1.3351 | — | pendiente |
+| D40 | spencer | search | — | 1.3351 | — | pendiente |
+| D40 | spencer | fixed | — | 1.3351 | — | pendiente |
+| D41 | bishop | search | — | 1.2311 | — | pendiente |
+| D41 | bishop | fixed | — | 1.2311 | — | pendiente |
+| D41 | spencer | search | — | 1.2269 | — | pendiente |
+| D41 | spencer | fixed | — | 1.2271 | — | pendiente |
+| D42 | bishop | search | — | 1.2126 | — | pendiente |
+| D42 | bishop | fixed | — | 1.2126 | — | pendiente |
+| D42 | spencer | search | — | 1.2095 | — | pendiente |
+| D42 | spencer | fixed | — | 1.2096 | — | pendiente |
 
 ### Fallos y datos faltantes de v0.5
 
-- D30 bishop/fixed: **FALLA**. |Δ| = 15.42 % > 0,5 %
-- D30 spencer/fixed: **FALLA**. |Δ| = 15.33 % > 0,5 %
+Ninguno.
 
 ### Explicados de v0.5
 
