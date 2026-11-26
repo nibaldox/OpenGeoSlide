@@ -1,15 +1,15 @@
 {
   "report_version": "5",
-  "generated_at": "2026-11-26T17:46:30-03:00",
+  "generated_at": "2026-11-26T18:01:08-03:00",
   "criteria": {
     "search_max_rel": 0.01,
     "fixed_max_rel": 0.005,
     "source": "briefs/00_CONTRATOS.md §4.4.6 (E9b)"
   },
   "engines": {
-    "generated_at": "2026-11-26T17:46:30-03:00",
+    "generated_at": "2026-11-26T18:01:08-03:00",
     "ogs": {
-      "binary": "/home/xodla/archivos/opengeoslide-wt/f3g1v/target/release/ogs",
+      "binary": "target/release/ogs",
       "version": "ogs-core 0.3.0"
     },
     "cslope": {
@@ -107,8 +107,8 @@
       "sin dato": 0,
       "N": 28
     },
-    "ogs_seconds": 4.038,
-    "cslope_seconds": 1.811
+    "ogs_seconds": 4.063,
+    "cslope_seconds": 1.84
   },
   "checks": [
     {
@@ -122,7 +122,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0412,
+        "seconds": 0.0454,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -134,7 +134,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0535
+        "seconds": 0.0511
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -154,7 +154,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -184,7 +184,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1185,
+        "seconds": 0.1202,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -196,7 +196,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0755
+        "seconds": 0.0746
       },
       "delta_pct": 0.0063,
       "verdict": "OK",
@@ -216,7 +216,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -246,7 +246,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.041,
+        "seconds": 0.0397,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -278,7 +278,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0014,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -290,7 +290,7 @@
         "warnings": [
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0005
+        "seconds": 0.0006
       },
       "delta_pct": 0.0202,
       "verdict": "OK",
@@ -308,7 +308,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.154,
+        "seconds": 0.1531,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -320,7 +320,7 @@
         "warnings": [
           "negative-effective-normal: 12 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0756
+        "seconds": 0.0782
       },
       "delta_pct": 0.011,
       "verdict": "OK",
@@ -370,7 +370,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0536,
+        "seconds": 0.0544,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -383,7 +383,7 @@
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0458
+        "seconds": 0.0455
       },
       "delta_pct": 0.213,
       "verdict": "OK",
@@ -403,7 +403,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0015,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal_major"
         ]
@@ -416,7 +416,7 @@
           "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0008
+        "seconds": 0.0009
       },
       "delta_pct": 0.1786,
       "verdict": "OK",
@@ -434,7 +434,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1672,
+        "seconds": 0.1693,
         "warnings": [
           "negative_lambda",
           "multiple_admissible_roots",
@@ -449,7 +449,7 @@
           "negative-effective-normal: 7 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 89° and 7 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0824
+        "seconds": 0.0841
       },
       "delta_pct": 0.5614,
       "verdict": "OK",
@@ -469,7 +469,7 @@
         "status": "not_converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0017,
+        "seconds": 0.0016,
         "warnings": [
           "no_lambda_root"
         ]
@@ -479,7 +479,7 @@
         "status": null,
         "error": "EngineError: No valid slip surface was found. Moment and force equilibrium do not meet where the surface enters the slope at 90°: cohesion along a nearly vertical base can only hold it with tension at the base. A ",
         "warnings": [],
-        "seconds": 0.0009
+        "seconds": 0.0008
       },
       "delta_pct": null,
       "verdict": "OK (concordancia: ambos sin solución)",
@@ -497,7 +497,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1244,
+        "seconds": 0.124,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -509,7 +509,7 @@
         "warnings": [
           "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0325
+        "seconds": 0.0339
       },
       "delta_pct": 0.0069,
       "verdict": "OK",
@@ -529,7 +529,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0015,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -541,7 +541,7 @@
         "warnings": [
           "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0005
+        "seconds": 0.0006
       },
       "delta_pct": 0.0069,
       "verdict": "OK",
@@ -559,7 +559,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.4044,
+        "seconds": 0.4148,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -571,7 +571,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0634
+        "seconds": 0.0613
       },
       "delta_pct": 0.0087,
       "verdict": "OK",
@@ -591,7 +591,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -603,7 +603,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0006
+        "seconds": 0.0007
       },
       "delta_pct": 0.0086,
       "verdict": "OK",
@@ -621,7 +621,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0453,
+        "seconds": 0.0448,
         "warnings": []
       },
       "cslope": {
@@ -631,7 +631,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.047
+        "seconds": 0.0508
       },
       "delta_pct": 0.5796,
       "verdict": "OK",
@@ -661,7 +661,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0006
+        "seconds": 0.0005
       },
       "delta_pct": -0.0003,
       "verdict": "OK",
@@ -679,7 +679,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.132,
+        "seconds": 0.1342,
         "warnings": []
       },
       "cslope": {
@@ -689,7 +689,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.001. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0792
+        "seconds": 0.0791
       },
       "delta_pct": 0.5796,
       "verdict": "OK",
@@ -709,7 +709,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0015,
+        "seconds": 0.0016,
         "warnings": []
       },
       "cslope": {
@@ -719,7 +719,7 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.006. The analysis cannot represent so thin a slide; the slope face governs."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": 0.0,
       "verdict": "OK",
@@ -737,7 +737,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0431,
+        "seconds": 0.0433,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -751,7 +751,7 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.044
+        "seconds": 0.0432
       },
       "delta_pct": 0.0275,
       "verdict": "OK",
@@ -771,7 +771,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -803,7 +803,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1228,
+        "seconds": 0.1233,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -817,7 +817,7 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 75° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0735
+        "seconds": 0.0837
       },
       "delta_pct": 0.0276,
       "verdict": "OK",
@@ -837,7 +837,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -851,7 +851,7 @@
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 76° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0008
       },
       "delta_pct": 0.0264,
       "verdict": "OK",
@@ -869,7 +869,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0314,
+        "seconds": 0.0331,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -881,7 +881,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0419
+        "seconds": 0.0468
       },
       "delta_pct": 0.142,
       "verdict": "OK",
@@ -901,7 +901,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0014,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -913,7 +913,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0005
+        "seconds": 0.0006
       },
       "delta_pct": 0.0256,
       "verdict": "OK",
@@ -931,7 +931,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1365,
+        "seconds": 0.1397,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -943,7 +943,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0708
+        "seconds": 0.0736
       },
       "delta_pct": 0.1422,
       "verdict": "OK",
@@ -963,7 +963,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0017,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -975,7 +975,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0006
+        "seconds": 0.0005
       },
       "delta_pct": 0.0257,
       "verdict": "OK",
@@ -993,7 +993,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0656,
+        "seconds": 0.0642,
         "warnings": []
       },
       "cslope": {
@@ -1001,7 +1001,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0443
+        "seconds": 0.0453
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -1021,7 +1021,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0015,
+        "seconds": 0.0013,
         "warnings": []
       },
       "cslope": {
@@ -1029,7 +1029,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0368
+        "seconds": 0.0337
       },
       "delta_pct": 0.0041,
       "verdict": "OK",
@@ -1047,7 +1047,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.254,
+        "seconds": 0.2507,
         "warnings": []
       },
       "cslope": {
@@ -1055,7 +1055,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0651
+        "seconds": 0.0642
       },
       "delta_pct": 0.0046,
       "verdict": "OK",
@@ -1083,7 +1083,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.035
+        "seconds": 0.0351
       },
       "delta_pct": 0.0046,
       "verdict": "OK",
@@ -1101,7 +1101,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.073,
+        "seconds": 0.074,
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -1114,7 +1114,7 @@
         "warnings": [
           "negative-effective-normal: 5 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.047
+        "seconds": 0.0494
       },
       "delta_pct": 0.0153,
       "verdict": "OK",
@@ -1164,7 +1164,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.3236,
+        "seconds": 0.3226,
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -1177,7 +1177,7 @@
         "warnings": [
           "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.1709
+        "seconds": 0.1693
       },
       "delta_pct": -0.0127,
       "verdict": "OK",
@@ -1209,7 +1209,7 @@
         "warnings": [
           "negative-effective-normal: 13 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0008
+        "seconds": 0.0009
       },
       "delta_pct": 0.0111,
       "verdict": "OK",
@@ -1227,7 +1227,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0382,
+        "seconds": 0.0381,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1240,7 +1240,7 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0477
+        "seconds": 0.0455
       },
       "delta_pct": 0.0361,
       "verdict": "OK",
@@ -1260,7 +1260,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0013,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1291,7 +1291,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.141,
+        "seconds": 0.1412,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1304,7 +1304,7 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 72° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
-        "seconds": 0.0767
+        "seconds": 0.0789
       },
       "delta_pct": 0.0342,
       "verdict": "OK",
@@ -1355,7 +1355,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1904,
+        "seconds": 0.1917,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1367,7 +1367,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.033
+        "seconds": 0.0353
       },
       "delta_pct": 0.0066,
       "verdict": "OK",
@@ -1388,7 +1388,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0015,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1420,7 +1420,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.4491,
+        "seconds": 0.4493,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1432,7 +1432,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0582
+        "seconds": 0.0592
       },
       "delta_pct": 0.0068,
       "verdict": "OK",
@@ -1453,7 +1453,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0015,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1485,7 +1485,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0467,
+        "seconds": 0.0465,
         "warnings": []
       },
       "cslope": {
@@ -1493,7 +1493,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0468
+        "seconds": 0.0475
       },
       "delta_pct": 0.6008,
       "verdict": "OK",
@@ -1514,7 +1514,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": []
       },
       "cslope": {
@@ -1522,7 +1522,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0006
+        "seconds": 0.0005
       },
       "delta_pct": -0.0003,
       "verdict": "OK",
@@ -1542,7 +1542,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1496,
+        "seconds": 0.151,
         "warnings": []
       },
       "cslope": {
@@ -1550,7 +1550,7 @@
         "status": "converged",
         "error": null,
         "warnings": [],
-        "seconds": 0.0793
+        "seconds": 0.0792
       },
       "delta_pct": 0.1937,
       "verdict": "OK",
@@ -1571,7 +1571,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0017,
+        "seconds": 0.0016,
         "warnings": []
       },
       "cslope": {
@@ -1611,7 +1611,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0389
+        "seconds": 0.039
       },
       "delta_pct": 0.0318,
       "verdict": "OK",
@@ -1632,7 +1632,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1644,7 +1644,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0005
       },
       "delta_pct": -0.207,
       "verdict": "OK",
@@ -1664,7 +1664,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.1918,
+        "seconds": 0.1936,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1676,7 +1676,7 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.057
+        "seconds": 0.0606
       },
       "delta_pct": 0.0364,
       "verdict": "OK",
@@ -1697,7 +1697,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0017,
+        "seconds": 0.0018,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1709,7 +1709,7 @@
         "warnings": [
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0008
       },
       "delta_pct": -0.2079,
       "verdict": "OK",
@@ -1729,7 +1729,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0937,
+        "seconds": 0.0964,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1742,7 +1742,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0516
+        "seconds": 0.0517
       },
       "delta_pct": 0.0492,
       "verdict": "OK",
@@ -1763,7 +1763,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0016,
+        "seconds": 0.0014,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1776,7 +1776,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0007
+        "seconds": 0.0006
       },
       "delta_pct": 0.0467,
       "verdict": "OK",
@@ -1796,7 +1796,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.3082,
+        "seconds": 0.3087,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1809,7 +1809,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0751
+        "seconds": 0.0774
       },
       "delta_pct": 0.041,
       "verdict": "OK",
@@ -1830,7 +1830,7 @@
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
-        "seconds": 0.0017,
+        "seconds": 0.0016,
         "warnings": [
           "negative_effective_normal"
         ]
@@ -1843,7 +1843,7 @@
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
-        "seconds": 0.0006
+        "seconds": 0.0007
       },
       "delta_pct": 0.0426,
       "verdict": "OK",
@@ -1960,7 +1960,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0005
         },
         "delta_pct": 0.0059,
         "verdict": "OK",
@@ -2018,7 +2018,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0011,
           "warnings": [
             "negative_effective_normal_major"
           ]
@@ -2030,7 +2030,7 @@
           "warnings": [
             "negative-effective-normal: 21 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0004
+          "seconds": 0.0007
         },
         "delta_pct": 0.019,
         "verdict": "OK",
@@ -2088,7 +2088,7 @@
           "status": "not_converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0008,
           "warnings": [
             "no_lambda_root"
           ]
@@ -2098,7 +2098,7 @@
           "status": null,
           "error": "EngineError: No valid slip surface was found. Moment and force equilibrium do not meet where the surface enters the slope at 90°: cohesion along a nearly vertical base can only hold it with tension at the base. A ",
           "warnings": [],
-          "seconds": 0.0006
+          "seconds": 0.0005
         },
         "delta_pct": null,
         "verdict": "OK (concordancia: ambos sin solución)",
@@ -2122,7 +2122,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0008,
           "warnings": [
             "negative_effective_normal_major"
           ]
@@ -2135,7 +2135,7 @@
             "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 90° and 9 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0005
         },
         "delta_pct": 0.1252,
         "verdict": "OK",
@@ -2157,7 +2157,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0009,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2169,7 +2169,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0089,
         "verdict": "OK",
@@ -2261,7 +2261,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0009,
           "warnings": []
         },
         "cslope": {
@@ -2271,7 +2271,7 @@
           "warnings": [
             "frictional-surface-slide: The ground surface from (10.00, 25.00) to (43.18, 0.00) in waste (c′ = 0, φ′ = 37.0°) is inclined at 37.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.000, below 1.011. The analysis cannot represent so thin a slide; the slope face governs."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0004
         },
         "delta_pct": 0.0001,
         "verdict": "OK",
@@ -2293,7 +2293,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0009,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2307,7 +2307,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 76° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0004
+          "seconds": 0.0005
         },
         "delta_pct": 0.0279,
         "verdict": "OK",
@@ -2331,7 +2331,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0007,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2367,7 +2367,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0009,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2415,7 +2415,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0004
         },
         "delta_pct": 0.0397,
         "verdict": "OK",
@@ -2437,7 +2437,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0009,
           "warnings": []
         },
         "cslope": {
@@ -2445,7 +2445,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0347
+          "seconds": 0.0336
         },
         "delta_pct": 0.0046,
         "verdict": "OK",
@@ -2469,7 +2469,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0008,
           "warnings": []
         },
         "cslope": {
@@ -2477,7 +2477,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0341
+          "seconds": 0.0335
         },
         "delta_pct": 0.009,
         "verdict": "OK",
@@ -2499,7 +2499,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0012,
+          "seconds": 0.001,
           "warnings": [
             "negative_effective_normal_major"
           ]
@@ -2547,7 +2547,7 @@
           "warnings": [
             "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0427,
         "verdict": "OK",
@@ -2569,7 +2569,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.001,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2582,7 +2582,7 @@
             "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0005
         },
         "delta_pct": 0.037,
         "verdict": "OK",
@@ -2606,7 +2606,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.001,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2619,7 +2619,7 @@
             "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 73° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0004
         },
         "delta_pct": 0.0318,
         "verdict": "OK",
@@ -2641,7 +2641,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0009,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2678,7 +2678,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.001,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2714,7 +2714,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.001,
           "warnings": []
         },
         "cslope": {
@@ -2747,7 +2747,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0007,
+          "seconds": 0.001,
           "warnings": []
         },
         "cslope": {
@@ -2755,7 +2755,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0003
+          "seconds": 0.0005
         },
         "delta_pct": 0.0011,
         "verdict": "OK",
@@ -2779,7 +2779,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0011,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2791,7 +2791,7 @@
           "warnings": [
             "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0004
         },
         "delta_pct": -0.2092,
         "verdict": "OK",
@@ -2816,7 +2816,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0007,
+          "seconds": 0.0011,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2852,7 +2852,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0013,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2865,7 +2865,7 @@
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0005
         },
         "delta_pct": 0.0439,
         "verdict": "OK",
@@ -2890,7 +2890,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0012,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2927,7 +2927,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.1005,
+          "seconds": 0.0999,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2940,7 +2940,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0442
+          "seconds": 0.0465
         },
         "delta_pct": -0.1769,
         "verdict": "OK",
@@ -2964,7 +2964,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0016,
+          "seconds": 0.0014,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -2977,7 +2977,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0009
+          "seconds": 0.0008
         },
         "delta_pct": 0.0282,
         "verdict": "OK",
@@ -2999,7 +2999,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.3757,
+          "seconds": 0.3711,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3012,7 +3012,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0572
+          "seconds": 0.0599
         },
         "delta_pct": -0.1977,
         "verdict": "OK",
@@ -3036,7 +3036,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0017,
+          "seconds": 0.0015,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3049,7 +3049,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.001
+          "seconds": 0.0009
         },
         "delta_pct": 0.0341,
         "verdict": "OK",
@@ -3085,7 +3085,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0008
         },
         "delta_pct": 0.034,
         "verdict": "OK",
@@ -3110,7 +3110,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0014,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3145,7 +3145,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0726,
+          "seconds": 0.0707,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3157,7 +3157,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0416
+          "seconds": 0.0414
         },
         "delta_pct": -0.511,
         "verdict": "OK",
@@ -3181,7 +3181,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0016,
+          "seconds": 0.0014,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3193,7 +3193,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0009
+          "seconds": 0.0007
         },
         "delta_pct": 0.0068,
         "verdict": "OK",
@@ -3215,7 +3215,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.3193,
+          "seconds": 0.3225,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3227,7 +3227,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0575
+          "seconds": 0.0589
         },
         "delta_pct": -0.511,
         "verdict": "OK",
@@ -3251,7 +3251,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0017,
+          "seconds": 0.0016,
           "warnings": []
         },
         "cslope": {
@@ -3261,7 +3261,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0008
+          "seconds": 0.0009
         },
         "delta_pct": 0.0027,
         "verdict": "OK",
@@ -3284,7 +3284,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0015,
+          "seconds": 0.0013,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3296,7 +3296,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0008
+          "seconds": 0.0006
         },
         "delta_pct": 0.0027,
         "verdict": "OK",
@@ -3321,7 +3321,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0011,
+          "seconds": 0.0008,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3333,7 +3333,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0007
         },
         "delta_pct": 0.0096,
         "verdict": "OK",
@@ -3355,7 +3355,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0011,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3368,7 +3368,7 @@
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 71° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0007
+          "seconds": 0.0008
         },
         "delta_pct": -0.0002,
         "verdict": "OK",
@@ -3391,7 +3391,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0012,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3404,7 +3404,7 @@
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 71° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0009
         },
         "delta_pct": 0.0034,
         "verdict": "OK",
@@ -3429,7 +3429,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.001,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3442,7 +3442,7 @@
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 71° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0006
         },
         "delta_pct": 0.0029,
         "verdict": "OK",
@@ -3464,7 +3464,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0668,
+          "seconds": 0.0673,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3477,7 +3477,7 @@
             "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 72° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0454
+          "seconds": 0.0455
         },
         "delta_pct": 0.5627,
         "verdict": "OK",
@@ -3513,7 +3513,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0007
+          "seconds": 0.0008
         },
         "delta_pct": 0.1038,
         "verdict": "OK",
@@ -3535,7 +3535,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.325,
+          "seconds": 0.3244,
           "warnings": [
             "negative_lambda",
             "negative_effective_normal"
@@ -3549,7 +3549,7 @@
             "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 72° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.1296
+          "seconds": 0.1255
         },
         "delta_pct": 0.5587,
         "verdict": "OK",
@@ -3573,7 +3573,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0017,
+          "seconds": 0.0016,
           "warnings": [
             "negative_lambda",
             "negative_effective_normal"
@@ -3586,7 +3586,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0007
+          "seconds": 0.0006
         },
         "delta_pct": 0.1033,
         "verdict": "OK",
@@ -3609,7 +3609,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0013,
+          "seconds": 0.0015,
           "warnings": [
             "negative_lambda",
             "negative_effective_normal"
@@ -3622,7 +3622,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0006
         },
         "delta_pct": 0.1033,
         "verdict": "OK",
@@ -3647,7 +3647,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0011,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -3659,7 +3659,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0003
+          "seconds": 0.0004
         },
         "delta_pct": 0.1601,
         "verdict": "OK",
@@ -3679,7 +3679,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.099,
+          "seconds": 0.0958,
           "warnings": []
         },
         "cslope": {
@@ -3689,7 +3689,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0368
+          "seconds": 0.0395
         },
         "delta_pct": 0.0058,
         "verdict": "OK",
@@ -3721,7 +3721,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0009
+          "seconds": 0.0008
         },
         "delta_pct": 0.0057,
         "verdict": "OK",
@@ -3741,7 +3741,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.3035,
+          "seconds": 0.31,
           "warnings": []
         },
         "cslope": {
@@ -3751,7 +3751,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0525
+          "seconds": 0.0522
         },
         "delta_pct": 0.0105,
         "verdict": "OK",
@@ -3773,7 +3773,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0016,
+          "seconds": 0.0017,
           "warnings": []
         },
         "cslope": {
@@ -3783,7 +3783,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.001
+          "seconds": 0.0009
         },
         "delta_pct": 0.0088,
         "verdict": "OK",
@@ -3871,7 +3871,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0968,
+          "seconds": 0.0954,
           "warnings": []
         },
         "cslope": {
@@ -3881,7 +3881,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0364
+          "seconds": 0.0366
         },
         "delta_pct": 0.0058,
         "verdict": "OK",
@@ -3903,7 +3903,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0014,
+          "seconds": 0.0015,
           "warnings": []
         },
         "cslope": {
@@ -3913,7 +3913,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0008
+          "seconds": 0.0009
         },
         "delta_pct": 0.0057,
         "verdict": "OK",
@@ -3933,7 +3933,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.3039,
+          "seconds": 0.3047,
           "warnings": []
         },
         "cslope": {
@@ -3943,7 +3943,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0517
+          "seconds": 0.0532
         },
         "delta_pct": 0.0105,
         "verdict": "OK",
@@ -3975,7 +3975,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.001
+          "seconds": 0.0009
         },
         "delta_pct": 0.0088,
         "verdict": "OK",
@@ -4031,7 +4031,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0009,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -4174,7 +4174,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.0007,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -4324,7 +4324,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0012,
+          "seconds": 0.0007,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -4336,7 +4336,7 @@
           "warnings": [
             "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0003
         },
         "delta_pct": 0.0,
         "verdict": "OK",
@@ -4361,7 +4361,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0007,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -4373,7 +4373,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0,
         "verdict": "OK",
@@ -4399,7 +4399,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0007,
+          "seconds": 0.0008,
           "warnings": [
             "negative_effective_normal"
           ]
@@ -4484,7 +4484,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0012,
           "warnings": [
             "reinforcement_outside_mass"
           ]
@@ -4518,7 +4518,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0011,
           "warnings": [
             "reinforcement_outside_mass"
           ]
@@ -4553,7 +4553,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0008,
+          "seconds": 0.001,
           "warnings": [
             "reinforcement_outside_mass"
           ]
@@ -4625,7 +4625,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0013,
           "warnings": [
             "reinforcement_outside_mass",
             "truncated_mass"
@@ -4636,7 +4636,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0007
+          "seconds": 0.0011
         },
         "delta_pct": -0.0011,
         "verdict": "OK",
@@ -4661,7 +4661,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0009,
+          "seconds": 0.0012,
           "warnings": [
             "reinforcement_outside_mass",
             "truncated_mass",
@@ -4675,7 +4675,7 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0009
+          "seconds": 0.0007
         },
         "delta_pct": -0.0017,
         "verdict": "OK",
@@ -4700,7 +4700,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0008,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4710,7 +4710,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0005
+          "seconds": 0.0003
         },
         "delta_pct": 0.0228,
         "verdict": "OK",
@@ -4736,7 +4736,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.0014,
+          "seconds": 0.001,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4746,7 +4746,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0006
+          "seconds": 0.0003
         },
         "delta_pct": 0.0304,
         "verdict": "OK",
@@ -4773,7 +4773,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0008,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4783,7 +4783,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0989,
         "verdict": "OK",
@@ -4808,7 +4808,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0007,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4818,7 +4818,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0178,
         "verdict": "OK",
@@ -4843,7 +4843,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0009,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4853,7 +4853,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0005
+          "seconds": 0.0003
         },
         "delta_pct": 0.0246,
         "verdict": "OK",
@@ -4879,7 +4879,7 @@
           "status": "converged",
           "error": null,
           "engine": "ogs-core 0.3.0",
-          "seconds": 0.001,
+          "seconds": 0.0008,
           "warnings": [
             "structural_checks_not_covered"
           ]
@@ -4889,7 +4889,7 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0004
+          "seconds": 0.0003
         },
         "delta_pct": 0.0176,
         "verdict": "OK",
@@ -4910,12 +4910,12 @@
     },
     "capabilities": {
       "ponded_water": {
-        "supported": false,
-        "detail": "Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)"
+        "supported": true,
+        "detail": ""
       },
       "tension_crack": {
-        "supported": false,
-        "detail": "exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:"
+        "supported": true,
+        "detail": ""
       }
     },
     "cases": [
@@ -4981,11 +4981,11 @@
       }
     ],
     "summary": {
-      "OK": 0,
+      "OK": 44,
       "ambos_sin_solucion": 0,
-      "FALLA": 0,
-      "sin dato": 0,
-      "pendiente": 48,
+      "FALLA": 2,
+      "sin dato": 2,
+      "pendiente": 0,
       "N": 48
     },
     "checks": [
@@ -5000,12 +5000,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9245565421047832,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0707,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9243276406651911,
@@ -5016,11 +5018,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0487
+          "seconds": 0.0527
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0248,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5036,12 +5038,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.924581760760861,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9243276406651911,
@@ -5052,11 +5056,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0275,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5070,12 +5074,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.92425172008736,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.2354,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9239963556376728,
@@ -5086,11 +5092,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0637
+          "seconds": 0.0656
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0276,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5106,12 +5112,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9242666596538587,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9239983319923235,
@@ -5124,9 +5132,9 @@
           ],
           "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.029,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5140,12 +5148,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9543629641642529,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0724,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9539999599411636,
@@ -5156,11 +5166,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0474
+          "seconds": 0.0471
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0381,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5176,12 +5186,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9543759361758745,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9539999599411636,
@@ -5192,11 +5204,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0394,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5210,12 +5222,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9553446413304801,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.3129,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.954932224436836,
@@ -5226,11 +5240,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0621
+          "seconds": 0.0619
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0432,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5246,12 +5260,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9553512223427022,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9549470790564683,
@@ -5262,11 +5278,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0423,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5280,12 +5296,16 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.8247796011512927,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0997,
+          "warnings": [
+            "truncated_mass",
+            "effective_ends_outside_range",
+            "negative_effective_normal_major"
+          ]
         },
         "cslope": {
           "fos": 1.5142573359915086,
@@ -5297,11 +5317,11 @@
             "negative-effective-normal: 8 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 84° and 8 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0174
+          "seconds": 0.0184
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": -45.5324,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5317,12 +5337,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2807210015650838,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0012,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.5142573359915086,
@@ -5334,11 +5357,11 @@
             "negative-effective-normal: 8 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 84° and 8 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": -15.4225,
+        "verdict": "FALLA",
+        "reason": "|Δ| = 15.42 % > 0,5 %",
         "notes": []
       },
       {
@@ -5352,12 +5375,17 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9701803568303325,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.2744,
+          "warnings": [
+            "truncated_mass",
+            "effective_ends_outside_range",
+            "negative_lambda",
+            "negative_effective_normal_major"
+          ]
         },
         "cslope": {
           "fos": 1.5127968415567141,
@@ -5369,11 +5397,11 @@
             "negative-effective-normal: 7 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
             "steep-entry-tension: The surface enters the slope at 84° and 7 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
           ],
-          "seconds": 0.0256
+          "seconds": 0.0258
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": -35.8684,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5389,12 +5417,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2809169529500162,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0014,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.5127968415567141,
@@ -5408,9 +5439,9 @@
           ],
           "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": -15.3279,
+        "verdict": "FALLA",
+        "reason": "|Δ| = 15.33 % > 0,5 %",
         "notes": []
       },
       {
@@ -5424,12 +5455,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.6132244095452517,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1255,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.612102600842284,
@@ -5438,11 +5471,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0556
+          "seconds": 0.0557
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0429,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5458,12 +5491,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.613288676571082,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.612102600842284,
@@ -5472,11 +5507,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.0454,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5490,12 +5525,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.613351457607402,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.5805,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.6120982209654082,
@@ -5504,11 +5541,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0715
+          "seconds": 0.0782
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.048,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5524,12 +5561,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.613404975254457,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.612099171081976,
@@ -5538,11 +5577,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %))",
+        "delta_pct": 0.05,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5556,12 +5595,15 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.211345448614523,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0555,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.2113361802604683,
@@ -5570,11 +5612,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0378
+          "seconds": 0.0424
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0008,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5590,12 +5632,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2113466460434945,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.2113361802604683,
@@ -5604,11 +5649,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0009,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5622,23 +5667,25 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2050838746843024,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1429,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.2050605231421196,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0522
+          "seconds": 0.0537
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0019,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5654,23 +5701,25 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2052532763184347,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0015,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.2052265762912344,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0022,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5684,12 +5733,15 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.167421552785695,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0545,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.16740519606277,
@@ -5698,11 +5750,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0355
+          "seconds": 0.035
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0014,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5718,12 +5770,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.1674242060050872,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0014,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.16740519606277,
@@ -5732,11 +5787,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0016,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5750,12 +5805,15 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.1592315352063007,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.149,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.1592048282859306,
@@ -5764,11 +5822,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.053
+          "seconds": 0.0528
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0023,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5784,12 +5842,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.1595348694080008,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "truncated_mass",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 1.159512673040264,
@@ -5798,11 +5859,11 @@
           "warnings": [
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0019,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5816,23 +5877,25 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0714032486969338,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.132,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0713878872110418,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0446
+          "seconds": 0.047
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0014,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5848,23 +5911,25 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.071412352183522,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0713878872110418,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0008
+          "seconds": 0.0009
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0023,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5878,23 +5943,25 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0538102663295283,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.2429,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0537631120451034,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0615
+          "seconds": 0.0638
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0045,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5910,23 +5977,25 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0543279167636372,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0015,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0542748966812288,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0008
+          "seconds": 0.001
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.005,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -5940,23 +6009,25 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0487598067227093,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1462,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0487391942290218,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.048
+          "seconds": 0.0489
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.002,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -5972,23 +6043,25 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.048764192043148,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0487391942290218,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0008
+          "seconds": 0.0009
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0024,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6002,23 +6075,25 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0304810138475393,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.2538,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0304205871494776,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0656
+          "seconds": 0.0763
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0059,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6034,23 +6109,25 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.0308534069280468,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "truncated_mass"
+          ]
         },
         "cslope": {
           "fos": 1.0307985664760304,
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0009
+          "seconds": 0.001
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0053,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6065,12 +6142,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9119265022749613,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0545,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9117817740763187,
@@ -6081,11 +6160,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0383
+          "seconds": 0.0394
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0159,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6102,12 +6181,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9119055124698542,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9117817740763187,
@@ -6118,11 +6199,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0005
+          "seconds": 0.0008
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0136,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6137,12 +6218,15 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9115233003054636,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1593,
+          "warnings": [
+            "water_above_ground",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 0.9113971622071438,
@@ -6154,11 +6238,11 @@
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.051
+          "seconds": 0.0527
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0138,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6175,12 +6259,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.9115692772724945,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0016,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.9114385648404045,
@@ -6191,11 +6277,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0143,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6210,12 +6296,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.5958045585490632,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1841,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.5948757104344327,
@@ -6224,11 +6312,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0592
+          "seconds": 0.0602
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0358,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6245,12 +6333,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.595810618223425,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.5948757104344327,
@@ -6259,11 +6349,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0007
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.036,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6278,12 +6368,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.595883319835341,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.6457,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.5948459838843934,
@@ -6292,11 +6384,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0776
+          "seconds": 0.0879
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.04,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6313,12 +6405,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 2.5958899946747644,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0017,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 2.5948474005501803,
@@ -6327,11 +6421,11 @@
           "warnings": [
             "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0008
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0402,
+        "verdict": "OK",
+        "reason": "",
         "notes": []
       },
       {
@@ -6346,12 +6440,14 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.736119395502904,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0686,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.7359245373742116,
@@ -6362,11 +6458,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0383
+          "seconds": 0.0409
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0265,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
@@ -6384,12 +6480,14 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.7360273542336254,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0015,
+          "warnings": [
+            "water_above_ground"
+          ]
         },
         "cslope": {
           "fos": 0.7359245373742116,
@@ -6402,9 +6500,9 @@
           ],
           "seconds": 0.0006
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.014,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
         ]
@@ -6421,12 +6519,15 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.7388045759506267,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1811,
+          "warnings": [
+            "water_above_ground",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 0.7387960516805776,
@@ -6438,11 +6539,11 @@
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
             "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
           ],
-          "seconds": 0.0563
+          "seconds": 0.0573
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0012,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
@@ -6460,12 +6561,15 @@
         ],
         "criterion": "fija: |Δ| ≤ 0,5 %",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 0.7388908172231636,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
-          "warnings": []
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0018,
+          "warnings": [
+            "water_above_ground",
+            "negative_effective_normal"
+          ]
         },
         "cslope": {
           "fos": 0.7388062473733888,
@@ -6476,11 +6580,11 @@
             "outside-model: The point at x = 100 lies outside the model (x 20 to 70): the line is cut at the model's edge.",
             "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
           ],
-          "seconds": 0.0006
+          "seconds": 0.0008
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de ponded_water (Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %)), tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0114,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "sismo pseudoestático kh=0.1, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl)."
         ]
@@ -6496,11 +6600,11 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2269097034622922,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.0693,
           "warnings": []
         },
         "cslope": {
@@ -6508,11 +6612,11 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0359
+          "seconds": 0.0384
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0497,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6530,9 +6634,9 @@
         "ogs": {
           "fos": null,
           "status": null,
-          "error": null,
+          "error": "exit 2: ogs: NoValidSurface: el arco de deslizamiento sale del modelo",
           "engine": null,
-          "seconds": 0.0,
+          "seconds": 0.0013,
           "warnings": []
         },
         "cslope": {
@@ -6540,11 +6644,11 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0005
+          "seconds": 0.0007
         },
         "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "verdict": "sin dato",
+        "reason": "ogs: exit 2: ogs: NoValidSurface: el arco de deslizamiento sale del modelo",
         "notes": []
       },
       {
@@ -6558,11 +6662,11 @@
         ],
         "criterion": "búsqueda: ogs ≤ cSlope·1,01",
         "ogs": {
-          "fos": null,
-          "status": null,
+          "fos": 1.2269586254806175,
+          "status": "converged",
           "error": null,
-          "engine": null,
-          "seconds": 0.0,
+          "engine": "ogs-core 0.3.0",
+          "seconds": 0.1541,
           "warnings": []
         },
         "cslope": {
@@ -6570,11 +6674,11 @@
           "status": "converged",
           "error": null,
           "warnings": [],
-          "seconds": 0.0443
+          "seconds": 0.0431
         },
-        "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "delta_pct": 0.0537,
+        "verdict": "OK",
+        "reason": "",
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -6592,9 +6696,9 @@
         "ogs": {
           "fos": null,
           "status": null,
-          "error": null,
+          "error": "exit 2: ogs: NoValidSurface: el arco de deslizamiento sale del modelo",
           "engine": null,
-          "seconds": 0.0,
+          "seconds": 0.0013,
           "warnings": []
         },
         "cslope": {
@@ -6605,8 +6709,8 @@
           "seconds": 0.0006
         },
         "delta_pct": null,
-        "verdict": "pendiente",
-        "reason": "motor sin soporte de tension_crack (exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5:)",
+        "verdict": "sin dato",
+        "reason": "ogs: exit 2: ogs: NoValidSurface: el arco de deslizamiento sale del modelo",
         "notes": []
       }
     ]
