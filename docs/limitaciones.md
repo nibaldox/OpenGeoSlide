@@ -2,8 +2,8 @@
 
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
-con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción y agua embalsada: formato v0.5, en desarrollo y
-sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
+v0.5, en desarrollo y sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
@@ -23,6 +23,10 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
   una tablestaca o un pilote, el empotramiento, el momento flector ni la deflexión
   ([el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). Lo que se pospone está
   [más abajo](#refuerzos-formato-v04-qué-hace-y-qué-no).
+- **Pilotes de Ito-Matsui con límites** (formato v0.5, en desarrollo): la fuerza que el suelo entre pilotes ejerce sobre
+  una fila de pilotes **rígidos y verticales**, en deformación plana, con S/D de 2 a 8 como rango de validez de la
+  fórmula. Es una estimación de la presión del suelo, no el diseño del pilote. Los detalles están
+  [más abajo](#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no).
 - **Grieta de tracción con límites** (formato v0.5, en desarrollo): solo vertical, una por superficie, sin zona ni
   ángulo, sin tope de profundidad y con la regla de que descarta los candidatos que no la alcanzan. El **agua embalsada**
   (agua sobre el terreno) se incluye ahora en todas las versiones, con límites: sin desembalse rápido, sin sismo sobre el
@@ -319,7 +323,8 @@ redondeo ahora da un resultado; ninguno de los modelos sin refuerzos que la v0.2
 
 > **OpenGeoSlide calcula la estabilidad global con el pilote o la tablestaca incluidos como una fuerza. No calcula:**
 >
-> - **el empuje del suelo sobre el elemento;**
+> - **el empuje del suelo sobre el elemento** (con `force`, que es un dato; la presión de Ito-Matsui, con
+>   `lateral_pressure`, es una estimación aparte: [más abajo](#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no));
 > - **el empotramiento necesario;**
 > - **el momento flector;**
 > - **la deflexión;**
@@ -329,8 +334,9 @@ redondeo ahora da un resultado; ninguno de los modelos sin refuerzos que la v0.2
 - La `force` de un `pile` o de una `sheet_pile` es un **dato** que usted fija: es la fuerza de corte que el elemento
   puede entregar en el cruce con la superficie. El motor no comprueba que el elemento la resista ni que el suelo se la
   transmita.
-- Es una fuerza **constante** en el cruce. No hay perfil de empuje (Ito-Matsui, pospuesto), y el campo `location` se
-  quitó del formato porque con fuerza constante no cambia ningún número (E14m-3).
+- Con `force` es una fuerza **constante** en el cruce: no hay perfil de empuje, y el campo `location` no existe en el
+  pilote porque con fuerza constante no cambia ningún número (E14m-3). El perfil de empuje de Ito-Matsui existe desde la
+  v0.5, con `lateral_pressure` en lugar de `force`, y `location` va dentro de ese objeto.
 - El motor emite la nota `structural_checks_not_covered` siempre que el modelo tiene un `pile` o una `sheet_pile`, la
   crucen o no. El informe PDF, la Ayuda y la tabla de fuerzas de la web repiten el texto del límite.
 - Para el empuje, el empotramiento, el momento y la deflexión hace falta un cálculo de muro, de vigas sobre resortes o
@@ -342,8 +348,8 @@ redondeo ahora da un resultado; ninguno de los modelos sin refuerzos que la v0.2
 
 No existen hoy, ni en el formato ni en el motor:
 
-- **Ito-Matsui** (la fuerza de pilote calculada por el empuje del suelo), que irá en una ola propia, después del bloque
-  de grieta de tracción y agua embalsada;
+- **Ito-Matsui** existe desde la v0.5 (véase [abajo](#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no)). Sigue sin
+  existir otro modelo de presión de suelo sobre el pilote: `lateral_pressure.model` solo admite `"ito_matsui"`;
 - el campo de **pretensado**: el pretensado es un `anchor` activo con la carga de bloqueo como capacidad, igual que en
   Slide2;
 - la **cizalla y la compresión de los clavos**: un clavo trabaja solo a tracción;
@@ -613,6 +619,50 @@ masa truncada y no al arco completo.
 Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte, y los 6 checks
 retenidos, están en [`verification/pending/F3G/INDEX.md`](../verification/pending/F3G/INDEX.md), con el motivo de cada
 uno; los otros 31 casos (80 checks) están promovidos a `verification/cases/`.
+
+## Pilotes de Ito-Matsui (E15i): qué hace y qué no
+
+Un `pile` con `lateral_pressure` ([formato](formato-ogs-json.md#pilotes-con-presión-de-suelo-de-ito-matsui-v05)) calcula
+la fuerza del suelo entre pilotes con la fórmula de Ito y Matsui (1975), *Soils and Foundations* 15(4):43-59,
+ecuaciones 13, 14 y 23, y la aplica en el cruce con la superficie como cualquier otro refuerzo. En el corpus, los
+checks V013b a V013e (Cai y Ugai, 2000) la reproducen, y 28 filas de superficie fija coinciden con cSlope a 0,06 % o
+menos en los cinco métodos. **Esto no es el diseño de un pilote:** el límite estructural de
+[arriba](#pilotes-y-tablestacas-el-límite-estructural-f48) sigue vigente (empotramiento, flexión, deflexión).
+
+- **Pilotes rígidos y verticales.** La fórmula supone un pilote rígido: no hay deflexión ni reacción del suelo según el
+  desplazamiento del pilote. El motor rechaza un pilote inclinado cuando lleva `lateral_pressure`.
+- **Deformación plana.** El artículo supone dos superficies plásticas que se forman entre pilotes y presión activa de
+  Rankine en el plano AA′; no representa el efecto tridimensional de un pilote aislado.
+- **Rango de validez: S/D de 2 a 8.** Fuera de él, el motor emite el aviso `ito_matsui_spacing_range`. La crítica
+  publicada de Ukritchon y Keawsawasvong (2017), *J. Geotech. Geoenviron. Eng.* 143(9), con análisis límite por
+  elementos finitos, encuentra que la solución de Ito y Matsui **sobrestima** la fuerza con S/D pequeño y la
+  **subestima** con S/D grande, más cuanto mayor es φ (solo se leyó el resumen). El motor no corrige la fórmula, porque
+  los valores publicados que la usan la aplican tal cual: avisa. Con `S/D = 1,5` en el ejemplo del formato, la fuerza
+  crece tanto que el FS de Bishop pasa de 1,4373 (S/D = 3) a 3,2864.
+- **Piso de φ = 0 que no viene del artículo.** El motor toma `A = max(A_cφ, A_φ=0)`, la regla de cSlope y de XSLOPE,
+  para que la fuerza no baje al subir φ. Solo actúa con S/D ≥ 8 (por ejemplo, S/D = 10 con φ ≤ 9,85°). Se documenta como
+  una decisión de esos programas, no como parte de la fórmula original.
+- **Con φ = 0 o un material `undrained`** se usa la ecuación 23 con la tensión **total** `σv`, porque los parámetros no
+  drenados son de tensión total. Con Mohr-Coulomb de φ < 0,01° pasa lo mismo.
+- **Las cargas de superficie no entran en `σv`.** Ni `udl` ni `line` suman a la sobrecarga del pilote, como en cSlope. Una
+  sobrecarga en la corona **no** aumenta la presión que calcula la fórmula, aunque sí carga la masa que desliza.
+- **`ru` se aplica como `σ′v = σv − u − ru·σ_suelo`** en la integración de la presión (la regla de cSlope). Es una regla
+  distinta de la del cuerpo de las dovelas, donde `u = ru·(W + V)/b` (E15c): en un modelo con `ru` y un pilote de
+  Ito-Matsui, las dos cuentas coexisten y no se comparan entre sí.
+- **El agua actúa por las dos caras del pilote**: no empuja. Entra solo en `σ′v` (γ′ bajo la piezométrica) y el agua
+  embalsada sobre el terreno suma su peso a `σv`.
+- **Es una estimación por capas.** Se integra con la regla del punto medio y un paso de 0,05 m en el material, `c` y φ de
+  cada punto; no hay un análisis de interacción suelo-estructura. Con un paso de 0,002 m el FS cambia 1,7e-3 % o menos
+  (X22).
+- **La `capacity` es un tope, no una comprobación.** `min(∫p dz, shear, moment/L_m)` por pilote: el motor reduce la fuerza
+  al límite que usted declara y lo informa en `governs`, pero no verifica el perfil, la armadura ni el momento de
+  fluencia. `L_m` es el brazo de la resultante de la presión, no una distribución de momentos en el pilote.
+- **Con `centroid`, la posición de la fuerza** (a `L_m` sobre el cruce) es la de cSlope y de Cai y Ugai (2000); con
+  Janbu, que no tiene ecuación de momentos, la posición no cambia el FS.
+- **Un pilote que no cruza la superficie no aplica fuerza**, como cualquier refuerzo. Si el círculo crítico sale justo en
+  la cabeza del pilote (un cruce en el extremo no cuenta), el pilote no aparece en el resultado: es lo que mide X22 en
+  V013b con el círculo crítico de cSlope.
+- **Con refuerzos, la búsqueda circular puede esquivar el pilote** ([más arriba](#la-búsqueda-con-refuerzos-tiene-discontinuidades)).
 
 ## Avisos geotécnicos de la aplicación
 
