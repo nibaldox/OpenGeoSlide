@@ -44,10 +44,12 @@ export function Modal({ title, onCancel, children, initialFocus }: {
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Quien tenía el foco al abrir. Se fija una sola vez, al montar: en desarrollo (StrictMode) el efecto corre dos veces y la segunda el foco
+  // ya estaría en el diálogo, de modo que «volver al disparador» devolvería el foco a <body> (u3o_onboarding 11b).
+  const [previous] = useState<HTMLElement | null>(() => (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null));
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
     pickInitialFocus(initialFocus?.current, titleRef.current)?.focus();
     // Al desmontar, el navegador saca el diálogo de la capa superior y devuelve la inercia al resto de la página;
@@ -57,7 +59,7 @@ export function Modal({ title, onCancel, children, initialFocus }: {
       // el foco nunca cae en <body> (R9-11c).
       restoreFocus(null, previous, { preventScroll: true });
     };
-  }, []);
+  }, [previous]);
   return (
     <dialog
       ref={dialogRef}
