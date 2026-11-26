@@ -63,3 +63,16 @@ describe('R10B-08: validateLocal detecta los campos de 0.3 con una versión insu
     expect(validateLocal(baseDoc()).filter((i) => i.path === '/version')).toEqual([]);
   });
 });
+
+describe('R10B-04c: `methods` omitido vale ["bishop"]', () => {
+  it('una polilínea fija con `analysis.methods` omitido es el error de Bishop con polilínea, igual que el motor', () => {
+    const doc = v03Doc();
+    const { methods: _m, ...analysis } = doc.analysis;
+    void _m;
+    const issues = validateLocal({ ...doc, analysis } as ModelDoc);
+    expect(issues.filter((i) => i.path === '/analysis/methods').map((i) => i.text)).toEqual([expect.stringContaining("'bishop' solo admite superficies circulares")]);
+  });
+  it('con métodos explícitos sin Bishop no hay error', () => {
+    expect(validateLocal(v03Doc()).filter((i) => i.path === '/analysis/methods')).toEqual([]);
+  });
+});

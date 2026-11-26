@@ -561,7 +561,7 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
   if (s !== undefined && s !== null && s.type === 'polyline') {
     validatePolyline(s.points, extent, issues);
     // F3.6: Bishop depende del eje de momentos en una polilínea; solo importa cuando la polilínea es la superficie que se analiza (sin búsqueda).
-    if ((a.search === undefined || a.search === null) && (a.methods ?? []).includes('bishop')) {
+    if ((a.search === undefined || a.search === null) && (a.methods ?? ['bishop']).includes('bishop')) {
       issues.push(error('editor.out_of_range', `${RULE_TEXT.bishopPolyline}.`, '/analysis/methods'));
     }
   }
