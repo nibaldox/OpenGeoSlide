@@ -21,6 +21,7 @@ import {
   searchCountText,
   searchProductText,
 } from '../state/validateLocal';
+import { isImperialUnits } from '../state/units';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
 // ───────────────────────── Números ─────────────────────────
@@ -146,7 +147,7 @@ export interface UnitLabels {
 
 /** Etiquetas de unidades según `units` del modelo (`imperial` o SI por defecto). */
 export function unitLabels(units: string | undefined): UnitLabels {
-  return units === 'imperial'
+  return isImperialUnits(units)
     ? { length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft' }
     : { length: 'm', unitWeight: 'kN/m³', stress: 'kPa', lineLoad: 'kN/m' };
 }
@@ -293,7 +294,7 @@ export function nextMaterialId(existingIds: readonly string[]): string {
  * usa pcf y psf (mismos valores que `materialForLayer` de la importación DXF); sin él, SI.
  */
 export function newMaterialForm(existingIds: readonly string[], units?: string): MaterialForm {
-  const imperial = units === 'imperial';
+  const imperial = isImperialUnits(units);
   const id = nextMaterialId(existingIds);
   return {
     id,
@@ -407,12 +408,12 @@ export const DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL = 62.4;
 
 /** Valor de referencia de γw (para el marcador del campo) según las unidades del modelo. */
 export function defaultWaterUnitWeight(units: string | undefined): number {
-  return units === 'imperial' ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
+  return isImperialUnits(units) ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
 }
 
 /** Ayuda del campo γw: en imperial avisa de que dejarlo vacío usaría 9,81 (kN/m³), que no es el valor correcto en pcf. */
 export function waterUnitWeightHint(units: string | undefined): string {
-  return units === 'imperial'
+  return isImperialUnits(units)
     ? 'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.'
     : 'Vacío = se usa 9,81 kN/m³.';
 }

@@ -37,9 +37,18 @@ export const UNIT_FACTORS = {
 /** γw por defecto del motor, en kN/m³. */
 const WATER_UNIT_WEIGHT_SI = 9.81;
 
-/** Sistema en el que están expresados los valores del documento: todo lo que no sea `imperial` cuenta como SI. */
+/**
+ * ¿La etiqueta `units` del modelo es imperial? Única detección de la aplicación (R9-03b): no distingue mayúsculas ni espacios
+ * (`imperial`, `Imperial`, ` IMPERIAL `) y acepta la abreviatura `imp…`. El motor trata `units` como un texto libre, así que un
+ * archivo con `"Imperial"` también llega al cálculo con números en pcf: debe tratarse igual que `imperial` en todas partes.
+ */
+export function isImperialUnits(units: string | null | undefined): boolean {
+  return typeof units === 'string' && /^\s*imp/i.test(units);
+}
+
+/** Sistema en el que están expresados los valores del documento: todo lo que no sea imperial cuenta como SI. */
 export function unitSystemOf(doc: Pick<ModelDoc, 'units'>): UnitSystem {
-  return doc.units === 'imperial' ? 'imperial' : 'SI';
+  return isImperialUnits(doc.units) ? 'imperial' : 'SI';
 }
 
 export function isUnitSystem(value: unknown): value is UnitSystem {

@@ -7,6 +7,7 @@ import type { Issue, ModelDoc } from '../types';
 import { baseDoc, mat, singleRegionDoc, square, twoRegionDoc } from './testFixtures';
 import { RULE_TEXT, validateLocal, validateLocalCached } from './validateLocal';
 
+const GEOTECH_CODES = new Set(['editor.gamma_sat_unverified', 'editor.gamma_sat_lt_gamma', 'editor.ru_over_piezo', 'editor.piezo_extrapolated']);
 const codes = (issues: Issue[]): string[] => issues.map((i) => i.code);
 
 describe('validateLocal: modelo válido', () => {
@@ -186,7 +187,7 @@ describe('validateLocal: materiales', () => {
   ])('rango de material: %s', (field, patch, text) => {
     const doc = baseDoc();
     doc.materials[0] = mat('m1', patch);
-    const issues = validateLocal(doc);
+    const issues = validateLocal(doc).filter((i) => i.severity === 'error');
     expect(codes(issues)).toEqual(['editor.out_of_range']);
     expect(issues[0]?.path).toBe(`/materials/0/${field}`);
     expect(issues[0]?.text.startsWith(`Material «m1», ${text.charAt(0).toLowerCase()}${text.slice(1)}. Valor actual: `)).toBe(true);
@@ -197,7 +198,9 @@ describe('validateLocal: materiales', () => {
       mat('m1', { cohesion: 0, friction_angle: 0, ru: 0, unit_weight_sat: null }),
       mat('m2', { friction_angle: 89.9, ru: 0.99, unit_weight_sat: 21 }),
     ];
-    expect(validateLocal(doc)).toEqual([]);
+    // Sin errores; solo los avisos geotécnicos (γsat sin verificar y ru con piezométrica).
+    expect(validateLocal(doc).filter((i) => i.severity === 'error')).toEqual([]);
+    expect(codes(validateLocal(doc))).toEqual(['editor.gamma_sat_unverified', 'editor.ru_over_piezo']);
   });
 });
 
@@ -212,7 +215,7 @@ describe('validateLocal: piezométrica', () => {
     );
   });
   it('x repetida', () => {
-    expect(codes(validateLocal(withPiezo([[0, 5], [10, 6], [10, 7]])))).toEqual(['editor.piezo_order']);
+    expect(codes(validateLocal(withPiezo([[0, 5], [10, 6], [10, 7]])).filter((i) => i.severity === 'error'))).toEqual(['editor.piezo_order']);
   });
   it('invertida del todo informa un punto por cada retroceso', () => {
     expect(validateLocal(withPiezo([[20, 5], [10, 6], [0, 5]])).map((i) => i.path)).toEqual([
@@ -225,7 +228,9 @@ describe('validateLocal: piezométrica', () => {
     expect(codes(validateLocal(withPiezo([[0, 5], [1, Number.NaN]])))).toEqual(['editor.out_of_range']);
   });
   it('ordenada, ausente o nula es válida', () => {
-    expect(validateLocal(withPiezo([[0, 5], [10, 6]]))).toEqual([]);
+    expect(validateLocal(withPiezo([[0, 5], [20, 6]]))).toEqual([]);
+    // Una piezométrica corta no es un error: el motor la prolonga, y solo se avisa (R9-05d).
+    expect(codes(validateLocal(withPiezo([[0, 5], [10, 6]])))).toEqual(['editor.piezo_extrapolated']);
     expect(validateLocal({ ...baseDoc(), water: { piezometric_line: null } })).toEqual([]);
     expect(validateLocal({ ...baseDoc(), water: undefined })).toEqual([]);
   });
@@ -405,7 +410,7 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
   // Los tests de unidades imperiales usan el agua de `baseDoc` (γw = 9,81): se deja fuera su aviso de γw, que se prueba aparte.
   const textsOf = (doc: ModelDoc): string[] =>
     validateLocal(doc)
-      .filter((i) => i.code !== 'editor.water_unit_weight')
+      .filter((i) => i.code !== 'editor.water_unit_weight' && !GEOTECH_CODES.has(i.code)) // los avisos geotécnicos (γsat, ru, piezométrica corta) se prueban en geotech.test.ts
       .map((i) => i.text);
   const withAnalysis = (analysis: ModelDoc['analysis']): ModelDoc => ({ ...baseDoc(), analysis });
   const INTERNAL = /min_m_alpha|n_entry|n_exit|n_radius|analysis\.|search\.|deny_unknown_fields|performance\.now|1e-12|escala²|\budl\b|\bkh debe|\bru debe/;
@@ -560,13 +565,13 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
   });
 
   it('γw en modelos imperiales: con piezométrica y sin γw (o con 9,81) es un ERROR que bloquea, con la acción para corregirlo (R8)', () => {
-    const water: ModelDoc['water'] = { piezometric_line: [[0, 5], [10, 5]] };
+    const water: ModelDoc['water'] = { piezometric_line: [[0, 5], [20, 5]] };
     const imperial = validateLocal({ ...baseDoc(), units: 'imperial', water });
     expect(imperial).toHaveLength(1);
     expect(imperial[0]).toMatchObject({ source: 'local', severity: 'error', code: 'editor.water_unit_weight', path: '/water/unit_weight' });
     expect(imperial[0]!.text).toContain('Escriba 62,4 pcf');
     expect(imperial[0]!.text).toContain('pestaña «Agua»');
-    expect(imperial[0]!.text).toMatch(/6,4 veces menores/);
+    expect(imperial[0]!.text).toMatch(/menor que 20 pcf/);
     // Con 9,81 explícito en pcf tampoco es creíble.
     const explicit = validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 9.81 } });
     expect(codes(explicit)).toEqual(['editor.water_unit_weight']);
@@ -580,7 +585,7 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
   });
 
   it('la incidencia de γw lleva a la pestaña «Agua» y al campo γw (botón «ir a Agua» de Diagnósticos)', () => {
-    const doc: ModelDoc = { ...baseDoc(), units: 'imperial', water: { piezometric_line: [[0, 5], [10, 5]] } };
+    const doc: ModelDoc = { ...baseDoc(), units: 'imperial', water: { piezometric_line: [[0, 5], [20, 5]] } };
     const issue = validateLocal(doc).find((i) => i.code === 'editor.water_unit_weight')!;
     expect(issueTarget(issue.path, doc)).toMatchObject({ tab: 'water', fieldPath: '/water/unit_weight' });
   });
@@ -596,5 +601,36 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
     const all = docs.flatMap(textsOf);
     expect(all.length).toBeGreaterThan(8);
     for (const t of all) expect(t, t).not.toMatch(INTERNAL);
+  });
+});
+
+describe('R9-03b: γw imperial por debajo de 20 pcf y detección de unidades sin distinguir mayúsculas', () => {
+  const imp = (units: string | undefined, unit_weight?: number): ModelDoc => ({
+    ...baseDoc(),
+    units,
+    water: { ...(unit_weight === undefined ? {} : { unit_weight }), piezometric_line: [[0, 5], [20, 5]] },
+  });
+  const gwErrors = (doc: ModelDoc): Issue[] => validateLocal(doc).filter((i) => i.code === 'editor.water_unit_weight');
+
+  it.each([9.8, 9.80665, 9.81, 10, 19.99])('γw = %s pcf bloquea', (gw) => {
+    const issues = gwErrors(imp('imperial', gw));
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ severity: 'error', path: '/water/unit_weight' });
+  });
+  it.each(['Imperial', 'IMPERIAL', ' imperial ', 'imp'])('units %j se trata como imperial', (units) => {
+    expect(gwErrors(imp(units, 9.8))).toHaveLength(1);
+    expect(gwErrors(imp(units, undefined))).toHaveLength(1);
+  });
+  it.each([20, 62.4, 62.45, 64.0])('γw = %s pcf pasa', (gw) => {
+    expect(gwErrors(imp('imperial', gw))).toEqual([]);
+    expect(gwErrors(imp('Imperial', gw))).toEqual([]);
+  });
+  it('en SI cualquier γw positivo pasa, y sin piezométrica γw no interviene', () => {
+    expect(gwErrors(imp('SI', 9.8))).toEqual([]);
+    expect(gwErrors(imp(undefined, undefined))).toEqual([]);
+    expect(gwErrors({ ...imp('imperial', 9.8), water: { unit_weight: 9.8 } })).toEqual([]);
+  });
+  it('γw ≤ 0 sigue siendo un solo error (el del rango), no dos', () => {
+    expect(validateLocal(imp('imperial', 0)).filter((i) => i.severity === 'error')).toHaveLength(1);
   });
 });

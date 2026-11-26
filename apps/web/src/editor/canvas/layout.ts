@@ -3,6 +3,7 @@
 
 import type { Point } from '../../engine/types';
 import { worldToScreen, screenToWorld, type Viewport } from '../../geometry/viewport';
+import { isImperialUnits } from '../state/units';
 import type { ModelDoc } from '../types';
 import { modelXRange, topY } from './geom';
 import { BAND_HEIGHT_PX, searchRange } from './hitTest';
@@ -23,7 +24,7 @@ export function formatNumber(v: number, minDec = 1, maxDec = 3): string {
 
 /** Unidad de longitud del modelo (`units`): `ft` si es imperial, `m` en cualquier otro caso (SI por defecto). */
 export function lengthUnitOf(units: string | undefined | null): string {
-  return /imp/i.test(units ?? '') ? 'ft' : 'm';
+  return isImperialUnits(units) ? 'ft' : 'm';
 }
 
 // Las etiquetas accesibles llevan la unidad de longitud del modelo (`units`); sin ese argumento valen las del SI.
@@ -102,7 +103,7 @@ export function seismicBadge(
 }
 
 export function isImperial(doc: ModelDoc): boolean {
-  return /imp/i.test(doc.units ?? '');
+  return isImperialUnits(doc.units);
 }
 
 /** Sentido de deslizamiento: +1 hacia +x, −1 hacia −x. Con `auto`, hacia el lado más bajo del terreno. */
