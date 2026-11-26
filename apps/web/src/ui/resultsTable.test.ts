@@ -63,15 +63,16 @@ describe('ResultsTable', () => {
     expect(html).not.toContain('250');
   });
 
-  it('muestra negative_effective_normal como nota y water_above_ground como aviso', () => {
+  it('muestra negative_effective_normal como nota y air_gap_thrust como aviso', () => {
     const html = render({
       engine: 'ogs-core 0.1.0',
-      results: [methodReport({ warnings: ['negative_effective_normal', 'water_above_ground'] })],
+      results: [methodReport({ warnings: ['negative_effective_normal', 'air_gap_thrust'] })],
     });
     expect(html).toContain('class="notes"');
     expect(html).toContain('Normal efectiva negativa en algunas dovelas');
     expect(html).toContain('class="warnings"');
-    expect(html).toContain('El agua sobre el terreno se ignora');
+    // air_gap_thrust es de severidad «aviso» (water_above_ground pasó a nota en F3G: el agua embalsada se calcula).
+    expect(html).toContain('La superficie transmite empuje a través de un tramo sin suelo');
     // La nota no se presenta como aviso.
     const avisosBlock = html.slice(html.indexOf('class="warnings"'));
     expect(avisosBlock).not.toContain('Normal efectiva negativa');
@@ -87,12 +88,13 @@ describe('ResultsTable', () => {
     const html = render({
       engine: 'ogs-core 0.1.0',
       results: [
-        methodReport({ method: 'bishop', warnings: ['water_above_ground'] }),
+        // air_gap_thrust: aviso (water_above_ground ya es una nota de agua embalsada, F3G).
+        methodReport({ method: 'bishop', warnings: ['air_gap_thrust'] }),
         methodReport({ method: 'spencer', warnings: ['negative_effective_normal_major'] }),
       ],
     });
     const items = html.split('<li>').slice(1);
-    const water = items.find((item) => item.includes('El agua sobre el terreno'));
+    const water = items.find((item) => item.includes('La superficie transmite empuje'));
     const major = items.find((item) => item.includes('Normal efectiva negativa en una parte importante'));
     expect(water).toBeDefined();
     expect(water).toContain(METHOD_LABELS.bishop);
@@ -106,11 +108,11 @@ describe('ResultsTable', () => {
     const html = render({
       engine: 'ogs-core 0.1.0',
       results: [
-        methodReport({ method: 'bishop', warnings: ['water_above_ground'] }),
-        methodReport({ method: 'spencer', warnings: ['water_above_ground'] }),
+        methodReport({ method: 'bishop', warnings: ['air_gap_thrust'] }),
+        methodReport({ method: 'spencer', warnings: ['air_gap_thrust'] }),
       ],
     });
-    const items = html.split('<li>').filter((item) => item.includes('El agua sobre el terreno'));
+    const items = html.split('<li>').filter((item) => item.includes('La superficie transmite empuje'));
     expect(items).toHaveLength(2);
     expect(items[0]).toContain(METHOD_LABELS.bishop);
     expect(items[1]).toContain(METHOD_LABELS.spencer);
