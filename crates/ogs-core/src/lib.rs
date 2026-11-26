@@ -520,7 +520,7 @@ fn analyze_method(
         slicing_case,
         crack_plan.as_ref().map(|plan| plan.x_c),
     )
-        .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
+    .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;
     // E15d (G2, G3): the slices on the crest side of the crack go, and the water of the crack acts on the face.
     let crack_report: Option<CrackReport> = crack_plan
