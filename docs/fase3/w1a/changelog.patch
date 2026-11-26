@@ -1,0 +1,21 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f0c6a8d..7ac9829 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -24,6 +24,16 @@ API pueden cambiar entre versiones menores.
+   - Interfaces congeladas para la ola 1: `surface::Surface` y el despacho de polilínea y de métodos nuevos, que por
+     ahora terminan en `unimplemented!("F3-W1a")` y `unimplemented!("F3-W1b")`.
+   - `ogs bench --method` acepta los métodos nuevos.
++- **Fase 3a, ola 1 (W1a, superficie polilínea en el motor):**
++  - Superficie `polyline` fija (E13c): se ajusta al terreno como `fit_polyline_to_ground` de cSlope (cada extremo se
++    prolonga hasta su primer cruce con el terreno o se recorta en él), con los estados `Invalid` nuevos
++    `polyline_no_ground_crossing` y `polyline_outside_ground`. Sus vértices son nodos obligatorios del corte, así que la
++    base de cada dovela es recta; `driving_extra` vale 0 (no hay centro). El informe trae la polilínea ajustada.
++  - `resolve_sliding`, paso 3: con una polilínea fija, el sentido `auto` lee los extremos de la polilínea ajustada.
++  - El slicer es genérico sobre `Surface`; el círculo no cambia ni un bit (los 36 modelos de referencia dan la misma
++    salida de `ogs analyze`, byte a byte).
++  - `tests/f3_polyline.rs`: geometría exacta, convergencia O(1/N²) de la polilínea inscrita, espejo y equilibrio global
++    de Spencer en una polilínea.
+ - **Verificación:** `tests/f3_oracle.rs` con los valores del oráculo de F3.8 (los de no drenado pasan; los de M-P, Janbu y
+   polilínea fallan a propósito en el stub hasta la ola 1), `tests/v03_format.rs` y `tests/v03_undrained.rs`.
+ 

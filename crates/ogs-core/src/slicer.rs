@@ -1,10 +1,21 @@
-//! Slicing of a circular surface into slices (§4.1).
+//! Slicing of a slip surface into slices (§4.1): a circle, or a fixed polyline already fitted to the ground (F3.3).
+//!
+//! The slicer works on a [`Surface`]. On a circle every step is the code of before the polyline, with the same
+//! arithmetic, so the slices do not change by a bit. On a polyline:
+//! - its vertices are obligatory nodes of the cut, so the base of each slice is a straight stretch of the surface,
+//!   with `alpha`, `base_length` and `y_base_*` exact;
+//! - `driving_extra` is 0 in every slice, and so is the part of `h_moment_base` that depends on a centre: a polyline
+//!   has no centre, Bishop is not offered on it (F3.6), and the methods that remain take moments about the midpoints
+//!   of the bases;
+//! - the guards of the block and of the method are the same ones: E2 (air slices), E10a (`truncated_mass`), E11
+//!   (re-slicing of the kept block, minimum soil slices) and the checks of the ends.
 
 use serde::Serialize;
 
 use crate::geometry::{PreparedModel, Sliding};
 use crate::loads::{LINE_TOUCH_FRACTION, LoadCase};
 use crate::model::Circle;
+use crate::surface::Surface;
 
 /// One slice, in the ORIGINAL model frame.
 ///
@@ -232,6 +243,31 @@ pub(crate) fn sliding_span(pm: &PreparedModel, c: &Circle) -> Result<Tramo, Surf
 /// Discarded blocks are never checked, so their arc may leave the model.
 pub(crate) fn check_block_ends(
     pm: &PreparedModel,
+    surface: &Surface,
+    t: &Tramo,
+    l: f64,
+    r: f64,
+) -> Result<(), SurfaceError> {
+    match surface {
+        Surface::Circle(c) => check_block_ends_circle(pm, c, t, l, r),
+        Surface::Polyline(_) => {
+            // A fitted polyline starts and ends on the ground and stays inside the model in x, so only the model base
+            // can be crossed: no side wall, no upper arc.
+            let mut xs = Vec::with_capacity(t.breaks.len() + 2);
+            xs.push(l);
+            xs.extend(t.breaks.iter().copied().filter(|&x| x > l && x < r));
+            xs.push(r);
+            if surface.below_base(pm, &xs) {
+                return Err(SurfaceError::OutsideModel);
+            }
+            Ok(())
+        }
+    }
+}
+
+/// [`check_block_ends`] of a circle: the code of before the polyline.
+fn check_block_ends_circle(
+    pm: &PreparedModel,
     c: &Circle,
     t: &Tramo,
     l: f64,
@@ -325,7 +361,22 @@ pub fn slice_surface_with(
     n: usize,
     loads: &LoadCase,
 ) -> Result<SlicedSurface, SurfaceError> {
-    let (built, tramo) = build_slices_with(pm, circle, n, loads)?;
+    slice_surface_of(pm, &Surface::Circle(*circle), n, loads)
+}
+
+/// [`slice_surface_with`] on any surface (E13c): a circle, or a polyline **already fitted** to the ground
+/// ([`Surface::fit_to_ground`]); the fitted ends are the sliding range, so the polyline itself must not be extended
+/// or trimmed here.
+///
+/// Everything described in [`slice_surface`] applies to the polyline too. Its vertices are obligatory nodes, so the
+/// base of each slice is straight.
+pub fn slice_surface_of(
+    pm: &PreparedModel,
+    surface: &Surface,
+    n: usize,
+    loads: &LoadCase,
+) -> Result<SlicedSurface, SurfaceError> {
+    let (built, tramo) = build_slices_with(pm, surface, n, loads)?;
     let Built {
         mut slices,
         mut air,
@@ -350,12 +401,12 @@ pub fn slice_surface_with(
         .map(|s| s.x_right)
         .fold(f64::NEG_INFINITY, f64::max);
     // The arc's ends are checked before the materials, as before E10a: an arc under the base is `OutsideModel`.
-    check_block_ends(pm, circle, &tramo, l, r)?;
+    check_block_ends(pm, surface, &tramo, l, r)?;
     let driving = truncated && discards_driving(pm, &slices, &air);
 
     // E11d: the kept block is sliced again over its own span, so `n` divisions apply to it and not to the whole arc.
     let (block, block_air, block_unsupported) = if truncated {
-        let re = slice_span(pm, circle, l, r, &tramo.breaks, n, loads)?;
+        let re = slice_span(pm, surface, l, r, &tramo.breaks, n, loads)?;
         let Built {
             mut slices,
             mut air,
@@ -430,21 +481,21 @@ pub(crate) fn build_slices(
     circle: &Circle,
     n: usize,
 ) -> Result<(Built, Tramo), SurfaceError> {
-    build_slices_with(pm, circle, n, &LoadCase::default())
+    build_slices_with(pm, &Surface::Circle(*circle), n, &LoadCase::default())
 }
 
-/// [`build_slices`] with the seismic coefficients and the loads of `loads`.
+/// [`build_slices`] with the seismic coefficients and the loads of `loads`, on any surface.
 fn build_slices_with(
     pm: &PreparedModel,
-    circle: &Circle,
+    surface: &Surface,
     n: usize,
     loads: &LoadCase,
 ) -> Result<(Built, Tramo), SurfaceError> {
     if n == 0 {
         return Err(SurfaceError::TooFewSlices);
     }
-    let tramo = sliding_span(pm, circle)?;
-    let built = slice_span(pm, circle, tramo.p, tramo.q, &tramo.breaks, n, loads)?;
+    let tramo = surface.ground_crossings(pm)?;
+    let built = slice_span(pm, surface, tramo.p, tramo.q, &tramo.breaks, n, loads)?;
     // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
     if !built.slices.iter().any(|s| s.weight > 0.0) {
         return Err(SurfaceError::AboveGround);
@@ -456,7 +507,7 @@ fn build_slices_with(
 /// right. Used for the whole sliding range (see [`build_slices`]) and again for the kept block (E11d).
 fn slice_span(
     pm: &PreparedModel,
-    circle: &Circle,
+    surface: &Surface,
     p: f64,
     q: f64,
     breaks: &[f64],
@@ -468,7 +519,9 @@ fn slice_span(
 
     // Slice boundaries: n uniform divisions plus the breakpoints, sorted and merged.
     let mut nodes: Vec<f64> = Vec::with_capacity(n + breaks.len());
+    let uniform_start = nodes.len();
     nodes.extend((1..n).map(|k| p + span * (k as f64) / (n as f64)));
+    let uniform_end = nodes.len();
     nodes.extend(breaks.iter().copied().filter(|&x| x > p && x < q));
     // E12b: a breakpoint at the ends of every distributed load and around every line load.
     let active = !loads.is_neutral();
@@ -480,6 +533,19 @@ fn slice_span(
                 .into_iter()
                 .filter(|&x| x > p && x < q),
         );
+    }
+    // E13c: the vertices of a polyline are obligatory nodes. A uniform division that falls within `min_width` of a
+    // breakpoint would make the merge below drop the breakpoint when it comes second, and the base of the slice would
+    // be a chord across the vertex. So the uniform division gives way. A circle keeps every node as before.
+    if surface.is_polyline() {
+        let fixed: Vec<f64> = nodes[uniform_end..].to_vec();
+        let mut kept: Vec<f64> = nodes[uniform_start..uniform_end]
+            .iter()
+            .copied()
+            .filter(|&x| fixed.iter().all(|&f| (x - f).abs() >= min_width))
+            .collect();
+        kept.extend(fixed);
+        nodes = kept;
     }
     nodes.sort_by(f64::total_cmp);
     let mut bounds: Vec<f64> = Vec::with_capacity(nodes.len() + 2);
@@ -509,8 +575,8 @@ fn slice_span(
         let (xl, xr) = (w[0], w[1]);
         let width = xr - xl;
         let xm = 0.5 * (xl + xr);
-        let yl = pm.arc_y(circle, true, xl);
-        let yr = pm.arc_y(circle, true, xr);
+        let yl = surface.y_at(pm, xl);
+        let yr = surface.y_at(pm, xr);
         let y_base_mid = 0.5 * (yl + yr);
         let Some(y_top_mid) = pm.top_at(xm) else {
             return Err(SurfaceError::OutsideModel);
@@ -616,7 +682,7 @@ fn slice_span(
         if active {
             extra = slice_loads(
                 pm,
-                circle,
+                surface,
                 loads,
                 &SoilSlice {
                     xl,
@@ -657,7 +723,7 @@ fn slice_span(
             .zip(&unsupported)
             .map(|(&a, &u)| !a && !u)
             .collect();
-        apply_line_loads(pm, circle, loads, &mut slices, &soil);
+        apply_line_loads(pm, surface, loads, &mut slices, &soil);
     }
 
     Ok(Built {
@@ -677,7 +743,7 @@ fn slice_span(
 /// caller). `V = p·cos θ` is added to `weight_extra`, `H^P = s·p·sin θ` to `h_force`, applied at `y_g = y_top(x)`.
 fn apply_line_loads(
     pm: &PreparedModel,
-    circle: &Circle,
+    surface: &Surface,
     loads: &LoadCase,
     slices: &mut [Slice],
     soil: &[bool],
@@ -687,7 +753,7 @@ fn apply_line_loads(
         Sliding::LeftToRight => 1.0,
         Sliding::RightToLeft => -1.0,
     };
-    let (yc, r) = (circle.yc, circle.r);
+    let arm = surface.moment_arm();
     for l in &loads.lines {
         let touched: Vec<usize> = (0..slices.len())
             .filter(|&i| soil[i] && slices[i].x_left - tol <= l.x && l.x <= slices[i].x_right + tol)
@@ -705,7 +771,10 @@ fn apply_line_loads(
             sl.weight_extra += share * l.p * cos;
             sl.h_force += h;
             sl.h_moment_base += h * (y_g - y_base);
-            sl.driving_extra += h * (yc - y_g) / r;
+            // A polyline has no centre: `driving_extra` stays 0 (see the module doc).
+            if let Some((yc, r)) = arm {
+                sl.driving_extra += h * (yc - y_g) / r;
+            }
         }
     }
 }
@@ -777,14 +846,14 @@ fn soil_centroid(
 /// `H = kh·W + H^P`.
 fn slice_loads(
     pm: &PreparedModel,
-    circle: &Circle,
+    surface: &Surface,
     loads: &LoadCase,
     s: &SoilSlice,
     column: &mut Vec<(f64, f64, usize)>,
     scratch: &mut Vec<f64>,
 ) -> Slice {
     let y_base = 0.5 * (s.y_base_left + s.y_base_right);
-    let (yc, r) = (circle.yc, circle.r);
+    let arm = surface.moment_arm();
     let mut vertical = 0.0_f64;
     for u in &loads.udls {
         let overlap = s.xr.min(u.x2) - s.xl.max(u.x1);
@@ -798,7 +867,9 @@ fn slice_loads(
     if h_seismic > 0.0 {
         y_centroid = soil_centroid(pm, s, column, scratch);
         moment_base += h_seismic * (y_centroid - y_base);
-        driving += h_seismic * (yc - y_centroid) / r;
+        if let Some((yc, r)) = arm {
+            driving += h_seismic * (yc - y_centroid) / r;
+        }
     }
     Slice {
         weight_extra: loads.kv * s.weight + vertical,
@@ -939,6 +1010,73 @@ mod tests {
         });
         let model: Model = serde_json::from_value(doc).expect("test model");
         PreparedModel::new(&model).expect("valid model")
+    }
+
+    /// The guards of the block hold on a polyline (E13c). The polyline here is **not** fitted: it rises over the valley
+    /// notch of the ground (`(20, 13.5)` is over the ground at 12), which a fitted polyline never does, so the slicer's
+    /// own handling of air shows: E2 turns the slices over the notch into air slices (no weight, no strength), and E10a
+    /// keeps the entry block, on the crest side, with the note `truncated_mass`. A polyline has no centre, so no slice
+    /// carries a moment arm for Bishop.
+    #[test]
+    fn a_polyline_over_the_notch_gives_air_slices_and_keeps_the_entry_block() {
+        let pm = pm_of(
+            json!([
+                [0, 10],
+                [0, 20],
+                [10, 20],
+                [20, 12],
+                [30, 20],
+                [40, 20],
+                [40, 10]
+            ]),
+            "right_to_left",
+        );
+        let surface = Surface::Polyline(crate::surface::Polyline {
+            points: vec![
+                [3.0, 19.0],
+                [8.0, 18.0],
+                [14.0, 13.5],
+                [20.0, 13.5],
+                [26.0, 13.5],
+                [32.0, 18.0],
+                [37.0, 19.0],
+            ],
+        });
+        let (built, tramo) = build_slices_with(&pm, &surface, 50, &LoadCase::default())
+            .expect("the notch is air, not an error (E2)");
+        assert_eq!((tramo.p, tramo.q), (3.0, 37.0));
+        let air = built.air.iter().filter(|&&a| a).count();
+        assert!(air > 0, "the slices over the notch are air slices");
+        for (s, &is_air) in built.slices.iter().zip(&built.air) {
+            assert_eq!(s.driving_extra, 0.0);
+            if is_air {
+                assert_eq!(
+                    (s.weight, s.cohesion, s.tan_phi, s.pore_pressure),
+                    (0.0, 0.0, 0.0, 0.0)
+                );
+                assert!(
+                    s.x_left > 18.0 && s.x_right < 22.0,
+                    "air only over the notch: {s:?}"
+                );
+            }
+        }
+        // The vertices are nodes of the cut, so the bases are straight.
+        for v in [8.0, 14.0, 20.0, 26.0, 32.0] {
+            assert!(
+                built.slices.iter().any(|s| s.x_left == v),
+                "the vertex {v} is not a node"
+            );
+        }
+        let sliced = slice_surface_of(&pm, &surface, 50, &LoadCase::default()).expect("main block");
+        assert_eq!(sliced.notes, vec![TRUNCATED_MASS.to_string()]);
+        assert!(
+            sliced.slices.iter().all(|s| s.weight > 0.0),
+            "no air in the main block"
+        );
+        assert!(
+            sliced.slices[0].x_left > 21.0 && sliced.slices.last().unwrap().x_right == 37.0,
+            "the kept block is the one with the entry, on the crest side"
+        );
     }
 
     /// E2 geometry (moved from `slicer_geometry`, which now expects `DisconnectedMass` for this surface):
