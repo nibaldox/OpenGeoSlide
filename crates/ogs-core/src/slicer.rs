@@ -24,7 +24,8 @@ use crate::surface::Surface;
 /// Air slices (contract §4.1.8, E2) have their base on or above the ground: `weight`, `cohesion`,
 /// `tan_phi` and `pore_pressure` are exactly zero, and they contribute no driving or resisting force.
 ///
-/// Seismic force and surface loads (amendment E12b) are resolved by the slicer into the last five fields. `weight`
+/// Seismic force and surface loads (amendment E12b) are resolved by the slicer into `weight_extra`, `h_force`,
+/// `h_moment_base`, `driving_extra` and `y_centroid`; the passive reinforcements (E14g) go into the `passive_*` fields. `weight`
 /// stays the soil weight `W` and keeps its meaning. They are all zero in an air slice and in any model without
 /// `kh`, `kv` or loads.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
@@ -64,6 +65,26 @@ pub struct Slice {
     /// Ordinate `ȳ` of the weight-weighted centroid of the soil of the slice. It is computed only when `kh > 0`, and it
     /// is `0` otherwise (it is not used then).
     pub y_centroid: f64,
+    /// Vertical force of the passive reinforcements, downward and **before** dividing by `F` (E14g): each method
+    /// evaluates `W* + passive_v / F`. Zero without reinforcements, and then it is not serialized.
+    #[serde(skip_serializing_if = "is_zero")]
+    pub passive_v: f64,
+    /// Horizontal force of the passive reinforcements in the sliding direction, before dividing by `F` (E14g).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub passive_h: f64,
+    /// Moment of `passive_h` about the midpoint of the base, before dividing by `F` (E14g, Spencer and M-P).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub passive_h_moment_base: f64,
+    /// Contribution of `passive_h` to the driving moment about the circle centre, divided by the radius and before
+    /// dividing by `F` (E14g, Bishop).
+    #[serde(skip_serializing_if = "is_zero")]
+    pub passive_driving_extra: f64,
+}
+
+/// `skip_serializing_if` of the passive fields: they are 0 without reinforcements, and the slices are part of the
+/// JSON report, which must not change by a byte (E14a).
+fn is_zero(v: &f64) -> bool {
+    *v == 0.0
 }
 
 impl Slice {
@@ -100,6 +121,10 @@ pub(crate) const ZERO_SLICE: Slice = Slice {
     h_moment_base: 0.0,
     driving_extra: 0.0,
     y_centroid: 0.0,
+    passive_v: 0.0,
+    passive_h: 0.0,
+    passive_h_moment_base: 0.0,
+    passive_driving_extra: 0.0,
 };
 
 /// Reasons a circle cannot be sliced.

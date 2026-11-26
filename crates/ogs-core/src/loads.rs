@@ -1,5 +1,5 @@
 //! Seismic coefficients and surface loads (schema v0.2, amendments E12a and E12b), and the version gate of the
-//! document (the v0.2 and v0.3 fields, E13a).
+//! document (the v0.2, v0.3 and v0.4 fields, E13a and E14a).
 //!
 //! - [`validate_document`] checks the new fields that do not need the geometry: the version (and which fields each
 //!   version admits), finiteness, ranges and repeated ids. [`validate_range`] checks the x positions against the model extent, once the model is prepared.
@@ -11,8 +11,8 @@
 
 use crate::OgsError;
 use crate::model::{
-    FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, Load, MaterialModel, MethodKind, Model,
-    SurfaceSpec,
+    FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, FORMAT_VERSION_V04, Load,
+    MaterialModel, MethodKind, Model, SurfaceSpec,
 };
 use crate::slicer::Slice;
 
@@ -48,6 +48,9 @@ pub struct LoadCase {
     pub kv: f64,
     pub udls: Vec<Udl>,
     pub lines: Vec<Line>,
+    /// Extra slice boundaries of the crossings of the reinforcements with the surface (E14d.2), supplied per surface
+    /// by `reinforcement::crossing_nodes` through [`LoadCase::with_extra_breaks`]. Empty without reinforcements.
+    pub extra_breaks: Vec<f64>,
 }
 
 impl LoadCase {
@@ -76,15 +79,29 @@ impl LoadCase {
         case
     }
 
-    /// True when there is no seismic force and no load: the slices are those of v0.1.
+    /// True when there is no seismic force, no load and no extra boundary: the slices are those of v0.1.
     pub fn is_neutral(&self) -> bool {
-        self.kh == 0.0 && self.kv == 0.0 && self.udls.is_empty() && self.lines.is_empty()
+        self.kh == 0.0
+            && self.kv == 0.0
+            && self.udls.is_empty()
+            && self.lines.is_empty()
+            && self.extra_breaks.is_empty()
+    }
+
+    /// A copy with the slice boundaries `xs` added (the crossings of the reinforcements, E14d.2).
+    pub fn with_extra_breaks(&self, xs: Vec<f64>) -> LoadCase {
+        LoadCase {
+            extra_breaks: xs,
+            ..self.clone()
+        }
     }
 
     /// Extra slice boundaries (E12b): `x1` and `x2` of every `udl`, and `x ± 1e-6·width` of every `line`.
     pub(crate) fn break_points(&self, model_width: f64) -> Vec<f64> {
         let d = LINE_BREAK_FRACTION * model_width;
-        let mut xs = Vec::with_capacity(2 * self.udls.len() + 2 * self.lines.len());
+        let mut xs = Vec::with_capacity(
+            2 * self.udls.len() + 2 * self.lines.len() + self.extra_breaks.len(),
+        );
         for u in &self.udls {
             xs.push(u.x1);
             xs.push(u.x2);
@@ -93,6 +110,7 @@ impl LoadCase {
             xs.push(l.x - d);
             xs.push(l.x + d);
         }
+        xs.extend_from_slice(&self.extra_breaks);
         xs
     }
 
@@ -171,17 +189,32 @@ fn first_v03_field(model: &Model) -> Option<String> {
         .then(|| "analysis.interslice".to_string())
 }
 
-/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), and the version gate of the v0.3 fields (E13a).
-/// It does not need the geometry.
+/// The first field of the document that needs version `"0.4"` (E14a), named as in the JSON, or `None`: a non-empty
+/// `reinforcements` (an empty list counts as absent, like `loads`).
+fn first_v04_field(model: &Model) -> Option<&'static str> {
+    (!model.reinforcements.is_empty()).then_some("reinforcements")
+}
+
+/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), the version gate of the v0.3 fields (E13a) and of
+/// the v0.4 fields (E14a), and the rules of `reinforcements` (E14b). It does not need the geometry.
 ///
 /// Version `"0.1"` admits no `loads` and no `analysis.seismic`; an empty `loads` list counts as absent. Versions
-/// `"0.1"` and `"0.2"` admit no v0.3 field: the error names the first one, `<campo> requiere version "0.3"`.
+/// `"0.1"` and `"0.2"` admit no v0.3 field: the error names the first one, `<campo> requiere version "0.3"`. A
+/// version below `"0.4"` admits no `reinforcements`: `reinforcements requiere version "0.4"` (the v0.3 gate goes
+/// first).
 pub fn validate_document(model: &Model) -> Result<(), OgsError> {
     let has_loads = !model.loads.is_empty();
     let has_seismic = model.analysis.seismic.is_some();
-    if ![FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03].contains(&model.version.as_str()) {
+    if ![
+        FORMAT_VERSION,
+        FORMAT_VERSION_V02,
+        FORMAT_VERSION_V03,
+        FORMAT_VERSION_V04,
+    ]
+    .contains(&model.version.as_str())
+    {
         return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\" o \"{FORMAT_VERSION_V03}\", no \"{}\"",
+            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\" o \"{FORMAT_VERSION_V04}\", no \"{}\"",
             model.version
         )));
     }
@@ -190,11 +223,18 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             "los campos 'loads' y 'analysis.seismic' requieren version \"{FORMAT_VERSION_V02}\""
         )));
     }
-    if model.version != FORMAT_VERSION_V03
+    if ![FORMAT_VERSION_V03, FORMAT_VERSION_V04].contains(&model.version.as_str())
         && let Some(field) = first_v03_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V03}\""
+        )));
+    }
+    if model.version != FORMAT_VERSION_V04
+        && let Some(field) = first_v04_field(model)
+    {
+        return Err(invalid(format!(
+            "{field} requiere version \"{FORMAT_VERSION_V04}\""
         )));
     }
     if let Some(s) = &model.analysis.seismic {
@@ -253,7 +293,7 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             }
         }
     }
-    Ok(())
+    crate::reinforcement::validate(&model.reinforcements)
 }
 
 /// The positions of the loads against the model extent `[x_min, x_max]`, with tolerance `tol` (E12a).

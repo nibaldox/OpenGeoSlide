@@ -78,6 +78,10 @@ fn slices() -> Vec<Slice> {
                     h_moment_base: 0.0,
                     driving_extra: 0.0,
                     y_centroid: 0.0,
+                    passive_v: 0.0,
+                    passive_h: 0.0,
+                    passive_h_moment_base: 0.0,
+                    passive_driving_extra: 0.0,
                 };
                 x += width;
                 s

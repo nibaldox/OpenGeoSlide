@@ -1,6 +1,6 @@
 //! OpenGeoSlide core: 2D limit-equilibrium slope stability (contracts: `briefs/00_CONTRATOS.md`).
 //!
-//! What the crate does (formats v0.1, v0.2 and v0.3):
+//! What the crate does (formats v0.1, v0.2, v0.3 and v0.4):
 //! - Reads the `.ogs.json` model (`model`, §1). Input is strict: an unknown field is an error, never
 //!   ignored (`deny_unknown_fields`).
 //! - `analyze` validates `format`, `version` and every `analysis` parameter before computing (§4.5).
@@ -11,6 +11,9 @@
 //!   methods `morgenstern_price`, `janbu_simplified` and `janbu_corrected`, and `analysis.interslice`. The format,
 //!   the version gate and the validations are complete. The fixed polyline (E13c) is fitted to the ground, sliced and
 //!   solved here, and the methods of v0.3 (Morgenstern-Price and Janbu) are dispatched by `methods::solve_with`.
+//! - v0.4 (amendments E14a-E14l): `reinforcements` (anchors, nails, geosynthetics, piles and sheet piles). The types,
+//!   the version gate and the validation are in `model` and `reinforcement`; the forces (`reinforcement`, wave R1)
+//!   are called only when the list is not empty, so a model without them goes through the code of v0.2.0.
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
 //! - Slices circular surfaces and fixed polylines (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
@@ -24,6 +27,7 @@ pub mod geometry;
 pub mod loads;
 pub mod methods;
 pub mod model;
+pub mod reinforcement;
 pub mod report;
 pub mod search;
 pub mod slicer;
@@ -341,7 +345,28 @@ fn analyze_method(
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
             let result = search_circular(pm, spec, |candidate| {
-                let slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
+                // E14d.4: the crossings of the reinforcements are computed for each candidate.
+                let case;
+                let load_case = if model.reinforcements.is_empty() {
+                    load_case
+                } else {
+                    let surface = Surface::Circle(*candidate);
+                    case = load_case.with_extra_breaks(reinforcement::crossing_nodes(
+                        &model.reinforcements,
+                        pm,
+                        &surface,
+                    ));
+                    &case
+                };
+                let mut slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
+                if !model.reinforcements.is_empty() {
+                    reinforcement::apply_to_slices(
+                        &model.reinforcements,
+                        pm,
+                        &Surface::Circle(*candidate),
+                        &mut slices,
+                    );
+                }
                 let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
@@ -380,18 +405,39 @@ fn analyze_method(
                 warnings: vec![reason.to_string()],
                 correction_factor: None,
                 interslice: interslice_report(analysis, method),
+                reinforcement_forces: Vec::new(),
             });
         }
     };
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
-    let sliced = slice_surface_of(pm, &surface, n, load_case)
+    let reinforced_case;
+    let slicing_case = if model.reinforcements.is_empty() {
+        load_case
+    } else {
+        reinforced_case = load_case.with_extra_breaks(reinforcement::crossing_nodes(
+            &model.reinforcements,
+            pm,
+            &surface,
+        ));
+        &reinforced_case
+    };
+    let sliced = slice_surface_of(pm, &surface, n, slicing_case)
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
-    let slices = sliced.slices;
+    let mut slices = sliced.slices;
+    // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
+    let mut reinforcement_forces = if model.reinforcements.is_empty() {
+        Vec::new()
+    } else {
+        reinforcement::apply_to_slices(&model.reinforcements, pm, &surface, &mut slices)
+    };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
     let truncated = !sliced.notes.is_empty();
     let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+    if result.status != SolveStatus::Converged {
+        reinforcement_forces.clear();
+    }
     // E13k: a converged Spencer or Morgenstern-Price whose interslice shear exceeds the strength of the faces.
     if let Some(ratio) =
         interslice_shear_ratio_of(pm, method, analysis.interslice.as_ref(), &slices, &result)
@@ -458,6 +504,7 @@ fn analyze_method(
         warnings,
         correction_factor: result.correction_factor,
         interslice: interslice_report(analysis, method),
+        reinforcement_forces,
     })
 }
 

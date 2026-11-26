@@ -143,6 +143,10 @@ fn strip(width: f64, soil: bool) -> Slice {
         h_moment_base: 0.0,
         driving_extra: 0.0,
         y_centroid: 0.0,
+        passive_v: 0.0,
+        passive_h: 0.0,
+        passive_h_moment_base: 0.0,
+        passive_driving_extra: 0.0,
     }
 }
 
@@ -953,6 +957,10 @@ fn polyline_slices(points: &[[f64; 2]], n: usize) -> Vec<Slice> {
                 h_moment_base: 0.0,
                 driving_extra: 0.0,
                 y_centroid: 0.0,
+                passive_v: 0.0,
+                passive_h: 0.0,
+                passive_h_moment_base: 0.0,
+                passive_driving_extra: 0.0,
             }
         })
         .collect()
