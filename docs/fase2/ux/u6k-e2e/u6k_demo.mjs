@@ -1,7 +1,7 @@
 // U6-K (R9-04, R9-06, R9-10, R9-11c, R9-05d): reproduce en Chrome lo que vio el revisor R9 y mide el resultado.
 // Uso (copiar a un directorio con playwright-core): OGS_URL=http://127.0.0.1:5188/ node u6k_demo.mjs [etiqueta]
 // Contra la base (59fef87) deben FALLAR los pasos 1 (AltGr), 2 (encuadre y aviso al deshacer), 3 (aria-describedby), 4 (foco, según
-// el diálogo) y 5 (piezométrica extrapolada); contra u6k-teclado, pasar. Capturas en $TMPDIR/u6k-shots.
+// el diálogo) y 5 (piezométrica extrapolada); contra u6k-teclado, pasar (5c solo con los dos parches de leyenda aplicados). Capturas en $TMPDIR/u6k-shots.
 import { chromium } from 'playwright-core';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -235,7 +235,7 @@ const polyWidth = (page) => page.evaluate(() => { const b = document.querySelect
   const rightOk = right && Math.abs(pt(right.points, 1)[0] - info.regionsRight) < 1.5 && pt(right.points, 0)[1] === pt(right.points, 1)[1];
   step('5a dos tramos horizontales: del borde izquierdo al primer punto y del último al borde derecho', !!leftOk && !!rightOk && info.poly.length === 2, info);
   step('5b trazo distinto al de la línea definida', left?.dash === '1 5' && info.lineDash === '8 4', { extrapolado: left?.dash, definida: info.lineDash });
-  step('5c la leyenda dice «Piezométrica (extrapolada)»', info.legend.some((t) => /Piezométrica \(extrapolada\)/.test(t)), { legend: info.legend });
+  step('5c la leyenda dice «Piezométrica (extrapolada)» (requiere los parches de leyenda: legend-*.patch)', info.legend.some((t) => /Piezométrica \(extrapolada\)/.test(t)), { legend: info.legend });
   await page.screenshot({ path: path.join(SHOTS, `${LABEL}-piezo-extrapolada.png`) });
   await check(page);
   const fsShort = await fsOf(page);
