@@ -109,7 +109,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     if e.iter().any(|v| !v.is_finite()) {
         return stop(f0, SolveStatus::Invalid, iterations, "non_finite");
     }
-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let total_w: f64 = spencer::force_scale(slices);
     if e.last().copied().unwrap_or(0.0).abs() > CLOSURE_FRACTION * total_w {
         return stop(
             f0,

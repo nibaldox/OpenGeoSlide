@@ -80,10 +80,48 @@ fn a_weightless_soil_under_a_strip_load_converges_when_the_weight_is_not_negligi
 }
 
 #[test]
-#[ignore = "I-M: pendiente de la decisión del coordinador sobre la escala de los residuos (docs/fase3/im/escala_fuerzas.patch)"]
 fn a_weightless_soil_under_a_strip_load_converges_with_gamma_1e_minus_6() {
     // gamma = 1e-6 (the published input): ΣW ≈ 1e-4 against loads of 1e3, so `|E_n| ≤ 1e-6·ΣW` asks for 1e-13 relative
-    // and closure fails with `no_lambda_root`. With the scale `ΣW*` (W + loads) it converges to 0.9428.
+    // and closure failed with `no_lambda_root`. With the scale `max(ΣW, ΣW*)` of E13j-6 it converges to 0.9428.
     let f = fos(&v077(1e-6), 0);
     assert!((f - 0.94).abs() / 0.94 <= 0.0153, "Spencer {f} against 0.94 (tolerance 1.53 %)");
+}
+
+/// V078 (Prandtl bearing capacity, fully specified Prandtl surface): weightless c = 20 kPa soil under 102.83 kPa over
+/// 10 m, the polyline of the active wedge, the 90° fan and the passive wedge. Published 0.96 (program B, tolerance
+/// 1.52 %), cSlope 0.9578.
+fn v078(methods: Value) -> Value {
+    json!({
+        "format": "opengeoslide", "version": "0.3",
+        "meta": {"id": "V078", "title": "Prandtl bearing capacity, fully specified Prandtl surface"},
+        "units": "SI",
+        "materials": [{"id": "soil", "name": "Soil", "model": "undrained", "unit_weight": 1e-6, "undrained_strength": 20.0}],
+        "regions": [{"material": "soil", "polygon": [[-20.0, -20.0], [-20.0, 0.0], [40.0, 0.0], [40.0, -20.0]]}],
+        "loads": [{"type": "udl", "id": "u1", "x1": 0.0, "x2": 10.0, "q": 102.83}],
+        "slope": {"direction": "left_to_right"},
+        "analysis": {
+            "methods": methods, "slices": 60, "tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2,
+            "surface": {"type": "polyline", "points": [
+                [-0.05, 0.05], [5.0, -5.0], [5.45481, -5.41675], [5.9442, -5.79228], [6.46447, -6.12372],
+                [7.01164, -6.40856], [7.58155, -6.64463], [8.16987, -6.83013], [8.77212, -6.96364],
+                [9.38372, -7.04416], [10.0, -7.07107], [10.61628, -7.04416], [11.22788, -6.96364],
+                [11.83013, -6.83013], [12.41845, -6.64463], [12.98836, -6.40856], [13.53553, -6.12372],
+                [14.0558, -5.79228], [14.54519, -5.41675], [15.0, -5.0], [20.05, 0.05]]}
+        }
+    })
+}
+
+#[test]
+fn a_weightless_soil_under_a_strip_load_converges_with_morgenstern_price_and_gamma_1e_minus_6() {
+    let f = fos(&v078(json!(["morgenstern_price"])), 0);
+    assert!((f - 0.96).abs() / 0.96 <= 0.0152, "M-P {f} against 0.96 (tolerance 1.52 %)");
+    // cSlope: 0.9578 on the same surface.
+    assert!((f - 0.9578).abs() / 0.9578 <= 1e-3, "M-P {f} against cSlope 0.9578");
+}
+
+#[test]
+fn the_force_scale_leaves_the_weightless_soil_result_independent_of_the_residual_gamma() {
+    // gamma = 1e-6 and 1e-4 describe the same mechanism: the loads dominate, so the factor of safety must agree.
+    let (a, b) = (fos(&v077(1e-6), 0), fos(&v077(1e-4), 0));
+    assert!((a - b).abs() / b < 1e-3, "gamma 1e-6 gives {a}, gamma 1e-4 gives {b}");
 }

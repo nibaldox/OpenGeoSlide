@@ -570,6 +570,18 @@ struct Root {
     fos: f64,
 }
 
+/// Scale of the force residuals (the `ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual, E13j-6):
+/// `max(ΣW, ΣW*)`, with `W* = W(1 + kv) + Q + V` the vertical force with the seismic and external loads of E12b.
+/// Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. With a (nearly) weightless soil, as
+/// in the Prandtl cases V018, V077 and V078 (γ = 1e-6), the soil weight alone is a scale 1e7 times smaller than the
+/// loads that drive the mass, and the closure cannot reach `1e-6·ΣW` in double precision. E3 (`no_driving`) and the
+/// negative-normal guard keep `ΣW`.
+pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
+    let soil: f64 = slices.iter().map(|s| s.weight).sum();
+    let with_loads: f64 = slices.iter().map(|s| s.total_weight()).sum();
+    soil.max(with_loads)
+}
+
 /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
 struct Scheme {
     preps: Vec<Prep>,
@@ -867,7 +879,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         m_bound,
         min_m: DIAGNOSTIC_MIN_M,
         start: start_fos,
-        total_w: slices.iter().map(|s| s.weight).sum(),
+        total_w: force_scale(slices),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar: 1.0,
@@ -953,7 +965,7 @@ fn setup(
         m_bound,
         min_m: opts.min_m_alpha,
         start: start_fos,
-        total_w: slices.iter().map(|s| s.weight).sum(),
+        total_w: force_scale(slices),
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar,
@@ -1020,7 +1032,7 @@ pub(super) fn force_root_at_zero(
     } else {
         FOS_FLOOR
     };
-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let total_w: f64 = force_scale(slices);
     let evaluations = std::cell::Cell::new(0_usize);
     let closure = |x: f64| {
         evaluations.set(evaluations.get() + 1);
