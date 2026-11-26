@@ -2,7 +2,7 @@
 
 import type { Scene } from '../render/scene';
 
-export type LegendSwatch = 'line-red' | 'line-polyline-dashed' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic';
+export type LegendSwatch = 'line-red' | 'line-polyline-dashed' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic' | 'line-reinforcement' | 'arrow-reinforcement' | 'mark-inactive';
 
 export interface LegendExtraItem {
   key: string;
@@ -33,6 +33,8 @@ export interface LegendOptions {
    * lo deduce de `scene.surface.polyline`.
    */
   fixedPolyline?: boolean;
+  /** Refuerzos y sus fuerzas (v0.4). Por omisión se deducen de la escena: `scene.reinforcements` y `scene.reinforcementForces`. */
+  reinforcements?: boolean;
 }
 
 /** Elementos distintos de los materiales, en orden fijo: superficie, dovelas, piezométrica, bandas, cargas, sismo. */
@@ -41,7 +43,7 @@ export const FIXED_CIRCLE_LABEL = 'Superficie fija (círculo)';
 export const UNCONVERGED_LABEL = 'Superficie evaluada (sin convergencia)';
 export const INVALID_LABEL = 'Superficie evaluada (no válida)';
 
-export function legendItems(scene: Pick<Scene, 'piezo'> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
+export function legendItems(scene: Pick<Scene, 'piezo' | 'reinforcements' | 'reinforcementForces'> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
   const { surface = true, unconverged = false, invalid = false, fixedCircle = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false, fixedPolyline = false } = options;
   const items: LegendExtraItem[] = [];
   // Con una polilínea la superficie no es «crítica»: la da el usuario (fija) y el cálculo solo la ajusta al terreno.
@@ -64,5 +66,13 @@ export function legendItems(scene: Pick<Scene, 'piezo'> & { surface?: Pick<NonNu
   }
   if (loads) items.push({ key: 'loads', label: 'Cargas', swatch: 'line-load' });
   if (seismic) items.push({ key: 'seismic', label: 'Sismo', swatch: 'line-seismic' });
+  // Refuerzos (v0.4): el símbolo de cada tipo y, con resultado, la flecha de fuerza y el cruce que no se aplicó (gris).
+  const withReinforcements = options.reinforcements ?? (scene.reinforcements?.length ?? 0) > 0;
+  if (withReinforcements) {
+    const forces = scene.reinforcementForces ?? [];
+    items.push({ key: 'reinforcements', label: 'Refuerzos (un símbolo por tipo)', swatch: 'line-reinforcement' });
+    if (forces.some((f) => f.status === 'applied')) items.push({ key: 'reinforcement-forces', label: 'Fuerza del refuerzo sobre la masa', swatch: 'arrow-reinforcement' });
+    if (forces.some((f) => f.status !== 'applied')) items.push({ key: 'reinforcement-inactive', label: 'Cruce sin fuerza aplicada (gris)', swatch: 'mark-inactive' });
+  }
   return items;
 }

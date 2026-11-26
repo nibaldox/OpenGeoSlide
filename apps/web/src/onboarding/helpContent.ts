@@ -3,6 +3,7 @@
 // entrada contra el código que realmente atiende la tecla (`shortcutFor` y `keyActions`), de modo que si un atajo cambia, la prueba falla.
 
 import type { ShortcutAction } from '../editor/app/shortcuts';
+import { STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
 
 export interface KeyProbe {
@@ -32,6 +33,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { scope: 'global', keys: 'A', action: 'Herramienta «Agregar vértice»', probes: [{ key: 'a' }], shortcutAction: 'tool:add_vertex' },
   { scope: 'global', keys: 'R', action: 'Herramienta «Dibujar región»: clic o toque (o Espacio) colocan un vértice, Intro cierra la región y Esc cancela', probes: [{ key: 'r' }], shortcutAction: 'tool:draw_region' },
   { scope: 'global', keys: 'D', action: 'Herramienta «Dividir región»: trace una línea que entre y salga del borde de una región; Intro, o un clic en el borde, la divide en dos (un solo paso deshacible)', probes: [{ key: 'd' }], shortcutAction: 'tool:split_region' },
+  { scope: 'global', keys: 'E', action: 'Herramienta «Dibujar refuerzo»: elija el tipo y marque la cabeza y la punta con dos clics o toques (o con Espacio); la tablestaca es vertical', probes: [{ key: 'e' }], shortcutAction: 'tool:draw_reinforcement' },
   { scope: 'global', keys: 'H', action: 'Herramienta «Mover vista»', probes: [{ key: 'h' }], shortcutAction: 'tool:pan' },
 
   {
@@ -60,6 +62,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
 export const POINTER_HINTS: readonly string[] = [
   'Arrastrar un tirador mueve el vértice, el punto de la piezométrica o el círculo de falla.',
   'Con «Agregar vértice», un clic sobre una arista inserta un vértice.',
+  'Cada refuerzo tiene tres tiradores: la cabeza y la punta mueven un extremo (en la tablestaca solo cambia la y) y el centro mueve el refuerzo entero en un solo paso.',
   'La rueda del ratón y el pellizco con dos dedos acercan y alejan; con «Mover vista» se arrastra el lienzo.',
   'Los botones «Acercar», «Alejar» y «Encuadrar» sobre el lienzo hacen lo mismo que + − y 0.',
 ];
@@ -194,6 +197,7 @@ export const LIMITATIONS: readonly string[] = [
   'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa: cada modelo que usa γsat lleva un aviso en Diagnósticos y en el informe.',
   'Si un material tiene ru y el modelo tiene línea piezométrica, el cálculo usa ru en ese material y no la piezométrica (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
   'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',
+  `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT}`,
   'Con unidades imperiales y piezométrica, γw debe ser explícito y no menor que 20 pcf (se usa 62,4): un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».',
 ];
 

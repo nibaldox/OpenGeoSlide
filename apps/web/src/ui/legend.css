@@ -27,3 +27,53 @@
   border: 0;
   border-top: 2.5px dashed var(--canvas-surface);
 }
+
+/* Refuerzos (v0.4): el trazo del símbolo, la flecha de fuerza y la marca gris del cruce sin fuerza aplicada. Solo tokens --canvas-*. */
+.legend .swatch.line-reinforcement {
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 3px solid var(--canvas-reinforcement);
+}
+.legend .swatch.arrow-reinforcement {
+  position: relative;
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 3px solid var(--canvas-reinforcement);
+}
+.legend .swatch.arrow-reinforcement::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -7px;
+  border-left: 8px solid var(--canvas-reinforcement);
+  border-top: 5.5px solid transparent;
+  border-bottom: 5.5px solid transparent;
+}
+.legend .swatch.mark-inactive {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  background:
+    linear-gradient(45deg, transparent 43%, var(--canvas-axis-text) 43% 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, var(--canvas-axis-text) 43% 57%, transparent 57%);
+}
+
+/* Tabla de fuerzas de los refuerzos bajo los resultados (Casos y editor). */
+.rf {
+  margin: 12px 0 0;
+}
+.rf-method {
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+.rf-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.rf-limit {
+  margin: 4px 0 0;
+  max-width: 70ch;
+}

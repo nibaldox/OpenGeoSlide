@@ -4,6 +4,7 @@
 import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport';
 import { lengthUnitOf } from '../editor/canvas/layout';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
+import { forceShapes, reinforcementShapes, type ShapePart } from '../editor/canvas/reinforcements';
 import { materialSlot, type Scene } from './scene';
 
 const MARGIN_PX = 56;
@@ -113,6 +114,91 @@ function tracePolygon(ctx: CanvasRenderingContext2D, vp: Viewport, points: [numb
   ctx.closePath();
 }
 
+/** Una parte del símbolo de un refuerzo en el Canvas 2D; `extra` ensancha el trazo (halo). */
+function strokePart(ctx: CanvasRenderingContext2D, part: ShapePart, color: string, extra: number): void {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = part.width + extra;
+  ctx.beginPath();
+  if (part.kind === 'circle') {
+    ctx.arc(part.cx, part.cy, part.r, 0, Math.PI * 2);
+  } else {
+    part.pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    if (part.closed) ctx.closePath();
+  }
+  ctx.stroke();
+  if (extra === 0 && part.fill) ctx.fill();
+}
+
+/**
+ * Refuerzos (v0.4) y las fuerzas del resultado: el símbolo de cada tipo con halo, su rótulo y una flecha por fuerza aplicada; los cruces
+ * que no se aplicaron llevan una marca gris con su estado. Mismas formas que el lienzo del editor (`editor/canvas/reinforcements.ts`).
+ */
+function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette, units?: string | null): void {
+  if (!scene.reinforcements || scene.reinforcements.length === 0) return;
+  const u = units ?? scene.units;
+  ctx.setLineDash([]);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const shapes = reinforcementShapes(scene.reinforcements, vp, u);
+  for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.halo, 3.5);
+  for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.reinforcement, 0);
+  ctx.font = AXIS_FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const text = (t: string, x: number, y: number, color: string): void => {
+    ctx.lineWidth = HALO_TEXT_PX;
+    ctx.strokeStyle = palette.halo;
+    ctx.strokeText(t, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(t, x, y);
+  };
+  for (const s of shapes) text(s.label.text, s.label.x, s.label.y, palette.reinforcement);
+  for (const f of forceShapes(scene.reinforcementForces, vp, u)) {
+    const color = f.applied ? palette.reinforcement : palette.axisText;
+    if (f.tip) {
+      const [ax, ay] = f.at;
+      const [tx, ty] = f.tip;
+      const len = Math.hypot(tx - ax, ty - ay) || 1;
+      const ux = (tx - ax) / len;
+      const uy = (ty - ay) / len;
+      const head = 9;
+      const arrow = (c: string, w: number): void => {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      };
+      arrow(palette.halo, 6.5);
+      arrow(color, 3);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(tx + ux * 2, ty + uy * 2);
+      ctx.lineTo(tx - ux * head - uy * 4, ty - uy * head + ux * 4);
+      ctx.lineTo(tx - ux * head + uy * 4, ty - uy * head - ux * 4);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const [x, y] = f.at;
+      for (const [c, w] of [[palette.halo, 6], [color, 2.5]] as const) {
+        ctx.strokeStyle = c;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 6);
+        ctx.lineTo(x + 6, y + 6);
+        ctx.moveTo(x - 6, y + 6);
+        ctx.lineTo(x + 6, y - 6);
+        ctx.stroke();
+      }
+    }
+    text(f.label.text, f.label.x, f.label.y, color);
+  }
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
+}
+
 /** Dibuja la escena completa. `cssWidth`/`cssHeight` están en px CSS; el lienzo ya tiene `dpr` escalado. */
 export function drawSection(
   ctx: CanvasRenderingContext2D,
@@ -212,6 +298,8 @@ export function drawSection(
     ctx.stroke();
     ctx.setLineDash([]);
   }
+
+  drawReinforcements(ctx, vp, scene, palette, units);
 
   // R9-05d: el motor prolonga la piezométrica en horizontal hasta los bordes del modelo; ese tramo va punteado para que el agua no parezca terminar en el último punto.
   const ext = scene.piezoExtension;

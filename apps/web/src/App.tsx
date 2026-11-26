@@ -295,6 +295,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 shownMethod={shownMethod}
                 onShowMethod={setShownMethod}
                 lengthUnit={lengthUnitOf(current?.caseData.model.units)}
+                reinforcements={current?.caseData.model.reinforcements}
               />
             </section>
           )}
