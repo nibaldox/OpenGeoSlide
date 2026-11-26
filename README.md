@@ -36,6 +36,12 @@ superficie de falla), la CLI, el editor web (PWA), el paquete de Python y las pr
 Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** con el elemento incluido, no su diseño
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
 
+El código en desarrollo, **todavía sin publicar** (véase el [registro de cambios](CHANGELOG.md#unreleased)), agrega el
+formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundidad fija o automática, seca o con agua) y
+el **agua embalsada**: cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
+su peso y su empuje, en todas las versiones del formato. **Esto cambia el resultado de los modelos con agua sobre el
+terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+
 ## Por qué es distinto
 
 - **Está verificado y se puede reproducir.** El motor cumple 243 de 243 checks contra valores publicados (116 casos) y
@@ -105,8 +111,8 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.4), con
-sismo, cargas y refuerzos, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.5, la v0.5 aún sin publicar), con
+sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
 
@@ -153,6 +159,14 @@ Esta batería no cubre todo: véanse las limitaciones.
   comprimido se aplica con su fuerza completa y **no siempre es conservador**: con φ > 0 su componente normal confina la
   base y puede subir el FS, y el motor lo avisa con una nota; el oráculo instalado de cSlope lo descarta. Un `spacing`
   omitido vale 1 m en SI y 1 ft en imperial. El VP 58 de Slide2 sigue pendiente.
+- **Grieta de tracción y agua embalsada (formato v0.5, aún sin publicar).** La grieta es solo vertical, una por
+  superficie, sin zona ni ángulo y sin tope de profundidad por la altura del talud; una superficie que no la alcanza se
+  descarta, y una grieta seca puede subir el FS. El agua embalsada no tiene desembalse rápido, el sismo pseudoestático no
+  actúa sobre ella ni sobre el agua de la grieta, y su regla con `ru` (`u = ru·(W + V)/b`, la de Slide2) no se puede
+  verificar contra el oráculo. Hay círculos tangentes al fondo (V096a, V086b) que el motor rechaza por la tolerancia
+  geométrica. **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a propósito: por
+  ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
+  ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
 - **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 116 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
@@ -184,7 +198,8 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
-geosynthetics, piles and sheet piles). One Rust engine powers a web app that
+geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
+the result of models with water above the ground compared with v0.3.0). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 243/243 published values (116 cases) and cSlope in
 28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks and 12/12 reinforcement checks. The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
