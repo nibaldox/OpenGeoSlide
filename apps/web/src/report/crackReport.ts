@@ -32,6 +32,14 @@ export const CRACK_CONVENTIONS: readonly string[] = [
 
 const DASH = '—';
 
+/** Texto de una grieta que el motor informa con `depth = 0` (E15j-3, E15l-15): no se cortó ninguna grieta. */
+export const NO_CRACK_TEXT = 'Sin grieta (z = 0)';
+
+/** ¿El motor informó «sin grieta»? Profundidad no positiva (o no finita): la superficie no tiene grieta aunque el modelo la pida. */
+export function isNoCrack(c: { depth: number } | null | undefined): boolean {
+  return !!c && !(c.depth > 0);
+}
+
 /** Número con coma decimal y hasta `digits` decimales, sin ceros de relleno: «2,4». */
 function num(n: number | null | undefined, digits = 3): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return DASH;
@@ -90,7 +98,12 @@ export function crackTable(records: readonly CrackRecord[], units: string | null
   const u = crackUnits(units);
   return {
     header: ['Método', `x_c (${u.length})`, `Profundidad (${u.length})`, 'Agua en la grieta', `Pw (${u.line})`],
-    rows: records.map((r) => [METHOD_NAME[r.method], num(r.x), num(r.depth), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)]),
+    // E15l-15: con `depth ≤ 0` no hay grieta: ni x_c, ni porcentaje de agua, ni Pw.
+    rows: records.map((r) =>
+      isNoCrack(r)
+        ? [METHOD_NAME[r.method], DASH, NO_CRACK_TEXT, DASH, DASH]
+        : [METHOD_NAME[r.method], num(r.x), num(r.depth), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)],
+    ),
   };
 }
 

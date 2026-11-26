@@ -665,7 +665,7 @@ function crackSection(input: ReportInput): ReportSection | null {
         kind: 'paragraph',
         text:
           'x_c es la posición de la grieta en la superficie de falla y la profundidad es la usada en x_c (la fija, o la automática). ' +
-          'Pw es la fuerza del agua en la grieta por metro de talud; con la grieta seca vale 0.',
+          'Pw es la fuerza del agua en la grieta por metro de talud; con la grieta seca vale 0. «Sin grieta (z = 0)» indica que ese método no cortó ninguna grieta: la profundidad en x_c es 0.',
       });
     } else if (results.some(isMockResult)) {
       blocks.push({ kind: 'paragraph', text: 'El motor simulado no calcula la grieta de tracción.' });

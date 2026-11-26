@@ -20,7 +20,7 @@ export interface WarningContext {
   surface?: 'circle' | 'polyline';
   method?: MethodKind;
   /**
-   * El análisis ya tiene una grieta de tracción (el resultado trae `tension_crack`): el aviso de normal efectiva negativa no debe
+   * El análisis ya tiene una grieta de tracción (el resultado trae `tension_crack` con `depth > 0`; con 0 no se cortó ninguna): el aviso de normal efectiva negativa no debe
    * sugerir «considere una grieta de tracción», que ya está, sino revisar su profundidad.
    */
   tensionCrack?: boolean;
@@ -29,7 +29,7 @@ export interface WarningContext {
 /** Contexto de los avisos de un resultado: su método, el tipo de superficie que informó y si el análisis tiene grieta de tracción. */
 export function warningContext(r: Pick<MethodReport, 'method' | 'surface'> & { tension_crack?: MethodReport['tension_crack'] | null }): WarningContext {
   const ctx: WarningContext = { method: r.method, surface: isPolylineReport(r.surface) ? 'polyline' : 'circle' };
-  if (r.tension_crack) ctx.tensionCrack = true;
+  if (r.tension_crack && r.tension_crack.depth > 0) ctx.tensionCrack = true; // depth 0 = «sin grieta» (E15l-15)
   return ctx;
 }
 
