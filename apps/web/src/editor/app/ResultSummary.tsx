@@ -23,11 +23,16 @@ export function ResultSummary({ run, current, busy, shownMethod }: {
         <>
           <ul className={current ? 'rs-list' : 'rs-list rs-stale'}>
             {items.map((i) => (
-              <li key={i.method} className={`rs-item${i.converged ? '' : ' rs-item-warn'}${shownMethod === i.method ? ' rs-item-shown' : ''}`}>
+              <li key={i.method} className={`rs-item${i.converged ? '' : ' rs-item-warn'}${i.flagged ? ' rs-item-flagged' : ''}${shownMethod === i.method ? ' rs-item-shown' : ''}`}>
                 <span className="rs-method">{i.name}</span>
                 <span className="rs-fs" data-testid={`fs-${i.method}`}>
                   <span className="rs-fs-label">FS</span> {i.fs}
                 </span>
+                {i.flagged ? (
+                  <span className="rs-flag" data-testid={`warn-${i.method}`}>
+                    <span aria-hidden="true">⚠ </span>Con aviso
+                  </span>
+                ) : null}
                 <span className="rs-status">{i.status}</span>
               </li>
             ))}

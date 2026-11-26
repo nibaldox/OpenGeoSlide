@@ -1,5 +1,9 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { AnalysisReport, MethodReport } from '../../engine/types';
+import { ResultSummary } from './ResultSummary';
+import type { EngineRun } from './reportInput';
 import { calcAnnouncement, nextAnnouncement, summaryItems, warningCounts, warningCountsText } from './resultSummary';
 
 function result(method: 'bishop' | 'spencer', fos: number | null, warnings: string[] = []): MethodReport {
@@ -66,5 +70,45 @@ describe('nextAnnouncement', () => {
     expect(second).not.toBe(first);
     expect(third).not.toBe(second);
     expect(second.replace(/\u00a0/g, '')).toBe('Guardado');
+  });
+});
+
+describe('R10B-09: «Con aviso» junto al FS de cada método con avisos de severidad «aviso»', () => {
+  const E13K = 'interslice_shear_exceeds_strength';
+  const r = report(result('bishop', 1.2, ['negative_effective_normal']), result('spencer', 130.578, [E13K, 'negative_effective_normal']));
+
+  it('summaryItems cuenta los avisos (no las notas) de cada método', () => {
+    const items = summaryItems(r);
+    expect(items.map((i) => i.warnings)).toEqual([0, 1]);
+    expect(items.map((i) => i.flagged)).toEqual([false, true]);
+  });
+
+  it('una nota sola no marca el método', () => {
+    expect(summaryItems(report(result('bishop', 1.2, ['negative_effective_normal', 'load_outside_mass'])))[0]).toMatchObject({ warnings: 0, flagged: false });
+  });
+
+  it('cuenta códigos distintos una sola vez', () => {
+    expect(summaryItems(report(result('spencer', 1.1, [E13K, E13K, 'air_gap_thrust'])))[0]!.warnings).toBe(2);
+  });
+
+  it('la franja muestra «Con aviso» solo junto al método afectado, con texto (no solo color) y nombre estable', () => {
+    const run = { report: r, revision: 1 } as unknown as EngineRun;
+    const html = renderToStaticMarkup(createElement(ResultSummary, { run, current: true, busy: false, shownMethod: 'spencer' }));
+    expect(html.match(/Con aviso/g)).toHaveLength(1);
+    expect(html).toContain('data-testid="warn-spencer"');
+    expect(html).not.toContain('data-testid="warn-bishop"');
+    // El FS sigue ahí: la marca no lo oculta.
+    expect(html).toContain('130,578');
+    expect(html.indexOf('130,578')).toBeLessThan(html.indexOf('Con aviso'));
+    expect(html).toContain('Convergió');
+  });
+
+  it('la franja sin avisos no lleva la marca', () => {
+    const run = { report: report(result('bishop', 1.2)), revision: 1 } as unknown as EngineRun;
+    expect(renderToStaticMarkup(createElement(ResultSummary, { run, current: true, busy: false, shownMethod: null }))).not.toContain('Con aviso');
+  });
+
+  it('el anuncio para el lector de pantalla dice «con aviso» junto al FS afectado', () => {
+    expect(calcAnnouncement(r)).toBe('Cálculo completado: Bishop FS 1,200; Spencer FS 130,578 con aviso; 1 aviso y 2 notas');
   });
 });
