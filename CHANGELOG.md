@@ -11,8 +11,9 @@ API pueden cambiar entre versiones menores.
 Bloque de grieta de tracción y agua embalsada (F3G): formato v0.5, **en desarrollo y sin publicar**. El contrato es
 `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15h); la evidencia, `docs/fase3/exploracion/X18.md` a `X21.md` y
 `docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a
-byte, que la v0.3.0** (salvo el número de versión del motor), con una excepción documentada: los modelos cuya
-piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»).
+byte, que la v0.3.0** (salvo el número de versión del motor), con dos excepciones documentadas: los modelos cuya
+piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»), y V019 con búsqueda, donde solo
+cambian dos contadores (E15j-8, véase «Changed»).
 
 ### Added
 - **Formato `.ogs.json` v0.5 (E15a).** El motor acepta 0.1 a 0.5. `analysis.tension_crack` exige `"version": "0.5"`; con
@@ -57,7 +58,10 @@ piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «
     en `verification/pending/F3G/HOLD.json`, con su causa (E15j-6): V085 ×4 (la búsqueda de ogs halla un círculo más
     crítico que el del oráculo) y V009a y V009b (aviso `interslice_shear_exceeds_strength`).
   - **Identidad:** `verification/tools/identity_vs_baseline.py` gana `--normalize-version` y `--include-reinforced`, y
-    separa y nombra los modelos con agua sobre el terreno.
+    separa y nombra los modelos con agua sobre el terreno. Además lee las **excepciones declaradas** de
+    `verification/tools/identity_exceptions.json` (`{modelo, variante, campos, motivo, enmienda}`): V019 en `search` y
+    `search@0.4` por E15j-8 se informa aparte («EXCEPCIÓN V019 [search]: E15j-8») y no cuenta, y cualquier otra
+    diferencia sigue contando. Medido contra la v0.3.0: 0 diferencias, 2 excepciones y 18 modelos con agua listados.
   - **Tests del motor:** `f3g_types`, `f3g1a_water`, `f3g1b_crack` y `f3g_rows` (55 filas de X21 migradas al formato final).
 - **Documentación.** `docs/formato-ogs-json.md` con las secciones «Agua embalsada» y «Grieta de tracción (v0.5)» y siete
   ejemplos o fragmentos ejecutables; `docs/tools/validar_ejemplos.py` valida contra el esquema 0.5 y gana `grieta=`;
@@ -78,6 +82,19 @@ piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «
 - **El FS de un material con `ru` y agua sobre el terreno cambia** por el mismo motivo (el agua embalsada carga la
   dovela); la capacidad de `interface` no cambia (E14o-4). En `f3r11a_cruces`, con la piezométrica 7 m sobre el banco, el
   FS pasa de 1,1249 sin la línea a 2,2866 con ella, y la aserción del test pasa de igualdad a `a > b`.
+- **Contacto de aire capilar (E15j-8, segunda excepción a la identidad con la v0.3.0).** Un tramo de aire interior, con
+  suelo a ambos lados, de ancho total ≤ 1e-6 del ancho del modelo y con el arco a 10·tol o menos sobre el terreno, se
+  trata como contacto y no parte la masa (D30: el círculo de cSlope pasa 3,6e-7 m sobre el pie de un corte vertical).
+  Frente a la v0.3.0 solo cambian en V019 (variantes `search` y `search@0.4`) los contadores `search.evaluated`
+  (10040 → 10088) y `search.valid` (7451 → 7499) de Janbu simplificado; el FS, la superficie, los avisos y las dovelas
+  son idénticos. Está declarada en `verification/tools/identity_exceptions.json` y en
+  [`docs/limitaciones.md`](docs/limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8).
+- **Web: rótulos de una grieta poco profunda.** Con una grieta automática de pocos píxeles (0,43 m en V047a con la
+  piezométrica en y = 27), el rótulo «Grieta d = …» caía sobre la línea del terreno y el de Pw se le acercaba; ahora los
+  dos se apilan sobre el terreno, del lado de la masa, sin tocarlo ni superponerse (lienzo, Casos y PDF).
+- **Web: la nota de normal efectiva negativa con grieta.** Si el resultado trae `tension_crack`, el texto ya no sugiere
+  «considere una grieta de tracción»: dice «a pesar de la grieta de tracción del análisis; revise su profundidad» (en
+  `negative_effective_normal_major`, «revise la presión de poros y la profundidad de la grieta»).
 - **La CLI** indica el formato v0.1 a v0.5 en su ayuda. Los tests de otras olas que usaban `"0.5"` como versión
   desconocida pasan a `"0.6"`.
 - Los modelos sin grieta y sin agua sobre el terreno no cambian: la identidad byte a byte con la v0.3.0 es un gate de

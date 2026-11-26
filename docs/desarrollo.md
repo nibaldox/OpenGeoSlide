@@ -95,8 +95,13 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
 - **La excepción del agua embalsada (F5.1).** Los modelos cuya piezométrica pasa sobre el terreno cambian de resultado a
   propósito, porque ahora incluyen el agua embalsada. La herramienta los **separa y los informa por su nombre**, con las
   variantes que difieren; no los oculta ni cuentan como diferencia. Para los modelos sin refuerzos, la lista se imprime
-  aparte, porque el contrato espera que esté vacía
+  aparte (18 en el corpus actual)
   ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+- **Excepciones declaradas (E15j-8).** `--exceptions` (por omisión, `verification/tools/identity_exceptions.json`) lista
+  `{modelo, variante, campos, motivo, enmienda}`. Si la única diferencia de un modelo y una variante está en los `campos`
+  permitidos (rutas JSON con `*` por segmento, como `results.*.search.evaluated`), se informa como «EXCEPCIÓN» y no
+  cuenta; si hay otro campo, otro modelo, otro estado o stderr, cuenta. Hoy declara V019 en `search` y `search@0.4`
+  ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
 
 El resultado esperado es «0 diferencias» para todo lo demás, con salida `ok` en el baseline.
 

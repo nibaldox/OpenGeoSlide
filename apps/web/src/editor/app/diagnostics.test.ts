@@ -37,6 +37,19 @@ describe('issueFromEngineError', () => {
   });
 });
 
+describe('issuesFromReport: la nota de normal efectiva negativa con grieta', () => {
+  const report = (m: MethodReport): AnalysisReport => ({ engine: 'ogs-core', results: [m] }) as AnalysisReport;
+
+  it('sin grieta sugiere una; con la grieta del análisis (tension_crack en el resultado) pide revisar su profundidad', () => {
+    const plain = issuesFromReport(report(method({ warnings: ['negative_effective_normal'] })));
+    expect(plain[0]?.text).toContain('considere una grieta de tracción');
+    const cracked = issuesFromReport(report(method({ warnings: ['negative_effective_normal'], tension_crack: { x: 47, depth: 0.43, water_force: 0.09 } })));
+    expect(cracked[0]?.text).toContain('a pesar de la grieta de tracción del análisis; revise su profundidad.');
+    expect(cracked[0]?.text).not.toContain('considere');
+    expect(cracked[0]).toMatchObject({ code: 'negative_effective_normal', severity: 'nota' });
+  });
+});
+
 describe('issuesFromReport', () => {
   it('convierte avisos y notas con el texto de warnings.ts y el método', () => {
     const report: AnalysisReport = {

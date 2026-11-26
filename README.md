@@ -166,9 +166,10 @@ Esta batería no cubre todo: véanse las limitaciones.
   superficie, sin zona ni ángulo y sin tope de profundidad por la altura del talud; una superficie que no la alcanza se
   descarta, y una grieta seca puede subir el FS. El agua embalsada no tiene desembalse rápido, el sismo pseudoestático no
   actúa sobre ella ni sobre el agua de la grieta, y su regla con `ru` (`u = ru·(W + V)/b`, la de Slide2) no se puede
-  verificar contra el oráculo. Hay círculos tangentes al fondo (V096a, V086b) que el motor rechaza por la tolerancia
-  geométrica. **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a propósito: por
-  ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
+  verificar contra el oráculo. El círculo de cSlope de V096a y V086b pasa 8e-7 y 1e-6 bajo el fondo del modelo y el
+  motor lo rechaza; sus checks pasan igual, porque la búsqueda de ogs encuentra su propio círculo válido, y lo que queda
+  retenido es la fila diferencial D39 fija, marcada «explicado» (E15j-7). **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a
+  propósito: por ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
   ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
 - **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 147 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene

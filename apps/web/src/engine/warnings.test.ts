@@ -13,6 +13,32 @@ describe('describeWarning', () => {
     );
   });
 
+  it('con una grieta de tracción en el análisis, la nota no sugiere una grieta: pide revisar su profundidad', () => {
+    const withCrack = describeWarning('negative_effective_normal', { tensionCrack: true });
+    expect(withCrack.severity).toBe('nota');
+    expect(withCrack.text).toBe(
+      'Normal efectiva negativa en algunas dovelas (zona de tracción) a pesar de la grieta de tracción del análisis; revise su profundidad.',
+    );
+    expect(withCrack.text).not.toMatch(/considere/);
+    const major = describeWarning('negative_effective_normal_major', { tensionCrack: true });
+    expect(major.severity).toBe('aviso');
+    expect(major.text).not.toMatch(/considere/);
+    expect(major.text).toMatch(/profundidad de la grieta/);
+    // sin grieta (o con el contexto sin ella) el texto acordado no cambia
+    expect(describeWarning('negative_effective_normal', { tensionCrack: false }).text).toMatch(/considere una grieta de tracción/);
+    expect(describeWarning('negative_effective_normal_major').text).toMatch(/considere grietas de tracción/);
+  });
+
+  it('el contexto de un resultado trae tensionCrack solo si el resultado trae tension_crack', () => {
+    const base = { method: 'bishop' as const, surface: { xc: 1, yc: 2, r: 3 }, warnings: ['negative_effective_normal'] };
+    expect(warningContext(base)).toEqual({ method: 'bishop', surface: 'circle' });
+    expect(warningContext({ ...base, tension_crack: undefined }).tensionCrack).toBeUndefined();
+    const ctx = warningContext({ ...base, tension_crack: { x: 47, depth: 0.43, water_force: 0.09 } });
+    expect(ctx).toEqual({ method: 'bishop', surface: 'circle', tensionCrack: true });
+    expect(describeResultWarnings({ ...base, tension_crack: { x: 47, depth: 0.43, water_force: 0.09 } })[0]?.text).toMatch(/a pesar de la grieta de tracción del análisis/);
+    expect(describeResultWarnings(base)[0]?.text).toMatch(/considere una grieta de tracción/);
+  });
+
   it('water_above_ground es una nota (agua embalsada, F5.3) y max_iterations un aviso', () => {
     expect(describeWarning('water_above_ground')).toMatchObject({ severity: 'nota' });
     expect(describeWarning('water_above_ground').text).toMatch(/agua embalsada se incluye/);

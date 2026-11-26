@@ -929,7 +929,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
             )}
             <text data-crack-label="depth" x={crackPx.depthLabel.x} y={crackPx.depthLabel.y} dy="0.35em" fontSize={12} fill={COLOR_SURFACE} {...HALO_LABEL} textAnchor={crackPx.depthLabel.anchor}>{crackPx.depthLabel.text}</text>
             {crackPx.forceLabel && (
-              <text data-crack-label="force" x={crackPx.forceLabel.x} y={crackPx.forceLabel.y} fontSize={12} fill={COLOR_PIEZO} {...HALO_LABEL} textAnchor={crackPx.forceLabel.anchor}>{crackPx.forceLabel.text}</text>
+              <text data-crack-label="force" x={crackPx.forceLabel.x} y={crackPx.forceLabel.y} dy="0.35em" fontSize={12} fill={COLOR_PIEZO} {...HALO_LABEL} textAnchor={crackPx.forceLabel.anchor}>{crackPx.forceLabel.text}</text>
             )}
           </g>
         )}

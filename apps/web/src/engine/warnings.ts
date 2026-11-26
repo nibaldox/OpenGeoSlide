@@ -19,11 +19,18 @@ export type WarningSeverity = 'nota' | 'aviso';
 export interface WarningContext {
   surface?: 'circle' | 'polyline';
   method?: MethodKind;
+  /**
+   * El análisis ya tiene una grieta de tracción (el resultado trae `tension_crack`): el aviso de normal efectiva negativa no debe
+   * sugerir «considere una grieta de tracción», que ya está, sino revisar su profundidad.
+   */
+  tensionCrack?: boolean;
 }
 
-/** Contexto de los avisos de un resultado: su método y el tipo de superficie que informó. */
-export function warningContext(r: Pick<MethodReport, 'method' | 'surface'>): WarningContext {
-  return { method: r.method, surface: isPolylineReport(r.surface) ? 'polyline' : 'circle' };
+/** Contexto de los avisos de un resultado: su método, el tipo de superficie que informó y si el análisis tiene grieta de tracción. */
+export function warningContext(r: Pick<MethodReport, 'method' | 'surface'> & { tension_crack?: MethodReport['tension_crack'] | null }): WarningContext {
+  const ctx: WarningContext = { method: r.method, surface: isPolylineReport(r.surface) ? 'polyline' : 'circle' };
+  if (r.tension_crack) ctx.tensionCrack = true;
+  return ctx;
 }
 
 /** «compare con Bishop simplificado» (círculos), «compare con Janbu» (polilíneas) o «compare con otro método». */
@@ -91,11 +98,17 @@ export const ENGINE_WARNING_CODES = [
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   negative_effective_normal: {
     severity: 'nota',
-    text: 'Normal efectiva negativa en algunas dovelas (zona de tracción; considere una grieta de tracción).',
+    text: (ctx) =>
+      ctx.tensionCrack
+        ? 'Normal efectiva negativa en algunas dovelas (zona de tracción) a pesar de la grieta de tracción del análisis; revise su profundidad.'
+        : 'Normal efectiva negativa en algunas dovelas (zona de tracción; considere una grieta de tracción).',
   },
   negative_effective_normal_major: {
     severity: 'aviso',
-    text: 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción.',
+    text: (ctx) =>
+      ctx.tensionCrack
+        ? 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión) a pesar de la grieta de tracción del análisis: revise la presión de poros y la profundidad de la grieta.'
+        : 'Normal efectiva negativa en una parte importante de la base (tracción o subpresión): revise la presión de poros y considere grietas de tracción.',
   },
   air_gap_thrust: {
     severity: 'aviso',
@@ -271,6 +284,6 @@ export function describeWarnings(codes: readonly string[], ctx: WarningContext =
 }
 
 /** Avisos de un resultado, con el contexto de su método y su superficie. */
-export function describeResultWarnings(r: Pick<MethodReport, 'method' | 'surface' | 'warnings'>): WarningInfo[] {
+export function describeResultWarnings(r: Pick<MethodReport, 'method' | 'surface' | 'warnings' | 'tension_crack'>): WarningInfo[] {
   return describeWarnings(r.warnings, warningContext(r));
 }

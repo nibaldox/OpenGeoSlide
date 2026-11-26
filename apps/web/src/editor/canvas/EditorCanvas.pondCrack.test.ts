@@ -54,6 +54,15 @@ describe('EditorCanvas: grieta de tracción del resultado', () => {
     const layer = html.slice(html.indexOf('data-layer="tension-crack"'), html.indexOf('data-layer="search-ranges"'));
     expect(layer).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
   });
+  it('con una grieta automática poco profunda (0,43 m) los dos rótulos van sobre el terreno y con el mismo anclaje vertical (dy)', () => {
+    const shallowSlices = [slice(30, 38, 25, 23), slice(38, 47, 23, 33.07)] as never;
+    const html = render(doc, { surface: { xc: 52, yc: 45, r: 24 }, slices: shallowSlices, tensionCrack: { x: 47, depth: 0.43, water_force: 0.0906 } });
+    const depth = /data-crack-label="depth" x="([-\d.e]+)" y="([-\d.e]+)" dy="0.35em"/.exec(html);
+    const force = /data-crack-label="force" x="([-\d.e]+)" y="([-\d.e]+)" dy="0.35em"/.exec(html);
+    expect(depth).not.toBeNull();
+    expect(force).not.toBeNull();
+    expect(Number(depth![2]) + 7).toBeLessThanOrEqual(Number(force![2]) - 7); // sin solape entre sí
+  });
   it('el sentido de la flecha es el de las dovelas respecto de la cara (aquí hacia −x)', () => {
     const html = render(doc, result({ x: 47, depth: 2.4, water_force: 28.2 }));
     const m = /data-crack-arrow="true" x1="([-\d.e]+)" y1="[-\d.e]+" x2="([-\d.e]+)"/.exec(html);

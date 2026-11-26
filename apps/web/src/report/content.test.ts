@@ -180,6 +180,20 @@ describe('buildReportContent', () => {
     expect(section(none, 'warnings').blocks).toEqual([{ kind: 'paragraph', text: 'Sin avisos ni notas.' }]);
   });
 
+  it('avisos: con la grieta del análisis, la nota de normal efectiva negativa no sugiere una grieta', () => {
+    const base = input.results[0] as MethodReport;
+    const texts = (r: MethodReport): string[] => {
+      const b = section(buildReportContent({ ...input, results: [r] }), 'warnings').blocks[0];
+      return b && b.kind === 'list' ? b.items.map((i) => i.text) : [];
+    };
+    expect(texts({ ...base, warnings: ['negative_effective_normal'], tension_crack: undefined })).toEqual([
+      'Normal efectiva negativa en algunas dovelas (zona de tracción; considere una grieta de tracción).',
+    ]);
+    expect(texts({ ...base, warnings: ['negative_effective_normal'], tension_crack: { x: 47, depth: 0.43, water_force: 0.09 } })).toEqual([
+      'Normal efectiva negativa en algunas dovelas (zona de tracción) a pesar de la grieta de tracción del análisis; revise su profundidad.',
+    ]);
+  });
+
   it('motor y advertencia: la de la entrada o, si está vacía, la aprobada', () => {
     const e = section(content, 'engine');
     expect(e.blocks[1]).toEqual({ kind: 'paragraph', text: professionalDisclaimer('ogs-core 0.1.0') });

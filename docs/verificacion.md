@@ -194,6 +194,11 @@ falla. Resultado, de [`verification/differential/REPORT.md`](../verification/dif
   modelos** (29 con refuerzos se saltan: la v0.2.0 rechaza el campo). **Una sola excepción declarada:** V065 sin
   refuerzos, que la v0.2.0 rechazaba por redondeo y ahora se analiza
   ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
+  Con la v0.3.0 como base (bloque F3G), la herramienta lee las **excepciones declaradas** de
+  `verification/tools/identity_exceptions.json`: V019 en `search` y `search@0.4` (E15j-8), donde solo cambian los
+  contadores `search.evaluated` y `search.valid`. Se informan aparte («EXCEPCIÓN V019 [search]: E15j-8») y no cuentan; el
+  resultado es **0 diferencias, 2 excepciones y 18 modelos con agua sobre el terreno** listados
+  ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
 - **Oráculo** (`crates/ogs-core/tests/f3r_oracle.rs`): las siete filas de F4.13, 16 de dirección inclinada y nueve de
   capacidad de X17 contra cSlope 0.1.0, con 0,1 % (0,25 % en las dos de `interface` donde gobierna la integral). Con
   E14o-9, las filas pasivas `inc_up30_pas` e `inc_up45_pas` pasan a ser elementos **embebidos** que cruzan la masa con
@@ -228,7 +233,7 @@ falla. Resultado, de [`verification/differential/REPORT.md`](../verification/dif
 - **Esquema:** `verification/tools/test_schema.py` compara el esquema con el binario en una tabla de documentos; con
   E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan), y con el bloque de refuerzos compara
   también [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) (que acepta 0.1 a 0.4 y rechaza lo mismo que el
-  motor). Con `test_cli_usage.py`, 384 pruebas pasan.
+  motor). Con `test_cli_usage.py`, 434 pruebas pasan (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
 
 ## Rendimiento (bench)
 
