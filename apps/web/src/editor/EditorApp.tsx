@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { loadBuiltinCases } from '../cases';
 import type { EngineClient } from '../engine/client';
 import type { MethodKind } from '../engine/types';
-import { clearDraft, loadDraft, type Draft } from '../io/draft';
+import { loadDraftChain, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
 import { parseDxf, type DxfParseResult } from '../io/dxf';
 import { saveOgsJson, sha256Hex } from '../io/ogsJson';
@@ -24,6 +24,7 @@ import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
 import { visibleExportHint } from './app/exportHint';
+import { editMenuLabel } from './app/editMenuLabel';
 import { useNarrow } from './app/useNarrow';
 import { docFromCase, newDoc } from './app/docTemplates';
 import { EmptyCanvasState } from './app/EmptyCanvasState';
@@ -46,7 +47,7 @@ import { baseFileName, buildReportInput, exportAvailability, hasExportableSurfac
 import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
-import { SAME_DRAFT_TEXT, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
+import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
 import {
   AnalysisPanel,
@@ -110,8 +111,8 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [store] = useState<EditorStoreWithSave>(() => createEditorStore(initialDoc().doc, null));
   const cases = useMemo(() => loadBuiltinCases(), []);
   const draftStorage = useMemo(() => resolveTabDraftStorage(), []);
-  // El borrador se lee una sola vez (un borrador corrupto se elimina al leerlo y solo se avisa esa vez).
-  const [boot] = useState(() => loadDraft(draftStorage.storage));
+  // El borrador se lee una sola vez (uno corrupto, también el heredado, se elimina al leerlo y solo se avisa esa vez; se ofrece el siguiente).
+  const [boot] = useState(() => loadDraftChain(draftStorage.storage));
   // La entrada del índice que se ofrece (la más reciente), para avisar si su pestaña sigue abierta.
   const [offeredEntry] = useState(() => (boot.draft ? offeredDraftEntry(draftStorage.storage) : null));
   const draftOpenElsewhere = useDraftOpenElsewhere(offeredEntry);
@@ -156,9 +157,12 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const doc = useEditorStore(store, (s) => s.doc);
   const fileName = useEditorStore(store, (s) => s.file.name);
-  const dirty = useEditorStore(store, (s) => s.revision !== s.file.savedRevision);
+  const docDirty = useEditorStore(store, (s) => s.revision !== s.file.savedRevision);
+  // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
+  const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
+  const dirty = docDirty || tracePoints > 0;
   const tool = useEditorStore(store, (s) => s.ui.tool);
-  useUnloadGuard(shouldWarnBeforeUnload({ dirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure }));
+  useUnloadGuard(shouldWarnBeforeUnload({ dirty: docDirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure, tracePoints }));
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
   const canRedo = useEditorStore(store, (s) => s.history.future.length > 0);
 
@@ -269,7 +273,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           downloadText(text, finalName, 'application/json');
           store.markSaved(finalName);
           setIsExample(false);
-          clearDraft(draftStorage.storage);
+          clearOwnDraft(draftStorage.storage); // solo el de esta pestaña: el de otra pestaña abierta sigue a salvo (R9-01)
           const sha = await sha256Hex(text);
           notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
         } catch (err) {
@@ -457,9 +461,10 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     notify('info', `Borrador recuperado (${formatWhen(draft.savedAt)}).`);
   };
   const discardDraft = (): void => {
-    clearDraft(draftStorage.storage);
+    // Si el borrador es de otra pestaña que sigue abierta, solo se oculta el aviso aquí: no se borra su trabajo (R9-01).
+    const removed = discardOfferedDraft(draftStorage.storage, offeredEntry, draftOpenElsewhere);
     setDraft(null);
-    notify('info', 'Borrador descartado.');
+    notify('info', removed ? 'Borrador descartado.' : 'Aviso oculto: el borrador sigue guardado porque es de otra pestaña que sigue abierta.');
   };
 
   // ───────── Atajos globales ─────────
@@ -603,7 +608,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         {narrow ? (
           // Con 480 px o menos, Deshacer, Rehacer y las herramientas van en un menú «Editar» (B-09). Los botones conservan sus nombres.
           <div className="ea-group" role="group" aria-label="Edición y herramientas">
-            <DropdownMenu label="Editar">
+            <DropdownMenu label={editMenuLabel(tool, TOOLS.find((t) => t.tool === tool)?.label)}>
               {undoRedoButtons}
               <hr />
               {toolButtons}

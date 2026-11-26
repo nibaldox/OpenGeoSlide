@@ -38,9 +38,12 @@ step('el borrador de A no fue pisado por el de B', aDraft === 'Pestaña A', { aD
 // U5-I: con las pestañas dueñas cerradas ya no hay aviso (el borrador sigue ofrecido).
 await a.close();
 await b2.close();
+// U6-D (R9-02a): tras «Recuperar», la pestaña c guarda enseguida lo recuperado en su propio borrador, que pasa a ser el más
+// reciente: c es ahora la dueña de lo que se ofrece. Para que no haya dueña abierta hay que cerrar también c.
+await c.close();
 const d = await open();
 await d.locator('[data-testid="draft-banner"]').waitFor();
-await d.waitForTimeout(800); // da tiempo a que respondan las pestañas abiertas (solo c, que no es la dueña)
+await d.waitForTimeout(800); // da tiempo a que respondan las pestañas abiertas (ninguna: a, b y c están cerradas)
 const dBanner = await d.locator('[data-testid="draft-banner"]').innerText();
 step('sin la pestaña dueña abierta, el banner ofrece el borrador sin el aviso', /borrador guardado/.test(dBanner) && !/otra pestaña/.test(dBanner), { banner: dBanner.replace(/\s+/g, ' ').slice(0, 140) });
 await b.close();
