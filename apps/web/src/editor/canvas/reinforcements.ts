@@ -300,9 +300,12 @@ interface LabelBox {
 }
 
 const LABEL_PAD_PX = 2;
-/** Paso de las cajas de obstáculo a lo largo de un símbolo o una flecha, y su peso frente al solape con otro rótulo (1). */
+/** Paso de las cajas de obstáculo a lo largo de un símbolo o una flecha. */
 const OBSTACLE_STEP_PX = 8;
-const OBSTACLE_WEIGHT = 0.3;
+/** Costes de un sitio para el rótulo: cada caja de obstáculo tapada, cada píxel de distancia al sitio natural y la base del solape con otro rótulo (domina). */
+const OBSTACLE_HIT_COST = 20;
+const DISTANCE_COST = 4;
+const OVERLAP_BASE = 1e6;
 const labelBox = (text: string, x: number, y: number): LabelBox => {
   const half = (text.length * LABEL_CHAR_PX) / 2;
   return { x1: x - half, x2: x + half, y1: y - LABEL_LINE_PX, y2: y };
@@ -325,8 +328,8 @@ export function placeReinforcementLabels(
   vp: Pick<Viewport, 'width' | 'height'>,
 ): { shapes: ReinforcementShape[]; forces: ForceShape[] } {
   const placed: LabelBox[] = [];
-  // Obstáculos: los símbolos y las flechas, como cajas pequeñas a lo largo de su trazo. Un rótulo prefiere un sitio sin pisarlos (pesan menos que
-  // otro rótulo) y, en un grupo denso, sale hacia el terreno libre en vez de quedar tapado por los símbolos vecinos. Cada rótulo ignora los suyos.
+  // Obstáculos: los símbolos y las flechas, como cajas pequeñas a lo largo de su trazo. Un rótulo prefiere un sitio sin pisarlos pero cerca del suyo
+  // (el coste de taparlos se compara con la distancia) y, en un grupo denso, sale hacia el terreno libre en vez de quedar tapado por los símbolos vecinos. Cada rótulo ignora los suyos.
   const obstacles: { box: LabelBox; owner: string }[] = [];
   const along = (owner: string, a: PxPoint, b: PxPoint, half: number): void => {
     const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / OBSTACLE_STEP_PX));
@@ -341,21 +344,21 @@ export function placeReinforcementLabels(
   const inside = (b: LabelBox): boolean => b.x1 >= LABEL_PAD_PX && b.x2 <= vp.width - LABEL_PAD_PX && b.y1 >= LABEL_PAD_PX && b.y2 <= vp.height - LABEL_PAD_PX;
   const place = (label: { x: number; y: number; text: string }, owner: string): { x: number; y: number; text: string } => {
     const w = label.text.length * LABEL_CHAR_PX;
-    const offsets: [number, number][] = [];
-    for (let j = -6; j <= 6; j += 1) for (let k = -12; k <= 12; k += 1) offsets.push([j * (w / 2 + LABEL_PAD_PX), k * LABEL_LINE_PX]);
-    offsets.sort((a, b) => Math.abs(a[1]) + 0.6 * Math.abs(a[0]) - (Math.abs(b[1]) + 0.6 * Math.abs(b[0])));
     let best: { box: LabelBox; dx: number; dy: number; cost: number } | null = null;
-    for (const [dx, dy] of offsets) {
-      const box = labelBox(label.text, label.x + dx, label.y + dy);
-      if (!inside(box)) continue;
-      const cost = placed.reduce((sum, b) => sum + overlapArea(box, b), 0) + OBSTACLE_WEIGHT * obstacles.reduce((sum, o) => (o.owner === owner ? sum : sum + overlapArea(box, o.box)), 0);
-      if (cost === 0) {
-        placed.push(box);
-        return { ...label, x: label.x + dx, y: label.y + dy };
+    for (let j = -6; j <= 6; j += 1) {
+      for (let k = -12; k <= 12; k += 1) {
+        const dx = j * (w / 2 + LABEL_PAD_PX);
+        const dy = k * LABEL_LINE_PX;
+        const box = labelBox(label.text, label.x + dx, label.y + dy);
+        if (!inside(box)) continue;
+        // Primero, nunca sobre otro rótulo (el solape domina); después, pocos símbolos o flechas ajenos tapados y cerca del sitio natural.
+        const overlap = placed.reduce((sum, b) => sum + overlapArea(box, b), 0);
+        const hits = overlap > 0 ? 0 : obstacles.reduce((n, o) => (o.owner !== owner && overlapArea(box, o.box) > 0 ? n + 1 : n), 0);
+        const cost = overlap > 0 ? OVERLAP_BASE + overlap : hits * OBSTACLE_HIT_COST + (Math.abs(dy) + 0.6 * Math.abs(dx)) * DISTANCE_COST;
+        if (best === null || cost < best.cost) best = { box, dx, dy, cost };
       }
-      if (best === null || cost < best.cost) best = { box, dx, dy, cost };
     }
-    // Sin sitio libre: el de menor solape; sin ningún sitio dentro del lienzo, el natural.
+    // Sin ningún sitio dentro del lienzo, el natural.
     const chosen = best ?? { box: labelBox(label.text, label.x, label.y), dx: 0, dy: 0, cost: 0 };
     placed.push(chosen.box);
     return { ...label, x: label.x + chosen.dx, y: label.y + chosen.dy };
