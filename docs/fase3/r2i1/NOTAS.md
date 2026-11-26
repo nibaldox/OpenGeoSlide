@@ -102,3 +102,11 @@ queda con 116 casos y 241 checks, y el test de aceptación sin fallas. El import
 el modelo tiene también sin refuerzos: una regla que los acepte pertenece a la clasificación E7d/E8c (p. ej. φ = 0 con
 cohesión alta junto a la coronación, como V027/V028), no a las dovelas de cruce. Si se decide reducir E14n-1 a V014 el
 patch ya está hecho y verificado (criterios 1, 3 y 4); solo V014 volvería a `cases`.
+
+## 6. Gates finales (I1b)
+
+`cargo fmt --all --check` limpio; `clippy --workspace --exclude ogs-py --all-targets -D warnings` limpio; `cargo test -p ogs-core
+--release --no-fail-fast`, también con `--features parallel`: 502 pasan, 0 fallan, 1 ignorado; aceptación: **241 checks, 0 fallas**;
+`pytest verification`: 913 verdes; batería diferencial `--require-f3r`: 71/71 (fase 3a), 12/12 (v0.4), búsqueda 28/28, fija 28/28;
+identidad: 121 modelos sin refuerzos, 0 diferencias; `REPORT.md`: 116 casos, 241 checks, ogs 241 OK, cSlope 240/241 (V027).
+VP de Slide2 en `docs/fase3/r1v/VP_SLIDE2.md`: ningún VP nuevo transcrito (faltan coordenadas en tablas).
