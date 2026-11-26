@@ -13,6 +13,8 @@ export type Selection =
   | { kind: 'material'; materialId: string }
   | { kind: 'piezo_point'; index: number }
   | { kind: 'surface_circle' }
+  /** Vértice `index` de la polilínea fija de falla (F3.3). */
+  | { kind: 'surface_vertex'; index: number }
   | { kind: 'search_range'; which: 'entry' | 'exit' }
   | { kind: 'load'; index: number };
 
