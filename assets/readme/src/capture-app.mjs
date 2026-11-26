@@ -1,0 +1,52 @@
+// Captura de la app (README): talud de dos estratos con piezométrica, calculado, en tema claro u oscuro.
+// Uso: OGS_URL=https://nibaldox.github.io/OpenGeoSlide/ node f2r_capture.mjs <light|dark> <salida.png> [ancho] [alto]
+import { chromium } from 'playwright-core';
+const [theme = 'light', out = 'shot.png', W = '1280', H = '800'] = process.argv.slice(2);
+const URL_ = process.env.OGS_URL ?? 'https://nibaldox.github.io/OpenGeoSlide/';
+const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', headless: true, args: ['--no-sandbox'] });
+const ctx = await browser.newContext({ viewport: { width: +W, height: +H }, deviceScaleFactor: 1, locale: 'es-CL', colorScheme: theme });
+await ctx.addInitScript((t) => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); localStorage.setItem('ogs.theme.v1', t); } catch {} }, theme);
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+await page.goto(URL_);
+await page.waitForSelector('[data-testid="engine-banner"]', { timeout: 30000 });
+await page.waitForSelector('[data-layer="regions"] polygon');
+await page.waitForFunction(() => !/Cargando el motor/.test(document.body.textContent ?? ''), null, { timeout: 30000 }).catch(() => {});
+const menu = async (name) => {
+  const t = page.getByRole('button', { name, exact: true });
+  if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
+};
+await menu('Archivo');
+await page.getByRole('button', { name: 'Talud simple…' }).click();
+await page.waitForSelector('dialog[open]');
+await page.getByLabel('Altura H').fill('15');
+await page.getByLabel('Pendiente H:V', { exact: true }).check();
+await page.getByLabel(/Pendiente H:V \(horizontal/).fill('1,5');
+await page.getByLabel('Nombre', { exact: true }).fill('Arcilla');
+await page.getByLabel(/Peso unitario γ/).first().fill('18');
+await page.getByLabel(/Cohesión c/).first().fill('25');
+await page.getByLabel(/Ángulo de fricción φ/).first().fill('20');
+await page.locator('dialog[open]').getByLabel('Línea piezométrica').selectOption('toe');
+await page.getByLabel('Agregar un estrato inferior (material 2)').check();
+await page.getByLabel('Contacto: profundidad bajo el pie').fill('5');
+await page.getByLabel('Estrato inferior: nombre').fill('Roca');
+await page.getByLabel(/Estrato inferior: peso unitario/).fill('24');
+await page.getByLabel(/Estrato inferior: cohesión/).fill('200');
+await page.getByLabel(/Estrato inferior: ángulo/).fill('40');
+await page.getByRole('button', { name: 'Crear talud' }).click();
+const dlg = page.locator('[data-testid="confirm-dialog"]');
+try { await dlg.waitFor({ state: 'visible', timeout: 1500 }); await dlg.getByRole('button', { name: 'Descartar cambios', exact: true }).click(); await dlg.waitFor({ state: 'detached' }); } catch {}
+await page.waitForSelector('dialog[open]', { state: 'detached' });
+await page.waitForFunction(() => document.querySelectorAll('[data-layer="regions"] polygon').length === 2);
+await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
+await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 90000 });
+await page.waitForSelector('button:has-text("Comprobar"):not([disabled])', { timeout: 90000 });
+await page.getByRole('button', { name: 'Cerrar', exact: true }).first().click().catch(() => {});
+await page.getByRole('tab', { name: process.env.OGS_TAB ?? 'Materiales' }).click();
+await page.mouse.move(5, 5);
+await page.waitForTimeout(600);
+const rows = await page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
+console.log(JSON.stringify(rows), errs);
+await page.screenshot({ path: out });
+await browser.close();
