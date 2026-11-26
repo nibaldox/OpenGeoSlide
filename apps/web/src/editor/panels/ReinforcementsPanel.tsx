@@ -250,7 +250,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
                 label="Ubicación de la fuerza"
                 value={form.location}
                 options={LOCATION_OPTIONS}
-                path={`/reinforcements/${index}/lateral_pressure/location`}
+                path={`/reinforcements/${index}/location`}
                 onChange={(location) => apply({ ...form, location })}
                 onFocus={select}
               />
