@@ -1,5 +1,5 @@
-// R10B-02: la polilínea inicial es admisible también contra la base del modelo. Barrido con el motor real (OGS_BIN) sobre los 93 casos
-// publicados y por las dos rutas del panel Superficie:
+// R10B-02: la polilínea inicial es admisible también contra la base del modelo. Barrido con el motor real (OGS_BIN) sobre los casos
+// publicados (116 desde la promoción de los 23 con refuerzos; el número sale del índice, no de un literal) y por las dos rutas del panel Superficie:
 //   A. con el círculo crítico fijo (el que halla el motor en la búsqueda de cada caso) → «Polilínea»;
 //   B. Búsqueda → «Fija» (círculo de partida `defaultCircle`) → «Polilínea».
 // Spencer y Morgenstern-Price deben converger o, como mínimo, no dar `NoValidSurface` ni `polyline_*` (las pocas excepciones de convergencia
@@ -22,6 +22,8 @@ const IDS = readdirSync(casesDir)
   .filter((f) => /^V.*\.json$/.test(f))
   .map((f) => f.replace(/\.json$/, ''))
   .sort();
+// El índice generado es la fuente del número de casos (aquí 116: 93 + los 23 v0.4 promovidos con refuerzos); nunca un literal.
+const NCASES = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(readFileSync(new URL('INDEX.md', casesDir), 'utf8'))?.[1]);
 
 const withDoc = (doc: ModelDoc, a: Record<string, unknown>): ModelDoc => ({ ...doc, analysis: { ...doc.analysis, ...a } }) as ModelDoc;
 const loadModel = (id: string): ModelDoc => {
@@ -79,9 +81,10 @@ function judge(id: string, route: string, doc: ModelDoc): Verdict {
   return { id, route, bad, statuses: run.results.map((r) => `${r.method}=${r.status}`).join(','), codes };
 }
 
-describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (93 casos × 2 rutas, motor real)', () => {
-  it('hay 93 casos publicados', () => {
-    expect(IDS.length).toBe(93);
+describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (todos los casos × 2 rutas, motor real)', () => {
+  it('hay tantos casos publicados como declara el índice', () => {
+    expect(Number.isInteger(NCASES)).toBe(true);
+    expect(IDS.length).toBe(NCASES);
   });
   const verdicts: Verdict[] = [];
 
@@ -120,11 +123,11 @@ describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (93 casos ×
         if (v.bad) bad.push(v);
       }
     }
-    expect(n).toBe(465);
+    expect(n).toBe(NCASES * 5);
     expect(bad, JSON.stringify(bad, null, 1)).toEqual([]);
   });
 
-  it('el respaldo (V o paralela al terreno) es admisible en los 93 casos, con el motor real', { timeout: 600_000 }, () => {
+  it('el respaldo (V o paralela al terreno) es admisible en todos los casos, con el motor real', { timeout: 600_000 }, () => {
     const bad: Verdict[] = [];
     let converged = 0;
     for (const id of IDS) {
@@ -134,19 +137,21 @@ describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (93 casos ×
       if (v.bad) bad.push(v);
       else if (/spencer=converged/.test(v.statuses) && /morgenstern_price=converged/.test(v.statuses)) converged += 1;
     }
-    console.log(`R10B-02 respaldo: ${converged}/93 con ambos convergidos`);
+    console.log(`R10B-02 respaldo: ${converged}/${IDS.length} con ambos convergidos`);
     expect(bad, JSON.stringify(bad, null, 1)).toEqual([]);
   });
 
   it('informa cuántas convergen (para el reporte)', () => {
     const n = (route: string): number => verdicts.filter((v) => v.route === route && /spencer=converged/.test(v.statuses) && /morgenstern_price=converged/.test(v.statuses)).length;
-    console.log(`R10B-02 barrido: ruta A ${n('A')}/93 con ambos convergidos; ruta B ${n('B')}/93`);
+    console.log(`R10B-02 barrido: ruta A ${n('A')}/${IDS.length} con ambos convergidos; ruta B ${n('B')}/${IDS.length}`);
     for (const v of verdicts.filter((q) => !/spencer=converged/.test(q.statuses) || !/morgenstern_price=converged/.test(q.statuses))) console.log(`  no converge: ${v.route} ${v.id} ${v.statuses} ${v.codes ?? ''}`);
-    expect(verdicts.length).toBe(186);
+    expect(verdicts.length).toBe(NCASES * 2);
     // Medido con el motor integrado (f3a-integracion): A 89/93 y B 75/93; en ninguno hay `polyline_*` ni NoValidSurface.
     // No convergen, por la física del caso y no por admisibilidad: A: V027, V028, V032b (`no_lambda_root` en ambos), V056 (Spencer `no_lambda_root`;
     // M-P converge con avisos); B: V018, V078 (`no_lambda_root`) y 19 modelos simétricos (V026, V052a/b, V060a/b, V062a-i, V063, V077) cuyo círculo
     // de partida centrado no tiene fuerza motriz neta (`no_driving`, estado `invalid`).
+    // Con los 116 casos (23 con refuerzos promovidos): A 112/116 y B 97/116. El único caso nuevo que no converge es V064 en la ruta B (cinco
+    // escalones, círculo de partida: `no_admissible_root`/`no_lambda_root` con refuerzos fuera de la masa), sin NoValidSurface ni `polyline_*`.
     expect(n('A')).toBeGreaterThanOrEqual(85);
     expect(n('B')).toBeGreaterThanOrEqual(70);
   });
