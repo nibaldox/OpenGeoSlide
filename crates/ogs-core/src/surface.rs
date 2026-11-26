@@ -543,18 +543,24 @@ fn polyline_break_points(
     }
     // A breakpoint within `tol` of a vertex of the polyline is the vertex.
     others.retain(|&x| vertices.iter().all(|&v| (x - v).abs() > tol));
-    let mut raw = vertices;
-    raw.extend(others);
-    raw.sort_by(f64::total_cmp);
+    // E13l-6: the vertices win over the merge by `tol`. `validate_polyline` separates two of them by
+    // `1e-9·width`, which is less than `tol = 1e-9·max(width, height)` in a model taller than wide, so merging them
+    // here would drop a valid vertex and leave a base that is a chord across it. Only the other breakpoints merge.
+    let mut raw: Vec<(f64, bool)> = vertices.into_iter().map(|x| (x, true)).collect();
+    raw.extend(others.into_iter().map(|x| (x, false)));
+    raw.sort_by(|p, q| p.0.total_cmp(&q.0));
 
     let mut xs = Vec::with_capacity(raw.len() + 2);
     xs.push(a);
-    for &x in &raw {
-        if x - xs[xs.len() - 1] > tol {
+    let mut last_is_vertex = false;
+    for &(x, vertex) in &raw {
+        let gap = x - xs[xs.len() - 1];
+        if gap > if vertex { 0.0 } else { tol } {
             xs.push(x);
+            last_is_vertex = vertex;
         }
     }
-    if b - xs[xs.len() - 1] <= tol && xs.len() > 1 {
+    if b - xs[xs.len() - 1] <= tol && xs.len() > 1 && !last_is_vertex {
         xs.pop();
     }
     xs.push(b);

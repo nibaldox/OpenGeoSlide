@@ -170,3 +170,33 @@ fn steep_vertex_after_the_crossing_is_kept_e13l6() {
     );
     assert!((pts[0][1] - 25.0).abs() < 1e-6, "{pts:?}");
 }
+
+fn has_boundary(r: &MethodReport, x: f64) -> bool {
+    r.slices.iter().any(|s| s.x_left == x || s.x_right == x)
+}
+
+/// R10A-09-1: in a model taller than wide, `tol = 1e-9·height` exceeds the separation `1e-9·width` that
+/// `validate_polyline` admits, and the merge by `tol` dropped the vertex `(5 + 2e-8, 92)`.
+#[test]
+fn vertex_closer_than_tol_in_a_tall_model_is_a_node_e13l6() {
+    let mut doc = flat_ground(
+        &[[2.0, 95.0], [5.0, 92.0], [5.0 + 2e-8, 92.0], [9.0, 100.0]],
+        json!(["janbu_simplified"]),
+    );
+    doc["regions"][0]["polygon"] = json!([[0, 0], [0, 96], [10, 96], [10, 0]]);
+    let r = result(&doc, 0);
+    for x in [5.0, 5.0 + 2e-8] {
+        assert!(has_boundary(&r, x), "the vertex x = {x} is not a slice boundary");
+    }
+}
+
+/// R10A-09-2: the end of a distributed load 1e-8 before the vertex `x = 15` made the cut drop the vertex.
+#[test]
+fn vertex_beside_a_load_boundary_is_a_node_e13l6() {
+    let mut doc = flat_ground(&[[5.0, 10.0], [15.0, 5.0], [25.0, 20.0]], json!(["janbu_simplified"]));
+    doc["regions"][0]["polygon"] = json!([[0, 0], [0, 11], [30, 26], [100, 26], [100, 0]]);
+    doc["loads"] = json!([{"id": "q", "type": "udl", "x1": 10.0, "x2": 15.0 - 1e-8, "q": 50.0}]);
+    let r = result(&doc, 0);
+    assert_eq!(r.status, SolveStatus::Converged, "{r:?}");
+    assert!(has_boundary(&r, 15.0), "the vertex x = 15 is not a slice boundary");
+}

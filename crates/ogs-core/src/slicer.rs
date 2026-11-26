@@ -545,7 +545,22 @@ fn slice_span(
     // breakpoint would make the merge below drop the breakpoint when it comes second, and the base of the slice would
     // be a chord across the vertex. So the uniform division gives way. A circle keeps every node as before.
     if surface.is_polyline() {
-        let fixed: Vec<f64> = nodes[uniform_end..].to_vec();
+        let mut fixed: Vec<f64> = nodes[uniform_end..].to_vec();
+        // E13l-6: the vertices of the polyline win over every other fixed node (a load boundary, a region vertex): one
+        // within `min_width` of a vertex would make the merge below drop the vertex when it comes first.
+        if let Surface::Polyline(poly) = surface {
+            let vertices: Vec<f64> = poly
+                .points
+                .iter()
+                .map(|p| p[0])
+                .filter(|&x| x > p && x < q)
+                .collect();
+            fixed.retain(|&f| {
+                vertices
+                    .iter()
+                    .all(|&v| f == v || (f - v).abs() >= min_width)
+            });
+        }
         let mut kept: Vec<f64> = nodes[uniform_start..uniform_end]
             .iter()
             .copied()
