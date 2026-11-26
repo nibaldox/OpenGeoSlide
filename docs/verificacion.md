@@ -12,7 +12,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | Valores publicados (93 casos, 213 checks) | **213/213** | [`verification/REPORT.md`](../verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
-| cSlope 0.1.0, Fase 3a (D01-D17: M-P, Janbu corregido, no drenado, polilínea) | **43/43** | ídem |
+| cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **61/71** sobre la base `420baf0`; los 10 que fallan son de D21 a D23 y dependen de E13l-2 y E13l-5 (véase [abajo](#batería-diferencial-frente-a-cslope)) | ídem |
 | Web y `ogs` (ida y vuelta, 275 modelos) | **275/275** | `verification/tools/test_web_roundtrip.py` |
 
 ## Aceptación: casos publicados
@@ -89,7 +89,8 @@ Los valores de referencia del oráculo para V047a están en `briefs/02_CONTRATOS
 ## Batería diferencial frente a cSlope
 
 Compara ogs con cSlope 0.1.0 en 14 modelos sintéticos de tipo minero y civil (D01-D10 en v0.1; D11-D14 con sismo y
-cargas en v0.2), y desde la Fase 3a en tres modelos v0.3 (D15-D17).
+cargas en v0.2), y desde la Fase 3a en nueve modelos v0.3 (D15-D23: D15 a D17 de la Fase 3a y D18 a D23 de la
+revisión R10).
 Informe: [`verification/differential/REPORT.md`](../verification/differential/REPORT.md); detalle y criterios en
 [`verification/differential/README.md`](../verification/differential/README.md).
 
@@ -101,7 +102,7 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
     superficie sin solución);
   - checks de ogs con avisos no informativos: 7 de 56.
 - **Fase 3a** (F3.8): sobre el círculo fijo de cada uno de los 14 modelos, Morgenstern-Price con `half_sine` y Janbu
-  corregido, con el criterio de 0,5 %; y tres modelos v0.3 nuevos:
+  corregido, con el criterio de 0,5 %; y tres modelos v0.3 nuevos (D15 a D17; los de R10, D18 a D23, van más abajo):
 
   | Modelo | Qué prueba | Métodos |
   |---|---|---|
@@ -109,11 +110,49 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
   | D16 | depósito de relaves de 15 m con Su constante de 25 kPa | ídem |
   | D17 | bloque deslizante sobre una capa débil, **polilínea fija** | Spencer, M-P y Janbu corregido (sin Bishop) |
 
-  Resultado: **43/43 OK**, 0 fallas, 0 sin dato, 0 pendientes; uno de los OK es una concordancia (D03 con M-P: ambos
-  motores sin solución). Por método, según el recuento de la tabla del informe: 17 de M-P, 17 de Janbu corregido, 5 de
-  Spencer y 4 de Bishop. La mayor diferencia en superficie fija es −0,21 % (D13, M-P), y en D17 (polilínea) las tres
-  diferencias son de 0,00 % al redondear.
+  Resultado de D01 a D17: **43/43 OK**, 0 fallas, 0 sin dato, 0 pendientes; uno de los OK es una concordancia (D03 con
+  M-P: ambos motores sin solución). Por método, según el recuento de la tabla del informe: 17 de M-P, 17 de Janbu
+  corregido, 5 de Spencer y 4 de Bishop. La mayor diferencia en superficie fija es −0,21 % (D13, M-P), y en D17
+  (polilínea) las tres diferencias son de 0,00 % al redondear.
+- **Modelos de la revisión R10 (D18 a D23, E13l):** cubren lo que ningún caso ni modelo cubría (R10A-11, 4):
+
+  | Modelo | Qué prueba | Métodos |
+  |---|---|---|
+  | D18 | corte de 10 m en arcilla con Su = 70 kPa en la cota 10, gradiente de −2 kPa/m y **piso de 25 kPa**; el círculo baja de la cota −12,5, donde empieza el piso | Bishop y Spencer (búsqueda y fija), M-P y Janbu corregido (fija) |
+  | D19 y D20 | talud de 20 m de relleno sobre arcilla, dos capas; **M-P con `clipped_sine`** (D19) y **con `trapezoidal`** (D20) | ídem |
+  | D21 | polilínea cuyo tramo central corre **sobre el contacto** de un estrato fuerte con uno débil (E13l-5) | Spencer, M-P, Janbu simplificado y corregido (fija) |
+  | D22 | polilínea en **terreno horizontal con `kh = 0,3`** (E13l-2) | ídem |
+  | D23 | la misma polilínea con una **carga lineal horizontal** de 200 kN/m en lugar del sismo (E13l-2) | solo Janbu: con una fuerza horizontal pura, cSlope no converge en Spencer y su M-P da cuatro veces el de D22 |
+
+  Resultado sobre la base `420baf0` (antes de las correcciones de E13l-2 y E13l-5), 71 checks en la Fase 3a: **61 OK,
+  10 FALLA, 0 sin dato, 0 pendientes**. D18, D19 y D20 coinciden con cSlope (|Δ| ≤ 0,16 % en superficie fija; la
+  búsqueda de D18 da +0,56 %, dentro del 1 % de E9b). **D21 a D23 fallan hasta que entren E13l-2 y E13l-5:**
+
+  | Check | ogs (base `420baf0`) | cSlope | Δ |
+  |---|---:|---:|---:|
+  | D21 Spencer | 5,5886 | 2,1522 | +159,67 % |
+  | D21 M-P | 4,3839 | 1,8424 | +137,95 % |
+  | D21 Janbu simplificado | 2,7825 | 1,4990 | +85,63 % |
+  | D21 Janbu corregido | 3,0276 | 1,6313 | +85,60 % |
+  | D22 Spencer, M-P, Janbu simplificado y corregido | `invalid` (`no_driving`) | 3,9855 · 3,9306 · 3,3333 · 3,7071 | — |
+  | D23 Janbu simplificado y corregido | `invalid` (`no_driving`) | 7,5000 · 8,3409 | — |
+
+  En D21 ogs toma el material de arriba en el tramo que corre sobre el contacto (E13l-5); como control, la misma
+  polilínea más abajo, dentro del estrato débil (base de 8 a 10 m), coincide con cSlope (M-P −0,02 %, Janbu simplificado +0,00 % y corregido −0,04 %; Spencer queda sin referencia porque cSlope rechaza el escarpe de 80°). En D22 y D23
+  `no_driving` es el hallazgo R10A-02 (E13l-2). El informe `verification/differential/REPORT.md` se generó sobre esa
+  base y se regenera al integrar las correcciones.
 - Un resultado de cSlope con `converged: false` es un oráculo sin solución, nunca un valor de referencia.
+
+## Bindings y CLI
+
+- **`ogs-py`** (`crates/ogs-py/tests/`): además de los tests de humo, `test_v03.py` (22 pruebas) cubre el formato v0.3 a
+  través del wheel: polilínea (con los valores de cSlope de V047a para Spencer, M-P y Janbu corregido, el ajuste al
+  terreno y los dos estados `invalid`), no drenado (constante, con gradiente y con gradiente negativo y piso, D18),
+  M-P con sus funciones, Janbu con `correction_factor` y el aviso `interslice_shear_exceeds_strength` sobre la
+  polilínea A de D-1. Necesita el wheel construido con `maturin` (véase [`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
+- **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`.
+- **Esquema:** `verification/tools/test_schema.py` compara el esquema 0.3 con el binario en una tabla de documentos; con
+  E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan).
 
 ## Rendimiento (bench)
 
@@ -149,6 +188,9 @@ uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \
 uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with jsonschema --with pytest \
   python -m pytest -q verification
 
+# Tests de Python del binding (wheel de crates/ogs-py, véase su README)
+$TMPDIR/ogs-py-venv/bin/python -m pytest crates/ogs-py/tests -v
+
 # Ejemplos de docs/formato-ogs-json.md
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
 ```
@@ -157,7 +199,7 @@ env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python 
 
 - [`verification/REPORT.md`](../verification/REPORT.md): aceptación y harness frente a cSlope.
 - [`verification/differential/REPORT.md`](../verification/differential/REPORT.md): batería diferencial, incluida la
-  Fase 3a.
+  Fase 3a y los modelos D18 a D23 de R10.
 - [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 93 casos, con sus checks por método y versión.
 - [`verification/pending/`](../verification/pending/INDEX.md): checks retenidos y problemas que el importador no
   convierte, con el motivo de cada uno.
