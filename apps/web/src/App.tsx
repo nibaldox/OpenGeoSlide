@@ -54,7 +54,14 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [cases, setCases] = useState<CaseEntry[]>(loadBuiltinCases);
   // Vacío hasta elegir: current cae en el primer caso.
   const [caseKey, setCaseKey] = useState<string>('');
-  const [methods, setMethods] = useState<Record<MethodKind, boolean>>({ bishop: true, spencer: true });
+  const [methods, setMethods] = useState<Record<MethodKind, boolean>>({
+    bishop: true,
+    spencer: true,
+    // Los métodos de la v0.3 no se ofrecen todavía en esta pantalla (ALL_METHODS): nunca se piden.
+    morgenstern_price: false,
+    janbu_simplified: false,
+    janbu_corrected: false,
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<RunResult | null>(null);

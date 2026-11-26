@@ -6,8 +6,20 @@ import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types
 import { describeWarnings } from '../../engine/warnings';
 import { formatFs } from '../../ui/formatFs';
 
-const SHORT_NAME: Record<MethodKind, string> = { bishop: 'Bishop', spencer: 'Spencer' };
-const FULL_NAME: Record<MethodKind, string> = { bishop: 'Bishop simplificado', spencer: 'Spencer' };
+const SHORT_NAME: Record<MethodKind, string> = {
+  bishop: 'Bishop',
+  spencer: 'Spencer',
+  morgenstern_price: 'M-P',
+  janbu_simplified: 'Janbu',
+  janbu_corrected: 'Janbu corr.',
+};
+const FULL_NAME: Record<MethodKind, string> = {
+  bishop: 'Bishop simplificado',
+  spencer: 'Spencer',
+  morgenstern_price: 'Morgenstern-Price',
+  janbu_simplified: 'Janbu simplificado',
+  janbu_corrected: 'Janbu corregido',
+};
 const STATUS_TEXT: Record<SolveStatus, string> = { converged: 'Convergió', not_converged: 'No convergió', invalid: 'No válida' };
 
 export interface SummaryItem {

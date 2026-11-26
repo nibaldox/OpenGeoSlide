@@ -770,10 +770,14 @@ export function searchCandidates(spec: SearchSpec): number {
 
 // ───────────────────────── Análisis ─────────────────────────
 
+// Los métodos de la v0.3 solo tienen etiqueta (METHOD_LABELS) por ahora: se ofrecen en el panel cuando el motor los soporte.
 export const METHOD_ORDER: readonly MethodKind[] = ['bishop', 'spencer'];
 export const METHOD_LABELS: Readonly<Record<MethodKind, string>> = {
   bishop: 'Bishop simplificado',
   spencer: 'Spencer',
+  morgenstern_price: 'Morgenstern-Price',
+  janbu_simplified: 'Janbu simplificado',
+  janbu_corrected: 'Janbu corregido',
 };
 export const DIRECTION_OPTIONS: ReadonlyArray<{ value: Direction; label: string }> = [
   { value: 'auto', label: 'Automático' },
