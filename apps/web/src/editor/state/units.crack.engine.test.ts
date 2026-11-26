@@ -1,8 +1,7 @@
 // F5.7: la conversión de unidades con el motor real (OGS_BIN): el FS no cambia al pasar de SI a imperial y de vuelta (1e-9) con agua embalsada
 // (piezométrica sobre el terreno, automática en todas las versiones) y con la grieta de tracción (v0.5).
 //
-// La grieta usa los stubs del motor hasta la integración del bloque F3G (M-grieta, `crates/ogs-core/src/crack.rs`): sus tests están
-// marcados `skip` con el comentario de abajo y se activan en la integración (cambiar `itCrack` a `it`).
+// La grieta (M-grieta, `crates/ogs-core/src/crack.rs`) ya la calcula el motor integrado de F3G: sus tests corren con `it`.
 import { describe, expect, it } from 'vitest';
 import type { TensionCrack } from '../../engine/types';
 import { OGS_BIN, engineRun, haveEngine, type EngineMethodResult } from './engineRun.testutil';
@@ -66,7 +65,6 @@ function suite(title: string, crack: TensionCrack | undefined, itCase: typeof it
 // Agua embalsada sin grieta: automática en todas las versiones (D1), así que corre con el motor de esta rama.
 suite('agua embalsada: conversión de unidades con el motor real', undefined, it);
 
-// Grieta de tracción: con los stubs de la base G0 el motor responde NotImplemented. Se activa en la integración de F3G (`itCrack = it`).
-const itCrack = it.skip as unknown as typeof it;
-suite('grieta de tracción fija: conversión de unidades con el motor real', { depth: 2, water_fill: 1 }, itCrack);
-suite('grieta de tracción automática: conversión de unidades con el motor real', { depth: 'auto', water_fill: 0.5 }, itCrack);
+// Grieta de tracción: activos desde la integración de F3G (antes `skip`, con los stubs de la base G0).
+suite('grieta de tracción fija: conversión de unidades con el motor real', { depth: 2, water_fill: 1 }, it);
+suite('grieta de tracción automática: conversión de unidades con el motor real', { depth: 'auto', water_fill: 0.5 }, it);

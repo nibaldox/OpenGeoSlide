@@ -206,4 +206,30 @@ describe('mockEngine (motor simulado)', () => {
       expect(isAnalysisReport(analyzeMock(JSON.stringify(plain)))).toBe(true);
     });
   });
+  describe('modelos con grieta de tracción, formato 0.5 (F3G)', () => {
+    const REJECT = /^InvalidModel: el motor simulado no admite la grieta de tracción.*0\.5/;
+    const withCrack = (crack: unknown, version = '0.5'): string => {
+      const m = JSON.parse(acadsJson);
+      m.version = version;
+      m.analysis.tension_crack = crack;
+      return JSON.stringify(m);
+    };
+
+    it('rechaza una grieta (fija o automática) con un error explícito y nunca devuelve un FS', () => {
+      expect(() => analyzeMock(withCrack({ depth: 2, water_fill: 1 }))).toThrow(EngineError);
+      expect(() => analyzeMock(withCrack({ depth: 2, water_fill: 1 }))).toThrow(REJECT);
+      expect(() => analyzeMock(withCrack({ depth: 'auto', water_fill: 0.5 }))).toThrow(REJECT);
+    });
+
+    it('el motor simulado asíncrono también rechaza', async () => {
+      await expect(createMockEngine().analyze(withCrack({ depth: 1, water_fill: 0 }))).rejects.toThrow(REJECT);
+    });
+
+    it('sin grieta (ausente o null) sigue funcionando, también con la versión 0.5', () => {
+      expect(isAnalysisReport(analyzeMock(withCrack(null)))).toBe(true);
+      const plain = JSON.parse(acadsJson);
+      plain.version = '0.5';
+      expect(isAnalysisReport(analyzeMock(JSON.stringify(plain)))).toBe(true);
+    });
+  });
 });

@@ -2,8 +2,8 @@
 
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
-y con el bloque de refuerzos: formato v0.4),
-los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción y agua embalsada: formato v0.5, en desarrollo y
+sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
@@ -23,7 +23,11 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
   una tablestaca o un pilote, el empotramiento, el momento flector ni la deflexión
   ([el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). Lo que se pospone está
   [más abajo](#refuerzos-formato-v04-qué-hace-y-qué-no).
-- **Sin grieta de tracción ni agua embalsada** (agua sobre el terreno).
+- **Grieta de tracción con límites** (formato v0.5, en desarrollo): solo vertical, una por superficie, sin zona ni
+  ángulo, sin tope de profundidad y con la regla de que descarta los candidatos que no la alcanzan. El **agua embalsada**
+  (agua sobre el terreno) se incluye ahora en todas las versiones, con límites: sin desembalse rápido, sin sismo sobre el
+  agua y con una regla de `ru` que no se puede comparar con el oráculo. Los detalles están
+  [más abajo](#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no).
 - **Sismo solo pseudoestático** (`kh` y `kv`, aplicados al peso del suelo, nunca a las cargas) y **cargas solo `udl` y
   `line`**. No hay análisis dinámico ni de desplazamientos.
 - **No está en PyPI ni en crates.io**: se instala desde la web, desde el código fuente o desde los assets del
@@ -323,8 +327,8 @@ redondeo ahora da un resultado; ninguno de los modelos sin refuerzos que la v0.2
 
 No existen hoy, ni en el formato ni en el motor:
 
-- **Ito-Matsui** (la fuerza de pilote calculada por el empuje del suelo), que irá con el bloque de grieta de tracción y
-  agua;
+- **Ito-Matsui** (la fuerza de pilote calculada por el empuje del suelo), que irá en una ola propia, después del bloque
+  de grieta de tracción y agua embalsada;
 - el campo de **pretensado**: el pretensado es un `anchor` activo con la carga de bloqueo como capacidad, igual que en
   Slide2;
 - la **cizalla y la compresión de los clavos**: un clavo trabaja solo a tracción;
@@ -479,9 +483,94 @@ superficies fijas.
 
 Para un diseño, contraste el resultado de la búsqueda con superficies fijas (círculo o polilínea) cercanas a la crítica.
 
-Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte están en
-[`verification/pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md), con el motivo de cada uno. Después del bloque,
-el plan recomienda la **grieta de tracción** y el **agua embalsada**, que desbloquean otros casos publicados.
+## Grieta de tracción y agua embalsada (formato v0.5): qué hace y qué no
+
+El motor calcula la **grieta de tracción** (`analysis.tension_crack`, que exige la versión `"0.5"`) y el **agua
+embalsada** (la piezométrica sobre el terreno, en todas las versiones). Ambas están en desarrollo y **sin publicar**
+([formato](formato-ogs-json.md#agua-embalsada-todas-las-versiones)). Lo que sigue son sus límites.
+
+### Excepción a la identidad con la v0.3.0: agua sobre el terreno
+
+Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0 (salvo el número
+de versión del motor). **La excepción documentada** (F5.1, D1) son los modelos cuya piezométrica pasa sobre el terreno,
+los que la v0.3.0 marcaba con `water_above_ground`: **cambian de resultado a propósito**, porque ahora incluyen el agua
+embalsada con su peso y su empuje. Es una corrección de física, del mismo tipo que la de V065: la v0.3.0 contaba la
+presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el FS salía muy bajo.
+
+Ejemplo medido, V047a (ACADS 1(a)) con 2 m de agua sobre el pie (piezométrica en y = 27), Bishop:
+
+| | v0.3.0 | ahora | cSlope (con agua libre) |
+|---|---:|---:|---:|
+| Superficie fija (el círculo de la búsqueda sin agua) | 0,848 | 0,939 | 0,939 |
+| Búsqueda | 0,132 | 0,924 | 0,924 |
+
+Con la v0.3.0, ese modelo traía además la nota `negative_effective_normal` (superficie fija) o
+`negative_effective_normal_major` (búsqueda); ahora ya no. La herramienta
+`verification/tools/identity_vs_baseline.py` **separa** estos modelos y los informa por su nombre; no los oculta ni los
+cuenta como diferencias. Si usted tiene resultados guardados de un modelo con agua sobre el terreno, **vuelva a
+calcularlos**: los de la v0.3.0 no incluían el agua libre.
+
+### La grieta: solo vertical, una por superficie (F5.2, F5.4)
+
+- **Solo una grieta vertical por superficie**, en la coronación. No hay grieta inclinada, ni varias, ni zona de
+  tracción con su ángulo: `tension_crack` es un único objeto con `depth` y `water_fill`.
+- **Sin posición propia.** La `x` de la grieta sale de la superficie y de la profundidad: es el primer punto, desde la
+  entrada del lado de la cresta, donde `terreno(x) − base(x) ≥ profundidad`. No se puede fijar la grieta en una `x`.
+- **Sin tope de profundidad por la altura del talud** (G8). Una profundidad mayor que el talud es un dato del usuario; el
+  motor no la recorta.
+- **La grieta descarta los candidatos que no la alcanzan** (G9). En una búsqueda, la superficie que no llega a la
+  profundidad de la grieta **no cuenta**, como en cSlope: el mínimo es el de las superficies que sí la alcanzan, y si no
+  hay ninguna, `NoValidSurface`. Con una superficie fija que no la alcanza, el modelo es válido pero el análisis da
+  `NoValidSurface: tension_crack_not_reached`. Una grieta profunda deja pocas superficies válidas: no es un resultado
+  sobre «el talud con una grieta», sino sobre las superficies que la cruzan.
+- **La masa del lado de la cresta se quita y no se conserva como carga**; la cara vertical no tiene resistencia.
+- **El FS no es monótono con la profundidad de una grieta seca**: el signo depende del bloque que se quita. Una grieta
+  seca puede **subir** el FS (ejemplo del [formato](formato-ogs-json.md#ejemplos-grieta-seca-llena-y-automática): de
+  0,9851 a 1,0263 en Bishop con 2 m). Sí baja con la fracción de agua.
+- **`water_fill` es obligatorio**, sin valor por defecto: 0 es seca y 1 llena. La llena es lo conservador en la práctica
+  (Slide2 y USACE EM 1110-2-1902) y es lo que propone la web.
+- **El agua de la grieta no cambia la presión de poros de la base ni pesa.** `Pw = ½·γw·hw²` es una fuerza horizontal en
+  el sentido del deslizamiento, a `hw/3` sobre la base de la grieta.
+- Con refuerzos, un cruce que queda del lado de la cresta de la grieta queda fuera de la masa (nota
+  `reinforcement_outside_mass`).
+
+### Agua embalsada con `ru`: sin oráculo
+
+Con un material con `ru`, la presión de poros es `u = ru·(W + V)/b`, con `W` el peso del suelo de la dovela y `V` el del
+agua embalsada que tiene encima, sin cargas externas ni sismo. Es la regla de Slide2 (su presión vertical incluye el
+peso del agua embalsada, pero no las cargas externas ni el sismo) y la conservadora: da un FS entre 1,0 % y 4,5 % menor
+que usar solo el suelo (X21, pregunta 7). **No se puede verificar contra el oráculo**: cSlope suma `ru·W/b` a la presión
+de la línea de agua del material, una convención distinta que OpenGeoSlide no puede expresar, porque aquí `ru`
+reemplaza a la piezométrica. Queda como decisión de diseño, no como resultado verificado. El arrancamiento `interface` no cambia: su `σ′v` en un material con `ru` no cuenta el agua libre (E14o-4).
+
+### Sin desembalse rápido, y el sismo no actúa sobre el agua
+
+- **No hay desembalse rápido** (rapid drawdown): el nivel del agua es una piezométrica estacionaria, y el agua embalsada
+  entra con ese nivel. Ni la presión de poros transitoria ni el cambio de resistencia del suelo al bajar el nivel se
+  calculan; hágalos con una piezométrica que usted defina o con otra herramienta.
+- **El sismo pseudoestático no actúa sobre el agua** (E7): ni `kh·V` ni `kv·V`, y tampoco sobre la fuerza `Pw` de la
+  grieta. Solo se aplica al peso del suelo, como siempre (y nunca a las cargas). Es lo que hace el oráculo: en V047a con
+  `kh = 0,1`, `kv = 0,05` y Spencer, el prototipo sin sismo sobre el agua quedó a +0,02 % de cSlope, y aplicarlo
+  habría dado −1,05 % respecto del oráculo con `kh` (X21, pregunta 6). El agua embalsada **no recibe** la inercia sísmica: un análisis que
+  la considere sacudida daría otro FS.
+
+### Círculos tangentes al fondo (V096a y V086b)
+
+Hay círculos del oráculo que el motor rechaza con `NoValidSurface: el arco de deslizamiento sale del modelo`, con o sin
+grieta, y **no es el redondeo del contacto** de V065. En V096a (fondo en y = −9) y V086b (fondo en y = 0), el círculo de
+cSlope pasa por debajo del fondo por 8,35e-7 y 9,76e-7, que es **12 y 33 veces** la tolerancia del motor
+(`1e-9·escala`, de 7,0e-8 y 3,0e-8): es el **límite de la búsqueda de cSlope** (1e-6) y no 1 ulp de `xc + r`, como en
+V065. Con el fondo 1e-8, 1e-7 y 3e-7 más abajo sigue rechazado; con 1e-6 pasa y queda a 0,022 % (V096a, Bishop) y 0,016 %
+(V086b, Bishop) del oráculo. Relajar la tolerancia admitiría círculos que de verdad salen del modelo, así que **no se
+toca**, y esos checks quedan **retenidos con esta causa**. La búsqueda de OpenGeoSlide no genera ese círculo.
+
+Lo que sí cambió con la masa truncada: V086b con grieta automática y el fondo original (el círculo queda 7,8e-5 sobre el
+fondo) ahora es válido (0,9666 frente a 0,96646 del oráculo), porque las comprobaciones de los extremos se aplican a la
+masa truncada y no al arco completo.
+
+Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte todavía están en
+[`verification/pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md), con el motivo de cada uno; la verificación del
+bloque F3G (`verification/pending/F3G/`) los promueve.
 
 ## Avisos geotécnicos de la aplicación
 
@@ -493,7 +582,11 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 - **La piezométrica se prolonga en horizontal hasta los bordes del modelo** cuando no cubre todo su ancho, con el nivel
   de su extremo más cercano. Se dibuja punteada y la leyenda dice «Piezométrica (extrapolada)».
 - **`ru` tiene precedencia sobre la piezométrica:** si un material tiene `ru` y el modelo también tiene línea
-  piezométrica, ese material usa `ru` y la piezométrica no se aplica.
+  piezométrica, ese material usa `ru` y la piezométrica no se aplica. El agua embalsada, en cambio, sigue cargando la
+  dovela con su peso y su empuje, y `u = ru·(W + V)/b` ([más arriba](#agua-embalsada-con-ru-sin-oráculo)).
+- **Agua sobre el terreno (nota `water_above_ground`).** Es informativa: «La piezométrica queda sobre el terreno: el agua
+  embalsada se incluye con su peso y su empuje horizontal (sin sismo).» Los resultados guardados con la v0.3.0 no
+  incluían ese peso ni ese empuje ([excepción a la identidad](#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
 - **Unidades imperiales con piezométrica:** el peso unitario del agua (γw) debe ser explícito y no menor que 20 pcf
   (se usa 62,4 pcf). Un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».
   El motor nunca convierte unidades: interpreta los números en las unidades declaradas. Al cambiar de sistema, la web

@@ -8,6 +8,99 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+Bloque de grieta de tracción y agua embalsada (F3G): formato v0.5, **en desarrollo y sin publicar**. El contrato es
+`briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15h); la evidencia, `docs/fase3/exploracion/X18.md` a `X21.md` y
+`docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a
+byte, que la v0.3.0** (salvo el número de versión del motor), con una excepción documentada: los modelos cuya
+piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»).
+
+### Added
+- **Formato `.ogs.json` v0.5 (E15a).** El motor acepta 0.1 a 0.5. `analysis.tension_crack` exige `"version": "0.5"`; con
+  una versión menor el error es `InvalidModel: tension_crack requiere version "0.5"`. La web guarda `"0.5"` solo si
+  existe `analysis.tension_crack`.
+- **Grieta de tracción (E15b, E15d).** `analysis.tension_crack: { depth, water_fill }`, un solo objeto y sin campo de
+  posición.
+  - `depth` es un número finito > 0 o la cadena `"auto"`; `water_fill` es la fracción llena de agua, en [0, 1],
+    **obligatoria y sin valor por defecto** (0 seca, 1 llena).
+  - Los errores son `InvalidModel` con la ruta `analysis.tension_crack.<campo>`.
+  - La grieta **trunca cada superficie**: `x_c` es el primer punto, desde la entrada del lado de la cresta, donde
+    `terreno − base ≥ profundidad` (barrido de 200 pasos y bisección); la masa del lado de la cresta se quita y no se
+    conserva como carga, y las comprobaciones de los extremos del bloque se aplican a la masa truncada.
+  - El agua de la grieta es `Pw = ½·γw·hw²`, con `hw = profundidad·water_fill`, horizontal, en el sentido del
+    deslizamiento y a `hw/3` sobre la base de la grieta.
+  - Con `"auto"`, la profundidad de Rankine `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` en cada `x` (`2·Su/γ` en un material
+    no drenado), con `q` la suma de las sobrecargas `udl` y del agua embalsada.
+  - Una superficie fija que no alcanza la profundidad da `NoValidSurface: tension_crack_not_reached`; en una búsqueda,
+    el candidato se **descarta**. Funciona con los cinco métodos y con círculo o polilínea.
+- **Agua embalsada (E15c).** Sin campo en el formato: ver «Changed».
+  - **Peso y empuje por dovela**, exactos (Gauss de 3 puntos), en Bishop, Spencer, Morgenstern-Price y Janbu, sin
+    campos nuevos en `Slice` (E15h).
+  - **Cara de presa** vertical con su empuje (E4).
+  - **Regla de `ru`:** `u = ru·(W + V)/b`, con `W` el peso del suelo y `V` el del agua embalsada.
+  - **Sin sismo** sobre el agua ni sobre la fuerza de la grieta.
+  - **Profundidad bajo la tolerancia:** una altura de agua menor o igual que `1e-9·escala` se toma como 0, de modo que
+    una piezométrica que toca el terreno no agrega términos.
+- **Informe.** Cada resultado cuya superficie se truncó lleva `tension_crack: { x, depth, water_force }`; se omite sin
+  grieta.
+- **Esquema (E15a).** `schema/ogs-0.5.schema.json`, que acepta 0.1 a 0.5 y rechaza lo mismo que el motor, con la tabla
+  de acuerdo de `verification/tools/test_schema.py` extendida.
+- **Web (E15g).** Panel «Análisis» con la grieta (casilla, profundidad numérica o «Automática» y fracción de agua; 1 por
+  defecto al crearla), el agua embalsada como relleno azul bajo la piezométrica (token `--canvas-pond`, claro y oscuro),
+  la grieta en `x_c` de la superficie crítica con su `Pw`, y la grieta y el agua embalsada en el informe PDF, el CSV, los
+  Diagnósticos y la Ayuda.
+- **Verificación.**
+  - **Bloque diferencial F3G:** los modelos D28 a D39 de `verification/differential/cases_f3g/` (embalse al pie y en una
+    cara de presa, grieta seca, llena y automática, y sus combinaciones, con sismo y con arcilla no drenada), cada uno en
+    búsqueda y en superficie fija, con Bishop y Spencer; una sonda de capacidades y `--require-f3g` en `run.py`.
+  - **Importador de cSlope:** convierte la grieta y el agua embalsada (86 checks en `verification/pending/F3G`: 81
+    listos para promover y 5 retenidos en `HOLD.json` con su causa).
+  - **Identidad:** `verification/tools/identity_vs_baseline.py` gana `--normalize-version` y `--include-reinforced`, y
+    separa y nombra los modelos con agua sobre el terreno.
+  - **Tests del motor:** `f3g_types`, `f3g1a_water`, `f3g1b_crack` y `f3g_rows` (55 filas de X21 migradas al formato final).
+- **Documentación.** `docs/formato-ogs-json.md` con las secciones «Agua embalsada» y «Grieta de tracción (v0.5)» y siete
+  ejemplos o fragmentos ejecutables; `docs/tools/validar_ejemplos.py` valida contra el esquema 0.5 y gana `grieta=`;
+  `docs/limitaciones.md` con los límites nuevos y `docs/desarrollo.md` con `water.rs`, `crack.rs` y la herramienta de
+  identidad.
+
+### Changed
+- **El agua embalsada se incluye automáticamente, en todas las versiones del formato (D1, E15c).** Con la piezométrica
+  sobre el terreno, el motor contaba la presión de poros con la carga completa pero ni el peso ni el empuje del agua, y
+  el FS salía muy bajo. Ahora el agua entre la piezométrica y el terreno carga las dovelas, como en Slide2, SLOPE/W y
+  cSlope. **Es la excepción documentada a la identidad con la v0.3.0:** los modelos que llevaban el aviso
+  `water_above_ground` cambian de resultado, y los demás no. Ejemplo medido, V047a con 2 m de agua al pie, Bishop:
+  superficie fija 0,848 → 0,939 (cSlope 0,939) y búsqueda 0,132 → 0,924 (cSlope 0,924). Con la v0.3.0, ese modelo traía
+  además la nota `negative_effective_normal`; ahora ya no. Quien tenga resultados guardados de un modelo con agua sobre el
+  terreno debe calcularlos de nuevo.
+- **`water_above_ground` es una nota informativa** y su texto pasa a «La piezométrica queda sobre el terreno: el agua
+  embalsada se incluye con su peso y su empuje horizontal (sin sismo).». El código no cambia de nombre.
+- **El FS de un material con `ru` y agua sobre el terreno cambia** por el mismo motivo (el agua embalsada carga la
+  dovela); la capacidad de `interface` no cambia (E14o-4). En `f3r11a_cruces`, con la piezométrica 7 m sobre el banco, el
+  FS pasa de 1,1249 sin la línea a 2,2866 con ella, y la aserción del test pasa de igualdad a `a > b`.
+- **La CLI** indica el formato v0.1 a v0.5 en su ayuda. Los tests de otras olas que usaban `"0.5"` como versión
+  desconocida pasan a `"0.6"`.
+- Los modelos sin grieta y sin agua sobre el terreno no cambian: la identidad byte a byte con la v0.3.0 es un gate de
+  cada ola.
+
+### Known issues
+- **La grieta es solo vertical, una por superficie, sin zona ni ángulo**, y no tiene tope de profundidad por la altura
+  del talud (G8). Una superficie que no la alcanza **se descarta** (G9): con una grieta profunda quedan pocas
+  superficies válidas. El FS no es monótono con la profundidad de una grieta seca.
+- **`ru` con agua embalsada no se puede verificar contra el oráculo** (E15c): cSlope suma `ru·W/b` a la presión de la
+  línea de agua, y OpenGeoSlide usa la regla de Slide2, `ru·(W + V)/b`, entre 1,0 % y 4,5 % más conservadora.
+- **Sin desembalse rápido**, y el sismo pseudoestático **no actúa sobre el agua** ni sobre la fuerza de la grieta.
+- **Círculos tangentes al fondo (V096a, V086b; E15f).** El círculo de cSlope pasa por debajo del fondo por 8,35e-7 y
+  9,76e-7, 12 y 33 veces la tolerancia del motor: es el límite de la búsqueda de cSlope (1e-6), no un redondeo como en
+  V065. No se relaja la tolerancia: con el fondo 1e-6 más bajo el círculo pasa y queda a 0,022 % y 0,016 % del oráculo.
+  Esos checks quedan retenidos con esta causa.
+- **Punto de lectura de la profundidad automática.** El motor lee `c`, `φ` y `γ` a `2e-5·escala` bajo el terreno, y no a
+  `1e-3·escala` como dice G6: cSlope usa 1e-3 unidades absolutas y con `1e-3·escala` la profundidad bajo un gradiente
+  de `Su` se desvía 0,6 % en X21-A04. En un modelo de escala 500 son 1e-2 unidades y solo importa con un gradiente de
+  `Su` o una capa de menos de eso en la coronación. Propuesta de enmienda del escritor de G1b, pendiente del coordinador.
+- **Cinco checks retenidos** (V009b con Spencer, V087 con Janbu corregido y los tres de V092) en
+  `verification/pending/F3G/HOLD.json`: X18 los dio por fuera de tolerancia por su convención de tolerancia, y su causa
+  está diagnosticada en cada entrada. No se relaja ninguna tolerancia.
+- **Ito-Matsui** (ola G3) sigue sin existir.
+
 ## [0.3.0] - 2026-11-26
 
 Bloque de refuerzos (F3R): formato v0.4 con anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos.

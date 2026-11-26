@@ -113,6 +113,13 @@ function validateModel(model: Model): void {
       'InvalidModel: el motor simulado no admite los refuerzos (reinforcements), un campo de la versión 0.4; use el motor WASM',
     );
   }
+  // Grieta de tracción (v0.5, F3G): el motor simulado no la calcula. Se rechaza, como los refuerzos, en vez de ignorarla en
+  // silencio y devolver un FS que no la incluye. `null` y `undefined` equivalen a «sin grieta».
+  if (model.analysis != null && (model.analysis as { tension_crack?: unknown }).tension_crack != null) {
+    throw new EngineError(
+      'InvalidModel: el motor simulado no admite la grieta de tracción (analysis.tension_crack), un campo de la versión 0.5; use el motor WASM',
+    );
+  }
   const v03 = firstV03Field(model);
   if (v03 !== null) {
     throw new EngineError(
