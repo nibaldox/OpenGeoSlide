@@ -79,8 +79,20 @@ mientras no pase de `K·D`, y se acota a `K·D` si pasa; `K = 3`. Ventana de `K`
   `converged`), tol 0,01: q = 1e6 → 1,70829. Con `K = 2, 3, 4` y `D` solo: **1,68263 / −0,1154 para todo q hasta 1e11,
   tol 1e-5 y 0,01.**
 - Mitad horizontal de R10A-03 (γ = 1e-6 con carga lineal horizontal 500): Spencer pasa de `no_lambda_root` a converger
-  (0,53123 y 0,97845 contra cSlope 0,5312264 y 0,9784504, c = 10 / φ = 0 y c = 20 / φ = 10) porque `Σ|H|` entra en `D`.
+  (dentro de 1e-3 de cSlope 0,5312264 y 0,9784504, c = 10 / φ = 0 y c = 20 / φ = 10; lo fija el test) porque `Σ|H|` entra en `D`.
 
 **Resultado con `K = 3`:** identidad contra la versión anterior al cambio de escala, **0 corridas de 3350 cambian**
 (V018, V077 y V078 quedan byte a byte iguales, porque su razón es < 3). 4 tests en `tests/e13l_scale.rs`, que fallaban
 (3 de 4) antes del cambio.
+
+## 4. Gates finales (HEAD de la rama, contra `694f13a`)
+
+- `cargo fmt --all --check`: OK. `cargo clippy --workspace --exclude ogs-py --all-targets -- -D warnings`: 0 avisos.
+- `cargo test -p ogs-core --release --no-fail-fast`: 336 pasan, 0 fallan, 1 ignorado (`perf_slice_circle_50_slices`, ya
+  estaba). Con `--features parallel`: igual (336/0/1). Incluye `acceptance` (3 tests, 0 fallas).
+- Identidad final contra `694f13a`: 121 modelos (93+ casos de `verification/cases`, `pending/*`, D01–D23, `acads1a`),
+  3350 corridas (bishop, spencer, janbu s/c, M-P por defecto, constant, half_sine, clipped_sine, trapezoidal y tres
+  `data_points`; superficie fija, búsqueda, círculo crítico fijo y polilínea inscrita). **62 difieren**: 60 búsquedas y 2
+  polilíneas inscritas, todas `data_points` de pico angosto (58+2) o de escala 1e-3 (2); **0 en superficie fija, círculo
+  fijo y funciones con nombre**.
+- Un cambio de contrato que falta (no es mío): el código de motivo propio para el pico entre fronteras (E6, web, py).
