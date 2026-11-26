@@ -1,8 +1,22 @@
 """Byte-for-byte identity of the engine against a baseline binary (gate of every wave of the reinforcements block,
-F4.1 and F4.14: a model without `reinforcements` gives the same output as v0.2.0).
+F4.1 and F4.14: a model without `reinforcements` gives the same output as v0.2.0; and of the crack and ponded water
+block, F5.1 and F5.5-1: a model without `tension_crack` and without water over the ground gives the same output as
+v0.3.0, except for the engine version number).
 
     env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py \\
         --base $TMPDIR/f3r0-base-target/release/ogs --new target/release/ogs [--out DIR]
+    env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py --normalize-version \\
+        --base $TMPDIR/f3g-base-target/release/ogs --new target/release/ogs
+
+- `--normalize-version` replaces the engine version in stdout and stderr (`ogs-core 0.3.0` → `ogs-core <VERSION>`)
+  before comparing, so that a baseline and a new binary of different versions can be compared.
+- `--include-reinforced` also runs the models with `reinforcements` (a baseline of v0.3.0 or later reads them; the
+  default skips them, as the baseline of v0.2.0 cannot).
+- **Ponded water (F5.1, exception documented).** The models whose piezometric line passes over the ground at some point
+  (`water_above_ground` today) change by design: the ponded water now has weight and thrust (a correction of the same
+  kind as V065 in E14o-11). They are **separated and reported by name**, with the variants that differ, and they are not
+  counted as a failure and not hidden: the gate reads «0 differences» for everything else. The list of models with
+  water over the ground and no reinforcements is printed apart because the contract expects it to be empty for them.
 
 Build the baseline from a detached worktree of the release commit (`git worktree add --detach $TMPDIR/base bf1655c`,
 `CARGO_TARGET_DIR=$TMPDIR/base-target cargo build --release -p ogs-cli`), and rebuild `--new` first
@@ -32,6 +46,7 @@ import copy
 import glob
 import json
 import os
+import re
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -71,20 +86,86 @@ def has_reinforcements(model: dict) -> bool:
     return bool(model.get("reinforcements"))
 
 
-def split_models(paths: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
-    """Splits `paths` into the models the baseline can run and the ones with reinforcements (skipped)."""
+def split_models(paths: dict[str, str], include_reinforced: bool = False) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `paths` into the models the baseline can run and the ones with reinforcements (skipped, unless the
+    baseline reads them: `include_reinforced`)."""
     plain: dict[str, str] = {}
     skipped: dict[str, str] = {}
     for name, path in paths.items():
-        (skipped if has_reinforcements(_load(path)) else plain)[name] = path
+        (skipped if has_reinforcements(_load(path)) and not include_reinforced else plain)[name] = path
     return plain, skipped
+
+
+def split_ponded(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `models` into the ones without water over the ground (the identity gate) and the ones with it (the
+    documented exception of F5.1, reported by name)."""
+    dry: dict[str, str] = {}
+    ponded: dict[str, str] = {}
+    for name, path in models.items():
+        (ponded if water_over_ground(_load(path)) else dry)[name] = path
+    return dry, ponded
+
+
+_VERSION_RE = re.compile(rb"(ogs(?:-core|-cli|-wasm|-py)?[ /@-])v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
+NORMALIZE = False
+
+
+def normalize_version(data: bytes) -> bytes:
+    """Replaces the version of the engine (`ogs-core 0.3.0`, `ogs-cli 0.4.0-rc.1`) by `<name> <VERSION>`."""
+    return _VERSION_RE.sub(rb"\1<VERSION>", data)
 
 
 def run(binary: str, model: dict, path: str) -> tuple[int, bytes, bytes]:
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(model, fh)
     proc = subprocess.run([binary, "analyze", path], capture_output=True, timeout=1200)
+    if NORMALIZE:
+        return proc.returncode, normalize_version(proc.stdout), normalize_version(proc.stderr)
     return proc.returncode, proc.stdout, proc.stderr
+
+
+def _top(polygon: list, x: float) -> float | None:
+    """Highest `y` of the boundary of `polygon` at abscissa `x` (the vertical edges count with both ends)."""
+    ys: list[float] = []
+    for (x1, y1), (x2, y2) in zip(polygon, polygon[1:] + polygon[:1]):
+        if x1 == x2:
+            if x == x1:
+                ys += [y1, y2]
+        elif min(x1, x2) <= x <= max(x1, x2):
+            ys.append(y1 + (y2 - y1) * (x - x1) / (x2 - x1))
+    return max(ys) if ys else None
+
+
+def _piezo(line: list, x: float) -> float:
+    """The piezometric line at `x`, horizontal beyond its ends (as in the engine)."""
+    if x <= line[0][0]:
+        return line[0][1]
+    if x >= line[-1][0]:
+        return line[-1][1]
+    for (x1, y1), (x2, y2) in zip(line, line[1:]):
+        if x1 <= x <= x2:
+            return y1 + (y2 - y1) * (x - x1) / (x2 - x1) if x2 > x1 else max(y1, y2)
+    return line[-1][1]
+
+
+def water_over_ground(model: dict, tol: float = 1e-9) -> bool:
+    """`True` when the piezometric line is over the ground (more than `tol` times the model scale) somewhere.
+
+    Both are piecewise linear, so the difference is extreme at a vertex of either one or at the ends of the model: it is
+    evaluated there. This is the water that the engine of v0.3.0 reports as `water_above_ground` (and that v0.4.0
+    includes as ponded water, F5.1).
+    """
+    line = (model.get("water") or {}).get("piezometric_line")
+    if not line or not model.get("regions"):
+        return False
+    polygons = [r["polygon"] for r in model["regions"]]
+    xs = sorted({p[0] for poly in polygons for p in poly} | {p[0] for p in line})
+    scale = max(xs[-1] - xs[0], max(p[1] for poly in polygons for p in poly) - min(p[1] for poly in polygons for p in poly))
+    for x in xs:
+        tops = [t for t in (_top(poly, x) for poly in polygons) if t is not None]
+        if tops and _piezo(line, x) > max(tops) + tol * scale:
+            return True
+    return False
 
 
 def at_least_v03(model: dict) -> dict:
@@ -158,25 +239,43 @@ def main() -> int:
     ap.add_argument("--new", default=os.path.join(ROOT, "target", "release", "ogs"), help="binary under test")
     ap.add_argument("--out", default=os.path.join(os.environ.get("TMPDIR", "/tmp"), "identity"), help="scratch dir")
     ap.add_argument("--jobs", type=int, default=os.cpu_count() or 4)
+    ap.add_argument("--normalize-version", action="store_true",
+                    help="replace the engine version in stdout and stderr before comparing")
+    ap.add_argument("--include-reinforced", action="store_true",
+                    help="also run the models with reinforcements (the baseline must read version 0.4)")
     args = ap.parse_args()
+    global NORMALIZE
+    NORMALIZE = args.normalize_version
     for exe in (args.base, args.new):
         if not os.path.isfile(exe):
             print(f"error: binario no encontrado: {exe}", file=sys.stderr)
             return 2
     os.makedirs(args.out, exist_ok=True)
-    models, skipped = split_models(model_paths())
-    print(f"{len(models)} modelos sin refuerzos; variantes own, search, fixed, search@0.4 y fixed@0.4")
+    models, skipped = split_models(model_paths(), args.include_reinforced)
+    models, ponded = split_ponded(models)
+    print(f"{len(models)} modelos sin agua sobre el terreno; variantes own, search, fixed, search@0.4 y fixed@0.4"
+          + (" (versión del motor normalizada)" if NORMALIZE else ""))
     print(f"{len(skipped)} modelos con refuerzos saltados aparte (el binario base no los lee)")
+    print(f"{len(ponded)} modelos con la piezométrica sobre el terreno, aparte (excepción de F5.1: agua embalsada)")
     diffs: list[tuple[str, str, str]] = []
+    exception: list[tuple[str, str, str]] = []
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        futures = {n: pool.submit(check, n, p, args.base, args.new, args.out) for n, p in models.items()}
+        futures = {n: pool.submit(check, n, p, args.base, args.new, args.out) for n, p in {**models, **ponded}.items()}
         for n, fut in futures.items():
-            diffs += fut.result()
+            (exception if n in ponded else diffs).extend(fut.result())
     for model, variant, what in diffs:
         print(f"DIFIERE {model} [{variant}]: {what}")
     for (variant, kind), n in sorted(STATS.items()):
         print(f"  {variant}: {n} comparaciones con salida {kind} del baseline")
-    print(f"{len(diffs)} diferencias en {len(models)} modelos sin refuerzos ({len(skipped)} con refuerzos, saltados)")
+    print("Modelos con agua sobre el terreno (excepción de F5.1, no cuentan como diferencia):")
+    for name in sorted(ponded):
+        mine = sorted({v for m, v, _ in exception if m == name})
+        reinforced = " [con refuerzos]" if has_reinforcements(_load(ponded[name])) else ""
+        print(f"  AGUA {name}{reinforced}: " + (f"cambia en {', '.join(mine)}" if mine else "idéntico"))
+    plain_ponded = [n for n, p in sorted(ponded.items()) if not has_reinforcements(_load(p))]
+    print(f"{len(plain_ponded)} modelos con agua sobre el terreno y sin refuerzos: {', '.join(plain_ponded) or '(ninguno)'}")
+    print(f"{len(diffs)} diferencias en {len(models)} modelos sin agua sobre el terreno ({len(skipped)} con refuerzos, saltados;"
+          f" {len(ponded)} con agua sobre el terreno, aparte)")
     return 1 if diffs else 0
 
 
