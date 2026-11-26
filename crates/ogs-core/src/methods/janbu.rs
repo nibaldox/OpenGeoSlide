@@ -2,7 +2,7 @@
 //!
 //! **Simplified.** `F₀` is the root of the force closure `E_n(F, λ = 0) = 0`: the march of Spencer (`spencer.rs`) with no
 //! interslice shear, so `ΔX = 0`, with `H`, `W*` and the loads of E12b included and without the moment equation
-//! ([`spencer::force_root_at_zero`]). Guards: E3 (`no_driving`), and E4b at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, and
+//! ([`spencer::force_root_at_zero`]). Guards: E3 (`no_driving`, before the solve and with the active forces only, E14o-3), and E4b at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, and
 //! `Φ_i > 1e-9·F`). The report carries no `lambda`. The result is the horizontal force equilibrium of the whole
 //! mass, as Janbu's method asks. When the closure has several admissible roots, the **lowest** one is taken, as in
 //! Spencer (E12e, E13j-4), with the note `multiple_admissible_roots` if another lies more than 1 % above it.

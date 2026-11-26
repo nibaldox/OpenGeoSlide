@@ -1257,8 +1257,12 @@ fn scan_roots(h: &dyn Fn(f64) -> Option<f64>, lo: f64, near: f64) -> Vec<f64> {
 ///   first; a scan of `[max(lo, F/100), 3F]` then looks for other roots, and when none is below it the nearest root is
 ///   returned unchanged (same value and same count of evaluations as before E13j-4; the scan is not counted).
 ///
-/// `Err` carries the status, the reason and the evaluations: `no_slices`, `no_driving` (E3) and `m_alpha` are
-/// `Invalid`; `max_iterations` and `no_admissible_root` are `NotConverged`.
+/// With passive forces (E14o-2, E14o-3) the start of the walk sees them (`bishop::start_fos_passive`) and the roots are
+/// sought above `lift_bound`, where they do not lift the mass: below it the closure has an artefact root of the `1/F` of
+/// the force (0.127 for a state of 3.08).
+///
+/// `Err` carries the status, the reason and the evaluations: `no_slices`, `no_driving` (E3, before the solve and with the
+/// active forces only) and `m_alpha` are `Invalid`; `max_iterations` and `no_admissible_root` are `NotConverged`.
 pub(super) fn force_root_at_zero(
     slices: &[Slice],
     opts: &SolveOptions,

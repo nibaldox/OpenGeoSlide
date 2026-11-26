@@ -22,8 +22,16 @@
 //! force and in the numerator, and `Σ [W*(F)·sin α + M(F)]` in the denominator, with `M(F) = driving_extra +
 //! passive_driving_extra/F`. With them the iteration is `F = N(F)/D(F)`; the Brent safeguard works on the divisor-free
 //! `h(F) = F·D(F) − N(F)` (`D(F)` can vanish below the root, `F·D(F) = F·D₀ + P_d` is linear). **Without passive forces
-//! this module runs the code that it ran before, bit for bit.** The guards (`m_α`, E3, the negative normal forces) are
+//! this module runs the code that it ran before, bit for bit.** The guards (`m_α`, the negative normal forces) are
 //! evaluated at the converged F with the passive forces included.
+//!
+//! E14o-2 (R11A-02). With passive forces: the start is Fellenius' value with them (`start_fos_passive`); the fixed point
+//! runs as before; and when the ends of `[lo, 1e3]` have the same sign of `h` (a force that lifts the mass makes
+//! `N(lo) ≪ 0`, so `h(lo) > 0` like `h(1e3)`, and that is not "no root"), the sign change is bracketed on a geometric grid
+//! of 600 steps over `[F_adm or 1e-3, 1e3]`, the one nearest to the start, before the bisection. The lower end also
+//! includes `lift_bound` (E14o-3): below it the passive forces lift the whole mass and a root is no equilibrium.
+//! E3 (`no_driving`) is evaluated **only before the solve**, with the weight, the seismic force, the loads and the
+//! **active** forces; a passive force is resisting and does not enter it (E14o-3, R11A-03).
 //!
 //! The converged F is checked against `m_α ≥ min_m_alpha` (E4a): otherwise `Invalid("m_alpha")`.
 //! `Invalid` also if `Σ [W*·sin α + M] ≤ 1e-6 · Σ W` (amendments E3 and E12b, message `"no_driving"`). `NotConverged` when the
