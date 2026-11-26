@@ -106,12 +106,14 @@ for (const theme of ['light', 'dark']) {
   await p.waitForSelector('[data-testid="fs-bishop"]', { timeout: 60000 });
   const body = await p.evaluate(() => document.body.innerText);
   const adv = {
-    gammaSat: /todavía no está verificado frente a otro programa/.test(body),
+    // F3G (I-G): γsat ya no lleva el aviso «todavía no está verificado frente a otro programa» (lo verifican V082a, V082b, V088 y V089, E15k;
+    // geotech.ts): ahora se exige que el aviso NO aparezca.
+    gammaSatSinAvisoDeSinVerificar: !/todavía no está verificado frente a otro programa/.test(body),
     ru: /ru tiene precedencia/.test(body),
     piezo: /extiende en horizontal hasta los bordes/.test(body),
     satLtGamma: /γsat \([\d,]+\) es menor que γ/.test(body),
   };
-  step(`4a Diagnósticos (${theme}): avisos de γsat, ru + piezométrica, piezométrica corta y γsat < γ`, Object.values(adv).every(Boolean), adv);
+  step(`4a Diagnósticos (${theme}): sin aviso de γsat sin verificar, ru + piezométrica, piezométrica corta y γsat < γ`, Object.values(adv).every(Boolean), adv);
   const heads = await p.evaluate(() => [...document.querySelectorAll('[data-results-table] thead th')].map((x) => x.textContent.trim()));
   step(`4b Tabla de resultados (${theme}): centro y radio con unidad`, heads.includes('Centro (xc; yc) (ft)') && heads.includes('Radio (ft)'), { heads });
   const ax = await axeRun(p);
