@@ -1,0 +1,93 @@
+{
+ "format": "opengeoslide",
+ "version": "0.4",
+ "meta": {
+  "id": "X22-G02-force-activo",
+  "title": "X22-G02-force-activo",
+  "notes": "pilote v0.4 con force 282,77 kN (sin Ito-Matsui): valida los t\u00e9rminos pasivos/activos contra el motor"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "model": "mohr_coulomb",
+   "unit_weight": 20.0,
+   "unit_weight_sat": null,
+   "cohesion": 10.0,
+   "friction_angle": 20.0,
+   "ru": null
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     0.0,
+     -10.0
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     10.0,
+     0.0
+    ],
+    [
+     25.0,
+     10.0
+    ],
+    [
+     35.0,
+     10.0
+    ],
+    [
+     35.0,
+     -10.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "interslice": {
+   "function": "constant"
+  },
+  "surface": {
+   "type": "circle",
+   "xc": 7.4728309668902995,
+   "yc": 26.312711798202947,
+   "r": 26.430944193312815
+  }
+ },
+ "reinforcements": [
+  {
+   "type": "pile",
+   "id": "P1",
+   "x1": 17.5,
+   "y1": 5.0,
+   "x2": 17.5,
+   "y2": -10.0,
+   "force": 282.77,
+   "spacing": 2.4,
+   "direction": "angle",
+   "application": "active",
+   "angle": 0.0
+  }
+ ]
+}

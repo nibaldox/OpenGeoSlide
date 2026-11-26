@@ -1,0 +1,358 @@
+{
+ "publicado": {
+  "V013b": [
+   1.54,
+   1.54
+  ],
+  "V013c": [
+   1.43,
+   1.37
+  ],
+  "V013d": [
+   1.33,
+   1.31
+  ],
+  "V013e": [
+   1.25,
+   1.25
+  ]
+ },
+ "variantes": {
+  "V013b/passive/angle/centroid": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8202,
+    13.6258,
+    8.7262
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/passive/angle/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8202,
+    13.6258,
+    8.7262
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/passive/tangent/centroid": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8202,
+    13.6258,
+    8.7262
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/passive/tangent/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8202,
+    13.6258,
+    8.7262
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/active/angle/centroid": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8207,
+    13.6268,
+    8.7273
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/active/angle/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8207,
+    13.6268,
+    8.7273
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/active/tangent/centroid": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8207,
+    13.6268,
+    8.7273
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013b/active/tangent/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8207,
+    13.6268,
+    8.7273
+   ],
+   "fuerza_por_metro": []
+  },
+  "V013c/passive/angle/centroid": {
+   "fos": 1.437178,
+   "circulo": [
+    7.4728,
+    26.3127,
+    26.4309
+   ],
+   "fuerza_por_metro": [
+    117.8224
+   ]
+  },
+  "V013c/passive/angle/slip-surface": {
+   "fos": 1.450078,
+   "circulo": [
+    6.7621,
+    27.8841,
+    28.0685
+   ],
+   "fuerza_por_metro": [
+    112.0823
+   ]
+  },
+  "V013c/passive/tangent/centroid": {
+   "fos": 1.432237,
+   "circulo": [
+    7.5669,
+    26.2675,
+    26.3787
+   ],
+   "fuerza_por_metro": [
+    119.5258
+   ]
+  },
+  "V013c/passive/tangent/slip-surface": {
+   "fos": 1.444675,
+   "circulo": [
+    6.8662,
+    27.7791,
+    27.9539
+   ],
+   "fuerza_por_metro": [
+    113.5483
+   ]
+  },
+  "V013c/active/angle/centroid": {
+   "fos": 1.540768,
+   "circulo": [
+    18.8197,
+    13.6223,
+    8.7228
+   ],
+   "fuerza_por_metro": [
+    0.0
+   ]
+  },
+  "V013c/active/angle/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8206,
+    13.6292,
+    8.7297
+   ],
+   "fuerza_por_metro": [
+    0.0
+   ]
+  },
+  "V013c/active/tangent/centroid": {
+   "fos": 1.540768,
+   "circulo": [
+    18.8197,
+    13.6223,
+    8.7228
+   ],
+   "fuerza_por_metro": [
+    0.0
+   ]
+  },
+  "V013c/active/tangent/slip-surface": {
+   "fos": 1.540767,
+   "circulo": [
+    18.8206,
+    13.6292,
+    8.7297
+   ],
+   "fuerza_por_metro": [
+    0.0
+   ]
+  },
+  "V013d/passive/angle/centroid": {
+   "fos": 1.331467,
+   "circulo": [
+    8.7885,
+    23.423,
+    23.4535
+   ],
+   "fuerza_por_metro": [
+    80.3399
+   ]
+  },
+  "V013d/passive/angle/slip-surface": {
+   "fos": 1.341758,
+   "circulo": [
+    8.2007,
+    24.6836,
+    24.7481
+   ],
+   "fuerza_por_metro": [
+    76.2302
+   ]
+  },
+  "V013d/passive/tangent/centroid": {
+   "fos": 1.32678,
+   "circulo": [
+    8.8737,
+    23.35,
+    23.3764
+   ],
+   "fuerza_por_metro": [
+    81.3254
+   ]
+  },
+  "V013d/passive/tangent/slip-surface": {
+   "fos": 1.336641,
+   "circulo": [
+    8.4254,
+    24.3175,
+    24.3675
+   ],
+   "fuerza_por_metro": [
+    78.0921
+   ]
+  },
+  "V013d/active/angle/centroid": {
+   "fos": 1.398777,
+   "circulo": [
+    7.878,
+    25.4001,
+    25.4861
+   ],
+   "fuerza_por_metro": [
+    74.212
+   ]
+  },
+  "V013d/active/angle/slip-surface": {
+   "fos": 1.412967,
+   "circulo": [
+    7.1899,
+    26.8701,
+    27.0153
+   ],
+   "fuerza_por_metro": [
+    70.3489
+   ]
+  },
+  "V013d/active/tangent/centroid": {
+   "fos": 1.392825,
+   "circulo": [
+    8.0274,
+    25.2097,
+    25.2857
+   ],
+   "fuerza_por_metro": [
+    75.5874
+   ]
+  },
+  "V013d/active/tangent/slip-surface": {
+   "fos": 1.406533,
+   "circulo": [
+    7.3625,
+    26.6864,
+    26.8151
+   ],
+   "fuerza_por_metro": [
+    71.8245
+   ]
+  },
+  "V013e/passive/angle/centroid": {
+   "fos": 1.252813,
+   "circulo": [
+    9.6494,
+    21.5244,
+    21.5269
+   ],
+   "fuerza_por_metro": [
+    49.0311
+   ]
+  },
+  "V013e/passive/angle/slip-surface": {
+   "fos": 1.259903,
+   "circulo": [
+    9.3394,
+    22.2256,
+    22.235
+   ],
+   "fuerza_por_metro": [
+    47.4905
+   ]
+  },
+  "V013e/passive/tangent/centroid": {
+   "fos": 1.24928,
+   "circulo": [
+    9.7143,
+    21.5535,
+    21.5552
+   ],
+   "fuerza_por_metro": [
+    49.6395
+   ]
+  },
+  "V013e/passive/tangent/slip-surface": {
+   "fos": 1.256038,
+   "circulo": [
+    9.44,
+    22.0454,
+    22.052
+   ],
+   "fuerza_por_metro": [
+    48.0505
+   ]
+  },
+  "V013e/active/angle/centroid": {
+   "fos": 1.281723,
+   "circulo": [
+    9.3108,
+    22.277,
+    22.2871
+   ],
+   "fuerza_por_metro": [
+    47.3328
+   ]
+  },
+  "V013e/active/angle/slip-surface": {
+   "fos": 1.291059,
+   "circulo": [
+    8.9415,
+    23.067,
+    23.0905
+   ],
+   "fuerza_por_metro": [
+    45.624
+   ]
+  },
+  "V013e/active/tangent/centroid": {
+   "fos": 1.277216,
+   "circulo": [
+    9.4019,
+    22.1137,
+    22.1213
+   ],
+   "fuerza_por_metro": [
+    47.8372
+   ]
+  },
+  "V013e/active/tangent/slip-surface": {
+   "fos": 1.286093,
+   "circulo": [
+    9.0259,
+    22.955,
+    22.975
+   ],
+   "fuerza_por_metro": [
+    46.1215
+   ]
+  }
+ }
+}
