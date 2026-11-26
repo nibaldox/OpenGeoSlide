@@ -12,6 +12,7 @@
 // - Bordes de dovela uniformes (sin puntos de quiebre).
 
 import { EngineError, type Engine } from './engine';
+import { pondPolygons } from '../render/pond';
 import {
   modelXRange,
   piezoY,
@@ -140,6 +141,12 @@ function validateModel(model: Model): void {
       throw new EngineError(`InvalidModel: el material "${region.material}" no está definido`);
     }
   });
+  // Agua embalsada (E15l-17): el motor simulado solo calcula la presión de poros de la piezométrica, no el peso ni el empuje del agua sobre
+  // el terreno. Se rechaza el modelo con la piezométrica sobre el terreno (el agua de la grieta ya se rechaza con la grieta, arriba).
+  const piezo = model.water?.piezometric_line;
+  if (Array.isArray(piezo) && piezo.length >= 2 && pondPolygons(model.regions, piezo).length > 0) {
+    throw new EngineError('InvalidModel: El motor simulado no modela el agua embalsada; use el motor WASM.');
+  }
   model.materials.forEach((m, i) => {
     // En 0.2 solo existe mohr_coulomb, que exige cohesión y ángulo de fricción (F3.2).
     if (m.cohesion == null || m.friction_angle == null) {
