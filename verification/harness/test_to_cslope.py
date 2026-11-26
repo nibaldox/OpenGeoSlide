@@ -1221,3 +1221,156 @@ def test_oracle_is_unchanged_without_ponded_water(piezo, method):
                                            "freeWater": False}
     old = cs.analyse(old_doc)["minFOS"]
     assert new == pytest.approx(old, rel=1e-9)
+
+
+# ------------------------------------------- Ito-Matsui piles: lateral_pressure and capacity (schema v0.5, E15i-10)
+
+X22_ROWS = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "fase3", "exploracion", "X22_filas"))
+IM_METHODS = ("bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected")
+IM_PILE = {"type": "pile", "id": "P1", "x1": 40, "y1": 33, "x2": 40, "y2": 22, "application": "passive",
+           "direction": "angle", "angle": 0, "spacing": 2.4,
+           "lateral_pressure": {"model": "ito_matsui", "diameter": 0.8, "location": "centroid"}}
+
+
+def _im(item: dict | None = None, version: str = "0.5", **kw) -> dict:
+    model = v047a_v04([dict(item or IM_PILE, **kw)])
+    model["version"] = version
+    return model
+
+
+def _x22_rows() -> dict:
+    with open(os.path.join(X22_ROWS, "resultados.json"), encoding="utf-8") as fh:
+        return json.load(fh)["filas"]
+
+
+def _x22_model(rid: str) -> dict:
+    """A row of X22 (documents v0.4 with the proposal) in the final format of E15i-1: version 0.5."""
+    with open(os.path.join(X22_ROWS, f"{rid}.json"), encoding="utf-8") as fh:
+        model = json.load(fh)
+    items = model.get("reinforcements") or []
+    if any("lateral_pressure" in r or "capacity" in r for r in items):
+        model["version"] = "0.5"
+    return model
+
+
+def test_lateral_pressure_pile_writes_diameter_and_no_force():
+    pile = _mapped(_im())["definition"]["piles"][0]
+    assert pile == {"x1": 40.0, "y1": 33.0, "x2": 40.0, "y2": 22.0, "diameter": 0.8, "direction": "angle",
+                    "application": "passive", "location": "centroid", "angle": 0.0, "spacing": 2.4}
+    assert "force" not in pile and "shearCapacity" not in pile and "momentCapacity" not in pile
+
+
+@pytest.mark.parametrize("location, want", [("centroid", "centroid"), ("slip_surface", "slip-surface")])
+def test_lateral_pressure_location_maps_with_the_hyphen(location, want):
+    lp = dict(IM_PILE["lateral_pressure"], location=location)
+    assert _mapped(_im(lateral_pressure=lp))["definition"]["piles"][0]["location"] == want
+
+
+@pytest.mark.parametrize("capacity, want", [
+    ({"shear": 150.0, "moment": 250.0}, {"shearCapacity": 150.0, "momentCapacity": 250.0}),
+    ({"shear": 150.0}, {"shearCapacity": 150.0}),
+    ({"moment": 250}, {"momentCapacity": 250.0}),
+])
+def test_capacity_maps_to_shear_and_moment_capacity(capacity, want):
+    pile = _mapped(_im(capacity=capacity))["definition"]["piles"][0]
+    assert {k: pile[k] for k in ("shearCapacity", "momentCapacity") if k in pile} == want
+
+
+def test_a_lateral_pressure_pile_and_a_force_pile_go_together_to_piles():
+    cs = pytest.importorskip("cslope")
+    model = v047a_v04([dict(IM_PILE, capacity={"shear": 300.0}), dict(PILE, id="P2", x1=45, x2=45)])
+    model["version"] = "0.5"
+    doc = _mapped(model)
+    assert ["force" in p for p in doc["definition"]["piles"]] == [False, True]
+    assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
+
+
+def test_lateral_pressure_and_capacity_need_version_0_5():
+    """E15i-1: with ``"0.4"`` the error is the one of the contract; before 0.4 the reinforcements already need 0.4."""
+    with pytest.raises(UnsupportedModel, match='lateral_pressure requiere version "0.5"'):
+        _mapped(_im(version="0.4"))
+    with pytest.raises(UnsupportedModel, match='lateral_pressure requiere version "0.5"'):
+        _mapped(_im(version="0.4", capacity={"shear": 1.0}))
+    for version in ("0.3", "0.2", "0.1"):
+        with pytest.raises(UnsupportedModel, match="requiere version"):
+            _mapped(_im(version=version))
+
+
+@pytest.mark.parametrize("change, match", [
+    ({"force": 60}, "force"),                                              # exactly one of force / lateral_pressure
+    ({"lateral_pressure": None}, "force"),                                 # neither
+    ({"lateral_pressure": {"model": "other", "diameter": 0.8, "location": "centroid"}}, "model"),
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": 0, "location": "centroid"}}, "diameter"),
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": -1, "location": "centroid"}}, "diameter"),
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": float("nan"), "location": "centroid"}}, "diameter"),
+    ({"lateral_pressure": {"model": "ito_matsui", "location": "centroid"}}, "diameter"),
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": 0.8}}, "location"),              # location is mandatory
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": 0.8, "location": "slip-surface"}}, "location"),
+    ({"lateral_pressure": {"model": "ito_matsui", "diameter": 0.8, "location": "centroid", "x": 1}}, "x"),
+    ({"x2": 40.5}, "x2"),                                                  # vertical
+    ({"spacing": 0.8}, "spacing"),                                         # spacing > diameter, strictly
+    ({"spacing": 0.5}, "spacing"),
+    ({"capacity": {}}, "capacity"),
+    ({"capacity": {"shear": 0}}, "capacity.shear"),
+    ({"capacity": {"moment": -5}}, "capacity.moment"),
+    ({"capacity": {"shear": 5, "torque": 1}}, "torque"),
+    ({"capacity": {"shear": float("inf")}}, "capacity.shear"),
+])
+def test_invalid_lateral_pressure_piles_are_refused(change, match):
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(_im(**change))
+
+
+def test_capacity_without_lateral_pressure_is_refused():
+    model = v047a_v04([dict(PILE, capacity={"shear": 100})])
+    model["version"] = "0.5"
+    with pytest.raises(UnsupportedModel, match="capacity"):
+        _mapped(model)
+
+
+def test_a_sheet_pile_takes_neither_lateral_pressure_nor_capacity():
+    for extra in ({"lateral_pressure": IM_PILE["lateral_pressure"]}, {"capacity": {"shear": 5}}):
+        with pytest.raises(UnsupportedModel, match="desconocidos"):
+            _mapped(_im(dict(SHEET, **extra), force=None))
+
+
+def test_force_piles_convert_exactly_as_before_in_v0_4_and_v0_5():
+    """Neutrality: without lateral_pressure the document of a pile is the one of F4/F3R, in any version."""
+    old = _mapped(_one(PILE))
+    new = v047a_v04([PILE])
+    new["version"] = "0.5"
+    assert _mapped(new) == old
+    pile = old["definition"]["piles"][0]
+    assert set(pile) == {"x1", "y1", "x2", "y2", "force", "direction", "application", "location", "angle", "spacing"}
+
+
+def test_corpus_documents_carry_no_ito_matsui_key():
+    """Neutrality over the published corpus: no check of ``cases/`` gets a ``diameter`` or a capacity key."""
+    import glob
+    root = os.path.normpath(os.path.join(HERE, "..", "cases"))
+    seen = 0
+    for path in sorted(glob.glob(os.path.join(root, "V*.json"))):
+        with open(path, encoding="utf-8") as fh:
+            case = json.load(fh)
+        for check in case["checks"][:1]:
+            doc = ogs_to_cslope(case["model"], check).document
+            for pile in doc["definition"].get("piles", []):
+                seen += 1
+                assert not {"diameter", "shearCapacity", "momentCapacity"} & set(pile), path
+    assert seen >= 2
+
+
+@pytest.mark.parametrize("rid", sorted(_x22_rows()))
+def test_oracle_rows_of_x22_through_the_converter(rid):
+    """The 28 rows of X22 (Ito-Matsui, fixed circle) through ``ogs_to_cslope``: the five methods reproduce the oracle
+    figures of ``resultados.json`` (six decimals, so |Δ| <= 1e-6). The rows were built with the adapter
+    ``X22_proto/oracle.py``, which adds the piles to the document by hand."""
+    cs = pytest.importorskip("cslope")
+    model = _x22_model(rid)
+    for method, figures in _x22_rows()[rid]["metodos"].items():
+        m = json.loads(json.dumps(model))
+        m["analysis"].pop("interslice", None)
+        if method == "morgenstern_price":
+            m["analysis"]["interslice"] = {"function": "constant"}
+        got = _oracle_fos(cs, m, method)
+        assert got == pytest.approx(figures["oracle"], abs=1e-6), (rid, method)
