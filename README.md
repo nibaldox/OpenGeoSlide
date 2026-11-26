@@ -44,9 +44,10 @@ terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#e
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 243 de 243 checks contra valores publicados (116 casos) y
+- **Está verificado y se puede reproducir.** El motor cumple 323 de 323 checks contra valores publicados (147 casos) y
   coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
-  Fase 3a (más 12 de 12 de los refuerzos v0.4). Es la batería real
+  Fase 3a (más 12 de 12 de los refuerzos v0.4 y 44 de 48 del bloque de grieta y agua embalsada v0.5: 2 explicados y 2
+  fallas abiertas). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
@@ -118,17 +119,19 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (116 casos) | **243/243** | [REPORT](verification/REPORT.md) |
+| Valores publicados (147 casos) | **323/323** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
-| Web y `ogs` (305 modelos) | **305/305** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **44/48** (2 explicados, 2 fallas abiertas) | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0 como segundo oráculo de los 323 checks | **322/323** | [REPORT](verification/REPORT.md) |
+| Web y `ogs` (385 modelos) | **385/385** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 243 checks de 116 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
-  v0.2, 47 en v0.3 y 23 con refuerzos en v0.4), cada uno dentro de su tolerancia: 108 de Bishop, 81 de Spencer, 29 de
-  Morgenstern-Price, 8 de Janbu simplificado y 17 de Janbu corregido. Otros 9 checks, en 6 casos, quedan retenidos con
-  su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
+- **Valores publicados:** 323 checks de 147 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2, 53 en v0.3, 23 con refuerzos en v0.4 y 17 con grieta de tracción en v0.5), cada uno dentro de su tolerancia:
+  132 de Bishop, 113 de Spencer, 43 de Morgenstern-Price, 10 de Janbu simplificado y 25 de Janbu corregido. Otros 15
+  checks, en 9 casos, quedan retenidos con su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
 - **cSlope, superficie fija:** el mismo círculo en los dos programas; el FS difiere en 0,5 % o menos.
@@ -167,14 +170,15 @@ Esta batería no cubre todo: véanse las limitaciones.
   geométrica. **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a propósito: por
   ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
   ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
-- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 116 casos lo usa.
+- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 147 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
 - **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
   solución o, con tracción en la base, quedar por debajo de Bishop. En polilíneas con forma de V pueden converger con un
   FS no físico (aviso `interslice_shear_exceeds_strength`): compárelo con Janbu. Revise siempre los avisos.
-- **Casos publicados retenidos:** V027, V028, V068, V035b y V083 (aviso de normal efectiva negativa) y V032a (la búsqueda halla un
-  mínimo real, más conservador).
+- **Casos publicados retenidos:** V027, V028, V068, V035b y V083 (aviso de normal efectiva negativa), V032a (la búsqueda halla un
+  mínimo real, más conservador), V009a y V009b (aviso de cortante entre dovelas) y V085 ×4 (la búsqueda de ogs halla un
+  círculo más crítico que el del oráculo).
 
 El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
 [`docs/limitaciones.md`](docs/limitaciones.md).
@@ -200,8 +204,8 @@ Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 243/243 published values (116 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks and 12/12 reinforcement checks. The search is circular only. With piles or sheet piles it checks the global stability
+runs in your browser and works offline, a Python package and a CLI. It matches 323/323 published values (147 cases) and cSlope in
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 44/48 tension-crack and ponded-water checks (2 explained, 2 open failures). The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
 moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
