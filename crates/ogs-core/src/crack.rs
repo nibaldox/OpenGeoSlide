@@ -1,24 +1,36 @@
 //! Tension crack (format v0.5; contract F5.4, amendments E15d and E15h).
 //!
-//! **Stub of wave G0.** The types and signatures are frozen; [`locate`] and [`truncate`] are `todo!("G1: grieta de
-//! tracción")`. `lib.rs` calls them **only if `analysis.tension_crack` exists**, so a model without a crack goes
-//! through the same code as v0.3.0 (identity, E15e-1). Wave M-grieta (G1 to G9) fills them and the end checks of the
-//! slicer.
+//! Wave G1 (M-grieta). `lib.rs` calls [`locate`] and [`truncate`] **only if `analysis.tension_crack` exists**, so a
+//! model without a crack goes through the same code as v0.3.0 (identity, E15e-1).
 //!
 //! # Flow that `lib.rs` follows for each surface (final surface and every candidate of the search)
 //!
 //! 1. [`locate`] finds `x_c` and the depth `d` (G1, G6) from the **fitted** surface; `Err(NotReached)` if the surface
 //!    never gets to depth `d` (it has no mass). A fixed surface then fails with
 //!    `NoValidSurface: tension_crack_not_reached…`; a candidate of the search is **discarded** (G9), and if all are,
-//!    `NoValidSurface` (as always).
-//! 2. The nodes of [`CrackPlan::breaks`] (`x_c ± 1e-6·width`, like the crossings of E14m) go to
-//!    `LoadCase::with_extra_breaks`, together with those of the reinforcements, so the cut has a thin slice at `x_c`.
-//! 3. The surface is sliced. The end checks (E10a, E13 and `check_block_ends`) apply to the **truncated** mass, whose
-//!    end on the crest side is `(x_c, base(x_c))`, not to the whole arc: this is the part of `slicer.rs` that
-//!    M-grieta owns (`sliding_span`, `main_block_range`, `check_block_ends`, `slice_span`).
-//! 4. [`truncate`] removes every slice on the crest side of `x_c`, adds the force of the water in the crack to the
-//!    adjacent slice (G3) and returns the [`CrackReport`]. The weight that was removed is **not** kept as a load (G2).
-//! 5. Then `water::apply_ponded` and the reinforcements act on the remaining slices.
+//!    `NoValidSurface` (as always). `Err(NoGround)` means that the surface has no sliding range: the slicer gives the
+//!    usual reason.
+//! 2. [`CrackPlan::breaks`] (a node at `x_c`) goes to `LoadCase::with_extra_breaks`, together with those of the
+//!    reinforcements.
+//! 3. `slicer::slice_surface_cracked` slices the mass that the crack leaves: the span of the cut runs from the toe to
+//!    `x_c` (the face is the end of the span), so the `n` divisions apply to the mass and the end checks (E10a, E13 and
+//!    `check_block_ends`) are those of the **truncated** mass, whose end on the crest side is `(x_c, base(x_c))`. A
+//!    circle that leaves the model past the crack is a valid mass.
+//! 4. [`truncate`] removes every slice on the crest side of `x_c` (none, after the slicer; it also works on the slices
+//!    of the whole arc cut at `x_c`), adds the force of the water in the crack to the adjacent slice (G3) and returns
+//!    the [`CrackReport`]. The weight that was removed is **not** kept as a load (G2).
+//! 5. Then `water::apply_ponded` and the reinforcements act on the remaining slices. A reinforcement that crosses on
+//!    the crest side of `x_c` finds no slice: `reinforcement_outside_mass`.
+//!
+//! # Position and depth (G1, G6)
+//!
+//! A sweep of 200 steps from the entry (the crest end of the sliding range) looks for the first `x` with
+//! `ground(x) − base(x) ≥ d(x)`, and a bisection of 60 steps refines it. A depth that is only reached at the exit end
+//! is not reached. The automatic `d(x)` is `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with `c`, `φ` and `γ` of the material
+//! at `2e-5·scale` under the ground at `x` (1e-3 model units in the models of the rows, as the oracle), recomputed at
+//! each `x`; `q` is the sum of the `udl` over `x` and `γw·(piezo − ground)` of the ponded water, written here and not
+//! taken from `water.rs`. An automatic depth of 0 at the entry cuts nothing: `x_c` is the entry and the report has
+//! `depth = 0`.
 //!
 //! # Force of the water (G3, G4, E7)
 //!

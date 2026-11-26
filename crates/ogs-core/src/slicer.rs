@@ -548,6 +548,17 @@ pub(crate) fn build_slices(
     build_slices_cracked(pm, &Surface::Circle(*circle), n, &LoadCase::default(), None)
 }
 
+/// [`build_slices_cracked`] without a crack, for the geometry tests of any surface.
+#[cfg(test)]
+fn build_slices_with(
+    pm: &PreparedModel,
+    surface: &Surface,
+    n: usize,
+    loads: &LoadCase,
+) -> Result<(Built, Tramo), SurfaceError> {
+    build_slices_cracked(pm, surface, n, loads, None)
+}
+
 /// [`build_slices`] with the loads of `loads`, on any surface, over the span that a crack at `crack_x` leaves: the crest end of the sliding range moves to
 /// the face (see [`slice_surface_cracked`]).
 fn build_slices_cracked(
