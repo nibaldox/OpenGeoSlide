@@ -1,0 +1,141 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V092",
+  "title": "USACE example F-6, steady-seepage dam"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "embankment",
+   "name": "Embankment",
+   "unit_weight": 20.4213698,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 34
+  },
+  {
+   "id": "foundation",
+   "name": "Foundation",
+   "unit_weight": 19.635932500000003,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 35
+  }
+ ],
+ "regions": [
+  {
+   "material": "foundation",
+   "polygon": [
+    [
+     0.0,
+     -22.86
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     121.92,
+     0.0
+    ],
+    [
+     137.16,
+     0.0
+    ],
+    [
+     137.16,
+     -22.86
+    ]
+   ]
+  },
+  {
+   "material": "embankment",
+   "polygon": [
+    [
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     30.48
+    ],
+    [
+     9.20496,
+     30.48
+    ],
+    [
+     18.53184,
+     34.1376
+    ],
+    [
+     24.6888,
+     34.1376
+    ],
+    [
+     59.40552,
+     22.46376
+    ],
+    [
+     121.92,
+     0.0
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    0,
+    30.48
+   ],
+   [
+    11.704320000000001,
+    30.48
+   ],
+   [
+    36.91128,
+    21.031200000000002
+   ],
+   [
+    54.68112000000001,
+    6.8580000000000005
+   ],
+   [
+    137.16,
+    6.8580000000000005
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 81.9912,
+   "yc": 75.5904,
+   "r": 85.34400000000001
+  },
+  "interslice": {
+   "function": "constant"
+  }
+ }
+}

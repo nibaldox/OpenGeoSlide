@@ -1,0 +1,111 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V023",
+  "title": "LASH terminal trench, Duncan's Taylor series example"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "san_francisco_bay_mud",
+   "name": "San Francisco Bay Mud",
+   "unit_weight": 15.70875,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 4.78803,
+   "strength_datum": -6.096,
+   "strength_gradient": 1.53946
+  }
+ ],
+ "regions": [
+  {
+   "material": "san_francisco_bay_mud",
+   "polygon": [
+    [
+     -8.5344,
+     -43.5864
+    ],
+    [
+     -8.5344,
+     -12.192
+    ],
+    [
+     0.0,
+     -12.192
+    ],
+    [
+     21.6408,
+     -36.576
+    ],
+    [
+     42.0624,
+     -36.576
+    ],
+    [
+     69.4944,
+     -5.4864
+    ],
+    [
+     86.2584,
+     -5.1816
+    ],
+    [
+     106.68,
+     -2.4384
+    ],
+    [
+     118.5672,
+     6.7056
+    ],
+    [
+     140.5128,
+     6.7056
+    ],
+    [
+     140.5128,
+     -43.5864
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -8.5344,
+    0
+   ],
+   [
+    140.5128,
+    0
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": -2.00833,
+   "yc": 125.03841,
+   "r": 167.5129
+  },
+  "interslice": {
+   "function": "constant"
+  }
+ }
+}

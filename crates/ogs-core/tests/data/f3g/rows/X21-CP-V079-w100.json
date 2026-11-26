@@ -1,0 +1,108 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V079-w100",
+  "title": "Priest (1993) rigid block on a plane, water-filled crack"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "block",
+   "name": "Block",
+   "unit_weight": 25,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 20,
+   "friction_angle": 30
+  }
+ ],
+ "regions": [
+  {
+   "material": "block",
+   "polygon": [
+    [
+     -25.0,
+     -15.0
+    ],
+    [
+     -25.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     17.0,
+     30.0
+    ],
+    [
+     60.0,
+     30.0
+    ],
+    [
+     60.0,
+     -15.0
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -25,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    25.981,
+    18.75
+   ],
+   [
+    60,
+    18.75
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "polyline",
+   "points": [
+    [
+     0,
+     0
+    ],
+    [
+     51.962,
+     30
+    ]
+   ]
+  },
+  "tension_crack": {
+   "depth": 15,
+   "water_fill": 1.0
+  },
+  "interslice": {
+   "function": "constant"
+  }
+ }
+}

@@ -1,0 +1,145 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V091",
+  "title": "USACE example E-2 (fig. E-10), ponded water"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil_1",
+   "name": "Soil 1",
+   "unit_weight": 18.8504952,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 28.728156000000002
+  },
+  {
+   "id": "soil_2",
+   "name": "Soil 2",
+   "unit_weight": 15.708746000000001,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 19.152104
+  },
+  {
+   "id": "soil_3",
+   "name": "Soil 3",
+   "unit_weight": 16.4941833,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 23.94013
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil_3",
+   "polygon": [
+    [
+     0.0,
+     -6.096
+    ],
+    [
+     0.0,
+     -2.4384
+    ],
+    [
+     12.192,
+     -2.4384
+    ],
+    [
+     30.48,
+     -2.4384
+    ],
+    [
+     30.48,
+     -6.096
+    ]
+   ]
+  },
+  {
+   "material": "soil_2",
+   "polygon": [
+    [
+     12.192,
+     -2.4384
+    ],
+    [
+     15.24,
+     1.2192
+    ],
+    [
+     30.48,
+     1.2192
+    ],
+    [
+     30.48,
+     -2.4384
+    ]
+   ]
+  },
+  {
+   "material": "soil_1",
+   "polygon": [
+    [
+     15.24,
+     1.2192
+    ],
+    [
+     18.288,
+     4.8768
+    ],
+    [
+     30.48,
+     4.8768
+    ],
+    [
+     30.48,
+     1.2192
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    0,
+    0
+   ],
+   [
+    30.48,
+    0
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 14.7102576,
+   "yc": 8.5344,
+   "r": 14.533778400000001
+  },
+  "interslice": {
+   "function": "constant"
+  }
+ }
+}
