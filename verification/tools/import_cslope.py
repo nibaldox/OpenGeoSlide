@@ -85,6 +85,7 @@ PILE_KEYS = {"x1", "y1", "x2", "y2", "force", "diameter", "spacing", "direction"
              "wall"}
 HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
 HOLD_F3_FILE = Path("verification") / "pending" / "F3" / "HOLD.json"
+HOLD_F3R_FILE = Path("verification") / "pending" / "F3R" / "HOLD.json"
 
 # ---------------------------------------------------------------- conversion constants
 GAMMA_W = {"SI": 9.807, "imperial": 62.4}  # cSlope constant 9.807 kN/m3; 62.4 pcf for imperial
@@ -1129,7 +1130,7 @@ def gate_schema_f3r(case: dict, schema: dict) -> list[str]:
     return errors
 
 
-def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None) -> str:
+def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, n_held: int = 0) -> str:
     """Section of `cases/INDEX.md` for the promoted batches R1 to R4: published value, ogs and cSlope per check (from
     the `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
     rows = {}
@@ -1147,6 +1148,10 @@ def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | No
         "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.",
         "",
     ]
+    if n_held:
+        lines += [f"**{n_held}** checks más (V014 ×2, V035b ×2, V083) quedan retenidos en `verification/pending/F3R` "
+                  "(`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test "
+                  "de aceptación lo rechaza (E14n-1 de §F4.17, criterio 2 no cumplido).", ""]
     if not rows:
         lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
                   "regenere este índice.", ""]
@@ -1181,21 +1186,46 @@ def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | No
     return "\n".join(lines)
 
 
-def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]]) -> str:
-    """INDEX.md left in pending/F3R once the batches are promoted."""
-    return "\n".join([
-        "# Casos con refuerzos (lotes R1 a R4): promovidos",
+def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], held: list[dict] | None = None,
+                             hold: dict[tuple, dict] | None = None) -> str:
+    """INDEX.md left in pending/F3R once the batches are promoted (`cases` are all the converted ones, held included)."""
+    held = held or []
+    n_held = sum(len(c["checks"]) for c in held)
+    n_all = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "# Casos con refuerzos (lotes R1 a R4): promovidos y retenidos",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "",
-        f"Los **{len(cases)}** casos de los lotes R1 a R4 (**{sum(len(c['checks']) for c in cases)}** checks, formato v0.4) "
-        "pasaron a [`../../cases/`](../../cases/INDEX.md), con su tabla en la sección «Casos con refuerzos». No queda "
-        "ninguno retenido.",
+        f"Los **{len(cases)}** casos de los lotes R1 a R4 (**{n_all}** checks, formato v0.4) pasaron a "
+        "[`../../cases/`](../../cases/INDEX.md), con su tabla en la sección «Casos con refuerzos»"
+        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`, E14n-1 de §F4.17); la tabla de abajo los lista con su "
+           "número y el diagnóstico." if held else ". No queda ninguno retenido."),
         "",
-        "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."
-        + ("" if not omitted else " No entran: " + "; ".join(f"{cid} ({md_cell(r)})" for cid, r in omitted) + "."),
-        "",
-    ])
+    ]
+    if held:
+        lines += [
+            "Cada check retenido está convertido igual que los de `verification/cases/`; el FS reproduce el publicado, pero "
+            "el motor emite `negative_effective_normal_major` y el test de aceptación rechaza ese aviso (E5). No se relaja "
+            "ninguna tolerancia ni se toca ningún dato. Se promueven quitándolos de `HOLD.json` y regenerando.",
+            "",
+            "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+            "|---|---|---:|---|---:|---:|---:|---|",
+        ]
+        for case in held:
+            for c in case["checks"]:
+                e = (hold or {})[check_key(case["id"], c)]
+
+                def f(v):
+                    return "—" if v is None else f"{v:.4f}"
+                lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                             f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
+                             f"| {md_cell(e.get('diagnosis', ''))} |")
+        lines.append("")
+    lines.append("V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."
+                 + ("" if not omitted else " No entran: " + "; ".join(f"{cid} ({md_cell(r)})" for cid, r in omitted) + "."))
+    lines.append("")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------- gates
@@ -1745,6 +1775,25 @@ def main() -> int:
         print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
         return 1
 
+    # ---- F3R holds (F4.17, E14n-1): the checks that the acceptance test rejects stay in pending/F3R (HOLD.json)
+    hold_f3r = load_hold(root / HOLD_F3R_FILE)
+    f3r_held: list[dict] = []
+    f3r_kept: list[dict] = []
+    for case in f3r_cases:
+        rest, held_case = split_hold(case, hold_f3r)
+        if held_case is not None:
+            f3r_held.append(held_case)
+        if rest is not None:
+            f3r_kept.append(rest)
+    unknown_hold_f3r = sorted(set(hold_f3r) - {check_key(c["id"], k) for c in f3r_held for k in c["checks"]})
+    if unknown_hold_f3r:
+        print("GATE FAILURES:", f"pending/F3R/HOLD.json con checks que no existen en F3R: {unknown_hold_f3r}",
+              sep="\n  ", file=sys.stderr)
+        return 1
+    f3r_all = f3r_cases
+    f3r_held_checks = [c for case in f3r_held for c in case["checks"]]
+    f3r_cases = f3r_kept
+
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
     # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
@@ -1763,7 +1812,7 @@ def main() -> int:
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
         all_cases, omitted, {**discarded_by_case, **f3r_dropped}, order + [c["id"] for c in f3r_cases],
-        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report)))
+        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, len(f3r_held_checks))))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
@@ -1794,14 +1843,18 @@ def main() -> int:
         converted, promoted, promoted_batches, f3_held, hold_f3, lote0_ids, f3_dropped, f3_omitted))
     # F3R: promoted to cases/ above; only a short INDEX stays in pending/F3R
     f3r_dir = root / F3R_DIR
+    keep_f3r = {f"{c['id']}.json" for c in f3r_held}
     for stale in sorted(f3r_dir.glob("V*.json")) if f3r_dir.is_dir() else []:
-        stale.unlink()
-        changed += 1
+        if stale.name not in keep_f3r:
+            stale.unlink()
+            changed += 1
+    for case in f3r_held:
+        changed += write_if_changed(f3r_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
     for old_file in ("report.json", "REPORT.md"):
         if (f3r_dir / old_file).is_file():
             (f3r_dir / old_file).unlink()
             changed += 1
-    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_cases, f3r_omitted))
+    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_all, f3r_omitted, f3r_held, hold_f3r))
 
     # ---- summary
     n_checks = sum(len(c["checks"]) for c in all_cases)

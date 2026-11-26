@@ -61,3 +61,44 @@ cruces aplicados en los dos motores en los 33 checks (ogs aplica 0 donde el orá
   X17 y de `INDEX.md` («el binario descarta los activos con along > 0 que ogs aplica») no se cumple en estas 25 filas: en
   ninguna ogs aplica un activo que el oráculo descarta. E14m-1 se apoya en X17 §1.4 (barrido de ángulos con el binario), no
   en V016b; ninguno de los 25 casos lo ejercita contra el oráculo.
+
+## 5. E14n-1 (§F4.17): el mecanismo se midió y **no se deja**; los 5 checks quedan retenidos
+
+**Mecanismo mínimo propuesto** (`docs/fase3/r2i1/E14n-1.patch`, 4 archivos, +111/−4; se aplica con `git apply`): un campo
+`Slice.crossing: bool` con `#[serde(skip)]` (nunca se serializa, el informe no cambia), puesto por
+`reinforcement::apply_to_slices` en la dovela que recibe la fuerza de un cruce; `negative_normal_message` agrupa cada
+dovela con `crossing` con la anterior y la siguiente (rangos disjuntos; una racha de cruces seguidos es un grupo) y
+clasifica la suma de sus N′. Sin ninguna dovela `crossing` los rangos son de a una y el bucle es el de siempre, término a
+término. Equilibrio, FS y dovelas del informe no se tocan. Se mide con el patch aplicado; luego se revierte.
+
+**Los cuatro criterios** (binario `ogs_e14n` del patch frente a `ogs_merge` de la rama sin patch, 118 modelos de `cases`):
+
+1. **Identidad: cumple.** `identity_vs_baseline.py --base $TMPDIR/f3r-base-target/release/ogs`: 121 modelos sin refuerzos,
+   0 diferencias (5 variantes × 121 comparaciones), 29 con refuerzos saltados.
+2. **Aviso mayor solo de dovelas finas de cruce: NO cumple en 3 de los 5 checks.** Listas de N′<0 (`e14n1/before_*.neg`,
+   `after_*.neg`; piso E8c −8,95e-4 en V014, −4,35e-4 en V035b, −3,77e-4 en V083):
+   - **V014 (Janbu corregido, ×2):** antes 8 dovelas finas de 7,62e-5 m (k = 25, 30, 34, 42, 50, 57, 64, 71; N′ −12,6 a
+     −0,37 kN; `passive_h` −26,2 a −0,77); después 0 (sin aviso). Aquí sí es el artefacto; sin refuerzos el modelo no da aviso.
+   - **V035b (Bishop, ×2):** la dovela fina del cruce (ancho 2,56e-5; peso 0,0012; `passive_h` −131,3) **no tiene N′<0**: el
+     ancla es horizontal (`passive_v` = 0) y en Bishop `passive_h` solo entra al momento. Los N′<0 son 4 dovelas normales
+     (k = 59 a 62, x 12,03 a 12,56, ancho 0,133; N′ −2,14, −6,21, −13,45, −30,57 kN; f = 12 %): antes y después idénticas. El mismo
+     modelo **sin refuerzos** da `negative_effective_normal_major` (FS 0,929). Es la cohesión no drenada (φ = 0) en la base empinada
+     junto a la coronación, no el cruce.
+   - **V083 (Janbu corregido):** 12 dovelas normales (k = 45 a 56, x 4,77 a 6,28, ancho 0,1256; N′ −0,16 a −4,61 kN), idénticas antes
+     y después; las dovelas finas de los dos cruces (k = 24, 35) no son negativas. Sin refuerzos también da el aviso (FS 0,834).
+3. **Tracción real sobre dovela normal conserva el aviso: cumple.** Pilote activo (`angle` 80°, 400 kN/m) en x = 6 del talud
+   c = 5, φ = 25° con 10 dovelas de 1,7 m: Bishop 1,173 y Spencer 1,184 conservan `negative_effective_normal_major`. Con 100 kN/m en
+   x = 9 (dovelas más pesadas que la fuerza) el aviso desaparece, como debe (test `f3r2_e14n1.rs` dentro del patch).
+4. **Ningún FS cambia: cumple.** De los 118 modelos 116 dan la salida idéntica byte a byte; 2 difieren solo en `warnings`:
+   V014 (Spencer pierde la nota, Janbu corregido pierde el mayor) y V010 (M-P pierde la nota `negative_effective_normal`).
+   Ningún FS, iteración, λ ni dovela cambia.
+
+**Decisión (contrato §F4.17: «si algún criterio falla, los 5 checks quedan retenidos»):** el cambio de motor no se deja. Los 5
+checks (V014 janbu_corrected 1,46 y 1,448; V035b bishop 1,324 y 1,32; V083 janbu_corrected 0,89) salen a
+`verification/pending/F3R` con `HOLD.json` (números y diagnóstico) como los de lote 0 (V027/V028). `verification/cases`
+queda con 116 casos y 241 checks, y el test de aceptación sin fallas. El importador lee `pending/F3R/HOLD.json`.
+
+**Para el coordinador.** La hipótesis de E14n-1 vale solo para V014. V035b y V083 muestran negativos de dovelas normales, que
+el modelo tiene también sin refuerzos: una regla que los acepte pertenece a la clasificación E7d/E8c (p. ej. φ = 0 con
+cohesión alta junto a la coronación, como V027/V028), no a las dovelas de cruce. Si se decide reducir E14n-1 a V014 el
+patch ya está hecho y verificado (criterios 1, 3 y 4); solo V014 volvería a `cases`.

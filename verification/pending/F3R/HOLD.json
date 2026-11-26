@@ -1,0 +1,47 @@
+[
+  {
+    "id": "V014",
+    "method": "janbu_corrected",
+    "published": 1.46,
+    "published_by": "Program H",
+    "ogs": 1.4484,
+    "cslope": 1.4482,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). E14n-1 (§F4.17) pidió sumar las dovelas finas de cruce con sus vecinas, con cuatro criterios; I1b implementó el mecanismo (docs/fase3/r2i1/E14n-1.patch) y midió: 1) identidad byte a byte, 121 modelos sin refuerzos, 0 diferencias; 3) un pilote activo de 400 kN/m a 80° sobre dovelas de 1,7 m conserva el aviso mayor; 4) ningún FS cambia en los 118 modelos (116 salidas idénticas; 2 cambian solo la lista de avisos). El criterio 2 FALLA: en V014 (janbu_corrected) la lista de N′<0 son 8 dovelas finas de 7,6e-5 m (cruces R2, R4, R6, R8, R10, R12, R13, R14; passive_h −26,2 a −0,77 kN) y con la regla desaparece (0 dovelas, sin aviso): ahí sí es el artefacto. Sin refuerzos el modelo no da aviso. Se retiene por la regla de §F4.17 (los 5 checks juntos), no por V014."
+  },
+  {
+    "id": "V014",
+    "method": "janbu_corrected",
+    "published": 1.448,
+    "published_by": "Program D",
+    "ogs": 1.4484,
+    "cslope": 1.4482,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). E14n-1 (§F4.17) pidió sumar las dovelas finas de cruce con sus vecinas, con cuatro criterios; I1b implementó el mecanismo (docs/fase3/r2i1/E14n-1.patch) y midió: 1) identidad byte a byte, 121 modelos sin refuerzos, 0 diferencias; 3) un pilote activo de 400 kN/m a 80° sobre dovelas de 1,7 m conserva el aviso mayor; 4) ningún FS cambia en los 118 modelos (116 salidas idénticas; 2 cambian solo la lista de avisos). El criterio 2 FALLA: en V014 (janbu_corrected) la lista de N′<0 son 8 dovelas finas de 7,6e-5 m (cruces R2, R4, R6, R8, R10, R12, R13, R14; passive_h −26,2 a −0,77 kN) y con la regla desaparece (0 dovelas, sin aviso): ahí sí es el artefacto. Sin refuerzos el modelo no da aviso. Se retiene por la regla de §F4.17 (los 5 checks juntos), no por V014."
+  },
+  {
+    "id": "V035b",
+    "method": "bishop",
+    "published": 1.324,
+    "published_by": "Commercial program A",
+    "ogs": 1.321,
+    "cslope": 1.3206,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). E14n-1 (§F4.17) pidió sumar las dovelas finas de cruce con sus vecinas, con cuatro criterios; I1b implementó el mecanismo (docs/fase3/r2i1/E14n-1.patch) y midió: 1) identidad byte a byte, 121 modelos sin refuerzos, 0 diferencias; 3) un pilote activo de 400 kN/m a 80° sobre dovelas de 1,7 m conserva el aviso mayor; 4) ningún FS cambia en los 118 modelos (116 salidas idénticas; 2 cambian solo la lista de avisos). El criterio 2 FALLA: en V035b (bishop) la dovela fina del cruce (ancho 2,56e-5, peso 0,0012, passive_h −131,3) NO tiene N′<0: el ancla es horizontal, passive_v = 0, y passive_h entra en Bishop solo en el momento. Los N′<0 son las 4 dovelas normales k = 59 a 62 (x 12,03 a 12,56, ancho 0,133, N′ −2,14, −6,21, −13,45, −30,57 kN; piso −4,35e-4), idénticas antes y después. El mismo modelo sin refuerzos también da el aviso mayor (FS 0,929). El aviso sale de la cohesión no drenada en la base empinada junto a la coronación, no del cruce."
+  },
+  {
+    "id": "V035b",
+    "method": "bishop",
+    "published": 1.32,
+    "published_by": "Duncan & Wright",
+    "ogs": 1.321,
+    "cslope": 1.3206,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). E14n-1 (§F4.17) pidió sumar las dovelas finas de cruce con sus vecinas, con cuatro criterios; I1b implementó el mecanismo (docs/fase3/r2i1/E14n-1.patch) y midió: 1) identidad byte a byte, 121 modelos sin refuerzos, 0 diferencias; 3) un pilote activo de 400 kN/m a 80° sobre dovelas de 1,7 m conserva el aviso mayor; 4) ningún FS cambia en los 118 modelos (116 salidas idénticas; 2 cambian solo la lista de avisos). El criterio 2 FALLA: en V035b (bishop) la dovela fina del cruce (ancho 2,56e-5, peso 0,0012, passive_h −131,3) NO tiene N′<0: el ancla es horizontal, passive_v = 0, y passive_h entra en Bishop solo en el momento. Los N′<0 son las 4 dovelas normales k = 59 a 62 (x 12,03 a 12,56, ancho 0,133, N′ −2,14, −6,21, −13,45, −30,57 kN; piso −4,35e-4), idénticas antes y después. El mismo modelo sin refuerzos también da el aviso mayor (FS 0,929). El aviso sale de la cohesión no drenada en la base empinada junto a la coronación, no del cruce."
+  },
+  {
+    "id": "V083",
+    "method": "janbu_corrected",
+    "published": 0.89,
+    "published_by": "Commercial program A",
+    "ogs": 0.8845,
+    "cslope": 0.8845,
+    "diagnosis": "El FS reproduce el publicado dentro de su tolerancia, pero el motor emite el aviso no informativo negative_effective_normal_major y el test de aceptación rechaza todo aviso que no esté en la lista informativa (E5). E14n-1 (§F4.17) pidió sumar las dovelas finas de cruce con sus vecinas, con cuatro criterios; I1b implementó el mecanismo (docs/fase3/r2i1/E14n-1.patch) y midió: 1) identidad byte a byte, 121 modelos sin refuerzos, 0 diferencias; 3) un pilote activo de 400 kN/m a 80° sobre dovelas de 1,7 m conserva el aviso mayor; 4) ningún FS cambia en los 118 modelos (116 salidas idénticas; 2 cambian solo la lista de avisos). El criterio 2 FALLA: en V083 (janbu_corrected) los N′<0 son 12 dovelas normales k = 45 a 56 (x 4,77 a 6,28, ancho 0,1256, N′ −0,16 a −4,61 kN; piso −3,77e-4), idénticas antes y después; las dovelas finas de los dos cruces (k = 24 y 35, passive_h −19,84 y −8,61 kN) no son negativas. El mismo modelo sin refuerzos también da el aviso mayor (FS 0,834)."
+  }
+]
