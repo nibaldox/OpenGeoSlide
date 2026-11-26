@@ -9,6 +9,7 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, saveBlob, saveText, cli, compare, baseModel, writeModel, viewportOf, setField, fieldOf } from './lib.mjs';
 
+// R11B-07 (E14o-16): la tablestaca trazada en el lienzo ya no se llama «tablestaca-1»: el lienzo y el botón «Agregar» comparten ids (a1, n1, g1, p1, s1).
 const T = process.env.TMPDIR;
 const LIMIT = /No calcula el empuje sobre el elemento, el empotramiento, el momento flector, la deflexión ni las comprobaciones internas o externas de un muro/;
 const model0Clean = ({ text }) => { const r = JSON.parse(text).reinforcements?.[0]; return r?.x1 === r?.x2 && Math.abs(r.y2 - 1) < 1e-9 && r.y2 === 1; };
@@ -66,7 +67,7 @@ for (const scheme of ['light', 'dark']) {
   const cmp = compare(report, ref.results);
   step(`(${tag}) 3b la web da el FS de «ogs analyze» (1e-9) en los cinco métodos`, ref.code === 0 && cmp.length === 5 && cmp.every((c) => c.same), { cmp: cmp.map((c) => [c.method, c.web, c.cli, c.rel]) });
   const wf = rows[0].reinforcement_forces ?? [];
-  step(`(${tag}) 3c fuerzas por cruce (JSON: cruce 0; tabla y PDF: cruce 1): tablestaca pasiva y anclaje activo, ambas aplicadas`, wf.length === 2 && wf.every((f) => f.status === 'applied') && wf.find((f) => f.id === 'tablestaca-1')?.application === 'passive' && wf.find((f) => f.id === 'a1')?.application === 'active', { wf });
+  step(`(${tag}) 3c fuerzas por cruce (JSON: cruce 0; tabla y PDF: cruce 1): tablestaca pasiva y anclaje activo, ambas aplicadas`, wf.length === 2 && wf.every((f) => f.status === 'applied') && wf.find((f) => f.id === 's1')?.application === 'passive' && wf.find((f) => f.id === 'a1')?.application === 'active', { wf });
   step(`(${tag}) 3d el aviso informativo «structural_checks_not_covered» está en cada método`, rows.every((r) => (r.warnings ?? []).includes('structural_checks_not_covered')));
 
   // 4. Lienzo, tabla, límite, PDF.
@@ -77,7 +78,7 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 4b un símbolo por refuerzo (tablestaca y anclaje)`, syms.join() === 'sheet_pile,anchor', { syms });
   const tables = await page.locator('[data-testid="reinforcement-forces"] table').count();
   const tableText = (await page.locator('[data-testid="reinforcement-forces"]').innerText()).replace(/\s+/g, ' ');
-  step(`(${tag}) 4c una tabla de fuerzas por método con id, tipo, cruce, estación, disponible, aplicada, movilizada y estado (E14o-14)`, tables === 5 && /Id Tipo Cruce Estación \(m\) Disponible \(kN\/m\) Aplicada fx; fy \(kN\/m\) Movilizada fx; fy \(kN\/m\) Aplicación Estado/.test(tableText) && /tablestaca-1 Tablestaca 1/.test(tableText) && /a1 Anclaje 1/.test(tableText) && /Aplicada/.test(tableText), { tables, tableText: tableText.slice(0, 400) });
+  step(`(${tag}) 4c una tabla de fuerzas por método con id, tipo, cruce, estación, disponible, aplicada, movilizada y estado (E14o-14)`, tables === 5 && /Id Tipo Cruce Estación \(m\) Disponible \(kN\/m\) Aplicada fx; fy \(kN\/m\) Movilizada fx; fy \(kN\/m\) Aplicación Estado/.test(tableText) && /s1 Tablestaca 1/.test(tableText) && /a1 Anclaje 1/.test(tableText) && /Aplicada/.test(tableText), { tables, tableText: tableText.slice(0, 400) });
   step(`(${tag}) 4d el texto del límite de F4.8 está en los resultados`, LIMIT.test(tableText) && (await page.getByTestId('structural-limit').count()) === 1);
   await page.getByTestId('reinforcement-forces').scrollIntoViewIfNeeded();
   await shot(page, `tablestaca-${scheme}-2-tabla`);
@@ -96,14 +97,14 @@ for (const scheme of ['light', 'dark']) {
   const size = statSync(pdf).size;
   step(`(${tag}) 4e PDF con cabecera %PDF y tamaño razonable`, head.startsWith('%PDF') && size > 20000, { head, size });
   const text = spawnSync('pdftotext', ['-layout', pdf, '-'], { encoding: 'utf8' }).stdout.replace(/\s+/g, ' ');
-  step(`(${tag}) 4f el PDF trae «Versión del formato 0.4», la sección Refuerzos, la tabla de fuerzas y el límite de F4.8`, /Versión del formato\s*0\.4/.test(text) && /Refuerzos/.test(text) && /Estación/.test(text) && /Disponible/.test(text) && /tablestaca-1/.test(text) && /a1/.test(text) && LIMIT.test(text), { len: text.length });
+  step(`(${tag}) 4f el PDF trae «Versión del formato 0.4», la sección Refuerzos, la tabla de fuerzas y el límite de F4.8`, /Versión del formato\s*0\.4/.test(text) && /Refuerzos/.test(text) && /Estación/.test(text) && /Disponible/.test(text) && /s1/.test(text) && /a1/.test(text) && LIMIT.test(text), { len: text.length });
   spawnSync('pdftoppm', ['-r', '70', '-png', pdf, path.join(T, 'r2i2-shots', `tablestaca-${scheme}-pdf`)]);
   const csvFile = path.join(T, `r2i2-tablestaca-${scheme}-fuerzas.csv`);
   await page.getByRole('button', { name: 'Exportar', exact: false }).first().click();
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Exportar fuerzas de refuerzos (CSV)' }).click()]);
   await dl.saveAs(csvFile);
   const csv = readFileSync(csvFile, 'utf8');
-  step(`(${tag}) 4g CSV de fuerzas: encabezado y 10 filas (2 cruces × 5 métodos)`, csv.trim().split('\n').length === 11 && /tablestaca-1/.test(csv) && /a1/.test(csv), { lines: csv.trim().split('\n').length, head: csv.split('\n')[0] });
+  step(`(${tag}) 4g CSV de fuerzas: encabezado y 10 filas (2 cruces × 5 métodos)`, csv.trim().split('\n').length === 11 && /s1/.test(csv) && /a1/.test(csv), { lines: csv.trim().split('\n').length, head: csv.split('\n')[0] });
   step(`(${tag}) sin errores del motor ni de consola`, (await page.evaluate(() => window.__errors.length)) === 0);
   await browser.close();
 }
