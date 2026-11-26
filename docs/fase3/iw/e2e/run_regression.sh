@@ -9,6 +9,11 @@ logs="${1:?carpeta de registros}"
 mkdir -p "$logs"
 cd "$repo"
 export OGS_URL=http://127.0.0.1:5186/ OGS_REPO="$repo" OGS_BIN="$repo/target/release/ogs" OGS_FX="$TMPDIR/u6g-fx"
+# Los dos servidores los lanza quien corre esto (no hay que usar `pnpm exec` en los dos: chocan). 5186: `vite preview` de apps/web/dist;
+# 5187: `bash docs/fase3/w1f/e2e/build_hook.sh` y luego `vite preview --outDir $TMPDIR/f3iw-hook-dist --port 5187` (ambos con node_modules/.bin/vite).
+for port in 5186 5187; do
+  curl -fsS -o /dev/null "http://127.0.0.1:$port/" || { echo "FALTA el servidor en el puerto $port (ver el comentario de arriba)" >&2; exit 2; }
+done
 env -u PYTHONPATH -u PYTHONHOME python3 docs/fase2/ux/u6g-e2e/make_fixtures.py "$OGS_FX" > /dev/null
 {
 for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs; do
