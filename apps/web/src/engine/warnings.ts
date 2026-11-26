@@ -33,6 +33,20 @@ export function warningContext(r: Pick<MethodReport, 'method' | 'surface'> & { t
   return ctx;
 }
 
+/**
+ * Aviso `ito_matsui_spacing_range` (E15i-8): la fórmula de Ito-Matsui pierde validez con S/D < 2 o S/D > 8. Con `ratio` el texto cita el
+ * valor («con S/D = 1,5»); sin él, el del catálogo de avisos del motor.
+ */
+export function itoMatsuiRangeText(ratio?: number | null): string {
+  const shown = typeof ratio === 'number' && Number.isFinite(ratio) ? ` = ${String(Math.round(ratio * 100) / 100).replace('.', ',')}` : '';
+  return `Pilote Ito-Matsui con S/D${shown} fuera de 2 a 8: la fórmula pierde validez (sobrestima la fuerza con S/D pequeño y la subestima con S/D grande; Ukritchon y Keawsawasvong 2017). Revise el espaciamiento.`;
+}
+
+/** ¿Está S/D fuera de 2 a 8 (E15i-8)? Con una tolerancia de 1e-9 para que 6,4/0,8 no avise por el ruido de coma flotante. */
+export function itoMatsuiOutOfRange(ratio: number): boolean {
+  return Number.isFinite(ratio) && (ratio < 2 - 1e-9 || ratio > 8 + 1e-9);
+}
+
 /** «compare con Bishop simplificado» (círculos), «compare con Janbu» (polilíneas) o «compare con otro método». */
 export function compareSuggestion(ctx: WarningContext = {}): string {
   if (ctx.surface === 'polyline') {
@@ -93,6 +107,7 @@ export const ENGINE_WARNING_CODES = [
   'reinforcement_compression_ignored',
   'reinforcement_active_compression',
   'structural_checks_not_covered',
+  'ito_matsui_spacing_range',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -222,7 +237,12 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   structural_checks_not_covered: {
     severity: 'nota',
-    text: 'El modelo tiene pilotes o tablestacas. OpenGeoSlide calcula la estabilidad global con el elemento incluido; no calcula el empuje sobre el elemento, su empotramiento, el momento flector ni la deflexión.',
+    text: 'El modelo tiene pilotes o tablestacas. OpenGeoSlide calcula la estabilidad global con el elemento incluido. Solo calcula el empuje del suelo en un pilote con presión del suelo (Ito-Matsui); no calcula el empotramiento, el momento flector a lo largo del elemento ni la deflexión.',
+  },
+  // E15i-8: el texto del contrato, sin el valor de S/D (el código es estable y no lo lleva); la tarjeta del pilote muestra el valor.
+  ito_matsui_spacing_range: {
+    severity: 'aviso',
+    text: () => itoMatsuiRangeText(),
   },
   mock_engine: {
     severity: 'aviso',
@@ -246,6 +266,7 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   reinforcement_compression_ignored: '/reinforcements',
   reinforcement_active_compression: '/reinforcements',
   structural_checks_not_covered: '/reinforcements',
+  ito_matsui_spacing_range: '/reinforcements',
   max_iterations: '/analysis/max_iterations',
   m_alpha: '/analysis/search',
   pole: '/analysis/search',
