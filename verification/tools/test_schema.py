@@ -113,7 +113,12 @@ def test_every_case_validates_against_the_current_schema_and_the_index_counts_th
     for cid, model in models.items():
         assert _errors(model, {"0.5": SCHEMA_05, "0.4": SCHEMA_04}.get(model["version"], SCHEMA_03)) == [], cid
         assert model["version"] in ("0.1", "0.2", "0.3", "0.4", "0.5"), cid
-        assert (model["version"] == "0.4") == bool(model.get("reinforcements")), cid
+        # V013b-e (Ito-Matsui, promoted in cc66c2e) carry reinforcements and are v0.5 because of `lateral_pressure`.
+        ito = any("lateral_pressure" in r for r in model.get("reinforcements") or [])
+        crack = model["analysis"].get("tension_crack") is not None
+        assert (model["version"] == "0.4") == (bool(model.get("reinforcements")) and not ito and not crack), cid
+        if ito:
+            assert model["version"] == "0.5", cid
         if cid in V02_CASE_IDS:
             assert model["version"] == "0.2", cid
         # the schemas that came before keep accepting what they accepted
