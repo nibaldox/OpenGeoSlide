@@ -8,6 +8,94 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+Bloque de refuerzos (F3R): formato v0.4 con anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos.
+El contrato es `briefs/03_CONTRATOS_REFUERZOS.md` (enmiendas E14a a E14m); la evidencia, `docs/fase3/exploracion/X14.md`
+a `X17.md` y `docs/fase3/PLAN_REFUERZOS.md`. **Un modelo con `reinforcements` ausente o vacío da la misma salida, byte a
+byte, que la v0.2.0.**
+
+> **Límite declarado (E14h).** Con un `pile` o una `sheet_pile`, OpenGeoSlide calcula la estabilidad **global** con el
+> elemento incluido como una fuerza dada. **No** calcula el empuje sobre el elemento, el empotramiento, el momento
+> flector, la deflexión ni las comprobaciones internas o externas de un muro. Véase
+> [`docs/limitaciones.md`](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48).
+
+### Added
+- **Formato `.ogs.json` v0.4 (E14a).** El motor acepta 0.1, 0.2, 0.3 y 0.4. `reinforcements` no vacío exige
+  `"version": "0.4"`; con una versión menor el error es `InvalidModel: reinforcements requiere version "0.4"`. Tipos:
+  `anchor`, `nail`, `geosynthetic`, `pile` y `sheet_pile`. Una tablestaca anclada es una `sheet_pile` más un `anchor`.
+  Se posponen, con limitación documentada: Ito-Matsui, el campo de pretensado (es un `anchor` activo con la carga de
+  bloqueo como capacidad), la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los
+  clavos lanzados, los anclajes helicoidales, la presión de fluido equivalente y el soporte definido por el usuario.
+- **Esquema (E14b).** `reinforcements` va al nivel raíz, después de `loads`; cada variante rechaza campos desconocidos.
+  JSON Schema `schema/ogs-0.4.schema.json`, que acepta 0.1 a 0.4 y rechaza lo mismo que el motor, con la tabla de
+  acuerdo de `verification/tools/test_schema.py` extendida. Los errores de campo son `InvalidModel` con la ruta JSON
+  (por ejemplo `reinforcements[2].pullout.coverage`). `application` y `direction` son obligatorios.
+- **Capacidad `T(s)` (E14c, E14m-2).** `T(s) = max(0, min(Tmax, T1 + ∫₀ˢ r, T2 + ∫ₛᴸ r))/spacing`, con tres modelos de
+  `pullout`: `bond` (con `bonded_length` opcional y solo dentro del suelo), `interface` (`r = 2·(a + σ′v·tan δ)·Rc`, con
+  `σ′v` sin sobrecargas, integrada **exactamente** con cortes en el terreno y en los contactos) y `development` (rampa
+  lineal desde cada extremo, con `T1` y `T2` sumados a la rampa). Sin `pullout`, `T(s) = Tmax/spacing`.
+- **Cruces, nodos y dovela (E14d).** Cada cruce del refuerzo con la superficie ya ajustada (círculo o polilínea) recibe
+  su propia fuerza, con nodos `x_c ± 1e-6·ancho` como una carga lineal, para todos los candidatos de una búsqueda. Un
+  cruce fuera de la masa no aplica fuerza y da la nota `reinforcement_outside_mass`.
+- **Dirección, sentido y compresión (E14e, E14m-1).** Direcciones `axial`, `tangent` y `bisector` para los elementos de
+  tracción, y `angle`, `tangent` y `perpendicular` para pilotes y tablestacas, siempre opuestas al movimiento. Un
+  elemento **pasivo** con `along ≥ cos 88°` no aporta (Clouterre, 1991; FHWA GEC 7): estado `compression_ignored` y nota
+  `reinforcement_compression_ignored`. Un elemento **activo** se aplica siempre, con su fuerza completa.
+- **Fuerza activa y pasiva (E14f, E14g).** La activa es una carga externa conocida y no se divide por F (Duncan y
+  Wright, método A); la pasiva se moviliza y entra con 1/F en todos los términos (método B), en Bishop, Spencer,
+  Morgenstern-Price y Janbu. El sismo no actúa sobre las fuerzas de los refuerzos.
+- **Pilotes y tablestacas (E14h, E14m-3).** `force` constante en el cruce (`force/spacing` en `pile` y `force` por metro
+  en `sheet_pile`), sin regla de compresión. El motor emite siempre la nota `structural_checks_not_covered` con un
+  `pile` o una `sheet_pile`. El campo `location` **no existe** en v0.4: con fuerza constante no cambia ningún número.
+- **Informe (E14i, E14m-4).** `reinforcement_forces` por método convergido y sobre la superficie final: `id`, `crossing`,
+  `x`, `y`, `station`, `available`, `fx`, `fy` (en coordenadas del modelo), `application` y `status`, que toma uno de
+  cuatro valores: `applied`, `outside_mass`, `compression_ignored` o `no_capacity` (capacidad nula en el cruce, por
+  ejemplo el tramo libre de un tirante sin `end1_capacity`; no emite nota). Códigos nuevos, informativos, en la lista
+  E6 y en `apps/web/src/engine/warnings.ts`: `reinforcement_outside_mass`, `reinforcement_compression_ignored` y
+  `structural_checks_not_covered`.
+- **Métodos y superficies (E14j, E14m-6).** Los refuerzos funcionan con los cinco métodos y con círculo o polilínea
+  (Bishop sigue limitado a círculos). Las fuerzas de los refuerzos entran en `t_i` y `H_i` de la escala motriz de E13l-3.
+- **Web (E14k).** Panel «Refuerzos» (Anclaje, Clavo, Geosintético, Pilote y Tablestaca) con la validación local de F4.2;
+  lienzo con un segmento y dos tiradores por refuerzo (la tablestaca con la x fija), herramienta «Dibujar refuerzo» de
+  dos clics (atajo E), arrastre del centro en un solo paso de historial, puntero, teclado y táctil; flechas de fuerza en
+  el resultado; tabla de fuerzas y texto de límite en Casos, informe PDF y CSV; conversión de unidades de los refuerzos;
+  lectura y guardado sin pérdida y versión mínima 0.4 solo con refuerzos; Ayuda con el glosario de refuerzos. El motor
+  simulado rechaza los modelos 0.4.
+- **Verificación (E14l, E14m-5).** Los casos de los lotes R1 a R4 del corpus de cSlope (anclajes, clavos,
+  geosintéticos y pilotes de fuerza constante) importados a `verification/pending/F3R/`; la batería diferencial con cada
+  tipo; las siete filas de F4.13, 16 filas de dirección inclinada y nueve de capacidad de X17 contra el oráculo, con
+  tolerancia de 0,1 % (0,25 % en las dos filas de `interface` donde gobierna la integral, por la discretización del
+  oráculo); el equilibrio global independiente con las fuerzas de los refuerzos; el espejo x → −x; y las identidades de la
+  tablestaca (capacidad cero, elemento que la superficie no cruza y FS monótono con la fuerza).
+- **Python (`ogs-py`).** Docstring y README con el formato v0.4, y `tests/test_v04.py` con las 32 filas de X17 contra el
+  oráculo, los cinco tipos, los tres modelos de `pullout`, los estados de `reinforcement_forces`, las tres notas
+  nuevas, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON.
+- **CLI.** El texto de uso (`USAGE`) de `ogs` indica el formato v0.1 a v0.4, `"version": "0.4"` con refuerzos,
+  `reinforcement_forces` y el límite de pilotes y tablestacas.
+- **Documentación.** `docs/formato-ogs-json.md` con el formato v0.4 completo: los cinco tipos, los tres modelos de
+  `pullout`, activo y pasivo, la dirección y la regla de compresión, una tablestaca anclada como ejemplo completo, los
+  estados de `reinforcement_forces` y los rechazos; `docs/tools/validar_ejemplos.py` valida contra
+  `schema/ogs-0.4.schema.json` y comprueba `fos=`, `fuerzas=` y `avisos=` en ejemplos y fragmentos.
+
+### Changed
+- `docs/limitaciones.md`: la sección «Lo que queda para el bloque de refuerzos» pasa a «Refuerzos (formato v0.4): qué
+  hace y qué no», con el límite estructural de pilotes y tablestacas, lo que se pospone, el tramo libre sin placa
+  (`no_capacity`), el activo comprimido y la diferencia con el oráculo instalado (E14m-1), la discretización del oráculo
+  en `interface`, VP 58 pendiente, y las discontinuidades de la búsqueda con refuerzos (el círculo crítico puede esquivar
+  el refuerzo).
+- Los modelos sin refuerzos no cambian: la identidad byte a byte con la v0.2.0 es un gate de cada ola.
+
+### Known issues
+- **Activo comprimido y el oráculo instalado (E14m-1).** El binario instalado de cSlope (`a80f9a0`) descarta los
+  elementos activos comprimidos (`along > 0`); OpenGeoSlide los aplica con su fuerza completa, como el código vigente de
+  cSlope. Las filas de aceptación con el oráculo solo usan cruces con `along < 0`.
+- **`interface` y el oráculo.** cSlope integra el arrancamiento en 200 pasos (hasta −0,47 % en `T`); OpenGeoSlide integra
+  exacto.
+- **VP 58 de Slide2** (tieback activo) pendiente: su geometría solo está en una figura sin coordenadas. **VP 47**
+  (clavos pasivos) con la geometría leída de una figura (+1,3 % en el oráculo frente al 0,890 publicado).
+- **La búsqueda con refuerzos tiene discontinuidades** por los cruces y puede esquivar el refuerzo: con
+  `reinforcement_outside_mass` en el resultado de una búsqueda, el FS mínimo es el de una superficie que no lo cruza.
+- **Ito-Matsui** (V013b a V013e) queda en `pending/`.
+
 ## [0.2.0] - 2026-11-26
 
 Fase 3a: formato v0.3, material no drenado, superficies polilínea fijas, Morgenstern-Price y Janbu. El contrato es
