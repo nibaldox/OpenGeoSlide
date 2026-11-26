@@ -1,4 +1,5 @@
 // W1e: superficie polilínea, Bishop deshabilitado, función entre dovelas de M-P, validación local, apertura de 0.3 y vista Casos (Chrome, puerto 5186).
+// I-W: la lista de errores de las tablas es ahora un <div role="alert"> con un <ul> dentro (un <ul role="alert"> daba axe «listitem» serious).
 // NO pulsa «Comprobar» con polilíneas ni con M-P/Janbu (el motor de esta rama aún no los calcula): comprueba lo que el editor guarda y valida.
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -54,7 +55,7 @@ step('3b un Deshacer devuelve el valor anterior', (await pt(2, 'y').inputValue()
 const xOld = await pt(3, 'x').inputValue();
 await pt(3, 'x').fill(await pt(2, 'x').inputValue());
 const inv = await pt(3, 'x').getAttribute('aria-invalid');
-const errTxt = await page.locator('[aria-label="Puntos de la polilínea de falla"]').locator('xpath=following-sibling::ul[@role="alert"]').textContent();
+const errTxt = await page.locator('[aria-label="Puntos de la polilínea de falla"]').locator('xpath=following-sibling::div[@role="alert"]').textContent();
 await pt(3, 'x').press('Enter');
 surf = await points();
 step('4 x no creciente: error de la tabla visible y la tabla no se guarda', inv === 'true' && /ordene los puntos de izquierda a derecha/.test(errTxt) && surf.points[2][0] === Number(xOld.replace(',', '.')), { errTxt });
@@ -109,7 +110,7 @@ step('8d «Definida por puntos» muestra la tabla de partida de 3 puntos', (awai
 await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).fill('1,2');
 // La regla que falla es «ξ creciente» en el punto 3 (1 no es mayor que 1,2): ese es el campo que se marca.
 const dInv = await page.getByLabel('Función entre dovelas, punto 3: ξ', { exact: true }).getAttribute('aria-invalid');
-const dErr = await page.locator('[aria-label="Puntos de la función entre dovelas"]').locator('xpath=following-sibling::ul[@role="alert"]').textContent();
+const dErr = await page.locator('[aria-label="Puntos de la función entre dovelas"]').locator('xpath=following-sibling::div[@role="alert"]').textContent();
 await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).press('Enter');
 saved = JSON.parse((await saveText(page, 'w1e-p3.ogs.json')).text);
 step('8e ξ fuera de orden: error visible y no se guarda', dInv === 'true' && /ξ debe ser estrictamente creciente|terminar en ξ = 1/.test(dErr) && saved.analysis.interslice.points[1][0] === 0.5, { dErr });
@@ -120,7 +121,7 @@ await page.getByRole('button', { name: 'Agregar un punto después del punto 1 de
 saved = JSON.parse((await saveText(page, 'w1e-p4.ogs.json')).text);
 step('8f editar f y agregar un punto: la tabla guardada tiene 4 puntos con ξ creciente', saved.analysis.interslice.points.length === 4 && saved.analysis.interslice.points[1][0] === 0.25 && saved.analysis.interslice.points[2][1] === 2, { points: saved.analysis.interslice.points });
 await page.getByLabel('Función entre dovelas, punto 2: f', { exact: true }).fill('-1');
-const negMsg = await page.locator('[aria-label="Puntos de la función entre dovelas"]').locator('xpath=following-sibling::ul[@role="alert"]').textContent();
+const negMsg = await page.locator('[aria-label="Puntos de la función entre dovelas"]').locator('xpath=following-sibling::div[@role="alert"]').textContent();
 step('8g f negativa: «f debe ser igual o mayor que 0»', /f debe ser igual o mayor que 0/.test(negMsg), { negMsg });
 await page.getByLabel('Función entre dovelas, punto 2: f', { exact: true }).press('Escape');
 await shot(page, '04-mp-puntos');

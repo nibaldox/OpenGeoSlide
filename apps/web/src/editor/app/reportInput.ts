@@ -3,6 +3,7 @@
 import { polylineSurfaceRows, resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
+import { isPolylineReport } from '../../engine/surface';
 import { describeWarnings } from '../../engine/warnings';
 import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from '../../engine/types';
 import type { ModelDoc } from '../types';
@@ -58,7 +59,7 @@ export function surfaceCoordsCsv(results: readonly MethodReport[], units?: strin
   for (const r of results) {
     if (r.status !== 'converged') continue;
     // Polilínea (F3.7): los puntos ajustados del informe; círculo: los de la base de las dovelas.
-    if ('points' in r.surface) rows.push(...polylineSurfaceRows(r));
+    if (isPolylineReport(r.surface)) rows.push(...polylineSurfaceRows(r));
     else baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
   }
   return surfaceToCsv(rows, { units });

@@ -2,7 +2,7 @@
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { circleSpec } from '../../engine/surface';
+import { circleSpec, isPolylineReport } from '../../engine/surface';
 import type { Point, ReportSurface, Slice } from '../../engine/types';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
@@ -107,7 +107,7 @@ export interface CanvasResult {
 /** Puntos (en pantalla) de la superficie del informe: la polilínea ajustada, o el arco inferior entre la primera y la última dovela. */
 function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
   if (result.slices.length === 0) return '';
-  if ('points' in result.surface) return pointsAttr(vp, result.surface.points);
+  if (isPolylineReport(result.surface)) return pointsAttr(vp, result.surface.points);
   const xmin = Math.min(...result.slices.map((s) => s.x_left));
   const xmax = Math.max(...result.slices.map((s) => s.x_right));
   const { xc, yc, r } = result.surface;

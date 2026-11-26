@@ -135,10 +135,13 @@ export function ErrorList({ errors, id }: { errors: FieldErrors; id?: string }) 
   const messages = Array.from(new Set(Object.values(errors)));
   if (messages.length === 0) return null;
   return (
-    <ul className="ep-error-list" id={id} role="alert">
-      {messages.map((m) => (
-        <li key={m}>{m}</li>
-      ))}
-    </ul>
+    // El rol `alert` va en el contenedor: en un <ul role="alert"> los <li> quedan fuera de una lista (axe «listitem», serious).
+    <div className="ep-error-list" id={id} role="alert">
+      <ul>
+        {messages.map((m) => (
+          <li key={m}>{m}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

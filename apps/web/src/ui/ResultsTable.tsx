@@ -86,6 +86,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
         <tbody>
           {report.results.map((r, i) => {
             const detail = methodDetails(r);
+            const circle = reportCircle(r.surface);
             return (
             <tr key={r.method} className={r.status !== 'converged' ? 'row-warn' : undefined}>
               <td>
@@ -112,10 +113,10 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
               {allPolyline && <td>{polylines[i]}</td>}
               {circleColumns && (
                 <td className={polylines[i] ? undefined : 'num'}>
-                  {polylines[i] ?? `${formatNumber(reportCircle(r.surface)?.xc ?? null, 2)}; ${formatNumber(reportCircle(r.surface)?.yc ?? null, 2)}`}
+                  {polylines[i] ?? `${formatNumber(circle?.xc ?? null, 2)}; ${formatNumber(circle?.yc ?? null, 2)}`}
                 </td>
               )}
-              {circleColumns && <td className="num">{formatNumber(reportCircle(r.surface)?.r ?? null, 2)}</td>}
+              {circleColumns && <td className="num">{formatNumber(circle?.r ?? null, 2)}</td>}
               <td>
                 <button
                   type="button"

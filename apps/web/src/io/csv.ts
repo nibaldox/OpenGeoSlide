@@ -5,7 +5,7 @@
 // Exportación: los textos que empiezan por `= + - @` (o tabulación / retorno) llevan un `'` delante (R10).
 
 import { parse, unparse } from 'papaparse';
-import { reportCircle } from '../engine/surface';
+import { isPolylineReport, reportCircle } from '../engine/surface';
 import { methodDetails } from '../report/methodInfo';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
@@ -268,27 +268,30 @@ export interface ResultsCsvOptions extends ToCsvOptions {
 export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
   // Columnas que solo existen cuando algún método las necesita: así el CSV de un modelo sin polilínea ni M-P ni Janbu corregido no cambia.
-  const withSurface = results.some((r) => 'points' in r.surface);
+  const withSurface = results.some((r) => isPolylineReport(r.surface));
   const withFunction = results.some((r) => r.interslice !== undefined);
   const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
-  const rows: CsvCell[][] = results.map((r) => [
-    r.method,
-    r.status,
-    r.status === 'converged' ? r.fos : null,
-    r.iterations,
-    r.status === 'converged' ? r.lambda : null,
-    // Una polilínea no tiene centro ni radio: celdas vacías (sus puntos van en el CSV de la superficie).
-    reportCircle(r.surface)?.xc ?? null,
-    reportCircle(r.surface)?.yc ?? null,
-    reportCircle(r.surface)?.r ?? null,
-    r.search?.evaluated ?? null,
-    r.search?.valid ?? null,
-    r.warnings.join(WARNING_SEPARATOR),
-    u.label,
-    ...(withSurface ? ['points' in r.surface ? 'polilinea' : 'circulo'] : []),
-    ...(withFunction ? [r.interslice?.function ?? null] : []),
-    ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
-  ]);
+  const rows: CsvCell[][] = results.map((r) => {
+    const circle = reportCircle(r.surface);
+    return [
+      r.method,
+      r.status,
+      r.status === 'converged' ? r.fos : null,
+      r.iterations,
+      r.status === 'converged' ? r.lambda : null,
+      // Una polilínea no tiene centro ni radio: celdas vacías (sus puntos van en el CSV de la superficie).
+      circle?.xc ?? null,
+      circle?.yc ?? null,
+      circle?.r ?? null,
+      r.search?.evaluated ?? null,
+      r.search?.valid ?? null,
+      r.warnings.join(WARNING_SEPARATOR),
+      u.label,
+      ...(withSurface ? [isPolylineReport(r.surface) ? 'polilinea' : 'circulo'] : []),
+      ...(withFunction ? [r.interslice?.function ?? null] : []),
+      ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
+    ];
+  });
   const header = [
     'metodo',
     'estado',
@@ -314,7 +317,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
  * sin redondear). Vacío con un círculo, cuya superficie se exporta con los puntos de la base de las dovelas.
  */
 export function polylineSurfaceRows(r: MethodReport): CsvCell[][] {
-  if (!('points' in r.surface)) return [];
+  if (!isPolylineReport(r.surface)) return [];
   return r.surface.points.map(([x, y], i) => [r.method, r.status, i + 1, x, y]);
 }
 
