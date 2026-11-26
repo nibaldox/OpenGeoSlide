@@ -1000,14 +1000,62 @@ pub(crate) fn interslice_face_strength(
         (toe.x_right, toe.y_base_right, -1.0)
     };
     let x_in = x + inward * pm.tol().min(0.5 * toe.width);
+    let Some(near) = face_side(pm, x, x_in, y_base, None) else {
+        return FaceStrength::NONE;
+    };
+    // E13l-6: on a vertical contact of two materials the face takes the weaker side. The crest side is read with the
+    // ground of the toe side, so that only a different material (not a step of the ground) can make it weaker. The
+    // sides are compared by `c·h + max(∫σv dy − P_w, 0)·tan φ`, the capacity under the overburden of the face
+    // (`K = 1`), because `E′` is not known here. A face with the same materials on both sides keeps the toe side.
+    let x_out = x - inward * pm.tol().min(0.5 * crest.width);
+    if let Some(far) = face_side(pm, x, x_out, y_base, Some(near.top))
+        && far.materials != near.materials
+        && (far.soil - near.soil).abs() <= pm.tol()
+        && far.capacity() < near.capacity()
+    {
+        return far.strength;
+    }
+    near.strength
+}
+
+/// One side of a face (see [`interslice_face_strength`]): its strength and what decides the weaker side.
+struct FaceSide {
+    strength: FaceStrength,
+    /// Materials of the soil intervals of the face, from the top down.
+    materials: Vec<usize>,
+    /// Soil height of the face.
+    soil: f64,
+    /// Ground at the face.
+    top: f64,
+    /// `∫σv dy` over the face: the horizontal force of the overburden with `K = 1`.
+    overburden: f64,
+}
+
+impl FaceSide {
+    fn capacity(&self) -> f64 {
+        self.strength.cohesion_force
+            + (self.overburden - self.strength.water_force).max(0.0) * self.strength.tan_phi
+    }
+}
+
+/// The face at `x`, read on the column of the model at `x_in` (just beside `x`), from `y_base` up to the ground of the
+/// column, or up to `top` when it is given. `None` for a face of zero height (a base on the ground, no column).
+fn face_side(
+    pm: &PreparedModel,
+    x: f64,
+    x_in: f64,
+    y_base: f64,
+    top: Option<f64>,
+) -> Option<FaceSide> {
     let mut column = Vec::with_capacity(8);
     let mut scratch = Vec::with_capacity(8);
     pm.column(x_in, &mut column, &mut scratch);
-    let Some(top) = column.iter().map(|c| c.1).max_by(f64::total_cmp) else {
-        return FaceStrength::NONE;
+    let top = match top {
+        Some(top) => top,
+        None => column.iter().map(|c| c.1).max_by(f64::total_cmp)?,
     };
     if top - y_base <= pm.tol() {
-        return FaceStrength::NONE;
+        return None;
     }
     // Soil intervals clipped to [base, ground], from the top down, so the overburden accumulates. A sliver thinner than
     // the model tolerance is float noise of a base on a layer interface, not soil (V021: it would make a sand face
@@ -1022,6 +1070,7 @@ pub(crate) fn interslice_face_strength(
     let (mut cohesion_force, mut tan_sum, mut soil, mut water) =
         (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64);
     let mut sigma_v = 0.0_f64;
+    let mut overburden = 0.0_f64;
     for &(lo, hi, mat) in &intervals {
         let m = &pm.materials[mat];
         let length = hi - lo;
@@ -1060,14 +1109,21 @@ pub(crate) fn interslice_face_strength(
                     water += 0.5 * pm.gamma_w * ((z - p_lo).powi(2) - (z - wet_hi).powi(2));
                 }
             }
+            overburden += sigma_v * len + 0.5 * gamma * len * len;
             sigma_v += gamma * len;
         }
     }
-    FaceStrength {
-        cohesion_force,
-        tan_phi: if soil > 0.0 { tan_sum / soil } else { 0.0 },
-        water_force: water,
-    }
+    Some(FaceSide {
+        strength: FaceStrength {
+            cohesion_force,
+            tan_phi: if soil > 0.0 { tan_sum / soil } else { 0.0 },
+            water_force: water,
+        },
+        materials: intervals.iter().map(|i| i.2).collect(),
+        soil,
+        top,
+        overburden,
+    })
 }
 
 #[cfg(test)]
@@ -1468,5 +1524,47 @@ mod tests {
             interslice_face_strength(&model(Value::Null), &flat, &slice(5.0, 7.0)),
             FaceStrength::NONE
         );
+    }
+
+    /// E13l-6 (R10A-06-3): a vertical face on a vertical contact of two materials takes the weaker side, whichever of
+    /// the two the toe slice is on. `a` (c = 40, φ = 30°) on the left of `x = 5`, `b` (c = 5, φ = 0) on the right;
+    /// ground at 10, base at 2, so `h = 8`. The face is weak: `c·h = 40`, `tan φ = 0`, never `a`'s `320`.
+    #[test]
+    fn e13l6_a_face_on_a_vertical_contact_takes_the_weaker_side() {
+        let model: PreparedModel = {
+            let doc = json!({
+                "format": "opengeoslide", "version": "0.1",
+                "materials": [
+                    {"id": "a", "name": "A", "model": "mohr_coulomb", "unit_weight": 18.0,
+                     "cohesion": 40.0, "friction_angle": 30.0},
+                    {"id": "b", "name": "B", "model": "mohr_coulomb", "unit_weight": 18.0,
+                     "cohesion": 5.0, "friction_angle": 0.0}
+                ],
+                "regions": [
+                    {"material": "a", "polygon": [[0, 0], [0, 10], [5, 10], [5, 0]]},
+                    {"material": "b", "polygon": [[5, 0], [5, 10], [10, 10], [10, 0]]}
+                ],
+                "slope": {"direction": "right_to_left"},
+                "analysis": {}
+            });
+            let model: Model = serde_json::from_value(doc).expect("test model");
+            PreparedModel::new(&model).expect("valid model")
+        };
+        let slice = |x_left: f64, x_right: f64| Slice {
+            x_left,
+            x_right,
+            y_base_left: 2.0,
+            y_base_right: 2.0,
+            width: x_right - x_left,
+            base_length: x_right - x_left,
+            ..ZERO_SLICE
+        };
+        // The toe slice is on the strong side, then on the weak side.
+        let strong_toe = interslice_face_strength(&model, &slice(3.0, 5.0), &slice(5.0, 7.0));
+        let weak_toe = interslice_face_strength(&model, &slice(5.0, 7.0), &slice(3.0, 5.0));
+        for face in [strong_toe, weak_toe] {
+            assert!((face.cohesion_force - 40.0).abs() < 1e-9, "{face:?}");
+            assert_eq!(face.tan_phi, 0.0, "{face:?}");
+        }
     }
 }
