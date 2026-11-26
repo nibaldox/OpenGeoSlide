@@ -929,6 +929,20 @@ function modelProfile(doc: ModelDoc): {
   return { pieces, side, low, base, bends };
 }
 
+/** Margen sobre la profundidad de una grieta fija: la polilínea propuesta baja a `1,05·d` bajo el terreno, para no quedar justo en el límite. */
+const CRACK_MARGIN = 1.05;
+
+/**
+ * Profundidad que la polilínea propuesta debe alcanzar bajo el terreno para que la grieta de tracción tenga masa (E15d G1, E15j-2): `terreno(x) −
+ * base(x) ≥ d` en algún punto, con un margen de 5 %. Solo con una grieta de profundidad **fija**; con una grieta automática (`d(x)` depende del
+ * material y de la sobrecarga en cada x) no hay un valor que fijar aquí y la propuesta sigue al círculo de partida, que es el fijo del documento o el
+ * `defaultCircle`; el crítico de la búsqueda solo lo conoce el panel tras calcular. `null` sin grieta, con grieta automática o de profundidad nula.
+ */
+export function crackReach(doc: ModelDoc): number | null {
+  const d = doc.analysis.tension_crack?.depth;
+  return typeof d === 'number' && Number.isFinite(d) && d > 0 ? d * CRACK_MARGIN : null;
+}
+
 /**
  * Polilínea inicial al pasar de círculo a polilínea: admisible **por construcción contra el modelo completo** (F3.3, R10B-02), es decir, contra el
  * terreno y también contra la base (`checkPolylineAgainstModel`, la misma regla que el motor). Parte del arco inferior del círculo (el fijo
@@ -938,6 +952,11 @@ function modelProfile(doc: ModelDoc): {
  * profundidad en el mismo factor en todos sus puntos (queda a lo más a 9/10 del espesor local), de modo que la forma se conserva. Se densifica
  * (9, 17, 33, 65 puntos) y se prueban profundidades menores hasta cumplir la regla. Sin cruces del arco con el terreno, o si nada lo cumple, es el
  * respaldo (`fallbackPolyline`): una V que cruza la corona y el pie o, en su defecto, la polilínea paralela al terreno a media altura.
+ *
+ * **Grieta de tracción de profundidad fija** (`crackReach`): la polilínea tiene que bajar, en algún punto, `1,05·d` bajo el terreno; si no, el motor da
+ * `NoValidSurface: tension_crack_not_reached` (E15j-2). Si el arco queda menos profundo, se profundizan sus puntos interiores en el factor necesario
+ * (nunca más de 9/10 del espesor local, para seguir sobre la base) y, si el espesor del modelo no deja llegar a `d`, la propuesta es la misma de
+ * antes: ese modelo no puede tener una polilínea que alcance la grieta sin salirse de él.
  */
 export function initialPolyline(doc: ModelDoc): Point[] {
   const bounds = modelBounds(doc);
@@ -953,7 +972,9 @@ export function initialPolyline(doc: ModelDoc): Point[] {
     const t = terrainY(doc.regions, x, tol);
     return Number.isFinite(t) && lower(x) < t - margin;
   };
-  const admissible = (pts: readonly Point[]): boolean => pts.length >= 2 && checkPolylineAgainstModel(doc.regions, pts).ok;
+  const reach = crackReach(doc);
+  const reaches = (pts: readonly Point[]): boolean => reach === null || pts.some(([x, y]) => terrainY(doc.regions, x, tol) - y >= reach);
+  const admissible = (pts: readonly Point[]): boolean => pts.length >= 2 && checkPolylineAgainstModel(doc.regions, pts).ok && reaches(pts);
   const { side: groundSide, low: groundLow, base: baseAt, bends } = modelProfile(doc);
   const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
 
@@ -993,7 +1014,7 @@ export function initialPolyline(doc: ModelDoc): Point[] {
         const raw = [...Array.from({ length: n }, (_, i) => xa + ((xb - xa) * i) / (n - 1)).slice(1, -1), ...inner].map(round3);
         return raw.sort((p, q) => p - q).filter((x, i, arr) => x > xa + 1e-3 && x < xb - 1e-3 && (i === 0 || x - (arr[i - 1] as number) >= 1e-3));
       };
-      const build = (n: number, shrink: number, depth: number): Point[] => {
+      const build = (n: number, shrink: number, depth: number, deepen: number): Point[] => {
         const xs = nodesFor(n);
         const dep = (x: number): number => Math.max(0, groundLow(x) - lower(x));
         const thick = (x: number): number => groundLow(x) - baseAt(x);
@@ -1004,15 +1025,20 @@ export function initialPolyline(doc: ModelDoc): Point[] {
         const mids = xs.map((x): Point => {
           const g = groundLow(x);
           const cap = g - Math.min(depth, 0.25 * Math.max(0, thick(x)));
-          return [x, floor3(Math.min(g - s * dep(x), cap))];
+          // `deepen` > 1 solo con una grieta fija que el arco no alcanza: profundiza el arco sin pasar de 9/10 del espesor local.
+          const drop = deepen > 1 && thick(x) > 0 ? Math.min(deepen * s * dep(x), 0.9 * thick(x)) : s * dep(x);
+          return [x, floor3(Math.min(g - drop, cap))];
         });
         return [[xa, groundSide(xa, 'right')], ...mids, [xb, groundSide(xb, 'left')]];
       };
-      for (const shrink of [1, 0.7, 0.5, 0.3, 0.15]) {
-        for (const depth of [Math.max(margin, 1e-3), 1e-3 * height, 1e-2 * height]) {
-          for (const n of [5, 9, 17, 33, 65]) {
-            const pts = build(n, shrink, depth);
-            if (admissible(pts)) return pts;
+      // Sin grieta fija solo `deepen = 1` (la propuesta de siempre); con ella, cada profundización pasa por las mismas pruebas.
+      for (const deepen of reach === null ? [1] : [1, 1.25, 1.5, 2, 3, 5, 10, 100]) {
+        for (const shrink of [1, 0.7, 0.5, 0.3, 0.15]) {
+          for (const depth of [Math.max(margin, 1e-3), 1e-3 * height, 1e-2 * height]) {
+            for (const n of [5, 9, 17, 33, 65]) {
+              const pts = build(n, shrink, depth, deepen);
+              if (admissible(pts)) return pts;
+            }
           }
         }
       }
@@ -1041,7 +1067,9 @@ export function fallbackPolyline(doc: ModelDoc): Point[] {
   if (pieces.length === 0 || !(w > 0)) return line;
   const tol = extentTol(range);
   const floor3 = (v: number): number => Math.floor(v * 1000) / 1000;
-  const ok = (pts: readonly Point[]): boolean => checkPolylineAgainstModel(doc.regions, pts).ok;
+  const reach = crackReach(doc);
+  const ok = (pts: readonly Point[]): boolean =>
+    checkPolylineAgainstModel(doc.regions, pts).ok && (reach === null || pts.some(([x, y]) => terrainY(doc.regions, x, tol) - y >= reach));
   // Corona y pie: la x de la cota máxima y de la mínima del terreno (el centro de sus tramos llanos).
   const nodes = Array.from(new Set(pieces.flatMap((g) => [g.x0, g.x1]))).sort((p, q) => p - q);
   const top = Math.max(...nodes.map((x) => terrainY(doc.regions, x, tol)));
@@ -1062,7 +1090,7 @@ export function fallbackPolyline(doc: ModelDoc): Point[] {
       const x2 = round3(Math.min(range[1], Math.max(xh, xl) + pad * w));
       const xm = round3(0.5 * (x0 + x2));
       if (!(x0 < xm && xm < x2)) continue;
-      for (const f of [0.5, 0.3, 0.7, 0.15]) {
+      for (const f of reach === null ? [0.5, 0.3, 0.7, 0.15] : [0.5, 0.3, 0.7, 0.15, 0.8, 0.9]) {
         const v: Point[] = [[x0, side(x0, 'right')], [xm, mid(xm, f)], [x2, side(x2, 'left')]];
         if (ok(v)) return v;
       }
@@ -1074,8 +1102,11 @@ export function fallbackPolyline(doc: ModelDoc): Point[] {
     // Además de los vértices de las regiones, 5 puntos equiespaciados: con el terreno llano no hay otro punto interior y la recta quedaría sobre él.
     const inner = [...bends(xa, xb), ...Array.from({ length: 5 }, (_, i) => xa + ((xb - xa) * (i + 1)) / 6)].map(round3).filter((x) => x > xa + 1e-3 && x < xb - 1e-3);
     const xs = [xa, ...inner.sort((p, q) => p - q), xb].filter((x, i, arr) => i === 0 || x - (arr[i - 1] as number) >= 1e-3);
-    const pts = xs.map((x, i): Point => (i === 0 ? [x, side(x, 'right')] : i === xs.length - 1 ? [x, side(x, 'left')] : [x, mid(x, 0.5)]));
-    if (ok(pts)) return pts;
+    // Con una grieta fija, más profundidad bajo el terreno si la de media altura no la alcanza (`crackReach`).
+    for (const f of reach === null ? [0.5] : [0.5, 0.7, 0.85]) {
+      const pts = xs.map((x, i): Point => (i === 0 ? [x, side(x, 'right')] : i === xs.length - 1 ? [x, side(x, 'left')] : [x, mid(x, f)]));
+      if (ok(pts)) return pts;
+    }
   }
   return line;
 }

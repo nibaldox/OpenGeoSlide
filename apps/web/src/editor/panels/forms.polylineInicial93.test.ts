@@ -26,9 +26,15 @@ const IDS = readdirSync(casesDir)
 const NCASES = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(readFileSync(new URL('INDEX.md', casesDir), 'utf8'))?.[1]);
 
 const withDoc = (doc: ModelDoc, a: Record<string, unknown>): ModelDoc => ({ ...doc, analysis: { ...doc.analysis, ...a } }) as ModelDoc;
+// V024 y V088 (presas con las dos coronas a la misma cota, sin rangos de búsqueda) traen `slope.direction: 'auto'`. Con una superficie fija
+// simétrica, como la polilínea de la ruta B (círculo de partida centrado) o la V del respaldo, el motor no puede deducir el sentido y pide
+// «indique slope.direction» (`InvalidModel`, geometry.rs `resolve_sliding`, paso 4): no es un defecto de la propuesta, es lo que el importador
+// resuelve en V038b y V058 con DIRECTION_OVERRIDES. Aquí se hace lo mismo que haría el usuario: indicar el sentido (izquierda a derecha).
+const NEEDS_DIRECTION = new Set(['V024', 'V088']);
 const loadModel = (id: string): ModelDoc => {
   const parsed = JSON.parse(readFileSync(new URL(`${id}.json`, casesDir), 'utf8')) as VerificationCase;
-  return openOgsJson(JSON.stringify(parsed.model)).doc as ModelDoc;
+  const doc = openOgsJson(JSON.stringify(parsed.model)).doc as ModelDoc;
+  return NEEDS_DIRECTION.has(id) && (doc.slope?.direction ?? 'auto') === 'auto' ? { ...doc, slope: { ...doc.slope, direction: 'left_to_right' } } : doc;
 };
 
 /** Lo que hace el panel al pasar a «Polilínea»: los comandos de `surfaceShapeCommands` (con Bishop fuera). */
