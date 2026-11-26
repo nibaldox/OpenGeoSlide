@@ -1,12 +1,7 @@
 // E15i-1 y E15i-4: la conversión de unidades de un pilote con presión del suelo y capacidad, con el motor real (OGS_BIN): el FS no cambia
-// de SI a imperial y de vuelta (≤ 1e-9) y lo que gobierna es lo mismo. SKIP hasta la integración: el motor de la rama de W-ito todavía no
-// tiene Ito-Matsui (lo agrega M-ito en `ogs-core`); el sondeo de abajo lo activa solo cuando `ogs analyze` acepta `lateral_pressure`.
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+// de SI a imperial y de vuelta (≤ 1e-9) y lo que gobierna es lo mismo. Activo desde la integración de F3G (I-G): el motor
+// integrado ya acepta `lateral_pressure`; se salta solo sin OGS_BIN (como el resto de los tests con el motor real), no por un sondeo.
 import { describe, expect, it } from 'vitest';
-import { saveOgsJson } from '../../io/ogsJson';
 import type { ReinforcementForce } from '../../engine/types';
 import type { ModelDoc } from '../types';
 import { OGS_BIN, engineRun, haveEngine } from './engineRun.testutil';
@@ -51,25 +46,9 @@ const model = (capacity: { shear?: number; moment?: number } | undefined, locati
     ],
   }) as unknown as ModelDoc;
 
-/** ¿El motor de OGS_BIN conoce `lateral_pressure`? Si no, los tests de abajo se saltan (SKIP hasta la integración con M-ito). */
-function engineHasItoMatsui(): boolean {
-  if (!haveEngine) return false;
-  const dir = mkdtempSync(join(tmpdir(), 'ogs-ito-probe-'));
-  try {
-    const file = join(dir, 'm.ogs.json');
-    writeFileSync(file, saveOgsJson(model({ shear: 150 })));
-    const r = spawnSync(OGS_BIN as string, ['analyze', file], { encoding: 'utf8', maxBuffer: 1 << 28 });
-    return r.status === 0;
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-const haveIto = engineHasItoMatsui();
-
 type Forces = (ReinforcementForce & { soil_force?: number; governs?: string; arm?: number })[];
 
-describe.skipIf(!haveIto)(`conversión de unidades de Ito-Matsui con el motor real (${OGS_BIN})`, () => {
+describe.skipIf(!haveEngine)(`conversión de unidades de Ito-Matsui con el motor real (${OGS_BIN})`, () => {
   const run = (doc: ModelDoc) => {
     const r = engineRun(doc);
     expect(r.code, r.out).toBe(0);
@@ -117,9 +96,9 @@ describe.skipIf(!haveIto)(`conversión de unidades de Ito-Matsui con el motor re
   }
 });
 
-describe('el sondeo del motor', () => {
-  it('informa si Ito-Matsui está activo (skip hasta la integración si no)', () => {
-    // Siempre pasa: deja constancia en el informe de la suite de si los tests con el motor corrieron.
-    expect(typeof haveIto).toBe('boolean');
+describe.skipIf(!haveEngine)('el motor integrado acepta lateral_pressure', () => {
+  it('ogs analyze acepta un pilote de Ito-Matsui con capacidad (antes era un sondeo con skip)', () => {
+    const r = engineRun(model({ shear: 150 }));
+    expect(r.code, r.out).toBe(0);
   });
 });
