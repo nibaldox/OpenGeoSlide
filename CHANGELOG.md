@@ -9,9 +9,10 @@ API pueden cambiar entre versiones menores.
 ## [Unreleased]
 
 Bloque de refuerzos (F3R): formato v0.4 con anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos.
-El contrato es `briefs/03_CONTRATOS_REFUERZOS.md` (enmiendas E14a a E14m); la evidencia, `docs/fase3/exploracion/X14.md`
+El contrato es `briefs/03_CONTRATOS_REFUERZOS.md` (enmiendas E14a a E14o); la evidencia, `docs/fase3/exploracion/X14.md`
 a `X17.md` y `docs/fase3/PLAN_REFUERZOS.md`. **Un modelo con `reinforcements` ausente o vacío da la misma salida, byte a
-byte, que la v0.2.0.**
+byte, que la v0.2.0**, con una sola excepción: un círculo con la tangente vertical sobre el terreno que la v0.2.0
+rechazaba por redondeo (V065), y que ahora se analiza (E14o-11, véase «Fixed»).
 
 > **Límite declarado (E14h).** Con un `pile` o una `sheet_pile`, OpenGeoSlide calcula la estabilidad **global** con el
 > elemento incluido como una fuerza dada. **No** calcula el empuje sobre el elemento, el empotramiento, el momento
@@ -50,8 +51,8 @@ byte, que la v0.2.0.**
   `x`, `y`, `station`, `available`, `fx`, `fy` (en coordenadas del modelo), `application` y `status`, que toma uno de
   cuatro valores: `applied`, `outside_mass`, `compression_ignored` o `no_capacity` (capacidad nula en el cruce, por
   ejemplo el tramo libre de un tirante sin `end1_capacity`; no emite nota). Códigos nuevos, informativos, en la lista
-  E6 y en `apps/web/src/engine/warnings.ts`: `reinforcement_outside_mass`, `reinforcement_compression_ignored` y
-  `structural_checks_not_covered`.
+  E6 y en `apps/web/src/engine/warnings.ts`: `reinforcement_outside_mass`, `reinforcement_compression_ignored`,
+  `structural_checks_not_covered` y, desde E14o-8, `reinforcement_active_compression`.
 - **Métodos y superficies (E14j, E14m-6).** Los refuerzos funcionan con los cinco métodos y con círculo o polilínea
   (Bishop sigue limitado a círculos). Las fuerzas de los refuerzos entran en `t_i` y `H_i` de la escala motriz de E13l-3.
 - **Web (E14k).** Panel «Refuerzos» (Anclaje, Clavo, Geosintético, Pilote y Tablestaca) con la validación local de F4.2;
@@ -92,7 +93,73 @@ byte, que la v0.2.0.**
   quedan retenidos en `verification/pending/F3R/HOLD.json`: sus N′ < 0 son de dovelas normales y el modelo sin refuerzos
   da el mismo aviso (FS 0,929 y 0,834). Test `crates/ogs-core/tests/f3r2_e14n1.rs`.
 
+- **E14o (§F4.18): enmiendas de la revisión R11** (`docs/reviews/R11_agy_A.md` y `R11_agy_B.md`). Sin refuerzos, todo
+  queda idéntico byte a byte salvo V065. Cada punto lleva su test con el contraejemplo del revisor.
+  - **E14o-1, tangencia (R11A-01).** Un cruce con un círculo solo cuenta si el elemento penetra (semicuerda mayor que
+    `tol`); un par de cruces a menos de `tol` a lo largo del arco se descarta; un elemento que toca un vértice de una
+    polilínea sin atravesarla no cuenta. La normal y el movimiento se calculan en el punto exacto del cruce. Antes, un
+    anclaje tangente daba +110,8 % (`eps_r = −1e-12`) o −21,1 % (`eps_r = 0`) de FS en V047a sin entrar en la masa.
+  - **E14o-2, Bishop con pasivas (R11A-02).** El arranque incluye las pasivas y la bisección acota antes el cambio de
+    signo con una malla geométrica: un pilote pasivo con componente vertical ascendente ya no da `invalid ("m_alpha")`.
+  - **E14o-3, `no_driving` con pasivas (R11A-03).** Se evalúa solo antes de resolver, con el peso, el sismo, las cargas
+    y las fuerzas **activas**; la pasiva es resistente. Janbu deja de usar el momento de Bishop. Un suelo blando
+    sostenido por pilotes o tablestacas pasivos converge en lugar de `invalid (no_driving)`.
+  - **E14o-4, `interface` con `ru` (R11A-04).** Un material con `ru` usa `u = ru·σ_suelo` y no recibe el agua libre de la
+    piezométrica; uno sin `ru` usa la piezométrica. Corrige E14m-2: el contraejemplo pasa de 334,18 a 161,01 kN/m
+    (cSlope, 161,00).
+  - **E14o-5, `interface` sobre un contacto (R11A-05).** `σ′v` es el mínimo de los dos materiales: el resultado ya no
+    depende del orden de `regions` (+22,4 % de FS entre los dos órdenes) ni del espejo.
+  - **E14o-6, agrupación de E14n-1 (R11A-06).** Las dovelas finas de un cruce se agrupan con todas las piezas de la
+    dovela original, y no con un índice fijo: el aviso mayor no reaparece con una carga lineal o un cruce próximo.
+  - **E14o-7, búsqueda con refuerzos (R11A-07).** Con refuerzos, candidatos que pasan por las puntas y las cabezas de
+    los elementos y semillas del refinamiento diversificadas por el número de cruces aplicados; sin refuerzos no cambia
+    nada. Criterio: brecha de menos de 1 % frente a la malla fina (antes, hasta +7,15 %). Detalle en
+    `docs/fase3/r11c/NOTAS.md`.
+  - **E14o-8, activo comprimido (R11A-08).** Se sigue aplicando, pero **es falso que sea siempre conservador**: con
+    `φ > 0`, su componente normal confina la base y puede subir el FS (V047a, +8,6 % en Bishop con `θ = +2°`). Se corrige
+    la justificación de E14m-1 y `docs/limitaciones.md`, y se agrega la nota informativa
+    `reinforcement_active_compression`, en E6, en `warnings.ts` y en las listas informativas.
+  - **E14o-9, filas del oráculo (R11A-09).** Las filas `inc_up30_pas` e `inc_up45_pas` pasan a elementos embebidos con
+    `along ≥ cos 88°` (estado `compression_ignored`, nota y FS del oráculo), y se agregan filas de `bond` e `interface`
+    no acotadas por `tensile_capacity`.
+  - **E14o-10, Janbu corregido con pasivas (R11A-10).** Se mantiene la división por `F₀`, coherente con el suelo y con
+    cSlope; se documenta que activo y pasivo coinciden en `F₀ = 1` (FS = `f₀`) y no en FS = 1
+    ([Limitaciones](docs/limitaciones.md#las-fuerzas-pasivas-en-los-métodos-e14o-2-e14o-3-e14o-10)).
+  - **E14o-11 (R11A-11).** Sin nodos para los cruces con capacidad nula ni sobre el terreno: el FS es exactamente el del
+    talud sin refuerzo (antes, ΔFS de −4,8e-7 con una tablestaca de `force = 0`). Excepción V065, abajo.
+  - **E14o-12, unidades y espaciamiento (R11B-01, R11B-07).** Un `spacing` omitido vale 1 en la unidad de longitud del
+    modelo: 1 m en SI y 1 ft en imperial. La web escribe siempre un `spacing` explícito al convertir unidades (antes, el
+    FS de V047a subía de 1,4914 a 4,5258 al pasar a imperial) y convierte los valores por defecto del lienzo y del
+    panel. `docs/formato-ogs-json.md` lo documenta.
+  - **E14o-13 y E14o-14, CSV y tabla (R11B-02, R11B-03).** El CSV de fuerzas agrega `fs`, `movilizada_fx`,
+    `movilizada_fy` y `nota` (pasiva: se moviliza dividida por F; pilotes y tablestacas: solo estabilidad global); la
+    tabla y la leyenda de la web llevan la aclaración del PDF y una columna «Movilizada».
+  - **E14o-16 (R11B-05, R11B-06, R11B-08, R11B-09, R11B-10).** Rótulos del lienzo y de Casos sin solapes; el PDF dice
+    cuándo ningún refuerzo cruza la superficie convergida y los lista; valores por defecto válidos de pilote y
+    tablestaca; unidades de `adhesion`, `end1_capacity` y `end2_capacity` en el PDF; una tablestaca inclinada abierta
+    desde un archivo muestra su `x2` y su error.
+  - **E14o-17, documentación (R11B-11).** Cifras actualizadas en `docs/limitaciones.md`, `docs/desarrollo.md` y el
+    README (116 casos y 243 checks, de `verification/REPORT.md`), y `test_v04.py` y el esquema 0.4 en
+    `docs/verificacion.md`. La versión sube a 0.3.0 al publicar.
+- **Documentación de E14o:** `docs/limitaciones.md` (la excepción de V065, los cruces con tangencia, las pasivas en los
+  métodos, el activo comprimido con la tabla del barrido angular, `interface` con `ru` y contactos, el espaciamiento por
+  unidad y la búsqueda), `docs/formato-ogs-json.md` (con un ejemplo ejecutable de un activo comprimido que sube el FS) y
+  `docs/verificacion.md` (una sección de verificación de los refuerzos).
+
 ### Fixed
+- **`ogs bench` bajaba la versión de un modelo 0.4 (E14o-15, R11B-04).** Para Morgenstern-Price, Janbu simplificado,
+  Janbu corregido y `--method all` (el valor por defecto) escribía `"version": "0.3"` sobre el modelo, y el motor
+  rechazaba cualquier caso con refuerzos (`V037`) con `InvalidModel: reinforcements requiere version "0.4"`. Ahora usa
+  la mayor versión entre la declarada y la que el método necesita (0.3). Tests en `crates/ogs-cli`.
+- **`to_cslope.py` aceptaba documentos v0.4 que `ogs` rechaza (E14o-11, R11A-11).** Cinco casos inválidos (`force < 0`,
+  longitud 0, tablestaca con `x1 ≠ x2`, `bonded_length` mayor que `L` y `angle = 90`) devolvían un documento aceptado
+  mientras `ogs analyze` salía con código 2. El conversor valida ahora los rangos de F4.2: `force` y capacidades ≥ 0,
+  `spacing` > 0, longitud > 0, `bonded_length` en (0, L], `friction_angle` en [0, 90), `coverage` en (0, 1],
+  `length1` y `length2` ≥ 0 y `angle` en (−90, 90). Los 30 checks de los casos v0.4 se siguen convirtiendo.
+- **Excepción documentada a la identidad con la v0.2.0 (E14o-11).** La corrección de V065 de abajo cambia la salida de
+  un modelo **sin** refuerzos, no solo de los de V065: un círculo con la tangente vertical sobre el terreno que la
+  v0.2.0 rechazaba por redondeo (`rc = 2`, `NoValidSurface`) ahora se analiza (V065 sin refuerzos: Spencer 0,9260).
+  Ningún modelo sin refuerzos que la v0.2.0 analizaba cambia.
 - **Círculo con la tangente vertical sobre el terreno (V065).** `ogs analyze` rechazaba con `NoValidSurface: el círculo
   no corta el terreno` un círculo con el centro a la cota de la coronación (V065: `xc` 4,658, `yc` 15,000, `r` 10,934).
   Su arco termina en `x = xc + r`, y `(xc + r) − xc` valía `r − 1,8e-15`, de modo que `sqrt(r² − t²)` daba 2,06e-7 en
@@ -102,9 +169,14 @@ byte, que la v0.2.0.**
   siguen idénticos byte a byte (test `f3r2_tangent_end.rs`).
 
 ### Known issues
-- **Activo comprimido y el oráculo instalado (E14m-1).** El binario instalado de cSlope (`a80f9a0`) descarta los
+- **Activo comprimido y el oráculo instalado (E14m-1, E14o-8).** El binario instalado de cSlope (`a80f9a0`) descarta los
   elementos activos comprimidos (`along > 0`); OpenGeoSlide los aplica con su fuerza completa, como el código vigente de
-  cSlope. Las filas de aceptación con el oráculo solo usan cruces con `along < 0`.
+  cSlope. Las filas de aceptación con el oráculo solo usan cruces con `along < 0`. **No es siempre conservador:** con
+  `φ > 0` su componente normal puede subir el FS (nota `reinforcement_active_compression`).
+- **El espaciamiento por defecto depende de la unidad (E14o-12).** Un `spacing` omitido vale 1 m en SI y 1 ft en
+  imperial; al cambiar de sistema a mano en un `.ogs.json`, escríbalo de forma explícita.
+- **El umbral de compresión pasiva `cos 88°` es discontinuo** (V047a: Bishop 1,1331 con 88,00° y 0,9851 con 87,99°).
+- **Janbu corregido con pasivas:** activo y pasivo coinciden en `F₀ = 1` (FS = `f₀`), no en FS = 1 (E14o-10).
 - **`interface` y el oráculo.** cSlope integra el arrancamiento en 200 pasos (hasta −0,47 % en `T`); OpenGeoSlide integra
   exacto.
 - **VP 58 de Slide2** (tieback activo) pendiente: su geometría solo está en una figura sin coordenadas. **VP 47**
