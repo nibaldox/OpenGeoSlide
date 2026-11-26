@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { loadBuiltinCases } from '../cases';
 import type { EngineClient } from '../engine/client';
 import type { MethodKind } from '../engine/types';
-import { clearDraft, loadDraft, resolveDraftStorage, type Draft } from '../io/draft';
+import { clearDraft, loadDraft, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
 import { parseDxf, type DxfParseResult } from '../io/dxf';
 import { saveOgsJson, sha256Hex } from '../io/ogsJson';
@@ -33,7 +33,7 @@ import { CsvImportDialog, DxfImportDialog } from './app/ImportDialogs';
 import type { RegionImportPlan } from './app/importPlan';
 import type { PanelTabId } from './app/issueNav';
 import { documentTitle } from './app/docTitle';
-import { fieldSelector, type IssueTarget } from './app/issueNav';
+import { fieldSelector, findIssueFocus, type IssueTarget } from './app/issueNav';
 import { LiveRegions } from './app/LiveRegions';
 import { NoticeList } from './app/NoticeList';
 import { addNotice, noticeLifetimeMs, type Notice } from './app/notices';
@@ -45,7 +45,7 @@ import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
-import { shouldWarnBeforeUnload, useDraftAutosave, useUnloadGuard } from './app/useDraftAutosave';
+import { SAME_DRAFT_TEXT, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
 import {
   AnalysisPanel,
@@ -108,7 +108,7 @@ function formatWhen(iso: string): string {
 export function EditorApp({ client, active = true }: { client: EngineClient; active?: boolean }) {
   const [store] = useState<EditorStoreWithSave>(() => createEditorStore(initialDoc().doc, null));
   const cases = useMemo(() => loadBuiltinCases(), []);
-  const draftStorage = useMemo(() => resolveDraftStorage(), []);
+  const draftStorage = useMemo(() => resolveTabDraftStorage(), []);
   // El borrador se lee una sola vez (un borrador corrupto se elimina al leerlo y solo se avisa esa vez).
   const [boot] = useState(() => loadDraft(draftStorage.storage));
   const [draft, setDraft] = useState<Draft | null>(boot.draft);
@@ -148,6 +148,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const engine = useEngineCheck(store, client);
   const draftFailure = useDraftAutosave(store, draftStorage.storage, draft === null);
+  const sameDraftElsewhere = useSameDraftWarning();
 
   const doc = useEditorStore(store, (s) => s.doc);
   const fileName = useEditorStore(store, (s) => s.file.name);
@@ -339,11 +340,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const exportResults = (): void => {
     if (!engine.run || !engine.current) return;
-    downloadText(resultsCsv(engine.run.report), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
+    downloadText(resultsCsv(engine.run.report, engine.run.doc.units), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
   };
   const exportSurface = (): void => {
     if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
-    downloadText(surfaceCoordsCsv(engine.run.report.results), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
+    downloadText(surfaceCoordsCsv(engine.run.report.results, engine.run.doc.units), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
   };
 
   const onReport = async (): Promise<void> => {
@@ -396,6 +397,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   useEffect(() => {
     if (draftFailure) announce(draftFailure);
   }, [draftFailure, announce]);
+  useEffect(() => {
+    if (sameDraftElsewhere) notify('aviso', SAME_DRAFT_TEXT);
+  }, [sameDraftElsewhere, notify]);
   const draftAnnounced = useRef(false);
   useEffect(() => {
     if (draft && !draftAnnounced.current) {
@@ -423,7 +427,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       el = document.querySelector<HTMLElement>('[data-testid="editor-canvas"] [role="application"], [data-testid="editor-canvas"] svg');
     } else {
       const panel = document.getElementById('ea-tabpanel');
-      el = (target.fieldPath ? panel?.querySelector<HTMLElement>(fieldSelector(target.fieldPath)) : null) ?? panel?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)') ?? panel;
+      el = findIssueFocus(target) ?? (target.fieldPath ? panel?.querySelector<HTMLElement>(fieldSelector(target.fieldPath)) : null) ?? panel?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled), button:not(:disabled)') ?? panel;
     }
     if (el) {
       if (!el.matches('input, select, button, textarea, [tabindex]')) el.tabIndex = -1;
