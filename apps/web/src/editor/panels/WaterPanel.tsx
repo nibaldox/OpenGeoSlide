@@ -7,6 +7,7 @@ import {
   defaultWaterUnitWeight,
   defaultPiezo,
   formatNumber,
+  piezoCreateCommands,
   piezoFromForm,
   piezoSetCommand,
   piezoToForm,
@@ -45,6 +46,15 @@ export function WaterPanel({ store }: { store: EditorStore }) {
   const selectPoint = (index: number): void =>
     store.dispatch({ type: 'ui/select', selection: { kind: 'piezo_point', index } });
   const created = defaultPiezo(store.getState().doc);
+  // R9-09: crear la piezométrica en un modelo imperial sin γw fija también γw = 62,4 pcf, en el mismo paso deshacible.
+  const createPiezo = (pts: Point[]): void => {
+    store.beginGesture('Crear piezométrica');
+    try {
+      for (const cmd of piezoCreateCommands(store.getState().doc, pts)) store.dispatch(cmd);
+    } finally {
+      store.endGesture();
+    }
+  };
 
   return (
     <PanelSection title="Agua">
@@ -66,7 +76,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
         <>
           <p className="muted">Sin piezométrica: el análisis es seco (salvo ru).</p>
           <div className="ep-actions">
-            <button type="button" disabled={created === null} onClick={() => created && store.dispatch(piezoSetCommand(created))}>
+            <button type="button" disabled={created === null} onClick={() => created && createPiezo(created)}>
               Crear piezométrica
             </button>
           </div>
