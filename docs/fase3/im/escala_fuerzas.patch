@@ -1,0 +1,59 @@
+diff --git a/crates/ogs-core/src/methods/janbu.rs b/crates/ogs-core/src/methods/janbu.rs
+index f0b89bc..b52a733 100644
+--- a/crates/ogs-core/src/methods/janbu.rs
++++ b/crates/ogs-core/src/methods/janbu.rs
+@@ -109,7 +109,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
+     if e.iter().any(|v| !v.is_finite()) {
+         return stop(f0, SolveStatus::Invalid, iterations, "non_finite");
+     }
+-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
++    let total_w: f64 = spencer::force_scale(slices);
+     if e.last().copied().unwrap_or(0.0).abs() > CLOSURE_FRACTION * total_w {
+         return stop(
+             f0,
+diff --git a/crates/ogs-core/src/methods/spencer.rs b/crates/ogs-core/src/methods/spencer.rs
+index 235621e..dfd578f 100644
+--- a/crates/ogs-core/src/methods/spencer.rs
++++ b/crates/ogs-core/src/methods/spencer.rs
+@@ -570,6 +570,14 @@ struct Root {
+     fos: f64,
+ }
+ 
++/// Scale of the force residuals (`ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual): the vertical force
++/// `Σ W*` with the seismic and external loads of E12b. Without them `W* = W`, bit for bit. With a (nearly) weightless
++/// soil, as in the Prandtl cases V018, V077 and V078 (γ = 1e-6), the soil weight alone is a scale 1e7 times smaller than
++/// the loads that drive the mass, and the closure cannot reach `1e-6·ΣW` in double precision.
++pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
++    slices.iter().map(|s| s.total_weight()).sum()
++}
++
+ /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
+ struct Scheme {
+     preps: Vec<Prep>,
+@@ -867,7 +875,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
+         m_bound,
+         min_m: DIAGNOSTIC_MIN_M,
+         start: start_fos,
+-        total_w: slices.iter().map(|s| s.weight).sum(),
++        total_w: force_scale(slices),
+         total_width: slices.iter().map(|s| s.width).sum(),
+         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+         fbar: 1.0,
+@@ -953,7 +961,7 @@ fn setup(
+         m_bound,
+         min_m: opts.min_m_alpha,
+         start: start_fos,
+-        total_w: slices.iter().map(|s| s.weight).sum(),
++        total_w: force_scale(slices),
+         total_width: slices.iter().map(|s| s.width).sum(),
+         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
+         fbar,
+@@ -1020,7 +1028,7 @@ pub(super) fn force_root_at_zero(
+     } else {
+         FOS_FLOOR
+     };
+-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
++    let total_w: f64 = force_scale(slices);
+     let evaluations = std::cell::Cell::new(0_usize);
+     let closure = |x: f64| {
+         evaluations.set(evaluations.get() + 1);
