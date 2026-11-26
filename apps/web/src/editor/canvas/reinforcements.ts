@@ -7,7 +7,7 @@
 
 import type { Point, Reinforcement, ReinforcementApplication, ReinforcementForce } from '../../engine/types';
 import { worldToScreen, type Viewport } from '../../geometry/viewport';
-import { isImperialUnits } from '../state/units';
+import { UNIT_FACTORS, isImperialUnits } from '../state/units';
 import type { ModelDoc } from '../types';
 import { formatNumber, lengthUnitOf } from './layout';
 
@@ -90,6 +90,10 @@ export function nextReinforcementId(doc: ModelDoc, type: ReinforcementType): str
 function forceIn(units: string | null | undefined, kn: number): number {
   return isImperialUnits(units) ? Number((kn * 224.809).toPrecision(3)) : kn;
 }
+/** Espaciamiento (m → ft), con tres cifras significativas: 1 m → 3,28 ft. Un `spacing` en pies con el número de SI sería otra malla (E14o-12, R11B-07). */
+function spacingIn(units: string | null | undefined, m: number): number {
+  return isImperialUnits(units) ? Number((m * UNIT_FACTORS.length).toPrecision(3)) : m;
+}
 function perLengthIn(units: string | null | undefined, knPerM: number): number {
   return isImperialUnits(units) ? Number((knPerM * 68.5218).toPrecision(3)) : knPerM;
 }
@@ -97,7 +101,8 @@ function perLengthIn(units: string | null | undefined, knPerM: number): number {
 /**
  * Refuerzo nuevo de `type` entre la cabeza `p1` y la punta `p2`, con valores razonables que el panel «Refuerzos» edita después.
  * Anclaje: activo, con `end1_capacity = tensile_capacity` (E14m-2). Clavo y geosintético: pasivos. Pilote y tablestaca:
- * pasivos, con fuerza horizontal (`angle` 0). La tablestaca es vertical: x2 = x1.
+ * pasivos, con fuerza horizontal (`angle` 0). La tablestaca es vertical: x2 = x1. En imperial, las capacidades van en lbf y el `spacing` en pies
+ * (E14o-12): la resistencia por unidad de ancho es la misma que en SI.
  */
 export function newReinforcement(type: ReinforcementType, id: string, p1: Point, p2: Point, units?: string | null): Reinforcement {
   const base = { id, x1: p1[0], y1: p1[1], x2: type === 'sheet_pile' ? p1[0] : p2[0], y2: p2[1] };
@@ -105,17 +110,17 @@ export function newReinforcement(type: ReinforcementType, id: string, p1: Point,
   switch (type) {
     case 'anchor': {
       const t = forceIn(units, 150);
-      r = { ...base, type, application: 'active', tensile_capacity: t, end1_capacity: t, spacing: 1, direction: 'axial' };
+      r = { ...base, type, application: 'active', tensile_capacity: t, end1_capacity: t, spacing: spacingIn(units, 1), direction: 'axial' };
       break;
     }
     case 'nail':
-      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 100), spacing: 1.5, direction: 'axial', pullout: { model: 'bond', strength: perLengthIn(units, 30) } };
+      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 100), spacing: spacingIn(units, 1.5), direction: 'axial', pullout: { model: 'bond', strength: perLengthIn(units, 30) } };
       break;
     case 'geosynthetic':
-      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 40), spacing: 1, direction: 'axial' };
+      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 40), spacing: spacingIn(units, 1), direction: 'axial' };
       break;
     case 'pile':
-      r = { ...base, type, application: 'passive', force: forceIn(units, 60), spacing: 1.5, direction: 'angle', angle: 0 };
+      r = { ...base, type, application: 'passive', force: forceIn(units, 60), spacing: spacingIn(units, 1.5), direction: 'angle', angle: 0 };
       break;
     case 'sheet_pile':
       r = { ...base, type, application: 'passive', force: perLengthIn(units, 120), direction: 'angle', angle: 0 };
