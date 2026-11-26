@@ -88,6 +88,7 @@ OGS_INFORMATIVE_WARNINGS = (
     "multiple_admissible_roots",
     "reinforcement_outside_mass",
     "reinforcement_compression_ignored",
+    "reinforcement_active_compression",
     "structural_checks_not_covered",
 )
 

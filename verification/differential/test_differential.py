@@ -244,7 +244,7 @@ def test_informative_ogs_warnings_are_the_notes_of_the_contract():
     assert set(run.OGS_INFORMATIVE_WARNINGS) == {
         "negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass",
         "multiple_admissible_roots", "reinforcement_outside_mass", "reinforcement_compression_ignored",
-        "structural_checks_not_covered"}
+        "reinforcement_active_compression", "structural_checks_not_covered"}
 
 
 def test_non_informative_warnings_keep_driving_and_major_codes():
