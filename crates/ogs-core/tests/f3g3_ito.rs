@@ -1012,3 +1012,163 @@ fn a_pile_on_a_vertical_contact_takes_the_smaller_pressure() {
     // the two sides are read at `x ± 4e-9·scale`, where the ground is a hair off: 4e-8 relative
     assert!((a / b - 1.0).abs() < 1e-6, "{a} against {b}");
 }
+
+/// Moment about the centre of the circle of everything on the sliding mass, with Bishop's `N'` from the vertical
+/// equilibrium of each slice (`ΔX = 0`) and the pile at its application point: the one equation that Bishop solves,
+/// rebuilt from the physics. Relative to the sum of the moduli of the moments.
+fn bishop_moment_residual(doc: &Value, r: &MethodReport, s_dir: f64, centre: [f64; 2]) -> f64 {
+    let f = r.fos.unwrap();
+    let mut loads = pile_loads(doc, r, f);
+    let mut w_extra = vec![0.0_f64; r.slices.len()];
+    for (p, fo) in &loads {
+        let k = r
+            .slices
+            .iter()
+            .position(|q| q.weight > 0.0 && q.x_left <= p[0] && p[0] <= q.x_right)
+            .expect("a soil slice holds the crossing");
+        w_extra[k] += -fo[1];
+    }
+    for (i, s) in r.slices.iter().enumerate() {
+        if s.weight <= 0.0 {
+            continue;
+        }
+        let (sin, cos) = s.alpha.sin_cos();
+        let (xm, ym) = (
+            0.5 * (s.x_left + s.x_right),
+            0.5 * (s.y_base_left + s.y_base_right),
+        );
+        let w_star = s.weight + w_extra[i];
+        let l = s.base_length;
+        let n_eff = (w_star - s.pore_pressure * l * cos - s.cohesion * l * sin / f)
+            / (cos + s.tan_phi * sin / f);
+        let shear = (s.cohesion * l + n_eff * s.tan_phi) / f;
+        let normal = n_eff + s.pore_pressure * l;
+        let n_vec = [s_dir * sin, cos];
+        let m = [s_dir * cos, -sin];
+        loads.push(([xm, ym], [0.0, -s.weight]));
+        loads.push((
+            [xm, ym],
+            [
+                normal * n_vec[0] - shear * m[0],
+                normal * n_vec[1] - shear * m[1],
+            ],
+        ));
+    }
+    let terms: Vec<f64> = loads
+        .iter()
+        .map(|(p, fo)| (p[0] - centre[0]) * fo[1] - (p[1] - centre[1]) * fo[0])
+        .collect();
+    terms.iter().sum::<f64>().abs() / terms.iter().map(|t| t.abs()).sum::<f64>()
+}
+
+#[test]
+fn bishop_and_janbu_satisfy_their_own_equations_rebuilt_independently() {
+    let mut worst = (0.0_f64, 0.0_f64);
+    for id in [
+        "X22-V013c",
+        "X22-L01-xs-mismo-circulo",
+        "X22-V013d-xs",
+        "X22-S03-2capas",
+        "X22-S04-agua",
+        "X22-S05-espejo",
+        "X22-S09-activo",
+        "X22-S10-tangente",
+        "X22-S11-capacidad-corte",
+        "X22-S12-capacidad-momento",
+    ] {
+        let mut doc = row_doc(id);
+        doc["analysis"]["tolerance"] = json!(1e-12);
+        let report = run(&doc);
+        let s_dir = if doc["slope"]["direction"] == "left_to_right" {
+            1.0
+        } else {
+            -1.0
+        };
+        let c = &doc["analysis"]["surface"];
+        let centre = [c["xc"].as_f64().unwrap(), c["yc"].as_f64().unwrap()];
+        // Bishop: the moment about the centre (the chord bisector passes through the centre; the residual is the
+        // difference between R and the distance of the chord, ~ (l/2R)²)
+        let b = bishop_moment_residual(&doc, result(&report, "bishop"), s_dir, centre);
+        // Janbu simplified (λ = 0): E_n = 0, ΣFx = ΣFy = 0
+        let j = result(&report, "janbu_simplified");
+        let mut jr = j.clone();
+        jr.lambda = Some(0.0);
+        let bal = balance(&doc, &jr, s_dir, [centre, centre]);
+        let janbu = (bal.force[0].abs() / bal.force_scale)
+            .max(bal.force[1].abs() / bal.force_scale)
+            .max(bal.e_n.abs() / bal.total_w);
+        println!("{id:<28} Bishop M_centre = {b:.1e}   Janbu s. ΣFx, ΣFy, E_n = {janbu:.1e}");
+        assert!(b < 1e-4, "{id}: Bishop {b:e}");
+        assert!(janbu < 1e-9, "{id}: Janbu {janbu:e}");
+        worst = (worst.0.max(b), worst.1.max(janbu));
+    }
+    println!("worst: Bishop {:.2e}, Janbu {:.2e}", worst.0, worst.1);
+}
+
+#[test]
+fn the_soil_force_matches_the_closed_form_of_a_uniform_column() {
+    // A uniform soil under a ground that is flat at the pile: p(z) = c·A1 + σ·A2 with σ linear in z, so
+    // F = c·A1·zf + k·A2·zf²/2 (per pile) with k = γ (dry), γ − γw (ponded, E15c: σv has the pond, u the pond and z),
+    // (1 − ru)·γ (ru), and the total stress γ·z + γw·h with φ = 0 (the equation 23 takes the total stress).
+    use ogs_core::reinforcement::ito_matsui_coefficients as coeffs;
+    let gw = 9.807;
+    let cases: Vec<(&str, Box<dyn Fn(&mut Value)>, f64, f64, f64, f64)> = vec![
+        // (name, edit, phi, c, k (slope of σ with z), σ at z = 0)
+        (
+            "dry c-phi",
+            Box::new(|_d: &mut Value| {}),
+            20.0,
+            10.0,
+            20.0,
+            0.0,
+        ),
+        (
+            "ru 0.3",
+            Box::new(|d: &mut Value| d["materials"][0]["ru"] = json!(0.3)),
+            20.0,
+            10.0,
+            0.7 * 20.0,
+            0.0,
+        ),
+        (
+            "ponded (piezometric line at y = 8, over the ground at the pile)",
+            Box::new(|d: &mut Value| {
+                d["water"] = json!({"unit_weight": 9.807,
+                    "piezometric_line": [[0.0, 8.0], [35.0, 8.0]]});
+            }),
+            20.0,
+            10.0,
+            20.0 - gw,
+            0.0,
+        ),
+        (
+            "undrained under the pond: total stress",
+            Box::new(|d: &mut Value| {
+                d["materials"][0] = json!({"id": "soil", "name": "Clay", "model": "undrained",
+                    "unit_weight": 18.0, "unit_weight_sat": null, "undrained_strength": 30.0, "ru": null});
+                d["water"] = json!({"unit_weight": 9.807,
+                    "piezometric_line": [[0.0, 8.0], [35.0, 8.0]]});
+            }),
+            0.0,
+            30.0,
+            18.0,
+            gw * 3.0,
+        ),
+    ];
+    for (name, edit, phi, c, k, sigma0) in cases {
+        let mut doc = row_doc("X22-V013c");
+        // a flat ground at the pile: the head at the ground, y = 5 (the slope has the ground at 5 at x = 17.5)
+        edit(&mut doc);
+        let report = run(&doc);
+        let f = forces(result(&report, "bishop"))[0].clone();
+        let zf = 5.0 - f["y"].as_f64().unwrap();
+        let (a1, a2) = coeffs(2.4, 0.8, phi);
+        let per_pile = c * a1 * zf + sigma0 * a2 * zf + k * a2 * zf * zf / 2.0;
+        let got = f["soil_force"].as_f64().unwrap() * 2.4;
+        let d = pct(got, per_pile);
+        println!("{name}: {got:.6} against {per_pile:.6} ({d:+.2e} %)");
+        // dz ≤ 0.05 and `F(zf)` is interpolated linearly between nodes (as cSlope does): the error is at most
+        // `F''·dz²/8 = k·A2·dz²/8` (~ 2e-5 of F here), so 1e-2 %
+        assert!(d.abs() < 1e-2, "{name}: {got} against {per_pile}");
+    }
+}
