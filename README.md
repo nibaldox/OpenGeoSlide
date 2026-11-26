@@ -46,15 +46,15 @@ terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#e
 
 - **Está verificado y se puede reproducir.** El motor cumple 323 de 323 checks contra valores publicados (147 casos) y
   coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
-  Fase 3a (más 12 de 12 de los refuerzos v0.4 y 44 de 48 del bloque de grieta y agua embalsada v0.5: 2 explicados y 2
-  fallas abiertas). Es la batería real
+  Fase 3a (más 12 de 12 de los refuerzos v0.4 y 46 de 48 del bloque de grieta y agua embalsada v0.5, con 2 explicados y ninguna
+  falla abierta). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
 - **Funciona sin conexión.** El cálculo corre en el navegador (WASM), no en un servidor; la web se instala como PWA y,
   una vez cargada, no necesita red.
-- **Dice lo que no sabe.** Cada resultado trae avisos (γsat sin verificar, `ru` frente a piezométrica, piezométrica
-  extrapolada, Spencer sin raíz) y el informe PDF repite las convenciones de signo.
+- **Dice lo que no sabe.** Cada resultado trae avisos (`ru` frente a piezométrica, piezométrica
+  extrapolada, γsat menor que γ, Spencer sin raíz) y el informe PDF repite las convenciones de signo.
 
 <p align="center">
   <img src="./assets/readme/engine.svg" width="100%" alt="Diagrama: el motor ogs-core, en Rust, alimenta la aplicación web (WASM y PWA), el paquete Python opengeoslide y la CLI ogs; las tres usan el mismo formato de modelo .ogs.json.">
@@ -124,7 +124,7 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
-| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **44/48** (2 explicados, 2 fallas abiertas) | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0, grieta y agua embalsada v0.5 (D28-D39) | **46/48** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0 como segundo oráculo de los 323 checks | **322/323** | [REPORT](verification/REPORT.md) |
 | Web y `ogs` (385 modelos) | **385/385** | [detalle](docs/verificacion.md) |
 
@@ -171,7 +171,9 @@ Esta batería no cubre todo: véanse las limitaciones.
   retenido es la fila diferencial D39 fija, marcada «explicado» (E15j-7). **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a
   propósito: por ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
   ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
-- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 147 casos lo usa.
+- **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
+  piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
+  y sin línea piezométrica γsat no interviene en el cálculo.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
 - **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
@@ -206,7 +208,7 @@ pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format
 geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 323/323 published values (147 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 44/48 tension-crack and ponded-water checks (2 explained, 2 open failures). The search is circular only. With piles or sheet piles it checks the global stability
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 46/48 tension-crack and ponded-water checks (2 explained, no open failures). The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
 moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
