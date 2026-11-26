@@ -64,7 +64,7 @@
 
 use super::{
     MethodResult, SolveOptions, SolveStatus, air_gap_thrust, bishop, converged_notes, is_inert,
-    janbu, lacks_driving, m_alpha, negative_normal_message,
+    janbu, lacks_driving_on, m_alpha, negative_normal_message,
 };
 use crate::model::MethodKind;
 use crate::slicer::Slice;
@@ -958,7 +958,7 @@ fn setup(
     if slices.is_empty() {
         return Err(early("no_slices"));
     }
-    if lacks_driving(slices) {
+    if lacks_driving_on(slices, opts.circular) {
         return Err(early("no_driving"));
     }
     let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {
@@ -1067,7 +1067,7 @@ pub(super) fn force_root_at_zero(
     if slices.is_empty() {
         return Err((SolveStatus::Invalid, "no_slices", 0));
     }
-    if lacks_driving(slices) {
+    if lacks_driving_on(slices, opts.circular) {
         return Err((SolveStatus::Invalid, "no_driving", 0));
     }
     let Some(m_bound) = bishop::lower_bound(slices, opts.min_m_alpha) else {

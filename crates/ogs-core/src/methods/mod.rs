@@ -232,11 +232,29 @@ pub(crate) fn shear_ratio_of(
     })
 }
 
-/// Amendment E3 (with E12b): true when the surface has no driving moment (`Σ [W*·sin α + M] ≤ 1e-6 · Σ W`, or
-/// non-finite). Without seismic force or loads this is `Σ W·sin α ≤ 1e-6 · Σ W`.
+/// Amendment E3 (with E12b) on a **circle**: true when the surface has no driving moment
+/// (`Σ [W*·sin α + M] ≤ 1e-6 · Σ W`, or non-finite). Without seismic force or loads this is
+/// `Σ W·sin α ≤ 1e-6 · Σ W`. `M` is the moment of the horizontal forces about the centre, divided by the radius.
 pub(crate) fn lacks_driving(slices: &[Slice]) -> bool {
     let total_w: f64 = slices.iter().map(|s| s.weight).sum();
     let driving: f64 = slices.iter().map(Slice::driving_term).sum();
+    !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
+}
+
+/// Amendment E3 for the surface that is solved (E13l-2). On a circle it is [`lacks_driving`]. On a polyline there is no
+/// centre, so `M = 0` and the horizontal force `H = kh·W + H^P` is missing from `Σ W*·sin α` (a horizontal or a
+/// symmetric polyline under `kh` or a horizontal line load was rejected as `no_driving`, R10A-02). The sum is the one
+/// of the force equilibrium of Spencer, Morgenstern-Price and Janbu, `Σ t`, with `t = W*·sin α + H·cos α` in the sense
+/// of the slide. Without `H` the terms are the same bits as before.
+pub(crate) fn lacks_driving_on(slices: &[Slice], circular: bool) -> bool {
+    if circular {
+        return lacks_driving(slices);
+    }
+    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    let driving: f64 = slices
+        .iter()
+        .map(|s| s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos())
+        .sum();
     !(total_w.is_finite() && driving.is_finite()) || driving <= NO_DRIVING_FRACTION * total_w
 }
 
@@ -309,6 +327,26 @@ impl MethodResult {
     }
 }
 
+/// Reason of a result that would be `converged` with a factor of safety that is not positive or not finite (E13l-1).
+pub(crate) const NON_POSITIVE_FOS_MESSAGE: &str = "non_positive_fos";
+
+/// Guard of E13l-1, for every method: no result is `converged` with an FS that is not finite and positive. It becomes
+/// `NotConverged` with the reason `non_positive_fos`; no FS, no λ, no notes and no correction factor are reported with
+/// it, because there is no solution to qualify (R10A-01 gave FS = −23.43 as `converged`).
+pub(crate) fn guard_positive_fos(result: MethodResult) -> MethodResult {
+    if result.status == SolveStatus::Converged && !(result.fos.is_finite() && result.fos > 0.0) {
+        return MethodResult::new(
+            result.method,
+            f64::NAN,
+            SolveStatus::NotConverged,
+            result.iterations,
+            None,
+            Some(NON_POSITIVE_FOS_MESSAGE),
+        );
+    }
+    result
+}
+
 /// Solves the slices with the given method; Morgenstern-Price uses its default function (`half_sine`). See
 /// [`solve_with`].
 pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> MethodResult {
@@ -325,13 +363,13 @@ pub fn solve_with(
     opts: &SolveOptions,
     interslice: Option<&IntersliceSpec>,
 ) -> MethodResult {
-    match method {
+    guard_positive_fos(match method {
         MethodKind::Bishop => bishop::solve(slices, opts),
         MethodKind::Spencer => spencer::solve(slices, opts),
         MethodKind::MorgensternPrice => morgenstern_price::solve(slices, opts, interslice),
         MethodKind::JanbuSimplified => janbu::solve(slices, opts, false),
         MethodKind::JanbuCorrected => janbu::solve(slices, opts, true),
-    }
+    })
 }
 
 #[cfg(test)]
@@ -458,6 +496,57 @@ mod tests {
         // Without loads the scale is ΣW, as before: f = 1/1e-4.
         let bare = vec![slice(5e-5, 0.0), long(slice(5e-5, 0.0))];
         assert_eq!(class(&bare, -1.0), Some("negative_effective_normal_major"));
+    }
+
+    /// E13l-1: a `converged` result with an FS that is not positive, or not finite, becomes `not_converged` with the
+    /// reason `non_positive_fos`, with no FS, no λ, no notes and no `f₀`; a valid result and a result that did not
+    /// converge pass unchanged.
+    #[test]
+    fn e13l1_non_positive_fos_is_never_converged() {
+        for bad in [
+            -23.43,
+            0.0,
+            -0.0,
+            f64::NEG_INFINITY,
+            f64::INFINITY,
+            f64::NAN,
+        ] {
+            let mut r = MethodResult::new(
+                MethodKind::JanbuCorrected,
+                bad,
+                SolveStatus::Converged,
+                7,
+                Some(0.3),
+                None,
+            )
+            .with_warnings([NEGATIVE_NORMAL_MESSAGE]);
+            r.correction_factor = Some(-1.57);
+            let g = guard_positive_fos(r);
+            assert_eq!(g.status, SolveStatus::NotConverged, "fos = {bad}");
+            assert_eq!(g.message.as_deref(), Some("non_positive_fos"));
+            assert!(g.fos.is_nan() && g.lambda.is_none() && g.warnings.is_empty());
+            assert_eq!((g.correction_factor, g.iterations), (None, 7));
+        }
+        let ok = MethodResult::new(
+            MethodKind::Spencer,
+            1.2,
+            SolveStatus::Converged,
+            3,
+            Some(0.2),
+            None,
+        )
+        .with_warnings([NEGATIVE_NORMAL_MESSAGE]);
+        assert_eq!(guard_positive_fos(ok.clone()), ok);
+        let failed = MethodResult::new(
+            MethodKind::Spencer,
+            f64::NAN,
+            SolveStatus::Invalid,
+            0,
+            None,
+            Some("no_driving"),
+        );
+        assert_eq!(guard_positive_fos(failed.clone()).message, failed.message);
+        assert_eq!(guard_positive_fos(failed).status, SolveStatus::Invalid);
     }
 
     /// E8d: the notes of a converged state keep a fixed order, the air gap first.
