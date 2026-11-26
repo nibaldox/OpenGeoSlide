@@ -7,6 +7,7 @@
 import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
+import type { ForceRecord } from '../report/reinforcementReport';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
@@ -343,4 +344,16 @@ export function polylineSurfaceRows(r: MethodReport): CsvCell[][] {
 export function surfaceToCsv(rows: CsvCell[][], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
   return toCsv(['metodo', 'estado', 'punto', `x_${u.length}`, `y_${u.length}`, 'unidades'], rows.map((r) => [...r, u.label]), options);
+}
+
+/**
+ * Tabla de fuerzas de los refuerzos por cruce (F4.9, E14m-4): `metodo,id,tipo,cruce,x_m,y_m,estacion_m,disponible_<fuerza>,fx_<fuerza>,fy_<fuerza>,aplicacion,estado,unidades`.
+ * `cruce` empieza en 1; `tipo`, `aplicacion` y `estado` llevan el valor del formato (`anchor`, `active`, `applied`…), como `metodo` y `estado` de los
+ * demás CSV; `fx` y `fy` son la fuerza aplicada por metro de talud, en coordenadas del modelo, y en una pasiva la disponible antes de dividir por F.
+ */
+export function reinforcementForcesToCsv(records: readonly ForceRecord[], options: ResultsCsvOptions = {}): string {
+  const u = csvUnits(options.units);
+  const line = u.system === 'imperial' ? 'lbf_ft' : 'kn_m';
+  const rows: CsvCell[][] = records.map((r) => [r.method, r.id, r.type, r.crossing, r.x, r.y, r.station, r.available, r.fx, r.fy, r.application, r.status, u.label]);
+  return toCsv(['metodo', 'id', 'tipo', 'cruce', `x_${u.length}`, `y_${u.length}`, `estacion_${u.length}`, `disponible_${line}`, `fx_${line}`, `fy_${line}`, 'aplicacion', 'estado', 'unidades'], rows, options);
 }

@@ -260,12 +260,16 @@ export function forceUnit(units?: string | null): string {
   return isImperialUnits(units) ? 'lbf/ft' : 'kN/m';
 }
 
-/** Rótulo de una fuerza aplicada: «anclaje-1: 100 kN/m (activa)»; una pasiva dice «pasiva, dividida por F». */
-export function forceLabelText(f: ReinforcementForce, units?: string | null): string {
+/**
+ * Rótulo de una fuerza: «anclaje-1: 100 kN/m (activa)»; una pasiva dice «pasiva, dividida por F» en el título y la tabla, y en el
+ * rótulo corto del dibujo solo «pasiva» (`short`), para que los rótulos no se pisen. Sin aplicar: «id: fuera de la masa».
+ */
+export function forceLabelText(f: ReinforcementForce, units?: string | null, short = false): string {
   const magnitude = Math.hypot(f.fx, f.fy);
   const unit = forceUnit(units);
   if (!isAppliedStatus(f.status)) return `${f.id}: ${FORCE_STATUS_LABEL[f.status]}`;
-  return `${f.id}: ${formatNumber(magnitude, 1, 2)} ${unit} (${f.application === 'passive' ? 'pasiva, dividida por F' : 'activa'})`;
+  const kind = f.application === 'passive' ? (short ? 'pasiva' : 'pasiva, dividida por F') : 'activa';
+  return `${f.id}: ${formatNumber(magnitude, 1, 2)} ${unit} (${kind})`;
 }
 
 /**
@@ -289,6 +293,7 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
       tip = add(at, dir, length);
     }
     const text = forceLabelText(f, units);
+    const shortText = forceLabelText(f, units, true);
     const anchor = tip ?? at;
     return {
       key: `${f.id}-${f.crossing}`,
@@ -299,7 +304,7 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
       application: f.application,
       at,
       tip,
-      label: { x: anchor[0] + dir[0] * 8, y: anchor[1] + dir[1] * 8 - (dir[1] >= 0 ? -10 : 4), text },
+      label: { x: anchor[0] + dir[0] * 8, y: anchor[1] + dir[1] * 8 - (dir[1] >= 0 ? -10 : 4), text: shortText },
       title: `${text}. Cruce ${f.crossing + 1}, estación ${formatNumber(f.station)} ${lengthUnitOf(units)}`,
     };
   });

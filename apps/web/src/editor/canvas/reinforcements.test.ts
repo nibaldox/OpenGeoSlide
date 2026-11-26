@@ -199,6 +199,8 @@ describe('flechas de fuerza del resultado', () => {
   it('el rótulo dice la magnitud con unidad por metro; una pasiva, que se divide por F', () => {
     expect(forceLabelText(force({ fx: -150, fy: 0 }), 'SI')).toBe('anclaje-1: 150,0 kN/m (activa)');
     expect(forceLabelText(force({ id: 'clavo-1', application: 'passive', fx: 3, fy: 4 }), 'SI')).toBe('clavo-1: 5,0 kN/m (pasiva, dividida por F)');
+    // el rótulo corto del dibujo no pisa a los vecinos; el título y la tabla dicen el texto completo
+    expect(forceLabelText(force({ id: 'clavo-1', application: 'passive', fx: 3, fy: 4 }), 'SI', true)).toBe('clavo-1: 5,0 kN/m (pasiva)');
     expect(forceUnit('imperial')).toBe('lbf/ft');
     expect(forceLabelText(force({ fx: 100, fy: 0 }), 'imperial')).toContain('lbf/ft');
     expect(formatNumber(5)).toBe('5,0');

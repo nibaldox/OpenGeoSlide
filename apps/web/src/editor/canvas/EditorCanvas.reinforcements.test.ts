@@ -66,7 +66,8 @@ describe('EditorCanvas: fuerzas del resultado', () => {
     expect(html).toContain('data-layer="reinforcement-forces"');
     expect((html.match(/data-force-arrow/g) ?? []).length).toBe(2);
     expect(html).toContain('anclaje-1: 152,97 kN/m (activa)');
-    expect(html).toContain('clavo-1: 20,62 kN/m (pasiva, dividida por F)');
+    expect(html).toContain('>clavo-1: 20,62 kN/m (pasiva)<');
+    expect(html).toContain('clavo-1: 20,62 kN/m (pasiva, dividida por F). Cruce 2');
     expect(html).toContain('marker-end="url(#');
   });
 
