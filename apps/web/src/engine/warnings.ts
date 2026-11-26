@@ -45,6 +45,9 @@ export const ENGINE_WARNING_CODES = [
   'no_admissible_root',
   'negative_lambda',
   'multiple_admissible_roots',
+  'polyline_no_ground_crossing',
+  'polyline_outside_ground',
+  'bishop_non_circular',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -124,6 +127,18 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'aviso',
     text: 'La superficie no tiene dovelas de suelo: no atraviesa el terreno. Revise su centro y su radio, o los rangos de búsqueda.',
   },
+  polyline_no_ground_crossing: {
+    severity: 'aviso',
+    text: 'La polilínea de falla, prolongada desde sus extremos, no corta el terreno dentro del modelo. Acerque sus extremos al terreno.',
+  },
+  polyline_outside_ground: {
+    severity: 'aviso',
+    text: 'La polilínea de falla pasa por encima del terreno o fuera del modelo entre sus extremos. Mueva sus vértices interiores bajo el terreno.',
+  },
+  bishop_non_circular: {
+    severity: 'aviso',
+    text: 'Bishop simplificado solo es válido en superficies circulares: en una polilínea su FS depende de un eje arbitrario. Use Spencer, Morgenstern-Price o Janbu.',
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -152,6 +167,9 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   non_finite: '/analysis',
   effective_width_below_min: '/analysis/search',
   effective_ends_outside_range: '/analysis/search',
+  polyline_no_ground_crossing: '/analysis/surface',
+  polyline_outside_ground: '/analysis/surface',
+  bishop_non_circular: '/analysis/methods',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */

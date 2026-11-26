@@ -224,7 +224,7 @@ pilotes.
   - La polilínea emite `{"points": [[x, y], …]}` con la polilínea **ajustada**, ya prolongada o recortada al terreno.
 - **Campos opcionales del informe:** `correction_factor` (F3.5) e `interslice` (`{"function", "points"?}`, solo en
   M-P). Ambos con `skip_serializing_if`.
-- **Avisos:** F3a no crea códigos de aviso nuevos. Los estados `Invalid` nuevos son `polyline_no_ground_crossing` y
+- **Avisos:** F3a no crea códigos de aviso de solución convergida. Los estados `Invalid` nuevos son `polyline_no_ground_crossing`, `bishop_non_circular` (E13j-3) y
   `polyline_outside_ground`. Se agregan a la lista E6 de `00_CONTRATOS.md` §4.5 y a `apps/web/src/engine/warnings.ts`
   **en el mismo merge** de integración, porque el test web compara las dos listas.
 
@@ -313,7 +313,33 @@ pilotes.
   - axe con 0 violaciones serious o critical en claro y oscuro;
   - nombres accesibles estables.
 
-## F3.10 Gates de F3a
+## F3.10 Enmiendas tras la ola 1 (E13j, decisiones del coordinador)
+
+- **E13j-1, ξ en la x del modelo.** ξ crece con la x del modelo, sea cual sea el sentido de deslizamiento, igual que en
+  cSlope: `x₀` es la menor `x_left` y `x₁` la mayor `x_right` del bloque.
+  - Por eso el espejo (F3.8, criterio 4) solo se exige con funciones simétricas en ξ: `constant`, `half_sine`,
+    `clipped_sine`, `trapezoidal` y un `data_points` simétrico.
+  - Con una función asimétrica, el espejo **no** debe dar el mismo FS, y así se documenta en la Ayuda.
+- **E13j-2, cuerda de Janbu.** L va entre los extremos del bloque: la menor `x_left` y la mayor `x_right`, con sus
+  ordenadas de base.
+  - d se calcula con todas las dovelas y b₁ solo con las de suelo, como en cSlope.
+- **E13j-3, estados nuevos.** F3a sí agrega tres razones de estado, que no son avisos de solución convergida:
+  - `polyline_no_ground_crossing` y `polyline_outside_ground`, de E13c;
+  - `bishop_non_circular`, una defensa del solver, porque la validación ya lo impide.
+
+  Entran en la lista E6 y en `warnings.ts`, con texto en español.
+- **E13j-4, raíz de F₀ en Janbu.** Pendiente de medir. Para ser coherente con E12e, la regla debería ser **la menor
+  raíz admisible**, con la nota `multiple_admissible_roots` si hay más de una. Hoy W1b toma la más cercana a
+  Fellenius.
+  - El integrador mide si las dos reglas difieren en algún modelo: los 61 casos, la batería y `pending/F3`.
+  - Si nunca difieren, se adopta la menor admisible y se deja un test.
+  - Si difieren, se reporta con números antes de decidir.
+- **E13j-5, ajuste al terreno.** Se usa el **primer cruce** de la prolongación, a diferencia de cSlope, que rechaza
+  cuando la recta vuelve bajo el terreno en la pared.
+  - Una polilínea que sale por una cara y vuelve a entrar es `polyline_outside_ground`.
+  - Ambas reglas son de E13c y se mantienen.
+
+## F3.11 Gates de F3a
 
 - **Los de F1.5**, más:
   - aceptación con los casos promovidos;
