@@ -9,7 +9,7 @@ los leen. El motor acepta cinco versiones:
 | `"0.2"` | `loads` y `analysis.seismic` | [`schema/ogs-0.2.schema.json`](../schema/ogs-0.2.schema.json) |
 | `"0.3"` | material **no drenado**, superficie **polilínea**, métodos **Morgenstern-Price** y **Janbu**, `analysis.interslice` | [`schema/ogs-0.3.schema.json`](../schema/ogs-0.3.schema.json) |
 | `"0.4"` | **refuerzos** (`reinforcements`): anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos | [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) |
-| `"0.5"` | **grieta de tracción** (`analysis.tension_crack`) | [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) |
+| `"0.5"` | **grieta de tracción** (`analysis.tension_crack`) y **presión de suelo de Ito-Matsui** en pilotes (`lateral_pressure`, `capacity`) | [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) |
 
 [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) acepta las cinco versiones. El ejemplo mínimo es
 [`examples/acads1a.ogs.json`](../examples/acads1a.ogs.json).
@@ -28,8 +28,8 @@ los leen. El motor acepta cinco versiones:
   [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)). **Segunda excepción
   (E15j-8):** en V019 con búsqueda solo cambian los contadores `search.evaluated` y `search.valid`
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
-- **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"` y `analysis.tension_crack`
-  exige `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
+- **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, y `analysis.tension_crack` y
+  el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
 - Todos los objetos rechazan campos desconocidos. Un `null` cuenta como campo ausente.
 
@@ -48,7 +48,9 @@ format, version, meta?, units?, materials[], regions[], water?, loads?, reinforc
 analysis: { methods[], slices?, tolerance?, max_iterations?, min_m_alpha?, seismic?, interslice?, tension_crack?, surface? | search? }
 ```
 
-`tension_crack` es nuevo en la v0.5. El agua embalsada no tiene campo: sale de `water.piezometric_line` y del terreno.
+`tension_crack` es nuevo en la v0.5, y también los campos `lateral_pressure` y `capacity` de un `pile` de
+`reinforcements` ([Pilotes con presión de suelo de Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). El agua
+embalsada no tiene campo: sale de `water.piezometric_line` y del terreno.
 
 ## Material no drenado (`model: "undrained"`)
 
@@ -454,7 +456,9 @@ Con `"0.1"` o `"0.2"`, cada uso de un campo o variante de la 0.3 da
 `reinforcements` no vacío exige `"0.4"`: con una versión menor el error es
 `InvalidModel: reinforcements requiere version "0.4"` ([Refuerzos](#refuerzos-v04)). `analysis.tension_crack` exige
 `"0.5"`: con una versión menor el error es `InvalidModel: tension_crack requiere version "0.5"`
-([Grieta de tracción](#grieta-de-tracción-v05)). El agua embalsada **no** tiene compuerta: se aplica en todas las
+([Grieta de tracción](#grieta-de-tracción-v05)). `lateral_pressure` o `capacity` en un pilote exigen `"0.5"`: el error es
+`InvalidModel: lateral_pressure requiere version "0.5"`
+([Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). El agua embalsada **no** tiene compuerta: se aplica en todas las
 versiones.
 
 Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arriba:
@@ -471,7 +475,7 @@ Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arr
 
 El esquema `ogs-0.3.schema.json` aplica la misma regla con un `if/then` por versión. **La web** guarda la versión
 mínima: `"0.2"` si el modelo no usa ningún campo de 0.3, `"0.3"` si usa alguno, `"0.4"` si hay refuerzos y `"0.5"` solo
-si existe `analysis.tension_crack`; abre las cinco versiones.
+si existe `analysis.tension_crack` o algún pilote lleva `lateral_pressure`; abre las cinco versiones.
 
 ## Sismo y cargas (v0.2)
 
@@ -564,8 +568,9 @@ Las unidades son las del modelo (SI o imperial) y las fuerzas son **por elemento
 | `direction` | **Obligatorio**: `"axial"`, `"tangent"` o `"bisector"` ([dirección](#cruces-dirección-y-compresión)) |
 | `pullout` | Objeto, opcional. Ausente: los dos extremos están totalmente anclados y `T(s) = Tmax/spacing` en todo el elemento |
 
-**`pile`:** `force` (≥ 0, obligatorio, por pilote), `spacing` (> 0, opcional; omitido vale 1 en la unidad de longitud
-del modelo, como arriba) y `direction`
+**`pile`:** `force` (≥ 0, por pilote; obligatorio salvo que el pilote lleve `lateral_pressure`, de la v0.5, que lo
+reemplaza: [Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)), `spacing` (> 0, opcional; omitido vale 1 en la
+unidad de longitud del modelo, como arriba) y `direction`
 (`"angle"`, `"tangent"` o `"perpendicular"`, obligatorio). `angle`, en grados dentro de (−90, 90) y medido sobre la
 horizontal, es obligatorio **solo** con `direction: "angle"` y está prohibido con las otras dos.
 
@@ -582,9 +587,9 @@ escribe siempre un `spacing` explícito ya convertido (1 m pasa a 3,28084 ft y 1
 Un archivo que usted edita a mano y cambia de sistema debe hacer lo mismo: escriba el `spacing` de forma explícita.
 El motor no convierte unidades (interpreta los números en las unidades declaradas).
 
-`pile` y `sheet_pile` **no** llevan `location`: con fuerza constante no cambia ningún número (el FS de X17 §3 es
-idéntico a 16 cifras) y el esquema, el motor y TypeScript lo rechazan como campo desconocido (E14m-3). Volvería con
-Ito-Matsui, en una versión posterior del formato.
+`pile` y `sheet_pile` **no** llevan `location` en el elemento: con fuerza constante no cambia ningún número (el FS de X17
+§3 es idéntico a 16 cifras) y el esquema, el motor y TypeScript lo rechazan como campo desconocido (E14m-3). Con
+Ito-Matsui (v0.5), `location` vuelve, pero **dentro de `lateral_pressure`** (`"centroid"` o `"slip_surface"`).
 
 ### Capacidad: `pullout`
 
@@ -1033,6 +1038,7 @@ convergidos y sobre la **superficie final**, no para cada candidato de una búsq
 | `fx`, `fy` | La fuerza **aplicada** por metro, en coordenadas del modelo (y hacia arriba). En un pasivo es la fuerza disponible, **antes de dividir por F**: se moviliza dividida por F |
 | `application` | `active` o `passive` |
 | `status` | Ver la tabla siguiente |
+| `soil_force`, `governs`, `arm` | Solo en un pilote con `lateral_pressure` ([Ito-Matsui](#la-salida-de-ito-matsui)); se omiten en los demás |
 
 | `status` | Cuándo |
 |---|---|
@@ -1218,6 +1224,219 @@ Con `version` menor que 0.4, el motor rechaza el uso de `reinforcements` (el esq
 <!-- ogs-fragmento base=refuerzos-ancla-activa ruta=version esperado=error:reinforcements~requiere~version~"0.4" esquema=rechaza -->
 ```json
 "0.3"
+```
+
+## Pilotes con presión de suelo de Ito-Matsui (v0.5)
+
+Un `pile` puede llevar, en lugar de una `force` dada, la fuerza que el suelo **entre pilotes** ejerce sobre la fila, según
+Ito y Matsui (1975), *Soils and Foundations* 15(4):43-59 (ecuaciones 13, 14 y 23). El campo es
+`lateral_pressure`, solo existe en la versión `"0.5"` y reemplaza a `force`. Es la misma ruta que usan los casos
+V013b a V013e (Cai y Ugai, 2000). **Es una estimación de la presión del suelo sobre un pilote rígido y vertical, no el
+diseño del pilote** ([límites](limitaciones.md#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no)).
+
+```json
+{ "type": "pile", "id": "P1", "x1": 17.5, "y1": 5.0, "x2": 17.5, "y2": -10.0, "spacing": 2.4,
+  "application": "passive", "direction": "angle", "angle": 0,
+  "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" },
+  "capacity": { "shear": 150.0, "moment": 250.0 } }
+```
+
+### Campos y validación
+
+| Campo | Regla |
+|---|---|
+| `force` / `lateral_pressure` | **Exactamente uno** de los dos: `force` pasa a ser opcional en el pilote, y con los dos o con ninguno el motor rechaza el documento |
+| `lateral_pressure.model` | Solo `"ito_matsui"` |
+| `lateral_pressure.diameter` | Número finito > 0, en la unidad de longitud del modelo |
+| `lateral_pressure.location` | **Obligatorio**, `"centroid"` o `"slip_surface"` ([punto de aplicación](#el-punto-de-aplicación-location)); no tiene valor por defecto, y la web propone `"centroid"` |
+| `capacity` | Opcional, solo junto con `lateral_pressure`. Lleva `shear` (fuerza de corte por pilote), `moment` (momento por pilote) o ambos, no puede ir vacío y cada valor es finito y > 0 |
+| `spacing` | Ahora **debe ser mayor que `diameter`** (distancia de eje a eje). Un `spacing` omitido vale 1 en la unidad de longitud del modelo, así que con `diameter ≥ 1` hay que escribirlo |
+| geometría | El pilote es **vertical**: `\|x2 − x1\| ≤ 1e-9·L` |
+| `application`, `direction` | Siguen siendo obligatorios. Una presión de suelo sobre un pilote vertical es horizontal: `"direction": "angle"` con `"angle": 0` (la dirección es plana, como en los demás pilotes) |
+
+- **Los campos del objeto** rechazan campos desconocidos (`deny_unknown_fields`).
+- **Con ruta JSON.** Los errores de valor llevan la ruta del campo, por ejemplo
+  `reinforcements[0].lateral_pressure.diameter debe ser finito y mayor que 0, no 0`.
+- **Sin ruta.** Un `model` o un `location` con un valor que no es de la enumeración, y un `location` ausente, los da el
+  **deserializador**, no la validación, y el mensaje no trae ruta: ``unknown variant `base`, expected `centroid` or
+  `slip_surface` ``. El esquema los rechaza también. La web los valida antes y da la ruta.
+- **Versión.** `lateral_pressure` o `capacity` exigen `"0.5"`: con una versión menor, el error es
+  `InvalidModel: lateral_pressure requiere version "0.5"`. Con `reinforcements` en una versión anterior a la 0.4 el error
+  sigue siendo el de los refuerzos.
+- `sheet_pile` no tiene `lateral_pressure` ni `capacity`.
+
+### La presión y la fuerza
+
+Por pilote y por unidad de profundidad, `p(z) = c·A1 + σ′v·A2`, con `S = spacing`, `d = diameter` y `D2 = S − d`:
+
+- **Con φ > 0** (ecuaciones 13 y 14 del artículo): `Nφ = tan²(45° + φ/2)` y `X = √Nφ·tan φ + Nφ − 1`.
+- **Con φ = 0** (ecuación 23), es decir con un material `undrained` o con φ < 0,01°: la sobrecarga es la tensión
+  **total** `σv`, porque los parámetros no drenados son de tensión total. Con `strength_gradient`, `c` es `Su(y)` en
+  cada punto.
+- **Piso de φ = 0.** Los coeficientes se toman como `A = max(A_cφ, A_φ=0)`. **No viene del artículo**: es la regla de
+  cSlope y de XSLOPE. Hace que la fuerza no baje al subir φ, y solo actúa con S/D ≥ 8.
+- **Integración.** Sobre la vertical del pilote, desde `z_top = max(0, terreno − y_cabeza)` hasta el cruce
+  `zf = terreno − y_cruce`, con la regla del punto medio y un paso de 0,05 m (o su equivalente en pies). En cada punto
+  se toman el material, `c` y `φ` de ese punto. El perfil se calcula una vez por análisis. Si `zf ≤ z_top`, la fuerza vale 0.
+- **`σ′v = σv − u − ru·σ_suelo`.** `σv` se integra desde el terreno con `γ`, o con `γsat` bajo la piezométrica, y suma el
+  agua embalsada sobre el terreno; `u = γw·max(0, piezométrica − y)`. Las **cargas de superficie no entran** en `σv`,
+  como en cSlope.
+- **Fuerza por pilote.** `F = min(∫p dz, shear, moment/L_m)`, con `L_m = ∫(zf − z)·p dz / ∫p dz`, el brazo de la
+  resultante sobre el cruce. Es un **mínimo**, no una elección. La fuerza que entra en el equilibrio es `F/spacing`
+  por metro.
+- **Activo o pasivo.** Valen las reglas de [Fuerza activa y pasiva](#fuerza-activa-y-pasiva): lo publicado es
+  **pasivo** y la fuerza se divide por F.
+
+#### El punto de aplicación: `location`
+
+- `"centroid"`: la fuerza actúa sobre la vertical del pilote a `L_m` **por encima** del cruce (Cai y Ugai, 2000,
+  ecuación 9; es el valor por defecto de cSlope).
+- `"slip_surface"`: actúa en el cruce.
+
+La posición solo importa en los métodos con ecuación de momentos: con Janbu (simplificado y corregido) las dos dan el
+mismo FS.
+
+### La salida de Ito-Matsui
+
+Cada cruce de un pilote con `lateral_pressure` agrega tres campos a su entrada de
+[`reinforcement_forces`](#el-informe-reinforcement_forces). Se omiten en un pilote con `force`, de modo que su salida es
+idéntica byte a byte:
+
+| Campo | Significado |
+|---|---|
+| `soil_force` | Fuerza del suelo **por metro**, `∫p dz/spacing`, antes del tope de `capacity` |
+| `governs` | Qué fija `available`: `"soil"`, `"shear"` o `"bending"` |
+| `arm` | `L_m`, el brazo de la resultante sobre el cruce, en la unidad de longitud |
+
+`available` y `fx` son la fuerza ya acotada, por metro.
+
+**Aviso `ito_matsui_spacing_range`.** Se emite si algún pilote con `lateral_pressure` tiene `S/D < 2` o `S/D > 8`, cruce o no la
+superficie: «Pilote Ito-Matsui con S/D = … fuera de 2 a 8: la fórmula pierde validez (sobrestima la fuerza con S/D
+pequeño y la subestima con S/D grande; Ukritchon y Keawsawasvong 2017). Revise el espaciamiento.» Cada pilote con
+`lateral_pressure` lleva además la nota `structural_checks_not_covered`.
+
+### Ejemplo: el talud de Cai y Ugai con un pilote
+
+El talud de V013c (10 m de altura, 1,5H:1V; suelo con c = 10 kPa, φ = 20°, γ = 20 kN/m³) con el círculo crítico de la
+búsqueda de Bishop fijado. El pilote de 0,8 m de diámetro está a 2,4 m de eje a eje (S/D = 3), con la cabeza en el
+terreno, en x = 17,5. Sin el pilote, el mismo círculo da Bishop 1,1691. La fuerza del suelo por metro en el cruce es
+117,92 kN/m, con un brazo de 1,2237 m.
+
+<!-- ogs-ejemplo nombre=ito-matsui-centroide estado=converged fos=bishop:1.4373,spencer:1.4339,morgenstern_price:1.4339,janbu_simplified:1.3844,janbu_corrected:1.4452 fuerzas=applied avisos=structural_checks_not_covered cruce=soil_force:117.9241,governs:soil,arm:1.2237 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": { "id": "ejemplo-ito-matsui", "title": "Talud de Cai y Ugai con un pilote de Ito-Matsui" },
+  "units": "SI",
+  "materials": [
+    { "id": "suelo", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 10.0, "friction_angle": 20.0 }
+  ],
+  "regions": [
+    { "material": "suelo", "polygon": [[0, -10], [0, 0], [10, 0], [25, 10], [35, 10], [35, -10]] }
+  ],
+  "reinforcements": [
+    {
+      "type": "pile", "id": "P1", "application": "passive",
+      "x1": 17.5, "y1": 5.0, "x2": 17.5, "y2": -10.0, "spacing": 2.4,
+      "direction": "angle", "angle": 0,
+      "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" }
+    }
+  ],
+  "slope": { "direction": "auto" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-5,
+    "surface": { "type": "circle", "xc": 7.464496793583992, "yc": 26.311206196419032, "r": 26.43308855461703 }
+  }
+}
+```
+
+La entrada del informe, con Bishop, trae los tres campos nuevos:
+
+```json
+{ "id": "P1", "crossing": 0, "x": 17.5, "y": 1.8572, "station": 3.1428, "available": 117.9241,
+  "fx": 117.9241, "fy": 0.0, "application": "passive", "status": "applied",
+  "soil_force": 117.9241, "governs": "soil", "arm": 1.2237 }
+```
+
+**Con `location: "slip_surface"`** la fuerza es la misma, pero actúa en el cruce y no a 1,2237 m sobre él, con el
+brazo más largo respecto del centro del círculo: el FS **sube** en Bishop, Spencer y Morgenstern-Price (1,4511, 1,4468 y
+1,4468) y **no cambia** en Janbu (1,3844 y 1,4452):
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.lateral_pressure.location esperado=ok esquema=acepta estado=converged fos=bishop:1.4511,spencer:1.4468,morgenstern_price:1.4468,janbu_simplified:1.3844,janbu_corrected:1.4452 cruce=soil_force:117.9241,governs:soil,arm:1.2237 -->
+```json
+"slip_surface"
+```
+
+**Con una `capacity` que gobierna por corte.** La fuerza del suelo por pilote es 117,92·2,4 = 283,0 kN. Con un corte de
+150 kN por pilote, `available` vale 150/2,4 = 62,5 kN/m, `governs` es `"shear"` y el FS baja de 1,4373 a 1,3129 en
+Bishop. `soil_force` sigue siendo 117,92: es la fuerza antes del tope.
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3129,spencer:1.3102,morgenstern_price:1.3101,janbu_simplified:1.2666,janbu_corrected:1.3222 fuerzas=applied cruce=soil_force:117.9241,governs:shear,arm:1.2237 -->
+```json
+{ "shear": 150.0 }
+```
+
+**Con una `capacity` de momento.** Con 200 kN·m por pilote, la fuerza admisible por flexión es `moment/L_m` =
+200/1,2237 = 163,4 kN por pilote, o 68,10 kN/m, y `governs` es `"bending"` (Bishop 1,3256):
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3256,spencer:1.3228,morgenstern_price:1.3227,janbu_simplified:1.2786,janbu_corrected:1.3347 fuerzas=applied cruce=soil_force:117.9241,governs:bending,arm:1.2237 -->
+```json
+{ "moment": 200.0 }
+```
+
+**Con un espaciamiento fuera de 2 a 8 veces el diámetro.** Con `spacing = 1,2` (S/D = 1,5), el modelo es válido pero la
+fórmula pierde validez: sobrestima la fuerza (Bishop 3,2864) y el motor emite el aviso `ito_matsui_spacing_range`:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.spacing esperado=ok esquema=acepta estado=converged fos=bishop:3.2864 avisos=ito_matsui_spacing_range -->
+```json
+1.2
+```
+
+### Rechazos
+
+Cada bloque cambia un campo del ejemplo `ito-matsui-centroide`. Con `force` y `lateral_pressure` a la vez:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.force esperado=error:reinforcements[0]:~force~y~lateral_pressure~se~excluyen esquema=rechaza -->
+```json
+50.0
+```
+
+Con un `spacing` que no supera el diámetro:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.spacing esperado=error:reinforcements[0].spacing~debe~ser~mayor~que~lateral_pressure.diameter~0.8,~no~0.8 esquema=acepta -->
+```json
+0.8
+```
+
+Con un pilote inclinado:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.x2 esperado=error:reinforcements[0].x2~debe~ser~igual~a~x1~(lateral_pressure~exige~un~pilote~vertical) esquema=acepta -->
+```json
+18.5
+```
+
+Con una `capacity` sin campos:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=error:reinforcements[0].capacity~debe~tener~shear,~moment~o~ambos esquema=rechaza -->
+```json
+{}
+```
+
+Con una `location` que no existe, el error lo da el deserializador y **no lleva ruta**:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.lateral_pressure.location esperado=error:unknown~variant~`base`,~expected~`centroid`~or~`slip_surface` esquema=rechaza -->
+```json
+"base"
+```
+
+Con `version` `"0.4"`:
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=version esperado=error:lateral_pressure~requiere~version~"0.5" esquema=rechaza -->
+```json
+"0.4"
 ```
 
 ## Agua embalsada (todas las versiones)
@@ -1467,14 +1686,17 @@ expresar y que valida solo el motor:
 - rangos `entry` y `exit` con `lo ≤ hi` y dentro del modelo, y `n_entry·n_exit·n_radius ≤ 2 000 000`;
 - **x estrictamente creciente** (con separación de al menos `1e-9` por el ancho del modelo) en una polilínea;
 - **puntos de `interslice.data_points`**: ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0;
-- **refuerzos**: `id` único, longitud `L > 0`, `x1 = x2` en una `sheet_pile` y `bonded_length ≤ L`.
+- **refuerzos**: `id` único, longitud `L > 0`, `x1 = x2` en una `sheet_pile` y `bonded_length ≤ L`;
+- **pilotes de Ito-Matsui**: exactamente uno de `force` y `lateral_pressure`, `capacity` solo con `lateral_pressure`,
+  pilote vertical y `spacing > diameter`. El esquema sí rechaza un `capacity` vacío y un `model` o `location` fuera de
+  su enumeración.
 
 ## Cómo se validan los ejemplos
 
 Cada bloque `json` de esta página precedido por un comentario `ogs-ejemplo` u `ogs-fragmento` se prueba con
 [`docs/tools/validar_ejemplos.py`](tools/validar_ejemplos.py): los ejemplos completos contra
 `schema/ogs-0.5.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
-`status` de `reinforcement_forces`, los avisos y el objeto `tension_crack` del informe); los fragmentos, sustituidos en su ejemplo base, con el resultado
+`status` de `reinforcement_forces`, los avisos, el objeto `tension_crack` del informe y los campos `soil_force`, `governs` y `arm` del cruce de un pilote de Ito-Matsui); los fragmentos, sustituidos en su ejemplo base, con el resultado
 esperado del motor y del esquema.
 
 ```sh
