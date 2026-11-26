@@ -35,3 +35,10 @@ Base 45fbe6f, rama `f3r1v-verif`. Se actualiza por tarea.
 - Estado con el motor de esta rama: **12 de 12 pendientes** (la sonda ve el stub, `reinforcement.rs:223`); el resto del informe no cambia (56 checks 28/28 y 28/28; Fase 3a 71/71).
 - Tests: `pytest verification/differential`: 176 verdes (110 s), con el binario de esta rama.
 - Pendiente anotado: cuando R1-C defina `report.reinforcement_forces`, comparar las fuerzas cruce por cruce con las del oráculo (`cslope.reinforcement_forces` ya está en el informe del harness).
+
+## Tarea 5: VP de Slide2 (parcial)
+Ver `VP_SLIDE2.md`. Los VP 32, 47, 48, 54, 85, 86 y 87/94 (solo Bishop 1,040) ya entran por los lotes R1 a R4, porque «Commercial program A» del corpus de cSlope es Slide2; el VP 47 sale mejor con la geometría de cSlope (V083: 0,8845, −0,62 %) que con la digitalizada de X17 (0,902, +1,3 %). **No transcritos**: VP 31, 50, 59 y 88 (no se bajó el manual de nuevo ni se leyeron sus tablas y figuras: presupuesto) y el VP 58 (pendiente, X17 §5.2). Ninguna cifra mía entra al repositorio.
+
+## Gates finales
+- `cargo fmt --check -p ogs-core`: limpio. `cargo test -p ogs-core --release --test f3r_types`: 9 verdes. `cargo test --test f3r_oracle`: 122 en RED, todos por el stub de R1 (a propósito).
+- `pytest verification` (venv con cslope 0.1.0, shapely, jsonschema, pytest; `OGS_BIN=target/release/ogs`): 899 verdes.
