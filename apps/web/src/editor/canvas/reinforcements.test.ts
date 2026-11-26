@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatNumber } from './layout';
-import { ALL_TYPES, ANCHOR, GEO, NAIL, PILE, SHEET, asReinforcement, docWith, force } from './reinforcementFixtures';
+import { ALL_TYPES, ANCHOR, GEO, NAIL, PILE, SHEET, force } from './reinforcementFixtures';
 import { VP } from './fakeStore';
 import {
   APPLICATION_LABEL,
@@ -14,7 +14,6 @@ import {
   moveBody,
   moveEnd,
   newReinforcement,
-  nextReinforcementId,
   refCenter,
   refLength,
   reinforcementCenterLabel,
@@ -23,7 +22,6 @@ import {
   reinforcementShapes,
   reinforcementTitle,
 } from './reinforcements';
-import { makeDoc } from './fakeStore';
 
 describe('rótulos de los tipos', () => {
   it('son los de F4.11, en español', () => {
@@ -73,11 +71,12 @@ describe('refuerzo nuevo', () => {
       expect(['active', 'passive']).toContain(r.application);
       expect('location' in r).toBe(false);
       if (type === 'pile' || type === 'sheet_pile') {
-        expect(r.direction).toBe('angle');
-        expect(r.angle).toBe(0);
+        // R11B-07: la dirección y la fuerza vienen de `reinforcementDefaults` (la misma fuente del panel): «tangent», sin `angle`.
+        expect(r.direction).toBe('tangent');
+        expect('angle' in r).toBe(false);
         expect(r.force).toBeGreaterThan(0);
       } else {
-        expect(r.direction).toBe('axial');
+        expect(['axial', 'tangent']).toContain(r.direction);
         expect(r.tensile_capacity).toBeGreaterThan(0);
       }
     }
@@ -94,13 +93,6 @@ describe('refuerzo nuevo', () => {
     // Tres cifras significativas: 22 481 lbf se propone como 22 500.
     expect(imp.tensile_capacity / (si.tensile_capacity * 224.809)).toBeCloseTo(1, 2);
     expect(imp.pullout.strength / (si.pullout.strength * 68.5218)).toBeCloseTo(1, 2);
-  });
-
-  it('el id no repite ninguno existente', () => {
-    const doc = docWith(ANCHOR, asReinforcement({ ...ANCHOR, id: 'anclaje-3' }));
-    expect(nextReinforcementId(doc, 'anchor')).toBe('anclaje-4');
-    expect(nextReinforcementId(doc, 'sheet_pile')).toBe('tablestaca-1');
-    expect(nextReinforcementId(makeDoc(), 'geosynthetic')).toBe('geosintetico-1');
   });
 });
 

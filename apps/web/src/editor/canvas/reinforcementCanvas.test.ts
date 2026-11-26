@@ -332,7 +332,7 @@ describe('herramienta «Dibujar refuerzo»', () => {
     expect(second.actions.map((a) => a.type)).toEqual(['reinforcement/upsert', 'ui/select', 'ui/tool']);
     const cmd = second.actions[0] as { index: number | null; reinforcement: Reinforcement };
     expect(cmd.index).toBeNull();
-    expect(cmd.reinforcement).toMatchObject({ id: 'anclaje-1', type: 'anchor', application: 'active', direction: 'axial' });
+    expect(cmd.reinforcement).toMatchObject({ id: 'a1', type: 'anchor', application: 'active', direction: 'axial' });
     expect(second.actions[1]).toEqual({ type: 'ui/select', selection: { kind: 'reinforcement', index: 0 } });
     expect(second.actions[2]).toEqual({ type: 'ui/tool', tool: 'select' });
     expect(second.draft).toEqual(EMPTY_DRAFT);
@@ -344,7 +344,7 @@ describe('herramienta «Dibujar refuerzo»', () => {
     const a = click('nail', EMPTY_DRAFT, 25, 17.5, store.getState());
     const b = click('nail', a.draft, 10, 14, store.getState());
     runActions(store, b.actions);
-    expect(list(store).map((r) => r.id)).toEqual(['anclaje-1', 'clavo-1']);
+    expect(list(store).map((r) => r.id)).toEqual(['anclaje-1', 'n1']); // R11B-07: el id del lienzo sigue la numeración del panel (a1, n1…)
     expect(store.getState().ui.selection).toEqual({ kind: 'reinforcement', index: 1 });
     expect(store.getState().ui.tool).toBe('select');
     expect(store.past).toHaveLength(1);
@@ -381,7 +381,7 @@ describe('herramienta «Dibujar refuerzo»', () => {
     const c = makeState(docWith(ANCHOR), { tool: 'draw_reinforcement' });
     const a = reinforcePlace('anchor', EMPTY_DRAFT, c, [30, 15]);
     const b = reinforcePlace('anchor', a.draft, c, [20, 12]);
-    expect((b.actions[0] as { reinforcement: Reinforcement }).reinforcement.id).toBe('anclaje-2');
+    expect((b.actions[0] as { reinforcement: Reinforcement }).reinforcement.id).toBe('a1');
     expect(b.actions[1]).toEqual({ type: 'ui/select', selection: { kind: 'reinforcement', index: 1 } });
   });
 

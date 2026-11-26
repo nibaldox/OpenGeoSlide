@@ -10,6 +10,7 @@ import type {
   TensionDirection,
 } from '../../engine/types';
 import { deepEqual } from '../state/docUtils';
+import { nextReinforcementId, reinforcementDefaults } from '../state/reinforcementDefaults';
 import { isImperialUnits } from '../state/units';
 import { REINFORCEMENT_LABEL, REINFORCEMENT_RULE } from '../state/validateLocal';
 import type { EditorCommand, ModelDoc } from '../types';
@@ -88,30 +89,12 @@ export function reinforcementUnits(units: string | undefined): ReinforcementUnit
 
 // ───────────────────────── Valores iniciales ─────────────────────────
 
-const PREFIX: Readonly<Record<ReinforcementType, string>> = { anchor: 'a', nail: 'n', geosynthetic: 'g', pile: 'p', sheet_pile: 's' };
-
-/** Siguiente id libre del tipo: `a1`, `n1`, `g1`, `p1`, `s1`. */
-export function nextReinforcementId(list: readonly Reinforcement[], type: ReinforcementType): string {
-  const used = new Set(list.map((r) => r.id));
-  for (let n = 1; ; n += 1) {
-    const id = `${PREFIX[type]}${n}`;
-    if (!used.has(id)) return id;
-  }
-}
+// El id y los valores por omisión viven en `state/reinforcementDefaults` (los comparte la herramienta «Dibujar refuerzo» del lienzo, R11B-07).
+export { nextReinforcementId };
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }
-
-/** Valores iniciales (SI, imperial): del mismo orden de magnitud en los dos sistemas. */
-const DEFAULTS = {
-  anchor: { capacity: [200, 45000], spacing: [2.5, 8] },
-  nail: { capacity: [100, 22000], spacing: [1.5, 5], bond: [50, 3400] },
-  geosynthetic: { capacity: [40, 2700], spacing: [1, 1] },
-  // 22 500 lbf entre 6,5 ft = 3460 lbf/ft = 50,5 kN/m, como los 100 kN entre 2 m de SI.
-  pile: { force: [100, 22500], spacing: [2, 6.5] },
-  sheet_pile: { force: [100, 6800] },
-} as const;
 
 /**
  * Refuerzo nuevo, válido y dentro del modelo; `null` si no hay geometría donde situarlo. La cabeza queda sobre el terreno, a media
@@ -125,8 +108,6 @@ export function defaultReinforcement(type: ReinforcementType, doc: ModelDoc): Re
   const width = bounds.xMax - bounds.xMin;
   const height = bounds.yMax - bounds.yMin;
   if (!(width > 0) || !(height > 0)) return null;
-  const imperial = isImperialUnits(doc.units);
-  const k = imperial ? 1 : 0;
   const tol = 1e-9 * Math.max(1, width);
   const ground = (x: number): number => {
     const y = terrainY(doc.regions, x, tol);
@@ -154,10 +135,7 @@ export function defaultReinforcement(type: ReinforcementType, doc: ModelDoc): Re
     let y2 = round2(Math.max(floor, y1 - 0.4 * height));
     if (!(y2 < y1) || !(y2 > base)) y2 = round2((y1 + base) / 2);
     if (!(y2 < y1) || !(y2 > base)) return null; // sin espesor de suelo en ninguna columna: no hay dónde situar el elemento
-    const common = { id, x1, y1, x2: x1, y2, application: 'passive' as const, direction: 'tangent' as const };
-    return type === 'pile'
-      ? { type, ...common, force: DEFAULTS.pile.force[k], spacing: DEFAULTS.pile.spacing[k] }
-      : { type, ...common, force: DEFAULTS.sheet_pile.force[k] };
+    return { id, x1, y1, x2: x1, y2, ...reinforcementDefaults(type, doc.units) } as Reinforcement;
   }
 
   const x1 = mid;
@@ -170,23 +148,7 @@ export function defaultReinforcement(type: ReinforcementType, doc: ModelDoc): Re
   const slopeDown = type === 'geosynthetic' ? 0 : Math.tan((15 * Math.PI) / 180);
   const x2 = round2(x1 + toward * length);
   const y2 = round2(y1 - slopeDown * length);
-  const base = { id, x1, y1, x2, y2 };
-  if (type === 'anchor') {
-    const capacity = DEFAULTS.anchor.capacity[k];
-    return { type, ...base, application: 'active', direction: 'axial', tensile_capacity: capacity, end1_capacity: capacity, spacing: DEFAULTS.anchor.spacing[k] };
-  }
-  if (type === 'nail') {
-    return {
-      type,
-      ...base,
-      application: 'passive',
-      direction: 'axial',
-      tensile_capacity: DEFAULTS.nail.capacity[k],
-      spacing: DEFAULTS.nail.spacing[k],
-      pullout: { model: 'bond', strength: DEFAULTS.nail.bond[k] },
-    };
-  }
-  return { type, ...base, application: 'passive', direction: 'tangent', tensile_capacity: DEFAULTS.geosynthetic.capacity[k], spacing: DEFAULTS.geosynthetic.spacing[k] };
+  return { id, x1, y1, x2, y2, ...reinforcementDefaults(type, doc.units) } as Reinforcement;
 }
 
 // ───────────────────────── Formulario ─────────────────────────
@@ -270,12 +232,18 @@ export function reinforcementToForm(r: Reinforcement): ReinforcementForm {
   return form;
 }
 
+/** Adherencia por omisión del clavo (de la fuente compartida de valores por omisión). */
+function nailBondDefault(units: string | undefined): number {
+  const d = reinforcementDefaults('nail', units);
+  return d.type === 'nail' && d.pullout?.model === 'bond' ? d.pullout.strength : 0;
+}
+
 /** Valores que se proponen al elegir un modelo de arrancamiento (los campos que ya tienen texto se conservan). */
 export function switchPullout(form: ReinforcementForm, kind: PulloutKind, units: string | undefined): ReinforcementForm {
   const imperial = isImperialUnits(units);
   const fill = (current: string, value: number): string => (current.trim() === '' ? formatNumber(value) : current);
   const next: ReinforcementForm = { ...form, pullout: kind };
-  if (kind === 'bond') next.strength = fill(form.strength, DEFAULTS.nail.bond[imperial ? 1 : 0]);
+  if (kind === 'bond') next.strength = fill(form.strength, nailBondDefault(units));
   else if (kind === 'interface') {
     next.adhesion = fill(form.adhesion, 0);
     next.friction_angle = fill(form.friction_angle, 30);
@@ -307,6 +275,29 @@ export interface ReinforcementFormContext {
    * hasta que el usuario lo alinee. Sin esta marca, la x de la punta es la de la cabeza (una tablestaca nueva o ya vertical).
    */
   inclined?: boolean;
+}
+
+/** Qué hace la tarjeta de un refuerzo con su borrador (R11B-10): qué se guarda en el modelo y si el borrador queda pendiente. */
+export interface CardEvaluation {
+  /** Errores por campo del borrador (vacío si es válido). */
+  errors: FieldErrors;
+  /** El refuerzo que describe el borrador, si es válido (aunque sea igual al del modelo). */
+  valid: Reinforcement | null;
+  /** El refuerzo a escribir en el modelo: solo si el borrador es válido y distinto del que ya está. */
+  commit: Reinforcement | null;
+  /** Hay cambios en el borrador (una lista desplegable o un campo) que no llegan al modelo por errores en la tarjeta. */
+  pending: boolean;
+}
+
+/**
+ * Evalúa el borrador de una tarjeta frente al refuerzo del modelo. Con errores, `commit` es `null` y el borrador se conserva: el control
+ * muestra la elección y la tarjeta avisa que está pendiente. Ni validar ni volver a dibujar el panel lo descartan: el borrador solo se
+ * reinicia si cambia el refuerzo del modelo (Esc, deshacer) y el modelo no cambia mientras haya errores.
+ */
+export function evaluateCard(form: ReinforcementForm, reinforcement: Reinforcement, ctx: ReinforcementFormContext): CardEvaluation {
+  const outcome = reinforcementFromForm(form, ctx);
+  if (!outcome.ok) return { errors: outcome.errors, valid: null, commit: null, pending: !deepEqual(form, reinforcementToForm(reinforcement)) };
+  return { errors: {}, valid: outcome.value, commit: reinforcementsEqual(outcome.value, reinforcement) ? null : outcome.value, pending: false };
 }
 
 /** ¿Es una tablestaca con x1 ≠ x2? Un archivo puede traerla (el motor la rechaza y `validateLocal` la marca en `x2`). */

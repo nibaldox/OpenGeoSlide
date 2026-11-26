@@ -966,10 +966,13 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
                 {selected && <line data-reinforcement-selected x1={rs.p1[0]} y1={rs.p1[1]} x2={rs.p2[0]} y2={rs.p2[1]} stroke={COLOR_SELECTED} strokeWidth={11} strokeLinecap="round" strokeOpacity={0.45} />}
                 <g>{rs.parts.map((part, i) => <SymbolPart key={`h${i}`} part={part} stroke={COLOR_HALO} extra={3.5} />)}</g>
                 <g>{rs.parts.map((part, i) => <SymbolPart key={`c${i}`} part={part} stroke={COLOR_REINFORCEMENT} />)}</g>
-                <text x={rs.label.x} y={rs.label.y} fontSize={12} fill={COLOR_REINFORCEMENT} {...HALO_LABEL} textAnchor="middle">{rs.label.text}</text>
               </g>
             );
           })}
+          {/* Los rótulos van en una pasada aparte, encima de todos los símbolos y flechas: un símbolo vecino no los tapa (R11B-05). */}
+          {reinforcements.map((rs: ReinforcementShape) => (
+            <text key={`rl${rs.index}`} data-reinforcement-label={rs.index} x={rs.label.x} y={rs.label.y} fontSize={12} fill={COLOR_REINFORCEMENT} {...HALO_LABEL} textAnchor="middle">{rs.label.text}</text>
+          ))}
         </g>
 
         {forces.length > 0 && (
@@ -988,6 +991,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
                     <path data-force-inactive d={`M${f.at[0] - 6},${f.at[1] - 6}L${f.at[0] + 6},${f.at[1] + 6}M${f.at[0] - 6},${f.at[1] + 6}L${f.at[0] + 6},${f.at[1] - 6}`} stroke={COLOR_FORCE_INACTIVE} strokeWidth={2.5} strokeLinecap="round" />
                   </>
                 )}
+              </g>
+            ))}
+            {/* Rótulos de las fuerzas en una pasada aparte, encima de todas las flechas (R11B-05). */}
+            {forces.map((f) => (
+              <g key={`${f.key}-label`} data-force-label={f.id} data-force-crossing={f.crossing} data-force-status={f.status} data-force-applied={f.applied ? 'true' : 'false'}>
                 <text x={f.label.x} y={f.label.y} fontSize={12} fill={f.applied ? COLOR_REINFORCEMENT : COLOR_FORCE_INACTIVE} {...HALO_LABEL} textAnchor="middle">{f.label.text}</text>
               </g>
             ))}

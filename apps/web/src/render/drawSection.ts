@@ -155,7 +155,7 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
     ctx.fillStyle = color;
     ctx.fillText(t, x, y);
   };
-  for (const s of shapes) text(s.label.text, s.label.x, s.label.y, palette.reinforcement);
+  // Primero las flechas y las marcas; los rótulos de todos, encima en una pasada final (ninguna flecha vecina los tapa).
   for (const f of placed.forces) {
     const color = f.applied ? palette.reinforcement : palette.axisText;
     if (f.tip) {
@@ -195,8 +195,9 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
         ctx.stroke();
       }
     }
-    text(f.label.text, f.label.x, f.label.y, color);
   }
+  for (const s of shapes) text(s.label.text, s.label.x, s.label.y, palette.reinforcement);
+  for (const f of placed.forces) text(f.label.text, f.label.x, f.label.y, f.applied ? palette.reinforcement : palette.axisText);
   ctx.lineCap = 'butt';
   ctx.lineJoin = 'miter';
 }

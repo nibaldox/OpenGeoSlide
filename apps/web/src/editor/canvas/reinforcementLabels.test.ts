@@ -88,4 +88,30 @@ describe.skipIf(!haveEngine)(`rótulos sin solapes en casos reales (${OGS_BIN})`
     const one = placeReinforcementLabels(s.refs.slice(0, 1), [], s.vp);
     expect(one.shapes[0]!.label.text).toBe(s.refs[0]!.label.text);
   });
+
+  // R11B-05, revisión visual: con 14 clavos pegados los rótulos ya no se enciman, pero quedaban TAPADOS por los símbolos y las flechas de los
+  // vecinos. La colocación trata los símbolos y las flechas como obstáculos y el dibujo pone los rótulos en la capa de arriba.
+  it.each(['V037', 'V084a', 'V014'])('%s: pocos rótulos caen sobre el símbolo o la flecha de OTRO refuerzo, y ninguno sobre varios', (id) => {
+    const s = scene(id);
+    const placed = placeReinforcementLabels(s.refs, s.fs, s.vp);
+    const segs = (a: [number, number], b: [number, number], half: number) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4));
+      return Array.from({ length: n + 1 }, (_, i) => ({ x1: a[0] + ((b[0] - a[0]) * i) / n - half, x2: a[0] + ((b[0] - a[0]) * i) / n + half, y1: a[1] + ((b[1] - a[1]) * i) / n - half, y2: a[1] + ((b[1] - a[1]) * i) / n + half }));
+    };
+    const covered = (label: { x: number; y: number; text: string }, ownSymbol: number | null, ownArrow: string | null): number => {
+      const b = boxOf('reinf', label);
+      let n = 0;
+      for (const sh of placed.shapes) if (sh.index !== ownSymbol && segs(sh.p1, sh.p2, 4).some((o) => hit(b, { ...b, ...o }))) n += 1;
+      for (const f of placed.forces) if (f.tip && f.key !== ownArrow && segs(f.at, f.tip, 2).some((o) => hit(b, { ...b, ...o }))) n += 1;
+      return n;
+    };
+    const bad = [
+      ...placed.shapes.map((sh) => ({ t: sh.label.text, n: covered(sh.label, sh.index, null) })),
+      ...placed.forces.map((f) => ({ t: f.label.text, n: covered(f.label, null, f.key) })),
+    ].filter((x) => x.n > 0);
+    // Con 7 clavos paralelos (V084a) el espacio es justo: alguno roza UN trazo ajeno (su halo lo mantiene legible), pero nunca varios ni la mayoría.
+    // Antes de tratar los trazos como obstáculos, V014 tenía 20 de 22 rótulos tapados.
+    expect(Math.max(0, ...bad.map((x) => x.n)), `${id}: un rótulo sobre varios trazos ajenos`).toBeLessThanOrEqual(1);
+    expect(bad.length / (placed.shapes.length + placed.forces.length), `${id}: rótulos sobre trazos ajenos ${JSON.stringify(bad)}`).toBeLessThanOrEqual(0.4);
+  });
 });
