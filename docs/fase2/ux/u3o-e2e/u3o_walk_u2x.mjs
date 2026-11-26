@@ -163,7 +163,11 @@ await saved.saveAs(savedPath);
 const savedText = readFileSync(savedPath, 'utf8');
 const saveNotice = await page.locator('[data-testid="notices"] li').last().textContent();
 const parsed = JSON.parse(savedText);
-step('8a guardar .ogs.json', parsed.version === '0.2' && parsed.analysis.seismic?.kh === 0.1 && /SHA-256: [0-9a-f]{64}/.test(saveNotice), { archivo: saved.suggestedFilename(), version: parsed.version, seismic: parsed.analysis.seismic, aviso: saveNotice });
+// F3.9: la web guarda la versión MÍNIMA: «0.3» solo si el modelo usa algo de la 0.3 (M-P, Janbu, interslice, no drenado, polilínea), si no «0.2».
+// V047a se promovió con M-P y Janbu en sus métodos y se guarda como 0.3; la expectativa ya no es el literal «0.2» sino la mínima calculada del propio documento.
+const usaV03 = (parsed.analysis.methods ?? []).some((m) => ['morgenstern_price', 'janbu_simplified', 'janbu_corrected'].includes(m)) || parsed.analysis.interslice != null
+  || parsed.analysis.surface?.type === 'polyline' || (parsed.materials ?? []).some((m) => m.model === 'undrained' || ['undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'].some((k) => m[k] != null));
+step('8a guardar .ogs.json', parsed.version === (usaV03 ? '0.3' : '0.2') && parsed.analysis.seismic?.kh === 0.1 && /SHA-256: [0-9a-f]{64}/.test(saveNotice), { archivo: saved.suggestedFilename(), version: parsed.version, seismic: parsed.analysis.seismic, aviso: saveNotice });
 // Deshacer sube la revisión: recalcular para que la exportación esté vigente (E12i).
 await page.getByRole('button', { name: /^Comprobar/ }).first().click();
 await page.waitForFunction(() => !document.querySelector('[data-testid="stale-result"]') && ![...document.querySelectorAll('button')].some((b) => /Calculando/.test(b.textContent || '')), null, { timeout: 60000 });
