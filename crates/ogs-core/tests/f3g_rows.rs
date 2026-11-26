@@ -17,7 +17,7 @@
 
 use ogs_core::report::AnalysisReport;
 use ogs_core::{OgsError, analyze};
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
