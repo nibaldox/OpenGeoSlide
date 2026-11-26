@@ -9,6 +9,10 @@ deposit with a constant Su, and a sliding block on a weak layer with a fixed pol
 `cases_f3/`, apart from the 14 models above, because the consumers of `cases/` (the Rust and web tests, the
 web round trip and the 0.2 schema test) do not read version 0.3 yet; run.py reads both directories.
 
+D18-D23 are the models of R10 (briefs/F3A_R10.md, tarea V), also in `cases_f3/`: undrained with a negative gradient and
+a limit (D18), Morgenstern-Price with `clipped_sine` and `trapezoidal` (D19, D20), a polyline along a contact between
+materials (D21) and a polyline on level ground with kh or a horizontal line load (D22, D23).
+
 Writes verification/differential/cases/<id>.ogs.json and cases_f3/<id>.ogs.json. Nothing here is a published
 value: the models only feed two engines, and run.py compares the engines with each other (contract E9b).
 
@@ -357,13 +361,19 @@ FIXED_SURFACES_F3: dict[str, tuple[float, float, float]] = {
     # D16: not the search optimum (a circle tangent to the foundation, with a 4e-7 sliver of it, is a trap for any
     # slicer) but a circle that enters at the crest (x = 3.9), dips 0.5 m into the foundation and leaves on its top.
     "D16": (52.0, 82.0, 82.5),
+    # D18 (R10): a deep circle that reaches y = -14, under the depth where the Su floor of 25 kPa starts (y = -12.5), so
+    # that the floor matters (1.207 with it, 1.189 without it). D19 and D20 (R10): the critical circle of the default
+    # Bishop search of ogs on the geometry they share, unrounded for the reason above.
+    "D18": (45.0, 32.0, 46.0),
+    "D19": (43.6466144187929, 36.352819511930406, 36.37800350484352),
 }
 # D17: a fixed polyline along a thin weak layer (active wedge, base along the layer). Its ends lie on the ground.
 D17_POLYLINE = [(8.0, 20.0), (14.0, 3.0), (37.0, 3.0)]
 
 
 def _model_f3(case_id: str, title: str, intent: str, direction: str, materials: list[dict], regions: list[dict],
-              methods: list[str], search: dict | None, surface: dict | None) -> dict:
+              methods: list[str], search: dict | None, surface: dict | None, *, loads: list[dict] | None = None,
+              seismic: dict | None = None, interslice: dict | None = None) -> dict:
     analysis: dict = {
         "methods": methods,
         "slices": SLICES,
@@ -375,7 +385,11 @@ def _model_f3(case_id: str, title: str, intent: str, direction: str, materials: 
         analysis["search"] = search
     if surface is not None:
         analysis["surface"] = surface
-    return {
+    if seismic is not None:
+        analysis["seismic"] = dict(seismic)
+    if interslice is not None:
+        analysis["interslice"] = dict(interslice)
+    model: dict = {
         "format": "opengeoslide",
         "version": "0.3",
         "meta": {"id": case_id, "title": title, "notes": intent},
@@ -383,9 +397,12 @@ def _model_f3(case_id: str, title: str, intent: str, direction: str, materials: 
         "materials": materials,
         "regions": regions,
         "water": {"unit_weight": GAMMA_W},
-        "slope": {"direction": direction},
-        "analysis": analysis,
     }
+    if loads:
+        model["loads"] = [dict(load) for load in loads]
+    model["slope"] = {"direction": direction}
+    model["analysis"] = analysis
+    return model
 
 
 def d15() -> dict:
@@ -447,7 +464,113 @@ def d17() -> dict:
         {"type": "polyline", "points": [[x, y] for x, y in D17_POLYLINE]})
 
 
-BUILDERS_F3: list[Callable[[], dict]] = [d15, d16, d17]
+def _fixed_circle(case_id: str) -> dict | None:
+    if case_id not in FIXED_SURFACES_F3:
+        return None
+    xc, yc, r = FIXED_SURFACES_F3[case_id]
+    return {"type": "circle", "xc": xc, "yc": yc, "r": r}
+
+
+def d18() -> dict:
+    # R10 (R10A-11 4): undrained with a NEGATIVE gradient and a limit. A desiccated crust: Su = 70 kPa at the crest
+    # (strength_datum = 10) that falls 2 kPa per metre of depth and stops at the limit of 25 kPa (a floor: for a
+    # negative gradient `strength_limit` is a minimum). No case of the 93 or of D01-D17 covers it.
+    intent = ("Corte de 10 m, 2H:1V, en arcilla preconsolidada con Su decreciente en profundidad: 70 kPa en la cota "
+              "del coronamiento (strength_datum = 10), gradiente de −2 kPa/m y piso de 25 kPa (strength_limit); el "
+              "piso se alcanza a 22,5 m de profundidad bajo la cota 10. "
+              "Prueba el gradiente negativo con límite, que ningún caso cubría.")
+    profile = [(0.0, -20.0), (0.0, 10.0), (40.0, 10.0), (60.0, 0.0), (95.0, 0.0), (95.0, -20.0)]
+    return _model_f3(
+        "D18", "Corte en arcilla con Su decreciente y piso", intent, "left_to_right",
+        [_undrained("clay", "Arcilla preconsolidada (Su decreciente)", 18.0, 70.0, datum=10.0, gradient=-2.0,
+                    limit=25.0)],
+        [_region("clay", profile)],
+        ["bishop", "spencer"], _search(entry=(0.0, 40.0), exit_=(55.0, 85.0)), _fixed_circle("D18"))
+
+
+# D19 and D20 share the geometry: only the function between slices differs.
+def _d19_materials() -> list[dict]:
+    return [_material("fill", "Relleno", 19.0, 8.0, 30.0), _material("clay", "Arcilla de base", 18.0, 25.0, 22.0)]
+
+
+def _d19_regions() -> list[dict]:
+    fill = [(0.0, 6.0), (0.0, 20.0), (15.0, 20.0), (36.0, 6.0)]
+    base = [(0.0, -10.0), (0.0, 6.0), (36.0, 6.0), (45.0, 0.0), (75.0, 0.0), (75.0, -10.0)]
+    return [_region("fill", fill), _region("clay", base)]
+
+
+def d19() -> dict:
+    # R10 (R10A-11 4): Morgenstern-Price with `clipped_sine`. Two layers, so that the function between slices matters.
+    intent = ("Talud de 20 m, 1,5H:1V, de relleno (c = 8 kPa, φ = 30°) sobre arcilla (c = 25 kPa, φ = 22°) con la "
+              "arista compartida a 6 m. Morgenstern-Price con la función `clipped_sine`, que ningún caso cubría. "
+              "Comparte la geometría con D20.")
+    return _model_f3(
+        "D19", "Dos capas, M-P con clipped_sine", intent, "left_to_right", _d19_materials(), _d19_regions(),
+        ["bishop", "spencer", "morgenstern_price"], _search(entry=(0.0, 15.0), exit_=(45.0, 70.0)),
+        _fixed_circle("D19"), interslice={"function": "clipped_sine"})
+
+
+def d20() -> dict:
+    # R10 (R10A-11 4): the same slope as D19 with `trapezoidal`.
+    intent = ("Igual que D19 (talud de 20 m sobre dos capas) con Morgenstern-Price y la función `trapezoidal`, que "
+              "ningún caso cubría.")
+    return _model_f3(
+        "D20", "Dos capas, M-P con trapezoidal", intent, "left_to_right", _d19_materials(), _d19_regions(),
+        ["bishop", "spencer", "morgenstern_price"], _search(entry=(0.0, 15.0), exit_=(45.0, 70.0)),
+        _fixed_circle("D19"), interslice={"function": "trapezoidal"})
+
+
+def d21() -> dict:
+    # R10 (R10A-04, E13l-5): a polyline whose base runs ALONG the contact between two materials: the roof of a weak
+    # layer. The engine chose the upper material; cSlope takes the weaker one (3.630 against 3.018 in R10A-04).
+    intent = ("Corte de 20 m, 1:1, en un estrato fuerte (c = 20 kPa, φ = 30°) sobre un estrato débil (c = 2 kPa, "
+              "φ = 10°) cuyo techo, en y = 10 m, aflora en el pie. Polilínea fija de tres puntos (escarpe, base y "
+              "salida): su tramo central corre exactamente sobre el contacto, y el motor debe tomar el material más "
+              "débil (E13l-5).")
+    top = [(0.0, 10.0), (0.0, 30.0), (20.0, 30.0), (40.0, 10.0)]
+    weak = [(0.0, 0.0), (0.0, 10.0), (40.0, 10.0), (60.0, 10.0), (60.0, 0.0)]
+    return _model_f3(
+        "D21", "Polilínea sobre el contacto de dos materiales", intent, "left_to_right",
+        [_material("strong", "Estrato fuerte", 20.0, 20.0, 30.0), _material("weak", "Estrato débil", 18.0, 2.0, 10.0)],
+        [_region("strong", top), _region("weak", weak)],
+        ["spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"], None,
+        {"type": "polyline", "points": [[10.0, 30.0], [14.0, 10.0], [40.0, 10.0]]})
+
+
+_FLAT_BLOCK = [[10.0, 10.0], [15.0, 5.0], [25.0, 5.0], [30.0, 10.0]]
+
+
+def _flat_model(case_id: str, title: str, intent: str, methods: list[str], **extra) -> dict:
+    ground = [(0.0, -10.0), (0.0, 10.0), (40.0, 10.0), (40.0, -10.0)]
+    return _model_f3(
+        case_id, title, intent, "left_to_right",
+        [_undrained("clay", "Arcilla (Su constante)", 20.0, 50.0)],
+        [_region("clay", ground)],
+        methods, None, {"type": "polyline", "points": [list(p) for p in _FLAT_BLOCK]}, **extra)
+
+
+def d22() -> dict:
+    # R10 (R10A-02, E13l-2): a polyline on level ground with kh. The only driving force is the horizontal inertia;
+    # the engine said `no_driving` while cSlope converges (Janbu 3.333, Spencer 3.986 in R10A-02).
+    intent = ("Terreno horizontal (y = 10) en arcilla con Su = 50 kPa y γ = 20 kN/m³. Polilínea fija simétrica "
+              "(bloque de 5 m de profundidad) con kh = 0,3: la única fuerza motriz es el sismo horizontal. "
+              "Ejercita E3 con t = W·sen α + H·cos α en superficies no circulares (E13l-2).")
+    return _flat_model("D22", "Polilínea en terreno horizontal con kh", intent,
+                       ["spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+                       seismic={"kh": 0.3, "kv": 0.0})
+
+
+def d23() -> dict:
+    # R10 (R10A-02, E13l-2): the same block with a horizontal line load instead of the seismic coefficient.
+    intent = ("Igual que D22 con una carga lineal horizontal de 200 kN/m en x = 15 m (ángulo de 90°) en lugar de "
+              "sismo. La única fuerza motriz es la carga horizontal (E13l-2). Solo Janbu: con una fuerza horizontal pura "
+              "cSlope no converge en Spencer y da un M-P cuatro veces el de D22, sin referencia fiable.")
+    return _flat_model("D23", "Polilínea en terreno horizontal con carga lineal horizontal", intent,
+                       ["janbu_simplified", "janbu_corrected"],
+                       loads=[{"type": "line", "id": "l1", "x": 15.0, "p": 200.0, "angle": 90.0}])
+
+
+BUILDERS_F3: list[Callable[[], dict]] = [d15, d16, d17, d18, d19, d20, d21, d22, d23]
 
 
 BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14]
@@ -463,7 +586,7 @@ def build_all() -> dict[str, dict]:
 
 
 def build_all_f3() -> dict[str, dict]:
-    """The v0.3 models D15-D17, keyed by id, in order."""
+    """The v0.3 models D15-D23, keyed by id, in order."""
     models = {}
     for build in BUILDERS_F3:
         model = build()

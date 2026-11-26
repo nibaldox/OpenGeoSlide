@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { describeWarning, describeWarnings, ENGINE_WARNING_CODES, warningPath } from './warnings';
+import type { MethodReport } from './types';
+import { compareSuggestion, describeResultWarnings, describeWarning, describeWarnings, ENGINE_WARNING_CODES, warningContext, warningPath } from './warnings';
 
 describe('describeWarning', () => {
   it('negative_effective_normal es una nota con el texto acordado (E5)', () => {
@@ -63,8 +64,11 @@ describe('describeWarning', () => {
     expect(describeWarning('negative_lambda')).toEqual({
       code: 'negative_lambda',
       severity: 'nota',
-      text: 'Spencer seleccionó una raíz de equilibrio con λ negativo; revise el resultado.',
+      text: 'El método seleccionó una raíz de equilibrio con λ negativo; revise el resultado o compare con otro método (Bishop simplificado en círculos, Janbu en polilíneas).',
     });
+    expect(describeWarning('negative_lambda', { surface: 'circle' }).text).toBe(
+      'El método seleccionó una raíz de equilibrio con λ negativo; revise el resultado o compare con Bishop simplificado.',
+    );
   });
 
   it('interslice_shear_exceeds_strength es un aviso con el texto de E13k y apunta a la superficie', () => {
@@ -103,7 +107,7 @@ describe('mensajes accionables y sin nombres internos (R7-19, R7-20)', () => {
     ['no_driving', /fuerzas que provocan el deslizamiento.*sentido de deslizamiento/],
     ['no_admissible_root', /ninguna cumple.*Revise/],
     ['non_finite', /pesos unitarios.*geometría/],
-    ['no_lambda_root', /pruebe otra superficie o compare con Bishop/],
+    ['no_lambda_root', /pruebe otra superficie o compare con otro método/],
     ['max_iterations', /aumente las iteraciones máximas en «Análisis»/],
     ['no_slices', /Revise su centro y su radio/],
   ])('%s sugiere qué revisar', (code, pattern) => {
@@ -140,5 +144,82 @@ describe('describeWarnings', () => {
   it('elimina duplicados conservando el orden de aparición', () => {
     const out = describeWarnings(['water_above_ground', 'negative_effective_normal', 'water_above_ground']);
     expect(out.map((w) => w.code)).toEqual(['water_above_ground', 'negative_effective_normal']);
+  });
+});
+
+describe('avisos agnósticos al método con sugerencia según la superficie (R10B-03)', () => {
+  const FIVE = ['pole', 'no_lambda_root', 'no_admissible_root', 'negative_lambda', 'multiple_admissible_roots'] as const;
+  const rep = (method: MethodReport['method'], surface: MethodReport['surface']): Pick<MethodReport, 'method' | 'surface' | 'warnings'> => ({
+    method,
+    surface,
+    warnings: [...FIVE],
+  });
+  const circle = { xc: 1, yc: 2, r: 3 };
+  const polyline = { points: [[0, 0], [1, -1], [2, 0]] as [number, number][] };
+
+  it('ningún texto de los cinco nombra a Spencer, con o sin contexto', () => {
+    for (const code of FIVE) {
+      for (const ctx of [undefined, { surface: 'circle' as const }, { surface: 'polyline' as const, method: 'morgenstern_price' as const }]) {
+        expect(describeWarning(code, ctx).text, `${code}`).not.toMatch(/Spencer(?! o Morgenstern)/);
+      }
+    }
+  });
+
+  it('círculos: sugieren Bishop simplificado; polilíneas: Janbu, y nunca Bishop (que no existe en polilíneas)', () => {
+    for (const code of FIVE) {
+      expect(describeWarning(code, { surface: 'circle' }).text, code).toMatch(/Bishop simplificado/);
+      const onPoly = describeWarning(code, { surface: 'polyline', method: 'morgenstern_price' }).text;
+      expect(onPoly, code).toMatch(/compare con Janbu/);
+      expect(onPoly, code).not.toMatch(/Bishop/);
+    }
+  });
+
+  it('un resultado de Janbu sobre una polilínea no se remite a Janbu', () => {
+    for (const code of FIVE) {
+      const t = describeWarning(code, { surface: 'polyline', method: 'janbu_corrected' }).text;
+      expect(t, code).not.toMatch(/Janbu|Bishop/);
+      expect(t, code).toMatch(/Spencer o Morgenstern-Price/);
+    }
+  });
+
+  it('describeResultWarnings toma el contexto del resultado: M-P sobre una polilínea (D1-B) dice Janbu, no Spencer ni Bishop', () => {
+    const texts = describeResultWarnings(rep('morgenstern_price', polyline)).map((w) => w.text);
+    expect(texts.join('\n')).not.toMatch(/Spencer|Bishop/);
+    expect(texts.join('\n')).toMatch(/compare con Janbu/);
+    const onCircle = describeResultWarnings(rep('spencer', circle)).map((w) => w.text).join('\n');
+    expect(onCircle).toMatch(/Bishop simplificado/);
+    expect(warningContext(rep('janbu_simplified', polyline))).toEqual({ method: 'janbu_simplified', surface: 'polyline' });
+  });
+
+  it('la severidad de los cinco no cambia con el contexto', () => {
+    expect(FIVE.map((c) => describeWarning(c, { surface: 'polyline' }).severity)).toEqual(['aviso', 'aviso', 'aviso', 'nota', 'nota']);
+  });
+
+  it('compareSuggestion', () => {
+    expect(compareSuggestion({ surface: 'circle', method: 'spencer' })).toBe('compare con Bishop simplificado');
+    expect(compareSuggestion({ surface: 'polyline', method: 'spencer' })).toBe('compare con Janbu');
+  });
+});
+
+describe('códigos nuevos de E13l-1', () => {
+  it('janbu_correction_extrapolated es una nota con el texto acordado y apunta a los métodos', () => {
+    expect(describeWarning('janbu_correction_extrapolated')).toEqual({
+      code: 'janbu_correction_extrapolated',
+      severity: 'nota',
+      text: 'La superficie es más profunda que el rango del gráfico de Janbu (1973) (d/L mayor que su límite); el factor de corrección f₀ es una extrapolación.',
+    });
+    expect(warningPath('janbu_correction_extrapolated')).toBe('/analysis/methods');
+  });
+  it('non_positive_fos es un aviso con el texto acordado y apunta a los métodos', () => {
+    expect(describeWarning('non_positive_fos')).toEqual({
+      code: 'non_positive_fos',
+      severity: 'aviso',
+      text: 'El método llegó a un factor de seguridad no positivo o no finito; no se informa ningún FS. Revise la superficie.',
+    });
+    expect(warningPath('non_positive_fos')).toBe('/analysis/methods');
+  });
+  it('están en la lista de códigos del motor', () => {
+    expect(ENGINE_WARNING_CODES).toContain('janbu_correction_extrapolated');
+    expect(ENGINE_WARNING_CODES).toContain('non_positive_fos');
   });
 });

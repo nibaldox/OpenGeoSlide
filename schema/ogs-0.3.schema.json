@@ -238,7 +238,7 @@
           }
         },
         {
-          "description": "Bishop no admite una polilínea (F3.6). Con analysis.search, la superficie fija se ignora y la regla no aplica.",
+          "description": "Bishop no admite una polilínea (F3.6), y sin methods el valor por defecto es [\"bishop\"]: una polilínea fija exige methods (E13l-8). Con analysis.search, la superficie fija se ignora y la regla no aplica.",
           "if": {
             "required": ["surface"],
             "properties": {
@@ -246,7 +246,10 @@
               "search": { "type": "null" }
             }
           },
-          "then": { "properties": { "methods": { "items": { "not": { "const": "bishop" } } } } }
+          "then": {
+            "properties": { "methods": { "items": { "not": { "const": "bishop" } } } },
+            "required": ["methods"]
+          }
         }
       ],
       "properties": {

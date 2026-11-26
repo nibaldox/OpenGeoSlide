@@ -2,7 +2,7 @@
 // Los comparten la tabla de resultados, el CSV y el PDF, para que digan lo mismo. Puro: sin React ni DOM.
 
 import { isPolylineReport } from '../engine/surface';
-import type { IntersliceFunction, IntersliceSpec, MethodReport, ReportSurface } from '../engine/types';
+import type { IntersliceFunction, IntersliceSpec, MethodReport, Point, ReportSurface } from '../engine/types';
 
 /** Nombres de las funciones de interfaz, fijos por F3.9. */
 export const INTERSLICE_LABEL: Record<IntersliceFunction, string> = {
@@ -43,11 +43,55 @@ export function methodDetails(r: MethodReport): MethodDetails {
     const text = intersliceText(r.interslice);
     if (text) out.interslice = text;
   }
-  if (r.method === 'janbu_corrected' && r.status === 'converged' && typeof r.correction_factor === 'number' && Number.isFinite(r.correction_factor) && r.correction_factor > 0) {
+  if (r.method === 'janbu_corrected' && r.status === 'converged' && typeof r.correction_factor === 'number' && Number.isFinite(r.correction_factor)) {
+    // R10B-01: f₀ se muestra siempre que sea finito. Ocultar un f₀ ≤ 0 escondía justo el factor responsable de un FS absurdo.
     out.f0 = r.correction_factor;
-    if (typeof r.fos === 'number' && Number.isFinite(r.fos)) out.F0 = r.fos / r.correction_factor;
+    if (typeof r.fos === 'number' && Number.isFinite(r.fos)) {
+      const base = r.fos / r.correction_factor;
+      if (Number.isFinite(base)) out.F0 = base;
+    }
   }
   return out;
+}
+
+/** Recorta una polilínea (x creciente) al intervalo [xmin, xmax], interpolando en los extremos. */
+export function clipPolylineX(points: Point[], xmin: number, xmax: number): Point[] {
+  const out: Point[] = [];
+  const yAt = (a: Point, b: Point, x: number): number => (b[0] === a[0] ? a[1] : a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0]));
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i] as Point;
+    const b = points[i + 1] as Point;
+    if (Math.max(a[0], b[0]) < xmin || Math.min(a[0], b[0]) > xmax) continue;
+    const p0: Point = a[0] < xmin ? [xmin, yAt(a, b, xmin)] : a;
+    const p1: Point = b[0] > xmax ? [xmax, yAt(a, b, xmax)] : b;
+    if (out.length === 0) out.push(p0);
+    out.push(p1);
+  }
+  return out;
+}
+
+/**
+ * Polilínea que el resultado **analizó** (R10B-05, E13l-7): la polilínea ajustada del informe limitada al rango de x de las
+ * dovelas, como el trazo de un círculo. Cuando la masa se trunca (`truncated_driving_mass`) el motor solo evalúa un bloque y
+ * la polilínea completa sería una falla más larga que la analizada. Con el rango cubierto (salvo ruido de coma flotante) o
+ * sin dovelas devuelve los puntos del informe tal cual; `null` si la superficie es un círculo.
+ */
+export function analyzedPolyline(r: Pick<MethodReport, 'surface' | 'slices'>): Point[] | null {
+  if (!isPolylineReport(r.surface)) return null;
+  const pts = r.surface.points.map((p): Point => [p[0], p[1]]);
+  if (pts.length < 2 || r.slices.length === 0) return pts;
+  let xmin = Infinity;
+  let xmax = -Infinity;
+  for (const s of r.slices) {
+    xmin = Math.min(xmin, s.x_left);
+    xmax = Math.max(xmax, s.x_right);
+  }
+  const first = (pts[0] as Point)[0];
+  const last = (pts[pts.length - 1] as Point)[0];
+  const eps = 1e-9 * Math.max(1, Math.abs(last - first));
+  if (xmin <= first + eps && xmax >= last - eps) return pts;
+  const clipped = clipPolylineX(pts, Math.max(xmin, first), Math.min(xmax, last));
+  return clipped.length >= 2 ? clipped : pts;
 }
 
 /** «Polilínea (5 puntos)». */
@@ -58,4 +102,10 @@ export function polylineSummary(n: number): string {
 /** Resumen de una superficie polilínea del informe; null si es un círculo (que se describe con centro y radio). */
 export function surfaceSummary(surface: ReportSurface): string | null {
   return isPolylineReport(surface) ? polylineSummary(surface.points.length) : null;
+}
+
+/** Como `surfaceSummary`, pero cuenta los puntos de la polilínea **analizada** (los que se dibujan y se exportan). */
+export function resultSurfaceSummary(r: Pick<MethodReport, 'surface' | 'slices'>): string | null {
+  const pts = analyzedPolyline(r);
+  return pts ? polylineSummary(pts.length) : null;
 }

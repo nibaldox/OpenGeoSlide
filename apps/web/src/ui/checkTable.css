@@ -1,0 +1,21 @@
+/* Vista «Casos» (R10B-06): resultado con aviso y avisos de cada comprobación. Solo tokens del tema. */
+.badge-warn {
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+  border: 1px solid var(--ui-warn-border);
+}
+
+.check-warnings {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--ui-warn-ink);
+}
+
+.check-warnings .check-note {
+  color: var(--ui-ink-muted);
+}
+
+.check-warnings .check-tag {
+  font-weight: 600;
+}

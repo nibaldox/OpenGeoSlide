@@ -1,0 +1,115 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D21",
+    "title": "Polilínea sobre el contacto de dos materiales",
+    "notes": "Corte de 20 m, 1:1, en un estrato fuerte (c = 20 kPa, φ = 30°) sobre un estrato débil (c = 2 kPa, φ = 10°) cuyo techo, en y = 10 m, aflora en el pie. Polilínea fija de tres puntos (escarpe, base y salida): su tramo central corre exactamente sobre el contacto, y el motor debe tomar el material más débil (E13l-5)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "strong",
+      "name": "Estrato fuerte",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 20.0,
+      "friction_angle": 30.0,
+      "ru": null
+    },
+    {
+      "id": "weak",
+      "name": "Estrato débil",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 2.0,
+      "friction_angle": 10.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "strong",
+      "polygon": [
+        [
+          0.0,
+          10.0
+        ],
+        [
+          0.0,
+          30.0
+        ],
+        [
+          20.0,
+          30.0
+        ],
+        [
+          40.0,
+          10.0
+        ]
+      ]
+    },
+    {
+      "material": "weak",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          40.0,
+          10.0
+        ],
+        [
+          60.0,
+          10.0
+        ],
+        [
+          60.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "spencer",
+      "morgenstern_price",
+      "janbu_simplified",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "polyline",
+      "points": [
+        [
+          10.0,
+          30.0
+        ],
+        [
+          14.0,
+          10.0
+        ],
+        [
+          40.0,
+          10.0
+        ]
+      ]
+    }
+  }
+}

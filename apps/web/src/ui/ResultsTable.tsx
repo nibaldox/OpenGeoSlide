@@ -1,8 +1,8 @@
 import { reportCircle } from '../engine/surface';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
-import { describeWarnings } from '../engine/warnings';
+import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
-import { correctionFactorText, methodDetails, surfaceSummary } from '../report/methodInfo';
+import { correctionFactorText, methodDetails, resultSurfaceSummary } from '../report/methodInfo';
 import { formatFs } from './formatFs';
 
 export const METHOD_LABELS: Record<MethodKind, string> = {
@@ -50,7 +50,7 @@ interface MethodWarning {
 
 function methodWarnings(report: AnalysisReport, severity: 'nota' | 'aviso'): MethodWarning[] {
   return report.results.flatMap((r) =>
-    describeWarnings(r.warnings)
+    describeResultWarnings(r)
       .filter((w) => w.severity === severity)
       .map((w) => ({ key: `${r.method}:${w.code}`, method: r.method, text: w.text })),
   );
@@ -60,7 +60,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
   const notes = methodWarnings(report, 'nota');
   const avisos = methodWarnings(report, 'aviso');
   // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
-  const polylines = report.results.map((r) => surfaceSummary(r.surface));
+  const polylines = report.results.map((r) => resultSurfaceSummary(r));
   const allPolyline = report.results.length > 0 && polylines.every((p) => p !== null);
   const circleColumns = Boolean(lengthUnit) && !allPolyline;
   const columns = 7 + (circleColumns ? 2 : 0) + (allPolyline ? 1 : 0) + 1; // + «Superficie» (Dibujar)

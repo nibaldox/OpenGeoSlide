@@ -758,3 +758,44 @@ def test_oracle_mirror_gives_the_same_fos_for_the_new_methods():
                                                                  [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]]]}]
         mirrored["slope"] = {"direction": "left_to_right"}
         assert _oracle_fos(cs, mirrored, method) == pytest.approx(a, rel=1e-9), method
+
+
+# --- R10A-11: `auto` with the polyline ends fitted to the ground (E13c)
+
+def _hill_model(points: list[list[float]], direction: str = "auto") -> dict:
+    """A symmetric hill (ground y = 10 + x/2 up to the top at x = 20, then back down) with a fixed polyline."""
+    model = v03_model(surface={"type": "polyline", "points": points}, methods=["spencer"])
+    model["materials"] = [_material("soil", 18.0)]
+    model["regions"] = [{"material": "soil", "polygon": [[0, 0], [0, 10], [20, 20], [40, 10], [40, 0]]}]
+    model["slope"] = {"direction": direction}
+    model["analysis"].pop("search", None)
+    return model
+
+
+def test_auto_direction_uses_the_polyline_ends_fitted_to_the_ground():
+    # as written the left end is the higher one (10.5 > 10.4), but both ends lie under the ground and the fitted ones
+    # are at (6.5, 13.25) and (28.97, 15.5): the entry is on the right (E13c, R10A-11).
+    model = _hill_model([[12, 10.5], [15, 9], [18, 10.4]])
+    assert _doc(model, "spencer")["definition"]["orientation"] == "rtl"
+
+
+def test_fitted_polyline_ends_trim_an_end_over_the_ground_and_extend_one_under_it():
+    # the left end, (2, 18), is over the ground (y = 11) and is trimmed where the polyline goes under it, at
+    # (5.5, 12.75); the right end, (18, 14), is under the ground (y = 19) and is extended along its segment to
+    # the ground of the right flank, at (21.5, 19.25).
+    model = _hill_model([[2, 18], [8, 9], [14, 8], [18, 14]])
+    (xl, yl), (xr, yr) = _fitted_ends(model)
+    assert (xl, yl) == pytest.approx((5.5, 12.75), abs=1e-9)
+    assert (xr, yr) == pytest.approx((21.5, 19.25), abs=1e-9)
+    assert _doc(model, "spencer")["definition"]["orientation"] == "rtl"     # 19.25 > 12.75: the right end is the entry
+
+
+def _fitted_ends(model: dict):
+    from to_cslope import fitted_polyline_ends
+    outline = outline_of(regions_of(model))
+    return fitted_polyline_ends(model["analysis"]["surface"]["points"], outline)
+
+
+def test_fitted_polyline_ends_of_a_polyline_already_on_the_ground_are_unchanged():
+    model = _hill_model([[0.0, 10.0], [10.0, 5.0], [30.0, 5.0], [40.0, 10.0]])
+    assert _fitted_ends(model) == ((0.0, 10.0), (40.0, 10.0))
