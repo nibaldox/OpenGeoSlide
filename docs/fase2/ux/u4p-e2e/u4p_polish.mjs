@@ -1,7 +1,7 @@
 // U4-P: recorrido en Chrome de los hallazgos de pulido (UX-13, UX-19, UX9-02…07). Uso: OGS_URL=http://127.0.0.1:5187/ node u4p_polish.mjs
 // Requiere el parche docs/fase2/ux/u4p-e2e/EditorApp_integracion.patch (NoticeList) aplicado a EditorApp.tsx.
 import { chromium } from 'playwright-core';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5187/';
@@ -110,8 +110,11 @@ async function openMenu(page, name) {
   await openMenu(page, 'Archivo');
   const labels = await page.locator('select[aria-label="Abrir un caso publicado como modelo"] option').allInnerTexts();
   const english = labels.filter((l) => /\b(slope|dry|water table|homogeneous|layer|wall|cutting|surcharge|earth dam|example)\b/i.test(l));
-  // I-W: 62 y no 22: la promoción de F3a elevó los casos de verificación de 21 a 61 (más la opción vacía del selector).
-  step('5b los 61 ejemplos con nombre en español', labels.length === 62 && english.length === 0, { n: labels.length, english });
+  // El número de ejemplos sale de verification/cases/INDEX.md («Casos convertidos e incluidos: **N**»), no de un literal que se
+  // queda viejo con cada promoción (21 → 61 → 93). El selector trae además la opción vacía: N + 1 opciones.
+  const repoRoot = process.env.OGS_REPO ?? path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../../..');
+  const nIncluidos = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(readFileSync(path.join(repoRoot, 'verification/cases/INDEX.md'), 'utf8'))?.[1]);
+  step(`5b los ${nIncluidos} ejemplos con nombre en español`, Number.isInteger(nIncluidos) && nIncluidos > 0 && labels.length === nIncluidos + 1 && english.length === 0, { n: labels.length, esperado: nIncluidos + 1, english });
   step('5c el id se conserva en el listado', labels.some((l) => l.startsWith('V047a: ACADS 1(a): talud homogéneo seco (Giam y Donald, 1989)')), labels.slice(0, 3));
   await ctx.close();
 }

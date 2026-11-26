@@ -1,13 +1,22 @@
 // Utilidades de los recorridos de I-W (puerto 5186). OGS_URL y OGS_BIN por entorno (copia de docs/fase3/w1e/e2e/lib.mjs).
 import { chromium } from 'playwright-core';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export const SHOTS = path.join(process.env.TMPDIR, 'iw-shots');
 mkdirSync(SHOTS, { recursive: true });
 export const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
 export const OGS_BIN = process.env.OGS_BIN ?? path.join(process.env.OGS_REPO ?? process.cwd(), 'target/release/ogs');
+// Un caso de verificación por id: primero en verification/cases (los promovidos por el motor) y, si aún no, en verification/pending/F3.
+// Los recorridos no deben fijar la carpeta: V006 y V046a pasaron de pending/F3 a cases al promoverse.
+export const casePath = (repo, id) => {
+  for (const dir of ['verification/cases', 'verification/pending/F3']) {
+    const f = path.join(repo, dir, `${id}.json`);
+    if (existsSync(f)) return f;
+  }
+  throw new Error(`caso ${id} no encontrado ni en verification/cases ni en verification/pending/F3`);
+};
 export const errors = [];
 export const dialogs = [];
 let failed = 0;

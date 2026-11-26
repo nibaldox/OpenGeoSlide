@@ -3,7 +3,7 @@
 // Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node iw_e.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { launchTap, start, step, summary, shot, axe, cli } from './lib.mjs';
+import { launchTap, start, step, summary, shot, axe, cli, casePath } from './lib.mjs';
 
 const REPO = process.env.OGS_REPO ?? process.cwd();
 const T = process.env.TMPDIR;
@@ -13,8 +13,8 @@ for (const scheme of ['light', 'dark']) {
   const tag = scheme === 'light' ? '' : ' (oscuro)';
   await page.getByRole('tab', { name: 'Casos de verificación' }).click();
   await page.waitForSelector('#mode-cases-panel');
-  // Caso: V046a de pending/F3 (con sus comprobaciones publicadas), cargado por el camino de importación de Casos.
-  const f = path.join(REPO, 'verification/pending/F3/V046a.json');
+  // Caso: V046a (de verification/cases, o de pending/F3 si aún no se promueve; con sus comprobaciones publicadas), cargado por el camino de importación de Casos.
+  const f = casePath(REPO, 'V046a');
   await page.locator('#mode-cases-panel input[type="file"]').setInputFiles(f);
   await page.waitForTimeout(600);
   const bishop = page.locator('#mode-cases-panel').getByRole('checkbox', { name: 'Bishop simplificado' });
