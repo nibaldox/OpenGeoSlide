@@ -59,8 +59,8 @@ describe('rótulos', () => {
   });
 
   it('unidades SI e imperial', () => {
-    expect(reinforcementUnits('SI')).toEqual({ length: 'm', force: 'kN', forcePerLength: 'kN/m', stress: 'kPa' });
-    expect(reinforcementUnits('imperial')).toEqual({ length: 'ft', force: 'lbf', forcePerLength: 'lbf/ft', stress: 'psf' });
+    expect(reinforcementUnits('SI')).toEqual({ length: 'm', force: 'kN', forcePerLength: 'kN/m', stress: 'kPa', moment: 'kN·m' });
+    expect(reinforcementUnits('imperial')).toEqual({ length: 'ft', force: 'lbf', forcePerLength: 'lbf/ft', stress: 'psf', moment: 'lbf·ft' });
     expect(reinforcementUnits(undefined).force).toBe('kN');
   });
 });

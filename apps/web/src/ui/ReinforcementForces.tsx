@@ -1,5 +1,5 @@
 import type { AnalysisReport, Reinforcement } from '../engine/types';
-import { FORCE_TABLE_NOTE, STRUCTURAL_LIMIT_TEXT, forceRecords, forcesTable, hasStructuralElements, uncrossedByMethod } from '../report/reinforcementReport';
+import { FORCE_TABLE_NOTE, ITO_MATSUI_NOTE, forceRecords, forcesTable, hasStructuralElements, isItoMatsuiPile, structuralLimitText, uncrossedByMethod } from '../report/reinforcementReport';
 import { METHOD_LABELS } from './methodLabels';
 
 const fmtFs = (v: number): string => v.toFixed(3).replace('.', ',');
@@ -37,7 +37,7 @@ export function ReinforcementForces({ report, reinforcements, units }: { report:
                 {t.rows.map((row, i) => (
                   <tr key={`${row[0]}-${row[2]}-${i}`} className={row[row.length - 1] === 'Aplicada' ? undefined : 'row-warn'}>
                     {row.map((cell, c) => (
-                      <td key={c} className={c >= 2 && c <= 6 ? 'num' : undefined}>
+                      <td key={c} className={t.numeric[c] ? 'num' : undefined}>
                         {cell}
                       </td>
                     ))}
@@ -58,9 +58,14 @@ export function ReinforcementForces({ report, reinforcements, units }: { report:
           {FORCE_TABLE_NOTE}
         </p>
       )}
+      {withForces.length > 0 && (reinforcements ?? []).some(isItoMatsuiPile) && (
+        <p className="rf-note small" data-testid="ito-matsui-note">
+          {ITO_MATSUI_NOTE}
+        </p>
+      )}
       {limit && (
         <p className="rf-limit small" data-testid="structural-limit">
-          <strong>Límite del cálculo.</strong> {STRUCTURAL_LIMIT_TEXT}
+          <strong>Límite del cálculo.</strong> {structuralLimitText(reinforcements)}
         </p>
       )}
     </section>

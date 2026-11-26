@@ -69,13 +69,16 @@ const LINE_LOAD_KEYS = ['type', 'id', 'x', 'p', 'angle'] as const;
 // Refuerzos (v0.4, F4.2): `type` primero, como el motor (serde con `tag = "type"`). Cada variante rechaza las claves de las otras.
 const REINFORCEMENT_COMMON_KEYS = ['type', 'id', 'x1', 'y1', 'x2', 'y2', 'application'] as const;
 const TENSION_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'tensile_capacity', 'end1_capacity', 'end2_capacity', 'spacing', 'direction', 'pullout'] as const;
-const PILE_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'force', 'spacing', 'direction', 'angle'] as const;
+// v0.5 (E15i-1): `lateral_pressure` y `capacity` al final, después de `angle`; `force` pasa a opcional (excluye a `lateral_pressure`).
+const PILE_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'force', 'spacing', 'direction', 'angle', 'lateral_pressure', 'capacity'] as const;
+const LATERAL_PRESSURE_KEYS = ['model', 'diameter', 'location'] as const;
+const PILE_CAPACITY_KEYS = ['shear', 'moment'] as const;
 const SHEET_PILE_KEYS = [...REINFORCEMENT_COMMON_KEYS, 'force', 'direction', 'angle'] as const;
 const PULLOUT_BOND_KEYS = ['model', 'strength', 'bonded_length'] as const;
 const PULLOUT_INTERFACE_KEYS = ['model', 'adhesion', 'friction_angle', 'coverage'] as const;
 const PULLOUT_DEVELOPMENT_KEYS = ['model', 'length1', 'length2'] as const;
 /** Opcionales de un refuerzo: un `null` cuenta como ausente (igual que en el motor) y no se escribe. */
-const REINFORCEMENT_OPTIONAL_KEYS = ['end1_capacity', 'end2_capacity', 'spacing', 'angle', 'pullout'] as const;
+const REINFORCEMENT_OPTIONAL_KEYS = ['end1_capacity', 'end2_capacity', 'spacing', 'angle', 'pullout', 'force', 'lateral_pressure', 'capacity'] as const;
 const TENSION_TYPES: readonly string[] = ['anchor', 'nail', 'geosynthetic'];
 const REINFORCEMENT_TYPES: readonly string[] = [...TENSION_TYPES, 'pile', 'sheet_pile'];
 const SLOPE_KEYS = ['direction'] as const;
@@ -184,6 +187,12 @@ const REINFORCEMENT_FIELD_NAME: Readonly<Record<string, string>> = {
   angle: 'ángulo',
   force: 'fuerza',
   pullout: 'arrancamiento',
+  lateral_pressure: 'presión del suelo',
+  capacity: 'capacidad',
+  diameter: 'diámetro',
+  location: 'ubicación de la fuerza',
+  shear: 'corte',
+  moment: 'momento',
   model: 'modelo de arrancamiento',
   strength: 'resistencia por metro',
   bonded_length: 'longitud adherida',
@@ -219,6 +228,12 @@ export function describePath(path: string): string {
       if (c === undefined) return `el refuerzo ${n(b)}`;
       const rf = (k: string | undefined): string => (k !== undefined && REINFORCEMENT_FIELD_NAME[k]) || (k ?? 'valor');
       if (c === 'pullout') return d === undefined ? `el refuerzo ${n(b)} (arrancamiento)` : `el refuerzo ${n(b)} (arrancamiento, ${rf(d)})`;
+      // v0.5 (E15i-1): la presión del suelo de Ito-Matsui y la capacidad del pilote.
+      if (c === 'lateral_pressure' || c === 'capacity') {
+        const whole = rf(c);
+        if (d === undefined) return `el refuerzo ${n(b)} (${whole})`;
+        return `el refuerzo ${n(b)} (${whole}, ${c === 'lateral_pressure' && d === 'model' ? 'modelo' : rf(d)})`;
+      }
       return `el refuerzo ${n(b)} (${rf(c)})`;
     }
     case 'analysis': {
@@ -472,7 +487,12 @@ const pulloutSub: Sub = (v, path, ctx) => {
 const reinforcementSub: Sub = (v, path, ctx) => {
   if (!isRecord(v) || typeof v.type !== 'string' || !REINFORCEMENT_TYPES.includes(v.type)) return plain(v, path, '', ctx);
   const keys = TENSION_TYPES.includes(v.type) ? TENSION_KEYS : v.type === 'pile' ? PILE_KEYS : SHEET_PILE_KEYS;
-  return dropNull(orderedWith(keys, { pullout: pulloutSub }), REINFORCEMENT_OPTIONAL_KEYS)(v, path, ctx);
+  const subs: Record<string, Sub> = { pullout: pulloutSub };
+  if (v.type === 'pile') {
+    subs.lateral_pressure = orderedWith(LATERAL_PRESSURE_KEYS);
+    subs.capacity = dropNull(orderedWith(PILE_CAPACITY_KEYS), PILE_CAPACITY_KEYS);
+  }
+  return dropNull(orderedWith(keys, subs), REINFORCEMENT_OPTIONAL_KEYS)(v, path, ctx);
 };
 
 const analysisSub: Sub = (v, path, ctx) => {
@@ -551,14 +571,25 @@ export function v04Fields(model: unknown): V03Field[] {
   return [{ path: '/reinforcements', what: 'los refuerzos' }];
 }
 
-/** Campos de la v0.5 que usa un modelo (F5.1): `analysis.tension_crack`. Un `null` cuenta como ausente, como en el motor (`first_v05_field`). */
+/**
+ * Campos de la v0.5 que usa un modelo (F5.1, E15i-1): `analysis.tension_crack` y, en un `pile`, `lateral_pressure` y `capacity`. Un `null`
+ * cuenta como ausente, como en el motor (`first_v05_field`).
+ */
 export function v05Fields(model: unknown): V03Field[] {
-  if (!isRecord(model) || !isRecord(model.analysis) || !present(model.analysis.tension_crack)) return [];
-  return [{ path: '/analysis/tension_crack', what: 'la grieta de tracción' }];
+  const out: V03Field[] = [];
+  if (isRecord(model) && isRecord(model.analysis) && present(model.analysis.tension_crack)) out.push({ path: '/analysis/tension_crack', what: 'la grieta de tracción' });
+  if (isRecord(model) && Array.isArray(model.reinforcements)) {
+    model.reinforcements.forEach((r, i) => {
+      if (!isRecord(r) || r.type !== 'pile') return;
+      if (present(r.lateral_pressure)) out.push({ path: `/reinforcements/${i}/lateral_pressure`, what: 'la presión del suelo de un pilote (Ito-Matsui)' });
+      if (present(r.capacity)) out.push({ path: `/reinforcements/${i}/capacity`, what: 'la capacidad de un pilote' });
+    });
+  }
+  return out;
 }
 
 /**
- * Versión mínima con la que se guarda el modelo (F3.9, F4.1, F5.1): `"0.5"` si hay grieta de tracción, `"0.4"` si hay refuerzos,
+ * Versión mínima con la que se guarda el modelo (F3.9, F4.1, F5.1, E15i-1): `"0.5"` si hay grieta de tracción o un pilote con presión del suelo, `"0.4"` si hay refuerzos,
  * `"0.3"` si usa algún campo de la v0.3, si no `"0.2"`. El agua embalsada no tiene campo y no sube la versión.
  */
 export function minimalVersion(model: unknown): OgsVersion {
@@ -687,9 +718,37 @@ function checkReinforcementsShape(model: Rec, issues: Issue[]): void {
       else if (p.model === 'development') need(['length1', 'length2']);
       else err(`El modelo de arrancamiento de ${where} no se reconoce: debe ser adherencia (bond), interfaz (interface) o desarrollo (development).`, `${pb}/model`, `model = ${JSON.stringify(p.model) ?? 'ausente'}`);
     } else {
-      if (!isNum(r.force)) bad('force', 'la fuerza');
+      // v0.5 (E15i-1): en un `pile`, `force` es opcional si hay `lateral_pressure` (la exclusión de los dos la valida `validateLocal`).
+      if (r.type === 'pile') {
+        if (OPTIONAL_ABSENT(r.force)) {
+          if (OPTIONAL_ABSENT(r.lateral_pressure)) bad('force', 'la fuerza (o la presión del suelo, lateral_pressure)');
+        } else if (!isNum(r.force)) bad('force', 'la fuerza');
+      } else if (!isNum(r.force)) bad('force', 'la fuerza');
       if (r.type === 'pile' && !OPTIONAL_ABSENT(r.spacing) && !isNum(r.spacing)) bad('spacing', 'un número en spacing');
       if (!OPTIONAL_ABSENT(r.angle) && !isNum(r.angle)) bad('angle', 'un número en el ángulo');
+      if (r.type === 'pile') {
+        const lp = r.lateral_pressure;
+        if (!OPTIONAL_ABSENT(lp)) {
+          if (!isRecord(lp)) bad('lateral_pressure', 'la presión del suelo como un bloque { … }');
+          else {
+            const lb = `${base}/lateral_pressure`;
+            if (lp.model !== 'ito_matsui') err(`En ${describePath(`${lb}/model`)} el modelo debe ser «ito_matsui».`, `${lb}/model`, `model = ${JSON.stringify(lp.model) ?? 'ausente'}`);
+            if (!isNum(lp.diameter)) err(`En ${describePath(`${lb}/diameter`)} falta el valor numérico.`, `${lb}/diameter`, `diameter = ${JSON.stringify(lp.diameter) ?? 'ausente'}`);
+            if (lp.location !== 'centroid' && lp.location !== 'slip_surface') {
+              err(`En ${describePath(`${lb}/location`)} falta la ubicación: «centroid» o «slip_surface».`, `${lb}/location`, `location = ${JSON.stringify(lp.location) ?? 'ausente'}`);
+            }
+          }
+        }
+        const cap = r.capacity;
+        if (!OPTIONAL_ABSENT(cap)) {
+          if (!isRecord(cap)) bad('capacity', 'la capacidad como un bloque { shear, moment }');
+          else {
+            for (const key of ['shear', 'moment'] as const) {
+              if (!OPTIONAL_ABSENT(cap[key]) && !isNum(cap[key])) err(`En ${describePath(`${base}/capacity/${key}`)} falta el valor numérico.`, `${base}/capacity/${key}`);
+            }
+          }
+        }
+      }
     }
   });
 }

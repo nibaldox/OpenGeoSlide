@@ -6,6 +6,7 @@ import type { ModelDoc } from '../editor/types';
 import type { AnalysisReport, MethodReport, Reinforcement, ReinforcementForce } from '../engine/types';
 import { loadEngineReport, loadPublishedDoc } from './fixtures';
 import type { ReportInput } from './types';
+import { itoPile, pile } from '../editor/state/reinforcementFixtures';
 
 const asReinforcement = (o: object): Reinforcement => o as unknown as Reinforcement;
 
@@ -86,4 +87,24 @@ export function syntheticReinforcedInput(options: SyntheticOptions = {}): Report
     checks: [],
     disclaimer: '',
   };
+}
+
+/** Pilote de Ito-Matsui (S = 2,4 m, D = 0,8 m, tope de 150 kN al corte y 250 kN·m al momento), un pilote con fuerza dada y la tablestaca (v0.5, E15i-1). */
+export const ITO_PILE = asReinforcement(itoPile({ id: 'pilote-1', x1: 30, y1: 33, x2: 30, y2: 22, spacing: 2.4, capacity: { shear: 150, moment: 250 } }));
+export const GIVEN_PILE = asReinforcement(pile({ id: 'pilote-2', x1: 20, y1: 33, x2: 20, y2: 20, spacing: 1.5, force: 60 }));
+
+/**
+ * V047a con un pilote de Ito-Matsui, uno con fuerza dada y una tablestaca. Las fuerzas por cruce llevan `soil_force`, `governs` y `arm` solo en el
+ * pilote de Ito-Matsui (E15i-7), como el motor. Se arma a mano: el motor de las ramas de la web no siempre trae Ito-Matsui.
+ */
+export function syntheticItoMatsuiInput(governs: 'soil' | 'shear' | 'bending' = 'shear'): ReportInput {
+  const input = syntheticReinforcedInput({ reinforcements: [ITO_PILE, GIVEN_PILE, SHEET] });
+  const circle = { xc: 29.54334963719809, yc: 53.63784815923435, r: 28.641487934160704 };
+  const forces = (r: Reinforcement, available: number, extra: Partial<ReinforcementForce>): ReinforcementForce[] =>
+    circleCrossings(r, circle).map(([x, y, station], crossing) => ({ id: r.id, crossing, x, y, station, available, fx: available, fy: 0, application: r.application, status: 'applied', ...extra }) as ReinforcementForce);
+  const results = input.results.map((m) => ({
+    ...m,
+    reinforcement_forces: [...forces(ITO_PILE, 62.5, { soil_force: 117.8, governs, arm: 1.2236 }), ...forces(GIVEN_PILE, 40, {}), ...forces(SHEET, 120, {})],
+  }));
+  return { ...input, model: { ...input.model, version: '0.5' }, results };
 }

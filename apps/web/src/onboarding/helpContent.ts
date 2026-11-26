@@ -4,7 +4,7 @@
 
 import type { ShortcutAction } from '../editor/app/shortcuts';
 import { CRACK_PW_NOTE, POND_NOTE } from '../report/crackReport';
-import { STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
+import { ITO_MATSUI_STRUCTURAL_LIMIT_TEXT, STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
 
 export interface KeyProbe {
@@ -179,7 +179,21 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'reinforcements',
     term: 'Refuerzos',
     definition:
-      'Elementos que aportan una fuerza al equilibrio en cada cruce con la superficie de deslizamiento: Anclaje, Clavo, Geosintético, Pilote y Tablestaca (formato 0.4; el panel «Refuerzos» y la herramienta «Dibujar refuerzo» los crean). Cada elemento va de la cabeza (en el paramento o el terreno) a la punta; un elemento que cruza dos veces da dos fuerzas, y uno que no toca la masa no cambia el FS (nota «reinforcement_outside_mass»). Una tablestaca anclada es una Tablestaca más un Anclaje. En Pilote y Tablestaca la fuerza de corte es un dato constante que usted fija.',
+      'Elementos que aportan una fuerza al equilibrio en cada cruce con la superficie de deslizamiento: Anclaje, Clavo, Geosintético, Pilote y Tablestaca (formato 0.4; el panel «Refuerzos» y la herramienta «Dibujar refuerzo» los crean). Cada elemento va de la cabeza (en el paramento o el terreno) a la punta; un elemento que cruza dos veces da dos fuerzas, y uno que no toca la masa no cambia el FS (nota «reinforcement_outside_mass»). Una tablestaca anclada es una Tablestaca más un Anclaje. En Tablestaca la fuerza de corte es un dato constante que usted fija; en Pilote usted elige entre una fuerza de corte constante («Fuerza dada») y la presión del suelo de Ito-Matsui (formato 0.5).',
+  },
+  {
+    id: 'ito-matsui',
+    term: 'Ito-Matsui (presión del suelo sobre un pilote)',
+    definition:
+      'Opción de la tarjeta del Pilote («Origen de la fuerza» = «Presión del suelo (Ito-Matsui)»; formato 0.5): la fuerza no es un dato, sale de la presión que el suelo ejerce sobre una fila de pilotes, según Ito y Matsui (1975), Soils and Foundations 15(4):43-59. ' +
+      'Por pilote y por unidad de profundidad, p(z) = c·A1 + σ′v·A2, integrada desde la cabeza del pilote (o el terreno, si la cabeza queda sobre él) hasta el cruce con la superficie de falla. ' +
+      'Usted ingresa el diámetro, el espaciamiento entre ejes (debe ser mayor que el diámetro), la ubicación de la fuerza (en el centroide de la resultante, por defecto, o en la superficie de falla) y, opcionalmente, la capacidad al corte y la capacidad a momento por pilote. ' +
+      'La fuerza por pilote es el menor entre la resultante del suelo, el corte y el momento dividido por el brazo, y se divide por el espaciamiento. ' +
+      'En la tabla de fuerzas: «Fuerza del suelo» es la fuerza por metro antes del tope, «Gobierna» dice cuál fija la fuerza aplicada (suelo, corte o flexión) y «Brazo» es la distancia de la resultante al cruce. ' +
+      'Límites: la fórmula vale con S/D de 2 a 8 (S el espaciamiento y D el diámetro); fuera de ese rango sobrestima la fuerza con S/D pequeño y la subestima con S/D grande (según Ukritchon y Keawsawasvong (2017)), y el programa emite el aviso ito_matsui_spacing_range: revise el espaciamiento. ' +
+      'Supuestos del artículo: pilotes rígidos, deformación plana y dos superficies plásticas entre pilotes. σ′v es la tensión efectiva (el agua sobre el terreno y la presión de poros se descuentan; con material no drenado o φ = 0 se usa la tensión total) y las cargas de superficie no entran en σ′v. ' +
+      'Con φ casi 0 la fuerza no baja del valor de φ = 0 (regla de cSlope y XSLOPE, que no viene del artículo; solo actúa con S/D ≥ 8). El pilote debe ser vertical; la presión del suelo sobre él es horizontal, así que use la dirección «Ángulo» con 0°. ' +
+      'El programa no calcula el empotramiento, la deflexión ni la distribución de momentos a lo largo del pilote.',
   },
   {
     id: 'pullout',
@@ -197,7 +211,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'reinforcement-status',
     term: 'Estado de un cruce',
     definition:
-      'En la tabla de fuerzas de cada refuerzo: applied (la fuerza actúa en el cruce), outside_mass (el cruce cae en el aire o fuera de la masa analizada), compression_ignored (un pasivo comprimido, que no aporta) y no_capacity (la capacidad en ese punto es cero, por ejemplo el tramo libre de un tirante sin placa de cabeza; no emite nota). «Disponible» es la fuerza por metro antes de aplicarla; en un pasivo, la aplicada se moviliza dividida por F.',
+      'En la tabla de fuerzas de cada refuerzo: applied (la fuerza actúa en el cruce), outside_mass (el cruce cae en el aire o fuera de la masa analizada), compression_ignored (un pasivo comprimido, que no aporta) y no_capacity (la capacidad en ese punto es cero, por ejemplo el tramo libre de un tirante sin placa de cabeza; no emite nota). «Disponible» es la fuerza por metro antes de aplicarla (con el tope de capacidad de un pilote de Ito-Matsui, «Fuerza del suelo» es la anterior al tope, «Gobierna» dice cuál lo fija y «Brazo» es la distancia de la resultante al cruce); en un pasivo, la aplicada se moviliza dividida por F.',
   },
   {
     id: 'slice',
@@ -237,8 +251,9 @@ export const LIMITATIONS: readonly string[] = [
   'Agua embalsada: se incluye siempre que la línea piezométrica pase sobre el terreno (nota water_above_ground), con su peso y su empuje horizontal; no hay interruptor. El sismo pseudoestático no actúa sobre ella ni sobre el agua de la grieta. Con un material con ru, la presión de poros es u = ru·(W + V)/b, que da entre 1 % y 4,5 % menos de FS que contar solo el suelo; esa regla no se pudo contrastar con otro programa.',
   'Grieta de tracción: la profundidad «Automática» no tiene tope por la altura del talud, y con la fracción de agua 1 (la que propone la interfaz) el resultado es el conservador. La monotonía con la profundidad de una grieta seca no está garantizada, porque el bloque que se quita cambia con ella. Con una búsqueda, los círculos que no alcanzan la grieta se descartan; los refuerzos que cruzan la superficie del lado de la cresta de x_c quedan fuera de la masa (nota reinforcement_outside_mass).',
   'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',
-  `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT} La fuerza de un pilote o de una tablestaca es un dato que usted fija (el motor emite la nota structural_checks_not_covered): el programa no comprueba que el elemento la resista.`,
-  'Refuerzos que no se modelan todavía: la fuerza de pilote por el empuje del suelo (Ito-Matsui), el pretensado como campo aparte (use un anclaje activo con la carga de bloqueo como capacidad), la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos lanzados, los anclajes helicoidales, la presión de fluido equivalente y el soporte definido por el usuario. El sismo no actúa sobre las fuerzas de los refuerzos.',
+  `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT} La fuerza de una tablestaca, y la de un pilote con «Fuerza dada», es un dato que usted fija (el motor emite la nota structural_checks_not_covered): el programa no comprueba que el elemento la resista. Con la presión del suelo de Ito-Matsui el programa calcula el empuje: ${ITO_MATSUI_STRUCTURAL_LIMIT_TEXT}`,
+  'Refuerzos que no se modelan todavía: el pretensado como campo aparte (use un anclaje activo con la carga de bloqueo como capacidad), la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos lanzados, los anclajes helicoidales, la presión de fluido equivalente y el soporte definido por el usuario. El sismo no actúa sobre las fuerzas de los refuerzos.',
+  'Ito-Matsui: la fórmula del pilote con presión del suelo vale con S/D de 2 a 8 (aviso ito_matsui_spacing_range fuera de ese rango: sobrestima la fuerza con S/D pequeño y la subestima con S/D grande, según Ukritchon y Keawsawasvong, 2017). Supone pilotes rígidos, deformación plana y dos superficies plásticas entre pilotes. El piso de φ = 0 (la fuerza no baja del valor de φ = 0) es la regla de cSlope y XSLOPE y no viene del artículo; la tensión efectiva con presión de poros sigue a Poulos (1995) y Hassiotis y otros (1997). El pilote debe ser vertical, las cargas de superficie no entran en la tensión vertical y no hay empotramiento, deflexión ni diagrama de momentos.',
   'Un cruce con capacidad cero (por ejemplo, el tramo libre de un tirante con adherencia en el bulbo y sin capacidad en la placa de cabeza) no aplica fuerza y queda con el estado no_capacity, sin nota: compruebe la tabla de fuerzas. Un activo comprimido se aplica con su fuerza completa y un pasivo comprimido se descarta; el oráculo instalado de cSlope descarta ambos, así que en un activo comprimido los resultados difieren de él.',
   'Con la búsqueda de la superficie crítica y refuerzos, el FS es discontinuo: un círculo candidato puede ganar o perder un cruce, y cada cruce suma una fuerza completa. La búsqueda también puede esquivar el refuerzo: si el resultado trae la nota reinforcement_outside_mass, el FS mínimo es el de una superficie que el refuerzo no cruza. Mueva el refuerzo o acote los rangos de entrada y salida, y contraste el resultado con superficies fijas cercanas a la crítica.',
   'Con unidades imperiales y piezométrica, γw debe ser explícito y no menor que 20 pcf (se usa 62,4): un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».',

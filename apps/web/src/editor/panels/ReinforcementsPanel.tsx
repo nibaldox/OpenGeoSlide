@@ -2,23 +2,27 @@ import { useId, useMemo } from 'react';
 import type { Reinforcement } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { createToolSwitch } from '../app/discard';
+import { itoMatsuiOutOfRange, itoMatsuiRangeText } from '../../engine/warnings';
+import { structuralLimitText } from '../../report/reinforcementReport';
 import type { EditorStore } from '../types';
 import { REINFORCEMENT_LABEL } from '../state/validateLocal';
 import { LabeledField, PanelSection } from './Fields';
 import { formatNumber, modelBounds } from './forms';
 import {
   APPLICATION_OPTIONS,
+  LOCATION_OPTIONS,
   PILE_DIRECTION_OPTIONS,
+  PILE_SOURCE_OPTIONS,
   PULLOUT_OPTIONS,
   REINFORCEMENT_ADD_LABELS,
   REINFORCEMENT_TYPES,
   REINFORCEMENT_TYPE_LABELS,
-  STRUCTURAL_LIMIT_TEXT,
   TENSION_DIRECTION_OPTIONS,
   reinforcementAddCommand,
   alignedSheet,
-  isInclinedSheet,
+  isInclinedVertical,
   isTensionType,
+  itoMatsuiRatio,
   evaluateCard,
   reinforcementLength,
   reinforcementRemoveCommand,
@@ -26,6 +30,7 @@ import {
   reinforcementUnits,
   reinforcementUpsertCommand,
   switchDirection,
+  switchPileSource,
   switchPullout,
   type PulloutKind,
   type ReinforcementForm,
@@ -79,13 +84,16 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   );
   const [form, setForm, reset] = useDraft<ReinforcementForm>(() => reinforcementToForm(reinforcement), [reinforcement]);
   const otherIds = list.flatMap((r, i) => (i !== index ? [r.id] : []));
-  // R11B-10: una tablestaca que el archivo trae inclinada enseña su x2 y su error en vez de forzar x2 = x1 sin avisar.
-  const inclined = isInclinedSheet(reinforcement);
+  // R11B-10: una tablestaca (o un pilote con presión del suelo, E15i-1) que el archivo trae inclinada enseña su x2 y su error en vez de forzar x2 = x1 sin avisar.
+  const inclined = isInclinedVertical(reinforcement);
   const ctx = { otherIds, index, units: docUnits, inclined };
   const { errors, pending, valid } = evaluateCard(form, reinforcement, ctx);
   const scope = `Refuerzo ${index + 1}`;
   const tension = isTensionType(form.type);
   const sheet = form.type === 'sheet_pile';
+  // E15i-1: un pilote con la presión del suelo de Ito-Matsui es vertical y no lleva `force`, sino diámetro, ubicación y capacidad.
+  const ito = form.type === 'pile' && form.pileSource === 'ito_matsui';
+  const vertical = sheet || ito;
   const L = REINFORCEMENT_LABEL;
 
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'reinforcement', index } });
@@ -121,6 +129,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
 
   // R11B-10: con algún error en el borrador, un cambio de lista desplegable se ve en el control pero no llega al modelo; se avisa.
   const length = valid ? reinforcementLength(valid) : null;
+  const ratio = ito && valid ? itoMatsuiRatio(valid) : null;
   const forceUnit = sheet ? units.forcePerLength : units.force;
 
   return (
@@ -139,6 +148,17 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
           onChange={(application) => apply({ ...form, application })}
           onFocus={select}
         />
+        {form.type === 'pile' ? (
+          <SelectField
+            scope={scope}
+            label="Origen de la fuerza"
+            value={form.pileSource}
+            options={PILE_SOURCE_OPTIONS}
+            path={`/reinforcements/${index}/lateral_pressure`}
+            onChange={(source) => apply(switchPileSource(form, source, docUnits))}
+            onFocus={select}
+          />
+        ) : null}
         {tension ? (
           <SelectField
             scope={scope}
@@ -162,7 +182,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
         )}
       </div>
       <div className="ep-grid">
-        {sheet ? (
+        {vertical ? (
           <>
             {field('x1', 'Posición x (vertical)', units.length)}
             {field('y1', L.y1, units.length)}
@@ -217,17 +237,51 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
           ) : null}
         </>
       ) : (
-        <div className="ep-grid">
-          {field('force', L.force, forceUnit)}
-          {form.type === 'pile' ? field('spacing', L.spacing, units.length, { hint: 'Vacío: 1' }) : null}
-          {form.direction === 'angle' ? field('angle', L.angle, '°') : null}
-        </div>
+        <>
+          <div className="ep-grid">
+            {ito ? field('diameter', L.diameter, units.length, { hint: 'Menor que el espaciamiento' }) : field('force', L.force, forceUnit)}
+            {form.type === 'pile' ? field('spacing', L.spacing, units.length, { hint: 'Vacío: 1' }) : null}
+            {form.direction === 'angle' ? field('angle', L.angle, '°') : null}
+          </div>
+          {ito ? (
+            <>
+              <SelectField
+                scope={scope}
+                label="Ubicación de la fuerza"
+                value={form.location}
+                options={LOCATION_OPTIONS}
+                path={`/reinforcements/${index}/location`}
+                onChange={(location) => apply({ ...form, location })}
+                onFocus={select}
+              />
+              <div className="ep-grid">
+                {field('shear', L.shear, units.force, { hint: 'Vacío: sin tope' })}
+                {field('moment', L.moment, units.moment, { hint: 'Vacío: sin tope' })}
+              </div>
+              {ratio !== null ? (
+                <p className="muted small ep-length" data-testid="ito-matsui-ratio">
+                  Relación espaciamiento/diámetro: S/D = {formatNumber(Math.round(ratio * 100) / 100)}.
+                </p>
+              ) : null}
+              {ratio !== null && itoMatsuiOutOfRange(ratio) ? (
+                <p className="ep-note small" data-testid="ito-matsui-range">
+                  {itoMatsuiRangeText(ratio)}
+                </p>
+              ) : null}
+              <p className="muted small">
+                La fuerza sale de la presión del suelo de Ito y Matsui (1975) sobre el tramo del pilote hasta la superficie de falla; el tope es el menor entre esa
+                resultante, el corte y el momento dividido por el brazo. Una presión de suelo sobre un pilote vertical es horizontal: use la dirección «Ángulo» con
+                0°; con «Tangente» el FS baja alrededor de 0,3 %.
+              </p>
+            </>
+          ) : null}
+        </>
       )}
       {inclined ? (
         <div className="ep-actions">
           <button
             type="button"
-            aria-label={`Alinear verticalmente la tablestaca del refuerzo ${index + 1} (x2 = x1)`}
+            aria-label={`Alinear verticalmente ${sheet ? 'la tablestaca' : 'el pilote'} del refuerzo ${index + 1} (x2 = x1)`}
             onClick={() => {
               // «Alinear» corrige x2 y, si el resto del borrador es válido, conserva también los cambios pendientes (una lista desplegable).
               const { commit: withDraft } = evaluateCard({ ...form, x2: form.x1 }, reinforcement, { ...ctx, inclined: false });
@@ -303,7 +357,7 @@ export function ReinforcementsPanel({ store }: { store: EditorStore }) {
         bloqueo de un anclaje); pasiva: se moviliza con el deslizamiento y entra dividida por F. Las capacidades son por elemento y el espaciamiento las
         pasa a fuerza por metro de talud. La tablestaca es vertical y su fuerza es por metro de muro. Los refuerzos no reciben sismo.
       </p>
-      {hasStructural ? <p className="ep-note small">{STRUCTURAL_LIMIT_TEXT}</p> : null}
+      {hasStructural ? <p className="ep-note small">{structuralLimitText(list)}</p> : null}
     </PanelSection>
   );
 }

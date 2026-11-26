@@ -3,6 +3,8 @@
 // rechaza también el diagnóstico, y con las mismas palabras. No depende de React ni del DOM.
 
 import type {
+  LateralPressure,
+  PileCapacity,
   PileDirection,
   Pullout,
   Reinforcement,
@@ -10,9 +12,9 @@ import type {
   TensionDirection,
 } from '../../engine/types';
 import { deepEqual } from '../state/docUtils';
-import { nextReinforcementId, reinforcementDefaults } from '../state/reinforcementDefaults';
+import { itoMatsuiDiameterDefault, nextReinforcementId, reinforcementDefaults } from '../state/reinforcementDefaults';
 import { isImperialUnits } from '../state/units';
-import { REINFORCEMENT_LABEL, REINFORCEMENT_RULE } from '../state/validateLocal';
+import { REINFORCEMENT_LABEL, REINFORCEMENT_RULE, spacingOverDiameterRule } from '../state/validateLocal';
 import type { EditorCommand, ModelDoc } from '../types';
 import { done, finite, formatNumber, modelBounds, parseNumber, take, terrainBottomY, terrainY, type FieldErrors, type FormOutcome, type NumberRule } from './forms';
 
@@ -54,6 +56,20 @@ export const PILE_DIRECTION_OPTIONS: ReadonlyArray<{ value: PileDirection; label
   { value: 'perpendicular', label: 'Perpendicular al elemento' },
 ];
 
+/** Origen de la fuerza de un pilote (v0.5, E15i-1): un dato que usted fija, o la presión del suelo de Ito-Matsui. */
+export type PileSource = 'force' | 'ito_matsui';
+
+export const PILE_SOURCE_OPTIONS: ReadonlyArray<{ value: PileSource; label: string }> = [
+  { value: 'force', label: 'Fuerza dada' },
+  { value: 'ito_matsui', label: 'Presión del suelo (Ito-Matsui)' },
+];
+
+/** Dónde actúa la fuerza de Ito-Matsui (E15i-5). */
+export const LOCATION_OPTIONS: ReadonlyArray<{ value: 'centroid' | 'slip_surface'; label: string }> = [
+  { value: 'centroid', label: 'En el centroide de la resultante (por defecto)' },
+  { value: 'slip_surface', label: 'En la superficie de falla' },
+];
+
 export type PulloutKind = 'none' | 'bond' | 'interface' | 'development';
 
 export const PULLOUT_OPTIONS: ReadonlyArray<{ value: PulloutKind; label: string }> = [
@@ -79,12 +95,14 @@ export interface ReinforcementUnits {
   forcePerLength: string;
   /** Esfuerzo (adhesión de la interfaz). */
   stress: string;
+  /** Momento por pilote (capacidad a momento de Ito-Matsui). */
+  moment: string;
 }
 
 export function reinforcementUnits(units: string | undefined): ReinforcementUnits {
   return isImperialUnits(units)
-    ? { length: 'ft', force: 'lbf', forcePerLength: 'lbf/ft', stress: 'psf' }
-    : { length: 'm', force: 'kN', forcePerLength: 'kN/m', stress: 'kPa' };
+    ? { length: 'ft', force: 'lbf', forcePerLength: 'lbf/ft', stress: 'psf', moment: 'lbf·ft' }
+    : { length: 'm', force: 'kN', forcePerLength: 'kN/m', stress: 'kPa', moment: 'kN·m' };
 }
 
 // ───────────────────────── Valores iniciales ─────────────────────────
@@ -177,6 +195,15 @@ export interface ReinforcementForm {
   length2: string;
   force: string;
   angle: string;
+  /** Solo en un pilote (v0.5, E15i-1). */
+  pileSource: PileSource;
+  /** Diámetro del pilote con presión del suelo. */
+  diameter: string;
+  location: 'centroid' | 'slip_surface';
+  /** Capacidad al corte por pilote; vacío = sin tope. */
+  shear: string;
+  /** Capacidad a momento por pilote; vacío = sin tope. */
+  moment: string;
 }
 
 export function reinforcementToForm(r: Reinforcement): ReinforcementForm {
@@ -203,6 +230,11 @@ export function reinforcementToForm(r: Reinforcement): ReinforcementForm {
     length2: '',
     force: '',
     angle: '',
+    pileSource: 'force',
+    diameter: '',
+    location: 'centroid',
+    shear: '',
+    moment: '',
   };
   if ('tensile_capacity' in r) {
     form.tensile_capacity = formatNumber(r.tensile_capacity);
@@ -227,7 +259,18 @@ export function reinforcementToForm(r: Reinforcement): ReinforcementForm {
   } else {
     form.force = formatNumber(r.force);
     form.angle = formatNumber(r.angle);
-    if (r.type === 'pile') form.spacing = formatNumber(r.spacing);
+    if (r.type === 'pile') {
+      form.spacing = formatNumber(r.spacing);
+      if (r.lateral_pressure) {
+        form.pileSource = 'ito_matsui';
+        form.diameter = formatNumber(r.lateral_pressure.diameter);
+        form.location = r.lateral_pressure.location;
+      }
+      if (r.capacity) {
+        form.shear = formatNumber(r.capacity.shear);
+        form.moment = formatNumber(r.capacity.moment);
+      }
+    }
   }
   return form;
 }
@@ -261,6 +304,29 @@ export function switchDirection(form: ReinforcementForm, direction: string): Rei
   if (isTensionType(form.type)) return { ...form, direction };
   if (direction === 'angle') return { ...form, direction, angle: form.angle.trim() === '' ? '0' : form.angle };
   return { ...form, direction, angle: '' };
+}
+
+/**
+ * Cambia el origen de la fuerza de un pilote (E15i-1). Con «Presión del suelo» propone el diámetro (0,8 m) si está vacío, la punta bajo la
+ * cabeza (el pilote es vertical) y la dirección «Ángulo» con 0 (una presión de suelo sobre un pilote vertical es horizontal, E15i-6);
+ * con «Fuerza dada» propone la fuerza por omisión si estaba vacía. Conserva el resto de lo escrito.
+ */
+export function switchPileSource(form: ReinforcementForm, source: PileSource, units: string | undefined): ReinforcementForm {
+  const fill = (current: string, value: number): string => (current.trim() === '' ? formatNumber(value) : current);
+  if (source === 'force') {
+    const d = reinforcementDefaults('pile', units);
+    return { ...form, pileSource: 'force', force: fill(form.force, d.type === 'pile' ? (d.force ?? 0) : 0) };
+  }
+  const next: ReinforcementForm = { ...form, pileSource: 'ito_matsui', diameter: fill(form.diameter, itoMatsuiDiameterDefault(units)), x2: form.x1 };
+  return form.direction === 'angle' ? { ...next, angle: next.angle.trim() === '' ? '0' : next.angle } : { ...next, direction: 'angle', angle: '0' };
+}
+
+/** S/D de un pilote con presión del suelo (E15i-8): espaciamiento (1 si falta) entre diámetro; `null` si no aplica o los datos no valen. */
+export function itoMatsuiRatio(r: Reinforcement): number | null {
+  if (r.type !== 'pile' || !r.lateral_pressure) return null;
+  const d = r.lateral_pressure.diameter;
+  const s = typeof r.spacing === 'number' ? r.spacing : 1;
+  return Number.isFinite(d) && d > 0 && Number.isFinite(s) && s > 0 ? s / d : null;
 }
 
 export interface ReinforcementFormContext {
@@ -305,6 +371,15 @@ export function isInclinedSheet(r: Reinforcement): boolean {
   return r.type === 'sheet_pile' && r.x1 !== r.x2;
 }
 
+/**
+ * ¿Es un elemento que debe ser vertical y no lo es? La tablestaca con x1 ≠ x2 o un pilote con presión del suelo cuya punta se aleja de la
+ * x de la cabeza más que la tolerancia de `validateLocal` (E15i-1). Un pilote con `force` puede ser inclinado.
+ */
+export function isInclinedVertical(r: Reinforcement): boolean {
+  if (r.type === 'sheet_pile') return isInclinedSheet(r);
+  return r.type === 'pile' && !!r.lateral_pressure && Math.abs(r.x2 - r.x1) > 1e-9 * Math.max(1, Math.abs(r.x1));
+}
+
 /** La misma tablestaca con la punta en la x de la cabeza (x2 = x1). */
 export function alignedSheet(r: Reinforcement): Reinforcement {
   return { ...r, x2: r.x1 };
@@ -344,16 +419,18 @@ export function reinforcementFromForm(form: ReinforcementForm, ctx: Reinforcemen
 
   const x1 = take(errors, 'x1', form.x1, required(L.x1, R.finite, finite));
   const y1 = take(errors, 'y1', form.y1, required(L.y1, R.finite, finite));
-  const keepX2 = type === 'sheet_pile' && ctx.inclined === true;
-  const x2 = type === 'sheet_pile' && !keepX2 ? x1 : take(errors, 'x2', form.x2, required(L.x2, R.finite, finite));
+  // La tablestaca y el pilote con presión del suelo (E15i-1) son verticales: la x de la punta es la de la cabeza.
+  const vertical = type === 'sheet_pile' || (type === 'pile' && form.pileSource === 'ito_matsui');
+  const keepX2 = vertical && ctx.inclined === true;
+  const x2 = vertical && !keepX2 ? x1 : take(errors, 'x2', form.x2, required(L.x2, R.finite, finite));
   if (keepX2 && x1 !== null && x2 !== null && x1 !== x2) {
-    errors.x2 = `${L.x2}: la tablestaca es vertical; la x de la punta debe ser igual a la de la cabeza (x1 = ${formatNumber(x1)} ${reinforcementUnits(ctx.units).length}). Valor actual: ${formatNumber(x2)}`;
+    errors.x2 = `${L.x2}: ${type === 'sheet_pile' ? 'la tablestaca es vertical' : 'un pilote con presión del suelo es vertical'}; la x de la punta debe ser igual a la de la cabeza (x1 = ${formatNumber(x1)} ${reinforcementUnits(ctx.units).length}). Valor actual: ${formatNumber(x2)}`;
   }
   const y2 = take(errors, 'y2', form.y2, required(L.y2, R.finite, finite));
   const coords = x1 !== null && y1 !== null && x2 !== null && y2 !== null;
   const length = coords ? Math.hypot(x2 - x1, y2 - y1) : Number.NaN;
   if (coords && !(length > 0)) {
-    errors[type === 'sheet_pile' ? 'y2' : 'x2'] = 'La cabeza y la punta coinciden, así que la longitud es 0; separe los dos extremos';
+    errors[vertical ? 'y2' : 'x2'] = 'La cabeza y la punta coinciden, así que la longitud es 0; separe los dos extremos';
   }
 
   let value: Reinforcement | null = null;
@@ -398,7 +475,8 @@ export function reinforcementFromForm(form: ReinforcementForm, ctx: Reinforcemen
     };
   } else {
     const direction = form.direction as PileDirection;
-    const force = take(errors, 'force', form.force, required(L.force, R.nonNegative, atLeastZero));
+    const ito = type === 'pile' && form.pileSource === 'ito_matsui';
+    const force = ito ? null : take(errors, 'force', form.force, required(L.force, R.nonNegative, atLeastZero));
     const spacing = type === 'pile' ? take(errors, 'spacing', form.spacing, optional(L.spacing, R.positive, moreThanZero)) : null;
     let angle: number | null = null;
     if (direction === 'angle') {
@@ -410,8 +488,31 @@ export function reinforcementFromForm(form: ReinforcementForm, ctx: Reinforcemen
         label: L.angle,
       });
     }
-    const common = { id, x1: x1 ?? 0, y1: y1 ?? 0, x2: x2 ?? 0, y2: y2 ?? 0, application: form.application, force: force ?? 0, direction, ...(angle === null ? {} : { angle }) };
-    value = type === 'pile' ? { type: 'pile', ...common, ...(spacing === null ? {} : { spacing }) } : { type: 'sheet_pile', ...common };
+    // E15i-1: con la presión del suelo no hay `force`; `diameter` > 0, `spacing` > `diameter` y la capacidad, si se escribe, es > 0.
+    let lateral: LateralPressure | undefined;
+    let capacity: PileCapacity | undefined;
+    if (ito) {
+      const diameter = take(errors, 'diameter', form.diameter, required(L.diameter, R.positive, moreThanZero));
+      if (diameter !== null && !errors.spacing && !((spacing ?? 1) > diameter)) {
+        errors.spacing = `${L.spacing}: ${spacingOverDiameterRule(`${formatNumber(round2(diameter))} ${reinforcementUnits(ctx.units).length}`)}`;
+      }
+      const shear = take(errors, 'shear', form.shear, optional(L.shear, R.positive, moreThanZero));
+      const moment = take(errors, 'moment', form.moment, optional(L.moment, R.positive, moreThanZero));
+      lateral = { model: 'ito_matsui', diameter: diameter ?? 0, location: form.location };
+      if (shear !== null || moment !== null) capacity = { ...(shear === null ? {} : { shear }), ...(moment === null ? {} : { moment }) };
+    }
+    const common = { id, x1: x1 ?? 0, y1: y1 ?? 0, x2: x2 ?? 0, y2: y2 ?? 0, application: form.application, direction, ...(angle === null ? {} : { angle }) };
+    value =
+      type === 'pile'
+        ? {
+            type: 'pile',
+            ...common,
+            ...(ito ? {} : { force: force ?? 0 }),
+            ...(spacing === null ? {} : { spacing }),
+            ...(lateral ? { lateral_pressure: lateral } : {}),
+            ...(capacity ? { capacity } : {}),
+          }
+        : { type: 'sheet_pile', ...common, force: force ?? 0 };
   }
   return done(errors, () => value as Reinforcement);
 }

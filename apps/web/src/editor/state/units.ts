@@ -13,7 +13,7 @@
 // convertir: ese redondeo cambia el FS en la 6.ª cifra. Con piezométrica, el γw (explícito o el 9,81 por defecto) se escribe
 // siempre explícito al pasar a imperial, porque el motor usaría 9,81 «pcf» si faltara.
 
-import type { Load, Material, Point, Pullout, Reinforcement, SearchSpec, SurfaceSpec, Water } from '../../engine/types';
+import type { Load, Material, PileCapacity, PileReinforcement, Point, Pullout, Reinforcement, SearchSpec, SurfaceSpec, Water } from '../../engine/types';
 import type { ModelDoc } from '../types';
 
 export type UnitSystem = 'SI' | 'imperial';
@@ -34,6 +34,8 @@ export const UNIT_FACTORS = {
   lineForce: LBF_PER_KN / FT_PER_M,
   /** kN → lbf (capacidades y fuerza de un refuerzo, por elemento). */
   force: LBF_PER_KN,
+  /** kN·m → lbf·ft (la capacidad a momento de un pilote con presión del suelo, E15i-1): el factor de la fuerza por el de la longitud. */
+  moment: LBF_PER_KN * FT_PER_M,
   /** kPa/m → psf/ft (gradiente de Su, un esfuerzo por unidad de longitud): el factor del esfuerzo entre el de la longitud (= el de γ). */
   stressGradient: LBF_PER_KN / FT_PER_M ** 2 / FT_PER_M,
 } as const;
@@ -70,6 +72,7 @@ function scalesFor(to: UnitSystem): Record<keyof typeof UNIT_FACTORS, Scale> {
     stress: make(UNIT_FACTORS.stress),
     lineForce: make(UNIT_FACTORS.lineForce),
     force: make(UNIT_FACTORS.force),
+    moment: make(UNIT_FACTORS.moment),
     stressGradient: make(UNIT_FACTORS.stressGradient),
   };
 }
@@ -157,16 +160,26 @@ function explicitSpacing(spacing: number | null | undefined, k: Record<keyof typ
 
 /**
  * Refuerzo (v0.4) en el otro sistema: coordenadas, `spacing` (siempre explícito: el omitido es 1 en la unidad del modelo), `bonded_length`, `length1` y `length2` son longitudes; las capacidades
- * y la fuerza de un pilote, kN ⇄ lbf; la adherencia por metro y la fuerza de la tablestaca (por metro de muro), kN/m ⇄ lbf/ft; la
+ * y la fuerza de un pilote, kN ⇄ lbf (con presión del suelo, `diameter` es una longitud, `capacity.shear` una fuerza y `capacity.moment` un momento, kN·m ⇄ lbf·ft); la adherencia por metro y la fuerza de la tablestaca (por metro de muro), kN/m ⇄ lbf/ft; la
  * adhesión de la interfaz, un esfuerzo. No cambian los ángulos, `friction_angle` ni `coverage`.
  */
 function convertReinforcement(r: Reinforcement, k: Record<keyof typeof UNIT_FACTORS, Scale>): Reinforcement {
   const common = { x1: k.length(r.x1), y1: k.length(r.y1), x2: k.length(r.x2), y2: k.length(r.y2) };
-  if (r.type === 'pile' || r.type === 'sheet_pile') {
-    const out = { ...r, ...common, force: r.type === 'pile' ? k.force(r.force) : k.lineForce(r.force) };
-    if (r.type === 'pile') (out as { spacing?: number | null }).spacing = explicitSpacing(r.spacing, k);
+  if (r.type === 'pile') {
+    const out: PileReinforcement = { ...r, ...common, spacing: explicitSpacing(r.spacing, k) };
+    // E15i-1: con `lateral_pressure`, `force` no existe y no se crea; `diameter` es una longitud.
+    if (typeof r.force === 'number') out.force = k.force(r.force);
+    if (r.lateral_pressure) out.lateral_pressure = { ...r.lateral_pressure, diameter: k.length(r.lateral_pressure.diameter) };
+    // `shear` es una fuerza por pilote y `moment`, un momento (fuerza por longitud). Solo se convierten los que existen.
+    if (r.capacity) {
+      const cap: PileCapacity = {};
+      if (typeof r.capacity.shear === 'number') cap.shear = k.force(r.capacity.shear);
+      if (typeof r.capacity.moment === 'number') cap.moment = k.moment(r.capacity.moment);
+      out.capacity = cap;
+    }
     return out;
   }
+  if (r.type === 'sheet_pile') return { ...r, ...common, force: k.lineForce(r.force) };
   const out = { ...r, ...common, tensile_capacity: k.force(r.tensile_capacity) };
   for (const key of ['end1_capacity', 'end2_capacity'] as const) {
     const v = optional(r[key], k.force);

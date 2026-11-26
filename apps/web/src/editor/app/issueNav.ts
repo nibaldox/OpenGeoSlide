@@ -95,7 +95,12 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     const k = index(b);
     if (k === null) return { tab: 'reinforcements', selection, fieldPath: null };
     if (k >= (doc.reinforcements?.length ?? 0)) return null;
-    const field = c === 'pullout' && d !== undefined ? d : (c ?? 'id');
+    // E15i-1: `lateral_pressure/diameter` y `/location` son controles planos (`diameter`, `location`); `capacity/shear` y `/moment`, también; el resto de
+    // `lateral_pressure` (model, o la exclusión con `force`) lleva al selector «Origen de la fuerza», y `capacity` entera, al campo del corte.
+    let field = c ?? 'id';
+    if (c === 'pullout' && d !== undefined) field = d;
+    else if (c === 'lateral_pressure') field = d === 'diameter' || d === 'location' ? d : 'lateral_pressure';
+    else if (c === 'capacity') field = d === 'moment' ? 'moment' : 'shear';
     return { tab: 'reinforcements', selection, fieldPath: `/reinforcements/${k}/${field}` };
   }
   if (a === 'analysis') {

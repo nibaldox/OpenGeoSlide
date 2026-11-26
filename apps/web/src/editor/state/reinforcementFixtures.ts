@@ -31,6 +31,22 @@ export const pile = (over: Partial<PileReinforcement> = {}): PileReinforcement =
   ...over,
 });
 
+/** Pilote con presión del suelo de Ito-Matsui (v0.5, E15i-1): vertical, `spacing` 2,4 > `diameter` 0,8 (S/D = 3), sin `force`. */
+export const itoPile = (over: Partial<PileReinforcement> = {}): PileReinforcement => ({
+  id: 'p1',
+  type: 'pile',
+  x1: 40,
+  y1: 12,
+  x2: 40,
+  y2: 2,
+  application: 'passive',
+  spacing: 2.4,
+  direction: 'angle',
+  angle: 0,
+  lateral_pressure: { model: 'ito_matsui', diameter: 0.8, location: 'centroid' },
+  ...over,
+});
+
 export const sheet = (over: Partial<SheetPileReinforcement> = {}): SheetPileReinforcement => ({
   id: 's1',
   type: 'sheet_pile',
