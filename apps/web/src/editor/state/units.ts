@@ -128,6 +128,9 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
     if (w !== undefined) search.min_width = w;
     analysis.search = search;
   }
+  // F5.7: `depth` es una longitud (la cadena «auto» queda igual) y `water_fill` no tiene unidad. El FS no cambia.
+  const crack = doc.analysis.tension_crack;
+  if (crack) analysis.tension_crack = { ...crack, depth: typeof crack.depth === 'number' ? k.length(crack.depth) : crack.depth };
 
   const next: ModelDoc = {
     ...doc,

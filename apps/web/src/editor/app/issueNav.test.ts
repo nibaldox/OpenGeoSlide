@@ -123,6 +123,12 @@ describe('issueTargetFor: incidencias sin puntero', () => {
     expect(issueTargetFor(issue('EngineError'), doc())).toBeNull();
     expect(issueTargetFor(issue('InvalidModel'), doc())).toBeNull();
   });
+  it('la grieta de tracción (v0.5): la pestaña «Análisis» y su campo', () => {
+    expect(issueTarget('/analysis/tension_crack', doc())).toMatchObject({ tab: 'analysis', fieldPath: '/analysis/tension_crack' });
+    expect(issueTarget('/analysis/tension_crack/depth', doc())).toMatchObject({ tab: 'analysis', fieldPath: '/analysis/tension_crack/depth' });
+    expect(issueTarget('/analysis/tension_crack/water_fill', doc())).toMatchObject({ tab: 'analysis', fieldPath: '/analysis/tension_crack/water_fill' });
+    expect(issueTarget('/analysis/tension_crack/x', doc())).toMatchObject({ tab: 'analysis', fieldPath: '/analysis/tension_crack' });
+  });
   it('tabla de destinos: cada código con destino', () => {
     for (const code of ['NoValidSurface', 'engine.invalid', 'NoSurface']) expect(issueTargetFor(issue(code), doc()), code).not.toBeNull();
   });
