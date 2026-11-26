@@ -94,13 +94,25 @@ pub fn interslice_faces(
     points: Option<&[Point]>,
 ) -> Vec<f64> {
     let n = slices.len();
-    let total: f64 = slices.iter().map(|s| s.width).sum();
+    // The domain of ξ is the **soil block**: the aerial slices at the ends of the arc (E7a: a circle that grazes the
+    // ground near the toe keeps them) are no part of the sliding mass, and cSlope, which has none, measures `x₀` and
+    // `x₁` on the soil (D09 half sine ran +3.39 % over it with the aerial slices in the domain). Runs of inert slices at
+    // the two ends hold `ξ = 0` (toe side) and `ξ = 1` (crest side); inside the block the cumulative width starts at
+    // the first soil slice. Without aerial ends this is exactly the former computation.
+    let lead = slices.iter().take_while(|s| is_inert(s)).count();
+    let trail = if lead == n {
+        0
+    } else {
+        slices.iter().rev().take_while(|s| is_inert(s)).count()
+    };
+    let (first, end) = (lead, n - trail);
+    let total: f64 = slices[first..end].iter().map(|s| s.width).sum();
     // The slices come toe first: a slide toward +x lists them from the right.
     let descending = n > 1 && slices[0].x_left > slices[n - 1].x_left;
     let xi_at = |k: usize, cumulative: f64| {
-        let from_toe = if k == 0 {
+        let from_toe = if k <= first {
             0.0
-        } else if k == n {
+        } else if k >= end {
             1.0
         } else {
             (cumulative / total).clamp(0.0, 1.0)
@@ -111,7 +123,9 @@ pub fn interslice_faces(
     faces.push(interslice_value(function, points, xi_at(0, 0.0)));
     let mut cumulative = 0.0_f64;
     for (k, s) in slices.iter().enumerate() {
-        cumulative += s.width;
+        if k >= first {
+            cumulative += s.width;
+        }
         let value = if is_inert(s) {
             faces[k]
         } else {
