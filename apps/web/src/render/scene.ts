@@ -1,6 +1,7 @@
 // Escena de dibujo: regiones, piezométrica, superficie crítica y dovelas, en metros (mundo).
 
-import { isPolylineReport, reportCircle } from '../engine/surface';
+import { reportCircle } from '../engine/surface';
+import { analyzedPolyline } from '../report/methodInfo';
 import type { Circle, MethodReport, Model, Point, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
@@ -54,7 +55,8 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   const piezo = model.water?.piezometric_line?.length ? [...model.water.piezometric_line].sort((a, b) => a[0] - b[0]) : null;
   // Círculo `{xc, yc, r}` o polilínea ajustada `{points}` del informe (F3.7).
   const circle = method ? reportCircle(method.surface) : null;
-  const polyline = method && isPolylineReport(method.surface) ? method.surface.points.map((p): Point => [p[0], p[1]]) : null;
+  // R10B-05: la polilínea se limita al rango de las dovelas analizadas, como el trazo de un círculo.
+  const polyline = method ? analyzedPolyline(method) : null;
   const surface =
     method && (circle || polyline) && method.slices.length > 0
       ? { circle, polyline, slices: method.slices, converged: method.status === 'converged' }

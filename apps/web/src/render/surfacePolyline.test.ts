@@ -14,9 +14,12 @@ const model = {
 } as unknown as Model;
 
 const FITTED: Point[] = [[2, 6.5], [6, 4], [10, 3.2], [14, 4.5], [18, 6]];
+// Dovelas que cubren toda la polilínea ajustada: el motor reparte las dovelas de extremo a extremo.
 const slices = [
   { x_left: 2, x_right: 6, y_base_left: 6.5, y_base_right: 4, y_top_mid: 8 },
   { x_left: 6, x_right: 10, y_base_left: 4, y_base_right: 3.2, y_top_mid: 7 },
+  { x_left: 10, x_right: 14, y_base_left: 3.2, y_base_right: 4.5, y_top_mid: 7 },
+  { x_left: 14, x_right: 18, y_base_left: 4.5, y_base_right: 6, y_top_mid: 7 },
 ];
 const polyMethod = (status = 'converged') => ({ method: 'morgenstern_price', status, fos: 1.2, surface: { points: FITTED }, slices }) as unknown as MethodReport;
 const circleMethod = { method: 'bishop', status: 'converged', fos: 1.2, surface: { xc: 10, yc: 14, r: 12 }, slices } as unknown as MethodReport;
@@ -63,11 +66,18 @@ describe('buildScene con superficie del informe', () => {
     expect(s.surface?.polyline).toEqual(FITTED);
     expect(s.surface?.polyline).not.toBe(FITTED);
     expect(s.surface?.circle ?? null).toBeNull();
-    expect(s.surface?.slices).toHaveLength(2);
+    expect(s.surface?.slices).toHaveLength(4);
     expect(s.surface?.converged).toBe(true);
   });
+  it('R10B-05: con la masa truncada (ATT3_FIXED) la vista Casos dibuja solo el rango de las dovelas analizadas', () => {
+    const att3: Point[] = [[5, 15], [12, 6], [35, 6], [42, 3]];
+    const block = [{ x_left: 5, x_right: 10 }, { x_left: 10, x_right: 15 }].map((s) => ({ ...s, y_base_left: 6, y_base_right: 6, y_top_mid: 8 }));
+    const m = { ...polyMethod(), surface: { points: att3 }, slices: block } as unknown as MethodReport;
+    expect(buildScene(model, m).surface?.polyline).toEqual([[5, 15], [12, 6], [15, 6]]);
+  });
   it('los límites incluyen la polilínea (sus extremos pueden salir del rango de las dovelas)', () => {
-    const wide = { ...polyMethod(), surface: { points: [[-3, 20], [10, -4], [25, 6]] } } as unknown as MethodReport;
+    const wideSlices = [{ x_left: -3, x_right: 10, y_base_left: 20, y_base_right: -4, y_top_mid: 8 }, { x_left: 10, x_right: 25, y_base_left: -4, y_base_right: 6, y_top_mid: 8 }];
+    const wide = { ...polyMethod(), surface: { points: [[-3, 20], [10, -4], [25, 6]] }, slices: wideSlices } as unknown as MethodReport;
     const b = buildScene(model, wide).bounds;
     expect(b.minX).toBeLessThan(-3);
     expect(b.maxX).toBeGreaterThan(25);
