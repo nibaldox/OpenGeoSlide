@@ -361,7 +361,7 @@ fn crossing_capacity(doc: &Value) -> f64 {
 
 /// R11A-04. A material with `ru` takes no water from the piezometric line: the free water over the ground is not
 /// added. Base: `available = 334.18` with the line and 161.01 without it (cSlope: 160.9983); FS 1.5549 against cSlope 1.1247
-/// (reviewer's numbers; the capacity here is the same element). Now: both are the same number.
+/// (reviewer's numbers; the capacity here is the same element). Now: the capacity is the same number; the FS is not (F3G).
 #[test]
 fn interface_with_ru_ignores_the_piezometric_line() {
     let (with_line, without) = (
@@ -372,8 +372,12 @@ fn interface_with_ru_ignores_the_piezometric_line() {
         (with_line - without).abs() < 1e-9 * without,
         "{with_line} with the line, {without} without it"
     );
+    // F3G (E15c, F5.1): the line is over the ground on the slope, so the ponded water now loads the slices with its
+    // weight and its thrust (and `ru` counts its weight, `u = ru·(W + V)/b`). The FS is no longer the one without the
+    // line (1,1249): the water over the ground is a real load. What does not change is the `σ′v` of the interface
+    // (E14o-4), which the capacity above checks.
     let (a, b) = (fos(&ru_interface(true), 0), fos(&ru_interface(false), 0));
-    assert!((a - b).abs() < 1e-12, "FS {a} against {b}");
+    assert!(a > b, "FS {a} with the pond, {b} without the line");
 }
 
 /// A material without `ru` keeps using the piezometric line, and the free water over the ground counts (E14m-2): the
