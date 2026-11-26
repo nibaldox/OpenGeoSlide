@@ -30,6 +30,15 @@
 //! `crossing_nodes` it is the one centred on `x_c`. A crossing that cannot apply a force and that is decided before
 //! slicing (over the ground, no capacity, a passive element that the sliding compresses) adds no nodes (E14o-11).
 //!
+//! Pile with `lateral_pressure` (v0.5, E15i): the force is not given but comes from the pressure of the soil between
+//! the piles (Ito and Matsui 1975, equations 13, 14 and 23, with the floor of `φ = 0` of cSlope and XSLOPE). The
+//! profile `F(z) = ∫p dz`, `Q(z) = ∫p·z dz` of each such pile is built **once per analysis** ([`PileProfiles`]); at a
+//! crossing, `F(zf)` and the arm `L_m = (zf·F − Q)/F` of the resultant above it give the force, capped by the shear and
+//! the bending capacity (`min(F, shear, moment/L_m)`), at the arm `L_m` over the crossing with `centroid` and at the
+//! crossing with `slip_surface`. The report adds `soil_force`, `governs` and `arm` to those crossings only, and the
+//! note `ito_matsui_spacing_range` goes with `S/D` outside 2 to 8. Without such a pile the code is the one of v0.4
+//! (identity byte for byte).
+//!
 //! Capacity (E14c, E14m-2): `bond` and `interface` integrate `r` **exactly** along the element (piecewise linear
 //! between the cuts at the ground, the contacts and the water, and where `σ′v` changes sign); `development` is the
 //! closed ramp; without `pullout`, `T = Tmax/spacing`. Direction and compression: E14m-1 (see `apply_to_slices`).
