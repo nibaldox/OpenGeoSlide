@@ -3,7 +3,7 @@
   "title": "4:1 slope, Mohr-Coulomb fit",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V004a",
       "title": "4:1 slope, Mohr-Coulomb fit",
@@ -50,7 +50,8 @@
     },
     "analysis": {
       "methods": [
-        "spencer"
+        "spencer",
+        "janbu_simplified"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -74,6 +75,16 @@
       "published": 2.794,
       "published_by": "Commercial program A",
       "tolerance": 0.02017895490336435,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 2.662,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020187828700225396,
       "options": {
         "slices": 50
       }

@@ -3,7 +3,7 @@
   "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V096e",
       "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
@@ -184,7 +184,8 @@
     },
     "analysis": {
       "methods": [
-        "spencer"
+        "spencer",
+        "morgenstern_price"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -205,6 +206,16 @@
       "published": 1.211,
       "published_by": "Zhu & Lee (2002)",
       "tolerance": 0.02041288191577209,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.197,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.020417710944026734,
       "options": {
         "slices": 50
       }

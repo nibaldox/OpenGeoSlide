@@ -3,7 +3,7 @@
   "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V044b",
       "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
@@ -59,7 +59,8 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "morgenstern_price"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -80,6 +81,16 @@
       "published": 1.766,
       "published_by": "Fredlund & Krahn",
       "tolerance": 0.01028312570781427,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.764,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01028344671201814,
       "options": {
         "slices": 50
       }

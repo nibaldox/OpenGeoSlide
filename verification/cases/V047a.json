@@ -3,7 +3,7 @@
   "title": "ACADS 1(a), homogeneous slope, dry",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
@@ -59,7 +59,9 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -93,6 +95,26 @@
       "published": 0.986,
       "published_by": "Commercial program A",
       "tolerance": 0.02050709939148073,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 0.99,
+      "published_by": "Commercial program A",
+      "tolerance": 0.025050505050505052,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 0.991,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020504540867810294,
       "options": {
         "slices": 50
       }

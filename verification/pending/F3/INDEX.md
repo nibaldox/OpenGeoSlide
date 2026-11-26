@@ -1,72 +1,22 @@
-# Casos de los lotes 1 y 2 (formato v0.3, esperan al motor)
+# Lotes 1 y 2 (formato v0.3): checks retenidos
 
-Generado por `verification/tools/import_cslope.py`. No editar a mano.
+Generado por `verification/tools/import_cslope.py` a partir de `HOLD.json`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Cada archivo es el **estado destino** del problema (versión `0.3`): trae todos los checks convertibles, también los del lote 0 que ya están en `verification/cases/`, así que promoverlo es reemplazar ese archivo. Los checks nuevos son los de métodos o modelos que el motor de `main` aún no admite (`morgenstern_price`, `janbu_simplified`, `janbu_corrected`, material `undrained`, superficie `polyline`). La verificación contra cSlope está en [`REPORT.md`](REPORT.md) (solo oráculo).
+Los lotes 1 (`undrained` y `s-f-datum`) y 2 (polilíneas fijas, M-P y Janbu) están promovidos a `verification/cases/`: **44** casos (de ellos **28** nuevos) con **117** checks (del lote 0: 32, lote 1: **39**, lote 2: **46**). Aquí quedan solo los checks que el motor no reproduce, convertidos igual que los de `verification/cases/`. No se relaja ninguna tolerancia ni se toca ningún dato. Cuando el motor los reproduzca, el integrador los promueve quitándolos de `HOLD.json` y regenerando.
 
-Casos: **48**; checks: **123** (de ellos del lote 0: 32, lote 1: **40**, lote 2: **51**).
+Checks retenidos: **6** en **4** casos.
 
-| lote | contenido | checks | casos con checks del lote | casos nuevos (no estaban en los lotes anteriores) |
-|---|---|---:|---:|---:|
-| 1 | `undrained` y `s-f-datum` (Bishop y Spencer) | 40 | 21 | 21 |
-| 2 | polilíneas fijas, M-P y Janbu | 51 | 36 | 11 |
+| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |
+|---|---|---:|---|---:|---:|---:|---|
+| V018 | spencer | 1.051 | Commercial program A | 1.05 | — | 1.0520 | Causa (I-M, con números): el suelo casi sin peso (γ = 1e-6) deja ΣW ≈ 1e-4 frente a cargas verticales de ~1e3 (udl), y el cierre de fuerzas \|E_n\| ≤ 1e-6·ΣW (más el residuo de momento normalizado por ΣW) exige ~1e-13 relativo a las fuerzas reales: no se alcanza en doble precisión y el barrido de λ da no_lambda_root, sin raíz que refinar. Con γ = 1e-4 el mismo modelo converge (V077: ogs 0.9428, igual a cSlope). Prueba: con la escala ΣW* = Σ(W + Q + V) (idéntica a ΣW sin cargas ni kv) los cinco checks convergen: V018 1.0520/1.0078/1.0078, V077 0.9428, V078 0.9578, y 76 de 76 modelos de referencia dan la misma salida byte a byte. No se promueve porque cambia la escala de un umbral del contrato (cierre \|E_n\| ≤ 1e-6·ΣW, E10b/E12b): requiere una enmienda del coordinador. Parche listo: docs/fase3/im/escala_fuerzas.patch (quitar el #[ignore] del test de f3_im.rs al aplicarlo). |
+| V018 | morgenstern_price | 1.009 | Commercial program A | 1.05 | — | 1.0078 | Causa (I-M, con números): el suelo casi sin peso (γ = 1e-6) deja ΣW ≈ 1e-4 frente a cargas verticales de ~1e3 (udl), y el cierre de fuerzas \|E_n\| ≤ 1e-6·ΣW (más el residuo de momento normalizado por ΣW) exige ~1e-13 relativo a las fuerzas reales: no se alcanza en doble precisión y el barrido de λ da no_lambda_root, sin raíz que refinar. Con γ = 1e-4 el mismo modelo converge (V077: ogs 0.9428, igual a cSlope). Prueba: con la escala ΣW* = Σ(W + Q + V) (idéntica a ΣW sin cargas ni kv) los cinco checks convergen: V018 1.0520/1.0078/1.0078, V077 0.9428, V078 0.9578, y 76 de 76 modelos de referencia dan la misma salida byte a byte. No se promueve porque cambia la escala de un umbral del contrato (cierre \|E_n\| ≤ 1e-6·ΣW, E10b/E12b): requiere una enmienda del coordinador. Parche listo: docs/fase3/im/escala_fuerzas.patch (quitar el #[ignore] del test de f3_im.rs al aplicarlo). |
+| V018 | morgenstern_price | 1.017 | Commercial program B | 1.05 | — | 1.0078 | Causa (I-M, con números): el suelo casi sin peso (γ = 1e-6) deja ΣW ≈ 1e-4 frente a cargas verticales de ~1e3 (udl), y el cierre de fuerzas \|E_n\| ≤ 1e-6·ΣW (más el residuo de momento normalizado por ΣW) exige ~1e-13 relativo a las fuerzas reales: no se alcanza en doble precisión y el barrido de λ da no_lambda_root, sin raíz que refinar. Con γ = 1e-4 el mismo modelo converge (V077: ogs 0.9428, igual a cSlope). Prueba: con la escala ΣW* = Σ(W + Q + V) (idéntica a ΣW sin cargas ni kv) los cinco checks convergen: V018 1.0520/1.0078/1.0078, V077 0.9428, V078 0.9578, y 76 de 76 modelos de referencia dan la misma salida byte a byte. No se promueve porque cambia la escala de un umbral del contrato (cierre \|E_n\| ≤ 1e-6·ΣW, E10b/E12b): requiere una enmienda del coordinador. Parche listo: docs/fase3/im/escala_fuerzas.patch (quitar el #[ignore] del test de f3_im.rs al aplicarlo). |
+| V068 | bishop | 1.14 | Low (1989) | 2.44 | 1.1633 | 1.1429 | El FS reproduce el publicado (ogs 1.1633, +2.04 %, tol 2.44 %; cSlope 1.1429, +0.25 %) desde que el motor acepta un círculo cuyo arco termina tangente al terreno (centro a la cota de la cresta: xc + r = 33.557 sobre y = 16; antes NoValidSurface 'el círculo no corta el terreno'; corrección en slicer.rs, con test). Queda retenido por el mismo motivo que V027 y V028: el motor emite negative_effective_normal_major y la aceptación rechaza todo aviso que no sea informativo (E5). Medido: 3 de 55 dovelas con N' < 0, f = Σ\|N'<0\|/ΣW = 0.204 (umbral 0.05) y fracción de la longitud de base 0.183 (umbral 0.25): es la escarpa vertical del extremo superior, que cSlope también declara sensible al corte (slicingSensitive). Decisión del coordinador: tratar el aviso como informativo en este caso o dejarlo retenido. |
+| V077 | spencer | 0.94 | Commercial program A | 1.53 | — | 0.9428 | Causa (I-M, con números): el suelo casi sin peso (γ = 1e-6) deja ΣW ≈ 1e-4 frente a cargas verticales de ~1e3 (udl), y el cierre de fuerzas \|E_n\| ≤ 1e-6·ΣW (más el residuo de momento normalizado por ΣW) exige ~1e-13 relativo a las fuerzas reales: no se alcanza en doble precisión y el barrido de λ da no_lambda_root, sin raíz que refinar. Con γ = 1e-4 el mismo modelo converge (V077: ogs 0.9428, igual a cSlope). Prueba: con la escala ΣW* = Σ(W + Q + V) (idéntica a ΣW sin cargas ni kv) los cinco checks convergen: V018 1.0520/1.0078/1.0078, V077 0.9428, V078 0.9578, y 76 de 76 modelos de referencia dan la misma salida byte a byte. No se promueve porque cambia la escala de un umbral del contrato (cierre \|E_n\| ≤ 1e-6·ΣW, E10b/E12b): requiere una enmienda del coordinador. Parche listo: docs/fase3/im/escala_fuerzas.patch (quitar el #[ignore] del test de f3_im.rs al aplicarlo). |
+| V078 | morgenstern_price | 0.96 | Commercial program B | 1.52 | — | 0.9578 | Causa (I-M, con números): el suelo casi sin peso (γ = 1e-6) deja ΣW ≈ 1e-4 frente a cargas verticales de ~1e3 (udl), y el cierre de fuerzas \|E_n\| ≤ 1e-6·ΣW (más el residuo de momento normalizado por ΣW) exige ~1e-13 relativo a las fuerzas reales: no se alcanza en doble precisión y el barrido de λ da no_lambda_root, sin raíz que refinar. Con γ = 1e-4 el mismo modelo converge (V077: ogs 0.9428, igual a cSlope). Prueba: con la escala ΣW* = Σ(W + Q + V) (idéntica a ΣW sin cargas ni kv) los cinco checks convergen: V018 1.0520/1.0078/1.0078, V077 0.9428, V078 0.9578, y 76 de 76 modelos de referencia dan la misma salida byte a byte. No se promueve porque cambia la escala de un umbral del contrato (cierre \|E_n\| ≤ 1e-6·ΣW, E10b/E12b): requiere una enmienda del coordinador. Parche listo: docs/fase3/im/escala_fuerzas.patch (quitar el #[ignore] del test de f3_im.rs al aplicarlo). |
 
-Casos nuevos del lote 1 (21): V021a, V021b, V021c, V021d, V021e, V021f, V021g, V022a, V022b, V034a, V034b, V036a, V036b, V036c, V036d, V040, V057a, V057b, V067, V068, V086e.
-Casos nuevos del lote 2 (11): V006, V007a, V007c, V018, V046a, V046b, V046c, V050a, V056, V077, V078.
-
-| id | título | modelos | superficie | checks por lote (0/1/2) | métodos |
-|---|---|---|---|---|---|
-| V001 | Arai & Tagyo (1985) example 1 | mohr_coulomb | search | 2/0/2 | bishop, morgenstern_price |
-| V003 | Arai & Tagyo (1985) example 3, water table | mohr_coulomb | search | 3/0/1 | bishop, spencer, janbu_corrected |
-| V004a | 4:1 slope, Mohr-Coulomb fit | mohr_coulomb | search | 1/0/1 | spencer, janbu_simplified |
-| V004b | Baker (2003) ex. 2 slope, Mohr-Coulomb iteration parameters | mohr_coulomb | search | 1/0/1 | spencer, janbu_simplified |
-| V006 | Baker & Leshchinsky (2001) planar surface | mohr_coulomb | polyline | 0/0/2 | spencer, janbu_simplified |
-| V007a | Baker (2003) ex. 1, Mohr-Coulomb, Janbu simplified on the reference circle | mohr_coulomb | circle | 0/0/1 | janbu_simplified |
-| V007b | Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters | mohr_coulomb | search | 1/0/1 | spencer, janbu_simplified |
-| V007c | Baker (2003) ex. 3, Janbu simplified | mohr_coulomb | search | 0/0/1 | janbu_simplified |
-| V018 | Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism | mohr_coulomb | polyline | 0/0/3 | spencer, morgenstern_price |
-| V021a | Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021b | Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021c | Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 2 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021d | Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 3 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021e | Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 2 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021f | Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 3 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V021g | Chowdhury & Xu (1995) example 4, Congress Street cut, circle tangent to the base of clay 2 | mohr_coulomb, undrained | circle | 0/1/1 | bishop, morgenstern_price |
-| V022a | Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15 | mohr_coulomb, undrained | circle | 0/2/1 | bishop, morgenstern_price |
-| V022b | Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5 | mohr_coulomb, undrained | circle | 0/1/1 | bishop, morgenstern_price |
-| V034a | Duncan & Wright fig. 14.20b, Su = 200 + 15·depth | mohr_coulomb, undrained | search | 0/2/0 | bishop, spencer |
-| V034b | Duncan & Wright fig. 14.20b, Su = 300 psf | mohr_coulomb, undrained | search | 0/2/0 | bishop, spencer |
-| V036a | Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9) | mohr_coulomb, undrained | search | 0/3/0 | bishop, spencer |
-| V036b | Embankment on an undrained foundation, cz = 5 psf/ft | mohr_coulomb, undrained | search | 0/3/0 | bishop, spencer |
-| V036c | Embankment on an undrained foundation, cz = 10 psf/ft | mohr_coulomb, undrained | search | 0/3/0 | bishop, spencer |
-| V036d | Embankment on an undrained foundation, cz = 15 psf/ft | mohr_coulomb, undrained | search | 0/3/0 | bishop, spencer |
-| V040 | James Bay dyke, reference model (deterministic) | mohr_coulomb, undrained | search | 0/1/0 | bishop |
-| V044 | Fredlund & Krahn (1977), dry | mohr_coulomb | circle | 2/0/1 | bishop, spencer, morgenstern_price |
-| V044b | Fredlund & Krahn (1977), rᵤ = 0.25 | mohr_coulomb | circle | 2/0/1 | bishop, spencer, morgenstern_price |
-| V045 | Fredlund & Krahn (1977), with water table | mohr_coulomb | circle | 2/0/1 | bishop, spencer, morgenstern_price |
-| V046a | Fredlund & Krahn slope on a weak seam, composite surface | mohr_coulomb | polyline | 0/0/3 | spencer, morgenstern_price |
-| V046b | Fredlund & Krahn slope on a weak seam, with a piezometric line | mohr_coulomb | polyline | 0/0/2 | spencer, morgenstern_price |
-| V046c | Fredlund & Krahn slope on a weak seam, rᵤ = 0.25 | mohr_coulomb | polyline | 0/0/3 | spencer, morgenstern_price |
-| V047a | ACADS 1(a), homogeneous slope, dry | mohr_coulomb | search | 4/0/2 | bishop, spencer, morgenstern_price, janbu_corrected |
-| V049 | ACADS 1(c), three-layer slope | mohr_coulomb | search | 3/0/2 | bishop, spencer, morgenstern_price, janbu_corrected |
-| V050a | ACADS 3(b), weak layer, specified non-circular surface | mohr_coulomb | polyline | 0/0/3 | spencer, morgenstern_price, janbu_corrected |
-| V052a | Talbingo Dam, end of construction | mohr_coulomb | search | 3/0/1 | bishop, spencer, janbu_corrected |
-| V052b | Talbingo Dam, specified circle | mohr_coulomb | circle | 2/0/2 | bishop, spencer, morgenstern_price, janbu_corrected |
-| V056 | Griffiths & Lane example 3, thin weak layer, cu2/cu1 = 0.2 | undrained | polyline | 0/0/1 | janbu_corrected |
-| V057a | Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle) | undrained | search | 0/2/0 | spencer |
-| V057b | Griffiths & Lane example 4, cu2/cu1 = 2 (toe circle) | undrained | search | 0/2/0 | spencer |
-| V067 | Low (1989), layered undrained clay | undrained | search | 0/1/0 | bishop |
-| V068 | Low (1989), stiff crust over soft clays, published circle | mohr_coulomb, undrained | circle | 0/1/0 | bishop |
-| V071b | Pockoski & Duncan slope 1, circular search | mohr_coulomb | search | 2/0/1 | bishop, spencer, janbu_simplified |
-| V077 | Prandtl bearing capacity on level ground | undrained | polyline | 0/0/1 | spencer |
-| V078 | Prandtl bearing capacity, fully specified Prandtl surface (reference values) | undrained | polyline | 0/0/1 | morgenstern_price |
-| V086e | Tandjiria embankment, sand fill, the paper's geometry | mohr_coulomb, undrained | search | 0/1/0 | spencer |
-| V090 | USACE EM 1110-2-1902, example F-5 | mohr_coulomb | circle | 2/0/2 | bishop, spencer, morgenstern_price, janbu_corrected |
-| V096d | Zhu & Lee slope, the paper's surface 3, dry | mohr_coulomb | circle | 1/0/1 | spencer, morgenstern_price |
-| V096e | Zhu & Lee slope, the paper's surface 3, with the water table | mohr_coulomb | circle | 1/0/1 | spencer, morgenstern_price |
-
-## Checks descartados en estos casos
+## Checks descartados en los casos de los lotes 1 y 2
 
 - V001: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.386): superficie no circular (nonCircularOptimization)
 - V034a: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.262): superficie no circular (nonCircularOptimization)

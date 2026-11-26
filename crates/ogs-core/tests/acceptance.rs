@@ -110,6 +110,11 @@ fn verification_cases_match_published_values() {
             total += 1;
             let mut model = case.model.clone();
             model.analysis.methods = vec![check.method];
+            // `analysis.interslice` only goes with Morgenstern-Price (F3.4): a Bishop, Spencer or Janbu check of the
+            // same case runs without it, like the harness does.
+            if check.method != MethodKind::MorgensternPrice {
+                model.analysis.interslice = None;
+            }
             match check.kind {
                 CheckKind::Fixed => {
                     assert!(

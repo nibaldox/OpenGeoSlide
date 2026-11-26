@@ -3,7 +3,7 @@
   "title": "USACE EM 1110-2-1902, example F-5",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V090",
       "title": "USACE EM 1110-2-1902, example F-5",
@@ -94,7 +94,9 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -125,6 +127,26 @@
       "published": 1.328,
       "published_by": "Commercial program A",
       "tolerance": 0.010376506024096385,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.345,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010371747211895911,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.327,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010376789751318765,
       "options": {
         "slices": 50
       }

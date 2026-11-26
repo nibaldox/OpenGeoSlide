@@ -3,7 +3,7 @@
   "title": "Arai & Tagyo (1985) example 1",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
@@ -58,7 +58,8 @@
     },
     "analysis": {
       "methods": [
-        "bishop"
+        "bishop",
+        "morgenstern_price"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -95,11 +96,31 @@
       }
     },
     {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.414,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.020353606789250352,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
       "method": "bishop",
       "kind": "search",
       "published": 1.417,
       "published_by": "Commercial program B",
       "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.414,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020353606789250352,
       "options": {
         "slices": 50
       }

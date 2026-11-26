@@ -3,7 +3,7 @@
   "title": "Talbingo Dam, specified circle",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V052b",
       "title": "Talbingo Dam, specified circle",
@@ -262,7 +262,9 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
       ],
       "slices": 60,
       "tolerance": 1e-05,
@@ -293,6 +295,26 @@
       "published": 2.292,
       "published_by": "Commercial program A",
       "tolerance": 0.010218150087260035,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.073,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010241196333815726,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.299,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010217485863418878,
       "options": {
         "slices": 60
       }
