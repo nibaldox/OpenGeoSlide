@@ -260,6 +260,16 @@ export interface ResultsCsvOptions extends ToCsvOptions {
   units?: string | null;
 }
 
+/** Separador entre los pares (ξ; f) de la celda `puntos_interslice` y entre ξ y f (no son delimitadores CSV). */
+export const INTERSLICE_PAIR_SEPARATOR = '|';
+
+/** `ξ:f|ξ:f|…` de la función `data_points` de un resultado; `null` si no la usa o no trae los puntos. */
+function intersliceCell(r: MethodReport, comma: boolean): string | null {
+  const spec = r.interslice;
+  if (!spec || spec.function !== 'data_points' || !spec.points || spec.points.length === 0) return null;
+  return spec.points.map(([xi, f]) => `${formatNumber(xi, comma)}:${formatNumber(f, comma)}`).join(INTERSLICE_PAIR_SEPARATOR);
+}
+
 /**
  * Tabla de FS por método. El FS y `lambda` solo se escriben si el método convergió; `avisos` lleva los códigos del
  * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas). Las columnas con dimensión llevan
@@ -271,6 +281,9 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
   const withSurface = results.some((r) => isPolylineReport(r.surface));
   const withFunction = results.some((r) => r.interslice !== undefined);
   const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
+  // R10B-07: con `data_points` la función son sus pares (ξ; f); sin ellos el CSV no identifica la f(ξ) usada.
+  const withPoints = results.some((r) => intersliceCell(r, false) !== null);
+  const decimalComma = (options.decimalComma ?? false) && (options.delimiter ?? ',') !== ',';
   const rows: CsvCell[][] = results.map((r) => {
     const circle = reportCircle(r.surface);
     return [
@@ -289,6 +302,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       u.label,
       ...(withSurface ? [isPolylineReport(r.surface) ? 'polilinea' : 'circulo'] : []),
       ...(withFunction ? [r.interslice?.function ?? null] : []),
+      ...(withPoints ? [intersliceCell(r, decimalComma)] : []),
       ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
     ];
   });
@@ -307,6 +321,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     'unidades',
     ...(withSurface ? ['superficie'] : []),
     ...(withFunction ? ['funcion_interslice'] : []),
+    ...(withPoints ? ['puntos_interslice'] : []),
     ...(withF0 ? ['f0'] : []),
   ];
   return toCsv(header, rows, options);

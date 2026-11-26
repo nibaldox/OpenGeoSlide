@@ -89,14 +89,42 @@ describe('CSV de resultados: superficie, función y f₀', () => {
       rep({ method: 'morgenstern_price', surface: circle, interslice: { function: 'data_points', points: [[0, 0], [1, 1]] } }),
       rep({ method: 'janbu_corrected', surface: circle, status: 'not_converged', correction_factor: 1.2 }),
     ]);
-    expect(csv.split('\r\n')[0]).toBe('metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos,unidades,funcion_interslice');
-    expect(csv.split('\r\n')[1]).toBe('morgenstern_price,converged,1.2,4,0.3,1,2,3,,,,SI,data_points');
-    expect(csv.split('\r\n')[2]).toBe('janbu_corrected,not_converged,,4,,1,2,3,,,,SI,');
+    expect(csv.split('\r\n')[0]).toBe('metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos,unidades,funcion_interslice,puntos_interslice');
+    expect(csv.split('\r\n')[1]).toBe('morgenstern_price,converged,1.2,4,0.3,1,2,3,,,,SI,data_points,0:0|1:1');
+    expect(csv.split('\r\n')[2]).toBe('janbu_corrected,not_converged,,4,,1,2,3,,,,SI,,');
   });
   it('resultsCsv lo lee un parser estricto con ancho constante', () => {
     const p = parse(resultsCsv({ engine: 'x', results: [rep({ method: 'janbu_corrected', correction_factor: 1.1 }), rep({})] }, 'imperial'));
     if (p === null) return;
     expect(p.widths).toEqual([14]);
     expect(p.rows[0]).toMatchObject({ metodo: 'janbu_corrected', f0: '1.1', superficie: 'polilinea', unidades: 'imperial' });
+  });
+});
+
+describe('R10B-07: pares (ξ; f) de data_points en el CSV de resultados', () => {
+  const pts: [number, number][] = [[0, 0], [0.25, 0.8], [0.5, 1], [1, 0]];
+  it('con data_points escribe los pares ξ:f separados por | en puntos_interslice; las otras funciones, la celda vacía', () => {
+    const csv = resultsToCsv([
+      rep({ method: 'morgenstern_price', interslice: { function: 'data_points', points: pts } }),
+      rep({ method: 'spencer' }),
+    ]);
+    const [head, a, b] = csv.split('\r\n') as [string, string, string];
+    expect(head.endsWith('funcion_interslice,puntos_interslice')).toBe(true);
+    expect(a.endsWith('data_points,0:0|0.25:0.8|0.5:1|1:0')).toBe(true);
+    expect(b.endsWith(',polilinea,,')).toBe(true);
+  });
+  it('con otra función (half_sine) la columna no existe: el CSV no cambia', () => {
+    const csv = resultsToCsv([rep({ method: 'morgenstern_price', interslice: { function: 'half_sine' } })]);
+    expect(csv.split('\r\n')[0].includes('puntos_interslice')).toBe(false);
+  });
+  it('con coma decimal y delimitador ; los números del texto usan la coma, igual que el resto', () => {
+    const csv = resultsToCsv([rep({ method: 'morgenstern_price', interslice: { function: 'data_points', points: pts } })], { delimiter: ';', decimalComma: true });
+    expect(csv.split('\r\n')[1]!.endsWith('data_points;0:0|0,25:0,8|0,5:1|1:0')).toBe(true);
+  });
+  it('lo lee un parser estricto con ancho constante', () => {
+    const p = parse(resultsToCsv([rep({ method: 'morgenstern_price', interslice: { function: 'data_points', points: pts } }), rep({})]));
+    if (p === null) return;
+    expect(p.widths).toEqual([15]);
+    expect(p.rows[0]).toMatchObject({ funcion_interslice: 'data_points', puntos_interslice: '0:0|0.25:0.8|0.5:1|1:0' });
   });
 });
