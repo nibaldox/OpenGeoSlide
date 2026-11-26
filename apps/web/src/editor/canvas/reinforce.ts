@@ -24,7 +24,8 @@ import {
   type ToolOps,
 } from './draw';
 import type { CanvasAction, GestureContext, PointerInput } from './gesture';
-import { REINFORCEMENT_TYPE_LABEL, newReinforcement, nextReinforcementId, type ReinforcementType } from './reinforcements';
+import { nextReinforcementId } from '../state/reinforcementDefaults';
+import { REINFORCEMENT_TYPE_LABEL, newReinforcement, type ReinforcementType } from './reinforcements';
 import type { SnapKind } from './snap';
 
 /** Instrucciones de la herramienta, para el lienzo y la ayuda. */
@@ -55,7 +56,7 @@ export function reinforcePlace(type: ReinforcementType, draft: DrawDraft, ctx: G
   const tip: Point = type === 'sheet_pile' ? [head[0], p[1]] : [p[0], p[1]];
   if (same(tip, head)) return reject(draft, REINFORCE_SAME_POINT);
   const index = doc.reinforcements?.length ?? 0;
-  const id = nextReinforcementId(doc, type);
+  const id = nextReinforcementId(doc.reinforcements ?? [], type);
   const reinforcement = newReinforcement(type, id, head, tip, doc.units);
   const actions: CanvasAction[] = [
     { type: 'reinforcement/upsert', index: null, reinforcement },
