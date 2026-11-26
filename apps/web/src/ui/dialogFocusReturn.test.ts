@@ -15,11 +15,15 @@ describe.each(['editor/app/ImportDialogs.tsx', 'ui/HelpDialog.tsx', 'ui/ConfirmD
     expect(text).toMatch(/import\s*\{[^}]*\brestoreFocus\b[^}]*\}\s*from\s*'[^']*focusReturn'/);
     expect(text).toMatch(/\brestoreFocus\(/);
   });
-  it.skipIf(file === 'ui/ConfirmDialog.tsx')('no desplaza la página al devolver el foco (preventScroll)', () => {
-    expect(text).toMatch(/restoreFocus\(null, previous, \{ preventScroll: true \}\)/);
-  });
   it('no usa previous?.isConnected && previous.focus()', () => {
     expect(text).not.toMatch(/previous\??\.isConnected/);
     expect(text).not.toMatch(/previous\??\.focus\(\)/);
+  });
+});
+
+// `#main-content` es alto: enfocarlo sin `preventScroll` sube la página hasta su inicio (rompía el toque de «Dividir región» en u4m_split_touch).
+describe.each(['editor/app/ImportDialogs.tsx', 'ui/HelpDialog.tsx'])('%s: no desplaza la página', (file) => {
+  it('devuelve el foco con preventScroll', () => {
+    expect(code(read(file))).toMatch(/restoreFocus\(null, previous, \{ preventScroll: true \}\)/);
   });
 });
