@@ -193,6 +193,13 @@ describe('ReinforcementsPanel: nombres accesibles', () => {
         expect(ev.commit).toMatchObject({ type: 'sheet_pile', x1: 40, x2: 40, direction: 'angle', angle: 0 });
       });
 
+      it('«Alinear» con un cambio pendiente: el borrador con x2 = x1 es válido y se escribe entero', () => {
+        const r = card();
+        const pending = switchDirection(reinforcementToForm(r), 'angle');
+        const ev = evaluateCard({ ...pending, x2: pending.x1 }, r, { ...CTX, inclined: false });
+        expect(ev.commit).toMatchObject({ x1: 40, x2: 40, direction: 'angle', angle: 0 });
+      });
+
       it('sin cambios en el borrador no hay aviso de pendiente aunque la tarjeta tenga errores', () => {
         const r = card();
         expect(evaluateCard(reinforcementToForm(r), r, CTX)).toMatchObject({ commit: null, pending: false });

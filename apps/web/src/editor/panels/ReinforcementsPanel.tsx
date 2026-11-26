@@ -228,7 +228,11 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
           <button
             type="button"
             aria-label={`Alinear verticalmente la tablestaca del refuerzo ${index + 1} (x2 = x1)`}
-            onClick={() => store.dispatch(reinforcementUpsertCommand(index, alignedSheet(reinforcement)))}
+            onClick={() => {
+              // «Alinear» corrige x2 y, si el resto del borrador es válido, conserva también los cambios pendientes (una lista desplegable).
+              const { commit: withDraft } = evaluateCard({ ...form, x2: form.x1 }, reinforcement, { ...ctx, inclined: false });
+              store.dispatch(reinforcementUpsertCommand(index, withDraft ?? alignedSheet(reinforcement)));
+            }}
           >
             Alinear verticalmente (x2 = x1)
           </button>
