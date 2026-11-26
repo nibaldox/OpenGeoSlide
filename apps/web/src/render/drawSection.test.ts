@@ -16,6 +16,7 @@ const model = {
 } as unknown as Model;
 
 const method = {
+  status: 'converged', // R9-12b: sin convergencia la superficie se dibuja discontinua
   surface: { xc: 5, yc: 12, r: 8 },
   slices: [{ x_left: 2, x_right: 5, y_base_left: 4, y_base_right: 3, y_top_mid: 7 }, { x_left: 5, x_right: 8, y_base_left: 3, y_base_right: 4, y_top_mid: 7 }],
 } as never;
@@ -27,12 +28,13 @@ function recorder() {
   const widths: number[] = [];
   const fonts: string[] = [];
   const texts: string[] = [];
+  const dashes: number[][] = [];
   const noop = (): void => undefined;
   const ctx = new Proxy(
     {},
     {
       get: (_t, k) =>
-        k === 'measureText' ? () => ({ width: 10 }) : k === 'fillText' ? (t: string) => void texts.push(String(t)) : noop,
+        k === 'measureText' ? () => ({ width: 10 }) : k === 'setLineDash' ? (d: number[]) => void dashes.push([...d]) : k === 'fillText' ? (t: string) => void texts.push(String(t)) : noop,
       set: (_t, k, v) => {
         if (k === 'fillStyle') fills.push(String(v));
         if (k === 'strokeStyle') strokes.push(String(v));
@@ -42,11 +44,11 @@ function recorder() {
       },
     },
   ) as unknown as CanvasRenderingContext2D;
-  return { ctx, fills, strokes, widths, fonts, texts };
+  return { ctx, fills, strokes, widths, fonts, texts, dashes };
 }
 
 const dark: SectionPalette = {
-  bg: 'BG', grid: 'GRID', axis: 'AXIS', axisText: 'TEXT', halo: 'HALO', regionEdge: 'EDGE', surface: 'SURF', piezo: 'PIEZO',
+  bg: 'BG', grid: 'GRID', axis: 'AXIS', axisText: 'TEXT', halo: 'HALO', regionEdge: 'EDGE', surface: 'SURF', surfaceUnconverged: 'UNCONV', piezo: 'PIEZO',
   sliceFill: 'SFILL', sliceEdge: 'SEDGE', materials: ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'], materialUnknown: 'MU',
 };
 
@@ -78,6 +80,27 @@ describe('drawSection con SectionPalette', () => {
     expect(light.bg).toBe('#ffffff');
     expect(light.materials).toHaveLength(7);
     expect(r.fills).toContain(light.materials[0]);
+  });
+});
+
+describe('R9-12b: superficie que no convergió, en Casos', () => {
+  it('convergida: trazo continuo con el color de la superficie crítica', () => {
+    const r = recorder();
+    drawSection(r.ctx, 600, 400, 1, buildScene(model, method), dark);
+    expect(r.strokes).toContain('SURF');
+    expect(r.strokes).not.toContain('UNCONV');
+    expect(r.dashes.some((d) => d.length === 2 && d[0] === 10)).toBe(false);
+  });
+  it('no convergida: trazo discontinuo `10 6` y el color de «sin convergencia», nunca el de la superficie crítica', () => {
+    for (const status of ['not_converged', 'invalid'] as const) {
+      const scene = buildScene(model, { ...(method as object), status } as never);
+      expect(scene.surface?.converged).toBe(false);
+      const r = recorder();
+      drawSection(r.ctx, 600, 400, 1, scene, dark);
+      expect(r.strokes).toContain('UNCONV');
+      expect(r.strokes).not.toContain('SURF');
+      expect(r.dashes).toContainEqual([10, 6]);
+    }
   });
 });
 

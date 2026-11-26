@@ -5,7 +5,8 @@ import type { ModelDoc } from '../types';
 import { createEditorStore } from './store';
 import { applyCommand } from './reducer';
 import { OGS_BIN, engineRun, haveEngine } from './engineRun.testutil';
-import { UNIT_FACTORS, convertDocUnits } from './units';
+import { baseDoc } from './testFixtures';
+import { UNIT_FACTORS, convertDocUnits, isImperialUnits, unitSystemOf } from './units';
 import { validateLocal } from './validateLocal';
 
 const slope = (over: Partial<SlopeInput> = {}): SlopeInput => ({
@@ -236,5 +237,23 @@ describe('Talud simple imperial: γw explícito', () => {
     const doc = simpleSlope(r.value);
     expect(doc.water?.unit_weight).toBe(62.4);
     expect(validateLocal(doc).filter((i) => i.severity === 'error')).toEqual([]);
+  });
+});
+
+describe('isImperialUnits (R9-03b): una sola detección, sin distinguir mayúsculas', () => {
+  it.each(['imperial', 'Imperial', 'IMPERIAL', ' imperial ', 'imp'])('%j es imperial', (u) => {
+    expect(isImperialUnits(u)).toBe(true);
+    expect(unitSystemOf({ units: u })).toBe('imperial');
+  });
+  it.each([undefined, null, '', 'SI', 'si', 'metric', 'simple'])('%j no es imperial', (u) => {
+    expect(isImperialUnits(u)).toBe(false);
+    expect(unitSystemOf({ units: u as string | undefined })).toBe('SI');
+  });
+  it('un modelo con `Imperial` se convierte a SI como imperial (y se normaliza la etiqueta)', () => {
+    const doc = { ...baseDoc(), units: 'Imperial' };
+    const si = convertDocUnits(doc, 'SI');
+    expect(si.units).toBe('SI');
+    expect(si.regions[0]!.polygon[1]![0]).toBeCloseTo(10 * 0.3048, 9);
+    expect(convertDocUnits(doc, 'imperial').units).toBe('imperial');
   });
 });
