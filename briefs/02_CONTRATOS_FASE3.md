@@ -384,6 +384,50 @@ pilotes.
 - **Limitación documentada:** algunas polilíneas con tramos muy empinados se rechazan por la guarda m_α (E4b), que
   cSlope no aplica. Se mantiene la guarda y se documenta en `docs/limitaciones.md`.
 
+## F3.10c Enmiendas por R10 (E13l, decisiones del coordinador)
+
+Las revisiones están en `docs/reviews/R10_agy_A.md` y `R10_agy_B.md`. Cada punto se implementa con su test RED y su
+efecto medido sobre **todos** los modelos.
+
+- **E13l-1, f₀ de Janbu (R10A-01, R10B-01).** `f₀ = max(1, 1 + b₁·(d/L − 1,4·(d/L)²))`: la corrección nunca reduce F₀.
+  - Si d/L supera el límite del gráfico de Janbu (1973), se emite la nota `janbu_correction_extrapolated`. El límite
+    se cita de la fuente, previsiblemente 0,4 según Abramson et al. (2002).
+  - Ningún método devuelve `converged` con un FS ≤ 0 o no finito. Si ocurre, el resultado pasa a `not_converged` con
+    el motivo `non_positive_fos`.
+  - Los dos códigos nuevos van a E6.
+- **E13l-2, fuerza motriz en superficies no circulares (R10A-02).** En polilíneas, E3 evalúa
+  `Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento, que es la misma `t` del equilibrio de fuerzas. Los círculos
+  no cambian.
+- **E13l-3, escala de los residuos (R10A-03 y R10A-07).** Se reemplaza ΣW* de E13j-6 por una **escala motriz** que no
+  se infle con cargas verticales inertes. La candidata es `max(ΣW, Σ|t_i|, Σ|H_i|)`.
+  - **Criterios de aceptación:**
+    - V018, V077 y V078 siguen convergiendo con sus FS;
+    - todos los demás modelos quedan idénticos byte a byte;
+    - el contraejemplo de la sobrecarga inerte de R10A-03 no converge falsamente;
+    - V068 con carga en el pie (R10A-07) conserva `negative_effective_normal_major`.
+  - Si ninguna escala cumple los cuatro criterios, se mide y se reporta sin implementar.
+- **E13l-4, paso de λ en M-P (R10A-08).** El paso es `0,05 / max(f̄, f_max/2)`, de modo que λ·f nunca salta más de
+  0,1.
+  - f se normaliza internamente por f_max, y λ se informa en la escala del usuario.
+  - Las cinco funciones estándar quedan idénticas byte a byte.
+- **E13l-5, base sobre un contacto de materiales (R10A-04).** Si el punto medio de la base está a menos de `tol` de un
+  contacto entre dos materiales, se toma el **más débil**. La comparación se hace con `c + max(0, σ′)·tan φ` (o Su),
+  con `σ′ = W·cos²α/b − u`.
+  - Es la regla de cSlope, que se lee y no se copia.
+  - Los círculos que solo rozan el contacto se miden.
+- **E13l-6, robustez de la polilínea (R10A-05, R10A-09 y R10A-06-3).**
+  - La prolongación y el recorte de los extremos usan la distancia 2D.
+  - Los vértices de la polilínea tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol`.
+  - La resistencia de una cara vertical sobre un contacto vertical se toma del lado más débil.
+- **E13l-7, superficie informada (R10B-05).** Cuando la masa se trunca (`truncated_driving_mass`), `report.surface` de
+  una polilínea se recorta al rango analizado, como el trazo de los círculos. La web dibuja y exporta ese rango.
+- **E13l-8, esquema (R10A-10 y R10B-04c).** En `ogs-0.3.schema.json`, una polilínea exige `analysis.methods`.
+  `validateLocal` aplica el valor por defecto `["bishop"]`.
+- **Aclaración de E13k.** Solo cuentan las caras con E′ > 0, así que la fórmula usa E′ y no `max(E′, 0)`.
+  - La resistencia de una cara en tracción se trata con los avisos de tracción, no con este aviso.
+  - **Limitación documentada:** `r_v ≤ 3` no garantiza que la solución sea física. R10A-06 encontró un caso bicapa
+    con Spencer en 2,9 veces Janbu y sin aviso. El informe recomienda comparar con Janbu.
+
 ## F3.11 Gates de F3a
 
 - **Los de F1.5**, más:
