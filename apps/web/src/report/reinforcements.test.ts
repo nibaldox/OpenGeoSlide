@@ -25,6 +25,14 @@ describe('sección «Refuerzos» del informe', () => {
     expect(ids.indexOf('reinforcements')).toBe(ids.indexOf('results') + 1);
   });
 
+  it('la portada dice formato 0.4 con refuerzos, aunque el modelo en memoria traiga una versión menor, y 0.2 sin ellos', () => {
+    const kvOf = (c: ReturnType<typeof buildReportContent>): Record<string, string> =>
+      Object.fromEntries((c.sections.find((s) => s.id === 'cover')!.blocks.find((b) => b.kind === 'kv') as Extract<ReportBlock, { kind: 'kv' }>).rows);
+    const old = { ...input, model: { ...input.model, version: '0.2' } };
+    expect(kvOf(buildReportContent(old))['Versión del formato']).toBe('0.4');
+    expect(kvOf(buildReportContent(sampleInput()))['Versión del formato']).toBe('0.2');
+  });
+
   it('sin refuerzos no hay sección (el informe de siempre no cambia)', () => {
     expect(buildReportContent(sampleInput()).sections.map((s) => s.id)).not.toContain('reinforcements');
   });
