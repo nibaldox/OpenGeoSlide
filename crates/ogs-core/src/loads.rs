@@ -11,8 +11,8 @@
 
 use crate::OgsError;
 use crate::model::{
-    FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, FORMAT_VERSION_V04, Load,
-    MaterialModel, MethodKind, Model, SurfaceSpec,
+    CrackDepth, FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, FORMAT_VERSION_V04,
+    FORMAT_VERSION_V05, Load, MaterialModel, MethodKind, Model, SurfaceSpec,
 };
 use crate::slicer::Slice;
 
@@ -195,8 +195,42 @@ fn first_v04_field(model: &Model) -> Option<&'static str> {
     (!model.reinforcements.is_empty()).then_some("reinforcements")
 }
 
-/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), the version gate of the v0.3 fields (E13a) and of
-/// the v0.4 fields (E14a), and the rules of `reinforcements` (E14b). It does not need the geometry.
+/// The first field of the document that needs version `"0.5"` (E15a), named as in the JSON, or `None`: only
+/// `analysis.tension_crack` (the ponded water has no field and applies in every version, D1).
+fn first_v05_field(model: &Model) -> Option<&'static str> {
+    model
+        .analysis
+        .tension_crack
+        .is_some()
+        .then_some("tension_crack")
+}
+
+/// `analysis.tension_crack` (E15b): `depth` finite and `> 0` (or `"auto"`), `water_fill` finite and in `[0, 1]`. The
+/// error carries the path `analysis.tension_crack.<campo>`; a missing field is reported by the deserializer with the
+/// same path.
+fn validate_tension_crack(model: &Model) -> Result<(), OgsError> {
+    let Some(tc) = &model.analysis.tension_crack else {
+        return Ok(());
+    };
+    if let CrackDepth::Fixed(d) = tc.depth
+        && !(d.is_finite() && d > 0.0)
+    {
+        return Err(invalid(format!(
+            "analysis.tension_crack.depth debe ser finito y mayor que 0 (o \"auto\"), no {d}"
+        )));
+    }
+    let w = tc.water_fill;
+    if !(w.is_finite() && (0.0..=1.0).contains(&w)) {
+        return Err(invalid(format!(
+            "analysis.tension_crack.water_fill debe ser finito y estar en [0, 1], no {w}"
+        )));
+    }
+    Ok(())
+}
+
+/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), the version gate of the v0.3 fields (E13a), of
+/// the v0.4 fields (E14a) and of the v0.5 fields (E15a), the rules of `reinforcements` (E14b) and of
+/// `analysis.tension_crack` (E15b). It does not need the geometry.
 ///
 /// Version `"0.1"` admits no `loads` and no `analysis.seismic`; an empty `loads` list counts as absent. Versions
 /// `"0.1"` and `"0.2"` admit no v0.3 field: the error names the first one, `<campo> requiere version "0.3"`. A
@@ -210,11 +244,12 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
         FORMAT_VERSION_V02,
         FORMAT_VERSION_V03,
         FORMAT_VERSION_V04,
+        FORMAT_VERSION_V05,
     ]
     .contains(&model.version.as_str())
     {
         return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\" o \"{FORMAT_VERSION_V04}\", no \"{}\"",
+            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\", \"{FORMAT_VERSION_V04}\" o \"{FORMAT_VERSION_V05}\", no \"{}\"",
             model.version
         )));
     }
@@ -223,18 +258,26 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             "los campos 'loads' y 'analysis.seismic' requieren version \"{FORMAT_VERSION_V02}\""
         )));
     }
-    if ![FORMAT_VERSION_V03, FORMAT_VERSION_V04].contains(&model.version.as_str())
+    if ![FORMAT_VERSION_V03, FORMAT_VERSION_V04, FORMAT_VERSION_V05]
+        .contains(&model.version.as_str())
         && let Some(field) = first_v03_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V03}\""
         )));
     }
-    if model.version != FORMAT_VERSION_V04
+    if ![FORMAT_VERSION_V04, FORMAT_VERSION_V05].contains(&model.version.as_str())
         && let Some(field) = first_v04_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V04}\""
+        )));
+    }
+    if model.version != FORMAT_VERSION_V05
+        && let Some(field) = first_v05_field(model)
+    {
+        return Err(invalid(format!(
+            "{field} requiere version \"{FORMAT_VERSION_V05}\""
         )));
     }
     if let Some(s) = &model.analysis.seismic {
@@ -293,6 +336,7 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             }
         }
     }
+    validate_tension_crack(model)?;
     crate::reinforcement::validate(&model.reinforcements)
 }
 

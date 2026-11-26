@@ -56,6 +56,18 @@ pub struct ReinforcementForce {
     pub status: ForceStatus,
 }
 
+/// The tension crack of a surface that was truncated (v0.5, E15b): where it is, how deep, and the force of its water.
+///
+/// `x` is `x_c` (G1: the first point from the crest side where `ground − base ≥ d`), `depth` the depth that was used
+/// (the fixed one, or the automatic one at `x_c`, G6) and `water_force` is `Pw = ½·γw·hw²`, `hw = depth·water_fill`
+/// (G3), per metre of slope, in force units; 0 for a dry crack. Omitted from the report when there is no crack.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct CrackReport {
+    pub x: f64,
+    pub depth: f64,
+    pub water_force: f64,
+}
+
 /// Result of one method.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MethodReport {
@@ -80,6 +92,9 @@ pub struct MethodReport {
     /// Forces of the reinforcements on the final surface (v0.4, E14i); omitted when there are none.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub reinforcement_forces: Vec<ReinforcementForce>,
+    /// The tension crack that truncated the surface (v0.5, E15b); omitted when the model has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tension_crack: Option<CrackReport>,
 }
 
 /// Full report: one entry per method, in the order of `analysis.methods`.

@@ -1,10 +1,11 @@
-//! `.ogs.json` model v0.1, v0.2, v0.3 and v0.4 (contract §1, amendments E12a, E13a and E14a-E14b). Field names are snake_case and
-//! frozen. Angles are in degrees. Units are not converted by the engine.
+//! `.ogs.json` model v0.1, v0.2, v0.3, v0.4 and v0.5 (contract §1, amendments E12a, E13a, E14a-E14b and E15a-E15b). Field
+//! names are snake_case and frozen. Angles are in degrees. Units are not converted by the engine.
 //!
 //! v0.2 adds `loads` (surface loads) and `analysis.seismic` (pseudo-static `kh`, `kv`). v0.3 adds the undrained
 //! material, the polyline surface, the methods Morgenstern-Price and Janbu, and `analysis.interslice`. v0.4 adds
-//! `reinforcements` (anchors, nails, geosynthetics, piles and sheet piles). A document without the fields of a later
-//! version gives the same result in every version.
+//! `reinforcements` (anchors, nails, geosynthetics, piles and sheet piles). v0.5 adds `analysis.tension_crack` (a
+//! tension crack, dry or with water; E15b). A document without the fields of a later version gives the same result in
+//! every version.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,8 @@ pub const FORMAT_VERSION_V02: &str = "0.2";
 pub const FORMAT_VERSION_V03: &str = "0.3";
 /// Version that admits `reinforcements` (amendment E14a).
 pub const FORMAT_VERSION_V04: &str = "0.4";
+/// Version that admits `analysis.tension_crack` (amendment E15a).
+pub const FORMAT_VERSION_V05: &str = "0.5";
 
 fn default_water_unit_weight() -> f64 {
     9.81
@@ -536,6 +539,80 @@ impl From<SearchSpec> for SearchSpecWire {
     }
 }
 
+/// Depth of the tension crack (v0.5, E15b): a finite number `> 0` in the length unit of the model, or the string
+/// `"auto"` (G6: `z = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)`, recomputed for each `x`).
+///
+/// Untagged in JSON: `2.0` is `Fixed(2.0)` and `"auto"` is `Auto`. `Auto` is not a derivable untagged variant (a unit
+/// variant would be `null`), so the serde impls are written by hand. Any other value is an error that names the path.
+/// The range of `Fixed` (`> 0`, finite) is checked by `loads::validate_document`, not here.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CrackDepth {
+    Fixed(f64),
+    Auto,
+}
+
+impl Serialize for CrackDepth {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            CrackDepth::Fixed(d) => serializer.serialize_f64(*d),
+            CrackDepth::Auto => serializer.serialize_str("auto"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for CrackDepth {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Raw {
+            Number(f64),
+            Text(String),
+        }
+        const MSG: &str = "analysis.tension_crack.depth debe ser un número mayor que 0 o \"auto\"";
+        match Raw::deserialize(deserializer) {
+            Ok(Raw::Number(d)) => Ok(CrackDepth::Fixed(d)),
+            Ok(Raw::Text(t)) if t == "auto" => Ok(CrackDepth::Auto),
+            _ => Err(serde::de::Error::custom(MSG)),
+        }
+    }
+}
+
+/// `analysis.tension_crack` (v0.5, E15b): a vertical tension crack at the crest of the sliding mass.
+///
+/// - `depth`: a finite number `> 0` or `"auto"` (G6).
+/// - `water_fill`: the fraction of the crack filled with water, in `[0, 1]`. **Required, with no default**: 0 is the
+///   dry crack and 1 the full one. The water force is `Pw = ½·γw·hw²`, `hw = depth·water_fill` (G3).
+///
+/// There is no position field: `x_c` comes from the surface and the depth (G1). The fields are optional for serde
+/// only so that a missing one is reported with its path (`analysis.tension_crack.<campo> es obligatorio`); the
+/// finished type always has both. The ranges are checked by `loads::validate_document`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct TensionCrack {
+    pub depth: CrackDepth,
+    pub water_fill: f64,
+}
+
+impl<'de> Deserialize<'de> for TensionCrack {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            #[serde(default)]
+            depth: Option<CrackDepth>,
+            #[serde(default)]
+            water_fill: Option<f64>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        let missing = |field: &str| {
+            serde::de::Error::custom(format!("analysis.tension_crack.{field} es obligatorio"))
+        };
+        Ok(TensionCrack {
+            depth: raw.depth.ok_or_else(|| missing("depth"))?,
+            water_fill: raw.water_fill.ok_or_else(|| missing("water_fill"))?,
+        })
+    }
+}
+
 /// Analysis settings. If `surface` is set and `search` is not, that surface is analyzed.
 /// If `search` is set, `surface` is ignored. If neither is set, the analysis fails with `NoSurface`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -554,6 +631,9 @@ pub struct AnalysisSettings {
     /// Interslice force function of `morgenstern_price` (v0.3, E13d). `None` is `half_sine`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interslice: Option<IntersliceSpec>,
+    /// Tension crack (v0.5, E15b). `None` is no crack; a crack needs `version: "0.5"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tension_crack: Option<TensionCrack>,
 }
 
 impl Default for AnalysisSettings {
@@ -568,6 +648,7 @@ impl Default for AnalysisSettings {
             search: None,
             seismic: None,
             interslice: None,
+            tension_crack: None,
         }
     }
 }

@@ -1,6 +1,6 @@
 //! OpenGeoSlide core: 2D limit-equilibrium slope stability (contracts: `briefs/00_CONTRATOS.md`).
 //!
-//! What the crate does (formats v0.1, v0.2, v0.3 and v0.4):
+//! What the crate does (formats v0.1 to v0.5):
 //! - Reads the `.ogs.json` model (`model`, §1). Input is strict: an unknown field is an error, never
 //!   ignored (`deny_unknown_fields`).
 //! - `analyze` validates `format`, `version` and every `analysis` parameter before computing (§4.5).
@@ -14,6 +14,10 @@
 //! - v0.4 (amendments E14a-E14l): `reinforcements` (anchors, nails, geosynthetics, piles and sheet piles). The types,
 //!   the version gate and the validation are in `model` and `reinforcement`; the forces (`reinforcement`, wave R1)
 //!   are called only when the list is not empty, so a model without them goes through the code of v0.2.0.
+//! - v0.5 (amendments E15a-E15h): `analysis.tension_crack` (a tension crack, dry or with water; `crack`) and the ponded
+//!   water, which has no field and applies in every version (`water`). `crack::locate` and `crack::truncate` are
+//!   called only when `analysis.tension_crack` exists; `water::apply_ponded` runs on every surface and adds nothing
+//!   without water over the ground, so a model without them gives the output of v0.3.0 (E15e-1).
 //! - Builds the ground geometry and resolves the sliding direction (`geometry`, §1 and amendment E1).
 //! - Slices circular surfaces and fixed polylines (`slicer`, §4.1) and solves them with simplified Bishop and Spencer
 //!   (`methods`, §4.2 and §4.3).
@@ -21,8 +25,10 @@
 //! - Reports one `MethodReport` per method (`report`). `fos` is `None` when it is not finite; the
 //!   status and the warnings explain why.
 //!
-//! Not supported: water over the ground (it is ignored and reported as a warning).
+//! Water over the ground: the ponded water enters with its weight and thrust (`water`); the note `water_above_ground`
+//! stays as an informative note.
 
+pub mod crack;
 pub mod geometry;
 pub mod loads;
 pub mod methods;
@@ -33,6 +39,7 @@ pub mod search;
 pub mod slicer;
 pub mod strength;
 pub mod surface;
+pub mod water;
 
 use geometry::{Ground, PreparedModel};
 use loads::{LOAD_OUTSIDE_MASS, LoadCase};
@@ -41,7 +48,7 @@ use model::{
     AnalysisSettings, FORMAT, IntersliceFunction, IntersliceSpec, MethodKind, Model, SearchSpec,
     SurfaceSpec,
 };
-use report::{AnalysisReport, MethodReport};
+use report::{AnalysisReport, CrackReport, MethodReport};
 use search::{
     ElementEnd, MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings,
     search_circular_reinforced,
@@ -376,24 +383,40 @@ fn analyze_method(
             // E14o-7: with reinforcements the search also tries circles through their heads and tips.
             let ends = reinforcement_ends(&model.reinforcements);
             let result = search_circular_reinforced(pm, spec, &ends, |candidate| {
-                // E14d.4: the crossings of the reinforcements are computed for each candidate.
+                // E14d.4: the crossings of the reinforcements are computed for each candidate. E15d (G9): a candidate
+                // that does not get to the crack is discarded.
+                let surface = Surface::Circle(*candidate);
+                let plan = match &analysis.tension_crack {
+                    Some(tc) => Some(crack::locate(tc, pm, &surface, load_case).ok()?),
+                    None => None,
+                };
                 let case;
                 let mut crossings = 0;
-                let load_case = if model.reinforcements.is_empty() {
+                let load_case = if model.reinforcements.is_empty() && plan.is_none() {
                     load_case
                 } else {
-                    let surface = Surface::Circle(*candidate);
-                    let nodes = reinforcement::crossing_nodes(&model.reinforcements, pm, &surface);
+                    let mut nodes = if model.reinforcements.is_empty() {
+                        Vec::new()
+                    } else {
+                        reinforcement::crossing_nodes(&model.reinforcements, pm, &surface)
+                    };
                     crossings = (nodes.len() / 2) as u32;
+                    if let Some(plan) = &plan {
+                        nodes.extend_from_slice(&plan.breaks);
+                    }
                     case = load_case.with_extra_breaks(nodes);
                     &case
                 };
                 let mut slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
+                if let Some(plan) = &plan {
+                    crack::truncate(plan, pm, &surface, &mut slices);
+                }
+                water::apply_ponded(pm, &surface, &mut slices);
                 if !model.reinforcements.is_empty() {
                     reinforcement::apply_to_slices(
                         &model.reinforcements,
                         pm,
-                        &Surface::Circle(*candidate),
+                        &surface,
                         &mut slices,
                     );
                 }
@@ -444,26 +467,50 @@ fn analyze_method(
                 correction_factor: None,
                 interslice: interslice_report(analysis, method),
                 reinforcement_forces: Vec::new(),
+                tension_crack: None,
             });
         }
     };
 
     // 2. Slice the chosen surface and solve it. A method that fails (`Invalid`, `NotConverged`) is
     //    reported through its status; only a surface that cannot be sliced is an error.
+    // E15d (G1): the position of the crack on the fitted surface. A surface that does not get to it has no mass: the
+    // analysis fails with the stable reason (the search discards such candidates instead, G9).
+    let crack_plan = match &analysis.tension_crack {
+        Some(tc) => Some(crack::locate(tc, pm, &surface, load_case).map_err(
+            |crack::CrackError::NotReached| {
+                OgsError::NoValidSurface(format!(
+                    "{}: la superficie no alcanza la profundidad de la grieta de tracción",
+                    crack::TENSION_CRACK_NOT_REACHED
+                ))
+            },
+        )?),
+        None => None,
+    };
     let reinforced_case;
-    let slicing_case = if model.reinforcements.is_empty() {
+    let slicing_case = if model.reinforcements.is_empty() && crack_plan.is_none() {
         load_case
     } else {
-        reinforced_case = load_case.with_extra_breaks(reinforcement::crossing_nodes(
-            &model.reinforcements,
-            pm,
-            &surface,
-        ));
+        let mut nodes = if model.reinforcements.is_empty() {
+            Vec::new()
+        } else {
+            reinforcement::crossing_nodes(&model.reinforcements, pm, &surface)
+        };
+        if let Some(plan) = &crack_plan {
+            nodes.extend_from_slice(&plan.breaks);
+        }
+        reinforced_case = load_case.with_extra_breaks(nodes);
         &reinforced_case
     };
     let sliced = slice_surface_of(pm, &surface, n, slicing_case)
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;
+    // E15d (G2, G3): the slices on the crest side of the crack go, and the water of the crack acts on the face.
+    let crack_report: Option<CrackReport> = crack_plan
+        .as_ref()
+        .map(|plan| crack::truncate(plan, pm, &surface, &mut slices));
+    // E15c: the weight and the thrust of the ponded water (zero terms without water over the ground).
+    water::apply_ponded(pm, &surface, &mut slices);
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
     let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
         (Vec::new(), false)
@@ -482,7 +529,7 @@ fn analyze_method(
         )
     };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
-    let truncated = !sliced.notes.is_empty();
+    let truncated = !sliced.notes.is_empty() || crack_report.is_some();
     let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
     if result.status != SolveStatus::Converged {
         reinforcement_forces.clear();
@@ -556,6 +603,7 @@ fn analyze_method(
         correction_factor: result.correction_factor,
         interslice: interslice_report(analysis, method),
         reinforcement_forces,
+        tension_crack: crack_report,
     })
 }
 
