@@ -1,6 +1,6 @@
 import type { AnalysisReport, Reinforcement } from '../engine/types';
 import { STRUCTURAL_LIMIT_TEXT, forceRecords, forcesTable, hasStructuralElements } from '../report/reinforcementReport';
-import { METHOD_LABELS } from './ResultsTable';
+import { METHOD_LABELS } from './methodLabels';
 
 /**
  * Fuerzas de los refuerzos por cruce (F4.9), una tabla por método que las trae, y el texto del límite de F4.8 cuando el modelo tiene
