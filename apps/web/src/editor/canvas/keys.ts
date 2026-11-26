@@ -1,6 +1,6 @@
 // Atajos de teclado del lienzo, como función pura: tecla → lista de acciones (+ tirador que recibe el foco + anuncio).
 //   Ctrl+Z deshace; Ctrl+Mayús+Z o Ctrl+Y rehace; Escape deselecciona.
-//   [ ] y RePág/AvPág recorren los tiradores, dando la vuelta. Tab y Mayús+Tab entran y salen del lienzo (una sola parada de tabulación).
+//   [ ] (también con AltGr u Option, R9-04) y RePág/AvPág recorren los tiradores, dando la vuelta. Tab y Mayús+Tab entran y salen del lienzo (una sola parada de tabulación).
 //   Flechas: mueven el tirador seleccionado 1 paso de rejilla (Mayús = ×10); en el tirador del radio cambian el radio;
 //   sin tirador seleccionado desplazan la vista.
 //   Insert (o «i»): inserta un vértice en el punto medio de la arista siguiente. Supr/Retroceso: quita el vértice o punto
@@ -29,6 +29,31 @@ export interface KeyInput {
   metaKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  /** `getModifierState('AltGraph')`: AltGr en Linux/Firefox/Chrome. En Windows el navegador además marca `ctrlKey` y `altKey`. */
+  altGraph?: boolean;
+}
+
+/** Evento de teclado del navegador (o React) → `KeyInput`, con `AltGraph` leído de `getModifierState`. */
+export function keyInputOf(e: Pick<KeyInput, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'> & { getModifierState?(key: 'AltGraph'): boolean }): KeyInput {
+  return {
+    key: e.key,
+    ctrlKey: e.ctrlKey,
+    metaKey: e.metaKey,
+    shiftKey: e.shiftKey,
+    altKey: e.altKey,
+    altGraph: typeof e.getModifierState === 'function' && e.getModifierState('AltGraph'),
+  };
+}
+
+/** Teclas cuyo carácter, en teclados en español, sale con AltGr (`[`, `]`) o Option; `+`, `=` y `-` se aceptan igual (R9-04). */
+const ALT_CHAR_KEYS: ReadonlySet<string> = new Set(['[', ']', '+', '=', '-']);
+
+/**
+ * ¿La tecla ya trae el carácter con AltGr (Ctrl+Alt en Windows, `AltGraph`) u Option (Alt sin Meta)? Se decide por `k.key`
+ * (el carácter producido) antes del descarte genérico de modificadores. Ctrl o Meta sin Alt siguen siendo atajos del navegador.
+ */
+function isAltCharKey(k: KeyInput): boolean {
+  return ALT_CHAR_KEYS.has(k.key) && !k.metaKey && (k.altKey || k.altGraph === true);
 }
 
 export interface KeyResult {
@@ -100,7 +125,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     return { handled: true, actions: [{ type: k.shiftKey ? 'history/redo' : 'history/undo' }] };
   }
   if (mod && lower === 'y') return { handled: true, actions: [{ type: 'history/redo' }] };
-  if (mod || k.altKey) return NOT_HANDLED;
+  if ((mod || k.altKey) && !isAltCharKey(k)) return NOT_HANDLED;
 
   const sel = ui.selection;
   const current = selectionHandle(sel, part);

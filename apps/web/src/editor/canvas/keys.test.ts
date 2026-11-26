@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyActions, type KeyInput } from './keys';
+import { keyActions, keyInputOf, type KeyInput } from './keys';
 import { fitToDoc } from './viewportOps';
 import { screenToWorld } from '../../geometry/viewport';
 import { VP } from './fakeStore';
@@ -268,5 +268,63 @@ describe('R7-02: zoom y encuadre con + − 0', () => {
     expect((r.actions[0] as { viewport: typeof VP }).viewport.tx).toBeCloseTo(VP.tx - 40, 9);
     const up = keyActions(sel({ kind: 'none' }), key('ArrowUp', { shiftKey: true }));
     expect((up.actions[0] as { viewport: typeof VP }).viewport.ty).toBeCloseTo(VP.ty + 160, 9);
+  });
+});
+
+describe('R9-04: [ ] + = - con AltGr (Windows/Linux) y Option (macOS)', () => {
+  const v00: Selection = { kind: 'vertex', regionIndex: 0, vertexIndex: 0 };
+  const next = { kind: 'vertex', regionIndex: 0, vertexIndex: 1 };
+  // Distribuciones reales: qué banderas trae el evento cuando el carácter sale con cada modificador.
+  const layouts: [string, Partial<KeyInput>][] = [
+    ['US: sin modificadores', {}],
+    ['es-ES en Windows: AltGr = Ctrl+Alt', { ctrlKey: true, altKey: true }],
+    ['es-ES en Linux/Firefox: AltGr con getModifierState', { altGraph: true }],
+    ['es-ES en Chrome/Windows: AltGr = Ctrl+Alt y AltGraph', { ctrlKey: true, altKey: true, altGraph: true }],
+    ['es-ES/es-LA en macOS: Option', { altKey: true }],
+    ['macOS: Option+Mayús', { altKey: true, shiftKey: true }],
+  ];
+
+  it.each(layouts)(']  y [ recorren los tiradores (%s)', (_n, mods) => {
+    const fwd = keyActions(sel(v00), key(']', mods));
+    expect(fwd.handled).toBe(true);
+    expect(fwd.focus).toEqual(next);
+    const back = keyActions(sel(v00), key('[', mods));
+    expect(back.handled).toBe(true);
+    expect(back.focus).toEqual({ kind: 'circle_radius' });
+  });
+
+  it.each(layouts)('+ = - hacen zoom (%s)', (_n, mods) => {
+    for (const k of ['+', '=', '-']) {
+      const r = keyActions(sel({ kind: 'none' }), key(k, mods));
+      expect(r.handled, k).toBe(true);
+      expect(r.actions[0]).toMatchObject({ type: 'ui/viewport' });
+    }
+  });
+
+  it('keyInputOf lee AltGraph de getModifierState (y tolera eventos sin él)', () => {
+    const base = { key: ']', ctrlKey: false, metaKey: false, shiftKey: false, altKey: false };
+    expect(keyInputOf({ ...base, getModifierState: (m) => m === 'AltGraph' }).altGraph).toBe(true);
+    expect(keyInputOf({ ...base, getModifierState: () => false }).altGraph).toBe(false);
+    expect(keyInputOf(base).altGraph).toBe(false);
+    expect(keyActions(sel(v00), keyInputOf({ ...base, getModifierState: (m) => m === 'AltGraph' })).handled).toBe(true);
+  });
+
+  it('Ctrl o Meta sin Alt siguen sin consumir los caracteres (zoom y atajos del navegador)', () => {
+    for (const k of ['[', ']', '+', '=', '-']) {
+      expect(keyActions(sel(v00), key(k, { ctrlKey: true })).handled, `Ctrl+${k}`).toBe(false);
+      expect(keyActions(sel(v00), key(k, { metaKey: true })).handled, `Meta+${k}`).toBe(false);
+      expect(keyActions(sel(v00), key(k, { metaKey: true, altKey: true })).handled, `Meta+Alt+${k}`).toBe(false);
+    }
+  });
+
+  it('Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y no cambian; Alt con otras teclas sigue sin consumirse', () => {
+    const c = sel({ kind: 'none' });
+    expect(keyActions(c, key('z', { ctrlKey: true })).actions).toEqual([{ type: 'history/undo' }]);
+    expect(keyActions(c, key('Z', { ctrlKey: true, shiftKey: true })).actions).toEqual([{ type: 'history/redo' }]);
+    expect(keyActions(c, key('y', { ctrlKey: true })).actions).toEqual([{ type: 'history/redo' }]);
+    for (const k of ['ArrowLeft', 'ArrowRight', 'Delete', 'i', '0', 'PageDown', 'Escape']) {
+      expect(keyActions(sel(v00), key(k, { altKey: true })).handled, `Alt+${k}`).toBe(false);
+      expect(keyActions(sel(v00), key(k, { ctrlKey: true, altKey: true })).handled, `AltGr+${k}`).toBe(false);
+    }
   });
 });

@@ -32,7 +32,7 @@ import {
   type CirclePart,
   type HandleRef,
 } from './handles';
-import { keyActions } from './keys';
+import { keyActions, keyInputOf } from './keys';
 import {
   axisTitles,
   circleCenterLabel,
@@ -598,7 +598,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     let ctx = context();
     if (focused && e.key !== 'Escape' && ctx.ui.selection.kind === 'none') ctx = { ...ctx, ui: { ...ctx.ui, selection: handleSelection(focused) } };
     const part: CirclePart = focused?.kind === 'circle_radius' ? 'radius' : focused?.kind === 'circle_center' ? 'center' : circlePart;
-    const r = keyActions(ctx, e, gestureRef.current.mode !== 'idle', { circlePart: part, units: unitsEff });
+    const r = keyActions(ctx, keyInputOf(e), gestureRef.current.mode !== 'idle', { circlePart: part, units: unitsEff });
     if (r.handled) e.preventDefault();
     if (r.focus) {
       focusRequest.current = handleKey(r.focus);
