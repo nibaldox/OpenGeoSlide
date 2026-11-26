@@ -1,0 +1,79 @@
+diff --git a/apps/web/src/ui/legend.css b/apps/web/src/ui/legend.css
+index ab6af7e..4845c4f 100644
+--- a/apps/web/src/ui/legend.css
++++ b/apps/web/src/ui/legend.css
+@@ -10,3 +10,12 @@
+     repeating-linear-gradient(90deg, var(--canvas-slice-edge) 0 1.5px, transparent 1.5px 5.5px),
+     linear-gradient(var(--canvas-slice-edge), var(--canvas-slice-edge)) bottom / 100% 1.5px no-repeat;
+ }
++
++/* Muestra «Piezométrica (extrapolada)» (R9-05d): punteada, como el tramo que el lienzo dibuja entre el último punto de la línea y el
++   borde del modelo; la línea definida sigue siendo discontinua (`.swatch.line-blue`, App.css). */
++.legend .swatch.line-blue-dotted {
++  width: 22px;
++  height: 0;
++  border: 0;
++  border-top: 2.5px dotted var(--canvas-piezo);
++}
+diff --git a/apps/web/src/ui/legendItems.test.ts b/apps/web/src/ui/legendItems.test.ts
+index c4de1c5..c47aaff 100644
+--- a/apps/web/src/ui/legendItems.test.ts
++++ b/apps/web/src/ui/legendItems.test.ts
+@@ -30,6 +30,21 @@ describe('legendItems', () => {
+   });
+ });
+ 
++describe('piezométrica extrapolada (R9-05d)', () => {
++  it('con la opción y piezométrica, «Piezométrica (extrapolada)» va justo después de «Piezométrica»', () => {
++    expect(keys(legendItems(wet, { piezoExtrapolated: true, loads: true }))).toEqual(['surface', 'slices', 'piezo', 'piezo-extrapolated', 'loads']);
++    expect(legendItems(wet, { piezoExtrapolated: true }).find((i) => i.key === 'piezo-extrapolated')).toMatchObject({ label: 'Piezométrica (extrapolada)', swatch: 'line-blue-dotted' });
++  });
++  it('sin la opción, o sin piezométrica, no aparece', () => {
++    expect(keys(legendItems(wet))).not.toContain('piezo-extrapolated');
++    expect(keys(legendItems(dry, { piezoExtrapolated: true }))).not.toContain('piezo-extrapolated');
++  });
++  it('la muestra es un trazo punteado con --canvas-piezo', () => {
++    const css = readFileSync(new URL('./legend.css', import.meta.url), 'utf8');
++    expect(css).toMatch(/\.legend \.swatch\.line-blue-dotted[\s\S]*dotted[\s\S]*var\(--canvas-piezo\)/);
++  });
++});
++
+ describe('muestra «Dovelas» (B-05)', () => {
+   const css = readFileSync(new URL('./legend.css', import.meta.url), 'utf8');
+   const legend = readFileSync(new URL('./Legend.tsx', import.meta.url), 'utf8');
+diff --git a/apps/web/src/ui/legendItems.ts b/apps/web/src/ui/legendItems.ts
+index b33433d..28d9652 100644
+--- a/apps/web/src/ui/legendItems.ts
++++ b/apps/web/src/ui/legendItems.ts
+@@ -2,7 +2,7 @@
+ 
+ import type { Scene } from '../render/scene';
+ 
+-export type LegendSwatch = 'line-red' | 'line-unconverged' | 'slice' | 'line-blue' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic';
++export type LegendSwatch = 'line-red' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic';
+ 
+ export interface LegendExtraItem {
+   key: string;
+@@ -21,11 +21,13 @@ export interface LegendOptions {
+   bands?: boolean;
+   loads?: boolean;
+   seismic?: boolean;
++  /** La piezométrica no cubre todo el ancho y el motor la prolonga en horizontal: se rotula el tramo punteado (R9-05d). El editor lo calcula con `piezoExtension`. */
++  piezoExtrapolated?: boolean;
+ }
+ 
+ /** Elementos distintos de los materiales, en orden fijo: superficie, dovelas, piezométrica, bandas, cargas, sismo. */
+ export function legendItems(scene: Pick<Scene, 'piezo'>, options: LegendOptions = {}): LegendExtraItem[] {
+-  const { surface = true, unconverged = false, slices = true, bands = false, loads = false, seismic = false } = options;
++  const { surface = true, unconverged = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false } = options;
+   const items: LegendExtraItem[] = [];
+   if (surface) {
+     items.push(
+@@ -36,6 +38,7 @@ export function legendItems(scene: Pick<Scene, 'piezo'>, options: LegendOptions
+   }
+   if (slices) items.push({ key: 'slices', label: 'Dovelas', swatch: 'slice' });
+   if (scene.piezo) items.push({ key: 'piezo', label: 'Piezométrica', swatch: 'line-blue' });
++  if (scene.piezo && piezoExtrapolated) items.push({ key: 'piezo-extrapolated', label: 'Piezométrica (extrapolada)', swatch: 'line-blue-dotted' });
+   if (bands) {
+     items.push({ key: 'band-entry', label: 'Banda de entrada', swatch: 'band-entry' });
+     items.push({ key: 'band-exit', label: 'Banda de salida', swatch: 'band-exit' });
