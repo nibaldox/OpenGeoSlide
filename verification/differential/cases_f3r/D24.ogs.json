@@ -1,0 +1,142 @@
+{
+  "format": "opengeoslide",
+  "version": "0.4",
+  "meta": {
+    "id": "D24",
+    "title": "Talud con clavos pasivos",
+    "notes": "Corte de 10 m con cara 5:1 en un suelo c = 3 kPa, φ = 26°, clavado con cuatro hileras de clavos pasivos (`nail`, `axial`) de 8 m, inclinados 15° hacia abajo, con `pullout bond` de 40 kN/m, T = 150 kN y spacing 1,5 m. El círculo fijo cruza tres clavos (el de y = 8 queda corto): en ellos manda el arrancamiento. Sentido de deslizamiento hacia +x."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo del corte",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 3.0,
+      "friction_angle": 26.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          30.0,
+          10.0
+        ],
+        [
+          32.0,
+          0.0
+        ],
+        [
+          60.0,
+          0.0
+        ],
+        [
+          60.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "reinforcements": [
+    {
+      "id": "N1",
+      "type": "nail",
+      "x1": 30.4,
+      "y1": 8.0,
+      "x2": 22.6726,
+      "y2": 5.9294,
+      "application": "passive",
+      "tensile_capacity": 150.0,
+      "spacing": 1.5,
+      "direction": "axial",
+      "pullout": {
+        "model": "bond",
+        "strength": 40.0
+      }
+    },
+    {
+      "id": "N2",
+      "type": "nail",
+      "x1": 30.8,
+      "y1": 6.0,
+      "x2": 23.0726,
+      "y2": 3.9294,
+      "application": "passive",
+      "tensile_capacity": 150.0,
+      "spacing": 1.5,
+      "direction": "axial",
+      "pullout": {
+        "model": "bond",
+        "strength": 40.0
+      }
+    },
+    {
+      "id": "N3",
+      "type": "nail",
+      "x1": 31.2,
+      "y1": 4.0,
+      "x2": 23.4726,
+      "y2": 1.9294,
+      "application": "passive",
+      "tensile_capacity": 150.0,
+      "spacing": 1.5,
+      "direction": "axial",
+      "pullout": {
+        "model": "bond",
+        "strength": 40.0
+      }
+    },
+    {
+      "id": "N4",
+      "type": "nail",
+      "x1": 31.6,
+      "y1": 2.0,
+      "x2": 23.8726,
+      "y2": -0.0706,
+      "application": "passive",
+      "tensile_capacity": 150.0,
+      "spacing": 1.5,
+      "direction": "axial",
+      "pullout": {
+        "model": "bond",
+        "strength": 40.0
+      }
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "morgenstern_price",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 40.0,
+      "yc": 22.0,
+      "r": 24.0
+    }
+  }
+}

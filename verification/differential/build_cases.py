@@ -13,7 +13,12 @@ D18-D23 are the models of R10 (briefs/F3A_R10.md, tarea V), also in `cases_f3/`:
 a limit (D18), Morgenstern-Price with `clipped_sine` and `trapezoidal` (D19, D20), a polyline along a contact between
 materials (D21) and a polyline on level ground with kh or a horizontal line load (D22, D23).
 
-Writes verification/differential/cases/<id>.ogs.json and cases_f3/<id>.ogs.json. Nothing here is a published
+D24-D27 are the v0.4 models of the reinforcements (briefs/F3R_R1.md, task V; contract F4.12), in `cases_f3r/`: a slope
+with passive soil nails (D24), a mechanically stabilized earth (TEM) wall with geosynthetics (D25), an anchored sheet
+pile, that is, a sheet pile plus an active anchor (D26), and a row of piles (D27). Each one is a fixed circle (the
+reinforcements cross it) with Bishop, Morgenstern-Price and corrected Janbu.
+
+Writes verification/differential/cases/<id>.ogs.json, cases_f3/<id>.ogs.json and cases_f3r/<id>.ogs.json. Nothing here is a published
 value: the models only feed two engines, and run.py compares the engines with each other (contract E9b).
 
 Usage (from the worktree root):
@@ -36,6 +41,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CASES_DIR = HERE / "cases"
 CASES_F3_DIR = HERE / "cases_f3"
+CASES_F3R_DIR = HERE / "cases_f3r"
 
 GAMMA_W = 9.807
 SLICES = 50
@@ -573,6 +579,150 @@ def d23() -> dict:
 BUILDERS_F3: list[Callable[[], dict]] = [d15, d16, d17, d18, d19, d20, d21, d22, d23]
 
 
+# ---------------------------------------------------------------- v0.4 models (reinforcements, F4.12)
+
+# Fixed circles of D24-D27 (xc, yc, r). D24, D26 and D27 are chosen by hand so that the circle crosses the reinforcements
+# at a sound angle (a circle that enters at 90°, the optimum of a search on a vertical cut, has no solution in M-P);
+# D25 is the critical circle of cSlope's own Bishop search over the entry range (10; 40) and the exit range (50; 52),
+# unrounded, with its reinforcements in place. cSlope 0.1.0 applies a force on every reinforcement the circle crosses
+# (checked with `reinforcementForces`; the notes of each model say which ones).
+FIXED_SURFACES_F3R: dict[str, tuple[float, float, float]] = {
+    "D24": (40.0, 22.0, 24.0),
+    "D25": (90.15592149084934, 63.93416240232259, 75.49877039190801),
+    "D26": (36.0, 12.0, 20.0),
+    "D27": (20.0, 22.0, 26.0),
+}
+F3R_METHODS = ["bishop", "morgenstern_price", "janbu_corrected"]
+
+
+def _model_f3r(case_id: str, title: str, intent: str, direction: str, materials: list[dict], regions: list[dict],
+               reinforcements: list[dict]) -> dict:
+    """A v0.4 model: version 0.4, a fixed circle and the reinforcements. No search: the forces of the reinforcements
+    depend on the surface, so the comparison is made on one circle."""
+    xc, yc, r = FIXED_SURFACES_F3R[case_id]
+    model = _model_f3(case_id, title, intent, direction, materials, regions, list(F3R_METHODS), None,
+                      {"type": "circle", "xc": xc, "yc": yc, "r": r})
+    model["version"] = "0.4"
+    # `reinforcements` goes after `water` and before `slope`, as in the schema
+    out: dict = {}
+    for key, value in model.items():
+        if key == "slope":
+            out["reinforcements"] = [dict(item) for item in reinforcements]
+        out[key] = value
+    return out
+
+
+def d24() -> dict:
+    # Cut of 10 m with a face of 5:1 (x from 30 to 32), single material (c = 3 kPa, phi = 26 deg). Four rows of passive
+    # nails of 8 m, 15 deg down into the slope, bond of 40 kN/m, T = 150 kN per nail, spacing 1.5 m. The fixed circle
+    # leaves the nail of the first row (y = 8) short, so three nails are crossed: the force depends on `bond`.
+    intent = ("Corte de 10 m con cara 5:1 en un suelo c = 3 kPa, φ = 26°, clavado con cuatro hileras de clavos pasivos "
+              "(`nail`, `axial`) de 8 m, inclinados 15° hacia abajo, con `pullout bond` de 40 kN/m, T = 150 kN y "
+              "spacing 1,5 m. El círculo fijo cruza tres clavos (el de y = 8 queda corto): en ellos manda el arrancamiento. "
+              "Sentido de deslizamiento hacia +x.")
+    profile = [(0.0, -10.0), (0.0, 10.0), (30.0, 10.0), (32.0, 0.0), (60.0, 0.0), (60.0, -10.0)]
+    nails = []
+    for k, y in enumerate((8.0, 6.0, 4.0, 2.0)):
+        x_head = 30.0 + (10.0 - y) * 0.2
+        nails.append({"id": f"N{k + 1}", "type": "nail", "x1": round(x_head, 4), "y1": y,
+                      "x2": round(x_head - 8.0 * math.cos(math.radians(15.0)), 4),
+                      "y2": round(y - 8.0 * math.sin(math.radians(15.0)), 4),
+                      "application": "passive", "tensile_capacity": 150.0, "spacing": 1.5, "direction": "axial",
+                      "pullout": {"model": "bond", "strength": 40.0}})
+    return _model_f3r("D24", "Talud con clavos pasivos", intent, "left_to_right",
+                      [_material("soil", "Suelo del corte", 19.0, 3.0, 26.0)], [_region("soil", profile)], nails)
+
+
+def d25() -> dict:
+    # TEM wall: a vertical face at x = 50, 8 m high, with eight geosynthetic layers of 6.5 m every metre in a
+    # frictional fill (c = 3, phi = 34) over a strong foundation. Passive. Alternating axial and tangent. The first five
+    # layers have `development` (0.3 m at the facing, 0.8 m at the tip) and a connection of 40 kN; the last three have
+    # `interface` (a = 0, delta = 25 deg), whose integral the engine takes exactly and cSlope in 200 steps.
+    intent = ("Muro de tierra mecánicamente estabilizada (TEM): cara vertical en x = 50, de 8 m, con ocho capas de "
+              "geosintético pasivas de 6,5 m cada metro, T = 55 kN/m y conexión en la cara de 40 kN; `axial` y "
+              "`tangent` alternadas; cinco con `development` y tres con `interface`. Relleno friccional (c = 3 kPa, "
+              "φ = 34°) sobre cimentación firme. El círculo fijo cruza cinco capas; la de y = 4,5 casi en la punta, "
+              "donde la rampa de `development` casi la anula.")
+    backfill = [(10.0, 0.0), (10.0, 8.0), (50.0, 8.0), (50.0, 0.0)]
+    found = [(0.0, -8.0), (0.0, 0.0), (10.0, 0.0), (50.0, 0.0), (80.0, 0.0), (80.0, -8.0)]
+    layers = []
+    for k in range(8):
+        y = 0.5 + k
+        pullout = ({"model": "development", "length1": 0.3, "length2": 0.8} if k < 5 else
+                   {"model": "interface", "adhesion": 0.0, "friction_angle": 25.0, "coverage": 1.0})
+        layers.append({"id": f"G{k + 1}", "type": "geosynthetic", "x1": 50.0, "y1": y, "x2": 43.5, "y2": y,
+                       "application": "passive", "tensile_capacity": 55.0, "end1_capacity": 40.0,
+                       "direction": "tangent" if k % 2 else "axial", "pullout": pullout})
+    return _model_f3r("D25", "Muro TEM con geosintéticos", intent, "left_to_right",
+                      [_material("fill", "Relleno friccional", 19.0, 3.0, 34.0),
+                       _material("found", "Cimentación firme", 20.0, 30.0, 30.0)],
+                      [_region("fill", backfill), _region("found", found)], layers)
+
+
+def d26() -> dict:
+    # Anchored sheet pile: an excavation of 6 m (floor y = -6 on the left), a sheet pile at x = 30 down to y = -10, and an
+    # active tieback from (30; -1.5), 10 deg down, 28 m, with an end-1 capacity of 300 kN (the anchor head), spacing 2.5 m
+    # and a bond of 80 kN/m over the last 8 m. The circle crosses the sheet pile at y = -7.08 and the anchor in its free
+    # length (x = 47.2): there the force is the head capacity, 300/2.5 = 120 kN/m (E14m-2).
+    intent = ("Tablestaca anclada: excavación de 6 m (piso en y = −6 a la izquierda) con una tablestaca vertical en "
+              "x = 30 (`sheet_pile` pasiva, 120 kN/m, `angle` 0) hasta y = −10 y un anclaje activo (`anchor`, `axial`) desde "
+              "(30; −1,5), 10° hacia abajo, de 28 m, con `end1_capacity` de 300 kN, spacing 2,5 m y bulbo de 8 m "
+              "(`bond` de 80 kN/m, `bonded_length` 8). El círculo fijo cruza la tablestaca en y = −7,08 y el anclaje en su "
+              "tramo libre: ahí la fuerza es la capacidad de la cabeza, 300/2,5 = 120 kN/m. Suelo friccional (c = 0, φ = 10°). "
+              "Sentido de deslizamiento hacia −x.")
+    profile = [(10.0, -20.0), (10.0, -6.0), (30.0, -6.0), (30.0, 0.0), (70.0, 0.0), (70.0, -20.0)]
+    sheet = {"id": "S1", "type": "sheet_pile", "x1": 30.0, "y1": 0.0, "x2": 30.0, "y2": -10.0,
+             "application": "passive", "force": 120.0, "direction": "angle", "angle": 0.0}
+    a = math.radians(10.0)
+    anchor = {"id": "A1", "type": "anchor", "x1": 30.0, "y1": -1.5, "x2": round(30.0 + 28.0 * math.cos(a), 4),
+              "y2": round(-1.5 - 28.0 * math.sin(a), 4), "application": "active", "tensile_capacity": 300.0,
+              "end1_capacity": 300.0, "spacing": 2.5, "direction": "axial",
+              "pullout": {"model": "bond", "strength": 80.0, "bonded_length": 8.0}}
+    return _model_f3r("D26", "Tablestaca anclada", intent, "right_to_left",
+                      [_material("soil", "Suelo de la excavación", 19.0, 0.0, 10.0)], [_region("soil", profile)],
+                      [sheet, anchor])
+
+
+def d27() -> dict:
+    # A row of piles at mid-slope: 10 m, 2H:1V, soil c = 4 kPa, phi = 20 deg. A pile at x = 22 from the ground (y = 6.5) to
+    # y = -8, passive, 600 kN per pile every 2 m (300 kN/m), tilted 10 deg above the horizontal.
+    intent = ("Fila de pilotes a media ladera: talud de 10 m, 2H:1V, suelo c = 4 kPa, φ = 20°, con una fila de pilotes "
+              "pasivos (`pile`, `angle` 10°) en x = 22, de y = 6,5 a −8, con 600 kN por pilote y spacing 2 m (300 kN/m). El "
+              "círculo fijo, profundo, cruza el pilote a 11 m bajo el terreno.")
+    profile = [(-20.0, -12.0), (-20.0, 10.0), (14.0, 10.0), (34.0, 0.0), (70.0, 0.0), (70.0, -12.0)]
+    pile = {"id": "P1", "type": "pile", "x1": 22.0, "y1": 6.5, "x2": 22.0, "y2": -8.0, "application": "passive",
+            "force": 600.0, "spacing": 2.0, "direction": "angle", "angle": 10.0}
+    return _model_f3r("D27", "Fila de pilotes", intent, "left_to_right",
+                      [_material("soil", "Suelo del talud", 19.0, 4.0, 20.0)], [_region("soil", profile)], [pile])
+
+
+BUILDERS_F3R: list[Callable[[], dict]] = [d24, d25, d26, d27]
+
+# The probes of the engine: V047a with the fixed circle of F3.8 and the horizontal anchor of the rows 1 and 2 of F4.13
+# (X17 §4.4), whose oracle figures are Bishop 1.333661 (active) and 1.248405 (passive). An engine that runs the model but
+# does not reproduce them to 0.1 % does not have the capability yet (for the passive one: the methods lack the terms
+# divided by F).
+PROBE_F3R_BISHOP = {"reinforcements_active": 1.333661, "reinforcements_passive": 1.248405}
+PROBE_F3R_TOLERANCE = 1e-3
+
+
+def probe_f3r_model(capability: str) -> dict:
+    """The model of the probe of one capability of the reinforcements: V047a, the fixed circle, Bishop, version 0.4."""
+    application = {"reinforcements_active": "active", "reinforcements_passive": "passive"}[capability]
+    return {
+        "format": "opengeoslide", "version": "0.4", "meta": {"id": "V047a-probe", "title": "ACADS 1(a), sonda"},
+        "units": "SI",
+        "materials": [_material("soil", "Soil", 20.0, 3.0, 19.6)],
+        "regions": [_region("soil", [(20.0, 20.0), (20.0, 25.0), (30.0, 25.0), (50.0, 35.0), (70.0, 35.0), (70.0, 20.0)])],
+        "reinforcements": [{"id": "A1", "type": "anchor", "x1": 52.0, "y1": 28.0, "x2": 25.0, "y2": 28.0,
+                            "application": application, "tensile_capacity": 100.0, "direction": "axial"}],
+        "slope": {"direction": "right_to_left"},
+        "analysis": {"methods": ["bishop"], "slices": 50, "tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2,
+                     "surface": {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435,
+                                 "r": 28.641487934160704}},
+    }
+
+
 BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14]
 
 
@@ -594,14 +744,29 @@ def build_all_f3() -> dict[str, dict]:
     return models
 
 
+def build_all_f3r() -> dict[str, dict]:
+    """The v0.4 models D24-D27 (reinforcements), keyed by id, in order."""
+    models = {}
+    for build in BUILDERS_F3R:
+        model = build()
+        models[model["meta"]["id"]] = model
+    return models
+
+
 def serialize(model: dict) -> str:
     return json.dumps(model, ensure_ascii=False, indent=2) + "\n"
 
 
-def write_cases(directory: Path = CASES_DIR, f3_directory: Path = CASES_F3_DIR) -> list[Path]:
+def write_cases(directory: Path = CASES_DIR, f3_directory: Path = CASES_F3_DIR,
+                f3r_directory: Path = CASES_F3R_DIR) -> list[Path]:
     directory.mkdir(parents=True, exist_ok=True)
     f3_directory.mkdir(parents=True, exist_ok=True)
+    f3r_directory.mkdir(parents=True, exist_ok=True)
     paths = []
+    for case_id, model in build_all_f3r().items():
+        path = f3r_directory / f"{case_id}.ogs.json"
+        path.write_text(serialize(model), encoding="utf-8")
+        paths.append(path)
     for case_id, model in build_all_f3().items():
         path = f3_directory / f"{case_id}.ogs.json"
         path.write_text(serialize(model), encoding="utf-8")

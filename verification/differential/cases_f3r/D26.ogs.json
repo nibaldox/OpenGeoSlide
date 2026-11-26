@@ -1,0 +1,108 @@
+{
+  "format": "opengeoslide",
+  "version": "0.4",
+  "meta": {
+    "id": "D26",
+    "title": "Tablestaca anclada",
+    "notes": "Tablestaca anclada: excavación de 6 m (piso en y = −6 a la izquierda) con una tablestaca vertical en x = 30 (`sheet_pile` pasiva, 120 kN/m, `angle` 0) hasta y = −10 y un anclaje activo (`anchor`, `axial`) desde (30; −1,5), 10° hacia abajo, de 28 m, con `end1_capacity` de 300 kN, spacing 2,5 m y bulbo de 8 m (`bond` de 80 kN/m, `bonded_length` 8). El círculo fijo cruza la tablestaca en y = −7,08 y el anclaje en su tramo libre: ahí la fuerza es la capacidad de la cabeza, 300/2,5 = 120 kN/m. Suelo friccional (c = 0, φ = 10°). Sentido de deslizamiento hacia −x."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo de la excavación",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 0.0,
+      "friction_angle": 10.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          10.0,
+          -20.0
+        ],
+        [
+          10.0,
+          -6.0
+        ],
+        [
+          30.0,
+          -6.0
+        ],
+        [
+          30.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -20.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "reinforcements": [
+    {
+      "id": "S1",
+      "type": "sheet_pile",
+      "x1": 30.0,
+      "y1": 0.0,
+      "x2": 30.0,
+      "y2": -10.0,
+      "application": "passive",
+      "force": 120.0,
+      "direction": "angle",
+      "angle": 0.0
+    },
+    {
+      "id": "A1",
+      "type": "anchor",
+      "x1": 30.0,
+      "y1": -1.5,
+      "x2": 57.5746,
+      "y2": -6.3621,
+      "application": "active",
+      "tensile_capacity": 300.0,
+      "end1_capacity": 300.0,
+      "spacing": 2.5,
+      "direction": "axial",
+      "pullout": {
+        "model": "bond",
+        "strength": 80.0,
+        "bonded_length": 8.0
+      }
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "morgenstern_price",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 36.0,
+      "yc": 12.0,
+      "r": 20.0
+    }
+  }
+}
