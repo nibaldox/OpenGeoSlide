@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec, isPolylineReport } from '../../engine/surface';
-import type { MethodReport, Point, ReinforcementForce, ReportSurface, Slice } from '../../engine/types';
+import type { CrackReport, MethodReport, Point, ReinforcementForce, ReportSurface, Slice } from '../../engine/types';
 import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
@@ -44,6 +44,8 @@ import { REINFORCE_INSTRUCTIONS, constrainReinforceDraft, reinforceClick, reinfo
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { piezoExtension } from './piezoExtension';
+import { crackGeometry, crackShape } from '../../render/crack';
+import { pondPolygons } from '../../render/pond';
 import { polylineCrossingMessage } from './polyline';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
 import {
@@ -84,6 +86,8 @@ import './canvas.css';
 const COLOR_EDGE = 'var(--canvas-region-edge)';
 const COLOR_SELECTED = 'var(--canvas-selected)';
 const COLOR_PIEZO = 'var(--canvas-piezo)';
+/** Relleno del agua embalsada (F5.3). */
+const COLOR_POND = 'var(--canvas-pond)';
 const COLOR_SURFACE = 'var(--canvas-surface)';
 const COLOR_SURFACE_UNCONVERGED = 'var(--canvas-surface-unconverged)';
 const COLOR_LOAD = 'var(--canvas-load)';
@@ -126,6 +130,8 @@ export interface CanvasResult {
   slices: Slice[];
   /** Fuerzas de los refuerzos en la superficie final (`reinforcement_forces` del informe, v0.4): una flecha por cruce. */
   reinforcementForces?: ReinforcementForce[];
+  /** Grieta de tracción de la superficie (`tension_crack` del informe, v0.5): línea en `x_c`, profundidad y la flecha de `Pw`. */
+  tensionCrack?: CrackReport;
 }
 
 /**
@@ -735,6 +741,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const titles = axisTitles(unitsEff);
   const pz = piezoPoints(shown);
   const pzExtra = piezoExtension(shown);
+  // F5.3: el agua embalsada es la región entre la piezométrica y el terreno donde la piezométrica pasa sobre él, en todo el modelo.
+  const pond = pondPolygons(shown.regions, pz);
+  // F5.4: la grieta de la superficie del resultado; la fracción de agua es la del modelo.
+  const crack = result && result.slices.length > 0 ? crackGeometry(result.tensionCrack, result.slices, shown.analysis.tension_crack?.water_fill) : null;
+  const crackPx = crack ? crackShape(crack, vp, unitsEff) : null;
   const circle = circleSpec(shown.analysis.surface);
   const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
@@ -755,6 +766,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const arrowId = `${markerBase}-load`;
   const seismicArrowId = `${markerBase}-seismic`;
   const forceArrowId = `${markerBase}-force`;
+  const crackArrowId = `${markerBase}-crack`;
 
   // Tabindex itinerante: una sola parada de tabulación, el tirador seleccionado (o el último activo, o el primero). Tab entra y sale
   // del lienzo; los tiradores se recorren con [ ] y RePág/AvPág (`keys.ts`), no con Tab (B-01).
@@ -816,6 +828,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           <marker id={forceArrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" fill={COLOR_REINFORCEMENT} />
           </marker>
+          <marker id={crackArrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill={COLOR_PIEZO} />
+          </marker>
           <marker id={seismicArrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" fill={COLOR_SEISMIC} />
           </marker>
@@ -861,6 +876,15 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           })}
         </g>
 
+        {pond.length > 0 && (
+          // Capa propia del agua embalsada, bajo la piezométrica y sin trazo: la limitan el terreno y la piezométrica.
+          <g data-layer="pond" aria-hidden="true" pointerEvents="none">
+            {pond.map((poly, i) => (
+              <polygon key={i} data-pond={i} points={pointsAttr(vp, poly)} fill={COLOR_POND} />
+            ))}
+          </g>
+        )}
+
         {result && result.slices.length > 0 && (
           <g data-layer="result" aria-hidden="true" pointerEvents="none">
             {result.slices.map((sl, i) => (
@@ -888,6 +912,25 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
               strokeWidth={2.5}
               strokeDasharray={surfaceConverged ? undefined : UNCONVERGED_DASH}
             />
+          </g>
+        )}
+
+        {crack && crackPx && (
+          <g data-layer="tension-crack" aria-hidden="true" pointerEvents="none" data-crack-x={crack.x} data-crack-depth={crack.depth} data-crack-water-force={crack.force}>
+            <title>{crackPx.title}</title>
+            {crackPx.water && <rect data-crack-water x={crackPx.water.x} y={crackPx.water.y} width={crackPx.water.width} height={crackPx.water.height} fill={COLOR_POND} stroke={COLOR_PIEZO} strokeWidth={1.25} />}
+            <line x1={crackPx.top[0]} y1={crackPx.top[1]} x2={crackPx.bottom[0]} y2={crackPx.bottom[1]} stroke={COLOR_HALO} strokeWidth={6.5} strokeLinecap="round" />
+            <line data-crack-line x1={crackPx.top[0]} y1={crackPx.top[1]} x2={crackPx.bottom[0]} y2={crackPx.bottom[1]} stroke={COLOR_SURFACE} strokeWidth={2.5} strokeDasharray="5 4" strokeLinecap="round" />
+            {crackPx.arrow && (
+              <>
+                <line x1={crackPx.arrow.at[0]} y1={crackPx.arrow.at[1]} x2={crackPx.arrow.tip[0]} y2={crackPx.arrow.tip[1]} stroke={COLOR_HALO} strokeWidth={6.5} strokeLinecap="round" />
+                <line data-crack-arrow x1={crackPx.arrow.at[0]} y1={crackPx.arrow.at[1]} x2={crackPx.arrow.tip[0]} y2={crackPx.arrow.tip[1]} stroke={COLOR_PIEZO} strokeWidth={3} markerEnd={`url(#${crackArrowId})`} />
+              </>
+            )}
+            <text data-crack-label="depth" x={crackPx.depthLabel.x} y={crackPx.depthLabel.y} dy="0.35em" fontSize={12} fill={COLOR_SURFACE} {...HALO_LABEL} textAnchor={crackPx.depthLabel.anchor}>{crackPx.depthLabel.text}</text>
+            {crackPx.forceLabel && (
+              <text data-crack-label="force" x={crackPx.forceLabel.x} y={crackPx.forceLabel.y} fontSize={12} fill={COLOR_PIEZO} {...HALO_LABEL} textAnchor={crackPx.forceLabel.anchor}>{crackPx.forceLabel.text}</text>
+            )}
           </g>
         )}
 

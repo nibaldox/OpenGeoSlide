@@ -526,7 +526,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const shown = engine.run?.report.results.find((r) => r.method === shownMethod) ?? engine.run?.report.results[0] ?? null;
   // La superficie del informe (círculo o polilínea ajustada al terreno, F3.7) y sus dovelas se superponen al lienzo.
-  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces } : undefined;
+  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces, tensionCrack: shown.tension_crack } : undefined;
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
