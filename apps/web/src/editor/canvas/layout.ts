@@ -44,6 +44,18 @@ export function piezoLabel(index: number, p: Point, units?: string | null): stri
   return `Piezométrica, punto ${index + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
 }
 
+/** Etiqueta accesible (estable) de un punto de la polilínea fija de falla (F3.3). */
+export function surfaceVertexLabel(index: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Polilínea de falla, punto ${index + 1}: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
+}
+
+/** Anuncio (región aria-live) de la posición de un punto de la polilínea: «Punto 2 de la polilínea de falla: x 20,5 m, y 9,0 m». */
+export function surfaceVertexAnnouncement(index: number, p: Point, units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `Punto ${index + 1} de la polilínea de falla: x ${formatNumber(p[0])} ${u}, y ${formatNumber(p[1])} ${u}`;
+}
+
 export function circleCenterLabel(xc: number, yc: number, units?: string | null): string {
   const u = lengthUnitOf(units);
   return `Círculo de falla, centro: x ${formatNumber(xc)} ${u}, y ${formatNumber(yc)} ${u}`;

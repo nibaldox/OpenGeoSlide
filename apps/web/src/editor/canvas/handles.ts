@@ -1,5 +1,5 @@
 // Tiradores del lienzo en orden de recorrido por teclado (tabindex itinerante, R7-04): vértices por región,
-// puntos de la piezométrica, centro del círculo y tirador de su radio. Puro: sin React ni DOM.
+// puntos de la piezométrica y, de la superficie fija, el centro del círculo y su radio o los vértices de la polilínea (F3.3). Puro: sin React ni DOM.
 
 import { circleSpec } from '../../engine/surface';
 import type { Point } from '../../engine/types';
@@ -11,7 +11,9 @@ export type HandleRef =
   | { kind: 'vertex'; regionIndex: number; vertexIndex: number }
   | { kind: 'piezo_point'; index: number }
   | { kind: 'circle_center' }
-  | { kind: 'circle_radius' };
+  | { kind: 'circle_radius' }
+  /** Vértice de la polilínea fija de falla (F3.3). */
+  | { kind: 'surface_vertex'; index: number };
 
 /** Parte del círculo de falla que tiene el foco (la selección `surface_circle` no la distingue). */
 export type CirclePart = 'center' | 'radius';
@@ -22,7 +24,9 @@ export function handleList(doc: ModelDoc): HandleRef[] {
     region.polygon.forEach((_, vertexIndex) => out.push({ kind: 'vertex', regionIndex, vertexIndex }));
   });
   piezoPoints(doc).forEach((_, index) => out.push({ kind: 'piezo_point', index }));
-  if (doc.analysis.surface) out.push({ kind: 'circle_center' }, { kind: 'circle_radius' });
+  const surface = doc.analysis.surface;
+  if (surface && surface.type === 'polyline') surface.points.forEach((_, index) => out.push({ kind: 'surface_vertex', index }));
+  else if (surface) out.push({ kind: 'circle_center' }, { kind: 'circle_radius' });
   return out;
 }
 
@@ -37,6 +41,8 @@ export function handleKey(h: HandleRef): string {
       return 'c-center';
     case 'circle_radius':
       return 'c-radius';
+    case 'surface_vertex':
+      return `s-${h.index}`;
   }
 }
 
@@ -54,6 +60,8 @@ export function handleSelection(h: HandleRef): Selection {
     case 'circle_center':
     case 'circle_radius':
       return { kind: 'surface_circle' };
+    case 'surface_vertex':
+      return { kind: 'surface_vertex', index: h.index };
   }
 }
 
@@ -66,6 +74,8 @@ export function selectionHandle(sel: Selection, circlePart: CirclePart = 'center
       return { kind: 'piezo_point', index: sel.index };
     case 'surface_circle':
       return { kind: circlePart === 'radius' ? 'circle_radius' : 'circle_center' };
+    case 'surface_vertex':
+      return { kind: 'surface_vertex', index: sel.index };
     default:
       return null;
   }
@@ -98,6 +108,10 @@ export function handleWorldPoint(doc: ModelDoc, h: HandleRef): Point | null {
     case 'circle_radius': {
       const c = circleSpec(doc.analysis.surface);
       return c ? radiusHandlePoint(c) : null;
+    }
+    case 'surface_vertex': {
+      const surface = doc.analysis.surface;
+      return surface && surface.type === 'polyline' ? (surface.points[h.index] ?? null) : null;
     }
   }
 }

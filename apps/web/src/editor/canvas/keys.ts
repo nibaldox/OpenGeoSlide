@@ -21,7 +21,8 @@ import {
   type CirclePart,
   type HandleRef,
 } from './handles';
-import { circleCenterLabel, circleRadiusLabel, piezoAnnouncement, vertexAnnouncement } from './layout';
+import { insertPolylineVertex, movePolylineVertex, polylineCrossingMessage, removePolylineVertex } from './polyline';
+import { circleCenterLabel, circleRadiusLabel, piezoAnnouncement, surfaceVertexAnnouncement, vertexAnnouncement } from './layout';
 import { ensureVisible, fitToDoc, panBy, zoomStep } from './viewportOps';
 
 export interface KeyInput {
@@ -104,7 +105,7 @@ function lowerFirst(text: string): string {
 
 function focusOn(ctx: GestureContext, h: HandleRef, extra: CanvasAction[] = [], announce?: string): KeyResult {
   // El centro del círculo de falla suele quedar fuera de la vista (el arco es lo que importa): no se arrastra la vista hasta él.
-  const reveal = h.kind === 'vertex' || h.kind === 'piezo_point' ? revealAction(ctx, handleWorldPoint(ctx.doc, h)) : null;
+  const reveal = h.kind === 'vertex' || h.kind === 'piezo_point' || h.kind === 'surface_vertex' ? revealAction(ctx, handleWorldPoint(ctx.doc, h)) : null;
   return {
     handled: true,
     actions: [{ type: 'ui/select', selection: handleSelection(h) }, ...extra, ...(reveal ? [reveal] : [])],
@@ -164,6 +165,20 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
   }
 
   // Insertar un vértice en el punto medio de la arista siguiente.
+  if ((k.key === 'Insert' || lower === 'i') && sel.kind === 'surface_vertex') {
+    const surface = doc.analysis.surface;
+    if (!surface || surface.type !== 'polyline') return NOT_HANDLED;
+    const inserted = insertPolylineVertex(surface.points, sel.index);
+    if (!inserted) return { handled: true, actions: [], announce: 'No se puede insertar: el tramo es demasiado corto' };
+    const created: HandleRef = { kind: 'surface_vertex', index: inserted.index };
+    const at = inserted.points[inserted.index]!;
+    const r = focusOn(ctx, created, [], `Punto insertado. ${surfaceVertexAnnouncement(inserted.index, at, units)}`);
+    return {
+      ...r,
+      // La inserción cambia los índices: la selección (ui/select) se aplica después.
+      actions: [{ type: 'surface/set', surface: { type: 'polyline', points: inserted.points } }, ...r.actions],
+    };
+  }
   if (k.key === 'Insert' || lower === 'i') {
     if (sel.kind !== 'vertex') return NOT_HANDLED;
     const poly = doc.regions[sel.regionIndex]?.polygon;
@@ -205,6 +220,20 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
         announce: `Vértice eliminado. Foco en el ${lowerFirst(vertexAnnouncement(sel.regionIndex, neighbourIndex, p, units))}`,
       };
     }
+    if (sel.kind === 'surface_vertex') {
+      const surface = doc.analysis.surface;
+      if (!surface || surface.type !== 'polyline') return NOT_HANDLED;
+      const next = removePolylineVertex(surface.points, sel.index);
+      if (!next) return { handled: true, actions: [], announce: 'No se puede eliminar: la polilínea necesita al menos 2 puntos' };
+      const idx = Math.max(0, sel.index - 1);
+      const h: HandleRef = { kind: 'surface_vertex', index: idx };
+      return {
+        handled: true,
+        actions: [{ type: 'surface/set', surface: { type: 'polyline', points: next } }, { type: 'ui/select', selection: handleSelection(h) }],
+        focus: h,
+        announce: `Punto eliminado. Foco en el ${lowerFirst(surfaceVertexAnnouncement(idx, next[idx]!, units))}`,
+      };
+    }
     if (sel.kind === 'piezo_point') {
       const pts = piezoPoints(doc);
       const next = removePiezoPoint(pts, sel.index);
@@ -225,7 +254,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     k.key === 'ArrowLeft' ? [-1, 0] : k.key === 'ArrowRight' ? [1, 0] : k.key === 'ArrowUp' ? [0, 1] : k.key === 'ArrowDown' ? [0, -1] : null;
   if (!dir) return NOT_HANDLED;
 
-  const movable = sel.kind === 'vertex' || sel.kind === 'piezo_point' || sel.kind === 'surface_circle';
+  const movable = sel.kind === 'vertex' || sel.kind === 'piezo_point' || sel.kind === 'surface_circle' || sel.kind === 'surface_vertex';
   if (!movable) {
     // Sin tirador seleccionado las flechas desplazan la vista (en vez de desplazar la página).
     if (!vp) return NOT_HANDLED;
@@ -273,6 +302,25 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     return withReveal(
       { handled: true, actions: [{ type: 'piezo/set', points: next }], announce: piezoAnnouncement(sel.index, next[sel.index], units) },
       next[sel.index],
+    );
+  }
+  if (sel.kind === 'surface_vertex') {
+    const surface = doc.analysis.surface;
+    const cur = surface && surface.type === 'polyline' ? surface.points[sel.index] : undefined;
+    if (!surface || surface.type !== 'polyline' || !cur) return NOT_HANDLED;
+    const moved = movePolylineVertex(surface.points, sel.index, shift(cur));
+    if (!moved) return NOT_HANDLED;
+    const to = moved.points[sel.index]!;
+    const warn = moved.clamped ? `${polylineCrossingMessage()}. ` : '';
+    // Pegado al vecino: no hay cambio, solo el aviso.
+    if (to[0] === cur[0] && to[1] === cur[1]) return { handled: true, actions: [], announce: `${polylineCrossingMessage()}.` };
+    return withReveal(
+      {
+        handled: true,
+        actions: [{ type: 'surface/set', surface: { type: 'polyline', points: moved.points } }],
+        announce: `${warn}${surfaceVertexAnnouncement(sel.index, to, units)}`,
+      },
+      to,
     );
   }
   // surface_circle
