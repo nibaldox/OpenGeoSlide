@@ -11,7 +11,9 @@ import {
   REINFORCEMENT_TYPES,
   REINFORCEMENT_TYPE_LABELS,
   TENSION_DIRECTION_OPTIONS,
+  alignedSheet,
   defaultReinforcement,
+  isInclinedSheet,
   nextReinforcementId,
   reinforcementFromForm,
   reinforcementLength,
@@ -190,6 +192,26 @@ describe('formulario ↔ refuerzo', () => {
     const f = { ...reinforcementToForm(sheet()), x1: '41,5', x2: '99' };
     const out = reinforcementFromForm(f, ctx);
     expect(out.ok && out.value.x1 === 41.5 && out.value.x2 === 41.5).toBe(true);
+  });
+
+  // R11B-10: con `inclined` (la tablestaca abierta ya traía x1 ≠ x2) el formulario no fuerza x2 = x1: lo valida, con el texto de validateLocal.
+  it('una tablestaca inclinada conserva su x2 y el formulario da el mismo error que validateLocal', () => {
+    const f = reinforcementToForm(sheet({ x1: 40, x2: 42 }));
+    const out = reinforcementFromForm(f, { ...ctx, inclined: true });
+    expect(errorsOf(out).x2).toMatch(/la tablestaca es vertical; la x de la punta debe ser igual a la de la cabeza \(x1 = 40/);
+    expect(errorsOf(out).x2).toContain('Valor actual: 42');
+    const fixed = reinforcementFromForm({ ...f, x2: '40' }, { ...ctx, inclined: true });
+    expect(fixed.ok && fixed.value.x2 === 40).toBe(true);
+    // Sin `inclined` se conserva el comportamiento de siempre (la x de la punta es la de la cabeza).
+    expect(reinforcementFromForm(f, ctx).ok).toBe(true);
+  });
+
+  it('alignedSheet devuelve la tablestaca con x2 = x1 y no toca el resto', () => {
+    const r = sheet({ x1: 40, x2: 42 });
+    expect(alignedSheet(r)).toEqual({ ...r, x2: 40 });
+    expect(isInclinedSheet(r)).toBe(true);
+    expect(isInclinedSheet(sheet())).toBe(false);
+    expect(isInclinedSheet(pile())).toBe(false);
   });
 
   it('el ángulo solo se escribe con la dirección «Ángulo»', () => {

@@ -8,7 +8,7 @@ import { FIVE, anchor, pile, sheet } from '../state/reinforcementFixtures';
 import { validateLocal } from '../state/validateLocal';
 import { createFakeStore } from './fakeStore';
 import { ReinforcementsPanel } from './index';
-import { REINFORCEMENT_TYPES, reinforcementAddCommand } from './reinforcementForm';
+import { REINFORCEMENT_TYPES, alignedSheet, reinforcementAddCommand } from './reinforcementForm';
 
 const doc = (over: Partial<ModelDoc> = {}): ModelDoc => ({
   format: 'opengeoslide',
@@ -123,6 +123,40 @@ describe('ReinforcementsPanel: nombres accesibles', () => {
     expect(names).not.toContain('Refuerzo 2: Punta x2 (m)');
     expect(names).not.toContain('Refuerzo 2: Espaciamiento (m)');
     expect(names).toContain('Refuerzo 1: Espaciamiento (m)');
+  });
+
+  // R11B-10 / E14o-16: una tablestaca inclinada abierta desde un archivo muestra su x2 y su error, sin forzar x2 = x1.
+  describe('tablestaca inclinada abierta desde un archivo (R11B-10)', () => {
+    const inclined = (): ModelDoc => doc({ reinforcements: [sheet({ x1: 40, x2: 42 })] });
+    it('el modelo es válido para abrir y validateLocal marca x2', () => {
+      expect(validateLocal(inclined()).filter((i) => i.severity === 'error').map((i) => i.path)).toEqual(['/reinforcements/0/x2']);
+    });
+    it('la tarjeta muestra el campo «Punta x2» con su error y el enlace del diagnóstico', () => {
+      const out = html(inclined());
+      expect(accessibleNames(out)).toContain('Refuerzo 1: Punta x2 (m)');
+      expect(out).toContain('data-path="/reinforcements/0/x2"');
+      expect(text(out)).toContain('la tablestaca es vertical');
+      expect(out).toMatch(/aria-invalid="true"/);
+    });
+    it('ofrece alinear verticalmente (x2 = x1) con un nombre accesible estable', () => {
+      expect(html(inclined())).toContain('aria-label="Alinear verticalmente la tablestaca del refuerzo 1 (x2 = x1)"');
+    });
+    it('una tablestaca vertical no muestra ni x2 ni el botón', () => {
+      const out = html(doc({ reinforcements: [sheet()] }));
+      expect(accessibleNames(out)).not.toContain('Refuerzo 1: Punta x2 (m)');
+      expect(out).not.toContain('Alinear verticalmente');
+    });
+    it('«Alinear» deja x2 = x1 en el almacén en un solo paso deshacible', () => {
+      const store = createEditorStore(inclined(), null);
+      const before = store.getState().doc.reinforcements?.[0];
+      expect(before && before.x1 !== before.x2).toBe(true);
+      store.dispatch({ type: 'reinforcement/upsert', index: 0, reinforcement: alignedSheet(before as never) });
+      const after = store.getState().doc.reinforcements?.[0];
+      expect(after && after.x1 === after.x2).toBe(true);
+      store.undo();
+      const undone = store.getState().doc.reinforcements?.[0];
+      expect(undone && undone.x1 !== undone.x2).toBe(true);
+    });
   });
 
   it('solo el campo de tokens: el panel no pone colores propios', () => {

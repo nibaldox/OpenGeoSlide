@@ -302,6 +302,21 @@ export interface ReinforcementFormContext {
   units?: string;
   /** Posición (0-based) del refuerzo que se edita; `null` = nuevo. Solo sirve para redactar mensajes. */
   index: number | null;
+  /**
+   * Tablestaca abierta con x1 ≠ x2 (R11B-10): el formulario no fuerza x2 = x1, valida el campo x2 y lo marca con el error de `validateLocal`
+   * hasta que el usuario lo alinee. Sin esta marca, la x de la punta es la de la cabeza (una tablestaca nueva o ya vertical).
+   */
+  inclined?: boolean;
+}
+
+/** ¿Es una tablestaca con x1 ≠ x2? Un archivo puede traerla (el motor la rechaza y `validateLocal` la marca en `x2`). */
+export function isInclinedSheet(r: Reinforcement): boolean {
+  return r.type === 'sheet_pile' && r.x1 !== r.x2;
+}
+
+/** La misma tablestaca con la punta en la x de la cabeza (x2 = x1). */
+export function alignedSheet(r: Reinforcement): Reinforcement {
+  return { ...r, x2: r.x1 };
 }
 
 const L = REINFORCEMENT_LABEL;
@@ -338,7 +353,11 @@ export function reinforcementFromForm(form: ReinforcementForm, ctx: Reinforcemen
 
   const x1 = take(errors, 'x1', form.x1, required(L.x1, R.finite, finite));
   const y1 = take(errors, 'y1', form.y1, required(L.y1, R.finite, finite));
-  const x2 = type === 'sheet_pile' ? x1 : take(errors, 'x2', form.x2, required(L.x2, R.finite, finite));
+  const keepX2 = type === 'sheet_pile' && ctx.inclined === true;
+  const x2 = type === 'sheet_pile' && !keepX2 ? x1 : take(errors, 'x2', form.x2, required(L.x2, R.finite, finite));
+  if (keepX2 && x1 !== null && x2 !== null && x1 !== x2) {
+    errors.x2 = `${L.x2}: la tablestaca es vertical; la x de la punta debe ser igual a la de la cabeza (x1 = ${formatNumber(x1)} ${reinforcementUnits(ctx.units).length}). Valor actual: ${formatNumber(x2)}`;
+  }
   const y2 = take(errors, 'y2', form.y2, required(L.y2, R.finite, finite));
   const coords = x1 !== null && y1 !== null && x2 !== null && y2 !== null;
   const length = coords ? Math.hypot(x2 - x1, y2 - y1) : Number.NaN;
