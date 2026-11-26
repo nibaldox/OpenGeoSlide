@@ -236,8 +236,8 @@ export function reinforcementShape(r: Reinforcement, index: number, vp: Viewport
 }
 
 /** Ancho aproximado de un carácter del rótulo (12 px) y alto de la línea, para que los rótulos de refuerzos vecinos no se pisen. */
-const LABEL_CHAR_PX = 6.6;
-const LABEL_LINE_PX = 14;
+export const LABEL_CHAR_PX = 6.6;
+export const LABEL_LINE_PX = 14;
 
 export function reinforcementShapes(list: readonly Reinforcement[] | undefined, vp: Viewport, units?: string | null): ReinforcementShape[] {
   const shapes = (list ?? []).map((r, i) => reinforcementShape(r, i, vp, units));
@@ -331,4 +331,63 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
       title: `${text}. Cruce ${f.crossing + 1}, estación ${formatNumber(f.station)} ${lengthUnitOf(units)}`,
     };
   });
+}
+
+// ───────────────────────── Rótulos sin solapes (E14o-16, R11B-05) ─────────────────────────
+
+interface LabelBox {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+}
+
+const LABEL_PAD_PX = 2;
+const labelBox = (text: string, x: number, y: number): LabelBox => {
+  const half = (text.length * LABEL_CHAR_PX) / 2;
+  return { x1: x - half, x2: x + half, y1: y - LABEL_LINE_PX, y2: y };
+};
+const overlapArea = (a: LabelBox, b: LabelBox): number => {
+  const w = Math.min(a.x2 + LABEL_PAD_PX, b.x2 + LABEL_PAD_PX) - Math.max(a.x1 - LABEL_PAD_PX, b.x1 - LABEL_PAD_PX);
+  const h = Math.min(a.y2 + LABEL_PAD_PX, b.y2 + LABEL_PAD_PX) - Math.max(a.y1 - LABEL_PAD_PX, b.y1 - LABEL_PAD_PX);
+  return w > 0 && h > 0 ? w * h : 0;
+};
+
+/**
+ * Coloca **todos** los rótulos del dibujo (los de los refuerzos y los de las fuerzas) sin que se pisen: cada uno prueba su sitio natural y, si
+ * choca con uno ya puesto, los desplazamientos verticales de una línea y los horizontales de medio rótulo, del más cercano al más lejano, siempre
+ * dentro del lienzo. Si ninguno queda libre, toma el de menor solape. Primero se colocan las fuerzas (su magnitud es lo que se lee) y después los
+ * símbolos. Devuelve copias: no muta las formas de entrada. Lo usan el editor (SVG) y Casos (Canvas 2D); el PDF tiene su propia pasada en mm.
+ */
+export function placeReinforcementLabels(
+  shapes: readonly ReinforcementShape[],
+  forces: readonly ForceShape[],
+  vp: Pick<Viewport, 'width' | 'height'>,
+): { shapes: ReinforcementShape[]; forces: ForceShape[] } {
+  const placed: LabelBox[] = [];
+  const inside = (b: LabelBox): boolean => b.x1 >= LABEL_PAD_PX && b.x2 <= vp.width - LABEL_PAD_PX && b.y1 >= LABEL_PAD_PX && b.y2 <= vp.height - LABEL_PAD_PX;
+  const place = (label: { x: number; y: number; text: string }): { x: number; y: number; text: string } => {
+    const w = label.text.length * LABEL_CHAR_PX;
+    const offsets: [number, number][] = [];
+    for (let j = -6; j <= 6; j += 1) for (let k = -12; k <= 12; k += 1) offsets.push([j * (w / 2 + LABEL_PAD_PX), k * LABEL_LINE_PX]);
+    offsets.sort((a, b) => Math.abs(a[1]) + 0.6 * Math.abs(a[0]) - (Math.abs(b[1]) + 0.6 * Math.abs(b[0])));
+    let best: { box: LabelBox; dx: number; dy: number; cost: number } | null = null;
+    for (const [dx, dy] of offsets) {
+      const box = labelBox(label.text, label.x + dx, label.y + dy);
+      if (!inside(box)) continue;
+      const cost = placed.reduce((sum, b) => sum + overlapArea(box, b), 0);
+      if (cost === 0) {
+        placed.push(box);
+        return { ...label, x: label.x + dx, y: label.y + dy };
+      }
+      if (best === null || cost < best.cost) best = { box, dx, dy, cost };
+    }
+    // Sin sitio libre: el de menor solape; sin ningún sitio dentro del lienzo, el natural.
+    const chosen = best ?? { box: labelBox(label.text, label.x, label.y), dx: 0, dy: 0, cost: 0 };
+    placed.push(chosen.box);
+    return { ...label, x: label.x + chosen.dx, y: label.y + chosen.dy };
+  };
+  const forceOut = forces.map((f) => ({ ...f, label: place(f.label) }));
+  const shapeOut = shapes.map((s) => ({ ...s, label: place(s.label) }));
+  return { shapes: shapeOut, forces: forceOut };
 }

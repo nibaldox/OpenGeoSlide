@@ -4,7 +4,7 @@
 import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport';
 import { lengthUnitOf } from '../editor/canvas/layout';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
-import { forceShapes, reinforcementShapes, type ShapePart } from '../editor/canvas/reinforcements';
+import { forceShapes, placeReinforcementLabels, reinforcementShapes, type ShapePart } from '../editor/canvas/reinforcements';
 import { materialSlot, type Scene } from './scene';
 
 const MARGIN_PX = 56;
@@ -140,7 +140,9 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
   ctx.setLineDash([]);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  const shapes = reinforcementShapes(scene.reinforcements, vp, u);
+  // E14o-16 (R11B-05): los rótulos de los símbolos y los de las fuerzas se colocan juntos, sin solapes.
+  const placed = placeReinforcementLabels(reinforcementShapes(scene.reinforcements, vp, u), forceShapes(scene.reinforcementForces, vp, u), vp);
+  const shapes = placed.shapes;
   for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.halo, 3.5);
   for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.reinforcement, 0);
   ctx.font = AXIS_FONT;
@@ -154,7 +156,7 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
     ctx.fillText(t, x, y);
   };
   for (const s of shapes) text(s.label.text, s.label.x, s.label.y, palette.reinforcement);
-  for (const f of forceShapes(scene.reinforcementForces, vp, u)) {
+  for (const f of placed.forces) {
     const color = f.applied ? palette.reinforcement : palette.axisText;
     if (f.tip) {
       const [ax, ay] = f.at;

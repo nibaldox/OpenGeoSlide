@@ -27,6 +27,7 @@ import {
   REINFORCEMENT_TYPES,
   REINFORCEMENT_TYPE_LABEL,
   forceShapes,
+  placeReinforcementLabels,
   reinforcementCenterLabel,
   reinforcementEndAnnouncement,
   reinforcementEndLabel,
@@ -737,8 +738,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const circle = circleSpec(shown.analysis.surface);
   const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
-  const reinforcements = reinforcementShapes(shown.reinforcements, vp, unitsEff);
-  const forces: ForceShape[] = forceShapes(result?.reinforcementForces, vp, unitsEff);
+  // E14o-16 (R11B-05): los rótulos de los refuerzos y los de las fuerzas se colocan juntos, sin solapes.
+  const { shapes: reinforcements, forces }: { shapes: ReinforcementShape[]; forces: ForceShape[] } = placeReinforcementLabels(
+    reinforcementShapes(shown.reinforcements, vp, unitsEff),
+    forceShapes(result?.reinforcementForces, vp, unitsEff),
+    vp,
+  );
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);
   const badge = seismicBadge(vp, dir, seismic?.kv ?? 0); // R9-12c: con kv ≠ 0 trae `kvArrow`
