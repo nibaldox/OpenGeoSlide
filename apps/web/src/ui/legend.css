@@ -78,3 +78,19 @@
   margin: 4px 0 0;
   max-width: 70ch;
 }
+
+/* Agua embalsada (F5.3): el relleno --canvas-pond con el borde de la piezométrica, como se ve en el lienzo. */
+.legend .swatch.pond {
+  width: 22px;
+  height: 12px;
+  background: var(--canvas-pond);
+  border: 1.5px solid var(--canvas-piezo);
+}
+
+/* Grieta de tracción (F5.4): línea discontinua con el color de la superficie, como la que se dibuja en x_c. */
+.legend .swatch.line-crack {
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 2.5px dashed var(--canvas-surface);
+}

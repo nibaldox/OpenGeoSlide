@@ -9,6 +9,7 @@ import type { jsPDF } from 'jspdf';
 import type { Point } from '../engine/types';
 import { forceShapes, reinforcementShapes, type PxPoint, type ShapePart } from '../editor/canvas/reinforcements';
 import type { Viewport } from '../geometry/viewport';
+import { crackShape } from '../render/crack';
 import {
   buildReportContent,
   type ReportBlock,
@@ -384,6 +385,20 @@ class Writer {
       doc.lines(rel, sx(first[0]), sy(first[1]), [1, 1], 'FD', true);
     }
 
+    // Agua embalsada (F5.3): relleno sobre el terreno y bajo la piezométrica, sin trazo propio (la limitan el terreno y la piezométrica).
+    doc.setFillColor(...P.pond);
+    for (const poly of d.pond) {
+      const first = poly[0];
+      if (!first || poly.length < 3) continue;
+      const rel: number[][] = [];
+      for (let i = 1; i < poly.length; i++) {
+        const p = poly[i] as [number, number];
+        const q = poly[i - 1] as [number, number];
+        rel.push([(p[0] - q[0]) * scale, -(p[1] - q[1]) * scale]);
+      }
+      doc.lines(rel, sx(first[0]), sy(first[1]), [1, 1], 'F', true);
+    }
+
     const polyline = (pts: [number, number][], color: Rgb, width: number, dash?: number[]): void => {
       const first = pts[0];
       if (!first || pts.length < 2) return;
@@ -409,6 +424,42 @@ class Writer {
     for (const seg of d.piezoExtension) polyline(seg, piezoColor, 0.5, [0.5, 1.3]);
     if (d.piezo) polyline(d.piezo, piezoColor, 0.5, [2, 1]);
     if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [...P.surface], 0.7);
+
+    // Grieta de tracción (F5.4): línea discontinua en x_c, hueco de agua, flecha de Pw y rótulos, con la forma del lienzo (px → mm de página).
+    if (d.crack) {
+      const vpPx: Viewport = { scale: scale * PX_PER_MM, tx: -xmin * scale * PX_PER_MM, ty: ymax * scale * PX_PER_MM, width: drawW * PX_PER_MM, height: drawH * PX_PER_MM };
+      const mm = (p: PxPoint): PxPoint => [x0 + p[0] / PX_PER_MM, y0 + head + p[1] / PX_PER_MM];
+      const cs = crackShape(d.crack, vpPx, d.units);
+      if (cs.water) {
+        const [wx, wy] = mm([cs.water.x, cs.water.y]);
+        doc.setFillColor(...P.pond);
+        doc.setDrawColor(...P.piezo);
+        doc.setLineWidth(0.2);
+        doc.rect(wx, wy, cs.water.width / PX_PER_MM, cs.water.height / PX_PER_MM, 'FD');
+      }
+      const [tx, ty] = mm(cs.top);
+      const [bx, by] = mm(cs.bottom);
+      doc.setDrawColor(...P.surface);
+      doc.setLineWidth(0.5);
+      doc.setLineDashPattern([1.2, 0.9], 0);
+      doc.line(tx, ty, bx, by);
+      doc.setLineDashPattern([], 0);
+      if (cs.arrow) {
+        const [ax, ay] = mm(cs.arrow.at);
+        const [hx, hy] = mm(cs.arrow.tip);
+        this.arrow(ax, ay, hx, hy, [...P.piezo], 0.6);
+      }
+      this.font('normal', 6.5);
+      const align = (a: 'start' | 'end'): 'left' | 'right' => (a === 'start' ? 'left' : 'right');
+      const lab = (l: { x: number; y: number; text: string; anchor: 'start' | 'end' }, color: Rgb): void => {
+        const [lx, ly] = mm([l.x, l.y]);
+        doc.setTextColor(...color);
+        this.haloText(l.text, lx, ly + 1, align(l.anchor));
+      };
+      lab(cs.depthLabel, [...P.surface]);
+      if (cs.forceLabel) lab(cs.forceLabel, [...P.piezo]);
+      doc.setTextColor(...P.ink);
+    }
 
     // Refuerzos (v0.4): el símbolo de cada tipo y la flecha de cada fuerza, con la geometría del lienzo del editor (px → mm de página).
     if (d.reinforcements.length > 0) {
@@ -593,6 +644,17 @@ class Writer {
         doc.setLineWidth(0.5);
         doc.line(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7);
         doc.rect(MARGIN - 0.2, this.y + 0.9, 1.6, 1.6, 'F');
+      } else if (item.kind === 'pond') {
+        doc.setFillColor(...item.color);
+        doc.setDrawColor(...P.piezo);
+        doc.setLineWidth(0.2);
+        doc.rect(MARGIN, this.y, 6, 3.4, 'FD');
+      } else if (item.kind === 'crack') {
+        doc.setDrawColor(...item.color);
+        doc.setLineWidth(0.5);
+        doc.setLineDashPattern([1.2, 0.9], 0);
+        doc.line(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7);
+        doc.setLineDashPattern([], 0);
       } else if (item.kind === 'force') {
         this.arrow(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7, item.color, 0.6);
       } else if (item.kind === 'force_off') {

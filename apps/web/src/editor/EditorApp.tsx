@@ -14,6 +14,7 @@ import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
 import './app/newModel.css';
 import { buildScene } from '../render/scene';
+import { CrackSummary } from '../ui/CrackResults';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { DropdownMenu } from '../ui/DropdownMenu';
 import { Legend } from '../ui/Legend';
@@ -526,7 +527,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const shown = engine.run?.report.results.find((r) => r.method === shownMethod) ?? engine.run?.report.results[0] ?? null;
   // La superficie del informe (círculo o polilínea ajustada al terreno, F3.7) y sus dovelas se superponen al lienzo.
-  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces } : undefined;
+  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces, tensionCrack: shown.tension_crack } : undefined;
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
@@ -754,13 +755,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           {engine.run && (
             <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
               <h2 id="ea-results-title">Resultados{engine.current ? '' : ' (desactualizados)'}</h2>
-              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} />
+              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} tensionCrack={engine.run.doc.analysis.tension_crack} />
               <p className="small muted">
                 Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
               </p>
             </section>
           )}
-          <DiagnosticsPanel store={store} onNavigate={navigateIssue} />
+          <DiagnosticsPanel store={store} onNavigate={navigateIssue} resultInfo={engine.run ? <CrackSummary report={engine.run.report} tensionCrack={engine.run.doc.analysis.tension_crack} units={engine.run.doc.units} /> : undefined} />
         </div>
 
         <aside className="ea-side" aria-label="Propiedades del modelo">

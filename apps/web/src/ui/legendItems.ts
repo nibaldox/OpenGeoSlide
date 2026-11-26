@@ -2,7 +2,7 @@
 
 import type { Scene } from '../render/scene';
 
-export type LegendSwatch = 'line-red' | 'line-polyline-dashed' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic' | 'line-reinforcement' | 'arrow-reinforcement' | 'mark-inactive';
+export type LegendSwatch = 'line-red' | 'line-polyline-dashed' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'pond' | 'line-crack' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic' | 'line-reinforcement' | 'arrow-reinforcement' | 'mark-inactive';
 
 export interface LegendExtraItem {
   key: string;
@@ -43,7 +43,7 @@ export const FIXED_CIRCLE_LABEL = 'Superficie fija (círculo)';
 export const UNCONVERGED_LABEL = 'Superficie evaluada (sin convergencia)';
 export const INVALID_LABEL = 'Superficie evaluada (no válida)';
 
-export function legendItems(scene: Pick<Scene, 'piezo' | 'reinforcements' | 'reinforcementForces'> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
+export function legendItems(scene: Pick<Scene, 'piezo' | 'reinforcements' | 'reinforcementForces'> & Partial<Pick<Scene, 'pond' | 'crack'>> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
   const { surface = true, unconverged = false, invalid = false, fixedCircle = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false, fixedPolyline = false } = options;
   const items: LegendExtraItem[] = [];
   // Con una polilínea la superficie no es «crítica»: la da el usuario (fija) y el cálculo solo la ajusta al terreno.
@@ -58,8 +58,12 @@ export function legendItems(scene: Pick<Scene, 'piezo' | 'reinforcements' | 'rei
     items.push({ key: 'surface-fixed', label: FIXED_POLYLINE_LABEL, swatch: 'line-polyline-dashed' });
   }
   if (slices) items.push({ key: 'slices', label: 'Dovelas', swatch: 'slice' });
+  // F5.4: la grieta de la superficie dibujada (solo hay con resultado): línea discontinua vertical y, con agua, la flecha de Pw.
+  if (scene.crack) items.push({ key: 'crack', label: scene.crack.force > 0 ? 'Grieta de tracción (línea discontinua; flecha: Pw del agua en la grieta)' : 'Grieta de tracción (seca)', swatch: 'line-crack' });
   if (scene.piezo) items.push({ key: 'piezo', label: 'Piezométrica', swatch: 'line-blue' });
   if (scene.piezo && piezoExtrapolated) items.push({ key: 'piezo-extrapolated', label: 'Piezométrica (extrapolada)', swatch: 'line-blue-dotted' });
+  // F5.3: el agua embalsada (piezométrica sobre el terreno) tiene su propio relleno.
+  if (scene.pond && scene.pond.length > 0) items.push({ key: 'pond', label: 'Agua embalsada (piezométrica sobre el terreno)', swatch: 'pond' });
   if (bands) {
     items.push({ key: 'band-entry', label: 'Banda de entrada', swatch: 'band-entry' });
     items.push({ key: 'band-exit', label: 'Banda de salida', swatch: 'band-exit' });

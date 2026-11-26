@@ -5,6 +5,7 @@ import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport'
 import { lengthUnitOf } from '../editor/canvas/layout';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
 import { forceShapes, placeReinforcementLabels, reinforcementShapes, type ShapePart } from '../editor/canvas/reinforcements';
+import { crackShape } from './crack';
 import { materialSlot, type Scene } from './scene';
 
 const MARGIN_PX = 56;
@@ -16,6 +17,8 @@ const HALO_EXTRA_PX = 2;
 const UNCONVERGED_DASH = [10, 6];
 /** Tramo extrapolado de la piezométrica: punteado `1 5` con extremos redondos, como en el lienzo del editor. */
 const PIEZO_EXTRAPOLATED_DASH = [1, 5];
+/** Línea de la grieta de tracción: discontinua, distinta de la superficie (continua) y de la piezométrica (`8 5`). */
+const CRACK_DASH = [5, 4];
 /** Grosor del halo de los rótulos. */
 const HALO_TEXT_PX = 3;
 
@@ -202,6 +205,74 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
   ctx.lineJoin = 'miter';
 }
 
+/**
+ * Grieta de tracción de la superficie dibujada (F5.4): línea discontinua vertical en `x_c` con su profundidad, el hueco de agua y la
+ * flecha de `Pw` hacia la masa. Mismas formas que el lienzo del editor (`crackShape`).
+ */
+function drawCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette, units?: string | null): void {
+  if (!scene.crack) return;
+  const shape = crackShape(scene.crack, vp, units ?? scene.units);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (shape.water) {
+    const w = shape.water;
+    ctx.fillStyle = palette.pond;
+    ctx.fillRect(w.x, w.y, w.width, w.height);
+    ctx.strokeStyle = palette.piezo;
+    ctx.lineWidth = 1.25;
+    ctx.setLineDash([]);
+    ctx.strokeRect(w.x, w.y, w.width, w.height);
+  }
+  const line = (color: string, width: number, dash: number[]): void => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    ctx.moveTo(shape.top[0], shape.top[1]);
+    ctx.lineTo(shape.bottom[0], shape.bottom[1]);
+    ctx.stroke();
+  };
+  line(palette.halo, 2.5 + 2 * HALO_EXTRA_PX, []);
+  line(palette.surface, 2.5, CRACK_DASH);
+  ctx.setLineDash([]);
+  if (shape.arrow) {
+    const [ax, ay] = shape.arrow.at;
+    const [tx, ty] = shape.arrow.tip;
+    const ux = Math.sign(tx - ax);
+    const arrow = (c: string, w: number): void => {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+    };
+    arrow(palette.halo, 6.5);
+    arrow(palette.piezo, 3);
+    ctx.fillStyle = palette.piezo;
+    ctx.beginPath();
+    ctx.moveTo(tx + ux * 2, ty);
+    ctx.lineTo(tx - ux * 9, ty - 4);
+    ctx.lineTo(tx - ux * 9, ty + 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.font = AXIS_FONT;
+  ctx.textBaseline = 'middle';
+  const text = (l: { x: number; y: number; text: string; anchor: 'start' | 'end' }, color: string): void => {
+    ctx.textAlign = l.anchor === 'start' ? 'left' : 'right';
+    ctx.lineWidth = HALO_TEXT_PX;
+    ctx.strokeStyle = palette.halo;
+    ctx.strokeText(l.text, l.x, l.y);
+    ctx.fillStyle = color;
+    ctx.fillText(l.text, l.x, l.y);
+  };
+  text(shape.depthLabel, palette.surface);
+  if (shape.forceLabel) text(shape.forceLabel, palette.piezo);
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
+}
+
 /** Dibuja la escena completa. `cssWidth`/`cssHeight` están en px CSS; el lienzo ya tiene `dpr` escalado. */
 export function drawSection(
   ctx: CanvasRenderingContext2D,
@@ -230,6 +301,13 @@ export function drawSection(
     ctx.strokeStyle = palette.regionEdge;
     ctx.lineWidth = 1.25;
     ctx.stroke();
+  }
+
+  // Agua embalsada (F5.3): relleno bajo la piezométrica y sobre el terreno, en su propia capa (sin trazo: lo limitan el terreno y la piezométrica).
+  for (const poly of scene.pond ?? []) {
+    tracePolygon(ctx, vp, poly);
+    ctx.fillStyle = palette.pond;
+    ctx.fill();
   }
 
   // Dovelas
@@ -302,6 +380,7 @@ export function drawSection(
     ctx.setLineDash([]);
   }
 
+  drawCrack(ctx, vp, scene, palette, units);
   drawReinforcements(ctx, vp, scene, palette, units);
 
   // R9-05d: el motor prolonga la piezométrica en horizontal hasta los bordes del modelo; ese tramo va punteado para que el agua no parezca terminar en el último punto.

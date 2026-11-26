@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Issue, EditorStore } from '../types';
 import { issueTargetFor, type IssueTarget } from '../app/issueNav';
 import { PanelSection } from './Fields';
@@ -15,9 +16,10 @@ export function issueTechnicalText(issue: Issue): string {
 /**
  * Lista de incidencias. Una incidencia con destino real (`issueTargetFor`) es un botón: al pulsarla se selecciona el
  * elemento y `onNavigate` abre la pestaña y lleva el foco al campo (R7-11). Sin destino es solo texto.
+ * `resultInfo` es información del resultado que no es una incidencia (la grieta de tracción, F5.7): va tras la lista.
  * El panel no ejecuta el motor: el botón «Comprobar» es el de la barra (no se duplica).
  */
-export function DiagnosticsPanel({ store, onNavigate }: { store: EditorStore; onNavigate?: (issue: Issue, target: IssueTarget) => void }) {
+export function DiagnosticsPanel({ store, onNavigate, resultInfo }: { store: EditorStore; onNavigate?: (issue: Issue, target: IssueTarget) => void; resultInfo?: ReactNode }) {
   const diagnostics = useStoreSelector(store, (s) => s.diagnostics);
   const revision = useStoreSelector(store, (s) => s.revision);
   const sorted = sortIssues(diagnostics.issues);
@@ -69,6 +71,7 @@ export function DiagnosticsPanel({ store, onNavigate }: { store: EditorStore; on
           })}
         </ul>
       )}
+      {resultInfo}
     </PanelSection>
   );
 }

@@ -16,6 +16,8 @@ export interface SectionPalette {
   /** Superficie evaluada de un método que no convergió (trazo discontinuo): `--canvas-surface-unconverged`. */
   surfaceUnconverged: string;
   piezo: string;
+  /** Relleno del agua embalsada (F5.3): `--canvas-pond`. */
+  pond: string;
   /** Refuerzos y sus fuerzas (flechas): `--canvas-reinforcement`. */
   reinforcement: string;
   sliceFill: string;
@@ -36,6 +38,7 @@ const SCALARS: Record<Exclude<keyof SectionPalette, 'materials'>, string> = {
   surface: '--canvas-surface',
   surfaceUnconverged: '--canvas-surface-unconverged',
   piezo: '--canvas-piezo',
+  pond: '--canvas-pond',
   reinforcement: '--canvas-reinforcement',
   sliceFill: '--canvas-slice-fill',
   sliceEdge: '--canvas-slice-edge',
