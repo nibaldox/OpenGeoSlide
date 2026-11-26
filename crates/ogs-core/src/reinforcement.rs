@@ -1,5 +1,5 @@
-//! Reinforcements (format v0.4, amendments E14a-E14j): validation of the fields and the **stub** of the force
-//! computation (R0 freezes the types and the signatures; the wave R1 fills the stubs).
+//! Reinforcements (format v0.4, amendments E14a-E14m): validation of the fields, the crossings with the slip surface,
+//! the capacity `T(s)`, the direction of the force and its writing into the slices.
 //!
 //! - [`validate`] checks every rule of F4.2 that serde does not: ids, finiteness, ranges, `L > 0`, `x1 = x2` of a
 //!   `sheet_pile`, `bonded_length ≤ L` and `angle`. The error is `InvalidModel` with the **JSON path** of the field,
@@ -18,6 +18,17 @@
 //! 2. the surface is sliced with that load case;
 //! 3. `apply_to_slices` adds the forces to the slices (active ones to `weight_extra`, `h_force`, `h_moment_base` and
 //!    `driving_extra`, E14f; passive ones to the `passive_*` fields, E14g) and returns the forces of the report.
+//!
+//! Algorithm of the crossings (E14d.1): the segment `head → tip` against the lower arc of the circle (the line is
+//! reduced to its closest point to the centre and the half chord `√(r² − d²)`, so no cancellation) or against each
+//! segment of the fitted polyline; a crossing at an end of the element, within `1e-9·scale`, does not count; one at a
+//! vertex of the polyline counts once. The station is `s_c = t_c·L`. The thin slice that receives the force is the
+//! first soil slice from the toe whose closed interval contains `x_c` (`1e-9·width`): with the nodes of
+//! `crossing_nodes` it is the one centred on `x_c`.
+//!
+//! Capacity (E14c, E14m-2): `bond` and `interface` integrate `r` **exactly** along the element (piecewise linear
+//! between the cuts at the ground, the contacts and the water, and where `σ′v` changes sign); `development` is the
+//! closed ramp; without `pullout`, `T = Tmax/spacing`. Direction and compression: E14m-1 (see `apply_to_slices`).
 
 use crate::OgsError;
 use crate::geometry::{PreparedModel, Sliding};
