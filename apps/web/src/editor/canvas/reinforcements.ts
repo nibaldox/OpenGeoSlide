@@ -237,7 +237,7 @@ export interface ForceShape {
   /** `true` si la fuerza se aplicó (flecha del color del refuerzo); si no, gris con su rótulo. */
   applied: boolean;
   application: ReinforcementApplication;
-  /** Cruce con la superficie, en píxeles. */
+  /** Punto de aplicación, en píxeles: el cruce con la superficie, o `(x, y + arm)` en un pilote Ito-Matsui con `centroid` (E15l-22). */
   at: PxPoint;
   /** Punta de la flecha (a favor de `fx`, `fy`), o `null` si la fuerza es nula. */
   tip: PxPoint | null;
@@ -265,17 +265,50 @@ export function forceLabelText(f: ReinforcementForce, units?: string | null, sho
   return `${f.id}: ${formatNumber(magnitude, 1, 2)} ${unit} (${kind})`;
 }
 
+/** Qué fija la fuerza de un pilote con presión del suelo, en la frase de la información emergente: «gobierna el suelo». */
+const GOVERNS_PHRASE: Record<NonNullable<ReinforcementForce['governs']>, string> = { soil: 'el suelo', shear: 'el corte', bending: 'la flexión' };
+
 /**
- * Flechas de las fuerzas de `reinforcement_forces`: una por cruce, con la dirección de (fx, fy) y la cola en el cruce
- * (la fuerza que el refuerzo ejerce sobre la masa). El largo crece con la magnitud entre 30 y 60 px. Los cruces que no se
- * aplicaron (`outside_mass`, `compression_ignored`, `no_capacity`) llevan una marca gris y su estado; sin fuerza aplicada no hay flecha.
+ * Datos de Ito-Matsui de un cruce (E15i-7, E15l-22), para la información emergente: la fuerza del suelo antes del tope, qué gobierna y el
+ * brazo `L_m`. Vacío en un cruce sin esos campos (un pilote con `force`, un anclaje...).
  */
-export function forceShapes(forces: readonly ReinforcementForce[] | undefined, vp: Viewport, units?: string | null): ForceShape[] {
+export function itoMatsuiDetail(f: ReinforcementForce, units?: string | null): string {
+  const parts: string[] = [];
+  if (f.soil_force !== undefined) parts.push(`Fuerza del suelo ${formatNumber(f.soil_force, 1, 2)} ${forceUnit(units)}`);
+  if (f.governs !== undefined) parts.push(`gobierna ${GOVERNS_PHRASE[f.governs]}`);
+  if (f.arm !== undefined) parts.push(`brazo ${formatNumber(f.arm, 2, 2)} ${lengthUnitOf(units)}`);
+  return parts.join(', ');
+}
+
+/**
+ * Cota de aplicación de la fuerza (E15i-5, E15l-22): con `location: centroid` un pilote con `lateral_pressure` la aplica sobre su eje a
+ * `arm` (`L_m`) **por encima** del cruce, `y + arm`; con `slip_surface`, en el cruce, `y`. Sin la lista de refuerzos, o sin `arm`, o con
+ * `arm = 0` (sin presión), la del cruce, como el motor.
+ */
+export function forceApplicationY(f: ReinforcementForce, reinforcements?: readonly Reinforcement[]): number {
+  if (f.arm === undefined || !(f.arm > 0) || !Number.isFinite(f.arm)) return f.y;
+  const r = reinforcements?.find((x) => x.id === f.id);
+  return r && r.type === 'pile' && r.lateral_pressure?.location === 'centroid' ? f.y + f.arm : f.y;
+}
+
+/**
+ * Flechas de las fuerzas de `reinforcement_forces`: una por cruce, con la dirección de (fx, fy) y la cola en el punto de aplicación
+ * (la fuerza que el refuerzo ejerce sobre la masa): el cruce con la superficie, salvo un pilote Ito-Matsui con `centroid`, donde es
+ * `(x, y + arm)` (E15l-22; hace falta `reinforcements` para saber la `location`). El largo crece con la magnitud entre 30 y 60 px. Los cruces
+ * que no se aplicaron (`outside_mass`, `compression_ignored`, `no_capacity`) llevan una marca gris en el cruce y su estado; sin fuerza
+ * aplicada no hay flecha.
+ */
+export function forceShapes(
+  forces: readonly ReinforcementForce[] | undefined,
+  vp: Viewport,
+  units?: string | null,
+  reinforcements?: readonly Reinforcement[],
+): ForceShape[] {
   const list = forces ?? [];
   const max = Math.max(0, ...list.filter((f) => isAppliedStatus(f.status)).map((f) => Math.hypot(f.fx, f.fy)));
   return list.map((f): ForceShape => {
-    const at = worldToScreen(vp, f.x, f.y) as PxPoint;
     const applied = isAppliedStatus(f.status);
+    const at = worldToScreen(vp, f.x, applied ? forceApplicationY(f, reinforcements) : f.y) as PxPoint;
     const magnitude = Math.hypot(f.fx, f.fy);
     let tip: PxPoint | null = null;
     let dir: PxPoint = [0, -1];
@@ -288,6 +321,7 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
     const text = forceLabelText(f, units);
     const shortText = forceLabelText(f, units, true);
     const anchor = tip ?? at;
+    const detail = itoMatsuiDetail(f, units);
     return {
       key: `${f.id}-${f.crossing}`,
       id: f.id,
@@ -298,7 +332,7 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
       at,
       tip,
       label: { x: anchor[0] + dir[0] * 8, y: anchor[1] + dir[1] * 8 - (dir[1] >= 0 ? -10 : 4), text: shortText },
-      title: `${text}. Cruce ${f.crossing + 1}, estación ${formatNumber(f.station)} ${lengthUnitOf(units)}`,
+      title: `${text}. Cruce ${f.crossing + 1}, estación ${formatNumber(f.station)} ${lengthUnitOf(units)}${detail ? `. ${detail}` : ''}`,
     };
   });
 }

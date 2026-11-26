@@ -752,7 +752,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   // E14o-16 (R11B-05): los rótulos de los refuerzos y los de las fuerzas se colocan juntos, sin solapes.
   const { shapes: reinforcements, forces }: { shapes: ReinforcementShape[]; forces: ForceShape[] } = placeReinforcementLabels(
     reinforcementShapes(shown.reinforcements, vp, unitsEff),
-    forceShapes(result?.reinforcementForces, vp, unitsEff),
+    forceShapes(result?.reinforcementForces, vp, unitsEff, shown.reinforcements),
     vp,
   );
   const seismic = shown.analysis.seismic ?? null;

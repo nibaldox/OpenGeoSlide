@@ -144,7 +144,7 @@ function drawReinforcements(ctx: CanvasRenderingContext2D, vp: Viewport, scene: 
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   // E14o-16 (R11B-05): los rótulos de los símbolos y los de las fuerzas se colocan juntos, sin solapes.
-  const placed = placeReinforcementLabels(reinforcementShapes(scene.reinforcements, vp, u), forceShapes(scene.reinforcementForces, vp, u), vp);
+  const placed = placeReinforcementLabels(reinforcementShapes(scene.reinforcements, vp, u), forceShapes(scene.reinforcementForces, vp, u, scene.reinforcements), vp);
   const shapes = placed.shapes;
   for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.halo, 3.5);
   for (const s of shapes) for (const part of s.parts) strokePart(ctx, part, palette.reinforcement, 0);
