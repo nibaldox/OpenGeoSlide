@@ -4,7 +4,8 @@
 //! interslice shear, so `ΔX = 0`, with `H`, `W*` and the loads of E12b included and without the moment equation
 //! ([`spencer::force_root_at_zero`]). Guards: E3 (`no_driving`), and E4b at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, and
 //! `Φ_i > 1e-9·F`). The report carries no `lambda`. The result is the horizontal force equilibrium of the whole
-//! mass, as Janbu's method asks.
+//! mass, as Janbu's method asks. When the closure has several admissible roots, the **lowest** one is taken, as in
+//! Spencer (E12e, E13j-4), with the note `multiple_admissible_roots` if another lies more than 1 % above it.
 //!
 //! **Corrected.** `F = f₀·F₀`, with `f₀ = 1 + b₁ (d/L − 1.4 (d/L)²)` (Janbu 1973), as cSlope does (`solvers.rs`):
 //! - `L` is the chord between the two ends of the block, `d` the greatest distance of the midpoint of a base
@@ -34,9 +35,9 @@ const B1_MIXED: f64 = 0.50;
 /// `F₀` of Janbu's simplified method, if it converges. It is the start of Spencer and Morgenstern-Price on a polyline
 /// (E13f), where Bishop is not defined.
 pub(super) fn start_fos(slices: &[Slice], opts: &SolveOptions) -> Option<f64> {
-    spencer::force_root_at_zero(slices, opts)
+    spencer::force_root_at_zero(slices, opts, false)
         .ok()
-        .map(|(f0, _)| f0)
+        .map(|(f0, _, _)| f0)
 }
 
 /// `b₁` of the block: one value for all its soil slices (E13e).
@@ -100,7 +101,7 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     let stop = |fos: f64, status: SolveStatus, iterations: usize, message: &str| {
         MethodResult::new(method, fos, status, iterations, None, Some(message))
     };
-    let (f0, iterations) = match spencer::force_root_at_zero(slices, opts) {
+    let (f0, iterations, multiple) = match spencer::force_root_at_zero(slices, opts, true) {
         Ok(found) => found,
         Err((status, message, used)) => return stop(f64::NAN, status, used, message),
     };
@@ -128,10 +129,14 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
         return stop(fos, SolveStatus::Invalid, iterations, "non_finite");
     }
     let normals = spencer_direct_normals(slices, 0.0, &e);
-    let notes = converged_notes(
+    let mut notes = Vec::with_capacity(3);
+    if multiple {
+        notes.push(spencer::MULTIPLE_ROOTS_MESSAGE);
+    }
+    notes.extend(converged_notes(
         air_gap_thrust(slices, &e),
         negative_normal_message(slices, |k, _| normals[k]),
-    );
+    ));
     let mut result = MethodResult::new(method, fos, SolveStatus::Converged, iterations, None, None)
         .with_warnings(notes);
     result.correction_factor = correction;

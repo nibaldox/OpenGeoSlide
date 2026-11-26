@@ -117,9 +117,17 @@ const UNDEFINED: &str = "undefined";
 /// Note of a converged state whose λ is negative (E11a).
 const NEGATIVE_LAMBDA_MESSAGE: &str = "negative_lambda";
 /// Note of a converged state with several admissible roots whose F differ by more than `MULTIPLE_ROOTS_FRACTION` (E12e).
-const MULTIPLE_ROOTS_MESSAGE: &str = "multiple_admissible_roots";
+pub(super) const MULTIPLE_ROOTS_MESSAGE: &str = "multiple_admissible_roots";
 /// Relative F difference above which a second admissible root is reported (1 %, E12e).
 const MULTIPLE_ROOTS_FRACTION: f64 = 0.01;
+/// Janbu's `F₀`, scan for the lowest admissible root (E13j-4): geometric grid of at most `LOWEST_SCAN_POINTS` points and
+/// ratio at least `LOWEST_SCAN_STEP`, over `[max(lo, F_near / LOWEST_SCAN_DEPTH), min(LOWEST_SCAN_UP · F_near, F_MAX)]`,
+/// with `F_near` the root found from Fellenius' start. Roots within `LOWEST_SCAN_SAME` (relative) of `F_near` are it.
+const LOWEST_SCAN_POINTS: usize = 64;
+const LOWEST_SCAN_STEP: f64 = 1.03;
+const LOWEST_SCAN_UP: f64 = 3.0;
+const LOWEST_SCAN_DEPTH: f64 = 100.0;
+const LOWEST_SCAN_SAME: f64 = 1e-6;
 /// Relative F difference within which two admissible roots tie, and the smaller `|λ|` wins (E12e).
 const TIE_FRACTION: f64 = 1e-9;
 
@@ -1006,16 +1014,55 @@ pub fn spencer_roots(slices: &[Slice], opts: &SolveOptions) -> Option<Vec<Spence
     )
 }
 
-/// Root `F₀` of the force closure at `λ = 0`, `E_n(F, 0) = 0` (Janbu's simplified method, E13e), and the number of
-/// evaluations of the closure. It is the closure of Spencer with no interslice shear: the same march, with `H`, `W*`
-/// and the loads of E12b, and no moment equation. The root is the one nearest to Fellenius' start inside the region of
-/// the admissibility at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, E4b). `Err` carries the status, the reason and the
-/// evaluations: `no_slices`, `no_driving` (E3) and `m_alpha` are `Invalid`; `max_iterations` and `no_admissible_root`
-/// are `NotConverged`.
+/// Roots of `h` in `[max(lo, near / LOWEST_SCAN_DEPTH), min(LOWEST_SCAN_UP · near, FOS_MAX)]`, ascending, from the sign
+/// changes of a geometric grid refined with Brent (E13j-4). Two roots inside one grid step are not seen.
+fn scan_roots(h: &dyn Fn(f64) -> Option<f64>, lo: f64, near: f64) -> Vec<f64> {
+    let a = lo.max(near / LOWEST_SCAN_DEPTH);
+    let b = (near * LOWEST_SCAN_UP).min(FOS_MAX);
+    let mut roots: Vec<f64> = Vec::new();
+    if !(a > 0.0 && a < b) {
+        return roots;
+    }
+    let ratio = LOWEST_SCAN_STEP.max((b / a).powf(1.0 / LOWEST_SCAN_POINTS as f64));
+    let mut prev: Option<(f64, f64)> = None;
+    let mut x = a;
+    loop {
+        let hx = h(x);
+        if let (Some((xp, hp)), Some(hv)) = (prev, hx)
+            && hp * hv <= 0.0
+            && let Some(root) = refine_root(h, (xp, hp, x, hv))
+            && roots
+                .last()
+                .is_none_or(|last| (root - last).abs() > LOWEST_SCAN_SAME * root)
+        {
+            roots.push(root);
+        }
+        prev = hx.map(|v| (x, v));
+        if x >= b {
+            break;
+        }
+        x = (x * ratio).min(b);
+    }
+    roots
+}
+
+/// Root `F₀` of the force closure at `λ = 0`, `E_n(F, 0) = 0` (Janbu's simplified method, E13e), the number of
+/// evaluations of the closure and whether another admissible root lies more than 1 % above it. It is the closure of
+/// Spencer with no interslice shear: the same march, with `H`, `W*` and the loads of E12b, and no moment equation.
+/// The closure is evaluated inside the region of the admissibility at `λ = 0` (`Φ_i/F = m_α ≥ min_m_alpha`, E4b).
+///
+/// - `lowest == false` (the start of Spencer and M-P on a polyline, E13f): the root nearest to Fellenius' start.
+/// - `lowest == true` (Janbu, E13j-4): the **lowest admissible root**, as in Spencer (E12e). The nearest root is found
+///   first; a scan of `[max(lo, F/100), 3F]` then looks for other roots, and when none is below it the nearest root is
+///   returned unchanged (same value and same count of evaluations as before E13j-4; the scan is not counted).
+///
+/// `Err` carries the status, the reason and the evaluations: `no_slices`, `no_driving` (E3) and `m_alpha` are
+/// `Invalid`; `max_iterations` and `no_admissible_root` are `NotConverged`.
 pub(super) fn force_root_at_zero(
     slices: &[Slice],
     opts: &SolveOptions,
-) -> Result<(f64, usize), (SolveStatus, &'static str, usize)> {
+    lowest: bool,
+) -> Result<(f64, usize, bool), (SolveStatus, &'static str, usize)> {
     if slices.is_empty() {
         return Err((SolveStatus::Invalid, "no_slices", 0));
     }
@@ -1038,15 +1085,35 @@ pub(super) fn force_root_at_zero(
         evaluations.set(evaluations.get() + 1);
         balance_at::<false>(&preps, 0.0, x).map(|b| b.closure / total_w)
     };
-    let root = root_near(&closure, bishop::start_fos(slices).max(1.05 * lo), lo);
+    let start = bishop::start_fos(slices).max(1.05 * lo);
+    let root = root_near(&closure, start, lo);
     let used = evaluations.get();
     if used > opts.max_iterations {
         return Err((SolveStatus::NotConverged, "max_iterations", used));
     }
-    match root {
-        Some(f0) if admissible(slices, &preps, f0, 0.0, opts.min_m_alpha) => Ok((f0, used)),
-        _ => Err((SolveStatus::NotConverged, "no_admissible_root", used)),
+    let nearest = root.filter(|&f0| admissible(slices, &preps, f0, 0.0, opts.min_m_alpha));
+    if !lowest {
+        return nearest.map(|f0| (f0, used, false)).ok_or((
+            SolveStatus::NotConverged,
+            "no_admissible_root",
+            used,
+        ));
     }
+    // E13j-4: the other roots around the nearest one; the lowest admissible one wins.
+    let mut candidates: Vec<f64> = nearest.into_iter().collect();
+    for r in scan_roots(&closure, lo, root.unwrap_or(start)) {
+        let is_nearest = nearest.is_some_and(|n| (r - n).abs() <= LOWEST_SCAN_SAME * n);
+        if !is_nearest && admissible(slices, &preps, r, 0.0, opts.min_m_alpha) {
+            candidates.push(r);
+        }
+    }
+    let Some(&f0) = candidates.iter().min_by(|a, b| a.total_cmp(b)) else {
+        return Err((SolveStatus::NotConverged, "no_admissible_root", used));
+    };
+    let multiple = candidates
+        .iter()
+        .any(|&r| r > f0 * (1.0 + MULTIPLE_ROOTS_FRACTION));
+    Ok((f0, used, multiple))
 }
 
 /// Interslice normal forces `E[0..=n]` with the interslice function `faces` (E13d: `X_k = λ f_k E_k`) at `(F, λ)`,
