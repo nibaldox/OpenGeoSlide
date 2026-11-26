@@ -129,6 +129,18 @@ describe('leyenda con polilínea', () => {
   it('el círculo sigue siendo «Superficie crítica»', () => {
     expect(legendItems(buildScene(model, circleMethod))[0]).toMatchObject({ label: 'Superficie crítica' });
   });
+  it('R10B-07: un círculo fijo se rotula «Superficie fija (círculo)», no «crítica»; el de búsqueda sigue siendo «crítica»', () => {
+    const scene = buildScene(model, circleMethod);
+    expect(legendItems(scene, { fixedCircle: true })[0]).toMatchObject({ key: 'surface', label: 'Superficie fija (círculo)', swatch: 'line-red' });
+    expect(legendItems(scene, { fixedCircle: false })[0]).toMatchObject({ label: 'Superficie crítica' });
+    // la polilínea fija conserva su rótulo aunque se pida fixedCircle
+    expect(legendItems(buildScene(model, polyMethod()), { fixedCircle: true })[0]).toMatchObject({ label: 'Superficie fija (polilínea)' });
+  });
+  it('R10B-07: sin convergencia o no válida, el rótulo no dice «crítica» ni «fija»', () => {
+    const scene = buildScene(model, circleMethod);
+    expect(legendItems(scene, { unconverged: true, fixedCircle: true })[0]).toMatchObject({ label: 'Superficie evaluada (sin convergencia)', swatch: 'line-unconverged' });
+    expect(legendItems(scene, { unconverged: true, invalid: true, fixedCircle: true })[0]).toMatchObject({ label: 'Superficie evaluada (no válida)', swatch: 'line-unconverged' });
+  });
   it('editor: polilínea fija sin resultado → elemento discontinuo aparte; con resultado, uno solo', () => {
     const none = { piezo: null };
     expect(legendItems(none, { surface: false, slices: false, fixedPolyline: true })).toEqual([
