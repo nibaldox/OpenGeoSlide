@@ -247,9 +247,52 @@ pub struct TensionElement {
     pub pullout: Option<Pullout>,
 }
 
+/// Model of the lateral pressure of the soil on a pile (E15i-1). Only Ito and Matsui (1975) exists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LateralPressureModel {
+    ItoMatsui,
+}
+
+/// Where the force of a pile with `lateral_pressure` acts (E15i-5): `Centroid`, on the axis of the pile at the arm
+/// `L_m` of the resultant of the pressure above the crossing (Cai and Ugai 2000, eq. 9; the rule of cSlope), or
+/// `SlipSurface`, at the crossing (E14e).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PileLocation {
+    Centroid,
+    SlipSurface,
+}
+
+/// `lateral_pressure` of a `pile` (v0.5, E15i-1): the force comes from the pressure of the soil between the piles
+/// (Ito and Matsui 1975) and not from a given `force`. `diameter` is finite and > 0 and `spacing > diameter`;
+/// `location` is mandatory. The pile is vertical.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LateralPressure {
+    pub model: LateralPressureModel,
+    pub diameter: f64,
+    pub location: PileLocation,
+}
+
+/// `capacity` of a `pile` with `lateral_pressure` (v0.5, E15i-1): the force of the soil is capped by the shear
+/// (`shear`, force per pile) and by the bending moment (`moment`, force times length per pile, E15i-4). At least one,
+/// each finite and > 0.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PileCapacity {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shear: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub moment: Option<f64>,
+}
+
 /// `pile` (E14b): a vertical or inclined shear element with a constant force per pile; the head is the upper end.
 /// `angle` (degrees in (−90, 90), 0 horizontal) is required with `direction: "angle"` and forbidden otherwise; the
 /// engine checks it (`reinforcement::validate`), not serde.
+///
+/// v0.5 (E15i-1): `force` is optional and **exactly one** of `force` and `lateral_pressure` is present (the engine
+/// checks it); `capacity` only goes with `lateral_pressure`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Pile {
@@ -259,14 +302,21 @@ pub struct Pile {
     pub x2: f64,
     pub y2: f64,
     pub application: Application,
-    /// Constant shear force per pile, ≥ 0.
-    pub force: f64,
+    /// Constant shear force per pile, ≥ 0. Absent with `lateral_pressure`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub force: Option<f64>,
     /// Out-of-plane centre-to-centre spacing, > 0 (1 by default).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spacing: Option<f64>,
     pub direction: PileDirection,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub angle: Option<f64>,
+    /// The force from the pressure of the soil (v0.5, E15i-1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lateral_pressure: Option<LateralPressure>,
+    /// Caps of the force of the soil (v0.5, E15i-1); only with `lateral_pressure`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capacity: Option<PileCapacity>,
 }
 
 /// `sheet_pile` (E14b): a continuous row of piles, vertical (`x1 = x2`). `force` is per metre of wall, with no

@@ -54,6 +54,27 @@ pub struct ReinforcementForce {
     pub fy: f64,
     pub application: Application,
     pub status: ForceStatus,
+    /// Force of the soil on the pile of a `pile` with `lateral_pressure`, per metre and **before** the caps
+    /// (E15i-7). Omitted in the other reinforcements, so the report keeps its identity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub soil_force: Option<f64>,
+    /// What fixes `available` in a pile with `lateral_pressure` (E15i-4, E15i-7).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub governs: Option<Governs>,
+    /// `L_m`, the arm of the resultant of the pressure above the crossing, in a pile with `lateral_pressure`
+    /// (E15i-5, E15i-7).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arm: Option<f64>,
+}
+
+/// What governs the force of a pile with `lateral_pressure` (E15i-4): the pressure of the soil, the shear capacity or
+/// the bending capacity (`moment / L_m`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Governs {
+    Soil,
+    Shear,
+    Bending,
 }
 
 /// The tension crack of a surface that was truncated (v0.5, E15b): where it is, how deep, and the force of its water.

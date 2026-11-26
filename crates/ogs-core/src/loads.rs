@@ -195,14 +195,20 @@ fn first_v04_field(model: &Model) -> Option<&'static str> {
     (!model.reinforcements.is_empty()).then_some("reinforcements")
 }
 
-/// The first field of the document that needs version `"0.5"` (E15a), named as in the JSON, or `None`: only
-/// `analysis.tension_crack` (the ponded water has no field and applies in every version, D1).
+/// The first field of the document that needs version `"0.5"` (E15a, E15i-1), named as in the JSON, or `None`:
+/// `analysis.tension_crack` (the ponded water has no field and applies in every version, D1), and in a `pile` the
+/// fields `lateral_pressure` and `capacity`.
 fn first_v05_field(model: &Model) -> Option<&'static str> {
-    model
-        .analysis
-        .tension_crack
-        .is_some()
-        .then_some("tension_crack")
+    if model.analysis.tension_crack.is_some() {
+        return Some("tension_crack");
+    }
+    model.reinforcements.iter().find_map(|r| match r {
+        crate::model::Reinforcement::Pile(p) if p.lateral_pressure.is_some() => {
+            Some("lateral_pressure")
+        }
+        crate::model::Reinforcement::Pile(p) if p.capacity.is_some() => Some("capacity"),
+        _ => None,
+    })
 }
 
 /// `analysis.tension_crack` (E15b): `depth` finite and `> 0` (or `"auto"`), `water_fill` finite and in `[0, 1]`. The
