@@ -30,7 +30,7 @@
 //!
 //! The values `f` of the faces are computed here ([`interslice_faces`]); the solver is `spencer::solve_with_faces`.
 
-use super::{MethodResult, SolveOptions, is_inert, spencer};
+use super::{MethodResult, SolveOptions, SolveStatus, is_inert, spencer};
 use crate::model::{IntersliceFunction, IntersliceSpec, MethodKind, Point};
 use crate::slicer::Slice;
 
@@ -136,8 +136,36 @@ pub fn interslice_faces(
     faces
 }
 
+/// Scale `s` of the interslice function (E13l-4): the largest `f` of `data_points`, and `1` for the four named functions
+/// (whose maximum is 1) and for a `data_points` whose maximum is 1, a non-finite one or one that is not positive.
+/// The solver works with `f/s`, so that `max f = 1` and the scan of λ does not depend on the units of `f`.
+fn function_scale(function: IntersliceFunction, points: Option<&[Point]>) -> f64 {
+    match (function, points) {
+        (IntersliceFunction::DataPoints, Some(p)) if p.len() >= 2 => {
+            let max = p.iter().fold(0.0_f64, |m, q| m.max(q[1]));
+            if max.is_finite() && max > 0.0 {
+                max
+            } else {
+                1.0
+            }
+        }
+        _ => 1.0,
+    }
+}
+
 /// Morgenstern-Price solver on the slices of a block. `spec` is `analysis.interslice`; without it the function is
 /// `half_sine` (E13d). On a polyline (`opts.circular == false`) the F scan starts from Janbu's F₀ (E13f).
+///
+/// **The named functions** (`constant`, `half_sine`, `clipped_sine`, `trapezoidal`, default) run exactly the scheme of
+/// E13d, bit for bit.
+///
+/// **`data_points` in two passes (E13l-4).** Pass 1 is the scheme of E13d, unchanged: if it converges, that is the
+/// result, bit for bit, whatever the scale of `f`. Only if it does not converge, pass 2 runs on `f/s`, with `s` the
+/// largest `f` (so that `max f = 1` and `λ_n = λ·s`), and on the grid of step `0.05/max(f̄, f_max/2)` plus the old
+/// points ([`spencer::lambda_grid`]), so that `λ·f` never jumps more than 0.1: a narrow peak (`f̄ ≈ 0.02`, `f_max = 1`)
+/// jumped to 2.5 in the first step and lost the root (R10A-08). Pass 2 reports `λ = λ_n/s`, in the scale of the user's
+/// function. If it does not converge either, the result of pass 1 is the one returned. A `λ` that does not fit in an
+/// `f64` (`s` below ≈ 1e-307, a subnormal) is `invalid (non_finite)`, never a `λ` of `None` in a `converged` result.
 pub(super) fn solve(
     slices: &[Slice],
     opts: &SolveOptions,
@@ -148,5 +176,49 @@ pub(super) fn solve(
         None => (IntersliceFunction::HalfSine, None),
     };
     let faces = interslice_faces(slices, function, points);
-    spencer::solve_with_faces(MethodKind::MorgensternPrice, slices, opts, Some(&faces))
+    let first = spencer::solve_with_faces(
+        MethodKind::MorgensternPrice,
+        slices,
+        opts,
+        Some(&faces),
+        false,
+    );
+    if first.status == SolveStatus::Converged
+        || function != IntersliceFunction::DataPoints
+        || points.is_none()
+    {
+        return first;
+    }
+    let scale = function_scale(function, points);
+    let normalized: Vec<Point> = points
+        .unwrap_or(&[])
+        .iter()
+        .map(|p| [p[0], p[1] / scale])
+        .collect();
+    let faces = interslice_faces(slices, function, Some(&normalized));
+    let mut second = spencer::solve_with_faces(
+        MethodKind::MorgensternPrice,
+        slices,
+        opts,
+        Some(&faces),
+        true,
+    );
+    if second.status != SolveStatus::Converged {
+        return first;
+    }
+    if let Some(l) = second.lambda {
+        let reported = l / scale;
+        if !reported.is_finite() {
+            return MethodResult::new(
+                MethodKind::MorgensternPrice,
+                f64::NAN,
+                SolveStatus::Invalid,
+                second.iterations,
+                None,
+                Some("non_finite"),
+            );
+        }
+        second.lambda = Some(reported);
+    }
+    second
 }

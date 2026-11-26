@@ -578,17 +578,49 @@ struct Root {
     fos: f64,
 }
 
-/// Scale of the force residuals (the `ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual, E13j-6):
-/// `max(ΣW, ΣW*)`, with `W* = W(1 + kv) + Q + V` the vertical force with the seismic and external loads of E12b.
-/// Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. With a (nearly) weightless soil, as
-/// in the Prandtl cases V018, V077 and V078 (γ = 1e-6), the soil weight alone is a scale 1e7 times smaller than the
-/// loads that drive the mass, and the closure cannot reach `1e-6·ΣW` in double precision. E3 (`no_driving`) and the
-/// air-gap threshold keep `ΣW`; the classification of the negative normal forces (E7d, `negative_normal_message`) uses
-/// this scale, so that the share `f` of V018 is not measured over a weight 1e7 times smaller than its loads.
+/// Largest ratio between the vertical force scale `max(ΣW, ΣW*)` of E13j-6 and the driving scale before E13l-3 clamps
+/// the first one (see [`force_scale`]).
+const SCALE_INFLATION_MAX: f64 = 3.0;
+
+/// Driving scale of the slices: `max(ΣW, Σ|t_i|, Σ|H_i|)`, with `t = W*·sin α + H·cos α` (the driving force of the
+/// force equilibrium, E12b) and `H = kh·W + H^P` the horizontal force. The soil weight, the sum of the driving forces
+/// and the sum of the horizontal loads are the sizes that the equilibrium equations can balance; a vertical load on a
+/// flat base (`α = 0`) is none of them, because it drives nothing.
+pub(crate) fn driving_scale(slices: &[Slice]) -> f64 {
+    let soil: f64 = slices.iter().map(|s| s.weight).sum();
+    let driving: f64 = slices
+        .iter()
+        .map(|s| (s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos()).abs())
+        .sum();
+    let horizontal: f64 = slices.iter().map(|s| s.h_force.abs()).sum();
+    soil.max(driving).max(horizontal)
+}
+
+/// Scale of the force residuals (the `ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual, E13j-6, E13l-3):
+/// the vertical force scale `max(ΣW, ΣW*)`, with `W* = W(1 + kv) + Q + V` (E12b), **limited to the driving scale**:
+///
+/// `scale = max(D, min(max(ΣW, ΣW*), 3·D))`, `D = max(ΣW, Σ|t|, Σ|H|)` ([`driving_scale`]).
+///
+/// - Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. A load that drives the mass keeps
+///   `max(ΣW, ΣW*)` while it is at most 3 times `D`, and so every model of the repository (the largest ratio measured is
+///   1.89, in the Prandtl cases V018, V077 and V078) keeps its scale, bit for bit (E13j-6: with a weightless soil `ΣW`
+///   alone is 1e7 times below the loads, and the closure cannot reach `1e-6·ΣW` in double precision).
+/// - A vertical load on a flat base (`α = 0`) adds to `ΣW*` but drives nothing (`t = 0`, and `φ = 0` removes it from
+///   the resistance): with `q = 1e9` over a flat stretch `ΣW*` was 1e8 times `D`, `|ρ|` and `|E_n|/ΣW*` fell below
+///   their tolerances at states without equilibrium, and the result was `converged` with a wrong FS (R10A-03). Here the
+///   scale does not exceed `3·D`, whatever the load.
+/// - A horizontal load on a nearly weightless soil adds to `D` through `Σ|H|`, which `ΣW*` does not have: the scale is
+///   `D` and not `ΣW` (R10A-03, second part).
+///
+/// E3 (`no_driving`) and the air-gap threshold keep `ΣW`; the classification of the negative normal forces (E7d,
+/// `negative_normal_message`) uses this scale, so that the share `f` is not measured over a weight 1e7 times smaller
+/// than the loads (V018), nor over a load that drives nothing (R10A-07, V068 with a load on the flat toe).
 pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
     let soil: f64 = slices.iter().map(|s| s.weight).sum();
     let with_loads: f64 = slices.iter().map(|s| s.total_weight()).sum();
-    soil.max(with_loads)
+    let vertical = soil.max(with_loads);
+    let driving = driving_scale(slices);
+    driving.max(vertical.min(SCALE_INFLATION_MAX * driving))
 }
 
 /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
@@ -602,8 +634,13 @@ struct Scheme {
     total_width: f64,
     /// `2·Σ h_moment_base`: twice the moment of the horizontal forces about the base midpoints (E12b).
     moment_h: f64,
-    /// Mean of the interslice function on the interior faces (E13d); the scan covers `λ·f̄ ∈ [−0.5; 1.5]`. `1` in Spencer.
+    /// Mean of the interslice function on the interior faces (E13d). `1` in Spencer.
     fbar: f64,
+    /// Largest value of the interslice function on the interior faces (E13l-4). `1` in Spencer.
+    fmax: f64,
+    /// `true` for `data_points` (E13l-4): the step of the λ scan is `0.05 / max(f̄, f_max/2)` (see [`lambda_grid`]). The
+    /// named functions keep the grid `0.05 / f̄`, bit for bit.
+    fine: bool,
     /// `true` with an interslice function (Morgenstern-Price): the loops carry `f` (see [`balance_at`]).
     general: bool,
     budget: usize,
@@ -787,14 +824,47 @@ fn bracket(
     Ok(())
 }
 
+/// Points of the λ scan on each side of 0 (E11a, E13d, E13l-4): `(positive, negative)`, from the nearest to 0 outward.
+///
+/// The grid of Spencer and of the named functions is `λ = k·0.05/f̄` (`k = 1…30` and `−1…−10`), which covers
+/// `λ·f̄ ∈ [−0.5; 1.5]`; with `f̄ = 1` it is Spencer's `0.05·k`, bit for bit. Its step moves `λ·f` by `0.05·f/f̄` between
+/// two points, which is more than 0.1 in the most loaded face when `f_max > 2·f̄` (a narrow peak: with `f̄ ≈ 0.02` and
+/// `f_max = 1` the first step jumped to 2.5 and the root was lost, R10A-08).
+///
+/// With `fine` (E13l-4, `data_points`) the step is `0.05/max(f̄, f_max/2)` over the same 30 and 10 points, so `λ·f_max`
+/// moves at most 0.1 (`λ·f_max/2 ∈ [−0.5; 1.5]`), **and the points of the old grid are added**: a root can need `λ·f_max`
+/// of 3 or more, and a root can sit just before the edge of the region where ρ is defined (a pole), where only the old
+/// point fell inside (V102a, `[0.8, 0.9, 1.0]`-like peaks lost by a grid that dropped them). The union keeps every
+/// bracket of the old scan. Without `fine`, or with `f̄ ≥ f_max/2`, the grid is the old one.
+fn lambda_grid(fbar: f64, fmax: f64, fine: bool) -> (Vec<f64>, Vec<f64>) {
+    let denominator = if fine { fbar.max(0.5 * fmax) } else { fbar };
+    let side = |sign: i32, steps: i32| -> Vec<f64> {
+        let on = |d: f64| (1..=steps).map(move |k| ((sign * k) as f64 * SCAN_STEP) / d);
+        if denominator == fbar {
+            return on(fbar).collect();
+        }
+        let mut grid: Vec<f64> = on(denominator).chain(on(fbar)).collect();
+        grid.sort_by(|a, b| a.abs().total_cmp(&b.abs()));
+        // Points that coincide up to rounding (the old step is a multiple of the fine one) are kept once.
+        grid.dedup_by(|b, a| (b.abs() - a.abs()).abs() <= 1e-9 * a.abs());
+        grid
+    };
+    (side(1, SCAN_POS_STEPS), side(-1, SCAN_NEG_STEPS))
+}
+
 /// Scans the whole range λ ∈ [−0.5; 1.5] (E12e), outward and symmetrically from 0 by levels `|λ| = 0.05·k` (both signs
 /// in each level, each side warm-started from its previous level), and refines every sign change of ρ between adjacent
 /// defined points with Brent. It returns every root; the choice among them is [`select_root`]. There is no early stop:
 /// the root of smallest F can be at any λ.
 fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
-    // E13d: the scan covers `λ·f̄ ∈ [−0.5; 1.5]` with step `0.05/f̄`. With `f̄ = 1` this is the grid of Spencer, bit for bit.
-    let fbar = scheme.fbar;
-    let at = |k: i32| (k as f64 * SCAN_STEP) / fbar;
+    let (grid_pos, grid_neg) = lambda_grid(scheme.fbar, scheme.fmax, scheme.fine);
+    let at = |k: i32| {
+        if k > 0 {
+            grid_pos[k as usize - 1]
+        } else {
+            grid_neg[(-k) as usize - 1]
+        }
+    };
     let zero = eval(scheme, 0.0, scheme.start, scheme.start)?;
     let mut roots = Vec::new();
     point_root(&mut roots, 0.0, zero, tol_r);
@@ -808,10 +878,12 @@ fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
             (Some((_, p)), Some(b)) => 2.0 * p.fos - b,
             _ => warm,
         };
-    for k in 1..=SCAN_POS_STEPS.max(SCAN_NEG_STEPS) {
+    let steps_pos = grid_pos.len() as i32;
+    let steps_neg = grid_neg.len() as i32;
+    for k in 1..=steps_pos.max(steps_neg) {
         let mut cur_pos = None;
         let mut cur_neg = None;
-        if k <= SCAN_POS_STEPS {
+        if k <= steps_pos {
             let guess = extrapolate(prev_pos, before_pos, warm_pos);
             cur_pos = eval(scheme, at(k), warm_pos, guess)?;
             if let Some(q) = cur_pos {
@@ -819,7 +891,7 @@ fn scan(scheme: &mut Scheme, tol_r: f64) -> Result<Scan, &'static str> {
             }
             point_root(&mut roots, at(k), cur_pos, tol_r);
         }
-        if k <= SCAN_NEG_STEPS {
+        if k <= steps_neg {
             let guess = extrapolate(prev_neg, before_neg, warm_neg);
             cur_neg = eval(scheme, at(-k), warm_neg, guess)?;
             if let Some(q) = cur_neg {
@@ -892,6 +964,8 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar: 1.0,
+        fmax: 1.0,
+        fine: false,
         general: false,
         budget: usize::MAX,
         evaluations: 0,
@@ -931,6 +1005,13 @@ fn mean_interior(faces: &[f64]) -> f64 {
     interior.iter().sum::<f64>() / interior.len() as f64
 }
 
+/// Largest value of the interslice function over the interior faces of the block (E13l-4), like [`mean_interior`].
+fn max_interior(faces: &[f64]) -> f64 {
+    let n = faces.len().saturating_sub(1);
+    let interior = if n >= 2 { &faces[1..n] } else { faces };
+    interior.iter().copied().fold(0.0, f64::max)
+}
+
 /// Starting factor of safety of the λ scan (E13f). On a circle it is Bishop's FS, or 1 if Bishop is invalid. On a
 /// polyline Bishop is not defined (F3.6), and the start is Janbu's simplified F₀, or 1 if that does not converge.
 fn start_value(slices: &[Slice], opts: &SolveOptions) -> f64 {
@@ -952,6 +1033,7 @@ fn setup(
     slices: &[Slice],
     opts: &SolveOptions,
     faces: Option<&[f64]>,
+    fine: bool,
 ) -> Result<(Scheme, f64), MethodResult> {
     let early =
         |message: &str| outcome(kind, f64::NAN, SolveStatus::Invalid, 0, None, Some(message));
@@ -978,6 +1060,8 @@ fn setup(
         total_width: slices.iter().map(|s| s.width).sum(),
         moment_h: 2.0 * slices.iter().map(|s| s.h_moment_base).sum::<f64>(),
         fbar,
+        fmax: faces.map_or(1.0, max_interior),
+        fine,
         general: faces.is_some(),
         budget: opts.max_iterations,
         evaluations: 0,
@@ -1000,7 +1084,7 @@ pub struct SpencerRoot {
 /// scan (no slices, no driving moment, `m_alpha`) or the evaluation budget runs out. It is the list from which
 /// [`solve`] picks the admissible root of smallest F (E12e), so a test can check that choice.
 pub fn spencer_roots(slices: &[Slice], opts: &SolveOptions) -> Option<Vec<SpencerRoot>> {
-    let (mut scheme, tol_r) = setup(MethodKind::Spencer, slices, opts, None).ok()?;
+    let (mut scheme, tol_r) = setup(MethodKind::Spencer, slices, opts, None, false).ok()?;
     let found = scan(&mut scheme, tol_r).ok()?;
     Some(
         found
@@ -1173,7 +1257,7 @@ pub fn direct_normals_with(slices: &[Slice], faces: &[f64], lambda: f64, e: &[f6
 /// 4. At λ*, the closure `|E_n| ≤ 1e-6·ΣW` is checked, and the normal forces (E7d) and the notes (E7a, E7d) are
 ///    attached to the `Converged` result.
 pub(super) fn solve(slices: &[Slice], opts: &SolveOptions) -> MethodResult {
-    solve_with_faces(MethodKind::Spencer, slices, opts, None)
+    solve_with_faces(MethodKind::Spencer, slices, opts, None, false)
 }
 
 /// The solver of [`solve`] for any interslice function (E13d): `kind` is the method that the result reports, and
@@ -1184,8 +1268,9 @@ pub(super) fn solve_with_faces(
     slices: &[Slice],
     opts: &SolveOptions,
     faces: Option<&[f64]>,
+    fine: bool,
 ) -> MethodResult {
-    let (mut scheme, tol_r) = match setup(kind, slices, opts, faces) {
+    let (mut scheme, tol_r) = match setup(kind, slices, opts, faces, fine) {
         Ok(setup) => setup,
         Err(result) => return result,
     };
@@ -1279,6 +1364,75 @@ pub(super) fn solve_with_faces(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// E13l-4: the λ grid of Spencer and of the named functions is the old one, bit for bit; the grid of a narrow
+    /// `data_points` has the step `0.05/max(f̄, f_max/2)` (`λ·f_max` never moves more than 0.1 in the fine range) and
+    /// contains every point of the old grid.
+    #[test]
+    fn e13l4_lambda_grid() {
+        use crate::methods::morgenstern_price::interslice_faces;
+        use crate::model::IntersliceFunction as F;
+        let old = |fbar: f64| -> (Vec<f64>, Vec<f64>) {
+            (
+                (1..=30).map(|k| (k as f64 * 0.05) / fbar).collect(),
+                (1..=10).map(|k| (-k as f64 * 0.05) / fbar).collect(),
+            )
+        };
+        // Spencer, with and without the fine grid (f̄ = f_max = 1).
+        assert_eq!(lambda_grid(1.0, 1.0, false), old(1.0));
+        assert_eq!(lambda_grid(1.0, 1.0, true), old(1.0));
+        // The named functions never use the fine grid, whatever their f̄: with aerial faces (f = 0) it can be below f_max/2.
+        let slices: Vec<Slice> = (0..50)
+            .map(|k| Slice {
+                x_left: k as f64,
+                x_right: k as f64 + 1.0,
+                width: 1.0,
+                weight: 1.0,
+                cohesion: 1.0,
+                ..crate::slicer::ZERO_SLICE
+            })
+            .collect();
+        for function in [F::Constant, F::HalfSine, F::ClippedSine, F::Trapezoidal] {
+            let faces = interslice_faces(&slices, function, None);
+            let (fbar, fmax) = (mean_interior(&faces), max_interior(&faces));
+            assert_eq!(lambda_grid(fbar, fmax, false), old(fbar), "{function:?}");
+            // And even with the fine grid, `f̄ ≥ f_max/2` gives the old one.
+            assert_eq!(lambda_grid(fbar, fmax, true), old(fbar), "{function:?}");
+        }
+        // A narrow peak: f̄ = 1/49, f_max = 1. Fine step 0.1 up to |λ| = 3 (30 steps), and 1 (10 steps).
+        let (fbar, fmax) = (1.0 / 49.0, 1.0);
+        let (pos, neg) = lambda_grid(fbar, fmax, true);
+        let (old_pos, old_neg) = old(fbar);
+        for (side, old_side, fine_end) in [(&pos, &old_pos, 3.0), (&neg, &old_neg, 1.0)] {
+            let mags: Vec<f64> = side.iter().map(|l| l.abs()).collect();
+            assert!(mags.windows(2).all(|w| w[1] > w[0]), "increasing");
+            // Every point of the old grid is there, and every fine point too.
+            for o in old_side {
+                assert!(
+                    side.iter().any(|l| (l - o).abs() <= 1e-9 * o.abs()),
+                    "old point {o}"
+                );
+            }
+            let fine_count = if fine_end == 3.0 { 30 } else { 10 };
+            for k in 1..=fine_count {
+                let f = (k as f64 * 0.1) * side[0].signum();
+                assert!(side.iter().any(|l| (l - f).abs() <= 1e-9), "fine point {f}");
+            }
+            // Within the fine range no gap is wider than 0.1 (in λ·f_max).
+            let inside: Vec<f64> = std::iter::once(0.0)
+                .chain(mags.iter().copied().take_while(|&m| m <= fine_end + 1e-12))
+                .collect();
+            assert!(
+                inside
+                    .windows(2)
+                    .all(|w| (w[1] - w[0]) * fmax <= 0.1 + 1e-9),
+                "{inside:?}"
+            );
+            // The old range is covered.
+            assert!((mags.last().unwrap() - old_side.last().unwrap().abs()).abs() < 1e-9);
+        }
+        assert!(pos[0] > 0.0 && neg[0] < 0.0);
+    }
 
     /// R5-11: `newton_near` applies the guards of `(0, FOS_MAX]` and of the `ROOT_STEP0` neighbourhood to the guess too.
     /// Before, a guess that already satisfied `|h| ≤ ROOT_STOP` at iteration 0 was returned unchecked.
