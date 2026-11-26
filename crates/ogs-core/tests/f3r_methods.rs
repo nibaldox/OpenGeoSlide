@@ -584,6 +584,25 @@ fn global_equilibrium_with_passive_forces_divided_by_f() {
                     .map(|fo| -fo.py * if fo.passive { 1.0 / f } else { 1.0 })
                     .sum();
                 assert!((at.weight_extra - expect_v).abs() <= 1e-12 * (1.0 + expect_v.abs()));
+                // The four fields of the slice at F: the active ones plus the passive ones divided by F (F4.7).
+                let ybm = 0.5 * (s.y_base_left + s.y_base_right);
+                let (mut h, mut hm, mut de) = (0.0, 0.0, 0.0);
+                for fo in forces.iter().filter(|fo| receiver(&slices, fo.x) == k) {
+                    let k = if fo.passive { 1.0 / f } else { 1.0 };
+                    h += S * fo.px * k;
+                    hm += S * fo.px * (fo.y - ybm) * k;
+                    de += S * fo.px * (ARC.yc - fo.y) / ARC.r * k;
+                }
+                let tol = |v: f64| 1e-12 * (1.0 + v.abs());
+                assert!((at.h_force - h).abs() <= tol(h), "{label}: H of slice {k}");
+                assert!(
+                    (at.h_moment_base - hm).abs() <= tol(hm),
+                    "{label}: moment of slice {k}"
+                );
+                assert!(
+                    (at.driving_extra - de).abs() <= tol(de),
+                    "{label}: M of slice {k}"
+                );
             }
         }
     }

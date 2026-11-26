@@ -1581,6 +1581,61 @@ mod tests {
         assert!(pos[0] > 0.0 && neg[0] < 0.0);
     }
 
+    /// E14g: the derivative of the closure with passive forces (`dq/dF = t + rp/F²`) is the derivative of its value:
+    /// `closure_slope::<G, true>` against a central difference of `balance_at::<G, true>`, with and without an interslice
+    /// function. It only drives the Newton fast path, whose result the closure check confirms, so a wrong derivative
+    /// would not change an FS (it would cost the fast path); this test is what keeps it exact.
+    #[test]
+    fn e14g_the_passive_closure_slope_is_the_derivative_of_the_closure() {
+        let slice = |k: usize| {
+            let alpha = -0.4 + 0.05 * k as f64;
+            Slice {
+                x_left: k as f64,
+                x_right: k as f64 + 1.0,
+                width: 1.0,
+                alpha,
+                base_length: 1.0 / alpha.cos(),
+                weight: 100.0 + 3.0 * k as f64,
+                cohesion: 4.0,
+                tan_phi: 0.4,
+                pore_pressure: 5.0,
+                h_force: 2.0,
+                passive_v: if k % 3 == 0 { -30.0 } else { 0.0 },
+                passive_h: if k % 4 == 0 { -45.0 } else { 0.0 },
+                ..crate::slicer::ZERO_SLICE
+            }
+        };
+        let slices: Vec<Slice> = (0..16).map(slice).collect();
+        let faces: Vec<f64> = (0..=16)
+            .map(|k| (std::f64::consts::PI * k as f64 / 16.0).sin())
+            .collect();
+        let (lambda, fos, step) = (0.3, 1.4, 1e-6);
+        let check = |slope: (f64, f64), plus: f64, minus: f64| {
+            let numeric = (plus - minus) / (2.0 * step);
+            assert!(
+                (slope.1 - numeric).abs() <= 1e-6 * (1.0 + numeric.abs()),
+                "{} against {numeric}",
+                slope.1
+            );
+        };
+        let preps = prepare(&slices, None);
+        let at = |f: f64| {
+            balance_at::<false, true>(&preps, lambda, f)
+                .unwrap()
+                .closure
+        };
+        check(
+            closure_slope::<false, true>(&preps, lambda, fos).unwrap(),
+            at(fos + step),
+            at(fos - step),
+        );
+        let preps = prepare(&slices, Some(&faces));
+        let at = |f: f64| balance_at::<true, true>(&preps, lambda, f).unwrap().closure;
+        let slope = closure_slope::<true, true>(&preps, lambda, fos).unwrap();
+        assert!((slope.0 - at(fos)).abs() <= 1e-9 * (1.0 + slope.0.abs()));
+        check(slope, at(fos + step), at(fos - step));
+    }
+
     /// R5-11: `newton_near` applies the guards of `(0, FOS_MAX]` and of the `ROOT_STEP0` neighbourhood to the guess too.
     /// Before, a guess that already satisfied `|h| ≤ ROOT_STOP` at iteration 0 was returned unchecked.
     #[test]
