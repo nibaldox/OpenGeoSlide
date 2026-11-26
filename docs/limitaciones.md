@@ -166,10 +166,11 @@ La revisión adversarial R10 (Antigravity, dos lentes: [`R10_agy_A.md`](reviews/
 |---|---|---|
 | E13l-1 | `f₀` de Janbu nunca baja de 1, con la nota `janbu_correction_extrapolated` más allá de `d/L = 0,4`; ningún método da `converged` con FS ≤ 0 (`not_converged`, `non_positive_fos`) | R10A-01, R10B-01 |
 | E13l-2 | En polilíneas, la comprobación `no_driving` (E3) evalúa `Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento, la misma `t` del equilibrio de fuerzas. Antes, una polilínea sobre terreno horizontal con `kh` o con una carga horizontal era `invalid` (`no_driving`) aunque cSlope converge. Los círculos no cambian | R10A-02 |
-| E13l-4 | En M-P el paso del barrido de λ es `0,05 / máx(f̄, f_máx/2)`, así que `λ·f` no salta más de 0,1 por paso; f se normaliza internamente por `f_máx` y λ se informa en la escala del usuario. Las cinco funciones estándar dan el mismo resultado de antes. Un `data_points` de pico angosto (D10: `[0,0],[0.88,0],[0.90,1],[0.92,0],[1,0]`) o de escala muy pequeña ya no cae en `no_lambda_root` | R10A-08 |
+| E13l-3 | La escala de los residuos de fuerza y de momento, y la clasificación E7d de la N′ negativa, usan una **escala motriz** que no se infla con cargas verticales inertes: `máx(D, mín(máx(ΣW, ΣW*), 3·D))`, con `D = máx(ΣW, Σ|t_i|, Σ|H_i|)`. Una sobrecarga vertical enorme sobre un tramo horizontal no drenado ya no oculta un desequilibrio (1,68263 con cualquier carga, antes 1,546 `converged` con 1e9 kPa); V068 con carga en el pie conserva `negative_effective_normal_major`; un suelo sin peso con carga horizontal pura converge como cSlope. Ninguno de los modelos del repositorio cambia (3350 corridas) | R10A-03, R10A-07 |
+| E13l-4 | En M-P con `data_points`, si el barrido de λ de siempre no converge, se repite con f normalizada por `f_máx` y con paso `0,05 / máx(f̄, f_máx/2)`; λ se informa en la escala del usuario. Las cinco funciones con nombre no cambian. Un `data_points` de pico angosto (D10 con el pico en `[0,8; 0,9; 1,0]`) converge como cSlope (1,047929 frente a 1,047543) | R10A-08 |
 | E13l-5 | Si el punto medio de la base está a menos de `tol` de un **contacto entre dos materiales**, se toma el **más débil**, por `c + máx(0, σ′)·tan φ` (o Su) con `σ′ = W·cos²α/b − u`. Antes se tomaba siempre el de arriba: una polilínea sobre el techo de un estrato débil daba 3,630 frente a 3,018 de cSlope (+20,3 %, no conservador) | R10A-04 |
 | E13l-6 | La prolongación y el recorte de los extremos de la polilínea usan la **distancia 2D** (un tramo casi vertical ya no se corta ni se deja bajo el terreno); los **vértices de la polilínea** tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol`, así que la base de cada dovela sigue siendo recta; la cara vertical sobre un contacto vertical toma la resistencia del lado más débil | R10A-05, R10A-09 |
-| E13l-7 | Con `truncated_driving_mass`, `report.surface` de una polilínea se recorta al **rango analizado**, como el trazo de los círculos; la web dibuja y exporta ese rango | R10B-05 |
+| E13l-7 | Con la masa truncada (`truncated_driving_mass` o `truncated_mass`), `report.surface` de una polilínea se recorta al **rango analizado**, como el trazo de los círculos; la web dibuja y exporta ese rango | R10B-05 |
 | E13l-8 | El esquema `ogs-0.3.schema.json` exige `analysis.methods` en una polilínea fija (el valor por defecto `["bishop"]` la rechaza); `validateLocal` aplica ese valor por defecto | R10A-10, R10B-04 |
 
 Los modelos D18 a D23 de la batería diferencial cubren lo que R10 señaló sin cobertura: Su con gradiente negativo y
@@ -179,17 +180,10 @@ polilínea en terreno horizontal con `kh` o con carga horizontal (D22 y D23, E13
 
 ### Lo que sigue abierto
 
-- **Escala de los residuos con cargas verticales grandes (R10A-03 y R10A-07).** La escala `máx(ΣW, ΣW*)` de E13j-6
-  puede ocultar un desequilibrio real cuando una sobrecarga vertical enorme actúa sobre un tramo que no aporta al
-  equilibrio (suelo no drenado con un tramo de base horizontal): con `Su = 20 kPa`, `γ = 18 kN/m³` y una carga de 1e9 kPa
-  sobre un tramo plano, Spencer da `converged` con 1,252 en vez de 1,601, con un residuo de momento de 4,25 % de `ΣW·Σb`. Con suelo casi sin
-  peso (`γ = 1e-6`) y una carga lineal puramente horizontal, `ΣW` es mucho menor que las fuerzas y Spencer puede no
-  converger donde cSlope sí lo hace (5,562). La misma escala puede degradar `negative_effective_normal_major` a nota en
-  V068 si hay una carga en el pie (f de 0,190 del peso del suelo, pero 0,035 de `ΣW*`). La corrección prevista (E13l-3)
-  es una **escala motriz**, `máx(ΣW, Σ|t_i|, Σ|H_i|)`, y solo se adopta si cumple los cuatro criterios del contrato (V018,
-  V077 y V078 siguen convergiendo; todos los demás modelos quedan idénticos; el contraejemplo de la sobrecarga inerte no
-  converge falsamente; V068 conserva el aviso). Mientras no se implemente, la limitación vale: no use cargas
-  verticales enormes sobre tramos horizontales no drenados sin comparar con Janbu.
+- **Picos muy angostos de `data_points` (R10A-08).** Con un pico de ancho 0,04 (D10, `[0,88; 0,9; 0,92]`) la raíz de
+  momentos existe pero queda `not_converged` (`no_lambda_root`): la guarda `m_α` (E11b) la declara no admisible y no se
+  relaja (cSlope da 1,047735). Una f de 1e-310 da `invalid` (`non_finite`), porque λ no cabe en un número de doble
+  precisión. Use funciones más anchas o de escala normal.
 - **Criterio de cortante entre dovelas:** `r_v ≤ 3` no garantiza una solución física
   ([arriba](#límite-del-aviso-interslice_shear_exceeds_strength-r10a-06)).
 - **Raíz de Janbu en `F₀ = 0` (R10A-11, 3):** la búsqueda de la raíz de E13j-4 (`force_root_at_zero`) explora el

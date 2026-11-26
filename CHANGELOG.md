@@ -8,6 +8,8 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 Fase 3a: formato v0.3, material no drenado, superficies polilínea fijas, Morgenstern-Price y Janbu. El contrato es
 `briefs/02_CONTRATOS_FASE3.md` (enmiendas E13a a E13l). Un modelo sin campos nuevos da el mismo resultado, bit a bit,
 que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y superficie).
@@ -100,16 +102,19 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
   - **E13l-2, fuerza motriz en polilíneas.** E3 (`no_driving`) evalúa `Σ(W*·sen α + H·cos α)` en el sentido del
     deslizamiento. Antes, una polilínea sobre terreno horizontal con `kh = 0,3` o con una carga horizontal era
     `invalid` aunque cSlope converge (R10A-02). Los círculos no cambian.
-  - **E13l-4, paso de λ en M-P.** El paso es `0,05 / máx(f̄, f_máx/2)`, con f normalizada internamente por `f_máx`; las
-    cinco funciones estándar dan el mismo resultado de antes. Un `data_points` de pico angosto o de escala muy pequeña
-    deja de caer en `no_lambda_root` (R10A-08).
+  - **E13l-3, escala motriz de los residuos.** `máx(D, mín(máx(ΣW, ΣW*), 3·D))`, con `D = máx(ΣW, Σ|t_i|, Σ|H_i|)`:
+    una sobrecarga vertical enorme sobre un tramo horizontal ya no oculta un desequilibrio (R10A-03) ni degrada a nota
+    una tracción real (R10A-07). Ninguno de los modelos del repositorio cambia.
+  - **E13l-4, paso de λ en M-P con `data_points`.** Si el barrido de siempre no converge, se repite con f normalizada
+    por `f_máx` y paso `0,05 / máx(f̄, f_máx/2)`. Las cinco funciones con nombre dan el mismo resultado de antes; un
+    pico angosto converge como cSlope (R10A-08).
   - **E13l-5, base sobre un contacto de materiales.** Si el punto medio de la base está a menos de `tol` de un contacto
     se toma el material más débil, por `c + máx(0, σ′)·tan φ` (o Su). Antes se tomaba el de arriba: +20,3 % no
     conservador frente a cSlope en una polilínea sobre el techo de un estrato débil (R10A-04).
   - **E13l-6, robustez de la polilínea.** Distancia 2D en la prolongación y el recorte de los extremos (R10A-05), los
     vértices de la polilínea tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol` (R10A-09), y
     la cara vertical sobre un contacto vertical toma la resistencia del lado más débil.
-  - **E13l-7, superficie informada.** Con `truncated_driving_mass`, `report.surface` de una polilínea se recorta al
+  - **E13l-7, superficie informada.** Con la masa truncada (`truncated_driving_mass` o `truncated_mass`), `report.surface` de una polilínea se recorta al
     rango analizado, como el trazo de los círculos (R10B-05). La web dibuja y exporta ese rango.
   - **E13l-8, esquema.** `ogs-0.3.schema.json` exige `analysis.methods` en una polilínea fija, porque el valor por
     defecto `["bishop"]` la rechaza (R10A-10, R10B-04). `validateLocal` aplica ese valor por defecto.
@@ -133,9 +138,8 @@ que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y s
 - El espejo solo da el mismo FS con funciones simétricas entre dovelas, porque ξ crece con la x del modelo.
 - **`r_v ≤ 3` no garantiza una solución física (R10A-06).** Un caso bicapa con Spencer en 2,9 veces Janbu (12,665 frente a
   4,356) no recibe el aviso de E13k, y cSlope no converge en él. Compare Spencer y M-P con Janbu sobre la misma polilínea.
-- **Escala de los residuos con cargas verticales grandes (R10A-03, R10A-07).** `máx(ΣW, ΣW*)` puede ocultar un
-  desequilibrio de momento cuando una sobrecarga enorme actúa sobre un tramo horizontal no drenado. La escala motriz de
-  E13l-3 se adopta solo si cumple sus cuatro criterios (`docs/limitaciones.md`).
+- **Picos muy angostos de `data_points`:** un pico de ancho 0,04 queda `not_converged` porque la guarda `m_α` rechaza
+  la raíz; una f de 1e-310 da `invalid` (`non_finite`).
 - **`force_root_at_zero` de Janbu (R10A-11, 3):** la búsqueda de la raíz cercana a cero no cuenta en `max_iterations`.
 - **`unit_weight_sat` sin cobertura frente a otro programa.**
 
@@ -230,6 +234,7 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0
 [hito-fase0]: https://github.com/nibaldox/OpenGeoSlide/tree/hito-fase0

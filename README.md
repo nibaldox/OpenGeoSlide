@@ -28,9 +28,9 @@ analiza la polilínea que usted fija, y entrega el FS, las dovelas, los avisos d
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión publicada es la **0.1.0**: el motor (Bishop y Spencer, con sismo pseudoestático y cargas), la CLI, el editor
-web (PWA), el paquete de Python y las pruebas de aceptación. El repositorio ya incluye la **Fase 3a** (formato v0.3:
-material no drenado, superficie polilínea, Morgenstern-Price y Janbu), que se publicará en la v0.2.0.
+La versión publicada es la **0.2.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
+con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.3, la CLI, el editor
+web (PWA), el paquete de Python y las pruebas de aceptación.
 
 ## Por qué es distinto
 
@@ -65,12 +65,12 @@ oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desar
 ### Python
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
-[Release v0.1.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0). El wheel es `abi3` y sirve para
+[Release v0.2.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.2.0). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.1.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.1.0/$WHL"
+WHL=opengeoslide-0.2.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.2.0/$WHL"
 ```
 
 Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
@@ -79,7 +79,7 @@ su plataforma, que figura en la página del release. También sirve descargarlo 
 ```python
 # desde la raíz del repositorio, donde está examples/
 import json, opengeoslide
-print(opengeoslide.version())                    # 0.1.0, la versión de ogs-core
+print(opengeoslide.version())                    # 0.2.0, la versión de ogs-core
 report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
 for r in report["results"]:
     print(r["method"], round(r["fos"], 4), r["status"])

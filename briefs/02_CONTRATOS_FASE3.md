@@ -398,18 +398,29 @@ efecto medido sobre **todos** los modelos.
 - **E13l-2, fuerza motriz en superficies no circulares (R10A-02).** En polilíneas, E3 evalúa
   `Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento, que es la misma `t` del equilibrio de fuerzas. Los círculos
   no cambian.
-- **E13l-3, escala de los residuos (R10A-03 y R10A-07).** Se reemplaza ΣW* de E13j-6 por una **escala motriz** que no
-  se infle con cargas verticales inertes. La candidata es `max(ΣW, Σ|t_i|, Σ|H_i|)`.
-  - **Criterios de aceptación:**
-    - V018, V077 y V078 siguen convergiendo con sus FS;
-    - todos los demás modelos quedan idénticos byte a byte;
-    - el contraejemplo de la sobrecarga inerte de R10A-03 no converge falsamente;
-    - V068 con carga en el pie (R10A-07) conserva `negative_effective_normal_major`.
-  - Si ninguna escala cumple los cuatro criterios, se mide y se reporta sin implementar.
-- **E13l-4, paso de λ en M-P (R10A-08).** El paso es `0,05 / max(f̄, f_max/2)`, de modo que λ·f nunca salta más de
-  0,1.
-  - f se normaliza internamente por f_max, y λ se informa en la escala del usuario.
-  - Las cinco funciones estándar quedan idénticas byte a byte.
+- **E13l-3, escala de los residuos (R10A-03 y R10A-07), forma final medida por M1b.**
+  - La escala motriz es `D = max(ΣW, Σ|t_i|, Σ|H_i|)`, con t_i = W*·sen α + H·cos α.
+  - La escala usada es `max(D, min(max(ΣW, ΣW*), 3·D))`: se conserva la de E13j-6 mientras no supere 3·D.
+  - **Medido:** la ventana admisible del factor es (1,9; 3,8). Prandtl (V018, V077 y V078) exige más de 1,9, y V068 con
+    q = 5000 en el pie exige menos de 3,8 para conservar el aviso mayor.
+  - La candidata pura D cambiaba el FS de Prandtl en el décimo dígito y no cumplía el criterio de identidad.
+  - **Criterios cumplidos:**
+    - Prandtl idéntico byte a byte;
+    - 0 cambios en 3350 corridas;
+    - la sobrecarga inerte de R10A-03 da FS 1,68263 con cualquier q hasta 1e11, frente a 1,546 con la escala vieja;
+    - V068 con carga en el pie conserva `negative_effective_normal_major`;
+    - un suelo sin peso con carga horizontal pura converge como cSlope.
+  - Rige para el cierre, el residuo de momento, la raíz de F₀ y la clasificación E7d.
+- **E13l-4, paso de λ en M-P (R10A-08), forma final.** Solo afecta a `data_points`.
+  - **Primera pasada:** el esquema de siempre, que da un resultado byte a byte idéntico al anterior.
+  - **Segunda pasada:** solo si la primera no converge. f se normaliza por f_max, el paso es `0,05 / max(f̄, f_max/2)`
+    sobre la rejilla vieja, y λ se informa en la escala del usuario.
+  - Las cinco funciones con nombre no cambian.
+  - **Limitaciones documentadas:**
+    - D10 con un pico de ancho 0,04 queda `not_converged`, porque la raíz de momentos que existe no es admisible por
+      E11b (m_α) y la guarda no se relaja;
+    - una f de 1e-310 da `invalid (non_finite)`, porque λ no cabe en un f64;
+    - un pico que cae entre dos caras (f̄ = 0) da `invalid (no_lambda_root)`.
 - **E13l-5, base sobre un contacto de materiales (R10A-04).** Si el punto medio de la base está a menos de `tol` de un
   contacto entre dos materiales, se toma el **más débil**. La comparación se hace con `c + max(0, σ′)·tan φ` (o Su),
   con `σ′ = W·cos²α/b − u`.
@@ -419,7 +430,7 @@ efecto medido sobre **todos** los modelos.
   - La prolongación y el recorte de los extremos usan la distancia 2D.
   - Los vértices de la polilínea tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol`.
   - La resistencia de una cara vertical sobre un contacto vertical se toma del lado más débil.
-- **E13l-7, superficie informada (R10B-05).** Cuando la masa se trunca (`truncated_driving_mass`), `report.surface` de
+- **E13l-7, superficie informada (R10B-05).** Cuando la masa se trunca (`truncated_driving_mass` o `truncated_mass`), `report.surface` de
   una polilínea se recorta al rango analizado, como el trazo de los círculos. La web dibuja y exporta ese rango.
 - **E13l-8, esquema (R10A-10 y R10B-04c).** En `ogs-0.3.schema.json`, una polilínea exige `analysis.methods`.
   `validateLocal` aplica el valor por defecto `["bishop"]`.
