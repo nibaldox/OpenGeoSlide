@@ -114,8 +114,17 @@ impl DepthAt<'_> {
     }
 
     /// `z(x) = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with the material under the ground at `x` (G6).
+    ///
+    /// E15l-1: `x` is bounded to `[x_min + tol, x_max − tol]`, so that the model edge gives the column next to it and
+    /// not an empty one (`PreparedModel::column` is half-open). The rest of the model is not touched.
     fn rankine(&mut self, x: f64) -> f64 {
         let pm = self.pm;
+        let tol = pm.tol();
+        let x = if pm.x_max - pm.x_min > 2.0 * tol {
+            x.clamp(pm.x_min + tol, pm.x_max - tol)
+        } else {
+            x
+        };
         let Some(ground) = pm.top_at(x) else {
             return 0.0;
         };
