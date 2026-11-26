@@ -119,6 +119,24 @@ describe('buildReportPdf', () => {
     expect(pdf).not.toContain('/Subtype /Image');
   });
 
+  it('los rótulos con halo (cargas y sismo) se dibujan con el halo debajo y el relleno encima: nunca `fillThenStroke` (U6-I)', async () => {
+    const input = sampleInput();
+    input.model.analysis.seismic = { kh: 0.1, kv: 0.05 };
+    input.model.loads = [
+      { type: 'udl', id: 'q1', x1: 52, x2: 66, q: 20 },
+      { type: 'line', id: 'p1', x: 58, p: 50, angle: 10 },
+    ];
+    const pdf = await pdfText(input);
+    // `2 Tr` = relleno y luego trazo blanco de 0,9 mm: el trazo cubre el relleno y el rótulo queda en puntos (visto en el PDF de U6-G).
+    expect(pdf).not.toMatch(/\b2 Tr\b/);
+    const ops = [...pdf.matchAll(/\b([012]) Tr\b/g)].map((m) => m[1]);
+    expect(ops.length).toBeGreaterThan(0);
+    // Cada halo (1 = solo trazo) va seguido de su relleno (0).
+    ops.forEach((op, i) => {
+      if (op === '1') expect(ops[i + 1]).toBe('0');
+    });
+  });
+
   it('con compresión el PDF es válido y mucho más pequeño', async () => {
     const plain = await pdfText(sampleInput(), false);
     const zipped = await pdfText(sampleInput(), true);

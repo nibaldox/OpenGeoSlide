@@ -307,7 +307,10 @@ class Writer {
     const doc = this.doc;
     doc.setDrawColor(255, 255, 255);
     doc.setLineWidth(0.9);
-    doc.text(text, x, y, { align, renderingMode: 'fillThenStroke' });
+    // Primero el halo (solo trazo) y encima el relleno: con `fillThenStroke` el trazo blanco de 0,9 mm cubre el relleno y el rótulo desaparece
+    // (en el PDF de U6-G solo quedaban puntos). El texto va dos veces en el archivo, pero se lee una sola vez como texto seleccionable.
+    doc.text(text, x, y, { align, renderingMode: 'stroke' });
+    doc.text(text, x, y, { align, renderingMode: 'fill' });
     doc.setLineWidth(0.25);
     doc.setDrawColor(...P.frame);
   }
