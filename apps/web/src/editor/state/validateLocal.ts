@@ -9,6 +9,8 @@
 import type { Material, Model, Point } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
 import { isFiniteNumber } from './docUtils';
+import { geotechAdvisories } from './geotech';
+import { isImperialUnits } from './units';
 import { boundsOf, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, polygonsOverlap } from './polygonChecks';
 
 // Los mensajes se redactan con las etiquetas de la interfaz (paneles y tabla), indican el rango válido con un
@@ -56,8 +58,8 @@ export const RULE_TEXT = {
   noSurface:
     'Superficie de falla: no hay ninguna definida; en el panel «Superficie de falla» elija «Búsqueda» (superficie crítica automática) o «Fija» (círculo con centro y radio)',
   waterUnitWeightImperial:
-    'Peso unitario del agua γw: el modelo está en unidades imperiales y no lo indica (o indica 9,81, que es un valor en kN/m³), así que el cálculo usaría 9,81 pcf en lugar de 62,4 pcf, ' +
-    'las presiones de poros saldrían unas 6,4 veces menores y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
+    'Peso unitario del agua γw: el modelo está en unidades imperiales y γw no se indica o es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
+    'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
 } as const;
 
 // ───────────────────────── Formato de números y textos ─────────────────────────
@@ -85,8 +87,11 @@ function under(subject: string, text: string): string {
 
 /** Unidad de longitud según `units` del modelo. */
 function lengthUnit(units: string | undefined): string {
-  return units === 'imperial' ? 'ft' : 'm';
+  return isImperialUnits(units) ? 'ft' : 'm';
 }
+
+/** γw mínimo plausible en un modelo imperial (pcf): el agua pesa ≈ 62,4 pcf; por debajo de esto el valor es de otro sistema (R9-03b). */
+export const MIN_IMPERIAL_GAMMA_W = 20;
 
 const COUNT_LABEL = { n_entry: 'Puntos de entrada', n_exit: 'Puntos de salida', n_radius: 'Radios por par' } as const;
 const RANGE_LABEL = { entry: 'Entrada (coronamiento)', exit: 'Salida (pie)' } as const;
@@ -350,7 +355,11 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
   }
   // El motor no convierte unidades: sin γw explícito usa 9,81 aunque el modelo esté en pcf (R7-22). Con piezométrica es un ERROR que
   // bloquea «Comprobar» (R8): con 9,81 pcf las presiones de poros salen 6,4 veces menores y el FS queda del lado inseguro.
-  if (doc.units === 'imperial' && line.length >= 2 && (water.unit_weight === undefined || water.unit_weight === 9.81)) {
+  // R9-03b: no se compara con 9,81 exacto. En pcf el agua pesa ≈ 62,4; cualquier γw menor que 20 pcf (9,8; 9,80665; 10…) es un valor en
+  // kN/m³ o un error de captura, y `units` se detecta sin distinguir mayúsculas (`isImperialUnits`).
+  const gw = water.unit_weight;
+  const gwMissing = gw === undefined || gw === null;
+  if (isImperialUnits(doc.units) && line.length >= 2 && (gwMissing || (isNum(gw) && gw > 0 && gw < MIN_IMPERIAL_GAMMA_W))) {
     issues.push(error('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
   }
 }
@@ -527,6 +536,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   validateWater(doc, issues);
   validateLoads(doc, extent, tol, issues);
   validateAnalysis(doc, extent, tol, issues);
+  for (const a of geotechAdvisories(doc)) issues.push(warning(a.code, a.text, a.path));
   return issues;
 }
 

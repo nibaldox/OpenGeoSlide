@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import './ui/targets.css';
+import { blockedMessage, caseBlockers } from './analysis/caseGate';
 import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
 import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
@@ -8,6 +9,8 @@ import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
 import { EditorApp } from './editor/EditorApp';
+import { resultCaption } from './editor/app/reportInput';
+import { lengthUnitOf } from './editor/canvas/layout';
 import { createRunGuard } from './editor/app/runGuard';
 import { GuidedTour } from './onboarding/GuidedTour';
 import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
@@ -110,6 +113,16 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
       setError('Seleccione al menos un método.');
       return;
     }
+    // R9-03a: la misma validación local que el editor; un error (p. ej. γw imperial ausente o < 20 pcf) impide calcular.
+    const blockers = caseBlockers(current.caseData.model);
+    if (blockers.length > 0) {
+      guard.invalidate();
+      setRun(null);
+      setChecks([]);
+      setPerf(null);
+      setError(blockedMessage(blockers));
+      return;
+    }
     const id = guard.next();
     setBusy(true);
     setError(null);
@@ -142,6 +155,11 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     if (!current) return;
     if (selectedMethods.length === 0) {
       setError('Seleccione al menos un método.');
+      return;
+    }
+    const blockers = caseBlockers(current.caseData.model);
+    if (blockers.length > 0) {
+      setError(blockedMessage(blockers));
       return;
     }
     const n = Math.min(MAX_PERF_RUNS, Math.max(1, Math.round(perfRuns) || 1));
@@ -243,11 +261,11 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
             {scene ? (
               <>
                 <SectionCanvas scene={scene} />
-                <Legend scene={scene} />
+                <Legend scene={scene} options={{ unconverged: shownResult !== null && shownResult.status !== 'converged' }} />
                 {shownResult && (
-                  <p className="small muted">
+                  <p className={shownResult.status === 'converged' ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
                     Superficie mostrada: {METHOD_LABELS[shownResult.method]}
-                    {shownResult.search ? ' (superficie crítica de la búsqueda)' : ' (superficie fija)'}
+                    {shownResult.search ? ' (de la búsqueda)' : ' (superficie fija)'}. {resultCaption(shownResult.method, shownResult.status)}
                   </p>
                 )}
               </>
@@ -264,6 +282,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 elapsedMs={run.elapsedMs}
                 shownMethod={shownMethod}
                 onShowMethod={setShownMethod}
+                lengthUnit={lengthUnitOf(current?.caseData.model.units)}
               />
             </section>
           )}

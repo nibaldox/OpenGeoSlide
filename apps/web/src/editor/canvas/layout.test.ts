@@ -235,6 +235,32 @@ describe('indicador de sismo', () => {
   });
 });
 
+describe('R9-12c: flecha vertical de kv en el indicador de sismo', () => {
+  it('sin kv no hay flecha vertical y la horizontal ocupa todo el recuadro', () => {
+    const b = seismicBadge({ width: 800 }, 1);
+    expect(b.kvArrow).toBeNull();
+    expect(seismicBadge({ width: 800 }, 1, 0).kvArrow).toBeNull();
+    expect(b.arrowX2 - b.arrowX1).toBe(b.width - 16);
+  });
+  it('kv > 0 apunta hacia abajo y kv < 0 hacia arriba, dentro del recuadro y sin tocar la flecha de kh', () => {
+    for (const dir of [1, -1] as const) {
+      const down = seismicBadge({ width: 800 }, dir, 0.05);
+      const up = seismicBadge({ width: 800 }, dir, -0.05);
+      expect(down.kvArrow && down.kvArrow.y2 > down.kvArrow.y1).toBe(true);
+      expect(up.kvArrow && up.kvArrow.y2 < up.kvArrow.y1).toBe(true);
+      for (const b of [down, up]) {
+        const k = b.kvArrow!;
+        expect(Math.min(k.y1, k.y2)).toBeGreaterThan(b.textY);
+        expect(Math.max(k.y1, k.y2)).toBeLessThanOrEqual(b.y + b.height);
+        expect(k.x).toBeLessThanOrEqual(b.x + b.width);
+        expect(Math.max(b.arrowX1, b.arrowX2)).toBeLessThan(k.x); // no se solapan
+        expect(Math.min(b.arrowX1, b.arrowX2)).toBeGreaterThanOrEqual(b.x);
+      }
+      expect(down.arrowX2 > down.arrowX1).toBe(dir === 1);
+    }
+  });
+});
+
 describe('fake store', () => {
   it('es utilizable como EditorStore (suscripción y estado estable)', () => {
     const s = createFakeStore();

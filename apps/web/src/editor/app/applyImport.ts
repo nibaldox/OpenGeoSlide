@@ -2,6 +2,7 @@
 
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
+import { piezoCreateCommands } from '../panels/forms';
 import { applyPlanToDoc, type RegionImportPlan } from './importPlan';
 
 /** `replace` sustituye las regiones; `add` agrega materiales nuevos y regiones. Ambos se deshacen con un Ctrl+Z. */
@@ -22,6 +23,12 @@ export function applyRegionImport(store: EditorStore, plan: RegionImportPlan, mo
   store.dispatch({ type: 'ui/viewport', viewport: null });
 }
 
+/** Importa la piezométrica. En un modelo imperial sin γw fija también 62,4 pcf, en el mismo gesto (R9-09). */
 export function applyPiezoImport(store: EditorStore, points: Point[]): void {
-  store.dispatch({ type: 'piezo/set', points });
+  store.beginGesture('Importar piezométrica');
+  try {
+    for (const cmd of piezoCreateCommands(store.getState().doc, points)) store.dispatch(cmd);
+  } finally {
+    store.endGesture();
+  }
 }

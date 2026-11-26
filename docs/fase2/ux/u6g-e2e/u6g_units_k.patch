@@ -1,0 +1,42 @@
+diff --git a/apps/web/src/editor/app/ImportDialogs.tsx b/apps/web/src/editor/app/ImportDialogs.tsx
+index f0cc20d..7eb3151 100644
+--- a/apps/web/src/editor/app/ImportDialogs.tsx
++++ b/apps/web/src/editor/app/ImportDialogs.tsx
+@@ -20,6 +20,7 @@ import {
+   type LengthUnit,
+   type RegionImportPlan,
+ } from './importPlan';
++import { isImperialUnits } from '../state/units';
+ import { layerChoice } from './layerChoice';
+ 
+ /** Elemento que recibe el foco al abrir un `Modal`: el pedido, si sigue conectado; si no, el título. */
+@@ -218,7 +219,7 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel,
+           ))}
+         </select>
+       </label>
+-      <p className="small muted">El modelo usa {units === 'imperial' ? 'pies' : 'metros'}; las coordenadas se reescalan al importar.</p>
++      <p className="small muted">El modelo usa {isImperialUnits(units) ? 'pies' : 'metros'}; las coordenadas se reescalan al importar.</p>
+ 
+       {layers.length === 0 ? (
+         <p role="alert">El DXF no contiene polilíneas cerradas ni abiertas para formar regiones.</p>
+diff --git a/apps/web/src/editor/panels/projectForm.ts b/apps/web/src/editor/panels/projectForm.ts
+index 4e3006d..85b60d2 100644
+--- a/apps/web/src/editor/panels/projectForm.ts
++++ b/apps/web/src/editor/panels/projectForm.ts
+@@ -4,6 +4,7 @@
+ 
+ import type { ConfirmOptions } from '../../ui/confirmQueue';
+ import type { EditorCommand, ModelDoc } from '../types';
++import { isImperialUnits } from '../state/units';
+ import { unitLabels } from './forms';
+ 
+ export type MetaField = 'id' | 'title' | 'notes';
+@@ -41,7 +42,7 @@ export type CurrentUnits = { kind: UnitsKind } | { kind: 'other'; raw: string };
+ export function currentUnits(doc: Pick<ModelDoc, 'units'>): CurrentUnits {
+   const u = doc.units;
+   if (u === undefined || u === null || u === 'SI') return { kind: 'SI' };
+-  if (u === 'imperial') return { kind: 'imperial' };
++  if (isImperialUnits(u)) return { kind: 'imperial' }; // R9-03b: también `Imperial`
+   return { kind: 'other', raw: u };
+ }
+ 

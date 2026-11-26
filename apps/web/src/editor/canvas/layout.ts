@@ -3,6 +3,7 @@
 
 import type { Point } from '../../engine/types';
 import { worldToScreen, screenToWorld, type Viewport } from '../../geometry/viewport';
+import { isImperialUnits } from '../state/units';
 import type { ModelDoc } from '../types';
 import { modelXRange, topY } from './geom';
 import { BAND_HEIGHT_PX, searchRange } from './hitTest';
@@ -23,7 +24,7 @@ export function formatNumber(v: number, minDec = 1, maxDec = 3): string {
 
 /** Unidad de longitud del modelo (`units`): `ft` si es imperial, `m` en cualquier otro caso (SI por defecto). */
 export function lengthUnitOf(units: string | undefined | null): string {
-  return /imp/i.test(units ?? '') ? 'ft' : 'm';
+  return isImperialUnits(units) ? 'ft' : 'm';
 }
 
 // Las etiquetas accesibles llevan la unidad de longitud del modelo (`units`); sin ese argumento valen las del SI.
@@ -82,12 +83,31 @@ export const SEISMIC_BADGE = { width: 196, height: 50, margin: 10 } as const;
 export function seismicBadge(
   vp: Pick<Viewport, 'width'>,
   dir: 1 | -1,
-): { x: number; y: number; width: number; height: number; textX: number; textY: number; arrowX1: number; arrowX2: number; arrowY: number } {
+  kv = 0,
+): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  textX: number;
+  textY: number;
+  arrowX1: number;
+  arrowX2: number;
+  arrowY: number;
+  /** Flecha vertical de `kv` (R9-12c): hacia abajo con `kv > 0` y hacia arriba con `kv < 0` (convención del motor); `null` si `kv = 0`. */
+  kvArrow: { x: number; y1: number; y2: number } | null;
+} {
   const { width, height, margin } = SEISMIC_BADGE;
   const x = Math.max(margin, vp.width - width - margin);
   const y = margin;
   const left = x + 8;
   const right = x + width - 8;
+  // Con `kv ≠ 0` la flecha horizontal de `kh` se acorta para dejar sitio a la vertical en el extremo derecho del recuadro.
+  const hRight = kv !== 0 ? right - 30 : right;
+  const kvX = right - 12;
+  const kvTop = y + 24;
+  const kvBottom = y + height - 6;
+  const kvArrow = kv === 0 ? null : { x: kvX, y1: kv > 0 ? kvTop : kvBottom, y2: kv > 0 ? kvBottom : kvTop };
   return {
     x,
     y,
@@ -95,14 +115,15 @@ export function seismicBadge(
     height,
     textX: left,
     textY: y + 19,
-    arrowX1: dir === 1 ? left : right,
-    arrowX2: dir === 1 ? right : left,
+    arrowX1: dir === 1 ? left : hRight,
+    arrowX2: dir === 1 ? hRight : left,
     arrowY: y + 36,
+    kvArrow,
   };
 }
 
 export function isImperial(doc: ModelDoc): boolean {
-  return /imp/i.test(doc.units ?? '');
+  return isImperialUnits(doc.units);
 }
 
 /** Sentido de deslizamiento: +1 hacia +x, −1 hacia −x. Con `auto`, hacia el lado más bajo del terreno. */

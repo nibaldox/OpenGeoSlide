@@ -21,6 +21,7 @@ import {
   searchCountText,
   searchProductText,
 } from '../state/validateLocal';
+import { isImperialUnits } from '../state/units';
 import type { EditorCommand, Issue, ModelDoc, Selection } from '../types';
 
 // ───────────────────────── Números ─────────────────────────
@@ -146,7 +147,7 @@ export interface UnitLabels {
 
 /** Etiquetas de unidades según `units` del modelo (`imperial` o SI por defecto). */
 export function unitLabels(units: string | undefined): UnitLabels {
-  return units === 'imperial'
+  return isImperialUnits(units)
     ? { length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft' }
     : { length: 'm', unitWeight: 'kN/m³', stress: 'kPa', lineLoad: 'kN/m' };
 }
@@ -293,7 +294,7 @@ export function nextMaterialId(existingIds: readonly string[]): string {
  * usa pcf y psf (mismos valores que `materialForLayer` de la importación DXF); sin él, SI.
  */
 export function newMaterialForm(existingIds: readonly string[], units?: string): MaterialForm {
-  const imperial = units === 'imperial';
+  const imperial = isImperialUnits(units);
   const id = nextMaterialId(existingIds);
   return {
     id,
@@ -407,12 +408,12 @@ export const DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL = 62.4;
 
 /** Valor de referencia de γw (para el marcador del campo) según las unidades del modelo. */
 export function defaultWaterUnitWeight(units: string | undefined): number {
-  return units === 'imperial' ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
+  return isImperialUnits(units) ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
 }
 
 /** Ayuda del campo γw: en imperial avisa de que dejarlo vacío usaría 9,81 (kN/m³), que no es el valor correcto en pcf. */
 export function waterUnitWeightHint(units: string | undefined): string {
-  return units === 'imperial'
+  return isImperialUnits(units)
     ? 'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.'
     : 'Vacío = se usa 9,81 kN/m³.';
 }
@@ -428,6 +429,18 @@ export function waterUnitWeightFromForm(text: string): FormOutcome<number | unde
     label: 'Peso unitario del agua γw',
   });
   return done(errors, () => v ?? undefined);
+}
+
+/**
+ * Comandos que fijan una piezométrica nueva o importada (R9-09): `piezo/set` y, en un modelo imperial sin γw, `water/setUnitWeight` con
+ * 62,4 pcf. El motor usaría 9,81 «pcf» si γw faltara y «Comprobar» se bloquea (R8), así que el valor que el campo muestra como marcador
+ * se escribe de verdad. Un γw ya indicado no se toca. Despáchelos dentro de un solo gesto para que Deshacer los quite juntos.
+ */
+export function piezoCreateCommands(doc: ModelDoc, points: Point[]): EditorCommand[] {
+  const cmds: EditorCommand[] = [piezoSetCommand(points)];
+  const gw = doc.water?.unit_weight;
+  if (isImperialUnits(doc.units) && (gw === undefined || gw === null)) cmds.push(waterUnitWeightCommand(DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL));
+  return cmds;
 }
 
 export function waterUnitWeightCommand(value: number | undefined): EditorCommand {
@@ -921,6 +934,12 @@ export function nextLoadId(loads: readonly Load[], type: Load['type']): string {
   }
 }
 
+/** Valores iniciales de una carga nueva: SI (kPa, kN/m) e imperial (psf, lbf/ft). */
+export const DEFAULT_UDL_SI = 10;
+export const DEFAULT_LINE_LOAD_SI = 10;
+export const DEFAULT_UDL_IMPERIAL = 200;
+export const DEFAULT_LINE_LOAD_IMPERIAL = 700;
+
 /** Carga nueva con valores válidos dentro del modelo; `null` si no hay geometría donde situarla. */
 export function defaultLoad(type: Load['type'], doc: ModelDoc): Load | null {
   const range = modelXRange(doc);
@@ -931,10 +950,12 @@ export function defaultLoad(type: Load['type'], doc: ModelDoc): Load | null {
   const width = hi - lo;
   const id = nextLoadId(doc.loads ?? [], type);
   const [f1, f2] = crown ? [0.25, 0.75] : [0.4, 0.6];
+  // R9-09: en imperial 200 psf (≈ 9,6 kPa) y 700 lbf/ft (≈ 10,2 kN/m): el mismo orden de magnitud que los 10 kPa y 10 kN/m del SI.
+  const imperial = isImperialUnits(doc.units);
   if (type === 'udl') {
-    return { type: 'udl', id, x1: round2(lo + f1 * width), x2: round2(lo + f2 * width), q: 10 };
+    return { type: 'udl', id, x1: round2(lo + f1 * width), x2: round2(lo + f2 * width), q: imperial ? DEFAULT_UDL_IMPERIAL : DEFAULT_UDL_SI };
   }
-  return { type: 'line', id, x: round2(lo + 0.5 * width), p: 10, angle: 0 };
+  return { type: 'line', id, x: round2(lo + 0.5 * width), p: imperial ? DEFAULT_LINE_LOAD_IMPERIAL : DEFAULT_LINE_LOAD_SI, angle: 0 };
 }
 
 export interface LoadFormContext {
@@ -1015,7 +1036,7 @@ export function loadRemoveCommand(index: number): EditorCommand {
 }
 
 export const LOAD_TYPE_LABELS: Readonly<Record<Load['type'], string>> = {
-  udl: 'Distribuida (udl)',
+  udl: 'Distribuida',
   line: 'Lineal',
 };
 

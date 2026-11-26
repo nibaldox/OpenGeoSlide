@@ -22,6 +22,9 @@ export const PDF_PALETTE = {
   surface: [185, 28, 28],
   piezo: [29, 78, 216],
   slices: [100, 116, 139],
+  /** Cargas de superficie (flechas y rótulos de la sección) y indicador sísmico: contraste ≥ 3:1 sobre papel blanco. */
+  load: [180, 83, 9],
+  seismic: [109, 40, 217],
   /** Siete tonos, en el mismo orden y tono que el tema claro del lienzo. */
   materials: [
     [216, 183, 122],

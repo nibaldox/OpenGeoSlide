@@ -13,6 +13,8 @@ export interface SectionPalette {
   halo: string;
   regionEdge: string;
   surface: string;
+  /** Superficie evaluada de un método que no convergió (trazo discontinuo): `--canvas-surface-unconverged`. */
+  surfaceUnconverged: string;
   piezo: string;
   sliceFill: string;
   sliceEdge: string;
@@ -30,6 +32,7 @@ const SCALARS: Record<Exclude<keyof SectionPalette, 'materials'>, string> = {
   halo: '--canvas-halo',
   regionEdge: '--canvas-region-edge',
   surface: '--canvas-surface',
+  surfaceUnconverged: '--canvas-surface-unconverged',
   piezo: '--canvas-piezo',
   sliceFill: '--canvas-slice-fill',
   sliceEdge: '--canvas-slice-edge',

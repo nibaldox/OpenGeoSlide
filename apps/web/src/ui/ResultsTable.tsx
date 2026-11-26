@@ -28,6 +28,11 @@ interface Props {
   elapsedMs: number;
   shownMethod: MethodKind | null;
   onShowMethod: (method: MethodKind) => void;
+  /**
+   * Unidad de longitud del modelo (`m` o `ft`). Con ella la tabla muestra el centro (xc; yc) y el radio de la superficie, con unidad
+   * (R9-12c). Sin ella esas columnas se omiten: el reporte del motor no trae las unidades y no se inventa una.
+   */
+  lengthUnit?: string;
 }
 
 /** Nota o aviso del motor con el método que lo emitió (R2-09: no se aplanan los avisos de todos los métodos). */
@@ -45,7 +50,7 @@ function methodWarnings(report: AnalysisReport, severity: 'nota' | 'aviso'): Met
   );
 }
 
-export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: Props) {
+export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, lengthUnit }: Props) {
   const notes = methodWarnings(report, 'nota');
   const avisos = methodWarnings(report, 'aviso');
   return (
@@ -61,6 +66,8 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
             <th scope="col">λ</th>
             <th scope="col">Superficies evaluadas</th>
             <th scope="col">Superficies válidas</th>
+            {lengthUnit && <th scope="col">Centro (xc; yc) ({lengthUnit})</th>}
+            {lengthUnit && <th scope="col">Radio ({lengthUnit})</th>}
             <th scope="col">Superficie</th>
           </tr>
         </thead>
@@ -74,6 +81,12 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
               <td className="num">{formatNumber(r.status === 'converged' ? r.lambda : null)}</td>
               <td className="num">{r.search ? r.search.evaluated : '—'}</td>
               <td className="num">{r.search ? r.search.valid : '—'}</td>
+              {lengthUnit && (
+                <td className="num">
+                  {formatNumber(r.surface.xc, 2)}; {formatNumber(r.surface.yc, 2)}
+                </td>
+              )}
+              {lengthUnit && <td className="num">{formatNumber(r.surface.r, 2)}</td>}
               <td>
                 <button
                   type="button"
@@ -89,7 +102,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod }: P
         </tbody>
         <tfoot>
           <tr>
-            <th scope="row" colSpan={7}>
+            <th scope="row" colSpan={lengthUnit ? 9 : 7}>
               Tiempo total del análisis
             </th>
             <td className="num">{formatNumber(elapsedMs, 1)} ms</td>

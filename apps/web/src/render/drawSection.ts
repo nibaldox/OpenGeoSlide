@@ -11,6 +11,8 @@ const MARGIN_PX = 56;
 const AXIS_FONT = '12px system-ui, sans-serif';
 /** Grosor extra, a cada lado, del halo que separa un trazo del fondo y de los materiales. */
 const HALO_EXTRA_PX = 2;
+/** Trazo de la superficie evaluada sin convergencia: el mismo `10 6` del lienzo del editor. */
+const UNCONVERGED_DASH = [10, 6];
 /** Grosor del halo de los rótulos. */
 const HALO_TEXT_PX = 3;
 
@@ -173,9 +175,13 @@ export function drawSection(
     ctx.strokeStyle = palette.halo;
     ctx.lineWidth = 2.2 + 2 * HALO_EXTRA_PX;
     ctx.stroke();
-    ctx.strokeStyle = palette.surface;
+    // R9-12b: un método que no convergió no tiene superficie crítica; la evaluada se dibuja discontinua y con otro tono, como en el editor.
+    const converged = scene.surface.converged !== false;
+    ctx.strokeStyle = converged ? palette.surface : palette.surfaceUnconverged;
     ctx.lineWidth = 2.2;
+    ctx.setLineDash(converged ? [] : UNCONVERGED_DASH);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // Piezométrica (azul discontinuo)

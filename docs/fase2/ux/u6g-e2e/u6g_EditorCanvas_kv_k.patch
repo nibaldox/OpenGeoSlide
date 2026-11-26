@@ -1,0 +1,32 @@
+diff --git a/apps/web/src/editor/canvas/EditorCanvas.tsx b/apps/web/src/editor/canvas/EditorCanvas.tsx
+index 3d051aa..57a1cd7 100644
+--- a/apps/web/src/editor/canvas/EditorCanvas.tsx
++++ b/apps/web/src/editor/canvas/EditorCanvas.tsx
+@@ -638,7 +638,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
+   const loads = loadShapes(shown, vp);
+   const seismic = shown.analysis.seismic ?? null;
+   const dir = slideDirection(shown);
+-  const badge = seismicBadge(vp, dir);
++  const badge = seismicBadge(vp, dir, seismic?.kv ?? 0); // R9-12c: con kv ≠ 0 trae `kvArrow`
+   const dragging = gesture.mode === 'drag' && gesture.moved;
+   const guides = preview && preview.kind !== 'circle' ? preview.snap.guides : null;
+   const snapTarget = preview && preview.kind === 'vertex' ? preview.snap.target : null;
+@@ -856,6 +856,18 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
+                 strokeWidth={2.5}
+                 markerEnd={`url(#${seismicArrowId})`}
+               />
++              {badge.kvArrow && (
++                <line
++                  data-testid="seismic-kv-arrow"
++                  x1={badge.kvArrow.x}
++                  x2={badge.kvArrow.x}
++                  y1={badge.kvArrow.y1}
++                  y2={badge.kvArrow.y2}
++                  stroke={COLOR_SEISMIC}
++                  strokeWidth={2.5}
++                  markerEnd={`url(#${seismicArrowId})`}
++                />
++              )}
+             </g>
+           )}
+         </g>

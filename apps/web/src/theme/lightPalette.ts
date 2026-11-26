@@ -12,6 +12,7 @@ export const LIGHT_SECTION_PALETTE: SectionPalette = {
   halo: '#ffffff',
   regionEdge: '#1f2937',
   surface: '#a31515',
+  surfaceUnconverged: '#9a3412',
   piezo: '#1e40af',
   sliceFill: 'rgb(71 85 105 / 0.16)',
   sliceEdge: 'rgb(30 41 59 / 0.65)',

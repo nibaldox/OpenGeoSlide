@@ -133,19 +133,19 @@ describe('exportación', () => {
       { ...base, method: 'spencer', fos: 1.1, status: 'converged', lambda: 0.3 },
     ];
     expect(resultsToCsv(results)).toBe(
-      '# unidades: SI (m, kN/m³, kPa)\r\n' +
-        'metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos\r\n' +
-        'bishop,converged,1.234,3,,1,2,3,10,4,truncated_mass|m_alpha\r\n' +
-        'spencer,not_converged,,3,,1,2,3,10,4,no_lambda_root\r\n' +
-        'spencer,invalid,,3,,1,2,3,10,4,\r\n' +
-        'spencer,converged,1.1,3,0.3,1,2,3,10,4,',
+      'metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos,unidades\r\n' +
+        'bishop,converged,1.234,3,,1,2,3,10,4,truncated_mass|m_alpha,SI\r\n' +
+        'spencer,not_converged,,3,,1,2,3,10,4,no_lambda_root,SI\r\n' +
+        'spencer,invalid,,3,,1,2,3,10,4,,SI\r\n' +
+        'spencer,converged,1.1,3,0.3,1,2,3,10,4,,SI',
     );
   });
 
-  it('B-04: csvUnits declara SI o imperial; el CSV de geometría (importación) no lleva comentario', () => {
-    expect(csvUnits('SI').comment).toBe('# unidades: SI (m, kN/m³, kPa)');
+  it('B-04: csvUnits declara SI o imperial (sin mayúsculas); el CSV de geometría (importación) no lleva comentario', () => {
+    expect(csvUnits('SI').label).toBe('SI');
     expect(csvUnits(undefined).length).toBe('m');
-    expect(csvUnits('imperial')).toMatchObject({ length: 'ft', unitWeight: 'pcf', stress: 'psf', comment: '# unidades: imperial (ft, pcf, psf)' });
+    expect(csvUnits('imperial')).toMatchObject({ length: 'ft', unitWeight: 'pcf', stress: 'psf', label: 'imperial' });
+    expect(csvUnits('Imperial')).toMatchObject({ length: 'ft', label: 'imperial' }); // R9-03b
     const doc = { regions: [{ material: 'r1', polygon: [[0, 0], [1, 0], [1, 1]] }], materials: [] } as unknown as ModelDoc;
     expect(modelToCsv(doc).startsWith('capa,x,y')).toBe(true);
     expect(parseCsv(modelToCsv(doc)).ok).toBe(true);
@@ -154,13 +154,13 @@ describe('exportación', () => {
   it('resultsToCsv protege la celda de avisos contra fórmulas', () => {
     const base = { lambda: null, slices: [], iterations: 1, surface: { xc: 1, yc: 2, r: 3 }, search: null, fos: 1, status: 'converged' as const };
     const csv = resultsToCsv([{ ...base, method: 'bishop', warnings: ['=cmd|x', 'm_alpha'] }]);
-    expect(csv.split('\r\n')[2]).toBe("bishop,converged,1,1,,1,2,3,,,'=cmd|x|m_alpha");
+    expect(csv.split('\r\n')[1]).toBe("bishop,converged,1,1,,1,2,3,,,'=cmd|x|m_alpha,SI");
   });
 
   it('los números se exportan sin redondeo (ida y vuelta de las coordenadas)', () => {
     const base = { lambda: null, slices: [], warnings: [], iterations: 1, search: null, fos: 1, status: 'converged' as const };
     const surface = { xc: 49.57942825454256, yc: 34.823211318713575, r: 36.11677577292455 };
-    const row = resultsToCsv([{ ...base, method: 'bishop', surface }]).split('\r\n')[2] as string;
+    const row = resultsToCsv([{ ...base, method: 'bishop', surface }]).split('\r\n')[1] as string;
     const [, , , , , xc, yc, r] = row.split(',');
     expect([Number(xc), Number(yc), Number(r)]).toEqual([surface.xc, surface.yc, surface.r]);
   });

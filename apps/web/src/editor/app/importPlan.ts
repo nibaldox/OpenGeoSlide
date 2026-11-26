@@ -3,6 +3,7 @@
 
 import type { Material, Point, Region } from '../../engine/types';
 import type { DxfEntity, DxfParseResult } from '../../io/dxf';
+import { isImperialUnits } from '../state/units';
 import type { ModelDoc } from '../types';
 
 export type LengthUnit = 'm' | 'cm' | 'mm' | 'ft' | 'in';
@@ -17,7 +18,7 @@ const METERS_PER_UNIT: Record<LengthUnit, number> = { m: 1, cm: 0.01, mm: 0.001,
 
 /** Unidad de longitud del modelo: `ft` si es imperial, `m` en cualquier otro caso. */
 export function modelLengthUnit(units: string | undefined): 'm' | 'ft' {
-  return units === 'imperial' ? 'ft' : 'm';
+  return isImperialUnits(units) ? 'ft' : 'm';
 }
 
 /** Factor que lleva una longitud de `from` a la unidad del modelo. */
@@ -92,7 +93,7 @@ function uniqueId(base: string, used: Set<string>): string {
 
 /** Material con valores típicos de un suelo, para una capa sin coincidencia (el usuario los ajusta en el panel). */
 export function materialForLayer(layer: string, id: string, units: string | undefined): Material {
-  const imperial = units === 'imperial';
+  const imperial = isImperialUnits(units);
   return {
     id,
     name: layer,

@@ -25,6 +25,24 @@ function render(report: AnalysisReport): string {
   );
 }
 
+describe('R9-12c: centro y radio de la superficie, con unidad', () => {
+  const report: AnalysisReport = { engine: 'ogs-core 0.1.0', results: [methodReport({ surface: { xc: 49.579, yc: 34.823, r: 36.117 } })] };
+  it('con `lengthUnit` muestra (xc; yc) y r con la unidad del modelo', () => {
+    const si = renderToStaticMarkup(createElement(ResultsTable, { report, elapsedMs: 3, shownMethod: null, onShowMethod: () => {}, lengthUnit: 'm' }));
+    expect(si).toContain('Centro (xc; yc) (m)');
+    expect(si).toContain('Radio (m)');
+    expect(si).toContain('49,58; 34,82');
+    expect(si).toContain('36,12');
+    const ft = renderToStaticMarkup(createElement(ResultsTable, { report, elapsedMs: 3, shownMethod: null, onShowMethod: () => {}, lengthUnit: 'ft' }));
+    expect(ft).toContain('Centro (xc; yc) (ft)');
+    expect(ft).toContain('Radio (ft)');
+    expect(ft).toContain('colSpan="9"');
+  });
+  it('sin `lengthUnit` no inventa una unidad: omite las columnas', () => {
+    expect(render(report)).not.toContain('Centro (xc');
+  });
+});
+
 describe('ResultsTable', () => {
   it('muestra "—" en la columna FS cuando fos es null', () => {
     const html = render({

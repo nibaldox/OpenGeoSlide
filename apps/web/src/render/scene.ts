@@ -31,7 +31,8 @@ export interface Scene {
   regions: SceneRegion[];
   materials: SceneMaterial[];
   piezo: Point[] | null;
-  surface: { circle: Circle; slices: Slice[] } | null;
+  /** `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b). Ausente = convergió. */
+  surface: { circle: Circle; slices: Slice[]; converged?: boolean } | null;
   bounds: Bounds;
   /** Unidades del modelo (`SI` o `imperial`); los ejes de `drawSection` las usan para rotular m o ft. */
   units?: string;
@@ -44,7 +45,8 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   }));
   const materials = model.materials.map((m, i) => ({ id: m.id, name: m.name, color: materialColor(i) }));
   const piezo = model.water?.piezometric_line?.length ? [...model.water.piezometric_line].sort((a, b) => a[0] - b[0]) : null;
-  const surface = method && method.slices.length > 0 ? { circle: method.surface, slices: method.slices } : null;
+  const surface =
+    method && method.slices.length > 0 ? { circle: method.surface, slices: method.slices, converged: method.status === 'converged' } : null;
 
   const xs: number[] = [];
   const ys: number[] = [];
