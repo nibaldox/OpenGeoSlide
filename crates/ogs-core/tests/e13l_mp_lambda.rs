@@ -4,8 +4,10 @@
 //!   to 2.5 and the root was lost. Now it is `0.05/max(f̄, f_max/2)`. The reference is cSlope 0.1.0 (D10, fixed circle,
 //!   `data_points` with a peak at ξ = 0.9 that is 0.1 wide: cSlope 1.047543; ogs went from `no_lambda_root` to 1.047929,
 //!   +0.04 %).
-//! - **Scale.** The solver works with `f/f_max` and reports λ in the scale of the user's `f` (`λ = λ_n/f_max`). The FS
-//!   does not depend on the scale of `f`, down to `1e-310` (a subnormal), which was `no_lambda_root`.
+//! - **Two passes.** Pass 1 is the old scheme, unchanged: what converged before is the same result bit for bit (D09 with a
+//!   ramp, where the fine grid had moved the 13th digit). Only what did not converge goes to pass 2, which works with
+//!   `f/f_max` on the fine grid and reports λ in the scale of the user's `f` (`λ = λ_n/f_max`). The FS does not depend
+//!   on the scale of `f`; `1e-310` (a subnormal) cannot be reported in λ and is `invalid (non_finite)`.
 //! - **Limit that stays.** D10 with a peak of width 0.04 (a single face with `f = 1`, so `λ·f` ≈ 2.8 on one slice):
 //!   the root of the moment equilibrium exists (FS ≈ 1.05, cSlope 1.047735), but E11b (`Φ/F ≥ min_m_alpha`) rejects it at
 //!   `λ·f = 2.4` onward, and cSlope warns that the solution relies on tension. The guard is not relaxed.
@@ -94,7 +96,7 @@ fn triangle(scale: f64) -> Value {
 }
 
 /// R10A-08 (2): the FS does not depend on the scale of `f`, and `λ·s` does not either. `s = 1e-310` was
-/// `no_lambda_root`; `1e-300` gave λ = 6.5e299. `λ = λ_n/s` of `1e-310` does not fit in an f64, and is not reported.
+/// `no_lambda_root`; `1e-300` gave λ = 6.5e299. `λ = λ_n/s` of `1e-310` does not fit in an f64: `invalid (non_finite)`.
 #[test]
 fn e13l4_the_scale_of_f_changes_neither_the_fos_nor_the_product_lambda_f() {
     let unit = result(&triangle(1.0));
@@ -114,15 +116,16 @@ fn e13l4_the_scale_of_f_changes_neither_the_fos_nor_the_product_lambda_f() {
             "s = {scale}: λ·s = {product} vs {lambda1}"
         );
     }
+    // `λ = λ_n/s` of `1e-310` is above the largest f64: the result is `invalid (non_finite)`, never a `converged` with
+    // `λ = None` (nor a NaN that looks like a result).
     let tiny = result(&triangle(1e-310));
-    assert_eq!(tiny.status, SolveStatus::Converged, "{tiny:?}");
-    assert!((tiny.fos.unwrap() - fos1).abs() <= 1e-9 * fos1);
-    assert_eq!(
-        tiny.lambda,
-        None,
-        "λ = {} does not fit in an f64",
-        lambda1 / 1e-310
+    assert_eq!(tiny.status, SolveStatus::Invalid, "{tiny:?}");
+    assert!(
+        tiny.warnings.contains(&"non_finite".to_string()),
+        "{:?}",
+        tiny.warnings
     );
+    assert_eq!((tiny.fos, tiny.lambda), (None, None));
 }
 
 /// The solver is unchanged for a function whose maximum is 1: the named ones and `data_points` with `max f = 1` give the
@@ -136,4 +139,39 @@ fn e13l4_a_function_with_maximum_one_is_not_rescaled() {
     let b = result(&doc);
     assert_eq!(a.fos, b.fos, "the same piecewise-linear function");
     assert_eq!(a.lambda, b.lambda);
+}
+
+/// Pass 1 is the old scheme: a `data_points` that converged before gives the same result bit for bit. D09 (fixed surface)
+/// with the ramp `[[0, 0.2], [1, 1]]` has aerial faces (`f = 0`) at the toe, so `f̄ < f_max/2` and the fine grid, added to
+/// the old one, had moved the 13th digit of λ: with `694f13a` it was λ = 1.0148290331364727, FS = 0.4139749819860002.
+#[test]
+fn e13l4_a_data_points_that_converged_is_identical_to_the_old_scheme() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../verification/differential/cases/D09.ogs.json");
+    let mut doc: Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).expect("D09 exists")).unwrap();
+    doc["version"] = json!("0.3");
+    doc["analysis"]["methods"] = json!(["morgenstern_price"]);
+    doc["analysis"]["interslice"] =
+        json!({"function": "data_points", "points": [[0, 0.2], [1, 1]]});
+    doc["analysis"].as_object_mut().unwrap().remove("search");
+    let r = result(&doc);
+    assert_eq!(r.status, SolveStatus::Converged, "{r:?}");
+    assert_eq!(r.fos, Some(0.4139749819860002));
+    assert_eq!(r.lambda, Some(1.0148290331364727));
+}
+
+/// A peak that falls between two faces has `f̄ = 0`: there is nothing to solve with, and it is `invalid (no_lambda_root)`.
+#[test]
+fn e13l4_a_peak_between_two_faces_is_invalid_with_its_reason() {
+    let mut doc = v047a(json!(["morgenstern_price"]));
+    doc["analysis"]["interslice"] = json!({"function": "data_points",
+        "points": [[0, 0], [0.505, 0], [0.51, 1], [0.515, 0], [1, 0]]});
+    let r = result(&doc);
+    assert_eq!(r.status, SolveStatus::Invalid, "{r:?}");
+    assert!(
+        r.warnings.contains(&"no_lambda_root".to_string()),
+        "{:?}",
+        r.warnings
+    );
 }
