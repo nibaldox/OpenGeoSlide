@@ -389,6 +389,8 @@ fn analyze_method(
     let sliced = slice_surface_of(pm, &surface, n, load_case)
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let slices = sliced.slices;
+    // E13l-7: a mass that was truncated is reported over the range that was analysed.
+    let truncated = !sliced.notes.is_empty();
     let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
     // E13k: a converged Spencer or Morgenstern-Price whose interslice shear exceeds the strength of the faces.
     if let Some(ratio) =
@@ -437,7 +439,20 @@ fn analyze_method(
         status: result.status,
         iterations: result.iterations,
         lambda: result.lambda,
-        surface: surface.to_report(),
+        surface: match (truncated, slices.first(), slices.last()) {
+            (true, Some(_), Some(_)) => {
+                let x0 = slices
+                    .iter()
+                    .map(|s| s.x_left)
+                    .fold(f64::INFINITY, f64::min);
+                let x1 = slices
+                    .iter()
+                    .map(|s| s.x_right)
+                    .fold(f64::NEG_INFINITY, f64::max);
+                surface.to_report_within(x0, x1)
+            }
+            _ => surface.to_report(),
+        },
         slices,
         search,
         warnings,

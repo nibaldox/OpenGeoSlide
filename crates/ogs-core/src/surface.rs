@@ -180,6 +180,36 @@ impl Surface {
         }
     }
 
+    /// [`Surface::to_report`] of the part of the surface over `[x0, x1]`, the range of the slices that were analysed
+    /// (E13l-7). A circle is reported whole, as the web draws its arc over the range of the slices. A polyline is cut
+    /// to the range: the ends are on the polyline at `x0` and `x1`, and the vertices between them stay. A range that
+    /// contains the polyline gives it back unchanged.
+    pub fn to_report_within(&self, x0: f64, x1: f64) -> SurfaceOut {
+        let Surface::Polyline(p) = self else {
+            return self.to_report();
+        };
+        let pts = &p.points;
+        let (Some(first), Some(last)) = (pts.first(), pts.last()) else {
+            return self.to_report();
+        };
+        if !(x0 > first[0] || x1 < last[0]) || !(x0 < x1) {
+            return self.to_report();
+        }
+        let mut out = Vec::with_capacity(pts.len());
+        out.push(if x0 > first[0] {
+            [x0, polyline_y(pts, x0)]
+        } else {
+            *first
+        });
+        out.extend(pts.iter().filter(|q| q[0] > x0 && q[0] < x1).copied());
+        out.push(if x1 < last[0] {
+            [x1, polyline_y(pts, x1)]
+        } else {
+            *last
+        });
+        SurfaceOut::Polyline { points: out }
+    }
+
     /// The surface as the report emits it: `{xc, yc, r}` for a circle, `{points}` for a polyline.
     pub fn to_report(&self) -> SurfaceOut {
         match self {
