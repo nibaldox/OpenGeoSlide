@@ -481,3 +481,101 @@ I1b midió el criterio 2 en cada check por separado:
   «tracción real del modelo, presente también sin refuerzos».
 - Efecto adicional medido: en V010 con M-P y en V014 con Spencer desaparece la nota `negative_effective_normal`, que
   venía de dovelas finas de cruce. El FS es idéntico.
+
+## F4.18 Enmiendas por R11 (E14o, decisiones del coordinador)
+
+**Fuentes:**
+- `docs/reviews/R11_agy_A.md`, lente A, con veredicto APTO CON CORRECCIONES;
+- `docs/reviews/R11_agy_B.md`, lente B, con veredicto NO APTO.
+
+Cada punto lleva su test RED con el contraejemplo del revisor y su efecto medido. **Sin refuerzos, todo queda
+idéntico byte a byte**, salvo la corrección de V065, que es la única excepción y se documenta en E14o-11.
+
+**Motor:**
+- **E14o-1, tangencia (R11A-01).**
+  - En un círculo, un cruce solo cuenta si el elemento **penetra**: la semicuerda de su recta dentro del círculo debe
+    ser mayor que `tol`.
+  - Si el elemento entra y sale a menos de `tol` de distancia a lo largo del arco, los dos cruces se descartan, porque
+    es una tangencia.
+  - La normal n y el movimiento m se calculan **en el punto exacto del cruce**, con la normal radial del círculo o la
+    dirección del tramo de la polilínea, y no con el `alpha` de la dovela fina.
+  - En una polilínea, un elemento que toca un vértice sin atravesar la superficie no cuenta.
+  - **Criterio:** los contraejemplos de R11A-01 (eps_r 0, ±1e-12 y −1e-6) dan, de forma continua, el FS sin refuerzo
+    o el de un cruce real, sin duplicados ni fuerzas fantasma.
+- **E14o-2, Bishop con pasivas (R11A-02).**
+  - El arranque incluye las pasivas.
+  - Antes de bisecar, se acota el cambio de signo de `h(F) = F·D(F) − N(F)` con una malla geométrica en
+    `[F_adm o 1e-3, FOS_MAX]`.
+  - **Criterio:** el contraejemplo converge dentro de 0,5 % de cSlope (3,526) y nada cambia sin pasivas.
+- **E14o-3, E3 con pasivas (R11A-03).**
+  - `no_driving` se evalúa **solo** antes de resolver, con el peso, el sismo, las cargas y las fuerzas **activas**.
+  - Una fuerza pasiva es resistente y no entra en E3; **se elimina la comprobación posterior con pasivas**.
+  - Así, Janbu deja de usar el momento de Bishop.
+  - **Criterio:** los cuatro contraejemplos convergen dentro de 0,5 % de cSlope en Janbu simplificado, y nada cambia
+    sin pasivas.
+- **E14o-4, `interface` con `ru` (R11A-04).** σ′v sigue la precedencia del slicer:
+  - un material con `ru` usa `u = ru·σ_suelo` y **sin** agua libre de la piezométrica;
+  - un material sin `ru` usa la piezométrica, y el agua libre sobre el terreno cuenta.
+
+  E14m-2 se corrige así. **Criterio:** el contraejemplo da 161,0 kN/m, como cSlope.
+- **E14o-5, `interface` sobre un contacto (R11A-05).**
+  - Si y está a menos de `tol` de un contacto horizontal, σ′v es el **mínimo** de los dos materiales.
+  - En un contacto vertical, a menos de `tol` en x, se toma el mínimo de los dos lados. Es lo conservador, como
+    E13l-5.
+  - **Criterio:** el resultado es invariante al orden de `regions` y al espejo.
+- **E14o-6, agrupación de E14n-1 (R11A-06).** Las dovelas finas de un cruce se agrupan con **todas** las piezas de la
+  dovela original, entre los cortes que existían antes de agregar los nodos de los cruces, y no con un índice fijo.
+  - **Criterio:** los dos contraejemplos de V014 ya no dan el aviso mayor, y la tracción real lo conserva.
+- **E14o-7, búsqueda con refuerzos (R11A-07).**
+  - Con refuerzos, se agregan a la búsqueda candidatos que pasan por las puntas y las cabezas de cada refuerzo, como
+    los vértices del terreno de E9a.
+  - Las semillas de refinamiento se diversifican por número de cruces aplicados.
+  - **Criterio:** la brecha frente a la malla fina en los dos contraejemplos baja de 1 %, y nada cambia sin
+    refuerzos. Si no se logra, se documenta con números y se recomienda la malla fina.
+- **E14o-8, activo comprimido (R11A-08).**
+  - Se **sigue aplicando**, porque es una carga externa conocida. Pero **es falso que sea siempre conservador**: con
+    φ > 0, su componente normal confina la base y puede subir el FS.
+  - Se corrige la justificación de E14m-1, y en `docs/limitaciones.md`.
+  - Se agrega la nota informativa `reinforcement_active_compression`: «Un refuerzo activo se aplica con su fuerza
+    aunque el deslizamiento lo comprimiría; en suelos con fricción esa fuerza puede aumentar el FS. Verifique la
+    orientación y la carga de bloqueo.» Va a E6, a `warnings.ts` y a las listas informativas.
+- **E14o-9, filas del oráculo (R11A-09).**
+  - Las filas `inc_up30_pas` e `inc_up45_pas` se reemplazan por elementos **embebidos** que crucen la masa con
+    `along ≥ cos 88°`.
+  - Se verifica que su estado sea `compression_ignored`, que se emita la nota y que el FS sea el del oráculo.
+  - Se agregan filas de `bond` y `interface` en las que la capacidad no esté acotada por `tensile_capacity`.
+- **E14o-10, Janbu corregido con pasivas (R11A-10).** Se mantiene la división por F₀, coherente con el suelo y con
+  cSlope. Se documenta que el punto de igualdad entre activo y pasivo es F₀ = 1, es decir, FS = f₀.
+- **E14o-11 (R11A-11):**
+  - No se agregan nodos para los cruces con capacidad disponible nula ni para los cruces sobre el terreno, que se
+    pueden decidir antes de rebanar. Así el FS es **exactamente** el del talud sin refuerzo.
+  - La corrección de V065 (`check_block_ends_circle`) es una **excepción documentada a F4.1**: un modelo sin refuerzos
+    que la v0.2.0 rechazaba por redondeo ahora se analiza.
+  - `to_cslope.py` valida los rangos.
+
+**Web, CLI y documentación:**
+- **E14o-12, unidades y espaciamiento (R11B-01 y R11B-07).**
+  - Un `spacing` omitido vale 1 en la unidad de longitud del modelo: 1 m en SI y 1 ft en imperial.
+  - Al convertir de unidades, la web escribe **siempre** un `spacing` explícito convertido, de modo que 1 m pasa a
+    3,28084 ft.
+  - Los valores por defecto del lienzo y del panel en imperial se convierten.
+  - **Criterio:** el FS es invariante con `spacing` omitido, a 1e-9, con el motor real.
+  - La documentación del formato dice que el espaciamiento por defecto depende de la unidad.
+- **E14o-13, CSV de fuerzas (R11B-02).** Agrega las columnas:
+  - `fs`, el FS del método;
+  - `movilizada_fx` y `movilizada_fy`: en una pasiva, la aplicada dividida por F, y en una activa, la aplicada;
+  - `nota`, con «pasiva: se moviliza dividida por F» en las pasivas y, en las filas de `pile` y `sheet_pile`, «solo
+    estabilidad global: no calcula empuje, empotramiento, momento ni deflexión».
+- **E14o-14, tabla web y leyenda (R11B-03).** La tabla de fuerzas del editor y de Casos lleva la misma aclaración del
+  PDF sobre la fuerza disponible antes de dividir por F, y una columna «Movilizada».
+- **E14o-15, `ogs bench` (R11B-04).** No baja la versión: usa la mayor entre la declarada y la que el método necesita.
+- **E14o-16, interfaz (R11B-05, R11B-06, R11B-08, R11B-09 y R11B-10):**
+  - los rótulos del lienzo y de Casos sin solapes;
+  - el PDF, cuando ningún refuerzo cruza la superficie convergida, dice exactamente eso y lista los refuerzos sin
+    cruce;
+  - los valores por defecto de pilote y tablestaca siempre válidos, hacia abajo y dentro del suelo;
+  - las unidades de `adhesion`, `end1_capacity` y `end2_capacity` en el PDF;
+  - una tablestaca inclinada abierta desde un archivo muestra su `x2` y su error en el panel, sin forzar
+    `x2 = x1`.
+- **E14o-17, documentación (R11B-11):** las cifras actualizadas en `limitaciones.md` y en el README, y `test_v04.py` y
+  el esquema 0.4 en `verificacion.md`. El coordinador sube la versión a 0.3.0 al publicar.
