@@ -220,6 +220,19 @@ export interface SheetPileReinforcement extends ReinforcementBase {
 /** Refuerzo (v0.4, F4.2), discriminado por `type`. Exige version "0.4". */
 export type Reinforcement = TensionReinforcement | PileReinforcement | SheetPileReinforcement;
 
+/** Profundidad de la grieta de tracción (v0.5, F5.2): un número finito > 0 en la unidad de longitud del modelo, o `"auto"` (G6). */
+export type CrackDepth = number | 'auto';
+
+/**
+ * `analysis.tension_crack` (v0.5, F5.2). Exige version "0.5". Sin campo de posición: `x_c` sale de la superficie y de la
+ * profundidad (G1). Sin otros campos (`deny_unknown_fields`).
+ */
+export interface TensionCrack {
+  depth: CrackDepth;
+  /** Fracción de la grieta llena de agua, en [0, 1]. **Obligatoria y sin valor por defecto**: 0 seca, 1 llena. */
+  water_fill: number;
+}
+
 export interface AnalysisSettings {
   /** Por defecto ["bishop"]. */
   methods?: MethodKind[];
@@ -234,11 +247,13 @@ export interface AnalysisSettings {
   seismic?: Seismic | null;
   /** Solo con version "0.3", y solo con `morgenstern_price` en `methods`. Por defecto `half_sine`. */
   interslice?: IntersliceSpec | null;
+  /** Solo con version "0.5" (F5.1, F5.2). Un valor null cuenta como ausente. */
+  tension_crack?: TensionCrack | null;
 }
 
 export interface Model {
   format: string;
-  version: '0.1' | '0.2' | '0.3' | '0.4';
+  version: '0.1' | '0.2' | '0.3' | '0.4' | '0.5';
   meta: Meta;
   units?: string;
   materials: Material[];
@@ -358,6 +373,17 @@ export interface ReinforcementForce {
   status: ReinforcementForceStatus;
 }
 
+/**
+ * La grieta de tracción de una superficie truncada (v0.5, F5.2): `x` es `x_c` (G1), `depth` la profundidad usada (la
+ * fija, o la automática en `x_c`, G6) y `water_force` es `Pw = ½·γw·hw²`, `hw = depth·water_fill` (G3), por metro de
+ * talud; 0 con la grieta seca.
+ */
+export interface CrackReport {
+  x: number;
+  depth: number;
+  water_force: number;
+}
+
 export interface MethodReport {
   method: MethodKind;
   /** null cuando el FS no es finito (E4f); `status` y los avisos explican el motivo. */
@@ -375,6 +401,8 @@ export interface MethodReport {
   interslice?: IntersliceSpec;
   /** Fuerzas de los refuerzos en la superficie final (v0.4, F4.9); el motor lo omite si está vacío. Solo en métodos convergidos. */
   reinforcement_forces?: ReinforcementForce[];
+  /** La grieta de tracción que truncó la superficie (v0.5, F5.2); el motor lo omite sin grieta. */
+  tension_crack?: CrackReport;
 }
 
 export interface AnalysisReport {
