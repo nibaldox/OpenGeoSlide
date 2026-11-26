@@ -6,6 +6,7 @@
 
 import { parse, unparse } from 'papaparse';
 import type { MethodReport, Point } from '../engine/types';
+import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
 import type { CsvImportResult, ImportIssue } from './types';
 
@@ -198,14 +199,19 @@ export interface CsvUnits {
   unitWeight: string;
   /** Tensión y presión. */
   stress: string;
-  /** Primera línea del CSV, p. ej. `# unidades: SI (m, kN/m³, kPa)`. */
-  comment: string;
+  /**
+   * Texto de la columna `unidades` de cada fila (`SI` o `imperial`). R9-07: ya no hay línea de comentario `#` (sus comas partían la
+   * primera fila en Excel y `pandas.read_csv` fallaba); el CSV es RFC 4180 puro y se lee sin opciones.
+   */
+  label: string;
+  /** Descripción legible de las unidades (para la interfaz, no para el CSV). */
+  description: string;
 }
 
 export function csvUnits(units: string | null | undefined): CsvUnits {
-  return units === 'imperial'
-    ? { system: 'imperial', length: 'ft', unitWeight: 'pcf', stress: 'psf', comment: '# unidades: imperial (ft, pcf, psf)' }
-    : { system: 'SI', length: 'm', unitWeight: 'kN/m³', stress: 'kPa', comment: '# unidades: SI (m, kN/m³, kPa)' };
+  return isImperialUnits(units)
+    ? { system: 'imperial', length: 'ft', unitWeight: 'pcf', stress: 'psf', label: 'imperial', description: 'imperial (ft, pcf, psf)' }
+    : { system: 'SI', length: 'm', unitWeight: 'kN/m³', stress: 'kPa', label: 'SI', description: 'SI (m, kN/m³, kPa)' };
 }
 
 function formatNumber(n: number, comma: boolean): string {
@@ -255,7 +261,7 @@ export interface ResultsCsvOptions extends ToCsvOptions {
 /**
  * Tabla de FS por método. El FS y `lambda` solo se escriben si el método convergió; `avisos` lleva los códigos del
  * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas). Las columnas con dimensión llevan
- * la unidad en la cabecera (`xc_m`, `yc_ft`…) y la primera línea declara el sistema de unidades (B-04).
+ * la unidad en la cabecera (`xc_m`, `yc_ft`…) y la columna `unidades` (`SI` o `imperial`) repite el sistema en cada fila (B-04, R9-07).
  */
 export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
@@ -271,16 +277,17 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     r.search?.evaluated ?? null,
     r.search?.valid ?? null,
     r.warnings.join(WARNING_SEPARATOR),
+    u.label,
   ]);
-  const header = ['metodo', 'estado', 'fs', 'iteraciones', 'lambda', `xc_${u.length}`, `yc_${u.length}`, `r_${u.length}`, 'evaluadas', 'validas', 'avisos'];
-  return toCsv(header, rows, { ...options, comment: options.comment ?? u.comment });
+  const header = ['metodo', 'estado', 'fs', 'iteraciones', 'lambda', `xc_${u.length}`, `yc_${u.length}`, `r_${u.length}`, 'evaluadas', 'validas', 'avisos', 'unidades'];
+  return toCsv(header, rows, options);
 }
 
 /**
- * Puntos de la base de las dovelas por método: `metodo,estado,punto,x_<unidad>,y_<unidad>`, con el comentario de unidades.
+ * Puntos de la base de las dovelas por método: `metodo,estado,punto,x_<unidad>,y_<unidad>,unidades`.
  * Es el CSV de **resultados** (superficie crítica), distinto del CSV de geometría que se importa (`capa,x,y`).
  */
 export function surfaceToCsv(rows: CsvCell[][], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
-  return toCsv(['metodo', 'estado', 'punto', `x_${u.length}`, `y_${u.length}`], rows, { ...options, comment: options.comment ?? u.comment });
+  return toCsv(['metodo', 'estado', 'punto', `x_${u.length}`, `y_${u.length}`, 'unidades'], rows.map((r) => [...r, u.label]), options);
 }

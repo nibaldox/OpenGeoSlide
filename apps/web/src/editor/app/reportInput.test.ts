@@ -47,39 +47,39 @@ describe('exportaciones CSV', () => {
   it('resultsCsv: una fila por método, con FS, λ solo si convergió y la columna avisos', async () => {
     const run = await makeRun();
     const lines = resultsCsv(run.report).trim().split('\r\n');
-    expect(lines[0]).toBe('# unidades: SI (m, kN/m³, kPa)');
-    expect(lines[1]).toBe('metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos');
-    expect(lines).toHaveLength(2 + run.report.results.length);
+    expect(lines[0]).toBe('metodo,estado,fs,iteraciones,lambda,xc_m,yc_m,r_m,evaluadas,validas,avisos,unidades');
+    expect(lines).toHaveLength(1 + run.report.results.length);
+    expect(lines.slice(1).every((l) => l.endsWith(',SI'))).toBe(true);
   });
 
   it('resultsCsv con el motor real: λ de Spencer solo convergido; avisos separados por |', () => {
     const [bishop, spencer] = loadEngineReport('v047a-search-rtl').results as [MethodReport, MethodReport];
     const converged = resultsCsv({ engine: 'x', results: [bishop, spencer] }).trim().split('\r\n');
-    expect(converged[3]?.split(',')[4]).toBe(String(spencer.lambda));
+    expect(converged[2]?.split(',')[4]).toBe(String(spencer.lambda));
     const notConverged = { ...spencer, status: 'not_converged' as const, warnings: ['no_lambda_root', 'max_iterations'] };
-    const row = resultsCsv({ engine: 'x', results: [notConverged] }).trim().split('\r\n')[2]?.split(',') ?? [];
+    const row = resultsCsv({ engine: 'x', results: [notConverged] }).trim().split('\r\n')[1]?.split(',') ?? [];
     expect(row[2]).toBe(''); // fs
     expect(row[4]).toBe(''); // lambda
     expect(row[10]).toBe('no_lambda_root|max_iterations');
+    expect(row[11]).toBe('SI');
   });
 
   it('surfaceCoordsCsv: n+1 puntos por método, de izquierda a derecha, con la columna estado', async () => {
     const run = await makeRun();
     const lines = surfaceCoordsCsv(run.report.results).trim().split('\r\n');
-    expect(lines[0]).toBe('# unidades: SI (m, kN/m³, kPa)');
-    expect(lines[1]).toBe('metodo,estado,punto,x_m,y_m');
+    expect(lines[0]).toBe('metodo,estado,punto,x_m,y_m,unidades');
     const converged = run.report.results.filter((r) => r.status === 'converged');
     expect(converged.length).toBeGreaterThan(0);
-    expect(lines).toHaveLength(2 + converged.reduce((a, r) => a + r.slices.length + 1, 0));
+    expect(lines).toHaveLength(1 + converged.reduce((a, r) => a + r.slices.length + 1, 0));
     const first = converged[0]!;
     const xs = first.slices.map((s) => s.x_left);
-    expect(lines[2]).toBe(`${first.method},converged,1,${Math.min(...xs)},${first.slices.find((s) => s.x_left === Math.min(...xs))!.y_base_left}`);
+    expect(lines[1]).toBe(`${first.method},converged,1,${Math.min(...xs)},${first.slices.find((s) => s.x_left === Math.min(...xs))!.y_base_left},SI`);
   });
 
   it('R5-03: D01 fijo (left_to_right), primer punto = menor x, último = mayor x con el pie (x = 40), sin retrocesos', () => {
     expect(loadDifferentialDoc('D01').slope?.direction).toBe('left_to_right');
     const { results } = loadEngineReport('d01-fixed-ltr');
-    const rows = surfaceCoordsCsv(results).trim().split('\r\n').slice(2).map((l) => l.split(','));
+    const rows = surfaceCoordsCsv(results).trim().split('\r\n').slice(1).map((l) => l.split(','));
     const bishop = rows.filter((r) => r[0] === 'bishop');
     const spencer = rows.filter((r) => r[0] === 'spencer');
     for (const method of [bishop, spencer]) {
@@ -93,20 +93,23 @@ describe('exportaciones CSV', () => {
     }
   });
 
-  it('B-04: en imperial la primera línea declara las unidades y las columnas con dimensión llevan _ft', () => {
+  it('B-04 y R9-07: en imperial la columna `unidades` dice imperial y las columnas con dimensión llevan _ft; sin línea de comentario', () => {
     const { results } = loadEngineReport('d01-fixed-ltr');
     const res = resultsCsv({ engine: 'x', results }, 'imperial').split('\r\n');
-    expect(res[0]).toBe('# unidades: imperial (ft, pcf, psf)');
-    expect(res[1]).toBe('metodo,estado,fs,iteraciones,lambda,xc_ft,yc_ft,r_ft,evaluadas,validas,avisos');
+    expect(res[0]).toBe('metodo,estado,fs,iteraciones,lambda,xc_ft,yc_ft,r_ft,evaluadas,validas,avisos,unidades');
+    expect(res[1]?.endsWith(',imperial')).toBe(true);
     const sur = surfaceCoordsCsv(results, 'imperial').split('\r\n');
-    expect(sur[0]).toBe('# unidades: imperial (ft, pcf, psf)');
-    expect(sur[1]).toBe('metodo,estado,punto,x_ft,y_ft');
+    expect(sur[0]).toBe('metodo,estado,punto,x_ft,y_ft,unidades');
+    expect(sur[1]?.endsWith(',imperial')).toBe(true);
+    expect([...res, ...sur].some((l) => l.startsWith('#'))).toBe(false);
+    // `Imperial` (R9-03b) se declara igual.
+    expect(resultsCsv({ engine: 'x', results }, 'Imperial').split('\r\n')[0]).toContain('xc_ft');
   });
 
   it('B-04: sin sistema indicado (modelo sin `units`) se declara SI', () => {
     const { results } = loadEngineReport('d01-fixed-ltr');
-    expect(resultsCsv({ engine: 'x', results }, undefined).split('\r\n')[0]).toBe('# unidades: SI (m, kN/m³, kPa)');
-    expect(resultsCsv({ engine: 'x', results }, 'SI').split('\r\n')[1]).toContain('xc_m,yc_m,r_m');
+    expect(resultsCsv({ engine: 'x', results }, undefined).split('\r\n')[1]?.endsWith(',SI')).toBe(true);
+    expect(resultsCsv({ engine: 'x', results }, 'SI').split('\r\n')[0]).toContain('xc_m,yc_m,r_m');
   });
 
   it('surfaceCoordsCsv solo exporta los métodos convergidos', () => {
@@ -115,7 +118,7 @@ describe('exportaciones CSV', () => {
     expect(csv).toContain('bishop,converged,');
     expect(csv).not.toContain('spencer');
     const none = surfaceCoordsCsv([{ ...bishop, status: 'invalid' }, { ...spencer, status: 'not_converged' }]);
-    expect(none.trim()).toBe('# unidades: SI (m, kN/m³, kPa)\r\nmetodo,estado,punto,x_m,y_m');
+    expect(none.trim()).toBe('metodo,estado,punto,x_m,y_m,unidades');
   });
 
   it('hasExportableSurface: solo con un método convergido y dovelas', () => {
