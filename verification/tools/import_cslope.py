@@ -50,6 +50,7 @@ INTERSLICE_FUNCTIONS = {
     "trapezoidal": "trapezoidal", "data-point-specified": "data_points",
 }
 HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
+HOLD_F3_FILE = Path("verification") / "pending" / "F3" / "HOLD.json"
 
 # ---------------------------------------------------------------- conversion constants
 GAMMA_W = {"SI": 9.807, "imperial": 62.4}  # cSlope constant 9.807 kN/m3; 62.4 pcf for imperial
@@ -93,8 +94,19 @@ TOL_REL = 1e-9
 # V077 (Prandtl, F3 batch 2): level ground and a polyline whose two ends are at the same elevation, so `auto` has
 # no hint. cSlope's own rule (`infer_orientation_from_coordinates`, model/canonical.rs) takes `ltr` when both
 # crests are equal; the mechanism is symmetric about x = 5 (checked with the oracle: ltr and rtl give the same FS).
-DIRECTION_OVERRIDES = {"V063": "left_to_right", "V077": "left_to_right"}
+# V026 (Duncan & Wright fig. 7.12, I-M): a symmetric embankment on clay (both toes at y = 50, crests at x = 300..400) with
+# no search ranges, so `auto` has no hint. cSlope's rule takes `ltr` with equal crests; the critical circle that the
+# source note gives, (500, 174), lies on the right-hand face, which is a mass moving toward +x (`ltr`); the search is
+# symmetric, so ogs and cSlope give the same FS with `ltr` and with `rtl` (checked in the I-M run, see the note).
+DIRECTION_OVERRIDES = {"V026": "left_to_right", "V063": "left_to_right", "V077": "left_to_right"}
 DIRECTION_OVERRIDE_NOTES = {
+    "V026": (
+        "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terraplén simétrico sobre "
+        "arcilla (ambos pies a y = 50) y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con "
+        "crestas iguales (infer_orientation_from_coordinates), el círculo crítico de Duncan & Wright, (500, 174) en el "
+        "marco del modelo, está en la cara derecha (masa hacia +x) y, al ser la búsqueda simétrica, ogs y cSlope dan el "
+        "mismo FS con ltr y con rtl."
+    ),
     "V063": (
         "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede "
         "resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el "
@@ -1045,39 +1057,45 @@ def md_cell(text: str) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str:
-    """converted: v0.1 and v0.2 cases (the v0.2 ones carry `loads` or `analysis.seismic`)."""
+def build_index(converted, omitted, discarded_by_case, order, sat_report, promoted_batches=None) -> str:
+    """converted: v0.1, v0.2 and v0.3 cases (v0.2: `loads` or `analysis.seismic`; v0.3: lots 1 and 2, promoted)."""
     """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
     sat_ids, sat_reason, sat_included = sat_report
     n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     n_checks = sum(len(c["checks"]) for c in converted)
     lines = [
-        "# Casos de verificación v0.1 y v0.2 (desde cSlope)",
+        "# Casos de verificación v0.1, v0.2 y v0.3 (desde cSlope)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
         "",
         f"Casos convertidos e incluidos: **{len(converted)}** "
         f"(v0.1: **{sum(c['model']['version'] == '0.1' for c in converted)}**, "
-        f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**), "
-        f"con **{n_checks}** checks. Es el lote 0: todo lo que se convierte hoy, sin tope ni selección. "
+        f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**, "
+        f"v0.3: **{sum(c['model']['version'] == '0.3' for c in converted)}**), "
+        f"con **{n_checks}** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. "
+        "Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde "
+        "`verification/pending/F3` cuando el motor reproduce sus checks. "
         f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
         "[`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en "
         "[`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en "
         "[`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).",
         "",
-        "| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |",
-        "|---|---|---|---|---|---|---|",
+        "Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.",
+        "",
+        "| id | título | referencia | unidades | sismo y cargas | checks (B/S/MP/JS/JC) | tipo | versión |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for case in converted:
-        nb = sum(c["method"] == "bishop" for c in case["checks"])
-        ns = sum(c["method"] == "spencer" for c in case["checks"])
+        counts = " / ".join(str(sum(c["method"] == m for c in case["checks"])) for m in
+                            ("bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"))
+        kinds = sorted({c["kind"] for c in case["checks"]})
         lines.append(
             f"| {md_cell(case['id'])} | {md_cell(case['title'])} | {md_cell(case['source']['reference'])} "
-            f"| {case['model']['units']} | {md_cell(describe_features(case)) or '—'} | {nb} / {ns} "
-            f"| {case['checks'][0]['kind']} |"
+            f"| {case['model']['units']} | {md_cell(describe_features(case)) or '—'} | {counts} "
+            f"| {'/'.join(kinds)} | {case['model']['version']} |"
         )
     lines += ["", "## Checks descartados en casos convertidos", ""]
     for cid in order:
@@ -1224,47 +1242,38 @@ def build_hold_index(held: list[dict], hold: dict[tuple, dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_f3_index(cases: list[dict], batches: dict[str, list[int]], lote0_ids: set[str], dropped: dict[str, list[str]],
+def build_f3_index(converted: list[dict], promoted: dict[str, dict], promoted_batches: dict[str, list[int]],
+                   held: list[dict], hold: dict[tuple, dict], lote0_ids: set[str], dropped: dict[str, list[str]],
                    omitted: list[tuple[str, str]]) -> str:
-    n = {b: sum(1 for cid in batches for x in batches[cid] if x == b) for b in (0, 1, 2)}
-    cases_b = {b: [c["id"] for c in cases if b in batches[c["id"]]] for b in (1, 2)}
-    new_b = {1: [cid for cid in cases_b[1] if cid not in lote0_ids]}
-    # cumulative, as in X10: a problem counts once, in the first batch that needs it
-    new_b[2] = [cid for cid in cases_b[2] if cid not in lote0_ids and cid not in new_b[1]]
+    n = {b: sum(1 for bs in promoted_batches.values() for x in bs if x == b) for b in (0, 1, 2)}
+    new_ids = [cid for cid in promoted if cid not in lote0_ids]
     lines = [
-        "# Casos de los lotes 1 y 2 (formato v0.3, esperan al motor)",
+        "# Lotes 1 y 2 (formato v0.3): checks retenidos",
         "",
-        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "Generado por `verification/tools/import_cslope.py` a partir de `HOLD.json`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
         "",
-        "Cada archivo es el **estado destino** del problema (versión `0.3`): trae todos los checks convertibles, también los "
-        "del lote 0 que ya están en `verification/cases/`, así que promoverlo es reemplazar ese archivo. "
-        "Los checks nuevos son los de métodos o modelos que el motor de `main` aún no admite (`morgenstern_price`, "
-        "`janbu_simplified`, `janbu_corrected`, material `undrained`, superficie `polyline`). "
-        "La verificación contra cSlope está en [`REPORT.md`](REPORT.md) (solo oráculo).",
+        f"Los lotes 1 (`undrained` y `s-f-datum`) y 2 (polilíneas fijas, M-P y Janbu) están promovidos a `verification/cases/`: "
+        f"**{len(promoted)}** casos (de ellos **{len(new_ids)}** nuevos) con **{sum(n.values())}** checks "
+        f"(del lote 0: {n[0]}, lote 1: **{n[1]}**, lote 2: **{n[2]}**). Aquí quedan solo los checks que el motor no "
+        "reproduce, convertidos igual que los de `verification/cases/`. No se relaja ninguna tolerancia ni se toca ningún "
+        "dato. Cuando el motor los reproduzca, el integrador los promueve quitándolos de `HOLD.json` y regenerando.",
         "",
-        f"Casos: **{len(cases)}**; checks: **{sum(len(c['checks']) for c in cases)}** "
-        f"(de ellos del lote 0: {n[0]}, lote 1: **{n[1]}**, lote 2: **{n[2]}**).",
+        f"Checks retenidos: **{sum(len(c['checks']) for c in held)}** en **{len(held)}** casos.",
         "",
-        "| lote | contenido | checks | casos con checks del lote | casos nuevos (no estaban en los lotes anteriores) |",
-        "|---|---|---:|---:|---:|",
-        f"| 1 | `undrained` y `s-f-datum` (Bishop y Spencer) | {n[1]} | {len(cases_b[1])} | {len(new_b[1])} |",
-        f"| 2 | polilíneas fijas, M-P y Janbu | {n[2]} | {len(cases_b[2])} | {len(new_b[2])} |",
-        "",
-        f"Casos nuevos del lote 1 ({len(new_b[1])}): {', '.join(new_b[1])}.",
-        f"Casos nuevos del lote 2 ({len(new_b[2])}): {', '.join(new_b[2])}.",
-        "",
-        "| id | título | modelos | superficie | checks por lote (0/1/2) | métodos |",
-        "|---|---|---|---|---|---|",
+        "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+        "|---|---|---:|---|---:|---:|---:|---|",
     ]
-    for case in cases:
-        bs = batches[case["id"]]
-        m = case["model"]
-        kinds = sorted({mat["model"] for mat in m["materials"]})
-        surf = m["analysis"].get("surface", {}).get("type", "search")
-        lines.append(f"| {case['id']} | {md_cell(case['title'])} | {', '.join(kinds)} | {surf} "
-                     f"| {bs.count(0)}/{bs.count(1)}/{bs.count(2)} | {', '.join(m['analysis']['methods'])} |")
-    lines += ["", "## Checks descartados en estos casos", ""]
+    for case in held:
+        for c in case["checks"]:
+            e = hold[check_key(case["id"], c)]
+
+            def f(v):
+                return "—" if v is None else f"{v:.4f}"
+            lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                         f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
+                         f"| {md_cell(e.get('diagnosis', ''))} |")
+    lines += ["", "## Checks descartados en los casos de los lotes 1 y 2", ""]
     for cid in sorted(dropped):
         for reason in dropped[cid]:
             lines.append(f"- {cid}: {md_cell(reason)}")
@@ -1371,8 +1380,34 @@ def main() -> int:
         f3_batches[cid] = batches
         f3_dropped[cid] = disc
     f3_dropped = {k: v for k, v in f3_dropped.items() if v}
-    # problems that are neither batch 0 nor F3: the reason of F3 (it is the most permissive conversion)
-    f3_omitted = [(cid, r) for cid, r in f3_omitted if cid not in lote0_ids]
+    # ---- promotion (I-M): the v0.3 target replaces the case of verification/cases/; the checks that the engine does not
+    # reproduce stay in verification/pending/F3 (HOLD.json) with their diagnosis.
+    hold_f3 = load_hold(root / HOLD_F3_FILE)
+    promoted: dict[str, dict] = {}
+    promoted_batches: dict[str, list[int]] = {}
+    f3_held: list[dict] = []
+    for case in f3_cases:
+        cid = case["id"]
+        rest, held_case = split_hold(case, hold_f3)
+        if held_case is not None:
+            f3_held.append(held_case)
+        if rest is None:
+            continue
+        kept = [b for c, b in zip(case["checks"], f3_batches[cid]) if check_key(cid, c) not in hold_f3]
+        if max(kept) == 0:
+            continue    # only batch-0 checks are left: the v0.1/v0.2 case of batch 0 stays
+        promoted[cid] = rest
+        promoted_batches[cid] = kept
+    unknown_hold_f3 = sorted(set(hold_f3) - {check_key(c["id"], k) for c in f3_held for k in c["checks"]})
+    by_id = {c["id"]: c for c in converted}
+    by_id.update(promoted)
+    converted = [by_id[cid] for cid in order if cid in by_id]
+    discarded_by_case = {c["id"]: (f3_dropped.get(c["id"], []) if c["id"] in promoted else discarded_all[c["id"]])
+                         for c in converted}
+    omitted = [(cid, r) for cid, r in omitted if cid not in promoted]
+    sat_included = [cid for cid in sat_ids if cid in {c["id"] for c in converted}]
+    sat_reason = {cid: reason_all.get(cid, "convertible, retenido (ver verification/pending/lote0)")
+                  for cid in sat_ids}
 
     # ---- gates
     failures = []
@@ -1391,6 +1426,8 @@ def main() -> int:
                 failures.append(f"{cid}{label} geometría: {err}")
     if unknown_hold:
         failures.append(f"HOLD.json con checks que no existen en el lote 0: {unknown_hold}")
+    if unknown_hold_f3:
+        failures.append(f"pending/F3/HOLD.json con checks que no existen en F3: {unknown_hold_f3}")
     if not converted:
         failures.append("ningún caso convertido")
     if failures:
@@ -1413,7 +1450,7 @@ def main() -> int:
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
-    pending_included = [c for c in converted if c["model"]["version"] == "0.2"]
+    pending_included = [c for c in converted if c["model"].get("loads") or c["model"]["analysis"].get("seismic")]
     for stale in sorted(pending_dir.glob("V*.json")):
         stale.unlink()
         changed += 1
@@ -1427,30 +1464,31 @@ def main() -> int:
         for case in held_cases:
             changed += write_if_changed(hold_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
         changed += write_if_changed(hold_dir / "INDEX.md", build_hold_index(held_cases, hold))
-    # F3
+    # F3: only the checks that the engine does not reproduce are left in pending (the rest was promoted above)
     f3_dir = pending_dir / "F3"
-    keep_f3 = {f"{c['id']}.json" for c in f3_cases}
+    keep_f3 = {f"{c['id']}.json" for c in f3_held}
     for stale in sorted(f3_dir.glob("V*.json")) if f3_dir.is_dir() else []:
         if stale.name not in keep_f3:
             stale.unlink()
             changed += 1
-    for case in f3_cases:
+    for case in f3_held:
         changed += write_if_changed(f3_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
-    changed += write_if_changed(f3_dir / "INDEX.md", build_f3_index(f3_cases, f3_batches, lote0_ids, f3_dropped, f3_omitted))
+    changed += write_if_changed(f3_dir / "INDEX.md", build_f3_index(
+        converted, promoted, promoted_batches, f3_held, hold_f3, lote0_ids, f3_dropped, f3_omitted))
 
     # ---- summary
     n_checks = sum(len(c["checks"]) for c in converted)
-    n_v02 = len(pending_included)
+    n_v02 = sum(c["model"]["version"] == "0.2" for c in converted)
     print(f"Fuente: {src}")
     print(f"Problemas en verification.json: {len(order)}; en problems.ts: {len(problems)}")
     print(f"Lote 0 convertible hoy: {len(batch0)} casos, {sum(len(c['checks']) for c in batch0.values())} checks")
     print(f"Lote 0 retenido: {len(held_cases)} casos, {sum(len(c['checks']) for c in held_cases)} checks")
-    print(f"verification/cases: {len(converted)} casos ({len(converted) - n_v02} v0.1 + {n_v02} v0.2), {n_checks} checks")
-    nb = {b: sum(x == b for bs in f3_batches.values() for x in bs) for b in (0, 1, 2)}
-    new1 = [c["id"] for c in f3_cases if 1 in f3_batches[c["id"]] and c["id"] not in lote0_ids]
-    new2 = [c["id"] for c in f3_cases if 2 in f3_batches[c["id"]] and c["id"] not in lote0_ids and c["id"] not in new1]
-    print(f"verification/pending/F3: {len(f3_cases)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}; "
-          f"casos nuevos lote 1: {len(new1)}, lote 2: {len(new2)}")
+    n_v03 = sum(c["model"]["version"] == "0.3" for c in converted)
+    print(f"verification/cases: {len(converted)} casos ({len(converted) - n_v02 - n_v03} v0.1 + {n_v02} v0.2 + {n_v03} v0.3), "
+          f"{n_checks} checks")
+    nb = {b: sum(x == b for bs in promoted_batches.values() for x in bs) for b in (0, 1, 2)}
+    print(f"Promovidos desde F3 a verification/cases: {len(promoted)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}")
+    print(f"verification/pending/F3 (retenidos): {len(f3_held)} casos, {sum(len(c['checks']) for c in f3_held)} checks")
     print("Omitidos del lote 0:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")

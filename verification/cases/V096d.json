@@ -3,7 +3,7 @@
   "title": "Zhu & Lee slope, the paper's surface 3, dry",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V096d",
       "title": "Zhu & Lee slope, the paper's surface 3, dry",
@@ -151,7 +151,8 @@
     },
     "analysis": {
       "methods": [
-        "spencer"
+        "spencer",
+        "morgenstern_price"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -172,6 +173,16 @@
       "published": 1.836,
       "published_by": "Zhu & Lee (2002)",
       "tolerance": 0.020272331154684096,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.823,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.02027427317608338,
       "options": {
         "slices": 50
       }

@@ -21,6 +21,18 @@ use ogs_core::{analyze, analyze_json};
 use serde_json::{Value, json};
 
 const V047A: &str = include_str!("../../../verification/cases/V047a.json");
+
+/// The model of V047a as a v0.1 document with Bishop and Spencer, the two methods this file covers. The case file
+/// itself is the v0.3 target (it also carries the Morgenstern-Price and Janbu checks), so the neutrality and search
+/// tests take the v0.1 part of it.
+fn v047a_v01() -> Value {
+    let case: Value = serde_json::from_str(V047A).expect("V047a is valid JSON");
+    let mut m = case["model"].clone();
+    m["version"] = json!("0.1");
+    m["analysis"]["methods"] = json!(["bishop", "spencer"]);
+    m["analysis"].as_object_mut().unwrap().remove("interslice");
+    m
+}
 const ORACLE: &str = include_str!("fixtures/oracle_seismic_v047a.json");
 
 /// Circle of the oracle: the Bishop critical circle of V047a (X1 §2.2), exact floats.
@@ -218,9 +230,8 @@ fn fos(r: &MethodReport) -> f64 {
 /// search; the explicit zeros of v0.2 (`kh = kv = 0`, `loads: []`) change nothing either.
 #[test]
 fn i_neutrality_v01_and_v02_are_bit_identical() {
-    let case: Value = serde_json::from_str(V047A).unwrap();
-    let search_doc = case["model"].clone();
-    let mut fixed_doc = case["model"].clone();
+    let search_doc = v047a_v01();
+    let mut fixed_doc = v047a_v01();
     fixed_doc["analysis"]
         .as_object_mut()
         .unwrap()
@@ -1401,8 +1412,7 @@ fn e12f_load_outside_the_block_is_noted_and_does_not_change_the_factor() {
 /// A search with seismic force runs end to end: it converges and the critical FS is lower than without it.
 #[test]
 fn search_with_seismic_force_converges_and_lowers_the_factor() {
-    let case: Value = serde_json::from_str(V047A).unwrap();
-    let mut base = case["model"].clone();
+    let mut base = v047a_v01();
     base["version"] = json!("0.2");
     let plain = analyze_json(&base.to_string()).unwrap();
     let plain: Value = serde_json::from_str(&plain).unwrap();

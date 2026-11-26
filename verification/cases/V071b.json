@@ -3,7 +3,7 @@
   "title": "Pockoski & Duncan slope 1, circular search",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V071b",
       "title": "Pockoski & Duncan slope 1, circular search",
@@ -80,7 +80,8 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "janbu_simplified"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -114,6 +115,16 @@
       "published": 1.3,
       "published_by": "Commercial program A",
       "tolerance": 0.023846153846153847,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.151,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043440486533449,
       "options": {
         "slices": 50
       }

@@ -295,10 +295,17 @@ fn check_block_ends_circle(
         return Err(SurfaceError::OutsideModel);
     }
     // An end of `[a, b]` is a crossing only when the arc touches the ground there (see R1-06).
-    let touches_left =
-        t.a - x_min <= tol && pm.arc_clearance(c, t.a).is_some_and(|d| d.abs() <= tol);
-    let touches_right =
-        x_max - t.b <= tol && pm.arc_clearance(c, t.b).is_some_and(|d| d.abs() <= tol);
+    // I-M (V068): the end of the span may also be the circle's own end `xc ± r` (its vertical tangent, inside the
+    // model) when the arc touches the ground there (`|d| ≤ tol`), for example a circle whose centre is at the crest
+    // level. The same rule as at a model wall (R1-06). An arc under the ground at its own end (`d < −tol`) is the
+    // upper-arc case and stays an error. Only a touch counts: also admitting an arc above the ground (`d > tol`)
+    // changed the winner of a search of the battery (D03), which breaks the identity of F3.1.
+    let touches_left = pm.arc_clearance(c, t.a).is_some_and(|d| {
+        (t.a - x_min <= tol && d.abs() <= tol) || (ap > x_min + tol && d.abs() <= tol)
+    });
+    let touches_right = pm.arc_clearance(c, t.b).is_some_and(|d| {
+        (x_max - t.b <= tol && d.abs() <= tol) || (bp < x_max - tol && d.abs() <= tol)
+    });
     if (l <= t.a && !touches_left) || (r >= t.b && !touches_right) {
         let (_, upper_under) = pm.arc_profile(c, false, t.a, t.b);
         let upper_cross = upper_under.windows(2).any(|w| w[0] != w[1]);

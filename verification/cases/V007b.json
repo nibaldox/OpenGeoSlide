@@ -3,7 +3,7 @@
   "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V007b",
       "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
@@ -50,7 +50,8 @@
     },
     "analysis": {
       "methods": [
-        "spencer"
+        "spencer",
+        "janbu_simplified"
       ],
       "slices": 50,
       "tolerance": 1e-05,
@@ -68,6 +69,16 @@
     }
   },
   "checks": [
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 0.957,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02052246603970742,
+      "options": {
+        "slices": 50
+      }
+    },
     {
       "method": "spencer",
       "kind": "search",

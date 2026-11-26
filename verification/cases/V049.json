@@ -3,7 +3,7 @@
   "title": "ACADS 1(c), three-layer slope",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V049",
       "title": "ACADS 1(c), three-layer slope",
@@ -157,7 +157,9 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
       ],
       "slices": 40,
       "tolerance": 1e-05,
@@ -199,6 +201,26 @@
       "published": 1.375,
       "published_by": "Commercial program A",
       "tolerance": 0.020363636363636365,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.357,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020368459837877672,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.382,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02036179450072359,
       "options": {
         "slices": 40
       }

@@ -94,6 +94,8 @@ def model_for_check(model: dict, check: dict) -> dict:
     m = copy.deepcopy(model)
     analysis = m.setdefault("analysis", {})
     analysis["methods"] = [check["method"]]
+    if check["method"] != "morgenstern_price":
+        analysis.pop("interslice", None)
     if "slices" in check.get("options", {}):
         analysis["slices"] = int(check["options"]["slices"])
     if check["kind"] == "fixed":

@@ -3,7 +3,7 @@
   "title": "Arai & Tagyo (1985) example 3, water table",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
@@ -84,7 +84,8 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "janbu_corrected"
       ],
       "slices": 40,
       "tolerance": 1e-05,
@@ -118,6 +119,16 @@
       "published": 1.118,
       "published_by": "Commercial program A",
       "tolerance": 0.020447227191413238,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.131,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020442086648983202,
       "options": {
         "slices": 40
       }

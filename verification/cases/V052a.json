@@ -3,7 +3,7 @@
   "title": "Talbingo Dam, end of construction",
   "model": {
     "format": "opengeoslide",
-    "version": "0.1",
+    "version": "0.3",
     "meta": {
       "id": "V052a",
       "title": "Talbingo Dam, end of construction",
@@ -262,7 +262,8 @@
     "analysis": {
       "methods": [
         "bishop",
-        "spencer"
+        "spencer",
+        "janbu_corrected"
       ],
       "slices": 60,
       "tolerance": 1e-05,
@@ -296,6 +297,16 @@
       "published": 1.948,
       "published_by": "Commercial program A",
       "tolerance": 0.020256673511293635,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.949,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02025654181631606,
       "options": {
         "slices": 60
       }
