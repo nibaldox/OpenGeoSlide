@@ -4,6 +4,7 @@
 
 import type { ConfirmOptions } from '../../ui/confirmQueue';
 import type { EditorCommand, ModelDoc } from '../types';
+import { isImperialUnits } from '../state/units';
 import { unitLabels } from './forms';
 
 export type MetaField = 'id' | 'title' | 'notes';
@@ -41,7 +42,7 @@ export type CurrentUnits = { kind: UnitsKind } | { kind: 'other'; raw: string };
 export function currentUnits(doc: Pick<ModelDoc, 'units'>): CurrentUnits {
   const u = doc.units;
   if (u === undefined || u === null || u === 'SI') return { kind: 'SI' };
-  if (u === 'imperial') return { kind: 'imperial' };
+  if (isImperialUnits(u)) return { kind: 'imperial' }; // R9-03b: también `Imperial`
   return { kind: 'other', raw: u };
 }
 
