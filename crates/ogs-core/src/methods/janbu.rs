@@ -7,12 +7,18 @@
 //! mass, as Janbu's method asks. When the closure has several admissible roots, the **lowest** one is taken, as in
 //! Spencer (E12e, E13j-4), with the note `multiple_admissible_roots` if another lies more than 1 % above it.
 //!
-//! **Corrected.** `F = f₀·F₀`, with `f₀ = 1 + b₁ (d/L − 1.4 (d/L)²)` (Janbu 1973), as cSlope does (`solvers.rs`):
+//! **Corrected.** `F = f₀·F₀`, with `f₀ = max(1, 1 + b₁ (d/L − 1.4 (d/L)²))` (Janbu 1973), as cSlope does (`solvers.rs`)
+//! with the floor of E13l-1:
 //! - `L` is the chord between the two ends of the block, `d` the greatest distance of the midpoint of a base
 //!   below the chord (`d ≤ 0` gives `d = 0` and `f₀ = 1`);
 //! - `b₁` is chosen once for the whole block from its soil slices: 0.69 when some slice has `c > 0` and none has
 //!   `tan φ > 0` (an undrained material counts as cohesion only), 0.31 when some has `tan φ > 0` and none has `c > 0`
-//!   or when none has either, and 0.50 when both occur.
+//!   or when none has either, and 0.50 when both occur;
+//! - the parabola is a fit to the chart of Janbu et al. (1973), whose `d/L` axis ends at 0.4 (Fig. 8 of Water 2019, 11(10),
+//!   2146, after Abramson et al. 2002; the same axis in the thesis of Amare, Addis Ababa Univ.). Beyond `d/L = 1/1.4 ≈ 0.714`
+//!   it falls below 1, and beyond `≈ 1.4` it is negative (R10A-01: FS = −23.4 as `converged`; R10B-01: −0.752), so
+//!   E13l-1 floors it at 1: **the correction never reduces F₀**. For `d/L > 0.4` the factor is an extrapolation of the
+//!   chart, and the note `janbu_correction_extrapolated` says so.
 //!
 //! The state, the guards, `N'` and the forces of the slices are those of `F₀`. The report carries `fos = f₀·F₀` and
 //! `correction_factor = f₀`. The search minimises the corrected FS.
@@ -27,6 +33,11 @@ use crate::slicer::Slice;
 
 /// Force closure at `F₀`: `|E_n| ≤ 1e-6·ΣW`, as in Spencer (E10b).
 const CLOSURE_FRACTION: f64 = 1e-6;
+/// End of the `d/L` axis of Janbu's chart (E13l-1): above it `f₀` is an extrapolation and the note
+/// [`EXTRAPOLATED_MESSAGE`] is added.
+pub(crate) const CHART_LIMIT: f64 = 0.4;
+/// Note of `janbu_corrected` when `d/L` is above [`CHART_LIMIT`] (E13l-1).
+pub(crate) const EXTRAPOLATED_MESSAGE: &str = "janbu_correction_extrapolated";
 /// `b₁` of cohesion-only, friction-only (and neither), and mixed soil.
 const B1_COHESION: f64 = 0.69;
 const B1_FRICTION: f64 = 0.31;
@@ -52,12 +63,12 @@ fn b1(slices: &[Slice]) -> f64 {
     }
 }
 
-/// `f₀ = 1 + b₁ (d/L − 1.4 (d/L)²)` of the block (E13e). `L` is the distance from the left end of the base of the first
+/// `f₀ = max(1, 1 + b₁ (d/L − 1.4 (d/L)²))` of the block (E13e, E13l-1) and its `d/L`. `L` is the distance from the left end of the base of the first
 /// slice to the right end of the last one (the two ends of the block, whatever the sliding direction). `d` is the
 /// greatest distance below the chord of the midpoint of a base. Both are taken over the **soil** slices: an aerial slice
 /// at an end of the block (the arc runs over the ground near the toe, E7a) is no part of the sliding mass, and with it
 /// D09 ran +0.98 % over cSlope (`L` = 22.36 instead of 17.60). `1` for an empty block or a chord of zero length.
-pub fn janbu_correction_factor(slices: &[Slice]) -> f64 {
+fn janbu_correction(slices: &[Slice]) -> (f64, f64) {
     let ends =
         slices
             .iter()
@@ -72,13 +83,13 @@ pub fn janbu_correction_factor(slices: &[Slice]) -> f64 {
                 })
             });
     let Some((first, last)) = ends else {
-        return 1.0;
+        return (1.0, 0.0);
     };
     let (xa, ya) = (first.x_left, first.y_base_left);
     let (xb, yb) = (last.x_right, last.y_base_right);
     let length = (xb - xa).hypot(yb - ya);
     if length <= 0.0 || !length.is_finite() {
-        return 1.0;
+        return (1.0, 0.0);
     }
     let mut d = 0.0_f64;
     for s in slices.iter().filter(|s| !is_inert(s)) {
@@ -91,7 +102,9 @@ pub fn janbu_correction_factor(slices: &[Slice]) -> f64 {
         }
     }
     let ratio = d / length;
-    1.0 + b1(slices) * (ratio - 1.4 * ratio * ratio)
+    // E13l-1: the correction never reduces F₀. Up to `d/L = 1/1.4` the parabola is ≥ 1 and the floor changes nothing.
+    let f0 = (1.0 + b1(slices) * (ratio - 1.4 * ratio * ratio)).max(1.0);
+    (f0, ratio)
 }
 
 /// Janbu's simplified (`corrected == false`) or corrected (`true`) method on the slices of a block.
@@ -122,11 +135,11 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
             "no_admissible_root",
         );
     }
-    let (fos, correction) = if corrected {
-        let f_correction = janbu_correction_factor(slices);
-        (f_correction * f0, Some(f_correction))
+    let (fos, correction, extrapolated) = if corrected {
+        let (f_correction, ratio) = janbu_correction(slices);
+        (f_correction * f0, Some(f_correction), ratio > CHART_LIMIT)
     } else {
-        (f0, None)
+        (f0, None, false)
     };
     if !fos.is_finite() {
         return stop(fos, SolveStatus::Invalid, iterations, "non_finite");
@@ -135,6 +148,9 @@ pub(super) fn solve(slices: &[Slice], opts: &SolveOptions, corrected: bool) -> M
     let mut notes = Vec::with_capacity(3);
     if multiple {
         notes.push(spencer::MULTIPLE_ROOTS_MESSAGE);
+    }
+    if extrapolated {
+        notes.push(EXTRAPOLATED_MESSAGE);
     }
     notes.extend(converged_notes(
         air_gap_thrust(slices, &e),

@@ -566,7 +566,7 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `load_outside_mass`, `multiple_admissible_roots`,
   `max_iterations`, `non_finite`, `no_slices`, `no_lambda_root`, `no_admissible_root`, `negative_lambda`,
   `polyline_no_ground_crossing`, `polyline_outside_ground`, `bishop_non_circular`,
-  `interslice_shear_exceeds_strength`) son
+  `interslice_shear_exceeds_strength`, `janbu_correction_extrapolated`, `non_positive_fos`) son
   identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
   porque ya no se emiten); agregar uno nuevo exige
   actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
