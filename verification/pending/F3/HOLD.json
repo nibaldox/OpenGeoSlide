@@ -7,23 +7,5 @@
     "ogs": 1.1633,
     "cslope": 1.1429,
     "diagnosis": "El FS reproduce el publicado (ogs 1.1633, +2.04 %, tol 2.44 %; cSlope 1.1429, +0.25 %) desde que el motor acepta un círculo cuyo arco termina tangente al terreno (centro a la cota de la cresta: xc + r = 33.557 sobre y = 16; antes NoValidSurface 'el círculo no corta el terreno'; corrección en slicer.rs, con test). Queda retenido por el mismo motivo que V027 y V028: el motor emite negative_effective_normal_major y la aceptación rechaza todo aviso que no sea informativo (E5). Medido: 3 de 55 dovelas con N' < 0, f = Σ|N'<0|/ΣW = 0.204 (umbral 0.05) y fracción de la longitud de base 0.183 (umbral 0.25): es la escarpa vertical del extremo superior, que cSlope también declara sensible al corte (slicingSensitive). Decisión del coordinador: tratar el aviso como informativo en este caso o dejarlo retenido."
-  },
-  {
-    "id": "V018",
-    "method": "morgenstern_price",
-    "published": 1.009,
-    "published_by": "Commercial program A",
-    "ogs": 1.0078,
-    "cslope": 1.0078,
-    "diagnosis": "El FS reproduce el publicado y a cSlope (ogs 1.0078 = cSlope 1.0078; publicados 1.009 y 1.017, tol 1.05 %; el 1.017 queda a −0.91 % de cSlope, dentro de la tolerancia), desde que la escala de fuerzas es max(ΣW, ΣW*) (E13j-6; antes no_lambda_root). Queda retenido por el mismo motivo que V027, V028 y V068: el motor emite negative_effective_normal_major y la aceptación rechaza todo aviso que no sea informativo (E5). Medido: 1 de 64 dovelas con N' < 0, Σ|N'<0| = 1,0148 y fracción de la longitud de base 0,0116 (umbral 0,25; bajo). El disparo es el divisor de f = Σ|N'<0|/ΣW: ΣW es el peso del suelo, 6,31e-5 con γ = 1e-6, y f = 16086 (umbral 0,05). Con la escala de las cargas, ΣW* ≈ 1,5e3, f sería ≈ 7e-4 y el aviso sería informativo (negative_effective_normal). La enmienda E13j-6 dejó la guarda y su umbral sin cambio (decisión del coordinador): V018 con M-P se queda retenido. Spencer sobre el mismo círculo no tiene N' < 0 y está promovido (ogs 1.0520, cSlope 1.0520)."
-  },
-  {
-    "id": "V018",
-    "method": "morgenstern_price",
-    "published": 1.017,
-    "published_by": "Commercial program B",
-    "ogs": 1.0078,
-    "cslope": 1.0078,
-    "diagnosis": "El FS reproduce el publicado y a cSlope (ogs 1.0078 = cSlope 1.0078; publicados 1.009 y 1.017, tol 1.05 %; el 1.017 queda a −0.91 % de cSlope, dentro de la tolerancia), desde que la escala de fuerzas es max(ΣW, ΣW*) (E13j-6; antes no_lambda_root). Queda retenido por el mismo motivo que V027, V028 y V068: el motor emite negative_effective_normal_major y la aceptación rechaza todo aviso que no sea informativo (E5). Medido: 1 de 64 dovelas con N' < 0, Σ|N'<0| = 1,0148 y fracción de la longitud de base 0,0116 (umbral 0,25; bajo). El disparo es el divisor de f = Σ|N'<0|/ΣW: ΣW es el peso del suelo, 6,31e-5 con γ = 1e-6, y f = 16086 (umbral 0,05). Con la escala de las cargas, ΣW* ≈ 1,5e3, f sería ≈ 7e-4 y el aviso sería informativo (negative_effective_normal). La enmienda E13j-6 dejó la guarda y su umbral sin cambio (decisión del coordinador): V018 con M-P se queda retenido. Spencer sobre el mismo círculo no tiene N' < 0 y está promovido (ogs 1.0520, cSlope 1.0520)."
   }
 ]
