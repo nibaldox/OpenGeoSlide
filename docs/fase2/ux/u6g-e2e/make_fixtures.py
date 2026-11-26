@@ -41,7 +41,9 @@ for name, m in files.items():
 
 # Modelo completo (v0.2): dos materiales, γsat < γ en la arcilla, ru en la roca, piezométrica corta, cargas, sismo; imperial y SI.
 def full(imp):
-    m = copy.deepcopy(src); m['version'] = '0.2'; m['meta'] = {'id': 'U6G', 'title': 'U6-G talud con cargas y sismo'}
+    # V047a se promovió con M-P y Janbu (v0.3): un modelo que declara 0.2 no puede traerlos; el abrir lo rechaza y el editor
+    # se quedaba con el modelo anterior (métrico, sin avisos). Se limita a los métodos de la 0.2 para que sea 0.2 de verdad.
+    m = copy.deepcopy(src); m['version'] = '0.2'; m['analysis']['methods'] = ['bishop', 'spencer']; m['meta'] = {'id': 'U6G', 'title': 'U6-G talud con cargas y sismo'}
     m['regions'] = [
         {'material': 'arcilla', 'polygon': [[30, 25], [50, 35], [70, 35], [70, 25]]},
         {'material': 'roca', 'polygon': [[20, 20], [20, 25], [30, 25], [70, 25], [70, 20]]},
