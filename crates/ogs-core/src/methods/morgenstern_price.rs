@@ -136,8 +136,30 @@ pub fn interslice_faces(
     faces
 }
 
+/// Scale `s` of the interslice function (E13l-4): the largest `f` of `data_points`, and `1` for the four named functions
+/// (whose maximum is 1) and for a `data_points` whose maximum is 1, a non-finite one or one that is not positive.
+/// The solver works with `f/s`, so that `max f = 1` and the scan of λ does not depend on the units of `f`.
+fn function_scale(function: IntersliceFunction, points: Option<&[Point]>) -> f64 {
+    match (function, points) {
+        (IntersliceFunction::DataPoints, Some(p)) if p.len() >= 2 => {
+            let max = p.iter().fold(0.0_f64, |m, q| m.max(q[1]));
+            if max.is_finite() && max > 0.0 {
+                max
+            } else {
+                1.0
+            }
+        }
+        _ => 1.0,
+    }
+}
+
 /// Morgenstern-Price solver on the slices of a block. `spec` is `analysis.interslice`; without it the function is
 /// `half_sine` (E13d). On a polyline (`opts.circular == false`) the F scan starts from Janbu's F₀ (E13f).
+///
+/// **Normalization (E13l-4).** With `data_points` of maximum `s ≠ 1` the solver runs on `f/s` and the scan finds
+/// `λ_n = λ·s`; the result reports `λ = λ_n/s`, in the scale of the user's function (`X = λ·f·E = λ_n·(f/s)·E`). The
+/// factor of safety does not depend on `s`. A `λ` that does not fit in an `f64` (`s` below 1e-300, where
+/// `λ = λ_n/s` overflows) is not reported (`None`). The named functions have `s = 1` and run unchanged, bit for bit.
 pub(super) fn solve(
     slices: &[Slice],
     opts: &SolveOptions,
@@ -147,6 +169,32 @@ pub(super) fn solve(
         Some(s) => (s.function, s.points.as_deref()),
         None => (IntersliceFunction::HalfSine, None),
     };
-    let faces = interslice_faces(slices, function, points);
-    spencer::solve_with_faces(MethodKind::MorgensternPrice, slices, opts, Some(&faces))
+    // E13l-4: only `data_points` can concentrate `f` on a few faces; the named functions keep the old λ grid.
+    let fine = function == IntersliceFunction::DataPoints && points.is_some();
+    let scale = function_scale(function, points);
+    if scale == 1.0 {
+        let faces = interslice_faces(slices, function, points);
+        return spencer::solve_with_faces(
+            MethodKind::MorgensternPrice,
+            slices,
+            opts,
+            Some(&faces),
+            fine,
+        );
+    }
+    let normalized: Vec<Point> = points
+        .unwrap_or(&[])
+        .iter()
+        .map(|p| [p[0], p[1] / scale])
+        .collect();
+    let faces = interslice_faces(slices, function, Some(&normalized));
+    let mut result = spencer::solve_with_faces(
+        MethodKind::MorgensternPrice,
+        slices,
+        opts,
+        Some(&faces),
+        fine,
+    );
+    result.lambda = result.lambda.map(|l| l / scale).filter(|l| l.is_finite());
+    result
 }
