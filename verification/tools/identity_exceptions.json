@@ -1,0 +1,16 @@
+[
+  {
+    "modelo": "V019",
+    "variante": "search",
+    "campos": ["results.*.search.evaluated", "results.*.search.valid"],
+    "motivo": "contacto de aire capilar: la búsqueda evalúa y valida 48 círculos más con Janbu simplificado (evaluated 10040→10088, valid 7451→7499); el FS, la superficie, los avisos y las dovelas quedan idénticos",
+    "enmienda": "E15j-8"
+  },
+  {
+    "modelo": "V019",
+    "variante": "search@0.4",
+    "campos": ["results.*.search.evaluated", "results.*.search.valid"],
+    "motivo": "contacto de aire capilar: la búsqueda evalúa y valida 48 círculos más con Janbu simplificado (evaluated 10040→10088, valid 7451→7499); el FS, la superficie, los avisos y las dovelas quedan idénticos",
+    "enmienda": "E15j-8"
+  }
+]

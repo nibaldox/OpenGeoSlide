@@ -134,3 +134,84 @@ def test_split_cracked_separates_the_models_that_the_v0_3_baseline_cannot_read(t
     rest, cracked = ivb.split_cracked(paths)
     assert sorted(rest) == ["plain.json", "ponded.json"]
     assert sorted(cracked) == ["cracked-ponded.json", "cracked.json"]
+
+
+# ------------------------------------------------------------ E15j-8: declared exceptions to the identity
+
+def _out(evaluated=10040, valid=7451, fos=1.25, extra=None):
+    doc = {"engine": "ogs-core <VERSION>", "results": [
+        {"method": "bishop", "fos": 1.5, "search": {"evaluated": 10316, "valid": 7720}},
+        {"method": "janbu_simplified", "fos": fos, "search": {"evaluated": evaluated, "valid": valid}},
+    ]}
+    if extra:
+        doc["results"][1].update(extra)
+    return json.dumps(doc).encode()
+
+
+_V019 = [
+    {"modelo": "V019", "variante": variant, "campos": ["results.*.search.evaluated", "results.*.search.valid"],
+     "motivo": "contacto de aire capilar", "enmienda": "E15j-8"}
+    for variant in ("search", "search@0.4")
+]
+
+
+def test_the_declared_exceptions_file_is_valid_and_covers_v019():
+    entries = ivb.load_exceptions()
+    assert sorted((e["modelo"], e["variante"]) for e in entries) == [("V019", "search"), ("V019", "search@0.4")]
+    assert all(e["enmienda"] == "E15j-8" and e["motivo"] and e["campos"] for e in entries)
+
+
+def test_load_exceptions_rejects_an_incomplete_entry(tmp_path):
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps([{"modelo": "V019", "variante": "search", "campos": ["a"]}]))
+    try:
+        ivb.load_exceptions(str(bad))
+    except ValueError as err:
+        assert "motivo" in str(err)
+    else:
+        raise AssertionError("debía rechazar una excepción sin motivo ni enmienda")
+    assert ivb.load_exceptions(None) == []
+
+
+def test_a_difference_only_in_the_allowed_counters_is_an_accepted_exception():
+    a, b = (0, _out(), b""), (0, _out(10088, 7499), b"")
+    verdict, paths, entry = ivb.classify("verification/cases/V019.json", "search", a, b, _V019)
+    assert verdict == "exception" and entry["enmienda"] == "E15j-8"
+    assert paths == "results.1.search.evaluated, results.1.search.valid"
+    assert ivb.classify("verification/cases/V019.json", "search@0.4", a, b, _V019)[0] == "exception"
+    assert ivb.classify("verification/cases/V019.json", "search", a, a, _V019)[0] == "same"
+
+
+def test_a_field_that_is_not_allowed_still_counts_even_next_to_the_allowed_ones():
+    a = (0, _out(), b"")
+    changed = _out(10088, 7499, fos=1.26)
+    verdict, what, entry = ivb.classify("verification/cases/V019.json", "search", a, (0, changed, b""), _V019)
+    assert verdict == "diff" and entry is None and "results.1.fos" in what
+    # a new key in the result (a warning) is a change of shape, reported at the container
+    added = _out(10088, 7499, extra={"warnings": ["m_alpha"]})
+    verdict, what, entry = ivb.classify("verification/cases/V019.json", "search", a, (0, added, b""), _V019)
+    assert verdict == "diff" and entry is None and "results.1" in what
+
+
+def test_an_undeclared_model_or_variant_still_counts():
+    a, b = (0, _out(), b""), (0, _out(10088, 7499), b"")
+    assert ivb.classify("verification/cases/V020.json", "search", a, b, _V019)[0] == "diff"
+    assert ivb.classify("verification/cases/V019.json", "fixed", a, b, _V019)[0] == "diff"
+    assert ivb.classify("verification/cases/V019.json", "search", a, b, [])[0] == "diff"
+
+
+def test_a_different_status_or_stderr_is_never_excepted():
+    a = (0, _out(), b"")
+    assert ivb.classify("V019.json", "search", a, (2, _out(10088, 7499), b""), _V019) == ("diff", "status+stdout", None)
+    assert ivb.classify("V019.json", "search", a, (0, _out(10088, 7499), b"aviso"), _V019) == ("diff", "stdout+stderr", None)
+    assert ivb.classify("V019.json", "search", a, (0, b"no es json", b""), _V019)[0] == "diff"
+
+
+def test_a_change_in_the_shape_of_the_json_is_not_covered_by_the_counters():
+    a = (0, _out(), b"")
+    shorter = json.loads(_out(10088, 7499))
+    shorter["results"].pop()
+    assert ivb.classify("V019.json", "search", a, (0, json.dumps(shorter).encode(), b""), _V019)[0] == "diff"
+    assert ivb.json_diff_paths({"a": 1}, {"a": 1.0}) == ["a"]
+    assert ivb.json_diff_paths({"a": [1, {"b": 2}]}, {"a": [1, {"b": 3}]}) == ["a.1.b"]
+    assert ivb.json_diff_paths({"a": 1}, {"b": 1}) == ["$"]
