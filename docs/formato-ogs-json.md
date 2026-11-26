@@ -146,6 +146,11 @@ no circular queda para la Fase 3b ([Limitaciones](limitaciones.md)).
 
 - Al menos 2 puntos, todos finitos, con la **x estrictamente creciente** y una separación de al menos
   `1e-9 · ancho del modelo`. Si no se cumple, el error es `InvalidModel`.
+- **`analysis.methods` es obligatorio** con una polilínea fija (E13l-8). Sin él, el valor por defecto es `["bishop"]`,
+  que una polilínea rechaza (`InvalidModel: el método 'bishop' solo admite superficies circulares; use spencer,
+  morgenstern_price o janbu`), y el esquema `ogs-0.3.schema.json` lo exige por eso: acepta y rechaza lo mismo que el
+  motor. La regla no aplica si hay `analysis.search`, que ignora la superficie fija. Un `methods: null` se rechaza (el
+  campo es una lista).
 - **Ajuste al terreno.** Cada extremo se **prolonga** en la dirección de su tramo hasta su **primer cruce** con el
   terreno. Si el punto extremo ya está sobre el terreno, el tramo se **recorta** en el cruce. El informe trae la
   polilínea ya ajustada.
@@ -159,8 +164,14 @@ no circular queda para la Fase 3b ([Limitaciones](limitaciones.md)).
 | `polyline_outside_ground` | un vértice interior sobre el terreno o en él, un tramo sobre un valle, o una polilínea que sale por una cara y vuelve a entrar (también si el terreno tiene una **cara vertical**) |
 | `m_alpha` | una base de la polilínea es tan empinada que `m_α < min_m_alpha` (véase [limitaciones](limitaciones.md#guarda-m_α-en-tramos-empinados-de-una-polilínea)) |
 
-- Los vértices de la polilínea ajustada son **nodos obligatorios** del corte en dovelas, así que la base de cada
-  dovela es recta.
+- Los vértices de la polilínea ajustada son **nodos obligatorios** del corte en dovelas, y tienen prioridad sobre las
+  fronteras de las cargas y sobre la fusión por tolerancia (E13l-6), así que la base de cada dovela es recta.
+- La prolongación y el recorte de los extremos usan la **distancia 2D** (E13l-6): un tramo extremo casi vertical no se
+  corta por tener una distancia horizontal menor que la tolerancia.
+- **Material de la base.** Cada dovela toma el material de su base. Si el punto medio de la base está sobre un contacto
+  entre dos materiales (a menos de `1e-9 · escala` del modelo), se toma el **más débil**, por
+  `c + máx(0, σ′)·tan φ` (o Su en no drenado) con `σ′ = W·cos²α/b − u` (E13l-5). Es el caso de una polilínea trazada
+  sobre el techo de un estrato débil.
 - Con `slope.direction = "auto"`, el sentido se lee de los extremos de la polilínea ajustada.
 
 El ejemplo siguiente usa la geometría de ACADS 1(a) con una polilínea de cinco puntos inscrita en el círculo fijo
@@ -191,6 +202,17 @@ Janbu corregido 0,9994:
       "points": [[30, 25.000001], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35]]
     }
   }
+}
+```
+
+Una polilínea fija sin `analysis.methods` (se sustituye todo `analysis`): el esquema la rechaza y el motor responde
+con la regla de Bishop.
+
+<!-- ogs-fragmento base=polilinea-mp-data-points ruta=analysis esperado=error:el~método~'bishop'~solo~admite~superficies~circulares esquema=rechaza -->
+```json
+{
+  "slices": 50,
+  "surface": { "type": "polyline", "points": [[30, 25.000001], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35]] }
 }
 ```
 
@@ -232,7 +254,8 @@ omisión): `m_alpha`.
 | `janbu_corrected` | Janbu corregido | sí | sí |
 
 - **Bishop con una polilínea** es `InvalidModel: el método 'bishop' solo admite superficies circulares; use spencer,
-  morgenstern_price o janbu`. En una polilínea, el FS de Bishop dependería del eje de momentos, un parámetro sin
+  morgenstern_price o janbu`. Como `bishop` es también el valor por defecto de `methods`, una polilínea fija sin
+  `methods` recibe el mismo error. En una polilínea, el FS de Bishop dependería del eje de momentos, un parámetro sin
   significado físico, y OpenGeoSlide no reporta un FS así. Con `analysis.search`, la superficie fija se ignora y la
   regla no aplica.
 - **Spencer y M-P en una polilínea** toman momentos en los puntos medios de las bases: no necesitan eje. Su lazo de F
@@ -240,11 +263,14 @@ omisión): `m_alpha`.
 - **Janbu simplificado** busca F₀, raíz del cierre de fuerzas por dovela con λ = 0 (sin ecuación de momento);
   `lambda` del informe vale `null`.
 - **Janbu corregido** entrega `fos = f₀·F₀`, con
-  `f₀ = 1 + b₁·(d/L − 1,4·(d/L)²)`. `L` es la cuerda entre los extremos del bloque de suelo, `d` la distancia máxima de
+  `f₀ = máx(1, 1 + b₁·(d/L − 1,4·(d/L)²))`. `L` es la cuerda entre los extremos del bloque de suelo, `d` la distancia máxima de
   la cuerda al punto medio de la base de cada dovela (positiva por debajo de la cuerda; si es ≤ 0, `f₀ = 1`) y `b₁` se elige una vez para el bloque:
   0,69 si hay cohesión y ninguna dovela con fricción (un material no drenado cuenta como solo cohesión), 0,31 si hay
   fricción y ninguna cohesión (o ninguna de las dos), y 0,50 si hay de las dos. La búsqueda minimiza el `fos`
   corregido.
+  - **La corrección nunca reduce F₀** (E13l-1): la parábola baja de 1 desde `d/L = 0,714`, y el piso de 1 lo evita.
+  - Con `d/L > 0,4`, el límite del gráfico de Janbu et al. (1973) (Abramson et al., 2002), `f₀` es una extrapolación y el
+    informe trae la nota `janbu_correction_extrapolated`.
 
 Los fragmentos siguientes sustituyen a `analysis.methods` en el ejemplo de la polilínea:
 
@@ -369,9 +395,24 @@ polilínea (sin las dovelas):
 (Redondeado a 4 decimales; el script de validación comprueba el `fos` del ejemplo.) Las dovelas del informe pueden
 ganar campos nuevos entre versiones del motor; no dependa de que su conjunto sea fijo.
 
+- Si la masa se trunca (`truncated_driving_mass`), `surface` de una polilínea se recorta al **rango analizado**, igual que
+  el trazo de un círculo (E13l-7).
+
 Los estados `Invalid` nuevos de F3a son `polyline_no_ground_crossing`, `polyline_outside_ground` y
 `bishop_non_circular` (una defensa del solver, porque la validación ya impide Bishop con polilínea). Las demás
 razones de estado son las de siempre.
+
+### Códigos nuevos de E13l
+
+Se suman a la lista de códigos de `briefs/00_CONTRATOS.md` (E6), a `apps/web/src/engine/warnings.ts` y a la aceptación:
+
+| Código | Método | Severidad y estado | Cuándo |
+|---|---|---|---|
+| `janbu_correction_extrapolated` | `janbu_corrected` | nota (informativa); el FS converge | `d/L` mayor que 0,4, el límite del gráfico de Janbu (1973): `f₀` es una extrapolación |
+| `non_positive_fos` | cualquiera | aviso; el método pasa a `not_converged`, sin FS | el método llegó a un FS menor o igual que cero o no finito: no se informa ningún FS |
+
+`no_driving` (E3) ya no cae en una polilínea con `kh` o con una carga horizontal: la comprobación evalúa
+`Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento (E13l-2).
 
 ### Aviso `interslice_shear_exceeds_strength`
 
