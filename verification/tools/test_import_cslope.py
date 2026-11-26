@@ -871,12 +871,12 @@ def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
             assert r["application"] in ("active", "passive") and r["direction"], case["id"]
 
 
-def test_the_held_f3r_checks_are_the_five_of_e14n_1_and_nothing_else_is_pending():
-    held = _held_keys()
-    assert held == {("V014", "janbu_corrected", 1.46), ("V014", "janbu_corrected", 1.448),
-                    ("V035b", "bishop", 1.324), ("V035b", "bishop", 1.32), ("V083", "janbu_corrected", 0.89)}
+def test_the_held_f3r_checks_are_the_three_with_a_real_tension_and_nothing_else_is_pending():
+    held = _held_keys()      # E14n-1b: V014 went back to cases/, V035b and V083 keep a real tension of the model
+    assert held == {("V035b", "bishop", 1.324), ("V035b", "bishop", 1.32), ("V083", "janbu_corrected", 0.89)}
     pending = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(F3R_DIR, "V*.json")))
-    assert pending == ["V014", "V035b", "V083"]
+    assert pending == ["V035b", "V083"]
+    assert "V014" not in {e["id"] for e in json.load(open(os.path.join(F3R_DIR, "HOLD.json"), encoding="utf-8"))}
     for pid in pending:      # the pending file holds only held checks, the case in cases/ holds none of them
         file = json.load(open(os.path.join(F3R_DIR, f"{pid}.json"), encoding="utf-8"))
         assert {(pid, c["method"], c["published"]) for c in file["checks"]} <= held
@@ -885,21 +885,21 @@ def test_the_held_f3r_checks_are_the_five_of_e14n_1_and_nothing_else_is_pending(
             kept = json.load(open(in_cases, encoding="utf-8"))["checks"]
             assert not {(pid, c["method"], c["published"]) for c in kept} & held
     stub = open(os.path.join(F3R_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "promovidos" in stub and "**25** casos" in stub and "**5** checks retenidos" in stub and "V013b a V013e" in stub
+    assert "promovidos" in stub and "**25** casos" in stub and "**3** checks retenidos" in stub and "V013b a V013e" in stub
 
 
 def test_the_cases_index_lists_every_promoted_check_with_ogs_and_the_oracle():
     index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
     assert "## Casos con refuerzos (v0.4, lotes R1 a R4)" in index
-    assert "**23** casos con **28** checks" in index and "V013b a V013e" in index
-    assert "**5** checks más (V014 ×2, V035b ×2, V083) quedan retenidos" in index
+    assert "**23** casos con **30** checks" in index and "V013b a V013e" in index
+    assert "**3** checks más (V035b ×2, V083) quedan retenidos" in index
     for case in _f3r_cases(with_held=False):
         assert f"| {case['id']} |" in index
         assert case["model"]["version"] == "0.4"
     report = json.load(open(os.path.join(ROOT, "verification", "report.json"), encoding="utf-8"))
     f3r = {i for _, ids in imp.F3R_BATCHES.values() for i in ids}
     rows = [r for r in report["checks"] if r["case_id"] in f3r]
-    assert len(rows) == 28 and not {(r["case_id"], r["method"], r["published"]) for r in rows} & _held_keys()
+    assert len(rows) == 30 and not {(r["case_id"], r["method"], r["published"]) for r in rows} & _held_keys()
     assert all(r["ogs"]["verdict"] == "OK" and r["cslope"]["verdict"] == "OK" for r in rows)
 
 

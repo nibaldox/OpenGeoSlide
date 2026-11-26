@@ -385,6 +385,26 @@
   },
   "checks": [
     {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.46,
+      "published_by": "Program H",
+      "tolerance": 0.013424657534246575,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.448,
+      "published_by": "Program D",
+      "tolerance": 0.010345303867403316,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
       "method": "spencer",
       "kind": "fixed",
       "published": 1.576,

@@ -3,7 +3,7 @@
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **116** (v0.1: **41**, v0.2 con sismo o cargas: **5**, v0.3: **47**, v0.4 con refuerzos: **23**), con **241** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **116** (v0.1: **41**, v0.2 con sismo o cargas: **5**, v0.3: **47**, v0.4 con refuerzos: **23**), con **243** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -116,7 +116,7 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V066e | Leshchinsky & Han MSE wall, surcharge | Leshchinsky & Han (2004), J. Geotech. Geoenviron. Eng. 130(12). | SI | udl q = 20 en [8.7, 24] | 1 / 0 / 0 / 0 / 0 | fixed | 0.4 |
 | V010 | Borges & Cardoso embankment 2 (geosynthetic) | Borges, J.L. & Cardoso, A.S. (2002). Overall stability of geosynthetic-reinforced embankments on soft soils. Geotextiles and Geomembranes 20, 395–421. | SI | — | 1 / 0 / 1 / 0 / 0 | fixed | 0.4 |
 | V010b | Borges & Cardoso embankment 2 (geosynthetic), the paper's circle B | Borges, J.L. & Cardoso, A.S. (2002). Overall stability of geosynthetic-reinforced embankments on soft soils. Geotextiles and Geomembranes 20, 395–421; case 2, Table 11, Fig. 14. | SI | — | 1 / 0 / 0 / 0 / 0 | fixed | 0.4 |
-| V014 | Nailed wall, 14 rows, deep wedge | Caltrans soil nail reference manual. | SI | — | 0 / 1 / 0 / 0 / 0 | fixed | 0.4 |
+| V014 | Nailed wall, 14 rows, deep wedge | Caltrans soil nail reference manual. | SI | — | 0 / 1 / 0 / 0 / 2 | fixed | 0.4 |
 | V084a | Soil-nailed wall in sand (Clouterre test wall) | Sheahan & Ho (2003). | SI | carga lineal p = 13.2 en x = 11.7, ángulo 0° | 0 / 0 / 0 / 0 / 1 | fixed | 0.4 |
 | V084b | Soil-nailed wall in sand (Clouterre test wall), 45° plane | Sheahan & Ho (2003). | SI | carga lineal p = 13.2 en x = 11.7, ángulo 0° | 0 / 0 / 0 / 0 / 1 | fixed | 0.4 |
 | V084c | Soil-nailed wall in sand (Clouterre test wall), 50° plane | Sheahan & Ho (2003). | SI | carga lineal p = 13.2 en x = 11.7, ángulo 0° | 0 / 0 / 0 / 0 / 1 | fixed | 0.4 |
@@ -272,11 +272,11 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 
 ## Casos con refuerzos (v0.4, lotes R1 a R4)
 
-**23** casos con **28** checks, promovidos desde `verification/pending/F3R` cuando el motor de los refuerzos reproduce el valor publicado dentro de su tolerancia. No se relajó ninguna tolerancia ni se tocó ningún dato del problema. Los lotes son los de F4.12: **R1** anclajes (V016b, V035a, V035b, V037); **R2** clavos y geosintéticos con development (V011a, V011b, V012, V064, V065, V066a, V066b, V066c, V066e); **R3** geosintéticos con interface y clavos de pared (V010, V010b, V014, V083, V084a, V084b, V084c, V084d, V084e, V084f); **R4** pilotes de fuerza constante (V015, V095c).
+**23** casos con **30** checks, promovidos desde `verification/pending/F3R` cuando el motor de los refuerzos reproduce el valor publicado dentro de su tolerancia. No se relajó ninguna tolerancia ni se tocó ningún dato del problema. Los lotes son los de F4.12: **R1** anclajes (V016b, V035a, V035b, V037); **R2** clavos y geosintéticos con development (V011a, V011b, V012, V064, V065, V066a, V066b, V066c, V066e); **R3** geosintéticos con interface y clavos de pared (V010, V010b, V014, V083, V084a, V084b, V084c, V084d, V084e, V084f); **R4** pilotes de fuerza constante (V015, V095c).
 
 V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.
 
-**5** checks más (V014 ×2, V035b ×2, V083) quedan retenidos en `verification/pending/F3R` (`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test de aceptación lo rechaza (E14n-1 de §F4.17, criterio 2 no cumplido).
+**3** checks más (V035b ×2, V083) quedan retenidos en `verification/pending/F3R` (`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test de aceptación lo rechaza. Es una tracción real del modelo, presente también sin refuerzos; E14n-1 de §F4.17 (adoptada) solo elimina el aviso en V014, donde venía de dovelas finas de cruce.
 
 | lote | caso | refuerzos | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % | cruces ogs / oráculo |
 |---|---|---:|---|---:|---|---:|---:|---:|---:|---:|---|
@@ -298,6 +298,8 @@ V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin import
 | R3 | V010 | 1 | morgenstern_price | 1.171 | Commercial program B | 2.04 | 1.1646 | -0.55 | 1.1627 | -0.71 | 1 / 1 |
 | R3 | V010 | 1 | bishop | 1.17 | Commercial program B | 2.43 | 1.1658 | -0.36 | 1.1640 | -0.51 | 1 / 1 |
 | R3 | V010b | 1 | bishop | 1.15 | Borges & Cardoso | 2.43 | 1.1590 | +0.78 | 1.1588 | +0.76 | 1 / 1 |
+| R3 | V014 | 14 | janbu_corrected | 1.46 | Program H | 1.34 | 1.4484 | -0.79 | 1.4482 | -0.81 | 8 / 8 |
+| R3 | V014 | 14 | janbu_corrected | 1.448 | Program D | 1.03 | 1.4484 | +0.03 | 1.4482 | +0.02 | 8 / 8 |
 | R3 | V014 | 14 | spencer | 1.576 | Program D | 1.03 | 1.5754 | -0.04 | 1.5755 | -0.03 | 8 / 8 |
 | R3 | V084a | 7 | janbu_corrected | 0.989 | Commercial program A | 1.05 | 0.9892 | +0.03 | 0.9884 | -0.07 | 7 / 7 |
 | R3 | V084b | 7 | janbu_corrected | 1.123 | Commercial program A | 1.04 | 1.1250 | +0.18 | 1.1243 | +0.11 | 7 / 7 |

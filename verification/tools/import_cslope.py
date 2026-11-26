@@ -1130,7 +1130,12 @@ def gate_schema_f3r(case: dict, schema: dict) -> list[str]:
     return errors
 
 
-def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, n_held: int = 0) -> str:
+def held_label(held_cases: list[dict]) -> str:
+    """«V035b ×2, V083»: the held checks of F3R per case."""
+    return ", ".join(c["id"] + (f" ×{len(c['checks'])}" if len(c["checks"]) > 1 else "") for c in held_cases)
+
+
+def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | None, held_cases: list[dict] | None = None) -> str:
     """Section of `cases/INDEX.md` for the promoted batches R1 to R4: published value, ogs and cSlope per check (from
     the `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
     rows = {}
@@ -1148,10 +1153,12 @@ def build_f3r_section(cases: list[dict], lots: dict[str, str], report: dict | No
         "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse.",
         "",
     ]
+    n_held = sum(len(c["checks"]) for c in held_cases or [])
     if n_held:
-        lines += [f"**{n_held}** checks más (V014 ×2, V035b ×2, V083) quedan retenidos en `verification/pending/F3R` "
+        lines += [f"**{n_held}** checks más ({held_label(held_cases)}) quedan retenidos en `verification/pending/F3R` "
                   "(`HOLD.json`): su FS reproduce el publicado, pero el motor emite `negative_effective_normal_major` y el test "
-                  "de aceptación lo rechaza (E14n-1 de §F4.17, criterio 2 no cumplido).", ""]
+                  "de aceptación lo rechaza. Es una tracción real del modelo, presente también sin refuerzos; E14n-1 de §F4.17 "
+                  "(adoptada) solo elimina el aviso en V014, donde venía de dovelas finas de cruce.", ""]
     if not rows:
         lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
                   "regenere este índice.", ""]
@@ -1199,8 +1206,8 @@ def build_f3r_promoted_index(cases: list[dict], omitted: list[tuple[str, str]], 
         "",
         f"Los **{len(cases)}** casos de los lotes R1 a R4 (**{n_all}** checks, formato v0.4) pasaron a "
         "[`../../cases/`](../../cases/INDEX.md), con su tabla en la sección «Casos con refuerzos»"
-        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`, E14n-1 de §F4.17); la tabla de abajo los lista con su "
-           "número y el diagnóstico." if held else ". No queda ninguno retenido."),
+        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`: tracción real del modelo, también sin refuerzos; E14n-1 de §F4.17 adoptada); "
+           "la tabla de abajo los lista con su número y el diagnóstico." if held else ". No queda ninguno retenido."),
         "",
     ]
     if held:
@@ -1812,7 +1819,7 @@ def main() -> int:
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
         all_cases, omitted, {**discarded_by_case, **f3r_dropped}, order + [c["id"] for c in f3r_cases],
-        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, len(f3r_held_checks))))
+        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
