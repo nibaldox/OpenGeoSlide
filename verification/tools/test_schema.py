@@ -1,9 +1,14 @@
-"""Tests of schema/ogs-0.2.schema.json (contract F1.1). Run from the worktree root:
+"""Tests of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of the 0.2 and 0.1 schemas, which are kept. Run
+from the worktree root:
 
     env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with jsonschema --with pytest \\
         python -m pytest -q verification/tools/test_schema.py
 
-- the 21 cases of verification/cases, the 4+10 models of the differential battery and examples/ validate;
+- every case of verification/cases (their number is read from its INDEX.md, never a literal), the models of the
+  differential battery and examples/ validate;
+- version "0.3" is valid, every field of the Phase 3a (undrained material, polyline, M-P, Janbu, interslice) needs it,
+  and the schema and the engine accept and reject the same documents (a v0.3 document that reaches an
+  `unimplemented!("F3-W1…")` stub of the engine counts as accepted: the validation passed);
 - version "0.1" with non-empty `loads` or non-null `analysis.seismic` fails (`loads: []` and `seismic: null` count as
   absent, as in the engine), and ogs-0.1 stays as it was (it rejects them too);
 - malformed loads and seismic coefficients fail;
@@ -17,6 +22,7 @@ import copy
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 
@@ -25,14 +31,16 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_03 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.3.schema.json"), encoding="utf-8"))
 SCHEMA_02 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.2.schema.json"), encoding="utf-8"))
 SCHEMA_01 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.1.schema.json"), encoding="utf-8"))
+STUB_MARK = "not implemented: F3-W1"
 OGS_BIN = os.environ.get("OGS_BIN", os.path.join(ROOT, "target", "release", "ogs"))
 
 V02_CASE_IDS = ("V081a", "V081b", "V097a", "V102a", "V102b")
 
 
-def _errors(model: dict, schema: dict = SCHEMA_02) -> list[str]:
+def _errors(model: dict, schema: dict = SCHEMA_03) -> list[str]:
     return [e.message for e in jsonschema.Draft202012Validator(schema).iter_errors(model)]
 
 
@@ -61,40 +69,64 @@ def _base_v02() -> dict:
 
 # ------------------------------------------------------------ the schema itself
 
-def test_schema_is_a_valid_draft_2020_12_document_and_v0_1_is_still_there():
+def test_schema_is_a_valid_draft_2020_12_document_and_v0_1_and_v0_2_are_still_there():
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_03)
+    assert SCHEMA_03["$id"] == "ogs-0.3.schema.json"
+    assert SCHEMA_03["properties"]["version"] == {"enum": ["0.1", "0.2", "0.3"]}
     jsonschema.Draft202012Validator.check_schema(SCHEMA_02)
     assert SCHEMA_02["$id"] == "ogs-0.2.schema.json"
+    assert SCHEMA_02["properties"]["version"] == {"enum": ["0.1", "0.2"]}
     jsonschema.Draft202012Validator.check_schema(SCHEMA_01)
     assert SCHEMA_01["properties"]["version"] == {"const": "0.1"}
     assert "loads" not in SCHEMA_01["properties"]
 
 
-def test_the_21_cases_validate_against_v0_2():
+def _index_case_count() -> int:
+    """The number of cases that verification/cases/INDEX.md declares (never a literal)."""
+    text = open(os.path.join(ROOT, "verification", "cases", "INDEX.md"), encoding="utf-8").read()
+    match = re.search(r"Casos convertidos e incluidos: \*\*(\d+)\*\*", text)
+    assert match, "INDEX.md no declara el número de casos"
+    return int(match.group(1))
+
+
+def _uses_v02_fields(model: dict) -> bool:
+    return bool(model.get("loads")) or model["analysis"].get("seismic") is not None
+
+
+def test_every_case_validates_against_the_current_schema_and_the_index_counts_them():
     models = _case_models()
-    assert len(models) == 21 and set(V02_CASE_IDS) <= set(models)
+    assert len(models) == _index_case_count() and set(V02_CASE_IDS) <= set(models)
     for cid, model in models.items():
         assert _errors(model) == [], cid
-        expected = "0.2" if cid in V02_CASE_IDS else "0.1"
-        assert model["version"] == expected, cid
+        assert model["version"] in ("0.1", "0.2", "0.3"), cid
+        if cid in V02_CASE_IDS:
+            assert model["version"] == "0.2", cid
+        # the schemas that came before keep accepting what they accepted
+        if model["version"] in ("0.1", "0.2"):
+            assert _errors(model, SCHEMA_02) == [], cid
 
 
-def test_the_16_v0_1_cases_still_validate_against_v0_1():
-    models = {cid: m for cid, m in _case_models().items() if cid not in V02_CASE_IDS}
-    assert len(models) == 16
+def test_the_v0_1_cases_still_validate_against_v0_1():
+    models = {cid: m for cid, m in _case_models().items() if m["version"] == "0.1"}
+    assert models, "debe haber casos v0.1"
     for cid, model in models.items():
         assert _errors(model, SCHEMA_01) == [], cid
 
 
-def test_the_v0_2_cases_do_not_validate_against_v0_1():
-    for cid in V02_CASE_IDS:
-        assert _errors(_case_models()[cid], SCHEMA_01), cid
+def test_the_cases_with_loads_or_seismic_do_not_validate_against_v0_1():
+    models = {cid: m for cid, m in _case_models().items() if _uses_v02_fields(m)}
+    assert set(V02_CASE_IDS) <= set(models)
+    for cid, model in models.items():
+        assert _errors(model, SCHEMA_01), cid
 
 
-def test_battery_models_and_examples_validate_against_v0_2():
+def test_battery_models_and_examples_validate_against_the_current_schema():
     models = _battery_models()
-    assert sorted(models) == [f"D{i:02d}" for i in range(1, 15)]
+    assert set(f"D{i:02d}" for i in range(1, 15)) <= set(models)
     for cid, model in models.items():
         assert _errors(model) == [], cid
+        if model["version"] in ("0.1", "0.2"):
+            assert _errors(model, SCHEMA_02) == [], cid
     for path in glob.glob(os.path.join(ROOT, "examples", "*.ogs.json")):
         assert _errors(_load(path)) == [], path
 
@@ -134,10 +166,10 @@ def test_version_0_1_with_new_fields_fails(mutate):
 def test_version_0_1_without_new_fields_validates_and_unknown_versions_fail():
     model = _base_v02()
     model.pop("loads"), model["analysis"].pop("seismic")
-    for version in ("0.1", "0.2"):
+    for version in ("0.1", "0.2", "0.3"):
         model["version"] = version
         assert _errors(model) == [], version
-    for version in ("0.3", "1.0", "0.10", 0.2, None):
+    for version in ("0.4", "1.0", "0.10", 0.2, None):
         model["version"] = version
         assert _errors(model), version
 
@@ -201,6 +233,10 @@ def _engine_accepts(model: dict, tmp_path) -> tuple[bool, str]:
     path = tmp_path / "model.ogs.json"
     path.write_text(json.dumps(model), encoding="utf-8")
     proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+    if proc.returncode != 0 and STUB_MARK in proc.stderr:
+        # The document got past every validation and stopped at an `unimplemented!("F3-W1a" / "F3-W1b")` stub of the
+        # engine: it is accepted. Once the stubs are gone this branch is never taken.
+        return True, ""
     return proc.returncode == 0, proc.stderr.strip()
 
 
@@ -227,7 +263,7 @@ def test_engine_accepts_every_v0_2_case_and_the_complete_model(tmp_path):
     lambda m: m["analysis"]["seismic"].update(kv=-1.0),
     lambda m: m["analysis"]["seismic"].update(kz=0.1),
     lambda m: m.update(version="0.1"),
-    lambda m: m.update(version="0.3"),
+    lambda m: m.update(version="0.4"),
 ])
 def test_schema_and_engine_both_reject_the_same_malformed_documents(mutate, tmp_path):
     model = _base_v02()
@@ -336,6 +372,7 @@ BOUNDARY_TABLE = [
     ("methods=[bishop,bishop]", _set("analysis.methods", ["bishop", "bishop"]), False),
     ("methods=[spencer]", _set("analysis.methods", ["spencer"]), True),
     ("methods=[janbu]", _set("analysis.methods", ["janbu"]), False),
+    ("methods=[janbu_simplified] in version 0.2", _set("analysis.methods", ["janbu_simplified"]), False),
     # surface / search: one of the two is needed (NoSurface otherwise); null counts as absent
     ("surface=null, no search", _set("analysis.surface", None), False),
     ("no surface, no search", _set("analysis.surface", _DEL), False),
@@ -435,7 +472,8 @@ BOUNDARY_TABLE = [
     ("v0.1, loads=[] and seismic={kh:0.1}", _both(_set("version", "0.1"), _set("loads", [])), False),
     ("v0.1, loads=null", _both(_set("version", "0.1"), _set("loads", None), _set("analysis.seismic", None)), False),
     ("v0.2, loads=[] and seismic=null", _both(_set("loads", []), _set("analysis.seismic", None)), True),
-    ("version='0.3'", _set("version", "0.3"), False),
+    ("version='0.3' without fields of 0.3", _set("version", "0.3"), True),
+    ("version='0.4'", _set("version", "0.4"), False),
     ("version=0.2 (number)", _set("version", 0.2), False),
 ]
 
@@ -489,3 +527,202 @@ def test_engine_only_rules_pass_the_schema_and_fail_in_the_engine(name, mutate, 
     assert _errors(model) == [], name
     ok, err = _engine_accepts(model, tmp_path)
     assert not ok and "InvalidModel" in err, (name, err)
+
+
+# ------------------------------------------------------------ version 0.3 (F3.1 to F3.6, E13a)
+
+def _base_v03() -> dict:
+    """The complete v0.2 model, declared as version 0.3 (it uses no field of 0.3 yet)."""
+    model = _base_v02()
+    model["version"] = "0.3"
+    return model
+
+
+def _methods(*names):
+    return _set("analysis.methods", list(names))
+
+
+def _undrained(**fields):
+    """Replaces the material by an undrained one (same id, name and unit weight)."""
+    def mutate(m: dict) -> None:
+        old = m["materials"][0]
+        m["materials"][0] = {"id": old["id"], "name": old["name"], "model": "undrained",
+                             "unit_weight": old["unit_weight"], **fields}
+    return mutate
+
+
+def _mc_with(**fields):
+    def mutate(m: dict) -> None:
+        m["materials"][0].update(fields)
+    return mutate
+
+
+def _polyline(points, *methods):
+    def mutate(m: dict) -> None:
+        m["analysis"]["surface"] = {"type": "polyline", "points": points}
+        m["analysis"]["methods"] = list(methods)
+    return mutate
+
+
+def _interslice(spec, *methods):
+    def mutate(m: dict) -> None:
+        m["analysis"]["methods"] = list(methods) or ["morgenstern_price"]
+        m["analysis"]["interslice"] = spec
+    return mutate
+
+
+# A polyline well under the ground of V097a, with x increasing and two interior vertices.
+_POLY = [[22.0, 20.5], [30.0, 21.0], [45.0, 25.0], [60.0, 35.0]]
+_DATA = {"function": "data_points", "points": [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0]]}
+
+V03_TABLE = [
+    # undrained material (F3.2)
+    ("undrained Su=25", _undrained(undrained_strength=25.0), True),
+    ("undrained Su=0", _undrained(undrained_strength=0), True),
+    ("undrained Su=-1", _undrained(undrained_strength=-1.0), False),
+    ("undrained without Su", _undrained(), False),
+    ("undrained Su=null", _undrained(undrained_strength=None), False),
+    ("undrained Su='25'", _undrained(undrained_strength="25"), False),
+    ("undrained with cohesion", _undrained(undrained_strength=20.0, cohesion=3.0), False),
+    ("undrained with cohesion=null", _undrained(undrained_strength=20.0, cohesion=None), True),
+    ("undrained with friction_angle=0", _undrained(undrained_strength=20.0, friction_angle=0.0), False),
+    ("undrained datum and gradient", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=1.0), True),
+    ("undrained negative gradient", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=-1.5), True),
+    ("undrained gradient=0", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=0), True),
+    ("undrained datum without gradient", _undrained(undrained_strength=10.0, strength_datum=35.0), False),
+    ("undrained gradient without datum", _undrained(undrained_strength=10.0, strength_gradient=1.0), False),
+    ("undrained datum=null and gradient=null", _undrained(undrained_strength=10.0, strength_datum=None, strength_gradient=None), True),
+    ("undrained datum with gradient=null", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=None), False),
+    ("undrained limit with gradient", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=1.0, strength_limit=60.0), True),
+    ("undrained limit=0 with gradient", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=1.0, strength_limit=0), True),
+    ("undrained limit=-1", _undrained(undrained_strength=10.0, strength_datum=35.0, strength_gradient=1.0, strength_limit=-1.0), False),
+    ("undrained limit without gradient", _undrained(undrained_strength=10.0, strength_limit=60.0), False),
+    ("undrained limit with null gradient", _undrained(undrained_strength=10.0, strength_gradient=None, strength_limit=60.0), False),
+    ("undrained ru=0.3 and unit_weight_sat", _undrained(undrained_strength=20.0, ru=0.3, unit_weight_sat=21.0), True),
+    ("undrained ru=1", _undrained(undrained_strength=20.0, ru=1), False),
+    ("undrained unit_weight_sat=0", _undrained(undrained_strength=20.0, unit_weight_sat=0), False),
+    ("undrained unknown field", _undrained(undrained_strength=20.0, su=1.0), False),
+    ("undrained in version 0.2", _both(_undrained(undrained_strength=20.0), _set("version", "0.2")), False),
+    ("undrained in version 0.1", _both(_undrained(undrained_strength=20.0), _set("version", "0.1"), _set("loads", []), _set("analysis.seismic", None)), False),
+    # Mohr-Coulomb may not carry undrained fields, and needs its own
+    ("mohr_coulomb with undrained_strength", _mc_with(undrained_strength=5.0), False),
+    ("mohr_coulomb with strength_datum", _mc_with(strength_datum=30.0), False),
+    ("mohr_coulomb with strength_gradient", _mc_with(strength_gradient=1.0), False),
+    ("mohr_coulomb with strength_limit", _mc_with(strength_limit=50.0), False),
+    ("mohr_coulomb with null undrained fields", _mc_with(undrained_strength=None, strength_datum=None, strength_gradient=None, strength_limit=None), True),
+    ("mohr_coulomb without cohesion", _set("materials.0.cohesion", _DEL), False),
+    ("mohr_coulomb with cohesion=null", _set("materials.0.cohesion", None), False),
+    ("mohr_coulomb without friction_angle", _set("materials.0.friction_angle", _DEL), False),
+    ("mohr_coulomb with undrained field in version 0.2", _both(_mc_with(strength_limit=50.0), _set("version", "0.2")), False),
+    ("mohr_coulomb with null undrained field in version 0.2", _both(_mc_with(strength_limit=None), _set("version", "0.2")), True),
+    # polyline (F3.3, F3.6)
+    ("polyline with spencer", _polyline(_POLY, "spencer"), True),
+    ("polyline with morgenstern_price and janbu", _polyline(_POLY, "morgenstern_price", "janbu_simplified", "janbu_corrected"), True),
+    ("polyline with bishop", _polyline(_POLY, "bishop"), False),
+    ("polyline with bishop and spencer", _polyline(_POLY, "spencer", "bishop"), False),
+    ("polyline with bishop and a search (the surface is ignored)", _both(_polyline(_POLY, "bishop"), _set("analysis.search", {"type": "circular_entry_exit", "n_entry": 3, "n_exit": 3, "n_radius": 3})), True),
+    ("polyline with 2 points", _polyline([[22.0, 20.5], [60.0, 35.0]], "spencer"), True),
+    ("polyline with 1 point", _polyline([[22.0, 20.5]], "spencer"), False),
+    ("polyline point with 3 coordinates", _polyline([[22.0, 20.5, 1.0], [60.0, 35.0]], "spencer"), False),
+    ("polyline without points", _both(_polyline(_POLY, "spencer"), _set("analysis.surface.points", _DEL)), False),
+    ("polyline unknown field", _both(_polyline(_POLY, "spencer"), _set("analysis.surface.closed", True)), False),
+    ("polyline with circle fields", _both(_polyline(_POLY, "spencer"), _set("analysis.surface.r", 10.0)), False),
+    ("polyline in version 0.2", _both(_polyline(_POLY, "spencer"), _set("version", "0.2")), False),
+    ("polyline in version 0.1", _both(_polyline(_POLY, "spencer"), _set("version", "0.1"), _set("loads", []), _set("analysis.seismic", None)), False),
+    ("polyline with a negative x (x outside the model is judged as Invalid, not as InvalidModel)", _polyline([[-5.0, 1.0], [60.0, 35.0]], "spencer"), True),
+    # methods (F3.4, F3.5)
+    ("morgenstern_price", _methods("morgenstern_price"), True),
+    ("janbu_simplified", _methods("janbu_simplified"), True),
+    ("janbu_corrected", _methods("janbu_corrected"), True),
+    ("the five methods", _methods("bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"), True),
+    ("repeated new method", _methods("janbu_corrected", "janbu_corrected"), False),
+    ("morgenstern_price in version 0.2", _both(_methods("morgenstern_price"), _set("version", "0.2")), False),
+    ("janbu_corrected in version 0.2", _both(_methods("janbu_corrected"), _set("version", "0.2")), False),
+    ("method janbu (old name)", _methods("janbu"), False),
+    # interslice (F3.4)
+    ("interslice constant", _interslice({"function": "constant"}), True),
+    ("interslice half_sine", _interslice({"function": "half_sine"}), True),
+    ("interslice clipped_sine", _interslice({"function": "clipped_sine"}), True),
+    ("interslice trapezoidal", _interslice({"function": "trapezoidal"}), True),
+    ("interslice data_points", _interslice(_DATA), True),
+    ("interslice data_points with 2 points", _interslice({"function": "data_points", "points": [[0, 1], [1, 1]]}), True),
+    ("interslice data_points with 1 point", _interslice({"function": "data_points", "points": [[0, 1]]}), False),
+    ("interslice data_points without points", _interslice({"function": "data_points"}), False),
+    ("interslice data_points with points=null", _interslice({"function": "data_points", "points": None}), False),
+    ("interslice half_sine with points", _interslice({"function": "half_sine", "points": [[0, 0], [1, 1]]}), False),
+    ("interslice half_sine with points=null", _interslice({"function": "half_sine", "points": None}), True),
+    ("interslice unknown function", _interslice({"function": "parabola"}), False),
+    ("interslice without function", _interslice({}), False),
+    ("interslice unknown field", _interslice({"function": "constant", "scale": 2.0}), False),
+    ("interslice point with 3 numbers", _interslice({"function": "data_points", "points": [[0, 0, 1], [1, 1]]}), False),
+    ("interslice with spencer only", _interslice({"function": "constant"}, "spencer"), False),
+    ("interslice with bishop and morgenstern_price", _interslice({"function": "constant"}, "bishop", "morgenstern_price"), True),
+    ("interslice=null with spencer only", _interslice(None, "spencer"), True),
+    ("interslice in version 0.2", _both(_interslice({"function": "constant"}), _set("version", "0.2")), False),
+    ("interslice=null in version 0.2", _both(_interslice(None, "spencer"), _set("version", "0.2")), True),
+    ("interslice that is not an object", _interslice("half_sine"), False),
+]
+
+# Rules of 0.3 that only the engine enforces (JSON Schema cannot express them).
+V03_ENGINE_ONLY_TABLE = [
+    ("polyline with repeated x", _polyline([[22.0, 20.5], [30.0, 21.0], [30.0, 22.0], [60.0, 35.0]], "spencer")),
+    ("polyline with decreasing x", _polyline([[60.0, 35.0], [45.0, 25.0], [22.0, 20.5]], "spencer")),
+    ("polyline with x closer than 1e-9 of the width", _polyline([[22.0, 20.5], [22.00000001, 20.6], [60.0, 35.0]], "spencer")),
+    ("data_points not starting at 0", _interslice({"function": "data_points", "points": [[0.1, 0.5], [1.0, 1.0]]})),
+    ("data_points not ending at 1", _interslice({"function": "data_points", "points": [[0.0, 0.5], [0.9, 1.0]]})),
+    ("data_points with xi not increasing", _interslice({"function": "data_points", "points": [[0.0, 0.5], [0.5, 1.0], [0.5, 2.0], [1.0, 0.0]]})),
+    ("data_points with a negative f", _interslice({"function": "data_points", "points": [[0.0, 0.0], [0.5, -1.0], [1.0, 1.0]]})),
+    ("data_points with f = 0 everywhere", _interslice({"function": "data_points", "points": [[0.0, 0.0], [1.0, 0.0]]})),
+]
+
+
+def _prepare_v03(mutate) -> dict:
+    model = _base_v03()
+    mutate(model)
+    return model
+
+
+def test_a_v0_3_model_without_fields_of_0_3_validates_in_the_schema_and_the_engine(tmp_path):
+    model = _base_v03()
+    assert _errors(model) == []
+    ok, err = _engine_accepts(model, tmp_path)
+    assert ok, err
+
+
+@pytest.mark.parametrize("name,mutate,accepted", V03_TABLE, ids=[row[0] for row in V03_TABLE])
+def test_schema_and_engine_agree_on_the_v0_3_table(name, mutate, accepted, tmp_path):
+    model = _prepare_v03(mutate)
+    schema_ok = _errors(model) == []
+    engine_ok, err = _engine_accepts(model, tmp_path)
+    assert engine_ok == accepted, f"motor: esperado {'aceptar' if accepted else 'rechazar'}, dio {err or 'OK'}"
+    assert schema_ok == accepted, f"esquema: esperado {'aceptar' if accepted else 'rechazar'}: {_errors(model)[:2]}"
+
+
+@pytest.mark.parametrize("name,mutate", V03_ENGINE_ONLY_TABLE, ids=[row[0] for row in V03_ENGINE_ONLY_TABLE])
+def test_v0_3_engine_only_rules_pass_the_schema_and_fail_in_the_engine(name, mutate, tmp_path):
+    model = _prepare_v03(mutate)
+    assert _errors(model) == [], name
+    ok, err = _engine_accepts(model, tmp_path)
+    assert not ok and "InvalidModel" in err, (name, err)
+
+
+def test_the_engine_gate_names_the_field_and_the_schema_rejects_the_same_documents(tmp_path):
+    """E13a: with a version below 0.3 the error is `<campo> requiere version "0.3"`, naming the first field."""
+    cases = [
+        (_undrained(undrained_strength=20.0), "undrained"),
+        (_mc_with(strength_limit=50.0), "strength_limit"),
+        (_polyline(_POLY, "spencer"), "polyline"),
+        (_methods("janbu_simplified"), "janbu_simplified"),
+        (_interslice({"function": "constant"}), "morgenstern_price"),  # the method is named before interslice
+    ]
+    for mutate, token in cases:
+        for old in ("0.1", "0.2"):
+            model = _prepare_v03(mutate)
+            model["version"] = old
+            if old == "0.1":
+                model["loads"], model["analysis"]["seismic"] = [], None
+            assert _errors(model), (token, old)
+            path = tmp_path / "gate.ogs.json"
+            path.write_text(json.dumps(model), encoding="utf-8")
+            proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+            assert proc.returncode != 0 and 'requiere version "0.3"' in proc.stderr and token in proc.stderr, proc.stderr
