@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { loadPublishedDoc } from '../../report/fixtures';
 import { simpleSlope, slopeFormDefaults, slopeFromForm } from '../app/newModel';
 import { engineRun, haveEngine } from '../state/engineRun.testutil';
-import { fitPolylineToGround } from '../state/polylineGround';
+import { checkPolylineAgainstModel, fitPolylineToGround } from '../state/polylineGround';
 import { applyCommand } from '../state/reducer';
 import type { CircleSurfaceSpec, Point } from '../../engine/types';
 import type { ModelDoc } from '../types';
@@ -51,13 +51,14 @@ describe('polilínea inicial admisible por construcción', () => {
       const pts = initialPolyline(fixed(ex.doc, ex.circle));
       expect(pts.length).toBeGreaterThanOrEqual(3);
       for (let i = 1; i < pts.length; i += 1) expect(pts[i]![0]).toBeGreaterThan(pts[i - 1]![0]);
-      const fit = fitPolylineToGround(ex.doc.regions, pts);
-      expect(fit).toMatchObject({ ok: true });
+      expect(fitPolylineToGround(ex.doc.regions, pts)).toMatchObject({ ok: true });
+      // R10B-02: también contra la base del modelo.
+      expect(checkPolylineAgainstModel(ex.doc.regions, pts)).toMatchObject({ ok: true });
     });
 
     it(`${ex.name}: sin círculo fijo (círculo de partida) también es admisible`, () => {
       const pts = initialPolyline({ ...ex.doc, analysis: { ...ex.doc.analysis, surface: null } } as ModelDoc);
-      expect(fitPolylineToGround(ex.doc.regions, pts)).toMatchObject({ ok: true });
+      expect(checkPolylineAgainstModel(ex.doc.regions, pts)).toMatchObject({ ok: true });
     });
 
     it.skipIf(!haveEngine)(`${ex.name}: pasar a polilínea y calcular de inmediato con Spencer y M-P converge (motor real)`, () => {
