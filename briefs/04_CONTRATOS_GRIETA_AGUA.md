@@ -174,3 +174,38 @@ Estos criterios son gates de cada ola.
   medio. El escritor de G0 lo justifica con el uso real de `h_moment_base` y `driving_extra` en `methods/*` y en el
   equilibrio global. Si hace falta, lo agrega con valor neutro 0 y demuestra la identidad.
 - **E15i.** Reservada para Ito-Matsui (ola G3), que se especificará después del núcleo.
+
+## F5.9 Enmiendas tras G1 y G2 (E15j, decisiones del coordinador)
+
+- **E15j-1, punto de muestreo de G6.**
+  - `c`, `φ` y `γ` se leen a **2e-5·escala** bajo el terreno, y no a 1e-3·escala.
+  - Con 1e-3·escala, la fila A04, de Su con gradiente, da una profundidad de 1,2575 frente a 1,25015 del oráculo
+    (`docs/fase3/g1b/NOTAS.md`).
+  - cSlope usa 1e-3 absoluto. En los modelos del corpus las dos reglas dan el mismo material.
+- **E15j-2, superficie fija que no alcanza la grieta.** El resultado es `NoValidSurface: tension_crack_not_reached: …`,
+  un error del análisis y no un `MethodReport` inválido. Así se comporta cualquier superficie fija sin masa.
+  - Una superficie que no corta el terreno conserva su motivo de siempre (`CrackError::NoGround`).
+- **E15j-3, profundidad automática nula.** No se corta nada y la salida lleva `tension_crack.depth = 0`. La web la
+  muestra como «sin grieta».
+- **E15j-4, agua bajo la tolerancia.** Una profundidad de agua libre ≤ 1e-9·escala cuenta como **cero**.
+  - Sin esta regla, las piezométricas que terminan justo sobre el talud (V021a a V021g, V033, V045 y V046b) generaban
+    términos de 1e-29 y cambiaban 50 salidas de identidad (`docs/fase3/g1a/NOTAS.md`).
+- **E15j-5, convención de la tolerancia de los checks.**
+  - La tolerancia del corpus es **relativa**, `|Δ|/publicado ≤ tolerance`. La usan el harness, `acceptance.rs` y el
+    propio cSlope, que en `verification-report.ts` informa `± tolerance·100 %`. X18 §3.1 la tomó por absoluta, y por
+    eso marcó 5 checks fuera.
+  - Con la convención del repo, V087 y los tres checks de V092 se reproducen y se promueven. No se relaja nada: es la
+    misma regla que siguen los 243 checks anteriores.
+- **E15j-6, retenidos de F3G**, todos con su causa medida:
+  - **V085 ×4.** La búsqueda de ogs encuentra un círculo más crítico: FS de Bishop 1,2947 frente a 1,762 publicado.
+    - cSlope evalúa ese mismo círculo en 1,29465, una diferencia de 0,002 %. La grieta no interviene.
+    - La búsqueda de cSlope es estocástica: da 1,7591 con 8000 iteraciones y 1,716 con 40 000.
+    - El valor publicado corresponde a una búsqueda que no llega a ese mínimo.
+  - **V009a y V009b, Spencer.** El FS cae dentro de la tolerancia, pero el motor emite
+    `interslice_shear_exceeds_strength` (E13k) con `r_v` de 3,12 y 5,57, por encima del umbral calibrado de 3. Un aviso
+    no informativo retiene el check, igual que en los casos anteriores.
+- **E15j-7, círculos tangentes al fondo** (E15f, `docs/fase3/g1b/NOTAS.md`).
+  - No es redondeo: el círculo de cSlope pasa entre 8e-7 y 9,8e-7 bajo el fondo, de 12 a 33 veces la tolerancia.
+    Aceptarlo admitiría superficies que salen del modelo.
+  - Afecta a la fila diferencial D39 fija, que se informa como «explicado (E15f)».
+  - Los checks de V096a y V086b pasan, porque la búsqueda de ogs encuentra su propio círculo válido.
