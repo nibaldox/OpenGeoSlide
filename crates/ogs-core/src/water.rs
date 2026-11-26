@@ -1,9 +1,8 @@
 //! Ponded water (free water over the ground; contract F5.3, amendments E15c and E15h).
 //!
-//! **Stub of wave G0.** The signatures and the types below are frozen; [`ponded_terms`] returns zero terms. Wave
-//! M-agua (E1 to E4 of X21) fills it. With zero terms nothing changes in the slices, so a model without ponded water
-//! gives the same output as v0.3.0 (identity, E15e-1), and the rows of ponded water fail **by value** (0,848 against
-//! 0,939 in X21-P01), not by a panic.
+//! **Wave G1 (M-agua).** [`ponded_terms`] computes the terms of E1 to E4 and E15c-ru. Without water over the ground (no
+//! piezometric line, or a line that nowhere goes over the ground by more than the tolerance of the model) every term is
+//! [`PondTerms::ZERO`] and nothing changes in the slices, so the output is the one of v0.3.0 (identity, E15e-1).
 //!
 //! The ponded water has no field in the format and applies in every version (D1, E15a): it is the region between the
 //! piezometric line and the ground where `piezo > ground`. It covers the **whole model**, not only the mass of the
