@@ -16,9 +16,11 @@
 //! - the **7 rows of F4.13** (rows 1, 2, 3, 5, 7, 9 and 11), with the pile at (40; 33)-(40; 22), `force` 60,
 //!   `spacing` 1.5, `angle` 0, and the sheet pile at (40; 33)-(40; 22), `force` 120, `angle` 0;
 //! - the **inclined rows** (`inc_*`): anchors of 27 m with the head at (36; 28), going down or up toward the mass,
-//!   with `axial`, `tangent` and `bisector` (X17 §4.4 has 16: 8 active and 8 passive). The `up30` and `up45` rows
-//!   cross the surface in compression (`along > 0`). The **passive** ones are oracle rows (no force is applied, the
-//!   value is the slope without reinforcement, `compression_ignored`). The **active** ones are **not** oracle rows:
+//!   with `axial`, `tangent` and `bisector` (X17 §4.4 has 16: 8 active and 8 passive). The `up30` and `up45` rows of
+//!   X17 rose above the face and crossed in the air (or did not cross), so they proved nothing about the compression
+//!   rule (R11A-09). They are replaced (E14o-9) by `cmp30_pas` and `cmp45_pas`, embedded in the soil, whose crossing is
+//!   `compression_ignored` (the value is the slope without reinforcement); and rows `capx_*` of `bond` and `interface`
+//!   whose capacity is not bounded by `tensile_capacity`. The `up30`/`up45` **active** rows are **not** oracle rows:
 //!   the installed binary drops the force there, but the contract (E14m-1) applies it, axial and complete, so they
 //!   would differ by design. They are replaced by `inc_up30_act_applies_the_force` and
 //!   `inc_up45_act_applies_the_force`, which only check that the force is applied (the value moves away from the
@@ -994,100 +996,155 @@ fn inc_up15_pas_janbu_corrected() {
     );
 }
 
-// X17-inc-up30-pas: Ancla passive, cabeza (36;28), sube 30° hacia el macizo, axial..
-// The crossing is in compression (`along > 0`): no force is applied and the value is the slope without reinforcement.
-const INC_UP30_PAS: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 59.382686, "y2": 41.5, "application": "passive", "tensile_capacity": 100, "direction": "axial"}]"#;
+// R11A-09 / E14o-9. X17-cmp30-pas: anchor passive, head (36; 28) on the face, down and to the left at 30° (tip
+// (22.143594; 20)), axial. Unlike the `up30` and `up45` rows of X17 §4.4 (which rose above the face and crossed in the
+// air, or did not cross), the element is embedded in the soil and crosses the lower arc near the toe, `along = 0.84`:
+// the crossing is **compressed**, `compression_ignored`, no force, and the value is the slope without reinforcement.
+// Oracle values: `cslope` 0.1.0 (`ENGINE_BUILD 0.1.0+a80f9a024954`) run on this exact document with
+// `verification/harness/to_cslope.py` (bishop, constant M-P, Janbu simplified and corrected).
+const CMP30_PAS: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 22.143594, "y2": 20, "application": "passive", "tensile_capacity": 100, "direction": "axial"}]"#;
 
 #[test]
-fn inc_up30_pas_bishop() {
+fn cmp30_pas_bishop() {
     check(
-        "X17-inc-up30-pas",
+        "X17-cmp30-pas",
         Method::Bishop,
-        INC_UP30_PAS,
+        CMP30_PAS,
         0.985084,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up30_pas_mp_constant() {
+fn cmp30_pas_mp_constant() {
     check(
-        "X17-inc-up30-pas",
+        "X17-cmp30-pas",
         Method::MorgensternPriceConstant,
-        INC_UP30_PAS,
+        CMP30_PAS,
         0.984100,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up30_pas_janbu_simplified() {
+fn cmp30_pas_janbu_simplified() {
     check(
-        "X17-inc-up30-pas",
+        "X17-cmp30-pas",
         Method::JanbuSimplified,
-        INC_UP30_PAS,
+        CMP30_PAS,
         0.945229,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up30_pas_janbu_corrected() {
+fn cmp30_pas_janbu_corrected() {
     check(
-        "X17-inc-up30-pas",
+        "X17-cmp30-pas",
         Method::JanbuCorrected,
-        INC_UP30_PAS,
+        CMP30_PAS,
         0.988354,
         TOLERANCE,
     );
 }
 
-// X17-inc-up45-pas: Ancla passive, cabeza (36;28), sube 45° hacia el macizo, axial..
-// The crossing is in compression (`along > 0`): no force is applied and the value is the slope without reinforcement.
-const INC_UP45_PAS: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 55.091883, "y2": 47.091883, "application": "passive", "tensile_capacity": 100, "direction": "axial"}]"#;
+// X17-cmp45-pas: the same, down and to the left at 45° (tip (28; 20)), crossing at `x ≈ 33.2` where the base rises 7°.
+const CMP45_PAS: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 28, "y2": 20, "application": "passive", "tensile_capacity": 100, "direction": "axial"}]"#;
 
 #[test]
-fn inc_up45_pas_bishop() {
+fn cmp45_pas_bishop() {
     check(
-        "X17-inc-up45-pas",
+        "X17-cmp45-pas",
         Method::Bishop,
-        INC_UP45_PAS,
+        CMP45_PAS,
         0.985084,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up45_pas_mp_constant() {
+fn cmp45_pas_mp_constant() {
     check(
-        "X17-inc-up45-pas",
+        "X17-cmp45-pas",
         Method::MorgensternPriceConstant,
-        INC_UP45_PAS,
+        CMP45_PAS,
         0.984100,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up45_pas_janbu_simplified() {
+fn cmp45_pas_janbu_simplified() {
     check(
-        "X17-inc-up45-pas",
+        "X17-cmp45-pas",
         Method::JanbuSimplified,
-        INC_UP45_PAS,
+        CMP45_PAS,
         0.945229,
         TOLERANCE,
     );
 }
 
 #[test]
-fn inc_up45_pas_janbu_corrected() {
+fn cmp45_pas_janbu_corrected() {
     check(
-        "X17-inc-up45-pas",
+        "X17-cmp45-pas",
         Method::JanbuCorrected,
-        INC_UP45_PAS,
+        CMP45_PAS,
         0.988354,
         TOLERANCE,
     );
+}
+
+/// E14o-9: the compressed rows do what the oracle does, and not by chance: the crossing is **inside the mass** and its
+/// state is `compression_ignored` (not `outside_mass`), the note is emitted and the active twin is applied with the
+/// note `reinforcement_active_compression`.
+#[test]
+fn cmp_rows_are_compressed_inside_the_mass() {
+    for (label, row) in [("cmp30", CMP30_PAS), ("cmp45", CMP45_PAS)] {
+        let report = run(&doc(Method::Bishop, row));
+        let result = &report.results[0];
+        assert_eq!(result.reinforcement_forces.len(), 1, "{label}: {result:?}");
+        let f = &result.reinforcement_forces[0];
+        assert_eq!(
+            f.status,
+            ogs_core::report::ForceStatus::CompressionIgnored,
+            "{label}"
+        );
+        assert_eq!((f.fx, f.fy), (0.0, 0.0), "{label}");
+        assert_eq!(f.available, 100.0, "{label}");
+        let inside = f.y < 25.5 + 0.5 * (f.x - 30.0).max(0.0) - 0.05;
+        assert!(
+            inside,
+            "{label}: the crossing ({}, {}) must be under the ground",
+            f.x, f.y
+        );
+        let w = &result.warnings;
+        assert!(
+            w.iter().any(|c| c == "reinforcement_compression_ignored"),
+            "{label}: {w:?}"
+        );
+        assert!(
+            !w.iter().any(|c| c == "reinforcement_outside_mass"),
+            "{label}: {w:?}"
+        );
+
+        let active = row.replace("passive", "active");
+        let report = run(&doc(Method::Bishop, &active));
+        let result = &report.results[0];
+        assert_eq!(
+            result.reinforcement_forces[0].status,
+            ogs_core::report::ForceStatus::Applied,
+            "{label} active"
+        );
+        assert!(
+            result
+                .warnings
+                .iter()
+                .any(|c| c == "reinforcement_active_compression"),
+            "{label} active: {:?}",
+            result.warnings
+        );
+    }
 }
 
 // X17-cap-interface. Oracle force at the crossing: 272.5028 kN/m.
@@ -1513,6 +1570,171 @@ fn cap_dev30_30_end2_5_pas_janbu_corrected() {
     );
 }
 
+// R11A-09 / E14o-9: rows of `bond` and `interface` whose capacity at the crossing is **not** the `tensile_capacity` (ROW3
+// and ROW5 of F4.13 were bounded by it): `tensile_capacity` 1000 and the available force is the integral of the
+// resistance. Oracle values of `cslope` 0.1.0 on these exact documents (`to_cslope.py`).
+//
+// - `capx_bond_down30`: nail, head (36; 28) down 30°, `bond` 8 kN/m per m, available 24.35 kN/m (> 0, < 1000);
+// - `capx_interface_down45`: geosynthetic, head (36; 28) down 45°, `interface` `a = 5`, `δ = 25°`, `Rc = 0.8`,
+//   `spacing` 1.5, available 71.00 kN/m;
+// - `capx_tieback12`: active anchor, `end1_capacity` 1000, `bond` 6 kN/m per m over the last 12 m: available 72.0 kN/m
+//   (= 6 × 12, the bonded length beyond the crossing).
+const CAPX_BOND_DOWN30_PAS: &str = r#"[{"type": "nail", "id": "N1", "x1": 36, "y1": 28, "x2": 59.382686, "y2": 14.5, "application": "passive", "tensile_capacity": 1000, "direction": "axial", "pullout": {"model": "bond", "strength": 8}}]"#;
+const CAPX_INTERFACE_DOWN45_PAS: &str = r#"[{"type": "geosynthetic", "id": "G1", "x1": 36, "y1": 28, "x2": 55.091883, "y2": 8.908117, "application": "passive", "tensile_capacity": 1000, "direction": "axial", "spacing": 1.5, "pullout": {"model": "interface", "adhesion": 5, "friction_angle": 25, "coverage": 0.8}}]"#;
+const CAPX_TIEBACK12_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 63, "y2": 28, "application": "active", "tensile_capacity": 1000, "end1_capacity": 1000, "direction": "axial", "pullout": {"model": "bond", "strength": 6, "bonded_length": 12}}]"#;
+
+#[test]
+fn capx_bond_down30_pas_bishop() {
+    check(
+        "X17-capx-bond-down30",
+        Method::Bishop,
+        CAPX_BOND_DOWN30_PAS,
+        1.045391,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_bond_down30_pas_mp_constant() {
+    check(
+        "X17-capx-bond-down30",
+        Method::MorgensternPriceConstant,
+        CAPX_BOND_DOWN30_PAS,
+        1.043866,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_bond_down30_pas_janbu_simplified() {
+    check(
+        "X17-capx-bond-down30",
+        Method::JanbuSimplified,
+        CAPX_BOND_DOWN30_PAS,
+        1.000258,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_bond_down30_pas_janbu_corrected() {
+    check(
+        "X17-capx-bond-down30",
+        Method::JanbuCorrected,
+        CAPX_BOND_DOWN30_PAS,
+        1.045894,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_interface_down45_pas_bishop() {
+    check(
+        "X17-capx-interface-down45",
+        Method::Bishop,
+        CAPX_INTERFACE_DOWN45_PAS,
+        1.130085,
+        TOLERANCE_INTERFACE,
+    );
+}
+
+#[test]
+fn capx_interface_down45_pas_mp_constant() {
+    check(
+        "X17-capx-interface-down45",
+        Method::MorgensternPriceConstant,
+        CAPX_INTERFACE_DOWN45_PAS,
+        1.127877,
+        TOLERANCE_INTERFACE,
+    );
+}
+
+#[test]
+fn capx_interface_down45_pas_janbu_simplified() {
+    check(
+        "X17-capx-interface-down45",
+        Method::JanbuSimplified,
+        CAPX_INTERFACE_DOWN45_PAS,
+        1.076851,
+        TOLERANCE_INTERFACE,
+    );
+}
+
+#[test]
+fn capx_interface_down45_pas_janbu_corrected() {
+    check(
+        "X17-capx-interface-down45",
+        Method::JanbuCorrected,
+        CAPX_INTERFACE_DOWN45_PAS,
+        1.125982,
+        TOLERANCE_INTERFACE,
+    );
+}
+
+#[test]
+fn capx_tieback12_act_bishop() {
+    check(
+        "X17-capx-tieback12",
+        Method::Bishop,
+        CAPX_TIEBACK12_ACT,
+        1.216405,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_tieback12_act_mp_constant() {
+    check(
+        "X17-capx-tieback12",
+        Method::MorgensternPriceConstant,
+        CAPX_TIEBACK12_ACT,
+        1.213184,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_tieback12_act_janbu_simplified() {
+    check(
+        "X17-capx-tieback12",
+        Method::JanbuSimplified,
+        CAPX_TIEBACK12_ACT,
+        1.156358,
+        TOLERANCE,
+    );
+}
+
+#[test]
+fn capx_tieback12_act_janbu_corrected() {
+    check(
+        "X17-capx-tieback12",
+        Method::JanbuCorrected,
+        CAPX_TIEBACK12_ACT,
+        1.209116,
+        TOLERANCE,
+    );
+}
+
+/// The capacity of the `capx` rows is the integral of the resistance and does not reach `tensile_capacity`.
+#[test]
+fn capx_rows_are_not_bounded_by_tensile_capacity() {
+    for (row, want, tolerance) in [
+        (CAPX_BOND_DOWN30_PAS, 24.352, 1e-3),
+        (CAPX_INTERFACE_DOWN45_PAS, 71.002, 1e-3),
+        (CAPX_TIEBACK12_ACT, 72.0, 1e-9),
+    ] {
+        let report = run(&doc(Method::Bishop, row));
+        let f = &report.results[0].reinforcement_forces[0];
+        assert_eq!(f.status, ogs_core::report::ForceStatus::Applied);
+        assert!(f.available < 1000.0 / 10.0, "{row}: {}", f.available);
+        assert!(
+            (f.available - want).abs() <= tolerance * want,
+            "{row}: {} against {want}",
+            f.available
+        );
+    }
+}
+
 // The active rows `up30` and `up45` of X17 §4.4 are not oracle rows. X17 read them as compressed crossings, but the
 // anchors rise above the face (30° and 45° against a 26.6° face from the head at (36; 28)), so they cross the circle
 // above the ground: the crossing is in the air, `outside_mass` (F4.4.3), and no force applies, active or passive.
@@ -1526,11 +1748,14 @@ const INC_UP30_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28
 fn inc_up30_act_crosses_in_the_air() {
     let got = fos(&doc(Method::Bishop, INC_UP30_ACT), 0);
     println!("X17-inc-up30-act: ogs {got:.10}, without reinforcement {UNREINFORCED_BISHOP}");
-    // Within the oracle tolerance: the crossing still adds two slice nodes, which moves the FS by 4e-5 relative.
+    // Within the oracle tolerance, and (E14o-11) **exactly** the FS of the slope without reinforcement: no node is
+    // added for a crossing over the ground, so the slicing is the same.
     assert!(
         ((got - UNREINFORCED_BISHOP) / UNREINFORCED_BISHOP).abs() < TOLERANCE,
         "the crossing is above the ground (outside_mass), so the FS is the unreinforced one: {got}"
     );
+    let none = fos(&doc(Method::Bishop, "[]"), 0);
+    assert_eq!(got.to_bits(), none.to_bits(), "{got} against {none}");
 }
 
 const INC_UP45_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 55.091883, "y2": 47.091883, "application": "active", "tensile_capacity": 100, "direction": "axial"}]"#;
@@ -1539,9 +1764,12 @@ const INC_UP45_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28
 fn inc_up45_act_crosses_in_the_air() {
     let got = fos(&doc(Method::Bishop, INC_UP45_ACT), 0);
     println!("X17-inc-up45-act: ogs {got:.10}, without reinforcement {UNREINFORCED_BISHOP}");
-    // Within the oracle tolerance: the crossing still adds two slice nodes, which moves the FS by 4e-5 relative.
+    // Within the oracle tolerance, and (E14o-11) **exactly** the FS of the slope without reinforcement: no node is
+    // added for a crossing over the ground, so the slicing is the same.
     assert!(
         ((got - UNREINFORCED_BISHOP) / UNREINFORCED_BISHOP).abs() < TOLERANCE,
         "the crossing is above the ground (outside_mass), so the FS is the unreinforced one: {got}"
     );
+    let none = fos(&doc(Method::Bishop, "[]"), 0);
+    assert_eq!(got.to_bits(), none.to_bits(), "{got} against {none}");
 }

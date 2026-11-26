@@ -435,17 +435,21 @@ fn analyze_method(
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
-    let mut reinforcement_forces = if model.reinforcements.is_empty() {
-        Vec::new()
+    let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
+        (Vec::new(), false)
     } else {
-        reinforcement::apply_to_slices(&model.reinforcements, pm, &surface, &mut slices)
+        reinforcement::apply_with_state(&model.reinforcements, pm, &surface, &mut slices)
     };
     // E14d.3, E14e, E14h: the notes come from the forces of the final surface (also for a method that did not
     // converge), before they are cleared below.
     let reinforcement_notes = if model.reinforcements.is_empty() {
         Vec::new()
     } else {
-        reinforcement::notes(&model.reinforcements, &reinforcement_forces)
+        reinforcement::notes_with(
+            &model.reinforcements,
+            &reinforcement_forces,
+            active_compressed,
+        )
     };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
     let truncated = !sliced.notes.is_empty();
