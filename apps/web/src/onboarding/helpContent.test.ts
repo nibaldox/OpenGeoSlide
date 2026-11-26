@@ -133,3 +133,20 @@ describe('índice interno', () => {
     for (const s of HELP_SECTIONS) expect(s.title.length).toBeGreaterThan(3);
   });
 });
+
+describe('R9-05b: la ayuda declara las convenciones de signo del motor', () => {
+  const all = [...GLOSSARY.map((g) => g.definition), ...LIMITATIONS].join('\n');
+  it('kh en el sentido del deslizamiento, kv positivo hacia abajo y solo sobre el peso del suelo', () => {
+    expect(all).toContain('kh positivo actúa en el sentido del deslizamiento');
+    expect(all).toContain('kv positivo actúa hacia abajo');
+    expect(all).toContain('solo al peso del suelo W, no a las sobrecargas');
+  });
+  it('ángulo de la carga lineal desde la vertical, positivo hacia +x', () => {
+    expect(GLOSSARY.find((g) => g.id === 'load-angle')?.definition).toContain('desde la vertical hacia abajo y es positivo hacia +x');
+  });
+  it('limitaciones: γsat, ru con piezométrica, extrapolación y γw imperial', () => {
+    expect(all).toContain('manda ru');
+    expect(all).toContain('se prolonga en horizontal');
+    expect(all).toContain('no menor que 20 pcf');
+  });
+});

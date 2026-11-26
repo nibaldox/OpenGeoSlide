@@ -102,19 +102,25 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'ru',
     term: 'ru (coeficiente de presión de poros)',
     definition:
-      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1).',
+      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1). Si un material tiene ru y el modelo también tiene línea piezométrica, en ese material manda ru y la piezométrica no se usa.',
   },
   {
     id: 'piezometric',
     term: 'Línea piezométrica',
     definition:
-      'Poligonal que da la cota hasta la que sube el agua. En cada dovela, la presión de poros en el centro de la base es u = γw · (cota de la línea − cota de la base), nunca negativa. Se edita en la pestaña «Agua» y en el lienzo.',
+      'Poligonal que da la cota hasta la que sube el agua. En cada dovela, la presión de poros en el centro de la base es u = γw · (cota de la línea − cota de la base), nunca negativa. Se edita en la pestaña «Agua» y en el lienzo. Fuera de su rango en x el cálculo la prolonga en horizontal hasta los bordes del modelo, con el nivel de su extremo más cercano.',
   },
   {
     id: 'seismic',
     term: 'kh y kv (coeficientes sísmicos)',
     definition:
-      'Coeficientes pseudoestáticos: kh es la fracción del peso que actúa como fuerza horizontal en el sentido del deslizamiento, y kv la fracción vertical (positiva hacia abajo). Se aplican solo al peso del suelo, no a las cargas.',
+      'Coeficientes pseudoestáticos. kh positivo actúa en el sentido del deslizamiento (fuerza horizontal kh·W). kv positivo actúa hacia abajo: el peso del suelo pasa a W·(1 + kv), así que con kv negativo la fuerza vertical va hacia arriba. Los dos se aplican solo al peso del suelo W, no a las sobrecargas. Otros programas pueden usar el signo contrario para kv: compare con cuidado.',
+  },
+  {
+    id: 'load-angle',
+    term: 'Ángulo de la carga lineal',
+    definition:
+      'Se mide desde la vertical hacia abajo y es positivo hacia +x: 0° es una carga vertical hacia abajo y 10° la inclina hacia +x (componente vertical p·cos θ, componente horizontal p·sen θ). La carga distribuida q es positiva hacia abajo. Las dos solo actúan sobre las dovelas de suelo y no llevan coeficiente sísmico.',
   },
   {
     id: 'm-alpha',
@@ -153,7 +159,10 @@ export const LIMITATIONS: readonly string[] = [
   'Spencer barre λ con un paso fijo de 0,05: puede no hallar solución (aviso «no_lambda_root») aunque exista. Con tracción en la base, su FS puede quedar por debajo de Bishop; revise los avisos.',
   'Cambiar el sistema de unidades (SI o imperial) ofrece convertir los valores del modelo (el factor de seguridad no cambia) o cambiar solo la etiqueta. El motor nunca convierte: interpreta los números en las unidades declaradas, y con piezométrica en imperial el peso del agua debe ser explícito (62,4 pcf).',
   'Una carga puntual o lineal puede generar círculos diminutos con FS muy bajo bajo ella; fije un «ancho mínimo» de búsqueda y revise aparte la capacidad de soporte local.',
-  'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa.',
+  'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa: cada modelo que usa γsat lleva un aviso en Diagnósticos y en el informe.',
+  'Si un material tiene ru y el modelo tiene línea piezométrica, el cálculo usa ru en ese material y no la piezométrica (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
+  'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',
+  'Con unidades imperiales y piezométrica, γw debe ser explícito y no menor que 20 pcf (se usa 62,4): un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».',
 ];
 
 export const PROFESSIONAL_WARNING =
