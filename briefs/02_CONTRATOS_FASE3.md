@@ -339,6 +339,51 @@ pilotes.
   - Una polilínea que sale por una cara y vuelve a entrar es `polyline_outside_ground`.
   - Ambas reglas son de E13c y se mantienen.
 
+## F3.10b Enmiendas tras el cierre (E13j-6 a E13k, decisiones del coordinador)
+
+- **E13j-6, escala de los residuos de fuerza:** `escala = max(ΣW, ΣW*)`, con W* el peso con sismo y cargas de E12b.
+  - Se aplica al cierre `|E_n| ≤ 1e-6·escala`, al residuo de momento y a la raíz de F₀ de Spencer, M-P y Janbu.
+  - Se aplica también a la **clasificación E7d** de la N′ negativa: `f = Σ|N′<0| / escala`, con el umbral de 0,05 sin
+    cambios.
+  - Sin cargas y con kv ≤ 0, la salida es idéntica bit a bit.
+  - **Medido:** en 1206 corridas solo cambian V018, V077 y V078, problemas de Prandtl con γ = 1e-6.
+  - E3 (`no_driving`) no cambia.
+- **E13j-7, cuerda de Janbu sobre el bloque de suelo.** L y d se miden sobre las dovelas de suelo, sin las aéreas de
+  los extremos, igual que en cSlope, que no tiene dovelas aéreas.
+  - Reemplaza la frase «d con todas las dovelas» de E13j-2.
+  - **Medido:** D09 pasa de +0,98 % a +0,04 % frente a cSlope.
+- **E13j-8, dominio de ξ sobre el bloque de suelo.** `x₀` y `x₁` de ξ se miden sobre el bloque de suelo. Las dovelas
+  aéreas de los extremos conservan ξ = 0 o ξ = 1. Modifica E13j-1.
+  - **Medido:** D09 con `half_sine` pasa de +3,39 % a +0,016 %.
+  - Spencer, Bishop, Janbu y M-P `constant` siguen idénticos byte a byte.
+- **E13k, aviso de cortante entre dovelas no admisible.**
+  - **Hallazgo D-1** (`docs/fase3/d1/DIAGNOSTICO.md`): en polilíneas en V, Spencer y M-P convergen con FS de 49 a 130,
+    mientras Janbu da entre 4 y 5 y cSlope no converge.
+  - Son soluciones de equilibrio válidas, con cierre de 1e-11 y una sola raíz admisible, **pero estáticamente
+    inadmisibles**: la masa se sostiene por el cortante entre dovelas y no por la base.
+  - **Criterio:** el de Chen y Morgenstern (1983), en la forma (d) de Zhu, Lee y Jiang (2003):
+    ```
+    r_v = max_caras |X|·F / (c_v·h + max(E′, 0)·tan φ_v)
+    ```
+    - X = λ·f·E y E′ = −E − P_w, con la compresión positiva;
+    - `h` es la altura de la cara, desde la base hasta el terreno;
+    - c_v es el promedio en altura de c (Su en no drenado) y tan φ_v el promedio en altura de tan φ, de los
+      materiales que cruza la cara;
+    - solo cuentan las caras con |E| ≥ 2 % de max|E| y E′ > 0;
+    - se **excluyen** las caras sin resistencia (`c_v·h + E′·tan φ_v = 0`, como el material de Su = 0 de V021).
+  - **Clasificación:** con `r_v > 3`, aviso `interslice_shear_exceeds_strength`, de severidad aviso, no informativo.
+    - Aplica a Spencer y M-P. En Janbu X = 0, así que no aplica.
+    - Es un **umbral de clasificación de avisos** calibrado, igual que E8c, y no una tolerancia: queda entre el máximo de
+      los casos de referencia, 1,63 (D13), y el mínimo de las soluciones absurdas, 3,88.
+    - No se rechaza la solución, porque la bibliografía respalda la comprobación, no un umbral de rechazo.
+    - No se emite nota con `r_v > 1`, porque la tendrían 18 de 119 resultados publicados que reproducen su valor.
+  - **Efecto esperado:** ningún caso ni modelo de la batería recibe el aviso.
+  - **Texto al usuario:** «Las fuerzas de corte entre dovelas superan la resistencia de las caras verticales (Chen y
+    Morgenstern, 1983): este FS puede no ser físico. Compárelo con Janbu o revise la forma de la superficie.»
+  - Entra en la lista E6 y en `warnings.ts`.
+- **Limitación documentada:** algunas polilíneas con tramos muy empinados se rechazan por la guarda m_α (E4b), que
+  cSlope no aplica. Se mantiene la guarda y se documenta en `docs/limitaciones.md`.
+
 ## F3.11 Gates de F3a
 
 - **Los de F1.5**, más:
