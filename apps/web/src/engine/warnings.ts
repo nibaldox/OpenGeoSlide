@@ -82,6 +82,9 @@ export const ENGINE_WARNING_CODES = [
   'interslice_shear_exceeds_strength',
   'janbu_correction_extrapolated',
   'non_positive_fos',
+  'reinforcement_outside_mass',
+  'reinforcement_compression_ignored',
+  'structural_checks_not_covered',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -190,6 +193,18 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'aviso',
     text: 'El método llegó a un factor de seguridad no positivo o no finito; no se informa ningún FS. Revise la superficie.',
   },
+  reinforcement_outside_mass: {
+    severity: 'nota',
+    text: 'Un refuerzo no cruza la masa deslizante de esta superficie: no aporta fuerza.',
+  },
+  reinforcement_compression_ignored: {
+    severity: 'nota',
+    text: 'Un refuerzo pasivo quedaría comprimido por el deslizamiento y no aporta fuerza (solo trabaja a tracción; Clouterre, 1991; FHWA GEC 7).',
+  },
+  structural_checks_not_covered: {
+    severity: 'nota',
+    text: 'El modelo tiene pilotes o tablestacas. OpenGeoSlide calcula la estabilidad global con el elemento incluido; no calcula el empuje sobre el elemento, su empotramiento, el momento flector ni la deflexión.',
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -208,6 +223,9 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   water_above_ground: '/water/piezometric_line',
   negative_effective_normal_major: '/water/piezometric_line',
   load_outside_mass: '/loads',
+  reinforcement_outside_mass: '/reinforcements',
+  reinforcement_compression_ignored: '/reinforcements',
+  structural_checks_not_covered: '/reinforcements',
   max_iterations: '/analysis/max_iterations',
   m_alpha: '/analysis/search',
   pole: '/analysis/search',

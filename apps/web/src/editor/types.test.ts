@@ -64,9 +64,11 @@ describe('tipos congelados v0.2 del editor', () => {
     expect(v01.version).toBe('0.1');
     const v03: ModelDoc['version'] = '0.3';
     expect(v03).toBe('0.3');
-    // @ts-expect-error la versión solo admite '0.1', '0.2' y '0.3'
-    const bad: ModelDoc['version'] = '0.4';
-    expect(bad).toBe('0.4');
+    const v04: ModelDoc['version'] = '0.4';
+    expect(v04).toBe('0.4');
+    // @ts-expect-error la versión solo admite '0.1', '0.2', '0.3' y '0.4'
+    const bad: ModelDoc['version'] = '0.5';
+    expect(bad).toBe('0.5');
   });
 
   it('el JSON de ejemplo de F1.1 coincide con los tipos', () => {

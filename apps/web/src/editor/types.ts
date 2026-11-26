@@ -1,10 +1,10 @@
 import type { AnalysisSettings, Direction, Material, Meta, Model, Point, Region,
-              SearchSpec, SurfaceSpec, Load } from '../engine/types';
+              SearchSpec, SurfaceSpec, Load, Reinforcement } from '../engine/types';
 import type { Viewport } from '../geometry/viewport';
 
 /** Documento = Model v0.2 completo (el editor abre v0.1 y v0.2, y guarda siempre v0.2). Nunca lleva campos de UI (deny_unknown_fields). */
 export type ModelDoc = Model;
-export type Tool = 'select' | 'add_vertex' | 'draw_region' | 'split_region' | 'pan';
+export type Tool = 'select' | 'add_vertex' | 'draw_region' | 'split_region' | 'draw_reinforcement' | 'pan';
 
 export type Selection =
   | { kind: 'none' }
@@ -16,7 +16,11 @@ export type Selection =
   /** Vértice `index` de la polilínea fija de falla (F3.3). */
   | { kind: 'surface_vertex'; index: number }
   | { kind: 'search_range'; which: 'entry' | 'exit' }
-  | { kind: 'load'; index: number };
+  | { kind: 'load'; index: number }
+  /** Refuerzo `index` de `reinforcements` (v0.4). */
+  | { kind: 'reinforcement'; index: number }
+  /** Extremo `end` del refuerzo `index`: 1 es la cabeza (x1, y1) y 2 la punta (x2, y2) (v0.4). */
+  | { kind: 'reinforcement_end'; index: number; end: 1 | 2 };
 
 export interface EditorUi {
   tool: Tool;
@@ -40,7 +44,19 @@ export type EditorIssueCode =
   | 'editor.load_range'
   | 'editor.degenerate_region'
   | 'editor.no_surface'
-  | 'editor.water_unit_weight';
+  | 'editor.water_unit_weight'
+  // Refuerzos (v0.4, F4.2): uno por regla de validación.
+  | 'editor.reinforcement_duplicate_id'
+  | 'editor.reinforcement_empty_id'
+  | 'editor.reinforcement_non_finite'
+  | 'editor.reinforcement_zero_length'
+  | 'editor.reinforcement_capacity'
+  | 'editor.reinforcement_spacing'
+  | 'editor.reinforcement_pullout'
+  | 'editor.reinforcement_bonded_length'
+  | 'editor.reinforcement_angle'
+  | 'editor.reinforcement_sheet_pile_vertical'
+  | 'editor.reinforcement_version';
 
 /** `path` es un puntero JSON, p. ej. "/regions/0/polygon/2". */
 export interface Issue {
@@ -94,6 +110,8 @@ export type EditorCommand =
   | { type: 'loads/set'; loads: Load[] }
   | { type: 'load/upsert'; index: number | null; load: Load }   // index null = agregar
   | { type: 'load/remove'; index: number }
+  | { type: 'reinforcement/upsert'; index: number | null; reinforcement: Reinforcement }   // index null = agregar (v0.4)
+  | { type: 'reinforcement/remove'; index: number }
   | { type: 'doc/replace'; doc: ModelDoc; fileName: string | null }  // deshacible (importación)
   | { type: 'doc/load'; doc: ModelDoc; fileName: string | null };    // Nuevo, Abrir, Ejemplos, Recuperar: reinicia el historial
 
