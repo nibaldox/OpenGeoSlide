@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ModelDoc } from '../editor/types';
 import type { VerificationCase } from '../engine/types';
-import { describePath, jsonErrorOffset, openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
+import { describePath, jsonErrorOffset, minimalVersion, openOgsJson, saveOgsJson, sha256Bytes, sha256Hex } from './ogsJson';
 
 const casesDir = new URL('../../../../verification/cases/', import.meta.url);
 const caseFiles = readdirSync(casesDir).filter((f) => f.endsWith('.json') && f !== 'ogs-0.1.schema.json').sort();
@@ -41,6 +41,8 @@ function roundTrip(model: unknown): Json {
 }
 
 const CANONICAL_TOP = ['format', 'version', 'meta', 'units', 'materials', 'regions', 'water', 'loads', 'slope', 'analysis'];
+// Con refuerzos (v0.4, F4.1) `reinforcements` va entre `loads` y `slope`, como en TOP_KEYS de ogsJson.ts: los casos promovidos de F3R lo traen.
+const CANONICAL_TOP_V04 = [...CANONICAL_TOP.slice(0, 8), 'reinforcements', ...CANONICAL_TOP.slice(8)];
 
 function isSubsequence(keys: string[], order: string[]): boolean {
   let i = 0;
@@ -64,11 +66,13 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
       expect(opened.doc).not.toBeNull();
       expect(opened.issues.filter((i) => i.severity === 'error')).toEqual([]);
       const saved = JSON.parse(saveOgsJson(opened.doc as ModelDoc)) as Record<string, unknown>;
-      // F3.9: los casos de v0.1 y v0.2 se guardan en 0.2; uno que ya declare 0.3 conserva su versión.
-      const version = parsed.model.version === '0.3' ? '0.3' : '0.2';
+      // F3.9 extendida (briefs/03_CONTRATOS_REFUERZOS.md F4.1): se guarda con la versión mínima que el modelo necesita: los casos de v0.1 y
+      // v0.2 en 0.2, uno que declara 0.3 conserva 0.3 y uno con refuerzos (promovidos desde F3R) conserva 0.4.
+      const version = minimalVersion(parsed.model);
+      if (parsed.model.version === '0.3' || parsed.model.version === '0.4') expect(version).toBe(parsed.model.version);
       expect(saved.version).toBe(version);
       expect(saved).toEqual({ ...(parsed.model as unknown as Json), version });
-      expect(isSubsequence(Object.keys(saved), CANONICAL_TOP)).toBe(true);
+      expect(isSubsequence(Object.keys(saved), CANONICAL_TOP_V04)).toBe(true);
     });
 
     it(`${file}: el guardado es idempotente y el wrapper {model, checks} se abre con aviso`, () => {
