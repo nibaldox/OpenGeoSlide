@@ -45,7 +45,8 @@ import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
-import { SAME_DRAFT_TEXT, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
+import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
+import { SAME_DRAFT_TEXT, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
 import {
   AnalysisPanel,
@@ -111,6 +112,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const draftStorage = useMemo(() => resolveTabDraftStorage(), []);
   // El borrador se lee una sola vez (un borrador corrupto se elimina al leerlo y solo se avisa esa vez).
   const [boot] = useState(() => loadDraft(draftStorage.storage));
+  // La entrada del índice que se ofrece (la más reciente), para avisar si su pestaña sigue abierta.
+  const [offeredEntry] = useState(() => (boot.draft ? offeredDraftEntry(draftStorage.storage) : null));
+  const draftOpenElsewhere = useDraftOpenElsewhere(offeredEntry);
   const [draft, setDraft] = useState<Draft | null>(boot.draft);
   const [notices, setNotices] = useState<Notice[]>(() => {
     let first: Notice[] = [];
@@ -407,6 +411,10 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       announce(`Hay un borrador guardado el ${formatWhen(draft.savedAt)}. Puede recuperarlo o descartarlo.`);
     }
   }, [draft, announce]);
+  // La presencia de las otras pestañas llega después de montar: se anuncia cuando aparece (la franja visible no es una región viva).
+  useEffect(() => {
+    if (draft && draftOpenElsewhere) announce(OPEN_ELSEWHERE_TEXT);
+  }, [draft, draftOpenElsewhere, announce]);
   const bootNotices = useRef(notices);
   useEffect(() => {
     for (const n of bootNotices.current) announce(n.text);
@@ -662,6 +670,12 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         <div className="banner ea-draft" data-testid="draft-banner">
           <span>
             Hay un borrador guardado el {formatWhen(draft.savedAt)} ({draft.fileName ?? 'sin nombre'}).
+            {draftOpenElsewhere && (
+              <>
+                {' '}
+                <strong data-testid="draft-open-elsewhere">{OPEN_ELSEWHERE_TEXT}</strong>
+              </>
+            )}
           </span>
           <button type="button" onClick={() => void recoverDraft()}>
             Recuperar

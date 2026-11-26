@@ -26,8 +26,11 @@ Rama `u5s-salida` (base `325855a`). Recorridos en `docs/fase2/ux/u5s-e2e/` (puer
 - `BroadcastChannel('ogs.editor.draft')`: hola/aquí entre pestañas. Si otra instancia usa el mismo id de pestaña (pestaña
   duplicada, que hereda `sessionStorage`), aviso no bloqueante `SAME_DRAFT_TEXT`.
 - El autoguardado de una pestaña que arranca con un borrador a la vista sigue en pausa hasta que se recupera o descarta
-  (decisión de `EditorApp`, sin cambios). Queda sin hacer: indicar en el banner si el borrador ofrecido pertenece a una
-  pestaña que sigue abierta (`pickRecoverable().openElsewhere`, ya probado y sin cableado a la interfaz).
+  (decisión de `EditorApp`, sin cambios). U5-I lo cableó: el banner
+  añade «Este borrador es de otra pestaña que sigue abierta…» (`data-testid="draft-open-elsewhere"`, también anunciado) cuando la
+  entrada ofrecida es de otra pestaña que respondió «aquí» por `BroadcastChannel` (`offeredDraftElsewhere`, que usa
+  `pickRecoverable().openElsewhere`; hook `useDraftOpenElsewhere`). Límite: no hay mensaje de «adiós», así que una pestaña que
+  respondió y luego se cerró sigue contando como abierta hasta recargar.
 
 ## Integración pendiente: `EditorApp.tsx` es de U5-E
 Tres parches en `docs/fase2/ux/u5s-e2e/`, cada uno verificado con `git apply --check` y los tres juntos en orden:

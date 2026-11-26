@@ -28,3 +28,4 @@ commits de `git log 325855a..main -- apps/web/src/editor` y del brief `briefs/F2
   resto de usos de `Modal`) ya enfocaban dentro del efecto, sin temporizadores.
 - **Documentación y ayuda.** `U2C_lienzo_teclado.md`, `CANVAS_INSTRUCTIONS` (el `aria-describedby` del lienzo) y `helpContent.ts`
   (fila de atajos y limitación de unidades) ya describían Tab como entrada y salida y la conversión opcional.
+- **Aviso de borrador abierto en otra pestaña** (pendiente de U5-S): ver `U5S_salida.md`, sección «Borrador por pestaña».
