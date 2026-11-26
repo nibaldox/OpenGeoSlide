@@ -161,6 +161,16 @@
       }
     },
     {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02273224043715847,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
       "method": "morgenstern_price",
       "kind": "fixed",
       "published": 2.027,

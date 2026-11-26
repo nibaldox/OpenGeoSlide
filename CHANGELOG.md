@@ -52,8 +52,10 @@ piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «
   - **Bloque diferencial F3G:** los modelos D28 a D39 de `verification/differential/cases_f3g/` (embalse al pie y en una
     cara de presa, grieta seca, llena y automática, y sus combinaciones, con sismo y con arcilla no drenada), cada uno en
     búsqueda y en superficie fija, con Bishop y Spencer; una sonda de capacidades y `--require-f3g` en `run.py`.
-  - **Importador de cSlope:** convierte la grieta y el agua embalsada (86 checks en `verification/pending/F3G`: 81
-    listos para promover y 5 retenidos en `HOLD.json` con su causa).
+  - **Importador de cSlope:** convierte la grieta y el agua embalsada y promueve 31 casos con 80 checks a
+    `verification/cases/` (147 casos y 323 checks en total; aceptación 323/323, cSlope 322/323). Quedan 6 checks retenidos
+    en `verification/pending/F3G/HOLD.json`, con su causa (E15j-6): V085 ×4 (la búsqueda de ogs halla un círculo más
+    crítico que el del oráculo) y V009a y V009b (aviso `interslice_shear_exceeds_strength`).
   - **Identidad:** `verification/tools/identity_vs_baseline.py` gana `--normalize-version` y `--include-reinforced`, y
     separa y nombra los modelos con agua sobre el terreno.
   - **Tests del motor:** `f3g_types`, `f3g1a_water`, `f3g1b_crack` y `f3g_rows` (55 filas de X21 migradas al formato final).
@@ -91,14 +93,20 @@ piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «
 - **Círculos tangentes al fondo (V096a, V086b; E15f).** El círculo de cSlope pasa por debajo del fondo por 8,35e-7 y
   9,76e-7, 12 y 33 veces la tolerancia del motor: es el límite de la búsqueda de cSlope (1e-6), no un redondeo como en
   V065. No se relaja la tolerancia: con el fondo 1e-6 más bajo el círculo pasa y queda a 0,022 % y 0,016 % del oráculo.
-  Esos checks quedan retenidos con esta causa.
-- **Punto de lectura de la profundidad automática.** El motor lee `c`, `φ` y `γ` a `2e-5·escala` bajo el terreno, y no a
-  `1e-3·escala` como dice G6: cSlope usa 1e-3 unidades absolutas y con `1e-3·escala` la profundidad bajo un gradiente
-  de `Su` se desvía 0,6 % en X21-A04. En un modelo de escala 500 son 1e-2 unidades y solo importa con un gradiente de
-  `Su` o una capa de menos de eso en la coronación. Propuesta de enmienda del escritor de G1b, pendiente del coordinador.
-- **Cinco checks retenidos** (V009b con Spencer, V087 con Janbu corregido y los tres de V092) en
-  `verification/pending/F3G/HOLD.json`: X18 los dio por fuera de tolerancia por su convención de tolerancia, y su causa
-  está diagnosticada en cada entrada. No se relaja ninguna tolerancia.
+  Los checks de V096a y V086b pasan, porque la búsqueda de ogs halla su propio círculo válido (E15j-7); la fila
+  diferencial D39 fija se informa como «explicado (E15f, E15j-7)».
+- **Punto de lectura de la profundidad automática (enmienda E15j-1, no es un problema).** El motor lee `c`, `φ` y `γ` a
+  `2e-5·escala` bajo el terreno, y no a `1e-3·escala` como decía G6: cSlope usa 1e-3 unidades absolutas y con
+  `1e-3·escala` la profundidad bajo un gradiente de `Su` se desvía 0,6 % en X21-A04. En los modelos del corpus las dos
+  reglas dan el mismo material; solo difieren con un gradiente de `Su` o una capa de menos de eso en la coronación.
+- **Seis checks retenidos** (E15j-6: V085 ×4, V009a y V009b) en `verification/pending/F3G/HOLD.json`, cada uno con su
+  causa medida. V085: la búsqueda de ogs halla un círculo más crítico que el del oráculo (cSlope evalúa ese círculo igual,
+  a 0,002 %). V009a y V009b (Spencer): el FS está en tolerancia, pero el motor emite `interslice_shear_exceeds_strength`
+  con `r_v` de 3,12 y 5,57, sobre el umbral de 3. X18 había dado por fuera de tolerancia V009b, V087 y V092 por leerla
+  como absoluta; la del corpus es relativa (E15j-5) y V087 y V092 se promovieron. No se relaja ninguna tolerancia.
+- **Diferencial v0.5 (D28 a D39): 44 OK de 48.** D39 fija (×2) está explicada por E15f y E15j-7 (el círculo de cSlope
+  pasa 9,2e-7 bajo el fondo; el informe la marca «explicado», sin relajar la tolerancia). D30 fija (×2) es una falla
+  abierta en investigación.
 - **Ito-Matsui** (ola G3) sigue sin existir.
 
 ## [0.3.0] - 2026-11-26

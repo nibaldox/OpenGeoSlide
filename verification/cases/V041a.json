@@ -1,13 +1,13 @@
 {
-  "id": "V041b",
-  "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
+  "id": "V041a",
+  "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
   "model": {
     "format": "opengeoslide",
-    "version": "0.3",
+    "version": "0.1",
     "meta": {
-      "id": "V041b",
-      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
-      "notes": "As V041a with the pool 60 ft above the crest: the same factor of safety."
+      "id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "notes": "Fully submerged homogeneous slope (c = 100 psf, φ = 20°, γ = 128 pcf) with the pool 30 ft above the crest: the extra water weight and pore pressure cancel. Converted to SI."
     },
     "units": "SI",
     "materials": [
@@ -58,11 +58,11 @@
       "piezometric_line": [
         [
           0.0,
-          32.004
+          22.86
         ],
         [
           42.672,
-          32.004
+          22.86
         ]
       ]
     },
@@ -123,8 +123,9 @@
   ],
   "source": {
     "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27.",
-    "derived_from": "cSlope verification problem V041b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "derived_from": "cSlope verification problem V041a (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
+      "Duncan, Wright & Brandon (2014, Table 6.4, p. 110): Modified Swedish 2.38 / 2.60 with total forces and 1.62 with effective forces, θ = 21.8°.",
       "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
       "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
     ]

@@ -71,7 +71,12 @@ las versiones (D1). Los de grieta, en 0.5.
   (fila X21-P01, Bishop 0,939017) y una grieta de 2 m llena al 25 % (X21-W025, Bishop 1,023189). Se acepta si Bishop da la cifra
   del oráculo a 0,1 %. Un motor que deja el agua fuera (la base v0.3.0 da 0,848) o que rechaza la versión 0.5 deja los checks que
   necesitan esa capacidad en **pendiente**, nunca en falla; el valor de cSlope se calcula igual y queda como línea base.
-- **`--require-f3g`** sale con código 5 si algún check del bloque queda pendiente, con fallo o sin dato: úsese al integrar.
+- **Explicado (E15f, E15j-7).** Un círculo fijo que pasa por debajo del fondo del modelo en menos de 1e-6 (el límite de la búsqueda de
+  cSlope) lo rechaza ogs con `NoValidSurface`, y cSlope lo da por válido. El veredicto es `explicado (E15f, E15j-7)` con la causa en
+  la columna del motivo: no es OK (no cuenta como acierto) ni falla, tiene su propia columna en el resumen y no relaja ninguna
+  tolerancia. Es el caso de D39 fija (Bishop y Spencer: el círculo de cSlope pasa 9,2e-7 bajo el fondo). Cualquier otra causa de
+  «sin dato» o un círculo más lejos del fondo sigue siendo lo que era. D30 fija ×2 sigue como FALLA abierta (en investigación).
+- **`--require-f3g`** sale con código 5 si algún check del bloque queda pendiente, con fallo o sin dato (los explicados no cuentan como fallo): úsese al integrar.
 - `report.json` gana la clave `f3g` (capacidades, resumen y checks; `report_version` 5); `REPORT.md` gana la sección «v0.5».
 - **Estado con el motor de la base de esta rama** (los stubs de G0): **0 de 48 OK, 48 pendientes** (la sonda del agua da 0,848 y
   la de la grieta ve el pánico `crack.rs`); cSlope resuelve los 48 (convergidos). El resto de la batería no cambia.

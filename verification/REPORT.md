@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T13:52:04-03:00 · harness v1 · casos: `verification/cases` (116 casos, 243 checks)
+Generado: 2026-11-26T18:00:04-03:00 · harness v1 · casos: `verification/cases` (147 casos, 323 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-26T13:52:04-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 243 | 0 | 0 | 0 |
-| cSlope | 242 | 0 | 0 | 1 |
+| ogs | 323 | 0 | 0 | 0 |
+| cSlope | 322 | 0 | 0 | 1 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **322/323** checks.
 
 ## Tabla
 
@@ -99,6 +99,11 @@ cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 | V022a | bishop | fixed | 1.1600 | 1.1586 | -0.12 | 1.1586 | -0.12 | 1.43 | OK |
 | V022b | morgenstern_price | fixed | 1.1780 | 1.1756 | -0.20 | 1.1746 | -0.29 | 1.04 | OK |
 | V022b | bishop | fixed | 1.1850 | 1.1780 | -0.59 | 1.1773 | -0.65 | 1.04 | OK |
+| V023 | spencer | fixed | 1.1450 | 1.1376 | -0.64 | 1.1381 | -0.60 | 1.04 | OK |
+| V024 | bishop | fixed | 1.5630 | 1.5723 | +0.60 | 1.5717 | +0.56 | 1.03 | OK |
+| V024 | spencer | fixed | 1.5570 | 1.5629 | +0.38 | 1.5622 | +0.33 | 1.03 | OK |
+| V024 | bishop | fixed | 1.5700 | 1.5723 | +0.15 | 1.5717 | +0.11 | 1.32 | OK |
+| V024 | bishop | fixed | 1.5720 | 1.5723 | +0.02 | 1.5717 | -0.02 | 1.03 | OK |
 | V025 | bishop | search | 1.1420 | 1.1328 | -0.80 | 1.1323 | -0.85 | 2.04 | OK |
 | V025 | spencer | search | 1.1420 | 1.1330 | -0.79 | 1.1325 | -0.83 | 2.04 | OK |
 | V026 | bishop | search | 1.2280 | 1.2213 | -0.54 | 1.2198 | -0.67 | 2.04 | OK |
@@ -140,7 +145,19 @@ cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 | V036d | spencer | search | 1.1300 | 1.1317 | +0.15 | 1.1315 | +0.14 | 2.44 | OK |
 | V037 | bishop | search | 1.6290 | 1.6135 | -0.95 | 1.6134 | -0.96 | 2.03 | OK |
 | V037 | spencer | search | 1.6200 | 1.6079 | -0.75 | 1.6073 | -0.78 | 2.31 | OK |
+| V038 | bishop | search | 1.0900 | 1.0958 | +0.53 | 1.0693 | -1.90 | 2.46 | OK |
+| V038 | spencer | search | 1.1000 | 1.0994 | -0.05 | 1.0771 | -2.09 | 2.45 | OK |
+| V038 | bishop | search | 1.0700 | 1.0958 | +2.41 | 1.0693 | -0.06 | 2.47 | OK |
+| V038b | spencer | search | 1.1600 | 1.1663 | +0.54 | 1.1578 | -0.19 | 2.43 | OK |
 | V040 | bishop | search | 1.4610 | 1.4630 | +0.13 | 1.4593 | -0.12 | 3.03 | OK |
+| V041a | bishop | search | 1.6030 | 1.5977 | -0.33 | 1.5965 | -0.40 | 2.03 | OK |
+| V041a | spencer | search | 1.5990 | 1.5958 | -0.20 | 1.5937 | -0.33 | 2.03 | OK |
+| V041a | spencer | search | 1.6000 | 1.5958 | -0.27 | 1.5937 | -0.39 | 2.31 | OK |
+| V041b | bishop | search | 1.6030 | 1.5972 | -0.36 | 1.5964 | -0.41 | 2.03 | OK |
+| V041b | spencer | search | 1.5990 | 1.5953 | -0.23 | 1.5931 | -0.37 | 2.03 | OK |
+| V041b | spencer | search | 1.6000 | 1.5953 | -0.29 | 1.5931 | -0.43 | 2.31 | OK |
+| V042 | bishop | fixed | 1.5840 | 1.5823 | -0.11 | 1.5820 | -0.13 | 1.03 | OK |
+| V042 | spencer | fixed | 1.6480 | 1.6495 | +0.09 | 1.6492 | +0.07 | 1.03 | OK |
 | V044 | bishop | fixed | 2.0800 | 2.0766 | -0.17 | 2.0760 | -0.19 | 1.24 | OK |
 | V044 | morgenstern_price | fixed | 2.0760 | 2.0724 | -0.18 | 2.0717 | -0.21 | 1.02 | OK |
 | V044 | spencer | fixed | 2.0730 | 2.0728 | -0.01 | 2.0721 | -0.04 | 1.02 | OK |
@@ -164,6 +181,11 @@ cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 | V047a | morgenstern_price | search | 0.9910 | 0.9841 | -0.69 | 0.9841 | -0.70 | 2.05 | OK |
 | V047a | bishop | search | 0.9920 | 0.9851 | -0.69 | 0.9851 | -0.70 | 2.05 | OK |
 | V047a | spencer | search | 1.0000 | 0.9841 | -1.59 | 0.9841 | -1.59 | 2.50 | OK |
+| V047b | bishop | search | 1.6640 | 1.6590 | -0.30 | 1.6591 | -0.30 | 2.03 | OK |
+| V047b | morgenstern_price | search | 1.6600 | 1.6559 | -0.25 | 1.6560 | -0.24 | 2.30 | OK |
+| V048 | bishop | search | 1.5960 | 1.5869 | -0.57 | 1.5869 | -0.57 | 2.03 | OK |
+| V048 | spencer | search | 1.5920 | 1.5825 | -0.60 | 1.5824 | -0.60 | 2.03 | OK |
+| V048 | janbu_corrected | search | 1.4890 | 1.4752 | -0.93 | 1.4748 | -0.95 | 2.03 | OK |
 | V049 | bishop | search | 1.4050 | 1.4031 | -0.14 | 1.4029 | -0.15 | 2.04 | OK |
 | V049 | spencer | search | 1.3750 | 1.3724 | -0.19 | 1.3721 | -0.21 | 2.04 | OK |
 | V049 | janbu_corrected | search | 1.3570 | 1.3556 | -0.10 | 1.3550 | -0.15 | 2.04 | OK |
@@ -189,8 +211,13 @@ cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 | V057a | spencer | search | 1.4680 | 1.4772 | +0.63 | 1.4721 | +0.28 | 2.03 | OK |
 | V057b | spencer | search | 2.0400 | 2.0276 | -0.61 | 2.0229 | -0.84 | 3.25 | OK |
 | V057b | spencer | search | 2.0220 | 2.0276 | +0.27 | 2.0229 | +0.05 | 2.02 | OK |
+| V058 | spencer | search | 1.9000 | 1.9168 | +0.88 | 1.9152 | +0.80 | 5.00 | OK |
+| V058 | spencer | search | 1.9150 | 1.9168 | +0.09 | 1.9152 | +0.01 | 2.03 | OK |
 | V060a | bishop | search | 2.5290 | 2.5302 | +0.05 | 2.5303 | +0.05 | 2.02 | OK |
 | V060b | bishop | fixed | 2.9730 | 2.9744 | +0.05 | 2.9743 | +0.04 | 1.02 | OK |
+| V061 | morgenstern_price | fixed | 2.3600 | 2.3483 | -0.50 | 2.3483 | -0.49 | 1.21 | OK |
+| V061 | morgenstern_price | fixed | 2.3430 | 2.3483 | +0.22 | 2.3483 | +0.23 | 1.02 | OK |
+| V061 | spencer | fixed | 2.3830 | 2.3878 | +0.20 | 2.3879 | +0.21 | 1.02 | OK |
 | V062a | bishop | fixed | 2.5600 | 2.5486 | -0.45 | 2.5485 | -0.45 | 1.20 | OK |
 | V062a | bishop | fixed | 2.5510 | 2.5486 | -0.10 | 2.5485 | -0.10 | 1.02 | OK |
 | V062b | bishop | fixed | 2.8060 | 2.8158 | +0.35 | 2.8155 | +0.34 | 1.02 | OK |
@@ -220,29 +247,82 @@ cSlope reproduce el valor publicado dentro de tolerancia en **242/243** checks.
 | V069a | bishop | search | 1.2000 | 1.2037 | +0.31 | 1.1998 | -0.02 | 3.42 | OK |
 | V069a | spencer | search | 1.2000 | 1.2093 | +0.77 | 1.2049 | +0.41 | 3.42 | OK |
 | V069b | bishop | fixed | 1.2120 | 1.2102 | -0.15 | 1.2095 | -0.21 | 1.04 | OK |
+| V070 | bishop | search | 1.4170 | 1.4155 | -0.11 | 1.4147 | -0.17 | 2.04 | OK |
+| V070 | bishop | search | 1.4100 | 1.4155 | +0.39 | 1.4147 | +0.33 | 3.35 | OK |
+| V070 | spencer | search | 1.4220 | 1.4218 | -0.02 | 1.4210 | -0.07 | 2.04 | OK |
 | V071a | bishop | fixed | 1.2930 | 1.2906 | -0.18 | 1.2896 | -0.26 | 1.04 | OK |
 | V071a | spencer | fixed | 1.3000 | 1.2974 | -0.20 | 1.2964 | -0.28 | 1.38 | OK |
 | V071b | bishop | search | 1.2930 | 1.2894 | -0.28 | 1.2883 | -0.36 | 2.04 | OK |
 | V071b | spencer | search | 1.3000 | 1.2952 | -0.37 | 1.2944 | -0.43 | 2.38 | OK |
 | V071b | janbu_simplified | search | 1.1510 | 1.1499 | -0.10 | 1.1478 | -0.28 | 2.04 | OK |
+| V072a | bishop | fixed | 1.2850 | 1.2828 | -0.17 | 1.2821 | -0.23 | 1.04 | OK |
+| V072a | spencer | fixed | 1.2900 | 1.2883 | -0.13 | 1.2875 | -0.19 | 1.39 | OK |
+| V072b | bishop | search | 1.2850 | 1.2822 | -0.22 | 1.2815 | -0.27 | 2.04 | OK |
+| V072b | spencer | search | 1.2900 | 1.2879 | -0.16 | 1.2871 | -0.22 | 2.39 | OK |
+| V072b | janbu_simplified | search | 1.1410 | 1.1365 | -0.39 | 1.1352 | -0.51 | 2.04 | OK |
+| V073 | bishop | search | 1.4170 | 1.4278 | +0.77 | 1.4099 | -0.50 | 2.04 | OK |
+| V073 | spencer | search | 1.4220 | 1.4304 | +0.59 | 1.4146 | -0.52 | 2.04 | OK |
 | V077 | spencer | fixed | 0.9400 | 0.9428 | +0.30 | 0.9428 | +0.30 | 1.53 | OK |
 | V078 | morgenstern_price | fixed | 0.9600 | 0.9578 | -0.23 | 0.9578 | -0.23 | 1.52 | OK |
+| V079 | janbu_simplified | fixed | 1.0490 | 1.0483 | -0.07 | 1.0483 | -0.07 | 1.05 | OK |
+| V079 | spencer | fixed | 1.0490 | 1.0483 | -0.07 | 1.0483 | -0.07 | 1.05 | OK |
+| V080 | morgenstern_price | fixed | 1.0490 | 1.0490 | +0.00 | 1.0490 | -0.00 | 1.05 | OK |
+| V080 | spencer | fixed | 1.0490 | 1.0490 | +0.00 | 1.0490 | -0.00 | 1.05 | OK |
 | V081a | bishop | fixed | 0.7640 | 0.7641 | +0.01 | 0.7641 | +0.01 | 1.07 | OK |
 | V081b | bishop | fixed | 1.5040 | 1.5015 | -0.17 | 1.5012 | -0.19 | 1.03 | OK |
+| V082a | bishop | fixed | 1.5320 | 1.5206 | -0.74 | 1.5204 | -0.76 | 2.03 | OK |
+| V082a | spencer | fixed | 1.5320 | 1.5199 | -0.79 | 1.5196 | -0.81 | 2.03 | OK |
+| V082a | morgenstern_price | fixed | 1.5320 | 1.5199 | -0.79 | 1.5196 | -0.81 | 2.03 | OK |
+| V082a | janbu_corrected | fixed | 1.5440 | 1.5336 | -0.68 | 1.5333 | -0.69 | 2.03 | OK |
+| V082b | bishop | fixed | 1.5110 | 1.4996 | -0.75 | 1.4994 | -0.77 | 2.03 | OK |
+| V082b | spencer | fixed | 1.5100 | 1.4988 | -0.74 | 1.4985 | -0.76 | 2.33 | OK |
+| V082b | morgenstern_price | fixed | 1.5100 | 1.4988 | -0.74 | 1.4986 | -0.76 | 2.33 | OK |
+| V082b | janbu_corrected | fixed | 1.5200 | 1.5090 | -0.72 | 1.5088 | -0.74 | 2.33 | OK |
 | V084a | janbu_corrected | fixed | 0.9890 | 0.9892 | +0.03 | 0.9884 | -0.07 | 1.05 | OK |
 | V084b | janbu_corrected | fixed | 1.1230 | 1.1250 | +0.18 | 1.1243 | +0.11 | 1.04 | OK |
 | V084c | janbu_corrected | fixed | 1.0430 | 1.0443 | +0.12 | 1.0435 | +0.05 | 1.05 | OK |
 | V084d | janbu_corrected | fixed | 0.9450 | 0.9452 | +0.03 | 0.9443 | -0.08 | 1.05 | OK |
 | V084e | janbu_corrected | fixed | 0.9220 | 0.9210 | -0.11 | 0.9199 | -0.22 | 1.05 | OK |
 | V084f | janbu_corrected | fixed | 0.9230 | 0.9218 | -0.13 | 0.9206 | -0.26 | 1.05 | OK |
+| V086b-auto | spencer | search | 0.9750 | 0.9672 | -0.80 | 0.9665 | -0.88 | 2.05 | OK |
+| V086b | spencer | search | 0.9750 | 0.9690 | -0.61 | 0.9683 | -0.69 | 2.05 | OK |
+| V086b | morgenstern_price | search | 0.9750 | 0.9690 | -0.61 | 0.9683 | -0.69 | 2.05 | OK |
+| V086c | spencer | search | 1.2090 | 1.2100 | +0.08 | 1.2064 | -0.21 | 2.04 | OK |
+| V086c | morgenstern_price | search | 1.2180 | 1.2185 | +0.04 | 1.2151 | -0.23 | 2.04 | OK |
+| V086d | spencer | search | 0.9810 | 0.9740 | -0.71 | 0.9730 | -0.82 | 2.05 | OK |
 | V086e | spencer | search | 1.2190 | 1.2067 | -1.01 | 1.2044 | -1.20 | 2.04 | OK |
+| V087 | janbu_corrected | fixed | 2.2900 | 2.2487 | -1.80 | 2.2476 | -1.85 | 2.22 | OK |
+| V088 | spencer | fixed | 2.4450 | 2.4419 | -0.13 | 2.4416 | -0.14 | 2.02 | OK |
+| V088 | bishop | fixed | 2.4470 | 2.4426 | -0.18 | 2.4423 | -0.19 | 2.02 | OK |
+| V088 | janbu_corrected | fixed | 2.4300 | 2.4443 | +0.59 | 2.4438 | +0.57 | 2.21 | OK |
+| V088 | morgenstern_price | fixed | 2.4470 | 2.4419 | -0.21 | 2.4416 | -0.22 | 2.02 | OK |
+| V089 | bishop | fixed | 2.7160 | 2.6992 | -0.62 | 2.6982 | -0.65 | 2.02 | OK |
+| V089 | spencer | fixed | 2.7360 | 2.7218 | -0.52 | 2.7208 | -0.56 | 2.02 | OK |
+| V089 | janbu_corrected | fixed | 2.6500 | 2.6486 | -0.05 | 2.6473 | -0.10 | 2.19 | OK |
+| V089 | morgenstern_price | fixed | 2.7440 | 2.7280 | -0.58 | 2.7270 | -0.62 | 2.02 | OK |
 | V090 | bishop | fixed | 1.3320 | 1.3207 | -0.85 | 1.3205 | -0.86 | 1.04 | OK |
 | V090 | spencer | fixed | 1.3280 | 1.3169 | -0.84 | 1.3167 | -0.85 | 1.04 | OK |
 | V090 | janbu_corrected | fixed | 1.3450 | 1.3408 | -0.31 | 1.3405 | -0.33 | 1.04 | OK |
 | V090 | morgenstern_price | fixed | 1.3270 | 1.3166 | -0.79 | 1.3164 | -0.80 | 1.04 | OK |
+| V091 | bishop | fixed | 1.2410 | 1.2374 | -0.29 | 1.2364 | -0.37 | 1.04 | OK |
+| V091 | spencer | fixed | 1.2410 | 1.2374 | -0.29 | 1.2364 | -0.37 | 1.04 | OK |
+| V091 | morgenstern_price | fixed | 1.2440 | 1.2374 | -0.53 | 1.2364 | -0.61 | 1.04 | OK |
+| V091 | janbu_corrected | fixed | 1.3850 | 1.3896 | +0.33 | 1.3905 | +0.40 | 1.04 | OK |
+| V092 | bishop | fixed | 2.0110 | 1.9914 | -0.97 | 1.9903 | -1.03 | 2.02 | OK |
+| V092 | spencer | fixed | 2.0260 | 2.0057 | -1.00 | 2.0046 | -1.06 | 2.02 | OK |
+| V092 | janbu_corrected | fixed | 1.8300 | 1.8247 | -0.29 | 1.8232 | -0.37 | 2.27 | OK |
+| V092 | morgenstern_price | fixed | 2.0270 | 2.0058 | -1.04 | 2.0048 | -1.10 | 2.02 | OK |
 | V093 | bishop | search | 1.3440 | 1.3431 | -0.07 | 1.3427 | -0.10 | 2.04 | OK |
 | V095a | bishop | fixed | 1.1020 | 1.1010 | -0.09 | 1.1007 | -0.11 | 1.05 | OK |
 | V095c | bishop | fixed | 1.1930 | 1.1956 | +0.22 | 1.1957 | +0.23 | 1.04 | OK |
+| V096a | bishop | search | 1.8040 | 1.7977 | -0.35 | 1.7935 | -0.58 | 2.03 | OK |
+| V096a | spencer | search | 1.8040 | 1.7993 | -0.26 | 1.7944 | -0.53 | 2.03 | OK |
+| V096a | morgenstern_price | search | 1.7900 | 1.7842 | -0.32 | 1.7800 | -0.56 | 2.28 | OK |
+| V096b | bishop | search | 1.1760 | 1.1751 | -0.07 | 1.1734 | -0.22 | 2.04 | OK |
+| V096b | spencer | search | 1.1890 | 1.1902 | +0.10 | 1.1868 | -0.19 | 2.04 | OK |
+| V096b | morgenstern_price | search | 1.1740 | 1.1745 | +0.04 | 1.1720 | -0.17 | 2.04 | OK |
+| V096c | spencer | fixed | 1.8040 | 1.8000 | -0.22 | 1.7997 | -0.24 | 1.03 | OK |
+| V096c | bishop | fixed | 1.8040 | 1.7996 | -0.25 | 1.7992 | -0.26 | 1.03 | OK |
 | V096d | spencer | fixed | 1.8360 | 1.8252 | -0.59 | 1.8239 | -0.66 | 2.03 | OK |
 | V096d | morgenstern_price | fixed | 1.8230 | 1.8097 | -0.73 | 1.8084 | -0.80 | 2.03 | OK |
 | V096e | spencer | fixed | 1.2110 | 1.2137 | +0.23 | 1.2120 | +0.08 | 2.04 | OK |
@@ -518,7 +598,11 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V036d (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V037 (bishop/search, spencer/search): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V037 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V038 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V038b (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V040 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V041a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V041b (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V044 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V044b (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V045 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
@@ -527,6 +611,9 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V046c (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V047a (bishop/search, spencer/search, janbu_corrected/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V047a (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V047b (bishop/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V047b (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V048 (bishop/search, spencer/search, janbu_corrected/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V049 (bishop/search, spencer/search, janbu_corrected/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V049 (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V050a (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
@@ -536,7 +623,9 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V055 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V057a (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V057b (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V058 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V060a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V061 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V063 (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V064 (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V065 (spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
@@ -546,8 +635,14 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V066e (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V067 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V069a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V070 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V071b (bishop/search, spencer/search, janbu_simplified/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V072b (bishop/search, spencer/search, janbu_simplified/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V073 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V078 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V080 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V082a (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V082b (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V084a (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
 - V084a (janbu_corrected/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V084b (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
@@ -560,11 +655,25 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V084e (janbu_corrected/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V084f (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
 - V084f (janbu_corrected/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V086b-auto (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V086b (spencer/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V086b (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V086c (spencer/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V086c (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V086d (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V086e (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V088 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V089 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V090 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V091 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V092 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V093 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V095c (bishop/fixed): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
 - V095c (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V096a (bishop/search, spencer/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V096a (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
+- V096b (bishop/search, spencer/search, morgenstern_price/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V096b (morgenstern_price/search): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V096d (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V096e (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V098 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).

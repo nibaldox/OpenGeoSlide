@@ -3,7 +3,7 @@
   "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
   "model": {
     "format": "opengeoslide",
-    "version": "0.3",
+    "version": "0.1",
     "meta": {
       "id": "V038",
       "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",

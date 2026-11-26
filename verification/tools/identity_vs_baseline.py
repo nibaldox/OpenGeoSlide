@@ -34,6 +34,9 @@ The models are the cases of `verification/cases`, the models of `verification/pe
 The output compared is stdout, stderr and the exit status of `ogs analyze`, so an error (a polyline with Bishop, an
 undrained material that does not converge) must also be the same. Exit status 1 when any variant differs.
 
+The models with `analysis.tension_crack` are **skipped and counted apart** too (F3G): the baseline of v0.3.0 rejects
+version 0.5. Their capability is compared with the oracle (`verification/differential`, F5.5), not with the baseline.
+
 The models with a non-empty `reinforcements` list are **skipped and counted apart** (F3R-R2): the baseline cannot read
 them (v0.2.0 rejects the field), so there is nothing to compare; the identity gate is the one of the models without
 reinforcements.
@@ -94,6 +97,21 @@ def split_models(paths: dict[str, str], include_reinforced: bool = False) -> tup
     for name, path in paths.items():
         (skipped if has_reinforcements(_load(path)) and not include_reinforced else plain)[name] = path
     return plain, skipped
+
+
+def has_tension_crack(model: dict) -> bool:
+    """`True` when the model has `analysis.tension_crack` (version 0.5: the baseline of v0.3.0 cannot read it)."""
+    return (model.get("analysis") or {}).get("tension_crack") is not None
+
+
+def split_cracked(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `models` into the ones the v0.3.0 baseline can run and the ones with a tension crack (skipped and counted
+    apart: the baseline rejects version 0.5, so there is nothing to compare)."""
+    rest: dict[str, str] = {}
+    cracked: dict[str, str] = {}
+    for name, path in models.items():
+        (cracked if has_tension_crack(_load(path)) else rest)[name] = path
+    return rest, cracked
 
 
 def split_ponded(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -252,10 +270,12 @@ def main() -> int:
             return 2
     os.makedirs(args.out, exist_ok=True)
     models, skipped = split_models(model_paths(), args.include_reinforced)
+    models, cracked = split_cracked(models)
     models, ponded = split_ponded(models)
     print(f"{len(models)} modelos sin agua sobre el terreno; variantes own, search, fixed, search@0.4 y fixed@0.4"
           + (" (versión del motor normalizada)" if NORMALIZE else ""))
     print(f"{len(skipped)} modelos con refuerzos saltados aparte (el binario base no los lee)")
+    print(f"{len(cracked)} modelos con tension_crack saltados aparte (el binario base no lee la versión 0.5)")
     print(f"{len(ponded)} modelos con la piezométrica sobre el terreno, aparte (excepción de F5.1: agua embalsada)")
     diffs: list[tuple[str, str, str]] = []
     exception: list[tuple[str, str, str]] = []
@@ -274,8 +294,8 @@ def main() -> int:
         print(f"  AGUA {name}{reinforced}: " + (f"cambia en {', '.join(mine)}" if mine else "idéntico"))
     plain_ponded = [n for n, p in sorted(ponded.items()) if not has_reinforcements(_load(p))]
     print(f"{len(plain_ponded)} modelos con agua sobre el terreno y sin refuerzos: {', '.join(plain_ponded) or '(ninguno)'}")
-    print(f"{len(diffs)} diferencias en {len(models)} modelos sin agua sobre el terreno ({len(skipped)} con refuerzos, saltados;"
-          f" {len(ponded)} con agua sobre el terreno, aparte)")
+    print(f"{len(diffs)} diferencias en {len(models)} modelos sin agua sobre el terreno ({len(skipped)} con refuerzos y "
+          f"{len(cracked)} con tension_crack, saltados; {len(ponded)} con agua sobre el terreno, aparte)")
     return 1 if diffs else 0
 
 

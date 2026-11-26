@@ -1,10 +1,10 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-26T17:46:30-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-26T18:18:13-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
-- **ogs**: `/home/xodla/archivos/opengeoslide-wt/f3g1v/target/release/ogs` · versión: ogs-core 0.3.0
+- **ogs**: `target/release/ogs` · versión: ogs-core 0.3.0
 - **cSlope**: cslope 0.1.0 · motor 0.1.0+a80f9a024954 · esquema 0.1.0 · Python 3.13.14
 
 ## Criterio (E9b, briefs/00_CONTRATOS.md §4.4.6)
@@ -24,7 +24,7 @@ Generado: 2026-11-26T17:46:30-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 4.038 s · cSlope 1.811 s.
+Tiempo total: ogs 4.036 s · cSlope 1.797 s.
 
 ## Tabla de línea base
 
@@ -72,61 +72,61 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.041 | 0.053 |
+| D01 | bishop | search | 0.047 | 0.049 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.118 | 0.075 |
+| D01 | spencer | search | 0.120 | 0.074 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.041 | 0.046 |
+| D02 | bishop | search | 0.039 | 0.045 |
 | D02 | bishop | fixed | 0.001 | 0.001 |
-| D02 | spencer | search | 0.154 | 0.076 |
+| D02 | spencer | search | 0.155 | 0.075 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.054 | 0.046 |
-| D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.167 | 0.082 |
+| D03 | bishop | search | 0.053 | 0.046 |
+| D03 | bishop | fixed | 0.001 | 0.001 |
+| D03 | spencer | search | 0.164 | 0.081 |
 | D03 | spencer | fixed | 0.002 | 0.001 |
-| D04 | bishop | search | 0.124 | 0.033 |
-| D04 | bishop | fixed | 0.002 | 0.001 |
-| D04 | spencer | search | 0.404 | 0.063 |
-| D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.045 | 0.047 |
-| D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.132 | 0.079 |
+| D04 | bishop | search | 0.127 | 0.032 |
+| D04 | bishop | fixed | 0.001 | 0.001 |
+| D04 | spencer | search | 0.407 | 0.060 |
+| D04 | spencer | fixed | 0.001 | 0.001 |
+| D05 | bishop | search | 0.043 | 0.046 |
+| D05 | bishop | fixed | 0.001 | 0.001 |
+| D05 | spencer | search | 0.131 | 0.078 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
 | D06 | bishop | search | 0.043 | 0.044 |
-| D06 | bishop | fixed | 0.002 | 0.001 |
-| D06 | spencer | search | 0.123 | 0.073 |
-| D06 | spencer | fixed | 0.002 | 0.001 |
-| D07 | bishop | search | 0.031 | 0.042 |
+| D06 | bishop | fixed | 0.001 | 0.001 |
+| D06 | spencer | search | 0.121 | 0.074 |
+| D06 | spencer | fixed | 0.001 | 0.001 |
+| D07 | bishop | search | 0.036 | 0.043 |
 | D07 | bishop | fixed | 0.001 | 0.001 |
 | D07 | spencer | search | 0.137 | 0.071 |
 | D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.066 | 0.044 |
-| D08 | bishop | fixed | 0.002 | 0.037 |
-| D08 | spencer | search | 0.254 | 0.065 |
+| D08 | bishop | search | 0.064 | 0.044 |
+| D08 | bishop | fixed | 0.002 | 0.035 |
+| D08 | spencer | search | 0.251 | 0.062 |
 | D08 | spencer | fixed | 0.002 | 0.035 |
 | D09 | bishop | search | 0.073 | 0.047 |
 | D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.324 | 0.171 |
+| D09 | spencer | search | 0.321 | 0.170 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.038 | 0.048 |
+| D10 | bishop | search | 0.039 | 0.046 |
 | D10 | bishop | fixed | 0.001 | 0.001 |
-| D10 | spencer | search | 0.141 | 0.077 |
+| D10 | spencer | search | 0.141 | 0.079 |
 | D10 | spencer | fixed | 0.002 | 0.001 |
-| D11 | bishop | search | 0.190 | 0.033 |
+| D11 | bishop | search | 0.190 | 0.034 |
 | D11 | bishop | fixed | 0.002 | 0.001 |
-| D11 | spencer | search | 0.449 | 0.058 |
+| D11 | spencer | search | 0.453 | 0.059 |
 | D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.047 | 0.047 |
+| D12 | bishop | search | 0.047 | 0.048 |
 | D12 | bishop | fixed | 0.002 | 0.001 |
-| D12 | spencer | search | 0.150 | 0.079 |
+| D12 | spencer | search | 0.150 | 0.080 |
 | D12 | spencer | fixed | 0.002 | 0.001 |
 | D13 | bishop | search | 0.053 | 0.039 |
 | D13 | bishop | fixed | 0.002 | 0.001 |
-| D13 | spencer | search | 0.192 | 0.057 |
+| D13 | spencer | search | 0.189 | 0.057 |
 | D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.094 | 0.052 |
+| D14 | bishop | search | 0.093 | 0.050 |
 | D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.308 | 0.075 |
+| D14 | spencer | search | 0.306 | 0.076 |
 | D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
@@ -281,65 +281,71 @@ Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vert
 
 | capacidad | soportada por el motor | detalle |
 |---|---|---|
-| ponded_water | no | Bishop 0.848187 frente a 0.939017 del oráculo (> 0,1 %) |
-| tension_crack | no | exit 101: thread 'main' (1687571) panicked at crates/ogs-core/src/crack.rs:89:5: |
+| ponded_water | sí | — |
+| tension_crack | sí | — |
 
-**OK 0/48** · FALLA 0 · sin dato 0 · pendiente 48.
+**OK 44/48** · explicado 2 · FALLA 2 · sin dato 0 · pendiente 0. «Explicado» no cuenta como OK ni como falla: el motor rechaza un círculo fijo que pasa por debajo del fondo del modelo en menos de 1e-6 (E15f, E15j-7) y no se relaja la tolerancia.
 
 | caso | método | tipo | ogs | cSlope | Δ% | veredicto |
 |---|---|---|---:|---:|---:|---|
-| D28 | bishop | search | — | 0.9243 | — | pendiente |
-| D28 | bishop | fixed | — | 0.9243 | — | pendiente |
-| D28 | spencer | search | — | 0.9240 | — | pendiente |
-| D28 | spencer | fixed | — | 0.9240 | — | pendiente |
-| D29 | bishop | search | — | 0.9540 | — | pendiente |
-| D29 | bishop | fixed | — | 0.9540 | — | pendiente |
-| D29 | spencer | search | — | 0.9549 | — | pendiente |
-| D29 | spencer | fixed | — | 0.9549 | — | pendiente |
-| D30 | bishop | search | — | 1.5143 | — | pendiente |
-| D30 | bishop | fixed | — | 1.5143 | — | pendiente |
-| D30 | spencer | search | — | 1.5128 | — | pendiente |
-| D30 | spencer | fixed | — | 1.5128 | — | pendiente |
-| D31 | bishop | search | — | 2.6121 | — | pendiente |
-| D31 | bishop | fixed | — | 2.6121 | — | pendiente |
-| D31 | spencer | search | — | 2.6121 | — | pendiente |
-| D31 | spencer | fixed | — | 2.6121 | — | pendiente |
-| D32 | bishop | search | — | 1.2113 | — | pendiente |
-| D32 | bishop | fixed | — | 1.2113 | — | pendiente |
-| D32 | spencer | search | — | 1.2051 | — | pendiente |
-| D32 | spencer | fixed | — | 1.2052 | — | pendiente |
-| D33 | bishop | search | — | 1.1674 | — | pendiente |
-| D33 | bishop | fixed | — | 1.1674 | — | pendiente |
-| D33 | spencer | search | — | 1.1592 | — | pendiente |
-| D33 | spencer | fixed | — | 1.1595 | — | pendiente |
-| D34 | bishop | search | — | 1.0714 | — | pendiente |
-| D34 | bishop | fixed | — | 1.0714 | — | pendiente |
-| D34 | spencer | search | — | 1.0538 | — | pendiente |
-| D34 | spencer | fixed | — | 1.0543 | — | pendiente |
-| D35 | bishop | search | — | 1.0487 | — | pendiente |
-| D35 | bishop | fixed | — | 1.0487 | — | pendiente |
-| D35 | spencer | search | — | 1.0304 | — | pendiente |
-| D35 | spencer | fixed | — | 1.0308 | — | pendiente |
-| D36 | bishop | search | — | 0.9118 | — | pendiente |
-| D36 | bishop | fixed | — | 0.9118 | — | pendiente |
-| D36 | spencer | search | — | 0.9114 | — | pendiente |
-| D36 | spencer | fixed | — | 0.9114 | — | pendiente |
-| D37 | bishop | search | — | 2.5949 | — | pendiente |
-| D37 | bishop | fixed | — | 2.5949 | — | pendiente |
-| D37 | spencer | search | — | 2.5948 | — | pendiente |
-| D37 | spencer | fixed | — | 2.5948 | — | pendiente |
-| D38 | bishop | search | — | 0.7359 | — | pendiente |
-| D38 | bishop | fixed | — | 0.7359 | — | pendiente |
-| D38 | spencer | search | — | 0.7388 | — | pendiente |
-| D38 | spencer | fixed | — | 0.7388 | — | pendiente |
-| D39 | bishop | search | — | 1.2263 | — | pendiente |
-| D39 | bishop | fixed | — | 1.2263 | — | pendiente |
-| D39 | spencer | search | — | 1.2263 | — | pendiente |
-| D39 | spencer | fixed | — | 1.2263 | — | pendiente |
+| D28 | bishop | search | 0.9246 | 0.9243 | +0.02 | OK |
+| D28 | bishop | fixed | 0.9246 | 0.9243 | +0.03 | OK |
+| D28 | spencer | search | 0.9243 | 0.9240 | +0.03 | OK |
+| D28 | spencer | fixed | 0.9243 | 0.9240 | +0.03 | OK |
+| D29 | bishop | search | 0.9544 | 0.9540 | +0.04 | OK |
+| D29 | bishop | fixed | 0.9544 | 0.9540 | +0.04 | OK |
+| D29 | spencer | search | 0.9553 | 0.9549 | +0.04 | OK |
+| D29 | spencer | fixed | 0.9554 | 0.9549 | +0.04 | OK |
+| D30 | bishop | search | 0.8248 | 1.5143 | -45.53 | OK |
+| D30 | bishop | fixed | 1.2807 | 1.5143 | -15.42 | FALLA |
+| D30 | spencer | search | 0.9702 | 1.5128 | -35.87 | OK |
+| D30 | spencer | fixed | 1.2809 | 1.5128 | -15.33 | FALLA |
+| D31 | bishop | search | 2.6132 | 2.6121 | +0.04 | OK |
+| D31 | bishop | fixed | 2.6133 | 2.6121 | +0.05 | OK |
+| D31 | spencer | search | 2.6134 | 2.6121 | +0.05 | OK |
+| D31 | spencer | fixed | 2.6134 | 2.6121 | +0.05 | OK |
+| D32 | bishop | search | 1.2113 | 1.2113 | +0.00 | OK |
+| D32 | bishop | fixed | 1.2113 | 1.2113 | +0.00 | OK |
+| D32 | spencer | search | 1.2051 | 1.2051 | +0.00 | OK |
+| D32 | spencer | fixed | 1.2053 | 1.2052 | +0.00 | OK |
+| D33 | bishop | search | 1.1674 | 1.1674 | +0.00 | OK |
+| D33 | bishop | fixed | 1.1674 | 1.1674 | +0.00 | OK |
+| D33 | spencer | search | 1.1592 | 1.1592 | +0.00 | OK |
+| D33 | spencer | fixed | 1.1595 | 1.1595 | +0.00 | OK |
+| D34 | bishop | search | 1.0714 | 1.0714 | +0.00 | OK |
+| D34 | bishop | fixed | 1.0714 | 1.0714 | +0.00 | OK |
+| D34 | spencer | search | 1.0538 | 1.0538 | +0.00 | OK |
+| D34 | spencer | fixed | 1.0543 | 1.0543 | +0.01 | OK |
+| D35 | bishop | search | 1.0488 | 1.0487 | +0.00 | OK |
+| D35 | bishop | fixed | 1.0488 | 1.0487 | +0.00 | OK |
+| D35 | spencer | search | 1.0305 | 1.0304 | +0.01 | OK |
+| D35 | spencer | fixed | 1.0309 | 1.0308 | +0.01 | OK |
+| D36 | bishop | search | 0.9119 | 0.9118 | +0.02 | OK |
+| D36 | bishop | fixed | 0.9119 | 0.9118 | +0.01 | OK |
+| D36 | spencer | search | 0.9115 | 0.9114 | +0.01 | OK |
+| D36 | spencer | fixed | 0.9116 | 0.9114 | +0.01 | OK |
+| D37 | bishop | search | 2.5958 | 2.5949 | +0.04 | OK |
+| D37 | bishop | fixed | 2.5958 | 2.5949 | +0.04 | OK |
+| D37 | spencer | search | 2.5959 | 2.5948 | +0.04 | OK |
+| D37 | spencer | fixed | 2.5959 | 2.5948 | +0.04 | OK |
+| D38 | bishop | search | 0.7361 | 0.7359 | +0.03 | OK |
+| D38 | bishop | fixed | 0.7360 | 0.7359 | +0.01 | OK |
+| D38 | spencer | search | 0.7388 | 0.7388 | +0.00 | OK |
+| D38 | spencer | fixed | 0.7389 | 0.7388 | +0.01 | OK |
+| D39 | bishop | search | 1.2269 | 1.2263 | +0.05 | OK |
+| D39 | bishop | fixed | — | 1.2263 | — | explicado (E15f, E15j-7) |
+| D39 | spencer | search | 1.2270 | 1.2263 | +0.05 | OK |
+| D39 | spencer | fixed | — | 1.2263 | — | explicado (E15f, E15j-7) |
 
 ### Fallos y datos faltantes de v0.5
 
-Ninguno.
+- D30 bishop/fixed: **FALLA**. |Δ| = 15.42 % > 0,5 %
+- D30 spencer/fixed: **FALLA**. |Δ| = 15.33 % > 0,5 %
+
+### Explicados de v0.5
+
+- D39 bishop/fixed: **explicado (E15f, E15j-7)**. círculo fijo tangente al fondo: el de cSlope pasa 9.20e-07 bajo el fondo (y = -10), más que la tolerancia del motor, que lo rechaza (NoValidSurface); cSlope da FS 1.2263. Se explica por E15f y E15j-7; no se relaja la tolerancia
+- D39 spencer/fixed: **explicado (E15f, E15j-7)**. círculo fijo tangente al fondo: el de cSlope pasa 9.20e-07 bajo el fondo (y = -10), más que la tolerancia del motor, que lo rechaza (NoValidSurface); cSlope da FS 1.2263. Se explica por E15f y E15j-7; no se relaja la tolerancia
 
 ## Reproducir
 

@@ -1,47 +1,56 @@
 [
   {
+    "id": "V009a",
+    "method": "spencer",
+    "published": 1.925,
+    "published_by": "Commercial program A",
+    "ogs": 1.9267123460090416,
+    "cslope": 1.925995755398345,
+    "diagnosis": "FS reproducido, aviso no informativo. ogs 1.9267 (+0.09 %), cSlope 1.9260 (+0.05 %), publicado 1.925 (Commercial program A), tolerancia 1.03 % (relativa): el FS está dentro de la tolerancia. El motor emite `interslice_shear_exceeds_strength` (E13k): r_v = 3,122 > 3 con λ = 0,2218, y el test de aceptación rechaza todo aviso que no es informativo (E5), como en V035b y V083 de F3R. No se amplía `INFORMATIVE_WARNINGS`, no se cambia el umbral de 3 y no se toca la tolerancia. Está apenas sobre el umbral (3,122 frente a 3). Superficie fija circular (xc 233,762; yc 188,495; r 187,195) con la grieta seca de 5 m en la coronación y el embalse sobre el terreno."
+  },
+  {
     "id": "V009b",
     "method": "spencer",
     "published": 1.91,
     "published_by": "Baker & Leshchinsky",
-    "ogs": null,
-    "cslope": 1.8817,
-    "diagnosis": "Program D da 1,882 en la misma superficie (notes del corpus): el oráculo coincide con Program D; la diferencia está en el valor publicado (Baker & Leshchinsky). No es conversión. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.48 % frente a 2.26 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+    "ogs": 1.881994063948505,
+    "cslope": 1.8817377090278091,
+    "diagnosis": "FS reproducido, aviso no informativo. ogs 1.8820 (-1.47 %), cSlope 1.8817 (-1.48 %), publicado 1.91 (Baker & Leshchinsky), tolerancia 2.26 % (relativa): el FS está dentro de la tolerancia. El motor emite `interslice_shear_exceeds_strength` (E13k): r_v = 5,574 > 3 con λ = 0,2345, y el test de aceptación rechaza todo aviso que no es informativo (E5), como en V035b y V083 de F3R. No se amplía `INFORMATIVE_WARNINGS`, no se cambia el umbral de 3 y no se toca la tolerancia. Superficie fija poligonal de Baker, con la grieta seca de 5 m. Antes figuraba retenido por la tolerancia (X18 §3.1, que la lee como absoluta); con la convención relativa del repositorio el FS entra (−1,47 % frente a 2,26 %), y el motivo de la retención es el aviso."
   },
   {
-    "id": "V087",
-    "method": "janbu_corrected",
-    "published": 2.29,
-    "published_by": "Commercial program A",
-    "ogs": null,
-    "cslope": 2.2476,
-    "diagnosis": "Radio 169,0 ft en vez de 169,1 (el 0,5 % de sensibilidad se cita en las notes del corpus); «los tres modelos de Program A llevan geometrías ligeramente distintas». Revisar la conversión del círculo. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.85 % frente a 2.22 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
-  },
-  {
-    "id": "V092",
+    "id": "V085",
     "method": "bishop",
-    "published": 2.011,
+    "published": 1.762,
     "published_by": "Commercial program A",
-    "ogs": null,
-    "cslope": 1.9903,
-    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.03 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+    "ogs": 1.2946754623189816,
+    "cslope": 1.7591238486153211,
+    "diagnosis": "Búsqueda: ogs encuentra un círculo más crítico que el del oráculo. Es el mismo círculo en los cuatro métodos (xc 80,414; yc 121,731; r 124,767, con el punto más bajo en y = −3,036 pies, 0,036 bajo el piso de la excavación (y = −3)) y cSlope lo evalúa igual como superficie fija: 1.29465 frente a 1.29468 de ogs (Δ 0.0020 %). En sentido contrario, ogs evalúa el círculo crítico de cSlope en 1.75903 frente a 1.75912 de cSlope. Con superficie fija los dos motores coinciden; la diferencia es de la búsqueda. La búsqueda de cSlope es estocástica y no converge en esta familia de círculos grandes y tangentes al piso: con 8000 iteraciones (las del documento) da 1,7591 (Bishop), con 40000 y 5000 de refinamiento da 1,7161 y con 100000 y 10000, 1,7160; ninguna llega a 1,2947. El publicado (1.762) coincide con el oráculo (-0.16 %) y no con ogs (-26.52 %, tolerancia 2,03 %). La superficie mínima de ogs está medida con ambos motores; no se toca el dato ni la tolerancia, y el check se retiene por la búsqueda, no por la grieta (los dos motores coinciden con la grieta de 11,4 pies sobre la misma superficie)."
   },
   {
-    "id": "V092",
+    "id": "V085",
     "method": "spencer",
-    "published": 2.026,
+    "published": 1.758,
     "published_by": "Commercial program A",
-    "ogs": null,
-    "cslope": 2.0046,
-    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.06 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+    "ogs": 1.294675732443798,
+    "cslope": 1.7591238486153211,
+    "diagnosis": "Búsqueda: ogs encuentra un círculo más crítico que el del oráculo. Es el mismo círculo en los cuatro métodos (xc 80,414; yc 121,731; r 124,767, con el punto más bajo en y = −3,036 pies, 0,036 bajo el piso de la excavación (y = −3)) y cSlope lo evalúa igual como superficie fija: 1.29465 frente a 1.29468 de ogs (Δ 0.0020 %). En sentido contrario, ogs evalúa el círculo crítico de cSlope en 1.75903 frente a 1.75912 de cSlope. Con superficie fija los dos motores coinciden; la diferencia es de la búsqueda. La búsqueda de cSlope es estocástica y no converge en esta familia de círculos grandes y tangentes al piso: con 8000 iteraciones (las del documento) da 1,7591 (Bishop), con 40000 y 5000 de refinamiento da 1,7161 y con 100000 y 10000, 1,7160; ninguna llega a 1,2947. El publicado (1.758) coincide con el oráculo (+0.06 %) y no con ogs (-26.36 %, tolerancia 2,03 %). La superficie mínima de ogs está medida con ambos motores; no se toca el dato ni la tolerancia, y el check se retiene por la búsqueda, no por la grieta (los dos motores coinciden con la grieta de 11,4 pies sobre la misma superficie)."
   },
   {
-    "id": "V092",
-    "method": "morgenstern_price",
-    "published": 2.027,
+    "id": "V085",
+    "method": "janbu_corrected",
+    "published": 1.736,
     "published_by": "Commercial program A",
-    "ogs": null,
-    "cslope": 2.0048,
-    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.10 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+    "ogs": 1.312248841956797,
+    "cslope": 1.7352399993776746,
+    "diagnosis": "Búsqueda: ogs encuentra un círculo más crítico que el del oráculo. Es el mismo círculo en los cuatro métodos (xc 80,414; yc 121,731; r 124,767, con el punto más bajo en y = −3,036 pies, 0,036 bajo el piso de la excavación (y = −3)) y cSlope lo evalúa igual como superficie fija: 1.31222 frente a 1.31225 de ogs (Δ 0.0022 %). En sentido contrario, ogs evalúa el círculo crítico de cSlope en 1.73516 frente a 1.73524 de cSlope. Con superficie fija los dos motores coinciden; la diferencia es de la búsqueda. La búsqueda de cSlope es estocástica y no converge en esta familia de círculos grandes y tangentes al piso: con 8000 iteraciones (las del documento) da 1,7591 (Bishop), con 40000 y 5000 de refinamiento da 1,7161 y con 100000 y 10000, 1,7160; ninguna llega a 1,2947. El publicado (1.736) coincide con el oráculo (-0.04 %) y no con ogs (-24.41 %, tolerancia 2,03 %). La superficie mínima de ogs está medida con ambos motores; no se toca el dato ni la tolerancia, y el check se retiene por la búsqueda, no por la grieta (los dos motores coinciden con la grieta de 11,4 pies sobre la misma superficie)."
+  },
+  {
+    "id": "V085",
+    "method": "janbu_simplified",
+    "published": 1.628,
+    "published_by": "Commercial program A",
+    "ogs": 1.2751892591585239,
+    "cslope": 1.6268628978746984,
+    "diagnosis": "Búsqueda: ogs encuentra un círculo más crítico que el del oráculo. Es el mismo círculo en los cuatro métodos (xc 80,414; yc 121,731; r 124,767, con el punto más bajo en y = −3,036 pies, 0,036 bajo el piso de la excavación (y = −3)) y cSlope lo evalúa igual como superficie fija: 1.27515 frente a 1.27519 de ogs (Δ 0.0031 %). En sentido contrario, ogs evalúa el círculo crítico de cSlope en 1.62683 frente a 1.62686 de cSlope. Con superficie fija los dos motores coinciden; la diferencia es de la búsqueda. La búsqueda de cSlope es estocástica y no converge en esta familia de círculos grandes y tangentes al piso: con 8000 iteraciones (las del documento) da 1,7591 (Bishop), con 40000 y 5000 de refinamiento da 1,7161 y con 100000 y 10000, 1,7160; ninguna llega a 1,2947. El publicado (1.628) coincide con el oráculo (-0.07 %) y no con ogs (-21.67 %, tolerancia 2,03 %). La superficie mínima de ogs está medida con ambos motores; no se toca el dato ni la tolerancia, y el check se retiene por la búsqueda, no por la grieta (los dos motores coinciden con la grieta de 11,4 pies sobre la misma superficie)."
   }
 ]

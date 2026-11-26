@@ -171,6 +171,8 @@ def test_generated_cases_pass_the_schema_and_search_gates():
             case = json.load(fh)
         if case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
             errors = imp.gate_schema_f3r(case, F3R_SCHEMA)
+        elif case["model"]["version"] == "0.5":      # the promoted batch F3G (tension crack)
+            errors = imp.gate_f3g(case, json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8")))
         else:
             errors = [e.message for e in jsonschema.Draft202012Validator(imp.CASE_SCHEMA).iter_errors(case)]
         assert errors == [], (path, errors)
@@ -451,7 +453,7 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # Not every case of verification/cases is v0.1 or v0.2 any more: the cases with M-P, Janbu, undrained strength or a
     # polyline are v0.3 (F3.1). So each case is checked against the version it declares, and the declared version must
     # be the minimal one (F3.9): 0.1 without loads, seismic or v0.3 fields; 0.2 with loads or seismic only; 0.3 otherwise.
-    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0}
+    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0, "0.5": 0}
     for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
@@ -460,6 +462,9 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
         counts[version] += 1
         if version == "0.4":      # promoted batches R1 to R4: their own schema and gates (test_the_promoted_...)
             assert model["reinforcements"], path
+            continue
+        if version == "0.5":      # promoted batch F3G: the crack; its own schema and gates (test_the_f3g_...)
+            assert model["analysis"]["tension_crack"], path
             continue
         has_v02 = "loads" in model or "seismic" in model["analysis"]
         expected = "0.3" if _uses_v03(model) else ("0.2" if has_v02 else "0.1")
@@ -472,8 +477,8 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # the number comes from the index, never from a literal (contract F3.8)
     with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
         index = fh.read()
-    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*", index, re.S)
-    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"]) == tuple(int(g) for g in m.groups())
+    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*.*?v0\.5[^*]*\*\*(\d+)\*\*", index, re.S)
+    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"], counts["0.5"]) == tuple(int(g) for g in m.groups())
 
 
 # ------------------------------------------------------------ batch 0 (F3.8): no cap, no selection
@@ -957,7 +962,8 @@ def test_f3g_automatic_depth_is_the_string_auto():
 
 def test_f3g_ponded_water_without_crack_keeps_the_minimum_version_and_the_line():
     (case, _, _), = imp.convert_f3g(_raw_f3g([{}], piezo=_PONDED), PROB)
-    assert case["model"]["version"] == "0.3" and "tension_crack" not in case["model"]["analysis"]
+    # F3.9, F5.1: the minimum version of its fields; ponded water has no field, so a circle with Bishop is v0.1
+    assert case["model"]["version"] == "0.1" and "tension_crack" not in case["model"]["analysis"]
     assert case["model"]["water"]["piezometric_line"] == _PONDED
     assert imp.gate_f3g(case, F3G_SCHEMA) == []
     with pytest.raises(imp.Omit, match="agua embalsada"):        # the earlier batches still omit it
@@ -1018,31 +1024,52 @@ def test_gate_f3g_rejects_what_f5_2_rejects(mutate, match):
     assert re.search(match, " ".join(imp.gate_f3g(case, F3G_SCHEMA))), imp.gate_f3g(case, F3G_SCHEMA)
 
 
-def _f3g_files(sub=""):
-    paths = sorted(glob.glob(os.path.join(F3G_DIR, sub, "V*.json")))
-    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8")) for p in paths}
+def _is_f3g(case):
+    """A promoted F3G case: it has a tension crack or ponded water (the earlier batches have neither)."""
+    m = case["model"]
+    if m["analysis"].get("tension_crack"):
+        return True
+    piezo = (m.get("water") or {}).get("piezometric_line") or []
+    outline = unary_union([Polygon(r["polygon"]) for r in m["regions"]])
+    return len(piezo) >= 2 and imp.water_above_ground(outline, piezo)
 
 
-def test_the_f3g_batch_is_x18_d_81_ready_checks_and_5_held():
-    ready, held = _f3g_files(), _f3g_files("hold")
-    assert sum(len(c["checks"]) for c in ready.values()) == 81 and len(ready) == 32
-    assert sum(len(c["checks"]) for c in held.values()) == 5 and sorted(held) == ["V009b", "V087", "V092"]
+def _f3g_files(held=False):
+    """The F3G cases promoted to verification/cases (default) or the held ones that stay in pending/F3G."""
+    pattern = os.path.join(F3G_DIR if held else CASES_DIR, "V*.json")
+    cases = {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8")) for p in sorted(glob.glob(pattern))}
+    return cases if held else {cid: c for cid, c in cases.items() if _is_f3g(c)}
+
+
+def test_the_f3g_batch_is_promoted_80_checks_and_6_held():
+    ready, held = _f3g_files(), _f3g_files(held=True)
+    assert sum(len(c["checks"]) for c in ready.values()) == 80 and len(ready) == 31
+    assert sum(len(c["checks"]) for c in held.values()) == 6 and sorted(held) == ["V009a", "V009b", "V085"]
     # X18 §3.1 D: 86 checks of 33 problems; V086b is split in two cases because the crack is a field of the model
     assert len({i.split("-")[0] for i in {**ready, **held}}) == 33
-    assert "V086b-auto" in ready and set(ready) | set(held) == {i for i in {**ready, **held}}
-    hold_keys = {(e["id"], e["method"], e["published"]) for e in json.load(open(os.path.join(F3G_DIR, "HOLD.json"), encoding="utf-8"))}
+    assert "V086b-auto" in ready
+    hold = json.load(open(os.path.join(F3G_DIR, "HOLD.json"), encoding="utf-8"))
+    hold_keys = {(e["id"], e["method"], e["published"]) for e in hold}
     assert hold_keys == {(c["id"], k["method"], k["published"]) for c in held.values() for k in c["checks"]}
     assert not hold_keys & {(c["id"], k["method"], k["published"]) for c in ready.values() for k in c["checks"]}
-    for entry in json.load(open(os.path.join(F3G_DIR, "HOLD.json"), encoding="utf-8")):
-        assert entry["cslope"] and entry["diagnosis"] and "Convención de tolerancia" in entry["diagnosis"]
+    for entry in hold:
+        assert entry["cslope"] and entry["ogs"] and entry["diagnosis"]
+        assert "relativa" in entry["diagnosis"] or "estoc" in entry["diagnosis"]      # the cause, measured
+    # the five checks that X18 read with an absolute tolerance are held for the tolerance in none: V087 and V092 are
+    # promoted (the repository tolerance is relative) and V009b is held for the warning of E13k
+    promoted = {(c["id"], k["method"]) for c in ready.values() for k in c["checks"]}
+    assert {("V087", "janbu_corrected"), ("V092", "bishop"), ("V092", "spencer"), ("V092", "morgenstern_price")} <= promoted
+    assert {e["id"] for e in hold if "Convención de tolerancia" in e["diagnosis"]} == set()
+    assert {(e["id"], e["method"]) for e in hold if "interslice_shear_exceeds_strength" in e["diagnosis"]} == {("V009a", "spencer"), ("V009b", "spencer")}
 
 
 def test_the_f3g_cases_pass_the_gates_and_use_the_minimum_version():
-    for cid, case in {**_f3g_files(), **_f3g_files("hold")}.items():
+    for cid, case in {**_f3g_files(), **_f3g_files(held=True)}.items():
         assert imp.gate_f3g(case, F3G_SCHEMA) == [] and imp.gate_search(case) == [], cid
         assert imp.gate_loads(case) == [] and imp.gate_features(case) == [], cid
         crack = case["model"]["analysis"].get("tension_crack")
-        assert case["model"]["version"] == ("0.5" if crack else "0.3"), cid
+        has_v02 = "loads" in case["model"] or "seismic" in case["model"]["analysis"]
+        assert case["model"]["version"] == ("0.5" if crack else "0.3" if _uses_v03(case["model"]) else "0.2" if has_v02 else "0.1"), cid
         assert case["id"] == cid and case["model"]["meta"]["id"] == cid
         assert "reinforcements" not in case["model"], cid
         if crack and crack["water_fill"] > 0:
@@ -1050,19 +1077,23 @@ def test_the_f3g_cases_pass_the_gates_and_use_the_minimum_version():
 
 
 def test_the_f3g_cases_without_a_crack_all_have_ponded_water():
-    for cid, case in {**_f3g_files(), **_f3g_files("hold")}.items():
+    for cid, case in {**_f3g_files(), **_f3g_files(held=True)}.items():
         if case["model"]["analysis"].get("tension_crack"):
             continue
         outline = unary_union([Polygon(r["polygon"]) for r in case["model"]["regions"]])
         assert imp.water_above_ground(outline, case["model"]["water"]["piezometric_line"]), cid
 
 
-def test_the_f3g_index_lists_the_cases_the_hold_and_the_tolerance_convention():
+def test_the_f3g_indexes_list_the_cases_the_hold_and_the_tolerance_convention():
     index = open(os.path.join(F3G_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "**32** casos con **81** checks" in index and "**5** checks" in index
-    assert "Convención de tolerancia" in index and "V086b-auto" in index and "hold/REPORT.md" in index
-    for cid in _f3g_files():
-        assert f"| {cid} |" in index
+    assert "**31** casos con **80** checks" in index and "**6** checks" in index and "| V085 |" in index and "| V009b |" in index
+    assert "Convención de tolerancia" in index and "relativa" in index
+    cases_index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
+    section = cases_index[cases_index.index("## Grieta de tracción y agua embalsada"):]
+    assert "**31** casos con **80** checks" in section and "V085 ×4" in section and "V009a" in section
+    for cid, case in _f3g_files().items():
+        for check in case["checks"]:
+            assert f"| {cid} | {case['model']['version']} |" in section and f"| {check['published']} |" in section
 
 
 def _clone():
@@ -1072,8 +1103,18 @@ def _clone():
     return None
 
 
+def _f3g_tree(root):
+    """The files of the F3G batch under `root`: what is held in pending/F3G, the promoted cases and cases/INDEX.md."""
+    out = {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification" / "pending" / "F3G").rglob("*") if p.is_file()}
+    for p in sorted((root / "verification" / "cases").glob("*.json")):
+        if _is_f3g(json.loads(p.read_text(encoding="utf-8"))):
+            out[p.relative_to(root).as_posix()] = p.read_bytes()
+    out["verification/cases/INDEX.md"] = (root / "verification" / "cases" / "INDEX.md").read_bytes()
+    return out
+
+
 @pytest.mark.skipif(_clone() is None, reason="needs the cSlope clone (CSLOPE_SRC or $TMPDIR/cslope-src)")
-def test_the_importer_is_idempotent_and_reproduces_pending_f3g(tmp_path):
+def test_the_importer_is_idempotent_and_reproduces_the_promoted_f3g(tmp_path):
     """Run on a copy of the tree: the F3G files are the ones in the repo and a second run writes nothing of F3G."""
     import shutil
     root = tmp_path / "repo"
@@ -1086,12 +1127,14 @@ def test_the_importer_is_idempotent_and_reproduces_pending_f3g(tmp_path):
     try:
         sys.argv = argv
         assert imp.main() == 0
-        first = {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification" / "pending" / "F3G").rglob("*") if p.is_file()}
+        first = _f3g_tree(root)
         assert imp.main() == 0
-        second = {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification" / "pending" / "F3G").rglob("*") if p.is_file()}
+        second = _f3g_tree(root)
     finally:
         sys.argv = old
     assert first == second
     for rel, data in first.items():
         with open(os.path.join(ROOT, rel), "rb") as fh:
             assert fh.read() == data, rel
+    assert "verification/pending/F3G/V085.json" in first and "verification/cases/V087.json" in first
+    assert not any(rel.startswith("verification/pending/F3G/hold") for rel in first)

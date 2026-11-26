@@ -222,6 +222,21 @@ Son las bases del pie de un círculo de φ = 0 con cohesión alta (V027 y V028) 
 (V068), que cSlope también declara sensible al corte. La decisión del coordinador fue **dejarlos retenidos**. Con el
 aviso tratado como informativo, los tres entrarían dentro de la tolerancia.
 
+### V085 ×4, V009a y V009b: los 6 retenidos de F3G (E15j-6)
+
+El lote F3G (grieta de tracción y agua embalsada) promovió 31 casos y 80 checks. Quedan **6 checks retenidos** en
+[`pending/F3G`](../verification/pending/F3G/INDEX.md) (`HOLD.json`), cada uno con su causa medida y sin relajar ninguna
+tolerancia (la de los checks es relativa, `|Δ|/publicado`, E15j-5):
+
+- **V085 ×4** (Bishop, Spencer, Janbu simplificado y Janbu corregido): la búsqueda de ogs encuentra un círculo más
+  crítico, el mismo en los cuatro métodos (Bishop 1,2947 frente a 1,762 publicado). cSlope evalúa ese círculo en 1,29465
+  (0,002 %): con superficie fija los dos motores coinciden y la grieta no interviene. La búsqueda de cSlope es
+  estocástica y da 1,7591 con 8000 iteraciones y 1,716 con 40 000; el valor publicado corresponde a una búsqueda que no
+  llega a ese mínimo.
+- **V009a y V009b** (Spencer): el FS está dentro de la tolerancia (+0,09 % y −1,47 %), pero el motor emite
+  `interslice_shear_exceeds_strength` (E13k) con `r_v` de 3,12 y 5,57, sobre el umbral calibrado de 3, y la aceptación
+  rechaza todo aviso que no es informativo (E5), igual que V035b y V083.
+
 ### V035b y V083: retenidos por `negative_effective_normal_major`, tracción real del modelo (E14n-1)
 
 El FS de ogs reproduce el publicado (V035b, Bishop: 1,3210 frente a 1,324 y 1,32; V083, Janbu corregido: 0,8845 frente a
@@ -562,21 +577,24 @@ cSlope pasa por debajo del fondo por 8,35e-7 y 9,76e-7, que es **12 y 33 veces**
 (`1e-9·escala`, de 7,0e-8 y 3,0e-8): es el **límite de la búsqueda de cSlope** (1e-6) y no 1 ulp de `xc + r`, como en
 V065. Con el fondo 1e-8, 1e-7 y 3e-7 más abajo sigue rechazado; con 1e-6 pasa y queda a 0,022 % (V096a, Bishop) y 0,016 %
 (V086b, Bishop) del oráculo. Relajar la tolerancia admitiría círculos que de verdad salen del modelo, así que **no se
-toca**, y esos checks quedan **retenidos con esta causa**. La búsqueda de OpenGeoSlide no genera ese círculo.
+toca**. Los checks de V096a y V086b **pasan** (E15j-7), porque la búsqueda de OpenGeoSlide encuentra su propio círculo
+válido y no genera ese círculo. Afecta a la fila diferencial **D39 fija** (Bishop y Spencer: el círculo de cSlope pasa
+9,2e-7 bajo el fondo), que el informe marca «explicado (E15f, E15j-7)»: no cuenta como OK ni como falla, y la
+tolerancia sigue intacta.
 
 Lo que sí cambió con la masa truncada: V086b con grieta automática y el fondo original (el círculo queda 7,8e-5 sobre el
 fondo) ahora es válido (0,9666 frente a 0,96646 del oráculo), porque las comprobaciones de los extremos se aplican a la
 masa truncada y no al arco completo.
 
-Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte todavía están en
-[`verification/pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md), con el motivo de cada uno; la verificación del
-bloque F3G (`verification/pending/F3G/`) los promueve.
+Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte, y los 6 checks
+retenidos, están en [`verification/pending/F3G/INDEX.md`](../verification/pending/F3G/INDEX.md), con el motivo de cada
+uno; los otros 31 casos (80 checks) están promovidos a `verification/cases/`.
 
 ## Avisos geotécnicos de la aplicación
 
 Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF:
 
-- **`unit_weight_sat` (γsat) no está verificado frente a otro programa.** Ninguno de los 116 casos de verificación lo
+- **`unit_weight_sat` (γsat) no está verificado frente a otro programa.** Ninguno de los 147 casos de verificación lo
   usa ([índice de casos](../verification/cases/INDEX.md)). Cada modelo que lo usa lleva un aviso en Diagnósticos y en
   el informe.
 - **La piezométrica se prolonga en horizontal hasta los bordes del modelo** cuando no cubre todo su ancho, con el nivel
@@ -608,9 +626,9 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 ## Limitaciones numéricas conocidas del motor
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
-verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (243/243
-checks en 116 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
-con Bishop y Spencer; M-P, Janbu corregido y D15-D23 en
+verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (323/323
+checks en 147 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
+con Bishop y Spencer; M-P, Janbu corregido, D15-D23 y el bloque v0.5 D28-D39 en
 [`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en
 [`verificacion.md`](verificacion.md)). Las limitaciones de Spencer
 (R4-01, R4-02, R5-05) valen también para Morgenstern-Price, que comparte su solver y sus guardas.
@@ -655,5 +673,5 @@ con Bishop y Spencer; M-P, Janbu corregido y D15-D23 en
   fuerzas que mueven la masa. Sin cargas y con kv ≤ 0 la salida es idéntica; en 1206 corridas solo cambian V018, V077 y
   V078. Con cargas verticales grandes la escala puede ocultar un desequilibrio: véase
   [lo que sigue abierto](#lo-que-sigue-abierto) (R10A-03).
-- **`unit_weight_sat` sin cobertura:** ninguno de los 116 casos de verificación usa `unit_weight_sat`. La ruta de peso
+- **`unit_weight_sat` sin cobertura:** ninguno de los 147 casos de verificación usa `unit_weight_sat`. La ruta de peso
   saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T13:52:04-03:00",
+  "generated_at": "2026-11-26T18:00:04-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -229,6 +229,18 @@
       "n_checks": 2
     },
     {
+      "id": "V023",
+      "title": "LASH terminal trench, Duncan's Taylor series example",
+      "path": "verification/cases/V023.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "path": "verification/cases/V024.json",
+      "n_checks": 4
+    },
+    {
       "id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
       "path": "verification/cases/V025.json",
@@ -337,10 +349,40 @@
       "n_checks": 2
     },
     {
+      "id": "V038",
+      "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+      "path": "verification/cases/V038.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V038b",
+      "title": "Homogeneous dam with a piezometric line, Duncan & Wright's input",
+      "path": "verification/cases/V038b.json",
+      "n_checks": 1
+    },
+    {
       "id": "V040",
       "title": "James Bay dyke, reference model (deterministic)",
       "path": "verification/cases/V040.json",
       "n_checks": 1
+    },
+    {
+      "id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "path": "verification/cases/V041a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V041b",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
+      "path": "verification/cases/V041b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V042",
+      "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
+      "path": "verification/cases/V042.json",
+      "n_checks": 2
     },
     {
       "id": "V044",
@@ -383,6 +425,18 @@
       "title": "ACADS 1(a), homogeneous slope, dry",
       "path": "verification/cases/V047a.json",
       "n_checks": 6
+    },
+    {
+      "id": "V047b",
+      "title": "ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack)",
+      "path": "verification/cases/V047b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V048",
+      "title": "ACADS 1(b), water-filled tension crack",
+      "path": "verification/cases/V048.json",
+      "n_checks": 3
     },
     {
       "id": "V049",
@@ -439,6 +493,12 @@
       "n_checks": 2
     },
     {
+      "id": "V058",
+      "title": "Griffiths & Lane example 6, earth dam with full reservoir",
+      "path": "verification/cases/V058.json",
+      "n_checks": 2
+    },
+    {
       "id": "V060a",
       "title": "Cannon Dam end of construction (Hassan & Wolff), critical circle",
       "path": "verification/cases/V060a.json",
@@ -449,6 +509,12 @@
       "title": "Cannon Dam end of construction (Hassan & Wolff), reliability on the minimum-β circle",
       "path": "verification/cases/V060b.json",
       "n_checks": 1
+    },
+    {
+      "id": "V061",
+      "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+      "path": "verification/cases/V061.json",
+      "n_checks": 3
     },
     {
       "id": "V062a",
@@ -565,6 +631,12 @@
       "n_checks": 1
     },
     {
+      "id": "V070",
+      "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+      "path": "verification/cases/V070.json",
+      "n_checks": 3
+    },
+    {
       "id": "V071a",
       "title": "Pockoski & Duncan (2000) slope 1",
       "path": "verification/cases/V071a.json",
@@ -575,6 +647,24 @@
       "title": "Pockoski & Duncan slope 1, circular search",
       "path": "verification/cases/V071b.json",
       "n_checks": 3
+    },
+    {
+      "id": "V072a",
+      "title": "Pockoski & Duncan test slope 2, dry tension crack",
+      "path": "verification/cases/V072a.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V072b",
+      "title": "Pockoski & Duncan slope 2, circular search",
+      "path": "verification/cases/V072b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V073",
+      "title": "Pockoski & Duncan test slope 3, clay seam and dry crack",
+      "path": "verification/cases/V073.json",
+      "n_checks": 2
     },
     {
       "id": "V077",
@@ -589,6 +679,18 @@
       "n_checks": 1
     },
     {
+      "id": "V079",
+      "title": "Priest (1993) rigid block on a plane, water-filled crack",
+      "path": "verification/cases/V079.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V080",
+      "title": "Priest (1993) rigid block, reference geometry (60° face)",
+      "path": "verification/cases/V080.json",
+      "n_checks": 2
+    },
+    {
       "id": "V081a",
       "title": "Sharma (1996) reinforcement example, unreinforced",
       "path": "verification/cases/V081a.json",
@@ -599,6 +701,18 @@
       "title": "Sharma (1996) slope with a reinforced zone (φ = 54.93°)",
       "path": "verification/cases/V081b.json",
       "n_checks": 1
+    },
+    {
+      "id": "V082a",
+      "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap",
+      "path": "verification/cases/V082a.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "path": "verification/cases/V082b.json",
+      "n_checks": 4
     },
     {
       "id": "V084a",
@@ -637,15 +751,69 @@
       "n_checks": 1
     },
     {
+      "id": "V086b-auto",
+      "title": "Tandjiria embankment, clay fill, water-filled crack (auto)",
+      "path": "verification/cases/V086b-auto.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V086b",
+      "title": "Tandjiria embankment, clay fill, water-filled crack",
+      "path": "verification/cases/V086b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V086c",
+      "title": "Tandjiria embankment, sand fill, dry crack",
+      "path": "verification/cases/V086c.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V086d",
+      "title": "Tandjiria embankment, clay fill, the paper's geometry",
+      "path": "verification/cases/V086d.json",
+      "n_checks": 1
+    },
+    {
       "id": "V086e",
       "title": "Tandjiria embankment, sand fill, the paper's geometry",
       "path": "verification/cases/V086e.json",
       "n_checks": 1
     },
     {
+      "id": "V087",
+      "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+      "path": "verification/cases/V087.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "path": "verification/cases/V088.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V089",
+      "title": "USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2)",
+      "path": "verification/cases/V089.json",
+      "n_checks": 4
+    },
+    {
       "id": "V090",
       "title": "USACE EM 1110-2-1902, example F-5",
       "path": "verification/cases/V090.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "path": "verification/cases/V091.json",
+      "n_checks": 4
+    },
+    {
+      "id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "path": "verification/cases/V092.json",
       "n_checks": 4
     },
     {
@@ -665,6 +833,24 @@
       "title": "Homogeneous slope with a micro-pile row",
       "path": "verification/cases/V095c.json",
       "n_checks": 1
+    },
+    {
+      "id": "V096a",
+      "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+      "path": "verification/cases/V096a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V096b",
+      "title": "Zhu & Lee heterogeneous slope with a water table, deep circle",
+      "path": "verification/cases/V096b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V096c",
+      "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack",
+      "path": "verification/cases/V096c.json",
+      "n_checks": 2
     },
     {
       "id": "V096d",
@@ -716,22 +902,22 @@
     }
   ],
   "summary": {
-    "checks": 243,
+    "checks": 323,
     "ogs": {
-      "OK": 243,
+      "OK": 323,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 242,
+      "OK": 322,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 1
     },
     "cslope_reproduces": {
-      "n": 242,
-      "N": 243
+      "n": 322,
+      "N": 323
     }
   },
   "checks": [
@@ -4168,10 +4354,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.12828159491741,
+        "fos": 1.1282815949195903,
         "status": "converged",
         "error": null,
-        "err_pct": -0.32848101436305693,
+        "err_pct": -0.32848101417045483,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4208,10 +4394,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.12828159491741,
+        "fos": 1.1282815949195903,
         "status": "converged",
         "error": null,
-        "err_pct": 0.9376985970128991,
+        "err_pct": 0.937698597207948,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4246,10 +4432,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1282910025100648,
+        "fos": 1.1282910025122452,
         "status": "converged",
         "error": null,
-        "err_pct": 0.025798094863906374,
+        "err_pct": 0.025798095057211163,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4286,10 +4472,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.109799485738027,
+        "fos": 1.1097994857396982,
         "status": "converged",
         "error": null,
-        "err_pct": -0.5556016363775279,
+        "err_pct": -0.5556016362277671,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4328,10 +4514,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.109799485738027,
+        "fos": 1.1097994857396982,
         "status": "converged",
         "error": null,
-        "err_pct": 0.09014121013950974,
+        "err_pct": 0.09014121029024294,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4366,10 +4552,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1098260448886272,
+        "fos": 1.1098260448902988,
         "status": "converged",
         "error": null,
-        "err_pct": 0.07448556254528882,
+        "err_pct": 0.07448556269601488,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4406,10 +4592,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1083891340592693,
+        "fos": 1.1083891340614458,
         "status": "converged",
         "error": null,
-        "err_pct": -0.1451230577234944,
+        "err_pct": -0.145123057527415,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4449,10 +4635,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1083891340592693,
+        "fos": 1.1083891340614458,
         "status": "converged",
         "error": null,
-        "err_pct": -0.10912634649699081,
+        "err_pct": -0.10912634630084073,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4490,10 +4676,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1083891340592693,
+        "fos": 1.1083891340614458,
         "status": "converged",
         "error": null,
-        "err_pct": 0.03512040246112038,
+        "err_pct": 0.03512040265755371,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4531,10 +4717,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.058031353094549,
+        "fos": 1.0580313530961427,
         "status": "converged",
         "error": null,
-        "err_pct": -0.4674173946802302,
+        "err_pct": -0.46741739453031356,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4574,10 +4760,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.058031353094549,
+        "fos": 1.0580313530961427,
         "status": "converged",
         "error": null,
-        "err_pct": -0.5516164024298307,
+        "err_pct": -0.5516164022800408,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4615,10 +4801,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.058031353094549,
+        "fos": 1.0580313530961427,
         "status": "converged",
         "error": null,
-        "err_pct": 0.00296343048667741,
+        "err_pct": 0.002963430637302564,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4656,10 +4842,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.2449380093020848,
+        "fos": 2.2449380093064932,
         "status": "converged",
         "error": null,
-        "err_pct": -0.1362095506190152,
+        "err_pct": -0.13620955042290872,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4699,10 +4885,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.2449380093020848,
+        "fos": 2.2449380093064932,
         "status": "converged",
         "error": null,
-        "err_pct": 0.4761226917640685,
+        "err_pct": 0.47612269196137746,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4740,10 +4926,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.2449380093020848,
+        "fos": 2.2449380093064932,
         "status": "converged",
         "error": null,
-        "err_pct": -0.002761278303578993,
+        "err_pct": -0.002761278107210459,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4781,10 +4967,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.12808667410674,
+        "fos": 2.128086674109945,
         "status": "converged",
         "error": null,
-        "err_pct": -0.46367286685032716,
+        "err_pct": -0.4636728667004211,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4824,10 +5010,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.12808667410674,
+        "fos": 2.128086674109945,
         "status": "converged",
         "error": null,
-        "err_pct": -0.538106463510014,
+        "err_pct": -0.53810646336022,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4865,10 +5051,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 2.12808667410674,
+        "fos": 2.128086674109945,
         "status": "converged",
         "error": null,
-        "err_pct": 0.0040730313317571655,
+        "err_pct": 0.004073031482367683,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4904,10 +5090,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.4281095586376982,
+        "fos": 1.4281095586405776,
         "status": "converged",
         "error": null,
-        "err_pct": 0.4296454738184418,
+        "err_pct": 0.4296454740209365,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -4944,10 +5130,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.4279479233886103,
+        "fos": 1.4279479233914933,
         "status": "converged",
         "error": null,
-        "err_pct": 0.2842842466894006,
+        "err_pct": 0.2842842468918746,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -5139,6 +5325,199 @@
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
           "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V023",
+      "title": "LASH terminal trench, Duncan's Taylor series example",
+      "source_path": "verification/cases/V023.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.145,
+      "published_by": "Program D",
+      "tolerance": 0.010436681222707423,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.1376398860585046,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "truncated_mass"
+        ],
+        "err_pct": -0.6428047110476317,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1381246790708206,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6004647099720016,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"san_francisco_bay_mud\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "source_path": "verification/cases/V024.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.563,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010319897632757518,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.5723492945460187,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": 0.5981634386448329,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5717123410897271,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.5574114580759554,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"outer_shell\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_core\" lies partly below its water line but has no unitWeightSat: its unit weight 19.165 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 19.322 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 19.95 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "source_path": "verification/cases/V024.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.557,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010321130378933847,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.562854278854467,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": 0.3759973573838856,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5621680070546353,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.3319208127575711,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"outer_shell\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_core\" lies partly below its water line but has no unitWeightSat: its unit weight 19.165 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 19.322 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 19.95 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "source_path": "verification/cases/V024.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.57,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.013184713375796178,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.5723492945460187,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": 0.14963659528781026,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5717123410897271,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.10906631144758376,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"outer_shell\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_core\" lies partly below its water line but has no unitWeightSat: its unit weight 19.165 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 19.322 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 19.95 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "source_path": "verification/cases/V024.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.572,
+      "published_by": "Program D",
+      "tolerance": 0.010318066157760814,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.5723492945460187,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": 0.022219754835790025,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5717123410897271,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.01829891286723515,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"outer_shell\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_core\" lies partly below its water line but has no unitWeightSat: its unit weight 19.165 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 19.322 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 19.95 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
         ],
         "notes": []
       },
@@ -5879,10 +6258,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.5208803996979923,
+        "fos": 1.520880399697995,
         "status": "converged",
         "error": null,
-        "err_pct": -0.7905805806919537,
+        "err_pct": -0.7905805806917798,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -5919,10 +6298,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.532842410752385,
+        "fos": 1.5328424107523848,
         "status": "converged",
         "error": null,
-        "err_pct": 0.25130220748104104,
+        "err_pct": 0.2513022074810265,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -7002,6 +7381,157 @@
       }
     },
     {
+      "case_id": "V038",
+      "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+      "source_path": "verification/cases/V038.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.09,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024587155963302753,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.0957950430846115,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.5316553288634338,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.069329559472193,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.8963706906245035,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V038",
+      "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+      "source_path": "verification/cases/V038.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.1,
+      "published_by": "Commercial program A",
+      "tolerance": 0.024545454545454544,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.0994076166427693,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.05385303247552497,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.077051760224279,
+        "status": "converged",
+        "error": null,
+        "err_pct": -2.086203615974638,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V038",
+      "title": "Homogeneous dam with a piezometric line (D&W fig. 7.19)",
+      "source_path": "verification/cases/V038.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.07,
+      "published_by": "Program D",
+      "tolerance": 0.024672897196261683,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.0957950430846115,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 2.4107516901506023,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.069329559472193,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06265799325299722,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V038b",
+      "title": "Homogeneous dam with a piezometric line, Duncan & Wright's input",
+      "source_path": "verification/cases/V038b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.16,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.02431034482758621,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.166259539722487,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.5396154933178589,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1578181361269786,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18809171319149381,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V040",
       "title": "James Bay dyke, reference model (deterministic)",
       "source_path": "verification/cases/V040.json",
@@ -7032,6 +7562,313 @@
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.603,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02031191515907673,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5977409705212313,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.32807420329186915,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5965291869947664,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.40366893357664096,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.599,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020312695434646654,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5957546968035876,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.202958298712468,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.593705644758813,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3311041426633548,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041a",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.6,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.023125,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5957546968035876,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.2653314497757797,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.593705644758813,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3933972025741972,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041b",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.603,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02031191515907673,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5972355376590952,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.35960463761102773,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5963702215647781,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4135856790531399,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041b",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.599,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020312695434646654,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5953480964872842,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.22838671123926366,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.593120871155753,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3676753498591005,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041b",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27)",
+      "source_path": "verification/cases/V041b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.6,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.023125,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5953480964872842,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.29074396954474613,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.593120871155753,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.42994555276544555,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V042",
+      "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
+      "source_path": "verification/cases/V042.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.584,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010315656565656566,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.5823055050622816,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.10697569051252837,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5819998900939345,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.12626956477686765,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"shell\" lies partly below its water line but has no unitWeightSat: its unit weight 21.992 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"core\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V042",
+      "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
+      "source_path": "verification/cases/V042.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.648,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010303398058252427,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.6494537919864958,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.08821553316115699,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.6491876123044813,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.07206385342726876,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"shell\" lies partly below its water line but has no unitWeightSat: its unit weight 21.992 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"core\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
       },
       "estado": "OK"
     },
@@ -7316,10 +8153,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.8267234911203678,
+        "fos": 1.826723491120368,
         "status": "converged",
         "error": null,
-        "err_pct": -0.28801904364804964,
+        "err_pct": -0.2880190436480375,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -7355,10 +8192,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.8274936104983974,
+        "fos": 1.8274936104983976,
         "status": "converged",
         "error": null,
-        "err_pct": -0.13696117495096427,
+        "err_pct": -0.1369611749509521,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -7502,10 +8339,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.2416933863563915,
+        "fos": 1.2416933863563913,
         "status": "converged",
         "error": null,
-        "err_pct": -0.2655914573179618,
+        "err_pct": -0.2655914573179796,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"upper_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -7540,10 +8377,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.2348995182074114,
+        "fos": 1.2348995182074112,
         "status": "converged",
         "error": null,
-        "err_pct": -0.8112836781195752,
+        "err_pct": -0.8112836781195929,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"upper_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -7873,6 +8710,177 @@
         "status": "converged",
         "error": null,
         "err_pct": -1.5903931475749422,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V047b",
+      "title": "ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack)",
+      "source_path": "verification/cases/V047b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.664,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02030048076923077,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.6589800930036287,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.3016771031473093,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.6590695739236963,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.29629964400863423,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V047b",
+      "title": "ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack)",
+      "source_path": "verification/cases/V047b.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.66,
+      "published_by": "Commercial program B",
+      "tolerance": 0.023012048192771084,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.6558919420574132,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.2474733700353451,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.655965679684434,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.24303134431120135,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V048",
+      "title": "ACADS 1(b), water-filled tension crack",
+      "source_path": "verification/cases/V048.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.596,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02031328320802005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5869050303985806,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.5698602507155096,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5868616374294842,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5725791084283159,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V048",
+      "title": "ACADS 1(b), water-filled tension crack",
+      "source_path": "verification/cases/V048.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.592,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020314070351758796,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5825203144655469,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.5954576340736947,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5824073501530915,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.602553382343502,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V048",
+      "title": "ACADS 1(b), water-filled tension crack",
+      "source_path": "verification/cases/V048.json",
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.489,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020335795836131633,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4751682973212146,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.928925633229384,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4748194076634518,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9523567720986121,
         "verdict": "OK",
         "warnings": [],
         "notes": [
@@ -8507,10 +9515,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.0913199658067032,
+        "fos": 1.0913199658067034,
         "status": "converged",
         "error": null,
-        "err_pct": -0.15370852637664817,
+        "err_pct": -0.15370852637662785,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -8782,6 +9790,78 @@
       "estado": "OK"
     },
     {
+      "case_id": "V058",
+      "title": "Griffiths & Lane example 6, earth dam with full reservoir",
+      "source_path": "verification/cases/V058.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.9,
+      "published_by": "Griffiths & Lane (FE)",
+      "tolerance": 0.05,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.9167508152941548,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.8816218575870999,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.915159012894475,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.7978427839197468,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 18.2 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V058",
+      "title": "Griffiths & Lane example 6, earth dam with full reservoir",
+      "source_path": "verification/cases/V058.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.915,
+      "published_by": "Program D",
+      "tolerance": 0.020261096605744124,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.9167508152941548,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.0914263861177427,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.915159012894475,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.008303545403397571,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 18.2 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V060a",
       "title": "Cannon Dam end of construction (Hassan & Wolff), critical circle",
       "source_path": "verification/cases/V060a.json",
@@ -8849,6 +9929,130 @@
         "err_pct": 0.04259507685202873,
         "verdict": "OK",
         "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V061",
+      "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+      "source_path": "verification/cases/V061.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.36,
+      "published_by": "Wolff & Harr",
+      "tolerance": 0.01211864406779661,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 2.348269818418431,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.49704159243936064,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.3483490617808886,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.49368382284369616,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"phase_ii_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand_drain\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"phase_i_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V061",
+      "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+      "source_path": "verification/cases/V061.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.343,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010213401621852327,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 2.348269818418431,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.2249175594720868,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.3483490617808886,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.228299691885987,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"phase_ii_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand_drain\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"phase_i_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V061",
+      "title": "Clarence Cannon Dam (Wolff & Harr), specified surface",
+      "source_path": "verification/cases/V061.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.383,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010209819555182542,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 2.387794417793089,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.20119252174103983,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.3878858309907316,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.20502857703447705,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"phase_ii_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand_drain\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"phase_i_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 23.563 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_sand\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
         "notes": []
@@ -12295,6 +13499,126 @@
       "estado": "OK"
     },
     {
+      "case_id": "V070",
+      "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+      "source_path": "verification/cases/V070.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.417,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4154971254239108,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.10606030882775012,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4146572804099697,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.16532954058082536,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"morgenstern_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.605 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V070",
+      "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+      "source_path": "verification/cases/V070.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.41,
+      "published_by": "Morgenstern chart",
+      "tolerance": 0.033546099290780146,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4154971254239108,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.3898670513411985,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4146572804099697,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.3303035751751647,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"morgenstern_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.605 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V070",
+      "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+      "source_path": "verification/cases/V070.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.422,
+      "published_by": "Program D",
+      "tolerance": 0.020351617440225036,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.421781780482042,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.01534595766229696,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4209514150722071,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07374014963381197,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"morgenstern_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.605 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V071a",
       "title": "Pockoski & Duncan (2000) slope 1",
       "source_path": "verification/cases/V071a.json",
@@ -12487,6 +13811,256 @@
       "estado": "OK"
     },
     {
+      "case_id": "V072a",
+      "title": "Pockoski & Duncan test slope 2, dry tension crack",
+      "source_path": "verification/cases/V072a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.285,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01038910505836576,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2828334793582352,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.16860082815289512,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2820685270296115,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2281301922481266,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V072a",
+      "title": "Pockoski & Duncan test slope 2, dry tension crack",
+      "source_path": "verification/cases/V072a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.013875968992248062,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2882849774771268,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.13294748239327558,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2875172451043744,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.19246161981594267,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V072b",
+      "title": "Pockoski & Duncan slope 2, circular search",
+      "source_path": "verification/cases/V072b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.285,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020389105058365758,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.282179392636186,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.21950251858474354,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.281476263279164,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.274220756485279,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V072b",
+      "title": "Pockoski & Duncan slope 2, circular search",
+      "source_path": "verification/cases/V072b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023875968992248062,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2878956437341484,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.1631283927016738,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2871426430511312,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2215005386719996,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V072b",
+      "title": "Pockoski & Duncan slope 2, circular search",
+      "source_path": "verification/cases/V072b.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.141,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020438212094653813,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1365031335108051,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.39411625672172607,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1351740350790698,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5106016582760944,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V073",
+      "title": "Pockoski & Duncan test slope 3, clay seam and dry crack",
+      "source_path": "verification/cases/V073.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.417,
+      "published_by": "Commercial program A (circles)",
+      "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4278419332136485,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.7651329014571953,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4098740402716772,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5028905948004843,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"plastic_clay_seam\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V073",
+      "title": "Pockoski & Duncan test slope 3, clay seam and dry crack",
+      "source_path": "verification/cases/V073.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.422,
+      "published_by": "Commercial program A (circles)",
+      "tolerance": 0.020351617440225036,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4304206876113663,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.5921721245686627,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4146033563952907,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5201577781089496,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"plastic_clay_seam\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V077",
       "title": "Prandtl bearing capacity on level ground",
       "source_path": "verification/cases/V077.json",
@@ -12549,6 +14123,150 @@
         "notes": [
           "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
         ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V079",
+      "title": "Priest (1993) rigid block on a plane, water-filled crack",
+      "source_path": "verification/cases/V079.json",
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program A, commercial program C, Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0483150004037503,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.0653002474975863,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.048285698394796,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06809357532926848,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"block\" lies partly below its water line but has no unitWeightSat: its unit weight 25 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V079",
+      "title": "Priest (1993) rigid block on a plane, water-filled crack",
+      "source_path": "verification/cases/V079.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program A, commercial program C, Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0483150004037503,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.0653002474975863,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0482856494997128,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06809823644300475,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"block\" lies partly below its water line but has no unitWeightSat: its unit weight 25 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V080",
+      "title": "Priest (1993) rigid block, reference geometry (60° face)",
+      "source_path": "verification/cases/V080.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.049020821323902,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.0019848735845692605,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0489910384308048,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.0008542963961072448,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"block\" lies partly below its water line but has no unitWeightSat: its unit weight 25 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V080",
+      "title": "Priest (1993) rigid block, reference geometry (60° face)",
+      "source_path": "verification/cases/V080.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.049020821323902,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.0019848735845692605,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0489910384308045,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.000854296396128412,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"block\" lies partly below its water line but has no unitWeightSat: its unit weight 25 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
       },
       "estado": "OK"
     },
@@ -12618,6 +14336,282 @@
         "warnings": [
           "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in reinforced_zone (c′ = 0, φ′ = 54.9°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.424, below 1.501. The analysis cannot represent so thin a slide; the slope face governs."
         ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082a",
+      "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap",
+      "source_path": "verification/cases/V082a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.532,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020326370757180155,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5206134304931864,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7432486623246478,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5203745076868367,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7588441457678422,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082a",
+      "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap",
+      "source_path": "verification/cases/V082a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.532,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020326370757180155,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5198886359906358,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7905590084441376,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5196470262259216,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8063298808145171,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082a",
+      "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap",
+      "source_path": "verification/cases/V082a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.532,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020326370757180155,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5198824290983362,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7909641580720547,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5196407670182304,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8067384452852261,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082a",
+      "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap",
+      "source_path": "verification/cases/V082a.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.544,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02032383419689119,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5335707099455718,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.6754721537842147,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5332911374011,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.693579183866582,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "source_path": "verification/cases/V082b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.511,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020330906684315024,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.499596988653957,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.754666535145124,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4993569513208234,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7705525267489436,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "source_path": "verification/cases/V082b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.51,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023311258278145695,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4987862949141046,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7426294758871103,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4985439570580137,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7586783405288955,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "source_path": "verification/cases/V082b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.51,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023311258278145695,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4988101960877054,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7410466167082534,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4985680280939617,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7570842321879658,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "source_path": "verification/cases/V082b.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.52,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023289473684210527,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.509038968170882,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.7211205150735531,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5087594436511418,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7395102861090942,
+        "verdict": "OK",
+        "warnings": [],
         "notes": []
       },
       "estado": "OK"
@@ -14280,6 +16274,218 @@
       }
     },
     {
+      "case_id": "V086b-auto",
+      "title": "Tandjiria embankment, clay fill, water-filled crack (auto)",
+      "source_path": "verification/cases/V086b-auto.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.975,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020512820512820513,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9672170037666166,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.79825602393676,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9664590406142305,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8759958344378961,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086b",
+      "title": "Tandjiria embankment, clay fill, water-filled crack",
+      "source_path": "verification/cases/V086b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.975,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020512820512820513,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9690371065222123,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.6115788182346326,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9683146460565384,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6856773275345223,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086b",
+      "title": "Tandjiria embankment, clay fill, water-filled crack",
+      "source_path": "verification/cases/V086b.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 0.975,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020512820512820513,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9690371057427991,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.611578898174448,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9683146460565384,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6856773275345223,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086c",
+      "title": "Tandjiria embankment, sand fill, dry crack",
+      "source_path": "verification/cases/V086c.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.209,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020413564929693963,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.210019319213281,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.08431093575525413,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.206405074537522,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2146340332901547,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086c",
+      "title": "Tandjiria embankment, sand fill, dry crack",
+      "source_path": "verification/cases/V086c.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.218,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020410509031198686,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2185009065830095,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.041125335222454616,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2151387247465273,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.23491586645916943,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086d",
+      "title": "Tandjiria embankment, clay fill, the paper's geometry",
+      "source_path": "verification/cases/V086d.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.981,
+      "published_by": "Tandjiria, Low & Teh",
+      "tolerance": 0.02050968399592253,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9740377943151903,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.7097049627736649,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9729681037400226,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8187457961240935,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V086e",
       "title": "Tandjiria embankment, sand fill, the paper's geometry",
       "source_path": "verification/cases/V086e.json",
@@ -14309,6 +16515,315 @@
         "warnings": [],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V087",
+      "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+      "source_path": "verification/cases/V087.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02218340611353712,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.248685341949368,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -1.8041335393289109,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.247552195928354,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.8536158983251456,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 18.065 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.065 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"rock\" lies partly below its water line but has no unitWeightSat: its unit weight 25.134 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "source_path": "verification/cases/V088.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.445,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204498977505113,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.441931976001715,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.1254815541220853,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.4416329382792705,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1377121358171499,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "source_path": "verification/cases/V088.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.447,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204331834899877,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.4426048732311867,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.17961286345784117,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.442319030779954,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.19129420596837007,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "source_path": "verification/cases/V088.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.43,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02205761316872428,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.4443251499760494,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": 0.5895123446933859,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.443842702558457,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.5696585415002738,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V088",
+      "title": "USACE dam, end of construction (EM 1110-2-1902 fig. 4-1)",
+      "source_path": "verification/cases/V088.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.447,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020204331834899877,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.441922511051075,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.20749852672353503,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.441623448210798,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.21972013850436997,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V089",
+      "title": "USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2)",
+      "source_path": "verification/cases/V089.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.716,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020184094256259204,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.6991751538412774,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.6194715080531228,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.698212661516061,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6549093698063078,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V089",
+      "title": "USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2)",
+      "source_path": "verification/cases/V089.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.736,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020182748538011698,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.7217574276314904,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.5205618555741881,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.7208025222464283,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5554633681861089,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V089",
+      "title": "USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2)",
+      "source_path": "verification/cases/V089.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.65,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02188679245283019,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.648611884156285,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.0523817299515098,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.6473343786391093,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.10058948531662859,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V089",
+      "title": "USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2)",
+      "source_path": "verification/cases/V089.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.744,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020182215743440233,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.727964263916502,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.5843927144131988,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.727021926341281,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6187344627813068,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
         ]
       },
       "estado": "OK"
@@ -14452,6 +16967,323 @@
         "verdict": "OK",
         "warnings": [
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "source_path": "verification/cases/V091.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.241,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01040290088638195,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.237426066544193,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.28798819144296073,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2364116205149658,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3697324323154167,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_2\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"soil_3\" lies partly below its water line but has no unitWeightSat: its unit weight 16.494 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "source_path": "verification/cases/V091.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.241,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01040290088638195,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2373819351516386,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_lambda",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.29154430687844224,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2364116205149658,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3697324323154167,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_2\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"soil_3\" lies partly below its water line but has no unitWeightSat: its unit weight 16.494 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "source_path": "verification/cases/V091.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.244,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.01040192926045016,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2373819352796382,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_lambda",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5319987717332596,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2364116205149658,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6099983508869947,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_2\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"soil_3\" lies partly below its water line but has no unitWeightSat: its unit weight 16.494 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "source_path": "verification/cases/V091.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.385,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01036101083032491,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3895668698975439,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.32973789873962783,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.390480136783167,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.39567774607703565,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_2\" lies partly below its water line but has no unitWeightSat: its unit weight 15.709 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"soil_3\" lies partly below its water line but has no unitWeightSat: its unit weight 16.494 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/cases/V092.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.011,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020248632521133764,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.9914190865741805,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.9736903742326991,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.990348171883707,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0269432181150209,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 1.990. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/cases/V092.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.026,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02024679170779862,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.005696660027624,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -1.0021391891597122,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.004610700308323,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0557403599050796,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 2.005. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/cases/V092.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02273224043715847,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.8246598560180622,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -0.29181114655397966,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.8231792049780036,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.372721039453361,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/cases/V092.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.027,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020246669955599407,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.005849618115296,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "water_above_ground"
+        ],
+        "err_pct": -1.0434327520821067,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.0047674103134416,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0968223821686482,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 2.005. The analysis cannot represent so thin a slide; the slope face governs."
         ],
         "notes": [
           "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
@@ -14627,6 +17459,315 @@
       }
     },
     {
+      "case_id": "V096a",
+      "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+      "source_path": "verification/cases/V096a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020277161862527718,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.797732098911992,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.34744462793835973,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7934947846072533,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5823290129017038,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096a",
+      "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+      "source_path": "verification/cases/V096a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020277161862527718,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.7992630878033447,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.262578281411053,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7943568359131248,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5345434637957465,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096a",
+      "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+      "source_path": "verification/cases/V096a.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.79,
+      "published_by": "Commercial program A",
+      "tolerance": 0.022793296089385476,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.7841956049163752,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.32426788176675125,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7799519001588862,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5613463598387641,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096b",
+      "title": "Zhu & Lee heterogeneous slope with a water table, deep circle",
+      "source_path": "verification/cases/V096b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.176,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020425170068027212,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1751301030995385,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.07397082486917214,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1734223807785251,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.21918530794853863,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"layer_1_top\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 18.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_3\" lies partly below its water line but has no unitWeightSat: its unit weight 18.4 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_4_bottom\" lies partly below its water line but has no unitWeightSat: its unit weight 18 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096b",
+      "title": "Zhu & Lee heterogeneous slope with a water table, deep circle",
+      "source_path": "verification/cases/V096b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.189,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020420521446593776,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1901847532054386,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.09964282636152548,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1867794924762234,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18675420721418598,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"layer_1_top\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 18.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_3\" lies partly below its water line but has no unitWeightSat: its unit weight 18.4 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_4_bottom\" lies partly below its water line but has no unitWeightSat: its unit weight 18 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096b",
+      "title": "Zhu & Lee heterogeneous slope with a water table, deep circle",
+      "source_path": "verification/cases/V096b.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.174,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02042589437819421,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1744763683784536,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.0405765228665811,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1719584076860423,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1739005378158108,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"layer_1_top\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 18.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_3\" lies partly below its water line but has no unitWeightSat: its unit weight 18.4 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_4_bottom\" lies partly below its water line but has no unitWeightSat: its unit weight 18 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096c",
+      "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack",
+      "source_path": "verification/cases/V096c.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010277161862527716,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.800041495400456,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.2194293015268323,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7996820196321692,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2393558962212206,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096c",
+      "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack",
+      "source_path": "verification/cases/V096c.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010277161862527716,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.7995548650392046,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.3.0",
+        "warnings": [],
+        "err_pct": -0.2464043769842273,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7992295128693108,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.26443941966126844,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V096d",
       "title": "Zhu & Lee slope, the paper's surface 3, dry",
       "source_path": "verification/cases/V096d.json",
@@ -14726,10 +17867,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.212010472452284,
+        "fos": 1.2120104724522842,
         "status": "converged",
         "error": null,
-        "err_pct": 0.08344116038678093,
+        "err_pct": 0.08344116038679926,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"layer_1\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -14767,10 +17908,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1968581438145363,
+        "fos": 1.196858143814537,
         "status": "converged",
         "error": null,
-        "err_pct": -0.01185097622922362,
+        "err_pct": -0.01185097622916797,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"layer_1\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
@@ -14808,10 +17949,10 @@
         "verdict": "OK"
       },
       "cslope": {
-        "fos": 1.1721134187357998,
+        "fos": 1.1721134187357973,
         "status": "converged",
         "error": null,
-        "err_pct": -0.07558237546464366,
+        "err_pct": -0.07558237546485189,
         "verdict": "OK",
         "warnings": [
           "missing-unit-weight-sat: Material \"clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."

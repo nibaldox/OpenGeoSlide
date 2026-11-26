@@ -24,11 +24,12 @@ The source clone is read only. The script writes:
                                  «Casos con refuerzos» section of `cases/INDEX.md` is built from `verification/report.json`
                                  (written by `verification/harness/run.py` over `verification/cases`)
 - verification/pending/F3R/      only an `INDEX.md` that says where the batches went
-- verification/pending/F3G/      batch F3G (contract F5.6): the cases with a tension crack and / or ponded water (the
-                                 piezometric line above the ground), written as v0.5 models (v0.3 when they have no
-                                 crack); `<id>.json` holds the checks that the oracle reproduces and is promoted by the
-                                 integrator when the engine is ready, `hold/<id>.json` and `HOLD.json` the ones that it
-                                 does not (the cause is X18's); the harness table and the index are generated
+- verification/cases/ (v0.3, v0.5) batch F3G (contract F5.6), promoted: the cases with a tension crack and / or ponded
+                                 water (the piezometric line above the ground), written as v0.5 models (the minimum
+                                 version of their fields, v0.1 to v0.3, when they have no crack) after the R1 to R4 ones; the «Grieta de tracción y agua embalsada»
+                                 section of `cases/INDEX.md` is built from `verification/report.json`
+- verification/pending/F3G/      the F3G checks that the engine does not reproduce: `HOLD.json` (the numbers and the
+                                 cause) and `<id>.json` with the held checks, plus an `INDEX.md`
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 Batch 0 is every problem that converts today (no cap, no selection). The output is deterministic: running the
@@ -983,7 +984,13 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = Fals
             if sig[1] > 0 and water is None:
                 # no piezometric line: the crack uses water.unit_weight (E12e); the oracle uses 9.807
                 water = {"unit_weight": GAMMA_W[units]}
-    if f3:
+    if f3 and f3g and not crack:
+        # F3G without a crack: the minimum version of its fields (F3.9, F5.1); ponded water has no field and needs none
+        needs_03 = (any(mat.get("model") == "undrained" for mat in materials) or "interslice" in analysis_block
+                    or analysis_block.get("surface", {}).get("type") == "polyline"
+                    or any(x in methods for x in ("morgenstern_price", "janbu_simplified", "janbu_corrected")))
+        version = F3_VERSION if needs_03 else ("0.2" if v02 and (seismic is not None or loads) else "0.1")
+    elif f3:
         version = F5_VERSION if crack else F3_VERSION
     else:
         version = "0.2" if v02 else "0.1"
@@ -1316,8 +1323,8 @@ def convert_f3g(raw: dict, prob: dict | None) -> list[tuple[dict, list[str], lis
 
     The crack is a field of the model (`analysis.tension_crack`), not of the check: the checks of a problem that
     ask for different cracks (V086b: a fixed depth of 2 m and the automatic one) go to different cases. The first
-    group keeps the id; the others are `<id>-auto` or `<id>-d<depth>`. A case without a crack is written as v0.3 (the
-    minimum version of its fields, F3.1); the ponded water has no field (F5.3). Returns [] if the problem has neither a
+    group keeps the id; the others are `<id>-auto` or `<id>-d<depth>`. A case without a crack is written with the
+    minimum version of its fields (v0.1 to v0.3, F3.9); the ponded water has no field (F5.3). Returns [] if the problem has neither a
     crack nor ponded water (it belongs to the earlier batches). Raises Omit if no group converts.
     """
     d = raw["definition"]
@@ -1382,74 +1389,109 @@ def gate_f3g(case: dict, schema: dict) -> list[str]:
     return errors
 
 
+def _f3g_features(case: dict, raw_by_id: dict[str, dict] | None = None) -> tuple[str, str]:
+    """(crack, ponded water) text of a F3G case: «2 m, water_fill 1» or «—», and «sí» / «no»."""
+    crack = case["model"]["analysis"].get("tension_crack")
+    c = "—" if crack is None else (f"{'auto' if crack['depth'] == 'auto' else format(crack['depth'], 'g') + ' m'}, "
+                                  f"water_fill {crack['water_fill']:g}")
+    outline = unary_union([Polygon(r["polygon"]) for r in case["model"]["regions"]])
+    piezo = (case["model"].get("water") or {}).get("piezometric_line") or []
+    pond = "sí" if len(piezo) >= 2 and water_above_ground(outline, piezo) else "no"
+    return c, pond
+
+
+def build_f3g_section(cases: list[dict], report: dict | None, held_cases: list[dict] | None = None) -> str:
+    """Section of `cases/INDEX.md` for the promoted batch F3G: published value, ogs and cSlope per check (from the
+    `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
+    rows = {}
+    for r in (report or {}).get("checks", []):
+        rows[(r["case_id"], r["method"], r["published"])] = r
+    n_checks = sum(len(c["checks"]) for c in cases)
+    n_held = sum(len(c["checks"]) for c in held_cases or [])
+    lines = [
+        "## Grieta de tracción y agua embalsada (lote F3G, v0.5)",
+        "",
+        f"**{len(cases)}** casos con **{n_checks}** checks, promovidos desde `verification/pending/F3G` cuando el motor de la "
+        "grieta y del agua embalsada (F5.2 y F5.3) reproduce el valor publicado dentro de su tolerancia. Con grieta el caso es "
+        "v0.5 (`analysis.tension_crack`); sin grieta lleva la versión mínima de sus campos (v0.1 a v0.3) y el agua embalsada "
+        "la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en "
+        "`V086b-auto`. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`), la "
+        "misma convención de los demás casos; no se relajó ninguna ni se tocó ningún dato.",
+        "",
+    ]
+    if n_held:
+        lines += [f"**{n_held}** checks más ({held_label(held_cases)}) quedan retenidos en `verification/pending/F3G` "
+                  "(`HOLD.json`), con los números y la causa medida.", ""]
+    if not rows:
+        lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
+                  "regenere este índice.", ""]
+    lines += ["| caso | v | grieta | agua embalsada | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |",
+              "|---|---|---|---|---|---:|---|---:|---:|---:|---:|---:|"]
+    for case in sorted(cases, key=lambda c: (c["id"].split("-")[0], c["id"])):
+        crack, pond = _f3g_features(case)
+        for c in case["checks"]:
+            r = rows.get((case["id"], c["method"], c["published"]))
+            og = cs = d_og = d_cs = "—"
+            if r is not None:
+                fmt = lambda v, f: "—" if v is None else format(v, f)  # noqa: E731
+                og, d_og = fmt(r["ogs"]["fos"], ".4f"), fmt(r["ogs"]["err_pct"], "+.2f")
+                cs, d_cs = fmt(r["cslope"]["fos"], ".4f"), fmt(r["cslope"]["err_pct"], "+.2f")
+            lines.append(f"| {case['id']} | {case['model']['version']} | {crack} | {pond} | {c['method']} | {c['published']} "
+                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {og} | {d_og} | {cs} | {d_cs} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_f3g_index(cases: list[dict], held_cases: list[dict], hold: dict[tuple, dict], omitted: list[tuple[str, str]],
                     discarded: dict[str, list[str]], raw_by_id: dict[str, dict]) -> str:
-    """INDEX.md of pending/F3G: the cases, what each one needs from the engine, the held checks and the omitted problems."""
-    def feats(case: dict):
-        a = case["model"]["analysis"]
-        crack = a.get("tension_crack")
-        c = "—" if crack is None else (f"{'auto' if crack['depth'] == 'auto' else format(crack['depth'], 'g') + ' m'}, "
-                                      f"water_fill {crack['water_fill']:g}")
-        base = raw_by_id[case["id"].split("-")[0]]["definition"] if case["id"].split("-")[0] in raw_by_id else {}
-        piezo = (base.get("waterTable") or {}).get("value") or []
-        top = max((y for _, y in piezo), default=None)
-        pond = "sí" if raw_ponded(base) else "no"
-        return c, pond, top
-    all_cases = {c["id"]: c for c in cases}
-    for c in held_cases:
-        all_cases.setdefault(c["id"], c)
+    """INDEX.md left in pending/F3G once the batch is promoted (`cases` are the promoted ones, `held_cases` the checks
+    that the engine does not reproduce)."""
     n_ok = sum(len(c["checks"]) for c in cases)
     n_held = sum(len(c["checks"]) for c in held_cases)
     lines = [
-        "# Grieta de tracción y agua embalsada (F3G, formato v0.5): casos preparados",
+        "# Grieta de tracción y agua embalsada (F3G, formato v0.5): promovidos y retenidos",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
         "",
-        f"**{len(cases)}** casos con **{n_ok}** checks que el oráculo cSlope reproduce dentro de la tolerancia de su fuente, "
-        f"listos para promover a `verification/cases/` cuando el motor tenga la grieta y el agua embalsada (los promueve el "
-        f"integrador). Otros **{n_held}** checks están retenidos (`HOLD.json`, carpeta `hold/`): X18 los dio por fuera de "
-        "tolerancia (ver la nota de convención abajo). No se relaja ninguna tolerancia ni se toca ningún dato.",
+        f"**{len(cases)}** casos con **{n_ok}** checks pasaron a [`../../cases/`](../../cases/INDEX.md) (sección «Grieta de "
+        "tracción y agua embalsada», con la tabla del publicado, ogs y cSlope por check)"
+        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`); la tabla de abajo los lista con sus números y la "
+           "causa medida." if held_cases else ". No queda ninguno retenido."),
         "",
-        "Un caso sin grieta se escribe en v0.3 (versión mínima de sus campos); con grieta, en v0.5. El agua embalsada no "
-        "tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del "
-        "check: los checks de V086b con otra grieta van a `V086b-auto`.",
+        "**Convención de tolerancia.** El diagnóstico previo (`docs/fase3/exploracion/X18.md` §3.1) leyó la tolerancia del "
+        "corpus como absoluta (`tolerance/publicado`) y dio por fuera V009b, V087 y V092 (tres métodos). El harness, "
+        "`acceptance.rs` y el informe de cSlope la leen como relativa (`|Δ|/publicado ≤ tolerance`), la convención de los "
+        "demás casos. Con ella el oráculo y ogs reproducen esos cinco checks: V087 y V092 (tres métodos) se promovieron y "
+        "V009b (Spencer) se retiene por otro motivo, el aviso de cortante entre dovelas (véase la tabla). Ninguno se retiene "
+        "por la tolerancia. No se relaja ninguna tolerancia ni se toca ningún dato.",
         "",
-        "| caso | v | grieta | agua embalsada | cota máx. de la piezométrica | checks | retenidos |",
-        "|---|---|---|---|---:|---:|---:|",
+        "Un caso sin grieta se escribe con la versión mínima de sus campos (v0.1 a v0.3); con grieta, en v0.5. El agua "
+        "embalsada no tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3).",
+        "",
     ]
-    held_n = {c["id"]: len(c["checks"]) for c in held_cases}
-    for cid in sorted(all_cases, key=lambda k: (k.split("-")[0], k)):
-        case = all_cases[cid]
-        c, pond, top = feats(case)
-        ok = len(next((x["checks"] for x in cases if x["id"] == cid), []))
-        lines.append(f"| {cid} | {case['model']['version']} | {c} | {pond} | {'—' if top is None else format(top, 'g')} "
-                     f"| {ok} | {held_n.get(cid, 0)} |")
-    lines += ["", "## Checks retenidos", "",
-              "La causa es la que diagnosticó X18 (`docs/fase3/exploracion/X18.md` §3.1). **Convención de tolerancia:** X18 compara "
-              "|Δ %| con `tolerance/publicado` (toma la tolerancia como absoluta) y por eso los da por fuera; el harness y "
-              "`acceptance.rs` usan `tolerance` como relativa (`|Δ|/publicado ≤ tolerance`), y con ella el oráculo reproduce "
-              "estos cinco checks (columna «tol %» de abajo; [`hold/REPORT.md`](hold/REPORT.md) da 5/5). Se retienen por la "
-              "decisión de F5.6 hasta que el integrador decida: promoverlos es quitarlos de `HOLD.json` y regenerar.",
-              "",
-              "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
-              "|---|---|---:|---|---:|---:|---:|---|"]
+    if held_cases:
+        lines += ["## Checks retenidos", "",
+                  "Cada check retenido está convertido igual que los de `verification/cases/`. Se promueven quitándolos de "
+                  "`HOLD.json` y regenerando, cuando el motor o el oráculo los reproduzcan.", "",
+                  "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+                  "|---|---|---:|---|---:|---:|---:|---|"]
 
-    def f(v):
-        return "—" if v is None else f"{v:.4f}"
-    for case in held_cases:
-        for c in case["checks"]:
-            e = hold[check_key(case["id"], c)]
-            lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
-                         f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} | {md_cell(e.get('diagnosis', ''))} |")
-    lines += ["", "## Problemas con grieta o agua embalsada que no entran en F3G", ""]
+        def f(v):
+            return "—" if v is None else f"{v:.4f}"
+        for case in held_cases:
+            for c in case["checks"]:
+                e = hold[check_key(case["id"], c)]
+                lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                             f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} | {md_cell(e.get('diagnosis', ''))} |")
+        lines.append("")
+    lines += ["## Problemas con grieta o agua embalsada que no entran en F3G", ""]
     lines += [f"- {cid}: {md_cell(r)}" for cid, r in omitted] or ["- ninguno"]
     dropped = {k: v for k, v in discarded.items() if v}
     if dropped:
         lines += ["", "## Checks descartados dentro de los casos", ""]
         lines += [f"- {cid}: {md_cell(x)}" for cid, v in sorted(dropped.items()) for x in v]
-    lines += ["", "El cotejo publicado frente a cSlope de cada check está en [`REPORT.md`](REPORT.md) "
-              "(`verification/harness/run.py --oracle-only` sobre esta carpeta y sobre `hold/`).", ""]
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -1578,15 +1620,16 @@ def md_cell(text: str) -> str:
 
 
 def build_index(converted, omitted, discarded_by_case, order, sat_report, promoted_batches=None,
-                f3r_section: str = "") -> str:
-    """converted: v0.1, v0.2 and v0.3 cases (v0.2: `loads` or `analysis.seismic`; v0.3: lots 1 and 2, promoted)."""
+                f3r_section: str = "", f3g_section: str = "") -> str:
+    """converted: every promoted case (v0.2: `loads` or `analysis.seismic`; v0.3: lots 1 and 2; v0.4: R1 to R4; v0.5 and the
+    v0.3 ones with ponded water: F3G)."""
     """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
     sat_ids, sat_reason, sat_included = sat_report
     n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     n_checks = sum(len(c["checks"]) for c in converted)
     lines = [
-        "# Casos de verificación v0.1 a v0.4 (desde cSlope)",
+        "# Casos de verificación v0.1 a v0.5 (desde cSlope)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
@@ -1595,11 +1638,15 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
         f"(v0.1: **{sum(c['model']['version'] == '0.1' for c in converted)}**, "
         f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**, "
         f"v0.3: **{sum(c['model']['version'] == '0.3' for c in converted)}**, "
-        f"v0.4 con refuerzos: **{sum(c['model']['version'] == '0.4' for c in converted)}**), "
+        f"v0.4 con refuerzos: **{sum(c['model']['version'] == '0.4' for c in converted)}**, "
+        f"v0.5 con grieta de tracción: **{sum(c['model']['version'] == '0.5' for c in converted)}**), "
         f"con **{n_checks}** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. "
         "Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde "
         "`verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, "
-        "promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). "
+        "promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de "
+        "tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde "
+        "`verification/pending/F3G` "
+        "(sección «Grieta de tracción y agua embalsada»). "
         f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
         "[`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en "
@@ -1647,6 +1694,8 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
         lines.append(f"| {cid} | {md_cell(reason)} |")
     if f3r_section:
         lines += ["", f3r_section.rstrip("\n")]
+    if f3g_section:
+        lines += ["", f3g_section.rstrip("\n")]
     return "\n".join(lines) + "\n"
 
 
@@ -2068,7 +2117,7 @@ def main() -> int:
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
     # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
-    all_cases = converted + f3r_cases
+    all_cases = converted + f3r_cases + f3g_ok
     expected = {f"{c['id']}.json" for c in all_cases}
     changed = 0
     for case in all_cases:
@@ -2082,8 +2131,11 @@ def main() -> int:
     if (root / "verification" / "report.json").is_file():
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
-        all_cases, omitted, {**discarded_by_case, **f3r_dropped}, order + [c["id"] for c in f3r_cases],
-        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held)))
+        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok}],
+        {**discarded_by_case, **f3r_dropped, **f3g_dropped},
+        order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok],
+        (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held),
+        f3g_section=build_f3g_section(f3g_ok, cases_report, f3g_held)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
@@ -2127,22 +2179,24 @@ def main() -> int:
             changed += 1
     changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_promoted_index(f3r_all, f3r_omitted, f3r_held, hold_f3r))
 
-    # F3G: the checks that the oracle reproduces wait here for the engine (the integrator promotes them); the held ones in hold/
+    # F3G: promoted to cases/ above; only the checks that the engine does not reproduce (HOLD.json) stay in pending/F3G
     f3g_dir = root / F3G_DIR
-    keep_ok = {f"{c['id']}.json" for c in f3g_ok}
     keep_held = {f"{c['id']}.json" for c in f3g_held}
     for stale in sorted(f3g_dir.glob("V*.json")) if f3g_dir.is_dir() else []:
-        if stale.name not in keep_ok:
-            stale.unlink()
-            changed += 1
-    for stale in sorted((f3g_dir / "hold").glob("V*.json")) if (f3g_dir / "hold").is_dir() else []:
         if stale.name not in keep_held:
             stale.unlink()
             changed += 1
-    for case in f3g_ok:
-        changed += write_if_changed(f3g_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    for old_file in ("report.json", "REPORT.md"):
+        if (f3g_dir / old_file).is_file():
+            (f3g_dir / old_file).unlink()
+            changed += 1
+    if (f3g_dir / "hold").is_dir():
+        for old in sorted((f3g_dir / "hold").iterdir()):
+            old.unlink()
+            changed += 1
+        (f3g_dir / "hold").rmdir()
     for case in f3g_held:
-        changed += write_if_changed(f3g_dir / "hold" / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+        changed += write_if_changed(f3g_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
     changed += write_if_changed(f3g_dir / "INDEX.md", build_f3g_index(
         f3g_ok, f3g_held, hold_f3g, f3g_omitted, f3g_dropped, raw_by_id))
 
@@ -2155,14 +2209,14 @@ def main() -> int:
     print(f"Lote 0 retenido: {len(held_cases)} casos, {sum(len(c['checks']) for c in held_cases)} checks")
     n_v03 = sum(c["model"]["version"] == "0.3" for c in converted)
     print(f"verification/cases: {len(all_cases)} casos ({len(converted) - n_v02 - n_v03} v0.1 + {n_v02} v0.2 + {n_v03} v0.3 "
-          f"+ {len(f3r_cases)} v0.4), {n_checks} checks")
+          f"+ {len(f3r_cases)} v0.4 + {len(f3g_ok)} de F3G), {n_checks} checks")
     nb = {b: sum(x == b for bs in promoted_batches.values() for x in bs) for b in (0, 1, 2)}
     print(f"Promovidos desde F3 a verification/cases: {len(promoted)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}")
     print(f"verification/pending/F3 (retenidos): {len(f3_held)} casos, {sum(len(c['checks']) for c in f3_held)} checks")
     print(f"verification/cases (v0.4, refuerzos, R1 a R4): {len(f3r_cases)} casos, "
           f"{sum(len(c['checks']) for c in f3r_cases)} checks; no entran: {[c for c, _ in f3r_omitted]}")
-    print(f"verification/pending/F3G (v0.5): {len(f3g_ok)} casos, {sum(len(c['checks']) for c in f3g_ok)} checks listos; "
-          f"retenidos: {len(f3g_held)} casos, {sum(len(c['checks']) for c in f3g_held)} checks; "
+    print(f"verification/cases (F3G, v0.3 y v0.5): {len(f3g_ok)} casos, {sum(len(c['checks']) for c in f3g_ok)} checks; "
+          f"retenidos en pending/F3G: {len(f3g_held)} casos, {sum(len(c['checks']) for c in f3g_held)} checks; "
           f"casos derivados: {[c['id'] for c in f3g_all if c['id'] not in raw_by_id]}")
     print("Omitidos del lote 0:")
     for cid, reason in omitted:
