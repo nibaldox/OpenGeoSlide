@@ -53,6 +53,14 @@ describe('snap', () => {
     expect(onlyX.guides).toEqual({ x: 35, y: null });
   });
 
+  it('alineado en un solo eje y sin rejilla, el otro eje se redondea a la escala (no queda un decimal de ruido de píxel)', () => {
+    // 10 px/m (VP): se redondea a 2 decimales como un punto libre. Sin esto, el 2,2e-6 del cursor acaba guardado en el modelo.
+    const r = snapPoint([35.3, 12.4000024], { doc, vp: VP, snap: snapOn, neighbors: [[35, 3]] });
+    expect(r.kind).toBe('axis');
+    expect(r.point[0]).toBe(35);
+    expect(r.point[1]).toBe(12.4);
+  });
+
   it('con axis desactivado no alinea', () => {
     const r = snapPoint([35.3, 12.4], { doc, vp: VP, snap: { ...snapOn, axis: false }, neighbors: [[35, 3]] });
     expect(r.kind).toBe('none');

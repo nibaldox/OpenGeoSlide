@@ -39,29 +39,33 @@ describe.skipIf(!haveEngine)(`conversión de unidades de refuerzos con el motor 
     expect(r.code, r.out).toBe(0);
     return new Map(r.results.map((x) => [x.method, x]));
   };
-  const si = model();
-  const imp = convertDocUnits(si, 'imperial');
-  const a = run(si);
-  const b = run(imp);
+  // Perezosos: el cuerpo de `describe.skipIf` se ejecuta aunque no haya motor (OGS_BIN sin definir).
+  const memo = <T,>(f: () => T): (() => T) => {
+    let v: T | undefined;
+    return () => (v === undefined ? (v = f()) : v);
+  };
+  const imp = memo(() => convertDocUnits(model(), 'imperial'));
+  const A = memo(() => run(model()));
+  const B = memo(() => run(imp()));
 
   it('el modelo trae los cinco tipos y los tres modelos de arrancamiento, y todos aplican fuerza', () => {
-    const forces = a.get('bishop')?.reinforcement_forces ?? [];
+    const forces = A().get('bishop')?.reinforcement_forces ?? [];
     expect(forces.map((f) => f.id).sort()).toEqual(['anc', 'clavo', 'geo', 'geo2', 'pil', 'tabl']);
     expect(forces.every((f) => f.status === 'applied')).toBe(true);
     expect(new Set(REINFORCEMENTS.map((r) => r.type)).size).toBe(5);
   });
 
   it.each(METHODS)('%s: el FS es el mismo en SI y en imperial (1e-9)', (method) => {
-    const x = a.get(method);
-    const y = b.get(method);
+    const x = A().get(method);
+    const y = B().get(method);
     expect(x?.status).toBe('converged');
     expect(y?.status).toBe('converged');
     expect(Math.abs((x!.fos as number) - (y!.fos as number)), `${method}: SI ${x!.fos} vs imperial ${y!.fos}`).toBeLessThan(1e-9);
   });
 
   it('las fuerzas por cruce se escalan: fx, fy y available por metro (kN/m → lbf/ft), x e y en pies', () => {
-    const fa = a.get('spencer')!.reinforcement_forces!;
-    const fb = b.get('spencer')!.reinforcement_forces!;
+    const fa = A().get('spencer')!.reinforcement_forces!;
+    const fb = B().get('spencer')!.reinforcement_forces!;
     expect(fb.map((f) => f.id)).toEqual(fa.map((f) => f.id));
     fa.forEach((f, i) => {
       const g = fb[i]!;
@@ -73,7 +77,8 @@ describe.skipIf(!haveEngine)(`conversión de unidades de refuerzos con el motor 
   });
 
   it('ida y vuelta SI → imperial → SI: el mismo FS en los cinco métodos', () => {
-    const c = run(convertDocUnits(imp, 'SI'));
+    const a = A();
+    const c = run(convertDocUnits(imp(), 'SI'));
     for (const m of METHODS) expect(Math.abs((a.get(m)!.fos as number) - (c.get(m)!.fos as number)), m).toBeLessThan(1e-9);
   });
 });
