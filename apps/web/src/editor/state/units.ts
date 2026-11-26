@@ -143,7 +143,17 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
 }
 
 /**
- * Refuerzo (v0.4) en el otro sistema: coordenadas, `spacing`, `bonded_length`, `length1` y `length2` son longitudes; las capacidades
+ * `spacing` en el otro sistema, **siempre explícito** (E14o-12, R11B-01). Un `spacing` omitido o `null` vale 1 en la unidad de longitud
+ * del modelo (1 m en SI, 1 ft en imperial): dejarlo omitido al convertir lo cambiaba de 1 m a 1 ft y las capacidades por elemento, que sí
+ * se escalan, daban una fuerza por metro 3,28 veces mayor (FS +203 %). Se escribe `k.length(1)` o `k.length(valor)`, de modo que el
+ * espaciamiento implícito de 1 m pasa a 3,28084 ft y el de 1 ft, a 0,3048 m.
+ */
+function explicitSpacing(spacing: number | null | undefined, k: Record<keyof typeof UNIT_FACTORS, Scale>): number {
+  return k.length(typeof spacing === 'number' ? spacing : 1);
+}
+
+/**
+ * Refuerzo (v0.4) en el otro sistema: coordenadas, `spacing` (siempre explícito: el omitido es 1 en la unidad del modelo), `bonded_length`, `length1` y `length2` son longitudes; las capacidades
  * y la fuerza de un pilote, kN ⇄ lbf; la adherencia por metro y la fuerza de la tablestaca (por metro de muro), kN/m ⇄ lbf/ft; la
  * adhesión de la interfaz, un esfuerzo. No cambian los ángulos, `friction_angle` ni `coverage`.
  */
@@ -151,8 +161,7 @@ function convertReinforcement(r: Reinforcement, k: Record<keyof typeof UNIT_FACT
   const common = { x1: k.length(r.x1), y1: k.length(r.y1), x2: k.length(r.x2), y2: k.length(r.y2) };
   if (r.type === 'pile' || r.type === 'sheet_pile') {
     const out = { ...r, ...common, force: r.type === 'pile' ? k.force(r.force) : k.lineForce(r.force) };
-    const spacing = r.type === 'pile' ? optional(r.spacing, k.length) : undefined;
-    if (typeof spacing === 'number') (out as { spacing?: number | null }).spacing = spacing;
+    if (r.type === 'pile') (out as { spacing?: number | null }).spacing = explicitSpacing(r.spacing, k);
     return out;
   }
   const out = { ...r, ...common, tensile_capacity: k.force(r.tensile_capacity) };
@@ -160,8 +169,7 @@ function convertReinforcement(r: Reinforcement, k: Record<keyof typeof UNIT_FACT
     const v = optional(r[key], k.force);
     if (typeof v === 'number') out[key] = v;
   }
-  const spacing = optional(r.spacing, k.length);
-  if (typeof spacing === 'number') out.spacing = spacing;
+  out.spacing = explicitSpacing(r.spacing, k);
   if (r.pullout) out.pullout = convertPullout(r.pullout, k);
   return out;
 }
