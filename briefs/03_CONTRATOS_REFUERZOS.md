@@ -11,7 +11,7 @@ numeran E14x y citan su evidencia.
 - `X16.md`: mapa del motor, del formato y de la web;
 - `docs/fase3/PLAN_REFUERZOS.md`.
 
-Las partes marcadas **[condicional X17]** se cierran con el prototipo X17 (§F4.15) antes de la ola R1. Las demás están
+Las partes marcadas **[cerrado en F4.16]** se cierran con el prototipo X17 (§F4.15) antes de la ola R1. Las demás están
 congeladas desde ya.
 
 ## F4.1 Alcance y versión (E14a)
@@ -78,11 +78,11 @@ si está vacío.
   - Con `bonded_length`, solo en los últimos ℓ metros hacia la punta (extremo 2), con ℓ ≤ L.
 - `{ "model": "interface", "adhesion": a ≥ 0, "friction_angle": δ en [0, 90), "coverage": Rc en (0, 1] }`
   - Usa el coeficiente de interacción del geosintético con el suelo, por ambas caras.
-  - Fórmula y esfuerzo vertical: **[condicional X17]**.
+  - Fórmula y esfuerzo vertical: **[cerrado en F4.16]**.
 - `{ "model": "development", "length1": ℓ₁ ≥ 0, "length2": ℓ₂ ≥ 0 }`
   - La capacidad crece linealmente desde cada extremo hasta `tensile_capacity`.
   - Con ℓ = 0, ese extremo queda totalmente anclado.
-  - Forma exacta: **[condicional X17]**.
+  - Forma exacta: **[cerrado en F4.16]**.
 
 **`pile`:**
 
@@ -92,7 +92,7 @@ si está vacío.
 | `spacing` | número > 0 | Opcional, 1 por defecto |
 | `direction` | `"angle"` \| `"tangent"` \| `"perpendicular"` | **Obligatorio** |
 | `angle` | grados en (−90, 90) | Obligatorio **solo** con `direction: "angle"` y prohibido con las otras. Se mide sobre la horizontal: 0 es horizontal |
-| `location` | `"slip_surface"` \| `"centroid"` | **Obligatorio**. Semántica: **[condicional X17]** |
+| `location` | `"slip_surface"` \| `"centroid"` | **Obligatorio**. Semántica: **[cerrado en F4.16]** |
 
 **`sheet_pile`:**
 
@@ -122,7 +122,7 @@ donde Tmax = `tensile_capacity`, T1 = `end1_capacity`, T2 = `end2_capacity` y r 
 por metro.
 - Sin `pullout`, `T(s) = Tmax / spacing`.
 - Con `bond`, r = `strength` en el tramo adherido y 0 fuera de él.
-- `interface` y `development`: **[condicional X17]**. Se debe reproducir cSlope en `model/reinforcement.rs`, que se
+- `interface` y `development`: **[cerrado en F4.16]**. Se debe reproducir cSlope en `model/reinforcement.rs`, que se
   lee y no se copia.
 
 ## F4.4 Cruces, nodos y dovela (E14d)
@@ -145,7 +145,7 @@ por metro.
      igual que `load_outside_mass`.
 4. **Búsqueda.** Los cruces y los nodos se calculan para **cada candidato**. Ningún cálculo cambia de firma.
 
-## F4.5 Dirección y sentido (E14e) **[condicional X17]**
+## F4.5 Dirección y sentido (E14e) **[cerrado en F4.16]**
 
 Se fija con X17 a partir de cSlope (`model/reinforcement.rs`, en las líneas que cita X14 §1.3):
 - el vector de movimiento m en la base;
@@ -197,7 +197,7 @@ términos que una activa de F4.6, multiplicada por 1/F**, con el F que se está 
   - Actúa siempre **opuesta al movimiento**, con la dirección de `direction`.
   - Se aplica activa o pasiva según `application`, con F4.6 y F4.7.
   - **No hay** regla de compresión, como en cSlope (X14 §1.4).
-- **`location`:** **[condicional X17]**.
+- **`location`:** **[cerrado en F4.16]**.
 - **Límite declarado.** Con un `pile` o una `sheet_pile` en el modelo, el informe, el PDF y la Ayuda dicen siempre que
   OpenGeoSlide calcula la estabilidad **global** con el elemento incluido. **No** calcula:
   - el empuje sobre el elemento;
@@ -216,7 +216,7 @@ términos que una activa de F4.6, multiplicada por 1/F**, con el F que se está 
 ```json
 "reinforcement_forces": [
   { "id": "ancla-1", "crossing": 0, "x": 42.31, "y": 28.0, "station": 9.69,
-    "available": 100.0, "fx": -100.0, "fy": 0.0, "application": "active", "status": "applied" }
+    "available": 100.0, "fx": 100.0, "fy": 0.0, "application": "active", "status": "applied" }
 ]
 ```
 
@@ -243,7 +243,7 @@ Se agregan a E6 (`00_CONTRATOS.md`) y a `apps/web/src/engine/warnings.ts` **en e
 - **Bishop** sigue limitado a los círculos (F3.6).
 - E13k, el aviso de cortante entre dovelas, se evalúa igual; los refuerzos no entran en la resistencia de las caras.
 - La escala de E13l-3 incluye las fuerzas de los refuerzos en `t_i` y `H_i`; las pasivas, con su valor disponible.
-  **[condicional X17: medir]**
+  **[cerrado en F4.16: lo mide R1-M]**
 
 ## F4.11 Web (E14k)
 
@@ -337,3 +337,103 @@ cada punto verificado con números del oráculo:
    - Si F4.7 no reproduce el oráculo, mide la convención alternativa y repórtala sin elegir.
 5. **VP 58 (tieback activo, Spencer 1,145) y VP 47 (clavos pasivos, Janbu 0,890) de Slide2 en cSlope:** ¿la
    convención del oráculo reproduce a Slide2? La respuesta va con números.
+
+## F4.16 Cierre de las partes condicionales con X17 (E14m, decisiones del coordinador)
+
+Evidencia: `docs/fase3/exploracion/X17.md`. El oráculo instalado (`a80f9a0`) se midió y el clon (`0f07e7a`) se leyó.
+Prevalece sobre el texto de F4.2 a F4.13 donde difieran.
+
+### E14m-1, dirección, sentido y compresión (cierra F4.5)
+
+- **Notación:**
+  - s = +1 si el deslizamiento va hacia +x.
+  - α es la inclinación de la base, con el campo `alpha` de ogs.
+  - El movimiento en la base es `m = (s·cos α, −sin α)`.
+  - `n` es la normal a la base hacia la masa.
+  - `a = (x2 − x1, y2 − y1)/L`.
+  - `d = −a` si `a·n > 0`, y `d = a` en caso contrario. Es la parte del elemento bajo la superficie, hacia el lado
+    estable, y no depende de cuál extremo es la cabeza.
+  - `along = d·m`.
+- **Dirección de la fuerza sobre la masa `u`:**
+  - si `along > 0`, `u = d` (axial), sea cual sea `direction`;
+  - si no, `axial` da `u = d`, `tangent` da `u = −m` y `bisector` da `u = (d − m)/‖d − m‖`.
+
+  La fuerza es `P = T(s_c)·u`, en **coordenadas del modelo**, con y hacia arriba.
+- **Compresión del pasivo:** un elemento **pasivo** con `along ≥ cos 88°` no aporta. Su estado es
+  `compression_ignored` y se emite la nota `reinforcement_compression_ignored`.
+- **Activo comprimido, decisión del coordinador.** Un elemento **activo** se aplica **siempre**, también con
+  `along > 0`, axial y con su fuerza completa.
+  - **Motivo:** es una carga externa conocida, la de bloqueo (F4.6; Duncan y Wright, método A). Es la regla vigente de
+    cSlope (`CHANGELOG.md:24` del clon).
+  - Con `along > 0` la fuerza tiene una componente a favor del deslizamiento, así que aplicarla es lo conservador.
+  - El binario instalado del oráculo es anterior y descarta esos cruces, por lo que **las filas de aceptación con el
+    oráculo solo usan cruces con `along < 0`**.
+  - Los activos con `along > 0` se verifican con el equilibrio global independiente y con un test que fija `u = d`.
+- **Pilotes y tablestacas:**
+  - `angle` se mide sobre la horizontal y es positivo hacia arriba: `u = (−s·cos a, sin a)`;
+  - `tangent` da `u = −m`;
+  - `perpendicular` da la normal al eje que se opone al movimiento;
+  - **sin** regla de compresión;
+  - invariante al espejo.
+- **Cruces múltiples:** cada cruce se evalúa con su propio `along`, como en F4.4.
+- No se exige que la cabeza esté sobre el paramento.
+
+### E14m-2, capacidad (cierra F4.3)
+
+- **`bond`:** r = `strength` solo en los tramos del elemento **dentro del suelo**, en la parte adherida (los últimos
+  `bonded_length` hacia la punta, o todo el elemento), y 0 en el aire.
+- **`interface`:** `r = 2·(a + σ′v·tan δ)·Rc` por metro de talud, con r = 0 fuera del suelo.
+  - El `spacing` se cancela y Rc **no** escala las capacidades de la barra ni de los extremos.
+  - `σ′v = max(0, σ − u − ru·σ_suelo)`, donde σ es la columna de suelo sobre el punto, con γsat bajo la línea de agua
+    del material, más el agua libre sobre el terreno si la hay.
+  - σ′v no incluye sobrecargas ni cargas lineales.
+  - ogs **integra exactamente**, con los cortes en el terreno y en los contactos. El oráculo discretiza en 200 pasos,
+    lo que da hasta −0,47 % en T.
+- **`development`:**
+  - `f1 = T1 + Tmax·s/ℓ1` y `f2 = T2 + Tmax·(L − s)/ℓ2`;
+  - ℓ = 0 vale +∞;
+  - `T = max(0, min(Tmax, f1, f2))/spacing`.
+
+  T1 y T2 **se suman** a la rampa, que no mira el suelo.
+- **Capacidad nula:**
+  - Un cruce con `T(s_c) = 0` no aplica fuerza y queda con el estado `no_capacity` en `reinforcement_forces`.
+  - El caso típico es el tramo libre de un tirante con `bonded_length` y sin `end1_capacity`.
+  - No se emite nota. Lo documentan la Ayuda y la limitación correspondiente.
+  - La web propone `end1_capacity = tensile_capacity` al crear un `anchor`.
+
+### E14m-3, `location` (cierra F4.8)
+
+- **Se quita `location` de `pile` y `sheet_pile` en v0.4.** Con fuerza constante no tiene efecto: el FS de X17 §3 es
+  idéntico a 16 cifras.
+- La fuerza actúa en el cruce.
+- Volverá, si hace falta, con Ito-Matsui en una versión posterior del formato.
+- El esquema, el motor y TypeScript lo rechazan como campo desconocido. El conversor al oráculo escribe
+  `"slip-surface"`.
+
+### E14m-4, informe (completa F4.9)
+
+- `fx` y `fy` se dan en coordenadas del modelo.
+- `status` toma uno de cuatro valores: `applied`, `outside_mass`, `compression_ignored` o `no_capacity`.
+
+### E14m-5, aceptación (completa F4.13)
+
+- **Siete filas de F4.13, con la geometría exacta de X17 §4.4.**
+  - El pilote va de (40; 33) a (40; 22), con `force` 60, `spacing` 1,5 y `angle` 0.
+  - La tablestaca va de (40; 33) a (40; 22), con `force` 120 y `angle` 0.
+  - Se agrega Janbu simplificado.
+- **16 filas inclinadas y 9 filas de capacidad de X17 §4.3 a §4.5,** con sus JSON exactos y las cifras del oráculo.
+  - La tolerancia es **0,1 %**.
+  - En `X17-cap-interface` y `X17-cap-interface-cov.5-sp2` es **0,25 %**, porque gobierna la discretización del
+    oráculo; queda documentado en el test.
+- **Spencer y M-P:** las cifras de M-P `constant` son del oráculo.
+- **Slide2:**
+  - VP 47, con la geometría leída de la figura, da 0,902 en el oráculo frente a 0,890 publicado (+1,3 %). Entra como
+    caso con la tolerancia de su fuente (2,5 %), con la nota de geometría digitalizada, y no como check de 1 %.
+  - VP 58 queda pendiente hasta tener sus coordenadas.
+
+### E14m-6, escala E13l-3 con refuerzos
+
+- Las fuerzas de los refuerzos entran en `t_i` y `H_i` de la escala motriz: las activas con su valor y las pasivas con
+  su valor disponible, sin dividir por F.
+- R1-M mide en las filas de aceptación que la escala no cambie ningún FS más de 1e-9 respecto de usar solo ΣW, y lo
+  reporta.
