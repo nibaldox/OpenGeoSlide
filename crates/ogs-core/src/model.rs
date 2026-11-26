@@ -190,14 +190,6 @@ pub enum PileDirection {
     Perpendicular,
 }
 
-/// Where the force of a `pile` or a `sheet_pile` is applied (E14b; semantics in E14h, X17).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PileLocation {
-    SlipSurface,
-    Centroid,
-}
-
 /// Pull-out model of a tension element (E14b), tagged by `model`. Without it the element is fully anchored at both
 /// ends: `T(s) = tensile_capacity`.
 ///
@@ -272,7 +264,6 @@ pub struct Pile {
     pub direction: PileDirection,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub angle: Option<f64>,
-    pub location: PileLocation,
 }
 
 /// `sheet_pile` (E14b): a continuous row of piles, vertical (`x1 = x2`). `force` is per metre of wall, with no
@@ -291,7 +282,6 @@ pub struct SheetPile {
     pub direction: PileDirection,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub angle: Option<f64>,
-    pub location: PileLocation,
 }
 
 /// Reinforcement (v0.4, E14b). Serialized with a `"type"` tag: `anchor`, `nail`, `geosynthetic`, `pile` or

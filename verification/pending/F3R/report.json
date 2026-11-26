@@ -1,0 +1,3225 @@
+{
+  "generated_at": "2026-11-26T10:36:36-03:00",
+  "harness_version": "1",
+  "cases_dir": "verification/pending/F3R",
+  "engines": {
+    "ogs": {
+      "binary": "<oracle-only>",
+      "version": null,
+      "error": null
+    },
+    "cslope": {
+      "package": "cslope 0.1.0",
+      "version": "0.1.0",
+      "engine_build": "0.1.0+a80f9a024954",
+      "schema_version": "0.1.0"
+    },
+    "python": "3.13.14",
+    "platform": "Linux-7.3.5-2-cachyos-x86_64-with-glibc2.44"
+  },
+  "cases": [
+    {
+      "id": "V010",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic)",
+      "path": "verification/pending/F3R/V010.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V010b",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic), the paper's circle B",
+      "path": "verification/pending/F3R/V010b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V011a",
+      "title": "Borges & Cardoso embankment 3, H = 7 m, circle A",
+      "path": "verification/pending/F3R/V011a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V011b",
+      "title": "Borges & Cardoso embankment 3, H = 7 m, circle B",
+      "path": "verification/pending/F3R/V011b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V012",
+      "title": "Borges & Cardoso embankment 3, H = 8.75 m, circle C",
+      "path": "verification/pending/F3R/V012.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V014",
+      "title": "Nailed wall, 14 rows, deep wedge",
+      "path": "verification/pending/F3R/V014.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V015",
+      "title": "Soldier-pile tieback wall",
+      "path": "verification/pending/F3R/V015.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V016b",
+      "title": "Stepped gabion wall, mesh as geosynthetic supports",
+      "path": "verification/pending/F3R/V016b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V035a",
+      "title": "Duncan & Wright tieback, active",
+      "path": "verification/pending/F3R/V035a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V035b",
+      "title": "Duncan & Wright tieback, passive",
+      "path": "verification/pending/F3R/V035b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V037",
+      "title": "Geogrid-reinforced fill on rock (D&W fig. 7.28)",
+      "path": "verification/pending/F3R/V037.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V064",
+      "title": "Leshchinsky & Han MSE wall, five tiers",
+      "path": "verification/pending/F3R/V064.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V065",
+      "title": "Leshchinsky & Han MSE wall, weak foundation",
+      "path": "verification/pending/F3R/V065.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V066a",
+      "title": "Leshchinsky & Han three-tier MSE wall, baseline",
+      "path": "verification/pending/F3R/V066a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V066b",
+      "title": "Leshchinsky & Han MSE wall, L = 4.2 m",
+      "path": "verification/pending/F3R/V066b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V066c",
+      "title": "Leshchinsky & Han MSE wall, two reinforcement types",
+      "path": "verification/pending/F3R/V066c.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V066e",
+      "title": "Leshchinsky & Han MSE wall, surcharge",
+      "path": "verification/pending/F3R/V066e.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V083",
+      "title": "Soil-nailed wall in clay (Amherst test wall)",
+      "path": "verification/pending/F3R/V083.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084a",
+      "title": "Soil-nailed wall in sand (Clouterre test wall)",
+      "path": "verification/pending/F3R/V084a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084b",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 45° plane",
+      "path": "verification/pending/F3R/V084b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084c",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 50° plane",
+      "path": "verification/pending/F3R/V084c.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084d",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 60° plane",
+      "path": "verification/pending/F3R/V084d.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084e",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 65° plane",
+      "path": "verification/pending/F3R/V084e.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V084f",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 70° plane",
+      "path": "verification/pending/F3R/V084f.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V095c",
+      "title": "Homogeneous slope with a micro-pile row",
+      "path": "verification/pending/F3R/V095c.json",
+      "n_checks": 1
+    }
+  ],
+  "summary": {
+    "checks": 33,
+    "ogs": {
+      "OK": 0,
+      "FALLA": 0,
+      "sin dato": 0,
+      "no convergido": 0,
+      "no aplica": 33
+    },
+    "cslope": {
+      "OK": 33,
+      "FALLA": 0,
+      "sin dato": 0,
+      "no convergido": 0
+    },
+    "cslope_reproduces": {
+      "n": 33,
+      "N": 33
+    }
+  },
+  "checks": [
+    {
+      "case_id": "V010",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic)",
+      "source_path": "verification/pending/F3R/V010.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.171,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020426985482493595,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.1626926774906339,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7094212219783234,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 15.894957189681927,
+              "y": 1.0,
+              "fx": 200.0,
+              "fy": 0.0,
+              "force": 200.0,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V010",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic)",
+      "source_path": "verification/pending/F3R/V010.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.17,
+      "published_by": "Commercial program B",
+      "tolerance": 0.024273504273504276,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.1640204263245728,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5110746731134289,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 15.894957189681927,
+              "y": 1.0,
+              "fx": 200.0,
+              "fy": 0.0,
+              "force": 200.0,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V010b",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic), the paper's circle B",
+      "source_path": "verification/pending/F3R/V010b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.15,
+      "published_by": "Borges & Cardoso",
+      "tolerance": 0.02434782608695652,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.158766657434886,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.762318037816186,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 16.25772551090859,
+              "y": 0.9000000000000001,
+              "fx": 200.0,
+              "fy": 0.0,
+              "force": 200.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V011a",
+      "title": "Borges & Cardoso embankment 3, H = 7 m, circle A",
+      "source_path": "verification/pending/F3R/V011a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.23,
+      "published_by": "Commercial program A",
+      "tolerance": 0.014065040650406504,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.2198417944408435,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8258703706631281,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (-8.61, 7.00) to (-1.23, 1.00) in upper_embankment (c′ = 0, φ′ = 35.0°) is inclined at 39.1°: a shallow slide parallel to it has F = tan φ′/tan β = 0.861, below 1.220. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": -25.440660039617608,
+              "y": 0.9,
+              "fx": -200.0,
+              "fy": -0.0,
+              "force": 200.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V011b",
+      "title": "Borges & Cardoso embankment 3, H = 7 m, circle B",
+      "source_path": "verification/pending/F3R/V011b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.22,
+      "published_by": "Commercial program A",
+      "tolerance": 0.014098360655737704,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.2167158044670425,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2691963551604464,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (-8.61, 7.00) to (-1.23, 1.00) in upper_embankment (c′ = 0, φ′ = 35.0°) is inclined at 39.1°: a shallow slide parallel to it has F = tan φ′/tan β = 0.861, below 1.217. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": -31.934428052915347,
+              "y": 0.9,
+              "fx": -200.0,
+              "fy": -0.0,
+              "force": 200.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V012",
+      "title": "Borges & Cardoso embankment 3, H = 8.75 m, circle C",
+      "source_path": "verification/pending/F3R/V012.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.98,
+      "published_by": "Commercial program A",
+      "tolerance": 0.015102040816326531,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9818063033661761,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.18431667001797492,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (-10.76, 8.75) to (-1.23, 1.00) in upper_embankment (c′ = 0, φ′ = 35.0°) is inclined at 39.1°: a shallow slide parallel to it has F = tan φ′/tan β = 0.861, below 0.982. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": -30.44594789172747,
+              "y": 0.9,
+              "fx": -200.0,
+              "fy": -0.0,
+              "force": 200.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V014",
+      "title": "Nailed wall, 14 rows, deep wedge",
+      "source_path": "verification/pending/F3R/V014.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.46,
+      "published_by": "Program H",
+      "tolerance": 0.013424657534246575,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.448239834999069,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8054907534884186,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 14,
+          "applied": 8,
+          "forces": [
+            {
+              "index": 1,
+              "pile": null,
+              "x": 11.1908456,
+              "y": 6.52272,
+              "fx": 0.7679268795483962,
+              "fy": 0.5521738750644264,
+              "force": 0.9458370264673517,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.664821199999999,
+              "y": 5.42544,
+              "fx": 7.200061004371457,
+              "fy": 5.177166851904017,
+              "force": 8.868141579785714,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 8.1387968,
+              "y": 4.32816,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 6.612772400000001,
+              "y": 3.23088,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 5.086748,
+              "y": 2.1336,
+              "fx": 13.069249890460641,
+              "fy": 9.397376948759513,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 3.5607235999999993,
+              "y": 1.03632,
+              "fx": 26.20956783443455,
+              "fy": 18.845855016059055,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 2.7977114000000007,
+              "y": 0.48768,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 2.1194783333333334,
+              "y": -1.3877787807814457e-17,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V014",
+      "title": "Nailed wall, 14 rows, deep wedge",
+      "source_path": "verification/pending/F3R/V014.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.448,
+      "published_by": "Program D",
+      "tolerance": 0.010345303867403316,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.448239834999069,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.016563190543446103,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 14,
+          "applied": 8,
+          "forces": [
+            {
+              "index": 1,
+              "pile": null,
+              "x": 11.1908456,
+              "y": 6.52272,
+              "fx": 0.7679268795483962,
+              "fy": 0.5521738750644264,
+              "force": 0.9458370264673517,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.664821199999999,
+              "y": 5.42544,
+              "fx": 7.200061004371457,
+              "fy": 5.177166851904017,
+              "force": 8.868141579785714,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 8.1387968,
+              "y": 4.32816,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 6.612772400000001,
+              "y": 3.23088,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 5.086748,
+              "y": 2.1336,
+              "fx": 13.069249890460641,
+              "fy": 9.397376948759513,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 3.5607235999999993,
+              "y": 1.03632,
+              "fx": 26.20956783443455,
+              "fy": 18.845855016059055,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 2.7977114000000007,
+              "y": 0.48768,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 2.1194783333333334,
+              "y": -1.3877787807814457e-17,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V014",
+      "title": "Nailed wall, 14 rows, deep wedge",
+      "source_path": "verification/pending/F3R/V014.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.576,
+      "published_by": "Program D",
+      "tolerance": 0.01031725888324873,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.575513738191405,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.03085417567227234,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 14,
+          "applied": 8,
+          "forces": [
+            {
+              "index": 1,
+              "pile": null,
+              "x": 11.1908456,
+              "y": 6.52272,
+              "fx": 0.7679268795483962,
+              "fy": 0.5521738750644264,
+              "force": 0.9458370264673517,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.664821199999999,
+              "y": 5.42544,
+              "fx": 7.200061004371457,
+              "fy": 5.177166851904017,
+              "force": 8.868141579785714,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 8.1387968,
+              "y": 4.32816,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 6.612772400000001,
+              "y": 3.23088,
+              "fx": 13.069249890460624,
+              "fy": 9.39737694875954,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 5.086748,
+              "y": 2.1336,
+              "fx": 13.069249890460641,
+              "fy": 9.397376948759513,
+              "force": 16.09708005249344,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 3.5607235999999993,
+              "y": 1.03632,
+              "fx": 26.20956783443455,
+              "fy": 18.845855016059055,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 2.7977114000000007,
+              "y": 0.48768,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 2.1194783333333334,
+              "y": -1.3877787807814457e-17,
+              "fx": 26.20956783443459,
+              "fy": 18.845855016059,
+              "force": 32.281692913385825,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V015",
+      "title": "Soldier-pile tieback wall",
+      "source_path": "verification/pending/F3R/V015.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.479,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010338066260987154,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.476353336485894,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.17894952766098912,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 3,
+          "applied": 3,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 4.435339419242936,
+              "y": 4.027767688826015,
+              "fx": 198.9686720634614,
+              "fy": -92.78059638179232,
+              "force": 219.5376312335958,
+              "passive": false
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 1.7741363904769045,
+              "y": 1.6111076410817216,
+              "fx": 271.5038554752647,
+              "fy": -126.60416992583195,
+              "force": 299.5712926509186,
+              "passive": false
+            },
+            {
+              "index": 0,
+              "pile": true,
+              "x": 0.1524000000000072,
+              "y": 0.13839567567567634,
+              "fx": 86.1040026246719,
+              "fy": 0.0,
+              "force": 86.1040026246719,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V015",
+      "title": "Soldier-pile tieback wall",
+      "source_path": "verification/pending/F3R/V015.json",
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.446,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010345781466113417,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.4417931011650402,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.29093352938863953,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 6 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 3,
+          "applied": 3,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 4.435339419242936,
+              "y": 4.027767688826015,
+              "fx": 198.9686720634614,
+              "fy": -92.78059638179232,
+              "force": 219.5376312335958,
+              "passive": false
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 1.7741363904769045,
+              "y": 1.6111076410817216,
+              "fx": 271.5038554752647,
+              "fy": -126.60416992583195,
+              "force": 299.5712926509186,
+              "passive": false
+            },
+            {
+              "index": 0,
+              "pile": true,
+              "x": 0.1524000000000072,
+              "y": 0.13839567567567634,
+              "fx": 86.1040026246719,
+              "fy": 0.0,
+              "force": 86.1040026246719,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V016b",
+      "title": "Stepped gabion wall, mesh as geosynthetic supports",
+      "source_path": "verification/pending/F3R/V016b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.835,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010272479564032698,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.8302020925752749,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2614663446716664,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (14.61, 6.45) to (14.47, 5.46) in gabion_wall (c′ = 0, φ′ = 42.0°) is inclined at 82.0°: a shallow slide parallel to it has F = tan φ′/tan β = 0.126, below 1.830. The analysis cannot represent so thin a slide; the slope face governs.",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 3,
+          "applied": 0,
+          "forces": []
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V016b",
+      "title": "Stepped gabion wall, mesh as geosynthetic supports",
+      "source_path": "verification/pending/F3R/V016b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.839,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010271886895051659,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.8354113950024615,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.195138934069518,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (14.61, 6.45) to (14.47, 5.46) in gabion_wall (c′ = 0, φ′ = 42.0°) is inclined at 82.0°: a shallow slide parallel to it has F = tan φ′/tan β = 0.126, below 1.835. The analysis cannot represent so thin a slide; the slope face governs.",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 3,
+          "applied": 0,
+          "forces": []
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V016b",
+      "title": "Stepped gabion wall, mesh as geosynthetic supports",
+      "source_path": "verification/pending/F3R/V016b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Program D",
+      "tolerance": 0.01273224043715847,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.8302020925752749,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.01104331012430682,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (14.61, 6.45) to (14.47, 5.46) in gabion_wall (c′ = 0, φ′ = 42.0°) is inclined at 82.0°: a shallow slide parallel to it has F = tan φ′/tan β = 0.126, below 1.830. The analysis cannot represent so thin a slide; the slope face governs.",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 3,
+          "applied": 0,
+          "forces": []
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V035a",
+      "title": "Duncan & Wright tieback, active",
+      "source_path": "verification/pending/F3R/V035a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.575,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.010317460317460317,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.568224515315082,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4301895038043146,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 5 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and 5 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 11.179164768369253,
+              "y": 6.096,
+              "fx": 131.34507874015748,
+              "fy": 0.0,
+              "force": 131.34507874015748,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V035b",
+      "title": "Duncan & Wright tieback, passive",
+      "source_path": "verification/pending/F3R/V035b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.324,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010377643504531723,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.3205604431527815,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2597852603639371,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "low-m-alpha: 1 slice of the critical surface has m_α below 0.2 (steep base); the factor of safety may be unreliable.",
+          "steep-entry-tension: The surface enters the slope at 79° and 10 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 11.243220782560746,
+              "y": 6.096,
+              "fx": 131.34507874015748,
+              "fy": 0.0,
+              "force": 131.34507874015748,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V035b",
+      "title": "Duncan & Wright tieback, passive",
+      "source_path": "verification/pending/F3R/V035b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.32,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.013787878787878788,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.3205604431527815,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.04245781460465725,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 10 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "low-m-alpha: 1 slice of the critical surface has m_α below 0.2 (steep base); the factor of safety may be unreliable.",
+          "steep-entry-tension: The surface enters the slope at 79° and 10 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 11.243220782560746,
+              "y": 6.096,
+              "fx": 131.34507874015748,
+              "fy": 0.0,
+              "force": 131.34507874015748,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V037",
+      "title": "Geogrid-reinforced fill on rock (D&W fig. 7.28)",
+      "source_path": "verification/pending/F3R/V037.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.629,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02030693677102517,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.6133725284453444,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9593291316547332,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 5,
+          "applied": 5,
+          "forces": [
+            {
+              "index": 4,
+              "pile": null,
+              "x": 9.775306052158674,
+              "y": 6.096,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.949998783862984,
+              "y": 4.8768,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.884696941788592,
+              "y": 3.6576,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.476637577350484,
+              "y": 2.4384,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 4.468311682046014,
+              "y": 1.2192,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V037",
+      "title": "Geogrid-reinforced fill on rock (D&W fig. 7.28)",
+      "source_path": "verification/pending/F3R/V037.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.62,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02308641975308642,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.6072897388132283,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7845840238748002,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ],
+        "reinforcement_forces": {
+          "elements": 5,
+          "applied": 5,
+          "forces": [
+            {
+              "index": 4,
+              "pile": null,
+              "x": 9.749039749077523,
+              "y": 6.096,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.936152914320981,
+              "y": 4.8768,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.882366439221148,
+              "y": 3.6576,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.486656270197805,
+              "y": 2.4384,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 4.491851397208208,
+              "y": 1.2192,
+              "fx": 11.6751312335958,
+              "fy": 0.0,
+              "force": 11.6751312335958,
+              "passive": false
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V064",
+      "title": "Leshchinsky & Han MSE wall, five tiers",
+      "source_path": "verification/pending/F3R/V064.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.02,
+      "published_by": "Program D",
+      "tolerance": 0.014901960784313726,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.0171886126627672,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.27562620953263245,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 15,
+          "forces": [
+            {
+              "index": 14,
+              "pile": null,
+              "x": 11.992732886105934,
+              "y": 14.7,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 11.784191711127981,
+              "y": 14.1,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 11.552382468092036,
+              "y": 13.5,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 11.29594679649734,
+              "y": 12.9,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 10,
+              "pile": null,
+              "x": 11.01411322325698,
+              "y": 12.3,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 10.70458297879587,
+              "y": 11.7,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 8,
+              "pile": null,
+              "x": 10.366856693510277,
+              "y": 11.1,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 9.99845309485489,
+              "y": 10.5,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 9.59729564002905,
+              "y": 9.9,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 9.160932969551741,
+              "y": 9.3,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 8.685809301352762,
+              "y": 8.7,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.167676202962458,
+              "y": 8.1,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.60219039940776,
+              "y": 7.5,
+              "fx": 9.045763944179678,
+              "fy": 0.0,
+              "force": 9.045763944179678,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.982404241110867,
+              "y": 6.9,
+              "fx": 10.1,
+              "fy": 0.0,
+              "force": 10.1,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.300368852673074,
+              "y": 6.3,
+              "fx": 7.295382297611341,
+              "fy": 0.0,
+              "force": 7.295382297611341,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V065",
+      "title": "Leshchinsky & Han MSE wall, weak foundation",
+      "source_path": "verification/pending/F3R/V065.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 0.964,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010518672199170125,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9585255425501894,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5678897769513035,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 2,
+          "forces": [
+            {
+              "index": 1,
+              "pile": null,
+              "x": 11.999276108683603,
+              "y": 6.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 11.278502633789053,
+              "y": 6.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V066a",
+      "title": "Leshchinsky & Han three-tier MSE wall, baseline",
+      "source_path": "verification/pending/F3R/V066a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.04,
+      "published_by": "Commercial program A",
+      "tolerance": 0.014807692307692308,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.0306219623587813,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9017343885787207,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 15,
+          "forces": [
+            {
+              "index": 14,
+              "pile": null,
+              "x": 11.925345937658202,
+              "y": 14.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 11.718779337512178,
+              "y": 14.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 11.489136047585317,
+              "y": 13.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 11.23515605253147,
+              "y": 12.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 10,
+              "pile": null,
+              "x": 10.956134722123439,
+              "y": 12.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 10.649387444816655,
+              "y": 11.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 8,
+              "pile": null,
+              "x": 10.3148480601981,
+              "y": 11.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 9.950155033895847,
+              "y": 10.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 9.55334403354989,
+              "y": 9.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 9.121424506528198,
+              "y": 9.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 8.65151013150252,
+              "y": 8.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.140239603430679,
+              "y": 8.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.5816125865518025,
+              "y": 7.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.970489999530578,
+              "y": 6.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.29855352638095,
+              "y": 6.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V066b",
+      "title": "Leshchinsky & Han MSE wall, L = 4.2 m",
+      "source_path": "verification/pending/F3R/V066b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.011,
+      "published_by": "Program D",
+      "tolerance": 0.010494559841740851,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.0111250608776428,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.012370017571004694,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 9,
+          "forces": [
+            {
+              "index": 10,
+              "pile": null,
+              "x": 12.895203210269123,
+              "y": 12.3,
+              "fx": 0.2515914558637542,
+              "fy": 0.0,
+              "force": 0.2515914558637542,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 11.20717379844485,
+              "y": 10.5,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 10.596435473091589,
+              "y": 9.9,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 9.95929359449558,
+              "y": 9.3,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 9.293302619812838,
+              "y": 8.7,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.596751586625183,
+              "y": 8.1,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.867008991365346,
+              "y": 7.5,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 7.100714629535215,
+              "y": 6.9,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.295166187793946,
+              "y": 6.3,
+              "fx": 11.4,
+              "fy": 0.0,
+              "force": 11.4,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V066c",
+      "title": "Leshchinsky & Han MSE wall, two reinforcement types",
+      "source_path": "verification/pending/F3R/V066c.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.0,
+      "published_by": "Leshchinsky & Han (2004)",
+      "tolerance": 0.015,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.011608112363341,
+        "status": "converged",
+        "error": null,
+        "err_pct": 1.1608112363340917,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 15,
+          "forces": [
+            {
+              "index": 14,
+              "pile": null,
+              "x": 12.085888130460582,
+              "y": 14.7,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 11.838265147359632,
+              "y": 14.1,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 11.57035409955019,
+              "y": 13.5,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 11.280801190889656,
+              "y": 12.9,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 10,
+              "pile": null,
+              "x": 10.96968521131869,
+              "y": 12.3,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 10.634991357539848,
+              "y": 11.7,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 8,
+              "pile": null,
+              "x": 10.276143469439907,
+              "y": 11.1,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 9.891498898920615,
+              "y": 10.5,
+              "fx": 7.5,
+              "fy": 0.0,
+              "force": 7.5,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 9.479587435172546,
+              "y": 9.9,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 9.038314482328015,
+              "y": 9.3,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 8.565725212721722,
+              "y": 8.7,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.05891302429637,
+              "y": 8.1,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.515196537099982,
+              "y": 7.5,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.930426155988645,
+              "y": 6.9,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.300113442585172,
+              "y": 6.3,
+              "fx": 11.0,
+              "fy": 0.0,
+              "force": 11.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V066e",
+      "title": "Leshchinsky & Han MSE wall, surcharge",
+      "source_path": "verification/pending/F3R/V066e.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.958,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010521920668058455,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9611510064683028,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.32891508019862187,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 15,
+          "applied": 15,
+          "forces": [
+            {
+              "index": 14,
+              "pile": null,
+              "x": 12.15816740939797,
+              "y": 14.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 13,
+              "pile": null,
+              "x": 11.907793437987886,
+              "y": 14.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 12,
+              "pile": null,
+              "x": 11.637085824406533,
+              "y": 13.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 11,
+              "pile": null,
+              "x": 11.344241295804899,
+              "y": 12.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 10,
+              "pile": null,
+              "x": 11.0294516473117,
+              "y": 12.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 9,
+              "pile": null,
+              "x": 10.691007437671653,
+              "y": 11.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 8,
+              "pile": null,
+              "x": 10.327983116202994,
+              "y": 11.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 7,
+              "pile": null,
+              "x": 9.938640889674723,
+              "y": 10.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 9.521418017143565,
+              "y": 9.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 9.074656940766229,
+              "y": 9.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 8.595283195958787,
+              "y": 8.7,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 8.081396599119053,
+              "y": 8.1,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 7.529420011383113,
+              "y": 7.5,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 6.935363290063691,
+              "y": 6.9,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            },
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.294089758206347,
+              "y": 6.3,
+              "fx": 10.0,
+              "fy": 0.0,
+              "force": 10.0,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V083",
+      "title": "Soil-nailed wall in clay (Amherst test wall)",
+      "source_path": "verification/pending/F3R/V083.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.89,
+      "published_by": "Commercial program A",
+      "tolerance": 0.015617977528089888,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.8845094557670697,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.616915082351716,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 12 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 2,
+          "applied": 2,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 3.744292138954677,
+              "y": 3.637550891483282,
+              "fx": 8.6119749613113,
+              "fy": -3.1345075866516403,
+              "force": 9.164674055580454,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 2.621086260101177,
+              "y": 2.5463650559989137,
+              "fx": 19.844028990501364,
+              "fy": -7.222647499545278,
+              "force": 21.117578542023853,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084a",
+      "title": "Soil-nailed wall in sand (Clouterre test wall)",
+      "source_path": "verification/pending/F3R/V084a.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.989,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010505561172901922,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9883560666478846,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06510954015322885,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 7.948722858478938,
+              "y": 6.785826641228093,
+              "fx": -12.121127337906119,
+              "fy": -2.137282442791916,
+              "force": 12.308115378968532,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 8.571980580024228,
+              "y": 5.895721865943834,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 9.195235369621182,
+              "y": 5.00562127791811,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.81849313372889,
+              "y": 4.115516441848386,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 10.44174941058122,
+              "y": 3.225413729800662,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 11.065005687433551,
+              "y": 2.3353110177529386,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.688261853448724,
+              "y": 1.445208463997172,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084b",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 45° plane",
+      "source_path": "verification/pending/F3R/V084b.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.123,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010445235975066785,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.1242804843271663,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.11402353759272664,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 6.47417585897329,
+              "y": 6.52582414102671,
+              "fx": -2.5045164715649295,
+              "fy": -0.44161396321767943,
+              "force": 2.5431526986889463,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 7.324281863255518,
+              "y": 5.675718136744482,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 8.174382412452436,
+              "y": 4.825617587547563,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.02448849600492,
+              "y": 3.9755115039950795,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 9.874591812379622,
+              "y": 3.125408187620378,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 10.724695128754323,
+              "y": 2.275304871245677,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.57479823874868,
+              "y": 1.42520176125132,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084c",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 50° plane",
+      "source_path": "verification/pending/F3R/V084c.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.043,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010479386385426654,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.0434862582908904,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.04662112089074209,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 7.248687332151733,
+              "y": 6.662391452566162,
+              "fx": -7.555678253163481,
+              "fy": -1.3322703428228,
+              "force": 7.67223684017202,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 7.9796403645248,
+              "y": 5.791275933113097,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 8.710589363983802,
+              "y": 4.920165219897745,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 9.441542454934414,
+              "y": 4.04904963063471,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 10.172493500139222,
+              "y": 3.177936479395517,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 10.903444545344028,
+              "y": 2.3068233281563235,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.634395438026115,
+              "y": 1.4357103586865512,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084d",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 60° plane",
+      "source_path": "verification/pending/F3R/V084d.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.945,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010529100529100529,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9442545404854226,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07888460471718356,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 8.59387494876746,
+              "y": 6.899584396349768,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995032,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 9.117880836624696,
+              "y": 5.991979151944753,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 9.641884652105183,
+              "y": 5.084377497003234,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 10.165890570025065,
+              "y": 4.176772200528164,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 10.689895436725248,
+              "y": 3.269168724819869,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 11.213900303425433,
+              "y": 2.3615652491115746,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.737905091826317,
+              "y": 1.4539619090217082,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084e",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 65° plane",
+      "source_path": "verification/pending/F3R/V084e.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.922,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010542299349240782,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9199275990859055,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.224772333415895,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 9.199209501989742,
+              "y": 7.0063212432246695,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995032,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 9.630089243432154,
+              "y": 6.082295634690475,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 10.060967583755588,
+              "y": 5.158273030868951,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 10.491847345503354,
+              "y": 4.234247378789738,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 10.922726396538952,
+              "y": 3.3102232508393703,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 11.353605447574552,
+              "y": 2.3861991228890025,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.784484445712264,
+              "y": 1.4621751083786438,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V084f",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 70° plane",
+      "source_path": "verification/pending/F3R/V084f.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.923,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010541711809317443,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 0.9205776680405372,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2624411657056167,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 70° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 7,
+          "applied": 7,
+          "forces": [
+            {
+              "index": 0,
+              "pile": null,
+              "x": 9.776810146810819,
+              "y": 7.108167852265792,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995032,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 1,
+              "pile": null,
+              "x": 10.118830444959348,
+              "y": 6.168474201282113,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 2,
+              "pile": null,
+              "x": 10.460849860399,
+              "y": 5.228782975522706,
+              "fx": -12.845319010990492,
+              "fy": -2.264973431999412,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 3,
+              "pile": null,
+              "x": 10.802870171321738,
+              "y": 4.289089289442155,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 4,
+              "pile": null,
+              "x": 11.144890034502932,
+              "y": 3.3493968335221767,
+              "fx": -12.845317141409213,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 5,
+              "pile": null,
+              "x": 11.486909897684129,
+              "y": 2.409704377602198,
+              "fx": -12.845317141409215,
+              "fy": -2.2649840349096477,
+              "force": 13.043478260869566,
+              "passive": true
+            },
+            {
+              "index": 6,
+              "pile": null,
+              "x": 11.828929727576082,
+              "y": 1.4700120131437155,
+              "fx": -12.845318398571901,
+              "fy": -2.2649769051995023,
+              "force": 13.043478260869566,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V095c",
+      "title": "Homogeneous slope with a micro-pile row",
+      "source_path": "verification/pending/F3R/V095c.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.193,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010419111483654653,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.1957075018478949,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.2269490232937813,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.",
+          "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+        ],
+        "reinforcement_forces": {
+          "elements": 1,
+          "applied": 1,
+          "forces": [
+            {
+              "index": 0,
+              "pile": true,
+              "x": 9.0,
+              "y": 2.3148495542191365,
+              "fx": 6.817042784292799,
+              "fy": 8.247298204692338,
+              "force": 10.7,
+              "passive": true
+            }
+          ]
+        }
+      },
+      "estado": "cSlope reproduce"
+    }
+  ]
+}

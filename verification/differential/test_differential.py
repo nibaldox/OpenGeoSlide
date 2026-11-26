@@ -459,7 +459,7 @@ def test_run_keeps_the_old_report_and_adds_the_f3_section(tmp_path):
     assert code == 0
     report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert len(report["checks"]) == 56 and report["summary"]["search"]["N"] == 28 and report["summary"]["fixed"]["N"] == 28
-    assert report["report_version"] == "3"
+    assert report["report_version"] == "4"
     f3 = report["f3"]
     assert f3["summary"]["N"] == 71 and set(f3["capabilities"]) == set(run.CAPABILITIES)
     assert f3["summary"]["FALLA"] + f3["summary"]["sin dato"] + f3["summary"]["pendiente"] + f3["summary"]["OK"] == 71
@@ -479,3 +479,219 @@ def test_require_f3_turns_pending_into_a_failing_exit_code(tmp_path, monkeypatch
     out = tmp_path / "out"
     assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)]) == 0
     assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out), "--require-f3"]) == 3
+
+
+# ------------------------------------------------------------ v0.4: reinforcements (D24-D27)
+
+F3R_MODELS = build_cases.build_all_f3r()
+F3R_AS_CASES = [{"id": k, "title": v["meta"]["title"], "model": v, "path": f"cases_f3r/{k}.ogs.json"}
+                for k, v in F3R_MODELS.items()]
+# Forces that cSlope 0.1.0 applies on the fixed circle of each model (`reinforcementForces`): D24 three of the four nails
+# (the first one stays short), D25 five of the eight layers (G5 almost at its tip), D26 the anchor and the sheet pile, D27 the pile.
+F3R_ORACLE_FORCES = {"D24": 3, "D25": 5, "D26": 2, "D27": 1}
+
+
+def test_v0_4_models_d24_d27_are_committed_and_designed_as_intended():
+    assert list(F3R_MODELS) == ["D24", "D25", "D26", "D27"]
+    for case_id, model in F3R_MODELS.items():
+        path = build_cases.CASES_F3R_DIR / f"{case_id}.ogs.json"
+        assert path.read_text(encoding="utf-8") == build_cases.serialize(model), f"{case_id} drifts from the builder"
+        assert model["version"] == "0.4" and model["units"] == "SI" and model["meta"]["notes"].strip()
+        assert model["analysis"]["surface"]["type"] == "circle" and "search" not in model["analysis"]
+        assert model["analysis"]["methods"] == ["bishop", "morgenstern_price", "janbu_corrected"]
+        ids = [r["id"] for r in model["reinforcements"]]
+        assert len(ids) == len(set(ids)), case_id
+        assert list(model).index("reinforcements") == list(model).index("slope") - 1
+    types = {k: {r["type"] for r in m["reinforcements"]} for k, m in F3R_MODELS.items()}
+    assert types == {"D24": {"nail"}, "D25": {"geosynthetic"}, "D26": {"sheet_pile", "anchor"}, "D27": {"pile"}}
+    d25 = F3R_MODELS["D25"]["reinforcements"]
+    assert {r["pullout"]["model"] for r in d25} == {"development", "interface"}
+    assert {r["direction"] for r in d25} == {"axial", "tangent"}
+    d26 = {r["type"]: r for r in F3R_MODELS["D26"]["reinforcements"]}
+    assert d26["anchor"]["application"] == "active" and d26["sheet_pile"]["application"] == "passive"
+    assert {r["application"] for r in F3R_MODELS["D24"]["reinforcements"]} == {"passive"}
+    assert F3R_MODELS["D26"]["slope"]["direction"] == "right_to_left"      # the two orientations are covered
+
+
+def test_v0_4_models_pass_the_v0_4_schema():
+    import jsonschema
+
+    schema = json.loads((HERE.parent.parent / "schema" / "ogs-0.4.schema.json").read_text(encoding="utf-8"))
+    for case_id, model in F3R_MODELS.items():
+        errors = list(jsonschema.validators.validator_for(schema)(schema).iter_errors(model))
+        assert not errors, (case_id, [e.message for e in errors])
+
+
+@pytest.mark.parametrize("case_id", sorted(F3R_MODELS))
+@pytest.mark.parametrize("method", ["bishop", "morgenstern_price", "janbu_corrected"])
+def test_ogs_accepts_the_v0_4_models(case_id, method, tmp_path):
+    """The engine parses and validates the model: it analyzes it, or (before R1) it reaches the stub of the forces."""
+    proc = _ogs_analyze(F3R_MODELS[case_id], method, "fixed", tmp_path)
+    assert "InvalidModel" not in proc.stderr and "NoValidSurface" not in proc.stderr, proc.stderr
+    assert proc.returncode == 0 or "R1: fuerzas de refuerzo" in proc.stderr, proc.stderr
+
+
+@pytest.mark.parametrize("case_id", sorted(F3R_MODELS))
+@pytest.mark.parametrize("method", ["bishop", "morgenstern_price", "janbu_corrected"])
+def test_cslope_converges_on_every_v0_4_model_and_applies_the_forces_of_the_design(case_id, method):
+    import cslope
+
+    model = F3R_MODELS[case_id]
+    conv = ogs_to_cslope(model, {"method": method, "kind": "fixed"})
+    res = run.run_cslope(cslope, conv.document)
+    assert res["error"] is None and res["status"] == "converged" and res["fos"] is not None, res
+    assert len(res["forces"]) == F3R_ORACLE_FORCES[case_id], res["forces"]
+    # the battery discriminates: without the reinforcements the factor is clearly lower (>= 5 %)
+    bare = copy.deepcopy(model)
+    bare["version"], bare["reinforcements"] = "0.3", []
+    ref = run.run_cslope(cslope, ogs_to_cslope(bare, {"method": method, "kind": "fixed"}).document)
+    assert res["fos"] >= 1.05 * ref["fos"], (case_id, method, res["fos"], ref["fos"])
+
+
+def test_the_passive_and_active_forces_of_d26_come_from_the_two_elements_and_have_the_designed_size():
+    import cslope
+
+    conv = ogs_to_cslope(F3R_MODELS["D26"], {"method": "bishop", "kind": "fixed"})
+    forces = run.run_cslope(cslope, conv.document)["forces"]
+    by_pile = {bool(f.get("pile")): f for f in forces}
+    assert by_pile[True]["force"] == pytest.approx(120.0) and by_pile[True]["passive"] is True
+    # the anchor is crossed in its free length: the force is the head capacity, 300 / 2.5 (E14m-2)
+    assert by_pile[False]["force"] == pytest.approx(120.0, rel=1e-9) and by_pile[False]["passive"] is False
+    assert by_pile[False]["fx"] > 0 > by_pile[False]["fy"]          # toward the stable side (+x), downward
+
+
+# ---- the probe, the plan and the pending checks of the v0.4 block
+
+def _f3r_probe(supported=(True, True)):
+    return {cap: {"supported": ok, "detail": "" if ok else "exit 101: not implemented: R1"}
+            for cap, ok in zip(run.CAPABILITIES_F3R, supported)}
+
+
+def _f3r_fake_ogs(factors=None, error=None):
+    """A stand-in for run_ogs that answers the figure of the oracle of each probe, scaled by `factors`."""
+    factors = factors or {}
+
+    def runner(binary, model, check, timeout):
+        if error:
+            return {"fos": None, "status": None, "error": error, "engine": None, "warnings": []}
+        app = model["reinforcements"][0]["application"]
+        cap = f"reinforcements_{app}"
+        return {"fos": build_cases.PROBE_F3R_BISHOP[cap] * factors.get(cap, 1.0), "status": "converged",
+                "error": None, "engine": "fake", "warnings": []}
+    return runner
+
+
+def test_the_probe_models_are_the_anchor_rows_of_f4_13_and_the_figures_are_the_oracle_ones():
+    for cap, app in (("reinforcements_active", "active"), ("reinforcements_passive", "passive")):
+        model = build_cases.probe_f3r_model(cap)
+        assert model["version"] == "0.4" and model["analysis"]["methods"] == ["bishop"]
+        assert model["reinforcements"] == [{"id": "A1", "type": "anchor", "x1": 52.0, "y1": 28.0, "x2": 25.0, "y2": 28.0,
+                                            "application": app, "tensile_capacity": 100.0, "direction": "axial"}]
+    assert build_cases.PROBE_F3R_BISHOP == {"reinforcements_active": 1.333661, "reinforcements_passive": 1.248405}
+
+
+def test_the_probe_figures_are_what_the_oracle_gives():
+    import cslope
+
+    for cap, want in build_cases.PROBE_F3R_BISHOP.items():
+        conv = ogs_to_cslope(build_cases.probe_f3r_model(cap), {"method": "bishop", "kind": "fixed"})
+        assert run.run_cslope(cslope, conv.document)["fos"] == pytest.approx(want, abs=5e-7), cap
+
+
+def test_probe_f3r_supported_only_when_bishop_reproduces_the_oracle_to_0_1_percent():
+    ok = run.probe_f3r("ogs", runner=_f3r_fake_ogs())
+    assert all(v["supported"] for v in ok.values()) and set(ok) == set(run.CAPABILITIES_F3R)
+    # the engine runs the passive anchor but its methods ignore the terms divided by F: 0.3 % high
+    passive_missing = run.probe_f3r("ogs", runner=_f3r_fake_ogs({"reinforcements_passive": 1.003}))
+    assert passive_missing["reinforcements_active"]["supported"] is True
+    assert passive_missing["reinforcements_passive"]["supported"] is False
+    assert "0,1 %" in passive_missing["reinforcements_passive"]["detail"]
+    # 0.05 % off is inside the tolerance
+    assert run.probe_f3r("ogs", runner=_f3r_fake_ogs({"reinforcements_active": 1.0005}))["reinforcements_active"]["supported"]
+    stub = run.probe_f3r("ogs", runner=_f3r_fake_ogs(error="exit 101: not yet implemented: R1: fuerzas de refuerzo"))
+    assert not any(v["supported"] for v in stub.values()) and "R1" in stub["reinforcements_active"]["detail"]
+
+
+def test_f3r_plan_runs_three_methods_per_model_and_asks_for_the_capabilities_of_its_applications():
+    plan = run.f3r_plan(F3R_AS_CASES)
+    assert len(plan) == 12 and {k for _, _, k, _ in plan} == {"fixed"}
+    caps = {}
+    for case, method, _, c in plan:
+        caps.setdefault(case["id"], set()).add(tuple(c))
+        assert method in ("bishop", "morgenstern_price", "janbu_corrected")
+    assert caps == {"D24": {("reinforcements_passive",)}, "D25": {("reinforcements_passive",)},
+                    "D26": {("reinforcements_active", "reinforcements_passive")}, "D27": {("reinforcements_passive",)}}
+
+
+def test_a_v0_4_check_without_the_capability_is_pending_and_with_it_can_fail():
+    import cslope
+
+    case = F3R_AS_CASES[2]                                    # D26: needs the two
+    pending = run.run_f3_check(cslope, "ogs", case, "bishop", "fixed", ["reinforcements_active", "reinforcements_passive"],
+                               _f3r_probe((True, False)), ogs_runner=_f3r_fake_ogs(), prepare=run.f3r_model)
+    assert pending["verdict"] == run.VERDICT_PENDING and "reinforcements_passive" in pending["reason"]
+    assert pending["ogs"]["fos"] is None and pending["cslope"]["fos"] is not None
+    assert pending["surface"] == "circle" and pending["kind"] == "fixed"
+
+    def one_percent_high(binary, model, check, timeout):
+        return {"fos": 1.01 * 1.9876, "status": "converged", "error": None, "engine": "fake", "warnings": []}
+    failed = run.run_f3_check(cslope, "ogs", case, "bishop", "fixed", ["reinforcements_active", "reinforcements_passive"],
+                              _f3r_probe(), ogs_runner=one_percent_high, prepare=run.f3r_model)
+    assert failed["verdict"] == "FALLA" and "0,5 %" in failed["reason"]
+
+    def exact(binary, model, check, timeout):
+        return {"fos": 1.9876, "status": "converged", "error": None, "engine": "fake", "warnings": []}
+    passed = run.run_f3_check(cslope, "ogs", case, "bishop", "fixed", ["reinforcements_active", "reinforcements_passive"],
+                              _f3r_probe(), ogs_runner=exact, prepare=run.f3r_model)
+    assert passed["verdict"] in run.PASS_VERDICTS and abs(passed["delta_pct"]) < 0.01
+
+
+def test_the_v0_4_run_keeps_the_model_as_written_and_does_not_downgrade_it_to_0_3():
+    import cslope
+
+    seen = {}
+
+    def spy(binary, model, check, timeout):
+        seen["version"] = model["version"]
+        return {"fos": None, "status": None, "error": "exit 1: spy", "engine": None, "warnings": []}
+    run.run_f3_check(cslope, "ogs", F3R_AS_CASES[0], "bishop", "fixed", ["reinforcements_passive"], _f3r_probe(),
+                     ogs_runner=spy, prepare=run.f3r_model)
+    assert seen["version"] == "0.4"
+
+
+def test_f3r_section_of_the_report_lists_the_capabilities_and_the_pending_checks():
+    import cslope
+
+    probe = _f3r_probe((False, False))
+    rows = [run.run_f3_check(cslope, "ogs", c, m, k, caps, probe, ogs_runner=_f3r_fake_ogs(), prepare=run.f3r_model)
+            for c, m, k, caps in run.f3r_plan(F3R_AS_CASES)]
+    text = "\n".join(run.f3r_markdown(rows, probe))
+    assert text.startswith("## v0.4: refuerzos (D24 a D27)")
+    assert "| reinforcements_active | no |" in text and "| reinforcements_passive | no |" in text
+    assert "**OK 0/12**" in text and "pendiente 12" in text and text.count("| pendiente |") == 12
+
+
+def test_run_adds_the_v0_4_block_and_keeps_the_rest_of_the_report(tmp_path):
+    cases = tmp_path / "cases"
+    shutil.copytree(HERE / "cases", cases)
+    out = tmp_path / "out"
+    assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)]) == 0
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert len(report["checks"]) == 56 and report["f3"]["summary"]["N"] == 71       # the older blocks are as before
+    f3r = report["f3r"]
+    assert f3r["summary"]["N"] == 12 and set(f3r["capabilities"]) == set(run.CAPABILITIES_F3R)
+    assert [c["id"] for c in f3r["cases"]] == ["D24", "D25", "D26", "D27"]
+    for row in f3r["checks"]:
+        assert row["verdict"] in ("OK", run.VERDICT_BOTH_NO_SOLUTION, "FALLA", "sin dato", "pendiente"), row
+        assert row["cslope"]["fos"] is not None                       # the oracle line is there, pending or not
+    text = (out / "REPORT.md").read_text(encoding="utf-8")
+    assert text.index("## Fase 3a") < text.index("## v0.4: refuerzos") < text.index("## Reproducir")
+
+
+def test_require_f3r_turns_pending_into_a_failing_exit_code(tmp_path, monkeypatch):
+    monkeypatch.setattr(run, "probe_f3r", lambda *a, **k: _f3r_probe((True, False)))
+    cases = tmp_path / "cases"
+    shutil.copytree(HERE / "cases", cases)
+    out = tmp_path / "out"
+    assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out)]) == 0
+    assert run.main(["--ogs", _ogs_binary(), "--cases", str(cases), "--out", str(out), "--require-f3r"]) == 4

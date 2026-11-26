@@ -1,7 +1,7 @@
 # Batería diferencial ogs vs cSlope (W7b)
 
 Compara el FS de `ogs` (binario CLI) con el oráculo independiente cSlope 0.1.0 (MIT) en catorce modelos
-sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas). Compara motores entre sí: **no contiene valores publicados**.
+sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas); D15-D23 son los modelos v0.3 y D24-D27 los de refuerzos (v0.4). Compara motores entre sí: **no contiene valores publicados**.
 
 ## Archivos
 
@@ -157,3 +157,28 @@ reales:
 
 - El aviso `multiple_admissible_roots` (E12e) es informativo en la batería, igual que en la aceptación
   (`OGS_INFORMATIVE_WARNINGS` en `run.py`): no aparece en la columna de avisos.
+
+## v0.4: refuerzos, modelos D24 a D27 (F4.12)
+
+`run.py` agrega un tercer bloque, después del de la Fase 3a y sin cambiarlo, con los cuatro modelos de `cases_f3r/` (aparte de
+`cases/` y de `cases_f3/` por la misma razón: los consumidores de esos directorios aún no leen la versión 0.4). Cada modelo
+lleva un círculo fijo que cruza los refuerzos, y se corre con Bishop, Morgenstern-Price (`half_sine`) y Janbu corregido, con el
+criterio de 0,5 % de E9b, **12 checks**. No hay búsqueda: las fuerzas dependen de la superficie.
+
+| caso | modelo | refuerzos | fuerzas del oráculo en el círculo |
+|---|---|---|---|
+| D24 | corte de 10 m, cara 5:1, c = 3 kPa, φ = 26° | cuatro hileras de clavos pasivos (`nail`, `axial`, `bond` 40 kN/m, T = 150 kN, spacing 1,5 m) | tres: el clavo de y = 8 queda corto |
+| D25 | muro TEM de 8 m, relleno c = 3 kPa, φ = 34° sobre cimentación firme | ocho capas de geosintético pasivas, `axial` y `tangent` alternadas; cinco con `development` y tres con `interface` | cinco; la de y = 4,5 cruza casi en la punta |
+| D26 | tablestaca anclada: excavación de 6 m, suelo c = 0, φ = 10°, sentido −x | `sheet_pile` pasiva de 120 kN/m y `anchor` activo de 120 kN/m (cruzado en su tramo libre: manda `end1_capacity`) | dos |
+| D27 | talud de 10 m, 2H:1V, c = 4 kPa, φ = 20° | fila de pilotes (`pile` pasivo, `angle` 10°, 600 kN por pilote cada 2 m) | una |
+
+- **Sonda de capacidad.** Antes de correr, `probe_f3r` ejecuta V047a con el círculo fijo y el anclaje horizontal de las filas 1 (activo)
+  y 2 (pasivo) de F4.13, con Bishop, y exige la cifra del oráculo a 0,1 % (1,333661 y 1,248405). Un motor que no tiene las fuerzas
+  (el stub de R0), o cuyos métodos no tienen aún los términos pasivos divididos por F, deja los checks que los necesitan
+  **pendiente**, con el mensaje del motor o con el valor que dio; el valor de cSlope se calcula igual. El código de salida sigue en 0.
+  Con `--require-f3r` sale con código 4 si algún check de v0.4 queda pendiente, con fallo o sin dato: úsese al integrar.
+- `report.json` gana la clave `f3r` (capacidades, resumen y checks) y `REPORT.md` la sección «v0.4: refuerzos»; `report_version` pasa a 4.
+- El oráculo instalado descarta los activos con `along > 0`, que ogs aplica (E14m-1): los modelos solo usan cruces con `along < 0`.
+  La interface de D25 se integra exacta en ogs y en 200 pasos en cSlope (hasta 0,5 % en T, X17 §2.1).
+- Queda por agregar, cuando R1-C defina `report.reinforcement_forces`, la comparación de las fuerzas cruce por cruce con las del oráculo.
+

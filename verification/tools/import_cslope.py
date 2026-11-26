@@ -19,6 +19,10 @@ The source clone is read only. The script writes:
 - verification/pending/F3/       batches 1 and 2 (contract F3.8): undrained / s-f-datum materials, fixed polylines,
                                  Morgenstern-Price with every interslice function and Janbu, written as v0.3 models.
                                  They wait for the engine; each file holds every convertible check of the problem
+- verification/pending/F3R/      batches R1 to R4 (contract F4.12): the published cases with reinforcements and piles of constant
+                                 force, written as v0.4 models. They wait for the engine of the reinforcements (R1-C and
+                                 R1-M); `INDEX.md` holds the table of published vs. cSlope, built from the `report.json`
+                                 that `verification/harness/run.py --oracle-only` writes in the same directory
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
 Batch 0 is every problem that converts today (no cap, no selection). The output is deterministic: running the
@@ -49,6 +53,35 @@ INTERSLICE_FUNCTIONS = {
     "constant": "constant", "half-sine": "half_sine", "clipped-sine": "clipped_sine",
     "trapezoidal": "trapezoidal", "data-point-specified": "data_points",
 }
+# Batches R1 to R4 of F4.12 (X14 §7). V013b to V013e (Ito-Matsui) stay in `pending/`: no `force`, so not expressible.
+F4_VERSION = "0.4"
+F3R_BATCHES = {
+    "R1": ("anclajes", ["V016b", "V035a", "V035b", "V037"]),
+    "R2": ("clavos y geosintéticos con development", ["V011a", "V011b", "V012", "V064", "V065", "V066a", "V066b",
+                                                      "V066c", "V066e"]),
+    "R3": ("geosintéticos con interface y clavos de pared", ["V010", "V010b", "V014", "V083", "V084a", "V084b",
+                                                              "V084c", "V084d", "V084e", "V084f"]),
+    "R4": ("pilotes de fuerza constante", ["V015", "V095c"]),
+}
+# `type` of the tension elements of a case. The type changes no number (E14b); it is the one the source names.
+F3R_TENSION_TYPE = {
+    "V016b": "geosynthetic",   # "mesh as geosynthetic supports"
+    "V035a": "anchor", "V035b": "anchor",   # Duncan & Wright tieback
+    "V037": "geosynthetic",    # "Geogrid-reinforced fill"
+    "V011a": "geosynthetic", "V011b": "geosynthetic", "V012": "geosynthetic",   # Borges & Cardoso embankment 3
+    "V064": "geosynthetic", "V065": "geosynthetic", "V066a": "geosynthetic", "V066b": "geosynthetic",
+    "V066c": "geosynthetic", "V066e": "geosynthetic",   # Leshchinsky & Han MSE walls
+    "V010": "geosynthetic", "V010b": "geosynthetic",    # Borges & Cardoso embankment 2 (geosynthetic)
+    "V014": "nail", "V083": "nail", "V084a": "nail", "V084b": "nail", "V084c": "nail", "V084d": "nail",
+    "V084e": "nail", "V084f": "nail",   # nailed walls
+    "V015": "anchor",   # soldier-pile tieback wall
+}
+F3R_DIR = Path("verification") / "pending" / "F3R"
+F3R_SCHEMA = Path("schema") / "ogs-0.4.schema.json"
+TENSION_KEYS = {"x1", "y1", "x2", "y2", "tensileCapacity", "spacing", "end1Capacity", "end2Capacity", "direction",
+                "application", "pullout", "prestress"}
+PILE_KEYS = {"x1", "y1", "x2", "y2", "force", "diameter", "spacing", "direction", "angle", "application", "location",
+             "wall"}
 HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
 HOLD_F3_FILE = Path("verification") / "pending" / "F3" / "HOLD.json"
 
@@ -933,6 +966,248 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
     return case, discarded, batches
 
 
+# ---------------------------------------------------------------- reinforcements (batches R1 to R4, v0.4)
+def convert_pullout(pullout: dict, where: str) -> dict:
+    """cSlope ``pullout`` -> ogs ``pullout`` (F4.2). Raises Omit."""
+    kind = pullout.get("kind")
+    if kind == "bond":
+        extra = sorted(set(pullout) - {"kind", "strength", "bondedLength"})
+        if extra:
+            raise Omit(f"{where}: pullout bond con propiedad no soportada: " + ", ".join(extra))
+        out = {"model": "bond", "strength": num(pullout["strength"])}
+        if pullout.get("bondedLength") is not None:
+            out["bonded_length"] = num(pullout["bondedLength"])
+        return out
+    if kind == "interface":
+        extra = sorted(set(pullout) - {"kind", "adhesion", "frictionAngle", "coverage"})
+        if extra:
+            raise Omit(f"{where}: pullout interface con propiedad no soportada: " + ", ".join(extra))
+        # cSlope: a missing coverage is the continuous sheet, Rc = 1; ogs asks for it
+        coverage = 1.0 if pullout.get("coverage") is None else pullout["coverage"]
+        return {"model": "interface", "adhesion": num(pullout["adhesion"]),
+                "friction_angle": num(pullout["frictionAngle"]), "coverage": num(coverage)}
+    if kind == "development":
+        extra = sorted(set(pullout) - {"kind", "length1", "length2"})
+        if extra:
+            raise Omit(f"{where}: pullout development con propiedad no soportada: " + ", ".join(extra))
+        return {"model": "development", "length1": num(pullout["length1"]), "length2": num(pullout["length2"])}
+    raise Omit(f"{where}: pullout {kind!r} no soportado")
+
+
+def convert_reinforcements(cid: str, d: dict) -> tuple[list[dict], list[str]]:
+    """``reinforcements`` and ``piles`` of a cSlope definition -> ogs v0.4 ``reinforcements`` (F4.2).
+
+    Returns (list, notes). ``direction`` and ``application`` are always written (cSlope would take ``axial`` /
+    ``active`` for tension elements and ``angle`` / ``active`` for piles; E14b has no default). ``prestress`` (only
+    the finite element analysis uses it), ``diameter`` and ``location`` (no effect with a given force, E14m-3) are not
+    written, and the case says so. Raises Omit for what ogs cannot express: Ito-Matsui piles (no ``force``) or a
+    ``shearCapacity`` / ``momentCapacity``.
+    """
+    out: list[dict] = []
+    notes: list[str] = []
+    ttype = F3R_TENSION_TYPE.get(cid, "anchor")
+    dropped_prestress = 0
+    for i, r in enumerate(d.get("reinforcements") or []):
+        where = f"reinforcements[{i}]"
+        extra = sorted(set(r) - TENSION_KEYS)
+        if extra:
+            raise Omit(f"{where} con propiedad no soportada: " + ", ".join(extra))
+        item: dict = {"id": f"R{i + 1}", "type": ttype, "x1": num(r["x1"]), "y1": num(r["y1"]),
+                      "x2": num(r["x2"]), "y2": num(r["y2"]),
+                      "application": r.get("application") or "active",
+                      "tensile_capacity": num(r["tensileCapacity"]),
+                      "direction": r.get("direction") or "axial"}
+        if item["application"] not in ("active", "passive") or item["direction"] not in ("axial", "tangent", "bisector"):
+            raise Omit(f"{where}: application {item['application']!r} o direction {item['direction']!r} no soportadas")
+        for src, dst in (("end1Capacity", "end1_capacity"), ("end2Capacity", "end2_capacity"), ("spacing", "spacing")):
+            if r.get(src) is not None:
+                item[dst] = num(r[src])
+        if r.get("pullout") is not None:
+            item["pullout"] = convert_pullout(r["pullout"], where)
+        if r.get("prestress") not in (None, 0):
+            dropped_prestress += 1
+        out.append(item)
+    if dropped_prestress:
+        notes.append(f"prestress de {dropped_prestress} elemento(s) no se importa: solo lo usa el análisis de elementos "
+                     "finitos de cSlope (en equilibrio límite la fuerza activa es la capacidad).")
+    dropped_diameter = 0
+    for i, p in enumerate(d.get("piles") or []):
+        where = f"piles[{i}]"
+        extra = sorted(set(p) - PILE_KEYS)
+        if extra:
+            raise Omit(f"{where} con propiedad no soportada: " + ", ".join(extra))
+        if p.get("force") is None:
+            raise Omit(f"{where}: pilote Ito-Matsui (sin force), fuera de v0.4")
+        direction = p.get("direction") or "angle"
+        if direction not in ("angle", "tangent", "perpendicular"):
+            raise Omit(f"{where}: direction {direction!r} no soportada")
+        application = p.get("application") or "active"
+        base = {"x1": num(p["x1"]), "y1": num(p["y1"]), "x2": num(p["x2"]), "y2": num(p["y2"]),
+                "application": application, "force": num(p["force"]), "direction": direction}
+        if direction == "angle":
+            base["angle"] = num(p.get("angle") or 0.0)
+        elif p.get("angle") is not None:
+            raise Omit(f"{where}: angle con direction {direction!r}")
+        if p.get("diameter") is not None:
+            dropped_diameter += 1
+        if p.get("wall") is True:
+            # a wall: ogs `sheet_pile` has the force per metre of wall and no spacing
+            spacing = float(p.get("spacing") or 1.0)
+            base["force"] = num(float(p["force"]) / spacing)
+            out.append({"id": f"S{i + 1}", "type": "sheet_pile", **base})
+            notes.append(f"{where}: wall true; force por metro = force / spacing = {base['force']:g}.")
+        else:
+            if p.get("spacing") is not None:
+                base["spacing"] = num(p["spacing"])
+            out.append({"id": f"P{i + 1}", "type": "pile", **base})
+    if dropped_diameter:
+        notes.append(f"diameter de {dropped_diameter} pilote(s) no se importa: con force dada no interviene (solo "
+                     "Ito-Matsui y el análisis de elementos finitos lo usan).")
+    return out, notes
+
+
+def convert_f3r(raw: dict, prob: dict | None) -> tuple[dict, list[str], list[int]]:
+    """Convert one cSlope case with ``reinforcements`` or ``piles`` into a v0.4 case (batches R1 to R4).
+
+    The rest of the problem goes through the same conversion as batches 1 and 2 (``_convert`` with v0.2 loads and the
+    v0.3 fields); the reinforcements are taken out of the definition first and written as ``model.reinforcements``.
+    """
+    d = raw["definition"]
+    if not (d.get("reinforcements") or d.get("piles")):
+        raise Omit("sin reinforcements ni piles")
+    stripped = {**raw, "definition": {k: v for k, v in d.items() if k not in ("reinforcements", "piles")}}
+    case, discarded, batches = _convert(stripped, prob, v02=True, f3=True)
+    items, notes = convert_reinforcements(raw["id"], d)
+    model = {}
+    for key, value in case["model"].items():
+        if key == "slope":
+            model["reinforcements"] = items
+        model[key] = value
+    model["version"] = F4_VERSION
+    case = {**case, "model": model}
+    case["source"] = {**case["source"], "notes": case["source"]["notes"] + notes}
+    return case, discarded, batches
+
+
+def gate_reinforcements(case: dict) -> list[str]:
+    """F4.2 rules that JSON Schema cannot express: version, unique ids, length > 0, sheet_pile vertical, bonded_length."""
+    errors = []
+    m = case.get("model") or {}
+    items = m.get("reinforcements") or []
+    if items and m.get("version") != F4_VERSION:
+        errors.append('reinforcements requiere version "0.4"')
+    ids = [r["id"] for r in items]
+    if len(set(ids)) != len(ids):
+        errors.append("ids de refuerzo repetidos")
+    for r in items:
+        length = ((r["x2"] - r["x1"]) ** 2 + (r["y2"] - r["y1"]) ** 2) ** 0.5
+        if not length > 0:
+            errors.append(f"refuerzo {r['id']}: longitud nula")
+        if r["type"] == "sheet_pile" and r["x1"] != r["x2"]:
+            errors.append(f"tablestaca {r['id']}: x1 != x2")
+        bonded = (r.get("pullout") or {}).get("bonded_length")
+        if bonded is not None and bonded > length:
+            errors.append(f"refuerzo {r['id']}: bonded_length > longitud")
+    return errors
+
+
+def gate_schema_f3r(case: dict, schema: dict) -> list[str]:
+    """The model against the real `schema/ogs-0.4.schema.json`; the checks against the case schema without its model."""
+    validator = jsonschema.validators.validator_for(schema)
+    errors = [f"model{e.json_path[1:]}: {e.message}" for e in validator(schema).iter_errors(case.get("model"))]
+    case_schema = {**CASE_SCHEMA, "properties": {**CASE_SCHEMA["properties"], "model": {}}}
+    errors += [f"{e.json_path}: {e.message}" for e in jsonschema.Draft202012Validator(case_schema).iter_errors(case)]
+    m = case.get("model") or {}
+    analysis = m.get("analysis") or {}
+    if (m.get("meta") or {}).get("id") != case.get("id"):
+        errors.append("meta.id distinto de id")
+    if case.get("checks") and {c.get("kind") for c in case["checks"]} != {"fixed" if "surface" in analysis else "search"}:
+        errors.append("kind de los checks no coincide con el tipo de análisis")
+    if not {c.get("method") for c in case.get("checks") or []} <= set(analysis.get("methods") or []):
+        errors.append("methods no cubre los checks")
+    return errors
+
+
+def build_f3r_index(cases: list[dict], lots: dict[str, str], omitted: list[tuple[str, str]],
+                    dropped: dict[str, list[str]], report: dict | None) -> str:
+    """INDEX.md of pending/F3R: the cases, and the table of the published value against cSlope (from report.json)."""
+    rows = {}
+    for r in (report or {}).get("checks", []):
+        rows[(r["case_id"], r["method"], r["published"])] = r
+    n_checks = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "# Casos con refuerzos (lotes R1 a R4, formato v0.4): publicado frente a cSlope",
+        "",
+        "Generado por `verification/tools/import_cslope.py`; la tabla sale de `report.json`, que escribe "
+        "`verification/harness/run.py --oracle-only` en este directorio. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+        f"**{len(cases)}** casos con **{n_checks}** checks. Esperan al motor de refuerzos (R1-C y R1-M) y a la integración: "
+        "mientras tanto solo se comparan el valor publicado y el oráculo (`--oracle-only`). No se relaja ninguna "
+        "tolerancia ni se toca ningún dato del problema.",
+        "",
+        "Los lotes son los de F4.12: " + "; ".join(
+            f"**{lot}** {name} ({', '.join(ids)})" for lot, (name, ids) in F3R_BATCHES.items()) + ".",
+        "",
+    ]
+    if report is None:
+        lines += ["No hay `report.json`: corra el harness con `--oracle-only` y regenere este índice.", ""]
+    else:
+        ok = [r for r in rows.values() if r["cslope"]["verdict"] == "OK"]
+        held = [r for r in rows.values() if r["cslope"]["verdict"] != "OK"]
+        lines += [
+            f"cSlope reproduce el valor publicado, dentro de su tolerancia, en **{len(ok)}** de **{len(rows)}** checks. "
+            f"Quedan **retenidos {len(held)}** checks: el oráculo no los reproduce, así que no pueden ser el "
+            "criterio de aceptación del motor, y se listan con su número.",
+            "",
+        ]
+    lines += ["| lote | caso | refuerzos | método | publicado | por | tol % | cSlope | Δ % | fuerzas del oráculo | estado |",
+              "|---|---|---:|---|---:|---|---:|---:|---:|---:|---|"]
+    idle = []
+    for case in cases:
+        n_items = len(case["model"]["reinforcements"])
+        for c in case["checks"]:
+            r = rows.get((case["id"], c["method"], c["published"]))
+            forces = "—"
+            if r is None:
+                cs, delta, state = "—", "—", "sin dato (falta report.json)"
+            else:
+                applied = (r["cslope"].get("reinforcement_forces") or {}).get("applied")
+                if applied is not None:
+                    forces = f"{applied} de {n_items}"
+                    if applied == 0:
+                        idle.append((case["id"], c["method"], c["published"]))
+                cs_fos = r["cslope"]["fos"]
+                cs = "—" if cs_fos is None else f"{cs_fos:.4f}"
+                delta = "—" if r["cslope"]["err_pct"] is None else f"{r['cslope']['err_pct']:+.2f}"
+                state = "cSlope reproduce" if r["cslope"]["verdict"] == "OK" else "**retenido**: " + (
+                    r["cslope"]["error"] or r["cslope"]["verdict"])
+            lines.append(f"| {lots[case['id']]} | {case['id']} | {n_items} | {c['method']} | {c['published']} "
+                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {cs} | {delta} | {forces} | {md_cell(state)} |")
+    if idle:
+        lines += ["", "## Checks en los que el oráculo no aplica ninguna fuerza", "",
+                  "La columna «fuerzas del oráculo» cuenta las fuerzas que cSlope aplica en su superficie crítica. Con 0 el "
+                  "valor de cSlope es el del talud sin refuerzo, así que el acuerdo con el publicado **no prueba nada "
+                  "sobre los refuerzos**; el binario instalado (`a80f9a0`) descarta los activos con `along > 0`, que ogs "
+                  "aplica (E14m-1). El motor no debe usar estos checks como criterio de las fuerzas: "
+                  + ", ".join(f"{cid} ({m}, {pub})" for cid, m, pub in idle) + "."]
+    lines += ["", "## Checks descartados en la conversión", ""]
+    any_dropped = False
+    for cid in sorted(dropped):
+        for reason in dropped[cid]:
+            lines.append(f"- {cid}: {md_cell(reason)}")
+            any_dropped = True
+    if not any_dropped:
+        lines.append("Ninguno.")
+    lines += ["", "## Problemas de los lotes que no entran", ""]
+    if omitted:
+        lines += ["| id | motivo |", "|---|---|"] + [f"| {cid} | {md_cell(reason)} |" for cid, reason in omitted]
+    else:
+        lines.append("Ninguno.")
+    lines += ["", "V013b a V013e (Ito-Matsui, sin `force`) quedan fuera de v0.4 y siguen sin importarse."]
+    return "\n".join(lines) + "\n"
+
+
 # ---------------------------------------------------------------- gates
 def gate_schema(case: dict) -> list[str]:
     errors = [f"{e.json_path}: {e.message}" for e in jsonschema.Draft202012Validator(CASE_SCHEMA).iter_errors(case)]
@@ -977,7 +1252,7 @@ def gate_loads(case: dict) -> list[str]:
     m = case.get("model") or {}
     loads = m.get("loads") or []
     seismic = (m.get("analysis") or {}).get("seismic")
-    if (loads or seismic) and m.get("version") not in ("0.2", F3_VERSION):
+    if (loads or seismic) and m.get("version") not in ("0.2", F3_VERSION, F4_VERSION):
         errors.append('loads y analysis.seismic requieren version "0.2"')
     xs = [x for r in m.get("regions", []) for x, _ in r["polygon"]]
     ids = [load["id"] for load in loads if "id" in load]
@@ -1002,7 +1277,7 @@ def gate_features(case: dict) -> list[str]:
     needs_03 = (any(mat.get("model") == "undrained" for mat in m.get("materials", []))
                 or surface.get("type") == "polyline" or "interslice" in a
                 or any(x in methods for x in ("morgenstern_price", "janbu_simplified", "janbu_corrected")))
-    if needs_03 and m.get("version") != F3_VERSION:
+    if needs_03 and m.get("version") not in (F3_VERSION, F4_VERSION):
         errors.append('los campos de v0.3 requieren version "0.3"')
     if "interslice" in a:
         if "morgenstern_price" not in methods:
@@ -1434,6 +1709,47 @@ def main() -> int:
         print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
         return 1
 
+    # ---- batches R1 to R4 (F4.12): v0.4 cases with reinforcements, in pending/F3R
+    f3r_cases: list[dict] = []
+    f3r_lots: dict[str, str] = {}
+    f3r_dropped: dict[str, list[str]] = {}
+    f3r_omitted: list[tuple[str, str]] = []
+    f3r_schema = json.loads((root / F3R_SCHEMA).read_text(encoding="utf-8"))
+    for lot, (_, ids) in F3R_BATCHES.items():
+        for cid in ids:
+            if cid not in raw_by_id:
+                failures.append(f"{cid} (F3R): no existe en verification.json")
+                continue
+            try:
+                case, disc, _ = convert_f3r(raw_by_id[cid], problems.get(cid))
+            except Omit as exc:
+                f3r_omitted.append((cid, str(exc)))
+                continue
+            except KeyError as exc:
+                f3r_omitted.append((cid, f"campo ausente en cSlope: {exc}"))
+                continue
+            f3r_cases.append(case)
+            f3r_lots[cid] = lot
+            if disc:
+                f3r_dropped[cid] = disc
+    for case in f3r_cases:
+        cid = case["id"]
+        for err in gate_schema_f3r(case, f3r_schema):
+            failures.append(f"{cid} (F3R) schema: {err}")
+        for err in gate_search(case):
+            failures.append(f"{cid} (F3R) rangos: {err}")
+        for err in gate_loads(case):
+            failures.append(f"{cid} (F3R) cargas: {err}")
+        for err in gate_features(case):
+            failures.append(f"{cid} (F3R) v0.3: {err}")
+        for err in gate_reinforcements(case):
+            failures.append(f"{cid} (F3R) refuerzos: {err}")
+        for err in gate_geometry(case, raw_by_id[cid]):
+            failures.append(f"{cid} (F3R) geometría: {err}")
+    if failures:
+        print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
+        return 1
+
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
     expected = {f"{c['id']}.json" for c in converted}
@@ -1475,6 +1791,20 @@ def main() -> int:
         changed += write_if_changed(f3_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
     changed += write_if_changed(f3_dir / "INDEX.md", build_f3_index(
         converted, promoted, promoted_batches, f3_held, hold_f3, lote0_ids, f3_dropped, f3_omitted))
+    # F3R: the cases wait for the engine of the reinforcements; the table comes from report.json of the harness
+    f3r_dir = root / F3R_DIR
+    keep_f3r = {f"{c['id']}.json" for c in f3r_cases}
+    for stale in sorted(f3r_dir.glob("V*.json")) if f3r_dir.is_dir() else []:
+        if stale.name not in keep_f3r:
+            stale.unlink()
+            changed += 1
+    for case in f3r_cases:
+        changed += write_if_changed(f3r_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    f3r_report = None
+    if (f3r_dir / "report.json").is_file():
+        f3r_report = json.loads((f3r_dir / "report.json").read_text(encoding="utf-8"))
+    changed += write_if_changed(f3r_dir / "INDEX.md", build_f3r_index(
+        f3r_cases, f3r_lots, f3r_omitted, f3r_dropped, f3r_report))
 
     # ---- summary
     n_checks = sum(len(c["checks"]) for c in converted)
@@ -1489,6 +1819,8 @@ def main() -> int:
     nb = {b: sum(x == b for bs in promoted_batches.values() for x in bs) for b in (0, 1, 2)}
     print(f"Promovidos desde F3 a verification/cases: {len(promoted)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}")
     print(f"verification/pending/F3 (retenidos): {len(f3_held)} casos, {sum(len(c['checks']) for c in f3_held)} checks")
+    print(f"verification/pending/F3R (v0.4, refuerzos): {len(f3r_cases)} casos, "
+          f"{sum(len(c['checks']) for c in f3r_cases)} checks; no entran: {[c for c, _ in f3r_omitted]}")
     print("Omitidos del lote 0:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")

@@ -3,11 +3,11 @@
 Compara, para cada check de cada caso de `verification/cases/*.json`, tres valores:
 el **publicado**, el FS del **binario ogs** (`ogs analyze`) y el FS del **oráculo cSlope 0.1.0**.
 
-- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1, v0.2 y v0.3) → documento de análisis de cSlope.
+- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1, v0.2, v0.3 y v0.4) → documento de análisis de cSlope. Desde v0.4 convierte `reinforcements`: `anchor`, `nail` y `geosynthetic` a `definition.reinforcements`; `pile` y `sheet_pile` a `definition.piles` (`location: "slip-surface"`, `direction` y `application` explícitos; la tablestaca con `spacing` 1, `force` por metro y `wall: true`).
 - `run.py`: ejecuta ogs y cSlope por check y escribe `REPORT.md` y `report.json`.
 - `test_to_cslope.py`: tests del conversor (pytest).
 - `--oracle-only` (en `run.py`): no ejecuta ogs; compara solo el publicado con cSlope. Es el modo de `verification/pending/F3/`,
-  cuyos casos (formato v0.3) esperan al motor.
+  cuyos casos (formato v0.3) esperan al motor. Lo mismo vale para `verification/pending/F3R/` (formato v0.4, refuerzos): `python verification/harness/run.py --cases verification/pending/F3R --oracle-only --out verification/pending/F3R` y después `import_cslope.py`, que arma `INDEX.md` con la tabla de publicado frente a cSlope y la columna de las fuerzas que el oráculo aplica (`cslope.reinforcement_forces` en `report.json`). `report.json` y `HOLD.json` de un directorio de casos no se leen como casos.
 - `fixtures/V047a.json`: caso propio (ACADS 1(a), contratos §1), usado si no hay casos.
 - `sample/`: un informe de ejemplo generado con los 21 casos de `verification/cases` y el binario `target/release/ogs`
   (rutas relativas a la raíz del repositorio). Se regenera con la orden de «Ejecución» más abajo.

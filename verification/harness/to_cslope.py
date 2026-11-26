@@ -1,4 +1,4 @@
-"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
@@ -16,6 +16,20 @@ Schema v0.3 (contract F3.8)
 - ``janbu_simplified`` / ``janbu_corrected`` -> ``Janbu`` with ``janbuCorrection`` false / true.
 - ``bishop`` on a polyline is refused (``UnsupportedModel``): contract F3.6, its FS would depend on the moment axis
   (the oracle accepts it, with the warning ``bishop-non-circular``).
+
+Reinforcements (schema v0.4, contracts F4.2 and E14m)
+-----------------------------------------------------
+- ``anchor``, ``nail`` and ``geosynthetic`` -> ``definition.reinforcements[]``: ``x1, y1, x2, y2``,
+  ``tensile_capacity`` -> ``tensileCapacity``, ``end1_capacity`` / ``end2_capacity`` -> ``end1Capacity`` /
+  ``end2Capacity``, ``spacing``, ``direction`` and ``application`` (always written, explicit). ``pullout``:
+  ``bond`` -> ``{kind: "bond", strength, bondedLength}``, ``interface`` -> ``{kind: "interface", adhesion,
+  frictionAngle, coverage}``, ``development`` -> ``{kind: "development", length1, length2}``.
+- ``pile`` and ``sheet_pile`` -> ``definition.piles[]``: ``force``, ``spacing`` (the sheet pile has none: ``spacing 1`` and
+  ``force`` per metre of wall, ``wall: true``), ``direction``, ``angle`` (only with ``direction: "angle"``) and
+  ``application`` explicit. ``location`` is written as ``"slip-surface"`` with a hyphen (E14m-3: ogs has no such
+  field; with a constant force it changes no number, X17 §3).
+- A model with reinforcements needs ``version "0.4"``. The force is a per-element value divided by ``spacing`` in both
+  programs; ``fx``/``fy`` of the oracle are in model coordinates (E14m-4).
 
 Seismic coefficients and loads (schema v0.2, contract F1.1)
 -----------------------------------------------------------
@@ -79,6 +93,10 @@ METHOD_MAP = {
 }
 SEISMIC_LOADS_VERSION = "0.2"
 F3_VERSION = "0.3"
+F4_VERSION = "0.4"
+# versions that admit the fields of each stage (a later version admits everything of the earlier ones)
+SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION)
+F3_VERSIONS = (F3_VERSION, F4_VERSION)
 F3_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 # ogs interslice function -> cSlope `intersliceFunction`
 INTERSLICE_MAP = {
@@ -496,6 +514,128 @@ def loads_to_cslope(model: dict, notes: list[str]) -> dict[str, list[dict]]:
     return out
 
 
+# ------------------------------------------------------------ reinforcements (v0.4)
+
+TENSION_TYPES = ("anchor", "nail", "geosynthetic")
+PILE_TYPES = ("pile", "sheet_pile")
+# cSlope spells the location of a pile force with a hyphen; ogs has no such field since E14m-3
+CSLOPE_PILE_LOCATION = "slip-surface"
+_TENSION_KEYS = {"id", "type", "x1", "y1", "x2", "y2", "application", "tensile_capacity", "end1_capacity",
+                 "end2_capacity", "spacing", "direction", "pullout"}
+_PILE_KEYS = {"id", "type", "x1", "y1", "x2", "y2", "application", "force", "spacing", "direction", "angle"}
+_SHEET_KEYS = _PILE_KEYS - {"spacing"}
+_PULLOUT_KEYS = {"bond": {"model", "strength", "bonded_length"},
+                 "interface": {"model", "adhesion", "friction_angle", "coverage"},
+                 "development": {"model", "length1", "length2"}}
+
+
+def _unknown(item: dict, allowed: set[str], where: str) -> None:
+    unknown = sorted(set(item) - allowed)
+    if unknown:
+        raise UnsupportedModel(f"{where} con campos desconocidos: " + ", ".join(unknown))
+
+
+def _pullout_to_cslope(pullout: dict, where: str) -> dict:
+    kind = pullout.get("model")
+    if kind not in _PULLOUT_KEYS:
+        raise UnsupportedModel(f"{where}.pullout.model {kind!r} desconocido")
+    _unknown(pullout, _PULLOUT_KEYS[kind], f"{where}.pullout")
+    if kind == "bond":
+        out: dict[str, Any] = {"kind": "bond", "strength": _finite(pullout.get("strength"), f"{where}.pullout.strength")}
+        if pullout.get("bonded_length") is not None:
+            out["bondedLength"] = _finite(pullout["bonded_length"], f"{where}.pullout.bonded_length")
+        return out
+    if kind == "interface":
+        return {"kind": "interface",
+                "adhesion": _finite(pullout.get("adhesion"), f"{where}.pullout.adhesion"),
+                "frictionAngle": _finite(pullout.get("friction_angle"), f"{where}.pullout.friction_angle"),
+                "coverage": _finite(pullout.get("coverage"), f"{where}.pullout.coverage")}
+    return {"kind": "development",
+            "length1": _finite(pullout.get("length1"), f"{where}.pullout.length1"),
+            "length2": _finite(pullout.get("length2"), f"{where}.pullout.length2")}
+
+
+def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[dict]]:
+    """``reinforcements[]`` (v0.4) -> ``{"reinforcements": [...], "piles": [...]}`` (only the non-empty lists).
+
+    ``anchor``, ``nail`` and ``geosynthetic`` go to ``reinforcements``; ``pile`` and ``sheet_pile`` go to ``piles``.
+    ``application`` and ``direction`` are always written, explicit, so no cSlope default decides the result. A
+    ``sheet_pile`` is a pile with ``spacing 1``, ``force`` per metre and ``wall: true``; ``location`` is written as
+    ``"slip-surface"`` for the piles. Only ``version "0.4"`` admits them (F4.1).
+    """
+    items = model.get("reinforcements")
+    if items is None:
+        return {}
+    if not isinstance(items, list):
+        raise UnsupportedModel("reinforcements debe ser una lista")
+    if not items:
+        return {}
+    if model.get("version") != F4_VERSION:
+        raise UnsupportedModel(f'reinforcements requiere version "{F4_VERSION}"')
+    tension: list[dict] = []
+    piles: list[dict] = []
+    seen: set[str] = set()
+    for i, item in enumerate(items):
+        where = f"reinforcements[{i}]"
+        kind = item.get("type")
+        rid = item.get("id")
+        if not rid or rid in seen:
+            raise UnsupportedModel(f"{where}.id vacío o repetido: {rid!r}")
+        seen.add(rid)
+        application = item.get("application")
+        if application not in ("active", "passive"):
+            raise UnsupportedModel(f"{where}.application debe ser active o passive, no {application!r}")
+        geometry = {k: _finite(item.get(k), f"{where}.{k}") for k in ("x1", "y1", "x2", "y2")}
+        if kind in TENSION_TYPES:
+            _unknown(item, _TENSION_KEYS, where)
+            direction = item.get("direction")
+            if direction not in ("axial", "tangent", "bisector"):
+                raise UnsupportedModel(f"{where}.direction {direction!r} no es axial, tangent ni bisector")
+            out: dict[str, Any] = {**geometry,
+                                   "tensileCapacity": _finite(item.get("tensile_capacity"), f"{where}.tensile_capacity"),
+                                   "direction": direction, "application": application}
+            for key, name in (("end1_capacity", "end1Capacity"), ("end2_capacity", "end2Capacity"),
+                              ("spacing", "spacing")):
+                if item.get(key) is not None:
+                    out[name] = _finite(item[key], f"{where}.{key}")
+            if item.get("pullout") is not None:
+                out["pullout"] = _pullout_to_cslope(item["pullout"], where)
+            tension.append(out)
+        elif kind in PILE_TYPES:
+            _unknown(item, _PILE_KEYS if kind == "pile" else _SHEET_KEYS, where)
+            direction = item.get("direction")
+            if direction not in ("angle", "tangent", "perpendicular"):
+                raise UnsupportedModel(f"{where}.direction {direction!r} no es angle, tangent ni perpendicular")
+            if (direction == "angle") != (item.get("angle") is not None):
+                raise UnsupportedModel(f"{where}.angle va solo con direction \"angle\"")
+            out = {**geometry, "force": _finite(item.get("force"), f"{where}.force"),
+                   "direction": direction, "application": application, "location": CSLOPE_PILE_LOCATION}
+            if direction == "angle":
+                out["angle"] = _finite(item["angle"], f"{where}.angle")
+            if kind == "sheet_pile":
+                out["spacing"] = 1.0
+                out["wall"] = True
+            elif item.get("spacing") is not None:
+                out["spacing"] = _finite(item["spacing"], f"{where}.spacing")
+            piles.append(out)
+        else:
+            raise UnsupportedModel(f"{where}.type {kind!r} no soportado")
+    out_doc: dict[str, list[dict]] = {}
+    if tension:
+        out_doc["reinforcements"] = tension
+    if piles:
+        out_doc["piles"] = piles
+        notes.append(
+            "pilotes y tablestacas: location \"slip-surface\" (sin efecto con fuerza constante, X17 §3); la tablestaca "
+            "va con spacing 1, force por metro y wall true."
+        )
+    notes.append(
+        "refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los "
+        "activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0."
+    )
+    return out_doc
+
+
 # ------------------------------------------------------------- conversion
 
 def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[list[dict], bool]:
@@ -619,12 +759,12 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     notes: list[str] = []
 
     has_seismic = analysis.get("seismic") is not None
-    if (model.get("loads") or has_seismic) and model.get("version") not in (SEISMIC_LOADS_VERSION, F3_VERSION):
+    if (model.get("loads") or has_seismic) and model.get("version") not in SEISMIC_LOADS_VERSIONS:
         raise UnsupportedModel(
             f"los campos 'loads' y 'analysis.seismic' requieren version \"{SEISMIC_LOADS_VERSION}\""
         )
     features = v03_features(model)
-    if features and model.get("version") != F3_VERSION:
+    if features and model.get("version") not in F3_VERSIONS:
         raise UnsupportedModel(f"{features[0]} requiere version \"{F3_VERSION}\"")
     if method == "bishop" and (analysis.get("surface") or {}).get("type") == "polyline" and kind == "fixed":
         raise UnsupportedModel(
@@ -706,6 +846,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
     options.update(seismic_options(model, notes))
     definition.update(loads_to_cslope(model, notes))
+    definition.update(reinforcements_to_cslope(model, notes))
 
     if kind == "fixed":
         surface = analysis.get("surface")

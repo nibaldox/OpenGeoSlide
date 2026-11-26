@@ -1,0 +1,220 @@
+{
+  "id": "V015",
+  "title": "Soldier-pile tieback wall",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V015",
+      "title": "Soldier-pile tieback wall",
+      "notes": "Two-layer slope cut by a soldier-pile wall with two grouted tieback rows (8 ft spacing); the soldier pile is a shear force of 5900 lb/ft where the surface passes, as a commercial program models it; the manual's bilinear wedge from the wall toe. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8505,
+        "unit_weight_sat": null,
+        "cohesion": 28.72816,
+        "friction_angle": 24.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.42137,
+        "unit_weight_sat": null,
+        "cohesion": 14.36408,
+        "friction_angle": 34.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            8.8392,
+            15.5448
+          ],
+          [
+            10.0584,
+            16.1544
+          ],
+          [
+            18.288,
+            20.1168
+          ],
+          [
+            24.0792,
+            21.6408
+          ],
+          [
+            54.2544,
+            24.384
+          ],
+          [
+            59.436,
+            24.384
+          ],
+          [
+            59.436,
+            7.9248
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            -6.096,
+            -6.096
+          ],
+          [
+            -6.096,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            9.144
+          ],
+          [
+            8.8392,
+            15.5448
+          ],
+          [
+            59.436,
+            7.9248
+          ],
+          [
+            59.436,
+            -6.096
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "anchor",
+        "x1": 0.0,
+        "y1": 6.096,
+        "x2": 9.66849,
+        "y2": 1.58751,
+        "application": "active",
+        "tensile_capacity": 66.91507,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048,
+        "pullout": {
+          "model": "development",
+          "length1": 0.0,
+          "length2": 2.70277
+        }
+      },
+      {
+        "id": "R2",
+        "type": "anchor",
+        "x1": 0.0,
+        "y1": 2.4384,
+        "x2": 9.11601,
+        "y2": -1.81246,
+        "application": "active",
+        "tensile_capacity": 91.30933,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048,
+        "pullout": {
+          "model": "development",
+          "length1": 0.0,
+          "length2": 3.68808
+        }
+      },
+      {
+        "id": "P1",
+        "type": "pile",
+        "x1": 0.1524,
+        "y1": 9.144,
+        "x2": 0.1524,
+        "y2": -2.1336,
+        "application": "active",
+        "force": 26.2445,
+        "direction": "angle",
+        "angle": 0.0,
+        "spacing": 0.3048
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_simplified",
+        "janbu_corrected"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            11.2776,
+            10.24128
+          ],
+          [
+            18.5928,
+            20.44263
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.479,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010338066260987154,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.446,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010345781466113417,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Caltrans soil nail reference manual.",
+    "derived_from": "cSlope verification problem V015 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Layer boundary from (29, 51) ft and ground vertex (79, 71) ft as labeled in Fig. 49.1 (the earlier transcription had (33, 53) and (70, 71)). program H 1.52.",
+      "program D 1.469 (Janbu corrected) and 1.439 (Spencer) on the earlier outline, where cSlope agreed to 0.1 %.",
+      "The Caltrans document available, the 2020 user guide of its soil-nail program, contains neither this example nor the older program version it cites; the reference is a commercial program's manual after an older Caltrans manual not checked here. The 2020 guide subtracts the reduced nail force from the driving forces (p. 45).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "diameter de 1 pilote(s) no se importa: con force dada no interviene (solo Ito-Matsui y el análisis de elementos finitos lo usan)."
+    ]
+  }
+}

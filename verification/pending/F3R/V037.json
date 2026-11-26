@@ -1,0 +1,182 @@
+{
+  "id": "V037",
+  "title": "Geogrid-reinforced fill on rock (D&W fig. 7.28)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V037",
+      "title": "Geogrid-reinforced fill on rock (D&W fig. 7.28)",
+      "notes": "24 ft fill slope (φ′ = 37°) on a strong rock foundation with five 800 lb/ft geogrids, 20 ft long, every 4 ft; circular search for surfaces through the toe. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.42137,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 37.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            9.144,
+            7.3152
+          ],
+          [
+            22.86,
+            7.3152
+          ],
+          [
+            22.86,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 1.524,
+        "y1": 1.2192,
+        "x2": 7.62,
+        "y2": 1.2192,
+        "application": "active",
+        "tensile_capacity": 3.55858,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      },
+      {
+        "id": "R2",
+        "type": "geosynthetic",
+        "x1": 3.048,
+        "y1": 2.4384,
+        "x2": 9.144,
+        "y2": 2.4384,
+        "application": "active",
+        "tensile_capacity": 3.55858,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      },
+      {
+        "id": "R3",
+        "type": "geosynthetic",
+        "x1": 4.572,
+        "y1": 3.6576,
+        "x2": 10.668,
+        "y2": 3.6576,
+        "application": "active",
+        "tensile_capacity": 3.55858,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      },
+      {
+        "id": "R4",
+        "type": "geosynthetic",
+        "x1": 6.096,
+        "y1": 4.8768,
+        "x2": 12.192,
+        "y2": 4.8768,
+        "application": "active",
+        "tensile_capacity": 3.55858,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      },
+      {
+        "id": "R5",
+        "type": "geosynthetic",
+        "x1": 7.62,
+        "y1": 6.096,
+        "x2": 13.716,
+        "y2": 6.096,
+        "application": "active",
+        "tensile_capacity": 3.55858,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          9.144,
+          22.86
+        ],
+        "exit": [
+          0.0,
+          0.9144
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.629,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02030693677102517,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.62,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02308641975308642,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 7.28.",
+    "derived_from": "cSlope verification problem V037 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Duncan & Wright 1.61. Without the exit limit the search finds a shallower surface between two geogrid layers (FOS ≈ 1.19), which the published analyses do not consider.",
+      "Duncan, Wright & Brandon (2014, §8.7, Fig. 8.4, p. 164) give Spencer 1.62 with the reinforcement force not factored (method A, as here) and 1.46 with it divided by F (method B); cSlope gives 1.4485 with passive reinforcement. The 1.61 of earlier entries may be the 1st edition's.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

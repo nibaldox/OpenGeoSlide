@@ -1,6 +1,6 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-26T09:25:28-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-26T10:46:36-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
@@ -24,7 +24,7 @@ Generado: 2026-11-26T09:25:28-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 3.873 s · cSlope 1.808 s.
+Tiempo total: ogs 6.918 s · cSlope 9.478 s.
 
 ## Tabla de línea base
 
@@ -72,62 +72,62 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.038 | 0.053 |
+| D01 | bishop | search | 0.055 | 0.058 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.115 | 0.075 |
-| D01 | spencer | fixed | 0.001 | 0.001 |
-| D02 | bishop | search | 0.037 | 0.046 |
+| D01 | spencer | search | 0.119 | 0.087 |
+| D01 | spencer | fixed | 0.002 | 0.001 |
+| D02 | bishop | search | 0.038 | 0.050 |
 | D02 | bishop | fixed | 0.002 | 0.001 |
-| D02 | spencer | search | 0.149 | 0.078 |
-| D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.051 | 0.046 |
-| D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.159 | 0.084 |
-| D03 | spencer | fixed | 0.002 | 0.001 |
-| D04 | bishop | search | 0.118 | 0.033 |
-| D04 | bishop | fixed | 0.001 | 0.001 |
-| D04 | spencer | search | 0.390 | 0.059 |
-| D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.041 | 0.047 |
-| D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.126 | 0.077 |
-| D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.041 | 0.045 |
-| D06 | bishop | fixed | 0.002 | 0.001 |
-| D06 | spencer | search | 0.117 | 0.075 |
-| D06 | spencer | fixed | 0.002 | 0.001 |
-| D07 | bishop | search | 0.029 | 0.043 |
-| D07 | bishop | fixed | 0.001 | 0.001 |
-| D07 | spencer | search | 0.132 | 0.073 |
-| D07 | spencer | fixed | 0.001 | 0.001 |
-| D08 | bishop | search | 0.060 | 0.045 |
-| D08 | bishop | fixed | 0.002 | 0.035 |
-| D08 | spencer | search | 0.242 | 0.064 |
-| D08 | spencer | fixed | 0.002 | 0.035 |
-| D09 | bishop | search | 0.070 | 0.047 |
-| D09 | bishop | fixed | 0.002 | 0.001 |
-| D09 | spencer | search | 0.315 | 0.171 |
-| D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.035 | 0.046 |
-| D10 | bishop | fixed | 0.001 | 0.001 |
-| D10 | spencer | search | 0.137 | 0.078 |
-| D10 | spencer | fixed | 0.001 | 0.001 |
-| D11 | bishop | search | 0.184 | 0.033 |
-| D11 | bishop | fixed | 0.002 | 0.001 |
-| D11 | spencer | search | 0.436 | 0.057 |
-| D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.045 | 0.047 |
-| D12 | bishop | fixed | 0.002 | 0.001 |
-| D12 | spencer | search | 0.144 | 0.078 |
-| D12 | spencer | fixed | 0.002 | 0.001 |
-| D13 | bishop | search | 0.050 | 0.038 |
-| D13 | bishop | fixed | 0.002 | 0.001 |
-| D13 | spencer | search | 0.184 | 0.057 |
-| D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.089 | 0.051 |
-| D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.298 | 0.077 |
-| D14 | spencer | fixed | 0.002 | 0.001 |
+| D02 | spencer | search | 0.159 | 0.128 |
+| D02 | spencer | fixed | 0.003 | 0.003 |
+| D03 | bishop | search | 0.087 | 0.261 |
+| D03 | bishop | fixed | 0.004 | 0.002 |
+| D03 | spencer | search | 0.243 | 0.524 |
+| D03 | spencer | fixed | 0.008 | 0.004 |
+| D04 | bishop | search | 0.254 | 0.225 |
+| D04 | bishop | fixed | 0.010 | 0.003 |
+| D04 | spencer | search | 0.668 | 0.337 |
+| D04 | spencer | fixed | 0.004 | 0.001 |
+| D05 | bishop | search | 0.090 | 0.382 |
+| D05 | bishop | fixed | 0.007 | 0.001 |
+| D05 | spencer | search | 0.252 | 0.450 |
+| D05 | spencer | fixed | 0.005 | 0.003 |
+| D06 | bishop | search | 0.104 | 0.305 |
+| D06 | bishop | fixed | 0.009 | 0.003 |
+| D06 | spencer | search | 0.217 | 0.479 |
+| D06 | spencer | fixed | 0.006 | 0.004 |
+| D07 | bishop | search | 0.095 | 0.319 |
+| D07 | bishop | fixed | 0.009 | 0.001 |
+| D07 | spencer | search | 0.272 | 0.448 |
+| D07 | spencer | fixed | 0.006 | 0.003 |
+| D08 | bishop | search | 0.191 | 0.376 |
+| D08 | bishop | fixed | 0.009 | 0.068 |
+| D08 | spencer | search | 0.369 | 0.468 |
+| D08 | spencer | fixed | 0.008 | 0.132 |
+| D09 | bishop | search | 0.119 | 0.321 |
+| D09 | bishop | fixed | 0.004 | 0.001 |
+| D09 | spencer | search | 0.491 | 0.805 |
+| D09 | spencer | fixed | 0.006 | 0.003 |
+| D10 | bishop | search | 0.080 | 0.300 |
+| D10 | bishop | fixed | 0.003 | 0.001 |
+| D10 | spencer | search | 0.221 | 0.399 |
+| D10 | spencer | fixed | 0.005 | 0.001 |
+| D11 | bishop | search | 0.319 | 0.214 |
+| D11 | bishop | fixed | 0.005 | 0.001 |
+| D11 | spencer | search | 0.786 | 0.283 |
+| D11 | spencer | fixed | 0.007 | 0.003 |
+| D12 | bishop | search | 0.071 | 0.212 |
+| D12 | bishop | fixed | 0.003 | 0.001 |
+| D12 | spencer | search | 0.225 | 0.485 |
+| D12 | spencer | fixed | 0.004 | 0.003 |
+| D13 | bishop | search | 0.086 | 0.243 |
+| D13 | bishop | fixed | 0.006 | 0.003 |
+| D13 | spencer | search | 0.503 | 0.316 |
+| D13 | spencer | fixed | 0.006 | 0.001 |
+| D14 | bishop | search | 0.158 | 0.337 |
+| D14 | bishop | fixed | 0.005 | 0.001 |
+| D14 | spencer | search | 0.490 | 0.416 |
+| D14 | spencer | fixed | 0.008 | 0.002 |
 
 ## Notas de conversión
 
@@ -242,6 +242,36 @@ Se corre, sobre el círculo fijo de cada uno de los 14 modelos, Morgenstern-Pric
 | D23 | janbu_corrected | fixed (polilínea) | 8.3409 | 8.3409 | +0.00 | OK |
 
 ### Fallos y datos faltantes de la Fase 3a
+
+Ninguno.
+
+## v0.4: refuerzos (D24 a D27)
+
+Cuatro modelos en `cases_f3r/` con su círculo fijo, que cruza los refuerzos: D24 talud con clavos pasivos (`bond`), D25 muro TEM con geosintéticos (`development` e `interface`, `axial` y `tangent`), D26 tablestaca anclada (tablestaca pasiva y anclaje activo) y D27 fila de pilotes. Bishop, Morgenstern-Price (`half_sine`) y Janbu corregido, con el criterio de 0,5 % de E9b. La sonda de cada capacidad es V047a con el anclaje de las filas 1 (activo) y 2 (pasivo) de F4.13: se acepta si Bishop da la cifra del oráculo a 0,1 %. El check que necesita una capacidad que el motor no tiene queda **pendiente**, nunca falla; el valor de cSlope se calcula igual y queda como línea base. No hay búsqueda con refuerzos: las fuerzas dependen de la superficie.
+
+| capacidad | soportada por el motor | detalle |
+|---|---|---|
+| reinforcements_active | no | exit 101: thread 'main' (1084081) panicked at crates/ogs-core/src/reinforcement.rs:223:5: |
+| reinforcements_passive | no | exit 101: thread 'main' (1084082) panicked at crates/ogs-core/src/reinforcement.rs:223:5: |
+
+**OK 0/12** · FALLA 0 · sin dato 0 · pendiente 12.
+
+| caso | método | ogs | cSlope | Δ% | veredicto |
+|---|---|---:|---:|---:|---|
+| D24 | bishop | — | 1.4912 | — | pendiente |
+| D24 | morgenstern_price | — | 1.4924 | — | pendiente |
+| D24 | janbu_corrected | — | 1.4735 | — | pendiente |
+| D25 | bishop | — | 1.5086 | — | pendiente |
+| D25 | morgenstern_price | — | 1.5080 | — | pendiente |
+| D25 | janbu_corrected | — | 1.5195 | — | pendiente |
+| D26 | bishop | — | 1.9876 | — | pendiente |
+| D26 | morgenstern_price | — | 1.9857 | — | pendiente |
+| D26 | janbu_corrected | — | 1.8405 | — | pendiente |
+| D27 | bishop | — | 2.2367 | — | pendiente |
+| D27 | morgenstern_price | — | 2.2335 | — | pendiente |
+| D27 | janbu_corrected | — | 2.0915 | — | pendiente |
+
+### Fallos y datos faltantes de v0.4
 
 Ninguno.
 

@@ -1,0 +1,91 @@
+{
+  "format": "opengeoslide",
+  "version": "0.4",
+  "meta": {
+    "id": "D27",
+    "title": "Fila de pilotes",
+    "notes": "Fila de pilotes a media ladera: talud de 10 m, 2H:1V, suelo c = 4 kPa, φ = 20°, con una fila de pilotes pasivos (`pile`, `angle` 10°) en x = 22, de y = 6,5 a −8, con 600 kN por pilote y spacing 2 m (300 kN/m). El círculo fijo, profundo, cruza el pilote a 11 m bajo el terreno."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo del talud",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 4.0,
+      "friction_angle": 20.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          -20.0,
+          -12.0
+        ],
+        [
+          -20.0,
+          10.0
+        ],
+        [
+          14.0,
+          10.0
+        ],
+        [
+          34.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -12.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "reinforcements": [
+    {
+      "id": "P1",
+      "type": "pile",
+      "x1": 22.0,
+      "y1": 6.5,
+      "x2": 22.0,
+      "y2": -8.0,
+      "application": "passive",
+      "force": 600.0,
+      "spacing": 2.0,
+      "direction": "angle",
+      "angle": 10.0
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "morgenstern_price",
+      "janbu_corrected"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 20.0,
+      "yc": 22.0,
+      "r": 26.0
+    }
+  }
+}

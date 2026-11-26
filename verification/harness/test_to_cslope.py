@@ -799,3 +799,208 @@ def _fitted_ends(model: dict):
 def test_fitted_polyline_ends_of_a_polyline_already_on_the_ground_are_unchanged():
     model = _hill_model([[0.0, 10.0], [10.0, 5.0], [30.0, 5.0], [40.0, 10.0]])
     assert _fitted_ends(model) == ((0.0, 10.0), (40.0, 10.0))
+
+
+# ------------------------------------------------ reinforcements (schema v0.4, E14m)
+
+ORACLE_ROWS_RS = os.path.join(HERE, "..", "..", "crates", "ogs-core", "tests", "f3r_oracle.rs")
+_R_METHODS = {"Bishop": ("bishop", None), "MorgensternPriceConstant": ("morgenstern_price", {"function": "constant"}),
+              "JanbuSimplified": ("janbu_simplified", None), "JanbuCorrected": ("janbu_corrected", None)}
+
+
+def v047a_v04(reinforcements: list[dict], method: str = "bishop", interslice=None, mirror: bool = False) -> dict:
+    """V047a, fixed circle, version 0.4, with the reinforcements of a row of ``f3r_oracle.rs``."""
+    model = v047a_fixed(mirror=mirror)
+    model["version"] = "0.4"
+    model["analysis"]["methods"] = [method]
+    if interslice:
+        model["analysis"]["interslice"] = interslice
+    model["reinforcements"] = reinforcements
+    return model
+
+
+def _oracle_rows_from_the_rust_test() -> list[tuple[str, str, list[dict], float]]:
+    """(label, method, reinforcements, value) of every ``check(...)`` of ``f3r_oracle.rs``: the same rows and values
+    that the engine must reproduce, so that the oracle side and the engine side cannot drift apart."""
+    import re
+    text = open(ORACLE_ROWS_RS, encoding="utf-8").read()
+    consts = dict(re.findall(r'const (\w+): &str = r#"(.*?)"#;', text))
+    rows = []
+    for label, method, const, want in re.findall(
+            r'check\(\s*"([^"]+)",\s*Method::(\w+),\s*(\w+),\s*([\d.]+),', text):
+        rows.append((label, method, json.loads(consts[const]), float(want)))
+    return rows
+
+
+ORACLE_ROWS = _oracle_rows_from_the_rust_test()
+
+
+def test_the_rust_oracle_file_has_every_row_and_method():
+    labels = {r[0] for r in ORACLE_ROWS}
+    assert len(ORACLE_ROWS) == 120 and len(labels) == 30
+    assert {r[1] for r in ORACLE_ROWS} == set(_R_METHODS)
+
+
+@pytest.mark.parametrize("label, method, reinforcements, want", ORACLE_ROWS,
+                         ids=[f"{r[0]}-{r[1]}" for r in ORACLE_ROWS])
+def test_oracle_rows_of_f4_13_and_x17_through_the_converter(label, method, reinforcements, want):
+    """The converter reproduces the oracle figure of every row of X17 §4.3 to §4.5 (six decimals: rel 2e-6)."""
+    cs = pytest.importorskip("cslope")
+    ogs_method, interslice = _R_METHODS[method]
+    model = v047a_v04(reinforcements, ogs_method, interslice)
+    assert _oracle_fos(cs, model, ogs_method) == pytest.approx(want, rel=2e-6), label
+
+
+def _one(reinforcement: dict, **kw) -> dict:
+    return v047a_v04([reinforcement], **kw)
+
+
+ANCHOR = {"type": "anchor", "id": "A1", "x1": 52, "y1": 28, "x2": 25, "y2": 28, "application": "active",
+          "tensile_capacity": 100, "direction": "axial"}
+PILE = {"type": "pile", "id": "P1", "x1": 40, "y1": 33, "x2": 40, "y2": 22, "application": "passive", "force": 60,
+        "direction": "angle", "angle": 0, "spacing": 1.5}
+SHEET = {"type": "sheet_pile", "id": "S1", "x1": 40, "y1": 33, "x2": 40, "y2": 22, "application": "active",
+         "force": 120, "direction": "angle", "angle": 0}
+
+
+def test_tension_elements_go_to_reinforcements_with_explicit_direction_and_application():
+    d = _mapped(_one(ANCHOR))["definition"]
+    assert "piles" not in d
+    assert d["reinforcements"] == [{"x1": 52.0, "y1": 28.0, "x2": 25.0, "y2": 28.0, "tensileCapacity": 100.0,
+                                    "direction": "axial", "application": "active"}]
+
+
+@pytest.mark.parametrize("kind", ["anchor", "nail", "geosynthetic"])
+def test_the_three_tension_types_share_the_target_and_keep_every_optional_field(kind):
+    item = dict(ANCHOR, type=kind, application="passive", direction="bisector", end1_capacity=5.0,
+                end2_capacity=7.0, spacing=2.5)
+    r = _mapped(_one(item))["definition"]["reinforcements"][0]
+    assert (r["application"], r["direction"], r["end1Capacity"], r["end2Capacity"], r["spacing"]) == (
+        "passive", "bisector", 5.0, 7.0, 2.5)
+
+
+def test_pullout_models_map_to_the_camel_case_kinds_of_cslope():
+    bond = _mapped(_one(dict(ANCHOR, pullout={"model": "bond", "strength": 30, "bonded_length": 10})))
+    assert bond["definition"]["reinforcements"][0]["pullout"] == {"kind": "bond", "strength": 30.0, "bondedLength": 10.0}
+    plain = _mapped(_one(dict(ANCHOR, pullout={"model": "bond", "strength": 30})))
+    assert plain["definition"]["reinforcements"][0]["pullout"] == {"kind": "bond", "strength": 30.0}
+    iface = _mapped(_one(dict(ANCHOR, pullout={"model": "interface", "adhesion": 10, "friction_angle": 20,
+                                               "coverage": 0.5})))
+    assert iface["definition"]["reinforcements"][0]["pullout"] == {
+        "kind": "interface", "adhesion": 10.0, "frictionAngle": 20.0, "coverage": 0.5}
+    dev = _mapped(_one(dict(ANCHOR, pullout={"model": "development", "length1": 3, "length2": 0})))
+    assert dev["definition"]["reinforcements"][0]["pullout"] == {"kind": "development", "length1": 3.0, "length2": 0.0}
+
+
+def test_piles_go_to_piles_with_the_hyphenated_location_and_explicit_fields():
+    d = _mapped(_one(PILE))["definition"]
+    assert "reinforcements" not in d
+    assert d["piles"] == [{"x1": 40.0, "y1": 33.0, "x2": 40.0, "y2": 22.0, "force": 60.0, "direction": "angle",
+                           "application": "passive", "location": "slip-surface", "angle": 0.0, "spacing": 1.5}]
+
+
+def test_a_sheet_pile_is_a_pile_with_spacing_1_and_the_force_per_metre():
+    pile = _mapped(_one(SHEET))["definition"]["piles"][0]
+    assert pile["spacing"] == 1.0 and pile["force"] == 120.0 and pile["wall"] is True
+    assert pile["location"] == "slip-surface" and pile["application"] == "active"
+
+
+def test_tangent_and_perpendicular_piles_carry_no_angle():
+    for direction in ("tangent", "perpendicular"):
+        pile = _mapped(_one(dict(PILE, direction=direction, angle=None)))["definition"]["piles"][0]
+        assert pile["direction"] == direction and "angle" not in pile
+
+
+def test_a_model_with_the_five_types_converts_to_two_lists_and_is_valid_for_cslope():
+    cs = pytest.importorskip("cslope")
+    items = [ANCHOR, dict(ANCHOR, id="N1", type="nail", y1=27, y2=27), dict(ANCHOR, id="G1", type="geosynthetic",
+             y1=26, y2=26), PILE, dict(SHEET, id="S2", x1=45, x2=45)]
+    doc = _mapped(v047a_v04(items))
+    assert len(doc["definition"]["reinforcements"]) == 3 and len(doc["definition"]["piles"]) == 2
+    assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
+
+
+def test_an_empty_or_absent_list_adds_nothing_in_any_version():
+    plain = _mapped(v047a_fixed())["definition"]
+    for model in (v047a_fixed(reinforcements=[]), v047a_v04([])):
+        d = _mapped(model)["definition"]
+        assert d == plain and "reinforcements" not in d and "piles" not in d
+
+
+def test_reinforcements_need_version_0_4():
+    for version in ("0.1", "0.2", "0.3"):
+        model = _one(ANCHOR)
+        model["version"] = version
+        with pytest.raises(UnsupportedModel, match='version "0.4"'):
+            _mapped(model)
+
+
+def test_version_0_4_still_admits_loads_seismic_and_the_v0_3_fields():
+    model = _with(_one(ANCHOR), seismic={"kh": 0.1}, loads=[{"type": "line", "x": 40, "p": 20}])
+    model["analysis"]["methods"] = ["janbu_corrected"]
+    d = _mapped(model, "janbu_corrected")
+    assert d["options"]["seismicHorizontal"] == 0.1 and d["options"]["janbuCorrection"] is True
+    assert d["definition"]["lineLoads"] and d["definition"]["reinforcements"]
+
+
+@pytest.mark.parametrize("mutate, match", [
+    (lambda i: i.update(location="slip_surface"), "location"),          # E14m-3: no such field in v0.4
+    (lambda i: i.update(prestress=50), "prestress"),
+    (lambda i: i.update(application="both"), "application"),
+    (lambda i: i.update(direction="perpendicular"), "direction"),
+    (lambda i: i.pop("tensile_capacity"), "tensile_capacity"),
+    (lambda i: i.update(id=""), "id"),
+    (lambda i: i.update(type="strut"), "type"),
+    (lambda i: i.update(pullout={"model": "grout"}), "grout"),
+    (lambda i: i.update(pullout={"model": "bond", "strength": 1, "adhesion": 2}), "adhesion"),
+])
+def test_malformed_reinforcements_are_refused(mutate, match):
+    item = dict(ANCHOR)
+    mutate(item)
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(_one(item))
+
+
+def test_a_pile_with_location_or_a_wrong_angle_is_refused():
+    with pytest.raises(UnsupportedModel, match="location"):
+        _mapped(_one(dict(PILE, location="slip_surface")))
+    with pytest.raises(UnsupportedModel, match="angle"):
+        _mapped(_one(dict(PILE, angle=None)))
+    with pytest.raises(UnsupportedModel, match="angle"):
+        _mapped(_one(dict(PILE, direction="tangent")))
+    with pytest.raises(UnsupportedModel, match="spacing"):
+        _mapped(_one(dict(SHEET, spacing=1.0)))
+
+
+def test_repeated_ids_are_refused():
+    with pytest.raises(UnsupportedModel, match="repetido"):
+        _mapped(v047a_v04([ANCHOR, dict(ANCHOR, y1=27, y2=27)]))
+
+
+def test_oracle_the_mirror_of_a_row_gives_the_same_fos():
+    """x -> -x, with the direction reversed: the pile and the anchor are mirrored and the FS is the same (X17 §1.3)."""
+    cs = pytest.importorskip("cslope")
+
+    def mirrored(items):
+        out = []
+        for it in items:
+            it = dict(it)
+            it["x1"], it["x2"] = -it["x1"], -it["x2"]
+            out.append(it)
+        return out
+
+    for items in ([ANCHOR], [PILE], [SHEET], [dict(PILE, direction="angle", angle=20)]):
+        a = _oracle_fos(cs, v047a_v04(items), "bishop")
+        b = _oracle_fos(cs, v047a_v04(mirrored(items), mirror=True), "bishop")
+        assert b == pytest.approx(a, rel=1e-9), items
+
+
+def test_oracle_drops_the_active_element_in_compression_that_ogs_applies():
+    """X17 §1.5: the installed cSlope (a80f9a0) drops an active element with ``along > 0``; the contract (E14m-1)
+    applies it. The two rows are therefore not oracle rows of the engine: this test records what the oracle gives
+    (the slope without reinforcement) so that the difference stays documented."""
+    cs = pytest.importorskip("cslope")
+    base = _oracle_fos(cs, v047a_fixed(), "bishop")
+    for x2, y2 in ((59.382686, 41.5), (55.091883, 47.091883)):
+        item = dict(ANCHOR, x1=36, y1=28, x2=x2, y2=y2)
+        assert _oracle_fos(cs, v047a_v04([item]), "bishop") == pytest.approx(base, rel=1e-9)

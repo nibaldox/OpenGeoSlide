@@ -707,3 +707,143 @@ def test_schema_v0_3_rejects_malformed_undrained_polyline_and_interslice():
     assert broken(lambda m: m["analysis"].update(methods=["bishop"]))                # interslice without M-P / Bishop
     assert broken(lambda m: m["analysis"]["interslice"].update(points=[[0, 1], [1, 1]]))   # points without data_points
     assert broken(lambda m: m["analysis"]["interslice"].update(function="data_points"))    # data_points without points
+
+
+# ------------------------------------------------------------ batches R1 to R4: reinforcements (v0.4, F4.12)
+
+F3R_DIR = os.path.join(ROOT, "verification", "pending", "F3R")
+F3R_SCHEMA = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
+_TENSION = {"x1": 1.0, "y1": 6.0, "x2": 9.0, "y2": 6.0, "tensileCapacity": 40.0, "spacing": 0.5, "end1Capacity": 0,
+            "end2Capacity": 0, "direction": "axial", "application": "passive",
+            "pullout": {"kind": "development", "length1": 1.0, "length2": 2.0}}
+
+
+def _raw_f3r(reinforcements=None, piles=None, **extra):
+    raw = _raw()
+    if reinforcements is not None:
+        raw["definition"]["reinforcements"] = reinforcements
+    if piles is not None:
+        raw["definition"]["piles"] = piles
+    raw["definition"].update(extra)
+    return raw
+
+
+def test_f3r_converts_reinforcements_to_v0_4_with_explicit_direction_and_application():
+    bare = {k: v for k, v in _TENSION.items() if k not in ("direction", "application", "pullout")}
+    case, _, _ = imp.convert_f3r(_raw_f3r([_TENSION, bare]), PROB)
+    m = case["model"]
+    assert m["version"] == "0.4"
+    first, second = m["reinforcements"]
+    assert first == {"id": "R1", "type": "anchor", "x1": 1.0, "y1": 6.0, "x2": 9.0, "y2": 6.0,
+                     "application": "passive", "tensile_capacity": 40.0, "direction": "axial",
+                     "spacing": 0.5, "end1_capacity": 0, "end2_capacity": 0,
+                     "pullout": {"model": "development", "length1": 1.0, "length2": 2.0}}
+    assert (second["application"], second["direction"], second["id"]) == ("active", "axial", "R2")   # the defaults, written
+    assert list(m).index("reinforcements") == list(m).index("slope") - 1                               # before `slope`
+    assert imp.gate_schema_f3r(case, F3R_SCHEMA) == [] and imp.gate_reinforcements(case) == []
+
+
+def test_f3r_pullout_models_and_the_coverage_default():
+    iface = dict(_TENSION, pullout={"kind": "interface", "adhesion": 0, "frictionAngle": 33.7})
+    bond = dict(_TENSION, pullout={"kind": "bond", "strength": 30, "bondedLength": 3})
+    m = imp.convert_f3r(_raw_f3r([iface, bond]), PROB)[0]["model"]
+    assert m["reinforcements"][0]["pullout"] == {"model": "interface", "adhesion": 0.0, "friction_angle": 33.7,
+                                                 "coverage": 1.0}       # a missing coverage is the continuous sheet
+    assert m["reinforcements"][1]["pullout"] == {"model": "bond", "strength": 30.0, "bonded_length": 3.0}
+
+
+def test_f3r_piles_with_a_given_force_and_a_wall():
+    piles = [{"x1": 9, "y1": 4, "x2": 9, "y2": -2, "spacing": 1, "force": 10.7, "direction": "tangent",
+              "application": "passive"},
+             {"x1": 0.15, "y1": 9, "x2": 0.15, "y2": -2, "spacing": 0.3, "force": 26.0, "diameter": 0.15,
+              "application": "active"},                                      # no direction: cSlope's `angle`, 0
+             {"x1": 5, "y1": 9, "x2": 5, "y2": -2, "spacing": 0.5, "force": 60.0, "wall": True,
+              "direction": "perpendicular", "location": "slip-surface"}]
+    case, _, _ = imp.convert_f3r(_raw_f3r(piles=piles), PROB)
+    p1, p2, wall = case["model"]["reinforcements"]
+    assert p1 == {"id": "P1", "type": "pile", "x1": 9.0, "y1": 4.0, "x2": 9.0, "y2": -2.0, "application": "passive",
+                  "force": 10.7, "direction": "tangent", "spacing": 1.0}
+    assert (p2["direction"], p2["angle"], p2["application"]) == ("angle", 0.0, "active") and "diameter" not in p2
+    assert wall["type"] == "sheet_pile" and wall["force"] == 120.0 and "spacing" not in wall and "location" not in wall
+    assert any("diameter" in n for n in case["source"]["notes"]) and any("wall" in n for n in case["source"]["notes"])
+    assert imp.gate_schema_f3r(case, F3R_SCHEMA) == []
+
+
+def test_f3r_omits_what_v0_4_cannot_express():
+    ito_matsui = {"x1": 9, "y1": 4, "x2": 9, "y2": -2, "diameter": 0.6, "spacing": 2.0, "application": "passive"}
+    with pytest.raises(imp.Omit, match="Ito-Matsui"):
+        imp.convert_f3r(_raw_f3r(piles=[ito_matsui]), PROB)
+    with pytest.raises(imp.Omit, match="shearCapacity"):
+        imp.convert_f3r(_raw_f3r(piles=[dict(ito_matsui, force=5.0, shearCapacity=9.0)]), PROB)
+    with pytest.raises(imp.Omit, match="reinforcements"):
+        imp.convert_f3r(_raw_f3r([dict(_TENSION, foo=1)]), PROB)
+    with pytest.raises(imp.Omit, match="pullout"):
+        imp.convert_f3r(_raw_f3r([dict(_TENSION, pullout={"kind": "grout"})]), PROB)
+    with pytest.raises(imp.Omit, match="sin reinforcements"):
+        imp.convert_f3r(_raw_f3r(), PROB)
+
+
+def test_f3r_prestress_is_not_imported_and_the_case_says_so():
+    case, _, _ = imp.convert_f3r(_raw_f3r([dict(_TENSION, prestress=50.0)]), PROB)
+    assert "prestress" not in case["model"]["reinforcements"][0]
+    assert any("prestress" in n for n in case["source"]["notes"])
+
+
+def test_f3r_batch_conversion_does_not_change_the_batch_0_to_2_conversion():
+    """The reinforcements go through the same `_convert` as batches 1 and 2: the rest of the case is unchanged."""
+    plain, _, _ = imp.convert_f3(_raw_f3r(), PROB)
+    case, _, _ = imp.convert_f3r(_raw_f3r([_TENSION]), PROB)
+    model = {k: v for k, v in case["model"].items() if k != "reinforcements"}
+    assert model == {**plain["model"], "version": "0.4"} and case["checks"] == plain["checks"]
+
+
+def test_gate_reinforcements_rules_of_f4_2():
+    case, _, _ = imp.convert_f3r(_raw_f3r([_TENSION]), PROB)
+    assert imp.gate_reinforcements(case) == []
+    bad = copy.deepcopy(case)
+    bad["model"]["reinforcements"].append(dict(bad["model"]["reinforcements"][0]))          # repeated id
+    bad["model"]["reinforcements"][0]["x2"] = bad["model"]["reinforcements"][0]["x1"]
+    bad["model"]["reinforcements"][0]["y2"] = bad["model"]["reinforcements"][0]["y1"]       # zero length
+    bad["model"]["reinforcements"][1]["pullout"] = {"model": "bond", "strength": 1.0, "bonded_length": 99.0}
+    errors = imp.gate_reinforcements(bad)
+    assert any("repetidos" in e for e in errors) and any("longitud nula" in e for e in errors)
+    assert any("bonded_length" in e for e in errors)
+    old = copy.deepcopy(case)
+    old["model"]["version"] = "0.3"
+    assert any("0.4" in e for e in imp.gate_reinforcements(old))
+
+
+def test_f3r_batches_are_the_ones_of_f4_12():
+    assert {lot: ids for lot, (_, ids) in imp.F3R_BATCHES.items()} == {
+        "R1": ["V016b", "V035a", "V035b", "V037"],
+        "R2": ["V011a", "V011b", "V012", "V064", "V065", "V066a", "V066b", "V066c", "V066e"],
+        "R3": ["V010", "V010b", "V014", "V083", "V084a", "V084b", "V084c", "V084d", "V084e", "V084f"],
+        "R4": ["V015", "V095c"],
+    }
+
+
+def _f3r_cases():
+    return [json.load(open(p, encoding="utf-8")) for p in sorted(glob.glob(os.path.join(F3R_DIR, "V*.json")))]
+
+
+def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
+    cases = _f3r_cases()
+    assert sorted(c["id"] for c in cases) == sorted(i for _, ids in imp.F3R_BATCHES.values() for i in ids)
+    assert sum(len(c["checks"]) for c in cases) == 33
+    for case in cases:
+        assert imp.gate_schema_f3r(case, F3R_SCHEMA) == [], case["id"]
+        assert imp.gate_reinforcements(case) == [] and imp.gate_search(case) == [], case["id"]
+        assert imp.gate_loads(case) == [] and imp.gate_features(case) == [], case["id"]
+        assert case["model"]["version"] == "0.4" and case["model"]["reinforcements"], case["id"]
+        for r in case["model"]["reinforcements"]:      # E14b: no default for either
+            assert r["application"] in ("active", "passive") and r["direction"], case["id"]
+
+
+def test_the_f3r_index_lists_every_check_with_the_oracle_figure():
+    index = open(os.path.join(F3R_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "**25** casos con **33** checks" in index
+    for case in _f3r_cases():
+        assert f"| {case['id']} |" in index
+    report = json.load(open(os.path.join(F3R_DIR, "report.json"), encoding="utf-8"))
+    assert len(report["checks"]) == 33 and report["summary"]["cslope_reproduces"] == {"n": 33, "N": 33}
+    assert "retenidos 0" in index and "V013b a V013e" in index

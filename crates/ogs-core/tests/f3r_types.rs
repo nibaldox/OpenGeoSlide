@@ -43,13 +43,12 @@ fn anchor() -> Value {
 
 fn pile() -> Value {
     json!({"id": "p1", "type": "pile", "x1": 40.0, "y1": 30.0, "x2": 40.0, "y2": 22.0,
-           "application": "passive", "force": 60.0, "spacing": 1.5, "direction": "angle", "angle": 0.0,
-           "location": "slip_surface"})
+           "application": "passive", "force": 60.0, "spacing": 1.5, "direction": "angle", "angle": 0.0})
 }
 
 fn sheet_pile() -> Value {
     json!({"id": "s1", "type": "sheet_pile", "x1": 45.0, "y1": 33.0, "x2": 45.0, "y2": 14.0,
-           "application": "active", "force": 120.0, "direction": "perpendicular", "location": "centroid"})
+           "application": "active", "force": 120.0, "direction": "perpendicular"})
 }
 
 fn doc_with(items: Vec<Value>) -> Value {
@@ -372,8 +371,14 @@ fn table() -> Vec<Row> {
             Some(vec!["no coincide con el esquema"]),
         ),
         (
-            "pile without location",
-            vec![with(pile(), "-location", Value::Null)],
+            // E14m-3: `location` was dropped in v0.4; it is an unknown field, in a pile and in a sheet_pile
+            "pile with location",
+            vec![with(pile(), "location", json!("slip_surface"))],
+            Some(vec!["location"]),
+        ),
+        (
+            "sheet_pile with location",
+            vec![with(sheet_pile(), "location", json!("centroid"))],
             Some(vec!["location"]),
         ),
         (

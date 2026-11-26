@@ -1,0 +1,258 @@
+{
+  "id": "V010",
+  "title": "Borges & Cardoso embankment 2 (geosynthetic)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V010",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic)",
+      "notes": "5 m embankment (φ′ = 35°) on four soft clays with Su increasing with depth (Borges & Cardoso Table 6, p. 408: clay 3 from 16 to 18.4 kPa, clay 4 from 18.4 to 55.1 kPa), a 200 kN/m geosynthetic at y = 1 m (axial, active, not anchored, interface friction 33.7° on both faces); a commercial program's critical circle."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "clay_1",
+        "name": "Clay 1",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 33.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_2",
+        "name": "Clay 2",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.0,
+        "strength_datum": -1.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_3",
+        "name": "Clay 3",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.0,
+        "strength_datum": -4.5,
+        "strength_gradient": 0.95,
+        "ru": null
+      },
+      {
+        "id": "clay_4",
+        "name": "Clay 4",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 18.375,
+        "strength_datum": -7.0,
+        "strength_gradient": 2.625,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay_1",
+        "polygon": [
+          [
+            -30.0,
+            -1.0
+          ],
+          [
+            -30.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            42.56,
+            0.0
+          ],
+          [
+            45.0,
+            0.0
+          ],
+          [
+            45.0,
+            -1.0
+          ]
+        ]
+      },
+      {
+        "material": "clay_2",
+        "polygon": [
+          [
+            -30.0,
+            -4.5
+          ],
+          [
+            -30.0,
+            -1.0
+          ],
+          [
+            45.0,
+            -1.0
+          ],
+          [
+            45.0,
+            -4.5
+          ]
+        ]
+      },
+      {
+        "material": "clay_3",
+        "polygon": [
+          [
+            -30.0,
+            -7.0
+          ],
+          [
+            -30.0,
+            -4.5
+          ],
+          [
+            45.0,
+            -4.5
+          ],
+          [
+            45.0,
+            -7.0
+          ]
+        ]
+      },
+      {
+        "material": "clay_4",
+        "polygon": [
+          [
+            -30.0,
+            -21.0
+          ],
+          [
+            -30.0,
+            -7.0
+          ],
+          [
+            45.0,
+            -7.0
+          ],
+          [
+            45.0,
+            -21.0
+          ]
+        ]
+      },
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.15,
+            5.0
+          ],
+          [
+            36.41,
+            5.0
+          ],
+          [
+            42.56,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 1.23,
+        "y1": 1.0,
+        "x2": 41.33,
+        "y2": 1.0,
+        "application": "active",
+        "tensile_capacity": 200.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "interface",
+          "adhesion": 0.0,
+          "friction_angle": 33.7,
+          "coverage": 1.0
+        }
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "morgenstern_price"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 3.46552,
+        "yc": 5.66415,
+        "r": 13.27611
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.171,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020426985482493595,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.17,
+      "published_by": "Commercial program B",
+      "tolerance": 0.024273504273504276,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Borges, J.L. & Cardoso, A.S. (2002). Overall stability of geosynthetic-reinforced embankments on soft soils. Geotextiles and Geomembranes 20, 395–421.",
+    "derived_from": "cSlope verification problem V010 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Clay 3: 16 → 18.375 kPa, clay 4: 18.375 → 55.125 kPa (2.625 kPa/m), the unrounded values of Table 55. The commercial program B circle is digitised.",
+      "The manual gives the geosynthetic's strength and interface friction but not whether commercial program B divides its force by F; as a passive force cSlope gives 1.143 (M-P) / 1.143 (Bishop), 2.4 % below commercial program B, so the active force is kept.",
+      "Borges & Cardoso's 1.15 belongs to their circle B with the geosynthetic at 0.9 m and its force in the resisting moment; it is checked in V010b on that input. This problem is commercial program B's version. program D 1.153 with the earlier input (clay 4 at 1.314 kPa/m).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
