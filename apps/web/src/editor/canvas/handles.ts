@@ -6,6 +6,7 @@ import type { Point } from '../../engine/types';
 import type { ModelDoc, Selection } from '../types';
 import { piezoPoints } from './geom';
 import { radiusHandlePoint } from './hitTest';
+import { refCenter, refEnd } from './reinforcements';
 
 export type HandleRef =
   | { kind: 'vertex'; regionIndex: number; vertexIndex: number }
@@ -13,7 +14,11 @@ export type HandleRef =
   | { kind: 'circle_center' }
   | { kind: 'circle_radius' }
   /** Vértice de la polilínea fija de falla (F3.3). */
-  | { kind: 'surface_vertex'; index: number };
+  | { kind: 'surface_vertex'; index: number }
+  /** Extremo de un refuerzo (v0.4): 1 cabeza, 2 punta. */
+  | { kind: 'reinforcement_end'; index: number; end: 1 | 2 }
+  /** Centro de un refuerzo: mueve el refuerzo entero. */
+  | { kind: 'reinforcement_center'; index: number };
 
 /** Parte del círculo de falla que tiene el foco (la selección `surface_circle` no la distingue). */
 export type CirclePart = 'center' | 'radius';
@@ -27,6 +32,9 @@ export function handleList(doc: ModelDoc): HandleRef[] {
   const surface = doc.analysis.surface;
   if (surface && surface.type === 'polyline') surface.points.forEach((_, index) => out.push({ kind: 'surface_vertex', index }));
   else if (surface) out.push({ kind: 'circle_center' }, { kind: 'circle_radius' });
+  (doc.reinforcements ?? []).forEach((_, index) => {
+    out.push({ kind: 'reinforcement_end', index, end: 1 }, { kind: 'reinforcement_end', index, end: 2 }, { kind: 'reinforcement_center', index });
+  });
   return out;
 }
 
@@ -43,6 +51,10 @@ export function handleKey(h: HandleRef): string {
       return 'c-radius';
     case 'surface_vertex':
       return `s-${h.index}`;
+    case 'reinforcement_end':
+      return `r-${h.index}-${h.end}`;
+    case 'reinforcement_center':
+      return `r-${h.index}-c`;
   }
 }
 
@@ -62,6 +74,10 @@ export function handleSelection(h: HandleRef): Selection {
       return { kind: 'surface_circle' };
     case 'surface_vertex':
       return { kind: 'surface_vertex', index: h.index };
+    case 'reinforcement_end':
+      return { kind: 'reinforcement_end', index: h.index, end: h.end };
+    case 'reinforcement_center':
+      return { kind: 'reinforcement', index: h.index };
   }
 }
 
@@ -76,6 +92,10 @@ export function selectionHandle(sel: Selection, circlePart: CirclePart = 'center
       return { kind: circlePart === 'radius' ? 'circle_radius' : 'circle_center' };
     case 'surface_vertex':
       return { kind: 'surface_vertex', index: sel.index };
+    case 'reinforcement_end':
+      return { kind: 'reinforcement_end', index: sel.index, end: sel.end };
+    case 'reinforcement':
+      return { kind: 'reinforcement_center', index: sel.index };
     default:
       return null;
   }
@@ -112,6 +132,14 @@ export function handleWorldPoint(doc: ModelDoc, h: HandleRef): Point | null {
     case 'surface_vertex': {
       const surface = doc.analysis.surface;
       return surface && surface.type === 'polyline' ? (surface.points[h.index] ?? null) : null;
+    }
+    case 'reinforcement_end': {
+      const r = doc.reinforcements?.[h.index];
+      return r ? refEnd(r, h.end) : null;
+    }
+    case 'reinforcement_center': {
+      const r = doc.reinforcements?.[h.index];
+      return r ? refCenter(r) : null;
     }
   }
 }

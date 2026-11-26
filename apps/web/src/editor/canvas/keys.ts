@@ -3,6 +3,7 @@
 //   [ ] (también con AltGr u Option, R9-04) y RePág/AvPág recorren los tiradores, dando la vuelta. Tab y Mayús+Tab entran y salen del lienzo (una sola parada de tabulación).
 //   Flechas: mueven el tirador seleccionado 1 paso de rejilla (Mayús = ×10); en el tirador del radio cambian el radio;
 //   sin tirador seleccionado desplazan la vista.
+//   Refuerzos (v0.4): cada uno tiene tres tiradores (cabeza, punta y centro); las flechas mueven el extremo o el refuerzo entero y Supr lo elimina.
 //   Insert (o «i»): inserta un vértice en el punto medio de la arista siguiente. Supr/Retroceso: quita el vértice o punto
 //   y el foco pasa al vecino. + (o =), − y 0: acercar, alejar y encuadrar.
 
@@ -21,6 +22,17 @@ import {
   type CirclePart,
   type HandleRef,
 } from './handles';
+import {
+  REINFORCEMENT_TYPE_LABEL,
+  REINFORCEMENT_ZERO_LENGTH,
+  SHEET_PILE_FIXED_X,
+  moveBody,
+  moveEnd,
+  refCenter,
+  refEnd,
+  reinforcementEndAnnouncement,
+  reinforcementMoveAnnouncement,
+} from './reinforcements';
 import { insertPolylineVertex, modelWidth, movePolylineVertex, polylineCrossingMessage, polylineMinGap, removePolylineVertex } from './polyline';
 import { circleCenterLabel, circleRadiusLabel, piezoAnnouncement, surfaceVertexAnnouncement, vertexAnnouncement } from './layout';
 import { ensureVisible, fitToDoc, panBy, zoomStep } from './viewportOps';
@@ -105,7 +117,7 @@ function lowerFirst(text: string): string {
 
 function focusOn(ctx: GestureContext, h: HandleRef, extra: CanvasAction[] = [], announce?: string): KeyResult {
   // El centro del círculo de falla suele quedar fuera de la vista (el arco es lo que importa): no se arrastra la vista hasta él.
-  const reveal = h.kind === 'vertex' || h.kind === 'piezo_point' || h.kind === 'surface_vertex' ? revealAction(ctx, handleWorldPoint(ctx.doc, h)) : null;
+  const reveal = h.kind === 'vertex' || h.kind === 'piezo_point' || h.kind === 'surface_vertex' || h.kind === 'reinforcement_end' || h.kind === 'reinforcement_center' ? revealAction(ctx, handleWorldPoint(ctx.doc, h)) : null;
   return {
     handled: true,
     actions: [{ type: 'ui/select', selection: handleSelection(h) }, ...extra, ...(reveal ? [reveal] : [])],
@@ -234,6 +246,18 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
         announce: `Punto eliminado. Foco en el ${lowerFirst(surfaceVertexAnnouncement(idx, next[idx]!, units))}`,
       };
     }
+    if (sel.kind === 'reinforcement' || sel.kind === 'reinforcement_end') {
+      const r = doc.reinforcements?.[sel.index];
+      if (!r) return NOT_HANDLED;
+      // El foco pasa al refuerzo anterior (su centro), si lo hay; si no, vuelve al lienzo.
+      const left = sel.index > 0 ? ({ kind: 'reinforcement_center', index: sel.index - 1 } as HandleRef) : null;
+      return {
+        handled: true,
+        actions: [{ type: 'reinforcement/remove', index: sel.index }, { type: 'ui/select', selection: left ? handleSelection(left) : { kind: 'none' } }],
+        ...(left ? { focus: left } : {}),
+        announce: `Refuerzo ${sel.index + 1} (${REINFORCEMENT_TYPE_LABEL[r.type]}) eliminado.`,
+      };
+    }
     if (sel.kind === 'piezo_point') {
       const pts = piezoPoints(doc);
       const next = removePiezoPoint(pts, sel.index);
@@ -254,7 +278,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     k.key === 'ArrowLeft' ? [-1, 0] : k.key === 'ArrowRight' ? [1, 0] : k.key === 'ArrowUp' ? [0, 1] : k.key === 'ArrowDown' ? [0, -1] : null;
   if (!dir) return NOT_HANDLED;
 
-  const movable = sel.kind === 'vertex' || sel.kind === 'piezo_point' || sel.kind === 'surface_circle' || sel.kind === 'surface_vertex';
+  const movable = sel.kind === 'vertex' || sel.kind === 'piezo_point' || sel.kind === 'surface_circle' || sel.kind === 'surface_vertex' || sel.kind === 'reinforcement' || sel.kind === 'reinforcement_end';
   if (!movable) {
     // Sin tirador seleccionado las flechas desplazan la vista (en vez de desplazar la página).
     if (!vp) return NOT_HANDLED;
@@ -302,6 +326,36 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     return withReveal(
       { handled: true, actions: [{ type: 'piezo/set', points: next }], announce: piezoAnnouncement(sel.index, next[sel.index], units) },
       next[sel.index],
+    );
+  }
+  if (sel.kind === 'reinforcement_end') {
+    const r = doc.reinforcements?.[sel.index];
+    if (!r) return NOT_HANDLED;
+    // La tablestaca es vertical: su x es fija, solo se mueve en y.
+    if (r.type === 'sheet_pile' && dx !== 0) return { handled: true, actions: [], announce: SHEET_PILE_FIXED_X };
+    const moved = moveEnd(r, sel.end, shift(refEnd(r, sel.end)));
+    if (!moved) return { handled: true, actions: [], announce: REINFORCEMENT_ZERO_LENGTH };
+    return withReveal(
+      {
+        handled: true,
+        actions: [{ type: 'reinforcement/upsert', index: sel.index, reinforcement: moved }],
+        announce: reinforcementEndAnnouncement(sel.index, moved, sel.end, units),
+      },
+      refEnd(moved, sel.end),
+    );
+  }
+  if (sel.kind === 'reinforcement') {
+    const r = doc.reinforcements?.[sel.index];
+    if (!r) return NOT_HANDLED;
+    const moved = moveBody(r, dx, dy);
+    if (!moved) return NOT_HANDLED;
+    return withReveal(
+      {
+        handled: true,
+        actions: [{ type: 'reinforcement/upsert', index: sel.index, reinforcement: moved }],
+        announce: reinforcementMoveAnnouncement(sel.index, moved, units),
+      },
+      refCenter(moved),
     );
   }
   if (sel.kind === 'surface_vertex') {

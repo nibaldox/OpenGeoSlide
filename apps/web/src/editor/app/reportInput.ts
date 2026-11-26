@@ -1,6 +1,7 @@
 // Entradas del informe y exportaciones CSV a partir del último cálculo. Lógica pura (sin React ni DOM).
 
-import { polylineSurfaceRows, resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
+import { polylineSurfaceRows, reinforcementForcesToCsv, resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
+import { forceRecords } from '../../report/reinforcementReport';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { isPolylineReport } from '../../engine/surface';
@@ -63,6 +64,16 @@ export function surfaceCoordsCsv(results: readonly MethodReport[], units?: strin
     else baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
   }
   return surfaceToCsv(rows, { units });
+}
+
+/** `true` si algún método trae `reinforcement_forces`: hay una tabla de fuerzas que exportar. */
+export function hasReinforcementForces(results: readonly MethodReport[]): boolean {
+  return results.some((r) => (r.reinforcement_forces?.length ?? 0) > 0);
+}
+
+/** CSV de las fuerzas de los refuerzos por cruce, de todos los métodos que las traen (ver `reinforcementForcesToCsv`). */
+export function reinforcementForcesCsv(run: Pick<EngineRun, 'report' | 'doc'>): string {
+  return reinforcementForcesToCsv(forceRecords(run.report.results, run.doc.reinforcements), { units: run.doc.units });
 }
 
 export interface ExportAvailability {

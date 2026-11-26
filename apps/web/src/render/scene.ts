@@ -2,7 +2,7 @@
 
 import { reportCircle } from '../engine/surface';
 import { analyzedPolyline } from '../report/methodInfo';
-import type { Circle, MethodReport, Model, Point, Slice } from '../engine/types';
+import type { Circle, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
 
@@ -41,6 +41,10 @@ export interface Scene {
    * `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b).
    */
   surface: { circle?: Circle | null; polyline?: Point[] | null; slices: Slice[]; converged?: boolean } | null;
+  /** Refuerzos del modelo (v0.4); ausente sin refuerzos. */
+  reinforcements?: Reinforcement[];
+  /** `reinforcement_forces` del método dibujado (F4.9); ausente si no hay. */
+  reinforcementForces?: ReinforcementForce[];
   bounds: Bounds;
   /** Unidades del modelo (`SI` o `imperial`); los ejes de `drawSection` las usan para rotular m o ft. */
   units?: string;
@@ -84,6 +88,14 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     ys.push(s.y_base_left, s.y_base_right, s.y_top_mid);
   }
 
+  // Los extremos de los refuerzos entran en el encuadre (la punta de una tablestaca o la cabeza de un anclaje pueden salir de las regiones).
+  const reinforcements = (model.reinforcements ?? []).map((r) => ({ ...r }));
+  for (const r of reinforcements) {
+    xs.push(r.x1, r.x2);
+    ys.push(r.y1, r.y2);
+  }
+  const reinforcementForces = reinforcements.length > 0 && method?.reinforcement_forces ? [...method.reinforcement_forces] : [];
+
   let minX = Math.min(...xs);
   let maxX = Math.max(...xs);
   let minY = Math.min(...ys);
@@ -105,6 +117,7 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     piezo,
     piezoExtension: piezoExt,
     surface,
+    ...(reinforcements.length > 0 ? { reinforcements, reinforcementForces } : {}),
     bounds: { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY },
     units: model.units,
   };

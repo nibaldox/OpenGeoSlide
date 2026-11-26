@@ -19,13 +19,20 @@ describe('PDF_PALETTE', () => {
     expect(PDF_PALETTE.materials.map(hex)).toEqual(light.map((c) => c.toLowerCase()));
   });
 
+  it('el color de los refuerzos coincide con --canvas-reinforcement del tema CLARO', () => {
+    const css = read('../styles/tokens.css');
+    const m = /--canvas-reinforcement:\s*light-dark\((#[0-9a-f]{6}),/i.exec(css);
+    expect(m).not.toBeNull();
+    expect(hex(PDF_PALETTE.reinforcement)).toBe((m as RegExpExecArray)[1].toLowerCase());
+  });
+
   it('la superficie, la piezométrica y el contorno de las regiones son visibles sobre papel blanco (≥ 3:1)', () => {
     const lum = ([r, g, b]: readonly number[]): number => {
       const l = (c: number): number => ((c / 255) <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
       return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b);
     };
     const ratio = (a: readonly number[], b: readonly number[]): number => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
-    for (const c of [PDF_PALETTE.surface, PDF_PALETTE.piezo, PDF_PALETTE.regionEdge, PDF_PALETTE.slices]) {
+    for (const c of [PDF_PALETTE.surface, PDF_PALETTE.piezo, PDF_PALETTE.regionEdge, PDF_PALETTE.slices, PDF_PALETTE.reinforcement]) {
       expect(ratio(c, PDF_PALETTE.pageBg)).toBeGreaterThanOrEqual(3);
     }
     expect(ratio(PDF_PALETTE.inkMuted, PDF_PALETTE.pageBg)).toBeGreaterThanOrEqual(4.5);

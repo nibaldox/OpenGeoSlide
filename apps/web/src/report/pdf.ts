@@ -7,6 +7,8 @@
 
 import type { jsPDF } from 'jspdf';
 import type { Point } from '../engine/types';
+import { forceShapes, reinforcementShapes, type PxPoint, type ShapePart } from '../editor/canvas/reinforcements';
+import type { Viewport } from '../geometry/viewport';
 import {
   buildReportContent,
   type ReportBlock,
@@ -35,6 +37,8 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 const CONTENT_W = PAGE_W - 2 * MARGIN;
 const BOTTOM = PAGE_H - 18;
+/** Píxeles por milímetro con que se calculan los símbolos de los refuerzos (los mismos del lienzo del editor): `px / PX_PER_MM` da mm de página. */
+const PX_PER_MM = 3.78;
 
 // Caché de módulo (R7-25): las dos fuentes (~1,4 MB) se piden una sola vez por sesión y su conversión a cadena binaria
 // (la que pide jsPDF) también. Se guarda la promesa, así que dos exportaciones simultáneas comparten la misma petición; un
@@ -406,6 +410,81 @@ class Writer {
     if (d.piezo) polyline(d.piezo, piezoColor, 0.5, [2, 1]);
     if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [...P.surface], 0.7);
 
+    // Refuerzos (v0.4): el símbolo de cada tipo y la flecha de cada fuerza, con la geometría del lienzo del editor (px → mm de página).
+    if (d.reinforcements.length > 0) {
+      const vpPx: Viewport = { scale: scale * PX_PER_MM, tx: -xmin * scale * PX_PER_MM, ty: ymax * scale * PX_PER_MM, width: drawW * PX_PER_MM, height: drawH * PX_PER_MM };
+      const mm = (p: PxPoint): PxPoint => [x0 + p[0] / PX_PER_MM, y0 + head + p[1] / PX_PER_MM];
+      const partMm = (part: ShapePart, color: Rgb, extra: number): void => {
+        doc.setDrawColor(...color);
+        doc.setFillColor(...color);
+        doc.setLineWidth((part.width + extra) / PX_PER_MM);
+        if (part.kind === 'circle') {
+          const [cx, cy] = mm([part.cx, part.cy]);
+          doc.circle(cx, cy, part.r / PX_PER_MM, part.fill && extra === 0 ? 'FD' : 'S');
+          return;
+        }
+        const first = part.pts[0];
+        if (!first || part.pts.length < 2) return;
+        const [fx0, fy0] = mm(first);
+        const rel: number[][] = [];
+        for (let i = 1; i < part.pts.length; i++) {
+          const a = mm(part.pts[i] as PxPoint);
+          const b = mm(part.pts[i - 1] as PxPoint);
+          rel.push([a[0] - b[0], a[1] - b[1]]);
+        }
+        doc.lines(rel, fx0, fy0, [1, 1], part.fill && part.closed && extra === 0 ? 'FD' : 'S', Boolean(part.closed));
+      };
+      doc.setLineCap('round');
+      doc.setLineJoin('round');
+      const refShapes = reinforcementShapes(d.reinforcements, vpPx, d.units);
+      for (const rs of refShapes) for (const part of rs.parts) partMm(part, [255, 255, 255], 1.6);
+      for (const rs of refShapes) for (const part of rs.parts) partMm(part, [...P.reinforcement], 0);
+      doc.setLineCap('butt');
+      doc.setLineJoin('miter');
+      // Flechas y marcas de las fuerzas; los rótulos (de las fuerzas y de los símbolos) se colocan después, sin solaparse.
+      const labels: { text: string; x: number; y: number; color: Rgb }[] = [];
+      for (const fs of forceShapes(d.forces, vpPx, d.units)) {
+        const [ax, ay] = mm(fs.at);
+        const color: Rgb = fs.applied ? [...P.reinforcement] : [...P.inkMuted];
+        if (fs.tip) {
+          const [tx, ty] = mm(fs.tip);
+          this.arrow(ax, ay, tx, ty, color, 0.6);
+        } else {
+          doc.setDrawColor(...color);
+          doc.setLineWidth(0.5);
+          doc.line(ax - 1.4, ay - 1.4, ax + 1.4, ay + 1.4);
+          doc.line(ax - 1.4, ay + 1.4, ax + 1.4, ay - 1.4);
+        }
+        const [lx, ly] = mm([fs.label.x, fs.label.y]);
+        labels.push({ text: fs.label.text, x: lx, y: ly, color });
+      }
+      for (const rs of refShapes) {
+        const [lx, ly] = mm([rs.label.x, rs.label.y]);
+        labels.push({ text: rs.label.text, x: lx, y: ly, color: [...P.reinforcement] });
+      }
+      this.font('normal', 6.5);
+      const boxes: { x1: number; x2: number; y1: number; y2: number }[] = [];
+      const top = y0 + head + 2.6;
+      const bottom = y0 + drawH - 1;
+      for (const l of labels) {
+        const half = doc.getTextWidth(l.text) / 2;
+        const cx = Math.min(Math.max(l.x, x0 + half + 1), x0 + drawW - half - 1);
+        let placed: { x1: number; x2: number; y1: number; y2: number; y: number } | null = null;
+        // Prueba el sitio natural y después desplazamientos verticales alternos de 3 mm hasta no pisar otro rótulo.
+        for (let k = 0; k < 14 && !placed; k += 1) {
+          const dy = (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * 3;
+          const y = Math.min(Math.max(l.y + dy, top), bottom);
+          const box = { x1: cx - half - 0.5, x2: cx + half + 0.5, y1: y - 2.6, y2: y + 0.8 };
+          if (!boxes.some((b) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1)) placed = { ...box, y };
+        }
+        const at = placed ?? { x1: cx - half, x2: cx + half, y1: l.y - 2.6, y2: l.y + 0.8, y: l.y };
+        boxes.push(at);
+        doc.setTextColor(...l.color);
+        this.haloText(l.text, cx, at.y, 'center');
+      }
+      doc.setTextColor(...P.ink);
+    }
+
     // Cargas de superficie: flechas sobre el terreno y rótulo con su unidad. Los rótulos se reparten en dos filas si chocan.
     this.font('normal', 7.5);
     const labelBoxes: { x1: number; x2: number; row: number }[] = [];
@@ -508,6 +587,19 @@ class Writer {
         doc.setDrawColor(...P.regionEdge);
         doc.setLineWidth(0.2);
         doc.rect(MARGIN, this.y, 6, 3.4, 'FD');
+      } else if (item.kind === 'reinforcement') {
+        doc.setDrawColor(...item.color);
+        doc.setFillColor(...item.color);
+        doc.setLineWidth(0.5);
+        doc.line(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7);
+        doc.rect(MARGIN - 0.2, this.y + 0.9, 1.6, 1.6, 'F');
+      } else if (item.kind === 'force') {
+        this.arrow(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7, item.color, 0.6);
+      } else if (item.kind === 'force_off') {
+        doc.setDrawColor(...item.color);
+        doc.setLineWidth(0.5);
+        doc.line(MARGIN + 1.5, this.y + 0.2, MARGIN + 4.5, this.y + 3.2);
+        doc.line(MARGIN + 1.5, this.y + 3.2, MARGIN + 4.5, this.y + 0.2);
       } else {
         doc.setDrawColor(...item.color);
         doc.setLineWidth(item.kind === 'slices' ? 0.2 : item.kind === 'piezo_ext' ? 0.5 : 0.7);

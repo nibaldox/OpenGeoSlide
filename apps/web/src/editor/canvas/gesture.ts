@@ -5,13 +5,14 @@
 // pointerup → comando(s) + endGesture. Un gesto = una entrada de historial. Un clic sin mover cancela el gesto.
 
 import { circleSpec } from '../../engine/surface';
-import type { Circle, Point } from '../../engine/types';
+import type { Circle, Point, Reinforcement } from '../../engine/types';
 import type { EditorCommand, EditorState, EditorStore, ModelDoc, UiAction } from '../types';
 import { screenToWorld, type Viewport } from '../../geometry/viewport';
 import { coincidentVertices, piezoPoints, roundForScale, type VertexRef } from './geom';
 import { handleHitRadius, hitTest, type Hit } from './hitTest';
 import { insertPiezoPoint, movePiezoPoint, removePiezoPoint } from './edits';
 import { insertPolylineVertex, modelWidth, movePolylineVertex, polylineMinGap, removePolylineVertex } from './polyline';
+import { moveBody, moveEnd, refEnd } from './reinforcements';
 import { snapPoint, type SnapResult } from './snap';
 import { panBy } from './viewportOps';
 
@@ -44,14 +45,20 @@ export type DragTarget =
   | { kind: 'piezo_point'; index: number }
   | { kind: 'circle_center' }
   | { kind: 'circle_radius' }
-  | { kind: 'surface_vertex'; index: number };
+  | { kind: 'surface_vertex'; index: number }
+  /** Extremo de un refuerzo (v0.4): la tablestaca conserva su x. */
+  | { kind: 'reinforcement_end'; index: number; end: 1 | 2 }
+  /** Centro de un refuerzo: los dos extremos se mueven juntos. `grab` es el punto (mundo) donde se pulsó. */
+  | { kind: 'reinforcement_move'; index: number; grab: Point };
 
 export type Preview =
   | { kind: 'vertex'; moves: { regionIndex: number; vertexIndex: number; to: Point }[]; snap: SnapResult }
   | { kind: 'piezo_point'; index: number; to: Point; snap: SnapResult }
   | { kind: 'circle'; circle: Circle; snap: SnapResult | null }
   /** Polilínea de falla con un vértice movido; `clamped`: la x se acotó para no cruzar a la de su vecino. */
-  | { kind: 'surface_polyline'; index: number; points: Point[]; clamped: boolean; snap: SnapResult };
+  | { kind: 'surface_polyline'; index: number; points: Point[]; clamped: boolean; snap: SnapResult }
+  /** Refuerzo `index` con un extremo o el cuerpo movido; `clamped`: el movimiento lo dejaría sin longitud y no se aplica. */
+  | { kind: 'reinforcement'; index: number; reinforcement: Reinforcement; clamped: boolean; snap: SnapResult };
 
 export type GestureState =
   | { mode: 'idle' }
@@ -115,6 +122,23 @@ function computePreview(target: DragTarget, ctx: GestureContext, input: PointerI
       if (!moved) return null;
       return { kind: 'surface_polyline', index: target.index, points: moved.points, clamped: moved.clamped, snap };
     }
+    case 'reinforcement_end': {
+      const r = doc.reinforcements?.[target.index];
+      if (!r) return null;
+      const other = refEnd(r, target.end === 1 ? 2 : 1);
+      const snap = snapPoint(raw, { doc, vp, snap: ui.snap, neighbors: [other] });
+      const moved = moveEnd(r, target.end, snap.point);
+      return { kind: 'reinforcement', index: target.index, reinforcement: moved ?? r, clamped: moved === null, snap };
+    }
+    case 'reinforcement_move': {
+      const r = doc.reinforcements?.[target.index];
+      if (!r) return null;
+      // El ajuste (rejilla, vértices, ejes) se aplica a la cabeza desplazada; los dos extremos reciben el mismo desplazamiento.
+      const head: Point = [r.x1 + raw[0] - target.grab[0], r.y1 + raw[1] - target.grab[1]];
+      const snap = snapPoint(head, { doc, vp, snap: ui.snap });
+      const moved = moveBody(r, snap.point[0] - r.x1, snap.point[1] - r.y1);
+      return { kind: 'reinforcement', index: target.index, reinforcement: moved ?? r, clamped: moved === null, snap };
+    }
     case 'circle_center': {
       const c = circleSpec(doc.analysis.surface);
       if (!c) return null;
@@ -155,6 +179,8 @@ export function applyPreview(doc: ModelDoc, preview: Preview | null): ModelDoc {
       return { ...doc, analysis: { ...doc.analysis, surface: { type: 'circle', ...preview.circle } } };
     case 'surface_polyline':
       return { ...doc, analysis: { ...doc.analysis, surface: { type: 'polyline', points: preview.points } } };
+    case 'reinforcement':
+      return { ...doc, reinforcements: (doc.reinforcements ?? []).map((r, i) => (i === preview.index ? preview.reinforcement : r)) };
   }
 }
 
@@ -188,6 +214,12 @@ function commitActions(preview: Preview, doc: ModelDoc): CanvasAction[] {
       const to = preview.points[preview.index];
       if (!at || !to || (at[0] === to[0] && at[1] === to[1])) return [];
       return [{ type: 'surface/set', surface: { type: 'polyline', points: preview.points } }];
+    }
+    case 'reinforcement': {
+      const cur = doc.reinforcements?.[preview.index];
+      const r = preview.reinforcement;
+      if (!cur || preview.clamped || (cur.x1 === r.x1 && cur.y1 === r.y1 && cur.x2 === r.x2 && cur.y2 === r.y2)) return [];
+      return [{ type: 'reinforcement/upsert', index: preview.index, reinforcement: r }];
     }
   }
 }
@@ -235,6 +267,18 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
       if (ui.tool === 'add_vertex') return { state, actions: [sel] };
       return drag({ kind: 'surface_vertex', index: hit.index }, 'Mover punto de la polilínea de falla', sel);
     }
+    case 'reinforcement_end': {
+      const sel: UiAction = { type: 'ui/select', selection: { kind: 'reinforcement_end', index: hit.index, end: hit.end } };
+      if (ui.tool === 'add_vertex') return { state, actions: [sel] };
+      return drag({ kind: 'reinforcement_end', index: hit.index, end: hit.end }, 'Mover extremo del refuerzo', sel);
+    }
+    case 'reinforcement_center': {
+      const sel: UiAction = { type: 'ui/select', selection: { kind: 'reinforcement', index: hit.index } };
+      if (ui.tool === 'add_vertex') return { state, actions: [sel] };
+      return drag({ kind: 'reinforcement_move', index: hit.index, grab: screenToWorld(vp, input.x, input.y) as Point }, 'Mover refuerzo', sel);
+    }
+    case 'reinforcement':
+      return { state, actions: [{ type: 'ui/select', selection: { kind: 'reinforcement', index: hit.index } }] };
     case 'circle_center':
       return drag({ kind: 'circle_center' }, 'Mover el centro del círculo', { type: 'ui/select', selection: { kind: 'surface_circle' } });
     case 'circle_radius':

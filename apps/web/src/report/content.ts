@@ -9,10 +9,20 @@ import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
-import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
+import type { Load, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import { describeWarning, warningContext } from '../engine/warnings';
 import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
+import {
+  PASSIVE_LEGEND,
+  REINFORCEMENT_FORCE_BASIS,
+  STRUCTURAL_LIMIT_TEXT,
+  forceRecords,
+  forcesTable,
+  hasStructuralElements,
+  reinforcementInputTables,
+  reinforcementsOf,
+} from './reinforcementReport';
 import type { ReportInput } from './types';
 
 export type { Rgb };
@@ -50,7 +60,7 @@ export interface DrawingSeismic {
 }
 
 export interface LegendItem {
-  kind: 'material' | 'piezo' | 'piezo_ext' | 'surface' | 'slices';
+  kind: 'material' | 'piezo' | 'piezo_ext' | 'surface' | 'slices' | 'reinforcement' | 'force' | 'force_off';
   label: string;
   color: Rgb;
 }
@@ -64,6 +74,12 @@ export interface SectionDrawing {
   surface: DrawingSurface | null;
   loads: DrawingLoad[];
   seismic: DrawingSeismic | null;
+  /** Refuerzos del modelo (v0.4): el PDF dibuja el símbolo de cada tipo; vacío sin refuerzos. */
+  reinforcements: Reinforcement[];
+  /** Fuerzas del resultado principal en la superficie final (`reinforcement_forces`); vacío si no hay. */
+  forces: ReinforcementForce[];
+  /** `doc.units` del modelo: el dibujo de los refuerzos usa la unidad de las fuerzas. */
+  units: string | undefined;
   /** Unidad de longitud de las cotas: `m` o `ft`. */
   unit: string;
   legend: LegendItem[];
@@ -77,7 +93,7 @@ export type ReportBlock =
   | { kind: 'list'; items: { severity: 'nota' | 'aviso'; label: string; text: string }[] }
   | { kind: 'drawing'; drawing: SectionDrawing };
 
-export type ReportSectionId = 'cover' | 'model' | 'materials' | 'section' | 'results' | 'checks' | 'warnings' | 'engine';
+export type ReportSectionId = 'cover' | 'model' | 'materials' | 'section' | 'results' | 'reinforcements' | 'checks' | 'warnings' | 'engine';
 
 export interface ReportSection {
   id: ReportSectionId;
@@ -335,6 +351,15 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     bounds.ymax = Math.max(bounds.ymax, y);
   }
 
+  const reinforcements = [...reinforcementsOf(model)];
+  for (const r of reinforcements) {
+    for (const [x, y] of [[r.x1, r.y1], [r.x2, r.y2]] as Point[]) {
+      bounds.xmin = Math.min(bounds.xmin, x);
+      bounds.xmax = Math.max(bounds.xmax, x);
+      bounds.ymin = Math.min(bounds.ymin, y);
+      bounds.ymax = Math.max(bounds.ymax, y);
+    }
+  }
   const loads = drawingLoads(model);
   const sk = model.analysis.seismic;
   const seismic: DrawingSeismic | null = sk
@@ -382,7 +407,13 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     legend.push({ kind: 'surface', label: surfaceLegendLabel(res, METHOD_LABEL[surface.method]), color: [...PDF_PALETTE.surface] });
     if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: [...PDF_PALETTE.slices] });
   }
-  return { bounds, regions, piezo, piezoExtension: piezoExt, surface, loads, seismic, unit: units(model).length, legend };
+  const forces = reinforcements.length > 0 ? [...(res?.reinforcement_forces ?? [])] : [];
+  if (reinforcements.length > 0) {
+    legend.push({ kind: 'reinforcement', label: 'Refuerzos (un símbolo por tipo: anclaje, clavo, geosintético, pilote, tablestaca)', color: [...PDF_PALETTE.reinforcement] });
+    if (forces.some((f) => f.status === 'applied')) legend.push({ kind: 'force', label: `Fuerza del refuerzo sobre la masa (flecha, ${units(model).line}; la pasiva ${PASSIVE_LEGEND})`, color: [...PDF_PALETTE.reinforcement] });
+    if (forces.some((f) => f.status !== 'applied')) legend.push({ kind: 'force_off', label: 'Cruce sin fuerza aplicada (gris): fuera de la masa, compresión o sin capacidad', color: [...PDF_PALETTE.inkMuted] });
+  }
+  return { bounds, regions, piezo, piezoExtension: piezoExt, surface, loads, seismic, reinforcements, forces, units: model.units, unit: units(model).length, legend };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -593,6 +624,36 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
   return { id: 'results', title: 'Factor de seguridad por método', blocks };
 }
 
+/**
+ * Sección «Refuerzos» (F4.9): los datos de entrada, la tabla de fuerzas por cruce de cada método que las trae, la leyenda de las
+ * pasivas y, con pilotes o tablestacas, el texto del límite de F4.8. Sin refuerzos en el modelo no existe.
+ */
+function reinforcementsSection(input: ReportInput): ReportSection | null {
+  const { model, results } = input;
+  const list = reinforcementsOf(model);
+  if (list.length === 0) return null;
+  const blocks: ReportBlock[] = [{ kind: 'paragraph', text: `El modelo tiene ${list.length} ${list.length === 1 ? 'refuerzo' : 'refuerzos'}. ${REINFORCEMENT_FORCE_BASIS}` }];
+  const inputs = reinforcementInputTables(model);
+  blocks.push({ kind: 'table', title: 'Datos de entrada: geometría', header: inputs.geometry.header, rows: inputs.geometry.rows });
+  blocks.push({ kind: 'table', title: 'Datos de entrada: capacidades', header: inputs.capacity.header, rows: inputs.capacity.rows });
+  let withForces = 0;
+  for (const r of results) {
+    const records = forceRecords([r], list);
+    if (records.length === 0) continue;
+    withForces += 1;
+    const t = forcesTable(records, model.units);
+    blocks.push({ kind: 'table', title: `Fuerzas por cruce con la superficie final (${METHOD_LABEL[r.method]})`, header: t.header, rows: t.rows });
+  }
+  if (withForces === 0) {
+    blocks.push({ kind: 'paragraph', text: 'Ningún método devolvió fuerzas de refuerzo: solo se informan los métodos que convergieron, sobre la superficie final.' });
+  }
+  if (list.some((r) => r.application === 'passive')) {
+    blocks.push({ kind: 'paragraph', text: `Pasiva: ${PASSIVE_LEGEND}. En la tabla va la fuerza disponible, antes de dividir por el factor de seguridad F de cada método.` });
+  }
+  if (hasStructuralElements(list)) blocks.push({ kind: 'paragraph', text: `Límite del cálculo. ${STRUCTURAL_LIMIT_TEXT}` });
+  return { id: 'reinforcements', title: 'Refuerzos', blocks };
+}
+
 function checksSection(input: ReportInput): ReportSection | null {
   if (input.checks.length === 0) return null;
   return {
@@ -677,6 +738,8 @@ export function buildReportContent(input: ReportInput): ReportContent {
     { id: 'section', title: 'Sección analizada', blocks: [{ kind: 'drawing', drawing }] },
     resultsSection(input.results, model),
   ];
+  const reinforcementBlock = reinforcementsSection(input);
+  if (reinforcementBlock) sections.push(reinforcementBlock);
   const checks = checksSection(input);
   if (checks) sections.push(checks);
   sections.push(warningsSection(input));

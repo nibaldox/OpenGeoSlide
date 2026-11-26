@@ -46,7 +46,7 @@ import { calcAnnouncement } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { readOpenFile, readTextFile } from './app/openFile';
-import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
@@ -365,6 +365,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     downloadText(surfaceCoordsCsv(engine.run.report.results, engine.run.doc.units), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
   };
 
+  const exportForces = (): void => {
+    if (!engine.run || !engine.current || !hasReinforcementForces(engine.run.report.results)) return;
+    downloadText(reinforcementForcesCsv(engine.run), `${baseFileName(fileName, doc)}-fuerzas-refuerzos.csv`, 'text/csv;charset=utf-8');
+  };
+
   const onReport = async (): Promise<void> => {
     if (reportBusy) return;
     if (!engine.run || !engine.current) {
@@ -490,6 +495,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     'tool:add_vertex': () => void switchTool('add_vertex'),
     'tool:draw_region': () => void switchTool('draw_region'),
     'tool:split_region': () => void switchTool('split_region'),
+    'tool:draw_reinforcement': () => void switchTool('draw_reinforcement'),
     'tool:pan': () => void switchTool('pan'),
   };
   useEffect(() => {
@@ -520,7 +526,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   const shown = engine.run?.report.results.find((r) => r.method === shownMethod) ?? engine.run?.report.results[0] ?? null;
   // La superficie del informe (círculo o polilínea ajustada al terreno, F3.7) y sus dovelas se superponen al lienzo.
-  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices } : undefined;
+  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces } : undefined;
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
@@ -614,6 +620,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
               Exportar superficie (CSV)
             </button>
+            {engine.run && hasReinforcementForces(engine.run.report.results) ? (
+              <button type="button" onClick={exportForces} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+                Exportar fuerzas de refuerzos (CSV)
+              </button>
+            ) : null}
           </DropdownMenu>
         </div>
         {narrow ? (
@@ -743,7 +754,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           {engine.run && (
             <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
               <h2 id="ea-results-title">Resultados{engine.current ? '' : ' (desactualizados)'}</h2>
-              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} />
+              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} />
               <p className="small muted">
                 Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
               </p>

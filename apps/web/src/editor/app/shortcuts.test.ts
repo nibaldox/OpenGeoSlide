@@ -24,6 +24,10 @@ describe('shortcutFor', () => {
     expect(shortcutFor(k('r'))).toBe('tool:draw_region');
     expect(shortcutFor(k('d'))).toBe('tool:split_region');
     expect(shortcutFor(k('D'))).toBe('tool:split_region');
+    expect(shortcutFor(k('e'))).toBe('tool:draw_reinforcement');
+    expect(shortcutFor(k('E'))).toBe('tool:draw_reinforcement');
+    expect(shortcutFor(k('e', { inField: true }))).toBeNull();
+    expect(shortcutFor(k('e', { ctrlKey: true }))).toBeNull();
     expect(shortcutFor(k('d', { inField: true }))).toBeNull();
     expect(shortcutFor(k('d', { ctrlKey: true }))).toBeNull();
     expect(shortcutFor(k('R'))).toBe('tool:draw_region');

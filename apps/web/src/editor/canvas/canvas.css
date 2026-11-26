@@ -122,3 +122,49 @@
 .ec-empty > * {
   pointer-events: auto;
 }
+
+/* Dibujar refuerzo (v0.4): selector del tipo sobre el lienzo. El contenedor no captura el puntero (como el resto de la ayuda); los botones sí. */
+.ec-reinforce-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ec-reinforce-text {
+  margin: 0;
+}
+.ec-reinforce-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  pointer-events: auto;
+}
+.ec-type {
+  min-width: 24px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: 4px;
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.ec-type:hover:not([aria-pressed='true']) {
+  background: var(--ui-surface-hover);
+}
+.ec-type[aria-pressed='true'] {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: var(--ui-ink-on-accent);
+  font-weight: 600;
+}
+.ec-type:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .ec-type {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
