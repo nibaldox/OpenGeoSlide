@@ -1,0 +1,96 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "x21-dam",
+  "title": "cara vertical"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "model": "mohr_coulomb",
+   "unit_weight": 20.0,
+   "unit_weight_sat": null,
+   "cohesion": 10.0,
+   "friction_angle": 25.0,
+   "ru": null
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     -40,
+     -15
+    ],
+    [
+     -40,
+     12
+    ],
+    [
+     0,
+     12
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     30,
+     0
+    ],
+    [
+     30,
+     -15
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -40,
+    0
+   ],
+   [
+    -10,
+    0
+   ],
+   [
+    0,
+    9.0
+   ],
+   [
+    30,
+    9.0
+   ]
+  ],
+  "free_water": true
+ },
+ "slope": {
+  "direction": "left_to_right"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 200,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": -12.0,
+   "yc": 18.0,
+   "r": 21.633307652783937
+  }
+ }
+}

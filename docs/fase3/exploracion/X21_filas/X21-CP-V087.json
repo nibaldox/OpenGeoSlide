@@ -1,0 +1,234 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V087",
+  "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "embankment",
+   "name": "Embankment",
+   "unit_weight": 18.065057900000003,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 9.576052,
+   "friction_angle": 25
+  },
+  {
+   "id": "sand",
+   "name": "Sand",
+   "unit_weight": 20.4213698,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 35
+  },
+  {
+   "id": "foundation_clay",
+   "name": "Foundation clay",
+   "unit_weight": 18.065057900000003,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 27
+  },
+  {
+   "id": "rock",
+   "name": "Rock",
+   "unit_weight": 25.133993600000004,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 45
+  }
+ ],
+ "regions": [
+  {
+   "material": "rock",
+   "polygon": [
+    [
+     -68.58,
+     -12.192
+    ],
+    [
+     -68.58,
+     -11.277600000000001
+    ],
+    [
+     68.58,
+     -11.277600000000001
+    ],
+    [
+     68.58,
+     -12.192
+    ]
+   ]
+  },
+  {
+   "material": "foundation_clay",
+   "polygon": [
+    [
+     -68.58,
+     -11.277600000000001
+    ],
+    [
+     -68.58,
+     -3.048
+    ],
+    [
+     -2.4384,
+     -3.048
+    ],
+    [
+     2.4384,
+     -3.048
+    ],
+    [
+     68.58,
+     -3.048
+    ],
+    [
+     68.58,
+     -11.277600000000001
+    ]
+   ]
+  },
+  {
+   "material": "sand",
+   "polygon": [
+    [
+     -68.58,
+     -3.048
+    ],
+    [
+     -68.58,
+     0.0
+    ],
+    [
+     -67.6656,
+     0.0
+    ],
+    [
+     -5.1816,
+     0.0
+    ],
+    [
+     -2.4384,
+     -3.048
+    ]
+   ]
+  },
+  {
+   "material": "embankment",
+   "polygon": [
+    [
+     -67.6656,
+     0.0
+    ],
+    [
+     -5.1816,
+     15.092781600000002
+    ],
+    [
+     -4.572,
+     15.24
+    ],
+    [
+     4.572,
+     15.24
+    ],
+    [
+     5.1816,
+     15.092781600000002
+    ],
+    [
+     67.6656,
+     0.0
+    ],
+    [
+     5.1816,
+     0.0
+    ],
+    [
+     2.4384,
+     -3.048
+    ],
+    [
+     -2.4384,
+     -3.048
+    ],
+    [
+     -5.1816,
+     0.0
+    ]
+   ]
+  },
+  {
+   "material": "sand",
+   "polygon": [
+    [
+     67.6656,
+     0.0
+    ],
+    [
+     68.58,
+     0.0
+    ],
+    [
+     68.58,
+     -3.048
+    ],
+    [
+     2.4384,
+     -3.048
+    ],
+    [
+     5.1816,
+     0.0
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -68.58,
+    6.096
+   ],
+   [
+    68.58,
+    6.096
+   ]
+  ],
+  "free_water": true
+ },
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": -41.148,
+   "yc": 51.5112,
+   "r": 51.5112
+  }
+ }
+}

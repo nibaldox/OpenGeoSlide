@@ -1,0 +1,77 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "x21",
+  "title": "X21"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "model": "mohr_coulomb",
+   "unit_weight": 20.0,
+   "unit_weight_sat": null,
+   "cohesion": 3.0,
+   "friction_angle": 19.6,
+   "ru": null
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     20.0,
+     20.0
+    ],
+    [
+     20.0,
+     25.0
+    ],
+    [
+     30.0,
+     25.0
+    ],
+    [
+     50.0,
+     35.0
+    ],
+    [
+     70.0,
+     35.0
+    ],
+    [
+     70.0,
+     20.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 29.54334963719809,
+   "yc": 53.63784815923435,
+   "r": 28.641487934160704
+  },
+  "tension_crack": {
+   "depth": 2.0,
+   "water": 0.0
+  }
+ }
+}

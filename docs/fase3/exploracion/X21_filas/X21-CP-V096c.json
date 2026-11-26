@@ -1,0 +1,171 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V096c",
+  "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "layer_1",
+   "name": "Layer 1",
+   "unit_weight": 18.8,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 20,
+   "friction_angle": 18
+  },
+  {
+   "id": "layer_2",
+   "name": "Layer 2",
+   "unit_weight": 18.5,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 40,
+   "friction_angle": 22
+  },
+  {
+   "id": "layer_3",
+   "name": "Layer 3",
+   "unit_weight": 18.4,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 25,
+   "friction_angle": 26
+  },
+  {
+   "id": "layer_4",
+   "name": "Layer 4",
+   "unit_weight": 18,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 10,
+   "friction_angle": 12
+  }
+ ],
+ "regions": [
+  {
+   "material": "layer_4",
+   "polygon": [
+    [
+     -20.0,
+     -9.0
+    ],
+    [
+     -20.0,
+     -6.0
+    ],
+    [
+     50.0,
+     -6.0
+    ],
+    [
+     50.0,
+     -9.0
+    ]
+   ]
+  },
+  {
+   "material": "layer_3",
+   "polygon": [
+    [
+     -20.0,
+     -6.0
+    ],
+    [
+     -20.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     6.0,
+     3.0
+    ],
+    [
+     50.0,
+     3.0
+    ],
+    [
+     50.0,
+     -6.0
+    ]
+   ]
+  },
+  {
+   "material": "layer_2",
+   "polygon": [
+    [
+     6.0,
+     3.0
+    ],
+    [
+     18.0,
+     9.0
+    ],
+    [
+     50.0,
+     9.0
+    ],
+    [
+     50.0,
+     3.0
+    ]
+   ]
+  },
+  {
+   "material": "layer_1",
+   "polygon": [
+    [
+     18.0,
+     9.0
+    ],
+    [
+     30.0,
+     15.0
+    ],
+    [
+     50.0,
+     15.0
+    ],
+    [
+     50.0,
+     9.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 10.911,
+   "yc": 23.208,
+   "r": 32.106
+  },
+  "tension_crack": {
+   "depth": 1.015,
+   "water": 0.0
+  }
+ }
+}

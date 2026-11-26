@@ -1,0 +1,293 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V061",
+  "title": "Clarence Cannon Dam (Wolff & Harr), specified surface"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "phase_ii_fill",
+   "name": "Phase II fill",
+   "unit_weight": 23.56312,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 138.92936,
+   "friction_angle": 14.8
+  },
+  {
+   "id": "sand_drain",
+   "name": "Sand drain",
+   "unit_weight": 18.8505,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 30
+  },
+  {
+   "id": "phase_i_fill",
+   "name": "Phase I fill",
+   "unit_weight": 23.56312,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 106.77298,
+   "friction_angle": 6.34
+  },
+  {
+   "id": "foundation_sand",
+   "name": "Foundation sand",
+   "unit_weight": 18.8505,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 30
+  }
+ ],
+ "regions": [
+  {
+   "material": "foundation_sand",
+   "polygon": [
+    [
+     181.0512,
+     156.972
+    ],
+    [
+     181.0512,
+     138.684
+    ],
+    [
+     -111.252,
+     138.684
+    ],
+    [
+     -111.252,
+     156.972
+    ],
+    [
+     -96.012,
+     156.972
+    ],
+    [
+     -55.7784,
+     140.208
+    ],
+    [
+     -31.94304,
+     140.208
+    ],
+    [
+     -1.8288,
+     156.972
+    ]
+   ]
+  },
+  {
+   "material": "phase_i_fill",
+   "polygon": [
+    [
+     181.0512,
+     167.09136
+    ],
+    [
+     181.0512,
+     156.972
+    ],
+    [
+     -1.8288,
+     156.972
+    ],
+    [
+     -31.94304,
+     140.208
+    ],
+    [
+     -55.7784,
+     140.208
+    ],
+    [
+     -96.012,
+     156.972
+    ],
+    [
+     -111.252,
+     156.972
+    ],
+    [
+     -111.252,
+     167.09136
+    ],
+    [
+     -42.73296,
+     167.09136
+    ],
+    [
+     -40.5384,
+     167.09136
+    ]
+   ]
+  },
+  {
+   "material": "sand_drain",
+   "polygon": [
+    [
+     110.49,
+     168.49344
+    ],
+    [
+     181.0512,
+     168.49344
+    ],
+    [
+     181.0512,
+     167.09136
+    ],
+    [
+     -40.5384,
+     167.09136
+    ],
+    [
+     -40.5384,
+     168.49344
+    ]
+   ]
+  },
+  {
+   "material": "phase_ii_fill",
+   "polygon": [
+    [
+     -111.252,
+     167.09136
+    ],
+    [
+     -111.252,
+     186.11088
+    ],
+    [
+     -48.85944,
+     200.8632
+    ],
+    [
+     -37.39896,
+     200.8632
+    ],
+    [
+     6.94944,
+     186.2328
+    ],
+    [
+     59.25312,
+     176.1744
+    ],
+    [
+     81.56448,
+     176.1744
+    ],
+    [
+     110.49,
+     168.49344
+    ],
+    [
+     -40.5384,
+     168.49344
+    ],
+    [
+     -40.5384,
+     197.0532
+    ],
+    [
+     -42.73296,
+     197.0532
+    ],
+    [
+     -42.73296,
+     167.09136
+    ]
+   ]
+  },
+  {
+   "material": "sand_drain",
+   "polygon": [
+    [
+     -40.5384,
+     168.49344
+    ],
+    [
+     -40.5384,
+     167.09136
+    ],
+    [
+     -42.73296,
+     167.09136
+    ],
+    [
+     -42.73296,
+     197.0532
+    ],
+    [
+     -40.5384,
+     197.0532
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -111.252,
+    169.7736
+   ],
+   [
+    181.0512,
+    169.7736
+   ]
+  ],
+  "free_water": true
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "polyline",
+   "points": [
+    [
+     -48.85944,
+     200.8632
+    ],
+    [
+     -14.6304,
+     166.7256
+    ],
+    [
+     -1.8288,
+     157.24632
+    ],
+    [
+     87.20328,
+     157.24632
+    ],
+    [
+     104.63784,
+     170.04792
+    ]
+   ]
+  }
+ }
+}
