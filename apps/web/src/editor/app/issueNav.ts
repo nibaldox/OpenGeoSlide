@@ -101,6 +101,8 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
   if (a === 'analysis') {
     if (b === undefined) return { tab: 'surface', selection, fieldPath: null };
     if (ANALYSIS_FIELDS.has(b)) return { tab: 'analysis', selection, fieldPath: `/analysis/${b}` };
+    // F5.7: la grieta de tracción vive en «Análisis»; cualquier subcampo desconocido lleva a la casilla.
+    if (b === 'tension_crack') return { tab: 'analysis', selection, fieldPath: c === 'depth' || c === 'water_fill' ? `/analysis/tension_crack/${c}` : '/analysis/tension_crack' };
     if (b === 'surface') return { tab: 'surface', selection, fieldPath: c === 'r' || c === 'xc' || c === 'yc' ? `/analysis/surface/${c}` : '/analysis/surface/xc' };
     if (b === 'seismic') return { tab: 'seismic', selection, fieldPath: `/analysis/seismic/${c === 'kv' ? 'kv' : 'kh'}` };
     if (b === 'search') {

@@ -122,8 +122,8 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     text: 'Alguna carga declarada no actúa sobre la masa analizada.',
   },
   water_above_ground: {
-    severity: 'aviso',
-    text: 'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora: el agua libre (por ejemplo, un embalse) no se considera en esta versión; revise la línea piezométrica.',
+    severity: 'nota',
+    text: 'La piezométrica queda sobre el terreno: el agua embalsada se incluye con su peso y su empuje horizontal (sin sismo).',
   },
   max_iterations: {
     severity: 'aviso',

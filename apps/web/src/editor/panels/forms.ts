@@ -4,6 +4,7 @@
 
 import type {
   AnalysisSettings,
+  CrackDepth,
   Direction,
   IntersliceFunction,
   Load,
@@ -14,10 +15,14 @@ import type {
   SearchSpec,
   CircleSurfaceSpec,
   SurfaceSpec,
+  TensionCrack,
 } from '../../engine/types';
 import {
   RULE_TEXT,
   SEARCH_RANGE_LABEL,
+  crackDepthText,
+  crackMissingText,
+  crackWaterFillText,
   intersliceTableError,
   loadXText,
   rangeExtentText,
@@ -131,6 +136,8 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   strength_datum: 'Cota de referencia de Su',
   strength_gradient: 'Gradiente de Su',
   strength_limit: 'Límite de Su',
+  crack_depth: 'Grieta de tracción, profundidad',
+  crack_water_fill: 'Grieta de tracción, fracción de agua',
 };
 
 /** Lee un campo y, si falla, anota el error. Devuelve el valor o `null` (vacío opcional o error). */
@@ -1490,6 +1497,63 @@ export function analysisCommands(doc: ModelDoc, values: AnalysisValues): EditorC
 function parseNumberOr(text: string): number {
   const p = parseNumber(text);
   return p.kind === 'ok' ? p.value : Number.NaN;
+}
+
+// ───────────────────────── Grieta de tracción (v0.5, F5.2, F5.7) ─────────────────────────
+
+/** Fracción de agua con la que se crea la grieta: 1 (llena), lo conservador en la práctica (Slide2, USACE EM 1110-2-1902). */
+export const CRACK_DEFAULT_WATER_FILL = 1;
+
+/** Profundidad fija con la que se pasa de «Automática» a «Fija» cuando todavía no hay un número, en la unidad de longitud del modelo. */
+export const CRACK_DEFAULT_FIXED_DEPTH = 1;
+
+export interface CrackForm {
+  /** Casilla: ¿el análisis usa una grieta de tracción? */
+  enabled: boolean;
+  /** «Automática» (G6) en lugar de una profundidad fija. */
+  auto: boolean;
+  depth: string;
+  water_fill: string;
+}
+
+/** Formulario de la grieta desde el documento. Sin grieta: apagada, automática y con la fracción de agua en 1. */
+export function crackToForm(doc: ModelDoc): CrackForm {
+  const c = doc.analysis.tension_crack;
+  if (c === undefined || c === null) return { enabled: false, auto: true, depth: '', water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) };
+  const auto = c.depth === 'auto';
+  return { enabled: true, auto, depth: typeof c.depth === 'number' ? formatNumber(c.depth) : '', water_fill: formatNumber(c.water_fill) };
+}
+
+/**
+ * Valores de la grieta: `null` con la casilla apagada (no se validan los campos), o `{ depth, water_fill }` validados con las reglas
+ * y el texto del motor (E15b): `depth` finito y mayor que 0 (o «Automática») y `water_fill` finito y en [0, 1], obligatorio.
+ */
+export function crackFromForm(form: CrackForm): FormOutcome<TensionCrack | null> {
+  if (!form.enabled) return { ok: true, value: null };
+  const errors: FieldErrors = {};
+  let depth: CrackDepth = 'auto';
+  if (!form.auto) {
+    const p = parseNumber(form.depth);
+    if (p.kind === 'empty') errors.depth = crackMissingText('depth');
+    else if (p.kind === 'invalid') errors.depth = `${FIELD_LABEL.crack_depth}: escriba un número (admite coma o punto decimal) o elija «Automática»`;
+    else if (!(p.value > 0)) errors.depth = crackDepthText(p.value);
+    else depth = p.value;
+  }
+  let waterFill = CRACK_DEFAULT_WATER_FILL;
+  const w = parseNumber(form.water_fill);
+  if (w.kind === 'empty') errors.water_fill = crackMissingText('water_fill');
+  else if (w.kind === 'invalid') errors.water_fill = `${FIELD_LABEL.crack_water_fill}: escriba un número de 0 a 1 (admite coma o punto decimal)`;
+  else if (!(w.value >= 0 && w.value <= 1)) errors.water_fill = crackWaterFillText(w.value);
+  else waterFill = w.value;
+  return done(errors, () => ({ depth, water_fill: waterFill }));
+}
+
+/** Comandos que llevan la grieta del documento a `value` (`null` la quita). Sin cambios no emite nada, para no ensuciar el historial. */
+export function crackCommands(doc: ModelDoc, value: TensionCrack | null): EditorCommand[] {
+  const current = doc.analysis.tension_crack ?? null;
+  if (value === null) return current === null ? [] : [{ type: 'analysis/patch', patch: { tension_crack: undefined } }];
+  if (current !== null && current.depth === value.depth && current.water_fill === value.water_fill) return [];
+  return [{ type: 'analysis/patch', patch: { tension_crack: { depth: value.depth, water_fill: value.water_fill } } }];
 }
 
 // ───────────────────────── Cargas ─────────────────────────

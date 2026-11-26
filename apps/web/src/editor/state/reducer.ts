@@ -17,7 +17,7 @@ import type {
   Selection,
   UiAction,
 } from '../types';
-import { v03Fields, v04Fields } from '../../io/ogsJson';
+import { v03Fields, v04Fields, v05Fields } from '../../io/ogsJson';
 import { allFinite, copyPoints, deepEqual, isFiniteNumber, isPoint, isPointList } from './docUtils';
 import { convertDocUnits, isUnitSystem } from './units';
 
@@ -70,13 +70,14 @@ function ensureV02(doc: ModelDoc): ModelDoc {
 }
 
 /**
- * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9, F4.1): si un comando deja un campo de la 0.3
- * (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, y con refuerzos
- * (cualquier versión menor que la 0.4) a 0.4, como hace `saveOgsJson`. Nunca la baja: el motor acepta un modelo 0.4 sin refuerzos, y
- * al guardar se recalcula la versión mínima.
+ * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9, F4.1, F5.1): si un comando deja un campo
+ * de la 0.3 (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, con
+ * refuerzos (cualquier versión menor que la 0.4) a 0.4 y con la grieta de tracción (menor que la 0.5) a 0.5, como hace
+ * `saveOgsJson`. Nunca la baja: el motor acepta un modelo 0.5 sin grieta, y al guardar se recalcula la versión mínima.
  */
 function syncVersion(doc: ModelDoc): ModelDoc {
-  if (doc.version !== '0.4' && v04Fields(doc).length > 0) return { ...doc, version: '0.4' };
+  if (doc.version !== '0.5' && v05Fields(doc).length > 0) return { ...doc, version: '0.5' };
+  if (doc.version !== '0.4' && doc.version !== '0.5' && v04Fields(doc).length > 0) return { ...doc, version: '0.4' };
   if ((doc.version === '0.1' || doc.version === '0.2') && v03Fields(doc).length > 0) return { ...doc, version: '0.3' };
   return doc;
 }

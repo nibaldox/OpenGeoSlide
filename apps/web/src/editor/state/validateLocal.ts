@@ -8,7 +8,7 @@
 
 import type { AnalysisSettings, Material, Model, Point, Reinforcement } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
-import { v03Fields, v04Fields } from '../../io/ogsJson';
+import { v03Fields, v04Fields, v05Fields } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
 import { geotechAdvisories } from './geotech';
 import { checkPolylineAgainstModel } from './polylineGround';
@@ -134,6 +134,33 @@ export function reinforcementFieldText(index: number, label: string, rule: strin
 /** Texto del motor (`reinforcements requiere version "0.4"`) con las palabras de la interfaz (E14a). */
 function version04Text(declared: string): string {
   return `Formato del archivo: los refuerzos requieren el formato 0.4, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.4`;
+}
+
+/** Texto del motor (`tension_crack requiere version "0.5"`) con las palabras de la interfaz (E15a). */
+function version05Text(declared: string): string {
+  return `Formato del archivo: la grieta de tracción requiere el formato 0.5, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.5`;
+}
+
+const crackValue = (v: unknown): string => (typeof v === 'number' && !Number.isFinite(v) ? String(v) : fmt(v));
+
+/**
+ * Texto del motor (`analysis.tension_crack.depth debe ser finito y mayor que 0 (o "auto"), no {d}`) con las palabras de la interfaz
+ * (E15b). Sin la cita del valor cuando el campo falta.
+ */
+export function crackDepthText(depth: unknown): string {
+  return `Grieta de tracción, profundidad: debe ser finito y mayor que 0 (o «Automática»), no ${crackValue(depth)}`;
+}
+
+/** Texto del motor (`analysis.tension_crack.water_fill debe ser finito y estar en [0, 1], no {w}`) con las palabras de la interfaz (E15b). */
+export function crackWaterFillText(fill: unknown): string {
+  return `Grieta de tracción, fracción de agua: debe ser finito y estar en [0, 1], no ${crackValue(fill)}`;
+}
+
+/** Texto del motor (`analysis.tension_crack.<campo> es obligatorio`) con la etiqueta del campo; `water_fill` no tiene valor por defecto. */
+export function crackMissingText(field: 'depth' | 'water_fill'): string {
+  return field === 'depth'
+    ? 'Grieta de tracción, profundidad: es obligatoria; escriba un valor mayor que 0 o elija «Automática»'
+    : 'Grieta de tracción, fracción de agua: es obligatoria y no tiene valor por defecto; escriba un valor de 0 (seca) a 1 (llena)';
 }
 
 /** Texto del motor (`<campo> requiere version "0.3"`) con el nombre del campo de la interfaz (R10B-08). */
@@ -600,6 +627,24 @@ export function intersliceTableError(points: unknown): { text: string; index: nu
   return null;
 }
 
+/** `analysis.tension_crack` (E15b): `depth` finito y mayor que 0 (o «auto») y `water_fill` finito y en [0, 1]; los dos son obligatorios. */
+function validateCrack(a: AnalysisSettings, issues: Issue[]): void {
+  const c = a.tension_crack;
+  if (c === undefined || c === null) return;
+  const base = '/analysis/tension_crack';
+  const raw = c as unknown as Record<string, unknown>;
+  if (raw.depth === undefined || raw.depth === null) {
+    issues.push(error('editor.crack_depth', `${crackMissingText('depth')}.`, `${base}/depth`));
+  } else if (raw.depth !== 'auto' && !(isNum(raw.depth) && raw.depth > 0)) {
+    issues.push(error('editor.crack_depth', `${crackDepthText(raw.depth)}.`, `${base}/depth`));
+  }
+  if (raw.water_fill === undefined || raw.water_fill === null) {
+    issues.push(error('editor.crack_water_fill', `${crackMissingText('water_fill')}.`, `${base}/water_fill`));
+  } else if (!(isNum(raw.water_fill) && raw.water_fill >= 0 && raw.water_fill <= 1)) {
+    issues.push(error('editor.crack_water_fill', `${crackWaterFillText(raw.water_fill)}.`, `${base}/water_fill`));
+  }
+}
+
 function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | null, tol: number, issues: Issue[]): void {
   const a = doc.analysis;
   const unit = lengthUnit(doc.units);
@@ -648,6 +693,7 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
     }
   }
   validateInterslice(a, issues);
+  validateCrack(a, issues);
   const q = a.search;
   if (q !== undefined && q !== null) {
     const counts: ['n_entry' | 'n_exit' | 'n_radius', number | undefined][] = [
@@ -874,13 +920,17 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
   }
   // R10B-08: como el motor (`<campo> requiere version "0.3"`), con el primer campo de la 0.3 que el documento usa.
-  const first = doc.version === '0.3' || doc.version === '0.4' ? undefined : v03Fields(doc)[0];
+  const first = doc.version === '0.3' || doc.version === '0.4' || doc.version === '0.5' ? undefined : v03Fields(doc)[0];
   if (first) {
     issues.push(error('editor.out_of_range', `${version03Text(first.what, String(doc.version))}.`, '/version'));
   }
-  // F4.1: como el motor (`reinforcements requiere version "0.4"`).
-  if (doc.version !== '0.4' && v04Fields(doc).length > 0) {
+  // F4.1: como el motor (`reinforcements requiere version "0.4"`); la 0.5 también los admite.
+  if (doc.version !== '0.4' && doc.version !== '0.5' && v04Fields(doc).length > 0) {
     issues.push(error('editor.reinforcement_version', `${version04Text(String(doc.version))}.`, '/version'));
+  }
+  // F5.1: como el motor (`tension_crack requiere version "0.5"`).
+  if (doc.version !== '0.5' && v05Fields(doc).length > 0) {
+    issues.push(error('editor.crack_version', `${version05Text(String(doc.version))}.`, '/version'));
   }
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
