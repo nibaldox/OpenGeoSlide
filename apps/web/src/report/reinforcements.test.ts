@@ -49,10 +49,10 @@ describe('sección «Refuerzos» del informe', () => {
     ]);
     expect(geo.rows[1]!.slice(3)).toEqual(['40; 29', '58; 23', '18,9737', 'Axial']);
     expect(geo.rows[0]![6]).toBe('Ángulo 0°');
-    expect(cap.rows[1]).toEqual(['anclaje-1', 'Tracción 150 kN · cabeza 150 · punta 0', '2,5', 'Sin arrancamiento: totalmente anclado']);
+    expect(cap.rows[1]).toEqual(['anclaje-1', 'Tracción 150 kN · cabeza 150 kN · punta 0 kN', '2,5', 'Sin arrancamiento: totalmente anclado']);
     expect(cap.rows[0]).toEqual(['tablestaca-1', 'Fuerza 120 kN/m de muro', '—', '—']);
     expect(cap.rows[2]![3]).toBe('Adherencia 30 kN/m');
-    expect(cap.rows[3]![3]).toBe('Interfaz: adhesión 2, δ 20°, Rc 0,8');
+    expect(cap.rows[3]![3]).toBe('Interfaz: adhesión 2 kPa, δ 20°, Rc 0,8');
   });
 
   it('la tabla de fuerzas tiene id, tipo, cruce, estación, disponible, aplicada (fx; fy), movilizada (fx; fy), aplicación y estado, una por método', () => {
@@ -125,6 +125,18 @@ describe('sección «Refuerzos» del informe', () => {
     expect(text).toContain('Sin cruce con la superficie final (Bishop simplificado): anclaje-1, clavo-1.');
     expect(text).toContain('Sin cruce con la superficie final (Spencer): anclaje-1, clavo-1.');
     expect(text).not.toContain('Ningún refuerzo cruzó');
+  });
+
+  // R11B-09 / E14o-16: `adhesion`, `end1_capacity` y `end2_capacity` llevan su unidad en el PDF (kPa/psf y kN/lbf).
+  it('la adhesión de la interfaz y las capacidades de cabeza y punta llevan unidad', () => {
+    const si = reinforcementInputTables(input.model);
+    expect(si.capacity.rows[1]![1]).toBe('Tracción 150 kN · cabeza 150 kN · punta 0 kN');
+    const geo = si.capacity.rows.find((r) => r[0] === 'geosintetico-1')!;
+    expect(geo[3]).toBe('Interfaz: adhesión 2 kPa, δ 20°, Rc 0,8');
+    expect(geo[1]).toBe('Tracción 40 kN · cabeza 0 kN · punta 0 kN');
+    const imp = reinforcementInputTables({ ...input.model, units: 'imperial' });
+    expect(imp.capacity.rows.find((r) => r[0] === 'geosintetico-1')![3]).toBe('Interfaz: adhesión 2 psf, δ 20°, Rc 0,8');
+    expect(imp.capacity.rows.find((r) => r[0] === 'geosintetico-1')![1]).toBe('Tracción 40 lbf · cabeza 0 lbf · punta 0 lbf');
   });
 
   it('en un modelo imperial las unidades son ft y lbf/ft', () => {

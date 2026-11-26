@@ -54,8 +54,8 @@ export function hasStructuralElements(list: readonly Reinforcement[] | undefined
   return (list ?? []).some((r) => r.type === 'pile' || r.type === 'sheet_pile');
 }
 
-export function reinforcementUnits(units: string | null | undefined): { length: string; force: string; line: string } {
-  return isImperialUnits(units) ? { length: 'ft', force: 'lbf', line: 'lbf/ft' } : { length: 'm', force: 'kN', line: 'kN/m' };
+export function reinforcementUnits(units: string | null | undefined): { length: string; force: string; line: string; stress: string } {
+  return isImperialUnits(units) ? { length: 'ft', force: 'lbf', line: 'lbf/ft', stress: 'psf' } : { length: 'm', force: 'kN', line: 'kN/m', stress: 'kPa' };
 }
 
 const DIRECTION_LABEL: Record<string, string> = { axial: 'Axial', tangent: 'Tangente', bisector: 'Bisectriz', perpendicular: 'Perpendicular' };
@@ -68,7 +68,7 @@ function directionText(r: Reinforcement): string {
 function capacityText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>): string {
   if (r.type === 'pile') return `Fuerza ${p(r.force)} ${u.force} por pilote`;
   if (r.type === 'sheet_pile') return `Fuerza ${p(r.force)} ${u.line} de muro`;
-  return `Tracción ${p(r.tensile_capacity)} ${u.force} · cabeza ${p(r.end1_capacity ?? 0)} · punta ${p(r.end2_capacity ?? 0)}`;
+  return `Tracción ${p(r.tensile_capacity)} ${u.force} · cabeza ${p(r.end1_capacity ?? 0)} ${u.force} · punta ${p(r.end2_capacity ?? 0)} ${u.force}`;
 }
 
 function pulloutText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>): string {
@@ -79,7 +79,7 @@ function pulloutText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>)
     case 'bond':
       return `Adherencia ${p(po.strength)} ${u.line}${po.bonded_length ? ` en los últimos ${p(po.bonded_length)} ${u.length}` : ''}`;
     case 'interface':
-      return `Interfaz: adhesión ${p(po.adhesion)}, δ ${p(po.friction_angle)}°, Rc ${p(po.coverage)}`;
+      return `Interfaz: adhesión ${p(po.adhesion)} ${u.stress}, δ ${p(po.friction_angle)}°, Rc ${p(po.coverage)}`;
     case 'development':
       return `Rampa: ℓ₁ ${p(po.length1)} ${u.length}, ℓ₂ ${p(po.length2)} ${u.length}`;
   }
