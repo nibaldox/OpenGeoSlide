@@ -111,3 +111,26 @@ def test_include_reinforced_keeps_the_models_with_reinforcements(tmp_path):
     path.write_text(json.dumps({"format": "opengeoslide", "version": "0.4", "materials": [], "reinforcements": [{"id": "A"}]}))
     assert ivb.split_models({"r.json": str(path)}) == ({}, {"r.json": str(path)})
     assert ivb.split_models({"r.json": str(path)}, include_reinforced=True) == ({"r.json": str(path)}, {})
+
+
+# ------------------------------------------------------------ F3G: the models with a crack are skipped (F5.1)
+
+def test_has_tension_crack_only_when_the_field_is_present():
+    assert ivb.has_tension_crack({"analysis": {"tension_crack": {"depth": 2.0, "water_fill": 0.0}}})
+    assert ivb.has_tension_crack({"analysis": {"tension_crack": {"depth": "auto", "water_fill": 1.0}}})
+    assert not ivb.has_tension_crack({"analysis": {"tension_crack": None}})
+    assert not ivb.has_tension_crack({"analysis": {}})
+    assert not ivb.has_tension_crack({})
+
+
+def test_split_cracked_separates_the_models_that_the_v0_3_baseline_cannot_read(tmp_path):
+    paths = {
+        "plain.json": _write(tmp_path, "plain.json", analysis={"methods": ["bishop"]}),
+        "cracked.json": _write(tmp_path, "cracked.json", analysis={"tension_crack": {"depth": 2.0, "water_fill": 1.0}}),
+        "cracked-ponded.json": _write(tmp_path, "cracked-ponded.json", **_with_piezo((0, 40), (100, 40)),
+                                      analysis={"tension_crack": {"depth": "auto", "water_fill": 0.0}}),
+        "ponded.json": _write(tmp_path, "ponded.json", **_with_piezo((0, 40), (100, 40))),
+    }
+    rest, cracked = ivb.split_cracked(paths)
+    assert sorted(rest) == ["plain.json", "ponded.json"]
+    assert sorted(cracked) == ["cracked-ponded.json", "cracked.json"]
