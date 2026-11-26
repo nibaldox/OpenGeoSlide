@@ -24,6 +24,9 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "negative_lambda",
     "load_outside_mass",
     "multiple_admissible_roots",
+    "reinforcement_outside_mass",
+    "reinforcement_compression_ignored",
+    "structural_checks_not_covered",
 ];
 
 #[derive(Deserialize)]
