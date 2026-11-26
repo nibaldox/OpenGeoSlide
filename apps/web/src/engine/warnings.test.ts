@@ -67,6 +67,15 @@ describe('describeWarning', () => {
     });
   });
 
+  it('interslice_shear_exceeds_strength es un aviso con el texto de E13k y apunta a la superficie', () => {
+    expect(describeWarning('interslice_shear_exceeds_strength')).toEqual({
+      code: 'interslice_shear_exceeds_strength',
+      severity: 'aviso',
+      text: 'Las fuerzas de corte entre dovelas superan la resistencia de las caras verticales (Chen y Morgenstern, 1983): este FS puede no ser físico. Compárelo con Janbu o revise la forma de la superficie.',
+    });
+    expect(warningPath('interslice_shear_exceeds_strength')).toBe('/analysis/surface');
+  });
+
   it('un código desconocido se muestra tal cual, como aviso', () => {
     expect(describeWarning('codigo_nuevo')).toEqual({ code: 'codigo_nuevo', severity: 'aviso', text: 'codigo_nuevo' });
   });
