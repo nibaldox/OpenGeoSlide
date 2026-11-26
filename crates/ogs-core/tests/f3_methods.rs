@@ -799,3 +799,292 @@ fn janbu_has_no_driving_when_the_slide_goes_uphill() {
         assert_ne!(r["status"], "converged", "{}", r["method"]);
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Guards (E4b, E7c, E9c with λ·f) and search
+
+fn with_min_m_alpha(mut doc: Value, min_m: f64) -> Value {
+    doc["analysis"]["min_m_alpha"] = json!(min_m);
+    doc
+}
+
+#[test]
+fn a_surface_that_the_m_alpha_guard_rejects_is_never_converged() {
+    // min_m_alpha = 0.99 rejects the surface for every method: no FS is reported as converged.
+    for method in [
+        "spencer",
+        "morgenstern_price",
+        "janbu_simplified",
+        "janbu_corrected",
+    ] {
+        let report = run(&with_min_m_alpha(v047a(json!([method])), 0.99));
+        let r = &report.results[0];
+        println!(
+            "min_m_alpha 0.99, {method}: {:?} {:?}",
+            r.status, r.warnings
+        );
+        assert_eq!(r.status, SolveStatus::NotConverged, "{method}");
+        assert_eq!(r.fos, None, "{method}");
+        assert!(r.correction_factor.is_none(), "{method}");
+    }
+    let bishop = run(&with_min_m_alpha(v047a(json!(["bishop"])), 0.99));
+    assert_eq!(bishop.results[0].status, SolveStatus::Invalid);
+}
+
+#[test]
+fn the_pole_guard_of_morgenstern_price_uses_lambda_times_f() {
+    // At min_m_alpha = 0.9 Spencer (f = 1) has no admissible root, but the half sine makes λ·f small near the ends of
+    // the block, so the poles Φ_i of M-P are those of λ·f (E13d) and its root is admissible.
+    let spencer = run(&with_min_m_alpha(v047a(json!(["spencer"])), 0.9));
+    assert_eq!(spencer.results[0].status, SolveStatus::NotConverged);
+    let mp = run(&with_min_m_alpha(v047a(json!(["morgenstern_price"])), 0.9));
+    let r = &mp.results[0];
+    assert_eq!(r.status, SolveStatus::Converged);
+    let (fos, lambda) = (r.fos.unwrap(), r.lambda.unwrap());
+    // The admissibility of the reported state, checked here: Φ_i/F ≥ min_m on every soil slice, with the f of the face
+    // that the march resolves in the slice.
+    let faces = interslice_faces(&r.slices, F::HalfSine, None);
+    for (k, s) in r.slices.iter().enumerate() {
+        if s.weight == 0.0 && s.cohesion == 0.0 && s.tan_phi == 0.0 {
+            continue;
+        }
+        let (sin, cos) = s.alpha.sin_cos();
+        let sf = lambda * faces[k + 1];
+        let phi = ((sin - sf * cos) * s.tan_phi + (cos + sf * sin) * fos) / fos;
+        assert!(phi >= 0.9, "slice {k}: Φ/F = {phi}");
+    }
+}
+
+#[test]
+fn search_with_the_new_methods_is_within_one_percent_of_cslope() {
+    // V047a with its search (20 × 20 × 20, refinement) and 50 slices. cSlope 0.1.0 with the same search settings
+    // (`to_cslope.py` options, `oracle_search.py`): the criterion of the searches is FS_ogs ≤ 1.01·FS_cSlope.
+    let case: Value = serde_json::from_str(
+        &fs::read_to_string(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../verification/cases/V047a.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    for (label, method, spec, cslope) in [
+        (
+            "M-P half_sine",
+            "morgenstern_price",
+            Some(json!({"function": "half_sine"})),
+            0.9840741753,
+        ),
+        (
+            "M-P constant",
+            "morgenstern_price",
+            Some(json!({"function": "constant"})),
+            0.9840960685,
+        ),
+        ("Janbu simplified", "janbu_simplified", None, 0.9350919434),
+        ("Janbu corrected", "janbu_corrected", None, 0.9854548680),
+    ] {
+        let mut doc = case["model"].clone();
+        doc["version"] = json!("0.3");
+        doc["analysis"]["methods"] = json!([method]);
+        if let Some(spec) = spec {
+            doc["analysis"]["interslice"] = spec;
+        }
+        let f = fos(&doc, 0);
+        println!(
+            "search V047a, {label}: ogs {f:.10}, cslope {cslope:.10}, Δ {:+.4} %",
+            100.0 * (f - cslope) / cslope
+        );
+        assert!(f <= 1.01 * cslope, "{label}: {f} above 1.01·{cslope}");
+        assert!(
+            f >= 0.99 * cslope,
+            "{label}: {f} more than 1 % below {cslope}"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The fixed polyline of F3.8 with slices built here (the slicer of polylines is W1a's, merged later): the solvers
+// with `circular = false`, against the oracle, the global equilibrium and the mirror image.
+
+/// Slices of V047a between a polyline `points` (x increasing, ground-to-ground) and the ground of V047a
+/// (y = 25 for x ≤ 30, then the 2:1 slope up to y = 35 at x = 50, flat after). `n` uniform divisions plus the
+/// vertices of the polyline and of the ground. Toe first for a slide toward −x (`right_to_left`), as the slicer gives
+/// them: the toe is on the left.
+fn polyline_slices(points: &[[f64; 2]], n: usize) -> Vec<Slice> {
+    let (x0, x1) = (points[0][0], points[points.len() - 1][0]);
+    let ground = |x: f64| 25.0 + 0.5 * (x - 30.0).clamp(0.0, 20.0);
+    let base = |x: f64| {
+        let i = points
+            .partition_point(|p| p[0] <= x)
+            .clamp(1, points.len() - 1);
+        let (a, b) = (points[i - 1], points[i]);
+        a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0])
+    };
+    let mut xs: Vec<f64> = (0..=n)
+        .map(|i| x0 + (x1 - x0) * i as f64 / n as f64)
+        .collect();
+    xs.extend(points.iter().map(|p| p[0]));
+    xs.push(50.0);
+    xs.sort_by(f64::total_cmp);
+    xs.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
+    xs.windows(2)
+        .map(|w| {
+            let (xl, xr) = (w[0], w[1]);
+            let (yl, yr) = (base(xl), base(xr));
+            let xm = 0.5 * (xl + xr);
+            // The ground is linear inside the slice (50 is a node), so the trapezoid is exact.
+            let height = 0.5 * (ground(xl) - yl + ground(xr) - yr);
+            let width = xr - xl;
+            Slice {
+                x_left: xl,
+                x_right: xr,
+                y_base_left: yl,
+                y_base_right: yr,
+                y_top_mid: ground(xm),
+                width,
+                alpha: (yr - yl).atan2(width),
+                base_length: width.hypot(yr - yl),
+                weight: 20.0 * height * width,
+                cohesion: 3.0,
+                tan_phi: 19.6_f64.to_radians().tan(),
+                pore_pressure: 0.0,
+                material: 0,
+                weight_extra: 0.0,
+                h_force: 0.0,
+                h_moment_base: 0.0,
+                driving_extra: 0.0,
+                y_centroid: 0.0,
+            }
+        })
+        .collect()
+}
+
+/// The same slices for a slide toward +x: x → −x and the toe first (the mirror image of the polyline).
+fn mirrored_slices(slices: &[Slice]) -> Vec<Slice> {
+    // Reversing the order puts the former crest first; the mirror of a toe-first list is read from the right.
+    slices
+        .iter()
+        .map(|s| Slice {
+            x_left: -s.x_right,
+            x_right: -s.x_left,
+            y_base_left: s.y_base_right,
+            y_base_right: s.y_base_left,
+            alpha: s.alpha,
+            ..*s
+        })
+        .collect()
+}
+
+#[test]
+fn polyline_values_of_f38_with_slices_built_in_the_test() {
+    // Oracle values of F3.8 on the polyline (0.1 %): M-P constant and half sine, and Janbu corrected. The slices are
+    // built here with 50 divisions, not by the slicer of W1a, so the criterion is that of the oracle (0.1 %).
+    let slices = polyline_slices(&POLYLINE, 50);
+    let spec = |f: F| ogs_core::model::IntersliceSpec {
+        function: f,
+        points: None,
+    };
+    let opts = options(false);
+    let run_method = |m: MethodKind, f: Option<F>| {
+        let r = ogs_core::methods::solve_with(&slices, m, &opts, f.map(spec).as_ref());
+        assert_eq!(r.status, SolveStatus::Converged, "{m:?} {r:?}");
+        r.fos
+    };
+    assert_oracle(
+        "V047a polyline, M-P constant",
+        run_method(MethodKind::MorgensternPrice, Some(F::Constant)),
+        0.9991304877,
+    );
+    assert_oracle(
+        "V047a polyline, M-P half_sine",
+        run_method(MethodKind::MorgensternPrice, Some(F::HalfSine)),
+        0.9999384297,
+    );
+    assert_oracle(
+        "V047a polyline, Janbu corrected",
+        run_method(MethodKind::JanbuCorrected, None),
+        0.9993458659,
+    );
+    // Spencer starts from Janbu's F0 and gives M-P constant; Bishop is not defined on a polyline.
+    let spencer = run_method(MethodKind::Spencer, None);
+    let constant = run_method(MethodKind::MorgensternPrice, Some(F::Constant));
+    assert_eq!(
+        spencer, constant,
+        "Spencer = M-P constant, bit for bit, also on a polyline"
+    );
+    assert_eq!(
+        solve(&slices, MethodKind::Bishop, &opts).status,
+        SolveStatus::Invalid
+    );
+}
+
+#[test]
+fn polyline_global_equilibrium_and_mirror_of_the_solvers() {
+    let slices = polyline_slices(&POLYLINE, 50);
+    let opts = options(false);
+    let mirrored = mirrored_slices(&slices);
+    for (method, function) in [
+        (MethodKind::Spencer, None),
+        (MethodKind::MorgensternPrice, Some(F::HalfSine)),
+        (MethodKind::MorgensternPrice, Some(F::Trapezoidal)),
+    ] {
+        let spec = function.map(|f| ogs_core::model::IntersliceSpec {
+            function: f,
+            points: None,
+        });
+        let r = ogs_core::methods::solve_with(&slices, method, &opts, spec.as_ref());
+        assert_eq!(r.status, SolveStatus::Converged, "{method:?}");
+        let (fos, lambda) = (r.fos, r.lambda.unwrap());
+        let faces = match function {
+            Some(f) => interslice_faces(&slices, f, None),
+            None => vec![1.0; slices.len() + 1],
+        };
+        let e = interslice_forces(&slices, &faces, fos, lambda);
+        let x = shear_forces(&e, &faces, lambda);
+        for p in [(40.0, 45.0), (30.0, 20.0)] {
+            let (moment, scale) = global_moment(&slices, &e, &x, fos, p);
+            println!(
+                "polyline {method:?} {function:?}: F {fos:.9}, residual about {p:?} = {:.2e}",
+                (moment / scale).abs()
+            );
+            assert!(
+                (moment / scale).abs() < 1e-6,
+                "{method:?} {function:?} about {p:?}"
+            );
+        }
+        // Mirror image: the same FS with the slices mirrored and the slide toward +x.
+        let m = ogs_core::methods::solve_with(&mirrored, method, &opts, spec.as_ref());
+        assert!(
+            (m.fos - fos).abs() <= 1e-9 * fos,
+            "{method:?} {function:?}: {fos} against {}",
+            m.fos
+        );
+    }
+    // Janbu: horizontal force and mirror image.
+    let r = ogs_core::methods::solve_with(&slices, MethodKind::JanbuSimplified, &opts, None);
+    let f0 = r.fos;
+    let residual: f64 = slices
+        .iter()
+        .map(|s| {
+            let (sin, cos) = s.alpha.sin_cos();
+            let n_eff = effective_normal(s, f0, 0.0);
+            -n_eff * sin + (s.cohesion * s.base_length + n_eff * s.tan_phi) / f0 * cos
+        })
+        .sum();
+    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    assert!(
+        residual.abs() < 1e-6 * total_w,
+        "horizontal residual {residual}"
+    );
+    for method in [MethodKind::JanbuSimplified, MethodKind::JanbuCorrected] {
+        let (a, b) = (
+            solve(&slices, method, &opts),
+            solve(&mirrored, method, &opts),
+        );
+        assert!(
+            (a.fos - b.fos).abs() <= 1e-9 * a.fos,
+            "{method:?}: {} against {}",
+            a.fos,
+            b.fos
+        );
+    }
+}

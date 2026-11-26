@@ -1,5 +1,12 @@
 //! Spencer method, i.e. Morgenstern-Price with f(x) = 1 (§4.3), amendments E10c, E11a, E11b, E11c and E12e.
 //!
+//! The scheme below is written once for Spencer and for Morgenstern-Price (E13d, `morgenstern_price.rs`). With the
+//! interslice function `f` on the faces of the slices, `X_k = λ f_k E_k`, the closure of a slice is
+//! `E_{k+1} D_r = E_k D_l + q` and the moment residual has `Σ b (X_k + X_{k+1})` where Spencer has `λ Σ b (E_k + E_{k+1})`
+//! (see `balance_at`, [`interslice_forces`] and `Scheme`). Spencer runs the loops with `G = false`, which are the
+//! original ones, so its results do not change by a bit. On a polyline (`SolveOptions::circular == false`) the F of the
+//! start of the scan is Janbu's F₀ (E13f, `janbu.rs`) instead of Bishop's FS.
+//!
 //! Sign convention (§4.3 leaves it to the implementer):
 //! - Slices run toe → crest, with `alpha > 0` when the base rises toward the crest, so `W·sin α > 0` drives the slide.
 //! - `E[k]` is the normal interslice force on the face below slice `k` (`E[0]` toe face, `E[n]` crest face).
