@@ -79,6 +79,12 @@ pub struct Slice {
     /// dividing by `F` (E14g, Bishop).
     #[serde(skip_serializing_if = "is_zero")]
     pub passive_driving_extra: f64,
+    /// E14n-1: this slice carries the force of a reinforcement crossing (`reinforcement::apply_to_slices` sets it on the
+    /// thin slice `x_c ± 1e-6·width` that receives the force). It is only read by the classification of the negative
+    /// effective normal forces, which adds it to the two slices around it; it does not enter any equilibrium. It is
+    /// never serialized, so the report is the same.
+    #[serde(skip)]
+    pub crossing: bool,
 }
 
 /// `skip_serializing_if` of the passive fields: they are 0 without reinforcements, and the slices are part of the
@@ -125,6 +131,7 @@ pub(crate) const ZERO_SLICE: Slice = Slice {
     passive_h: 0.0,
     passive_h_moment_base: 0.0,
     passive_driving_extra: 0.0,
+    crossing: false,
 };
 
 /// Reasons a circle cannot be sliced.

@@ -767,6 +767,7 @@ pub fn apply_to_slices(
             force.fy = py;
             force.status = ForceStatus::Applied;
             let sl = &mut slices[k];
+            sl.crossing = true; // E14n-1
             let y_base = 0.5 * (sl.y_base_left + sl.y_base_right);
             let h = s_dir * px;
             let (v, hm, de) = (
