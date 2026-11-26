@@ -325,10 +325,19 @@ fn check_block_ends_circle(
     // level. The same rule as at a model wall (R1-06). An arc under the ground at its own end (`d < −tol`) is the
     // upper-arc case and stays an error. Only a touch counts: also admitting an arc above the ground (`d > tol`)
     // changed the winner of a search of the battery (D03), which breaks the identity of F3.1.
-    let touches_left = pm.arc_clearance(c, t.a).is_some_and(|d| {
+    //
+    // F3R-R2 (I1, V065): at the circle's own end the height of the arc is `yc` by construction. Evaluating it as
+    // `yc − sqrt(r² − (x − xc)²)` loses the digits: `(xc + r) − xc` differs from `r` by 1 ulp, so the root of a
+    // difference of order 1e-14 is of order 1e-7, over `tol`, and a circle that touches the crest was rejected.
+    let end_clearance = |x: f64| {
+        let own_end = x == ap || x == bp;
+        pm.top_at(x)
+            .map(|g| if own_end { c.yc } else { pm.arc_y(c, true, x) } - g)
+    };
+    let touches_left = end_clearance(t.a).is_some_and(|d| {
         (t.a - x_min <= tol && d.abs() <= tol) || (ap > x_min + tol && d.abs() <= tol)
     });
-    let touches_right = pm.arc_clearance(c, t.b).is_some_and(|d| {
+    let touches_right = end_clearance(t.b).is_some_and(|d| {
         (x_max - t.b <= tol && d.abs() <= tol) || (bp < x_max - tol && d.abs() <= tol)
     });
     if (l <= t.a && !touches_left) || (r >= t.b && !touches_right) {
