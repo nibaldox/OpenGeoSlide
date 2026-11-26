@@ -35,37 +35,106 @@
 //! No new field in `Slice`: the force and its moments go to `weight_extra` (nothing), `h_force`, `h_moment_base` and
 //! `driving_extra`. See `docs/fase3/g0/NOTAS.md`.
 
-use crate::geometry::PreparedModel;
+use crate::geometry::{PreparedModel, Sliding};
 use crate::loads::LoadCase;
-use crate::model::TensionCrack;
+use crate::model::{CrackDepth, TensionCrack};
 use crate::report::CrackReport;
 use crate::slicer::Slice;
+use crate::strength;
 use crate::surface::Surface;
 
 /// Reason of the invalid surface when it does not get to the depth of the crack (G1). It is the stable code that the
 /// message of `NoValidSurface` starts with.
 pub const TENSION_CRACK_NOT_REACHED: &str = "tension_crack_not_reached";
 
+/// Steps of the sweep of G1 (the bisection refines the first step that reaches the depth).
+const SWEEP_STEPS: usize = 200;
+/// Iterations of the bisection of G1: the interval shrinks to `2⁻⁶⁰` of a step, far under the tolerance.
+const BISECTION_ITERATIONS: usize = 60;
+/// Distance under the ground, relative to the model scale, of the point whose material gives `c`, `φ` and `γ` of the
+/// automatic depth (G6). The oracle takes 1e-3 model units; `2e-5·scale` is that distance in the models of the rows
+/// (scale 50) and does not depend on the unit. With `1e-3·scale` (0.05 m there) the depth under a gradient of `Su`
+/// moves by 0.6 % (X21-A04).
+const PROBE_FRACTION: f64 = 2e-5;
+
 /// Why a surface has no crack mass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrackError {
     /// `ground(x) − base(x) < d(x)` everywhere along the surface (G1, G8: no cap by the height of the slope).
     NotReached,
+    /// The surface does not cut the ground, so it has no sliding range to look for the crack in. The slicer reports
+    /// the real reason; `lib.rs` goes on without a plan.
+    NoGround,
 }
 
 /// Where the crack of a surface is (result of [`locate`]).
 #[derive(Debug, Clone, PartialEq)]
 pub struct CrackPlan {
     /// `x_c`: first point from the entry, on the crest side, where `ground(x) − base(x) ≥ d(x)` (G1). Sweep of 200
-    /// steps and a bisection down to the tolerance `tol` of the model.
+    /// steps and a bisection down to the tolerance `tol` of the model. When the automatic depth is 0 at the entry
+    /// (nothing to cut), `x_c` is the entry itself and nothing is truncated.
     pub x_c: f64,
     /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7).
     pub depth: f64,
-    /// Extra nodes of the cut (`x_c ± 1e-6·width`): pass them to `LoadCase::with_extra_breaks`.
+    /// Extra nodes of the cut: a node at `x_c` (pass them to `LoadCase::with_extra_breaks`). The slicer of the
+    /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut.
     pub breaks: Vec<f64>,
     /// Water in the crack, `hw = depth·water_fill`, and `γw` of the model; `truncate` uses them for `Pw`.
     pub water_height: f64,
     pub gamma_w: f64,
+}
+
+/// Depth of the crack at `x` (G6 for `Auto`), with the buffers of the column reused between calls.
+struct DepthAt<'a> {
+    spec: &'a TensionCrack,
+    pm: &'a PreparedModel,
+    loads: &'a LoadCase,
+    column: Vec<(f64, f64, usize)>,
+    scratch: Vec<f64>,
+}
+
+impl DepthAt<'_> {
+    fn at(&mut self, x: f64) -> f64 {
+        match self.spec.depth {
+            CrackDepth::Fixed(d) => d,
+            CrackDepth::Auto => self.rankine(x),
+        }
+    }
+
+    /// `z(x) = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with the material under the ground at `x` (G6).
+    fn rankine(&mut self, x: f64) -> f64 {
+        let pm = self.pm;
+        let Some(ground) = pm.top_at(x) else {
+            return 0.0;
+        };
+        let y = ground - PROBE_FRACTION * pm.scale;
+        pm.column(x, &mut self.column, &mut self.scratch);
+        let Some(&(_, _, mat)) = self.column.iter().find(|&&(lo, hi, _)| lo <= y && y < hi) else {
+            return 0.0;
+        };
+        let m = &pm.materials[mat];
+        let gamma = m.unit_weight;
+        let (c, tan_phi) = strength::resolve(m, y);
+        if !(c > 0.0 && gamma > 0.0) {
+            return 0.0;
+        }
+        // q: the `udl` that cover x, and the ponded water over the ground at x.
+        let mut q: f64 = self
+            .loads
+            .udls
+            .iter()
+            .filter(|u| u.x1 <= x && x <= u.x2)
+            .map(|u| u.q)
+            .sum();
+        if let Some(w) = pm.piezometric_y(x)
+            && w > ground
+        {
+            q += pm.gamma_w * (w - ground);
+        }
+        let phi = tan_phi.atan();
+        let z = 2.0 * c / (gamma * (std::f64::consts::FRAC_PI_4 - 0.5 * phi).tan()) - q / gamma;
+        z.max(0.0)
+    }
 }
 
 /// G1 and G6: the position and depth of the crack on `surface` (**fitted**, circle or polyline).
@@ -78,34 +147,116 @@ pub struct CrackPlan {
 /// - `loads`: the `udl` that cover `x` add to `q` in `z(x) = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)`, together with
 ///   `γw·(piezo − ground)` of the ponded water at `x`. `z` is recomputed for each `x` of the sweep.
 ///
-/// Returns the plan, or `NotReached`. **Stub (G0):** `todo!`.
+/// Returns the plan, `NotReached` if the surface never gets to the depth, or `NoGround` if it has no sliding range.
 pub fn locate(
     spec: &TensionCrack,
     pm: &PreparedModel,
     surface: &Surface,
     loads: &LoadCase,
 ) -> Result<CrackPlan, CrackError> {
-    let _ = (spec, pm, surface, loads);
-    todo!("G1: grieta de tracción")
+    let tramo = surface
+        .ground_crossings(pm)
+        .map_err(|_| CrackError::NoGround)?;
+    // The entry is the end on the crest side: the right one when the mass slides toward -x.
+    let (x_entry, x_exit) = match pm.sliding {
+        Sliding::RightToLeft => (tramo.q, tramo.p),
+        Sliding::LeftToRight => (tramo.p, tramo.q),
+    };
+    let mut depth = DepthAt {
+        spec,
+        pm,
+        loads,
+        column: Vec::with_capacity(8),
+        scratch: Vec::with_capacity(8),
+    };
+    let finish = |x_c: f64, d: f64| {
+        let water_height = d * spec.water_fill;
+        CrackPlan {
+            x_c,
+            depth: d,
+            breaks: if d > 0.0 { vec![x_c] } else { Vec::new() },
+            water_height,
+            gamma_w: pm.gamma_w,
+        }
+    };
+    // An automatic depth of 0 at the entry (no cohesion, or a surcharge that cancels it): nothing to cut.
+    if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry) <= 0.0 {
+        return Ok(finish(x_entry, 0.0));
+    }
+    let below = |depth: &mut DepthAt, x: f64| -> f64 {
+        match pm.top_at(x) {
+            Some(ground) => ground - surface.y_at(pm, x) - depth.at(x),
+            None => f64::NEG_INFINITY,
+        }
+    };
+    let mut prev = x_entry;
+    for k in 1..=SWEEP_STEPS {
+        let x = x_entry + (x_exit - x_entry) * (k as f64) / (SWEEP_STEPS as f64);
+        if below(&mut depth, x) >= 0.0 {
+            let (mut lo, mut hi) = (prev, x);
+            for _ in 0..BISECTION_ITERATIONS {
+                let mid = 0.5 * (lo + hi);
+                if below(&mut depth, mid) >= 0.0 {
+                    hi = mid;
+                } else {
+                    lo = mid;
+                }
+            }
+            // A surface that only reaches the depth at its exit end has no mass.
+            if (hi - x_exit).abs() <= pm.tol() {
+                return Err(CrackError::NotReached);
+            }
+            let d = depth.at(hi);
+            return Ok(finish(hi, d));
+        }
+        prev = x;
+    }
+    Err(CrackError::NotReached)
 }
 
 /// G2 and G3: truncates the slices of the crack and adds the force of its water.
 ///
 /// - `plan`: the result of [`locate`] for the same `surface`;
 /// - `pm`, `surface`: as in [`locate`] (a circle gives `(yc, R)` for `driving_extra`, a polyline gives none);
-/// - `slices`: the slices of the surface, toe first, cut with the nodes of [`CrackPlan::breaks`] and **before** any
-///   force of the ponded water or of the reinforcements. They are modified: every slice on the crest side of
-///   `x_c` is removed, and the slice adjacent to the face receives `Pw` (see the module).
+/// - `slices`: the slices of the surface, toe first, **before** any force of the ponded water or of the
+///   reinforcements. They are modified: every slice on the crest side of `x_c` is removed (none, when the slicer
+///   already ended the mass there), and the slice adjacent to the face receives `Pw` (see the module).
 ///
 /// It returns the entry of the report (`x = x_c`, `depth`, `water_force = Pw`; 0 for a dry crack). A reinforcement
-/// crossing on the crest side of `x_c` then gets `reinforcement_outside_mass` (it is applied after this call).
-/// **Stub (G0):** `todo!`.
+/// crossing on the crest side of `x_c` then finds no slice and gets `reinforcement_outside_mass` (it is applied after
+/// this call).
 pub fn truncate(
     plan: &CrackPlan,
     pm: &PreparedModel,
     surface: &Surface,
     slices: &mut Vec<Slice>,
 ) -> CrackReport {
-    let _ = (plan, pm, surface, slices);
-    todo!("G1: grieta de tracción")
+    let tol = pm.tol();
+    // G2: nothing on the crest side of the face stays, and its weight is not kept as a load.
+    if plan.depth > 0.0 {
+        match pm.sliding {
+            Sliding::RightToLeft => slices.retain(|s| s.x_right <= plan.x_c + tol),
+            Sliding::LeftToRight => slices.retain(|s| s.x_left >= plan.x_c - tol),
+        }
+    }
+    let hw = plan.water_height;
+    let mut water_force = 0.0;
+    if hw > 0.0
+        && let Some(face) = slices.last_mut()
+    {
+        // G3: horizontal, in the sliding direction, at hw/3 over the base of the crack, on the slice of the face.
+        water_force = 0.5 * plan.gamma_w * hw * hw;
+        let y_g = surface.y_at(pm, plan.x_c) + hw / 3.0;
+        let y_mid = 0.5 * (face.y_base_left + face.y_base_right);
+        face.h_force += water_force;
+        face.h_moment_base += water_force * (y_g - y_mid);
+        if let Some((yc, r)) = surface.moment_arm() {
+            face.driving_extra += water_force * (yc - y_g) / r;
+        }
+    }
+    CrackReport {
+        x: plan.x_c,
+        depth: plan.depth,
+        water_force,
+    }
 }
