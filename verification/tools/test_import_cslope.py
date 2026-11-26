@@ -11,6 +11,7 @@ import glob
 import importlib.util
 import json
 import os
+import re
 
 import jsonschema
 import pytest
@@ -298,6 +299,8 @@ def test_schema_accepts_a_v0_2_model_and_only_v0_2_has_loads_and_seismic():
     model["version"] = "0.1"
     assert _schema_errors(model) == []
     model["version"] = "0.3"
+    assert _schema_errors(model) == []        # F3.1: the importer's schema accepts 0.3 too
+    model["version"] = "0.4"
     assert _schema_errors(model)
 
 
@@ -416,4 +419,247 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
         n += 1
         assert case["model"]["version"] == "0.1", path
         assert "loads" not in case["model"] and "seismic" not in case["model"]["analysis"], path
-    assert n == 16
+    # the number comes from the index, never from a literal (contract F3.8)
+    with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
+        m = re.search(r"v0\.1: \*\*(\d+)\*\*", fh.read())
+    assert m and n == int(m.group(1))
+
+
+# ------------------------------------------------------------ batch 0 (F3.8): no cap, no selection
+
+def test_batch_0_has_no_cap_and_no_selection():
+    for name in ("MAX_CASES", "MIN_CASES", "PRIORITY", "MIN_SPENCER", "MIN_FIXED"):
+        assert not hasattr(imp, name), name
+
+
+def test_hold_moves_only_the_listed_checks_out_of_a_case():
+    case, _ = imp.convert(_raw(options={}), PROB)
+    case["checks"].append({**case["checks"][0], "published": 1.2, "published_by": "Otro"})
+    hold = {imp.check_key("T-IMP", case["checks"][1]): {"diagnosis": "x"}}
+    rest, held = imp.split_hold(case, hold)
+    assert [c["published"] for c in rest["checks"]] == [1.0]
+    assert [c["published"] for c in held["checks"]] == [1.2]
+    everything = {imp.check_key("T-IMP", c): {} for c in case["checks"]}
+    rest, held = imp.split_hold(case, everything)
+    assert rest is None and len(held["checks"]) == 2
+    assert imp.split_hold(case, {})[1] is None
+
+
+def test_reversed_analysis_limits_are_written_as_min_max_with_a_note():
+    raw = _raw()
+    raw["surface"] = "search"
+    d = raw["definition"]
+    d.pop("customSearchPlanes"); d.pop("customPlanesOnly")
+    d["analysisLimits"] = {"entryLeftX": 25, "entryRightX": 15, "exitLeftX": 5, "exitRightX": 0}
+    case, _ = imp.convert(raw, PROB)
+    search = case["model"]["analysis"]["search"]
+    assert search["entry"] == [15, 25] and search["exit"] == [0, 5]
+    assert any("left > right" in n for n in case["source"]["notes"])
+    assert imp.gate_search(case) == []
+
+
+# ------------------------------------------------------------ batches 1 and 2 (F3.8): v0.3 models
+
+def _raw_f3(material=None, surface=None, checks=None):
+    raw = _raw()
+    d = raw["definition"]
+    if material is not None:
+        d["materials"] = [{"name": "Soil", "model": material}]
+    if surface is not None:
+        d.pop("customSearchPlanes")
+        d["customSurfaces"] = [{"points": surface}]
+    if checks is not None:
+        raw["checks"] = [{"method": m, "published": 1.0 + i / 100, "publishedBy": f"T{i}", "tolerance": 0.05,
+                          "options": o} for i, (m, o) in enumerate(checks)]
+    return raw
+
+
+POLY = [[5.0, 2.0], [12.0, 1.0], [20.0, 3.0]]
+
+
+def test_f3_undrained_maps_to_the_v0_3_material_with_datum_gradient_and_limit():
+    raw = _raw_f3({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0,
+                   "suRefDepth": 30.0, "suRateOfChange": 1.5, "suMax": 60.0})
+    case, _, batches = imp.convert_f3(raw, PROB)
+    mat = case["model"]["materials"][0]
+    assert mat == {"id": "soil", "name": "Soil", "model": "undrained", "unit_weight": 18.0, "unit_weight_sat": None,
+                   "undrained_strength": 25.0, "strength_datum": 30.0, "strength_gradient": 1.5,
+                   "strength_limit": 60.0, "ru": None}
+    assert case["model"]["version"] == "0.3" and batches == [1]
+    assert imp.gate_schema(case) == [] and imp.gate_features(case) == []
+
+
+def test_f3_undrained_without_gradient_is_a_constant_su():
+    raw = _raw_f3({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0})
+    case, _, _ = imp.convert_f3(raw, PROB)
+    mat = case["model"]["materials"][0]
+    assert mat["undrained_strength"] == 25.0
+    assert not {"strength_datum", "strength_gradient", "strength_limit", "cohesion", "friction_angle"} & set(mat)
+
+
+def test_f3_s_f_datum_is_the_same_law_with_other_names():
+    raw = _raw_f3({"kind": "s-f-datum", "unitWeight": 17.0, "suRef": 10.0, "yRef": 35.0, "rate": 1.0})
+    case, _, _ = imp.convert_f3(raw, PROB)
+    mat = case["model"]["materials"][0]
+    assert (mat["undrained_strength"], mat["strength_datum"], mat["strength_gradient"]) == (10.0, 35.0, 1.0)
+    assert "strength_limit" not in mat
+
+
+@pytest.mark.parametrize("model, match", [
+    ({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0, "suRateOfChange": 1.0}, "juntos"),
+    ({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0, "suMax": 50.0}, "sin gradiente"),
+    ({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0, "anisotropy": {}}, "no soportada"),
+    ({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": -1.0}, "negativa"),
+    ({"kind": "shansep", "unitWeight": 18.0, "ratio": 0.25}, "shansep"),
+])
+def test_f3_refuses_undrained_that_f3_2_cannot_express(model, match):
+    with pytest.raises(imp.Omit, match=match):
+        imp.convert_f3(_raw_f3(model), PROB)
+
+
+def test_batch_0_conversion_still_omits_undrained_and_polylines_and_discards_new_methods():
+    with pytest.raises(imp.Omit, match="undrained"):
+        imp.convert(_raw_f3({"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0}), PROB)
+    with pytest.raises(imp.Omit, match="customSurfaces"):
+        imp.convert(_raw_f3(surface=POLY), PROB)
+    case, disc = imp.convert(_raw_f3(checks=[("Bishop", {}), ("Janbu", {}), ("Morgenstern-Price", {})]), PROB)
+    assert [c["method"] for c in case["checks"]] == ["bishop"] and len(disc) == 2
+
+
+def test_f3_polyline_maps_customsurfaces_and_drops_bishop():
+    raw = _raw_f3(surface=POLY, checks=[("Bishop", {}), ("Morgenstern-Price", {"intersliceFunction": "constant"}),
+                                        ("Janbu", {})])
+    case, disc, batches = imp.convert_f3(raw, PROB)
+    assert case["model"]["analysis"]["surface"] == {"type": "polyline", "points": POLY}
+    assert [c["method"] for c in case["checks"]] == ["spencer", "janbu_simplified"]
+    assert batches == [2, 2]
+    assert len(disc) == 1 and "F3.6" in disc[0]
+    assert "bishop" not in case["model"]["analysis"]["methods"]
+    assert imp.gate_schema(case) == [] and imp.gate_features(case) == []
+
+
+def test_f3_polyline_with_only_bishop_checks_is_omitted():
+    with pytest.raises(imp.Omit, match="sin checks"):
+        imp.convert_f3(_raw_f3(surface=POLY, checks=[("Bishop", {})]), PROB)
+
+
+@pytest.mark.parametrize("surface, match", [
+    ([[5.0, 2.0], [5.0, 1.0]], "estrictamente creciente"),
+    ([[5.0, 2.0]], "menos de 2"),
+])
+def test_f3_polyline_needs_two_points_with_x_increasing(surface, match):
+    with pytest.raises(imp.Omit, match=match):
+        imp.convert_f3(_raw_f3(surface=surface), PROB)
+
+
+def test_f3_polyline_with_an_axis_or_with_a_search_is_omitted():
+    raw = _raw_f3(surface=POLY)
+    raw["definition"]["customSurfaces"][0]["axis"] = [1.0, 2.0]
+    with pytest.raises(imp.Omit, match="sin eje"):
+        imp.convert_f3(raw, PROB)
+    raw = _raw_f3(surface=POLY)
+    raw["surface"] = "search"
+    with pytest.raises(imp.Omit, match="círculos propios"):
+        imp.convert_f3(raw, PROB)
+
+
+def test_f3_method_mapping_for_morgenstern_price_and_janbu():
+    def m(method, **opts):
+        return imp.f3_method({"method": method, "options": opts})[:2]
+    assert m("Bishop") == ("bishop", None)
+    assert m("Morgenstern-Price", intersliceFunction="constant") == ("spencer", None)
+    assert m("Morgenstern-Price") == ("morgenstern_price", None)          # cSlope's default is half-sine
+    assert m("Morgenstern-Price", intersliceFunction="half-sine") == ("morgenstern_price", None)
+    assert m("Morgenstern-Price", intersliceFunction="clipped-sine") == (
+        "morgenstern_price", {"function": "clipped_sine"})
+    assert m("Morgenstern-Price", intersliceFunction="trapezoidal") == (
+        "morgenstern_price", {"function": "trapezoidal"})
+    dp = [[0, 1], [0.3, 1], [0.6, 0], [1, 0]]
+    assert m("Morgenstern-Price", intersliceFunction="data-point-specified", intersliceDataPoints=dp) == (
+        "morgenstern_price", {"function": "data_points", "points": dp})
+    assert m("Janbu") == ("janbu_simplified", None)
+    assert m("Janbu", janbuCorrection=False) == ("janbu_simplified", None)
+    assert m("Janbu", janbuCorrection=True) == ("janbu_corrected", None)
+
+
+@pytest.mark.parametrize("points, match", [
+    ([[0, 1]], "menos de 2"),
+    ([[0.1, 1], [1, 1]], "empieza en 0"),
+    ([[0, 1], [0.5, 1], [0.5, 1], [1, 1]], "estrictamente creciente"),
+    ([[0, 1], [1, -1]], "negativa"),
+    ([[0, 0], [1, 0]], "nula"),
+])
+def test_f3_data_points_follow_f3_4(points, match):
+    method, interslice, why = imp.f3_method({"method": "Morgenstern-Price", "options": {
+        "intersliceFunction": "data-point-specified", "intersliceDataPoints": points}})
+    assert method is None and match in why
+
+
+def test_f3_checks_get_the_batch_of_their_highest_requirement():
+    undrained = {"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0}
+    checks = [("Bishop", {}), ("Morgenstern-Price", {"intersliceFunction": "constant"}),
+              ("Morgenstern-Price", {}), ("Janbu", {"janbuCorrection": True})]
+    _, _, batches = imp.convert_f3(_raw_f3(checks=checks), PROB)
+    assert batches == [0, 0, 2, 2]
+    _, _, batches = imp.convert_f3(_raw_f3(undrained, checks=checks), PROB)
+    assert batches == [1, 1, 2, 2]
+    _, _, batches = imp.convert_f3(_raw_f3(undrained, surface=POLY, checks=checks[1:]), PROB)
+    assert batches == [2, 2, 2]
+
+
+def test_f3_one_interslice_function_per_model():
+    dp = [[0, 1], [0.5, 1], [1, 0]]
+    checks = [("Morgenstern-Price", {"intersliceFunction": "clipped-sine"}),
+              ("Morgenstern-Price", {"intersliceFunction": "data-point-specified", "intersliceDataPoints": dp}),
+              ("Morgenstern-Price", {"intersliceFunction": "clipped-sine"})]
+    case, disc, _ = imp.convert_f3(_raw_f3(checks=checks), PROB)
+    assert case["model"]["analysis"]["interslice"] == {"function": "clipped_sine"}
+    assert [c["published"] for c in case["checks"]] == [1.0, 1.02]
+    assert len(disc) == 1 and "otra función interslice" in disc[0]
+    # half_sine (the default) writes no `interslice`
+    case, _, _ = imp.convert_f3(_raw_f3(checks=[("Morgenstern-Price", {})]), PROB)
+    assert "interslice" not in case["model"]["analysis"]
+
+
+def test_f3_keeps_seismic_and_loads_and_writes_version_0_3():
+    raw = _raw_f3(checks=[("Janbu", {"seismicHorizontal": 0.1})])
+    case, _, _ = imp.convert_f3(raw, PROB)
+    assert case["model"]["version"] == "0.3" and case["model"]["analysis"]["seismic"] == {"kh": 0.1, "kv": 0.0}
+    assert imp.gate_loads(case) == []
+
+
+def test_schema_v0_3_features_need_version_0_3():
+    raw = _raw_f3(checks=[("Janbu", {})])
+    case, _, _ = imp.convert_f3(raw, PROB)
+    assert imp.gate_schema(case) == []
+    for version in ("0.1", "0.2"):
+        old = copy.deepcopy(case)
+        old["model"]["version"] = version
+        assert imp.gate_schema(old), version                   # methods janbu_* are not in the enum
+        assert any("0.3" in e for e in imp.gate_features(old)), version
+    mutated = copy.deepcopy(case)
+    mutated["model"]["materials"][0].update(model="undrained", undrained_strength=5.0)
+    mutated["model"]["materials"][0].pop("cohesion"); mutated["model"]["materials"][0].pop("friction_angle")
+    assert imp.gate_schema(mutated) == []
+    mutated["model"]["version"] = "0.2"
+    assert imp.gate_schema(mutated)                            # undrained needs 0.3
+
+
+def test_schema_v0_3_rejects_malformed_undrained_polyline_and_interslice():
+    case, _, _ = imp.convert_f3(_raw_f3(
+        {"kind": "undrained", "unitWeight": 18.0, "undrainedShearStrength": 25.0, "suRefDepth": 30.0,
+         "suRateOfChange": 1.0}, surface=POLY, checks=[("Morgenstern-Price", {"intersliceFunction": "clipped-sine"})]),
+        PROB)
+    assert imp.gate_schema(case) == []
+    def broken(fn):
+        c = copy.deepcopy(case)
+        fn(c["model"])
+        return imp.gate_schema(c) + imp.gate_features(c)
+    assert broken(lambda m: m["materials"][0].update(cohesion=1.0))                 # prohibited with undrained
+    assert broken(lambda m: m["materials"][0].pop("strength_gradient"))             # datum without gradient
+    assert broken(lambda m: m["materials"][0].update(undrained_strength=-1.0))
+    assert broken(lambda m: m["analysis"]["surface"].update(points=[[1.0, 1.0]]))
+    assert broken(lambda m: m["analysis"]["surface"].update(points=[[2.0, 1.0], [1.0, 2.0]]))
+    assert broken(lambda m: m["analysis"].update(methods=["bishop"]))                # interslice without M-P / Bishop
+    assert broken(lambda m: m["analysis"]["interslice"].update(points=[[0, 1], [1, 1]]))   # points without data_points
+    assert broken(lambda m: m["analysis"]["interslice"].update(function="data_points"))    # data_points without points

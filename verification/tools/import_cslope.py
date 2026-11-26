@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert cSlope verification problems (MIT) into OpenGeoSlide verification cases (v0.1 and v0.2).
+"""Convert cSlope verification problems (MIT) into OpenGeoSlide verification cases (v0.1, v0.2 and v0.3).
 
 Usage (from the repository root):
 
@@ -14,11 +14,16 @@ The source clone is read only. The script writes:
                                  are written here too, with `version: "0.2"` (the v0.2 engine accepts them since A1)
 - verification/pending/INDEX.md  every cSlope problem with `seismicHorizontal`, `seismicVertical`, `udls` or
                                  `lineLoads`, with the reason it is excluded (the included ones live in cases/)
+- verification/pending/lote0/    checks of batch 0 that the engine does not reproduce (listed in HOLD.json with the numbers);
+                                 they are not promoted and nothing is relaxed (briefs/F3A_ola0.md, W1v)
+- verification/pending/F3/       batches 1 and 2 (contract F3.8): undrained / s-f-datum materials, fixed polylines,
+                                 Morgenstern-Price with every interslice function and Janbu, written as v0.3 models.
+                                 They wait for the engine; each file holds every convertible check of the problem
 - NOTICE                         attribution plus the cSlope MIT license text, copied from the source
 
-The output is deterministic: running the script twice leaves every file unchanged.
-Gates run on every execution: JSON Schema (defined below), geometry (shapely).
-The script exits with status 1 if any gate fails or the selection bounds are not met.
+Batch 0 is every problem that converts today (no cap, no selection). The output is deterministic: running the
+script twice leaves every file unchanged. Gates run on every execution: JSON Schema (defined below), geometry
+(shapely). The script exits with status 1 if any gate fails.
 """
 
 from __future__ import annotations
@@ -34,13 +39,17 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import polygonize, unary_union
 from shapely.validation import explain_validity
 
-# ---------------------------------------------------------------- selection
-PRIORITY = [
-    "V044", "V044b", "V045", "V047a", "V049", "V001", "V002", "V003", "V025", "V019",
-    "V033", "V093", "V101", "V063", "V030",
-]
-MIN_CASES, MAX_CASES = 12, 20
-MIN_SPENCER, MIN_FIXED = 8, 4
+# ---------------------------------------------------------------- batches (contract F3.8)
+# Batch 0: converts today (mohr-coulomb, circles, Bishop and Spencer). Batch 1: undrained and s-f-datum materials.
+# Batch 2: fixed polylines (`customSurfaces`), Morgenstern-Price with any function and Janbu. A check belongs to
+# the highest batch that one of its requirements needs.
+F3_VERSION = "0.3"
+F3_METHOD_ORDER = ("bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected")
+INTERSLICE_FUNCTIONS = {
+    "constant": "constant", "half-sine": "half_sine", "clipped-sine": "clipped_sine",
+    "trapezoidal": "trapezoidal", "data-point-specified": "data_points",
+}
+HOLD_FILE = Path("verification") / "pending" / "lote0" / "HOLD.json"
 
 # ---------------------------------------------------------------- conversion constants
 GAMMA_W = {"SI": 9.807, "imperial": 62.4}  # cSlope constant 9.807 kN/m3; 62.4 pcf for imperial
@@ -55,6 +64,10 @@ ALLOWED_LINE_LOAD_KEYS = {"magnitude", "x", "angle"}
 SEISMIC_OPTION_KEYS = ("seismicHorizontal", "seismicVertical")
 ALLOWED_MATERIAL_KEYS = {"name", "model"}
 ALLOWED_MODEL_KEYS = {"kind", "unitWeight", "cohesion", "frictionAngle", "unitWeightSat", "ru"}
+# Batch 1 (contract F3.2): `undrained` and `s-f-datum` are the same law, Su = max(0, su + (datum - y)·rate).
+ALLOWED_UNDRAINED_KEYS = {"kind", "unitWeight", "undrainedShearStrength", "suRefDepth", "suRateOfChange", "suMax",
+                          "unitWeightSat", "ru"}
+ALLOWED_SFD_KEYS = {"kind", "unitWeight", "suRef", "yRef", "rate", "suMax", "unitWeightSat", "ru"}
 ALLOWED_WATER_KEYS = {"mode", "value", "followBoundary"}
 ALLOWED_LIMIT_KEYS = {"entryLeftX", "entryRightX", "exitLeftX", "exitRightX"}
 NEUTRAL_OPTION_KEYS = {"method", "slices", "iterations", "refinedIterations", "tolerance"}
@@ -119,17 +132,82 @@ SEISMIC_SCHEMA = {
         "kv": {"type": "number", "exclusiveMinimum": -1, "exclusiveMaximum": 1},
     },
 }
+POLYLINE_SURFACE_SCHEMA = {
+    "type": "object",
+    "required": ["type", "points"],
+    "additionalProperties": False,
+    "properties": {
+        "type": {"const": "polyline"},
+        "points": {"type": "array", "minItems": 2, "items": POINT},
+    },
+}
+INTERSLICE_SCHEMA = {
+    "type": "object",
+    "required": ["function"],
+    "additionalProperties": False,
+    "properties": {
+        "function": {"enum": ["constant", "half_sine", "clipped_sine", "trapezoidal", "data_points"]},
+        "points": {"type": "array", "minItems": 2, "items": POINT},
+    },
+}
+MC_MATERIAL_SCHEMA = {
+    "type": "object",
+    "required": ["id", "name", "model", "unit_weight", "unit_weight_sat", "cohesion", "friction_angle", "ru"],
+    "additionalProperties": False,
+    "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string"},
+        "model": {"const": "mohr_coulomb"},
+        "unit_weight": {"type": "number", "exclusiveMinimum": 0},
+        "unit_weight_sat": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "cohesion": {"type": "number", "minimum": 0},
+        "friction_angle": {"type": "number", "minimum": 0, "exclusiveMaximum": 90},
+        "ru": {"type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 1},
+    },
+}
+# F3.2: no cohesion or friction angle; the strength datum and gradient go together; the limit needs a gradient.
+UNDRAINED_MATERIAL_SCHEMA = {
+    "type": "object",
+    "required": ["id", "name", "model", "unit_weight", "unit_weight_sat", "undrained_strength", "ru"],
+    "additionalProperties": False,
+    "dependentRequired": {"strength_datum": ["strength_gradient"], "strength_gradient": ["strength_datum"],
+                          "strength_limit": ["strength_gradient"]},
+    "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "name": {"type": "string"},
+        "model": {"const": "undrained"},
+        "unit_weight": {"type": "number", "exclusiveMinimum": 0},
+        "unit_weight_sat": {"type": ["number", "null"], "exclusiveMinimum": 0},
+        "undrained_strength": {"type": "number", "minimum": 0},
+        "strength_datum": {"type": "number"},
+        "strength_gradient": {"type": "number"},
+        "strength_limit": {"type": "number", "minimum": 0},
+        "ru": {"type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 1},
+    },
+}
 MODEL_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "required": ["format", "version", "meta", "units", "materials", "regions", "slope", "analysis"],
     "additionalProperties": False,
-    # `loads` and `analysis.seismic` exist only in v0.2 (F1.1); the engine rejects them with version "0.1".
-    "if": {"properties": {"version": {"const": "0.1"}}},
-    "then": {"properties": {"loads": False, "analysis": {"properties": {"seismic": False}}}},
+    "allOf": [
+        # `loads` and `analysis.seismic` exist only from v0.2 (F1.1); the engine rejects them with version "0.1".
+        {"if": {"properties": {"version": {"const": "0.1"}}},
+         "then": {"properties": {"loads": False, "analysis": {"properties": {"seismic": False}}}}},
+        # F3.1: every v0.3 variant needs version "0.3".
+        {"if": {"properties": {"version": {"enum": ["0.1", "0.2"]}}},
+         "then": {"properties": {
+             "materials": {"items": {"properties": {"model": {"const": "mohr_coulomb"}}}},
+             "analysis": {"properties": {
+                 "interslice": False,
+                 "methods": {"items": {"enum": ["bishop", "spencer"]}},
+                 "surface": {"properties": {"type": {"const": "circle"}}},
+             }},
+         }}},
+    ],
     "properties": {
         "format": {"const": "opengeoslide"},
-        "version": {"enum": ["0.1", "0.2"]},
+        "version": {"enum": ["0.1", "0.2", "0.3"]},
         "meta": {
             "type": "object",
             "required": ["id"],
@@ -143,21 +221,7 @@ MODEL_SCHEMA = {
         "units": {"enum": ["SI", "imperial"]},
         "materials": {
             "type": "array", "minItems": 1,
-            "items": {
-                "type": "object",
-                "required": ["id", "name", "model", "unit_weight", "unit_weight_sat", "cohesion", "friction_angle", "ru"],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
-                    "name": {"type": "string"},
-                    "model": {"const": "mohr_coulomb"},
-                    "unit_weight": {"type": "number", "exclusiveMinimum": 0},
-                    "unit_weight_sat": {"type": ["number", "null"], "exclusiveMinimum": 0},
-                    "cohesion": {"type": "number", "minimum": 0},
-                    "friction_angle": {"type": "number", "minimum": 0, "exclusiveMaximum": 90},
-                    "ru": {"type": ["number", "null"], "minimum": 0, "exclusiveMaximum": 1},
-                },
-            },
+            "items": {"oneOf": [MC_MATERIAL_SCHEMA, UNDRAINED_MATERIAL_SCHEMA]},
         },
         "regions": {
             "type": "array", "minItems": 1,
@@ -198,14 +262,15 @@ MODEL_SCHEMA = {
             "properties": {
                 "methods": {
                     "type": "array", "minItems": 1, "uniqueItems": True,
-                    "items": {"enum": ["bishop", "spencer"]},
+                    "items": {"enum": list(F3_METHOD_ORDER)},
                 },
+                "interslice": INTERSLICE_SCHEMA,
                 "slices": {"type": "integer", "minimum": 3, "maximum": 2000},
                 "tolerance": {"type": "number", "exclusiveMinimum": 0, "maximum": 0.01},
                 "max_iterations": {"type": "integer", "minimum": 1, "maximum": 100000},
                 "min_m_alpha": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
                 "seismic": SEISMIC_SCHEMA,
-                "surface": {
+                "surface": {"oneOf": [{
                     "type": "object",
                     "required": ["type", "xc", "yc", "r"],
                     "additionalProperties": False,
@@ -215,7 +280,7 @@ MODEL_SCHEMA = {
                         "yc": {"type": "number"},
                         "r": {"type": "number", "exclusiveMinimum": 0},
                     },
-                },
+                }, POLYLINE_SURFACE_SCHEMA]},
                 "search": {
                     "type": "object",
                     "required": ["type", "n_entry", "n_exit", "n_radius", "max_radius_factor", "refine"],
@@ -252,7 +317,7 @@ CASE_SCHEMA = {
                 "required": ["method", "kind", "published", "published_by", "tolerance", "options"],
                 "additionalProperties": False,
                 "properties": {
-                    "method": {"enum": ["bishop", "spencer"]},
+                    "method": {"enum": list(F3_METHOD_ORDER)},
                     "kind": {"enum": ["fixed", "search"]},
                     "published": {"type": "number", "exclusiveMinimum": 0},
                     "published_by": {"type": "string", "minLength": 1},
@@ -363,26 +428,79 @@ def water_above_ground(outer: Polygon, piezo: list[list[float]]) -> bool:
     return False
 
 
-def option_reason(method: str, opts: dict, v02: bool = False) -> str | None:
+def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False) -> str | None:
     """Return why a check cannot be used with our engine, or None if its options are neutral.
 
-    With ``v02`` the seismic coefficients are not an obstacle: they go to ``analysis.seismic``.
+    With ``v02`` the seismic coefficients are not an obstacle: they go to ``analysis.seismic``. With ``f3``
+    the interslice function, its data points and the Janbu correction are not an obstacle either: they
+    become the method (``janbu_simplified`` / ``janbu_corrected``) and ``analysis.interslice``.
     """
     if opts.get("nonCircularOptimization"):
         return "superficie no circular (nonCircularOptimization)"
     for key, value in opts.items():
         if key in NEUTRAL_OPTION_KEYS:
             continue
-        if v02 and key in SEISMIC_OPTION_KEYS:
+        if (v02 or f3) and key in SEISMIC_OPTION_KEYS:
             continue
         if key == "porePressureHead" and value == "vertical":
             continue
         if key == "intersliceFunction" and value == "constant" and method == "Morgenstern-Price":
             continue
+        if f3 and method == "Morgenstern-Price" and key in ("intersliceFunction", "intersliceDataPoints"):
+            continue
+        if f3 and method == "Janbu" and key == "janbuCorrection" and isinstance(value, bool):
+            continue
         if key == "compositeSurfaces" and value is False:
             continue
         return f"opción {key}={value!r}"
     return None
+
+
+def interslice_points_reason(points) -> str | None:
+    """Contract F3.4 for `data_points`: >= 2 points, xi strictly increasing from 0 to 1, f >= 0, max f > 0."""
+    try:
+        pts = [(float(x), float(f)) for x, f in points]
+    except (TypeError, ValueError):
+        return "intersliceDataPoints mal formado"
+    if len(pts) < 2:
+        return "intersliceDataPoints con menos de 2 puntos"
+    if pts[0][0] != 0.0 or pts[-1][0] != 1.0:
+        return "intersliceDataPoints no empieza en 0 y termina en 1"
+    if any(b[0] <= a[0] for a, b in zip(pts, pts[1:])):
+        return "intersliceDataPoints con x no estrictamente creciente"
+    if any(f < 0 for _, f in pts) or not max(f for _, f in pts) > 0:
+        return "intersliceDataPoints con f negativa o idénticamente nula"
+    return None
+
+
+def f3_method(ck: dict) -> tuple[str | None, dict | None, str | None]:
+    """cSlope check -> (ogs method, interslice or None, reason). Mapping of contract F3.8 (and F3.4, F3.5).
+
+    Morgenstern-Price with ``constant`` is Spencer (as in batch 0). Without ``intersliceFunction`` cSlope uses
+    ``half-sine``, which is also the default of ``morgenstern_price`` (no ``interslice`` is written).
+    Janbu is simplified unless ``janbuCorrection`` is true.
+    """
+    opts = ck.get("options", {})
+    if ck["method"] == "Bishop":
+        return "bishop", None, None
+    if ck["method"] == "Janbu":
+        return ("janbu_corrected" if opts.get("janbuCorrection") else "janbu_simplified"), None, None
+    if ck["method"] != "Morgenstern-Price":
+        return None, None, "método no soportado"
+    fn = opts.get("intersliceFunction") or "half-sine"
+    if fn not in INTERSLICE_FUNCTIONS:
+        return None, None, f"función interslice {fn!r} desconocida"
+    if fn == "constant":
+        return "spencer", None, None
+    if fn == "half-sine":
+        return "morgenstern_price", None, None
+    interslice = {"function": INTERSLICE_FUNCTIONS[fn]}
+    if fn == "data-point-specified":
+        why = interslice_points_reason(opts.get("intersliceDataPoints") or [])
+        if why:
+            return None, None, why
+        interslice["points"] = [[num(x), num(f)] for x, f in opts["intersliceDataPoints"]]
+    return "morgenstern_price", interslice, None
 
 
 # ---------------------------------------------------------------- conversion
@@ -435,13 +553,69 @@ def convert_loads(d: dict, x_min: float, x_max: float) -> list[dict]:
     return loads
 
 
+def convert_strength_material(m: dict, mid: str) -> dict:
+    """cSlope `undrained` / `s-f-datum` material -> ogs `undrained` (contract F3.2). Raises Omit.
+
+    Both kinds are the same law, Su = max(0, su + (datum - y)·rate) with `datum` an elevation:
+    undrained: su = undrainedShearStrength, datum = suRefDepth, rate = suRateOfChange, limit = suMax;
+    s-f-datum: su = suRef, datum = yRef, rate = rate, limit = suMax (types/strength.rs in cSlope).
+    """
+    model = m["model"]
+    kind = model["kind"]
+    name = m["name"]
+    allowed = ALLOWED_UNDRAINED_KEYS if kind == "undrained" else ALLOWED_SFD_KEYS
+    if set(model) - allowed:
+        raise Omit(f"material '{name}' con propiedad no soportada: " + ", ".join(sorted(set(model) - allowed)))
+    if kind == "undrained":
+        su, datum = model["undrainedShearStrength"], model.get("suRefDepth")
+        rate = model.get("suRateOfChange")
+    else:
+        su, datum, rate = model["suRef"], model["yRef"], model["rate"]
+    limit = model.get("suMax")
+    if (datum is None) != (rate is None):
+        raise Omit(f"material '{name}': suRefDepth y suRateOfChange deben ir juntos (F3.2)")
+    if limit is not None and rate is None:
+        raise Omit(f"material '{name}': suMax sin gradiente (F3.2)")
+    if not float(su) >= 0 or (limit is not None and not float(limit) >= 0):
+        raise Omit(f"material '{name}': resistencia no drenada negativa")
+    out = {
+        "id": mid,
+        "name": name,
+        "model": "undrained",
+        "unit_weight": num(model["unitWeight"]),
+        "unit_weight_sat": num(model["unitWeightSat"]) if model.get("unitWeightSat") is not None else None,
+        "undrained_strength": num(su),
+    }
+    if rate is not None:
+        out["strength_datum"] = num(datum)
+        out["strength_gradient"] = num(rate)
+        if limit is not None:
+            out["strength_limit"] = num(limit)
+    out["ru"] = num(model["ru"]) if model.get("ru") is not None else None
+    return out
+
+
 def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list[str]]:
-    """Convert one cSlope case. Returns (case, discarded_checks). Raises Omit.
+    """Convert one cSlope case for batch 0. Returns (case, discarded_checks). Raises Omit.
 
     With ``v02`` the case may have ``udls``, ``lineLoads`` and seismic coefficients, and the model
     is written with ``version "0.2"`` (``loads`` after ``water``, ``analysis.seismic``). Otherwise those
     features omit the case, as in schema v0.1.
     """
+    case, discarded, _ = _convert(raw, prob, v02=v02, f3=False)
+    return case, discarded
+
+
+def convert_f3(raw: dict, prob: dict | None) -> tuple[dict, list[str], list[int]]:
+    """Convert one cSlope case for the target state of batches 0, 1 and 2 (v0.3 model).
+
+    Returns (case, discarded_checks, batches) where ``batches[i]`` is the batch (0, 1 or 2) of ``case["checks"][i]``.
+    The case keeps every convertible check, batch 0 included, so that promoting it replaces the file in cases/.
+    """
+    return _convert(raw, prob, v02=True, f3=True)
+
+
+def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, list[str], list[int]]:
     cid = raw["id"]
     if prob is None:
         raise Omit("sin entrada en problems.ts")
@@ -455,7 +629,8 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
         raise Omit(f"superficie desconocida: {surface_kind!r}")
 
     d = raw["definition"]
-    extra = sorted(set(d) - ALLOWED_DEFINITION_KEYS - (V02_DEFINITION_KEYS if v02 else set()))
+    extra = sorted(set(d) - ALLOWED_DEFINITION_KEYS - (V02_DEFINITION_KEYS if v02 else set())
+                   - ({"customSurfaces"} if f3 else set()))
     if extra:
         raise Omit("definition con clave que cambia el problema: " + ", ".join(extra))
 
@@ -471,11 +646,18 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
         if set(m) - ALLOWED_MATERIAL_KEYS:
             raise Omit(f"material '{m.get('name')}' con propiedad no soportada: " + ", ".join(sorted(set(m) - ALLOWED_MATERIAL_KEYS)))
         model = m["model"]
-        if model.get("kind") != "mohr-coulomb":
-            raise Omit(f"material '{m['name']}' con modelo {model.get('kind')!r}")
+        kind = model.get("kind")
+        mid = snake(m["name"])
+        if kind in ("undrained", "s-f-datum") and f3:
+            if not mid or mid in name2id.values():
+                raise Omit(f"id de material vacío o repetido: '{m['name']}'")
+            name2id[m["name"]] = mid
+            materials.append(convert_strength_material(m, mid))
+            continue
+        if kind != "mohr-coulomb":
+            raise Omit(f"material '{m['name']}' con modelo {kind!r}")
         if set(model) - ALLOWED_MODEL_KEYS:
             raise Omit(f"material '{m['name']}' con propiedad no soportada: " + ", ".join(sorted(set(model) - ALLOWED_MODEL_KEYS)))
-        mid = snake(m["name"])
         if not mid or mid in name2id.values():
             raise Omit(f"id de material vacío o repetido: '{m['name']}'")
         name2id[m["name"]] = mid
@@ -489,6 +671,7 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
             "friction_angle": num(model["frictionAngle"]),
             "ru": num(model["ru"]) if model.get("ru") is not None else None,
         })
+    has_undrained = any(m["model"] == "undrained" for m in materials)
 
     # geometry
     coords = d["coordinates"]
@@ -556,38 +739,69 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
 
     # analysis surface
     analysis = {}
+    limit_notes: list[str] = []
+    polyline = False
     if surface_kind == "fixed":
         planes = d.get("customSearchPlanes") or []
-        if d.get("customPlanesOnly") is not True or len(planes) != 1:
+        custom = d.get("customSurfaces") or []
+        if d.get("customPlanesOnly") is not True:
+            raise Omit("superficie fija sin customPlanesOnly")
+        if custom and not planes:
+            if len(custom) != 1 or set(custom[0]) - {"points"}:
+                raise Omit("superficie fija que no es una única polilínea sin eje")
+            pts = [[num(x), num(y)] for x, y in custom[0]["points"]]
+            if len(pts) < 2 or any(b[0] <= a[0] for a, b in zip(pts, pts[1:])):
+                raise Omit("polilínea con x no estrictamente creciente o con menos de 2 puntos")
+            analysis["surface"] = {"type": "polyline", "points": pts}
+            polyline = True
+        elif len(planes) != 1 or custom:
             raise Omit("superficie fija que no es un único círculo con customPlanesOnly")
-        p = planes[0]
-        analysis["surface"] = {"type": "circle", "xc": num(p["cx"]), "yc": num(p["cy"]), "r": num(p["radius"])}
+        else:
+            p = planes[0]
+            analysis["surface"] = {"type": "circle", "xc": num(p["cx"]), "yc": num(p["cy"]), "r": num(p["radius"])}
     else:
-        if d.get("customPlanesOnly") or d.get("customSearchPlanes"):
+        if d.get("customPlanesOnly") or d.get("customSearchPlanes") or d.get("customSurfaces"):
             raise Omit("búsqueda restringida a círculos propios")
         search: dict = {"type": "circular_entry_exit"}
         limits = d.get("analysisLimits")
         if limits is not None:
             if set(limits) - ALLOWED_LIMIT_KEYS:
                 raise Omit("analysisLimits con clave no soportada")
-            search["entry"] = [num(limits["entryLeftX"]), num(limits["entryRightX"])]
-            search["exit"] = [num(limits["exitLeftX"]), num(limits["exitRightX"])]
+            for name, lo, hi in (("entry", limits["entryLeftX"], limits["entryRightX"]),
+                                 ("exit", limits["exitLeftX"], limits["exitRightX"])):
+                if lo > hi:
+                    # cSlope's `mirror_range` (model/canonical.rs) takes min and max when it mirrors an rtl model
+                    limit_notes.append(
+                        f"analysisLimits.{name} viene con left > right ({lo:g} > {hi:g}) en la fuente; se escribe "
+                        f"[{hi:g}, {lo:g}] (cSlope toma min y max al espejar la orientación rtl).")
+                    lo, hi = hi, lo
+                search[name] = [num(lo), num(hi)]
         search.update(SEARCH_DEFAULTS)
         analysis["search"] = search
 
     # checks
-    checks, discarded, kept_raw = [], [], []
+    case_batch = 2 if polyline else (1 if has_undrained else 0)
+    checks, discarded, kept_raw, batches, interslices = [], [], [], [], []
     for ck in raw["checks"]:
         opts = ck.get("options", {})
         label = f"{ck['method']} ({ck.get('label')}, {ck['publishedBy']}, {ck['published']})"
-        if ck["method"] == "Bishop":
+        interslice = None
+        if f3:
+            method, interslice, why = f3_method(ck)
+            if why:
+                discarded.append(f"{label}: {why}")
+                continue
+            if method == "bishop" and polyline:
+                discarded.append(f"{label}: Bishop no admite superficies polilínea (contrato F3.6)")
+                continue
+        elif ck["method"] == "Bishop":
             method = "bishop"
         elif ck["method"] == "Morgenstern-Price" and opts.get("intersliceFunction") == "constant":
             method = "spencer"
         else:
             discarded.append(f"{label}: método no soportado")
             continue
-        reason = option_reason(ck["method"], opts, v02)
+        reason = option_reason(ck["method"], opts, v02, f3)
         if reason:
             discarded.append(f"{label}: {reason}")
             continue
@@ -603,8 +817,24 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
             "options": check_opts,
         })
         kept_raw.append(ck)
+        interslices.append(interslice)
+        batches.append(max(case_batch, 2 if method in ("morgenstern_price", "janbu_simplified", "janbu_corrected") else 0))
     if not checks:
         raise Omit("sin checks válidos")
+
+    # Morgenstern-Price: one interslice function per model (contract F3.4). Checks with another one are discarded.
+    interslice_model = None
+    mp_functions = [(i, json.dumps(f, sort_keys=True)) for i, f in enumerate(interslices) if checks[i]["method"] == "morgenstern_price"]
+    if mp_functions:
+        first = mp_functions[0][1]
+        drop = [i for i, f in mp_functions if f != first]
+        for i in sorted(drop, reverse=True):
+            ck = kept_raw[i]
+            discarded.append(f"{ck['method']} ({ck.get('label')}, {ck['publishedBy']}, {ck['published']}): "
+                             "otra función interslice que la del primer check del caso (un modelo, una función)")
+            for lst in (checks, kept_raw, batches, interslices):
+                del lst[i]
+        interslice_model = next(f for i, f in enumerate(interslices) if checks[i]["method"] == "morgenstern_price")
 
     # seismic coefficients: one pair for the model, shared by every check kept (v0.2 only)
     seismic = None
@@ -625,18 +855,24 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
     if v02:
         xs = [float(x) for x, _ in coords]
         loads = convert_loads(d, min(xs), max(xs))
-        if not loads and seismic is None:
+        if not loads and seismic is None and not f3:
             raise Omit("sin cargas ni coeficientes sísmicos (corresponde a verification/cases)")
 
-    methods = [m for m in ("bishop", "spencer") if any(c["method"] == m for c in checks)]
+    methods = [m for m in F3_METHOD_ORDER if any(c["method"] == m for c in checks)]
     slice_values = {c["options"].get("slices", 50) for c in checks}
     slices = slice_values.pop() if len(slice_values) == 1 else 50
-    analysis_block = {"methods": methods, "slices": slices, **ANALYSIS_DEFAULTS,
+    analysis_block = {"methods": methods,
+                      **({"interslice": interslice_model} if interslice_model is not None else {}),
+                      "slices": slices, **ANALYSIS_DEFAULTS,
                       **({"seismic": seismic} if seismic is not None else {}), **analysis}
 
+    if f3:
+        version = F3_VERSION
+    else:
+        version = "0.2" if v02 else "0.1"
     model = {
         "format": "opengeoslide",
-        "version": "0.2" if v02 else "0.1",
+        "version": version,
         "meta": {"id": cid, "title": raw["title"], "notes": prob.get("description") or ""},
         "units": units,
         "materials": materials,
@@ -668,10 +904,11 @@ def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list
         "source": {
             "reference": prob["reference"],
             "derived_from": f"cSlope verification problem {cid} (MIT License), https://github.com/ZilanCiftci/cslope",
-            "notes": prob.get("notes", []) + solver_notes + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
+            "notes": prob.get("notes", []) + solver_notes + limit_notes
+            + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
         },
     }
-    return case, discarded
+    return case, discarded, batches
 
 
 # ---------------------------------------------------------------- gates
@@ -718,7 +955,7 @@ def gate_loads(case: dict) -> list[str]:
     m = case.get("model") or {}
     loads = m.get("loads") or []
     seismic = (m.get("analysis") or {}).get("seismic")
-    if (loads or seismic) and m.get("version") != "0.2":
+    if (loads or seismic) and m.get("version") not in ("0.2", F3_VERSION):
         errors.append('loads y analysis.seismic requieren version "0.2"')
     xs = [x for r in m.get("regions", []) for x, _ in r["polygon"]]
     ids = [load["id"] for load in loads if "id" in load]
@@ -730,6 +967,40 @@ def gate_loads(case: dict) -> list[str]:
             errors.append(f"carga {load.get('id')}: x1 >= x2")
         if xs and (min(ends) < min(xs) - TOL_ABS or max(ends) > max(xs) + TOL_ABS):
             errors.append(f"carga {load.get('id')} fuera del rango x del modelo")
+    return errors
+
+
+def gate_features(case: dict) -> list[str]:
+    """F3.1 to F3.6 rules that JSON Schema cannot express: version per feature, interslice, polyline, Bishop."""
+    errors = []
+    m = case.get("model") or {}
+    a = m.get("analysis") or {}
+    methods = a.get("methods") or []
+    surface = a.get("surface") or {}
+    needs_03 = (any(mat.get("model") == "undrained" for mat in m.get("materials", []))
+                or surface.get("type") == "polyline" or "interslice" in a
+                or any(x in methods for x in ("morgenstern_price", "janbu_simplified", "janbu_corrected")))
+    if needs_03 and m.get("version") != F3_VERSION:
+        errors.append('los campos de v0.3 requieren version "0.3"')
+    if "interslice" in a:
+        if "morgenstern_price" not in methods:
+            errors.append("interslice sin morgenstern_price en methods")
+        fn = a["interslice"].get("function")
+        if (fn == "data_points") != ("points" in a["interslice"]):
+            errors.append("interslice.points solo con data_points, y obligatorio con ella")
+        if fn == "data_points":
+            why = interslice_points_reason(a["interslice"].get("points") or [])
+            if why:
+                errors.append(why)
+    if surface.get("type") == "polyline":
+        pts = surface.get("points") or []
+        if any(b[0] <= a_[0] for a_, b in zip(pts, pts[1:])):
+            errors.append("polilínea con x no estrictamente creciente")
+        if "bishop" in methods:
+            errors.append("bishop no admite superficies polilínea")
+    for mat in m.get("materials", []):
+        if mat.get("model") == "undrained" and mat.get("strength_limit") is not None and mat.get("strength_gradient") is None:
+            errors.append(f"material {mat.get('id')}: strength_limit sin strength_gradient")
     return errors
 
 
@@ -770,6 +1041,7 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str
     sat_ids, sat_reason, sat_included = sat_report
     n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
+    n_checks = sum(len(c["checks"]) for c in converted)
     lines = [
         "# Casos de verificación v0.1 y v0.2 (desde cSlope)",
         "",
@@ -778,11 +1050,13 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str
         "",
         f"Casos convertidos e incluidos: **{len(converted)}** "
         f"(v0.1: **{sum(c['model']['version'] == '0.1' for c in converted)}**, "
-        f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**). "
-        f"Casos no incluidos: **{len(omitted)}** "
-        "(no convertibles o convertibles pero fuera del conjunto mínimo; motivo en cada fila). "
+        f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**), "
+        f"con **{n_checks}** checks. Es el lote 0: todo lo que se convierte hoy, sin tope ni selección. "
+        f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
-        "[`../pending/INDEX.md`](../pending/INDEX.md).",
+        "[`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en "
+        "[`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en "
+        "[`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).",
         "",
         "| id | título | referencia | unidades | sismo y cargas | checks (bishop/spencer) | tipo |",
         "|---|---|---|---|---|---|---|",
@@ -809,7 +1083,7 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str
         f"se incluyen. Casos incluidos con `unit_weight_sat` en el modelo: **{n_sat_in}**. "
         + ("Ninguno de los no incluidos es convertible con las reglas actuales (contrato §1, §2). "
            if not convertible else
-           f"Convertibles y no incluidos (decidir si se añaden): {', '.join(convertible)}. ")
+           f"Convertibles y no incluidos (retenidos): {', '.join(convertible)}. ")
         + "Motivo de cada uno (el primero que lo impide):",
         "",
         "| id | motivo |",
@@ -887,6 +1161,108 @@ def build_notice(license_text: str) -> str:
 
 
 # ---------------------------------------------------------------- main
+def check_key(cid: str, check: dict) -> tuple:
+    return (cid, check["method"], check["published"], check["published_by"])
+
+
+def load_hold(path: Path) -> dict[tuple, dict]:
+    """Checks of batch 0 that the engine does not reproduce: {(id, method, published, published_by): entry}."""
+    if not path.is_file():
+        return {}
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    return {(e["id"], e["method"], e["published"], e["published_by"]): e for e in entries}
+
+
+def split_hold(case: dict, hold: dict[tuple, dict], only_batch0: list[int] | None = None) -> tuple[dict | None, dict | None]:
+    """(case without the held checks or None, case with only the held checks or None)."""
+    kept, held = [], []
+    for i, c in enumerate(case["checks"]):
+        is_b0 = only_batch0 is None or only_batch0[i] == 0
+        (held if is_b0 and check_key(case["id"], c) in hold else kept).append(c)
+    if not held:
+        return case, None
+    rest = {**case, "checks": kept} if kept else None
+    return rest, {**case, "checks": held}
+
+
+def build_hold_index(held: list[dict], hold: dict[tuple, dict]) -> str:
+    lines = [
+        "# Checks del lote 0 que el motor no reproduce (no promovidos)",
+        "",
+        "Generado por `verification/tools/import_cslope.py` a partir de `HOLD.json`. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+        "Cada check está convertido igual que los de `verification/cases/`, pero el binario de `main` no cae dentro de la "
+        "tolerancia publicada. No se relaja ninguna tolerancia ni se toca ningún dato: los números de `HOLD.json` "
+        "(publicado, ogs, cSlope) vienen del harness y el diagnóstico es del escritor. Cuando el motor los reproduzca, "
+        "el integrador los promueve quitándolos de `HOLD.json` y regenerando.",
+        "",
+        f"Checks retenidos: **{sum(len(c['checks']) for c in held)}** en **{len(held)}** casos.",
+        "",
+        "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+        "|---|---|---:|---|---:|---:|---:|---|",
+    ]
+    for case in held:
+        for c in case["checks"]:
+            e = hold[check_key(case["id"], c)]
+            def f(v):
+                return "—" if v is None else f"{v:.4f}"
+            lines.append(f"| {case['id']} | {c['method']} | {c['published']} | {md_cell(c['published_by'])} "
+                         f"| {100 * c['tolerance']:.2f} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
+                         f"| {md_cell(e.get('diagnosis', ''))} |")
+    return "\n".join(lines) + "\n"
+
+
+def build_f3_index(cases: list[dict], batches: dict[str, list[int]], lote0_ids: set[str], dropped: dict[str, list[str]],
+                   omitted: list[tuple[str, str]]) -> str:
+    n = {b: sum(1 for cid in batches for x in batches[cid] if x == b) for b in (0, 1, 2)}
+    cases_b = {b: [c["id"] for c in cases if b in batches[c["id"]]] for b in (1, 2)}
+    new_b = {1: [cid for cid in cases_b[1] if cid not in lote0_ids]}
+    # cumulative, as in X10: a problem counts once, in the first batch that needs it
+    new_b[2] = [cid for cid in cases_b[2] if cid not in lote0_ids and cid not in new_b[1]]
+    lines = [
+        "# Casos de los lotes 1 y 2 (formato v0.3, esperan al motor)",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
+        "",
+        "Cada archivo es el **estado destino** del problema (versión `0.3`): trae todos los checks convertibles, también los "
+        "del lote 0 que ya están en `verification/cases/`, así que promoverlo es reemplazar ese archivo. "
+        "Los checks nuevos son los de métodos o modelos que el motor de `main` aún no admite (`morgenstern_price`, "
+        "`janbu_simplified`, `janbu_corrected`, material `undrained`, superficie `polyline`). "
+        "La verificación contra cSlope está en [`REPORT.md`](REPORT.md) (solo oráculo).",
+        "",
+        f"Casos: **{len(cases)}**; checks: **{sum(len(c['checks']) for c in cases)}** "
+        f"(de ellos del lote 0: {n[0]}, lote 1: **{n[1]}**, lote 2: **{n[2]}**).",
+        "",
+        "| lote | contenido | checks | casos con checks del lote | casos nuevos (no estaban en los lotes anteriores) |",
+        "|---|---|---:|---:|---:|",
+        f"| 1 | `undrained` y `s-f-datum` (Bishop y Spencer) | {n[1]} | {len(cases_b[1])} | {len(new_b[1])} |",
+        f"| 2 | polilíneas fijas, M-P y Janbu | {n[2]} | {len(cases_b[2])} | {len(new_b[2])} |",
+        "",
+        f"Casos nuevos del lote 1 ({len(new_b[1])}): {', '.join(new_b[1])}.",
+        f"Casos nuevos del lote 2 ({len(new_b[2])}): {', '.join(new_b[2])}.",
+        "",
+        "| id | título | modelos | superficie | checks por lote (0/1/2) | métodos |",
+        "|---|---|---|---|---|---|",
+    ]
+    for case in cases:
+        bs = batches[case["id"]]
+        m = case["model"]
+        kinds = sorted({mat["model"] for mat in m["materials"]})
+        surf = m["analysis"].get("surface", {}).get("type", "search")
+        lines.append(f"| {case['id']} | {md_cell(case['title'])} | {', '.join(kinds)} | {surf} "
+                     f"| {bs.count(0)}/{bs.count(1)}/{bs.count(2)} | {', '.join(m['analysis']['methods'])} |")
+    lines += ["", "## Checks descartados en estos casos", ""]
+    for cid in sorted(dropped):
+        for reason in dropped[cid]:
+            lines.append(f"- {cid}: {md_cell(reason)}")
+    lines += ["", "## Problemas que no entran", "", "| id | motivo |", "|---|---|"]
+    for cid, reason in omitted:
+        lines.append(f"| {cid} | {md_cell(reason)} |")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--src", required=True, help="path to the read-only cSlope clone")
@@ -912,117 +1288,106 @@ def main() -> int:
     raw_by_id = {c["id"]: c for c in data["cases"]}
     order = [c["id"] for c in data["cases"]]
     problems = parse_problems(problems_path)
+    hold = load_hold(root / HOLD_FILE)
 
-    # Convert every candidate once: priority list first, then the rest in source order to complete the set.
-    # Every candidate is converted once; cases that cannot be converted keep their reason.
-    converted_all: dict[str, dict] = {}
+    # ---- batch 0: every problem that converts today (v0.1, and v0.2 with seismic coefficients or loads).
+    # No cap and no selection (contract F3.8): a convertible problem is a verification case.
+    batch0: dict[str, dict] = {}
     discarded_all: dict[str, list[str]] = {}
     reason_all: dict[str, str] = {}
+    pending_status: list[tuple[str, str, str]] = []   # v0.2 problems and why they are excluded
     for cid in order:
+        v02 = has_v02_features(raw_by_id[cid])
         try:
-            case, disc = convert(raw_by_id[cid], problems.get(cid))
-            converted_all[cid] = case
-            discarded_all[cid] = disc
+            case, disc = convert(raw_by_id[cid], problems.get(cid), v02=v02)
         except Omit as exc:
             reason_all[cid] = str(exc)
+            if v02:
+                pending_status.append((cid, raw_by_id[cid]["title"], str(exc)))
         except KeyError as exc:
             reason_all[cid] = f"campo ausente en cSlope: {exc}"
+            if v02:
+                pending_status.append((cid, raw_by_id[cid]["title"], reason_all[cid]))
+        else:
+            batch0[cid] = case
+            discarded_all[cid] = disc
+            if v02:
+                pending_status.append((cid, case["title"], ""))
+    lote0_ids = set(batch0)
 
-    selected: list[str] = [cid for cid in PRIORITY if cid in converted_all]
-
-    def counts(ids: list[str]) -> tuple[int, int]:
-        """Return (number of fixed cases, number of Spencer checks) for the given case ids."""
-        fixed = sum(converted_all[i]["checks"][0]["kind"] == "fixed" for i in ids)
-        spencer = sum(c["method"] == "spencer" for i in ids for c in converted_all[i]["checks"])
-        return fixed, spencer
-
-    # Complete the set in source order only while a requirement is still unmet.
+    # held checks (the engine does not reproduce them): not promoted, kept in verification/pending/lote0
+    converted, held_cases = [], []
     for cid in order:
-        if len(selected) >= MAX_CASES:
-            break
-        fixed, spencer = counts(selected)
-        if len(selected) >= MIN_CASES and fixed >= MIN_FIXED and spencer >= MIN_SPENCER:
-            break
-        if cid in selected or cid not in converted_all:
+        if cid not in batch0:
             continue
-        case = converted_all[cid]
-        is_fixed = case["checks"][0]["kind"] == "fixed"
-        has_spencer = any(c["method"] == "spencer" for c in case["checks"])
-        helps = (
-            len(selected) < MIN_CASES
-            or (fixed < MIN_FIXED and is_fixed)
-            or (spencer < MIN_SPENCER and has_spencer)
-        )
-        if helps:
-            selected.append(cid)
-
-    converted = [converted_all[cid] for cid in order if cid in selected]
-    omitted = [(cid, reason_all[cid]) for cid in order if cid in reason_all]
-    omitted += [(cid, "convertible, no incluido (el conjunto ya cumple los mínimos)")
-                for cid in order if cid in converted_all and cid not in selected]
+        rest, held_case = split_hold(batch0[cid], hold)
+        if held_case is not None:
+            held_cases.append(held_case)
+        if rest is not None:
+            converted.append(rest)
+    omitted = [(cid, reason_all[cid]) for cid in order if cid in reason_all and cid not in lote0_ids]
+    omitted += [(c["id"], "todos sus checks están retenidos en verification/pending/lote0 (el motor no los reproduce)")
+                for c in held_cases if c["id"] not in {x["id"] for x in converted}]
+    unknown_hold = sorted(set(hold) - {check_key(c["id"], k) for c in held_cases for k in c["checks"]})
     discarded_by_case = {c["id"]: discarded_all[c["id"]] for c in converted}
-    # Problems whose source has a saturated unit weight: why none is in the set (R1-12 b).
     sat_ids = [cid for cid in order if any(m["model"].get("unitWeightSat") is not None
                                            for m in raw_by_id[cid]["definition"]["materials"])]
-    sat_reason = {cid: reason_all.get(cid, "convertible, no incluido (el conjunto ya cumple los mínimos)")
-                  for cid in sat_ids}
-    sat_included = [cid for cid in sat_ids if cid in selected]
+    sat_reason = {cid: reason_all.get(cid, "convertible, retenido (ver verification/pending/lote0)") for cid in sat_ids}
+    sat_included = [cid for cid in sat_ids if cid in {c["id"] for c in converted}]
 
-    # ---- v0.2 cases: seismic coefficients and loads. They go to verification/cases too; `pending/INDEX.md`
-    # keeps only the problems that could not be converted.
-    pending: list[dict] = []
-    pending_status: list[tuple[str, str, str]] = []
-    pending_discarded: dict[str, list[str]] = {}
+    # ---- batches 1 and 2: the target state in v0.3 (pending/F3)
+    f3_cases: list[dict] = []
+    f3_batches: dict[str, list[int]] = {}
+    f3_dropped: dict[str, list[str]] = {}
+    f3_omitted: list[tuple[str, str]] = []
     for cid in order:
-        if not has_v02_features(raw_by_id[cid]):
-            continue
         try:
-            case, disc = convert(raw_by_id[cid], problems.get(cid), v02=True)
+            case, disc, batches = convert_f3(raw_by_id[cid], problems.get(cid))
         except Omit as exc:
-            pending_status.append((cid, raw_by_id[cid]["title"], str(exc)))
+            f3_omitted.append((cid, str(exc)))
+            continue
         except KeyError as exc:
-            pending_status.append((cid, raw_by_id[cid]["title"], f"campo ausente en cSlope: {exc}"))
-        else:
-            pending.append(case)
-            pending_discarded[cid] = disc
-            pending_status.append((cid, case["title"], ""))
+            f3_omitted.append((cid, f"campo ausente en cSlope: {exc}"))
+            continue
+        # the held checks of batch 0 stay out here too (the file must be the cases/ file plus the new checks)
+        keep = [i for i, c in enumerate(case["checks"]) if not (batches[i] == 0 and check_key(cid, c) in hold)]
+        if len(keep) != len(case["checks"]):
+            case = {**case, "checks": [case["checks"][i] for i in keep]}
+            batches = [batches[i] for i in keep]
+        if not keep or max(batches) == 0:
+            continue
+        f3_cases.append(case)
+        f3_batches[cid] = batches
+        f3_dropped[cid] = disc
+    f3_dropped = {k: v for k, v in f3_dropped.items() if v}
+    # problems that are neither batch 0 nor F3: the reason of F3 (it is the most permissive conversion)
+    f3_omitted = [(cid, r) for cid, r in f3_omitted if cid not in lote0_ids]
 
     # ---- gates
     failures = []
-    for case in pending:
-        cid = case["id"]
-        for err in gate_schema(case):
-            failures.append(f"{cid} (pending) schema: {err}")
-        for err in gate_search(case):
-            failures.append(f"{cid} (pending) rangos: {err}")
-        for err in gate_loads(case):
-            failures.append(f"{cid} (pending) cargas: {err}")
-        for err in gate_geometry(case, raw_by_id[cid]):
-            failures.append(f"{cid} (pending) geometría: {err}")
-    for case in converted:
-        cid = case["id"]
-        for err in gate_schema(case):
-            failures.append(f"{cid} schema: {err}")
-        for err in gate_search(case):
-            failures.append(f"{cid} rangos: {err}")
-        for err in gate_geometry(case, raw_by_id[cid]):
-            failures.append(f"{cid} geometría: {err}")
-    total_fixed, total_spencer = counts(selected)
-    if not MIN_CASES <= len(converted) <= MAX_CASES:
-        failures.append(f"nº de casos {len(converted)} fuera de [{MIN_CASES}, {MAX_CASES}]")
-    if total_spencer < MIN_SPENCER:
-        failures.append(f"checks Spencer {total_spencer} < {MIN_SPENCER}")
-    if total_fixed < MIN_FIXED:
-        failures.append(f"casos fixed {total_fixed} < {MIN_FIXED}")
+    for label, group in (("", converted), (" (lote0 retenido)", held_cases), (" (F3)", f3_cases)):
+        for case in group:
+            cid = case["id"]
+            for err in gate_schema(case):
+                failures.append(f"{cid}{label} schema: {err}")
+            for err in gate_search(case):
+                failures.append(f"{cid}{label} rangos: {err}")
+            for err in gate_loads(case):
+                failures.append(f"{cid}{label} cargas: {err}")
+            for err in gate_features(case):
+                failures.append(f"{cid}{label} v0.3: {err}")
+            for err in gate_geometry(case, raw_by_id[cid]):
+                failures.append(f"{cid}{label} geometría: {err}")
+    if unknown_hold:
+        failures.append(f"HOLD.json con checks que no existen en el lote 0: {unknown_hold}")
+    if not converted:
+        failures.append("ningún caso convertido")
     if failures:
         print("GATE FAILURES:", *failures, sep="\n  ", file=sys.stderr)
         return 1
 
     # ---- write (deterministic, idempotent)
     cases_dir = root / "verification" / "cases"
-    v01_count = len(converted)
-    converted = converted + pending
-    discarded_by_case = {**discarded_by_case, **pending_discarded}
     expected = {f"{c['id']}.json" for c in converted}
     changed = 0
     for case in converted:
@@ -1035,31 +1400,51 @@ def main() -> int:
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
         converted, omitted, discarded_by_case, order, (sat_ids, sat_reason, sat_included)))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
+
     pending_dir = root / "verification" / "pending"
-    if pending_dir.is_dir():
-        for stale in sorted(pending_dir.glob("V*.json")):
+    pending_included = [c for c in converted if c["model"]["version"] == "0.2"]
+    for stale in sorted(pending_dir.glob("V*.json")):
+        stale.unlink()
+        changed += 1
+    changed += write_if_changed(pending_dir / "INDEX.md", build_pending_index(pending_included, pending_status))
+    # lote 0 holds
+    hold_dir = pending_dir / "lote0"
+    for stale in sorted(hold_dir.glob("V*.json")) if hold_dir.is_dir() else []:
+        stale.unlink()
+        changed += 1
+    if held_cases:
+        for case in held_cases:
+            changed += write_if_changed(hold_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+        changed += write_if_changed(hold_dir / "INDEX.md", build_hold_index(held_cases, hold))
+    # F3
+    f3_dir = pending_dir / "F3"
+    keep_f3 = {f"{c['id']}.json" for c in f3_cases}
+    for stale in sorted(f3_dir.glob("V*.json")) if f3_dir.is_dir() else []:
+        if stale.name not in keep_f3:
             stale.unlink()
             changed += 1
-    changed += write_if_changed(pending_dir / "INDEX.md", build_pending_index(pending, pending_status))
+    for case in f3_cases:
+        changed += write_if_changed(f3_dir / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    changed += write_if_changed(f3_dir / "INDEX.md", build_f3_index(f3_cases, f3_batches, lote0_ids, f3_dropped, f3_omitted))
 
     # ---- summary
+    n_checks = sum(len(c["checks"]) for c in converted)
+    n_v02 = len(pending_included)
     print(f"Fuente: {src}")
     print(f"Problemas en verification.json: {len(order)}; en problems.ts: {len(problems)}")
-    print(f"Casos convertidos: {len(converted)} ({v01_count} v0.1 + {len(pending)} v0.2) (fixed {total_fixed}, search {v01_count - total_fixed}); "
-          f"checks Spencer {total_spencer}, Bishop {sum(c['method'] == 'bishop' for k in converted[:v01_count] for c in k['checks'])}")
-    print("Convertidos:")
-    for case in converted:
-        cks = ", ".join(f"{c['method']} {c['published']} ±{c['tolerance']:.4f} [{c['published_by']}]" for c in case["checks"])
-        print(f"  {case['id']:6} {case['checks'][0]['kind']:6} {case['model']['units']:8} {case['title']}\n"
-              f"         checks: {cks}")
-    print("Omitidos:")
+    print(f"Lote 0 convertible hoy: {len(batch0)} casos, {sum(len(c['checks']) for c in batch0.values())} checks")
+    print(f"Lote 0 retenido: {len(held_cases)} casos, {sum(len(c['checks']) for c in held_cases)} checks")
+    print(f"verification/cases: {len(converted)} casos ({len(converted) - n_v02} v0.1 + {n_v02} v0.2), {n_checks} checks")
+    nb = {b: sum(x == b for bs in f3_batches.values() for x in bs) for b in (0, 1, 2)}
+    new1 = [c["id"] for c in f3_cases if 1 in f3_batches[c["id"]] and c["id"] not in lote0_ids]
+    new2 = [c["id"] for c in f3_cases if 2 in f3_batches[c["id"]] and c["id"] not in lote0_ids and c["id"] not in new1]
+    print(f"verification/pending/F3: {len(f3_cases)} casos; checks lote 0/1/2 = {nb[0]}/{nb[1]}/{nb[2]}; "
+          f"casos nuevos lote 1: {len(new1)}, lote 2: {len(new2)}")
+    print("Omitidos del lote 0:")
     for cid, reason in omitted:
         print(f"  {cid}: {reason}")
-    print(f"Casos v0.2 (verification/cases): {len(pending)} de {len(pending_status)} problemas con sismo o cargas")
-    for cid, _, reason in pending_status:
-        print(f"  {cid}: {'incluido' if not reason else 'excluido: ' + reason}")
     print(f"Archivos escritos/modificados en esta ejecución: {changed}")
-    print("GATES OK: schema, geometría, selección")
+    print("GATES OK: schema, geometría, v0.3")
     return 0
 
 
