@@ -10,7 +10,9 @@ import { RULE_TEXT, validateLocal } from './validateLocal';
 const baseDoc = (): ModelDoc => ({ ...baseDoc02(), version: '0.3' });
 
 const GEOTECH = new Set(['editor.gamma_sat_unverified', 'editor.gamma_sat_lt_gamma', 'editor.ru_over_piezo', 'editor.piezo_extrapolated', 'editor.undrained_ru']);
-const errors = (doc: ModelDoc): Issue[] => validateLocal(doc).filter((i) => !GEOTECH.has(i.code));
+// Este archivo prueba el formato; la admisibilidad de la polilínea contra el terreno y la base (R10B-04b) se prueba en validateLocal.polyline.r10.test.ts.
+const MODEL_FIT = new Set(['editor.polyline_no_ground_crossing', 'editor.polyline_outside_ground', 'editor.polyline_outside_model']);
+const errors = (doc: ModelDoc): Issue[] => validateLocal(doc).filter((i) => !GEOTECH.has(i.code) && !MODEL_FIT.has(i.code));
 const texts = (doc: ModelDoc): string[] => errors(doc).map((i) => i.text);
 const paths = (doc: ModelDoc): (string | null)[] => errors(doc).map((i) => i.path);
 

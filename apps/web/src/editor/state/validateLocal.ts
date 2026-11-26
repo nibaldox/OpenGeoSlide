@@ -11,6 +11,7 @@ import type { Issue, ModelDoc } from '../types';
 import { v03Fields } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
 import { geotechAdvisories } from './geotech';
+import { checkPolylineAgainstModel } from './polylineGround';
 import { isImperialUnits } from './units';
 import { boundsOf, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, polygonsOverlap } from './polygonChecks';
 
@@ -489,6 +490,28 @@ function validatePolyline(points: unknown, extent: { min: number; max: number } 
   }
 }
 
+/** Texto de cada razón con que el motor rechaza una polilínea fija bien formada (R10B-04b), con las etiquetas de la interfaz. */
+const POLYLINE_MODEL_TEXT = {
+  polyline_no_ground_crossing:
+    'Superficie fija (polilínea): prolongada desde sus extremos no corta el terreno dentro del modelo; acerque los extremos al terreno o mueva el punto vecino',
+  polyline_outside_ground:
+    'Superficie fija (polilínea): pasa por encima del terreno, o sus puntos intermedios no quedan bajo él, entre los extremos; mueva los puntos intermedios bajo el terreno',
+  polyline_outside_model:
+    'Superficie fija (polilínea): sale del modelo por debajo de su base; suba los puntos intermedios para que queden dentro de las regiones',
+} as const;
+
+/** La polilínea bien formada es admisible contra el terreno y la base (`checkPolylineAgainstModel`); si no, un error con el motivo del motor. */
+function validatePolylineAgainstModel(doc: ModelDoc, points: readonly Point[], issues: Issue[]): void {
+  const regions = doc.regions;
+  const sane =
+    regions.length > 0 &&
+    regions.every((r) => Array.isArray(r.polygon) && r.polygon.length >= 3 && r.polygon.every((p) => Array.isArray(p) && isNum(p[0]) && isNum(p[1])));
+  if (!sane) return;
+  const check = checkPolylineAgainstModel(regions, points);
+  if (check.ok) return;
+  issues.push(error(`editor.${check.reason}`, `${POLYLINE_MODEL_TEXT[check.reason]}.`, '/analysis/surface'));
+}
+
 /** `analysis.interslice` (F3.4, `validate_interslice`): solo con morgenstern_price; `points` solo, y siempre, con data_points. */
 function validateInterslice(a: AnalysisSettings, issues: Issue[]): void {
   const spec = a.interslice;
@@ -559,7 +582,11 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
     issues.push(error('editor.no_surface', `${RULE_TEXT.noSurface}.`, '/analysis'));
   }
   if (s !== undefined && s !== null && s.type === 'polyline') {
+    const before = issues.length;
     validatePolyline(s.points, extent, issues);
+    // R10B-04b: con el formato correcto y la polilínea en uso (sin búsqueda, que la ignora), admisibilidad contra el terreno y la base, con el
+    // mismo código que el motor (`checkPolylineAgainstModel`).
+    if (issues.length === before && (a.search === undefined || a.search === null)) validatePolylineAgainstModel(doc, s.points, issues);
     // F3.6: Bishop depende del eje de momentos en una polilínea; solo importa cuando la polilínea es la superficie que se analiza (sin búsqueda).
     if ((a.search === undefined || a.search === null) && (a.methods ?? ['bishop']).includes('bishop')) {
       issues.push(error('editor.out_of_range', `${RULE_TEXT.bishopPolyline}.`, '/analysis/methods'));
