@@ -1,4 +1,4 @@
-import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from './types';
+import type { AnalysisReport, MethodKind, MethodReport, ReinforcementApplication, ReinforcementForceStatus, SolveStatus } from './types';
 
 const METHODS: readonly MethodKind[] = [
   'bishop',
@@ -9,6 +9,9 @@ const METHODS: readonly MethodKind[] = [
 ];
 
 const STATUSES: readonly SolveStatus[] = ['converged', 'not_converged', 'invalid'];
+const FORCE_STATUSES: readonly ReinforcementForceStatus[] = ['applied', 'outside_mass', 'compression_ignored', 'no_capacity'];
+const APPLICATIONS: readonly ReinforcementApplication[] = ['active', 'passive'];
+const PASSIVE_SLICE_FIELDS = ['passive_v', 'passive_h', 'passive_h_moment_base', 'passive_driving_extra'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -42,6 +45,17 @@ function isIntersliceReport(value: unknown): boolean {
   );
 }
 
+/** Fuerza de un refuerzo en un cruce (v0.4, F4.9, E14m-4). */
+function isReinforcementForce(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    ['crossing', 'x', 'y', 'station', 'available', 'fx', 'fy'].every((k) => isFiniteNumber(value[k])) &&
+    APPLICATIONS.includes(value.application as ReinforcementApplication) &&
+    FORCE_STATUSES.includes(value.status as ReinforcementForceStatus)
+  );
+}
+
 function isMethodReport(value: unknown): value is MethodReport {
   if (!isRecord(value)) return false;
   return (
@@ -59,7 +73,8 @@ function isMethodReport(value: unknown): value is MethodReport {
         isFiniteNumber(s.x_right) &&
         isFiniteNumber(s.weight) &&
         isFiniteNumber(s.alpha) &&
-        isFiniteNumber(s.material),
+        isFiniteNumber(s.material) &&
+        PASSIVE_SLICE_FIELDS.every((k) => s[k] === undefined || isFiniteNumber(s[k])),
     ) &&
     (value.search === null ||
       (isRecord(value.search) &&
@@ -68,7 +83,9 @@ function isMethodReport(value: unknown): value is MethodReport {
     Array.isArray(value.warnings) &&
     value.warnings.every((w) => typeof w === 'string') &&
     (value.correction_factor === undefined || isFiniteNumber(value.correction_factor)) &&
-    (value.interslice === undefined || isIntersliceReport(value.interslice))
+    (value.interslice === undefined || isIntersliceReport(value.interslice)) &&
+    (value.reinforcement_forces === undefined ||
+      (Array.isArray(value.reinforcement_forces) && value.reinforcement_forces.every(isReinforcementForce)))
   );
 }
 

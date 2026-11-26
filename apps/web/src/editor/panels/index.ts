@@ -2,6 +2,7 @@ export { AnalysisPanel } from './AnalysisPanel';
 export { DiagnosticsPanel } from './DiagnosticsPanel';
 export { LoadsPanel } from './LoadsPanel';
 export { MaterialsPanel } from './MaterialsPanel';
+export { ReinforcementsPanel } from './ReinforcementsPanel';
 export { SearchPanel } from './SearchPanel';
 export { SeismicPanel } from './SeismicPanel';
 export { SurfacePanel } from './SurfacePanel';

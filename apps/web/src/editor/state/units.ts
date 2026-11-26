@@ -7,13 +7,13 @@
 // Factores: se derivan de dos definiciones exactas, así que son coherentes entre sí y el FS se conserva hasta el redondeo de coma flotante:
 //   1 ft  = 0,3048 m                 (yarda y libra internacionales, 1959)
 //   1 lbf = 4,4482216152605 N        (= 0,45359237 kg × 9,80665 m/s², definición de la libra-fuerza)
-// Resultan 1 m = 3,280840 ft · 1 kN/m³ = 6,365880 pcf · 1 kPa = 20,885434 psf · 1 kN/m = 68,521766 lbf/ft.
+// Resultan 1 m = 3,280840 ft · 1 kN/m³ = 6,365880 pcf · 1 kPa = 20,885434 psf · 1 kN/m = 68,521766 lbf/ft · 1 kN = 224,808943 lbf.
 //
 // γw: el agua es 9,81 kN/m³ en SI y, convertida con estos factores, 62,4493 pcf (se muestra 62,45). No se redondea a 62,4 al
 // convertir: ese redondeo cambia el FS en la 6.ª cifra. Con piezométrica, el γw (explícito o el 9,81 por defecto) se escribe
 // siempre explícito al pasar a imperial, porque el motor usaría 9,81 «pcf» si faltara.
 
-import type { Load, Material, Point, SearchSpec, SurfaceSpec, Water } from '../../engine/types';
+import type { Load, Material, Point, Pullout, Reinforcement, SearchSpec, SurfaceSpec, Water } from '../../engine/types';
 import type { ModelDoc } from '../types';
 
 export type UnitSystem = 'SI' | 'imperial';
@@ -30,8 +30,10 @@ export const UNIT_FACTORS = {
   unitWeight: LBF_PER_KN / FT_PER_M ** 3,
   /** kPa → psf (c, q). */
   stress: LBF_PER_KN / FT_PER_M ** 2,
-  /** kN/m → lbf/ft (carga lineal p). */
+  /** kN/m → lbf/ft (carga lineal p, adherencia por metro y fuerza de la tablestaca por metro de muro). */
   lineForce: LBF_PER_KN / FT_PER_M,
+  /** kN → lbf (capacidades y fuerza de un refuerzo, por elemento). */
+  force: LBF_PER_KN,
   /** kPa/m → psf/ft (gradiente de Su, un esfuerzo por unidad de longitud): el factor del esfuerzo entre el de la longitud (= el de γ). */
   stressGradient: LBF_PER_KN / FT_PER_M ** 2 / FT_PER_M,
 } as const;
@@ -67,6 +69,7 @@ function scalesFor(to: UnitSystem): Record<keyof typeof UNIT_FACTORS, Scale> {
     unitWeight: make(UNIT_FACTORS.unitWeight),
     stress: make(UNIT_FACTORS.stress),
     lineForce: make(UNIT_FACTORS.lineForce),
+    force: make(UNIT_FACTORS.force),
     stressGradient: make(UNIT_FACTORS.stressGradient),
   };
 }
@@ -111,6 +114,8 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
 
   const loads = doc.loads?.map((l): Load => (l.type === 'udl' ? { ...l, x1: k.length(l.x1), x2: k.length(l.x2), q: k.stress(l.q) } : { ...l, x: k.length(l.x), p: k.lineForce(l.p) }));
 
+  const reinforcements = doc.reinforcements?.map((r) => convertReinforcement(r, k));
+
   const analysis = { ...doc.analysis };
   const surf = doc.analysis.surface;
   if (surf) analysis.surface = (surf.type === 'polyline' ? { ...surf, points: surf.points.map(pt) } : { ...surf, xc: k.length(surf.xc), yc: k.length(surf.yc), r: k.length(surf.r) }) as SurfaceSpec;
@@ -133,5 +138,41 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
   };
   if (water !== doc.water) next.water = water;
   if (loads) next.loads = loads;
+  if (reinforcements) next.reinforcements = reinforcements;
   return next;
+}
+
+/**
+ * Refuerzo (v0.4) en el otro sistema: coordenadas, `spacing`, `bonded_length`, `length1` y `length2` son longitudes; las capacidades
+ * y la fuerza de un pilote, kN ⇄ lbf; la adherencia por metro y la fuerza de la tablestaca (por metro de muro), kN/m ⇄ lbf/ft; la
+ * adhesión de la interfaz, un esfuerzo. No cambian los ángulos, `friction_angle` ni `coverage`.
+ */
+function convertReinforcement(r: Reinforcement, k: Record<keyof typeof UNIT_FACTORS, Scale>): Reinforcement {
+  const common = { x1: k.length(r.x1), y1: k.length(r.y1), x2: k.length(r.x2), y2: k.length(r.y2) };
+  if (r.type === 'pile' || r.type === 'sheet_pile') {
+    const out = { ...r, ...common, force: r.type === 'pile' ? k.force(r.force) : k.lineForce(r.force) };
+    const spacing = r.type === 'pile' ? optional(r.spacing, k.length) : undefined;
+    if (typeof spacing === 'number') (out as { spacing?: number | null }).spacing = spacing;
+    return out;
+  }
+  const out = { ...r, ...common, tensile_capacity: k.force(r.tensile_capacity) };
+  for (const key of ['end1_capacity', 'end2_capacity'] as const) {
+    const v = optional(r[key], k.force);
+    if (typeof v === 'number') out[key] = v;
+  }
+  const spacing = optional(r.spacing, k.length);
+  if (typeof spacing === 'number') out.spacing = spacing;
+  if (r.pullout) out.pullout = convertPullout(r.pullout, k);
+  return out;
+}
+
+function convertPullout(p: Pullout, k: Record<keyof typeof UNIT_FACTORS, Scale>): Pullout {
+  if (p.model === 'bond') {
+    const out: Pullout = { ...p, strength: k.lineForce(p.strength) };
+    const bonded = optional(p.bonded_length, k.length);
+    if (typeof bonded === 'number') out.bonded_length = bonded;
+    return out;
+  }
+  if (p.model === 'interface') return { ...p, adhesion: k.stress(p.adhesion) };
+  return { ...p, length1: k.length(p.length1), length2: k.length(p.length2) };
 }

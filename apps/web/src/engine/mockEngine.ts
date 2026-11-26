@@ -3,7 +3,8 @@
 // Es determinista: el mismo modelo produce el mismo JSON byte a byte.
 //
 // Solo simula la versión 0.2 del formato: rechaza con un error explícito todo modelo con campos de la versión 0.3
-// (material no drenado, polilínea, Morgenstern-Price, Janbu, interslice; F3.9). Nunca inventa un FS para ellos.
+// (material no drenado, polilínea, Morgenstern-Price, Janbu, interslice; F3.9) o de la 0.4 (refuerzos; F4.11). Nunca
+// inventa un FS para ellos.
 //
 // Diferencias con el motor real (se avisan en `warnings` de cada resultado):
 // - Fellenius en lugar de Bishop/Spencer; `lambda` es null e `iterations` vale 1.
@@ -106,6 +107,11 @@ function parseModel(modelJson: string): Model {
 function validateModel(model: Model): void {
   if (model.format !== 'opengeoslide') {
     throw new EngineError(`InvalidModel: format "${String(model.format)}" no reconocido`);
+  }
+  if (Array.isArray(model.reinforcements) && model.reinforcements.length > 0) {
+    throw new EngineError(
+      'InvalidModel: el motor simulado no admite los refuerzos (reinforcements), un campo de la versión 0.4; use el motor WASM',
+    );
   }
   const v03 = firstV03Field(model);
   if (v03 !== null) {

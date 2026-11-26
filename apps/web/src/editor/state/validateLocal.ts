@@ -6,9 +6,9 @@
 // ni `search` son errores; un vértice consecutivo repetido es un aviso (el motor lo acepta). Los rangos numéricos son los de briefs/00_CONTRATOS.md §1 y §4.5, más F1.1 (sismo y cargas).
 // `path` es un puntero JSON. Los números de región y de arista de los textos son de base 1 (como en la UI).
 
-import type { AnalysisSettings, Material, Model, Point } from '../../engine/types';
+import type { AnalysisSettings, Material, Model, Point, Reinforcement } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
-import { v03Fields } from '../../io/ogsJson';
+import { v03Fields, v04Fields } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
 import { geotechAdvisories } from './geotech';
 import { checkPolylineAgainstModel } from './polylineGround';
@@ -90,6 +90,51 @@ export const RULE_TEXT = {
     'Peso unitario del agua γw: el modelo está en unidades imperiales y γw no se indica o es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
     'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
 } as const;
+
+/** Etiquetas de los campos de un refuerzo (v0.4); las usan los mensajes de aquí y los del panel «Refuerzos». */
+export const REINFORCEMENT_LABEL = {
+  id: 'Identificador',
+  x1: 'Cabeza x1',
+  y1: 'Cabeza y1',
+  x2: 'Punta x2',
+  y2: 'Punta y2',
+  tensile_capacity: 'Capacidad a tracción',
+  end1_capacity: 'Capacidad del extremo 1 (cabeza)',
+  end2_capacity: 'Capacidad del extremo 2 (punta)',
+  spacing: 'Espaciamiento',
+  force: 'Fuerza de corte',
+  angle: 'Ángulo',
+  strength: 'Resistencia de adherencia por metro',
+  bonded_length: 'Longitud adherida',
+  adhesion: 'Adhesión de la interfaz',
+  friction_angle: 'Fricción de la interfaz δ',
+  coverage: 'Cobertura Rc',
+  length1: 'Longitud de desarrollo en la cabeza',
+  length2: 'Longitud de desarrollo en la punta',
+} as const;
+
+/** Reglas de los campos de un refuerzo, sin sujeto (siguen a la etiqueta: «<etiqueta>: <regla>»). */
+export const REINFORCEMENT_RULE = {
+  emptyId: 'no puede estar vacío; escriba un nombre corto (ej. ancla-1)',
+  finite: 'escriba un número finito',
+  nonNegative: 'use un valor igual o mayor que 0',
+  positive: 'use un valor mayor que 0 (ej. 1)',
+  friction: 'use un valor desde 0° hasta menos de 90° (ej. 25)',
+  coverage: 'use un valor mayor que 0 y hasta 1 (ej. 0,8)',
+  angleRange: 'use un valor entre −90° y 90°, sin incluirlos (0 es horizontal)',
+  angleRequired: 'es obligatorio con la dirección «Ángulo»; escriba un valor entre −90° y 90°, sin incluirlos (0 es horizontal)',
+  angleForbidden: 'solo se admite con la dirección «Ángulo»; quítelo o cambie la dirección',
+} as const;
+
+/** Mensaje de un campo del refuerzo `index` (base 0): `Refuerzo 2, capacidad a tracción: use un valor…`. */
+export function reinforcementFieldText(index: number, label: string, rule: string): string {
+  return `Refuerzo ${index + 1}, ${lcFirst(label)}: ${rule}`;
+}
+
+/** Texto del motor (`reinforcements requiere version "0.4"`) con las palabras de la interfaz (E14a). */
+function version04Text(declared: string): string {
+  return `Formato del archivo: los refuerzos requieren el formato 0.4, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.4`;
+}
 
 /** Texto del motor (`<campo> requiere version "0.3"`) con el nombre del campo de la interfaz (R10B-08). */
 function version03Text(what: string, declared: string): string {
@@ -690,6 +735,123 @@ function validateLoads(doc: ModelDoc, extent: { min: number; max: number } | nul
   });
 }
 
+/** `14,56 m` para citar una longitud de un refuerzo en un mensaje. */
+function lengthText(v: number, unit: string): string {
+  return `${fmt(Math.round(v * 100) / 100)} ${unit}`;
+}
+
+/**
+ * Reglas de F4.2 de `reinforcements`, las mismas que el motor (`reinforcement::validate`): id no vacío y único, números
+ * finitos, longitud > 0, capacidades y fuerza ≥ 0, `spacing` > 0, `pullout`, `bonded_length` ≤ L, `angle` solo con
+ * `direction: "angle"` y en (−90, 90), y `x1 = x2` en la tablestaca. Un campo no finito no genera además un error de rango.
+ */
+function validateReinforcements(doc: ModelDoc, issues: Issue[]): void {
+  const list: readonly Reinforcement[] = doc.reinforcements ?? [];
+  const unit = lengthUnit(doc.units);
+  const L = REINFORCEMENT_LABEL;
+  const R = REINFORCEMENT_RULE;
+  const seen = new Map<string, number>();
+  list.forEach((r, i) => {
+    const base = `/reinforcements/${i}`;
+    const put = (code: Code, path: string, label: string, rule: string, value?: unknown, withCurrent = true): void => {
+      const text = reinforcementFieldText(i, label, rule);
+      issues.push(error(code, withCurrent ? withValue(text, value) : `${text}.`, path));
+    };
+    // Número obligatorio: `true` si es finito; si no, anota `non_finite`.
+    const finite = (path: string, label: string, v: unknown): v is number => {
+      if (isNum(v)) return true;
+      put('editor.reinforcement_non_finite', path, label, R.finite, v);
+      return false;
+    };
+    // Número opcional: ausente (`undefined` o `null`) vale.
+    const optional = (path: string, label: string, v: unknown): v is number => isPresent(v) && finite(path, label, v);
+    const atLeastZero = (code: Code, path: string, label: string, v: unknown): void => {
+      if (finite(path, label, v) && v < 0) put(code, path, label, R.nonNegative, v);
+    };
+
+    if (typeof r.id !== 'string' || r.id === '') {
+      put('editor.reinforcement_empty_id', `${base}/id`, L.id, R.emptyId, undefined, false);
+    } else if (seen.has(r.id)) {
+      issues.push(
+        error(
+          'editor.reinforcement_duplicate_id',
+          `Refuerzo ${i + 1}, identificador: «${r.id}» ya lo usa el refuerzo ${(seen.get(r.id) ?? 0) + 1}; use uno distinto.`,
+          `${base}/id`,
+        ),
+      );
+    } else seen.set(r.id, i);
+
+    const coordsOk = [
+      finite(`${base}/x1`, L.x1, r.x1),
+      finite(`${base}/y1`, L.y1, r.y1),
+      finite(`${base}/x2`, L.x2, r.x2),
+      finite(`${base}/y2`, L.y2, r.y2),
+    ].every(Boolean);
+    const length = coordsOk ? Math.hypot(r.x2 - r.x1, r.y2 - r.y1) : Number.NaN;
+    if (coordsOk && !(length > 0)) {
+      issues.push(error('editor.reinforcement_zero_length', `Refuerzo ${i + 1}: la cabeza y la punta coinciden, así que la longitud es 0; separe los dos extremos.`, base));
+    }
+
+    if (r.type === 'anchor' || r.type === 'nail' || r.type === 'geosynthetic') {
+      atLeastZero('editor.reinforcement_capacity', `${base}/tensile_capacity`, L.tensile_capacity, r.tensile_capacity);
+      for (const key of ['end1_capacity', 'end2_capacity'] as const) {
+        if (isPresent(r[key])) atLeastZero('editor.reinforcement_capacity', `${base}/${key}`, L[key], r[key]);
+      }
+      if (optional(`${base}/spacing`, L.spacing, r.spacing) && !(r.spacing > 0)) put('editor.reinforcement_spacing', `${base}/spacing`, L.spacing, R.positive, r.spacing);
+      const p = r.pullout;
+      if (p === undefined || p === null) return;
+      const pb = `${base}/pullout`;
+      const bad = (key: string, label: string, rule: string, v: unknown): void => put('editor.reinforcement_pullout', `${pb}/${key}`, label, rule, v);
+      if (p.model === 'bond') {
+        if (finite(`${pb}/strength`, L.strength, p.strength) && p.strength < 0) bad('strength', L.strength, R.nonNegative, p.strength);
+        if (optional(`${pb}/bonded_length`, L.bonded_length, p.bonded_length)) {
+          if (!(p.bonded_length > 0)) bad('bonded_length', L.bonded_length, R.positive, p.bonded_length);
+          else if (coordsOk && p.bonded_length > length) {
+            put(
+              'editor.reinforcement_bonded_length',
+              `${pb}/bonded_length`,
+              L.bonded_length,
+              `no puede superar la longitud del refuerzo (${lengthText(length, unit)}); reduzca la longitud adherida o alargue el refuerzo`,
+              p.bonded_length,
+            );
+          }
+        }
+      } else if (p.model === 'interface') {
+        if (finite(`${pb}/adhesion`, L.adhesion, p.adhesion) && p.adhesion < 0) bad('adhesion', L.adhesion, R.nonNegative, p.adhesion);
+        if (finite(`${pb}/friction_angle`, L.friction_angle, p.friction_angle) && !(p.friction_angle >= 0 && p.friction_angle < 90)) {
+          bad('friction_angle', L.friction_angle, R.friction, p.friction_angle);
+        }
+        if (finite(`${pb}/coverage`, L.coverage, p.coverage) && !(p.coverage > 0 && p.coverage <= 1)) bad('coverage', L.coverage, R.coverage, p.coverage);
+      } else if (p.model === 'development') {
+        for (const key of ['length1', 'length2'] as const) {
+          if (finite(`${pb}/${key}`, L[key], p[key]) && p[key] < 0) bad(key, L[key], R.nonNegative, p[key]);
+        }
+      }
+    } else if (r.type === 'pile' || r.type === 'sheet_pile') {
+      atLeastZero('editor.reinforcement_capacity', `${base}/force`, L.force, r.force);
+      if (r.type === 'pile' && optional(`${base}/spacing`, L.spacing, r.spacing) && !(r.spacing > 0)) {
+        put('editor.reinforcement_spacing', `${base}/spacing`, L.spacing, R.positive, r.spacing);
+      }
+      if (r.type === 'sheet_pile' && coordsOk && r.x1 !== r.x2) {
+        issues.push(
+          error(
+            'editor.reinforcement_sheet_pile_vertical',
+            `Refuerzo ${i + 1}, punta x2: la tablestaca es vertical; la x de la punta debe ser igual a la de la cabeza (x1 = ${lengthText(r.x1, unit)}). Valor actual: ${fmt(r.x2)}.`,
+            `${base}/x2`,
+          ),
+        );
+      }
+      const a = r.angle;
+      if (r.direction === 'angle') {
+        if (!isPresent(a)) put('editor.reinforcement_angle', `${base}/angle`, L.angle, R.angleRequired, undefined, false);
+        else if (finite(`${base}/angle`, L.angle, a) && !(a > -90 && a < 90)) put('editor.reinforcement_angle', `${base}/angle`, L.angle, R.angleRange, a);
+      } else if (isPresent(a)) {
+        put('editor.reinforcement_angle', `${base}/angle`, L.angle, R.angleForbidden, a);
+      }
+    }
+  });
+}
+
 /** Valida el documento sin llamar al motor. Devuelve las incidencias ordenadas por sección del documento. */
 export function validateLocal(doc: ModelDoc): Issue[] {
   const issues: Issue[] = [];
@@ -712,14 +874,19 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
   }
   // R10B-08: como el motor (`<campo> requiere version "0.3"`), con el primer campo de la 0.3 que el documento usa.
-  const first = doc.version === '0.3' ? undefined : v03Fields(doc)[0];
+  const first = doc.version === '0.3' || doc.version === '0.4' ? undefined : v03Fields(doc)[0];
   if (first) {
     issues.push(error('editor.out_of_range', `${version03Text(first.what, String(doc.version))}.`, '/version'));
+  }
+  // F4.1: como el motor (`reinforcements requiere version "0.4"`).
+  if (doc.version !== '0.4' && v04Fields(doc).length > 0) {
+    issues.push(error('editor.reinforcement_version', `${version04Text(String(doc.version))}.`, '/version'));
   }
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
   validateWater(doc, issues);
   validateLoads(doc, extent, tol, issues);
+  validateReinforcements(doc, issues);
   validateAnalysis(doc, extent, tol, issues);
   for (const a of geotechAdvisories(doc)) issues.push(warning(a.code, a.text, a.path));
   return issues;

@@ -3,6 +3,7 @@ import acads1a from '../examples/acads1a.json';
 import { analyzeMock, createMockEngine, MOCK_SLICE_COUNT, MOCK_WARNING } from './mockEngine';
 import { EngineError } from './engine';
 import { resolveSliding, yBottom, yTop } from './groundGeometry';
+import { FIVE } from '../editor/state/reinforcementFixtures';
 import { isAnalysisReport } from './validate';
 import type { VerificationCase } from './types';
 
@@ -174,6 +175,35 @@ describe('mockEngine (motor simulado)', () => {
     it('un modelo 0.2 sin campos nuevos sigue funcionando', () => {
       const ok = mutate(() => {}, '0.2');
       expect(isAnalysisReport(analyzeMock(ok))).toBe(true);
+    });
+  });
+
+  describe('modelos con refuerzos, formato 0.4 (F4.11)', () => {
+    const REJECT = /^InvalidModel: el motor simulado no admite .*refuerzos.*0\.4/;
+    const withReinforcements = (version = '0.4', list: unknown = FIVE): string => {
+      const m = JSON.parse(acadsJson);
+      m.version = version;
+      m.reinforcements = list;
+      return JSON.stringify(m);
+    };
+
+    it('rechaza un modelo con refuerzos con un error explícito y nunca devuelve un FS', () => {
+      for (const version of ['0.4', '0.3', '0.2']) {
+        expect(() => analyzeMock(withReinforcements(version)), version).toThrow(EngineError);
+        expect(() => analyzeMock(withReinforcements(version)), version).toThrow(REJECT);
+      }
+      expect(() => analyzeMock(withReinforcements('0.4', [FIVE[3]])), 'un solo pilote').toThrow(REJECT);
+    });
+
+    it('el motor simulado asíncrono también rechaza', async () => {
+      await expect(createMockEngine().analyze(withReinforcements())).rejects.toThrow(REJECT);
+    });
+
+    it('una lista vacía o ausente sigue funcionando, también con la versión 0.4', () => {
+      expect(isAnalysisReport(analyzeMock(withReinforcements('0.4', [])))).toBe(true);
+      const plain = JSON.parse(acadsJson);
+      plain.version = '0.4';
+      expect(isAnalysisReport(analyzeMock(JSON.stringify(plain)))).toBe(true);
     });
   });
 });
