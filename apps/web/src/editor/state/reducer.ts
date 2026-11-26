@@ -310,8 +310,11 @@ export function isSelectionValid(sel: Selection, doc: ModelDoc): boolean {
       return hasMaterial(doc, sel.materialId);
     case 'piezo_point':
       return inRange(sel.index, doc.water?.piezometric_line?.length ?? 0);
-    case 'surface_circle':
-      return doc.analysis.surface !== undefined && doc.analysis.surface !== null;
+    case 'surface_circle': {
+      // R10B-11: solo con un círculo; en una polilínea el elemento seleccionable es el vértice.
+      const surface = doc.analysis.surface;
+      return surface !== undefined && surface !== null && surface.type !== 'polyline';
+    }
     case 'surface_vertex': {
       const surface = doc.analysis.surface;
       return surface !== undefined && surface !== null && surface.type === 'polyline' && inRange(sel.index, surface.points.length);

@@ -1583,7 +1583,7 @@ function toIndex(segment: string | undefined): number | null {
 /**
  * Puntero JSON de una incidencia → elemento a seleccionar. Rutas reconocidas:
  * `/regions/i[/material]` → región; `/regions/i/polygon/j` → vértice; `/materials/k` → material;
- * `/water/piezometric_line/k` → punto de la piezométrica; `/analysis/surface[/…]` → círculo;
+ * `/water/piezometric_line/k` → punto de la piezométrica; `/analysis/surface[/…]` → círculo (con una polilínea, `/analysis/surface/points/k` → su vértice k);
  * `/analysis/search/entry|exit` → banda; `/loads/k` → carga. Cualquier otra → `none`.
  */
 export function selectionForPath(path: string | null, doc: ModelDoc): Selection {
@@ -1609,7 +1609,15 @@ export function selectionForPath(path: string | null, doc: ModelDoc): Selection 
     const n = doc.water?.piezometric_line?.length ?? 0;
     return k !== null && k < n ? { kind: 'piezo_point', index: k } : { kind: 'none' };
   }
-  if (a === 'analysis' && b === 'surface') return { kind: 'surface_circle' };
+  if (a === 'analysis' && b === 'surface') {
+    // R10B-11: con una polilínea, `/analysis/surface/points/k` es el vértice k; sin índice no hay un elemento que seleccionar (y nunca un círculo).
+    const surface = doc.analysis.surface;
+    if (surface && surface.type === 'polyline') {
+      const k = c === 'points' ? toIndex(d) : null;
+      return k !== null && k < surface.points.length ? { kind: 'surface_vertex', index: k } : { kind: 'none' };
+    }
+    return { kind: 'surface_circle' };
+  }
   if (a === 'analysis' && b === 'search' && (c === 'entry' || c === 'exit')) return { kind: 'search_range', which: c };
   if (a === 'loads') {
     const k = toIndex(b);
