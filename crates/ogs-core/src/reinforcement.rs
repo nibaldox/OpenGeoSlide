@@ -22,9 +22,13 @@
 //! Algorithm of the crossings (E14d.1): the segment `head → tip` against the lower arc of the circle (the line is
 //! reduced to its closest point to the centre and the half chord `√(r² − d²)`, so no cancellation) or against each
 //! segment of the fitted polyline; a crossing at an end of the element, within `1e-9·scale`, does not count; one at a
-//! vertex of the polyline counts once. The station is `s_c = t_c·L`. The thin slice that receives the force is the
+//! vertex of the polyline counts once, and not at all if the element only touches the vertex. A circle that the line
+//! enters less than `1e-6·width` deep (a tangency) gives no crossing (E14o-1). The normal `n` and the movement `m` are
+//! those of the surface **at the crossing** (the radius of the circle, the segment of the polyline), not the `alpha`
+//! of the thin slice that receives the force. The station is `s_c = t_c·L`. The thin slice that receives the force is the
 //! first soil slice from the toe whose closed interval contains `x_c` (`1e-9·width`): with the nodes of
-//! `crossing_nodes` it is the one centred on `x_c`.
+//! `crossing_nodes` it is the one centred on `x_c`. A crossing that cannot apply a force and that is decided before
+//! slicing (over the ground, no capacity, a passive element that the sliding compresses) adds no nodes (E14o-11).
 //!
 //! Capacity (E14c, E14m-2): `bond` and `interface` integrate `r` **exactly** along the element (piecewise linear
 //! between the cuts at the ground, the contacts and the water, and where `σ′v` changes sign); `development` is the
@@ -520,10 +524,13 @@ fn extended_piezometric(pm: &PreparedModel) -> Option<Vec<Point>> {
     Some(pts)
 }
 
-/// Vertical effective stress `σ′v` before the clamp at 0 (E14m-2), at the point `(x, y)` of the soil; `None` if the
-/// point is not in soil. `σ` is the soil column over the point (with `γsat` under the water line of the material),
-/// plus the free water over the ground; `u` follows the rule of the slicer (`ru·σ` if the material has `ru`, else the
-/// piezometric line). Loads are not included.
+/// Vertical effective stress `σ′v` before the clamp at 0 (E14m-2, E14o-4, E14o-5), at the point `(x, y)` of the soil;
+/// `None` if the point is not in soil. `σ` is the soil column over the point (with `γsat` under the water line of the
+/// material). `u` follows the precedence of the slicer: a material with `ru` has `u = ru·σ_soil` and takes **no** water
+/// from the piezometric line (neither the water under the ground nor the free water over it); a material without `ru`
+/// takes the piezometric line, and the free water over the ground counts. On a contact between two materials (within
+/// `tol` in `y` for a horizontal one, in `x` for a vertical one) it is the **smaller** value of the two, whatever the
+/// order of `regions`. Loads are not included.
 fn effective_vertical_stress(
     pm: &PreparedModel,
     x: f64,
@@ -878,7 +885,8 @@ fn slice_at(slices: &[Slice], x: f64, touch: f64) -> Option<usize> {
 ///   (E14f); a **passive** one adds the same four terms to `passive_v`, `passive_h`, `passive_h_moment_base` and
 ///   `passive_driving_extra`, **before** dividing by `F` (the methods divide, E14g). The seismic force and the loads
 ///   do not act on them.
-/// - a crossing on an air slice or a discarded block applies nothing and returns `OutsideMass`; a passive tension
+/// - a crossing on the ground (E14o-11), on an air slice or in a discarded block applies nothing and returns
+///   `OutsideMass`; a passive tension
 ///   element that the sliding compresses, `CompressionIgnored`; a capacity `T(s_c) = 0`, `NoCapacity`.
 ///
 /// It returns the forces for any surface; `lib.rs` keeps them in the report only for a converged method. The notes

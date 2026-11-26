@@ -502,3 +502,53 @@ fn interface_on_a_vertical_contact_is_mirror_invariant() {
     let (sa, sb) = (fos(&a, 0), fos(&b, 0));
     assert!((sa - sb).abs() < 1e-9, "FS {sa} against {sb}");
 }
+
+// ------------------------------------------------------------------------------------ the exact normal, both signs
+
+/// E14o-1, the sign of `alpha` at the crossing, on a polyline and in the mirror image. A `tangent` active anchor that
+/// crosses the segment `(35; 25.520953)-(40; 26.973391)` (slope 0.290488) of the chord polyline of F3.8 gives
+/// `u = −m = (cos α, sin α)`, `α = atan(slope)`, in `right_to_left`; the mirror model (`x → −x`, `left_to_right`) gives
+/// `(−cos α, sin α)`, and the same FS.
+#[test]
+fn tangent_force_on_a_polyline_and_its_mirror() {
+    let slope = (26.973391_f64 - 25.520953) / 5.0;
+    let alpha = slope.atan();
+    let build = |mirror: bool| {
+        let mut doc = v047a(json!(["spencer"]));
+        doc["version"] = json!("0.4");
+        set_polyline(&mut doc, &POLYLINE);
+        let mut a = anchor("A1", [44.0, 26.1], [33.0, 26.1], "active", 100.0);
+        a["direction"] = json!("tangent");
+        doc["reinforcements"] = json!([a]);
+        if !mirror {
+            return doc;
+        }
+        doc["slope"] = json!({"direction": "left_to_right"});
+        doc["regions"][0]["polygon"] = json!([
+            [-20, 20],
+            [-20, 25],
+            [-30, 25],
+            [-50, 35],
+            [-70, 35],
+            [-70, 20]
+        ]);
+        let pts: Vec<[f64; 2]> = POLYLINE.iter().rev().map(|p| [-p[0], p[1]]).collect();
+        set_polyline(&mut doc, &pts);
+        doc["reinforcements"][0]["x1"] = json!(-44.0);
+        doc["reinforcements"][0]["x2"] = json!(-33.0);
+        doc
+    };
+    let (f, g) = (forces(&build(false)), forces(&build(true)));
+    let (f, g) = (&f[0], &g[0]);
+    assert_eq!(f.status, ForceStatus::Applied);
+    assert!(
+        (f.fx - 100.0 * alpha.cos()).abs() < 1e-9 && (f.fy - 100.0 * alpha.sin()).abs() < 1e-9,
+        "{f:?}"
+    );
+    assert!(
+        (g.fx + f.fx).abs() < 1e-9 && (g.fy - f.fy).abs() < 1e-9,
+        "{g:?} against {f:?}"
+    );
+    let (a, b) = (fos(&build(false), 0), fos(&build(true), 0));
+    assert!((a - b).abs() < 1e-9, "FS {a} against {b}");
+}
