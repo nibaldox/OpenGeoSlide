@@ -39,9 +39,9 @@ el elemento incluido, no su diseño estructural ([límite](docs/limitaciones.md#
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 213 de 213 checks contra valores publicados (93 casos) y
-  coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 43 de 43 checks de la
-  Fase 3a. Es la batería real
+- **Está verificado y se puede reproducir.** El motor cumple 241 de 241 checks contra valores publicados (116 casos) y
+  coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
+  Fase 3a (más 12 de 12 de los refuerzos v0.4). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
@@ -106,23 +106,24 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.3), con
-sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.4), con
+sismo, cargas y refuerzos, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (93 casos) | **213/213** | [REPORT](verification/REPORT.md) |
+| Valores publicados (116 casos) | **241/241** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
-| Web y `ogs` (275 modelos) | **275/275** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
+| Web y `ogs` (303 modelos) | **303/303** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 213 checks de 93 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
-  v0.2 y 47 en v0.3), cada uno dentro de su tolerancia: 95 de Bishop, 76 de Spencer, 27 de Morgenstern-Price, 7 de
-  Janbu simplificado y 8 de Janbu corregido. Otros 6 checks, en 4 casos, quedan retenidos con su diagnóstico
-  ([`verification/pending/`](verification/pending/INDEX.md)).
+- **Valores publicados:** 241 checks de 116 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2, 47 en v0.3 y 23 con refuerzos en v0.4), cada uno dentro de su tolerancia: 108 de Bishop, 81 de Spencer, 29 de
+  Morgenstern-Price, 8 de Janbu simplificado y 15 de Janbu corregido. Otros 11 checks, en 7 casos, quedan retenidos con
+  su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
 - **cSlope, superficie fija:** el mismo círculo en los dos programas; el FS difiere en 0,5 % o menos.
@@ -182,8 +183,8 @@ OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stabil
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; the unreleased v0.4 format adds reinforcements: anchors, soil nails,
 geosynthetics, piles and sheet piles). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 213/213 published values (93 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces and 71/71 Phase 3a checks. The search is circular only. With piles or sheet piles it checks the global stability
+runs in your browser and works offline, a Python package and a CLI. It matches 241/241 published values (116 cases) and cSlope in
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks and 12/12 reinforcement checks. The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
 moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
 retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
