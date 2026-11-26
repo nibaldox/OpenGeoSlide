@@ -137,3 +137,30 @@ def test_the_report_row_of_a_reinforced_model_carries_the_forces_of_the_oracle()
     assert (forces["elements"], forces["applied"]) == (1, 1)
     assert forces["forces"][0]["fx"] == pytest.approx(100.0) and forces["forces"][0]["passive"] is False
     assert "reinforcement_forces" not in rows[1]["cslope"]          # a model without reinforcements: the old report
+
+
+def test_run_ogs_reads_the_forces_and_the_surface_of_the_report(tmp_path):
+    payload = _report(1.02, "converged")
+    payload["results"][0]["reinforcement_forces"] = [{"id": "A1", "x": 1.0, "y": 2.0, "fx": 3.0, "fy": 0.0,
+                                                      "status": "applied"}]
+    payload["results"][0]["surface"] = {"xc": 1.0, "yc": 2.0, "r": 3.0}
+    res = run.run_ogs(_fake_ogs(tmp_path, payload), MODEL, CHECK, 30)
+    assert res["forces"][0]["id"] == "A1" and res["surface"]["r"] == 3.0
+
+
+def test_the_forces_comparison_of_a_search_reruns_ogs_on_the_circle_of_the_oracle(tmp_path):
+    model = {"reinforcements": [{"id": "A1", "type": "anchor", "x1": 0, "y1": 0, "x2": 1, "y2": 0,
+                                 "tensile_capacity": 5.0}],
+             "analysis": {"search": {"type": "circular_entry_exit"}}}
+    payload = _report(1.02, "converged")
+    payload["results"][0]["reinforcement_forces"] = [{"id": "A1", "x": 1.0, "y": 2.0, "fx": 3.0, "fy": 0.0,
+                                                      "status": "applied"}]
+    payload["results"][0]["surface"] = {"xc": 0.0, "yc": 0.0, "r": 2.2}
+    check = dict(CHECK, kind="search")
+    og = {"surface": {"xc": 9.0, "yc": 9.0, "r": 9.0}, "forces": [], "error": None, "status": "converged"}
+    out = run._forces_comparison(_fake_ogs(tmp_path, payload), model, check, og,
+                                 [{"index": 0, "x": 1.0, "y": 2.0, "fx": 3.0, "fy": 0.0}],
+                                 {"xc": 0.0, "yc": 0.0, "r": 2.2})
+    assert out["on_oracle_circle"] is True and out["unexplained"] == 0 and len(out["pairs"]) == 1
+    # a search whose oracle circle is unknown has no comparison
+    assert run._forces_comparison(_fake_ogs(tmp_path, payload), model, check, og, [], None) is None
