@@ -21,6 +21,8 @@ export const PDF_PALETTE = {
   regionEdge: [55, 65, 81],
   surface: [185, 28, 28],
   piezo: [29, 78, 216],
+  /** Relleno del agua embalsada (F5.3): el `--canvas-pond` del tema claro. */
+  pond: [191, 219, 254],
   slices: [100, 116, 139],
   /** Cargas de superficie (flechas y rótulos de la sección) y indicador sísmico: contraste ≥ 3:1 sobre papel blanco. */
   load: [180, 83, 9],

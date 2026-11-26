@@ -7,6 +7,7 @@
 import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
+import { crackCsvHeader } from '../report/crackReport';
 import { csvRowNote, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
@@ -282,6 +283,8 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
   const withSurface = results.some((r) => isPolylineReport(r.surface));
   const withFunction = results.some((r) => r.interslice !== undefined);
   const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
+  // F5.4: la grieta de tracción (`x_c`, profundidad usada y `Pw`) solo agrega columnas cuando algún método la trae; sin grieta el CSV no cambia.
+  const withCrack = results.some((r) => r.tension_crack !== undefined);
   // R10B-07: con `data_points` la función son sus pares (ξ; f); sin ellos el CSV no identifica la f(ξ) usada.
   const withPoints = results.some((r) => intersliceCell(r, false) !== null);
   const decimalComma = (options.decimalComma ?? false) && (options.delimiter ?? ',') !== ',';
@@ -305,6 +308,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       ...(withFunction ? [r.interslice?.function ?? null] : []),
       ...(withPoints ? [intersliceCell(r, decimalComma)] : []),
       ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
+      ...(withCrack ? [r.tension_crack?.x ?? null, r.tension_crack?.depth ?? null, r.tension_crack?.water_force ?? null] : []),
     ];
   });
   const header = [
@@ -324,6 +328,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     ...(withFunction ? ['funcion_interslice'] : []),
     ...(withPoints ? ['puntos_interslice'] : []),
     ...(withF0 ? ['f0'] : []),
+    ...(withCrack ? crackCsvHeader(options.units) : []),
   ];
   return toCsv(header, rows, options);
 }

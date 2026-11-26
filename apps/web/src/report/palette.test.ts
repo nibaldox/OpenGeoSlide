@@ -26,6 +26,18 @@ describe('PDF_PALETTE', () => {
     expect(hex(PDF_PALETTE.reinforcement)).toBe((m as RegExpExecArray)[1].toLowerCase());
   });
 
+  it('el relleno del agua embalsada coincide con --canvas-pond del tema CLARO y la piezométrica se lee sobre él (≥ 3:1)', () => {
+    const css = read('../styles/tokens.css');
+    const m = /--canvas-pond:\s*light-dark\((#[0-9a-f]{6}),/i.exec(css);
+    expect(m).not.toBeNull();
+    expect(hex(PDF_PALETTE.pond)).toBe((m as RegExpExecArray)[1].toLowerCase());
+    const l = (c: number): number => ((c / 255) <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+    const lum = ([r, g, b]: readonly number[]): number => 0.2126 * l(r as number) + 0.7152 * l(g as number) + 0.0722 * l(b as number);
+    for (const stroke of [PDF_PALETTE.piezo, PDF_PALETTE.surface]) {
+      expect((Math.max(lum(stroke), lum(PDF_PALETTE.pond)) + 0.05) / (Math.min(lum(stroke), lum(PDF_PALETTE.pond)) + 0.05)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('la superficie, la piezométrica y el contorno de las regiones son visibles sobre papel blanco (≥ 3:1)', () => {
     const lum = ([r, g, b]: readonly number[]): number => {
       const l = (c: number): number => ((c / 255) <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
