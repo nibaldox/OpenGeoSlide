@@ -314,8 +314,9 @@ cruces, con la misma regla de compresión que a un pasivo (X17 §1.5). Consecuen
   que suben hacia el macizo, más empinados que la base). Las filas de aceptación con el oráculo solo usan cruces con
   `along < 0`.
 - Los activos con `along > 0` se verifican con el equilibrio global independiente y con un test que fija `u = d`, no con
-  el oráculo. El caso de V016b es de este tipo: el oráculo no aplica ninguna fuerza, y por eso su acuerdo con lo
-  publicado no prueba nada sobre los refuerzos (`verification/pending/F3R/INDEX.md`).
+  el oráculo. Ninguno de los casos del corpus ejercita este caso contra el oráculo. V016b no es uno: sus tres elementos
+  quedan dentro del círculo, sin cruce, y ni ogs ni el oráculo aplican fuerza, así que su acuerdo con lo publicado no
+  prueba nada sobre los refuerzos (`verification/cases/INDEX.md`, sección «Casos con refuerzos»).
 - Los **pasivos** comprimidos se descartan en los dos (`compression_ignored`, con la nota
   `reinforcement_compression_ignored`).
 
