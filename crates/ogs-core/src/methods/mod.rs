@@ -83,14 +83,14 @@ pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
 /// force of slice `k`; air slices are not classified.
 ///
 /// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW` (`ΣW` is the force
-/// scale `max(ΣW, ΣW*)` of E13j-6, which is the soil weight when there are no loads) and
+/// scale of E13j-6 limited by the driving scale (E13l-3, [`spencer::force_scale`]), which is the soil weight when there are no loads) and
 /// `λ_neg = Σ_{N'<0} b / Σ_soil b` (share of the soil base length): `negative_effective_normal` (note) if
 /// `f ≤ 0.05` **and** `λ_neg ≤ 0.25`; `negative_effective_normal_major` (warning) otherwise (E8c, E11f).
 pub(crate) fn negative_normal_message(
     slices: &[Slice],
     normal: impl Fn(usize, &Slice) -> f64,
 ) -> Option<&'static str> {
-    // E13j-6: the scale is `max(ΣW, ΣW*)`, as in the closure of the solvers. With a nearly weightless soil under loads
+    // E13j-6, E13l-3: the scale is `spencer::force_scale`, as in the closure of the solvers. With a nearly weightless soil under loads
     // (V018: ΣW = 6.3e-5, ΣW* = 1.5e3) the normal forces come from the loads, and over ΣW alone `f` is 1.6e4.
     let total_w: f64 = spencer::force_scale(slices);
     let floor = -NEGATIVE_NORMAL_FRACTION * total_w;

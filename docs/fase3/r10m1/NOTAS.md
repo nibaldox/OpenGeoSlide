@@ -28,7 +28,7 @@ funciones con nombre no entran a la pasada 2.
 
 Identidad contra `694f13a` (3350 corridas, mismo script): **62 difieren (antes 529)**, todas `data_points` en
 **búsqueda** (60) o polilínea inscrita (2):
-- 58 `dp_narrow` + 2 `dp_small` en búsqueda convergidas antes y ahora: 52 con el mismo FS y distinto byte (cuentas
+- 58 `dp_narrow` + 2 `dp_small` en búsqueda convergidas antes y ahora: 54 con el mismo FS y distinto byte (cuentas
   `evaluated/valid` de la búsqueda, una superficie que antes era `no_lambda_root` ahora es válida); 6 ganan otra
   superficie (V030 1,2482→1,2154; V032b 0,9756→0,9514; V034b 1,1417→1,0161; V102a 0,99967→0,99985; D02 0,3877→0,3843;
   D09 0,8260→0,4603);
@@ -46,3 +46,41 @@ Casos de R10A-08 con el CLI final:
 4. V047a `1e-310`: `λ = λ_n/s` = 6,5e309 no cabe en un f64: **`invalid (non_finite)`**, ya no `λ = None` con `converged`.
 5. Pico entre fronteras (`f̄ = 0`): `invalid (no_lambda_root)`, sin pasada 2 posible; un código propio
    (p. ej. `interslice_no_support`) exigiría E6, web y py; se deja como propuesta.
+
+## 3. E13l-3: escala motriz contra los cuatro criterios
+
+Cantidades medidas por modelo con superficie fija, Spencer (`soil = ΣW`, `W* = ΣW*`, `t = Σ|W*·sen α + H·cos α|`,
+`h = Σ|H|`). Solo 8 modelos del repo tienen `max(ΣW, ΣW*) ≠ max(ΣW, t, h)`:
+
+| modelo | ΣW | ΣW* | t | h | escala vieja / candidata |
+|---|---|---|---|---|---|
+| V018 | 6,3e-5 | 1493 | 827 | 0 | 1,80 |
+| V077 | 8,9e-5 | 1028 | 545 | 0 | 1,88 |
+| V078 | 8,9e-5 | 1028 | 545 | 0 | 1,88 |
+| V081a | 358 | 389 | 270 | 0 | 1,09 |
+| V081b | 2110 | 2328 | 1142 | 0 | 1,10 |
+| V097a | 2486 | 2586 | 1000 | 0 | 1,04 |
+| D12 | 1779 | 1792 | 1060 | 0 | 1,01 |
+| D13 | 1108 | 1204 | 597 | 25,9 | 1,09 |
+
+**Candidata del contrato `D = max(ΣW, Σ|t|, Σ|H|)`** (identidad contra el binario sin cambio, 3350 corridas): **15
+corridas cambian**: V018 (1), V077 (5), V078 (6) en el 10.º dígito del FS y en λ, y D13 (4, `data_points`) en el 12.º
+dígito. Los criterios 3 y 4 sí los cumple (sobrecarga inerte y V068 con carga en el pie) y la mitad horizontal de R10A-03
+también. **Incumple el criterio 2** (D13 no es de Prandtl). Es el efecto de cambiar la escala de la tolerancia de Brent y
+del cierre en un modelo con cargas que no son inertes (razón vieja/candidata hasta 1,10).
+
+**Alternativa que cumple los cuatro:** `escala = max(D, min(max(ΣW, ΣW*), K·D))`, es decir, se conserva la escala vieja
+mientras no pase de `K·D`, y se acota a `K·D` si pasa; `K = 3`. Ventana de `K` medida:
+- V018/V077/V078 (razón 1,80–1,88) exigen `K > 1,9` para no cambiar;
+- V068 + UDL q = 5000 en el pie plano (`Σ|N'<0|/ΣW = 0,19`) exige `K < 3,8` (0,19/K > 0,05): con `K = 1,5; 2; 3` conserva
+  `negative_effective_normal_major`, con `K = 4; 5` lo degrada a nota (como la escala vieja). `K = 3` queda en medio.
+- Sobrecarga inerte R10A-03 (suelo no drenado, polilínea con tramo plano, UDL q en `[10, 20]`): FS exacto invariante
+  1,68263 (Spencer, λ = −0,1154). Escala vieja: q = 1e8 → 1,70829 (λ = −0,10, `converged`), q = 1e9 → 1,54609 (λ = −0,20,
+  `converged`), tol 0,01: q = 1e6 → 1,70829. Con `K = 2, 3, 4` y `D` solo: **1,68263 / −0,1154 para todo q hasta 1e11,
+  tol 1e-5 y 0,01.**
+- Mitad horizontal de R10A-03 (γ = 1e-6 con carga lineal horizontal 500): Spencer pasa de `no_lambda_root` a converger
+  (0,53123 y 0,97845 contra cSlope 0,5312264 y 0,9784504, c = 10 / φ = 0 y c = 20 / φ = 10) porque `Σ|H|` entra en `D`.
+
+**Resultado con `K = 3`:** identidad contra la versión anterior al cambio de escala, **0 corridas de 3350 cambian**
+(V018, V077 y V078 quedan byte a byte iguales, porque su razón es < 3). 4 tests en `tests/e13l_scale.rs`, que fallaban
+(3 de 4) antes del cambio.

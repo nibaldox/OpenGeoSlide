@@ -578,17 +578,49 @@ struct Root {
     fos: f64,
 }
 
-/// Scale of the force residuals (the `ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual, E13j-6):
-/// `max(ΣW, ΣW*)`, with `W* = W(1 + kv) + Q + V` the vertical force with the seismic and external loads of E12b.
-/// Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. With a (nearly) weightless soil, as
-/// in the Prandtl cases V018, V077 and V078 (γ = 1e-6), the soil weight alone is a scale 1e7 times smaller than the
-/// loads that drive the mass, and the closure cannot reach `1e-6·ΣW` in double precision. E3 (`no_driving`) and the
-/// air-gap threshold keep `ΣW`; the classification of the negative normal forces (E7d, `negative_normal_message`) uses
-/// this scale, so that the share `f` of V018 is not measured over a weight 1e7 times smaller than its loads.
+/// Largest ratio between the vertical force scale `max(ΣW, ΣW*)` of E13j-6 and the driving scale before E13l-3 clamps
+/// the first one (see [`force_scale`]).
+const SCALE_INFLATION_MAX: f64 = 3.0;
+
+/// Driving scale of the slices: `max(ΣW, Σ|t_i|, Σ|H_i|)`, with `t = W*·sin α + H·cos α` (the driving force of the
+/// force equilibrium, E12b) and `H = kh·W + H^P` the horizontal force. The soil weight, the sum of the driving forces
+/// and the sum of the horizontal loads are the sizes that the equilibrium equations can balance; a vertical load on a
+/// flat base (`α = 0`) is none of them, because it drives nothing.
+pub(crate) fn driving_scale(slices: &[Slice]) -> f64 {
+    let soil: f64 = slices.iter().map(|s| s.weight).sum();
+    let driving: f64 = slices
+        .iter()
+        .map(|s| (s.total_weight() * s.alpha.sin() + s.h_force * s.alpha.cos()).abs())
+        .sum();
+    let horizontal: f64 = slices.iter().map(|s| s.h_force.abs()).sum();
+    soil.max(driving).max(horizontal)
+}
+
+/// Scale of the force residuals (the `ΣW` of the closure `|E_n| ≤ 1e-6·ΣW` and of the moment residual, E13j-6, E13l-3):
+/// the vertical force scale `max(ΣW, ΣW*)`, with `W* = W(1 + kv) + Q + V` (E12b), **limited to the driving scale**:
+///
+/// `scale = max(D, min(max(ΣW, ΣW*), 3·D))`, `D = max(ΣW, Σ|t|, Σ|H|)` ([`driving_scale`]).
+///
+/// - Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. A load that drives the mass keeps
+///   `max(ΣW, ΣW*)` while it is at most 3 times `D`, and so every model of the repository (the largest ratio measured is
+///   1.89, in the Prandtl cases V018, V077 and V078) keeps its scale, bit for bit (E13j-6: with a weightless soil `ΣW`
+///   alone is 1e7 times below the loads, and the closure cannot reach `1e-6·ΣW` in double precision).
+/// - A vertical load on a flat base (`α = 0`) adds to `ΣW*` but drives nothing (`t = 0`, and `φ = 0` removes it from
+///   the resistance): with `q = 1e9` over a flat stretch `ΣW*` was 1e8 times `D`, `|ρ|` and `|E_n|/ΣW*` fell below
+///   their tolerances at states without equilibrium, and the result was `converged` with a wrong FS (R10A-03). Here the
+///   scale does not exceed `3·D`, whatever the load.
+/// - A horizontal load on a nearly weightless soil adds to `D` through `Σ|H|`, which `ΣW*` does not have: the scale is
+///   `D` and not `ΣW` (R10A-03, second part).
+///
+/// E3 (`no_driving`) and the air-gap threshold keep `ΣW`; the classification of the negative normal forces (E7d,
+/// `negative_normal_message`) uses this scale, so that the share `f` is not measured over a weight 1e7 times smaller
+/// than the loads (V018), nor over a load that drives nothing (R10A-07, V068 with a load on the flat toe).
 pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
     let soil: f64 = slices.iter().map(|s| s.weight).sum();
     let with_loads: f64 = slices.iter().map(|s| s.total_weight()).sum();
-    soil.max(with_loads)
+    let vertical = soil.max(with_loads);
+    let driving = driving_scale(slices);
+    driving.max(vertical.min(SCALE_INFLATION_MAX * driving))
 }
 
 /// State of the λ search: the slices, their per-slice terms, Bishop's lower bound and start value, and the budget.
