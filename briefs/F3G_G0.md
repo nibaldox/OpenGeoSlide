@@ -46,7 +46,7 @@ Responde en **español neutro, sin voseo**.
    - `water::ponded_terms(...)` **devuelve términos nulos**, para que la identidad se mantenga y las filas de agua fallen
      por valor (0,848 frente a 0,939), no por pánico;
    - las firmas quedan congeladas, con documentación de qué recibe y qué devuelve cada una: las dovelas, el modelo
-     resuelto, la superficie y la dirección `s`. Pensá en lo que van a necesitar M-agua (E1 a E4) y M-grieta (G1 a G9).
+     resuelto, la superficie y la dirección `s`. Piensa en lo que necesitarán M-agua (E1 a E4) y M-grieta (G1 a G9).
 3. **E15h.** Lee el uso real de `h_moment_base` y `driving_extra` en `methods/*`, `slicer.rs` y el equilibrio global de
    los tests, y decide si el momento `s·V·(xg − xm)` del agua cabe en los campos actuales:
    - si cabe, no agregues nada y deja la justificación en `docs/fase3/g0/NOTAS.md`;
