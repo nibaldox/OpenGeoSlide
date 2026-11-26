@@ -6,6 +6,7 @@
 // La sección se dibuja en vectorial: regiones, piezométrica, superficie crítica y dovelas.
 
 import type { jsPDF } from 'jspdf';
+import type { Point } from '../engine/types';
 import {
   buildReportContent,
   type ReportBlock,
@@ -272,6 +273,21 @@ class Writer {
     this.y += 4;
   }
 
+  bullets(title: string, items: string[]): void {
+    this.paragraph(title, 10, 'bold');
+    const size = 9;
+    const lh = this.lineHeight(size);
+    for (const item of items) {
+      this.font('normal', size);
+      const lines = this.wrap(item, CONTENT_W - 4);
+      this.ensure(lh * lines.length + 1);
+      this.doc.text('•', MARGIN, this.y + lh - 1);
+      lines.forEach((t, i) => this.doc.text(t, MARGIN + 4, this.y + lh * (i + 1) - 1));
+      this.y += lh * lines.length + 1;
+    }
+    this.y += 2;
+  }
+
   list(items: { severity: 'nota' | 'aviso'; label: string; text: string }[]): void {
     const size = 9.5;
     const lh = this.lineHeight(size);
@@ -286,21 +302,58 @@ class Writer {
     this.y += 2;
   }
 
+  /** Texto con halo blanco (R9-05a): ninguna cota ni rótulo se pierde sobre el arco crítico, las dovelas ni los materiales. */
+  haloText(text: string, x: number, y: number, align: 'left' | 'center' | 'right' = 'left'): void {
+    const doc = this.doc;
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.9);
+    doc.text(text, x, y, { align, renderingMode: 'fillThenStroke' });
+    doc.setLineWidth(0.25);
+    doc.setDrawColor(...P.frame);
+  }
+
+  /** Flecha de `(x1, y1)` a `(x2, y2)` en mm de página, con punta triangular rellena. */
+  arrow(x1: number, y1: number, x2: number, y2: number, color: Rgb, width = 0.35): void {
+    const doc = this.doc;
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len < 1e-6) return;
+    const ux = (x2 - x1) / len;
+    const uy = (y2 - y1) / len;
+    const head = Math.min(1.8, len * 0.45);
+    const bx = x2 - ux * head;
+    const by = y2 - uy * head;
+    doc.setDrawColor(...color);
+    doc.setFillColor(...color);
+    doc.setLineWidth(width);
+    doc.line(x1, y1, bx, by);
+    doc.triangle(x2, y2, bx - uy * head * 0.4, by + ux * head * 0.4, bx + uy * head * 0.4, by - ux * head * 0.4, 'F');
+  }
+
   drawing(d: SectionDrawing): void {
     const { xmin, xmax, ymin, ymax } = d.bounds;
+    const doc = this.doc;
     const w = Math.max(xmax - xmin, 1e-9);
     const h = Math.max(ymax - ymin, 1e-9);
-    const maxH = 95;
-    const scale = Math.min(CONTENT_W / w, maxH / h);
+    const gutter = 19; // columna izquierda para las cotas de y: fuera del marco, nunca sobre el dibujo
+    const maxH = 100;
+    const ARROW_UDL = 7;
+    const ARROW_LINE = 10;
+    const LABEL_ROW = 3.6;
+
+    // Franja libre sobre el terreno para cargas y sismo (R9-05a): arriba el indicador sísmico, debajo las cargas.
+    const seismicHead = d.seismic ? 8 : 0;
+    const loadHead = d.loads.length > 0 ? ARROW_LINE + 6 + (d.loads.length > 1 ? LABEL_ROW : 0) : 0;
+    const head = seismicHead + loadHead;
+
+    const scale = Math.min((CONTENT_W - gutter) / w, (maxH - head) / h);
     const drawW = w * scale;
-    const drawH = h * scale;
+    const drawH = h * scale + head;
     const legendH = d.legend.length * 5 + 4;
     this.ensure(drawH + legendH + 12);
-    const x0 = MARGIN + (CONTENT_W - drawW) / 2;
+    const x0 = MARGIN + gutter + (CONTENT_W - gutter - drawW) / 2;
     const y0 = this.y + 2;
     const sx = (x: number): number => x0 + (x - xmin) * scale;
-    const sy = (y: number): number => y0 + (ymax - y) * scale;
-    const doc = this.doc;
+    const sy = (y: number): number => y0 + head + (ymax - y) * scale;
 
     // Regiones.
     doc.setLineWidth(0.25);
@@ -334,24 +387,100 @@ class Writer {
       if (dash) doc.setLineDashPattern([], 0);
     };
 
-    // Dovelas, piezométrica y superficie crítica (en ese orden de apilado).
+    // Dovelas, piezométrica (con su tramo extrapolado, más tenue) y superficie crítica, en ese orden de apilado.
     if (d.surface) {
       const sliceColor = d.legend.find((l) => l.kind === 'slices')?.color ?? [...P.slices];
       for (const [a, b] of d.surface.sliceLines) polyline([a, b], sliceColor, 0.12);
     }
-    if (d.piezo) polyline(d.piezo, d.legend.find((l) => l.kind === 'piezo')?.color ?? [...P.piezo], 0.5, [2, 1]);
+    const piezoColor = d.legend.find((l) => l.kind === 'piezo')?.color ?? d.legend.find((l) => l.kind === 'piezo_ext')?.color ?? [...P.piezo];
+    for (const seg of d.piezoExtension) polyline(seg, piezoColor, 0.5, [0.5, 1.3]);
+    if (d.piezo) polyline(d.piezo, piezoColor, 0.5, [2, 1]);
     if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [...P.surface], 0.7);
 
-    // Marco y extremos de los ejes.
+    // Cargas de superficie: flechas sobre el terreno y rótulo con su unidad. Los rótulos se reparten en dos filas si chocan.
+    this.font('normal', 7.5);
+    const labelBoxes: { x1: number; x2: number; row: number }[] = [];
+    const placeLabel = (text: string, cx: number, tailY: number): void => {
+      const half = doc.getTextWidth(text) / 2;
+      const cxc = Math.min(Math.max(cx, x0 + half + 1), x0 + drawW - half - 1);
+      let row = 0;
+      while (labelBoxes.some((b) => b.row === row && cxc - half < b.x2 + 1 && cxc + half > b.x1 - 1)) row += 1;
+      labelBoxes.push({ x1: cxc - half, x2: cxc + half, row });
+      doc.setTextColor(...P.load);
+      this.haloText(text, cxc, tailY - 1.5 - row * LABEL_ROW, 'center');
+    };
+    for (const load of d.loads) {
+      if (load.kind === 'udl') {
+        const ground = load.ground;
+        const groundAt = (x: number): number => {
+          for (let i = 1; i < ground.length; i++) {
+            const a = ground[i - 1] as Point;
+            const b = ground[i] as Point;
+            if (x <= b[0] || i === ground.length - 1) return b[0] === a[0] ? b[1] : a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0]);
+          }
+          return (ground[0] as Point)[1];
+        };
+        const topY = Math.max(...ground.map((p) => p[1]));
+        const tailY = sy(topY) - ARROW_UDL;
+        const pxW = (load.x2 - load.x1) * scale;
+        const n = Math.min(40, Math.max(2, Math.round(pxW / 6) + 1));
+        for (let i = 0; i < n; i++) {
+          const x = load.x1 + ((load.x2 - load.x1) * i) / (n - 1);
+          this.arrow(sx(x), tailY, sx(x), sy(groundAt(x)), P.load);
+        }
+        doc.setLineWidth(0.35);
+        doc.setDrawColor(...P.load);
+        doc.line(sx(load.x1), tailY, sx(load.x2), tailY);
+        placeLabel(load.label, (sx(load.x1) + sx(load.x2)) / 2, tailY);
+      } else {
+        const th = (load.angle * Math.PI) / 180;
+        const tipX = sx(load.x);
+        const tipY = sy(load.yTop);
+        const tailX = tipX - Math.sin(th) * ARROW_LINE;
+        const tailY = tipY - Math.cos(th) * ARROW_LINE;
+        this.arrow(tailX, tailY, tipX, tipY, P.load, 0.6);
+        placeLabel(load.label, tailX, tailY);
+      }
+    }
+
+    // Indicador sísmico: flechas de kh (en el sentido del deslizamiento) y de kv (kv > 0 hacia abajo) con su texto, arriba a la derecha.
+    if (d.seismic) {
+      const s = d.seismic;
+      doc.setTextColor(...P.seismic);
+      this.font('normal', 7.5);
+      const right = x0 + drawW - 2;
+      const baseY = y0 + 5.2;
+      const top = y0 + 1.2;
+      const bottom = y0 + 6;
+      this.haloText(s.label, right, baseY, 'right');
+      const tw = doc.getTextWidth(s.label);
+      let ax = right - tw - 3;
+      if (s.kv !== 0) {
+        if (s.kv > 0) this.arrow(ax - 1, top, ax - 1, bottom, P.seismic, 0.5);
+        else this.arrow(ax - 1, bottom, ax - 1, top, P.seismic, 0.5);
+        ax -= 4;
+      }
+      if (s.kh > 0) {
+        const x1 = s.dir === 1 ? ax - 9 : ax;
+        const x2 = s.dir === 1 ? ax : ax - 9;
+        this.arrow(x1, y0 + 3.6, x2, y0 + 3.6, P.seismic, 0.5);
+      }
+    }
+
+    // Marco y cotas (con unidad) fuera del marco: x abajo, y en la columna izquierda.
     doc.setDrawColor(...P.frame);
     doc.setLineWidth(0.25);
     doc.rect(x0, y0, drawW, drawH, 'S');
     this.font('normal', 7.5);
     doc.setTextColor(...P.inkMuted);
-    doc.text(`x = ${xmin.toFixed(2).replace('.', ',')}`, x0, y0 + drawH + 3.5);
-    doc.text(`x = ${xmax.toFixed(2).replace('.', ',')}`, x0 + drawW, y0 + drawH + 3.5, { align: 'right' });
-    doc.text(`y = ${ymax.toFixed(2).replace('.', ',')}`, x0 + 1, y0 + 3);
-    doc.text(`y = ${ymin.toFixed(2).replace('.', ',')}`, x0 + 1, y0 + drawH - 1);
+    const num = (n: number): string => n.toFixed(2).replace('.', ',');
+    doc.text(`x = ${num(xmin)} ${d.unit}`, x0, y0 + drawH + 3.5);
+    doc.text(`x = ${num(xmax)} ${d.unit}`, x0 + drawW, y0 + drawH + 3.5, { align: 'right' });
+    doc.text(`y = ${num(ymax)} ${d.unit}`, x0 - 2.5, sy(ymax) + 1, { align: 'right' });
+    doc.text(`y = ${num(ymin)} ${d.unit}`, x0 - 2.5, y0 + drawH + 1, { align: 'right' });
+    doc.setDrawColor(...P.frame);
+    doc.line(x0 - 1.5, sy(ymax), x0, sy(ymax));
+    doc.line(x0 - 1.5, y0 + drawH, x0, y0 + drawH);
     doc.setTextColor(...P.ink);
     this.y = y0 + drawH + 7;
 
@@ -366,8 +495,9 @@ class Writer {
         doc.rect(MARGIN, this.y, 6, 3.4, 'FD');
       } else {
         doc.setDrawColor(...item.color);
-        doc.setLineWidth(item.kind === 'slices' ? 0.2 : 0.7);
+        doc.setLineWidth(item.kind === 'slices' ? 0.2 : item.kind === 'piezo_ext' ? 0.5 : 0.7);
         if (item.kind === 'piezo') doc.setLineDashPattern([2, 1], 0);
+        if (item.kind === 'piezo_ext') doc.setLineDashPattern([0.5, 1.3], 0);
         doc.line(MARGIN, this.y + 1.7, MARGIN + 6, this.y + 1.7);
         doc.setLineDashPattern([], 0);
       }
@@ -387,6 +517,9 @@ class Writer {
         break;
       case 'paragraph':
         this.paragraph(b.text);
+        break;
+      case 'bullets':
+        this.bullets(b.title, b.items);
         break;
       case 'list':
         this.list(b.items);
@@ -412,7 +545,7 @@ function draw(doc: jsPDF, content: ReportContent): void {
       w.paragraph(section.title, 11);
     } else {
       number += 1;
-      w.heading(`${number}. ${section.title}`, section.id === 'section' ? 120 : 25);
+      w.heading(`${number}. ${section.title}`, section.id === 'section' ? 135 : 25);
     }
     for (const b of section.blocks) w.block(b);
   });

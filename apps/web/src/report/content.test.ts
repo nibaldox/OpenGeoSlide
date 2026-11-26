@@ -64,7 +64,7 @@ describe('buildReportContent', () => {
     expect(rows['Métodos']).toBe('Bishop simplificado, Spencer');
     expect(rows['Dovelas']).toBe('50');
     expect(rows['Tolerancia (relativa en FS)']).toBe('0,00001');
-    expect(rows['Peso unitario del agua']).toBe('9,81 kN/m³ (por defecto)');
+    expect(rows['Peso unitario del agua']).toBe('Sin agua (no aplica)'); // R9-03c: sin piezométrica no hay γw que mostrar
     expect(rows['Línea piezométrica']).toBe('Sin piezométrica');
     expect(rows['Superficies']).toBe('Búsqueda circular por entrada y salida');
     expect(rows['Rango de entrada (coronamiento)']).toBe('todo el terreno');

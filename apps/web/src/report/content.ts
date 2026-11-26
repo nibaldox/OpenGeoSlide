@@ -3,8 +3,11 @@
 // Números con coma decimal (UI en español). El FS solo se muestra si el método convergió (R4-06). Los avisos usan
 // el catálogo de `engine/warnings.ts` y la advertencia profesional es la aprobada en F1.4.
 
+import { slideDirection } from '../editor/canvas/layout';
+import { geotechAdvisories, piezoExtension } from '../editor/state/geotech';
+import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
-import type { MethodKind, MethodReport, Point, Slice } from '../engine/types';
+import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import type { ReportInput } from './types';
@@ -27,8 +30,21 @@ export interface DrawingSurface {
   radius: number;
 }
 
+/** Carga de superficie ya situada sobre el terreno (R9-05a). `ground` es el perfil del terreno bajo la carga distribuida. */
+export type DrawingLoad =
+  | { kind: 'udl'; x1: number; x2: number; ground: Point[]; label: string }
+  | { kind: 'line'; x: number; yTop: number; angle: number; label: string };
+
+/** Indicador sísmico (R9-05a): `dir` es el sentido del deslizamiento (+1 hacia +x), el de `kh` positivo. `kv > 0` va hacia abajo. */
+export interface DrawingSeismic {
+  kh: number;
+  kv: number;
+  dir: 1 | -1;
+  label: string;
+}
+
 export interface LegendItem {
-  kind: 'material' | 'piezo' | 'surface' | 'slices';
+  kind: 'material' | 'piezo' | 'piezo_ext' | 'surface' | 'slices';
   label: string;
   color: Rgb;
 }
@@ -37,7 +53,13 @@ export interface SectionDrawing {
   bounds: { xmin: number; xmax: number; ymin: number; ymax: number };
   regions: DrawingRegion[];
   piezo: Point[] | null;
+  /** Tramos que el motor prolonga en horizontal hasta los bordes del modelo (R9-05d); vacío si la piezométrica los cubre. */
+  piezoExtension: [Point, Point][];
   surface: DrawingSurface | null;
+  loads: DrawingLoad[];
+  seismic: DrawingSeismic | null;
+  /** Unidad de longitud de las cotas: `m` o `ft`. */
+  unit: string;
   legend: LegendItem[];
 }
 
@@ -45,6 +67,7 @@ export type ReportBlock =
   | { kind: 'kv'; rows: [string, string][] }
   | { kind: 'table'; header: string[]; rows: string[][]; title?: string }
   | { kind: 'paragraph'; text: string }
+  | { kind: 'bullets'; title: string; items: string[] }
   | { kind: 'list'; items: { severity: 'nota' | 'aviso'; label: string; text: string }[] }
   | { kind: 'drawing'; drawing: SectionDrawing };
 
@@ -96,9 +119,47 @@ export function fmtParam(n: number | null | undefined): string {
 }
 
 function units(model: ModelDoc): { gamma: string; stress: string; line: string; length: string } {
-  return model.units === 'imperial'
+  return isImperialUnits(model.units)
     ? { gamma: 'pcf', stress: 'psf', line: 'lbf/ft', length: 'ft' }
     : { gamma: 'kN/m³', stress: 'kPa', line: 'kN/m', length: 'm' };
+}
+
+/**
+ * γw del informe (R9-03c). Sin piezométrica no hay agua que pese: «Sin agua (no aplica)», nunca el 9,81 por defecto del motor
+ * (que en un modelo imperial sería «9,81 pcf»). Con piezométrica se imprime el valor; si falta, el motor usa 9,81 sin convertir
+ * unidades, así que en imperial se dice «no indicado» en lugar de inventar un valor en pcf.
+ */
+export function waterUnitWeightText(model: ModelDoc, gammaUnit: string): string {
+  const line = model.water?.piezometric_line;
+  if (!Array.isArray(line) || line.length < 2) return 'Sin agua (no aplica)';
+  const v = model.water?.unit_weight;
+  if (typeof v === 'number') return `${fmtParam(v)} ${gammaUnit}`;
+  return isImperialUnits(model.units) ? 'no indicado (el motor usaría 9,81 sin convertir unidades)' : `9,81 ${gammaUnit} (por defecto)`;
+}
+
+/**
+ * Convenciones de signo del cálculo (R9-05b), tomadas del motor y no de la costumbre de otros programas:
+ * - `crates/ogs-core/src/model.rs:133-135`: kh positivo actúa en el sentido del deslizamiento y kv positivo hacia abajo; ambos se
+ *   aplican al peso del suelo W de cada dovela, nunca a las cargas.
+ * - `crates/ogs-core/src/slicer.rs:59` y `:774-775`: `W* = W·(1 + kv) + Q + V` y `H = kh·W + H^P`.
+ * - `crates/ogs-core/src/loads.rs:30`: el ángulo de la carga lineal se mide desde la vertical hacia abajo, positivo hacia +x;
+ *   `slicer.rs:697-703`: `V = p·cos θ` (hacia abajo) y `H^P = s·p·sin θ` (en el sentido del deslizamiento `s`).
+ */
+export function conventionNotes(model: ModelDoc): string[] {
+  const notes: string[] = ['Ejes: x aumenta hacia la derecha e y hacia arriba.'];
+  const sk = model.analysis.seismic;
+  if (sk) {
+    notes.push(
+      'Sismo pseudoestático: kh positivo actúa en el sentido del deslizamiento y kv positivo actúa hacia abajo (el peso del suelo pasa a W·(1 + kv)). ' +
+        'Los dos coeficientes se aplican solo al peso del suelo, no a las sobrecargas. Con kv negativo la fuerza vertical va hacia arriba.',
+    );
+  }
+  const loads = model.loads ?? [];
+  if (loads.some((l) => l.type === 'udl')) notes.push('Carga distribuida q: positiva hacia abajo, sobre el terreno, entre x1 y x2.');
+  if (loads.some((l) => l.type === 'line')) {
+    notes.push('Carga lineal: el ángulo se mide desde la vertical hacia abajo y es positivo hacia +x (0° = vertical hacia abajo; 10° la inclina hacia +x).');
+  }
+  return notes;
 }
 
 function range(r: [number, number] | null | undefined, unit: string): string {
@@ -173,6 +234,45 @@ function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bou
   return pts;
 }
 
+/** Perfil del terreno entre `x1` y `x2`: los dos extremos y las abscisas de los vértices de las regiones que caen dentro. */
+function groundBetween(model: ModelDoc, x1: number, x2: number): Point[] {
+  const xs = new Set<number>([x1, x2]);
+  for (const region of model.regions) for (const p of region.polygon) if (p[0] > x1 && p[0] < x2) xs.add(p[0]);
+  const out: Point[] = [];
+  for (const x of [...xs].sort((a, b) => a - b)) {
+    const y = terrainY(model, x);
+    if (y !== null) out.push([x, y]);
+  }
+  return out;
+}
+
+/** Rótulo `q = 20 kPa` o `p = 50 kN/m · 10°`, con coma decimal. */
+export function loadLabel(load: Load, model: ModelDoc): string {
+  const u = units(model);
+  return load.type === 'udl' ? `q = ${fmtParam(load.q)} ${u.stress}` : `p = ${fmtParam(load.p)} ${u.line} · ${fmtParam(load.angle)}°`;
+}
+
+/** `kh = 0,1 (sentido del deslizamiento) · kv = 0,05 (hacia abajo)`: los signos se dicen con palabras, no solo con la flecha. */
+export function seismicDrawingLabel(kh: number, kv: number): string {
+  const h = kh === 0 ? 'kh = 0' : `kh = ${fmtParam(kh)} (sentido del deslizamiento)`;
+  const v = kv === 0 ? 'kv = 0' : `kv = ${fmtParam(kv)} (${kv > 0 ? 'hacia abajo' : 'hacia arriba'})`;
+  return `Sismo: ${h} · ${v}`;
+}
+
+function drawingLoads(model: ModelDoc): DrawingLoad[] {
+  const out: DrawingLoad[] = [];
+  for (const load of model.loads ?? []) {
+    if (load.type === 'udl') {
+      const ground = groundBetween(model, load.x1, load.x2);
+      if (ground.length >= 2) out.push({ kind: 'udl', x1: load.x1, x2: load.x2, ground, label: loadLabel(load, model) });
+    } else {
+      const yTop = terrainY(model, load.x);
+      if (yTop !== null) out.push({ kind: 'line', x: load.x, yTop, angle: load.angle, label: loadLabel(load, model) });
+    }
+  }
+  return out;
+}
+
 export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): SectionDrawing {
   const regions: DrawingRegion[] = model.regions.map((region) => {
     const idx = Math.max(0, model.materials.findIndex((m) => m.id === region.material));
@@ -208,6 +308,26 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     }
   }
 
+  const ext = piezoExtension(model);
+  const piezoExt: [Point, Point][] = [];
+  if (ext?.left) piezoExt.push(ext.left);
+  if (ext?.right) piezoExt.push(ext.right);
+  for (const seg of piezoExt) for (const [, y] of seg) {
+    bounds.ymin = Math.min(bounds.ymin, y);
+    bounds.ymax = Math.max(bounds.ymax, y);
+  }
+
+  const loads = drawingLoads(model);
+  const sk = model.analysis.seismic;
+  const seismic: DrawingSeismic | null = sk
+    ? {
+        kh: sk.kh ?? 0,
+        kv: sk.kv ?? 0,
+        dir: slideDirection(model),
+        label: seismicDrawingLabel(sk.kh ?? 0, sk.kv ?? 0),
+      }
+    : null;
+
   let surface: DrawingSurface | null = null;
   const res = primaryResult(results);
   if (res) {
@@ -235,6 +355,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     legend.push({ kind: 'material', label: name && name !== r.materialId ? `${r.materialId} (${name})` : r.materialId, color: r.color });
   }
   if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: [...PDF_PALETTE.piezo] });
+  if (piezoExt.length > 0) legend.push({ kind: 'piezo_ext', label: 'Piezométrica (extrapolada)', color: [...PDF_PALETTE.piezo] });
   if (surface) {
     // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
     const converged = res?.status === 'converged';
@@ -247,7 +368,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     });
     if (surface.sliceLines.length > 0) legend.push({ kind: 'slices', label: 'Dovelas', color: [...PDF_PALETTE.slices] });
   }
-  return { bounds, regions, piezo, surface, legend };
+  return { bounds, regions, piezo, piezoExtension: piezoExt, surface, loads, seismic, unit: units(model).length, legend };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -269,7 +390,7 @@ function modelSection(model: ModelDoc): ReportSection {
     ['Tolerancia (relativa en FS)', dflt(a.tolerance, fmtParam(a.tolerance ?? 1e-5))],
     ['Iteraciones máximas', dflt(a.max_iterations, fmtParam(a.max_iterations ?? 500))],
     ['m_α mínimo', dflt(a.min_m_alpha, fmtParam(a.min_m_alpha ?? 0.2))],
-    ['Peso unitario del agua', dflt(model.water?.unit_weight, `${fmtParam(model.water?.unit_weight ?? 9.81)} ${u.gamma}`)],
+    ['Peso unitario del agua', waterUnitWeightText(model, u.gamma)],
     [
       'Línea piezométrica',
       model.water?.piezometric_line && model.water.piezometric_line.length > 0 ? `${model.water.piezometric_line.length} puntos` : 'Sin piezométrica',
@@ -300,6 +421,7 @@ function modelSection(model: ModelDoc): ReportSection {
     rows.push(['Sismo pseudoestático', `kh = ${fmtParam(a.seismic.kh ?? 0)} · kv = ${fmtParam(a.seismic.kv ?? 0)}`]);
   }
   blocks.push({ kind: 'kv', rows });
+  blocks.push({ kind: 'bullets', title: 'Convenciones de signo', items: conventionNotes(model) });
 
   const loads = model.loads ?? [];
   if (loads.length > 0) {
@@ -396,6 +518,12 @@ function warningsSection(input: ReportInput): ReportSection {
     items.push({ severity, label: METHOD_LABEL[method], text, key });
   };
   for (const w of input.warnings) push(w.method, w.severity, w.code, w.text);
+  // R9-05c/d, R9-12a: avisos geotécnicos del modelo (los mismos de Diagnósticos), antes de los del motor.
+  for (const a of geotechAdvisories(input.model)) {
+    if (seen.has(a.code)) continue;
+    seen.add(a.code);
+    items.push({ severity: 'aviso', label: 'Modelo', text: a.text, key: a.code });
+  }
   for (const r of input.results) {
     for (const code of r.warnings) {
       const info = describeWarning(code);
