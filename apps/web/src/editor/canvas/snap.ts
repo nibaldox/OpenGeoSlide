@@ -130,6 +130,12 @@ export function snapPoint(raw: Point, ctx: SnapContext): SnapResult {
   if (gy !== null) y = gy;
   else if (grid !== null) y = snapToGrid(y, grid);
 
+  if (gx !== null || gy !== null) {
+    // El eje que no se alinea y no va a la rejilla se redondea a la escala, como un punto libre: sin esto el ruido del píxel
+    // (p. ej. 0,999997) acabaría guardado en el modelo y en el informe.
+    if (gx === null && grid === null) x = roundForScale(x, vp.scale);
+    if (gy === null && grid === null) y = roundForScale(y, vp.scale);
+  }
   if (gx !== null || gy !== null) return { point: [x, y], kind: 'axis', target: null, guides: { x: gx, y: gy } };
   if (grid !== null) return { point: [x, y], kind: 'grid', target: null, guides: { x: null, y: null } };
   return {

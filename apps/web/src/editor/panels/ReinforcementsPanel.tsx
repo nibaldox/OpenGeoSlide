@@ -47,7 +47,7 @@ function SelectField<V extends string>({ scope, label, value, options, path, onC
 }) {
   const id = useId();
   return (
-    <div className="field ep-field">
+    <div className="field ep-field ep-wide">
       <label htmlFor={id}>
         <span className="visually-hidden">{scope}: </span>
         {label}

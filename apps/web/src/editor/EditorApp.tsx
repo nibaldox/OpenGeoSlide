@@ -68,8 +68,8 @@ import {
 import { createEditorStore, useEditorStore, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc, Tool } from './types';
 
-/** Pestañas del panel lateral: las de `PanelTabId` más «Refuerzos» (v0.4). */
-type TabId = PanelTabId | 'reinforcements';
+/** Pestañas del panel lateral (`PanelTabId` incluye «Refuerzos», v0.4). */
+type TabId = PanelTabId;
 
 interface TabDef {
   id: TabId;

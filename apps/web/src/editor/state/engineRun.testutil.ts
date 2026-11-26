@@ -17,6 +17,7 @@ export interface EngineMethodResult {
   status: string;
   surface?: { xc: number; yc: number; r: number };
   warnings?: string[];
+  reinforcement_forces?: { id: string; crossing: number; x: number; y: number; station: number; available: number; fx: number; fy: number; application: string; status: string }[];
   slices?: { x_left: number; x_right: number; y_base_left: number; y_base_right: number }[];
 }
 

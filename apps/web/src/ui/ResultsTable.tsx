@@ -4,15 +4,10 @@ import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
 import { correctionFactorText, methodDetails, resultSurfaceSummary } from '../report/methodInfo';
 import { formatFs } from './formatFs';
+import { METHOD_LABELS } from './methodLabels';
 import { ReinforcementForces } from './ReinforcementForces';
 
-export const METHOD_LABELS: Record<MethodKind, string> = {
-  bishop: 'Bishop simplificado',
-  spencer: 'Spencer',
-  morgenstern_price: 'Morgenstern-Price',
-  janbu_simplified: 'Janbu simplificado',
-  janbu_corrected: 'Janbu corregido',
-};
+export { METHOD_LABELS };
 
 const STATUS_LABELS: Record<SolveStatus, string> = {
   // Mismos términos que el informe PDF (report/content.ts).

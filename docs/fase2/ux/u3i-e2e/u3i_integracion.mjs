@@ -55,7 +55,7 @@ await page.waitForSelector('[data-layer="regions"] polygon');
 const tabs = await page.locator('[role="tablist"][aria-label="Paneles del modelo"] [role="tab"]').allTextContents();
 await page.getByRole('tab', { name: 'Proyecto' }).click();
 const projPanel = await page.evaluate(() => ({ heading: document.querySelector('#ea-tabpanel h2, #ea-tabpanel h3')?.textContent, fields: [...document.querySelectorAll('#ea-tabpanel [data-path]')].map((e) => e.getAttribute('data-path')) }));
-step('1 la pestaña «Proyecto» está registrada (última) y muestra título, id, descripción y unidades', tabs.at(-1) === 'Proyecto' && tabs[0] === 'Geometría' && tabs.length === 9 && ['/meta/title', '/meta/id', '/meta/notes', '/units'].every((p) => projPanel.fields.includes(p)), { tabs, projPanel });
+step('1 la pestaña «Proyecto» está registrada (última) y muestra título, id, descripción y unidades', tabs.at(-1) === 'Proyecto' && tabs[0] === 'Geometría' && tabs.length === 10 /* R2-I2: la pestaña «Refuerzos» (v0.4, F4.11) pasó las pestañas de 9 a 10 */ && ['/meta/title', '/meta/id', '/meta/notes', '/units'].every((p) => projPanel.fields.includes(p)), { tabs, projPanel });
 await page.getByRole('tab', { name: 'Geometría' }).click();
 
 // 2. Unidades: units/set — un paso, sin convertir, cambios sin guardar; Esc/cancelar no cambia

@@ -5,7 +5,7 @@ import { selectionForPath } from '../panels/forms';
 import { matchesTarget, type TargetSpec } from '../../onboarding/tour';
 import type { Issue, ModelDoc, Selection } from '../types';
 
-export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'seismic' | 'project';
+export type PanelTabId = 'geometry' | 'materials' | 'water' | 'surface' | 'search' | 'analysis' | 'loads' | 'reinforcements' | 'seismic' | 'project';
 
 export interface IssueTarget {
   /** Pestaña del panel lateral que se abre (`null`: el destino es el lienzo). */
@@ -88,6 +88,15 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     if (k === null) return { tab: 'loads', selection, fieldPath: null };
     if (k >= (doc.loads?.length ?? 0)) return null;
     return { tab: 'loads', selection, fieldPath: `/loads/${k}/${c ?? 'x'}` };
+  }
+  if (a === 'reinforcements') {
+    // Sin índice (`/reinforcements`): la pestaña. Los campos de `pullout` (`/reinforcements/k/pullout/strength`) son controles planos
+    // en el panel (`/reinforcements/k/strength`); el propio `pullout` es la lista del modelo de arrancamiento.
+    const k = index(b);
+    if (k === null) return { tab: 'reinforcements', selection, fieldPath: null };
+    if (k >= (doc.reinforcements?.length ?? 0)) return null;
+    const field = c === 'pullout' && d !== undefined ? d : (c ?? 'id');
+    return { tab: 'reinforcements', selection, fieldPath: `/reinforcements/${k}/${field}` };
   }
   if (a === 'analysis') {
     if (b === undefined) return { tab: 'surface', selection, fieldPath: null };
