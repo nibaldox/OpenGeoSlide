@@ -8,7 +8,7 @@ import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
 import { crackCsvHeader } from '../report/crackReport';
-import { csvRowNote, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
+import { csvRowNote, hasItoMatsui, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
@@ -358,16 +358,26 @@ export function surfaceToCsv(rows: CsvCell[][], options: ResultsCsvOptions = {})
  * demás CSV; `fx` y `fy` son la fuerza aplicada por metro de talud, en coordenadas del modelo, y en una pasiva la disponible **antes de dividir por F**.
  * `fs` es el F del método; `movilizada_*` es la fuerza que actúa en el equilibrio: en una pasiva, la aplicada dividida por F; en una activa, la aplicada.
  * `nota` dice «pasiva: se moviliza dividida por F» y, en un pilote o una tablestaca, el límite estructural de F4.8.
+ * Con un pilote de presión del suelo (E15i-7) agrega `fuerza_suelo_<fuerza>` (por metro, antes del tope), `gobierna` (`soil`, `shear` o `bending`) y
+ * `brazo_<longitud>` entre `movilizada_fy_*` y `unidades`; en las filas de los demás refuerzos van vacías.
  */
 export function reinforcementForcesToCsv(records: readonly ForceRecord[], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
   const line = u.system === 'imperial' ? 'lbf_ft' : 'kn_m';
+  // E15i-7: con un pilote de presión del suelo, tres columnas más antes de `unidades`; sin él, el CSV no cambia (identidad).
+  const ito = hasItoMatsui(records);
   const rows: CsvCell[][] = records.map((r) => {
     const m = mobilizedForce(r);
-    return [r.method, r.id, r.type, r.crossing, r.x, r.y, r.station, r.available, r.fx, r.fy, r.application, r.status, r.fs, m ? m[0] : null, m ? m[1] : null, u.label, csvRowNote(r)];
+    const head: CsvCell[] = [r.method, r.id, r.type, r.crossing, r.x, r.y, r.station, r.available, r.fx, r.fy, r.application, r.status, r.fs, m ? m[0] : null, m ? m[1] : null];
+    return [...head, ...(ito ? [r.soilForce ?? null, r.governs ?? null, r.arm ?? null] : []), u.label, csvRowNote(r)];
   });
   return toCsv(
-    ['metodo', 'id', 'tipo', 'cruce', `x_${u.length}`, `y_${u.length}`, `estacion_${u.length}`, `disponible_${line}`, `fx_${line}`, `fy_${line}`, 'aplicacion', 'estado', 'fs', `movilizada_fx_${line}`, `movilizada_fy_${line}`, 'unidades', 'nota'],
+    [
+      'metodo', 'id', 'tipo', 'cruce', `x_${u.length}`, `y_${u.length}`, `estacion_${u.length}`, `disponible_${line}`, `fx_${line}`, `fy_${line}`, 'aplicacion', 'estado', 'fs',
+      `movilizada_fx_${line}`, `movilizada_fy_${line}`,
+      ...(ito ? [`fuerza_suelo_${line}`, 'gobierna', `brazo_${u.length}`] : []),
+      'unidades', 'nota',
+    ],
     rows,
     options,
   );

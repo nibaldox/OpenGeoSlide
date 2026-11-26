@@ -19,7 +19,9 @@ import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import {
   PASSIVE_LEGEND,
   REINFORCEMENT_FORCE_BASIS,
-  STRUCTURAL_LIMIT_TEXT,
+  ITO_MATSUI_NOTE,
+  isItoMatsuiPile,
+  structuralLimitText,
   FORCE_TABLE_NOTE,
   forceRecords,
   forcesTable,
@@ -711,7 +713,9 @@ function reinforcementsSection(input: ReportInput): ReportSection | null {
   if (list.some((r) => r.application === 'passive')) {
     blocks.push({ kind: 'paragraph', text: FORCE_TABLE_NOTE });
   }
-  if (hasStructuralElements(list)) blocks.push({ kind: 'paragraph', text: `Límite del cálculo. ${STRUCTURAL_LIMIT_TEXT}` });
+  // E15i-7: la explicación de las columnas «Fuerza del suelo», «Gobierna» y «Brazo» va solo si hay un pilote de Ito-Matsui.
+  if (list.some(isItoMatsuiPile)) blocks.push({ kind: 'paragraph', text: ITO_MATSUI_NOTE });
+  if (hasStructuralElements(list)) blocks.push({ kind: 'paragraph', text: `Límite del cálculo. ${structuralLimitText(list)}` });
   return { id: 'reinforcements', title: 'Refuerzos', blocks };
 }
 
