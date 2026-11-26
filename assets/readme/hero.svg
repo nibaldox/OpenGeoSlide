@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="t d">
+  <title id="t">OpenGeoSlide: estabilidad de taludes 2D por equilibrio límite</title>
+  <desc id="d">Sección transversal del caso ACADS 1(a), un talud homogéneo de 10 m con la superficie de falla circular crítica y sus 51 dovelas, calculadas por el motor: Bishop 0,985 y Spencer 0,984; el valor publicado es 0,987.</desc>
+  <defs>
+    <clipPath id="panel"><rect x="596" y="56" width="548" height="328" rx="14"/></clipPath>
+  </defs>
+  <rect width="1200" height="440" rx="26" fill="#12324a"/>
+
+  <g id="title-block" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+    <text x="56" y="92" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" letter-spacing="0.3" fill="#d9b97c">ESTABILIDAD DE TALUDES 2D · EQUILIBRIO LÍMITE</text>
+    <text x="54" y="170" font-size="72" font-weight="700" fill="#f8f1df">OpenGeoSlide</text>
+    <text x="56" y="222" font-size="24" fill="#cbd5e1">Factor de seguridad de taludes con</text>
+    <text x="56" y="254" font-size="24" fill="#cbd5e1">Bishop y Spencer, en el navegador o</text>
+    <text x="56" y="286" font-size="24" fill="#cbd5e1">en su equipo. Libre y verificado.</text>
+    <path d="M56 322 H540" stroke="#3d5f78" stroke-width="1.5"/>
+    <text x="56" y="356" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#cbd5e1">Bishop · Spencer · sismo · cargas · Apache-2.0</text>
+    <text x="56" y="388" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#d9b97c">$ ogs analyze examples/acads1a.ogs.json</text>
+  </g>
+
+  <g id="section" clip-path="url(#panel)">
+    <rect x="596" y="56" width="548" height="328" fill="#0d2a40"/>
+    <path id="soil" d="M521.0,384.0 L521.0,309.0 L671.0,309.0 L971.0,159.0 L1271.0,159.0 L1271.0,384.0 Z" fill="#c9a66b"/>
+    <path id="sliding-mass" d="M671.0,309.0 A429.6,429.6 0 0 0 990.4,159.0 L990.4,159.0 L971.0,159.0 L671.0,309.0 Z" fill="#ff6b4a" fill-opacity="0.30"/>
+    <path id="slices" d="M671.0,309.0 L671.0,309.0 M677.4,308.9 L677.4,305.8 M683.8,308.6 L683.8,302.6 M690.2,308.3 L690.2,299.4 M696.5,307.8 L696.5,296.2 M702.9,307.3 L702.9,293.0 M709.3,306.7 L709.3,289.8 M715.7,305.9 L715.7,286.6 M722.1,305.1 L722.1,283.5 M728.5,304.2 L728.5,280.3 M734.9,303.2 L734.9,277.1 M741.3,302.1 L741.3,273.9 M747.6,300.9 L747.6,270.7 M754.0,299.5 L754.0,267.5 M760.4,298.1 L760.4,264.3 M766.8,296.6 L766.8,261.1 M773.2,295.0 L773.2,257.9 M779.6,293.3 L779.6,254.7 M786.0,291.4 L786.0,251.5 M792.4,289.5 L792.4,248.3 M798.7,287.4 L798.7,245.1 M805.1,285.3 L805.1,241.9 M811.5,283.0 L811.5,238.7 M817.9,280.6 L817.9,235.5 M824.3,278.1 L824.3,232.4 M830.7,275.5 L830.7,229.2 M837.1,272.7 L837.1,226.0 M843.5,269.8 L843.5,222.8 M849.8,266.9 L849.8,219.6 M856.2,263.7 L856.2,216.4 M862.6,260.5 L862.6,213.2 M869.0,257.1 L869.0,210.0 M875.4,253.5 L875.4,206.8 M881.8,249.9 L881.8,203.6 M888.2,246.0 L888.2,200.4 M894.6,242.0 L894.6,197.2 M900.9,237.9 L900.9,194.0 M907.3,233.6 L907.3,190.8 M913.7,229.1 L913.7,187.6 M920.1,224.5 L920.1,184.4 M926.5,219.7 L926.5,181.3 M932.9,214.6 L932.9,178.1 M939.3,209.4 L939.3,174.9 M945.7,204.0 L945.7,171.7 M952.0,198.3 L952.0,168.5 M958.4,192.4 L958.4,165.3 M964.8,186.3 L964.8,162.1 M971.0,180.1 L971.0,159.0 M971.2,179.9 L971.2,159.0 M977.6,173.3 L977.6,159.0 M984.0,166.3 L984.0,159.0 M990.4,159.0 L990.4,159.0" stroke="#12324a" stroke-opacity="0.55" stroke-width="1.2" fill="none"/>
+    <path id="ground" d="M521.0,309.0 L671.0,309.0 L971.0,159.0 L1271.0,159.0" stroke="#f4e3bd" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path id="critical-surface" d="M671.0,309.0 A429.6,429.6 0 0 0 990.4,159.0" stroke="#ff6b4a" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+      <text x="624" y="124" font-size="60" font-weight="700" fill="#ff6b4a">FS 0,985</text>
+      <text x="624" y="154" font-size="20" fill="#f8f1df">Bishop · publicado 0,987</text>
+      <text x="624" y="182" font-size="20" fill="#cbd5e1">Spencer 0,984 · λ 0,432</text>
+      <text x="624" y="350" font-size="18" fill="#12324a">ACADS 1(a) · H = 10 m · r = 28,641 m</text>
+      <text x="624" y="372" font-size="18" fill="#12324a">51 dovelas · 8543 superficies</text>
+    </g>
+  </g>
+  <rect x="596" y="56" width="548" height="328" rx="14" fill="none" stroke="#3d5f78" stroke-width="1.5"/>
+</svg>

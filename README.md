@@ -1,42 +1,90 @@
-# OpenGeoSlide
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="OpenGeoSlide: estabilidad de taludes 2D por equilibrio límite. Sección del caso ACADS 1(a) con la superficie de falla circular crítica y sus dovelas, calculadas por el motor: FS 0,985 con Bishop y 0,984 con Spencer; el valor publicado es 0,987.">
+</p>
 
-[**Aplicación web**](https://nibaldox.github.io/OpenGeoSlide/) ·
-[Repositorio](https://github.com/nibaldox/OpenGeoSlide) ·
-[Releases](https://github.com/nibaldox/OpenGeoSlide/releases) ·
-[Licencia Apache-2.0](LICENSE)
+<p align="center">
+  <a href="https://nibaldox.github.io/OpenGeoSlide/"><img alt="Abrir la app" src="https://img.shields.io/badge/Abrir_la_app-sin_instalar-12324a"></a>
+  <a href="https://github.com/nibaldox/OpenGeoSlide/releases"><img alt="Release" src="https://img.shields.io/github/v/release/nibaldox/OpenGeoSlide?color=12324a&label=release"></a>
+  <a href="LICENSE"><img alt="Licencia Apache-2.0" src="https://img.shields.io/badge/licencia-Apache--2.0-12324a"></a>
+  <a href="CITATION.cff"><img alt="Citar" src="https://img.shields.io/badge/citar-CITATION.cff-12324a"></a>
+</p>
 
-Software libre (Apache-2.0) para el análisis de estabilidad de taludes 2D por equilibrio límite
-(Bishop simplificado y Spencer). El motor está escrito en Rust y compila a binario nativo y a WebAssembly.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/readme/app-editor-dark.png">
+    <img src="./assets/readme/app-editor-light.png" width="100%" alt="Editor web de OpenGeoSlide con un talud de 15 m (1,5H:1V) de arcilla sobre roca, con la línea piezométrica punteada en el pie, la superficie crítica en rojo con sus dovelas, y Bishop y Spencer con FS 1,377.">
+  </picture>
+</p>
 
-> **Estado: versión 0.1.0.** El motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA), el paquete
-> Python y los tests de aceptación están implementados. Resumen de la verificación en
-> [Estado de verificación](#estado-de-verificación).
+<p align="center"><sub>La aplicación web calculando un talud de dos estratos con piezométrica: Bishop y Spencer dan FS 1,377. Capturas de la versión publicada, en tema claro y oscuro.</sub></p>
 
-## Instalación
+## Qué es
 
-OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde la web, desde el código fuente o desde los
-assets del [GitHub Release](https://github.com/nibaldox/OpenGeoSlide/releases).
+OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado** y
+**Spencer**. Usted dibuja o importa la sección (estratos, línea piezométrica, sismo pseudoestático y cargas), el programa
+busca la superficie de falla circular con el menor FS y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 
-### Web
+Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
+investigación. Es software libre (Apache-2.0).
 
-No requiere instalación: abra <https://nibaldox.github.io/OpenGeoSlide/>. El cálculo corre en su navegador (motor en
-WebAssembly). La aplicación es una PWA: desde el navegador se puede instalar («Instalar aplicación» en Chrome o Edge)
-y funciona sin conexión una vez cargada.
+La versión actual es la **0.1.0**: el motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA), el paquete
+de Python y las pruebas de aceptación están implementados.
 
-Para compilarla en local (Node 22, pnpm 11 y, para el motor real, el target `wasm32-unknown-unknown` y
-`wasm-bindgen-cli` 0.2.130):
+## Por qué es distinto
+
+- **Está verificado y se puede reproducir.** El motor cumple 51 de 51 checks contra valores publicados (21 casos) y
+  coincide con el programa independiente cSlope en 28 de 28 búsquedas y 28 de 28 superficies fijas. Es la batería real
+  de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
+- **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
+  `ogs`. Las tres leen el mismo formato `.ogs.json`.
+- **Funciona sin conexión.** El cálculo corre en el navegador (WASM), no en un servidor; la web se instala como PWA y,
+  una vez cargada, no necesita red.
+- **Dice lo que no sabe.** Cada resultado trae avisos (γsat sin verificar, `ru` frente a piezométrica, piezométrica
+  extrapolada, Spencer sin raíz) y el informe PDF repite las convenciones de signo.
+
+<p align="center">
+  <img src="./assets/readme/engine.svg" width="100%" alt="Diagrama: el motor ogs-core, en Rust, alimenta la aplicación web (WASM y PWA), el paquete Python opengeoslide y la CLI ogs; las tres usan el mismo formato de modelo .ogs.json.">
+</p>
+
+## Cómo usarlo
+
+### En el navegador (sin instalar)
+
+1. Abra <https://nibaldox.github.io/OpenGeoSlide/>. Se carga el ejemplo ACADS 1(a), un talud homogéneo seco.
+2. Pulse **Comprobar**: obtiene Bishop 0,985 y Spencer 0,984, los mismos valores de la cabecera de este README.
+3. Cambie la geometría o los materiales en el lienzo y los paneles, o cree un modelo desde cero con
+   «Archivo ▸ Talud simple…» y las herramientas «Dibujar región» y «Dividir región».
+
+Desde el navegador puede instalarla como PWA («Instalar aplicación» en Chrome o Edge). El modelo se guarda como
+`.ogs.json`; los resultados, como CSV o informe PDF. La web funciona con teclado y en el móvil, y tiene tema claro y
+oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desarrollo.md`](docs/desarrollo.md).
+
+### Python
+
+OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
+[Release v0.1.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0). El wheel es `abi3` y sirve para
+CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-apps/web/scripts/build-wasm.sh          # genera el motor WASM en apps/web/src/wasm/
-cd apps/web
-pnpm install --frozen-lockfile
-pnpm test
-VITE_BASE=/OpenGeoSlide/ pnpm build     # genera apps/web/dist/ (sin VITE_BASE, la base es «/»)
-pnpm preview
+WHL=opengeoslide-0.1.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.1.0/$WHL"
 ```
 
-Sin el paso del WASM, la web usa un motor simulado que no es válido para ingeniería (véase
-[`apps/web/README.md`](apps/web/README.md)).
+Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
+su plataforma, que figura en la página del release. También sirve descargarlo y ejecutar `pip install ./opengeoslide-….whl`.
+
+```python
+# desde la raíz del repositorio, donde está examples/
+import json, opengeoslide
+print(opengeoslide.version())                    # 0.1.0, la versión de ogs-core
+report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
+for r in report["results"]:
+    print(r["method"], round(r["fos"], 4), r["status"])
+# bishop 0.9851 converged
+# spencer 0.9841 converged
+```
+
+Más detalle en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
 
 ### CLI (`ogs`)
 
@@ -44,196 +92,71 @@ Requiere [Rust](https://rustup.rs) (el repositorio fija la versión en `rust-too
 
 ```sh
 git clone https://github.com/nibaldox/OpenGeoSlide.git
-cd opengeoslide
+cd OpenGeoSlide
 cargo install --path crates/ogs-cli --locked     # instala `ogs` en ~/.cargo/bin
-# o, sin instalar: cargo build --release -p ogs-cli   (binario en target/release/ogs)
 ogs --version
-ogs analyze examples/acads1a.ogs.json
+ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-### Python (`opengeoslide`)
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo, con
+sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
-Wheel `abi3` para CPython 3.11 o superior. Como el paquete no está en PyPI, instale el wheel del GitHub Release de la
-versión (el nombre depende de la plataforma; elija el de la suya en la página del release):
+## Verificación
 
-```sh
-pip install https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.1.0/opengeoslide-0.1.0-cp311-abi3-<plataforma>.whl
-```
+| Se compara con | Resultado | Informe |
+|---|---|---|
+| Valores publicados (21 casos) | **51/51** | [REPORT](verification/REPORT.md) |
+| cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
+| Web y `ogs` (113 modelos) | **113/113** | [detalle](docs/verificacion.md) |
 
-`<plataforma>` es la etiqueta del wheel del asset: `manylinux…x86_64` (Linux), `macosx_…_arm64` o `macosx_…_x86_64`
-(macOS) o `win_amd64` (Windows). También sirve descargar el `.whl` y hacer `pip install ./opengeoslide-….whl`.
+- **Valores publicados:** 51 checks de 21 casos de la bibliografía (16 en el esquema v0.1 y 5 con sismo o cargas), cada
+  uno dentro de su tolerancia.
+- **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
+  supera en más de 1 % al de cSlope.
+- **cSlope, superficie fija:** el mismo círculo en los dos programas; el FS difiere en 0,5 % o menos.
+- **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 
-Para compilarlo desde el código fuente (necesita Rust y [maturin](https://www.maturin.rs)):
+Reproducción y detalle (paridad del editor, rendimiento nativo y WASM) en [`docs/verificacion.md`](docs/verificacion.md).
+Esta batería no cubre todo: véanse las limitaciones.
 
-```sh
-git clone https://github.com/nibaldox/OpenGeoSlide.git
-cd opengeoslide/crates/ogs-py
-scripts/prepare-license-files.sh                 # copia LICENSE y NOTICE junto a pyproject.toml
-pip install maturin
-maturin build --release --out dist
-pip install dist/opengeoslide-*.whl
-```
+## Limitaciones conocidas
 
-```python
-import json, opengeoslide
-print(opengeoslide.version())
-report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
-```
+- **Solo superficies circulares** (fijas o halladas por la búsqueda de entrada y salida), con **Bishop simplificado y
+  Spencer**.
+- **Solo Mohr-Coulomb.** Sin análisis de deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
+- **Sin refuerzos** (geosintéticos, anclajes ni pernos). **No sirve para diseñar muros de tierra mecánicamente
+  estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el muro
+  modelado como una región de suelo.
+- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 21 casos lo usa.
+- **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
+  precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
+- **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer puede no hallar solución o, con tracción en
+  la base, quedar por debajo de Bishop: revise los avisos.
 
-Más detalle en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
+El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
+[`docs/limitaciones.md`](docs/limitaciones.md).
 
-## Estructura
+## Contribuir, citar y licencia
 
-- `crates/ogs-core/`: motor (modelo, geometría, dovelas, métodos, búsqueda, informe).
-- `crates/ogs-cli/`: binario `ogs`.
-- `crates/ogs-wasm/`: wrapper WebAssembly (`wasm-bindgen`).
-- `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
-- `schema/ogs-0.2.schema.json`: JSON Schema del formato `.ogs.json` v0.2 (agrega `loads` y `analysis.seismic`; acepta también v0.1).
-- `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](apps/web/README.md).
-- `verification/`: casos publicados, harness y batería diferencial frente a cSlope, y pruebas en Python.
-- `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
-
-## Compilar y probar
-
-```sh
-cargo build --workspace
-cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test -p ogs-core --lib                                # tests unitarios (modelo)
-cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 51/51 checks publicados
-cargo run -p ogs-cli -- --version
-cargo build -p ogs-wasm --target wasm32-unknown-unknown --release
-```
-
-Para la paralelización de la búsqueda en nativo: `cargo build -p ogs-core --features parallel`
-(desactivada por defecto; wasm no la usa).
-
-Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
-versión que fija el crate.
-
-## Formato v0.2: sismo y cargas
-
-El motor acepta `version: "0.1"` y `"0.2"`. Los campos `loads` y `analysis.seismic` solo se admiten con `"0.2"`; con
-`"0.1"` el motor responde `InvalidModel: los campos 'loads' y 'analysis.seismic' requieren version "0.2"`. Un modelo sin
-estos campos da el mismo resultado en las dos versiones. Esquema: [`schema/ogs-0.2.schema.json`](schema/ogs-0.2.schema.json).
-
-```json
-{
-  "format": "opengeoslide",
-  "version": "0.2",
-  "meta": { "id": "ejemplo-sismo-cargas", "title": "Talud con sobrecarga y sismo" },
-  "units": "SI",
-  "materials": [
-    { "id": "soil", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 19.0, "cohesion": 15.0, "friction_angle": 26.0 }
-  ],
-  "regions": [
-    { "material": "soil", "polygon": [[0, -8], [0, 10], [10, 10], [25, 0], [40, 0], [40, -8]] }
-  ],
-  "water": { "unit_weight": 9.81 },
-  "loads": [
-    { "type": "udl",  "id": "u1", "x1": 7.0, "x2": 10.0, "q": 20.0 },
-    { "type": "line", "id": "l1", "x": 4.0, "p": 100.0, "angle": 15.0 }
-  ],
-  "slope": { "direction": "left_to_right" },
-  "analysis": {
-    "methods": ["bishop", "spencer"],
-    "slices": 50,
-    "seismic": { "kh": 0.1, "kv": 0.0 },
-    "search": { "type": "circular_entry_exit" }
-  }
-}
-```
-
-Con la búsqueda por defecto, este modelo da Bishop 1,2723 y Spencer 1,2704 (`ogs analyze`).
-
-- `loads` va después de `water` y antes de `slope`. Cada carga puede llevar un `id` (único).
-  - `udl`: carga vertical `q` ≥ 0 (kPa; psf en imperial) sobre el terreno entre `x1` < `x2`, dentro del rango x del modelo.
-  - `line`: carga lineal `p` ≥ 0 (kN/m; lbf/ft en imperial) en `(x, y_top(x))`. `angle` en [−90°, 90°] desde la vertical
-    hacia abajo; el positivo inclina la carga hacia +x del modelo.
-- `analysis.seismic`: `kh` en [0, 1) y `kv` en (−1, 1). `kh·W` actúa en el sentido del deslizamiento; con `kv > 0`, `kv·W`
-  actúa hacia abajo. Se aplican al peso del suelo, nunca a las cargas.
-- Una carga que no toca ninguna dovela de suelo de la superficie reportada da la nota `load_outside_mass`.
-
-## Estado de verificación
-
-- **Aceptación:** 51/51 checks publicados cumplen su tolerancia, en 21 casos (`verification/cases/`): 16 casos del
-  esquema v0.1 y 5 con sismo o cargas del esquema v0.2 (V102a, V102b, V081a, V081b, V097a).
-  Test: `cargo test -p ogs-core --test acceptance`.
-- **Paridad entre el editor y el motor** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos.
-  La prueba `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`;
-  sin él se omiten) y corre en CI sin casos omitidos.
-- **Ida y vuelta de la web** (E12g): para 113 modelos (51 checks de los 21 casos, 56 de la batería diferencial y 6 de
-  frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit a bit,
-  que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario compilado).
-- **Harness frente a cSlope:** cSlope 0.1.0 reproduce 51/51 de esos mismos checks publicados.
-- **Batería diferencial** (ogs frente a cSlope 0.1.0, 14 modelos sintéticos, bishop y spencer; D11-D14 con sismo y cargas):
-  - búsqueda (`FS_ogs ≤ FS_cSlope · 1,01`, mismo método, dovelas y rangos): **28/28** OK. D13 (carga lineal) fija
-    `min_width = 5 m`: sin él, cSlope encuentra un círculo de 0,67 m bajo la carga (FS 0,614) que ogs descarta por
-    `min_m_alpha`;
-  - superficie fija (`|Δ| ≤ 0,5 %`): **28/28** OK. D03 spencer es una concordancia (ambos motores declaran la superficie
-    sin solución);
-  - resultados y diagnóstico de D13 en [`verification/differential/REPORT.md`](verification/differential/REPORT.md) y
-    [`verification/differential/README.md`](verification/differential/README.md).
-- **Bench** (V047a, búsqueda 20 × 20 × 20 con refinamiento, 50 dovelas; mediana de 5 repeticiones):
-
-  | método | nativo, 1 hilo (ms) | Chrome headless, WASM (ms) | Chrome / nativo |
-  |---|---:|---:|---:|
-  | Bishop simplificado | 51,08 | 52,70 | 1,03 |
-  | Spencer | 177,75 | 185,40 | 1,04 |
-
-  Es una medición de spike en una sola máquina: sirve para el orden de magnitud, no para comparar versiones.
-  Detalle y gate de FS en [`bench/RESULTS.md`](bench/RESULTS.md).
-
-- **Informes:**
-  - [`verification/REPORT.md`](verification/REPORT.md): aceptación y harness frente a cSlope.
-  - [`verification/differential/REPORT.md`](verification/differential/REPORT.md): batería diferencial.
-  - [`docs/reviews/`](docs/reviews/): revisiones adversariales de la Fase 0.
+- **Contribuir:** [`CONTRIBUTING.md`](CONTRIBUTING.md) describe el entorno y el flujo de verificación de un PR. La guía
+  para compilar y probar está en [`docs/desarrollo.md`](docs/desarrollo.md). Los problemas de seguridad, según
+  [`SECURITY.md`](SECURITY.md).
+- **Citar:** [`CITATION.cff`](CITATION.cff) (GitHub ofrece «Cite this repository»). Registro de cambios en
+  [`CHANGELOG.md`](CHANGELOG.md).
+- **Licencia:** Apache-2.0, véase [LICENSE](LICENSE). Los datos de verificación adaptados de cSlope conservan su
+  licencia MIT ([NOTICE](NOTICE)).
 
 > **Aviso.** OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Los resultados deben
 > validarse por un profesional competente antes de usarlos en un diseño. El criterio profesional y la
 > responsabilidad sobre el diseño son del usuario.
 
-## Limitaciones conocidas
+## In English
 
-Limitaciones que las revisiones adversariales ([`docs/reviews/`](docs/reviews/)) dejaron abiertas, más las que dejó la
-verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (51/51)
-ni la batería diferencial (28/28 + 28/28 en D01-D14).
-
-- **R4-01, selección de la raíz de λ en Spencer (resuelto por E12e):** entre varias raíces admisibles, Spencer elige
-  la de menor F (conservadora), y a igualdad la de menor |λ|. Con la selección anterior (menor |λ|) 47 de 1008 casos
-  bicapa diferían más de 1 % de cSlope. Aviso: `multiple_admissible_roots` (nota) cuando hay más de una raíz admisible.
-  Residual: cuando cSlope sigue otra raíz, ogs puede quedar por debajo de cSlope (caso R4-01 (2): −7,08 %), por
-  elegir la raíz de menor F, y con la nota `multiple_admissible_roots`.
-- **R5-05, Spencer con tracción (decidido tras X7: se mantiene E12e):** cuando aparecen juntas las notas
-  `multiple_admissible_roots` y `negative_effective_normal_major`, el FS de Spencer puede corresponder a una rama con
-  tracción y quedar por debajo de Bishop (hasta −14,30 % frente a cSlope en la familia bicapa de superficie fija de X7;
-  −13,9 % en R5-2). Se recomienda revisar Bishop y la distribución de N′. La alternativa evaluada (descartar las raíces con N′
-  mayor si hay otra admisible) corrige 49 de 67 casos por debajo de cSlope, pero crea 9 por encima (hasta +10,13 % en
-  superficie fija y +7,50 % en búsqueda), lo que contradice el criterio conservador. Evidencia:
-  [`docs/fase1/exploracion/X7.md`](docs/fase1/exploracion/X7.md). Aviso: `multiple_admissible_roots`,
-  `negative_lambda` y `negative_effective_normal_major`.
-- **E12f, cargas lineales fuera del bloque analizado:** una carga lineal que cae a más de `1e-9·ancho` del modelo fuera
-  del bloque de suelo analizado no actúa, aunque esté muy cerca del pie de la superficie. Dentro de esa tolerancia, y en
-  las fronteras de dovela o los extremos del bloque, sí actúa (reparto 50/50 entre dovelas compartidas). Aviso:
-  `load_outside_mass`.
-- **Cargas lineales y superficies locales (D13):** una carga puntual o lineal puede generar bajo ella círculos
-  diminutos con m_α < `min_m_alpha` (en D13, un círculo de 0,67 m con FS 0,614 en cSlope, que avisa `low-m-alpha`).
-  ogs los rechaza (E4b). Conviene fijar `search.min_width` (D13 usa 5 m, y entonces ogs y cSlope coinciden en
-  +0,03 %) y revisar aparte la capacidad de soporte local bajo la carga: un análisis de estabilidad global no la cubre.
-- **R4-02, paso fijo de 0,05 en el barrido de λ:** dos raíces admisibles dentro del mismo paso no se detectan y el
-  resultado es `no_lambda_root`, aunque cSlope converge (p. ej., c_top = 74,05: cSlope 1,914138 y ogs sin FS).
-  Aviso: `no_lambda_root`, con estado `not_converged` y sin FS.
-- **R4-03a, avisos de búsqueda:** `truncated_driving_mass` solo se evalúa en la superficie final. Si el círculo crítico
-  ganador no está truncado, el aviso de un bloque descartado motriz de un candidato truncado se pierde.
-  Aviso: ninguno en ese caso.
-- **Frontera de `min_width` (E11d′):** la búsqueda no alcanza la frontera ancho = `min_width`. En el botadero de
-  dos bancos con `min_width = 10`, ogs da 0,855 frente a 1,142 de cSlope (conservador). Aviso:
-  `effective_width_below_min` y `truncated_mass`.
-- **Bloques descartados que salen por una pared lateral (E11e′):** no se pueden clasificar, así que solo reciben la
-  nota `truncated_mass`, aunque sean motrices. Aviso: `truncated_mass`.
-- **`unit_weight_sat` sin cobertura:** ninguno de los 21 casos de verificación (los 5 de la ola B tampoco) usa
-  `unit_weight_sat`. La ruta de peso saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
-
-## Licencia
-
-Apache-2.0. Véase [LICENSE](LICENSE).
+OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop and Spencer,
+circular surfaces, Mohr-Coulomb, pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
+runs in your browser and works offline, a Python package and a CLI. It matches 51/51 published values and cSlope in
+28/28 searches and 28/28 fixed surfaces. It has no reinforcement (geosynthetics, anchors, nails), so it is not a tool
+for designing MSE walls or retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
+from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).
+It is not a certified tool: a qualified professional must validate every result.
