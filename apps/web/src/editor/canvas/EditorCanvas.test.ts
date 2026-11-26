@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { EditorCanvas } from './EditorCanvas';
+import { CANVAS_INSTRUCTIONS, EditorCanvas } from './EditorCanvas';
 import { createFakeStore, makeDoc } from './fakeStore';
 
 function render(
@@ -206,6 +206,22 @@ describe('R7-04: tabindex itinerante, instrucciones y anuncios', () => {
     expect(m).not.toBeNull();
     const text = m?.[1] ?? '';
     for (const part of ['Tab', '[', ']', 'Insert', 'Supr', '+', '0', 'flechas', 'Mayús']) expect(text).toContain(part);
+  });
+
+  it('R9-10: el tirador activo (tabindex 0) lleva aria-describedby con instrucciones breves; los demás no', () => {
+    const html = render(undefined, { selection: { kind: 'vertex', regionIndex: 1, vertexIndex: 4 } });
+    const handles = [...html.matchAll(/<g[^>]*data-handle=\"[^\"]+\"[^>]*>/g)].map((m) => m[0]);
+    const active = handles.filter((h) => h.includes('tabindex=\"0\"'));
+    expect(active).toHaveLength(1);
+    const id = /aria-describedby=\"([^\"]+)\"/.exec(active[0] ?? '')?.[1];
+    expect(id).toBeTruthy();
+    // El svg se describe con otro texto (el largo): el del tirador es una versión breve.
+    expect(id).not.toBe(/<svg[^>]*aria-describedby=\"([^\"]+)\"/.exec(html)?.[1]);
+    const text = new RegExp(`id=\"${id}\"[^>]*>([^<]*)<`).exec(html)?.[1] ?? '';
+    for (const part of ['[', ']', 'Flechas', 'Supr', 'Tab']) expect(text).toContain(part);
+    expect(text.length).toBeLessThan(220);
+    expect(text.length).toBeLessThan(CANVAS_INSTRUCTIONS.length / 2);
+    expect(handles.filter((h) => h.includes('tabindex=\"-1\"') && h.includes('aria-describedby'))).toHaveLength(0);
   });
 
   it('sin onAnnounce el lienzo trae su propia región aria-live; con onAnnounce no (la pone la aplicación)', () => {

@@ -23,6 +23,7 @@ import {
 import { DrawLayer } from './DrawLayer';
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
+import { piezoExtension } from './piezoExtension';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
 import {
   handleKey,
@@ -32,7 +33,7 @@ import {
   type CirclePart,
   type HandleRef,
 } from './handles';
-import { keyActions } from './keys';
+import { keyActions, keyInputOf } from './keys';
 import {
   axisTitles,
   circleCenterLabel,
@@ -137,6 +138,12 @@ export const CANVAS_INSTRUCTIONS =
   'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
   'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
 
+/**
+ * Versión breve de las instrucciones para el tirador con el foco (R9-10): los lectores de pantalla leen el `aria-describedby` del
+ * elemento enfocado, no el de su ancestro, y repetir el texto largo en cada tirador sería insufrible al recorrerlos.
+ */
+export const HANDLE_INSTRUCTIONS = 'Flechas: mover el tirador. [ y ]: tirador anterior o siguiente. Supr: eliminar. Tab: salir del lienzo.';
+
 /** Espera, en ms, con el puntero junto al borde antes de que la vista empiece a desplazarse (evita desplazar al cruzar el borde de paso). */
 const EDGE_SCROLL_DWELL_MS = 250;
 /** Período del autodesplazamiento, en ms. */
@@ -211,6 +218,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const readoutRef = useRef<HTMLParagraphElement>(null);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
+  const handleHelpId = `${markerBase}-handle-help`;
 
   const { doc, ui } = state;
   // Unidades efectivas: la prop del contrato manda; si no, las del documento.
@@ -598,7 +606,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     let ctx = context();
     if (focused && e.key !== 'Escape' && ctx.ui.selection.kind === 'none') ctx = { ...ctx, ui: { ...ctx.ui, selection: handleSelection(focused) } };
     const part: CirclePart = focused?.kind === 'circle_radius' ? 'radius' : focused?.kind === 'circle_center' ? 'center' : circlePart;
-    const r = keyActions(ctx, e, gestureRef.current.mode !== 'idle', { circlePart: part, units: unitsEff });
+    const r = keyActions(ctx, keyInputOf(e), gestureRef.current.mode !== 'idle', { circlePart: part, units: unitsEff });
     if (r.handled) e.preventDefault();
     if (r.focus) {
       focusRequest.current = handleKey(r.focus);
@@ -634,6 +642,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const grid = gridLines(vp);
   const titles = axisTitles(unitsEff);
   const pz = piezoPoints(shown);
+  const pzExtra = piezoExtension(shown);
   const circle = shown.analysis.surface ?? null;
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
@@ -672,6 +681,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       'data-handle': h.kind,
       'data-handle-key': handleKey(h),
       tabIndex: tabIndexFor(h),
+      ...(tabIndexFor(h) === 0 ? { 'aria-describedby': handleHelpId } : {}),
       role: 'button',
       'aria-label': label,
       ...(pressed === undefined ? {} : { 'aria-pressed': pressed }),
@@ -800,6 +810,29 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         {pz.length >= 2 && (
           <g data-layer="piezometric">
             <polyline points={pointsAttr(vp, pz)} fill="none" stroke={COLOR_PIEZO} strokeWidth={2} strokeDasharray="8 4" />
+          </g>
+        )}
+        {pzExtra && (
+          // Tramo que el motor extrapola en horizontal hasta los bordes del modelo (R9-05d): punteado, para distinguirlo de la línea definida.
+          <g data-layer="piezometric-extrapolated" aria-hidden="true" pointerEvents="none">
+            {(['left', 'right'] as const).map((side) => {
+              const seg = pzExtra[side];
+              if (!seg) return null;
+              return (
+                <polyline
+                  key={side}
+                  data-piezo-extrapolated={side}
+                  points={pointsAttr(vp, [...seg])}
+                  fill="none"
+                  stroke={COLOR_PIEZO}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeDasharray="1 5"
+                >
+                  <title>Piezométrica extrapolada: el motor la prolonga en horizontal hasta el borde del modelo</title>
+                </polyline>
+              );
+            })}
           </g>
         )}
 
@@ -995,6 +1028,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </div>
       ) : null}
 
+      <p id={handleHelpId} className="visually-hidden">{HANDLE_INSTRUCTIONS}</p>
       <p id={instructionsId} className="visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
       {!onAnnounce && (
         <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { EditorCommand, EditorState } from '../types';
 import { canRedo, canUndo, redo, undo } from './history';
 import { baseDoc } from './testFixtures';
+import { convertDocUnits } from './units';
+import type { Viewport } from '../../geometry/viewport';
 import { beginGesture, cancelGesture, createInitialState, endGesture, HISTORY_LIMIT, reduce } from './reducer';
 
 const move = (i: number, to: [number, number]): EditorCommand => ({ type: 'vertex/move', regionIndex: 0, vertexIndex: i, to });
@@ -175,5 +177,38 @@ describe('gestos', () => {
     s = reduce(s, { type: 'ui/tool', tool: 'pan' });
     s = endGesture(s);
     expect(s.history.past).toEqual([]);
+  });
+});
+
+describe('R9-06: deshacer o rehacer reencuadra cuando cambian las unidades o la caja envolvente', () => {
+  const vp: Viewport = { scale: 10, tx: 5, ty: 100, width: 800, height: 600 };
+  const withVp = (s: EditorState): EditorState => ({ ...s, ui: { ...s.ui, viewport: vp } });
+
+  it('deshacer y rehacer una conversión de unidades ponen ui.viewport en null', () => {
+    const s0 = fresh();
+    const s1 = withVp(reduce(s0, { type: 'units/convert', units: 'imperial' }));
+    const u = undo(s1);
+    expect(u.doc.units).toBe('SI');
+    expect(u.ui.viewport).toBeNull();
+    const r = redo(withVp(u));
+    expect(r.doc.units).toBe('imperial');
+    expect(r.ui.viewport).toBeNull();
+  });
+
+  it('también cuando solo cambia la etiqueta de unidades', () => {
+    const s1 = withVp(reduce(fresh(), { type: 'units/set', units: 'imperial' }));
+    expect(undo(s1).ui.viewport).toBeNull();
+  });
+
+  it('la caja envolvente que cambia más de 2× reencuadra (doc/replace con un modelo mucho mayor)', () => {
+    const big = convertDocUnits(baseDoc(), 'imperial'); // ×3,28 con las mismas unidades etiquetadas distintas: cubre el caso por tamaño
+    const s1 = withVp(reduce(fresh(), { type: 'doc/replace', doc: { ...big, units: 'SI' }, fileName: 'g.ogs.json' }));
+    expect(undo(s1).ui.viewport).toBeNull();
+  });
+
+  it('un cambio pequeño (mover un vértice) conserva el encuadre', () => {
+    const s1 = withVp(reduce(fresh(), move(0, [1, 1])));
+    expect(undo(s1).ui.viewport).toEqual(vp);
+    expect(redo(withVp(undo(s1))).ui.viewport).toEqual(vp);
   });
 });

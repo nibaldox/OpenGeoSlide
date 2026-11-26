@@ -3,7 +3,7 @@
 // Cambiar las unidades abre un diálogo propio con tres opciones: «Convertir los valores» (recomendada: el FS no cambia),
 // «Solo cambiar la etiqueta» (la advertencia de siempre) y «Cancelar» (R8 A-02).
 
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Modal } from '../app/ImportDialogs';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
@@ -13,8 +13,10 @@ import {
   projectToForm,
   unitsChangeDialog,
   unitsChoiceCommand,
+  unitsNoticeStillValid,
   unitsOptions,
   type MetaField,
+  type UnitsNotice,
   type UnitsChoice,
   type UnitsKind,
 } from './projectForm';
@@ -59,7 +61,7 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
   const meta = useStoreSelector(store, (s) => s.doc.meta);
   const units = useStoreSelector(store, (s) => s.doc.units);
   const [pendingUnits, setPendingUnits] = useState<UnitsKind | null>(null);
-  const [unitsNotice, setUnitsNotice] = useState<string | null>(null);
+  const [unitsNotice, setUnitsNotice] = useState<UnitsNotice | null>(null);
   const notesId = useId();
   const notesHintId = useId();
   const unitsId = useId();
@@ -72,6 +74,11 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
     if (cmd) store.dispatch(cmd);
     else reset(); // texto equivalente (espacios): vuelve al valor guardado
   };
+
+  // Las unidades pueden cambiar desde fuera (Ctrl+Z, Ctrl+Y): el aviso deja de ser cierto y se quita (R9-06).
+  useEffect(() => {
+    if (unitsNotice !== null && !unitsNoticeStillValid(unitsNotice, units)) setUnitsNotice(null);
+  }, [units, unitsNotice]);
 
   const unitsNow = currentUnits({ units });
   const options = unitsOptions(unitsNow);
@@ -91,11 +98,15 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
     const cmd = unitsChoiceCommand(store.getState().doc, to, choice);
     if (!cmd) return;
     store.dispatch(cmd);
+    const after = store.getState().doc.units ?? 'SI';
     if (choice === 'convert') {
       store.dispatch({ type: 'ui/viewport', viewport: null }); // las coordenadas cambiaron de escala: el lienzo vuelve a encuadrar
-      setUnitsNotice(`Valores convertidos a ${to === 'imperial' ? 'imperial (ft, pcf, psf)' : 'SI (m, kN/m³, kPa)'}. El factor de seguridad no cambia. Ctrl+Z lo deshace.`);
+      setUnitsNotice({
+        text: `Valores convertidos a ${to === 'imperial' ? 'imperial (ft, pcf, psf)' : 'SI (m, kN/m³, kPa)'}. El factor de seguridad no cambia. Ctrl+Z lo deshace.`,
+        units: after,
+      });
     } else {
-      setUnitsNotice('Solo se cambió la etiqueta: los números del modelo no se convirtieron.');
+      setUnitsNotice({ text: 'Solo se cambió la etiqueta: los números del modelo no se convirtieron.', units: after });
     }
   };
 
@@ -156,9 +167,9 @@ export function ProjectPanel({ store }: { store: EditorStore }) {
               </option>
             ))}
           </select>
-          {unitsNotice ? (
+          {unitsNoticeStillValid(unitsNotice, units) ? (
             <p className="small pj-units-notice" role="status" data-testid="units-notice">
-              {unitsNotice}
+              {unitsNotice.text}
             </p>
           ) : null}
         </div>

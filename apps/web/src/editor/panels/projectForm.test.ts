@@ -178,3 +178,13 @@ describe('R8 A-02: cambio de unidades con opción de convertir', () => {
     expect(store.getState().doc).toBe(before);
   });
 });
+
+describe('R9-06: el aviso de unidades solo vale mientras las unidades sean las del cambio', () => {
+  const notice = { text: 'Valores convertidos a imperial (ft, pcf, psf). El factor de seguridad no cambia. Ctrl+Z lo deshace.', units: 'imperial' };
+  it('se muestra con las unidades en las que se hizo y deja de valer al cambiar desde fuera (Ctrl+Z)', async () => {
+    const { unitsNoticeStillValid } = await import('./projectForm');
+    expect(unitsNoticeStillValid(notice, 'imperial')).toBe(true);
+    expect(unitsNoticeStillValid(notice, 'SI')).toBe(false); // Ctrl+Z devolvió el proyecto a SI
+    expect(unitsNoticeStillValid(null, 'SI')).toBe(false);
+  });
+});

@@ -147,3 +147,14 @@ export function unitsChoiceCommand(doc: ModelDoc, to: UnitsKind, choice: UnitsCh
   if (choice === 'label') return unitsChangeCommand(doc, to);
   return null;
 }
+
+/** Aviso tras cambiar las unidades: el texto y las unidades (`doc.units`) en las que quedó el proyecto. */
+export interface UnitsNotice {
+  text: string;
+  units: string;
+}
+
+/** ¿Sigue vigente el aviso? No si las unidades cambiaron desde fuera del panel (Ctrl+Z, Ctrl+Y, abrir otro archivo). */
+export function unitsNoticeStillValid(notice: UnitsNotice | null, units: string | undefined): notice is UnitsNotice {
+  return notice !== null && notice.units === (units ?? 'SI');
+}

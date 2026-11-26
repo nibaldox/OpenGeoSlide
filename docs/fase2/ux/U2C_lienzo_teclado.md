@@ -12,11 +12,11 @@ lienzo costaba cientos de pulsaciones: R8 B-01. Desde U5-E el recorrido es solo 
 | Tecla | Acción |
 |---|---|
 | `Tab` / `Mayús+Tab` | **Entran al lienzo y salen de él.** El lienzo es una sola parada de tabulación: el canvas no atiende Tab, de modo que el navegador pasa al siguiente (o anterior) elemento enfocable de la página, sin importar cuántos tiradores haya. |
-| `]` / `[`, `AvPág` / `RePág` | Tirador siguiente / anterior, dando la vuelta. Entran al lienzo desde una selección que no sea un tirador (primero o último). |
+| `]` / `[` (también con AltGr u Option), `AvPág` / `RePág` | Tirador siguiente / anterior, dando la vuelta. Entran al lienzo desde una selección que no sea un tirador (primero o último). |
 | Flechas | Mueven el tirador seleccionado 1 paso de rejilla (0,1 sin rejilla); `Mayús` = ×10. En `circle_radius` cambian el radio (derecha/arriba +, izquierda/abajo −); en `circle_center` mueven el centro. Sin tirador seleccionado desplazan la vista 40 px (`Mayús` ×4). |
 | `Insert` o `i` | Con un vértice seleccionado, inserta otro en el punto medio de la arista siguiente (la de cierre, si es el último) y le pasa el foco. «i» existe porque muchos portátiles no tienen `Insert`. |
 | `Supr` / `Retroceso` | Elimina el vértice (mínimo 3 por región) o el punto de la piezométrica (mínimo 2); el foco pasa al vecino anterior. Si no se puede, se anuncia. |
-| `+` o `=`, `-`, `0` | Acercar, alejar y encuadrar. El zoom se hace alrededor del tirador seleccionado si se ve; si no, del centro. |
+| `+` o `=`, `-` (también con AltGr u Option), `0` | Acercar, alejar y encuadrar. El zoom se hace alrededor del tirador seleccionado si se ve; si no, del centro. |
 | `Escape` | Quita la selección y devuelve el foco al lienzo (después las flechas desplazan la vista). |
 | `Ctrl+Z`, `Ctrl+Mayús+Z`, `Ctrl+Y` | Deshacer y rehacer. |
 
@@ -74,4 +74,20 @@ Guiones usados (Playwright, puerto 5187), en `docs/fase2/ux/u2c-e2e/`: `u2c_keyb
   y lo anuncia. El lienzo publica su número de puntos en `ui.tracePoints` (`ui/trace`).
 - **Cambiar de herramienta con un trazo (A-04, B-08, A-08):** con 3 o más puntos pide confirmación (`useConfirm`, tono `danger`); con 1 o 2
   lo descarta y lo anuncia. Un trazo con puntos cuenta como «cambios sin guardar» en `confirmDiscard`.
-- **Lectura del cursor (R7-02):** una línea `aria-hidden` en la esquina superior izquierda con `x`, `y` y la unidad.
+- **Lectura del cursor (R7-02):** una línea `aria-hidden` en la esquina inferior izquierda con `x`, `y` y la unidad (U5-E decía «superior» por error: R9).
+
+## Cambios de U6-K (R9)
+
+Rama `u6k-teclado` (base `59fef87`). Recorrido en Chrome: `docs/fase2/ux/u6k-e2e/u6k_demo.mjs` (22 pasos; contra la base fallan 16).
+
+| Hallazgo | Qué cambia | Dónde |
+|---|---|---|
+| R9-04 | `[`, `]`, `+`, `=` y `-` se evalúan por `k.key` **antes** del descarte de modificadores: valen con AltGr (`ctrlKey && altKey` en Windows, o `getModifierState('AltGraph')`) y con Option (`altKey` sin `metaKey`). Ctrl o Meta solos siguen siendo del navegador; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y no cambian; `Alt`+otra tecla (flechas, `i`, `0`, Supr…) sigue sin consumirse. `keyInputOf(e)` lee `AltGraph` del evento. Probado con tres distribuciones: US, `es-ES` en Windows/Linux (AltGr) y macOS (Option). | `canvas/keys.ts` |
+| R9-06 | `undo` y `redo` ponen `ui.viewport` en `null` (el lienzo vuelve a encuadrar) cuando cambian `doc.units` o el ancho o el alto de la caja envolvente cambian más de 2× (`needsRefit`, `REFIT_FACTOR`). `unitsNotice` guarda las unidades en que se hizo y se descarta cuando `doc.units` ya no coincide (Ctrl+Z, Ctrl+Y). Medido en Chrome: SI → imperial → Ctrl+Z dejaba el talud en 233 px frente a 765 (0,305×); ahora 765. | `state/history.ts`, `panels/ProjectPanel.tsx`, `panels/projectForm.ts` |
+| R9-10 | El tirador con `tabindex="0"` lleva `aria-describedby` con `HANDLE_INSTRUCTIONS` (102 caracteres: flechas, `[ ]`, Supr, Tab). El `<svg>` conserva el texto largo (`CANVAS_INSTRUCTIONS`). Los tiradores con `−1` no lo llevan, para no repetirlo al recorrerlos. | `canvas/EditorCanvas.tsx` |
+| R9-11c | `Modal` y `HelpDialog` devuelven el foco con `restoreFocus` (`ui/focusReturn.ts`). Antes, un disparador oculto (el `<input hidden>` de «Importar CSV», un elemento de un menú cerrado) recibía `focus()` sin efecto y el foco caía en `<body>`; ahora va al botón del menú o a `#main-content`. `ui/dialogFocusReturn.test.ts` impide volver al patrón anterior. | `app/ImportDialogs.tsx`, `ui/HelpDialog.tsx` |
+| R9-05d | El lienzo dibuja con trazo punteado (`1 5`, puntos redondos, `--canvas-piezo`) el tramo que el motor extrapola: horizontal, con el valor del extremo, desde el borde del modelo hasta el primer punto y desde el último hasta el borde (`PreparedModel::piezometric_y`, `crates/ogs-core/src/geometry.rs:621-627`; `x_min` y `x_max` de los vértices de todas las regiones, `geometry.rs:533-557`). No tiene tiradores y no entra en el encuadre. La línea definida sigue discontinua (`8 4`). En Chrome, el FS con la línea corta es idéntico al de la misma línea prolongada a mano. | `canvas/piezoExtension.ts`, `canvas/EditorCanvas.tsx` |
+
+**Leyenda (parches para G/D):** el elemento «Piezométrica (extrapolada)» necesita `ui/legendItems.ts`, `ui/legend.css` y una línea en `EditorApp.tsx`, que no son de este escritor. Parches verificados con `git apply --check` en `docs/fase2/ux/u6k-e2e/legend-piezo-extrapolada.patch` y `legend-editorapp-wiring.patch`. Con ambos, la opción es `piezoExtrapolated` de `legendItems`.
+
+**Pendiente en Casos:** la vista Casos dibuja con `render/drawSection.ts` (de G): hoy no dibuja el tramo extrapolado. Con `piezoExtension(doc)` (puro, en `canvas/piezoExtension.ts`) se obtienen los dos segmentos.

@@ -21,6 +21,7 @@ import {
   type RegionImportPlan,
 } from './importPlan';
 import { layerChoice } from './layerChoice';
+import { restoreFocus } from '../../ui/focusReturn';
 
 /** Elemento que recibe el foco al abrir un `Modal`: el pedido, si sigue conectado; si no, el título. */
 export function pickInitialFocus<T extends { isConnected: boolean }>(requested: T | null | undefined, title: T | null | undefined): T | null {
@@ -43,18 +44,22 @@ export function Modal({ title, onCancel, children, initialFocus }: {
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Quien tenía el foco al abrir. Se fija una sola vez, al montar: en desarrollo (StrictMode) el efecto corre dos veces y la segunda el foco
+  // ya estaría en el diálogo, de modo que «volver al disparador» devolvería el foco a <body> (u3o_onboarding 11b).
+  const [previous] = useState<HTMLElement | null>(() => (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null));
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
     pickInitialFocus(initialFocus?.current, titleRef.current)?.focus();
     // Al desmontar, el navegador saca el diálogo de la capa superior y devuelve la inercia al resto de la página;
-    // solo falta devolver el foco. No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
+    // solo falta devolver el foco (`restoreFocus`). No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
     return () => {
-      if (previous?.isConnected) previous.focus();
+      // Si el disparador ya no se puede enfocar (elemento de un menú cerrado, botón retirado), va al botón del menú o a #main-content:
+      // el foco nunca cae en <body> (R9-11c).
+      restoreFocus(null, previous, { preventScroll: true });
     };
-  }, []);
+  }, [previous]);
   return (
     <dialog
       ref={dialogRef}

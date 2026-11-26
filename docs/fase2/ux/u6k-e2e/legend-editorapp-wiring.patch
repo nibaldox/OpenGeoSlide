@@ -1,0 +1,20 @@
+diff --git a/apps/web/src/editor/EditorApp.tsx b/apps/web/src/editor/EditorApp.tsx
+index 0ca99bf..db9e3c6 100644
+--- a/apps/web/src/editor/EditorApp.tsx
++++ b/apps/web/src/editor/EditorApp.tsx
+@@ -20,6 +20,7 @@ import { Legend } from '../ui/Legend';
+ import { ResultsTable } from '../ui/ResultsTable';
+ import { useRovingTabIndex } from '../ui/useRovingTabIndex';
+ import { EditorCanvas } from './canvas/EditorCanvas';
++import { piezoExtension } from './canvas/piezoExtension';
+ import { applyPiezoImport, applyRegionImport } from './app/applyImport';
+ import { downloadBlob, downloadText } from './app/download';
+ import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
+@@ -706,6 +707,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
+                 bands: Boolean(doc.analysis.search),
+                 loads: (doc.loads?.length ?? 0) > 0,
+                 seismic: Boolean(doc.analysis.seismic),
++                piezoExtrapolated: piezoExtension(doc) !== null,
+               }}
+             />
+             {engine.run && !engine.current && (
