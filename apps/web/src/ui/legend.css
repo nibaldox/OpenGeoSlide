@@ -19,3 +19,11 @@
   border: 0;
   border-top: 2.5px dotted var(--canvas-piezo);
 }
+
+/* Muestra «Superficie fija (polilínea)» sin resultado: discontinua con el color de la superficie, como la polilínea del editor. */
+.legend .swatch.line-polyline-dashed {
+  width: 22px;
+  height: 0;
+  border: 0;
+  border-top: 2.5px dashed var(--canvas-surface);
+}

@@ -11,6 +11,7 @@ import { screenToWorld, type Viewport } from '../../geometry/viewport';
 import { coincidentVertices, piezoPoints, roundForScale, type VertexRef } from './geom';
 import { handleHitRadius, hitTest, type Hit } from './hitTest';
 import { insertPiezoPoint, movePiezoPoint, removePiezoPoint } from './edits';
+import { insertPolylineVertex, movePolylineVertex, removePolylineVertex } from './polyline';
 import { snapPoint, type SnapResult } from './snap';
 import { panBy } from './viewportOps';
 
@@ -42,12 +43,15 @@ export type DragTarget =
   | { kind: 'vertex'; group: VertexRef[] }
   | { kind: 'piezo_point'; index: number }
   | { kind: 'circle_center' }
-  | { kind: 'circle_radius' };
+  | { kind: 'circle_radius' }
+  | { kind: 'surface_vertex'; index: number };
 
 export type Preview =
   | { kind: 'vertex'; moves: { regionIndex: number; vertexIndex: number; to: Point }[]; snap: SnapResult }
   | { kind: 'piezo_point'; index: number; to: Point; snap: SnapResult }
-  | { kind: 'circle'; circle: Circle; snap: SnapResult | null };
+  | { kind: 'circle'; circle: Circle; snap: SnapResult | null }
+  /** Polilínea de falla con un vértice movido; `clamped`: la x se acotó para no cruzar a la de su vecino. */
+  | { kind: 'surface_polyline'; index: number; points: Point[]; clamped: boolean; snap: SnapResult };
 
 export type GestureState =
   | { mode: 'idle' }
@@ -100,6 +104,17 @@ function computePreview(target: DragTarget, ctx: GestureContext, input: PointerI
       const to = moved ? moved[target.index] : snap.point;
       return { kind: 'piezo_point', index: target.index, to, snap };
     }
+    case 'surface_vertex': {
+      const surface = doc.analysis.surface;
+      if (!surface || surface.type !== 'polyline') return null;
+      const neighbors: Point[] = [];
+      if (surface.points[target.index - 1]) neighbors.push(surface.points[target.index - 1]!);
+      if (surface.points[target.index + 1]) neighbors.push(surface.points[target.index + 1]!);
+      const snap = snapPoint(raw, { doc, vp, snap: ui.snap, neighbors });
+      const moved = movePolylineVertex(surface.points, target.index, snap.point);
+      if (!moved) return null;
+      return { kind: 'surface_polyline', index: target.index, points: moved.points, clamped: moved.clamped, snap };
+    }
     case 'circle_center': {
       const c = circleSpec(doc.analysis.surface);
       if (!c) return null;
@@ -138,6 +153,8 @@ export function applyPreview(doc: ModelDoc, preview: Preview | null): ModelDoc {
     }
     case 'circle':
       return { ...doc, analysis: { ...doc.analysis, surface: { type: 'circle', ...preview.circle } } };
+    case 'surface_polyline':
+      return { ...doc, analysis: { ...doc.analysis, surface: { type: 'polyline', points: preview.points } } };
   }
 }
 
@@ -165,15 +182,22 @@ function commitActions(preview: Preview, doc: ModelDoc): CanvasAction[] {
       if (cur && cur.xc === c.xc && cur.yc === c.yc && cur.r === c.r) return [];
       return [{ type: 'surface/set', surface: { type: 'circle', xc: c.xc, yc: c.yc, r: c.r } }];
     }
+    case 'surface_polyline': {
+      const cur = doc.analysis.surface;
+      const at = cur && cur.type === 'polyline' ? cur.points[preview.index] : undefined;
+      const to = preview.points[preview.index];
+      if (!at || !to || (at[0] === to[0] && at[1] === to[1])) return [];
+      return [{ type: 'surface/set', surface: { type: 'polyline', points: preview.points } }];
+    }
   }
 }
 
 // ---------- Eventos ----------
 
 /** Qué hay bajo el puntero: tiradores con el radio de acierto del tipo de puntero (≥ 16 px; 22 px con el dedo). */
-export function hitTestFor(doc: ModelDoc, vp: Viewport, input: PointerInput, snapRadiusPx: number, bands: boolean): Hit {
+export function hitTestFor(doc: ModelDoc, vp: Viewport, input: PointerInput, snapRadiusPx: number, bands: boolean, surfaceEdge = false): Hit {
   const radius = handleHitRadius(snapRadiusPx, input.pointerType);
-  return hitTest(doc, vp, input.x, input.y, radius, { bands, edgeRadiusPx: input.pointerType === 'touch' ? radius : snapRadiusPx });
+  return hitTest(doc, vp, input.x, input.y, radius, { bands, edgeRadiusPx: input.pointerType === 'touch' ? radius : snapRadiusPx, surfaceEdge });
 }
 
 export function pointerDown(state: GestureState, ctx: GestureContext, input: PointerInput): GestureResult {
@@ -186,7 +210,7 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
   if (input.button !== 0) return noop(state);
 
   const { doc, ui } = ctx;
-  const hit = hitTestFor(doc, vp, input, ui.snap.radiusPx, ui.tool === 'select');
+  const hit = hitTestFor(doc, vp, input, ui.snap.radiusPx, ui.tool === 'select', ui.tool === 'add_vertex');
   const start: [number, number] = [input.x, input.y];
   const drag = (target: DragTarget, label: string, selection: UiAction): GestureResult => ({
     state: { mode: 'drag', target, start, moved: false, preview: null },
@@ -205,6 +229,11 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
       const sel: UiAction = { type: 'ui/select', selection: { kind: 'piezo_point', index: hit.index } };
       if (ui.tool === 'add_vertex') return { state, actions: [sel] };
       return drag({ kind: 'piezo_point', index: hit.index }, 'Mover punto de la piezométrica', sel);
+    }
+    case 'surface_vertex': {
+      const sel: UiAction = { type: 'ui/select', selection: { kind: 'surface_vertex', index: hit.index } };
+      if (ui.tool === 'add_vertex') return { state, actions: [sel] };
+      return drag({ kind: 'surface_vertex', index: hit.index }, 'Mover punto de la polilínea de falla', sel);
     }
     case 'circle_center':
       return drag({ kind: 'circle_center' }, 'Mover el centro del círculo', { type: 'ui/select', selection: { kind: 'surface_circle' } });
@@ -237,6 +266,26 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
         };
       }
       return { state, actions: [{ type: 'ui/select', selection: { kind: 'none' } }] };
+    }
+    case 'surface_edge': {
+      // hitTestFor solo la devuelve con «Agregar vértice».
+      const surface = doc.analysis.surface;
+      if (ui.tool !== 'add_vertex' || !surface || surface.type !== 'polyline') return { state, actions: [{ type: 'ui/select', selection: { kind: 'none' } }] };
+      const inserted = insertPolylineVertex(surface.points, hit.afterIndex);
+      if (!inserted) return noop(state);
+      // El punto va donde se hizo clic (sobre el tramo), con el redondeo de la escala; se conserva el orden estricto de x.
+      const at: Point = [roundForScale(hit.point[0], vp.scale), roundForScale(hit.point[1], vp.scale)];
+      const a = surface.points[hit.afterIndex]!;
+      const b = surface.points[hit.afterIndex + 1]!;
+      const points = surface.points.map((p): Point => [p[0], p[1]]);
+      points.splice(hit.afterIndex + 1, 0, at[0] > a[0] && at[0] < b[0] ? at : inserted.points[hit.afterIndex + 1]!);
+      return {
+        state,
+        actions: [
+          { type: 'surface/set', surface: { type: 'polyline', points } },
+          { type: 'ui/select', selection: { kind: 'surface_vertex', index: hit.afterIndex + 1 } },
+        ],
+      };
     }
     case 'search_range':
       return { state, actions: [{ type: 'ui/select', selection: { kind: 'search_range', which: hit.which } }] };
@@ -295,6 +344,12 @@ export function doubleClick(ctx: GestureContext, input: PointerInput): CanvasAct
       { type: 'vertex/remove', regionIndex: hit.regionIndex, vertexIndex: hit.vertexIndex },
       { type: 'ui/select', selection: { kind: 'none' } },
     ];
+  }
+  if (hit.kind === 'surface_vertex') {
+    const surface = ctx.doc.analysis.surface;
+    const next = surface && surface.type === 'polyline' ? removePolylineVertex(surface.points, hit.index) : null;
+    if (!next) return [];
+    return [{ type: 'surface/set', surface: { type: 'polyline', points: next } }, { type: 'ui/select', selection: { kind: 'none' } }];
   }
   if (hit.kind === 'piezo_point') {
     const next = removePiezoPoint(piezoPoints(ctx.doc), hit.index);

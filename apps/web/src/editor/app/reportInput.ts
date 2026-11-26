@@ -1,6 +1,6 @@
 // Entradas del informe y exportaciones CSV a partir del último cálculo. Lógica pura (sin React ni DOM).
 
-import { resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
+import { polylineSurfaceRows, resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { describeWarnings } from '../../engine/warnings';
@@ -49,15 +49,17 @@ export function resultsCsv(report: AnalysisReport, units?: string | null): strin
 }
 
 /**
- * Puntos de la base de las dovelas de cada método que **convergió**: `metodo,estado,punto,x,y`, con la superficie de
- * izquierda a derecha (x creciente, con el pie). Los métodos `not_converged` o `invalid` no se exportan: sus dovelas no
+ * Puntos de la superficie de cada método que **convergió**: `metodo,estado,punto,x,y`, de izquierda a derecha (x creciente, con
+ * el pie). Con un círculo son los puntos de la base de las dovelas; con una polilínea, uno por punto de la polilínea ajustada. Los métodos `not_converged` o `invalid` no se exportan: sus dovelas no
  * son un resultado.
  */
 export function surfaceCoordsCsv(results: readonly MethodReport[], units?: string | null): string {
   const rows: CsvCell[][] = [];
   for (const r of results) {
     if (r.status !== 'converged') continue;
-    baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
+    // Polilínea (F3.7): los puntos ajustados del informe; círculo: los de la base de las dovelas.
+    if ('points' in r.surface) rows.push(...polylineSurfaceRows(r));
+    else baseSurfacePoints(r.slices).forEach(([x, y], i) => rows.push([r.method, r.status, i + 1, x, y]));
   }
   return surfaceToCsv(rows, { units });
 }

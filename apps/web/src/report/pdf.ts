@@ -240,9 +240,15 @@ class Writer {
   table(header: string[], rows: string[][], title?: string): void {
     const size = 8.5;
     const lh = this.lineHeight(size);
-    if (title) this.paragraph(title, 10, 'bold');
     // Ancho de columna proporcional al contenido, pero nunca menor que la palabra más larga de la cabecera (B-07).
     const widths = tableColumnWidths(this.doc, header, rows, size);
+    // El título, la cabecera y la primera fila van juntos: una cabecera sola al pie de la página, con sus filas en la siguiente, no se lee.
+    const rowHeight = (cells: string[], bold: boolean): number => {
+      this.font(bold ? 'bold' : 'normal', size);
+      return lh * Math.max(...cells.map((c, i) => this.wrap(c, (widths[i] as number) - 2).length)) + 1.5;
+    };
+    this.ensure((title ? this.lineHeight(10) + 3 : 0) + rowHeight(header, true) + (rows[0] ? rowHeight(rows[0], false) : 0) + 1);
+    if (title) this.paragraph(title, 10, 'bold');
 
     const drawRow = (cells: string[], bold: boolean, fill: boolean): void => {
       this.font(bold ? 'bold' : 'normal', size);

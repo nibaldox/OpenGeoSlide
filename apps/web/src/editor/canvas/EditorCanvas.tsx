@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec } from '../../engine/surface';
-import type { Circle, Point, Slice } from '../../engine/types';
+import type { Point, ReportSurface, Slice } from '../../engine/types';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, ModelDoc } from '../types';
@@ -25,6 +25,7 @@ import { DrawLayer } from './DrawLayer';
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { piezoExtension } from './piezoExtension';
+import { polylineCrossingMessage } from './polyline';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
 import {
   handleKey,
@@ -50,6 +51,8 @@ import {
   seismicBadge,
   seismicLabel,
   slideDirection,
+  surfaceVertexAnnouncement,
+  surfaceVertexLabel,
   vertexAnnouncement,
   vertexLabel,
 } from './layout';
@@ -96,13 +99,15 @@ const AXIS_TITLE_RESERVE_PX = 64;
 
 /** Resultado del cálculo que se superpone al modelo: superficie crítica y dovelas. */
 export interface CanvasResult {
-  surface: Circle;
+  /** Círculo `{xc, yc, r}` o polilínea ajustada al terreno `{points}` del informe (F3.7). */
+  surface: ReportSurface;
   slices: Slice[];
 }
 
-/** Puntos (en pantalla) del arco inferior de la superficie crítica entre la primera y la última dovela. */
+/** Puntos (en pantalla) de la superficie del informe: la polilínea ajustada, o el arco inferior entre la primera y la última dovela. */
 function surfaceArc(vp: Viewport, result: CanvasResult, steps = 120): string {
   if (result.slices.length === 0) return '';
+  if ('points' in result.surface) return pointsAttr(vp, result.surface.points);
   const xmin = Math.min(...result.slices.map((s) => s.x_left));
   const xmax = Math.max(...result.slices.map((s) => s.x_right));
   const { xc, yc, r } = result.surface;
@@ -122,8 +127,8 @@ function cursorFor(tool: string, hover: Hit['kind'] | null, dragging: boolean, p
   if (tool === 'pan') return 'grab';
   if (tool === 'draw_region' || tool === 'split_region') return 'crosshair';
   if (dragging) return 'grabbing';
-  if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius') return 'move';
-  if (tool === 'add_vertex') return hover === 'edge' || hover === 'piezo_edge' ? 'copy' : 'crosshair';
+  if (hover === 'vertex' || hover === 'piezo_point' || hover === 'circle_center' || hover === 'circle_radius' || hover === 'surface_vertex') return 'move';
+  if (tool === 'add_vertex') return hover === 'edge' || hover === 'piezo_edge' || hover === 'surface_edge' ? 'copy' : 'crosshair';
   return 'default';
 }
 
@@ -132,6 +137,7 @@ export const CANVAS_INSTRUCTIONS =
   'Lienzo del modelo: una sola parada de tabulación. Tab y Mayús+Tab entran al lienzo y salen de él; dentro, las teclas [ y ], o RePág y AvPág, pasan de un tirador a otro. ' +
   'Con las flechas se mueve el tirador seleccionado un paso de rejilla (0,1 sin rejilla); Mayús multiplica el paso por diez. ' +
   'En el tirador del radio las flechas cambian el radio del círculo; en el del centro, lo mueven. ' +
+  'En una polilínea de falla cada punto es un tirador: las flechas lo mueven, Insert agrega otro en el medio del tramo y la x no cruza la de su vecino. ' +
   'Insert, o la tecla i, inserta un vértice en el punto medio de la arista siguiente. ' +
   'Supr elimina el vértice o el punto y el foco pasa al vecino. ' +
   'Las teclas + y − acercan y alejan, y 0 encuadra el modelo. ' +
@@ -150,7 +156,7 @@ const EDGE_SCROLL_DWELL_MS = 250;
 /** Período del autodesplazamiento, en ms. */
 const EDGE_SCROLL_TICK_MS = 16;
 
-const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius']);
+const DRAG_KINDS: ReadonlySet<Hit['kind']> = new Set(['vertex', 'piezo_point', 'circle_center', 'circle_radius', 'surface_vertex']);
 
 function handleFromKey(list: readonly HandleRef[], key: string | null): HandleRef | null {
   if (!key) return null;
@@ -304,8 +310,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       if (!t) return;
       const rect = el.getBoundingClientRect();
       const radius = handleHitRadius(s.ui.snap.radiusPx, 'touch');
-      const hit = hitTest(s.doc, vp, t.clientX - rect.left, t.clientY - rect.top, radius, { bands: false });
-      if (DRAG_KINDS.has(hit.kind) || (s.ui.tool === 'add_vertex' && (hit.kind === 'edge' || hit.kind === 'piezo_edge'))) e.preventDefault();
+      const hit = hitTest(s.doc, vp, t.clientX - rect.left, t.clientY - rect.top, radius, { bands: false, surfaceEdge: s.ui.tool === 'add_vertex' });
+      if (DRAG_KINDS.has(hit.kind) || (s.ui.tool === 'add_vertex' && (hit.kind === 'edge' || hit.kind === 'piezo_edge' || hit.kind === 'surface_edge'))) e.preventDefault();
     };
     // Con dos dedos, o con un arrastre de tirador en curso, también se bloquea el movimiento (mientras el navegador lo permita).
     const onTouchMove = (e: TouchEvent): void => {
@@ -456,6 +462,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const p = piezoPoints(s.doc)[sel.index];
       return p ? piezoAnnouncement(sel.index, p, unitsEff) : null;
     }
+    if (sel.kind === 'surface_vertex') {
+      const surface = s.doc.analysis.surface;
+      const p = surface && surface.type === 'polyline' ? surface.points[sel.index] : undefined;
+      return p ? surfaceVertexAnnouncement(sel.index, p, unitsEff) : null;
+    }
     const c = circleSpec(s.doc.analysis.surface);
     if (sel.kind === 'surface_circle' && c) return target === 'circle_radius' ? circleRadiusLabel(c.r, unitsEff) : circleCenterLabel(c.xc, c.yc, unitsEff);
     return null;
@@ -566,7 +577,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     apply(r);
     if (before.mode === 'drag' && before.moved && r.actions.some((a) => a.type === 'gesture/end')) {
       const msg = describeAfterDrag(before.target.kind);
-      if (msg) announce(msg);
+      const crossed = before.preview?.kind === 'surface_polyline' && before.preview.clamped;
+      if (msg) announce(crossed ? `${polylineCrossingMessage()}. ${msg}` : msg);
     }
   };
   const onPointerCancel = (e: PointerEvent<SVGSVGElement>): void => {
@@ -645,12 +657,15 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const pz = piezoPoints(shown);
   const pzExtra = piezoExtension(shown);
   const circle = circleSpec(shown.analysis.surface);
+  const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);
   const badge = seismicBadge(vp, dir, seismic?.kv ?? 0); // R9-12c: con kv ≠ 0 trae `kvArrow`
   const dragging = gesture.mode === 'drag' && gesture.moved;
   const guides = preview && preview.kind !== 'circle' ? preview.snap.guides : null;
+  // Aviso visible mientras el arrastre se acota contra el vecino (el anuncio al lector va al soltar y con el teclado).
+  const crossingWarning = preview && preview.kind === 'surface_polyline' && preview.clamped && dragging ? polylineCrossingMessage() : null;
   const snapTarget = preview && preview.kind === 'vertex' ? preview.snap.target : null;
   const arrowId = `${markerBase}-load`;
   const seismicArrowId = `${markerBase}-seismic`;
@@ -837,6 +852,11 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
+        {polyline && (
+          <g data-layer="surface">
+            <polyline data-fixed-polyline points={pointsAttr(vp, polyline)} fill="none" stroke={COLOR_SURFACE} strokeWidth={2} strokeDasharray="6 4" strokeLinejoin="round" />
+          </g>
+        )}
         {circle && (
           <g data-layer="surface">
             {(() => {
@@ -958,6 +978,26 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
               </g>
             );
           })}
+          {polyline &&
+            polyline.map((p, i) => {
+              const [sx, sy] = toS(p);
+              const isSel = sel.kind === 'surface_vertex' && sel.index === i;
+              const h: HandleRef = { kind: 'surface_vertex', index: i };
+              return (
+                <g key={`s${i}`} {...handleProps(h, surfaceVertexLabel(i, p, unitsEff), isSel)}>
+                  <circle cx={sx} cy={sy} {...hitProps} />
+                  <circle
+                    data-handle-shape="surface_vertex"
+                    cx={sx}
+                    cy={sy}
+                    r={isSel ? HANDLE_R + 2 : HANDLE_R + 1}
+                    fill={isSel ? COLOR_HANDLE_SEL : COLOR_SURFACE}
+                    stroke={COLOR_HANDLE_RING}
+                    strokeWidth={2}
+                  />
+                </g>
+              );
+            })}
           {circle && (
             <>
               {(() => {
@@ -1016,6 +1056,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       </div>
 
       <p ref={readoutRef} className="ec-cursor" aria-hidden="true" data-testid="cursor-readout" />
+
+      {crossingWarning && (
+        <p className="ec-draw-hint" data-testid="polyline-crossing-warning">
+          <span className="ec-draw-error">{crossingWarning}</span>
+        </p>
+      )}
 
       {ui.tool === 'draw_region' && (
         <p className="ec-draw-hint" data-testid="draw-hint">

@@ -35,8 +35,11 @@ export interface Scene {
   piezo: Point[] | null;
   /** Tramos horizontales que el motor extrapola a cada lado de la piezométrica hasta los bordes del modelo (R9-05d); `null` si no hay o ya cubre el ancho. */
   piezoExtension?: PiezoExtension | null;
-  /** `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b). Ausente = convergió. */
-  surface: { circle: Circle; slices: Slice[]; converged?: boolean } | null;
+  /**
+   * Superficie del informe: `circle` (círculo `{xc, yc, r}`) o `polyline` (la polilínea ajustada al terreno, F3.7); nunca las dos.
+   * `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b).
+   */
+  surface: { circle?: Circle | null; polyline?: Point[] | null; slices: Slice[]; converged?: boolean } | null;
   bounds: Bounds;
   /** Unidades del modelo (`SI` o `imperial`); los ejes de `drawSection` las usan para rotular m o ft. */
   units?: string;
@@ -49,10 +52,13 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   }));
   const materials = model.materials.map((m, i) => ({ id: m.id, name: m.name, color: materialColor(i) }));
   const piezo = model.water?.piezometric_line?.length ? [...model.water.piezometric_line].sort((a, b) => a[0] - b[0]) : null;
-  // La superficie polilínea (`{points}`) no se dibuja todavía: llega con F3-W1f.
+  // Círculo `{xc, yc, r}` o polilínea ajustada `{points}` del informe (F3.7).
   const circle = method ? reportCircle(method.surface) : null;
+  const polyline = method && !circle && 'points' in method.surface ? method.surface.points.map((p): Point => [p[0], p[1]]) : null;
   const surface =
-    method && circle && method.slices.length > 0 ? { circle, slices: method.slices, converged: method.status === 'converged' } : null;
+    method && (circle || polyline) && method.slices.length > 0
+      ? { circle, polyline, slices: method.slices, converged: method.status === 'converged' }
+      : null;
 
   const xs: number[] = [];
   const ys: number[] = [];
@@ -63,6 +69,11 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     }
   }
   for (const [x, y] of piezo ?? []) {
+    xs.push(x);
+    ys.push(y);
+  }
+  // Los extremos de la polilínea ajustada pueden salir del rango de las dovelas (prolongación o recorte al terreno).
+  for (const [x, y] of surface?.polyline ?? []) {
     xs.push(x);
     ys.push(y);
   }

@@ -26,8 +26,11 @@ export type Hit =
   | { kind: 'piezo_point'; index: number; distPx: number }
   | { kind: 'circle_center'; distPx: number }
   | { kind: 'circle_radius'; distPx: number }
+  | { kind: 'surface_vertex'; index: number; distPx: number }
   | { kind: 'edge'; regionIndex: number; afterIndex: number; point: Point; distPx: number }
   | { kind: 'piezo_edge'; afterIndex: number; point: Point; distPx: number }
+  /** Tramo de la polilínea fija de falla (solo se acierta con `surfaceEdge`: «Agregar vértice»). */
+  | { kind: 'surface_edge'; afterIndex: number; point: Point; distPx: number }
   | { kind: 'search_range'; which: 'entry' | 'exit' }
   | { kind: 'region'; regionIndex: number }
   | { kind: 'none' };
@@ -65,7 +68,13 @@ export function hitTest(
   sx: number,
   sy: number,
   radiusPx: number,
-  options: { bands?: boolean; /** Tolerancia de aristas y segmentos; por omisión `radiusPx`. */ edgeRadiusPx?: number } = {},
+  options: {
+    bands?: boolean;
+    /** Tolerancia de aristas y segmentos; por omisión `radiusPx`. */
+    edgeRadiusPx?: number;
+    /** Acierta también los tramos de la polilínea de falla (con «Agregar vértice»); con «Seleccionar» no, para no robar el clic a la región. */
+    surfaceEdge?: boolean;
+  } = {},
 ): Hit {
   const bandsOn = options.bands ?? true;
   const handles: HandleCandidate[] = [];
@@ -81,6 +90,10 @@ export function hitTest(
   piezoPoints(doc).forEach((p, index) => {
     push({ kind: 'piezo_point', index, distPx: 0 }, screenDist(vp, p, sx, sy), 1);
   });
+  const surface = doc.analysis.surface;
+  if (surface && surface.type === 'polyline') {
+    surface.points.forEach((p, index) => push({ kind: 'surface_vertex', index, distPx: 0 }, screenDist(vp, p, sx, sy), 2));
+  }
   const circle = circleSpec(doc.analysis.surface);
   if (circle) {
     push({ kind: 'circle_center', distPx: 0 }, screenDist(vp, [circle.xc, circle.yc], sx, sy), 2);
@@ -134,6 +147,18 @@ export function hitTest(
       bestDist = proj.distance;
       const point: Point = [a[0] + proj.t * (b[0] - a[0]), a[1] + proj.t * (b[1] - a[1])];
       bestEdge = { kind: 'piezo_edge', afterIndex: i, point, distPx: proj.distance };
+    }
+  }
+  if (options.surfaceEdge && surface && surface.type === 'polyline') {
+    for (let i = 0; i + 1 < surface.points.length; i++) {
+      const a = surface.points[i]!;
+      const b = surface.points[i + 1]!;
+      const proj = projectOnSegment(pointer, toScreen(a), toScreen(b));
+      if (proj.distance < bestDist) {
+        bestDist = proj.distance;
+        const point: Point = [a[0] + proj.t * (b[0] - a[0]), a[1] + proj.t * (b[1] - a[1])];
+        bestEdge = { kind: 'surface_edge', afterIndex: i, point, distPx: proj.distance };
+      }
     }
   }
   if (bestEdge) return bestEdge;

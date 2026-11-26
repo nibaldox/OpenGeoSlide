@@ -2,6 +2,7 @@ import { reportCircle } from '../engine/surface';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../engine/types';
 import { describeWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
+import { correctionFactorText, methodDetails, surfaceSummary } from '../report/methodInfo';
 import { formatFs } from './formatFs';
 
 export const METHOD_LABELS: Record<MethodKind, string> = {
@@ -34,7 +35,8 @@ interface Props {
   onShowMethod: (method: MethodKind) => void;
   /**
    * Unidad de longitud del modelo (`m` o `ft`). Con ella la tabla muestra el centro (xc; yc) y el radio de la superficie, con unidad
-   * (R9-12c). Sin ella esas columnas se omiten: el reporte del motor no trae las unidades y no se inventa una.
+   * (R9-12c). Sin ella esas columnas se omiten: el reporte del motor no trae las unidades y no se inventa una. Una superficie
+   * polilínea no necesita unidad: se rotula «Polilínea (n puntos)» en la columna «Superficie fija» (F3.7).
    */
   lengthUnit?: string;
 }
@@ -57,6 +59,11 @@ function methodWarnings(report: AnalysisReport, severity: 'nota' | 'aviso'): Met
 export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, lengthUnit }: Props) {
   const notes = methodWarnings(report, 'nota');
   const avisos = methodWarnings(report, 'aviso');
+  // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
+  const polylines = report.results.map((r) => surfaceSummary(r.surface));
+  const allPolyline = report.results.length > 0 && polylines.every((p) => p !== null);
+  const circleColumns = Boolean(lengthUnit) && !allPolyline;
+  const columns = 7 + (circleColumns ? 2 : 0) + (allPolyline ? 1 : 0) + 1; // + «Superficie» (Dibujar)
   return (
     <div className="results">
       <table data-results-table tabIndex={-1}>
@@ -70,27 +77,45 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
             <th scope="col">λ</th>
             <th scope="col">Superficies evaluadas</th>
             <th scope="col">Superficies válidas</th>
-            {lengthUnit && <th scope="col">Centro (xc; yc) ({lengthUnit})</th>}
-            {lengthUnit && <th scope="col">Radio ({lengthUnit})</th>}
+            {allPolyline && <th scope="col">Superficie fija</th>}
+            {circleColumns && <th scope="col">Centro (xc; yc) ({lengthUnit})</th>}
+            {circleColumns && <th scope="col">Radio ({lengthUnit})</th>}
             <th scope="col">Superficie</th>
           </tr>
         </thead>
         <tbody>
-          {report.results.map((r) => (
+          {report.results.map((r, i) => {
+            const detail = methodDetails(r);
+            return (
             <tr key={r.method} className={r.status !== 'converged' ? 'row-warn' : undefined}>
-              <td>{METHOD_LABELS[r.method]}</td>
+              <td>
+                {METHOD_LABELS[r.method]}
+                {detail.interslice && (
+                  <>
+                    <br />
+                    <span className="muted small">Función: {detail.interslice}</span>
+                  </>
+                )}
+                {detail.f0 !== undefined && (
+                  <>
+                    <br />
+                    <span className="muted small">f₀ = {correctionFactorText(detail.f0)}</span>
+                  </>
+                )}
+              </td>
               <td className="num">{formatFs(convergedFos(r))}</td>
               <td>{STATUS_LABELS[r.status]}</td>
               <td className="num">{r.iterations}</td>
               <td className="num">{formatNumber(r.status === 'converged' ? r.lambda : null)}</td>
               <td className="num">{r.search ? r.search.evaluated : '—'}</td>
               <td className="num">{r.search ? r.search.valid : '—'}</td>
-              {lengthUnit && (
-                <td className="num">
-                  {formatNumber(reportCircle(r.surface)?.xc ?? null, 2)}; {formatNumber(reportCircle(r.surface)?.yc ?? null, 2)}
+              {allPolyline && <td>{polylines[i]}</td>}
+              {circleColumns && (
+                <td className={polylines[i] ? undefined : 'num'}>
+                  {polylines[i] ?? `${formatNumber(reportCircle(r.surface)?.xc ?? null, 2)}; ${formatNumber(reportCircle(r.surface)?.yc ?? null, 2)}`}
                 </td>
               )}
-              {lengthUnit && <td className="num">{formatNumber(reportCircle(r.surface)?.r ?? null, 2)}</td>}
+              {circleColumns && <td className="num">{formatNumber(reportCircle(r.surface)?.r ?? null, 2)}</td>}
               <td>
                 <button
                   type="button"
@@ -102,11 +127,12 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
                 </button>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
         <tfoot>
           <tr>
-            <th scope="row" colSpan={lengthUnit ? 9 : 7}>
+            <th scope="row" colSpan={columns - 1}>
               Tiempo total del análisis
             </th>
             <td className="num">{formatNumber(elapsedMs, 1)} ms</td>

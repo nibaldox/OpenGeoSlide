@@ -196,13 +196,12 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
     }
     case 'surface/set': {
       if (cmd.surface === null) return withAnalysis(doc, { surface: null });
-      if (!allFinite(cmd.surface)) return null;
-      // Círculo o polilínea fija (F3.3): la polilínea necesita al menos 2 puntos; el orden de x lo valida `validateLocal`.
+      // Polilínea fija (F3.3): forma y finitud; el orden de x lo explica `validateLocal`, no el almacén.
       if (cmd.surface.type === 'polyline') {
-        if (!isPointList(cmd.surface.points) || cmd.surface.points.length < 2) return null;
+        if (!Array.isArray(cmd.surface.points) || cmd.surface.points.length < 2 || !isPointList(cmd.surface.points)) return null;
         return withAnalysis(doc, { surface: { type: 'polyline', points: copyPoints(cmd.surface.points) } });
       }
-      if (cmd.surface.type !== 'circle') return null;
+      if (!allFinite(cmd.surface) || cmd.surface.type !== 'circle') return null;
       return withAnalysis(doc, { surface: { ...cmd.surface } });
     }
     case 'search/set': {
@@ -296,6 +295,10 @@ export function isSelectionValid(sel: Selection, doc: ModelDoc): boolean {
       return inRange(sel.index, doc.water?.piezometric_line?.length ?? 0);
     case 'surface_circle':
       return doc.analysis.surface !== undefined && doc.analysis.surface !== null;
+    case 'surface_vertex': {
+      const surface = doc.analysis.surface;
+      return surface !== undefined && surface !== null && surface.type === 'polyline' && inRange(sel.index, surface.points.length);
+    }
     case 'search_range':
       return doc.analysis.search !== undefined && doc.analysis.search !== null;
     case 'load':
