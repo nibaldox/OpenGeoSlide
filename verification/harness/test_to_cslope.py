@@ -961,6 +961,59 @@ def test_malformed_reinforcements_are_refused(mutate, match):
         _mapped(_one(item))
 
 
+# E14o-11 (R11A-11): the converter refuses what `ogs` refuses (F4.2), so that the harness never compares an invalid
+# model: before, these five were ACCEPTED while `ogs analyze` answered rc = 2.
+RANGE_BOND = {"model": "bond", "strength": 30, "bonded_length": 10}
+RANGE_IFACE = {"model": "interface", "adhesion": 10, "friction_angle": 25, "coverage": 0.8}
+
+
+@pytest.mark.parametrize("base, mutate, match", [
+    (PILE, lambda i: i.update(force=-1), "force"),
+    (SHEET, lambda i: i.update(force=-0.5), "force"),
+    (ANCHOR, lambda i: i.update(x2=i["x1"], y2=i["y1"]), "longitud"),
+    (SHEET, lambda i: i.update(x2=41), "x2"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_BOND, bonded_length=30)), "bonded_length"),
+    (PILE, lambda i: i.update(direction="angle", angle=90), "angle"),
+    (PILE, lambda i: i.update(direction="angle", angle=-90), "angle"),
+    (SHEET, lambda i: i.update(direction="angle", angle=90.0), "angle"),
+    (ANCHOR, lambda i: i.update(tensile_capacity=-1), "tensile_capacity"),
+    (ANCHOR, lambda i: i.update(end1_capacity=-1), "end1_capacity"),
+    (ANCHOR, lambda i: i.update(end2_capacity=-1), "end2_capacity"),
+    (ANCHOR, lambda i: i.update(spacing=0), "spacing"),
+    (ANCHOR, lambda i: i.update(spacing=-2), "spacing"),
+    (PILE, lambda i: i.update(spacing=0), "spacing"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_BOND, strength=-1)), "strength"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_BOND, bonded_length=0)), "bonded_length"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_IFACE, adhesion=-1)), "adhesion"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_IFACE, friction_angle=90)), "friction_angle"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_IFACE, friction_angle=-1)), "friction_angle"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_IFACE, coverage=0)), "coverage"),
+    (ANCHOR, lambda i: i.update(pullout=dict(RANGE_IFACE, coverage=1.5)), "coverage"),
+    (ANCHOR, lambda i: i.update(pullout={"model": "development", "length1": -1, "length2": 0}), "length1"),
+    (ANCHOR, lambda i: i.update(pullout={"model": "development", "length1": 0, "length2": -1}), "length2"),
+])
+def test_values_out_of_range_are_refused_like_ogs_does(base, mutate, match):
+    item = dict(base)
+    mutate(item)
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(_one(item))
+
+
+@pytest.mark.parametrize("item", [
+    dict(ANCHOR, tensile_capacity=0),                                      # zero capacity is valid (no_capacity)
+    dict(PILE, force=0),
+    dict(SHEET, force=0),
+    dict(PILE, angle=89.99),
+    dict(PILE, angle=-89.99),
+    dict(ANCHOR, pullout=dict(RANGE_BOND, bonded_length=27)),              # L = 27: equal is valid
+    dict(ANCHOR, pullout=dict(RANGE_IFACE, friction_angle=0, adhesion=0, coverage=1)),
+    dict(ANCHOR, pullout={"model": "development", "length1": 0, "length2": 0}),
+    dict(ANCHOR, end1_capacity=0, end2_capacity=0, spacing=0.001),
+])
+def test_values_on_the_edge_of_the_range_are_accepted(item):
+    _mapped(_one(item))
+
+
 def test_a_pile_with_location_or_a_wrong_angle_is_refused():
     with pytest.raises(UnsupportedModel, match="location"):
         _mapped(_one(dict(PILE, location="slip_surface")))
