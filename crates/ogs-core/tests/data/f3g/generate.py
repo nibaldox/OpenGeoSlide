@@ -8,7 +8,10 @@ Migration of the rows to the final format (briefs/04, F5.5-3):
   * `analysis.tension_crack.water` is renamed `water_fill`;
   * X21-N03 has `depth: 0`, which F5.2 rejects (`depth > 0`): it becomes `depth: 1e-6` (the limit `depth -> 0+` of F5.5-5),
     and the expected values stay those of the oracle for depth 0, i.e. the dry slope.
-The documents keep `version: "0.5"`. Nothing else changes (the 5 methods and the interslice function are set by the test).
+  * `analysis.methods` is the list of methods that the oracle has a figure for (the five, without Bishop on a polyline,
+    which the engine does not offer), and `analysis.interslice = constant` (the oracle runs Spencer as Morgenstern-Price
+    `constant`, E8), so that each document runs as it is with `ogs analyze` and gives the figure of the table.
+The documents keep `version: "0.5"`. Nothing else changes.
 """
 import json
 import pathlib
@@ -90,6 +93,15 @@ def main():
             if tc["depth"] == 0:
                 doc["analysis"]["tension_crack"]["depth"] = 1e-6
                 migration.append("depth 0 -> 1e-6 (F5.2 requires depth > 0)")
+        res_row = res[rid]
+        with_figures = [m for m in METHODS if (res_row["oraculo"].get(m) or {}).get("fos") is not None]
+        methods = with_figures or [m for m in doc["analysis"]["methods"] if not (m == "bishop" and doc["analysis"]["surface"]["type"] == "polyline")]
+        if doc["analysis"]["methods"] != methods:
+            migration.append("methods = those of the oracle")
+        doc["analysis"]["methods"] = methods
+        if "morgenstern_price" in methods:
+            doc["analysis"]["interslice"] = {"function": "constant"}
+            migration.append("interslice constant")
         (ROWS / f.name).write_text(json.dumps(doc, indent=1) + "\n")
         r = res[rid]
         oracle = {m: v["fos"] for m, v in r["oraculo"].items() if v["fos"] is not None}

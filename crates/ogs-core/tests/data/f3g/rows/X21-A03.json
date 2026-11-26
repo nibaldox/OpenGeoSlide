@@ -56,6 +56,7 @@
    "bishop",
    "spencer",
    "morgenstern_price",
+   "janbu_simplified",
    "janbu_corrected"
   ],
   "slices": 50,
@@ -71,6 +72,9 @@
   "tension_crack": {
    "depth": "auto",
    "water_fill": 0.0
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

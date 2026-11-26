@@ -21,7 +21,9 @@
    },
    "oracle_proto_max_dif_pct": 0.012133431828974731,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 49.98270670015802,
@@ -40,7 +42,9 @@
    },
    "oracle_proto_max_dif_pct": 0.012242933201077656,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 49.98270670015802,
@@ -59,7 +63,9 @@
    },
    "oracle_proto_max_dif_pct": 0.0235830820514075,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 47.24852943672485,
@@ -78,7 +84,9 @@
    },
    "oracle_proto_max_dif_pct": 0.018615938553399023,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 50.15408374108105,
@@ -97,7 +105,9 @@
    },
    "oracle_proto_max_dif_pct": 0.008166243421516348,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 49.32465607761837,
@@ -117,7 +127,9 @@
    "oracle_proto_max_dif_pct": 0.05337040905944039,
    "migration": [
     "free_water removed",
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 50.908957076678156,
@@ -130,7 +142,8 @@
    "oracle": {},
    "oracle_proto_max_dif_pct": null,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "expect_error": "tension_crack_not_reached"
   },
@@ -146,7 +159,9 @@
    },
    "oracle_proto_max_dif_pct": 0.006865916318672201,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 50.392564268870174,
@@ -165,7 +180,9 @@
    },
    "oracle_proto_max_dif_pct": 0.004910304663708314,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 48.71086321769263,
@@ -184,7 +201,9 @@
    },
    "oracle_proto_max_dif_pct": 0.007893737693798794,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 44.81527788340742,
@@ -204,7 +223,8 @@
    "oracle_proto_max_dif_pct": 0.04907061670196461,
    "migration": [
     "free_water removed",
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 109.30949135140291,
@@ -223,7 +243,9 @@
    "oracle_proto_max_dif_pct": 0.009537757774705719,
    "migration": [
     "free_water removed",
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 117.0,
@@ -242,7 +264,8 @@
    },
    "oracle_proto_max_dif_pct": 0.04215701140917268,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V024": {
@@ -257,7 +280,8 @@
    },
    "oracle_proto_max_dif_pct": 0.08631855223785731,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V042": {
@@ -272,7 +296,8 @@
    },
    "oracle_proto_max_dif_pct": 0.03951279100994184,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V061": {
@@ -286,7 +311,9 @@
    },
    "oracle_proto_max_dif_pct": 0.01388134291674995,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-CP-V072a": {
@@ -301,7 +328,8 @@
    },
    "oracle_proto_max_dif_pct": 0.08194118499360904,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 33.61801045675574,
@@ -319,7 +347,9 @@
    },
    "oracle_proto_max_dif_pct": 0.0035973037031841707,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 43.30166666666666,
@@ -337,7 +367,9 @@
    },
    "oracle_proto_max_dif_pct": 0.004221566961329303,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 34.641333333333336,
@@ -354,7 +386,10 @@
     "janbu_corrected": 1.1223171313902844
    },
    "oracle_proto_max_dif_pct": 0.003386948627825918,
-   "migration": []
+   "migration": [
+    "methods = those of the oracle",
+    "interslice constant"
+   ]
   },
   "X21-CP-V079-w000": {
    "kind": "crack",
@@ -367,7 +402,9 @@
    },
    "oracle_proto_max_dif_pct": 0.00224123678072024,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 25.981,
@@ -385,7 +422,9 @@
    },
    "oracle_proto_max_dif_pct": 0.002820229718273269,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 25.981,
@@ -403,7 +442,9 @@
    },
    "oracle_proto_max_dif_pct": 0.0044944079540890315,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 25.981,
@@ -421,7 +462,9 @@
    },
    "oracle_proto_max_dif_pct": 0.010459028945824553,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 25.981,
@@ -439,7 +482,9 @@
    },
    "oracle_proto_max_dif_pct": 0.002860071904519626,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 25.981,
@@ -459,7 +504,8 @@
    "oracle_proto_max_dif_pct": 0.02209643279063084,
    "migration": [
     "free_water removed",
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 47.33527432341312,
@@ -478,7 +524,8 @@
    },
    "oracle_proto_max_dif_pct": 0.05215966060712894,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V088": {
@@ -494,7 +541,8 @@
    "oracle_proto_max_dif_pct": 0.023480670006564203,
    "migration": [
     "free_water removed",
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": -2.533860466763379,
@@ -513,7 +561,8 @@
    },
    "oracle_proto_max_dif_pct": 0.0493776548650924,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V091": {
@@ -528,7 +577,8 @@
    },
    "oracle_proto_max_dif_pct": 0.08204693229294242,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V092": {
@@ -543,7 +593,8 @@
    },
    "oracle_proto_max_dif_pct": 0.08121231231090091,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-CP-V096c": {
@@ -558,7 +609,8 @@
    },
    "oracle_proto_max_dif_pct": 0.025484682667758184,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 41.66374795851584,
@@ -577,7 +629,8 @@
    },
    "oracle_proto_max_dif_pct": 0.006332971725020021,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-D02": {
@@ -592,7 +645,8 @@
    },
    "oracle_proto_max_dif_pct": 0.01186284540361294,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ]
   },
   "X21-D03": {
@@ -607,7 +661,8 @@
    },
    "oracle_proto_max_dif_pct": 0.006332971724905994,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ],
    "mirror_of": "X21-D01"
   },
@@ -623,7 +678,8 @@
    },
    "oracle_proto_max_dif_pct": 0.011862845405396274,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "interslice constant"
    ],
    "mirror_of": "X21-D02"
   },
@@ -638,7 +694,10 @@
     "janbu_corrected": 0.9883537594194384
    },
    "oracle_proto_max_dif_pct": 0.010024209361721478,
-   "migration": []
+   "migration": [
+    "methods = those of the oracle",
+    "interslice constant"
+   ]
   },
   "X21-N02": {
    "kind": "control",
@@ -652,7 +711,9 @@
    },
    "oracle_proto_max_dif_pct": 0.010024209361721478,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-N03": {
@@ -668,7 +729,9 @@
    "oracle_proto_max_dif_pct": 0.010024209361721478,
    "migration": [
     "tension_crack.water renamed water_fill",
-    "depth 0 -> 1e-6 (F5.2 requires depth > 0)"
+    "depth 0 -> 1e-6 (F5.2 requires depth > 0)",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P01": {
@@ -683,7 +746,9 @@
    },
    "oracle_proto_max_dif_pct": 0.025131857065939095,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P02": {
@@ -698,7 +763,9 @@
    },
    "oracle_proto_max_dif_pct": 0.03439519279748665,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P03": {
@@ -713,7 +780,9 @@
    },
    "oracle_proto_max_dif_pct": 0.025131857068507575,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "mirror_of": "X21-P01"
   },
@@ -729,7 +798,9 @@
    },
    "oracle_proto_max_dif_pct": 0.02534026350809722,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P05": {
@@ -744,7 +815,9 @@
    },
    "oracle_proto_max_dif_pct": 0.024294934343462377,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P06": {
@@ -759,7 +832,9 @@
    },
    "oracle_proto_max_dif_pct": 0.02444362442747139,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P07": {
@@ -774,7 +849,9 @@
    },
    "oracle_proto_max_dif_pct": 0.020722245293055643,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-P08": {
@@ -789,7 +866,9 @@
    },
    "oracle_proto_max_dif_pct": 0.08930390765108917,
    "migration": [
-    "free_water removed"
+    "free_water removed",
+    "methods = those of the oracle",
+    "interslice constant"
    ]
   },
   "X21-S-V048-fija": {
@@ -804,7 +883,8 @@
    },
    "oracle_proto_max_dif_pct": 0.01733424892028283,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 52.98747656178047,
@@ -823,7 +903,8 @@
    },
    "oracle_proto_max_dif_pct": 0.02820001525662575,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 3.9083283065034644,
@@ -842,7 +923,8 @@
    },
    "oracle_proto_max_dif_pct": 0.0312177807507752,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 3.8731395921321985,
@@ -861,7 +943,8 @@
    },
    "oracle_proto_max_dif_pct": 0.02850183160419681,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 40.77085690358629,
@@ -880,7 +963,9 @@
    },
    "oracle_proto_max_dif_pct": 0.0049297210656626435,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 48.71086321769263,
@@ -899,7 +984,9 @@
    },
    "oracle_proto_max_dif_pct": 0.004987479727322832,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 48.71086321769263,
@@ -918,7 +1005,9 @@
    },
    "oracle_proto_max_dif_pct": 0.005211675313274252,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "proto_crack": {
     "x": 48.71086321769263,
@@ -937,7 +1026,9 @@
    },
    "oracle_proto_max_dif_pct": 0.005211675317655079,
    "migration": [
-    "tension_crack.water renamed water_fill"
+    "tension_crack.water renamed water_fill",
+    "methods = those of the oracle",
+    "interslice constant"
    ],
    "mirror_of": "X21-W100",
    "proto_crack": {

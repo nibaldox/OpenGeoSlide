@@ -11,9 +11,9 @@
 //!
 //! The failing tests print the table of the rows with the form of each failure. Criteria (F5.5-3): every method within
 //! 0.1 % of the oracle, with the slices that the row declares. Spencer and Morgenstern-Price are compared with the
-//! same oracle figure because the oracle runs Spencer as Morgenstern-Price with `constant` (E8); the test therefore
-//! sets `analysis.interslice = constant` and lists the five methods that the oracle has for the row (Bishop has none
-//! on a polyline).
+//! same oracle figure because the oracle runs Spencer as Morgenstern-Price with `constant` (E8); each row therefore
+//! declares `analysis.interslice = constant` and the methods that the oracle has for it (Bishop has none on a
+//! polyline), see `tests/data/f3g/generate.py`.
 
 use ogs_core::report::AnalysisReport;
 use ogs_core::{OgsError, analyze};
@@ -44,22 +44,10 @@ fn row_ids(exp: &Value) -> Vec<String> {
     exp["rows"].as_object().unwrap().keys().cloned().collect()
 }
 
-/// The document of the row as the test runs it: the methods that the oracle has, with `constant` for M-P.
-fn run_doc(id: &str, exp: &Value) -> Value {
-    let mut doc = row_doc(id);
-    let oracle = exp["rows"][id]["oracle"].as_object().unwrap();
-    let methods: Vec<&str> = exp["methods"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(Value::as_str)
-        .filter(|m| oracle.contains_key(*m))
-        .collect();
-    if !methods.is_empty() {
-        doc["analysis"]["methods"] = json!(methods);
-        doc["analysis"]["interslice"] = json!({"function": "constant"});
-    }
-    doc
+/// The document of the row, as it is in `rows/`: the methods that the oracle has (the five; Bishop has none on a
+/// polyline) and `analysis.interslice = constant`, so that it gives the figures of the table (E8).
+fn run_doc(id: &str, _exp: &Value) -> Value {
+    row_doc(id)
 }
 
 /// How a row ended.

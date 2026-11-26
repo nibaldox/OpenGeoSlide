@@ -217,6 +217,9 @@
   "tension_crack": {
    "depth": 5,
    "water_fill": 0.0
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

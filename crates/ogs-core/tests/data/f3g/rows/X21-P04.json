@@ -57,6 +57,7 @@
    "bishop",
    "spencer",
    "morgenstern_price",
+   "janbu_simplified",
    "janbu_corrected"
   ],
   "slices": 50,
@@ -72,6 +73,9 @@
   "seismic": {
    "kh": 0.1,
    "kv": 0.0
+  },
+  "interslice": {
+   "function": "constant"
   }
  },
  "water": {

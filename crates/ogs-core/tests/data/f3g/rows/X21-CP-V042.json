@@ -169,6 +169,9 @@
    "xc": 316.33577,
    "yc": 216.7003,
    "r": 177.9907
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

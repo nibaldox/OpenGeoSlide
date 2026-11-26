@@ -57,6 +57,7 @@
    "bishop",
    "spencer",
    "morgenstern_price",
+   "janbu_simplified",
    "janbu_corrected"
   ],
   "slices": 50,
@@ -68,6 +69,9 @@
    "xc": 29.54334963719809,
    "yc": 53.63784815923435,
    "r": 28.641487934160704
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

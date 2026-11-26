@@ -253,7 +253,6 @@
  },
  "analysis": {
   "methods": [
-   "bishop",
    "spencer",
    "morgenstern_price",
    "janbu_simplified",
@@ -287,6 +286,9 @@
      170.04792
     ]
    ]
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

@@ -90,6 +90,9 @@
    "xc": 12.0,
    "yc": 18.0,
    "r": 26.0
+  },
+  "interslice": {
+   "function": "constant"
   }
  }
 }

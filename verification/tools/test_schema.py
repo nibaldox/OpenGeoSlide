@@ -1,4 +1,4 @@
-"""Tests of schema/ogs-0.4.schema.json (contract F4.2), of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of
+"""Tests of schema/ogs-0.5.schema.json (contract F5.2), of schema/ogs-0.4.schema.json (contract F4.2), of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of
 the 0.2 and 0.1 schemas, which are kept. Run
 from the worktree root:
 
@@ -13,6 +13,8 @@ from the worktree root:
 - version "0.1" with non-empty `loads` or non-null `analysis.seismic` fails (`loads: []` and `seismic: null` count as
   absent, as in the engine), and ogs-0.1 stays as it was (it rejects them too);
 - malformed loads and seismic coefficients fail;
+- version "0.5" (`analysis.tension_crack`): the table at the end of the file, with the schema and the engine in agreement (a
+  document that reaches the `todo!("G1: grieta de tracción")` stub of the engine counts as accepted);
 - version "0.4" (reinforcements): the table at the end of the file, with the schema and the engine in agreement (a
   document that reaches the `todo!("R1: ...")` stub of the engine counts as accepted), and the rules that only the
   engine enforces;
@@ -35,11 +37,18 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
 SCHEMA_04 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
 SCHEMA_03 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.3.schema.json"), encoding="utf-8"))
 SCHEMA_02 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.2.schema.json"), encoding="utf-8"))
 SCHEMA_01 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.1.schema.json"), encoding="utf-8"))
-STUB_MARKS = ("not implemented: F3-W1", "not yet implemented: R1: fuerzas de refuerzo")
+STUB_MARKS = (
+    "not implemented: F3-W1",
+    "not yet implemented: R1: fuerzas de refuerzo",
+    "not yet implemented: G1: grieta de tracción",
+    # A surface that does not get to the crack (G1) is a valid document whose analysis has no surface.
+    "tension_crack_not_reached",
+)
 OGS_BIN = os.environ.get("OGS_BIN", os.path.join(ROOT, "target", "release", "ogs"))
 
 V02_CASE_IDS = ("V081a", "V081b", "V097a", "V102a", "V102b")
@@ -270,7 +279,7 @@ def test_engine_accepts_every_v0_2_case_and_the_complete_model(tmp_path):
     lambda m: m["analysis"]["seismic"].update(kv=-1.0),
     lambda m: m["analysis"]["seismic"].update(kz=0.1),
     lambda m: m.update(version="0.1"),
-    lambda m: m.update(version="0.5"),
+    lambda m: m.update(version="0.6"),
 ])
 def test_schema_and_engine_both_reject_the_same_malformed_documents(mutate, tmp_path):
     model = _base_v02()
@@ -480,7 +489,7 @@ BOUNDARY_TABLE = [
     ("v0.1, loads=null", _both(_set("version", "0.1"), _set("loads", None), _set("analysis.seismic", None)), False),
     ("v0.2, loads=[] and seismic=null", _both(_set("loads", []), _set("analysis.seismic", None)), True),
     ("version='0.3' without fields of 0.3", _set("version", "0.3"), True),
-    ("version='0.5'", _set("version", "0.5"), False),
+    ("version='0.6'", _set("version", "0.6"), False),
     ("version=0.2 (number)", _set("version", 0.2), False),
 ]
 
@@ -826,7 +835,7 @@ V04_TABLE = [
     ("reinforcements=null", _set("reinforcements", None), False),
     ("reinforcements=null in version 0.3", _both(_set("version", "0.3"), _set("reinforcements", None)), False),
     ("reinforcements that is not a list", _set("reinforcements", {"type": "anchor"}), False),
-    ("version 0.5", _both(_set("version", "0.5"), _reinf(_anchor())), False),
+    ("version 0.6", _both(_set("version", "0.6"), _reinf(_anchor())), False),
     # the tag, the fields and the enums
     ("unknown type", _reinf(_anchor(type="strut")), False),
     ("without type", _reinf(_anchor(type=_DEL)), False),
@@ -977,3 +986,151 @@ def test_the_engine_gate_names_reinforcements_and_the_schema_rejects_the_same_do
         path.write_text(json.dumps(model), encoding="utf-8")
         proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
         assert proc.returncode != 0 and 'reinforcements requiere version "0.4"' in proc.stderr, proc.stderr
+
+
+# ------------------------------------------------------------ version 0.5: analysis.tension_crack (F5.1, F5.2, E15a, E15b)
+
+def _base_v05() -> dict:
+    """The complete v0.2 model, declared as version 0.5, with no crack yet."""
+    model = _base_v02()
+    model["version"] = "0.5"
+    return model
+
+
+def _crack(depth=2.0, water_fill=1.0, **extra):
+    """`analysis.tension_crack` with the given fields; `_DEL` removes one."""
+    crack = {"depth": depth, "water_fill": water_fill, **extra}
+    crack = {k: v for k, v in crack.items() if v is not _DEL}
+    return _set("analysis.tension_crack", crack)
+
+
+def _version(version: str):
+    """Sets the version; version 0.1 admits no loads and no seismic, so it clears them."""
+    def mutate(m: dict) -> None:
+        m["version"] = version
+        if version == "0.1":
+            m["loads"], m["analysis"]["seismic"] = [], None
+    return mutate
+
+
+V05_TABLE = [
+    # accepted
+    ("full crack", _crack(), True),
+    ("dry crack", _crack(0.5, 0), True),
+    ("integer depth", _crack(2, 1), True),
+    ("half full", _crack(2.0, 0.5), True),
+    ("auto", _crack("auto", 0.25), True),
+    ("auto and dry", _crack("auto", 0.0), True),
+    ("tiny depth", _crack(1e-9, 1.0), True),
+    ("huge depth", _crack(1.0e6, 1.0), True),
+    ("no crack in 0.5", lambda m: m["analysis"].pop("tension_crack", None), True),
+    ("null crack in 0.5", _set("analysis.tension_crack", None), True),
+    ("null crack in 0.4", _both(_version("0.4"), _set("analysis.tension_crack", None)), True),
+    ("null crack in 0.3", _both(_version("0.3"), _set("analysis.tension_crack", None)), True),
+    ("null crack in 0.2", _both(_version("0.2"), _set("analysis.tension_crack", None)), True),
+    ("null crack in 0.1", _both(_version("0.1"), _set("analysis.tension_crack", None)), True),
+    ("crack with search", _both(_search(), _crack()), True),
+    # version gate
+    ("crack in 0.4", _both(_version("0.4"), _crack()), False),
+    ("crack in 0.3", _both(_version("0.3"), _crack()), False),
+    ("crack in 0.2", _both(_version("0.2"), _crack()), False),
+    ("crack in 0.1", _both(_version("0.1"), _crack()), False),
+    ("crack in 0.6", _both(_version("0.6"), _crack()), False),
+    # depth
+    ("depth 0", _crack(0.0), False),
+    ("depth -2", _crack(-2.0), False),
+    ("depth text", _crack("deep"), False),
+    ("depth AUTO", _crack("AUTO"), False),
+    ("depth true", _crack(True), False),
+    ("depth array", _crack([2.0]), False),
+    ("depth null", _crack(None), False),
+    ("depth missing", _crack(_DEL), False),
+    # water_fill
+    ("water_fill missing (no default)", _crack(water_fill=_DEL), False),
+    ("water_fill null", _crack(water_fill=None), False),
+    ("water_fill -0.1", _crack(water_fill=-0.1), False),
+    ("water_fill 1.1", _crack(water_fill=1.1), False),
+    ("water_fill 100", _crack(water_fill=100), False),
+    ("water_fill text", _crack(water_fill="1"), False),
+    ("water_fill true", _crack(water_fill=True), False),
+    # shape
+    ("empty object", _set("analysis.tension_crack", {}), False),
+    ("unknown field x", _crack(x=50.0), False),
+    ("the old name of water_fill", _set("analysis.tension_crack", {"depth": 2.0, "water": 1.0}), False),
+    ("the boolean of X20", _set("analysis.tension_crack", {"depth": 2.0, "filled": True}), False),
+    ("crack is a number", _set("analysis.tension_crack", 2.0), False),
+    ("crack is a text", _set("analysis.tension_crack", "auto"), False),
+    ("crack is an array", _set("analysis.tension_crack", [2.0, 1.0]), False),
+    ("crack is a boolean", _set("analysis.tension_crack", True), False),
+    # the rest of the format keeps its rules in 0.5
+    ("0.5 with reinforcements", _both(_reinf(_anchor())), True),
+    ("0.5 with seismic out of range", _set("analysis.seismic.kh", 1.0), False),
+]
+
+
+def _prepare_v05(mutate) -> dict:
+    model = _base_v05()
+    mutate(model)
+    return model
+
+
+def test_every_case_the_battery_and_the_examples_validate_against_the_0_5_schema():
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_05)
+    assert SCHEMA_05["$id"] == "ogs-0.5.schema.json"
+    assert SCHEMA_05["properties"]["version"] == {"enum": ["0.1", "0.2", "0.3", "0.4", "0.5"]}
+    models = {**_case_models(), **_battery_models()}
+    for path in glob.glob(os.path.join(ROOT, "examples", "*.ogs.json")):
+        models[os.path.basename(path)] = _load(path)
+    assert len(models) >= _index_case_count()
+    for cid, model in models.items():
+        assert _errors(model, SCHEMA_05) == [], cid
+    # the older schemas do not know 0.5
+    assert _errors(_base_v05(), SCHEMA_04)
+
+
+def test_the_x21_rows_validate_against_the_0_5_schema():
+    paths = sorted(glob.glob(os.path.join(ROOT, "crates", "ogs-core", "tests", "data", "f3g", "rows", "X21-*.json")))
+    assert len(paths) == 55
+    for path in paths:
+        assert _errors(_load(path), SCHEMA_05) == [], path
+
+
+def test_the_v0_5_table_has_at_least_40_rows():
+    assert len(V05_TABLE) >= 40
+
+
+@pytest.mark.parametrize("name,mutate,accepted", V05_TABLE, ids=[row[0] for row in V05_TABLE])
+def test_schema_and_engine_agree_on_the_v0_5_table(name, mutate, accepted, tmp_path):
+    model = _prepare_v05(mutate)
+    schema_ok = _errors(model, SCHEMA_05) == []
+    engine_ok, err = _engine_accepts(model, tmp_path)
+    assert engine_ok == accepted, f"motor: esperado {'aceptar' if accepted else 'rechazar'}, dio {err or 'OK'}"
+    assert schema_ok == accepted, f"esquema: esperado {'aceptar' if accepted else 'rechazar'}: {_errors(model, SCHEMA_05)[:2]}"
+
+
+def test_the_engine_errors_carry_the_path_of_the_crack_fields(tmp_path):
+    for mutate, text in (
+        (_crack(0.0), "analysis.tension_crack.depth"),
+        (_crack(-1.0), "analysis.tension_crack.depth"),
+        (_crack("deep"), "analysis.tension_crack.depth"),
+        (_crack(water_fill=1.5), "analysis.tension_crack.water_fill"),
+        (_crack(water_fill=-0.5), "analysis.tension_crack.water_fill"),
+        (_crack(water_fill=_DEL), "analysis.tension_crack.water_fill"),
+        (_crack(_DEL), "analysis.tension_crack.depth"),
+    ):
+        model = _prepare_v05(mutate)
+        path = tmp_path / "path.ogs.json"
+        path.write_text(json.dumps(model), encoding="utf-8")
+        proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+        assert proc.returncode != 0 and "InvalidModel" in proc.stderr and text in proc.stderr, proc.stderr
+
+
+def test_the_engine_gate_names_tension_crack_and_the_schema_rejects_the_same_documents(tmp_path):
+    """F5.1: with a version below 0.5 the error is `tension_crack requiere version "0.5"`."""
+    for old in ("0.1", "0.2", "0.3", "0.4"):
+        model = _prepare_v05(_both(_version(old), _crack()))
+        assert _errors(model, SCHEMA_05), old
+        path = tmp_path / "gate.ogs.json"
+        path.write_text(json.dumps(model), encoding="utf-8")
+        proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+        assert proc.returncode != 0 and 'InvalidModel: tension_crack requiere version "0.5"' in proc.stderr, proc.stderr
