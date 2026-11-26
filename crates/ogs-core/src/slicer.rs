@@ -648,6 +648,10 @@ fn slice_span(
                 _ => m.unit_weight * (hi_c - lo_c),
             };
         }
+        // E13l-5: a base on a contact of two materials takes the weaker one.
+        let base_material = base_material.map(|above| {
+            weaker_at_contact(pm, &column, above, y_base_mid, col, alpha, piezo).unwrap_or(above)
+        });
         let Some(mat) = base_material else {
             // The base lies outside the model: no material. Checked only if the slice stays in the main block (E10a′).
             slices.push(Slice {
@@ -738,6 +742,53 @@ fn slice_span(
         air: air_flags,
         unsupported,
     })
+}
+
+/// E13l-5: the material of a base that lies on a contact between two materials.
+///
+/// `above` is the material just over the base midpoint (the one the column gives at `y_base_mid + tol`). When the
+/// point just under it, at `y_base_mid − tol`, belongs to other materials only, the base is on a contact (a polyline
+/// run along it, a circle that grazes it at the midpoint). Then it takes the weaker of the two, compared with the
+/// strength `c + max(0, σ′)·tan φ` (`Su` for an undrained material) at the stress of the ordinary method of slices,
+/// `σ′ = W·cos²α/b − u`, so that a surface along the top or the bottom of a weak layer is analysed in the weak layer.
+/// A tie keeps `above`. Returns `None` when the base is not on a contact.
+fn weaker_at_contact(
+    pm: &PreparedModel,
+    column: &[(f64, f64, usize)],
+    above: usize,
+    y_base_mid: f64,
+    col: f64,
+    alpha: f64,
+    piezo: Option<f64>,
+) -> Option<usize> {
+    let y_under = y_base_mid - pm.tol();
+    let holds_under = |&&(lo, hi, _): &&(f64, f64, usize)| lo <= y_under && y_under < hi;
+    if column
+        .iter()
+        .filter(holds_under)
+        .any(|&(_, _, mat)| mat == above)
+    {
+        return None;
+    }
+    let below = column
+        .iter()
+        .filter(holds_under)
+        .map(|&(_, _, mat)| mat)
+        .next()?;
+    let sigma = col * alpha.cos().powi(2);
+    let strength = |mat: usize| {
+        let m = &pm.materials[mat];
+        let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
+        let u = if let Some(ru) = m.ru {
+            ru * col
+        } else if let Some(z) = piezo {
+            pm.gamma_w * (z - y_base_mid).max(0.0)
+        } else {
+            0.0
+        };
+        c + (sigma - u).max(0.0) * tan_phi
+    };
+    (strength(below) < strength(above)).then_some(below)
 }
 
 /// Adds the line loads to the soil slices of a span (E12f).
