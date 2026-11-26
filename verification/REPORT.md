@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-25T04:43:54-03:00 · harness v1 · casos: `verification/cases` (21 casos, 51 checks)
+Generado: 2026-11-26T06:04:00-03:00 · harness v1 · casos: `verification/cases` (61 casos, 120 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-25T04:43:54-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 51 | 0 | 0 | 0 |
-| cSlope | 51 | 0 | 0 | 0 |
+| ogs | 120 | 0 | 0 | 0 |
+| cSlope | 119 | 0 | 0 | 1 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **51/51** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **119/120** checks.
 
 ## Tabla
 
@@ -26,17 +26,44 @@ cSlope reproduce el valor publicado dentro de tolerancia en **51/51** checks.
 | V003 | bishop | search | 1.1180 | 1.1141 | -0.35 | 1.1130 | -0.44 | 2.04 | OK |
 | V003 | spencer | search | 1.1180 | 1.1148 | -0.29 | 1.1138 | -0.38 | 2.04 | OK |
 | V003 | bishop | search | 1.1120 | 1.1141 | +0.19 | 1.1130 | +0.09 | 2.04 | OK |
+| V004a | spencer | search | 2.7940 | 2.8026 | +0.31 | 2.8020 | +0.28 | 2.02 | OK |
+| V004b | spencer | search | 2.6960 | 2.6672 | -1.07 | 2.6678 | -1.05 | 2.02 | OK |
+| V005 | bishop | search | 2.5000 | 2.5102 | +0.41 | 2.5058 | +0.23 | 2.20 | OK |
+| V005 | spencer | search | 2.5000 | 2.5102 | +0.41 | 2.5058 | +0.23 | 2.20 | OK |
+| V007b | spencer | search | 0.9810 | 0.9776 | -0.34 | 0.9776 | -0.35 | 2.05 | OK |
+| V008a | spencer | search | 1.5360 | 1.5190 | -1.11 | 1.5188 | -1.12 | 2.03 | OK |
+| V008b | spencer | search | 1.3660 | 1.3648 | -0.09 | 1.3647 | -0.10 | 2.04 | OK |
+| V013a | bishop | search | 1.1400 | 1.1430 | +0.26 | 1.1429 | +0.25 | 2.44 | OK |
+| V013a | bishop | search | 1.1300 | 1.1430 | +1.15 | 1.1429 | +1.14 | 2.44 | OK |
 | V016a | bishop | fixed | 1.7870 | 1.7911 | +0.23 | 1.7905 | +0.19 | 1.03 | OK |
 | V016a | spencer | fixed | 1.7910 | 1.7981 | +0.40 | 1.7975 | +0.36 | 1.03 | OK |
 | V016a | bishop | fixed | 1.7900 | 1.7911 | +0.06 | 1.7905 | +0.03 | 1.28 | OK |
+| V016c | bishop | fixed | 1.7900 | 1.7911 | +0.06 | 1.7904 | +0.02 | 1.28 | OK |
 | V019 | spencer | search | 1.3800 | 1.3987 | +1.36 | 1.3985 | +1.34 | 2.36 | OK |
 | V019 | spencer | search | 1.3830 | 1.3986 | +1.13 | 1.3985 | +1.12 | 2.04 | OK |
 | V019 | spencer | search | 1.3980 | 1.3987 | +0.05 | 1.3985 | +0.04 | 2.04 | OK |
 | V019 | bishop | search | 1.4010 | 1.4012 | +0.01 | 1.4009 | -0.00 | 2.04 | OK |
+| V020 | spencer | search | 1.3360 | 1.3330 | -0.22 | 1.3329 | -0.23 | 2.04 | OK |
+| V020 | spencer | search | 1.3300 | 1.3330 | +0.23 | 1.3329 | +0.22 | 2.38 | OK |
+| V020 | spencer | search | 1.3380 | 1.3330 | -0.37 | 1.3329 | -0.38 | 2.04 | OK |
+| V020 | bishop | search | 1.3420 | 1.3374 | -0.34 | 1.3373 | -0.35 | 2.04 | OK |
 | V025 | bishop | search | 1.1420 | 1.1328 | -0.80 | 1.1323 | -0.85 | 2.04 | OK |
 | V025 | spencer | search | 1.1420 | 1.1330 | -0.79 | 1.1325 | -0.83 | 2.04 | OK |
+| V027 | spencer | search | 1.1240 | 1.1369 | +1.15 | 1.1344 | +0.93 | 2.04 | OK · cSlope no convergido |
+| V028 | spencer | search | 1.1240 | 1.1250 | +0.09 | 1.1235 | -0.04 | 2.04 | OK |
+| V029 | bishop | search | 1.1250 | 1.1201 | -0.44 | 1.1183 | -0.60 | 2.04 | OK |
+| V029 | spencer | search | 1.1190 | 1.1201 | +0.10 | 1.1183 | -0.07 | 2.04 | OK |
 | V030 | bishop | search | 1.4120 | 1.4129 | +0.06 | 1.4083 | -0.26 | 2.04 | OK |
 | V030 | spencer | search | 1.4000 | 1.4028 | +0.20 | 1.3989 | -0.08 | 2.36 | OK |
+| V031a | bishop | fixed | 2.5490 | 2.5339 | -0.59 | 2.5336 | -0.60 | 1.02 | OK |
+| V031a | spencer | fixed | 2.5450 | 2.5309 | -0.55 | 2.5306 | -0.57 | 1.02 | OK |
+| V031a | spencer | fixed | 2.5600 | 2.5309 | -1.14 | 2.5306 | -1.15 | 1.20 | OK |
+| V031b | bishop | fixed | 1.3980 | 1.3895 | -0.61 | 1.3894 | -0.62 | 1.04 | OK |
+| V031b | spencer | fixed | 1.3590 | 1.3521 | -0.51 | 1.3519 | -0.52 | 1.04 | OK |
+| V031b | spencer | fixed | 1.3500 | 1.3521 | +0.15 | 1.3519 | +0.14 | 1.37 | OK |
+| V032b | bishop | search | 1.1550 | 1.1547 | -0.03 | 1.1548 | -0.02 | 2.04 | OK |
+| V032b | spencer | search | 1.1550 | 1.1547 | -0.03 | 1.1548 | -0.02 | 2.04 | OK |
+| V032b | spencer | search | 1.1500 | 1.1547 | +0.41 | 1.1548 | +0.41 | 2.43 | OK |
 | V033 | bishop | search | 1.5330 | 1.5217 | -0.74 | 1.5209 | -0.79 | 2.03 | OK |
 | V033 | spencer | search | 1.5290 | 1.5336 | +0.30 | 1.5328 | +0.25 | 2.03 | OK |
 | V044 | bishop | fixed | 2.0800 | 2.0766 | -0.17 | 2.0760 | -0.19 | 1.24 | OK |
@@ -52,12 +79,53 @@ cSlope reproduce el valor publicado dentro de tolerancia en **51/51** checks.
 | V049 | bishop | search | 1.4050 | 1.4031 | -0.14 | 1.4029 | -0.15 | 2.04 | OK |
 | V049 | spencer | search | 1.3750 | 1.3724 | -0.19 | 1.3721 | -0.21 | 2.04 | OK |
 | V049 | bishop | search | 1.4030 | 1.4031 | +0.00 | 1.4029 | -0.01 | 2.04 | OK |
+| V052a | bishop | search | 1.9480 | 1.9574 | +0.48 | 1.9483 | +0.01 | 2.03 | OK |
+| V052a | spencer | search | 1.9480 | 1.9574 | +0.48 | 1.9483 | +0.01 | 2.03 | OK |
+| V052a | bishop | search | 1.9510 | 1.9574 | +0.33 | 1.9483 | -0.14 | 2.03 | OK |
+| V052b | bishop | fixed | 2.2080 | 2.2064 | -0.07 | 2.2064 | -0.07 | 1.02 | OK |
+| V052b | spencer | fixed | 2.2920 | 2.2900 | -0.09 | 2.2901 | -0.08 | 1.02 | OK |
+| V054 | bishop | search | 1.0870 | 1.0858 | -0.11 | 1.0855 | -0.14 | 2.05 | OK |
+| V054 | spencer | search | 1.0930 | 1.0917 | -0.12 | 1.0913 | -0.15 | 2.05 | OK |
+| V055 | spencer | search | 1.4000 | 1.3665 | -2.40 | 1.3662 | -2.42 | 5.00 | OK |
+| V055 | spencer | search | 1.3660 | 1.3665 | +0.03 | 1.3662 | +0.01 | 2.04 | OK |
+| V060a | bishop | search | 2.5290 | 2.5302 | +0.05 | 2.5303 | +0.05 | 2.02 | OK |
+| V060b | bishop | fixed | 2.9730 | 2.9744 | +0.05 | 2.9743 | +0.04 | 1.02 | OK |
+| V062a | bishop | fixed | 2.5600 | 2.5486 | -0.45 | 2.5485 | -0.45 | 1.20 | OK |
+| V062a | bishop | fixed | 2.5510 | 2.5486 | -0.10 | 2.5485 | -0.10 | 1.02 | OK |
+| V062b | bishop | fixed | 2.8060 | 2.8158 | +0.35 | 2.8155 | +0.34 | 1.02 | OK |
+| V062b | bishop | fixed | 2.8200 | 2.8158 | -0.15 | 2.8155 | -0.16 | 1.18 | OK |
+| V062c | bishop | fixed | 2.7710 | 2.7796 | +0.31 | 2.7792 | +0.29 | 1.02 | OK |
+| V062c | bishop | fixed | 2.7770 | 2.7796 | +0.09 | 2.7792 | +0.08 | 1.02 | OK |
+| V062d | bishop | fixed | 2.5890 | 2.5767 | -0.48 | 2.5769 | -0.47 | 1.02 | OK |
+| V062d | bishop | fixed | 2.5830 | 2.5767 | -0.24 | 2.5769 | -0.24 | 1.02 | OK |
+| V062e | bishop | fixed | 2.7030 | 2.6900 | -0.48 | 2.6902 | -0.47 | 1.02 | OK |
+| V062e | bishop | fixed | 2.6920 | 2.6900 | -0.08 | 2.6902 | -0.07 | 1.02 | OK |
+| V062f | bishop | fixed | 2.6730 | 2.6735 | +0.02 | 2.6732 | +0.01 | 1.02 | OK |
+| V062f | bishop | fixed | 2.6720 | 2.6735 | +0.06 | 2.6732 | +0.04 | 1.02 | OK |
+| V062g | bishop | fixed | 3.5860 | 3.5926 | +0.18 | 3.5918 | +0.16 | 1.01 | OK |
+| V062g | bishop | fixed | 3.5980 | 3.5926 | -0.15 | 3.5918 | -0.17 | 1.01 | OK |
+| V062h | bishop | fixed | 6.0690 | 6.0650 | -0.07 | 6.0630 | -0.10 | 1.01 | OK |
+| V062h | bishop | fixed | 6.0740 | 6.0650 | -0.15 | 6.0630 | -0.18 | 1.01 | OK |
+| V062i | bishop | fixed | 11.5830 | 11.5708 | -0.11 | 11.5667 | -0.14 | 1.00 | OK |
 | V063 | spencer | search | 2.4550 | 2.4513 | -0.15 | 2.4511 | -0.16 | 2.02 | OK |
 | V063 | bishop | search | 2.4300 | 2.4530 | +0.95 | 2.4528 | +0.94 | 2.21 | OK |
+| V069a | bishop | search | 1.2000 | 1.2037 | +0.31 | 1.1998 | -0.02 | 3.42 | OK |
+| V069a | spencer | search | 1.2000 | 1.2093 | +0.77 | 1.2049 | +0.41 | 3.42 | OK |
+| V069b | bishop | fixed | 1.2120 | 1.2102 | -0.15 | 1.2095 | -0.21 | 1.04 | OK |
+| V071a | bishop | fixed | 1.2930 | 1.2906 | -0.18 | 1.2896 | -0.26 | 1.04 | OK |
+| V071a | spencer | fixed | 1.3000 | 1.2974 | -0.20 | 1.2964 | -0.28 | 1.38 | OK |
+| V071b | bishop | search | 1.2930 | 1.2894 | -0.28 | 1.2883 | -0.36 | 2.04 | OK |
+| V071b | spencer | search | 1.3000 | 1.2952 | -0.37 | 1.2944 | -0.43 | 2.38 | OK |
 | V081a | bishop | fixed | 0.7640 | 0.7641 | +0.01 | 0.7641 | +0.01 | 1.07 | OK |
 | V081b | bishop | fixed | 1.5040 | 1.5015 | -0.17 | 1.5012 | -0.19 | 1.03 | OK |
+| V090 | bishop | fixed | 1.3320 | 1.3207 | -0.85 | 1.3205 | -0.86 | 1.04 | OK |
+| V090 | spencer | fixed | 1.3280 | 1.3169 | -0.84 | 1.3167 | -0.85 | 1.04 | OK |
 | V093 | bishop | search | 1.3440 | 1.3431 | -0.07 | 1.3427 | -0.10 | 2.04 | OK |
+| V095a | bishop | fixed | 1.1020 | 1.1010 | -0.09 | 1.1007 | -0.11 | 1.05 | OK |
+| V096d | spencer | fixed | 1.8360 | 1.8252 | -0.59 | 1.8239 | -0.66 | 2.03 | OK |
+| V096e | spencer | fixed | 1.2110 | 1.2137 | +0.23 | 1.2120 | +0.08 | 2.04 | OK |
 | V097a | bishop | fixed | 1.1730 | 1.1725 | -0.05 | 1.1721 | -0.08 | 1.04 | OK |
+| V098 | spencer | search | 1.3720 | 1.3724 | +0.03 | 1.3721 | +0.01 | 2.04 | OK |
 | V101 | bishop | search | 1.3340 | 1.3339 | -0.01 | 1.3337 | -0.02 | 2.04 | OK |
 | V101 | bishop | search | 1.3400 | 1.3339 | -0.45 | 1.3337 | -0.47 | 2.37 | OK |
 | V101 | bishop | search | 1.3430 | 1.3339 | -0.68 | 1.3337 | -0.69 | 2.04 | OK |
@@ -71,6 +139,7 @@ cSlope reproduce el valor publicado dentro de tolerancia en **51/51** checks.
 | V102b | spencer | search | 1.0010 | 1.0007 | -0.03 | 1.0006 | -0.04 | 2.05 | OK |
 | V102b | bishop | search | 0.9870 | 0.9865 | -0.06 | 0.9864 | -0.07 | 2.05 | OK |
 | V102b | bishop | search | 0.9880 | 0.9865 | -0.16 | 0.9864 | -0.17 | 2.05 | OK |
+| V104a | bishop | search | 2.3000 | 2.3058 | +0.25 | 2.2918 | -0.36 | 2.22 | OK |
 
 Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no reproduce el publicado, se añade «revisar conversión» (el fallo puede estar en el conversor, en el publicado o en el motor).
 
@@ -79,19 +148,39 @@ Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no r
 - V001 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V002 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V003 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V004a (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V004b (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V005 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V007b (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V008a (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V008b (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V013a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V019 (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V020 (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V025 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V027 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V028 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V029 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V030 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V032b (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V033 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V047a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V049 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V052a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V054 (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V055 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V060a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V063 (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V069a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V071b (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V093 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V098 (spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V101 (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V102a (spencer/search, bishop/search): sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
 - V102a (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V102b (spencer/search, bishop/search): sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).
 - V102b (spencer/search, bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
+- V104a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 
 ## Reproducir
 

@@ -1,0 +1,124 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": {
+    "id": "D15",
+    "title": "Terraplén sobre arcilla blanda, Su lineal",
+    "notes": "Terraplén de 6 m, 2H:1V, sobre 12 m de arcilla blanda con Su lineal: 15 kPa en la superficie (strength_datum = 0) y 1,5 kPa por metro de profundidad. Relleno friccional. Prueba el gradiente de Su."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno compactado",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 8.0,
+      "friction_angle": 34.0,
+      "ru": null
+    },
+    {
+      "id": "clay",
+      "name": "Arcilla blanda (Su lineal)",
+      "model": "undrained",
+      "unit_weight": 16.5,
+      "unit_weight_sat": null,
+      "undrained_strength": 15.0,
+      "strength_datum": 0.0,
+      "strength_gradient": 1.5,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          10.0,
+          0.0
+        ],
+        [
+          22.0,
+          6.0
+        ],
+        [
+          32.0,
+          6.0
+        ],
+        [
+          44.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -12.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          10.0,
+          0.0
+        ],
+        [
+          44.0,
+          0.0
+        ],
+        [
+          60.0,
+          0.0
+        ],
+        [
+          60.0,
+          -12.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        22.0,
+        32.0
+      ],
+      "exit": [
+        44.0,
+        58.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 37.77554433830855,
+      "yc": 8.248956174132008,
+      "r": 13.190940630872689
+    }
+  }
+}

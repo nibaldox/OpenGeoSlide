@@ -3,9 +3,11 @@
 Compara, para cada check de cada caso de `verification/cases/*.json`, tres valores:
 el **publicado**, el FS del **binario ogs** (`ogs analyze`) y el FS del **oráculo cSlope 0.1.0**.
 
-- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1 y v0.2) → documento de análisis de cSlope.
+- `to_cslope.py`: conversor ogs (`.ogs.json` v0.1, v0.2 y v0.3) → documento de análisis de cSlope.
 - `run.py`: ejecuta ogs y cSlope por check y escribe `REPORT.md` y `report.json`.
 - `test_to_cslope.py`: tests del conversor (pytest).
+- `--oracle-only` (en `run.py`): no ejecuta ogs; compara solo el publicado con cSlope. Es el modo de `verification/pending/F3/`,
+  cuyos casos (formato v0.3) esperan al motor.
 - `fixtures/V047a.json`: caso propio (ACADS 1(a), contratos §1), usado si no hay casos.
 - `sample/`: un informe de ejemplo generado con los 21 casos de `verification/cases` y el binario `target/release/ogs`
   (rutas relativas a la raíz del repositorio). Se regenera con la orden de «Ejecución» más abajo.
@@ -25,6 +27,20 @@ uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with pyt
 - Sin binario ogs (o si falla), el check queda con `ogs = null` («sin dato») y el error resumido; el run continúa.
 - Si `--cases` no existe, no tiene `*.json` o un caso es inválido, el run termina con código 1 sin escribir informe.
 - cSlope que no reproduce el publicado dentro de tolerancia se marca «revisar conversión» en el estado.
+
+## Esquema v0.3 (F3.8)
+
+| ogs v0.3 | cSlope 0.1.0 |
+|---|---|
+| `model: "undrained"` (`undrained_strength`, `strength_datum`, `strength_gradient`, `strength_limit`) | `kind: "undrained"` (`undrainedShearStrength`, `suRefDepth`, `suRateOfChange`, `suMax`). `suRefDepth` es una **cota**, no una profundidad. `s-f-datum` es la misma ley con otros nombres |
+| `analysis.surface` `polyline` | `definition.customSurfaces = [{points}]` + `customPlanesOnly` (sin eje) |
+| `spencer` | `Morgenstern-Price` con `intersliceFunction: "constant"` |
+| `morgenstern_price` + `analysis.interslice` (por defecto `half_sine`) | `Morgenstern-Price` con `intersliceFunction`: `half-sine`, `clipped-sine`, `trapezoidal`, `constant` o `data-point-specified` (+ `intersliceDataPoints`) |
+| `janbu_simplified` / `janbu_corrected` | `Janbu` con `janbuCorrection: false` / `true` |
+| `bishop` con polilínea | **no se convierte** (F3.6): el oráculo lo acepta con el aviso `bishop-non-circular`, pero su FS depende del eje de momentos |
+
+Una versión menor que `"0.3"` con cualquiera de estos campos se rechaza con `<campo> requiere version "0.3"`, como el motor.
+Los valores de F3.8 (círculo y polilínea de V047a, no drenado) se reproducen a 1e-9 en `test_to_cslope.py`.
 
 ## API de cslope 0.1.0 (investigada)
 
