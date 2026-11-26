@@ -76,6 +76,12 @@ export function crackGeometry(crack: CrackReport | null | undefined, slices: rea
 export const CRACK_ARROW_PX = 40;
 /** Ancho del hueco de agua dibujado dentro de la grieta, en px. */
 export const CRACK_WATER_PX = 6;
+/** Alto de una línea de rótulo (fuente de 12 px más el halo), en px. `y` de los rótulos es siempre el centro vertical del texto. */
+export const CRACK_LABEL_PX = 14;
+/** Separación mínima, en px, entre un rótulo y la línea del terreno o el otro rótulo. */
+export const CRACK_LABEL_GAP = 6;
+/** Bajo esta altura de grieta en px (un rótulo más la separación) el rótulo de la profundidad no cabe a media altura y los rótulos pasan sobre el terreno. */
+export const CRACK_SHALLOW_PX = CRACK_LABEL_PX + CRACK_LABEL_GAP;
 
 export interface CrackShape {
   /** La línea discontinua vertical: del terreno a la base, en px. */
@@ -85,8 +91,14 @@ export interface CrackShape {
   water: { x: number; y: number; width: number; height: number } | null;
   /** Flecha de Pw: cola en la cara de la grieta y punta hacia la masa; `null` sin agua. */
   arrow: { at: [number, number]; tip: [number, number] } | null;
+  /** Rótulos: `y` es el centro vertical del texto (el lienzo SVG usa `dy = 0.35em`; el Canvas 2D, `middle`). */
   depthLabel: { x: number; y: number; text: string; anchor: 'start' | 'end' };
   forceLabel: { x: number; y: number; text: string; anchor: 'start' | 'end' } | null;
+  /**
+   * `true` si la grieta es tan poco profunda en píxeles que sus rótulos no caben dentro de ella: se apilan sobre la línea del terreno,
+   * del lado de la masa (donde el terreno baja), sin tocar el terreno ni superponerse entre sí.
+   */
+  shallow: boolean;
   title: string;
 }
 
@@ -123,14 +135,30 @@ export function crackShape(g: CrackGeometry, vp: Viewport, units?: string | null
   const tip: [number, number] = [at[0] + g.dir * CRACK_ARROW_PX, at[1]];
   const crestSide = (g.dir === 1 ? 'end' : 'start') as 'start' | 'end';
   const massSide = (g.dir === 1 ? 'start' : 'end') as 'start' | 'end';
+  // Con poca altura en px el rótulo de la profundidad, a media altura, cae sobre la línea del terreno (que sube hacia la cresta) y el de
+  // Pw, junto a la flecha, sobre el terreno o sobre aquel: los dos pasan a una pila sobre el terreno, del lado de la masa, donde el
+  // terreno baja. El de Pw queda justo sobre el terreno y el de la profundidad encima, sin tocar al otro.
+  const shallow = bottom[1] - top[1] < CRACK_SHALLOW_PX;
+  const aboveGround = top[1] - CRACK_LABEL_GAP - CRACK_LABEL_PX / 2; // centro del rótulo de la fila inferior
+  const labelX = top[0] + g.dir * 8;
+  const depthLabel: CrackShape['depthLabel'] = shallow
+    ? { x: labelX, y: wet ? aboveGround - CRACK_LABEL_PX : aboveGround, text: crackDepthText(g.depth, units), anchor: massSide }
+    : // La profundidad va del lado de la cresta, a media altura.
+      { x: top[0] - g.dir * 8, y: 0.5 * (top[1] + bottom[1]), text: crackDepthText(g.depth, units), anchor: crestSide };
+  const forceLabel: CrackShape['forceLabel'] = !wet
+    ? null
+    : shallow
+      ? { x: labelX, y: aboveGround, text: crackForceText(g.force, units), anchor: massSide }
+      : // La fuerza va tras la punta de la flecha, sobre ella.
+        { x: tip[0] + g.dir * 5, y: tip[1] - CRACK_LABEL_PX, text: crackForceText(g.force, units), anchor: massSide };
   return {
     top,
     bottom,
     water,
     arrow: wet ? { at, tip } : null,
-    // La profundidad va del lado de la cresta, a media altura; la fuerza, tras la punta de la flecha.
-    depthLabel: { x: top[0] - g.dir * 8, y: 0.5 * (top[1] + bottom[1]), text: crackDepthText(g.depth, units), anchor: crestSide },
-    forceLabel: wet ? { x: tip[0] + g.dir * 5, y: tip[1] - 6, text: crackForceText(g.force, units), anchor: massSide } : null,
+    depthLabel,
+    forceLabel,
+    shallow,
     title: crackTitle(g, units),
   };
 }
