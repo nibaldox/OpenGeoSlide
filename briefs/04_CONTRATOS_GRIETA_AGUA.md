@@ -246,7 +246,7 @@ original. Las convenciones de este apartado son las de X22 §1 a §4.
 
     ```json
     { "type": "pile", "x1": 17.5, "y1": 5.0, "x2": 17.5, "y2": -10.0, "spacing": 2.4,
-      "application": "passive", "direction": { "type": "angle", "angle": 0 },
+      "application": "passive", "direction": "angle", "angle": 0,
       "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" },
       "capacity": { "shear": 150.0, "moment": 250.0 } }
     ```
@@ -264,6 +264,8 @@ original. Las convenciones de este apartado son las de X22 §1 a §4.
     - el pilote es vertical, `|x2 − x1| ≤ tol`;
     - `spacing > diameter`;
     - `application` y `direction` siguen siendo obligatorios.
+  - Los errores de valor de `model` y `location` (enumeraciones) los da el deserializador sin ruta JSON; el resto lleva
+    su ruta. La web valida antes con ruta.
   - **Versión.** `lateral_pressure` o `capacity` exigen `"0.5"`, con el error `InvalidModel: lateral_pressure requiere
     version "0.5"`.
   - Se agrega al esquema 0.5.
