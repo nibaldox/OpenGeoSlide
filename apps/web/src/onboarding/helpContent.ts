@@ -162,6 +162,30 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
       'Factor de la base de cada dovela en Bishop y Spencer: m_α = cos α + sen α · tan φ / FS, con α la inclinación de la base. Si es demasiado pequeño, el cálculo se vuelve inestable. «m_α mínimo» (pestaña «Análisis») descarta las superficies que lo incumplen.',
   },
   {
+    id: 'reinforcements',
+    term: 'Refuerzos',
+    definition:
+      'Elementos que aportan una fuerza al equilibrio en cada cruce con la superficie de deslizamiento: Anclaje, Clavo, Geosintético, Pilote y Tablestaca (formato 0.4; el panel «Refuerzos» y la herramienta «Dibujar refuerzo» los crean). Cada elemento va de la cabeza (en el paramento o el terreno) a la punta; un elemento que cruza dos veces da dos fuerzas, y uno que no toca la masa no cambia el FS (nota «reinforcement_outside_mass»). Una tablestaca anclada es una Tablestaca más un Anclaje. En Pilote y Tablestaca la fuerza de corte es un dato constante que usted fija.',
+  },
+  {
+    id: 'pullout',
+    term: 'Arrancamiento (pullout)',
+    definition:
+      'Cuánta tracción puede transmitir un Anclaje, Clavo o Geosintético en cada punto de su largo, hasta su capacidad de tracción. Adherencia: una fuerza por metro de elemento, solo donde el elemento está dentro del suelo, en todo el largo o en los últimos metros hacia la punta (el bulbo). Interfaz suelo-geosintético: adhesión y fricción con la tensión vertical efectiva del suelo (sin sobrecargas), por ambas caras y con el factor de cobertura. Desarrollo lineal de la capacidad: una rampa desde cada extremo hasta la capacidad. Sin arrancamiento, el elemento está anclado en todo su largo. En un tramo libre de un tirante, sin capacidad en la placa de cabeza, la fuerza en el cruce es cero: ponga la capacidad de la placa de cabeza igual a la de tracción (el panel lo propone al crear un anclaje).',
+  },
+  {
+    id: 'active-passive',
+    term: 'Refuerzo activo y pasivo',
+    definition:
+      'Un refuerzo activo es una carga externa conocida (por ejemplo, la carga de bloqueo de un tirante) y no se divide por F; se aplica siempre, también si el deslizamiento lo comprimiría. Un refuerzo pasivo se moviliza con el deslizamiento y entra dividida por F en las ecuaciones de equilibrio; trabaja solo a tracción, así que si el movimiento lo comprimiría (más de 2° pasada la normal a la base) no aporta. La dirección de la fuerza es axial (a lo largo del elemento), tangente (opuesta al movimiento en la base) o bisectriz de las dos; en Pilote y Tablestaca, un ángulo sobre la horizontal, la tangente o la perpendicular al eje, siempre opuestos al movimiento y sin regla de compresión.',
+  },
+  {
+    id: 'reinforcement-status',
+    term: 'Estado de un cruce',
+    definition:
+      'En la tabla de fuerzas de cada refuerzo: applied (la fuerza actúa en el cruce), outside_mass (el cruce cae en el aire o fuera de la masa analizada), compression_ignored (un pasivo comprimido, que no aporta) y no_capacity (la capacidad en ese punto es cero, por ejemplo el tramo libre de un tirante sin placa de cabeza; no emite nota). «Disponible» es la fuerza por metro antes de aplicarla; en un pasivo, la aplicada se moviliza dividida por F.',
+  },
+  {
     id: 'slice',
     term: 'Dovela',
     definition:
@@ -197,7 +221,10 @@ export const LIMITATIONS: readonly string[] = [
   'El peso unitario saturado bajo la piezométrica aún no está verificado frente a otro programa: cada modelo que usa γsat lleva un aviso en Diagnósticos y en el informe.',
   'Si un material tiene ru y el modelo tiene línea piezométrica, el cálculo usa ru en ese material y no la piezométrica (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
   'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',
-  `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT}`,
+  `Refuerzos: el resultado da la fuerza de cada refuerzo en cada cruce con la superficie final (por metro de talud); una fuerza pasiva se moviliza dividida por F. ${STRUCTURAL_LIMIT_TEXT} La fuerza de un pilote o de una tablestaca es un dato que usted fija (el motor emite la nota structural_checks_not_covered): el programa no comprueba que el elemento la resista.`,
+  'Refuerzos que no se modelan todavía: la fuerza de pilote por el empuje del suelo (Ito-Matsui), el pretensado como campo aparte (use un anclaje activo con la carga de bloqueo como capacidad), la cizalla y la compresión de los clavos, el arrancamiento que depende del material, los clavos lanzados, los anclajes helicoidales, la presión de fluido equivalente y el soporte definido por el usuario. El sismo no actúa sobre las fuerzas de los refuerzos.',
+  'Un cruce con capacidad cero (por ejemplo, el tramo libre de un tirante con adherencia en el bulbo y sin capacidad en la placa de cabeza) no aplica fuerza y queda con el estado no_capacity, sin nota: compruebe la tabla de fuerzas. Un activo comprimido se aplica con su fuerza completa y un pasivo comprimido se descarta; el oráculo instalado de cSlope descarta ambos, así que en un activo comprimido los resultados difieren de él.',
+  'Con la búsqueda de la superficie crítica y refuerzos, el FS es discontinuo: un círculo candidato puede ganar o perder un cruce, y cada cruce suma una fuerza completa. La búsqueda también puede esquivar el refuerzo: si el resultado trae la nota reinforcement_outside_mass, el FS mínimo es el de una superficie que el refuerzo no cruza. Mueva el refuerzo o acote los rangos de entrada y salida, y contraste el resultado con superficies fijas cercanas a la crítica.',
   'Con unidades imperiales y piezométrica, γw debe ser explícito y no menor que 20 pcf (se usa 62,4): un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».',
 ];
 

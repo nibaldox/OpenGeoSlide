@@ -1,7 +1,8 @@
 # Limitaciones
 
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
-versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu),
+versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
+y con el bloque de refuerzos: formato v0.4),
 los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
@@ -15,10 +16,12 @@ quedó retenido tras la revisión R10 (enmiendas E13l). El resumen está en el
   como polilínea; no hay búsqueda no circular (queda para la Fase 3b, véase [más abajo](#lo-que-queda-para-la-fase-3b)).
 - **Solo dos modelos de resistencia:** Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción, con `unit_weight_sat`
   y `ru` opcionales) y **no drenado** (φ = 0, Su constante o lineal con la cota). No hay Hoek-Brown ni SHANSEP.
-- **Sin refuerzos.** No hay geosintéticos, anclajes, clavos, pilotes ni tablestacas en el formato ni en el motor.
-  OpenGeoSlide **no sirve para diseñar muros de tierra mecánicamente estabilizada (TEM) ni otras estructuras de
-  contención**: solo para revisar la estabilidad global con el muro modelado como una región de suelo con sus propiedades
-  equivalentes.
+- **Refuerzos con límites** (formato v0.4: anclajes, clavos, geosintéticos, pilotes y tablestacas). OpenGeoSlide calcula
+  la estabilidad **global** con la fuerza del refuerzo incluida en el equilibrio límite. **No** sirve para diseñar
+  muros de tierra mecánicamente estabilizada (TEM) ni otras estructuras de contención, y **no** calcula el empuje sobre
+  una tablestaca o un pilote, el empotramiento, el momento flector ni la deflexión
+  ([el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). Lo que se pospone está
+  [más abajo](#refuerzos-formato-v04-qué-hace-y-qué-no).
 - **Sin grieta de tracción ni agua embalsada** (agua sobre el terreno).
 - **Sismo solo pseudoestático** (`kh` y `kv`, aplicados al peso del suelo, nunca a las cargas) y **cargas solo `udl` y
   `line`**. No hay análisis dinámico ni de desplazamientos.
@@ -244,22 +247,125 @@ La Fase 3b tendrá su propio bloque de enmiendas. Hoy **no** existe:
 - **SHANSEP.** Por ejemplo, V105a usa un material `shansep`.
 - El caso publicado de Hammah et al. (2005b).
 
-## Lo que queda para el bloque de refuerzos
+## Refuerzos (formato v0.4): qué hace y qué no
 
-El bloque de refuerzos (formato v0.4) está planeado en
-[`docs/fase3/PLAN_REFUERZOS.md`](fase3/PLAN_REFUERZOS.md) y empieza al publicarse la v0.2.0. Hoy **no** hay:
+El bloque de refuerzos incorpora al formato `anchor`, `nail`, `geosynthetic`, `pile` y `sheet_pile`, activos y
+pasivos ([formato](formato-ogs-json.md#refuerzos-v04)). Cada cruce del refuerzo con la superficie de deslizamiento
+aporta una **fuerza puntual** al equilibrio; el resto del motor no cambia, y sin refuerzos la salida es idéntica byte a
+byte a la de la v0.2.0. Lo que sigue son sus límites.
 
-- **Tablestacas** (en voladizo o ancladas), **pilotes y micropilotes**, **anclajes**, **clavos de suelo** y
-  **geosintéticos** (geomallas y geotextiles).
-- Cuando existan, la tablestaca se revisará solo por **estabilidad global**: el equilibrio límite no cubre el empuje
-  sobre la tablestaca, el empotramiento necesario, el momento flector ni la deflexión; para eso hace falta un cálculo
-  de muro, de vigas sobre resortes o por elementos finitos.
+### Pilotes y tablestacas: el límite estructural (F4.8)
 
-Después del bloque, el plan recomienda la **grieta de tracción** y el **agua embalsada**, que desbloquean otros casos
-publicados.
+> **OpenGeoSlide calcula la estabilidad global con el pilote o la tablestaca incluidos como una fuerza. No calcula:**
+>
+> - **el empuje del suelo sobre el elemento;**
+> - **el empotramiento necesario;**
+> - **el momento flector;**
+> - **la deflexión;**
+> - **las comprobaciones internas o externas de un muro** (vuelco, deslizamiento de la base, capacidad de apoyo,
+>   resistencia del perfil, del tirante o del bulbo).
 
-Los problemas de cSlope con refuerzos, pilotes, grieta de tracción o agua embalsada que el importador no convierte
-están en [`verification/pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md), con el motivo de cada uno.
+- La `force` de un `pile` o de una `sheet_pile` es un **dato** que usted fija: es la fuerza de corte que el elemento
+  puede entregar en el cruce con la superficie. El motor no comprueba que el elemento la resista ni que el suelo se la
+  transmita.
+- Es una fuerza **constante** en el cruce. No hay perfil de empuje (Ito-Matsui, pospuesto), y el campo `location` se
+  quitó del formato porque con fuerza constante no cambia ningún número (E14m-3).
+- El motor emite la nota `structural_checks_not_covered` siempre que el modelo tiene un `pile` o una `sheet_pile`, la
+  crucen o no. El informe PDF, la Ayuda y la tabla de fuerzas de la web repiten el texto del límite.
+- Para el empuje, el empotramiento, el momento y la deflexión hace falta un cálculo de muro, de vigas sobre resortes o
+  por elementos finitos.
+- La tablestaca en equilibrio límite es una fila continua de pilotes. Una **tablestaca anclada** es una `sheet_pile`
+  más un `anchor`; el FS global incluye las dos fuerzas, pero el diseño del muro anclado es del proyectista.
+
+### Lo que se pospone (F4.1)
+
+No existen hoy, ni en el formato ni en el motor:
+
+- **Ito-Matsui** (la fuerza de pilote calculada por el empuje del suelo), que irá con el bloque de grieta de tracción y
+  agua;
+- el campo de **pretensado**: el pretensado es un `anchor` activo con la carga de bloqueo como capacidad, igual que en
+  Slide2;
+- la **cizalla y la compresión de los clavos**: un clavo trabaja solo a tracción;
+- el **arrancamiento que depende del material**;
+- los **clavos lanzados** y los **anclajes helicoidales**;
+- la **presión de fluido equivalente** (EFP);
+- el **soporte definido por el usuario**.
+
+Además, el **sismo** (`kh` y `kv`) no actúa sobre las fuerzas de los refuerzos, y `interface` no cuenta las sobrecargas
+ni las cargas lineales en el esfuerzo vertical `σ′v` del arrancamiento.
+
+### El tramo libre sin placa (`no_capacity`)
+
+Un `anchor` con `pullout.bond` y `bonded_length` solo tiene arrancamiento en los últimos `bonded_length` metros. Un cruce
+en el **tramo libre** y sin `end1_capacity` tiene `T(s_c) = 0`: no aplica fuerza, queda con el estado `no_capacity` en
+`reinforcement_forces` y **no hay nota ni aviso**, así que el FS es el del talud sin ese refuerzo. Es el comportamiento
+del oráculo y de Slide2 (la placa de cabeza transmite la carga al tramo libre). Para que el tramo libre transmita,
+`end1_capacity` debe valer al menos lo que se espera del elemento; la web lo propone igual a `tensile_capacity` al crear
+un `anchor`. El ejemplo está en el [formato](formato-ogs-json.md#un-fragmento-por-tipo).
+
+### El activo comprimido (E14m-1) y el oráculo instalado
+
+Un elemento **activo** se aplica siempre, también cuando el deslizamiento lo comprimiría (`along > 0`), axial y con su
+fuerza completa: es una carga externa conocida, la de bloqueo (Duncan y Wright, método A). Es la regla vigente de
+cSlope en su código fuente. El **binario instalado del oráculo** (`cslope` 0.1.0, `a80f9a0`) es anterior y descarta esos
+cruces, con la misma regla de compresión que a un pasivo (X17 §1.5). Consecuencias:
+
+- OpenGeoSlide y el oráculo instalado **dan FS distintos** en un activo con `along > 0` (por ejemplo, anclajes activos
+  que suben hacia el macizo, más empinados que la base). Las filas de aceptación con el oráculo solo usan cruces con
+  `along < 0`.
+- Los activos con `along > 0` se verifican con el equilibrio global independiente y con un test que fija `u = d`, no con
+  el oráculo. El caso de V016b es de este tipo: el oráculo no aplica ninguna fuerza, y por eso su acuerdo con lo
+  publicado no prueba nada sobre los refuerzos (`verification/pending/F3R/INDEX.md`).
+- Los **pasivos** comprimidos se descartan en los dos (`compression_ignored`, con la nota
+  `reinforcement_compression_ignored`).
+
+### La discretización del oráculo en `interface`
+
+cSlope integra el arrancamiento de `interface` en 200 pasos como máximo, y decide «en el suelo» en el punto medio de
+cada paso. OpenGeoSlide **integra exactamente**, con cortes en el terreno y en los contactos. Con un elemento de 27 m,
+la diferencia llega a −0,47 % en la fuerza `T` (X17 §2.1). En las filas de aceptación donde la integral de `interface`
+gobierna (en vez del tope de la barra), el FS difiere hasta 0,18 % del oráculo; por eso esas dos filas
+(`X17-cap-interface` y `X17-cap-interface-cov.5-sp2`) usan una tolerancia de 0,25 % y el resto, 0,1 %. No es un error del
+motor: la integral exacta es la correcta, y el oráculo discretiza.
+
+### VP 58 pendiente
+
+El problema de verificación **VP 58** de Slide2 (tieback activo con Spencer 1,145, ocho estratos con agua) **no está
+transcrito**: su geometría solo está en la Figura 58.1 del manual, sin coordenadas rotuladas (X17 §5.2), y el esquema
+`.ogs.json` no tiene la «profundidad mínima» de 25 ft de su búsqueda. No se publica una cifra propia con datos
+inventados. Queda pendiente hasta tener las coordenadas del archivo de Rocscience o de Pockoski y Duncan (2000). El
+estado del resto de los VP está en [`docs/fase3/r1v/VP_SLIDE2.md`](fase3/r1v/VP_SLIDE2.md).
+
+El **VP 47** (clavos pasivos, Janbu 0,890) tiene la geometría leída de una figura (±0,05 m): con ella el oráculo da
+0,902 (+1,3 %), y no se tomó como un check de 1 %, sino con la tolerancia de su fuente y con esa nota (E14m-5).
+
+### La búsqueda con refuerzos tiene discontinuidades
+
+Con `analysis.search`, los cruces y los nodos se recalculan para **cada candidato**. Un círculo candidato puede ganar o
+perder un cruce con un refuerzo al cambiar un poco, y cada cruce suma una fuerza completa: el FS es **discontinuo** en el
+espacio de los círculos y el refinamiento por Hooke-Jeeves puede ver saltos (X16). Consecuencias:
+
+- el mínimo hallado puede estar en un salto, y un candidato cercano distinto puede dar un FS notablemente menor o
+  mayor;
+- `reinforcement_forces` se emite solo sobre la **superficie final** de cada método, no para cada candidato;
+- el coste de la búsqueda crece con el número de refuerzos.
+
+**La búsqueda puede esquivar el refuerzo.** El círculo crítico no tiene por qué cruzar el elemento: si un círculo
+menor, que no lo toca, tiene un FS más bajo, ese es el mínimo y el refuerzo no aporta. Ejemplo: ACADS 1(a) con su
+búsqueda por defecto y el anclaje activo de 100 kN del [ejemplo del formato](formato-ogs-json.md#ejemplo-un-talud-con-un-anclaje-activo).
+Sin refuerzos, Bishop da 0,9851 y, con el anclaje, 1,0623, con la nota `reinforcement_outside_mass` y sin ninguna fuerza
+en `reinforcement_forces`: la superficie crítica (xc 36,61, yc 46,55, r 18,54) pasa por encima del anclaje. En el mismo
+modelo con una tablestaca activa de 120 kN por metro en x = 40, Bishop da 1,1553 y el elemento también queda
+`outside_mass`; con el círculo fijo que cruza la tablestaca, el FS es 1,4557. **Cuando una búsqueda con refuerzos trae la
+nota `reinforcement_outside_mass`, el FS mínimo es el de una superficie que el refuerzo no cruza:** mueva el refuerzo,
+alárguelo o acote los rangos de entrada y salida para que el refuerzo trabaje donde se espera, y revise el resultado con
+superficies fijas.
+
+Para un diseño, contraste el resultado de la búsqueda con superficies fijas (círculo o polilínea) cercanas a la crítica.
+
+Los problemas de cSlope con grieta de tracción o agua embalsada que el importador no convierte están en
+[`verification/pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md), con el motivo de cada uno. Después del bloque,
+el plan recomienda la **grieta de tracción** y el **agua embalsada**, que desbloquean otros casos publicados.
 
 ## Avisos geotécnicos de la aplicación
 
@@ -283,6 +389,10 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   de búsqueda y revise aparte la capacidad de soporte local.
 - **Aviso de cortante entre dovelas** (`interslice_shear_exceeds_strength`): véase
   [arriba](#aviso-interslice_shear_exceeds_strength).
+- **Notas de refuerzos** (informativas): `reinforcement_outside_mass` (un refuerzo no aplica fuerza sobre la
+  superficie), `reinforcement_compression_ignored` (un pasivo comprimido no aporta) y `structural_checks_not_covered`
+  (hay pilotes o tablestacas: [el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). El estado
+  `no_capacity` de un cruce **no** emite nota: se ve en la tabla de fuerzas.
 
 ## Limitaciones numéricas conocidas del motor
 
