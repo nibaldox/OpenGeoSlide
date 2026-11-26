@@ -10,7 +10,13 @@ const USAGE: &str = "uso: ogs --version | ogs analyze <archivo.ogs.json> | \
 ogs bench <caso.json> [--reps N] \
 [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] (all = los cinco métodos)\n\
 el modelo es un .ogs.json v0.1 a v0.5; con refuerzos (anchor, nail, geosynthetic, pile y sheet_pile) pide \"version\": \"0.4\" \
-y cada método del informe trae reinforcement_forces; con pilotes o tablestacas solo se calcula la estabilidad global \
+y cada método del informe trae reinforcement_forces; \
+con analysis.tension_crack (grieta de tracción: depth, un número o \"auto\", y water_fill de 0 a 1), con lateral_pressure \
+(presión de suelo de Ito-Matsui en un pile, en lugar de force; agrega soil_force, governs y arm a cada cruce) o con capacity \
+(topes shear y moment de ese pilote) pide \"version\": \"0.5\" y, con grieta, el informe trae tension_crack; \
+una piezométrica sobre el terreno suma el agua embalsada en todas las versiones (cambia el FS frente a la v0.3.0); \
+con un pile o una sheet_pile con force se calcula solo la estabilidad global, con el elemento como una fuerza dada, y el pilote \
+de Ito-Matsui estima la fuerza del suelo entre pilotes rígidos pero no es el diseño del pilote \
 (formato y limitaciones: docs/formato-ogs-json.md y docs/limitaciones.md)";
 
 fn main() -> ExitCode {
@@ -47,5 +53,28 @@ fn run_analyze(path: &str) -> ExitCode {
             eprintln!("ogs: {msg}");
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::USAGE;
+
+    /// E15l-25 (B-12a): the help lists what the v0.5 format adds and drops the note from before Ito-Matsui.
+    #[test]
+    fn usage_lists_the_v05_fields_and_the_structural_limit() {
+        for field in [
+            "tension_crack",
+            "lateral_pressure",
+            "capacity",
+            "soil_force",
+            "\"0.5\"",
+        ] {
+            assert!(USAGE.contains(field), "USAGE does not mention {field}");
+        }
+        assert!(
+            !USAGE.contains("solo se calcula la estabilidad global"),
+            "USAGE keeps the note from before Ito-Matsui: {USAGE}"
+        );
     }
 }
