@@ -1,7 +1,8 @@
-//! Seismic coefficients and surface loads (schema v0.2, amendments E12a and E12b).
+//! Seismic coefficients and surface loads (schema v0.2, amendments E12a and E12b), and the version gate of the
+//! document (the v0.2 and v0.3 fields, E13a).
 //!
-//! - [`validate_document`] checks the new fields that do not need the geometry: the version, finiteness, ranges and
-//!   repeated ids. [`validate_range`] checks the x positions against the model extent, once the model is prepared.
+//! - [`validate_document`] checks the new fields that do not need the geometry: the version (and which fields each
+//!   version admits), finiteness, ranges and repeated ids. [`validate_range`] checks the x positions against the model extent, once the model is prepared.
 //! - [`LoadCase`] is the resolved form the slicer works with: `kh`, `kv`, the distributed loads and the line loads,
 //!   with the angle in radians. `LoadCase::default()` is neutral (no seismic force, no loads) and leaves the slices
 //!   exactly as before v0.2.
@@ -9,7 +10,10 @@
 //!   `load_outside_mass`).
 
 use crate::OgsError;
-use crate::model::{FORMAT_VERSION, FORMAT_VERSION_V02, Load, Model};
+use crate::model::{
+    FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, Load, MaterialModel, MethodKind, Model,
+    SurfaceSpec,
+};
 use crate::slicer::Slice;
 
 /// Informative note (E12b): a declared load does not act on any soil slice of the reported surface.
@@ -128,21 +132,69 @@ fn label(id: &Option<String>, index: usize) -> String {
     }
 }
 
-/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a). It does not need the geometry.
+/// The first field of the document that needs version `"0.3"` (E13a), named as in the JSON, or `None`.
 ///
-/// Version `"0.1"` admits no `loads` and no `analysis.seismic`; an empty `loads` list counts as absent.
+/// The order is the one of the contract (F3.1): the undrained model and its fields (material by material), the
+/// polyline surface, the new methods and `analysis.interslice`. Serde cannot depend on the version, so the gate is
+/// here, like the one of v0.2.
+fn first_v03_field(model: &Model) -> Option<String> {
+    for (i, m) in model.materials.iter().enumerate() {
+        if m.model == MaterialModel::Undrained {
+            return Some(format!("materials[{i}].model = \"undrained\""));
+        }
+        for (name, present) in [
+            ("undrained_strength", m.undrained_strength.is_some()),
+            ("strength_datum", m.strength_datum.is_some()),
+            ("strength_gradient", m.strength_gradient.is_some()),
+            ("strength_limit", m.strength_limit.is_some()),
+        ] {
+            if present {
+                return Some(format!("materials[{i}].{name}"));
+            }
+        }
+    }
+    let a = &model.analysis;
+    if matches!(a.surface, Some(SurfaceSpec::Polyline { .. })) {
+        return Some("analysis.surface.type = \"polyline\"".to_string());
+    }
+    for (name, kind) in [
+        ("morgenstern_price", MethodKind::MorgensternPrice),
+        ("janbu_simplified", MethodKind::JanbuSimplified),
+        ("janbu_corrected", MethodKind::JanbuCorrected),
+    ] {
+        if a.methods.contains(&kind) {
+            return Some(format!("analysis.methods = \"{name}\""));
+        }
+    }
+    a.interslice
+        .is_some()
+        .then(|| "analysis.interslice".to_string())
+}
+
+/// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), and the version gate of the v0.3 fields (E13a).
+/// It does not need the geometry.
+///
+/// Version `"0.1"` admits no `loads` and no `analysis.seismic`; an empty `loads` list counts as absent. Versions
+/// `"0.1"` and `"0.2"` admit no v0.3 field: the error names the first one, `<campo> requiere version "0.3"`.
 pub fn validate_document(model: &Model) -> Result<(), OgsError> {
     let has_loads = !model.loads.is_empty();
     let has_seismic = model.analysis.seismic.is_some();
-    if model.version != FORMAT_VERSION && model.version != FORMAT_VERSION_V02 {
+    if ![FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03].contains(&model.version.as_str()) {
         return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\" o \"{FORMAT_VERSION_V02}\", no \"{}\"",
+            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\" o \"{FORMAT_VERSION_V03}\", no \"{}\"",
             model.version
         )));
     }
     if model.version == FORMAT_VERSION && (has_loads || has_seismic) {
         return Err(invalid(format!(
             "los campos 'loads' y 'analysis.seismic' requieren version \"{FORMAT_VERSION_V02}\""
+        )));
+    }
+    if model.version != FORMAT_VERSION_V03
+        && let Some(field) = first_v03_field(model)
+    {
+        return Err(invalid(format!(
+            "{field} requiere version \"{FORMAT_VERSION_V03}\""
         )));
     }
     if let Some(s) = &model.analysis.seismic {

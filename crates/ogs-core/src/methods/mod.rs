@@ -228,6 +228,10 @@ pub fn solve(slices: &[Slice], method: MethodKind, opts: &SolveOptions) -> Metho
     match method {
         MethodKind::Bishop => bishop::solve(slices, opts),
         MethodKind::Spencer => spencer::solve(slices, opts),
+        // Wave 0 stub: F3-W1b replaces this arm with the solvers of the new methods.
+        MethodKind::MorgensternPrice | MethodKind::JanbuSimplified | MethodKind::JanbuCorrected => {
+            unimplemented!("F3-W1b")
+        }
     }
 }
 

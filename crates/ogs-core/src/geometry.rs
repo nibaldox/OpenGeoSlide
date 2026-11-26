@@ -6,6 +6,7 @@
 use crate::OgsError;
 use crate::model::{Circle, Direction, Model, Point, SurfaceSpec};
 use crate::slicer::sliding_span;
+use crate::strength::{ResolvedMaterial, resolve_materials};
 
 /// Default water unit weight when the `water` block is absent (contract §1).
 const DEFAULT_WATER_UNIT_WEIGHT: f64 = 9.81;
@@ -33,16 +34,6 @@ pub trait Ground {
     fn ground_vertices_x(&self) -> Vec<f64> {
         Vec::new()
     }
-}
-
-/// Material with precomputed `tan φ`.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct ResolvedMaterial {
-    pub(crate) unit_weight: f64,
-    pub(crate) unit_weight_sat: Option<f64>,
-    pub(crate) cohesion: f64,
-    pub(crate) tan_phi: f64,
-    pub(crate) ru: Option<f64>,
 }
 
 /// Region with its material resolved to an index into `PreparedModel::materials`.
@@ -75,63 +66,6 @@ pub struct PreparedModel {
 
 fn invalid(msg: impl Into<String>) -> OgsError {
     OgsError::InvalidModel(msg.into())
-}
-
-fn resolve_materials(model: &Model) -> Result<Vec<ResolvedMaterial>, OgsError> {
-    let mut out = Vec::with_capacity(model.materials.len());
-    for (i, m) in model.materials.iter().enumerate() {
-        // E12j (R5-10): an empty id cannot be told apart from "no material" by the editor, and no region can name it.
-        if m.id.is_empty() {
-            return Err(invalid(format!(
-                "el id del material {i} está vacío: debe tener al menos un carácter"
-            )));
-        }
-        if model.materials[..i].iter().any(|other| other.id == m.id) {
-            return Err(invalid(format!("id de material duplicado: '{}'", m.id)));
-        }
-        if !(m.unit_weight.is_finite() && m.unit_weight > 0.0) {
-            return Err(invalid(format!(
-                "el material '{}' debe tener peso unitario > 0",
-                m.id
-            )));
-        }
-        if let Some(gs) = m.unit_weight_sat
-            && !(gs.is_finite() && gs > 0.0)
-        {
-            return Err(invalid(format!(
-                "el peso unitario saturado del material '{}' debe ser > 0",
-                m.id
-            )));
-        }
-        if !(m.cohesion.is_finite() && m.cohesion >= 0.0) {
-            return Err(invalid(format!(
-                "la cohesión del material '{}' debe ser ≥ 0",
-                m.id
-            )));
-        }
-        if !(0.0..90.0).contains(&m.friction_angle) {
-            return Err(invalid(format!(
-                "el ángulo de fricción del material '{}' debe estar en [0, 90)",
-                m.id
-            )));
-        }
-        if let Some(ru) = m.ru
-            && !(0.0..1.0).contains(&ru)
-        {
-            return Err(invalid(format!(
-                "ru del material '{}' debe estar en [0, 1)",
-                m.id
-            )));
-        }
-        out.push(ResolvedMaterial {
-            unit_weight: m.unit_weight,
-            unit_weight_sat: m.unit_weight_sat,
-            cohesion: m.cohesion,
-            tan_phi: m.friction_angle.to_radians().tan(),
-            ru: m.ru,
-        });
-    }
-    Ok(out)
 }
 
 fn resolve_water(model: &Model) -> Result<(f64, Option<Vec<Point>>), OgsError> {
@@ -834,11 +768,11 @@ impl PreparedModel {
         //    crossings is the entry. The crossings come from the sliding span alone (R3-07): the ends of the analysed
         //    block are checked later, in `slice_surface` (E10a′), so a discarded block may leave the model here.
         let fixed = if model.analysis.search.is_none() {
-            model.analysis.surface
+            model.analysis.surface.as_ref()
         } else {
             None
         };
-        if let Some(SurfaceSpec::Circle(circle)) = fixed
+        if let Some(&SurfaceSpec::Circle(circle)) = fixed
             && let Ok(tramo) = sliding_span(self, &circle)
         {
             let y_p = self.arc_y(&circle, true, tramo.p);
