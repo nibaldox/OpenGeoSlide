@@ -45,6 +45,9 @@ undrained material that does not converge) must also be the same. Exit status 1 
 The models with `analysis.tension_crack` are **skipped and counted apart** too (F3G): the baseline of v0.3.0 rejects
 version 0.5. Their capability is compared with the oracle (`verification/differential`, F5.5), not with the baseline.
 
+The models with a pile `lateral_pressure` (Ito-Matsui, version 0.5: V013b-e and D40-D42, promoted in cc66c2e) are **skipped and
+counted apart** as well: the baseline rejects version 0.5 and does not know the field. Their capability is the oracle's.
+
 The models with a non-empty `reinforcements` list are **skipped and counted apart** (F3R-R2): the baseline cannot read
 them (v0.2.0 rejects the field), so there is nothing to compare; the identity gate is the one of the models without
 reinforcements.
@@ -121,6 +124,21 @@ def split_cracked(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str
     for name, path in models.items():
         (cracked if has_tension_crack(_load(path)) else rest)[name] = path
     return rest, cracked
+
+
+def has_lateral_pressure(model: dict) -> bool:
+    """`True` when a pile of the model has `lateral_pressure` (Ito-Matsui, version 0.5: the baseline cannot read it)."""
+    return any("lateral_pressure" in r for r in model.get("reinforcements") or [] if isinstance(r, dict))
+
+
+def split_ito_matsui(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `models` into the ones the baseline can run and the ones with an Ito-Matsui pile (skipped and counted
+    apart, like the cracked ones: version 0.5 with a field of the new engine)."""
+    rest: dict[str, str] = {}
+    ito: dict[str, str] = {}
+    for name, path in models.items():
+        (ito if has_lateral_pressure(_load(path)) else rest)[name] = path
+    return rest, ito
 
 
 def split_ponded(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -362,11 +380,13 @@ def main() -> int:
     os.makedirs(args.out, exist_ok=True)
     models, skipped = split_models(model_paths(), args.include_reinforced)
     models, cracked = split_cracked(models)
+    models, ito = split_ito_matsui(models)
     models, ponded = split_ponded(models)
     print(f"{len(models)} modelos sin agua sobre el terreno; variantes own, search, fixed, search@0.4 y fixed@0.4"
           + (" (versión del motor normalizada)" if NORMALIZE else ""))
     print(f"{len(skipped)} modelos con refuerzos saltados aparte (el binario base no los lee)")
     print(f"{len(cracked)} modelos con tension_crack saltados aparte (el binario base no lee la versión 0.5)")
+    print(f"{len(ito)} modelos con lateral_pressure (Ito-Matsui) saltados aparte (el binario base no lee la versión 0.5)")
     print(f"{len(ponded)} modelos con la piezométrica sobre el terreno, aparte (excepción de F5.1: agua embalsada)")
     diffs: list[tuple[str, str, str]] = []
     exception: list[tuple[str, str, str]] = []
@@ -390,7 +410,7 @@ def main() -> int:
     plain_ponded = [n for n, p in sorted(ponded.items()) if not has_reinforcements(_load(p))]
     print(f"{len(plain_ponded)} modelos con agua sobre el terreno y sin refuerzos: {', '.join(plain_ponded) or '(ninguno)'}")
     print(f"{len(diffs)} diferencias en {len(models)} modelos sin agua sobre el terreno ({len(skipped)} con refuerzos y "
-          f"{len(cracked)} con tension_crack, saltados; {len(ponded)} con agua sobre el terreno, aparte)")
+          f"{len(cracked)} con tension_crack y {len(ito)} con lateral_pressure, saltados; {len(ponded)} con agua sobre el terreno, aparte)")
     print(f"{len(excepted)} excepciones declaradas informadas aparte, que no cuentan "
           f"(de {len(exceptions)} entradas en {os.path.basename(args.exceptions) or 'ninguna'})")
     return 1 if diffs else 0
