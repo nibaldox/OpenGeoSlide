@@ -766,13 +766,12 @@ def _anchor(**f):
 
 def _pile(**f):
     return _item({"id": "p1", "type": "pile", "x1": 40.0, "y1": 12.0, "x2": 40.0, "y2": 2.0,
-                  "application": "passive", "force": 60.0, "spacing": 1.5, "direction": "angle", "angle": 0.0,
-                  "location": "slip_surface"}, **f)
+                  "application": "passive", "force": 60.0, "spacing": 1.5, "direction": "angle", "angle": 0.0}, **f)
 
 
 def _sheet(**f):
     return _item({"id": "s1", "type": "sheet_pile", "x1": 40.0, "y1": 12.5, "x2": 40.0, "y2": 0.5,
-                  "application": "active", "force": 120.0, "direction": "perpendicular", "location": "centroid"}, **f)
+                  "application": "active", "force": 120.0, "direction": "perpendicular"}, **f)
 
 
 def _reinf(*items):
@@ -844,8 +843,11 @@ V04_TABLE = [
     ("x1 as a string", _reinf(_anchor(x1="44")), False),
     ("anchor with force", _reinf(_anchor(force=5.0)), False),
     ("pile with tensile_capacity", _reinf(_pile(tensile_capacity=5.0)), False),
-    ("pile without location", _reinf(_pile(location=_DEL)), False),
+    # E14m-3: `location` was dropped in v0.4 and is an unknown field, whatever its value
+    ("pile with location=slip_surface", _reinf(_pile(location="slip_surface")), False),
+    ("pile with location=centroid", _reinf(_pile(location="centroid")), False),
     ("pile with location=bottom", _reinf(_pile(location="bottom")), False),
+    ("sheet_pile with location", _reinf(_sheet(location="centroid")), False),
     ("pile without force", _reinf(_pile(force=_DEL)), False),
     ("sheet_pile with spacing", _reinf(_sheet(spacing=1.0)), False),
     # ranges

@@ -662,7 +662,7 @@
       }
     },
     "pile": {
-      "description": "pile (F4.2): pilote o micropilote con fuerza de corte constante por pilote (force, ≥ 0) y spacing (por defecto 1). La cabeza (x1, y1) es el extremo superior; longitud mayor que 0. direction angle exige angle en (−90, 90), medido sobre la horizontal (0 es horizontal); con tangent y perpendicular angle está prohibido.",
+      "description": "pile (F4.2): pilote o micropilote con fuerza de corte constante por pilote (force, ≥ 0) y spacing (por defecto 1). La cabeza (x1, y1) es el extremo superior; longitud mayor que 0. direction angle exige angle en (−90, 90), medido sobre la horizontal (0 es horizontal); con tangent y perpendicular angle está prohibido. La fuerza actúa en el cruce con la superficie de deslizamiento (E14m-3: no hay campo location; se rechaza como campo desconocido).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -674,8 +674,7 @@
         "y2",
         "application",
         "force",
-        "direction",
-        "location"
+        "direction"
       ],
       "properties": {
         "id": {
@@ -728,12 +727,6 @@
           ],
           "exclusiveMinimum": -90,
           "exclusiveMaximum": 90
-        },
-        "location": {
-          "enum": [
-            "slip_surface",
-            "centroid"
-          ]
         }
       },
       "allOf": [
@@ -766,7 +759,7 @@
       ]
     },
     "sheet_pile": {
-      "description": "sheet_pile (F4.2): tablestaca, una fila continua de pilotes; force es la fuerza de corte por metro de muro, sin spacing. Es vertical: x1 = x2 (solo lo valida el motor). direction, angle y location como en pile.",
+      "description": "sheet_pile (F4.2): tablestaca, una fila continua de pilotes; force es la fuerza de corte por metro de muro, sin spacing. Es vertical: x1 = x2 (solo lo valida el motor). direction y angle como en pile.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -778,8 +771,7 @@
         "y2",
         "application",
         "force",
-        "direction",
-        "location"
+        "direction"
       ],
       "properties": {
         "id": {
@@ -825,12 +817,6 @@
           ],
           "exclusiveMinimum": -90,
           "exclusiveMaximum": 90
-        },
-        "location": {
-          "enum": [
-            "slip_surface",
-            "centroid"
-          ]
         }
       },
       "allOf": [
