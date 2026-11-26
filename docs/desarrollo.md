@@ -8,6 +8,14 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
 - `crates/ogs-core/`: motor (modelo, geometría, dovelas, métodos, búsqueda, informe). Los métodos están en
   `src/methods/` (`bishop`, `spencer`, `morgenstern_price`, `janbu`); `src/surface.rs` representa la superficie (círculo
   o polilínea) y `src/strength.rs` resuelve la resistencia por dovela (Mohr-Coulomb y no drenado).
+  - `src/water.rs` es el **agua embalsada** (formato v0.5, E15c): `ponded_terms` calcula por dovela el peso, el empuje y
+    sus momentos de la región entre la piezométrica y el terreno, más el término de `ru`; `apply_ponded` los suma a la
+    dovela y, sin agua sobre el terreno, no toca nada (identidad byte a byte).
+  - `src/crack.rs` es la **grieta de tracción** (E15d): `locate` halla `x_c` y la profundidad (fija o automática) y
+    `truncate` quita la masa del lado de la cresta y suma el empuje `Pw` a la dovela de la cara. `lib.rs` los llama solo
+    si existe `analysis.tension_crack`; en una búsqueda, un candidato que no alcanza la grieta se descarta.
+  - Ninguno de los dos agrega campos a `Slice`: usan `weight_extra`, `h_force`, `h_moment_base` y `driving_extra`
+    (E15h, [`fase3/g0/NOTAS.md`](fase3/g0/NOTAS.md)).
 - `crates/ogs-cli/`: binario `ogs`.
 - `crates/ogs-wasm/`: wrapper WebAssembly (`wasm-bindgen`).
 - `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
@@ -15,14 +23,16 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
 - `schema/ogs-0.3.schema.json`: JSON Schema del formato `.ogs.json` v0.3 (agrega material no drenado, superficie polilínea,
   Morgenstern-Price, Janbu y `analysis.interslice`; acepta también v0.1 y v0.2).
 - `schema/ogs-0.4.schema.json`: JSON Schema del formato `.ogs.json` v0.4 (agrega `reinforcements`: anclajes, clavos,
-  geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3). Es el que valida `docs/tools/`.
+  geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3).
+- `schema/ogs-0.5.schema.json`: JSON Schema del formato `.ogs.json` v0.5 (agrega `analysis.tension_crack`; acepta también
+  v0.1 a v0.4). Es el que valida `docs/tools/`.
 - `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](../apps/web/README.md).
 - `verification/`: casos publicados (`cases/`), checks retenidos (`pending/`), harness y batería diferencial frente a
   cSlope, importador (`tools/import_cslope.py`) y pruebas en Python.
 - `docs/tools/validar_ejemplos.py`: valida los ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) contra el
-  esquema 0.4 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces` y avisos).
+  esquema 0.5 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces`, avisos y el objeto `tension_crack`).
 - `bench/`: medición de rendimiento (`bench/RESULTS.md`).
-- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`).
+- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`, `04_CONTRATOS_GRIETA_AGUA.md`).
 - `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
 
 ## Compilar y probar
@@ -51,7 +61,7 @@ target/release/ogs analyze examples/acads1a.ogs.json        # informe JSON; sale
 # Usa la mayor versión entre la del caso y la que el método necesita: un caso 0.4 con refuerzos se mide tal cual.
 target/release/ogs bench verification/cases/V037.json --reps 5 --method bishop
 
-# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.4.schema.json y contra ogs analyze
+# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.5.schema.json y contra ogs analyze
 # (cada ejemplo y fragmento lleva una marca <!-- ogs-ejemplo ... --> u <!-- ogs-fragmento ... -->; véase el docstring del script)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
 
@@ -61,6 +71,47 @@ uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with 
 ```
 
 Los comandos para regenerar los informes de verificación están en [`verificacion.md`](verificacion.md#reproducir).
+
+## Identidad con una versión anterior
+
+Cada bloque del formato promete que un modelo sin los campos nuevos da la **misma salida, byte a byte**, que la versión
+anterior. Lo comprueba `verification/tools/identity_vs_baseline.py`, que corre `ogs analyze` con un binario de
+referencia y con el nuevo sobre los casos, los modelos retenidos, la batería diferencial y los ejemplos, en cinco
+variantes (`own`, `search`, `fixed`, `search@0.4` y `fixed@0.4`), y compara stdout, stderr y el código de salida.
+
+```sh
+# el binario de referencia: un worktree desprendido del commit de la versión (aquí, la v0.3.0)
+git worktree add --detach "$TMPDIR/base" v0.3.0
+CARGO_TARGET_DIR="$TMPDIR/base-target" cargo build --release -p ogs-cli --manifest-path "$TMPDIR/base/Cargo.toml"
+cargo build --release -p ogs-cli        # `cargo test` NO recompila target/release/ogs
+env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py \
+  --normalize-version --include-reinforced --base "$TMPDIR/base-target/release/ogs" --new target/release/ogs
+```
+
+- **`--normalize-version`** reemplaza el número de versión del motor en stdout y stderr (`ogs-core 0.3.0` por
+  `ogs-core <VERSION>`) antes de comparar. Hace falta cuando el binario nuevo tiene otra versión que el de referencia.
+- **`--include-reinforced`** corre también los modelos con `reinforcements`. Un baseline de la v0.3.0 o posterior los
+  lee; el de la v0.2.0 no, y por omisión se saltan.
+- **La excepción del agua embalsada (F5.1).** Los modelos cuya piezométrica pasa sobre el terreno cambian de resultado a
+  propósito, porque ahora incluyen el agua embalsada. La herramienta los **separa y los informa por su nombre**, con las
+  variantes que difieren; no los oculta ni cuentan como diferencia. Para los modelos sin refuerzos, la lista se imprime
+  aparte, porque el contrato espera que esté vacía
+  ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+
+El resultado esperado es «0 diferencias» para todo lo demás, con salida `ok` en el baseline.
+
+## Batería diferencial F3G
+
+El bloque F3G de [`verification/differential/`](../verification/differential/README.md) (modelos D28 a D39, en
+`cases_f3g/`) compara el motor con cSlope en grieta de tracción y agua embalsada: embalse al pie y en una cara de presa,
+grieta seca, llena y automática, y sus combinaciones (también con sismo y con arcilla no drenada), cada uno en búsqueda y
+en superficie fija, con Bishop y Spencer. Es el cuarto bloque de `run.py`; antes de correr, una sonda comprueba que el
+motor tenga las dos capacidades y, si no, deja los checks en pendiente en lugar de fallar. `--require-f3g` hace que un
+check pendiente, con fallo o sin dato termine con código 5; úsese al integrar. Los comandos para regenerarlo están en
+[`verificacion.md`](verificacion.md#reproducir).
+
+Los tests del motor de este bloque están en `crates/ogs-core/tests/` (`f3g_types.rs`, `f3g1a_water.rs`,
+`f3g1b_crack.rs` y `f3g_rows.rs`, con las filas de `tests/data/f3g/rows/` migradas desde el oráculo).
 
 Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
 versión que fija el crate.
