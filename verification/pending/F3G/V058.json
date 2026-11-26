@@ -1,0 +1,138 @@
+{
+  "id": "V058",
+  "title": "Griffiths & Lane example 6, earth dam with full reservoir",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V058",
+      "title": "Griffiths & Lane example 6, earth dam with full reservoir",
+      "notes": "Two-sided earth dam with the reservoir full and a piezometric line; circular search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.2,
+        "unit_weight_sat": null,
+        "cohesion": 13.8,
+        "friction_angle": 37.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            7.3
+          ],
+          [
+            33.5,
+            7.3
+          ],
+          [
+            99.83,
+            28.6
+          ],
+          [
+            107.13,
+            28.6
+          ],
+          [
+            157.9,
+            7.3
+          ],
+          [
+            191.4,
+            7.3
+          ],
+          [
+            191.4,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          24.4
+        ],
+        [
+          86.751,
+          24.4
+        ],
+        [
+          157.9,
+          7.3
+        ],
+        [
+          191.4,
+          7.3
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.9,
+      "published_by": "Griffiths & Lane (FE)",
+      "tolerance": 0.05,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.915,
+      "published_by": "Program D",
+      "tolerance": 0.020261096605744124,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Griffiths & Lane (1999), Géotechnique 49(3).",
+    "derived_from": "cSlope verification problem V058 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,9152 (Spencer) y con rtl 3,2688 en el primer check, frente al publicado 1,9.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

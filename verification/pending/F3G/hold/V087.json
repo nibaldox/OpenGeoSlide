@@ -1,0 +1,256 @@
+{
+  "id": "V087",
+  "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V087",
+      "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+      "notes": "The V088 dam family with single unit weights (embankment c = 200 psf, φ = 25°, γ = 115; sand 0/35/130; clay 0/27/115), slightly flatter faces and ponded water at el. 20 on both faces; the reference circle (−135, 169, R = 169.0), ending at the crest (−15, 50). Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0650579,
+        "unit_weight_sat": null,
+        "cohesion": 9.576052,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "sand",
+        "name": "Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.4213698,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_clay",
+        "name": "Foundation clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0650579,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 27.0,
+        "ru": null
+      },
+      {
+        "id": "rock",
+        "name": "Rock",
+        "model": "mohr_coulomb",
+        "unit_weight": 25.1339936,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 45.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            -67.6656,
+            0.0
+          ],
+          [
+            -5.1816,
+            15.0927816
+          ],
+          [
+            -4.572,
+            15.24
+          ],
+          [
+            4.572,
+            15.24
+          ],
+          [
+            5.1816,
+            15.0927816
+          ],
+          [
+            67.6656,
+            0.0
+          ],
+          [
+            5.1816,
+            0.0
+          ],
+          [
+            2.4384,
+            -3.048
+          ],
+          [
+            -2.4384,
+            -3.048
+          ],
+          [
+            -5.1816,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation_clay",
+        "polygon": [
+          [
+            -68.58,
+            -11.2776
+          ],
+          [
+            -68.58,
+            -3.048
+          ],
+          [
+            -2.4384,
+            -3.048
+          ],
+          [
+            2.4384,
+            -3.048
+          ],
+          [
+            68.58,
+            -3.048
+          ],
+          [
+            68.58,
+            -11.2776
+          ]
+        ]
+      },
+      {
+        "material": "rock",
+        "polygon": [
+          [
+            -68.58,
+            -12.192
+          ],
+          [
+            -68.58,
+            -11.2776
+          ],
+          [
+            68.58,
+            -11.2776
+          ],
+          [
+            68.58,
+            -12.192
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            -68.58,
+            -3.048
+          ],
+          [
+            -68.58,
+            0.0
+          ],
+          [
+            -67.6656,
+            0.0
+          ],
+          [
+            -5.1816,
+            0.0
+          ],
+          [
+            -2.4384,
+            -3.048
+          ]
+        ]
+      },
+      {
+        "material": "sand",
+        "polygon": [
+          [
+            67.6656,
+            0.0
+          ],
+          [
+            68.58,
+            0.0
+          ],
+          [
+            68.58,
+            -3.048
+          ],
+          [
+            2.4384,
+            -3.048
+          ],
+          [
+            5.1816,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -68.58,
+          6.096
+        ],
+        [
+          68.58,
+          6.096
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -41.148,
+        "yc": 51.5112,
+        "r": 51.5112
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02218340611353712,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "USACE EM 1110-2-1902 (2003), fig. 4-3.",
+    "derived_from": "cSlope verification problem V087 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The circle has R = 169.0 ft as commercial program A prints it: only that radius ends exactly at its right endpoint (−15, 50); 169.1 dips 0.1 ft into the φ = 35° sand and raised every method by about 0.5 %. Program D's 2.254 (Bishop) and 2.258 (Spencer) were computed with R = 169.1 and are no longer checks. The three commercial program A models carry slightly different digitisations of the same dam. USACE 2.30; commercial program A GLE 2.309.",
+      "An independent Bishop calculation on commercial program A's circle (R = 169.0 ft) gives 2.243, as cSlope does; commercial program A's 2.307 (Bishop and Spencer) is not explained and is not used as a check. Its Janbu corrected 2.290 carries the same offset (cSlope 2.248 matches an independent calculation to four digits, with the same f0 = 1.0568 as commercial program A's documented formula; its Janbu corrected / Bishop ratio 0.993 is not reproduced by any physical variant, which give 1.000–1.012); it stays as the problem's one program check, about 1.8 % above.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

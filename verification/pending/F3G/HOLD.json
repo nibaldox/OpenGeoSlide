@@ -1,0 +1,47 @@
+[
+  {
+    "id": "V009b",
+    "method": "spencer",
+    "published": 1.91,
+    "published_by": "Baker & Leshchinsky",
+    "ogs": null,
+    "cslope": 1.8817,
+    "diagnosis": "Program D da 1,882 en la misma superficie (notes del corpus): el oráculo coincide con Program D; la diferencia está en el valor publicado (Baker & Leshchinsky). No es conversión. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.48 % frente a 2.26 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+  },
+  {
+    "id": "V087",
+    "method": "janbu_corrected",
+    "published": 2.29,
+    "published_by": "Commercial program A",
+    "ogs": null,
+    "cslope": 2.2476,
+    "diagnosis": "Radio 169,0 ft en vez de 169,1 (el 0,5 % de sensibilidad se cita en las notes del corpus); «los tres modelos de Program A llevan geometrías ligeramente distintas». Revisar la conversión del círculo. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.85 % frente a 2.22 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+  },
+  {
+    "id": "V092",
+    "method": "bishop",
+    "published": 2.011,
+    "published_by": "Commercial program A",
+    "ogs": null,
+    "cslope": 1.9903,
+    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.03 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+  },
+  {
+    "id": "V092",
+    "method": "spencer",
+    "published": 2.026,
+    "published_by": "Commercial program A",
+    "ogs": null,
+    "cslope": 2.0046,
+    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.06 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+  },
+  {
+    "id": "V092",
+    "method": "morgenstern_price",
+    "published": 2.027,
+    "published_by": "Commercial program A",
+    "ogs": null,
+    "cslope": 2.0048,
+    "diagnosis": "Línea piezométrica de la versión del programa, no la de la figura F-17a (publicNote del corpus): en la línea del manual, cSlope da Bishop 2,05–2,06 y MP 2,06–2,08. No se toca el dato. Convención de tolerancia: X18 §3.1 compara |Δ %| con tolerance/publicado (la toma como absoluta) y por eso lo marca fuera; el harness y acceptance.rs usan la tolerancia como relativa (|Δ|/publicado ≤ tolerance), y con ella el oráculo lo reproduce (-1.10 % frente a 2.02 %). Se retiene por la decisión de F5.6 hasta que el integrador lo promueva."
+  }
+]

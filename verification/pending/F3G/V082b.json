@@ -1,0 +1,244 @@
+{
+  "id": "V082b",
+  "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V082b",
+      "title": "Sharma (1996) slope, 11 ft tension crack with 6 ft of water",
+      "notes": "As V082a with 6 ft of water in the 11 ft crack (Table 27.4, analysis 4)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.28498,
+        "unit_weight_sat": 19.51026,
+        "cohesion": 23.94013,
+        "friction_angle": 14.0,
+        "ru": null
+      },
+      {
+        "id": "soil_2_zero_strength",
+        "name": "Soil 2 (zero strength)",
+        "model": "undrained",
+        "unit_weight": 18.28498,
+        "unit_weight_sat": null,
+        "undrained_strength": 0.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            30.7848,
+            26.8224
+          ],
+          [
+            42.0624,
+            31.3944
+          ],
+          [
+            60.96,
+            33.528
+          ],
+          [
+            60.96,
+            30.1752
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            60.96,
+            30.1752
+          ],
+          [
+            60.96,
+            23.1648
+          ],
+          [
+            49.0728,
+            17.6784
+          ],
+          [
+            40.5384,
+            17.0688
+          ],
+          [
+            34.4424,
+            19.5072
+          ],
+          [
+            28.6512,
+            19.812
+          ],
+          [
+            23.7744,
+            17.0688
+          ],
+          [
+            15.5448,
+            7.9248
+          ],
+          [
+            8.8392,
+            7.3152
+          ],
+          [
+            0.0,
+            4.572
+          ],
+          [
+            0.0,
+            20.7264
+          ],
+          [
+            6.7056,
+            20.4216
+          ],
+          [
+            11.5824,
+            19.2024
+          ],
+          [
+            19.2024,
+            22.2504
+          ],
+          [
+            30.7848,
+            26.8224
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          20.7264
+        ],
+        [
+          6.7056,
+          20.4216
+        ],
+        [
+          11.5824,
+          19.2024
+        ],
+        [
+          19.2024,
+          22.2504
+        ],
+        [
+          25.28316,
+          23.798784
+        ],
+        [
+          31.635192,
+          24.999696
+        ],
+        [
+          37.081968,
+          25.749504
+        ],
+        [
+          42.553128,
+          26.496264
+        ],
+        [
+          60.96,
+          28.28544
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 18.1417,
+        "yc": 66.81521,
+        "r": 48.06086
+      },
+      "tension_crack": {
+        "depth": 3.3528,
+        "water_fill": 0.54545
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.511,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020330906684315024,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.51,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023311258278145695,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.51,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023311258278145695,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.52,
+      "published_by": "Commercial program A",
+      "tolerance": 0.023289473684210527,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Sharma (1996); Malkawi et al. (2001). Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V082b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Water table as V082c (read from the manual's figure).",
+      "The Malkawi, Hassan & Sarma (2001) paper on non-circular surfaces (J. Geotech. Geoenviron. Eng. 127(8)) does not contain this slope; the reference is probably their companion paper on circular surfaces in the Can. Geotech. J. (2001), not yet checked. The geometry is Wright & Roecker's (1984) Example F, which V082c's coordinates reproduce in feet.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "porePressureHead = phreatic-correction en los checks de la fuente: ogs solo tiene la altura vertical (E3), que es también la opción por defecto de cSlope y la que usa el harness (no emite porePressureHead). Con la corrección freática cSlope da el FS de Bishop en 1,5338 (V082a) y 1,5126 (V082b); con la vertical, 1,5204 y 1,4994, que siguen dentro de la tolerancia del valor publicado.",
+      "grieta de tracción: profundidad 3.3528 m, fracción de agua 0.54545 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

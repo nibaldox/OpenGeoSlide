@@ -1,0 +1,122 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D31",
+    "title": "Presa con embalse en la cara de aguas arriba",
+    "notes": "Presa homogénea (c = 15 kPa, φ = 30°) con el embalse a 16 m en la cara de aguas arriba (3H:1V) y la freática bajando por el cuerpo hasta el pie de aguas abajo. El deslizamiento es hacia −x, por la cara mojada: el agua embalsada pesa sobre la cara y la banqueta del pie. Versión 0.1."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 15.0,
+      "friction_angle": 30.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          -20.0,
+          -10.0
+        ],
+        [
+          -20.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          60.0,
+          20.0
+        ],
+        [
+          70.0,
+          20.0
+        ],
+        [
+          110.0,
+          0.0
+        ],
+        [
+          130.0,
+          0.0
+        ],
+        [
+          130.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        -20.0,
+        16.0
+      ],
+      [
+        48.0,
+        16.0
+      ],
+      [
+        70.0,
+        9.0
+      ],
+      [
+        110.0,
+        0.0
+      ],
+      [
+        130.0,
+        0.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        50.0,
+        70.0
+      ],
+      "exit": [
+        -10.0,
+        30.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 15.876084829965436,
+      "yc": 66.19270054714319,
+      "r": 68.07018735817053
+    }
+  }
+}

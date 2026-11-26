@@ -1,0 +1,298 @@
+{
+  "id": "V024",
+  "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V024",
+      "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)",
+      "notes": "Symmetric dam with a narrow clay core on 30 ft of clay over permeable sand; a commercial program's piezometric line from the underseepage; the circle tangent to el. 197 ft. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "outer_shell",
+        "name": "Outer shell",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.63593,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "clay_core",
+        "name": "Clay core",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.16467,
+        "unit_weight_sat": null,
+        "cohesion": 4.78803,
+        "friction_angle": 26.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_clay",
+        "name": "Foundation clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.32176,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 24.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_sand",
+        "name": "Foundation sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.95011,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 32.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay_core",
+        "polygon": [
+          [
+            121.158,
+            69.1896
+          ],
+          [
+            134.112,
+            95.0976
+          ],
+          [
+            141.732,
+            95.0976
+          ],
+          [
+            154.686,
+            69.1896
+          ]
+        ]
+      },
+      {
+        "material": "foundation_clay",
+        "polygon": [
+          [
+            0.0,
+            60.0456
+          ],
+          [
+            0.0,
+            69.1896
+          ],
+          [
+            48.768,
+            69.1896
+          ],
+          [
+            121.158,
+            69.1896
+          ],
+          [
+            154.686,
+            69.1896
+          ],
+          [
+            227.076,
+            69.1896
+          ],
+          [
+            275.844,
+            69.1896
+          ],
+          [
+            275.844,
+            60.0456
+          ]
+        ]
+      },
+      {
+        "material": "foundation_sand",
+        "polygon": [
+          [
+            0.0,
+            55.4736
+          ],
+          [
+            0.0,
+            60.0456
+          ],
+          [
+            275.844,
+            60.0456
+          ],
+          [
+            275.844,
+            55.4736
+          ]
+        ]
+      },
+      {
+        "material": "outer_shell",
+        "polygon": [
+          [
+            48.768,
+            69.1896
+          ],
+          [
+            121.158,
+            93.3196
+          ],
+          [
+            131.064,
+            96.6216
+          ],
+          [
+            134.112,
+            96.6216
+          ],
+          [
+            141.732,
+            96.6216
+          ],
+          [
+            144.78,
+            96.6216
+          ],
+          [
+            154.686,
+            93.3196
+          ],
+          [
+            227.076,
+            69.1896
+          ],
+          [
+            154.686,
+            69.1896
+          ],
+          [
+            141.732,
+            95.0976
+          ],
+          [
+            134.112,
+            95.0976
+          ],
+          [
+            121.158,
+            69.1896
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          92.0496
+        ],
+        [
+          117.348,
+          92.0496
+        ],
+        [
+          132.98424,
+          91.83624
+        ],
+        [
+          143.74368,
+          83.42376
+        ],
+        [
+          151.4856,
+          71.68896
+        ],
+        [
+          194.03568,
+          71.04888
+        ],
+        [
+          227.47224,
+          69.1896
+        ],
+        [
+          275.844,
+          69.1896
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 211.836,
+        "yc": 118.872,
+        "r": 58.8264
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.563,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010319897632757518,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.557,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010321130378933847,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.57,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.013184713375796178,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.572,
+      "published_by": "Program D",
+      "tolerance": 0.010318066157760814,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, figs. 6.39–6.40.",
+    "derived_from": "cSlope verification problem V024 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "With pore pressures from a seepage analysis (not available here) commercial program A gives 1.312.",
+      "Duncan, Wright & Brandon (2014, Table 6.8, p. 122) name no method for this section. On the circle tangent to el. 197 they give FE 1.37 and 1.36 with two piezometric lines; the overall critical circle gives 1.11 / 1.32 / 1.30.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

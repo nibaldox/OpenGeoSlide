@@ -24,6 +24,12 @@ and corrected Janbu, at 0.5 % of the oracle. Its probe (`reinforcements_active`,
 anchor of the rows 1 and 2 of F4.13 and compares Bishop with the oracle figure to 0.1 %: an engine that has no forces, or
 whose methods lack the terms divided by F, leaves the checks `pendiente`. `--require-f3r` makes pending checks fail.
 
+The v0.5 block (briefs/F3G_G1.md, task V; contracts F5.2 and F5.3) comes fourth: the models D28-D39 of `cases_f3g/` (reservoirs
+at the toe and on a dam face, dry, filled and automatic tension cracks, and combinations), each one in search and on its
+fixed circle, with Bishop and Spencer, at E9b's criteria. Its probe (`ponded_water`, `tension_crack`) runs V047a with a
+reservoir 2 m above the toe and with a crack of 2 m filled at 25 % and compares Bishop with the oracle figure to 0.1 %: an
+engine without them leaves the checks `pendiente`. `--require-f3g` makes pending checks fail (use it when integrating).
+
 Usage (from the worktree root):
 
   export TMPDIR="$(mktemp -d)"
@@ -51,7 +57,7 @@ sys.path.insert(0, HARNESS)  # to_cslope.py and harness run.py are reused, not c
 sys.path.insert(0, HERE)     # build_cases.py: the models of the capability probes
 
 import build_cases  # noqa: E402
-from to_cslope import UnsupportedModel, ogs_to_cslope  # noqa: E402
+from to_cslope import UnsupportedModel, ogs_to_cslope, outline_of, regions_of, water_above_ground  # noqa: E402
 
 # harness/run.py is imported by file path under a distinct module name: both scripts are named run.py.
 _spec = importlib.util.spec_from_file_location("harness_run", os.path.join(HARNESS, "run.py"))
@@ -69,11 +75,13 @@ KINDS = ("search", "fixed")
 EXPECTED_CASES = 14
 EXPECTED_CASES_F3 = 9
 EXPECTED_CASES_F3R = 4
+EXPECTED_CASES_F3G = 12
 CASES_F3_DIR = os.path.join(HERE, "cases_f3")
 CASES_F3R_DIR = os.path.join(HERE, "cases_f3r")
+CASES_F3G_DIR = os.path.join(HERE, "cases_f3g")
 SEARCH_MAX_REL = 0.01    # E9b: FS_ogs <= FS_cSlope * (1 + 0.01)
 FIXED_MAX_REL = 0.005    # E9b: |FS_ogs - FS_cSlope| / FS_cSlope <= 0.005
-REPORT_VERSION = "4"
+REPORT_VERSION = "5"
 VERDICT_OK = "OK"
 # Fixed surface where both engines declare no solution (ogs not_converged/invalid, cSlope EngineError): a match.
 VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
@@ -90,6 +98,7 @@ OGS_INFORMATIVE_WARNINGS = (
     "reinforcement_compression_ignored",
     "reinforcement_active_compression",
     "structural_checks_not_covered",
+    "water_above_ground",   # F5.3: a note, the ponded water is included
 )
 
 
@@ -99,8 +108,11 @@ CAPABILITIES = ("undrained", "morgenstern_price", "janbu_corrected", "polyline")
 VERDICT_PENDING = "pendiente"
 EXIT_F3_PENDING = 3
 EXIT_F3R_PENDING = 4
+EXIT_F3G_PENDING = 5
 # v0.4 (reinforcements): what the engine must have to run a check; see probe_f3r
 CAPABILITIES_F3R = ("reinforcements_active", "reinforcements_passive")
+# v0.5 (tension crack and ponded water): what the engine must have to run a check; see probe_f3g
+CAPABILITIES_F3G = ("ponded_water", "tension_crack")
 
 
 # ------------------------------------------------------------------ cases
@@ -557,6 +569,106 @@ def f3r_markdown(rows: list[dict], probe: dict) -> list[str]:
     return L
 
 
+# ------------------------------------------------------------------ v0.5: tension crack and ponded water (D28-D39)
+
+def load_f3g_cases(cases_dir: str) -> list[dict]:
+    """The v0.5 models D28-D39. A directory without them is an empty list: the block is then skipped."""
+    cases = load_f3_cases(cases_dir)
+    for case in cases:
+        model = case["model"]
+        crack = (model.get("analysis") or {}).get("tension_crack")
+        if not (model.get("analysis") or {}).get("search"):
+            raise SystemExit(f"caso inválido (el bloque v0.5 necesita analysis.search y analysis.surface): {case['path']}")
+        if crack is not None and model.get("version") != "0.5":
+            raise SystemExit(f"caso inválido (tension_crack requiere version 0.5): {case['path']}")
+    return cases
+
+
+def f3g_model(model: dict, method: str) -> dict:
+    """The model as the v0.5 block runs it: as written (its own minimum version)."""
+    return copy.deepcopy(model)
+
+
+def f3g_capabilities_needed(model: dict) -> list[str]:
+    """Capabilities of F3G a model needs: ponded water (the piezometric line above the ground) and the crack."""
+    needs = set()
+    piezo = (model.get("water") or {}).get("piezometric_line")
+    if piezo and water_above_ground(outline_of(regions_of(model)), piezo):
+        needs.add("ponded_water")
+    if (model.get("analysis") or {}).get("tension_crack") is not None:
+        needs.add("tension_crack")
+    return [c for c in CAPABILITIES_F3G if c in needs]
+
+
+def f3g_plan(f3g_cases: list[dict]) -> list[tuple[dict, str, str, list[str]]]:
+    """(case, method, kind, capabilities): every method of each v0.5 model in search and on its fixed circle."""
+    return [(case, method, kind, f3g_capabilities_needed(case["model"]))
+            for case in f3g_cases for method in case["model"]["analysis"]["methods"] for kind in KINDS_BY_ORDER]
+
+
+def probe_f3g(ogs_binary: str, runner=None) -> dict[str, dict]:
+    """Does the engine run the ponded water and the crack? {capability: {supported, detail}}.
+
+    The probe is V047a with the fixed circle of F3.8, Bishop, with the piezometric line at y = 27 (X21-P01) or a crack of
+    2 m filled at 25 % (X21-W025). It is supported if Bishop gives the oracle figure to 0.1 %
+    (`build_cases.PROBE_F3G_BISHOP`). A stub that panics, an engine that leaves the water out (the base v0.3.0 gives 0.848
+    for the pond) or one that rejects version 0.5 is reported as not supported, with its own message or with the value it gave.
+    """
+    runner = runner or run_ogs
+    out = {}
+    for cap in CAPABILITIES_F3G:
+        res = runner(ogs_binary, build_cases.probe_f3g_model(cap), {"method": "bishop", "kind": "fixed"}, OGS_TIMEOUT_S)
+        want = build_cases.PROBE_F3G_BISHOP[cap]
+        if res["error"] or res["fos"] is None or res["status"] not in (None, "converged"):
+            out[cap] = {"supported": False, "detail": res["error"] or f"sin FS (status {res['status']})"}
+        elif abs(res["fos"] - want) / want > build_cases.PROBE_F3G_TOLERANCE:
+            out[cap] = {"supported": False,
+                        "detail": f"Bishop {res['fos']:.6f} frente a {want:.6f} del oráculo (> 0,1 %)"}
+        else:
+            out[cap] = {"supported": True, "detail": ""}
+    return out
+
+
+def f3g_markdown(rows: list[dict], probe: dict) -> list[str]:
+    """The `## v0.5` section of REPORT.md, as lines."""
+    s = summarize_f3(rows)
+    L = [
+        "## v0.5: grieta de tracción y agua embalsada (D28 a D39)",
+        "",
+        "Doce modelos en `cases_f3g/`: embalse al pie y en el talud (D28, D29), cara vertical con embalse (D30), presa con "
+        "embalse (D31), grieta seca, llena y automática (D32 a D35), y combinados: embalse y grieta llena (D36), presa con "
+        "grieta automática (D37), sismo con embalse y grieta (D38) y arcilla no drenada (D39). Cada uno en búsqueda y en su "
+        "círculo fijo, con Bishop y Spencer, con los criterios de E9b. La sonda de cada capacidad es V047a: el embalse de "
+        "2 m al pie (X21-P01) y la grieta de 2 m llena al 25 % (X21-W025); se acepta si Bishop da la cifra del oráculo a "
+        "0,1 %. El check que necesita una capacidad que el motor no tiene queda **pendiente**, nunca falla; el valor de "
+        "cSlope se calcula igual y queda como línea base.",
+        "",
+        "| capacidad | soportada por el motor | detalle |",
+        "|---|---|---|",
+    ]
+    for cap in CAPABILITIES_F3G:
+        L.append(f"| {cap} | {'sí' if probe[cap]['supported'] else 'no'} | {probe[cap]['detail'] or '—'} |")
+    L += [
+        "",
+        f"**OK {s['OK']}/{s['N']}** · FALLA {s['FALLA']} · sin dato {s['sin dato']} · pendiente {s['pendiente']}.",
+        "",
+        "| caso | método | tipo | ogs | cSlope | Δ% | veredicto |",
+        "|---|---|---|---:|---:|---:|---|",
+    ]
+    for r in rows:
+        L.append("| {cid} | {m} | {k} | {o} | {c} | {d} | {v} |".format(
+            cid=r["case_id"], m=r["method"], k=r["kind"], o=_fmt(r["ogs"]["fos"], ".4f"),
+            c=_fmt(r["cslope"]["fos"], ".4f"), d=_fmt(r["delta_pct"], "+.2f"), v=r["verdict"]))
+    fails = [r for r in rows if r["verdict"] not in PASS_VERDICTS and r["verdict"] != VERDICT_PENDING]
+    L += ["", "### Fallos y datos faltantes de v0.5", ""]
+    if not fails:
+        L.append("Ninguno.")
+    for r in fails:
+        L.append(f"- {r['case_id']} {r['method']}/{r['kind']}: **{r['verdict']}**. {r['reason']}")
+    L.append("")
+    return L
+
+
 # ------------------------------------------------------------------ outputs
 
 def _fmt(v, spec: str) -> str:
@@ -584,7 +696,8 @@ def _warnings_cell(sr: dict, fx: dict) -> str:
 
 
 def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: dict, meta: dict,
-                   f3_lines: list[str] | None = None, f3r_lines: list[str] | None = None) -> None:
+                   f3_lines: list[str] | None = None, f3r_lines: list[str] | None = None,
+                   f3g_lines: list[str] | None = None) -> None:
     by_key = {(c["case_id"], c["method"], c["kind"]): c for c in checks}
     L: list[str] = []
     L.append("# Batería diferencial: ogs vs cSlope 0.1.0 (W9)")
@@ -686,6 +799,8 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
         L.extend(f3_lines)
     if f3r_lines:
         L.extend(f3r_lines)
+    if f3g_lines:
+        L.extend(f3g_lines)
     L.append("## Reproducir")
     L.append("")
     L.append("```")
@@ -704,6 +819,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", default=HERE, help="directorio de REPORT.md y report.json")
     ap.add_argument("--cases-f3", default=CASES_F3_DIR, help="directorio con los modelos v0.3 (D15-D23)")
     ap.add_argument("--cases-f3r", default=CASES_F3R_DIR, help="directorio con los modelos v0.4 (D24-D27)")
+    ap.add_argument("--cases-f3g", default=CASES_F3G_DIR, help="directorio con los modelos v0.5 (D28-D39)")
+    ap.add_argument("--require-f3g", action="store_true",
+                    help=f"salir con código {EXIT_F3G_PENDING} si algún check de v0.5 (grieta y agua embalsada) queda "
+                         "pendiente, falla o no tiene dato (para la integración)")
     ap.add_argument("--require-f3r", action="store_true",
                     help=f"salir con código {EXIT_F3R_PENDING} si algún check de v0.4 (refuerzos) queda pendiente, "
                          "falla o no tiene dato (para la integración)")
@@ -762,6 +881,20 @@ def main(argv: list[str] | None = None) -> int:
                                          [c for c in caps], f3r_probe, prepare=f3r_model))
         print(f"v0.4: {summarize_f3(f3r_rows)}", flush=True)
 
+    # v0.5 block (tension crack and ponded water): after the three above, which it does not touch
+    f3g_cases = load_f3g_cases(args.cases_f3g) if os.path.isdir(args.cases_f3g) else []
+    f3g_rows: list[dict] = []
+    f3g_probe: dict = {}
+    if f3g_cases:
+        if len(f3g_cases) != EXPECTED_CASES_F3G:
+            print(f"error: se esperaban {EXPECTED_CASES_F3G} modelos v0.5 y hay {len(f3g_cases)}", file=sys.stderr)
+            return 1
+        f3g_probe = probe_f3g(exe)
+        for case, method, kind, caps in f3g_plan(f3g_cases):
+            f3g_rows.append(run_f3_check(cs_module, exe, case, method, kind, [c for c in caps], f3g_probe,
+                                         prepare=f3g_model))
+        print(f"v0.5: {summarize_f3(f3g_rows)}", flush=True)
+
     ogs_version = next((c["ogs"]["engine"] for c in checks if c["ogs"]["engine"]), None)
     meta = {
         "generated_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -799,12 +932,23 @@ def main(argv: list[str] | None = None) -> int:
             "summary": summarize_f3(f3r_rows),
             "checks": f3r_rows,
         }
+    if f3g_cases:
+        report["f3g"] = {
+            "criteria": {"fixed_max_rel": FIXED_MAX_REL, "search_max_rel": SEARCH_MAX_REL,
+                         "probe_max_rel": build_cases.PROBE_F3G_TOLERANCE,
+                         "source": "briefs/04_CONTRATOS_GRIETA_AGUA.md F5.6"},
+            "capabilities": f3g_probe,
+            "cases": [{"id": c["id"], "title": c["title"], "path": c["path"]} for c in f3g_cases],
+            "summary": summarize_f3(f3g_rows),
+            "checks": f3g_rows,
+        }
     with open(os.path.join(args.out, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
     write_markdown(os.path.join(args.out, "REPORT.md"), cases, checks, summary, meta,
                    f3_markdown(cases, f3_cases, f3_rows, probe) if f3_cases else None,
-                   f3r_markdown(f3r_rows, f3r_probe) if f3r_cases else None)
+                   f3r_markdown(f3r_rows, f3r_probe) if f3r_cases else None,
+                   f3g_markdown(f3g_rows, f3g_probe) if f3g_cases else None)
 
     print(f"búsqueda OK {summary['search']['OK']}/{summary['search']['N']}")
     print(f"fija OK {summary['fixed']['OK']}/{summary['fixed']['N']}")
@@ -815,6 +959,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.require_f3r and f3r_rows and summarize_f3(f3r_rows)["OK"] != len(f3r_rows):
         print("--require-f3r: hay checks de v0.4 pendientes, con fallo o sin dato", file=sys.stderr)
         return EXIT_F3R_PENDING
+    if args.require_f3g and f3g_rows and summarize_f3(f3g_rows)["OK"] != len(f3g_rows):
+        print("--require-f3g: hay checks de v0.5 pendientes, con fallo o sin dato", file=sys.stderr)
+        return EXIT_F3G_PENDING
     return 0
 
 

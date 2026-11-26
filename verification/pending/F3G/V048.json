@@ -1,0 +1,138 @@
+{
+  "id": "V048",
+  "title": "ACADS 1(b), water-filled tension crack",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V048",
+      "title": "ACADS 1(b), water-filled tension crack",
+      "notes": "The ACADS 1(a) slope (10 m high, 2:1) with c′ = 32 kPa, φ′ = 10° and a water-filled tension crack 4 m deep, the crack zone of a commercial program's Fig. 2.1 (35 → 31 m; the formula 2c/(γ√Ka) gives 3.814 m); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 32.0,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            20.0
+          ],
+          [
+            0.0,
+            25.0
+          ],
+          [
+            30.0,
+            25.0
+          ],
+          [
+            50.0,
+            35.0
+          ],
+          [
+            90.0,
+            35.0
+          ],
+          [
+            90.0,
+            20.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          20.0,
+          70.0
+        ],
+        "exit": [
+          20.0,
+          70.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 4.0,
+        "water_fill": 1.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.596,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02031328320802005,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.592,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020314070351758796,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.489,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020335795836131633,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989), ACADS problem 1(b).",
+    "derived_from": "cSlope verification problem V048 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 20–70, the model of the source.",
+      "With the 3.814 m crack of the formula cSlope gives 1.590 / 1.585 / 1.481; the 4 m crack of the figure lowers them by 0.2–0.5 %.",
+      "commercial program B's 1.664 (V047b) corresponds to a dry 3.6 m crack; the ACADS reference band is 1.65–1.70 (Giam 1.65). program D 1.589 with the 3.814 m crack.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 4 m, fracción de agua 1 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

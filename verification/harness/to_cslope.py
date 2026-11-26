@@ -1,4 +1,4 @@
-"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 / v0.5 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
@@ -30,6 +30,20 @@ Reinforcements (schema v0.4, contracts F4.2 and E14m)
   field; with a constant force it changes no number, X17 §3).
 - A model with reinforcements needs ``version "0.4"``. The force is a per-element value divided by ``spacing`` in both
   programs; ``fx``/``fy`` of the oracle are in model coordinates (E14m-4).
+
+Tension crack and ponded water (schema v0.5, contracts F5.2 and F5.3)
+---------------------------------------------------------------------
+- ``analysis.tension_crack {depth, water_fill}`` (version ``"0.5"`` only) -> ``options.tensionCrackDepth`` (a number)
+  or ``options.tensionCrackAuto: true`` (``depth: "auto"``), and ``options.tensionCrackWater = water_fill`` (a fraction
+  in [0, 1], always written). With ``water_fill > 0`` the crack weighs ``γw`` of cSlope (9.807), as the piezometric
+  line does.
+- The ponded water has no field in ogs: it is applied in **every** version when the piezometric line is above the
+  ground (decision D1). The piezometric line is therefore always written with ``freeWater: true`` and
+  ``followBoundary: false``, so cSlope loads the free water with its weight and thrust. Where the line does not go
+  above the ground that changes nothing (the free-water region is empty and the pore pressure is the same);
+  ``verification/harness/README.md`` and the notes of F3G-V give the numbers.
+- A material with ``ru`` under ponded water is not comparable: ogs adds ``ru·V/b`` (E15c-ru, the Slide2 rule) and
+  cSlope does not. The conversion notes it.
 
 Seismic coefficients and loads (schema v0.2, contract F1.1)
 -----------------------------------------------------------
@@ -94,9 +108,11 @@ METHOD_MAP = {
 SEISMIC_LOADS_VERSION = "0.2"
 F3_VERSION = "0.3"
 F4_VERSION = "0.4"
+F5_VERSION = "0.5"
 # versions that admit the fields of each stage (a later version admits everything of the earlier ones)
-SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION)
-F3_VERSIONS = (F3_VERSION, F4_VERSION)
+SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION)
+F3_VERSIONS = (F3_VERSION, F4_VERSION, F5_VERSION)
+F4_VERSIONS = (F4_VERSION, F5_VERSION)
 F3_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 # ogs interslice function -> cSlope `intersliceFunction`
 INTERSLICE_MAP = {
@@ -387,9 +403,37 @@ def interior_boundaries(polys: list[tuple[str, Polygon]]) -> list[list[list[floa
 # ------------------------------------------------- water, circles (round trip)
 
 def water_table_from_piezo(points: list) -> dict:
-    """OpenGeoSlide piezometric_line -> cSlope waterTable (custom, clipped to ground)."""
+    """OpenGeoSlide piezometric_line -> cSlope waterTable (custom, not clipped to the ground).
+
+    ``freeWater: true`` with ``followBoundary: false``: where the line is above the ground cSlope loads the ponded
+    water with its weight and thrust (ogs does it in every version, F5.3); elsewhere the pressure is the one of the
+    line clipped to the ground, so a model without ponded water gives the same number as before F3G.
+    """
     pts = sorted(([float(x), float(y)] for x, y in points), key=lambda p: p[0])
-    return {"mode": "custom", "value": pts, "freeWater": False}
+    return {"mode": "custom", "value": pts, "freeWater": True, "followBoundary": False}
+
+
+def water_above_ground(outline: Polygon, piezo: list) -> bool:
+    """True if the piezometric line goes above the ground anywhere (only to write a note; ogs decides on its own)."""
+    pts = sorted(([float(x), float(y)] for x, y in piezo), key=lambda p: p[0])
+    minx, _, maxx, _ = outline.bounds
+
+    def line(x: float) -> float:
+        if x <= pts[0][0]:
+            return pts[0][1]
+        if x >= pts[-1][0]:
+            return pts[-1][1]
+        i = bisect.bisect_right([p[0] for p in pts], x)
+        (x0, y0), (x1, y1) = pts[i - 1], pts[i]
+        return y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+
+    xs = sorted({x for x, _ in outline.exterior.coords} | {x for x, _ in pts} | {minx, maxx})
+    xs = [x for x in xs if minx <= x <= maxx]
+    samples = []
+    for a, b in zip(xs, xs[1:]):
+        if b > a:
+            samples += [a + (b - a) * 1e-6, 0.5 * (a + b), b - (b - a) * 1e-6]
+    return any(line(x) - y_top(outline, x) > 1e-9 for x in samples)
 
 
 def piezo_from_water_table(water_table: dict) -> list[list[float]]:
@@ -597,7 +641,7 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
     ``anchor``, ``nail`` and ``geosynthetic`` go to ``reinforcements``; ``pile`` and ``sheet_pile`` go to ``piles``.
     ``application`` and ``direction`` are always written, explicit, so no cSlope default decides the result. A
     ``sheet_pile`` is a pile with ``spacing 1``, ``force`` per metre and ``wall: true``; ``location`` is written as
-    ``"slip-surface"`` for the piles. Only ``version "0.4"`` admits them (F4.1).
+    ``"slip-surface"`` for the piles. Only ``version "0.4"`` and later admit them (F4.1).
     """
     items = model.get("reinforcements")
     if items is None:
@@ -606,7 +650,7 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
         raise UnsupportedModel("reinforcements debe ser una lista")
     if not items:
         return {}
-    if model.get("version") != F4_VERSION:
+    if model.get("version") not in F4_VERSIONS:
         raise UnsupportedModel(f'reinforcements requiere version "{F4_VERSION}"')
     tension: list[dict] = []
     piles: list[dict] = []
@@ -787,6 +831,41 @@ def interslice_options(model: dict, check: dict, notes: list[str]) -> dict[str, 
     return out
 
 
+def tension_crack_options(model: dict) -> dict[str, Any]:
+    """``analysis.tension_crack`` (v0.5, F5.2) -> the cSlope options of the crack; ``{}`` without crack.
+
+    ``depth`` is a finite number > 0 (``tensionCrackDepth``) or ``"auto"`` (``tensionCrackAuto``); ``water_fill`` is
+    required, in [0, 1] (``tensionCrackWater``, the same fraction). The checks repeat what the engine rejects.
+    """
+    crack = (model.get("analysis") or {}).get("tension_crack")
+    if crack is None:
+        return {}
+    if model.get("version") != F5_VERSION:
+        raise UnsupportedModel(f'tension_crack requiere version "{F5_VERSION}"')
+    if not isinstance(crack, dict):
+        raise UnsupportedModel("analysis.tension_crack debe ser un objeto")
+    unknown = sorted(set(crack) - {"depth", "water_fill"})
+    if unknown:
+        raise UnsupportedModel(f"analysis.tension_crack con campo desconocido: {unknown[0]}")
+    for key in ("depth", "water_fill"):
+        if key not in crack:
+            raise UnsupportedModel(f"analysis.tension_crack.{key} es obligatorio")
+    depth, fill = crack["depth"], crack["water_fill"]
+    out: dict[str, Any] = {}
+    if depth == "auto":
+        out["tensionCrackAuto"] = True
+    else:
+        d = _finite(depth, "analysis.tension_crack.depth")
+        if d <= 0:
+            raise UnsupportedModel("analysis.tension_crack.depth debe ser > 0 o \"auto\"")
+        out["tensionCrackDepth"] = d
+    f = _finite(fill, "analysis.tension_crack.water_fill")
+    if not 0.0 <= f <= 1.0:
+        raise UnsupportedModel("analysis.tension_crack.water_fill debe estar en [0, 1]")
+    out["tensionCrackWater"] = f
+    return out
+
+
 def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     """Build the cSlope analysis document for one check of a verification case.
 
@@ -822,15 +901,18 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     water = model.get("water") or {}
     piezo = water.get("piezometric_line") or None
     gamma_w = float(water.get("unit_weight", 9.81))
-    if piezo and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > WATER_UNIT_WEIGHT_TOL:
+    crack_options = tension_crack_options(model)
+    # the crack weighs gamma_w too when it holds water (F5.2): cSlope only knows 9.807
+    uses_water = bool(piezo) or float(crack_options.get("tensionCrackWater", 0.0)) > 0.0
+    if uses_water and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > WATER_UNIT_WEIGHT_TOL:
         # cSlope 0.1.0 takes no water weight from the model: it always computes the pore pressure
         # of the piezometric line with 9.807. A different declared value would be silently wrong.
         raise UnsupportedModel(
-            f"water.unit_weight={gamma_w} ({unit_label(model)}) con piezometric_line: cSlope 0.1.0 "
+            f"water.unit_weight={gamma_w} ({unit_label(model)}) con agua (piezometric_line o grieta con agua): cSlope 0.1.0 "
             f"ignora waterUnitWeight y usa {CSLOPE_WATER_UNIT_WEIGHT}; el resultado no sería fiel"
         )
     materials, needs_dry_line = _material_definitions(model, notes, bool(piezo))
-    if piezo and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > 1e-12:
+    if uses_water and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > 1e-12:
         notes.append(
             f"gamma_w={gamma_w} {unit_label(model)} en OpenGeoSlide; cSlope 0.1.0 usa "
             f"{CSLOPE_WATER_UNIT_WEIGHT} (waterUnitWeight se ignora)."
@@ -856,6 +938,11 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         definition["materialBoundaries"] = [{"coordinates": c} for c in boundaries]
     if piezo:
         definition["waterTable"] = water_table_from_piezo(piezo)
+        if needs_dry_line and water_above_ground(outline, piezo):
+            notes.append(
+                "agua embalsada con un material con ru: ogs suma ru·V/b a la presión de poros (E15c-ru, regla de "
+                "Slide2) y cSlope no; el resultado no es comparable."
+            )
     if needs_dry_line:
         definition["waterTables"] = [{
             "id": DRY_LINE_ID,
@@ -888,6 +975,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     if float(analysis.get("min_m_alpha", 0.2)) != 0.2:
         notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
     options.update(seismic_options(model, notes))
+    options.update(crack_options)
     definition.update(loads_to_cslope(model, notes))
     definition.update(reinforcements_to_cslope(model, notes))
 

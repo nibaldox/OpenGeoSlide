@@ -1,0 +1,246 @@
+{
+  "generated_at": "2026-11-26T17:34:20-03:00",
+  "harness_version": "1",
+  "cases_dir": "verification/pending/F3G/hold",
+  "engines": {
+    "ogs": {
+      "binary": "<oracle-only>",
+      "version": null,
+      "error": null
+    },
+    "cslope": {
+      "package": "cslope 0.1.0",
+      "version": "0.1.0",
+      "engine_build": "0.1.0+a80f9a024954",
+      "schema_version": "0.1.0"
+    },
+    "python": "3.13.14",
+    "platform": "Linux-7.3.5-2-cachyos-x86_64-with-glibc2.44"
+  },
+  "cases": [
+    {
+      "id": "V009b",
+      "title": "Baker & Leshchinsky dam, Baker's non-circular surface",
+      "path": "verification/pending/F3G/hold/V009b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V087",
+      "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+      "path": "verification/pending/F3G/hold/V087.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "path": "verification/pending/F3G/hold/V092.json",
+      "n_checks": 3
+    }
+  ],
+  "summary": {
+    "checks": 5,
+    "ogs": {
+      "OK": 0,
+      "FALLA": 0,
+      "sin dato": 0,
+      "no convergido": 0,
+      "no aplica": 5
+    },
+    "cslope": {
+      "OK": 5,
+      "FALLA": 0,
+      "sin dato": 0,
+      "no convergido": 0
+    },
+    "cslope_reproduces": {
+      "n": 5,
+      "N": 5
+    }
+  },
+  "checks": [
+    {
+      "case_id": "V009b",
+      "title": "Baker & Leshchinsky dam, Baker's non-circular surface",
+      "source_path": "verification/pending/F3G/hold/V009b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.91,
+      "published_by": "Baker & Leshchinsky",
+      "tolerance": 0.02261780104712042,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.8817377090278091,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.4797010980204606,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"granular_fill\" lies partly below its water line but has no unitWeightSat: its unit weight 21.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_core\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"hard_base\" lies partly below its water line but has no unitWeightSat: its unit weight 24 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V087",
+      "title": "USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3)",
+      "source_path": "verification/pending/F3G/hold/V087.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.29,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02218340611353712,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 2.247552195928354,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.8536158983251456,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 18.065 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.065 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"rock\" lies partly below its water line but has no unitWeightSat: its unit weight 25.134 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/pending/F3G/hold/V092.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.011,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020248632521133764,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 1.990348171883707,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0269432181150209,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 1.990. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/pending/F3G/hold/V092.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 2.026,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02024679170779862,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 2.004610700308323,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0557403599050796,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 2.005. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "cSlope reproduce"
+    },
+    {
+      "case_id": "V092",
+      "title": "USACE example F-6, steady-seepage dam",
+      "source_path": "verification/pending/F3G/hold/V092.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.027,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020246669955599407,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": null,
+        "status": null,
+        "error": "solo oráculo (--oracle-only): el motor no se ejecuta",
+        "engine": null,
+        "warnings": [],
+        "err_pct": null,
+        "verdict": "no aplica"
+      },
+      "cslope": {
+        "fos": 2.0047674103134416,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.0968223821686482,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 20.421 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"foundation\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "frictional-surface-slide: The ground surface from (59.41, 22.46) to (121.92, 0.00) in embankment (c′ = 0, φ′ = 34.0°) is inclined at 19.8°: a shallow slide parallel to it has F = tan φ′/tan β = 1.877, below 2.005. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "cSlope reproduce"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D37",
+    "title": "Presa con embalse y grieta automática llena",
+    "notes": "La presa de D31 con una grieta automática llena (water_fill = 1) en la corona, donde entra el deslizamiento hacia −x, y el embalse de 16 m en la cara de aguas arriba."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 15.0,
+      "friction_angle": 30.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          -20.0,
+          -10.0
+        ],
+        [
+          -20.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          60.0,
+          20.0
+        ],
+        [
+          70.0,
+          20.0
+        ],
+        [
+          110.0,
+          0.0
+        ],
+        [
+          130.0,
+          0.0
+        ],
+        [
+          130.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        -20.0,
+        16.0
+      ],
+      [
+        48.0,
+        16.0
+      ],
+      [
+        70.0,
+        9.0
+      ],
+      [
+        110.0,
+        0.0
+      ],
+      [
+        130.0,
+        0.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "entry": [
+        50.0,
+        70.0
+      ],
+      "exit": [
+        -10.0,
+        30.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 15.447592648615313,
+      "yc": 67.7349718204107,
+      "r": 69.47431565988484
+    },
+    "tension_crack": {
+      "depth": "auto",
+      "water_fill": 1.0
+    }
+  }
+}

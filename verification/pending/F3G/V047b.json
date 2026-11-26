@@ -1,0 +1,124 @@
+{
+  "id": "V047b",
+  "title": "ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V047b",
+      "title": "ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack)",
+      "notes": "ACADS 1(b) as a commercial program models it: c′ = 32 kPa, φ′ = 10°, a 3.6 m tension crack (dry); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 32.0,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            20.0,
+            20.0
+          ],
+          [
+            20.0,
+            25.0
+          ],
+          [
+            30.0,
+            25.0
+          ],
+          [
+            50.0,
+            35.0
+          ],
+          [
+            70.0,
+            35.0
+          ],
+          [
+            70.0,
+            20.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          49.9,
+          55.2
+        ],
+        "exit": [
+          26.9,
+          30.2
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 3.6,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.664,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02030048076923077,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.66,
+      "published_by": "Commercial program B",
+      "tolerance": 0.023012048192771084,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989), ACADS problem 1(b).",
+    "derived_from": "cSlope verification problem V047b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Entry on the crest (x = 49.9–55.2) and exit at the toe (x = 26.9–30.2), as in the source.",
+      "The manual quotes 'about 3.6 m' for 2c/(γ√Ka); the formula gives 3.814 m (V048 uses 3.814). commercial program B Janbu (uncorrected) 1.471. ACADS band 1.65–1.70.",
+      "The text says the crack is water-filled, but commercial program B's 1.664 / 1.660 are reproduced only with a DRY 3.6 m crack (cSlope 1.658 / 1.655). With the crack full of water cSlope gives 1.593 / 1.589 (3.6 m) and 1.589 / 1.586 (3.814 m, = V048; commercial program A 1.596 / 1.592). Without a crack 1.685 / 1.683.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 3.6 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

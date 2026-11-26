@@ -1,0 +1,119 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D34",
+    "title": "Grieta automática en dos capas",
+    "notes": "Relleno (c = 12 kPa, φ = 28°) de 10 m sobre arcilla (c = 30 kPa, φ = 20°), corte de 20 m con cara 2H:1V: grieta automática (z = 2c/(γ·tan(45° − φ/2)) con el material bajo cada x, 2,1 m en el relleno) llena a la mitad."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 12.0,
+      "friction_angle": 28.0,
+      "ru": null
+    },
+    {
+      "id": "clay",
+      "name": "Arcilla",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 30.0,
+      "friction_angle": 20.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          0.0,
+          10.0
+        ],
+        [
+          0.0,
+          20.0
+        ],
+        [
+          20.0,
+          20.0
+        ],
+        [
+          30.0,
+          10.0
+        ]
+      ]
+    },
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          30.0,
+          10.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 42.83754354843534,
+      "yc": 30.675605247581984,
+      "r": 30.806203737535203
+    },
+    "tension_crack": {
+      "depth": "auto",
+      "water_fill": 0.5
+    }
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "id": "V096c",
+  "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V096c",
+      "title": "Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack",
+      "notes": "The V096a slope with the dry 1.015 m crack on the reference surface 3 circle (10.911, 23.208, R = 32.106; Fig. 52.4)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 18.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.5,
+        "unit_weight_sat": null,
+        "cohesion": 40.0,
+        "friction_angle": 22.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.4,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 26.0,
+        "ru": null
+      },
+      {
+        "id": "layer_4",
+        "name": "Layer 4",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            18.0,
+            9.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            50.0,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            6.0,
+            3.0
+          ],
+          [
+            18.0,
+            9.0
+          ],
+          [
+            50.0,
+            9.0
+          ],
+          [
+            50.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            -20.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            3.0
+          ],
+          [
+            50.0,
+            3.0
+          ],
+          [
+            50.0,
+            -6.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_4",
+        "polygon": [
+          [
+            -20.0,
+            -9.0
+          ],
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -9.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 10.911,
+        "yc": 23.208,
+        "r": 32.106
+      },
+      "tension_crack": {
+        "depth": 1.015,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010277161862527716,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010277161862527716,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Zhu & Lee (2002), Int. J. Numer. Anal. Meth. Geomech. 26(15). Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V096c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Crack depth from commercial program A's right endpoint (41.663, 13.985) under the 15 m crest.",
+      "Zhu & Lee (surface 3, their own circle): Spencer 1.836, M-P 1.823, Bishop 1.429 (disputed), Ordinary 1.229; see V096d. On this circle cSlope gives Spencer 1.799 with the crack and 1.803 without.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 1.015 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

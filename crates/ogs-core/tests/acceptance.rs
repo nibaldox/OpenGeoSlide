@@ -28,6 +28,7 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "reinforcement_compression_ignored",
     "reinforcement_active_compression",
     "structural_checks_not_covered",
+    "water_above_ground", // F5.3: a note, the ponded water is included
 ];
 
 #[derive(Deserialize)]

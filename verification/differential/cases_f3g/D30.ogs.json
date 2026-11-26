@@ -1,0 +1,102 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D30",
+    "title": "Cara vertical con embalse al pie",
+    "notes": "Banco de 12 m con la cara vertical en x = 30 sobre una banqueta a y = 0, y un embalse de 8 m al pie (piezométrica en y = 8): empuje hidrostático sobre el paramento vertical (E4) hacia el lado del suelo. Deslizamiento hacia −x, con la entrada detrás de la cara (x ≥ 32) y la salida en la banqueta: con la entrada sobre la cara cSlope no converge en Spencer. Versión 0.1."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 20.0,
+      "friction_angle": 28.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          -15.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          30.0,
+          0.0
+        ],
+        [
+          30.0,
+          12.0
+        ],
+        [
+          70.0,
+          12.0
+        ],
+        [
+          70.0,
+          -15.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        8.0
+      ],
+      [
+        100.0,
+        8.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": 3.0,
+      "refine": true,
+      "entry": [
+        32.0,
+        50.0
+      ],
+      "exit": [
+        0.0,
+        28.0
+      ]
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 27.076448878025104,
+      "yc": 13.339637575128545,
+      "r": 13.656246640307726
+    }
+  }
+}

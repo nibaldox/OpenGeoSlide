@@ -1,0 +1,227 @@
+{
+  "id": "V096a",
+  "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V096a",
+      "title": "Zhu & Lee heterogeneous slope, dry, deep circle",
+      "notes": "Four horizontal layers under a two-bench slope with a dry tension crack 1.015 m deep at the crest (Fig. 52.1; the depth of a commercial program's surface end below the crest), dry; the circular search lands in the deep family (surface 3)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1_top",
+        "name": "Layer 1 (top)",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 18.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.5,
+        "unit_weight_sat": null,
+        "cohesion": 40.0,
+        "friction_angle": 22.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.4,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 26.0,
+        "ru": null
+      },
+      {
+        "id": "layer_4_bottom",
+        "name": "Layer 4 (bottom)",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "layer_1_top",
+        "polygon": [
+          [
+            18.0,
+            9.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            50.0,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            6.0,
+            3.0
+          ],
+          [
+            18.0,
+            9.0
+          ],
+          [
+            50.0,
+            9.0
+          ],
+          [
+            50.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            -20.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            3.0
+          ],
+          [
+            50.0,
+            3.0
+          ],
+          [
+            50.0,
+            -6.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_4_bottom",
+        "polygon": [
+          [
+            -20.0,
+            -9.0
+          ],
+          [
+            -20.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -6.0
+          ],
+          [
+            50.0,
+            -9.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          33.1,
+          50.0
+        ],
+        "exit": [
+          -20.0,
+          -4.3
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 1.015,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020277161862527718,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.804,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020277161862527718,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.79,
+      "published_by": "Commercial program A",
+      "tolerance": 0.022793296089385476,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590.",
+    "derived_from": "cSlope verification problem V096a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Entry on the upper bench (x = 33.1–50) and exit on the lower bench (x = −20 to −4.3), as in the source.",
+      "Zhu & Lee (surface 3, their own circle): Spencer 1.836, M-P 1.823, Bishop 1.429 (disputed), see V096d. program D 1.796 (Bishop) without the crack. V096c checks the program's reference circle itself.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 1.015 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

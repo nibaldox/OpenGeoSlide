@@ -16,6 +16,7 @@ import re
 import jsonschema
 import pytest
 from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -911,3 +912,186 @@ def test_f3r_section_marks_the_checks_without_crossings():
                           "forces_comparison": {"n_ogs": 0, "n_oracle": 0}}]}
     text = imp.build_f3r_section([case], {"V0": "R1"}, report)
     assert "| 0 / 0 |" in text and "no prueba nada" in text
+
+
+# ------------------------------------------------------------ batch F3G (tension crack and ponded water, v0.5)
+
+F3G_DIR = os.path.join(ROOT, "verification", "pending", "F3G")
+F3G_SCHEMA = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
+_PONDED = [[0.0, 12.0], [25.0, 12.0]]          # above the whole ground (y = 10 at most)
+
+
+def _raw_f3g(checks=None, piezo=None, **definition):
+    raw = _raw(piezo=piezo)
+    raw["definition"].update(definition)
+    if checks is not None:
+        raw["checks"] = [{"method": "Bishop", "published": 1.0 + i, "publishedBy": "T", "tolerance": 0.05, "options": o}
+                         for i, o in enumerate(checks)]
+    return raw
+
+
+def test_f3g_a_problem_without_crack_nor_ponded_water_belongs_to_the_earlier_batches():
+    assert imp.convert_f3g(_raw_f3g([{}]), PROB) == []
+    assert imp.convert_f3g(_raw_f3g([{}], piezo=[[0.0, 3.0], [25.0, 3.0]]), PROB) == []     # water under the ground
+
+
+def test_f3g_crack_with_water_is_a_v0_5_model_with_the_water_weight():
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0, "tensionCrackWater": 0.5}]), PROB)
+    m = case["model"]
+    assert m["version"] == "0.5"
+    assert m["analysis"]["tension_crack"] == {"depth": 2.0, "water_fill": 0.5}
+    assert m["water"] == {"unit_weight": 9.807}            # no piezometric line: the crack uses water.unit_weight (E12e)
+    assert imp.gate_f3g(case, F3G_SCHEMA) == []
+
+
+def test_f3g_dry_crack_writes_water_fill_zero_and_no_water_block():
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0}]), PROB)
+    assert case["model"]["analysis"]["tension_crack"] == {"depth": 2.0, "water_fill": 0.0}
+    assert "water" not in case["model"] and imp.gate_f3g(case, F3G_SCHEMA) == []
+
+
+def test_f3g_automatic_depth_is_the_string_auto():
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackAuto": True, "tensionCrackWater": 1}]), PROB)
+    assert case["model"]["analysis"]["tension_crack"] == {"depth": "auto", "water_fill": 1.0}
+
+
+def test_f3g_ponded_water_without_crack_keeps_the_minimum_version_and_the_line():
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{}], piezo=_PONDED), PROB)
+    assert case["model"]["version"] == "0.3" and "tension_crack" not in case["model"]["analysis"]
+    assert case["model"]["water"]["piezometric_line"] == _PONDED
+    assert imp.gate_f3g(case, F3G_SCHEMA) == []
+    with pytest.raises(imp.Omit, match="agua embalsada"):        # the earlier batches still omit it
+        imp.convert(_raw_f3g([{}], piezo=_PONDED), PROB)
+    with pytest.raises(imp.Omit, match="agua embalsada"):
+        imp.convert_f3(_raw_f3g([{}], piezo=_PONDED), PROB)
+
+
+def test_f3g_checks_with_another_crack_go_to_another_case():
+    raw = _raw_f3g([{"tensionCrackDepth": 2, "tensionCrackWater": 1}, {"tensionCrackAuto": True, "tensionCrackWater": 1},
+                    {"tensionCrackDepth": 2, "tensionCrackWater": 1}])
+    first, second = imp.convert_f3g(raw, PROB)
+    assert (first[0]["id"], second[0]["id"]) == ("T-IMP", "T-IMP-auto")
+    assert second[0]["model"]["meta"]["id"] == "T-IMP-auto"
+    assert [c["published"] for c in first[0]["checks"]] == [1.0, 3.0] and [c["published"] for c in second[0]["checks"]] == [2.0]
+    assert first[0]["model"]["analysis"]["tension_crack"]["depth"] == 2.0
+    assert second[0]["model"]["analysis"]["tension_crack"]["depth"] == "auto"
+    assert any("derivado de T-IMP" in n for n in second[0]["source"]["notes"])
+
+
+def test_f3g_composite_base_and_partial_factors_discard_their_check_not_the_case():
+    (case, disc, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0}, {"tensionCrackDepth": 2.0, "compositeBase": True},
+                                                 {"tensionCrackDepth": 2.0, "partialFactors": {"cu": 1.4}}]), PROB)
+    assert [c["published"] for c in case["checks"]] == [1.0]
+    assert len(disc) == 2 and any("compositeBase" in d for d in disc) and any("partialFactors" in d for d in disc)
+    with pytest.raises(imp.Omit, match="opción de check"):       # the earlier batches omit the whole case
+        imp.convert_f3(_raw_f3g([{"tensionCrackDepth": 2.0}]), PROB)
+
+
+def test_f3g_phreatic_correction_is_accepted_with_a_note_and_other_heads_are_not():
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0, "porePressureHead": "phreatic-correction"}]), PROB)
+    assert imp.PHREATIC_NOTE in case["source"]["notes"]
+    with pytest.raises(imp.Omit, match="sin checks válidos"):
+        imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0, "porePressureHead": "other"}]), PROB)
+
+
+def test_f3g_point_left_on_the_edge_by_float_noise_belongs_to_its_only_face():
+    raw = _raw_f3g([{}], regionAssignments=[{"point": [0.0, 5.0], "materialName": "Soil"}])
+    case, _, _ = imp._convert(raw, PROB, v02=True, f3=True, f3g=True)
+    assert [r["material"] for r in case["model"]["regions"]] == ["soil"]
+    with pytest.raises(imp.Omit, match="sobre el borde"):        # the earlier batches keep refusing it
+        imp.convert_f3(raw, PROB)
+
+
+@pytest.mark.parametrize("mutate, match", [
+    (lambda m: m.update(version="0.3"), "version"),
+    (lambda m: m["analysis"]["tension_crack"].update(depth=0), "depth"),
+    (lambda m: m["analysis"]["tension_crack"].update(depth="deep"), "depth|schema|valid"),
+    (lambda m: m["analysis"]["tension_crack"].update(water_fill=1.5), "water_fill"),
+    (lambda m: m["analysis"]["tension_crack"].pop("water_fill"), "water_fill"),
+    (lambda m: m["analysis"]["tension_crack"].update(x=3.0), "x|additional"),
+    (lambda m: m.pop("water"), "unit_weight"),
+])
+def test_gate_f3g_rejects_what_f5_2_rejects(mutate, match):
+    (case, _, _), = imp.convert_f3g(_raw_f3g([{"tensionCrackDepth": 2.0, "tensionCrackWater": 1}]), PROB)
+    case = copy.deepcopy(case)
+    mutate(case["model"])
+    assert re.search(match, " ".join(imp.gate_f3g(case, F3G_SCHEMA))), imp.gate_f3g(case, F3G_SCHEMA)
+
+
+def _f3g_files(sub=""):
+    paths = sorted(glob.glob(os.path.join(F3G_DIR, sub, "V*.json")))
+    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8")) for p in paths}
+
+
+def test_the_f3g_batch_is_x18_d_81_ready_checks_and_5_held():
+    ready, held = _f3g_files(), _f3g_files("hold")
+    assert sum(len(c["checks"]) for c in ready.values()) == 81 and len(ready) == 32
+    assert sum(len(c["checks"]) for c in held.values()) == 5 and sorted(held) == ["V009b", "V087", "V092"]
+    # X18 §3.1 D: 86 checks of 33 problems; V086b is split in two cases because the crack is a field of the model
+    assert len({i.split("-")[0] for i in {**ready, **held}}) == 33
+    assert "V086b-auto" in ready and set(ready) | set(held) == {i for i in {**ready, **held}}
+    hold_keys = {(e["id"], e["method"], e["published"]) for e in json.load(open(os.path.join(F3G_DIR, "HOLD.json"), encoding="utf-8"))}
+    assert hold_keys == {(c["id"], k["method"], k["published"]) for c in held.values() for k in c["checks"]}
+    assert not hold_keys & {(c["id"], k["method"], k["published"]) for c in ready.values() for k in c["checks"]}
+    for entry in json.load(open(os.path.join(F3G_DIR, "HOLD.json"), encoding="utf-8")):
+        assert entry["cslope"] and entry["diagnosis"] and "Convención de tolerancia" in entry["diagnosis"]
+
+
+def test_the_f3g_cases_pass_the_gates_and_use_the_minimum_version():
+    for cid, case in {**_f3g_files(), **_f3g_files("hold")}.items():
+        assert imp.gate_f3g(case, F3G_SCHEMA) == [] and imp.gate_search(case) == [], cid
+        assert imp.gate_loads(case) == [] and imp.gate_features(case) == [], cid
+        crack = case["model"]["analysis"].get("tension_crack")
+        assert case["model"]["version"] == ("0.5" if crack else "0.3"), cid
+        assert case["id"] == cid and case["model"]["meta"]["id"] == cid
+        assert "reinforcements" not in case["model"], cid
+        if crack and crack["water_fill"] > 0:
+            assert case["model"]["water"]["unit_weight"] == 9.807, cid       # the oracle's water weight
+
+
+def test_the_f3g_cases_without_a_crack_all_have_ponded_water():
+    for cid, case in {**_f3g_files(), **_f3g_files("hold")}.items():
+        if case["model"]["analysis"].get("tension_crack"):
+            continue
+        outline = unary_union([Polygon(r["polygon"]) for r in case["model"]["regions"]])
+        assert imp.water_above_ground(outline, case["model"]["water"]["piezometric_line"]), cid
+
+
+def test_the_f3g_index_lists_the_cases_the_hold_and_the_tolerance_convention():
+    index = open(os.path.join(F3G_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "**32** casos con **81** checks" in index and "**5** checks" in index
+    assert "Convención de tolerancia" in index and "V086b-auto" in index and "hold/REPORT.md" in index
+    for cid in _f3g_files():
+        assert f"| {cid} |" in index
+
+
+def _clone():
+    for cand in (os.environ.get("CSLOPE_SRC"), os.path.join(os.environ.get("TMPDIR", ""), "cslope-src")):
+        if cand and os.path.isfile(os.path.join(cand, "packages", "engine-rs", "golden", "verification.json")):
+            return cand
+    return None
+
+
+@pytest.mark.skipif(_clone() is None, reason="needs the cSlope clone (CSLOPE_SRC or $TMPDIR/cslope-src)")
+def test_the_importer_is_idempotent_and_reproduces_pending_f3g(tmp_path):
+    """Run on a copy of the tree: the F3G files are the ones in the repo and a second run writes nothing of F3G."""
+    import shutil
+    root = tmp_path / "repo"
+    for sub in ("verification", "schema", "NOTICE"):
+        src = os.path.join(ROOT, sub)
+        (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
+    argv = ["import_cslope.py", "--src", _clone(), "--root", str(root)]
+    import sys
+    old = sys.argv
+    try:
+        sys.argv = argv
+        assert imp.main() == 0
+        first = {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification" / "pending" / "F3G").rglob("*") if p.is_file()}
+        assert imp.main() == 0
+        second = {p.relative_to(root).as_posix(): p.read_bytes() for p in (root / "verification" / "pending" / "F3G").rglob("*") if p.is_file()}
+    finally:
+        sys.argv = old
+    assert first == second
+    for rel, data in first.items():
+        with open(os.path.join(ROOT, rel), "rb") as fh:
+            assert fh.read() == data, rel

@@ -1,0 +1,143 @@
+{
+  "id": "V086c",
+  "title": "Tandjiria embankment, sand fill, dry crack",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V086c",
+      "title": "Tandjiria embankment, sand fill, dry crack",
+      "notes": "The V086 embankment as a sand fill (φ′ = 37°, γ = 17) on soft clay (Su = 20 kPa, γ = 20) with a dry 2 m tension crack, unreinforced; circular search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 37.0,
+        "ru": null
+      },
+      {
+        "id": "soft_clay",
+        "name": "Soft clay",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 20.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            0.0,
+            3.0
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            10.0,
+            9.0
+          ],
+          [
+            20.0,
+            3.0
+          ]
+        ]
+      },
+      {
+        "material": "soft_clay",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            3.0
+          ],
+          [
+            20.0,
+            3.0
+          ],
+          [
+            30.0,
+            3.0
+          ],
+          [
+            30.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      },
+      "tension_crack": {
+        "depth": 2.0,
+        "water_fill": 0.0
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.209,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020413564929693963,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.218,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020410509031198686,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443.",
+    "derived_from": "cSlope verification problem V086c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "program D gives 1.200 on the reference circle; Tandjiria 1.219.",
+      "Commercial program A's version. Tandjiria et al. give the sand fill no tension crack (it is mentioned only for the clay fill, p. 431, and their Fig. 6a circle reaches the crest) and a 30° face; their 1.219 is checked on that input in V086e.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 2 m, fracción de agua 0 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

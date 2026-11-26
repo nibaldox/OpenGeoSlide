@@ -1,0 +1,94 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D28",
+    "title": "Embalse al pie, 2 m",
+    "notes": "ACADS 1(a) con la piezométrica horizontal en y = 27, 2 m sobre el pie (30, 25): el agua embalsada cubre la banqueta del pie. Versión 0.1: el agua embalsada se aplica en todas las versiones (D1)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 3.0,
+      "friction_angle": 19.6,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          20.0,
+          20.0
+        ],
+        [
+          20.0,
+          25.0
+        ],
+        [
+          30.0,
+          25.0
+        ],
+        [
+          50.0,
+          35.0
+        ],
+        [
+          70.0,
+          35.0
+        ],
+        [
+          70.0,
+          20.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        27.0
+      ],
+      [
+        100.0,
+        27.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 32.55649204292375,
+      "yc": 46.5283183313195,
+      "r": 21.679666431326257
+    }
+  }
+}

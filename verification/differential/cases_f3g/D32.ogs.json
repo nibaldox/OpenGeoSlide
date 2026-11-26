@@ -1,0 +1,88 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D32",
+    "title": "Grieta seca de 3 m",
+    "notes": "Corte de 20 m, 2H:1V, en un suelo c = 20 kPa, φ = 30°, γ = 19: grieta seca de 3 m (Rankine da 3,65 m). Sin piezométrica. Deslizamiento hacia +x."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Suelo",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 20.0,
+      "friction_angle": 30.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          20.0
+        ],
+        [
+          20.0,
+          20.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 47.34927355399914,
+      "yc": 33.46500348635452,
+      "r": 34.26241004670533
+    },
+    "tension_crack": {
+      "depth": 3.0,
+      "water_fill": 0.0
+    }
+  }
+}

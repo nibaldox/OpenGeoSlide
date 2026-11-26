@@ -1,0 +1,102 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D38",
+    "title": "Sismo, embalse y grieta",
+    "notes": "ACADS 1(a) con kh = 0,10, embalse de 2 m al pie y una grieta de 2 m llena a la mitad: el sismo no actúa sobre el agua embalsada ni sobre la fuerza de la grieta (E7), solo sobre el suelo."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 3.0,
+      "friction_angle": 19.6,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          20.0,
+          20.0
+        ],
+        [
+          20.0,
+          25.0
+        ],
+        [
+          30.0,
+          25.0
+        ],
+        [
+          50.0,
+          35.0
+        ],
+        [
+          70.0,
+          35.0
+        ],
+        [
+          70.0,
+          20.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        27.0
+      ],
+      [
+        100.0,
+        27.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 32.828659913418406,
+      "yc": 46.92813142699123,
+      "r": 22.109917764737766
+    },
+    "seismic": {
+      "kh": 0.1,
+      "kv": 0.0
+    },
+    "tension_crack": {
+      "depth": 2.0,
+      "water_fill": 0.5
+    }
+  }
+}

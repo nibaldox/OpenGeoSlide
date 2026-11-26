@@ -1,0 +1,139 @@
+{
+  "id": "V080",
+  "title": "Priest (1993) rigid block, reference geometry (60° face)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.5",
+    "meta": {
+      "id": "V080",
+      "title": "Priest (1993) rigid block, reference geometry (60° face)",
+      "notes": "Priest's example 8.1 with his geometry: a 60° face 30 m high (crest at x = 17.321), a 30° plane from the toe, a vertical 15 m tension crack 8.66 m behind the crest holding 3.75 m of water, and a water table rising from the toe to 3.75 m above the plane at the crack."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "block",
+        "name": "Block",
+        "model": "mohr_coulomb",
+        "unit_weight": 25.0,
+        "unit_weight_sat": null,
+        "cohesion": 20.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "block",
+        "polygon": [
+          [
+            -25.0,
+            -15.0
+          ],
+          [
+            -25.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            17.321,
+            30.0
+          ],
+          [
+            60.0,
+            30.0
+          ],
+          [
+            60.0,
+            -15.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -25.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          25.981,
+          18.75
+        ],
+        [
+          60.0,
+          18.75
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            51.962,
+            30.0
+          ]
+        ]
+      },
+      "tension_crack": {
+        "depth": 15.0,
+        "water_fill": 0.25
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.049,
+      "published_by": "Priest",
+      "tolerance": 0.010476644423260248,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Priest, S.D. (1993). Discontinuity Analysis for Rock Engineering. Chapman & Hall, London; example 8.1, pp. 224–225.",
+    "derived_from": "cSlope verification problem V080 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Crest at (17.321, 30) as in Priest's fig. 8.2 and solution (his corners A (0, 0), B (17.32, 30), C (25.98, 30), D (25.98, 15); G = 8119 kN, U = 551 kN, V = 68.9 kN; γw = 9.8 in his solution, 9.807 here, 0.0001 on F) and in commercial program B's Fig. 106; V079 is the other programs' version with the crest at 17.0. commercial program B Janbu 1.049.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "grieta de tracción: profundidad 15 m, fracción de agua 0.25 (cSlope tensionCrackDepth y tensionCrackWater); en ogs es `analysis.tension_crack {depth, water_fill}` (F5.2)."
+    ]
+  }
+}

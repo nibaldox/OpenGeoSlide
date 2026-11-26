@@ -1,0 +1,133 @@
+{
+  "id": "V070",
+  "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V070",
+      "title": "Partial drawdown, B̄ = 1 (Morgenstern chart)",
+      "notes": "Homogeneous embankment after a partial drawdown from 100 to 50 ft with B̄ = 1: the piezometric line follows the face above the pool and stays at the pool below it, which loads the submerged face. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "morgenstern_soil",
+        "name": "Morgenstern soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.60452,
+        "unit_weight_sat": null,
+        "cohesion": 14.93864,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "morgenstern_soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            91.44,
+            30.48
+          ],
+          [
+            113.6904,
+            30.48
+          ],
+          [
+            113.6904,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          15.24
+        ],
+        [
+          45.72,
+          15.24
+        ],
+        [
+          91.44,
+          30.48
+        ],
+        [
+          113.6904,
+          30.48
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.417,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02035285815102329,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.41,
+      "published_by": "Morgenstern chart",
+      "tolerance": 0.033546099290780146,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.422,
+      "published_by": "Program D",
+      "tolerance": 0.020351617440225036,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Morgenstern (1963).",
+    "derived_from": "cSlope verification problem V070 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Morgenstern (1963), example II, p. 130: drawdown to H/2 gives 1.52 (tangent to the base), 1.48 (tangent to H/2) and 1.41 (tangent to H/4, interpolated 1.31 + 0.30/3). The charts are Bishop simplified (Little & Price), γ = 2γw, B̄ = 1 (docs/kallor/morgenstern-1963.md). A duplicated first coordinate was removed 2026-10-25 (no effect).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

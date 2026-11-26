@@ -1,0 +1,220 @@
+{
+  "id": "V038b",
+  "title": "Homogeneous dam with a piezometric line, Duncan & Wright's input",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V038b",
+      "title": "Homogeneous dam with a piezometric line, Duncan & Wright's input",
+      "notes": "The V038 dam with the unit weight Duncan, Wright & Brandon's slice calculations use (125 pcf) and their printed phreatic line (30 points, Fig. 7.31); critical-circle search. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.63593,
+        "unit_weight_sat": null,
+        "cohesion": 4.78803,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            30.48,
+            12.192
+          ],
+          [
+            36.576,
+            14.6304
+          ],
+          [
+            41.148,
+            14.6304
+          ],
+          [
+            77.724,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          30.48,
+          12.192
+        ],
+        [
+          31.18104,
+          11.8872
+        ],
+        [
+          32.3088,
+          11.5824
+        ],
+        [
+          33.55848,
+          11.33856
+        ],
+        [
+          35.052,
+          11.06424
+        ],
+        [
+          36.45408,
+          10.8204
+        ],
+        [
+          38.37432,
+          10.54608
+        ],
+        [
+          39.86784,
+          10.30224
+        ],
+        [
+          41.23944,
+          10.0584
+        ],
+        [
+          42.73296,
+          9.84504
+        ],
+        [
+          44.22648,
+          9.57072
+        ],
+        [
+          45.8724,
+          9.32688
+        ],
+        [
+          47.45736,
+          9.05256
+        ],
+        [
+          48.768,
+          8.80872
+        ],
+        [
+          50.32248,
+          8.5344
+        ],
+        [
+          51.99888,
+          8.19912
+        ],
+        [
+          53.46192,
+          7.89432
+        ],
+        [
+          54.95544,
+          7.62
+        ],
+        [
+          56.29656,
+          7.3152
+        ],
+        [
+          58.0644,
+          6.91896
+        ],
+        [
+          59.55792,
+          6.58368
+        ],
+        [
+          61.1124,
+          6.21792
+        ],
+        [
+          62.6364,
+          5.7912
+        ],
+        [
+          63.97752,
+          5.42544
+        ],
+        [
+          66.05016,
+          4.66344
+        ],
+        [
+          67.17792,
+          4.20624
+        ],
+        [
+          68.8848,
+          3.53568
+        ],
+        [
+          73.3044,
+          1.76784
+        ],
+        [
+          77.724,
+          0.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.16,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.02431034482758621,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan, J.M., Wright, S.G. & Brandon, T.L. (2014). Soil Strength and Slope Stability, 2nd ed., Wiley; §7.7, Figs. 7.30–7.36, Table 7.8.",
+    "derived_from": "cSlope verification problem V038b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,1578 (Spencer) y con rtl 1,9342 en el primer check, frente al publicado 1,16.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}

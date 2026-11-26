@@ -68,9 +68,16 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
   interiores), `regionAssignments = [{point, materialName}]` (un punto por región).
 - **Materiales**: `materials[] = {name, model}`; `model = {kind: "mohr-coulomb", unitWeight, cohesion,
   frictionAngle, unitWeightSat, ru}`. Sin `unitWeightSat`, el peso bajo la freática es γ.
-- **Agua**: `waterTable = {mode: "custom", value: [[x, y], ...], freeWater: false}` (`freeWater: false`
-  recorta la línea al terreno, como ogs). Varias líneas: `waterTables = [{id, coordinates, freeWater}]` y
-  `materials[].waterTableId`.
+- **Agua**: `waterTable = {mode: "custom", value: [[x, y], ...], freeWater: true, followBoundary: false}`. Con
+  `freeWater: true` y `followBoundary: false` cSlope carga el **agua embalsada** (peso, empuje horizontal y presión
+  de poros) donde la línea pasa sobre el terreno, como ogs en todas las versiones (F5.3, decisión D1); `freeWater` tiene
+  precedencia sobre `followBoundary`, y `freeWater: false` con `followBoundary: false` es un error
+  (`conflicting-free-water`). Antes de F3G el conversor escribía `freeWater: false`, que recorta la línea al terreno.
+  Donde la línea no pasa sobre el terreno el resultado no cambia (ver «Identidad» abajo). Varias líneas:
+  `waterTables = [{id, coordinates, freeWater}]` y `materials[].waterTableId`.
+- **Grieta de tracción**: `options.tensionCrackDepth` (m, > 0), `options.tensionCrackAuto` (profundidad automática
+  de Rankine) y `options.tensionCrackWater` (**fracción** 0 a 1 de la grieta llena). cSlope corta la superficie donde su
+  profundidad iguala la de la grieta y pone `½·γw·hw²` en la primera dovela (X18 §2).
 - **Dirección**: `definition.orientation` ∈ {`ltr`, `rtl`}; `rtl` = la masa se mueve hacia −x. Los rangos
   y las superficies fijas van en coordenadas del modelo, también con `rtl`.
 - **Peso del agua**: la opción `waterUnitWeight` existe en el código fuente, pero **el motor instalado
@@ -90,7 +97,8 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
 | `ru` sin `piezometric_line` | `model.ru` (exacto si σv coincide, ver abajo) |
 | `ru` con `piezometric_line` | `model.ru` + material con `waterTableId` a una línea seca (`ogs-ru-no-water`) |
 | `ru` + piezométrica + `unit_weight_sat` | **no mapeable**: se rechaza (`UnsupportedModel`) |
-| `water.piezometric_line` | `waterTable {mode: custom, freeWater: false}` (puntos ordenados por x) |
+| `water.piezometric_line` | `waterTable {mode: custom, freeWater: true, followBoundary: false}` (puntos ordenados por x) |
+| `analysis.tension_crack {depth, water_fill}` (v0.5) | `options.tensionCrackDepth` ó `tensionCrackAuto: true` (si `depth` es `"auto"`), y `tensionCrackWater = water_fill` (siempre escrita); con `water_fill > 0` rige el mismo γw de cSlope (9.807) que con la piezométrica |
 | superficie fija (círculo) | `customSearchPlanes` + `customPlanesOnly` |
 | `search.entry`, `search.exit` | `analysisLimits` (si se omiten: rango total del terreno) |
 | `slope.direction` | `orientation` (`left_to_right`→`ltr`, `right_to_left`→`rtl`; `auto` según el contrato) |
@@ -99,6 +107,21 @@ Fuentes: el paquete instalado (`cslope/__init__.py`, `__init__.pyi`, `model.py`)
 | `search.n_entry·n_exit·n_radius` | `iterations` (clamp 500..100000) |
 | `search.refine` | `refinedIterations` 1500 / 0 |
 | `search.min_width` (o 1 % del ancho) | `minFailureDist` (aproximado) |
+
+### Identidad del conversor sin agua sobre el terreno (F3G)
+
+Pasar la línea a `freeWater: true` / `followBoundary: false` **no cambia ningún FS** cuando la piezométrica no pasa sobre el
+terreno. Medido con el oráculo (cslope 0.1.0), antes y después del cambio del conversor:
+
+- **informe de aceptación** (`run.py --oracle-only` sobre `verification/cases`): 243 checks, cSlope reproduce **242 de 243**
+  antes y después, con el mismo resumen; 213 FS idénticos bit a bit y 30 (casos V021a a V021g, V033, V045, V046b, V054,
+  V096e y V097a, con piezométrica) con una diferencia relativa ≤ 2,0e-12 (ruido de redondeo);
+- **batería diferencial**: 139 FS de cSlope comparados (56 de la base, 71 de la Fase 3a y 12 de refuerzos): 131 idénticos y
+  el resto con diferencia ≤ 2,7e-15; búsqueda 28/28, superficie fija 28/28, Fase 3a 71/71 y refuerzos 12/12 como antes;
+- `test_to_cslope.py::test_oracle_is_unchanged_without_ponded_water`: tres piezométricas bajo el terreno o sobre él sin
+  superar (una de ellas apoyada en la banqueta), tres métodos, documento viejo contra nuevo, `rel ≤ 1e-9`;
+- `test_to_cslope.py::test_oracle_rows_of_x21_through_the_converter`: las 55 filas migradas de X21
+  (`crates/ogs-core/tests/data/f3g`) pasan por el conversor y reproducen sus cifras del oráculo a 1e-6.
 
 ### Sismo y cargas (esquema v0.2, F1.1)
 

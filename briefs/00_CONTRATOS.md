@@ -554,7 +554,9 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
     `String` con el `SurfaceError`);
   - si el método falla (`Invalid` o `NotConverged`), **no** es un error: se reporta con su estado.
 - **Aviso de agua sobre el terreno:** solo en dovelas de suelo, con tolerancia `1e-9 · escala del modelo`, evaluando
-  los extremos y el punto medio de la dovela.
+  los extremos y el punto medio de la dovela. Desde F5.3 (E15c) el código `water_above_ground` es una **nota
+  informativa** y no un aviso de que el agua se ignora; su texto es: «La piezométrica queda sobre el terreno: el agua
+  embalsada se incluye con su peso y su empuje horizontal (sin sismo).» El nombre del código no cambia.
 - `PreparedModel::piezometric_y`: NaN → `None`; ±∞ → valor del extremo correspondiente.
 - **(Enmienda E6.)** El `Display` de `OgsError` tiene la forma `"<Código>: <mensaje en español>"`, con
   `Código ∈ {InvalidModel, NoSurface, NoValidSurface, Json}`. Por ejemplo:

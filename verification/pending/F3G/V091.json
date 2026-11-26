@@ -1,0 +1,205 @@
+{
+  "id": "V091",
+  "title": "USACE example E-2 (fig. E-10), ponded water",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V091",
+      "title": "USACE example E-2 (fig. E-10), ponded water",
+      "notes": "Undrained three-layer slope with 8 ft of water ponded against its toe (pool el. 0), on a commercial program's circle (48.262, 28, R = 47.683 ft; Fig. 68.2). Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil 1",
+        "model": "undrained",
+        "unit_weight": 18.8504952,
+        "unit_weight_sat": null,
+        "undrained_strength": 28.728156,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "soil_2",
+        "name": "Soil 2",
+        "model": "undrained",
+        "unit_weight": 15.708746,
+        "unit_weight_sat": null,
+        "undrained_strength": 19.152104,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "soil_3",
+        "name": "Soil 3",
+        "model": "undrained",
+        "unit_weight": 16.4941833,
+        "unit_weight_sat": null,
+        "undrained_strength": 23.94013,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            15.24,
+            1.2192
+          ],
+          [
+            18.288,
+            4.8768
+          ],
+          [
+            30.48,
+            4.8768
+          ],
+          [
+            30.48,
+            1.2192
+          ]
+        ]
+      },
+      {
+        "material": "soil_2",
+        "polygon": [
+          [
+            12.192,
+            -2.4384
+          ],
+          [
+            15.24,
+            1.2192
+          ],
+          [
+            30.48,
+            1.2192
+          ],
+          [
+            30.48,
+            -2.4384
+          ]
+        ]
+      },
+      {
+        "material": "soil_3",
+        "polygon": [
+          [
+            0.0,
+            -6.096
+          ],
+          [
+            0.0,
+            -2.4384
+          ],
+          [
+            12.192,
+            -2.4384
+          ],
+          [
+            30.48,
+            -2.4384
+          ],
+          [
+            30.48,
+            -6.096
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          30.48,
+          0.0
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 14.7102576,
+        "yc": 8.5344,
+        "r": 14.5337784
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.241,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01040290088638195,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.241,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01040290088638195,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.244,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.01040192926045016,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.385,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01036101083032491,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "USACE EM 1110-2-1902 (2003), appendix E, example E-2, fig. E-10.",
+    "derived_from": "cSlope verification problem V091 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The text describes USACE's circle (center 8.4 ft right of and 36 ft above the toe, tangent to the base of soil 3: 48.4, 28, R = 48); commercial program A's printed circle is slightly smaller. cSlope gives the same FOS on both (1.235).",
+      "The water above the toe acts as a load on the ground surface. The manual's chart value for this circle is 1.24 (p. E-20: c_avg 499 psf, μw 0.95, Pd 2253, N0 5.6); an earlier entry gave 1.33, which does not occur in the manual for this example (checked against docs/kallor/usace-em-1110-2-1902.md, 2026-10-25).",
+      "With φ = 0 in every layer the moment equilibrium about the center does not depend on the interslice forces, so Bishop, Spencer and Morgenstern-Price coincide on a circle (cSlope 1.2348, 1.2348, 1.2349); commercial program A's GLE 1.244 lies 0.24 % above its own Bishop and Spencer 1.241.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "agua embalsada: la piezométrica pasa sobre el terreno; ogs la incluye en todas las versiones, con su peso y su empuje horizontal y sin sismo (F5.3); cSlope la carga con `followBoundary: false`."
+    ]
+  }
+}
