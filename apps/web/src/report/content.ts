@@ -8,7 +8,7 @@ import { geotechAdvisories, piezoExtension } from '../editor/state/geotech';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
-import { reportCircle } from '../engine/surface';
+import { isPolylineReport, reportCircle } from '../engine/surface';
 import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
 import { INTERSLICE_LABEL, correctionFactorText, intersliceText, methodDetails, surfaceSummary } from './methodInfo';
@@ -237,7 +237,7 @@ function primaryResult(results: MethodReport[]): MethodReport | undefined {
 
 /** Puntos de la polilínea ajustada del informe (ya prolongada o recortada al terreno por el motor, F3.7); null si la superficie es un círculo. */
 function reportPolyline(r: MethodReport): Point[] | null {
-  return 'points' in r.surface ? r.surface.points.map((p): Point => [p[0], p[1]]) : null;
+  return isPolylineReport(r.surface) ? r.surface.points.map((p): Point => [p[0], p[1]]) : null;
 }
 
 function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bounds']): Point[] {
@@ -384,7 +384,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   if (surface) {
     // Solo un método convergido da la superficie crítica; si ninguno convergió, es la superficie evaluada sin resultado.
     const converged = res?.status === 'converged';
-    const fixedPolyline = res !== undefined && 'points' in res.surface;
+    const fixedPolyline = res !== undefined && isPolylineReport(res.surface);
     legend.push({
       kind: 'surface',
       label: converged

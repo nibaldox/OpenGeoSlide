@@ -1,6 +1,7 @@
 // Textos de la superficie del informe, la función de interfaz de Morgenstern-Price y el factor de Janbu (F3.5, F3.7, F3.9).
 // Los comparten la tabla de resultados, el CSV y el PDF, para que digan lo mismo. Puro: sin React ni DOM.
 
+import { isPolylineReport } from '../engine/surface';
 import type { IntersliceFunction, IntersliceSpec, MethodReport, ReportSurface } from '../engine/types';
 
 /** Nombres de las funciones de interfaz, fijos por F3.9. */
@@ -56,5 +57,5 @@ export function polylineSummary(n: number): string {
 
 /** Resumen de una superficie polilínea del informe; null si es un círculo (que se describe con centro y radio). */
 export function surfaceSummary(surface: ReportSurface): string | null {
-  return 'points' in surface ? polylineSummary(surface.points.length) : null;
+  return isPolylineReport(surface) ? polylineSummary(surface.points.length) : null;
 }

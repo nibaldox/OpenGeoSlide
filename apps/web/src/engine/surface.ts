@@ -1,7 +1,7 @@
-// Acceso a las superficies como círculo mientras la web no maneja polilíneas (F3.3).
-// Con la v0.3, `SurfaceSpec` y `MethodReport.surface` son uniones: el código que solo sabe de círculos pasa por
-// estas funciones, que devuelven null ante una polilínea en lugar de leer campos que no existen.
-// F3-W1e/W1f reemplazan esos usos por el soporte completo de la polilínea.
+// Estrechamiento de las superficies (F3.3): `SurfaceSpec` y `MethodReport.surface` son uniones círculo | polilínea.
+// Estas funciones son los guardas permanentes de tipo (ya no son un puente provisional): el código que trabaja con el centro y
+// el radio (tiradores del círculo, columnas xc/yc/r, arco del informe) las usa y recibe null ante una polilínea; el código de la
+// polilínea usa `isPolylineReport` o `surface.type === 'polyline'`. Inventario de usos: docs/fase3/iw/NOTAS.md.
 
 import type { Circle, CircleSurfaceSpec, PolylineReportSurface, ReportSurface, SurfaceSpec } from './types';
 
