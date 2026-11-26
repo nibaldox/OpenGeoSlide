@@ -243,7 +243,8 @@ class Writer {
   }
 
   table(header: string[], rows: string[][], title?: string): void {
-    const size = 8.5;
+    // Una tabla de 11 columnas o más (la de fuerzas con Ito-Matsui, E15i-7) baja la letra para que ninguna palabra se parta.
+    const size = header.length >= 11 ? 7 : 8.5;
     const lh = this.lineHeight(size);
     // Ancho de columna proporcional al contenido, pero nunca menor que la palabra más larga de la cabecera (B-07).
     const widths = tableColumnWidths(this.doc, header, rows, size);
