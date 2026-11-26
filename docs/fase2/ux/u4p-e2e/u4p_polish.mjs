@@ -110,7 +110,8 @@ async function openMenu(page, name) {
   await openMenu(page, 'Archivo');
   const labels = await page.locator('select[aria-label="Abrir un caso publicado como modelo"] option').allInnerTexts();
   const english = labels.filter((l) => /\b(slope|dry|water table|homogeneous|layer|wall|cutting|surcharge|earth dam|example)\b/i.test(l));
-  step('5b los 21 ejemplos con nombre en español', labels.length === 22 && english.length === 0, { n: labels.length, english });
+  // I-W: 62 y no 22: la promoción de F3a elevó los casos de verificación de 21 a 61 (más la opción vacía del selector).
+  step('5b los 61 ejemplos con nombre en español', labels.length === 62 && english.length === 0, { n: labels.length, english });
   step('5c el id se conserva en el listado', labels.some((l) => l.startsWith('V047a: ACADS 1(a): talud homogéneo seco (Giam y Donald, 1989)')), labels.slice(0, 3));
   await ctx.close();
 }
