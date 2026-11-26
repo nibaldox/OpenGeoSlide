@@ -1,9 +1,9 @@
-# Casos de verificación v0.1 a v0.4 (desde cSlope)
+# Casos de verificación v0.1 a v0.5 (desde cSlope)
 
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **116** (v0.1: **41**, v0.2 con sismo o cargas: **5**, v0.3: **47**, v0.4 con refuerzos: **23**), con **243** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **147** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **17**), con **323** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (v0.3 si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -125,6 +125,37 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V084f | Soil-nailed wall in sand (Clouterre test wall), 70° plane | Sheahan & Ho (2003). | SI | carga lineal p = 13.2 en x = 11.7, ángulo 0° | 0 / 0 / 0 / 0 / 1 | fixed | 0.4 |
 | V015 | Soldier-pile tieback wall | Caltrans soil nail reference manual. | SI | — | 0 / 0 / 0 / 1 / 1 | fixed | 0.4 |
 | V095c | Homogeneous slope with a micro-pile row | Yamagami et al. (2000). | SI | — | 1 / 0 / 0 / 0 / 0 | fixed | 0.4 |
+| V023 | LASH terminal trench, Duncan's Taylor series example | Duncan (2000), J. Geotech. Geoenviron. Eng. 126(4). | SI | — | 0 / 1 / 0 / 0 / 0 | fixed | 0.3 |
+| V024 | Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39) | Duncan & Wright, Soil Strength and Slope Stability, figs. 6.39–6.40. | SI | — | 3 / 1 / 0 / 0 / 0 | fixed | 0.1 |
+| V038 | Homogeneous dam with a piezometric line (D&W fig. 7.19) | Duncan & Wright, Soil Strength and Slope Stability, fig. 7.19. | SI | — | 2 / 1 / 0 / 0 / 0 | search | 0.1 |
+| V038b | Homogeneous dam with a piezometric line, Duncan & Wright's input | Duncan, J.M., Wright, S.G. & Brandon, T.L. (2014). Soil Strength and Slope Stability, 2nd ed., Wiley; §7.7, Figs. 7.30–7.36, Table 7.8. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.1 |
+| V041a | Submerged slope, pool 30 ft above the crest (D&W fig. 6.27) | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27. | SI | — | 1 / 2 / 0 / 0 / 0 | search | 0.1 |
+| V041b | Submerged slope, pool 60 ft above the crest (D&W fig. 6.27) | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27. | SI | — | 1 / 2 / 0 / 0 / 0 | search | 0.1 |
+| V042 | Thick-core dam with a piezometric line (D&W fig. 7.24) | Duncan & Wright, Soil Strength and Slope Stability, fig. 7.24. | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.1 |
+| V047b | ACADS tension crack, reference crack depth 3.6 m (results correspond to a dry crack) | Giam & Donald (1989), ACADS problem 1(b). | SI | — | 1 / 0 / 1 / 0 / 0 | search | 0.5 |
+| V048 | ACADS 1(b), water-filled tension crack | Giam & Donald (1989), ACADS problem 1(b). | SI | — | 1 / 1 / 0 / 0 / 1 | search | 0.5 |
+| V058 | Griffiths & Lane example 6, earth dam with full reservoir | Griffiths & Lane (1999), Géotechnique 49(3). | SI | — | 0 / 2 / 0 / 0 / 0 | search | 0.1 |
+| V061 | Clarence Cannon Dam (Wolff & Harr), specified surface | Wolff & Harr (1987). | SI | — | 0 / 1 / 2 / 0 / 0 | fixed | 0.3 |
+| V070 | Partial drawdown, B̄ = 1 (Morgenstern chart) | Morgenstern (1963). | SI | — | 2 / 1 / 0 / 0 / 0 | search | 0.1 |
+| V072a | Pockoski & Duncan test slope 2, dry tension crack | Pockoski & Duncan (2000). | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.5 |
+| V072b | Pockoski & Duncan slope 2, circular search | Pockoski & Duncan (2000). Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 0 / 1 / 0 | search | 0.5 |
+| V073 | Pockoski & Duncan test slope 3, clay seam and dry crack | Pockoski & Duncan (2000). | SI | — | 1 / 1 / 0 / 0 / 0 | search | 0.5 |
+| V079 | Priest (1993) rigid block on a plane, water-filled crack | Priest, S.D. (1993). Discontinuity Analysis for Rock Engineering. Chapman & Hall, London; example 8.1, pp. 224–225. | SI | — | 0 / 1 / 0 / 1 / 0 | fixed | 0.5 |
+| V080 | Priest (1993) rigid block, reference geometry (60° face) | Priest, S.D. (1993). Discontinuity Analysis for Rock Engineering. Chapman & Hall, London; example 8.1, pp. 224–225. | SI | — | 0 / 1 / 1 / 0 / 0 | fixed | 0.5 |
+| V082a | Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap | Sharma (1996); Malkawi et al. (2001). Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.5 |
+| V082b | Sharma (1996) slope, 11 ft tension crack with 6 ft of water | Sharma (1996); Malkawi et al. (2001). Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.5 |
+| V086b | Tandjiria embankment, clay fill, water-filled crack | Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443. | SI | — | 0 / 1 / 1 / 0 / 0 | search | 0.5 |
+| V086b-auto | Tandjiria embankment, clay fill, water-filled crack (auto) | Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.5 |
+| V086c | Tandjiria embankment, sand fill, dry crack | Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443. | SI | — | 0 / 1 / 1 / 0 / 0 | search | 0.5 |
+| V086d | Tandjiria embankment, clay fill, the paper's geometry | Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443; problem 1, Table 2. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.5 |
+| V087 | USACE dam, chart-check properties (EM 1110-2-1902 fig. 4-3) | USACE EM 1110-2-1902 (2003), fig. 4-3. | SI | — | 0 / 0 / 0 / 0 / 1 | fixed | 0.3 |
+| V088 | USACE dam, end of construction (EM 1110-2-1902 fig. 4-1) | USACE EM 1110-2-1902 (2003), fig. 4-1. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.5 |
+| V089 | USACE dam, upstream low pool (EM 1110-2-1902 fig. 4-2) | USACE EM 1110-2-1902 (2003), fig. 4-2. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.3 |
+| V091 | USACE example E-2 (fig. E-10), ponded water | USACE EM 1110-2-1902 (2003), appendix E, example E-2, fig. E-10. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.3 |
+| V092 | USACE example F-6, steady-seepage dam | USACE EM 1110-2-1902, example F-6. | SI | — | 1 / 1 / 1 / 0 / 1 | fixed | 0.3 |
+| V096a | Zhu & Lee heterogeneous slope, dry, deep circle | Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590. | SI | — | 1 / 1 / 1 / 0 / 0 | search | 0.5 |
+| V096b | Zhu & Lee heterogeneous slope with a water table, deep circle | Zhu, D.Y. & Lee, C.F. (2002). Explicit limit equilibrium solution for slope stability. Int. J. Numer. Anal. Meth. Geomech. 26(15), 1573–1590. | SI | — | 1 / 1 / 1 / 0 / 0 | search | 0.5 |
+| V096c | Zhu & Lee slope, surface 3 (the reference circle), dry, 1 m crack | Zhu & Lee (2002), Int. J. Numer. Anal. Meth. Geomech. 26(15). Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.5 |
 
 ## Checks descartados en casos convertidos
 
@@ -137,6 +168,8 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 - V036a: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 0.74): superficie no circular (nonCircularOptimization)
 - V036c: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.018): superficie no circular (nonCircularOptimization)
 - V036d: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.116): superficie no circular (nonCircularOptimization)
+- V041a: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.592): superficie no circular (nonCircularOptimization)
+- V041b: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.59): superficie no circular (nonCircularOptimization)
 - V046a: Bishop (Bishop simplified, Commercial program A, 1.382): Bishop no admite superficies polilínea (contrato F3.6)
 - V046a: Bishop (Bishop simplified, Fredlund & Krahn, 1.377): Bishop no admite superficies polilínea (contrato F3.6)
 - V046b: Bishop (Bishop simplified, Fredlund & Krahn, 1.248): Bishop no admite superficies polilínea (contrato F3.6)
@@ -144,19 +177,28 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 - V046c: Bishop (Bishop simplified, Fredlund & Krahn, 1.124): Bishop no admite superficies polilínea (contrato F3.6)
 - V102a: Morgenstern-Price (Spencer (M-P, constant f(x)), non-circular, Commercial program A (non-circular), 0.999): superficie no circular (nonCircularOptimization)
 - V102b: Morgenstern-Price (Spencer (M-P, constant f(x)), non-circular, Commercial program A (non-circular), 0.997): superficie no circular (nonCircularOptimization)
+- V073: Bishop (Bishop simplified, composite circle, Commercial program A (composite), 1.392): opción compositeBase=True
+- V073: Morgenstern-Price (Spencer (M-P, constant f(x)), composite circle, Commercial program A (composite), 1.4): opción compositeBase=True
 - V093: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.325): superficie no circular (nonCircularOptimization)
 - V093: Janbu (Janbu simplified (uncorrected), Commercial program A (non-circular), 1.178): método no soportado
 - V098: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.36): superficie no circular (nonCircularOptimization)
+- V041a: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.592): superficie no circular (nonCircularOptimization)
+- V041b: Morgenstern-Price (Spencer (M-P, constant f(x)), Commercial program A (non-circular), 1.59): superficie no circular (nonCircularOptimization)
+- V073: Bishop (Bishop simplified, composite circle, Commercial program A (composite), 1.392): opción compositeBase=True
+- V073: Morgenstern-Price (Spencer (M-P, constant f(x)), composite circle, Commercial program A (composite), 1.4): opción compositeBase=True
 
 ## Sentidos de deslizamiento fijados por el importador
 
 - V026: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terraplén simétrico sobre arcilla (ambos pies a y = 50) y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates), el círculo crítico de Duncan & Wright, (500, 174) en el marco del modelo, está en la cara derecha (masa hacia +x) y, al ser la búsqueda simétrica, ogs y cSlope dan el mismo FS con ltr y con rtl.
 - V063: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4).
 - V077: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terreno plano y una polilínea simétrica con los dos extremos a la misma cota, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y el oráculo da el mismo FS con ltr y con rtl.
+- V038: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,0693 (Bishop) y con rtl 2,0808 en el primer check, frente al publicado 1,09.
+- V038b: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,1578 (Spencer) y con rtl 1,9342 en el primer check, frente al publicado 1,16.
+- V058: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): presa con las dos coronas a la misma cota y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y su círculo crítico está en el talud de aguas abajo (derecho). Medido con el oráculo (F3G-V): con ltr da 1,9152 (Spencer) y con rtl 3,2688 en el primer check, frente al publicado 1,9.
 
 ## Problemas con peso saturado (`unitWeightSat`) no incluidos
 
-En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen. Casos incluidos con `unit_weight_sat` en el modelo: **0**. Ninguno de los no incluidos es convertible con las reglas actuales (contrato §1, §2). Motivo de cada uno (el primero que lo impide):
+En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen. Casos incluidos con `unit_weight_sat` en el modelo: **4**. Ninguno de los no incluidos es convertible con las reglas actuales (contrato §1, §2). Motivo de cada uno (el primero que lo impide):
 
 | id | motivo |
 |---|---|
@@ -317,3 +359,92 @@ Con 0 / 0 cruces la superficie fija no corta ningún elemento (en V016b, los tre
 
 
 La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs y del oráculo) está en [`../REPORT.md`](../REPORT.md), sección «Comparación por cruce».
+
+## Grieta de tracción y agua embalsada (lote F3G, v0.5)
+
+**31** casos con **80** checks, promovidos desde `verification/pending/F3G` cuando el motor de la grieta y del agua embalsada (F5.2 y F5.3) reproduce el valor publicado dentro de su tolerancia. Con grieta el caso es v0.5 (`analysis.tension_crack`); sin grieta es v0.3 y el agua embalsada la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en `V086b-auto`. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`), la misma convención de los demás casos; no se relajó ninguna ni se tocó ningún dato.
+
+**6** checks más (V009a, V009b, V085 ×4) quedan retenidos en `verification/pending/F3G` (`HOLD.json`), con los números y la causa medida.
+
+| caso | v | grieta | agua embalsada | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |
+|---|---|---|---|---|---:|---|---:|---:|---:|---:|---:|
+| V023 | 0.3 | — | sí | spencer | 1.145 | Program D | 1.04 | 1.1376 | -0.64 | 1.1381 | -0.60 |
+| V024 | 0.1 | — | sí | bishop | 1.563 | Commercial program A | 1.03 | 1.5723 | +0.60 | 1.5717 | +0.56 |
+| V024 | 0.1 | — | sí | spencer | 1.557 | Commercial program A | 1.03 | 1.5629 | +0.38 | 1.5622 | +0.33 |
+| V024 | 0.1 | — | sí | bishop | 1.57 | Duncan & Wright | 1.32 | 1.5723 | +0.15 | 1.5717 | +0.11 |
+| V024 | 0.1 | — | sí | bishop | 1.572 | Program D | 1.03 | 1.5723 | +0.02 | 1.5717 | -0.02 |
+| V038 | 0.1 | — | sí | bishop | 1.09 | Commercial program A | 2.46 | 1.0958 | +0.53 | 1.0693 | -1.90 |
+| V038 | 0.1 | — | sí | spencer | 1.1 | Commercial program A | 2.45 | 1.0994 | -0.05 | 1.0771 | -2.09 |
+| V038 | 0.1 | — | sí | bishop | 1.07 | Program D | 2.47 | 1.0958 | +2.41 | 1.0693 | -0.06 |
+| V038b | 0.1 | — | sí | spencer | 1.16 | Duncan & Wright | 2.43 | 1.1663 | +0.54 | 1.1578 | -0.19 |
+| V041a | 0.1 | — | sí | bishop | 1.603 | Commercial program A | 2.03 | 1.5977 | -0.33 | 1.5965 | -0.40 |
+| V041a | 0.1 | — | sí | spencer | 1.599 | Commercial program A | 2.03 | 1.5958 | -0.20 | 1.5937 | -0.33 |
+| V041a | 0.1 | — | sí | spencer | 1.6 | Duncan & Wright (reference) | 2.31 | 1.5958 | -0.27 | 1.5937 | -0.39 |
+| V041b | 0.1 | — | sí | bishop | 1.603 | Commercial program A | 2.03 | 1.5972 | -0.36 | 1.5964 | -0.41 |
+| V041b | 0.1 | — | sí | spencer | 1.599 | Commercial program A | 2.03 | 1.5953 | -0.23 | 1.5931 | -0.37 |
+| V041b | 0.1 | — | sí | spencer | 1.6 | Duncan & Wright (reference) | 2.31 | 1.5953 | -0.29 | 1.5931 | -0.43 |
+| V042 | 0.1 | — | sí | bishop | 1.584 | Commercial program A | 1.03 | 1.5823 | -0.11 | 1.5820 | -0.13 |
+| V042 | 0.1 | — | sí | spencer | 1.648 | Commercial program A | 1.03 | 1.6495 | +0.09 | 1.6492 | +0.07 |
+| V047b | 0.5 | 3.6 m, water_fill 0 | no | bishop | 1.664 | Commercial program B | 2.03 | 1.6590 | -0.30 | 1.6591 | -0.30 |
+| V047b | 0.5 | 3.6 m, water_fill 0 | no | morgenstern_price | 1.66 | Commercial program B | 2.30 | 1.6559 | -0.25 | 1.6560 | -0.24 |
+| V048 | 0.5 | 4 m, water_fill 1 | no | bishop | 1.596 | Commercial program A | 2.03 | 1.5869 | -0.57 | 1.5869 | -0.57 |
+| V048 | 0.5 | 4 m, water_fill 1 | no | spencer | 1.592 | Commercial program A | 2.03 | 1.5825 | -0.60 | 1.5824 | -0.60 |
+| V048 | 0.5 | 4 m, water_fill 1 | no | janbu_corrected | 1.489 | Commercial program A | 2.03 | 1.4752 | -0.93 | 1.4748 | -0.95 |
+| V058 | 0.1 | — | sí | spencer | 1.9 | Griffiths & Lane (FE) | 5.00 | 1.9168 | +0.88 | 1.9152 | +0.80 |
+| V058 | 0.1 | — | sí | spencer | 1.915 | Program D | 2.03 | 1.9168 | +0.09 | 1.9152 | +0.01 |
+| V061 | 0.3 | — | sí | morgenstern_price | 2.36 | Wolff & Harr | 1.21 | 2.3483 | -0.50 | 2.3483 | -0.49 |
+| V061 | 0.3 | — | sí | morgenstern_price | 2.343 | Commercial program B | 1.02 | 2.3483 | +0.22 | 2.3483 | +0.23 |
+| V061 | 0.3 | — | sí | spencer | 2.383 | Commercial program A | 1.02 | 2.3878 | +0.20 | 2.3879 | +0.21 |
+| V070 | 0.1 | — | sí | bishop | 1.417 | Commercial program A | 2.04 | 1.4155 | -0.11 | 1.4147 | -0.17 |
+| V070 | 0.1 | — | sí | bishop | 1.41 | Morgenstern chart | 3.35 | 1.4155 | +0.39 | 1.4147 | +0.33 |
+| V070 | 0.1 | — | sí | spencer | 1.422 | Program D | 2.04 | 1.4218 | -0.02 | 1.4210 | -0.07 |
+| V072a | 0.5 | 1.6764 m, water_fill 0 | no | bishop | 1.285 | Commercial program A | 1.04 | 1.2828 | -0.17 | 1.2821 | -0.23 |
+| V072a | 0.5 | 1.6764 m, water_fill 0 | no | spencer | 1.29 | Commercial program A | 1.39 | 1.2883 | -0.13 | 1.2875 | -0.19 |
+| V072b | 0.5 | 1.6764 m, water_fill 0 | no | bishop | 1.285 | Commercial program A | 2.04 | 1.2822 | -0.22 | 1.2815 | -0.27 |
+| V072b | 0.5 | 1.6764 m, water_fill 0 | no | spencer | 1.29 | Commercial program A | 2.39 | 1.2879 | -0.16 | 1.2871 | -0.22 |
+| V072b | 0.5 | 1.6764 m, water_fill 0 | no | janbu_simplified | 1.141 | Commercial program A | 2.04 | 1.1365 | -0.39 | 1.1352 | -0.51 |
+| V073 | 0.5 | 1.8288 m, water_fill 0 | no | bishop | 1.417 | Commercial program A (circles) | 2.04 | 1.4278 | +0.77 | 1.4099 | -0.50 |
+| V073 | 0.5 | 1.8288 m, water_fill 0 | no | spencer | 1.422 | Commercial program A (circles) | 2.04 | 1.4304 | +0.59 | 1.4146 | -0.52 |
+| V079 | 0.5 | 15 m, water_fill 0.25 | no | janbu_simplified | 1.049 | Commercial program A, commercial program C, Priest | 1.05 | 1.0483 | -0.07 | 1.0483 | -0.07 |
+| V079 | 0.5 | 15 m, water_fill 0.25 | no | spencer | 1.049 | Commercial program A, commercial program C, Priest | 1.05 | 1.0483 | -0.07 | 1.0483 | -0.07 |
+| V080 | 0.5 | 15 m, water_fill 0.25 | no | morgenstern_price | 1.049 | Commercial program B | 1.05 | 1.0490 | +0.00 | 1.0490 | -0.00 |
+| V080 | 0.5 | 15 m, water_fill 0.25 | no | spencer | 1.049 | Priest | 1.05 | 1.0490 | +0.00 | 1.0490 | -0.00 |
+| V082a | 0.5 | 3.3528 m, water_fill 0 | no | bishop | 1.532 | Commercial program A | 2.03 | 1.5206 | -0.74 | 1.5204 | -0.76 |
+| V082a | 0.5 | 3.3528 m, water_fill 0 | no | spencer | 1.532 | Commercial program A | 2.03 | 1.5199 | -0.79 | 1.5196 | -0.81 |
+| V082a | 0.5 | 3.3528 m, water_fill 0 | no | morgenstern_price | 1.532 | Commercial program A | 2.03 | 1.5199 | -0.79 | 1.5196 | -0.81 |
+| V082a | 0.5 | 3.3528 m, water_fill 0 | no | janbu_corrected | 1.544 | Commercial program A | 2.03 | 1.5336 | -0.68 | 1.5333 | -0.69 |
+| V082b | 0.5 | 3.3528 m, water_fill 0.54545 | no | bishop | 1.511 | Commercial program A | 2.03 | 1.4996 | -0.75 | 1.4994 | -0.77 |
+| V082b | 0.5 | 3.3528 m, water_fill 0.54545 | no | spencer | 1.51 | Commercial program A | 2.33 | 1.4988 | -0.74 | 1.4985 | -0.76 |
+| V082b | 0.5 | 3.3528 m, water_fill 0.54545 | no | morgenstern_price | 1.51 | Commercial program A | 2.33 | 1.4988 | -0.74 | 1.4986 | -0.76 |
+| V082b | 0.5 | 3.3528 m, water_fill 0.54545 | no | janbu_corrected | 1.52 | Commercial program A | 2.33 | 1.5090 | -0.72 | 1.5088 | -0.74 |
+| V086b | 0.5 | 2 m, water_fill 1 | no | spencer | 0.975 | Commercial program A | 2.05 | 0.9690 | -0.61 | 0.9683 | -0.69 |
+| V086b | 0.5 | 2 m, water_fill 1 | no | morgenstern_price | 0.975 | Commercial program A | 2.05 | 0.9690 | -0.61 | 0.9683 | -0.69 |
+| V086b-auto | 0.5 | auto, water_fill 1 | no | spencer | 0.975 | Commercial program A | 2.05 | 0.9672 | -0.80 | 0.9665 | -0.88 |
+| V086c | 0.5 | 2 m, water_fill 0 | no | spencer | 1.209 | Commercial program A | 2.04 | 1.2100 | +0.08 | 1.2064 | -0.21 |
+| V086c | 0.5 | 2 m, water_fill 0 | no | morgenstern_price | 1.218 | Commercial program A | 2.04 | 1.2185 | +0.04 | 1.2151 | -0.23 |
+| V086d | 0.5 | auto, water_fill 1 | no | spencer | 0.981 | Tandjiria, Low & Teh | 2.05 | 0.9740 | -0.71 | 0.9730 | -0.82 |
+| V087 | 0.3 | — | sí | janbu_corrected | 2.29 | Commercial program A | 2.22 | 2.2487 | -1.80 | 2.2476 | -1.85 |
+| V088 | 0.5 | 2.1336 m, water_fill 0 | no | spencer | 2.445 | Commercial program A | 2.02 | 2.4419 | -0.13 | 2.4416 | -0.14 |
+| V088 | 0.5 | 2.1336 m, water_fill 0 | no | bishop | 2.447 | Commercial program A | 2.02 | 2.4426 | -0.18 | 2.4423 | -0.19 |
+| V088 | 0.5 | 2.1336 m, water_fill 0 | no | janbu_corrected | 2.43 | Commercial program A | 2.21 | 2.4443 | +0.59 | 2.4438 | +0.57 |
+| V088 | 0.5 | 2.1336 m, water_fill 0 | no | morgenstern_price | 2.447 | Commercial program A | 2.02 | 2.4419 | -0.21 | 2.4416 | -0.22 |
+| V089 | 0.3 | — | sí | bishop | 2.716 | Commercial program A | 2.02 | 2.6992 | -0.62 | 2.6982 | -0.65 |
+| V089 | 0.3 | — | sí | spencer | 2.736 | Commercial program A | 2.02 | 2.7218 | -0.52 | 2.7208 | -0.56 |
+| V089 | 0.3 | — | sí | janbu_corrected | 2.65 | Commercial program A | 2.19 | 2.6486 | -0.05 | 2.6473 | -0.10 |
+| V089 | 0.3 | — | sí | morgenstern_price | 2.744 | Commercial program A | 2.02 | 2.7280 | -0.58 | 2.7270 | -0.62 |
+| V091 | 0.3 | — | sí | bishop | 1.241 | Commercial program A | 1.04 | 1.2374 | -0.29 | 1.2364 | -0.37 |
+| V091 | 0.3 | — | sí | spencer | 1.241 | Commercial program A | 1.04 | 1.2374 | -0.29 | 1.2364 | -0.37 |
+| V091 | 0.3 | — | sí | morgenstern_price | 1.244 | Commercial program A (GLE) | 1.04 | 1.2374 | -0.53 | 1.2364 | -0.61 |
+| V091 | 0.3 | — | sí | janbu_corrected | 1.385 | Commercial program A | 1.04 | 1.3896 | +0.33 | 1.3905 | +0.40 |
+| V092 | 0.3 | — | sí | bishop | 2.011 | Commercial program A | 2.02 | 1.9914 | -0.97 | 1.9903 | -1.03 |
+| V092 | 0.3 | — | sí | spencer | 2.026 | Commercial program A | 2.02 | 2.0057 | -1.00 | 2.0046 | -1.06 |
+| V092 | 0.3 | — | sí | janbu_corrected | 1.83 | Commercial program A | 2.27 | 1.8247 | -0.29 | 1.8232 | -0.37 |
+| V092 | 0.3 | — | sí | morgenstern_price | 2.027 | Commercial program A | 2.02 | 2.0058 | -1.04 | 2.0048 | -1.10 |
+| V096a | 0.5 | 1.015 m, water_fill 0 | no | bishop | 1.804 | Commercial program A | 2.03 | 1.7977 | -0.35 | 1.7935 | -0.58 |
+| V096a | 0.5 | 1.015 m, water_fill 0 | no | spencer | 1.804 | Commercial program A | 2.03 | 1.7993 | -0.26 | 1.7944 | -0.53 |
+| V096a | 0.5 | 1.015 m, water_fill 0 | no | morgenstern_price | 1.79 | Commercial program A | 2.28 | 1.7842 | -0.32 | 1.7800 | -0.56 |
+| V096b | 0.5 | 1.015 m, water_fill 0 | no | bishop | 1.176 | Commercial program A | 2.04 | 1.1751 | -0.07 | 1.1734 | -0.22 |
+| V096b | 0.5 | 1.015 m, water_fill 0 | no | spencer | 1.189 | Commercial program A | 2.04 | 1.1902 | +0.10 | 1.1868 | -0.19 |
+| V096b | 0.5 | 1.015 m, water_fill 0 | no | morgenstern_price | 1.174 | Commercial program A | 2.04 | 1.1745 | +0.04 | 1.1720 | -0.17 |
+| V096c | 0.5 | 1.015 m, water_fill 0 | no | spencer | 1.804 | Commercial program A | 1.03 | 1.8000 | -0.22 | 1.7997 | -0.24 |
+| V096c | 0.5 | 1.015 m, water_fill 0 | no | bishop | 1.804 | Commercial program A | 1.03 | 1.7996 | -0.25 | 1.7992 | -0.26 |

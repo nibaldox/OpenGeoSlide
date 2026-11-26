@@ -3,7 +3,7 @@
   "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
   "model": {
     "format": "opengeoslide",
-    "version": "0.3",
+    "version": "0.1",
     "meta": {
       "id": "V042",
       "title": "Thick-core dam with a piezometric line (D&W fig. 7.24)",
