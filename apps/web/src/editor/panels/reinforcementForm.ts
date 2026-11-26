@@ -62,6 +62,10 @@ export const PULLOUT_OPTIONS: ReadonlyArray<{ value: PulloutKind; label: string 
   { value: 'development', label: 'Desarrollo lineal de la capacidad' },
 ];
 
+/** Límite declarado (F4.8): con pilotes o tablestacas, solo se calcula la estabilidad global. */
+export const STRUCTURAL_LIMIT_TEXT =
+  'Con pilotes o tablestacas, OpenGeoSlide calcula la estabilidad global con el elemento incluido. No calcula el empuje sobre el elemento, el empotramiento, el momento flector, la deflexión ni las comprobaciones internas o externas de un muro.';
+
 export const isTensionType = (type: ReinforcementType): type is 'anchor' | 'nail' | 'geosynthetic' => type === 'anchor' || type === 'nail' || type === 'geosynthetic';
 
 // ───────────────────────── Unidades ─────────────────────────
@@ -388,6 +392,12 @@ export function reinforcementsEqual(a: Reinforcement, b: Reinforcement): boolean
 
 export function reinforcementUpsertCommand(index: number | null, reinforcement: Reinforcement): EditorCommand {
   return { type: 'reinforcement/upsert', index, reinforcement };
+}
+
+/** Comando de alta de un refuerzo nuevo del tipo dado; `null` si no hay geometría donde situarlo. */
+export function reinforcementAddCommand(type: ReinforcementType, doc: ModelDoc): EditorCommand | null {
+  const reinforcement = defaultReinforcement(type, doc);
+  return reinforcement ? reinforcementUpsertCommand(null, reinforcement) : null;
 }
 
 export function reinforcementRemoveCommand(index: number): EditorCommand {

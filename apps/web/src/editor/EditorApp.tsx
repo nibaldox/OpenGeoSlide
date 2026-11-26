@@ -59,6 +59,7 @@ import {
   LoadsPanel,
   MaterialsPanel,
   ProjectPanel,
+  ReinforcementsPanel,
   SearchPanel,
   SeismicPanel,
   SurfacePanel,
@@ -67,8 +68,11 @@ import {
 import { createEditorStore, useEditorStore, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc, Tool } from './types';
 
+/** Pestañas del panel lateral: las de `PanelTabId` más «Refuerzos» (v0.4). */
+type TabId = PanelTabId | 'reinforcements';
+
 interface TabDef {
-  id: PanelTabId;
+  id: TabId;
   label: string;
   Panel: ComponentType<{ store: EditorStore }>;
 }
@@ -81,15 +85,18 @@ const TABS: TabDef[] = [
   { id: 'search', label: 'Búsqueda', Panel: SearchPanel },
   { id: 'analysis', label: 'Análisis', Panel: AnalysisPanel },
   { id: 'loads', label: 'Cargas', Panel: LoadsPanel },
+  { id: 'reinforcements', label: 'Refuerzos', Panel: ReinforcementsPanel },
   { id: 'seismic', label: 'Sismo', Panel: SeismicPanel },
   { id: 'project', label: 'Proyecto', Panel: ProjectPanel },
 ];
 
-const TOOLS: { tool: Tool; label: string; key: string }[] = [
+/** `key`: la letra del atajo, o `null` si la herramienta no tiene atajo de teclado. */
+const TOOLS: { tool: Tool; label: string; key: string | null }[] = [
   { tool: 'select', label: 'Seleccionar', key: 'V' },
   { tool: 'add_vertex', label: 'Agregar vértice', key: 'A' },
   { tool: 'draw_region', label: 'Dibujar región', key: 'R' },
   { tool: 'split_region', label: 'Dividir región', key: 'D' },
+  { tool: 'draw_reinforcement', label: 'Dibujar refuerzo', key: null },
   { tool: 'pan', label: 'Mover vista', key: 'H' },
 ];
 
@@ -132,7 +139,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [noticesPaused, setNoticesPaused] = useState(false);
   const live = useAnnouncer();
   const { announce, announceError } = live;
-  const [tab, setTab] = useState<PanelTabId>('geometry');
+  const [tab, setTab] = useState<TabId>('geometry');
   const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const tablistRef = useRef<HTMLDivElement>(null);
@@ -544,7 +551,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       aria-pressed={tool === t.tool}
       className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
       onClick={() => void switchTool(t.tool)}
-      title={`Tecla ${t.key}`}
+      title={t.key === null ? t.label : `Tecla ${t.key}`}
     >
       {t.label}
     </button>
