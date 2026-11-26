@@ -69,6 +69,14 @@ export function pickRecoverable(entries: DraftIndexEntry[], ownTabId: string, li
   return { entry, openElsewhere: entry.tabId !== ownTabId && liveTabIds.has(entry.tabId), others: sorted.length - 1 };
 }
 
+/** ¿El borrador ofrecido pertenece a otra pestaña que sigue abierta? (`pickRecoverable().openElsewhere` sobre la entrada ofrecida.) */
+export function offeredDraftElsewhere(offered: DraftIndexEntry | null, ownTabId: string, live: ReadonlySet<string>): boolean {
+  return offered !== null && pickRecoverable([offered], ownTabId, live)?.openElsewhere === true;
+}
+
+/** Aviso del banner de borrador cuando su pestaña dueña sigue abierta. */
+export const OPEN_ELSEWHERE_TEXT = 'Este borrador es de otra pestaña que sigue abierta: recuperarlo aquí no la cierra, y las dos se guardarán por separado.';
+
 export interface IdStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -161,14 +169,18 @@ export interface Presence {
 /**
  * Cada pestaña dice «hola» al abrir y las demás responden «aquí». Si otra instancia usa el MISMO id de pestaña (una pestaña
  * duplicada hereda `sessionStorage`), se llama a `onSameDraft`: el mismo borrador está abierto en dos pestañas. No bloquea nada.
+ * `onLiveChange` se llama cuando aparece una pestaña nueva en `live()`.
  */
-export function createPresence(channel: ChannelLike, tabId: string, instanceId: string, onSameDraft: () => void): Presence {
+export function createPresence(channel: ChannelLike, tabId: string, instanceId: string, onSameDraft: () => void, onLiveChange?: () => void): Presence {
   const live = new Set<string>();
   channel.addEventListener('message', (e) => {
     const m = e.data as { type?: string; tabId?: string; instanceId?: string } | null;
     if (!m || typeof m.tabId !== 'string' || m.instanceId === instanceId) return;
     if (m.tabId === tabId) onSameDraft();
-    else live.add(m.tabId);
+    else if (!live.has(m.tabId)) {
+      live.add(m.tabId);
+      onLiveChange?.();
+    }
     if (m.type === 'hello') channel.postMessage({ type: 'here', tabId, instanceId });
   });
   channel.postMessage({ type: 'hello', tabId, instanceId });

@@ -4,7 +4,25 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { parseCsv } from '../../io/csv';
 import { loadCaseDoc } from '../../report/fixtures';
-import { CsvImportDialog, Modal } from './ImportDialogs';
+import { CsvImportDialog, Modal, pickInitialFocus } from './ImportDialogs';
+
+describe('pickInitialFocus (foco inicial del Modal, sin temporizadores)', () => {
+  const title = { isConnected: true, id: 'titulo' };
+  const button = { isConnected: true, id: 'boton' };
+  it('sin elemento pedido, el foco va al título', () => {
+    expect(pickInitialFocus(undefined, title)).toBe(title);
+    expect(pickInitialFocus(null, title)).toBe(title);
+  });
+  it('con un elemento pedido y conectado, va a ese elemento', () => {
+    expect(pickInitialFocus(button, title)).toBe(button);
+  });
+  it('si el elemento pedido ya no está en el documento, vuelve al título', () => {
+    expect(pickInitialFocus({ isConnected: false, id: 'huerfano' }, title)).toBe(title);
+  });
+  it('sin título ni elemento, no hay a quién enfocar', () => {
+    expect(pickInitialFocus(null, null)).toBeNull();
+  });
+});
 
 describe('Modal', () => {
   it('es un <dialog> nativo con nombre accesible y sin role="dialog" artesanal ni telón propio', () => {

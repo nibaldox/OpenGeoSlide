@@ -6,8 +6,8 @@ import path from 'node:path';
 
 const SHOTS = path.join(process.env.TMPDIR, 'u3i-walk');
 mkdirSync(SHOTS, { recursive: true });
-const URL_ = 'http://127.0.0.1:5186/';
-const FIX = '/home/xodla/archivos/opengeoslide-wt/u3i/apps/web/src/io/dxf/fixtures/';
+const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
+const FIX = (process.env.OGS_REPO ?? '/home/xodla/archivos/opengeoslide-wt/u5i') + '/apps/web/src/io/dxf/fixtures/';
 const out = { steps: [], consoleErrors: [] };
 const step = (name, ok, data = {}) => { out.steps.push({ name, ok, ...data }); console.log(ok ? 'OK ' : 'FAIL', name, JSON.stringify(data)); };
 const num = (t) => Number(String(t).replace(/\s/g, '').replace(',', '.'));
@@ -179,7 +179,15 @@ await page.getByRole('tab', { name: 'Sismo' }).click();
 const kh2 = page.getByLabel('kh', { exact: true });
 await kh2.fill('0,15'); await kh2.press('Enter');
 await page.waitForTimeout(1500);
-const draftKey = await page.evaluate(() => JSON.parse(localStorage.getItem('ogs.editor.draft.v1') ?? 'null')?.doc?.analysis?.seismic);
+// Desde U5-S el borrador es por pestaña (draftTabs.ts): un índice (DRAFT_INDEX_KEY) lista las pestañas y cada borrador vive en
+// draftKeyFor(tabId) = 'ogs.editor.draft.v1.tab.<id>'. Se lee el de la entrada más reciente del índice, no la clave fija antigua.
+const draftKey = await page.evaluate(() => {
+  const index = JSON.parse(localStorage.getItem('ogs.editor.draft.index.v1') ?? '[]');
+  const latest = [...index].sort((a, b) => Date.parse(b.savedAt) - Date.parse(a.savedAt))[0];
+  if (!latest) return undefined;
+  const key = latest.tabId === 'legacy' ? 'ogs.editor.draft.v1' : `ogs.editor.draft.v1.tab.${latest.tabId}`;
+  return JSON.parse(localStorage.getItem(key) ?? 'null')?.doc?.analysis?.seismic;
+});
 await page.reload();
 await page.waitForSelector('[data-testid="draft-banner"]');
 await shot('08c-borrador-banner');

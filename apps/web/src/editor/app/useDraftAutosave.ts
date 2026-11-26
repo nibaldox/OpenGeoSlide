@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createDraftAutosaver, resolveDraftStorage, type DraftSaveResult, type DraftStorage, type ResolvedDraftStorage } from '../../io/draft';
-import { createPresence, ensureTabId, tabDraftStorage } from './draftTabs';
+import { createPresence, ensureTabId, offeredDraftElsewhere, tabDraftStorage, type DraftIndexEntry, type Presence } from './draftTabs';
 import type { EditorStore } from '../types';
 
 export interface UnloadGuardInput {
@@ -76,6 +76,10 @@ export function useDraftAutosave(store: EditorStore, storage: DraftStorage, enab
 
 let sameDraft = false;
 const sameDraftListeners = new Set<() => void>();
+let ownTabId: string | null = null;
+let presence: Presence | null = null;
+let liveVersion = 0;
+const liveListeners = new Set<() => void>();
 
 /**
  * Como `resolveDraftStorage()`, pero el borrador es **por pestaña** (ver `draftTabs.ts`): el id de pestaña va en
@@ -88,12 +92,22 @@ export function resolveTabDraftStorage(): ResolvedDraftStorage {
   const g = globalThis as { sessionStorage?: Storage; BroadcastChannel?: typeof BroadcastChannel };
   const generate = (): string => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`);
   const tabId = ensureTabId(g.sessionStorage ?? null, generate);
+  ownTabId = tabId;
   if (typeof g.BroadcastChannel === 'function') {
     try {
-      createPresence(new g.BroadcastChannel('ogs.editor.draft'), tabId, generate(), () => {
-        sameDraft = true;
-        sameDraftListeners.forEach((l) => l());
-      });
+      presence = createPresence(
+        new g.BroadcastChannel('ogs.editor.draft'),
+        tabId,
+        generate(),
+        () => {
+          sameDraft = true;
+          sameDraftListeners.forEach((l) => l());
+        },
+        () => {
+          liveVersion += 1;
+          liveListeners.forEach((l) => l());
+        },
+      );
     } catch {
       // Sin canal: solo se pierde el aviso de «abierto en otra pestaña».
     }
@@ -109,6 +123,30 @@ export function useSameDraftWarning(): boolean {
       return () => sameDraftListeners.delete(l);
     },
     () => sameDraft,
+    () => false,
+  );
+}
+
+/** Entrada del índice que `loadDraft` va a ofrecer (la más reciente), o `null` sin borrador o sin almacenamiento por pestaña. */
+export function offeredDraftEntry(storage: DraftStorage): DraftIndexEntry | null {
+  return (storage as { latest?: () => DraftIndexEntry | null }).latest?.() ?? null;
+}
+
+/**
+ * `true` si el borrador ofrecido (`offered`) pertenece a otra pestaña que sigue abierta (R7-18, `pickRecoverable().openElsewhere`).
+ * La presencia se conoce de forma asíncrona (las demás pestañas responden «aquí» al «hola»), así que se actualiza cuando llegan.
+ * Una pestaña cerrada no avisa de que se fue: la lista es la de las que respondieron desde que esta pestaña abrió.
+ */
+export function useDraftOpenElsewhere(offered: DraftIndexEntry | null): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      liveListeners.add(l);
+      return () => liveListeners.delete(l);
+    },
+    () => {
+      void liveVersion;
+      return ownTabId !== null && presence !== null && offeredDraftElsewhere(offered, ownTabId, presence.live());
+    },
     () => false,
   );
 }

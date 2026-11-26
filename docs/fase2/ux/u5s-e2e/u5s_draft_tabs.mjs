@@ -25,6 +25,9 @@ step('los ids de pestaña (sessionStorage) son distintos', ids[0] && ids[1] && i
 const c = await open();
 const banner = await c.locator('[data-testid="draft-banner"]').innerText().catch(() => '');
 step('una tercera pestaña ofrece el borrador más reciente (el de B)', /borrador guardado/.test(banner), { banner: banner.replace(/\s+/g, ' ').slice(0, 120) });
+// U5-I: el borrador de B es de una pestaña que sigue abierta; la presencia llega por BroadcastChannel un instante después de montar.
+const elsewhere = await c.locator('[data-testid="draft-open-elsewhere"]').waitFor({ timeout: 4000 }).then(() => c.locator('[data-testid="draft-open-elsewhere"]').innerText(), () => null);
+step('el banner avisa que el borrador ofrecido es de otra pestaña que sigue abierta', /otra pestaña que sigue abierta/.test(elsewhere ?? ''), { aviso: elsewhere });
 await c.getByRole('button', { name: /Recuperar/ }).click();
 await c.getByRole('tab', { name: 'Proyecto' }).click();
 const title = await c.locator('[data-path="/meta/title"]').inputValue();
@@ -32,5 +35,13 @@ step('«Recuperar borrador» carga el título de B', title === 'Pestaña B', { t
 // la pestaña A sigue con su propio borrador (no fue pisado por B)
 const aDraft = await a.evaluate(() => { const id = sessionStorage.getItem('ogs.editor.tab.v1'); return JSON.parse(localStorage.getItem('ogs.editor.draft.v1.tab.' + id)).doc.meta.title; });
 step('el borrador de A no fue pisado por el de B', aDraft === 'Pestaña A', { aDraft });
+// U5-I: con las pestañas dueñas cerradas ya no hay aviso (el borrador sigue ofrecido).
+await a.close();
+await b2.close();
+const d = await open();
+await d.locator('[data-testid="draft-banner"]').waitFor();
+await d.waitForTimeout(800); // da tiempo a que respondan las pestañas abiertas (solo c, que no es la dueña)
+const dBanner = await d.locator('[data-testid="draft-banner"]').innerText();
+step('sin la pestaña dueña abierta, el banner ofrece el borrador sin el aviso', /borrador guardado/.test(dBanner) && !/otra pestaña/.test(dBanner), { banner: dBanner.replace(/\s+/g, ' ').slice(0, 140) });
 await b.close();
 process.exit(bad ? 1 : 0);

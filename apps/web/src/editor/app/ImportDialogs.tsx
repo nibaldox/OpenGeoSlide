@@ -1,6 +1,6 @@
 // Diálogos de importación: DXF (capas → materiales, unidades, polilíneas abiertas) y CSV (regiones o piezométrica).
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import type { Material, Point } from '../../engine/types';
 import { csvToPoints, csvToRegions } from '../../io/csv';
 import type { DxfParseResult } from '../../io/dxf';
@@ -22,12 +22,24 @@ import {
 } from './importPlan';
 import { layerChoice } from './layerChoice';
 
+/** Elemento que recibe el foco al abrir un `Modal`: el pedido, si sigue conectado; si no, el título. */
+export function pickInitialFocus<T extends { isConnected: boolean }>(requested: T | null | undefined, title: T | null | undefined): T | null {
+  if (requested?.isConnected) return requested;
+  return title ?? null;
+}
+
 /**
  * Diálogo modal nativo (`<dialog>` + `showModal()`): el navegador atrapa el foco, deja inerte el resto de la página y cierra
- * con Esc (R7-03). El foco inicial va al título para que se lea antes que las incidencias; al cerrar, vuelve al botón que
- * lo abrió.
+ * con Esc (R7-03). El foco inicial va al título para que se lea antes que las incidencias, salvo que el diálogo pida otro
+ * elemento con `initialFocus` (se enfoca justo tras `showModal()`, sin temporizadores); al cerrar, vuelve al botón que lo abrió.
  */
-export function Modal({ title, onCancel, children }: { title: string; onCancel: () => void; children: ReactNode }) {
+export function Modal({ title, onCancel, children, initialFocus }: {
+  title: string;
+  onCancel: () => void;
+  children: ReactNode;
+  /** Elemento que recibe el foco al abrir (por defecto, el título). Su ref ya está asignada cuando corre el efecto del diálogo. */
+  initialFocus?: RefObject<HTMLElement | null>;
+}) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -36,7 +48,7 @@ export function Modal({ title, onCancel, children }: { title: string; onCancel: 
     if (!dialog) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (!dialog.open) dialog.showModal();
-    titleRef.current?.focus();
+    pickInitialFocus(initialFocus?.current, titleRef.current)?.focus();
     // Al desmontar, el navegador saca el diálogo de la capa superior y devuelve la inercia al resto de la página;
     // solo falta devolver el foco. No se llama a `close()`: su evento `close` volvería a invocar `onCancel`.
     return () => {
