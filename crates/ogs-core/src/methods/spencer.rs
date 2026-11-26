@@ -792,6 +792,7 @@ pub fn spencer_gle_curves(slices: &[Slice], lambdas: &[f64]) -> Vec<(f64, f64, f
         tolerance: 1e-8,
         max_iterations: 500,
         min_m_alpha: DIAGNOSTIC_MIN_M,
+        circular: true,
     };
     let start = bishop::solve(slices, &opts);
     let start_fos =

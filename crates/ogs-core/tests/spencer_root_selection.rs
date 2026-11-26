@@ -113,6 +113,7 @@ fn options() -> SolveOptions {
         tolerance: 1e-5,
         max_iterations: 500,
         min_m_alpha: 0.2,
+        circular: true,
     }
 }
 

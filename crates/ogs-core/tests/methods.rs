@@ -146,6 +146,7 @@ fn opts(tolerance: f64, max_iterations: usize) -> SolveOptions {
         tolerance,
         max_iterations,
         min_m_alpha: 0.2,
+        circular: true,
     }
 }
 

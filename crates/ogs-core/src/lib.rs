@@ -97,6 +97,8 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
         tolerance: analysis.tolerance,
         max_iterations: analysis.max_iterations,
         min_m_alpha: analysis.min_m_alpha,
+        // F3-W1a: `false` when the analysed surface is a polyline (E13f).
+        circular: true,
     };
     let results = analysis
         .methods
@@ -421,8 +423,7 @@ fn analyze_method(
         slices,
         search,
         warnings,
-        // F3-W1b: `f₀` of `janbu_corrected`, from the solver.
-        correction_factor: None,
+        correction_factor: result.correction_factor,
         interslice: interslice_report(analysis, method),
     })
 }

@@ -166,6 +166,9 @@ pub struct SolveOptions {
     pub max_iterations: usize,
     /// Bishop: `m_α` below this value marks the solution as `Invalid`.
     pub min_m_alpha: f64,
+    /// `true` when the slices come from a circle (E13f). On a polyline (`false`) Bishop is not admissible and
+    /// Spencer / Morgenstern-Price start from Janbu's F₀ instead of Bishop's FS. Set by `lib.rs` (F3-W1a).
+    pub circular: bool,
 }
 
 /// Outcome of a solve.
@@ -191,6 +194,8 @@ pub struct MethodResult {
     pub lambda: Option<f64>,
     pub message: Option<String>,
     pub warnings: Vec<String>,
+    /// `f₀` of `janbu_corrected` (E13e); `None` for every other method. Filled by F3-W1b.
+    pub correction_factor: Option<f64>,
 }
 
 impl MethodResult {
@@ -211,6 +216,7 @@ impl MethodResult {
             lambda,
             message: message.map(str::to_owned),
             warnings: Vec::new(),
+            correction_factor: None,
         }
     }
 
