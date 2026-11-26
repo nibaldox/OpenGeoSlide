@@ -27,6 +27,9 @@ pub enum ForceStatus {
     OutsideMass,
     /// A passive reinforcement that the sliding would compress (E14e): no force.
     CompressionIgnored,
+    /// `T(s_c) = 0` (E14m-2): for example the free length of a tie-back with a bonded length and no plate. No force
+    /// and no note.
+    NoCapacity,
 }
 
 /// Force of a reinforcement at one crossing with the final slip surface (E14i), per metre of slope.
