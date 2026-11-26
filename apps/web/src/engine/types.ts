@@ -195,16 +195,43 @@ export interface TensionReinforcement extends ReinforcementBase {
   pullout?: Pullout | null;
 }
 
-/** `pile` (v0.4): fuerza de corte constante por pilote. */
+/**
+ * Presión del suelo sobre un pilote (v0.5, E15i-1): la fuerza sale de Ito y Matsui (1975) en vez de ser un dato. `diameter` es una
+ * longitud finita > 0; `location` dice dónde actúa la fuerza (E15i-5): `centroid`, a `L_m` sobre el cruce (por defecto en la web), o
+ * `slip_surface`, en el cruce. Obligatorio. Sin otros campos.
+ */
+export interface LateralPressure {
+  model: 'ito_matsui';
+  diameter: number;
+  location: 'centroid' | 'slip_surface';
+}
+
+/**
+ * Tope de un pilote con presión del suelo (v0.5, E15i-1): `shear` es una fuerza por pilote y `moment`, un momento por pilote (fuerza por
+ * longitud). Lleva uno o los dos, no puede ir vacío, y cada valor es finito y > 0.
+ */
+export interface PileCapacity {
+  shear?: number | null;
+  moment?: number | null;
+}
+
+/**
+ * `pile` (v0.4): fuerza de corte constante por pilote, o (v0.5) la presión del suelo de Ito-Matsui. `force` y `lateral_pressure` se
+ * excluyen: tiene que haber exactamente uno.
+ */
 export interface PileReinforcement extends ReinforcementBase {
   type: 'pile';
-  /** ≥ 0, por pilote. */
-  force: number;
-  /** > 0, por defecto 1. */
+  /** ≥ 0, por pilote. Excluye a `lateral_pressure`. */
+  force?: number | null;
+  /** > 0, por defecto 1. Con `lateral_pressure` debe ser mayor que `diameter`. */
   spacing?: number | null;
   direction: PileDirection;
-  /** Grados en (−90, 90) sobre la horizontal (0 es horizontal). Obligatorio solo con `direction: "angle"`; prohibido con las otras. */
+  /** Grados en (−90, 90) sobre la horizontal (0 es horizontal). Obligatorio solo con `direction: \"angle\"`; prohibido con las otras. */
   angle?: number | null;
+  /** v0.5 (E15i-1): la fuerza sale de la presión del suelo de Ito-Matsui; el pilote debe ser vertical. Excluye a `force`. */
+  lateral_pressure?: LateralPressure | null;
+  /** v0.5 (E15i-1): tope por corte y por momento; solo junto con `lateral_pressure`. */
+  capacity?: PileCapacity | null;
 }
 
 /** `sheet_pile` (v0.4): una fila continua de pilotes, vertical (x1 = x2). `force` es por metro de muro; no hay `spacing`. */
@@ -350,6 +377,9 @@ export interface PolylineReportSurface {
 /** `surface` del informe, untagged: `{xc, yc, r}` para un círculo o `{points}` para una polilínea. */
 export type ReportSurface = Circle | PolylineReportSurface;
 
+/** Qué gobierna la fuerza de un pilote con presión del suelo (E15i-4): `soil` (la presión), `shear` (el corte) o `bending` (el momento). */
+export type PileGoverns = 'soil' | 'shear' | 'bending';
+
 /** Estado de un cruce de un refuerzo con la superficie final (F4.9). */
 export type ReinforcementForceStatus = 'applied' | 'outside_mass' | 'compression_ignored' | 'no_capacity';
 
@@ -371,6 +401,15 @@ export interface ReinforcementForce {
   fy: number;
   application: ReinforcementApplication;
   status: ReinforcementForceStatus;
+  /**
+   * Solo en un pilote con `lateral_pressure` (v0.5, E15i-7; se omite en uno con `force`): la fuerza del suelo por metro de talud,
+   * **antes del tope** de `capacity`.
+   */
+  soil_force?: number;
+  /** Quién fija `available` en un pilote con `lateral_pressure`: el suelo, el corte o la flexión (E15i-4). */
+  governs?: PileGoverns;
+  /** Brazo `L_m` de la resultante sobre el cruce, en la unidad de longitud del modelo (E15i-5). */
+  arm?: number;
 }
 
 /**
