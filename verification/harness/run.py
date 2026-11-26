@@ -31,9 +31,10 @@ sys.path.insert(0, HERE)
 from to_cslope import UnsupportedModel, ogs_to_cslope  # noqa: E402
 
 HARNESS_VERSION = "1"
-METHODS = ("bishop", "spencer")
+METHODS = ("bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected")
 KINDS = ("fixed", "search")
 OGS_TIMEOUT_S = 300
+ORACLE_ONLY = "<oracle-only>"   # replaces the binary: the cases wait for the engine (verification/pending/F3)
 
 
 def _first_line(text: str, limit: int = 200) -> str:
@@ -102,6 +103,9 @@ def model_for_check(model: dict, check: dict) -> dict:
 
 def run_ogs(binary: str | None, model: dict, check: dict, timeout: float) -> dict:
     res = {"fos": None, "status": None, "error": None, "engine": None, "warnings": []}
+    if binary == ORACLE_ONLY:
+        res["error"] = "solo oráculo (--oracle-only): el motor no se ejecuta"
+        return res
     if not binary:
         res["error"] = "no se indicó binario ogs (--ogs)"
         return res
@@ -191,6 +195,9 @@ def err_pct(fos, published: float):
 
 
 def estado(ogs_verdict: str, cs_verdict: str) -> str:
+    if ogs_verdict == "no aplica":   # --oracle-only: the state is the oracle's
+        return {"OK": "cSlope reproduce", "FALLA": "revisar conversión", "sin dato": "cSlope sin dato",
+                "no convergido": "cSlope no convergido"}[cs_verdict]
     parts = [ogs_verdict]
     if cs_verdict == "FALLA":
         parts.append("cSlope no reproduce: revisar conversión")
@@ -208,7 +215,7 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
             published = float(ch["published"])
             tolerance = float(ch["tolerance"])
             og = run_ogs(ogs_binary, case["model"], ch, OGS_TIMEOUT_S)
-            og_v = verdict(og["fos"], og["status"], published, tolerance)
+            og_v = "no aplica" if ogs_binary == ORACLE_ONLY else verdict(og["fos"], og["status"], published, tolerance)
 
             cs_res: dict = {"fos": None, "status": None, "error": None, "warnings": []}
             notes: list[str] = []
@@ -250,6 +257,8 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
 def summarize(rows: list[dict]) -> dict:
     def count(engine: str) -> dict:
         out = {"OK": 0, "FALLA": 0, "sin dato": 0, "no convergido": 0}
+        if engine == "ogs" and rows and all(r["ogs"]["verdict"] == "no aplica" for r in rows):
+            out["no aplica"] = 0
         for r in rows:
             out[r[engine]["verdict"]] += 1
         return out
@@ -278,8 +287,12 @@ def write_markdown(path: str, rows: list[dict], meta: dict, summary: dict) -> No
     L.append("")
     L.append("## Motores")
     L.append("")
-    L.append(f"- **ogs**: binario `{meta['ogs']['binary'] or '—'}` · versión: {meta['ogs']['version'] or '—'}"
-             + (f" · error: {meta['ogs']['error']}" if meta['ogs']['error'] else ""))
+    if meta["ogs"]["binary"] == ORACLE_ONLY:
+        L.append("- **ogs**: no se ejecutó (`--oracle-only`): estos casos esperan al motor; se verifica solo que cSlope "
+                 "reproduzca el valor publicado.")
+    else:
+        L.append(f"- **ogs**: binario `{meta['ogs']['binary'] or '—'}` · versión: {meta['ogs']['version'] or '—'}"
+                 + (f" · error: {meta['ogs']['error']}" if meta['ogs']['error'] else ""))
     L.append(f"- **cSlope**: {meta['cslope']['package']} · motor {meta['cslope']['engine_build']} · "
              f"esquema {meta['cslope']['schema_version']} · Python {meta['python']}")
     L.append("")
@@ -289,6 +302,9 @@ def write_markdown(path: str, rows: list[dict], meta: dict, summary: dict) -> No
     L.append("|---|---:|---:|---:|---:|")
     for name, key in (("ogs", "ogs"), ("cSlope", "cslope")):
         c = summary[key]
+        if "no aplica" in c:
+            L.append(f"| {name} | — | — | — (no aplica: solo oráculo) | — |")
+            continue
         L.append(f"| {name} | {c['OK']} | {c['FALLA']} | {c['sin dato']} | {c['no convergido']} |")
     cr = summary["cslope_reproduces"]
     L.append("")
@@ -310,7 +326,7 @@ def write_markdown(path: str, rows: list[dict], meta: dict, summary: dict) -> No
              "publicado, se añade «revisar conversión» (el fallo puede estar en el conversor, en el "
              "publicado o en el motor).")
     L.append("")
-    errors = sorted({f"ogs: {r['ogs']['error']}" for r in rows if r["ogs"]["error"]}
+    errors = sorted({f"ogs: {r['ogs']['error']}" for r in rows if r["ogs"]["error"] and r["ogs"]["verdict"] != "no aplica"}
                     | {f"{r['case_id']} {r['method']}/{r['kind']} cSlope: {r['cslope']['error']}"
                        for r in rows if r["cslope"]["error"]})
     if errors:
@@ -343,6 +359,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cases", required=True, help="directory with <id>.json verification cases")
     ap.add_argument("--ogs", default=None, help="path to the ogs binary (ogs analyze <model.json>)")
+    ap.add_argument("--oracle-only", action="store_true",
+                    help="do not run ogs: only published vs cSlope (cases that the engine does not support yet)")
     ap.add_argument("--out", required=True, help="output directory for REPORT.md and report.json")
     args = ap.parse_args(argv)
 
@@ -352,12 +370,14 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"error: cslope not importable ({exc}); run with uv --with cslope==0.1.0") from exc
 
     cases = load_cases(args.cases)
+    if args.oracle_only:
+        args.ogs = ORACLE_ONLY
     rows = build_rows(cases, args.ogs, cs)
     summary = summarize(rows)
 
     # ogs version comes from the 'engine' field of its JSON output (None if never run OK).
     ogs_version = next((r["ogs"]["engine"] for r in rows if r["ogs"]["engine"]), None)
-    ogs_error = next((r["ogs"]["error"] for r in rows if r["ogs"]["error"]), None)
+    ogs_error = next((r["ogs"]["error"] for r in rows if r["ogs"]["error"] and r["ogs"]["verdict"] != "no aplica"), None)
     meta = {
         "generated_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "harness_version": HARNESS_VERSION,

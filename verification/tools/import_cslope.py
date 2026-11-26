@@ -90,12 +90,22 @@ TOL_REL = 1e-9
 # has no hint. Evidence, checked with cslope 0.1.0 on this search: the critical circle of cSlope lies on the
 # right-hand face (centre ≈ (154.2, 76.6), r ≈ 69.4); with orientation ltr it gives Bishop 2.4528 and Spencer
 # 2.4511, and with rtl it finds no valid slip surface.
-DIRECTION_OVERRIDES = {"V063": "left_to_right"}
-DIRECTION_OVERRIDE_NOTE = (
-    "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede "
-    "resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el "
-    "círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4)."
-)
+# V077 (Prandtl, F3 batch 2): level ground and a polyline whose two ends are at the same elevation, so `auto` has
+# no hint. cSlope's own rule (`infer_orientation_from_coordinates`, model/canonical.rs) takes `ltr` when both
+# crests are equal; the mechanism is symmetric about x = 5 (checked with the oracle: ltr and rtl give the same FS).
+DIRECTION_OVERRIDES = {"V063": "left_to_right", "V077": "left_to_right"}
+DIRECTION_OVERRIDE_NOTES = {
+    "V063": (
+        "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede "
+        "resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el "
+        "círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4)."
+    ),
+    "V077": (
+        "slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terreno plano y una "
+        "polilínea simétrica con los dos extremos a la misma cota, así que auto no tiene pista; cSlope toma ltr "
+        "con crestas iguales (infer_orientation_from_coordinates) y el oráculo da el mismo FS con ltr y con rtl."
+    ),
+}
 
 # ---------------------------------------------------------------- JSON Schema (sections 1 and 2 of the contracts)
 POINT = {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
@@ -905,7 +915,7 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool) -> tuple[dict, l
             "reference": prob["reference"],
             "derived_from": f"cSlope verification problem {cid} (MIT License), https://github.com/ZilanCiftci/cslope",
             "notes": prob.get("notes", []) + solver_notes + limit_notes
-            + ([DIRECTION_OVERRIDE_NOTE] if overridden else []),
+            + ([DIRECTION_OVERRIDE_NOTES[cid]] if overridden else []),
         },
     }
     return case, discarded, batches
@@ -1073,10 +1083,11 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report) -> str
     for cid in order:
         for reason in discarded_by_case.get(cid, []):
             lines.append(f"- {cid}: {md_cell(reason)}")
-    overrides = [c["id"] for c in converted if DIRECTION_OVERRIDE_NOTE in c["source"]["notes"]]
+    overrides = [c["id"] for c in converted if c["id"] in DIRECTION_OVERRIDE_NOTES
+                 and DIRECTION_OVERRIDE_NOTES[c["id"]] in c["source"]["notes"]]
     if overrides:
         lines += ["", "## Sentidos de deslizamiento fijados por el importador", ""]
-        lines += [f"- {cid}: {md_cell(DIRECTION_OVERRIDE_NOTE)}" for cid in overrides]
+        lines += [f"- {cid}: {md_cell(DIRECTION_OVERRIDE_NOTES[cid])}" for cid in overrides]
     lines += ["", "## Problemas con peso saturado (`unitWeightSat`) no incluidos", ""]
     lines += [
         f"En la fuente hay **{len(sat_ids)}** problemas con `unitWeightSat` no nulo; **{len(sat_included)}** "
