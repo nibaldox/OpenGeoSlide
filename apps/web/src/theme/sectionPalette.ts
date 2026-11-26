@@ -16,6 +16,8 @@ export interface SectionPalette {
   /** Superficie evaluada de un método que no convergió (trazo discontinuo): `--canvas-surface-unconverged`. */
   surfaceUnconverged: string;
   piezo: string;
+  /** Refuerzos y sus fuerzas (flechas): `--canvas-reinforcement`. */
+  reinforcement: string;
   sliceFill: string;
   sliceEdge: string;
   /** `canvas-mat-0` a `canvas-mat-6`, por índice de material módulo 7. */
@@ -34,6 +36,7 @@ const SCALARS: Record<Exclude<keyof SectionPalette, 'materials'>, string> = {
   surface: '--canvas-surface',
   surfaceUnconverged: '--canvas-surface-unconverged',
   piezo: '--canvas-piezo',
+  reinforcement: '--canvas-reinforcement',
   sliceFill: '--canvas-slice-fill',
   sliceEdge: '--canvas-slice-edge',
   materialUnknown: '--canvas-mat-unknown',

@@ -98,9 +98,10 @@ const PAIRS: Pair[] = [
   ['canvas-axis-text', 'canvas-bg', TEXT, 'etiquetas de los ejes'],
   ['canvas-axis', 'canvas-bg', TEXT, 'marco y rótulos de los ejes'],
   ['canvas-load', 'canvas-bg', TEXT, 'etiqueta de carga'],
+  ['canvas-reinforcement', 'canvas-bg', TEXT, 'rótulo de refuerzo y de su fuerza'],
   ['canvas-seismic', 'canvas-seismic-bg', TEXT, 'insignia sísmica'],
   // Trazos del lienzo sobre el fondo y sobre cada material (3:1)
-  ...['canvas-surface', 'canvas-surface-unconverged', 'canvas-piezo', 'canvas-load', 'canvas-region-edge', 'canvas-selected', 'canvas-handle-ring'].flatMap(
+  ...['canvas-surface', 'canvas-surface-unconverged', 'canvas-piezo', 'canvas-load', 'canvas-reinforcement', 'canvas-region-edge', 'canvas-selected', 'canvas-handle-ring'].flatMap(
     (stroke): Pair[] => ['canvas-bg', ...MATS].map((bg): Pair => [stroke, bg, UI, 'trazo esencial del lienzo']),
   ),
   // Dovelas (UX9-07): el trazo se compone sobre cada material y sobre el panel, donde está la muestra de la leyenda
