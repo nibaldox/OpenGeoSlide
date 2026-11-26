@@ -44,11 +44,36 @@ def model_for_check(model: dict, check: dict) -> dict:
     m = copy.deepcopy(model)
     analysis = m.setdefault("analysis", {})
     analysis["methods"] = [check["method"]]
+    # Como el arnés: la función entre dovelas solo viaja con Morgenstern-Price (el motor rechaza `interslice` sin él).
+    if check["method"] != "morgenstern_price":
+        analysis.pop("interslice", None)
     if "slices" in check.get("options", {}):
         analysis["slices"] = int(check["options"]["slices"])
     if check["kind"] == "fixed":
         analysis.pop("search", None)
     return m
+
+
+V03_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
+
+
+def minimal_version(model: dict) -> str:
+    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
+
+    Independiente del código de la web: los campos de la v0.3 son los de F3.1 (material no drenado y sus parámetros,
+    polilínea fija, métodos M-P y Janbu, función entre dovelas).
+    """
+    analysis = model.get("analysis") or {}
+    v03_material = any(
+        m.get("model") == "undrained" or any(k in m for k in
+                                             ("undrained_strength", "strength_datum", "strength_gradient", "strength_limit"))
+        for m in model.get("materials", []))
+    return "0.3" if (
+        v03_material
+        or (analysis.get("surface") or {}).get("type") == "polyline"
+        or any(m in V03_METHODS for m in analysis.get("methods", []))
+        or analysis.get("interslice") is not None
+    ) else "0.2"
 
 
 def verification_models() -> dict[str, dict]:
@@ -164,7 +189,9 @@ def test_el_texto_guardado_conserva_los_numeros(roundtrip: dict[str, dict]) -> N
 
     for name, entry in roundtrip.items():
         saved = json.loads(entry["saved"].read_text(encoding="utf-8"))
-        assert saved["version"] == "0.2", name
+        # F3.9: la web guarda "0.3" solo si el modelo usa algún campo de la v0.3 (los casos con M-P, Janbu, no drenado o
+        # polilínea) y "0.2" en los demás; ya no todos los casos de verification/cases son v0.1 o v0.2.
+        assert saved["version"] == minimal_version(entry["model"]), name
         assert strip(saved) == strip(entry["model"]), name
 
 
