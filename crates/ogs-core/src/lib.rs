@@ -42,7 +42,10 @@ use model::{
     SurfaceSpec,
 };
 use report::{AnalysisReport, MethodReport};
-use search::{MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings, search_circular};
+use search::{
+    ElementEnd, MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings,
+    search_circular_reinforced,
+};
 use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_of};
 use surface::{Surface, validate_polyline};
 
@@ -331,6 +334,32 @@ fn validate_search_ranges(s: &SearchSpec, pm: &PreparedModel) -> Result<(), OgsE
     Ok(())
 }
 
+/// Heads and tips of the reinforcements, with the unit vector that points away from the element (E14o-7).
+fn reinforcement_ends(reinforcements: &[model::Reinforcement]) -> Vec<ElementEnd> {
+    let mut ends = Vec::new();
+    for r in reinforcements {
+        let ([x1, y1], [x2, y2]) = r.ends();
+        let len = (x2 - x1).hypot(y2 - y1);
+        if !(len.is_finite() && len > 0.0) {
+            continue;
+        }
+        let (ux, uy) = ((x2 - x1) / len, (y2 - y1) / len);
+        ends.push(ElementEnd {
+            x: x1,
+            y: y1,
+            ux: -ux,
+            uy: -uy,
+        });
+        ends.push(ElementEnd {
+            x: x2,
+            y: y2,
+            ux,
+            uy,
+        });
+    }
+    ends
+}
+
 fn analyze_method(
     model: &Model,
     pm: &PreparedModel,
@@ -344,18 +373,19 @@ fn analyze_method(
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
-            let result = search_circular(pm, spec, |candidate| {
+            // E14o-7: with reinforcements the search also tries circles through their heads and tips.
+            let ends = reinforcement_ends(&model.reinforcements);
+            let result = search_circular_reinforced(pm, spec, &ends, |candidate| {
                 // E14d.4: the crossings of the reinforcements are computed for each candidate.
                 let case;
+                let mut crossings = 0;
                 let load_case = if model.reinforcements.is_empty() {
                     load_case
                 } else {
                     let surface = Surface::Circle(*candidate);
-                    case = load_case.with_extra_breaks(reinforcement::crossing_nodes(
-                        &model.reinforcements,
-                        pm,
-                        &surface,
-                    ));
+                    let nodes = reinforcement::crossing_nodes(&model.reinforcements, pm, &surface);
+                    crossings = (nodes.len() / 2) as u32;
+                    case = load_case.with_extra_breaks(nodes);
                     &case
                 };
                 let mut slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
@@ -370,7 +400,7 @@ fn analyze_method(
                 let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
-                valid.then_some(res.fos)
+                valid.then_some((res.fos, crossings))
             });
             let (circle, _fos) = result.best.ok_or_else(|| {
                 OgsError::NoValidSurface(format!(

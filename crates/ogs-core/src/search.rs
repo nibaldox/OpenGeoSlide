@@ -51,10 +51,30 @@ const RATIO_MIN: f64 = 1.0001;
 const DEFAULT_MIN_WIDTH_FRACTION: f64 = 0.01;
 /// Tolerance of the effective-end checks, as a fraction of the model width (see [`block_ends_admissible`]).
 const END_TOLERANCE_FRACTION: f64 = 1e-9;
+/// Distance from an element end to the points of the through-candidates (E14o-7), as a fraction of the model width.
+const END_OFFSET: f64 = 1e-4;
+/// Seeds of the refinement through the element ends: the best by FS.
+const N_THROUGH_SEEDS: usize = 6;
+/// Largest number of seeds added for crossing counts that the best seeds do not cover (E14o-7).
+const MAX_CLASS_SEEDS: usize = 8;
+/// Seeds of the grid refinement when there are reinforcements (E14o-7); without them it is [`N_SEEDS`].
+const N_SEEDS_REINFORCED: usize = 20;
+/// Largest number of through-candidates evaluated, as a multiple of the grid size.
+const THROUGH_BUDGET_FACTOR: f64 = 0.5;
 /// Largest number of points per grid axis (`n_entry`, `n_exit`, `n_radius`) accepted by `analyze`.
 pub const MAX_AXIS_POINTS: usize = 200;
 /// Largest grid (`n_entry · n_exit · n_radius`) accepted by `analyze`. Checked before any allocation.
 pub const MAX_GRID_CANDIDATES: usize = 2_000_000;
+
+/// An end of a reinforcement (head or tip): its position and the unit vector that points away from the element
+/// along its axis (E14o-7).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ElementEnd {
+    pub x: f64,
+    pub y: f64,
+    pub ux: f64,
+    pub uy: f64,
+}
 
 /// Search counters.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
@@ -82,6 +102,33 @@ where
     G: Ground + Sync,
     E: Fn(&Circle) -> Option<f64> + Sync,
 {
+    search_core(ground, spec, &[], |c| eval(c).map(|fs| (fs, 0)))
+}
+
+/// Search with reinforcements (E14o-7). `ends` are the heads and tips of the elements; `eval` returns the FS and the
+/// number of crossings the circle has with the elements. Besides the search of [`search_circular`], it:
+/// - adds candidates whose circle passes just inside or just outside each end (the FS jumps there), and
+/// - seeds the refinement with the best candidate of each crossing count not already seeded.
+///
+/// With no `ends` it is exactly [`search_circular`].
+pub fn search_circular_reinforced<G, E>(
+    ground: &G,
+    spec: &SearchSpec,
+    ends: &[ElementEnd],
+    eval: E,
+) -> SearchResult
+where
+    G: Ground + Sync,
+    E: Fn(&Circle) -> Option<(f64, u32)> + Sync,
+{
+    search_core(ground, spec, ends, eval)
+}
+
+fn search_core<G, E>(ground: &G, spec: &SearchSpec, ends: &[ElementEnd], eval: E) -> SearchResult
+where
+    G: Ground + Sync,
+    E: Fn(&Circle) -> Option<(f64, u32)> + Sync,
+{
     let empty = SearchResult {
         best: None,
         stats: SearchStats::default(),
@@ -106,6 +153,7 @@ where
         min_width: spec.min_width.unwrap_or(DEFAULT_MIN_WIDTH_FRACTION * width),
         rho,
         tol_x: STEP_TOL_X * width,
+        through: None,
     };
 
     // 1. Grid: entry × exit × radius, in lexicographic index order. The entry and exit axes also
@@ -140,7 +188,7 @@ where
     for (idx, cand) in grid.into_iter().enumerate() {
         let Some(cand) = cand else { continue };
         stats.evaluated += 1;
-        let Some(fs) = cand.fs else { continue };
+        let Some((fs, class)) = cand.fs else { continue };
         stats.valid += 1;
         if fs.is_nan() {
             continue;
@@ -153,26 +201,92 @@ where
                 params: cand.params,
                 circle: cand.circle,
                 fs,
+                class,
             },
         ));
     }
 
     // 3. Pattern-search refinement from the best grid seeds.
+    let steps0 = [
+        spacing(entry, spec.n_entry),
+        spacing(exit, spec.n_exit),
+        spacing(rho, spec.n_radius),
+    ];
     if spec.refine && !scored.is_empty() {
         scored.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
         let ordered: Vec<Scored> = scored.into_iter().map(|(_, _, s)| s).collect();
-        let seeds = pick_seeds(&ordered);
-        let steps0 = [
-            spacing(entry, spec.n_entry),
-            spacing(exit, spec.n_exit),
-            spacing(rho, spec.n_radius),
-        ];
+        let mut seeds = pick_seeds(&ordered, N_SEEDS);
+        if !ends.is_empty() {
+            seeds = pick_seeds(&ordered, N_SEEDS_REINFORCED);
+
+            let covered: Vec<u32> = seeds.iter().map(|s| s.class).collect();
+            let extra = class_extra(&ordered, &covered, MAX_CLASS_SEEDS);
+            seeds.extend(extra.into_iter().map(|i| ordered[i]));
+        }
         let refined = map_range(seeds.len(), |i| refine(&space, &eval, seeds[i], steps0));
         for r in refined {
             stats.evaluated += r.evaluated;
             stats.valid += r.valid;
             if let Some((circle, fs)) = r.best {
                 consider(&mut best, circle, fs);
+            }
+        }
+    }
+
+    // 4. E14o-7: circles that pass just inside and just outside each reinforcement end. The FS jumps when a
+    //    circle gains or loses a crossing, and its minimum sits on that edge, which the three axes of the
+    //    grid cannot follow: here the circle keeps the point and only (x_e, x_s) vary.
+    if !ends.is_empty() {
+        let points = end_points(ends, END_OFFSET * width);
+        let cap = ((THROUGH_BUDGET_FACTOR * total as f64) as usize).max(1);
+        let k = ((cap / points.len().max(1)).max(16) as f64).sqrt().floor() as usize;
+        let (es, xs) = (thin(&entries, k.max(4)), thin(&exits, k.max(4)));
+        let (ne, nx) = (es.len(), xs.len());
+        let cands = map_range(points.len() * ne * nx, |idx| {
+            let (pi, rest) = (idx / (ne * nx), idx % (ne * nx));
+            let p = Params {
+                xe: es[rest / nx],
+                xs: xs[rest % nx],
+                rho: 0.0,
+            };
+            try_eval(&space.via(points[pi]), &eval, p).map(|c| (pi, c))
+        });
+        let mut pool: Vec<(usize, Scored)> = Vec::new();
+        for (pi, cand) in cands.into_iter().flatten() {
+            stats.evaluated += 1;
+            let Some((fs, class)) = cand.fs else { continue };
+            stats.valid += 1;
+            if fs.is_nan() {
+                continue;
+            }
+            consider(&mut best, cand.circle, fs);
+            pool.push((
+                pi,
+                Scored {
+                    params: cand.params,
+                    circle: cand.circle,
+                    fs,
+                    class,
+                },
+            ));
+        }
+        if spec.refine {
+            pool.sort_by(|a, b| a.1.fs.total_cmp(&b.1.fs));
+            let ordered: Vec<Scored> = pool.iter().map(|(_, s)| *s).collect();
+            let mut picks: Vec<usize> = (0..ordered.len().min(N_THROUGH_SEEDS)).collect();
+            let covered: Vec<u32> = picks.iter().map(|&i| ordered[i].class).collect();
+            picks.extend(class_extra(&ordered, &covered, MAX_CLASS_SEEDS));
+            let steps = [steps0[0], steps0[1], 0.0];
+            let refined = map_range(picks.len(), |i| {
+                let (pi, seed) = pool[picks[i]];
+                refine(&space.via(points[pi]), &eval, seed, steps)
+            });
+            for r in refined {
+                stats.evaluated += r.evaluated;
+                stats.valid += r.valid;
+                if let Some((circle, fs)) = r.best {
+                    consider(&mut best, circle, fs);
+                }
             }
         }
     }
@@ -220,8 +334,8 @@ pub fn effective_block_warnings<G: Ground>(
 
 /// Refinement seeds (E9a): the `N_SEEDS` best candidates, in order. If they all share the entry-exit pair of
 /// the best one, the best candidate with another pair takes the last place, so at least two pairs are seeded.
-fn pick_seeds(ordered: &[Scored]) -> Vec<Scored> {
-    let mut seeds: Vec<Scored> = ordered.iter().take(N_SEEDS).copied().collect();
+fn pick_seeds(ordered: &[Scored], n: usize) -> Vec<Scored> {
+    let mut seeds: Vec<Scored> = ordered.iter().take(n).copied().collect();
     let Some(first) = seeds.first().copied() else {
         return seeds;
     };
@@ -229,12 +343,56 @@ fn pick_seeds(ordered: &[Scored]) -> Vec<Scored> {
     if seeds.iter().all(&same_pair)
         && let Some(other) = ordered.iter().find(|s| !same_pair(s))
     {
-        if seeds.len() == N_SEEDS {
+        if seeds.len() == n {
             seeds.pop();
         }
         seeds.push(*other);
     }
     seeds
+}
+
+/// Indices into `ordered` (best first) of the best candidate of each crossing count that `covered` lacks, at most `max`.
+fn class_extra(ordered: &[Scored], covered: &[u32], max: usize) -> Vec<usize> {
+    let mut seen: Vec<u32> = covered.to_vec();
+    let mut extra = Vec::new();
+    for (i, cand) in ordered.iter().enumerate() {
+        if extra.len() >= max {
+            break;
+        }
+        if !seen.contains(&cand.class) {
+            seen.push(cand.class);
+            extra.push(i);
+        }
+    }
+    extra
+}
+
+/// Points `end ± offset·u` for each element end: just outside and just inside the element. Near-duplicates dropped.
+fn end_points(ends: &[ElementEnd], offset: f64) -> Vec<[f64; 2]> {
+    let mut points: Vec<[f64; 2]> = Vec::new();
+    for e in ends {
+        for sign in [1.0, -1.0] {
+            let p = [e.x + sign * offset * e.ux, e.y + sign * offset * e.uy];
+            if p.iter().all(|v| v.is_finite())
+                && !points
+                    .iter()
+                    .any(|q| (q[0] - p[0]).hypot(q[1] - p[1]) < 0.5 * offset)
+            {
+                points.push(p);
+            }
+        }
+    }
+    points
+}
+
+/// At most `k` evenly spread values of a sorted axis, always including both ends.
+fn thin(axis: &[f64], k: usize) -> Vec<f64> {
+    if axis.len() <= k || k < 2 {
+        return axis.to_vec();
+    }
+    (0..k)
+        .map(|i| axis[(i * (axis.len() - 1) + (k - 1) / 2) / (k - 1)])
+        .collect()
 }
 
 /// Entry or exit candidates (E9a): the uniform axis of [`grid_axis`], plus every ground vertex inside the range
@@ -279,7 +437,7 @@ struct Params {
 struct Candidate {
     params: Params,
     circle: Circle,
-    fs: Option<f64>,
+    fs: Option<(f64, u32)>,
 }
 
 /// A valid candidate with its FS (never NaN).
@@ -288,6 +446,8 @@ struct Scored {
     params: Params,
     circle: Circle,
     fs: f64,
+    /// Number of crossings with the reinforcements (0 without reinforcements).
+    class: u32,
 }
 
 /// Refinement outcome of one seed.
@@ -306,13 +466,50 @@ struct Space<'a, G: Ground> {
     min_width: f64,
     rho: [f64; 2],
     tol_x: f64,
+    /// E14o-7: when set, `ρ` is not free: the circle of `(x_e, x_s)` is the one that passes through this point.
+    through: Option<[f64; 2]>,
 }
 
-impl<G: Ground> Space<'_, G> {
+impl<'a, G: Ground> Space<'a, G> {
+    /// The same space with the circles forced through `point`.
+    fn via(&self, point: [f64; 2]) -> Space<'a, G> {
+        Space {
+            ground: self.ground,
+            sliding: self.sliding,
+            entry: self.entry,
+            exit: self.exit,
+            min_width: self.min_width,
+            rho: self.rho,
+            tol_x: self.tol_x,
+            through: Some(point),
+        }
+    }
+
+    /// `ρ` of the circle through the ground points at `x_e`, `x_s` and through `point`, if there is one with its
+    /// centre above the chord.
+    fn rho_through(&self, xe: f64, xs: f64, point: [f64; 2]) -> Option<f64> {
+        let (ye, ys) = (self.ground.y_top(xe)?, self.ground.y_top(xs)?);
+        let s = match self.sliding {
+            Sliding::LeftToRight => 1.0,
+            Sliding::RightToLeft => -1.0,
+        };
+        let (dx, dy) = (xs - xe, ys - ye);
+        let chord = dx.hypot(dy);
+        let half = 0.5 * chord;
+        let (nx, ny) = (-s * dy / chord, s * dx / chord);
+        let (px, py) = (point[0] - 0.5 * (xe + xs), point[1] - 0.5 * (ye + ys));
+        let b = px * nx + py * ny;
+        let dist = (px * px + py * py - half * half) / (2.0 * b);
+        (dist.is_finite() && dist > 0.0).then(|| (dist / half).hypot(1.0).ln())
+    }
+
     /// The circle through the ground points at `p`, or `None` if `p` is infeasible.
     /// Does not call `eval`.
     fn circle(&self, p: Params) -> Option<Circle> {
-        let Params { xe, xs, rho } = p;
+        let Params { xe, xs, mut rho } = p;
+        if let Some(point) = self.through {
+            rho = self.rho_through(xe, xs, point)?;
+        }
         if !(in_range(xe, self.entry) && in_range(xs, self.exit) && in_range(rho, self.rho)) {
             return None;
         }
@@ -379,7 +576,7 @@ fn spacing([lo, hi]: [f64; 2], n: usize) -> f64 {
 fn try_eval<G, E>(space: &Space<G>, eval: &E, p: Params) -> Option<Candidate>
 where
     G: Ground,
-    E: Fn(&Circle) -> Option<f64>,
+    E: Fn(&Circle) -> Option<(f64, u32)>,
 {
     let circle = space.circle(p)?;
     Some(Candidate {
@@ -401,14 +598,14 @@ fn consider(best: &mut Option<(Circle, f64)>, circle: Circle, fs: f64) {
 fn probe<G, E>(space: &Space<G>, eval: &E, acc: &mut Refined, p: Params) -> Option<Scored>
 where
     G: Ground,
-    E: Fn(&Circle) -> Option<f64>,
+    E: Fn(&Circle) -> Option<(f64, u32)>,
 {
     if acc.evaluated >= MAX_REFINE_EVALS {
         return None;
     }
     let circle = space.circle(p)?;
     acc.evaluated += 1;
-    let fs = eval(&circle)?;
+    let (fs, class) = eval(&circle)?;
     acc.valid += 1;
     if fs.is_nan() {
         return None;
@@ -418,6 +615,7 @@ where
         params: p,
         circle,
         fs,
+        class,
     })
 }
 
@@ -431,7 +629,7 @@ fn explore<G, E>(
 ) -> Scored
 where
     G: Ground,
-    E: Fn(&Circle) -> Option<f64>,
+    E: Fn(&Circle) -> Option<(f64, u32)>,
 {
     let mut cur = start;
     for (axis, &step) in steps.iter().enumerate() {
@@ -471,7 +669,7 @@ fn pattern<G, E>(
 ) -> Scored
 where
     G: Ground,
-    E: Fn(&Circle) -> Option<f64>,
+    E: Fn(&Circle) -> Option<(f64, u32)>,
 {
     loop {
         let (a, b) = (cur.params, prev.params);
@@ -499,7 +697,7 @@ where
 fn refine<G, E>(space: &Space<G>, eval: &E, seed: Scored, steps0: [f64; 3]) -> Refined
 where
     G: Ground,
-    E: Fn(&Circle) -> Option<f64>,
+    E: Fn(&Circle) -> Option<(f64, u32)>,
 {
     let mut acc = Refined {
         evaluated: 0,
