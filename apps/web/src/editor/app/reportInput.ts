@@ -4,7 +4,7 @@ import { polylineSurfaceRows, resultsToCsv, surfaceToCsv, type CsvCell } from '.
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { isPolylineReport } from '../../engine/surface';
-import { describeWarnings } from '../../engine/warnings';
+import { describeResultWarnings } from '../../engine/warnings';
 import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from '../../engine/types';
 import type { ModelDoc } from '../types';
 
@@ -27,7 +27,7 @@ export function isRunCurrent(run: EngineRun | null, revision: number): run is En
 
 export function buildReportInput(run: EngineRun, now: Date = new Date()): ReportInput {
   const warnings = run.report.results.flatMap((r) =>
-    describeWarnings(r.warnings).map((w) => ({ method: r.method, severity: w.severity, code: w.code, text: w.text })),
+    describeResultWarnings(r).map((w) => ({ method: r.method, severity: w.severity, code: w.code, text: w.text })),
   );
   return {
     generatedAt: now.toISOString(),
@@ -115,12 +115,14 @@ const CAPTION_METHOD: Record<MethodKind, string> = {
 };
 
 /**
- * Pie de la sección dibujada. Un método que no convergió no tiene superficie crítica: la superficie mostrada es solo la
+ * Pie de la sección dibujada. `fixed`: la superficie es la fija del modelo (no el crítico de una búsqueda). Un método que no convergió no tiene superficie crítica: la superficie mostrada es solo la
  * última evaluada y no debe leerse como resultado (R7-01).
  */
-export function resultCaption(method: MethodKind, status: SolveStatus): string {
+export function resultCaption(method: MethodKind, status: SolveStatus, fixed = false): string {
   const name = CAPTION_METHOD[method];
-  return status === 'converged'
-    ? `Superficie crítica en rojo y dovelas en gris (${name}).`
+  if (status === 'converged') return `${fixed ? 'Superficie fija' : 'Superficie crítica'} en rojo y dovelas en gris (${name}).`;
+  // R10B-07: `invalid` (la superficie no es admisible) y `not_converged` (el método no cerró) no son lo mismo.
+  return status === 'invalid'
+    ? `Superficie evaluada (no válida) en rojo y dovelas en gris (${name}). La superficie no es admisible: no es un resultado válido.`
     : `Superficie evaluada (sin convergencia) en rojo y dovelas en gris (${name}). El método no convergió: no es un resultado válido.`;
 }

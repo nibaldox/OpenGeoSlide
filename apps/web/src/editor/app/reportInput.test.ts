@@ -201,12 +201,19 @@ describe('resultCaption (R7-01)', () => {
   it('convergido: superficie crítica', () => {
     expect(resultCaption('bishop', 'converged')).toBe('Superficie crítica en rojo y dovelas en gris (Bishop simplificado).');
   });
-  it('no convergido o no válido: «Superficie evaluada (sin convergencia)», nunca «crítica»', () => {
-    for (const status of ['not_converged', 'invalid'] as const) {
-      const text = resultCaption('spencer', status);
-      expect(text).toContain('Superficie evaluada (sin convergencia)');
-      expect(text).not.toContain('Superficie crítica');
-      expect(text).toContain('Spencer');
-    }
+  it('no convergido: «Superficie evaluada (sin convergencia)», nunca «crítica»', () => {
+    const text = resultCaption('spencer', 'not_converged');
+    expect(text).toContain('Superficie evaluada (sin convergencia)');
+    expect(text).not.toContain('Superficie crítica');
+    expect(text).toContain('Spencer');
+  });
+  it('R10B-07: no válido se dice distinto de no convergido, y una superficie fija no es «crítica»', () => {
+    const invalid = resultCaption('spencer', 'invalid');
+    expect(invalid).toContain('Superficie evaluada (no válida)');
+    expect(invalid).not.toContain('sin convergencia');
+    expect(invalid).not.toContain('Superficie crítica');
+    expect(resultCaption('spencer', 'not_converged', true)).toContain('Superficie evaluada (sin convergencia)');
+    expect(resultCaption('bishop', 'converged', true)).toBe('Superficie fija en rojo y dovelas en gris (Bishop simplificado).');
+    expect(resultCaption('bishop', 'converged', false)).toBe('Superficie crítica en rojo y dovelas en gris (Bishop simplificado).');
   });
 });

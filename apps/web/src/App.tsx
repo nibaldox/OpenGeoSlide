@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type Cha
 import './App.css';
 import './ui/targets.css';
 import { blockedMessage, caseBlockers } from './analysis/caseGate';
-import { checkModel, convergedFos, evaluateCheck, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
+import { checkModel, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
 import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
 import { userMessage } from './engine/errors';
@@ -18,7 +18,8 @@ import { GuidedTour } from './onboarding/GuidedTour';
 import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
 import { buildScene } from './render/scene';
 import { SectionCanvas } from './render/SectionCanvas';
-import { CheckTable, type CheckRow } from './ui/CheckTable';
+import { CheckTable } from './ui/CheckTable';
+import { checkRowFromResult, type CheckRow } from './ui/checkRow';
 import { ConfirmHost } from './ui/ConfirmDialog';
 import { HelpDialog } from './ui/HelpDialog';
 import { InstallButton } from './ui/InstallButton';
@@ -105,15 +106,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   async function runCheck(model: Model, check: VerificationCheck): Promise<CheckRow> {
     try {
       const { report } = await client.analyze(JSON.stringify(engineModel(checkModel(model, check))));
-      const fos = convergedFos(report.results[0]);
-      const outcome = evaluateCheck(check, fos);
-      return {
-        check,
-        fos: outcome.fos,
-        errorRel: outcome.errorRel,
-        ok: outcome.ok,
-        message: fos === null ? 'El método no convergió: no se reporta FS para esta comprobación.' : undefined,
-      };
+      return checkRowFromResult(check, report.results[0]);
     } catch (err) {
       return { check, fos: null, errorRel: null, ok: false, message: userMessage(err) };
     }
@@ -284,7 +277,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 {shownResult && (
                   <p className={shownResult.status === 'converged' ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
                     Superficie mostrada: {METHOD_LABELS[shownResult.method]}
-                    {shownResult.search ? ' (de la búsqueda)' : ' (superficie fija)'}. {resultCaption(shownResult.method, shownResult.status)}
+                    {shownResult.search ? ' (de la búsqueda)' : ' (superficie fija)'}. {resultCaption(shownResult.method, shownResult.status, !shownResult.search)}
                   </p>
                 )}
               </>

@@ -726,7 +726,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             )}
             {canvasResult && shown && (
               <p className={surfaceConverged ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
-                {resultCaption(shown.method, shown.status)}
+                {resultCaption(shown.method, shown.status, !shown.search)}
               </p>
             )}
           </section>

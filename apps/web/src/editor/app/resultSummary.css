@@ -3,3 +3,15 @@
   margin-left: auto;
   min-height: 28px;
 }
+
+/* «Con aviso» (R10B-09): marca con texto junto al FS de un método con avisos de severidad aviso; no depende solo del color. */
+.rs .rs-flag {
+  padding: 1px 8px;
+  border: 1px solid var(--ui-warn-border);
+  border-radius: 999px;
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
