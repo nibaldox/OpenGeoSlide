@@ -374,7 +374,8 @@ fn constant_reproduces_spencer_on_the_battery_and_acads_bit_for_bit() {
         let mut spencer_doc = model.clone();
         spencer_doc["analysis"]["methods"] = json!(["spencer"]);
         let mut mp_doc = model.clone();
-        mp_doc["version"] = json!("0.3");
+        let version = model["version"].as_str().filter(|v| *v >= "0.3").unwrap_or("0.3");
+        mp_doc["version"] = json!(version);
         mp_doc["analysis"]["methods"] = json!(["morgenstern_price"]);
         mp_doc["analysis"]["interslice"] = json!({"function": "constant"});
         let a: Value =
@@ -413,7 +414,9 @@ fn constant_reproduces_spencer_on_the_verification_cases_with_lambda_and_iterati
         };
         let a: Value = serde_json::from_str(&a).unwrap();
         let mut mp_doc = model.clone();
-        mp_doc["version"] = json!("0.3");
+        // M-P and `interslice` need v0.3 at least; a case with reinforcements keeps its v0.4 and stays covered.
+        let version = model["version"].as_str().filter(|v| *v >= "0.3").unwrap_or("0.3");
+        mp_doc["version"] = json!(version);
         mp_doc["analysis"]["methods"] = json!(["morgenstern_price"]);
         mp_doc["analysis"]["interslice"] = json!({"function": "constant"});
         let b: Value =
