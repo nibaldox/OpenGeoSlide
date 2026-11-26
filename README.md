@@ -20,20 +20,23 @@
 
 ## Qué es
 
-OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado** y
-**Spencer**. Usted dibuja o importa la sección (estratos, línea piezométrica, sismo pseudoestático y cargas), el programa
-busca la superficie de falla circular con el menor FS y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
+OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado**,
+**Spencer**, **Morgenstern-Price** y **Janbu**. Usted dibuja o importa la sección (estratos Mohr-Coulomb o no drenados,
+línea piezométrica, sismo pseudoestático y cargas), el programa busca la superficie de falla circular con el menor FS o
+analiza la polilínea que usted fija, y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión actual es la **0.1.0**: el motor (con sismo pseudoestático y cargas), la CLI, el editor web (PWA), el paquete
-de Python y las pruebas de aceptación están implementados.
+La versión publicada es la **0.1.0**: el motor (Bishop y Spencer, con sismo pseudoestático y cargas), la CLI, el editor
+web (PWA), el paquete de Python y las pruebas de aceptación. El repositorio ya incluye la **Fase 3a** (formato v0.3:
+material no drenado, superficie polilínea, Morgenstern-Price y Janbu), que se publicará en la v0.2.0.
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 51 de 51 checks contra valores publicados (21 casos) y
-  coincide con el programa independiente cSlope en 28 de 28 búsquedas y 28 de 28 superficies fijas. Es la batería real
+- **Está verificado y se puede reproducir.** El motor cumple 213 de 213 checks contra valores publicados (93 casos) y
+  coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 43 de 43 checks de la
+  Fase 3a. Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
@@ -98,23 +101,29 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo, con
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.3), con
 sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (21 casos) | **51/51** | [REPORT](verification/REPORT.md) |
+| Valores publicados (93 casos) | **213/213** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
-| Web y `ogs` (113 modelos) | **113/113** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D17) | **43/43** | [diferencial](verification/differential/REPORT.md) |
+| Web y `ogs` (275 modelos) | **275/275** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 51 checks de 21 casos de la bibliografía (16 en el esquema v0.1 y 5 con sismo o cargas), cada
-  uno dentro de su tolerancia.
+- **Valores publicados:** 213 checks de 93 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2 y 47 en v0.3), cada uno dentro de su tolerancia: 95 de Bishop, 76 de Spencer, 27 de Morgenstern-Price, 7 de
+  Janbu simplificado y 8 de Janbu corregido. Otros 6 checks, en 4 casos, quedan retenidos con su diagnóstico
+  ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
 - **cSlope, superficie fija:** el mismo círculo en los dos programas; el FS difiere en 0,5 % o menos.
+- **cSlope, Fase 3a:** Morgenstern-Price y Janbu corregido sobre el círculo fijo de esos 14 modelos, más tres modelos
+  nuevos (terraplén sobre arcilla blanda con Su lineal, relaves con Su constante y un bloque sobre una capa débil con
+  polilínea fija), con el mismo criterio de 0,5 %.
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 
 Reproducción y detalle (paridad del editor, rendimiento nativo y WASM) en [`docs/verificacion.md`](docs/verificacion.md).
@@ -122,17 +131,22 @@ Esta batería no cubre todo: véanse las limitaciones.
 
 ## Limitaciones conocidas
 
-- **Solo superficies circulares** (fijas o halladas por la búsqueda de entrada y salida), con **Bishop simplificado y
-  Spencer**.
-- **Solo Mohr-Coulomb.** Sin análisis de deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
-- **Sin refuerzos** (geosintéticos, anclajes ni pernos). **No sirve para diseñar muros de tierra mecánicamente
-  estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el muro
-  modelado como una región de suelo.
-- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 21 casos lo usa.
+- **La búsqueda es solo circular.** Las superficies no circulares se fijan a mano como polilínea; la búsqueda no
+  circular es de la Fase 3b. **Bishop simplificado solo admite círculos**; con una polilínea quedan Spencer,
+  Morgenstern-Price y Janbu.
+- **Solo Mohr-Coulomb y no drenado** (Su constante o lineal con la cota); no hay Hoek-Brown ni SHANSEP. Sin análisis de
+  deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
+- **Sin refuerzos** (tablestacas, pilotes, anclajes, clavos ni geosintéticos). **No sirve para diseñar muros de tierra
+  mecánicamente estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el
+  muro modelado como una región de suelo.
+- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 93 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
-- **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer puede no hallar solución o, con tracción en
-  la base, quedar por debajo de Bishop: revise los avisos.
+- **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
+  solución o, con tracción en la base, quedar por debajo de Bishop. En polilíneas con forma de V pueden converger con un
+  FS no físico (aviso `interslice_shear_exceeds_strength`): compárelo con Janbu. Revise siempre los avisos.
+- **Casos publicados retenidos:** V027, V028 y V068 (aviso de normal efectiva negativa) y V032a (la búsqueda halla un
+  mínimo real, más conservador).
 
 El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
 [`docs/limitaciones.md`](docs/limitaciones.md).
@@ -153,10 +167,12 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 
 ## In English
 
-OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop and Spencer,
-circular surfaces, Mohr-Coulomb, pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 51/51 published values and cSlope in
-28/28 searches and 28/28 fixed surfaces. It has no reinforcement (geosynthetics, anchors, nails), so it is not a tool
-for designing MSE walls or retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
+OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
+Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
+pseudo-static seismic loads and surface loads). One Rust engine powers a web app that
+runs in your browser and works offline, a Python package and a CLI. It matches 213/213 published values (93 cases) and cSlope in
+28/28 searches, 28/28 fixed surfaces and 43/43 Phase 3a checks. The search is circular only, and it has no
+reinforcement (geosynthetics, anchors, nails, piles, sheet piles), so it is not a tool for designing MSE walls or
+retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
 from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).
 It is not a certified tool: a qualified professional must validate every result.

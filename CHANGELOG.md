@@ -8,39 +8,93 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+Fase 3a: formato v0.3, material no drenado, superficies polilínea fijas, Morgenstern-Price y Janbu. El contrato es
+`briefs/02_CONTRATOS_FASE3.md` (enmiendas E13a a E13k). Un modelo sin campos nuevos da el mismo resultado, bit a bit,
+que antes de la Fase 3a (`fos`, `status`, `iterations`, `lambda`, `warnings` y superficie).
+
 ### Added
-- **Fase 3a, ola 0 (motor, formato v0.3):**
-  - Formato `.ogs.json` v0.3 (E13a) con JSON Schema `schema/ogs-0.3.schema.json`. Se aceptan 0.1, 0.2 y 0.3. Cada campo
-    nuevo exige `"0.3"`: con una versión menor el error es `InvalidModel: <campo> requiere version "0.3"`. Un modelo sin
-    campos nuevos da el mismo resultado, bit a bit, en 0.1, 0.2 y 0.3.
-  - Material no drenado (E13b): `model: "undrained"` con `undrained_strength`, y opcionalmente `strength_datum` y
-    `strength_gradient` (Su lineal con la cota) y `strength_limit`. La resistencia por dovela se resuelve en
-    `strength::resolve` en el punto medio de la base; Mohr-Coulomb no cambia ningún bit y un no drenado sin gradiente es
-    idéntico a Mohr-Coulomb con φ = 0.
-  - Tipos y validaciones del formato para la superficie `polyline` (E13c), los métodos `morgenstern_price`,
-    `janbu_simplified` y `janbu_corrected` y `analysis.interslice` (E13d, E13e). Bishop con una polilínea es
-    `InvalidModel` (E13f).
-  - Informe (E13g): `surface` es `{xc, yc, r}` o `{points}`; campos opcionales `correction_factor` e `interslice`.
-  - Interfaces congeladas para la ola 1: `surface::Surface` y el despacho de polilínea y de métodos nuevos, que por
-    ahora terminan en `unimplemented!("F3-W1a")` y `unimplemented!("F3-W1b")`.
-  - `ogs bench --method` acepta los métodos nuevos.
-- **Fase 3a, ola 1 (W1a, superficie polilínea en el motor):**
-  - Superficie `polyline` fija (E13c): se ajusta al terreno como `fit_polyline_to_ground` de cSlope (cada extremo se
-    prolonga hasta su primer cruce con el terreno o se recorta en él), con los estados `Invalid` nuevos
-    `polyline_no_ground_crossing` y `polyline_outside_ground`. Sus vértices son nodos obligatorios del corte, así que la
-    base de cada dovela es recta; `driving_extra` vale 0 (no hay centro). El informe trae la polilínea ajustada.
-  - `resolve_sliding`, paso 3: con una polilínea fija, el sentido `auto` lee los extremos de la polilínea ajustada.
-  - El slicer es genérico sobre `Surface`; el círculo no cambia ni un bit (los 36 modelos de referencia dan la misma
-    salida de `ogs analyze`, byte a byte).
-  - `tests/f3_polyline.rs`: geometría exacta, convergencia O(1/N²) de la polilínea inscrita, espejo y equilibrio global
-    de Spencer en una polilínea.
-- **Verificación:** `tests/f3_oracle.rs` con los valores del oráculo de F3.8 (los de no drenado pasan; los de M-P, Janbu y
-  polilínea fallan a propósito en el stub hasta la ola 1), `tests/v03_format.rs` y `tests/v03_undrained.rs`.
+- **Formato `.ogs.json` v0.3 (E13a).** JSON Schema `schema/ogs-0.3.schema.json`, que acepta 0.1, 0.2 y 0.3. Cada campo
+  o variante nueva exige `"0.3"`: con una versión menor el error es `InvalidModel: <campo> requiere version "0.3"`,
+  que nombra el primer campo que la exige. Los esquemas 0.1 y 0.2 se conservan. Los tipos nuevos rechazan campos
+  desconocidos.
+- **Material no drenado (E13b).** `model: "undrained"` con `undrained_strength`, y opcionalmente `strength_datum` (una
+  cota) y `strength_gradient` (Su lineal con la cota) y `strength_limit`. La resistencia por dovela se resuelve en
+  `strength::resolve`, en el punto medio de la base, con `tan φ = 0`. Mohr-Coulomb no cambia ningún bit, y un no drenado
+  sin gradiente es idéntico a Mohr-Coulomb con φ = 0.
+- **Superficie polilínea fija (E13c).** `analysis.surface = {"type": "polyline", "points": [[x, y], …]}`, con x
+  estrictamente creciente. Se ajusta al terreno como `fit_polyline_to_ground` de cSlope: cada extremo se prolonga hasta
+  su primer cruce con el terreno o se recorta en él (E13j-5). Los vértices son nodos obligatorios del corte, así que la
+  base de cada dovela es recta. Estados `Invalid` nuevos: `polyline_no_ground_crossing` y `polyline_outside_ground`
+  (también cuando la polilínea sale por una cara vertical del terreno). Con `slope.direction = "auto"`, el sentido se
+  lee de los extremos ajustados. El slicer es genérico sobre `surface::Surface` (círculo o polilínea) y el círculo no
+  cambia ni un bit.
+- **Morgenstern-Price (E13d).** Método `morgenstern_price` con `analysis.interslice` y cinco funciones: `constant`,
+  `half_sine` (por omisión), `clipped_sine`, `trapezoidal` y `data_points`. `X = λ·f(ξ)·E`; ξ crece con la x del modelo
+  y se mide sobre el bloque de suelo (E13j-1 y E13j-8). Con `constant` reproduce a Spencer (`|ΔF| ≤ 1e-10`).
+- **Janbu (E13e).** Métodos `janbu_simplified` (F₀, sin ecuación de momento) y `janbu_corrected` (`fos = f₀·F₀`, con
+  `b₁` de 0,69, 0,31 o 0,50 según haya cohesión, fricción o ambas). La cuerda de `f₀` se mide sobre el bloque de suelo
+  (E13j-2 y E13j-7). F₀ es la menor raíz admisible, con la nota `multiple_admissible_roots` (E13j-4).
+- **Métodos según la superficie (E13f).** `bishop` con una polilínea es `InvalidModel: el método 'bishop' solo admite
+  superficies circulares; use spencer, morgenstern_price o janbu`. Spencer y M-P en una polilínea arrancan desde F₀ de
+  Janbu simplificado y toman momentos en los puntos medios de las bases.
+- **Informe (E13g).** `surface` es `{xc, yc, r}` o `{points}` (la polilínea ya ajustada). Campos opcionales
+  `correction_factor` (solo Janbu corregido) e `interslice` (solo M-P).
+- **Estados nuevos (E13j-3).** `polyline_no_ground_crossing`, `polyline_outside_ground` y `bishop_non_circular` (una
+  defensa del solver), en la lista E6 de `briefs/00_CONTRATOS.md` y en `apps/web/src/engine/warnings.ts`.
+- **Aviso `interslice_shear_exceeds_strength` (E13k).** En Spencer y M-P, con `r_v > 3` (criterio de Chen y
+  Morgenstern, 1983, en la forma de Zhu, Lee y Jiang, 2003): el cortante entre dovelas supera la resistencia de las
+  caras verticales y el FS puede no ser físico. Severidad aviso; no se rechaza la solución. Calibrado entre el máximo de
+  los casos de referencia (1,63) y el mínimo de las soluciones absurdas (3,88). Diagnóstico en
+  `docs/fase3/d1/DIAGNOSTICO.md`.
+- **Web (E13i).** Paneles de materiales (modelo no drenado), de análisis (cinco métodos y función entre dovelas) y de
+  superficie (círculo o polilínea); el lienzo dibuja la polilínea con tiradores y el resultado con la polilínea ajustada;
+  Casos con los cinco métodos; la casilla de Bishop se deshabilita con una polilínea y explica por qué; `validateLocal`
+  con las mismas reglas del motor; conversión de unidades de Su, cota y gradiente; polilínea inicial admisible por
+  construcción al pasar de círculo a polilínea; informe PDF y CSV con la polilínea, el método con su función, `f₀` y la
+  tabla de Su; ayuda de la v0.3. La web guarda `"0.2"` si el modelo no usa campos de 0.3 y `"0.3"` si usa alguno; abre
+  0.1, 0.2 y 0.3. El motor simulado rechaza todo modelo 0.3 y nunca inventa un FS.
+- **Verificación (E13h).**
+  - Importador de cSlope en tres lotes, sin el tope de 20 casos: **93 casos y 213 checks** en `verification/cases/`
+    (antes 21 y 51): 41 casos v0.1, 5 v0.2 y 47 v0.3. Los checks que el motor no reproduce quedan en
+    `verification/pending/` con su diagnóstico.
+  - Pruebas por capacidad nueva en `crates/ogs-core/tests/` (oráculo en V047a, neutralidad, equilibrio global respecto
+    de dos puntos, espejo, monotonía de Su, convergencia O(1/N²) de la polilínea inscrita, raíz de Janbu, dominio de
+    ξ y los tres casos de D-1).
+  - Batería diferencial: M-P `half_sine` y Janbu corregido sobre el círculo fijo de D01-D14 y los modelos nuevos D15
+    (terraplén sobre arcilla blanda con Su lineal), D16 (relaves con Su constante) y D17 (bloque sobre capa débil con
+    polilínea fija): 43/43 frente a cSlope 0.1.0. Los 56 checks de Bishop y Spencer siguen en 28/28 y 28/28. El
+    conversor del oráculo (`verification/harness/to_cslope.py`) traduce no drenado, polilínea, M-P y Janbu.
+  - Recorridos de extremo a extremo de la web con el WASM real (`docs/fase3/iw/e2e/`).
+  - `ogs bench --method` admite los métodos nuevos (`all` corre los cinco).
+- **Documentación.** `docs/formato-ogs-json.md` con el formato v0.3 completo y ejemplos validados por
+  `docs/tools/validar_ejemplos.py` contra el esquema y contra `ogs analyze`; `docs/limitaciones.md` y
+  `docs/verificacion.md` actualizados; `docs/fase3/PLAN_REFUERZOS.md` con el plan del bloque de refuerzos.
 
 ### Changed
 - `Material.cohesion` y `Material.friction_angle` son opcionales en el tipo; la validación los exige según `model`.
   Un material Mohr-Coulomb sin ellos sigue siendo `InvalidModel`, ahora con un mensaje propio.
 - `SurfaceSpec` deja de ser `Copy` (la polilínea lleva una lista de puntos).
+- **Escala de los residuos de fuerza (E13j-6).** El cierre `|E_n| ≤ 1e-6·escala`, el residuo de momento, la raíz de F₀ y
+  la clasificación E7d de la N′ negativa usan `escala = max(ΣW, ΣW*)` (W* es el peso con sismo y cargas). Sin cargas y
+  con kv ≤ 0 la salida es idéntica bit a bit; en 1206 corridas solo cambian V018, V077 y V078 (problemas de Prandtl con
+  γ = 1e-6), que pasan a reproducirse y se promueven.
+- **Cuerda de Janbu y dominio de ξ sobre el bloque de suelo (E13j-7 y E13j-8).** L, d y ξ se miden sin las dovelas aéreas
+  de los extremos, igual que en cSlope. D09 pasa de +0,98 % a +0,04 % con Janbu corregido y de +3,39 % a +0,016 % con M-P
+  `half_sine`. Spencer, Bishop, Janbu simplificado y M-P `constant` siguen idénticos byte a byte.
+- **Un círculo cuyo arco termina tangente al terreno** (centro a la cota de la cresta) deja de ser `NoValidSurface` y se
+  analiza (V068).
+
+### Known issues
+- **Bishop solo en círculos y búsqueda solo circular.** La búsqueda no circular, Hoek-Brown y SHANSEP son de la Fase
+  3b; los refuerzos (tablestacas, pilotes, anclajes, clavos y geosintéticos) son un bloque aparte
+  (`docs/fase3/PLAN_REFUERZOS.md`).
+- **Polilíneas con tramos muy empinados:** la guarda `m_α` (E4b) puede rechazar una superficie que cSlope sí analiza
+  (`m_alpha`).
+- **Soluciones inadmisibles en polilíneas en V:** Spencer y M-P pueden converger con un FS de 49 a 130 donde Janbu da 4 a
+  5; el aviso `interslice_shear_exceeds_strength` lo señala (E13k).
+- **Retenidos:** V027, V028 y V068 (`negative_effective_normal_major` en la aceptación) y V032a (la búsqueda halla un
+  mínimo real, más conservador, que sale de los rangos efectivos). Detalle en `docs/limitaciones.md`.
+- El espejo solo da el mismo FS con funciones simétricas entre dovelas, porque ξ crece con la x del modelo.
 
 ## [0.1.0] - 2026-11-25
 
