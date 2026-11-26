@@ -2,8 +2,9 @@
 // formas (en píxeles) del símbolo de cada tipo y de las flechas de fuerza del resultado. Puro: sin React ni DOM, para que
 // el editor (SVG) y la vista Casos (Canvas 2D) dibujen lo mismo.
 //
-// Convención de F4.2: (x1, y1) es la cabeza y (x2, y2) la punta. La tablestaca es vertical (x1 = x2): al mover un extremo
-// solo cambia su y; al mover el centro, los dos extremos se desplazan juntos y x1 = x2 se conserva.
+// Convención de F4.2: (x1, y1) es la cabeza y (x2, y2) la punta. La tablestaca y el pilote con presión del suelo (Ito-Matsui,
+// E15l-21) son verticales (x1 = x2): al mover un extremo solo cambia su y; al mover el centro, los dos extremos se desplazan
+// juntos y x1 = x2 se conserva.
 
 import type { Point, Reinforcement, ReinforcementApplication, ReinforcementForce } from '../../engine/types';
 import { worldToScreen, type Viewport } from '../../geometry/viewport';
@@ -58,12 +59,20 @@ export function refCenter(r: Reinforcement): Point {
 }
 
 /**
- * Mueve un extremo a `to`. En la tablestaca solo cambia la y (la x es fija y se conserva x1 = x2). Devuelve `null` si el
- * refuerzo quedaría sin longitud (F4.2: L > 0) o si `to` no es finito.
+ * E15l-21 (B-05): el refuerzo es vertical (x1 = x2) si es una tablestaca o un pilote con `lateral_pressure` (Ito-Matsui). Un pilote con
+ * `force` puede inclinarse. Es la misma regla que aplica `validateLocal`.
+ */
+export function isVerticalReinforcement(r: Reinforcement): boolean {
+  return r.type === 'sheet_pile' || (r.type === 'pile' && r.lateral_pressure != null);
+}
+
+/**
+ * Mueve un extremo a `to`. En un refuerzo vertical (`isVerticalReinforcement`) solo cambia la y (la x es fija y se conserva
+ * x1 = x2). Devuelve `null` si el refuerzo quedaría sin longitud (F4.2: L > 0) o si `to` no es finito.
  */
 export function moveEnd(r: Reinforcement, end: 1 | 2, to: Point): Reinforcement | null {
   if (!Number.isFinite(to[0]) || !Number.isFinite(to[1])) return null;
-  const at: Point = r.type === 'sheet_pile' ? [end === 1 ? r.x1 : r.x2, to[1]] : [to[0], to[1]];
+  const at: Point = isVerticalReinforcement(r) ? [end === 1 ? r.x1 : r.x2, to[1]] : [to[0], to[1]];
   const next: Reinforcement = end === 1 ? { ...r, x1: at[0], y1: at[1] } : { ...r, x2: at[0], y2: at[1] };
   return refLength(next) > MIN_LENGTH ? next : null;
 }
@@ -116,6 +125,10 @@ export function reinforcementMoveAnnouncement(index: number, r: Reinforcement, u
 }
 
 export const SHEET_PILE_FIXED_X = 'La tablestaca es vertical: su x es fija. Use las flechas arriba y abajo, o mueva el centro.';
+export const PILE_VERTICAL_FIXED_X = 'El pilote con presión del suelo es vertical: su x es fija. Use las flechas arriba y abajo, o mueva el centro.';
+
+/** Aviso de x fija de un refuerzo vertical: el de la tablestaca o el del pilote Ito-Matsui. */
+export const verticalFixedXMessage = (r: Reinforcement): string => (r.type === 'sheet_pile' ? SHEET_PILE_FIXED_X : PILE_VERTICAL_FIXED_X);
 export const REINFORCEMENT_ZERO_LENGTH = 'El refuerzo no puede quedar sin longitud: la cabeza y la punta deben ser puntos distintos.';
 
 /** Título de un refuerzo: «Refuerzo 2: Anclaje, activa, longitud 14 m». */
