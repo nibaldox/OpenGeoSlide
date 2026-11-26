@@ -3,8 +3,11 @@
 import { describe, expect, it } from 'vitest';
 import type { AnalysisSettings, Material } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
-import { baseDoc, mat } from './testFixtures';
+import { baseDoc as baseDoc02, mat } from './testFixtures';
 import { RULE_TEXT, validateLocal } from './validateLocal';
+
+/** El documento de base en la versión 0.3: estas pruebas usan campos de la 0.3 (R10B-08: con una versión menor `validateLocal` lo señala). */
+const baseDoc = (): ModelDoc => ({ ...baseDoc02(), version: '0.3' });
 
 const GEOTECH = new Set(['editor.gamma_sat_unverified', 'editor.gamma_sat_lt_gamma', 'editor.ru_over_piezo', 'editor.piezo_extrapolated', 'editor.undrained_ru']);
 const errors = (doc: ModelDoc): Issue[] => validateLocal(doc).filter((i) => !GEOTECH.has(i.code));

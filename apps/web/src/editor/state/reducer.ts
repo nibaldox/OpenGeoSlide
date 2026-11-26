@@ -17,6 +17,7 @@ import type {
   Selection,
   UiAction,
 } from '../types';
+import { v03Fields } from '../../io/ogsJson';
 import { allFinite, copyPoints, deepEqual, isFiniteNumber, isPoint, isPointList } from './docUtils';
 import { convertDocUnits, isUnitSystem } from './units';
 
@@ -63,8 +64,19 @@ function inRange(index: number, length: number): boolean {
   return Number.isInteger(index) && index >= 0 && index < length;
 }
 
+/** Sube de 0.1 a 0.2 (sismo o cargas); nunca baja una versión mayor (R10B-08: un documento 0.3 no pasa a 0.2). */
 function ensureV02(doc: ModelDoc): ModelDoc {
-  return doc.version === '0.2' ? doc : { ...doc, version: '0.2' };
+  return doc.version === '0.1' ? { ...doc, version: '0.2' } : doc;
+}
+
+/**
+ * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9): si un comando deja un campo de la 0.3
+ * (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, como hace `saveOgsJson`.
+ * Nunca la baja: el motor acepta un modelo 0.3 sin campos de la 0.3, y al guardar se recalcula la versión mínima.
+ */
+function syncVersion(doc: ModelDoc): ModelDoc {
+  if ((doc.version === '0.1' || doc.version === '0.2') && v03Fields(doc).length > 0) return { ...doc, version: '0.3' };
+  return doc;
 }
 
 export function materialInUse(doc: ModelDoc, materialId: string): boolean {
@@ -120,6 +132,11 @@ function withAnalysis(doc: ModelDoc, patch: object): ModelDoc {
  * Puede devolver el mismo documento (misma referencia) o uno igual si el comando no cambia nada.
  */
 export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
+  const next = applyCommandRaw(doc, cmd);
+  return next === null || next === doc ? next : syncVersion(next);
+}
+
+function applyCommandRaw(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
   switch (cmd.type) {
     case 'vertex/move': {
       const region = doc.regions[cmd.regionIndex];

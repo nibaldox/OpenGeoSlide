@@ -8,6 +8,7 @@
 
 import type { AnalysisSettings, Material, Model, Point } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
+import { v03Fields } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
 import { geotechAdvisories } from './geotech';
 import { isImperialUnits } from './units';
@@ -88,6 +89,11 @@ export const RULE_TEXT = {
     'Peso unitario del agua γw: el modelo está en unidades imperiales y γw no se indica o es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
     'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
 } as const;
+
+/** Texto del motor (`<campo> requiere version "0.3"`) con el nombre del campo de la interfaz (R10B-08). */
+function version03Text(what: string, declared: string): string {
+  return `Formato del archivo: ${what} requiere el formato 0.3, pero este modelo declara el ${declared}; cambie la versión del archivo a 0.3`;
+}
 
 // ───────────────────────── Formato de números y textos ─────────────────────────
 
@@ -677,6 +683,11 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     (doc.loads !== undefined && doc.loads.length > 0) || (doc.analysis.seismic !== undefined && doc.analysis.seismic !== null);
   if (doc.version === '0.1' && hasV02Fields) {
     issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
+  }
+  // R10B-08: como el motor (`<campo> requiere version "0.3"`), con el primer campo de la 0.3 que el documento usa.
+  const first = doc.version === '0.3' ? undefined : v03Fields(doc)[0];
+  if (first) {
+    issues.push(error('editor.out_of_range', `${version03Text(first.what, String(doc.version))}.`, '/version'));
   }
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
