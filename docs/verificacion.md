@@ -148,6 +148,33 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
   sobre el contacto, porque E13l-5 toma el material más débil.
 - Un resultado de cSlope con `converged: false` es un oráculo sin solución, nunca un valor de referencia.
 
+## Refuerzos (v0.4): qué se verifica y con qué
+
+- **Identidad sin refuerzos** (gate de cada ola): `verification/tools/identity_vs_baseline.py --base <binario v0.2.0>
+  --new target/release/ogs` compara byte a byte los modelos sin refuerzos del corpus con el binario de la v0.2.0, en
+  cinco variantes (`own`, `search`, `fixed`, `search@0.4`, `fixed@0.4`). Resultado de R11 (lente A): **0 diferencias en 121
+  modelos** (29 con refuerzos se saltan: la v0.2.0 rechaza el campo). **Una sola excepción declarada:** V065 sin
+  refuerzos, que la v0.2.0 rechazaba por redondeo y ahora se analiza
+  ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
+- **Oráculo** (`crates/ogs-core/tests/f3r_oracle.rs`): las siete filas de F4.13, 16 de dirección inclinada y nueve de
+  capacidad de X17 contra cSlope 0.1.0, con 0,1 % (0,25 % en las dos de `interface` donde gobierna la integral). Con
+  E14o-9, las filas pasivas `inc_up30_pas` e `inc_up45_pas` pasan a ser elementos **embebidos** que cruzan la masa con
+  `along ≥ cos 88°` (estado `compression_ignored`, nota emitida y FS del oráculo), y se agregan filas de `bond` e
+  `interface` cuya capacidad no está acotada por `tensile_capacity`. Antes, R11A-09 midió que esas filas cruzaban en el
+  aire o no cruzaban: no probaban la regla de compresión.
+- **Los 23 casos v0.4 y D24 a D27:** véanse arriba. La revisión R11 (lente A) midió los 30 checks de los casos v0.4 contra
+  cSlope: coinciden a `|Δ| ≤ 0,192 %` (el peor, V065).
+- **Conversor al oráculo** (`verification/harness/to_cslope.py`, `test_to_cslope.py`): desde E14o-11 **valida los
+  rangos** como lo hace `ogs` (`force` y capacidades ≥ 0, `spacing` > 0, longitud > 0, `bonded_length` en (0, L],
+  `friction_angle` en [0, 90), `coverage` en (0, 1], `length1` y `length2` ≥ 0, `angle` en (−90, 90) y tablestaca con
+  `x1 = x2`). Antes aceptaba cinco documentos que `ogs` rechazaba con código 2 (`force < 0`, longitud 0, tablestaca
+  inclinada, `bonded_length` mayor que `L` y `angle = 90`), con el riesgo de comparar un modelo inválido. Los 30 checks
+  de los casos v0.4 se siguen convirtiendo sin rechazos.
+- **`ogs bench`** (E14o-15): usa la mayor versión entre la que declara el modelo y la que el método necesita (0.3 para
+  Morgenstern-Price y Janbu), y **no baja** un modelo 0.4. Antes, con `--method morgenstern_price`, `janbu_simplified`,
+  `janbu_corrected` o `all` (el valor por defecto), el motor rechazaba V037 con `InvalidModel: reinforcements requiere
+  version "0.4"` (R11B-04). Test: `cargo test -p ogs-cli`.
+
 ## Bindings y CLI
 
 - **`ogs-py`** (`crates/ogs-py/tests/`): además de los tests de humo, `test_v03.py` (22 pruebas) cubre el formato v0.3 a
@@ -155,9 +182,15 @@ Informe: [`verification/differential/REPORT.md`](../verification/differential/RE
   terreno y los dos estados `invalid`), no drenado (constante, con gradiente y con gradiente negativo y piso, D18),
   M-P con sus funciones, Janbu con `correction_factor` y el aviso `interslice_shear_exceeds_strength` sobre la
   polilínea A de D-1. Necesita el wheel construido con `maturin` (véase [`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
-- **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`.
-- **Esquema:** `verification/tools/test_schema.py` compara el esquema 0.3 con el binario en una tabla de documentos; con
-  E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan).
+- **`ogs-py` v0.4:** `crates/ogs-py/tests/test_v04.py` cubre los refuerzos a través del wheel: las 32 filas de X17
+  contra el oráculo, los cinco tipos, los tres modelos de `pullout`, los estados de `reinforcement_forces`, las notas de
+  refuerzos, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON.
+- **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`, y
+  `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4.
+- **Esquema:** `verification/tools/test_schema.py` compara el esquema con el binario en una tabla de documentos; con
+  E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan), y con el bloque de refuerzos compara
+  también [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) (que acepta 0.1 a 0.4 y rechaza lo mismo que el
+  motor). Con `test_cli_usage.py`, 384 pruebas pasan.
 
 ## Rendimiento (bench)
 
