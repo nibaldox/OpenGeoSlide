@@ -99,8 +99,9 @@ for (const theme of ['light', 'dark']) {
     // imperial
     await p.getByRole('tab', { name: 'Proyecto' }).click();
     await p.locator('[data-path="/units"]').selectOption('imperial');
-    await p.waitForSelector('[data-testid="confirm-dialog"]');
-    await p.locator('[data-testid="confirm-dialog"] button').last().click(); await p.waitForTimeout(300);
+    // U5-E (R8 A-02): el cambio de unidades abre su propio diálogo con tres opciones; se elige «Convertir los valores» (la recomendada).
+    await p.waitForSelector('[data-testid="units-dialog"]');
+    await p.locator('[data-testid="units-dialog"] [data-units-choice="convert"]').click(); await p.waitForTimeout(300);
     await p.getByRole('button', { name: 'Comprobar', exact: true }).click();
     await p.waitForFunction(() => document.querySelector('[data-testid="fs-bishop"]'), null, { timeout: 60000 });
     await p.waitForTimeout(800);
