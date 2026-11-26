@@ -8,7 +8,7 @@ import { loadCaseDoc, sampleInput } from './fixtures';
 const FITTED: Point[] = [[30, 25], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35]];
 const USER: Point[] = [[30, 25.000001], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35]];
 const slices = Array.from({ length: 4 }, (_, i) => ({
-  x_left: 30 + i * 5, x_right: 35 + i * 5, y_base_left: FITTED[i]![1], y_base_right: FITTED[i + 1]![1], y_top_mid: 33, width: 5, alpha: 0.2, base_length: 5.1,
+  x_left: FITTED[i]![0], x_right: FITTED[i + 1]![0], y_base_left: FITTED[i]![1], y_base_right: FITTED[i + 1]![1], y_top_mid: 33, width: 5, alpha: 0.2, base_length: 5.1,
   weight: 100, cohesion: 5, tan_phi: 0.3, pore_pressure: 0, material: 0, weight_extra: 0, h_force: 0, h_moment_base: 0, driving_extra: 0, y_centroid: 0,
 }));
 

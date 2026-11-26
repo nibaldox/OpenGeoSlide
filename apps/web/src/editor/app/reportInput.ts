@@ -4,7 +4,7 @@ import { polylineSurfaceRows, resultsToCsv, surfaceToCsv, type CsvCell } from '.
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
 import { isPolylineReport } from '../../engine/surface';
-import { describeWarnings } from '../../engine/warnings';
+import { describeResultWarnings } from '../../engine/warnings';
 import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from '../../engine/types';
 import type { ModelDoc } from '../types';
 
@@ -27,7 +27,7 @@ export function isRunCurrent(run: EngineRun | null, revision: number): run is En
 
 export function buildReportInput(run: EngineRun, now: Date = new Date()): ReportInput {
   const warnings = run.report.results.flatMap((r) =>
-    describeWarnings(r.warnings).map((w) => ({ method: r.method, severity: w.severity, code: w.code, text: w.text })),
+    describeResultWarnings(r).map((w) => ({ method: r.method, severity: w.severity, code: w.code, text: w.text })),
   );
   return {
     generatedAt: now.toISOString(),

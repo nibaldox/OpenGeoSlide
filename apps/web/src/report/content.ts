@@ -10,12 +10,13 @@ import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
-import { describeWarning } from '../engine/warnings';
-import { INTERSLICE_LABEL, correctionFactorText, intersliceText, methodDetails, surfaceSummary } from './methodInfo';
+import { describeWarning, warningContext } from '../engine/warnings';
+import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import type { ReportInput } from './types';
 
 export type { Rgb };
+export { clipPolylineX };
 
 export interface DrawingRegion {
   polygon: Point[];
@@ -202,22 +203,6 @@ export function terrainY(model: ModelDoc, x: number): number | null {
   return best;
 }
 
-/** Recorta una polilínea (x creciente) al intervalo [xmin, xmax], interpolando en los extremos. */
-export function clipPolylineX(points: Point[], xmin: number, xmax: number): Point[] {
-  const out: Point[] = [];
-  const yAt = (a: Point, b: Point, x: number): number => (b[0] === a[0] ? a[1] : a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0]));
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i] as Point;
-    const b = points[i + 1] as Point;
-    if (Math.max(a[0], b[0]) < xmin || Math.min(a[0], b[0]) > xmax) continue;
-    const p0: Point = a[0] < xmin ? [xmin, yAt(a, b, xmin)] : a;
-    const p1: Point = b[0] > xmax ? [xmax, yAt(a, b, xmax)] : b;
-    if (out.length === 0) out.push(p0);
-    out.push(p1);
-  }
-  return out;
-}
-
 /**
  * Puntos de la base de las dovelas en orden de **x creciente** (E12i): `x_left` de cada dovela ordenada y, al final,
  * `x_right` de la última. El motor entrega las dovelas del pie al coronamiento, que en `left_to_right` es x decreciente;
@@ -237,7 +222,7 @@ function primaryResult(results: MethodReport[]): MethodReport | undefined {
 
 /** Puntos de la polilínea ajustada del informe (ya prolongada o recortada al terreno por el motor, F3.7); null si la superficie es un círculo. */
 function reportPolyline(r: MethodReport): Point[] | null {
-  return isPolylineReport(r.surface) ? r.surface.points.map((p): Point => [p[0], p[1]]) : null;
+  return analyzedPolyline(r);
 }
 
 function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bounds']): Point[] {
@@ -543,7 +528,7 @@ function methodParameterRows(results: MethodReport[]): string[][] {
 
 function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection {
   const u = units(model);
-  const summaries = results.map((r) => surfaceSummary(r.surface));
+  const summaries = results.map((r) => resultSurfaceSummary(r));
   // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
   const allPolyline = results.length > 0 && summaries.every((x) => x !== null);
   const surfaceHeader = allPolyline ? ['Superficie fija'] : [`Centro (xc; yc) (${u.length})`, `Radio (${u.length})`];
@@ -611,8 +596,9 @@ function warningsSection(input: ReportInput): ReportSection {
     items.push({ severity: 'aviso', label: 'Modelo', text: a.text, key: a.code });
   }
   for (const r of input.results) {
+    const ctx = warningContext(r);
     for (const code of r.warnings) {
-      const info = describeWarning(code);
+      const info = describeWarning(code, ctx);
       push(r.method, info.severity, info.code, info.text);
     }
   }

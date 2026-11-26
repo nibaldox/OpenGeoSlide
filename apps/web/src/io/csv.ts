@@ -6,7 +6,7 @@
 
 import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
-import { methodDetails } from '../report/methodInfo';
+import { analyzedPolyline, methodDetails } from '../report/methodInfo';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
@@ -318,7 +318,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
  */
 export function polylineSurfaceRows(r: MethodReport): CsvCell[][] {
   if (!isPolylineReport(r.surface)) return [];
-  return r.surface.points.map(([x, y], i) => [r.method, r.status, i + 1, x, y]);
+  return (analyzedPolyline(r) ?? []).map(([x, y], i) => [r.method, r.status, i + 1, x, y]);
 }
 
 /**

@@ -3,7 +3,7 @@
 
 import { convergedFos } from '../../analysis/runner';
 import type { AnalysisReport, MethodKind, SolveStatus } from '../../engine/types';
-import { describeWarnings } from '../../engine/warnings';
+import { describeResultWarnings } from '../../engine/warnings';
 import { formatFs } from '../../ui/formatFs';
 
 const SHORT_NAME: Record<MethodKind, string> = {
@@ -54,7 +54,7 @@ export function warningCounts(report: AnalysisReport): WarningCounts {
   let avisos = 0;
   let notas = 0;
   for (const r of report.results) {
-    for (const w of describeWarnings(r.warnings)) {
+    for (const w of describeResultWarnings(r)) {
       if (w.severity === 'aviso') avisos += 1;
       else notas += 1;
     }

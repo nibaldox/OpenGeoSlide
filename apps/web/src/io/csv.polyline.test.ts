@@ -6,7 +6,8 @@ import { resultsCsv, surfaceCoordsCsv } from '../editor/app/reportInput';
 import { polylineSurfaceRows, resultsToCsv } from './csv';
 
 const PTS: [number, number][] = [[30, 25.000001], [35, 25.520953], [40, 26.973391], [45, 29.525055], [51.29111842105263, 35]];
-const slices = [{ x_left: 30, x_right: 35, y_base_left: 25, y_base_right: 25.5 }] as unknown as MethodReport['slices'];
+// Dovelas que cubren toda la polilínea ajustada (el motor reparte las dovelas de pie a coronamiento).
+const slices = [{ x_left: 30, x_right: 40, y_base_left: 25, y_base_right: 25.5 }, { x_left: 40, x_right: 51.29111842105263, y_base_left: 25.5, y_base_right: 35 }] as unknown as MethodReport['slices'];
 const rep = (o: Partial<MethodReport>): MethodReport =>
   ({ method: 'spencer', fos: 1.2, status: 'converged', iterations: 4, lambda: 0.3, surface: { points: PTS }, slices, search: null, warnings: [], ...o }) as MethodReport;
 
@@ -41,6 +42,13 @@ describe('CSV de la superficie con polilínea: una fila por punto', () => {
     expect(lines[5]).toBe('spencer,converged,5,51.29111842105263,35,SI');
     expect(surfaceCoordsCsv([rep({})], 'imperial').split('\r\n')[0]).toBe('metodo,estado,punto,x_ft,y_ft,unidades');
   });
+  it('R10B-05: la superficie se limita al rango de las dovelas analizadas (ATT3_FIXED: bloque x ∈ [5, 15] de una polilínea hasta x = 42)', () => {
+    const att3 = [[5, 15], [12, 6], [35, 6], [42, 3]] as [number, number][];
+    const block = [{ x_left: 5, x_right: 10 }, { x_left: 10, x_right: 15 }] as unknown as MethodReport['slices'];
+    const r = rep({ surface: { points: att3 }, slices: block, warnings: ['truncated_driving_mass'] });
+    expect(polylineSurfaceRows(r).map((row) => [row[3], row[4]])).toEqual([[5, 15], [12, 6], [15, 6]]);
+    expect(surfaceCoordsCsv([r], 'SI').split('\r\n')).toEqual(['metodo,estado,punto,x_m,y_m,unidades', 'spencer,converged,1,5,15,SI', 'spencer,converged,2,12,6,SI', 'spencer,converged,3,15,6,SI']);
+  });
   it('un método sin convergencia no se exporta, como con el círculo', () => {
     expect(surfaceCoordsCsv([rep({ status: 'not_converged' })], 'SI').trim().split('\r\n')).toHaveLength(1);
   });
@@ -54,7 +62,7 @@ describe('CSV de la superficie con polilínea: una fila por punto', () => {
   it('con el círculo no cambia: los puntos de la base de las dovelas', () => {
     const csv = surfaceCoordsCsv([rep({ surface: { xc: 1, yc: 2, r: 3 } })], 'SI');
     expect(csv.split('\r\n')[1]).toBe('spencer,converged,1,30,25,SI');
-    expect(csv.split('\r\n')).toHaveLength(3);
+    expect(csv.split('\r\n')).toHaveLength(4); // cabecera + 3 puntos de la base de las 2 dovelas
   });
 });
 
