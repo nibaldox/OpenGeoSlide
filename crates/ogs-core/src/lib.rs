@@ -402,7 +402,15 @@ fn analyze_method(
                 surface: declared.to_report(),
                 slices: Vec::new(),
                 search,
-                warnings: vec![reason.to_string()],
+                warnings: std::iter::once(reason.to_string())
+                    .chain(
+                        model
+                            .reinforcements
+                            .iter()
+                            .any(model::Reinforcement::is_pile)
+                            .then(|| reinforcement::STRUCTURAL_CHECKS_NOT_COVERED.to_string()),
+                    )
+                    .collect(),
                 correction_factor: None,
                 interslice: interslice_report(analysis, method),
                 reinforcement_forces: Vec::new(),
@@ -432,6 +440,13 @@ fn analyze_method(
     } else {
         reinforcement::apply_to_slices(&model.reinforcements, pm, &surface, &mut slices)
     };
+    // E14d.3, E14e, E14h: the notes come from the forces of the final surface (also for a method that did not
+    // converge), before they are cleared below.
+    let reinforcement_notes = if model.reinforcements.is_empty() {
+        Vec::new()
+    } else {
+        reinforcement::notes(&model.reinforcements, &reinforcement_forces)
+    };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
     let truncated = !sliced.notes.is_empty();
     let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
@@ -459,6 +474,8 @@ fn analyze_method(
     if load_case.unused(&slices, pm.x_max - pm.x_min) {
         warnings.push(LOAD_OUTSIDE_MASS.to_string());
     }
+    // E14: the notes of the reinforcements (informative).
+    warnings.extend(reinforcement_notes.iter().map(|code| code.to_string()));
     // E11d′: on a searched surface, the effective soil ends are checked against `min_width` and the ranges (advisory).
     let effective: Vec<String> = match &analysis.search {
         Some(spec) => effective_block_warnings(pm, spec, &slices)

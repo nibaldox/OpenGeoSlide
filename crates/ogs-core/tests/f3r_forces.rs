@@ -54,7 +54,9 @@ pub fn analyze_doc(doc: &Value) -> AnalysisReport {
 }
 
 fn forces_of(doc: &Value, method: usize) -> Vec<ReinforcementForce> {
-    analyze_doc(doc).results[method].reinforcement_forces.clone()
+    analyze_doc(doc).results[method]
+        .reinforcement_forces
+        .clone()
 }
 
 fn close(label: &str, got: f64, want: f64, tol: f64) {
@@ -131,7 +133,16 @@ fn rows() -> Vec<Row> {
             0.0,
             Some([1.333661, 1.329252, 1.261727, 1.319292]),
         ),
-        r("F4.13-2", anchor_h("passive"), 42.3119, 28.0, 100.0, 100.0, 0.0, None),
+        r(
+            "F4.13-2",
+            anchor_h("passive"),
+            42.3119,
+            28.0,
+            100.0,
+            100.0,
+            0.0,
+            None,
+        ),
         r(
             "F4.13-3",
             horizontal(
@@ -173,7 +184,16 @@ fn rows() -> Vec<Row> {
             0.0,
             Some([1.108256, 1.105923, 1.053426, 1.101488]),
         ),
-        r("F4.13-9", pile("passive", false), 40.0, 26.9734, 40.0, 40.0, 0.0, None),
+        r(
+            "F4.13-9",
+            pile("passive", false),
+            40.0,
+            26.9734,
+            40.0,
+            40.0,
+            0.0,
+            None,
+        ),
         r(
             "F4.13-11",
             pile("active", true),
@@ -321,7 +341,12 @@ fn forces_match_the_oracle_rows_of_x17() {
         assert_eq!(f.status, ForceStatus::Applied, "{}", row.label);
         close(&format!("{} x", row.label), f.x, row.x, 2e-4);
         close(&format!("{} y", row.label), f.y, row.y, 2e-4);
-        close(&format!("{} available", row.label), f.available, row.available, 2e-4);
+        close(
+            &format!("{} available", row.label),
+            f.available,
+            row.available,
+            2e-4,
+        );
         close(&format!("{} fx", row.label), f.fx, row.px, 2e-4);
         close(&format!("{} fy", row.label), f.fy, row.py, 2e-4);
         assert_eq!(f.crossing, 0, "{}", row.label);
@@ -382,7 +407,10 @@ fn active_goes_to_the_usual_fields_and_passive_to_the_passive_ones() {
         assert_eq!(carriers.len(), 1, "{app}: one slice carries the force");
         let s = carriers[0];
         let xm = 0.5 * (s.x_left + s.x_right);
-        assert!((xm - f.x).abs() < 1e-12, "{app}: the slice is centred on x_c");
+        assert!(
+            (xm - f.x).abs() < 1e-12,
+            "{app}: the slice is centred on x_c"
+        );
         assert!(s.width < 1e-3, "{app}: it is a thin slice, {}", s.width);
         // s = -1 (right to left): V = -Py, H = s·Px.
         let (v, h, m) = if active {
@@ -395,13 +423,25 @@ fn active_goes_to_the_usual_fields_and_passive_to_the_passive_ones() {
         let y_base = 0.5 * (s.y_base_left + s.y_base_right);
         close(&format!("{app} M"), m, -f.fx * (f.y - y_base), 1e-12);
         let (yc, rad) = (v047a_circle_yc(), 28.641487934160704);
-        let de = if active { s.driving_extra } else { s.passive_driving_extra };
-        close(&format!("{app} driving_extra"), de, -f.fx * (yc - f.y) / rad, 1e-12);
+        let de = if active {
+            s.driving_extra
+        } else {
+            s.passive_driving_extra
+        };
+        close(
+            &format!("{app} driving_extra"),
+            de,
+            -f.fx * (yc - f.y) / rad,
+            1e-12,
+        );
         // The other fields stay at zero.
         if active {
             assert_eq!((s.passive_v, s.passive_h), (0.0, 0.0));
         } else {
-            assert_eq!((s.weight_extra, s.h_force, s.driving_extra), (0.0, 0.0, 0.0));
+            assert_eq!(
+                (s.weight_extra, s.h_force, s.driving_extra),
+                (0.0, 0.0, 0.0)
+            );
         }
     }
 }
@@ -412,34 +452,62 @@ fn v047a_circle_yc() -> f64 {
 
 // ----------------------------------------------------------------------------------------------- capacity
 
-/// X17 §4.5: `(label, element, oracle force, force of the prototype with the exact integral)`.
-fn capacity_rows() -> Vec<(&'static str, Value, f64, f64)> {
+/// Closed form of the force of a horizontal element at `y = 28`, whose crossing with the circle is at `x_c`. The
+/// ground rises `y = 25 + (x - 30)/2` (so it is at 28 for `x = 36`), `γ = 20` and the water is absent: `σ′v = 10 (x - 36)`.
+fn x_crossing() -> f64 {
+    let (xc, yc, r) = CIRCLE;
+    xc + (r * r - (yc - 28.0).powi(2)).sqrt()
+}
+
+/// `interface`: `Rc·(2·a·L + 10·tan δ·L²)`, with `L = x_c - 36` the length of soil from the crossing to the tip.
+fn interface_exact(a: f64, delta: f64, rc: f64) -> f64 {
+    let l = x_crossing() - 36.0;
+    rc * (2.0 * a * l + 10.0 * delta.to_radians().tan() * l * l)
+}
+
+/// X17 §4.5: `(label, element, oracle force, force of the prototype, closed form with the exact crossing)`.
+///
+/// The column "prototype" of X17 has a crossing that differs from the exact circle by up to 1.7e-3 m in the rows
+/// with `bond` and with `interface` and `a > 0` (a relative `2.7e-4` in the force); the rows with `development` and
+/// the `interface` with `a = 0` agree with the exact value to 2e-7. The test checks the closed form to `1e-9` and the
+/// prototype column to `3e-4`.
+fn capacity_rows() -> Vec<(&'static str, Value, f64, f64, f64)> {
     let g = |extra: Value| horizontal("geosynthetic", "passive", "axial", extra);
     let tieback = |pullout: Value| {
         json!({"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 63, "y2": 28,
                "application": "active", "tensile_capacity": 150, "direction": "axial", "pullout": pullout})
     };
+    let s_c = 52.0 - x_crossing();
     vec![
         (
             "interface",
-            g(json!({"tensile_capacity": 1000, "pullout": {"model": "interface", "adhesion": 10,
-                                                          "friction_angle": 20, "coverage": 1}})),
+            g(
+                json!({"tensile_capacity": 1000, "pullout": {"model": "interface", "adhesion": 10,
+                                                          "friction_angle": 20, "coverage": 1}}),
+            ),
             272.5028,
             271.2091,
+            interface_exact(10.0, 20.0, 1.0),
         ),
         (
             "interface-cov.5-sp2",
-            g(json!({"tensile_capacity": 1000, "spacing": 2, "pullout": {"model": "interface",
-                     "adhesion": 10, "friction_angle": 20, "coverage": 0.5}})),
+            g(
+                json!({"tensile_capacity": 1000, "spacing": 2, "pullout": {"model": "interface",
+                     "adhesion": 10, "friction_angle": 20, "coverage": 0.5}}),
+            ),
             136.2514,
             135.6046,
+            interface_exact(10.0, 20.0, 0.5),
         ),
         (
             "interface-a0-d30",
-            g(json!({"tensile_capacity": 1000, "pullout": {"model": "interface", "adhesion": 0,
-                                                          "friction_angle": 30, "coverage": 1}})),
+            g(
+                json!({"tensile_capacity": 1000, "pullout": {"model": "interface", "adhesion": 0,
+                                                          "friction_angle": 30, "coverage": 1}}),
+            ),
             229.9695,
             230.0159,
+            interface_exact(0.0, 30.0, 1.0),
         ),
         (
             "bond20-all",
@@ -451,50 +519,68 @@ fn capacity_rows() -> Vec<(&'static str, Value, f64, f64)> {
             ),
             126.2266,
             126.2037,
+            20.0 * (x_crossing() - 36.0),
         ),
         (
             "tieback-bonded25",
             tieback(json!({"model": "bond", "strength": 20, "bonded_length": 25})),
             86.2266,
             86.2520,
+            // Bonded from x = 38 (the last 25 m of 27): from there to the crossing.
+            20.0 * (x_crossing() - 38.0),
         ),
         (
             "dev10/10",
-            g(json!({"tensile_capacity": 100, "pullout": {"model": "development",
-                                                         "length1": 10, "length2": 10}})),
+            g(
+                json!({"tensile_capacity": 100, "pullout": {"model": "development",
+                                                         "length1": 10, "length2": 10}}),
+            ),
             96.8867,
             96.8811,
+            100.0 * s_c / 10.0,
         ),
         (
             "dev15/20-end1=10",
-            g(json!({"tensile_capacity": 100, "end1_capacity": 10, "pullout": {"model": "development",
-                                                                              "length1": 15, "length2": 20}})),
+            g(
+                json!({"tensile_capacity": 100, "end1_capacity": 10, "pullout": {"model": "development",
+                                                                              "length1": 15, "length2": 20}}),
+            ),
             74.5911,
             74.5874,
+            10.0 + 100.0 * s_c / 15.0,
         ),
         (
             "dev30/30-end2=5",
-            g(json!({"tensile_capacity": 100, "end2_capacity": 5, "pullout": {"model": "development",
-                                                                             "length1": 30, "length2": 30}})),
+            g(
+                json!({"tensile_capacity": 100, "end2_capacity": 5, "pullout": {"model": "development",
+                                                                             "length1": 30, "length2": 30}}),
+            ),
             32.2956,
             32.2937,
+            100.0 * s_c / 30.0,
         ),
     ]
 }
 
-/// The capacity with the **exact** integral against the prototype of X17 §4.5, at `1e-4` (relative); and against the
-/// oracle, which discretises `interface` in 200 steps (up to 0.5 % in `T`).
+/// The capacity with the **exact** integral against the closed form (`1e-9`), the prototype of X17 §4.5 (`3e-4`, see
+/// `capacity_rows`) and the oracle, which discretises in 200 steps (up to 0.5 % in `T`).
 #[test]
 fn capacity_with_the_exact_integral_matches_the_prototype() {
-    for (label, element, oracle, proto) in capacity_rows() {
+    for (label, element, oracle, proto, exact) in capacity_rows() {
         let doc = doc_with(json!([element]));
         let f = forces_of(&doc, 0);
         assert_eq!(f.len(), 1, "{label}: {f:?}");
         assert_eq!(f[0].status, ForceStatus::Applied, "{label}");
         let got = f[0].available;
-        println!("{label}: ogs {got:.4}, prototype {proto:.4}, oracle {oracle:.4}");
+        println!(
+            "{label}: ogs {got:.4}, prototype {proto:.4}, oracle {oracle:.4}, exact {exact:.6}"
+        );
         assert!(
-            (got - proto).abs() <= 1e-4 * proto,
+            (got - exact).abs() <= 1e-9 * exact,
+            "{label}: {got:.9} against the closed form {exact:.9}"
+        );
+        assert!(
+            (got - proto).abs() <= 3e-4 * proto,
             "{label}: {got:.5} against the prototype {proto:.5}"
         );
         assert!(
@@ -502,7 +588,10 @@ fn capacity_with_the_exact_integral_matches_the_prototype() {
             "{label}: {got:.5} against the oracle {oracle:.5}"
         );
         // The applied force is the available one, along the axis (these rows are axial or head-on).
-        assert!((f[0].fx.hypot(f[0].fy) - got).abs() <= 1e-9 * got, "{label}");
+        assert!(
+            (f[0].fx.hypot(f[0].fy) - got).abs() <= 1e-9 * got,
+            "{label}"
+        );
     }
 }
 
@@ -525,7 +614,8 @@ fn free_length_without_a_plate_is_no_capacity() {
         assert_eq!(f.status, ForceStatus::NoCapacity);
         assert_eq!((f.available, f.fx, f.fy), (0.0, 0.0, 0.0));
         let (a, b) = (r.fos.unwrap(), bare.results[i].fos.unwrap());
-        assert!((a - b).abs() <= 1e-12, "{}: {a} against {b}", METHODS[i]);
+        // The nodes of the crossing cut a thin slice (the force is 0), so the quadrature changes by about 1e-7.
+        assert!((a - b).abs() <= 1e-6 * b, "{}: {a} against {b}", METHODS[i]);
         assert!(
             !r.warnings.iter().any(|w| w.starts_with("reinforcement_")),
             "no note: {:?}",
@@ -562,36 +652,49 @@ fn active_capacity_row_factors() {
 
 /// E14m-1: an active element with `along > 0` (it climbs toward the massif more steeply than the base) applies
 /// `u = d` whatever its `direction`, with the whole force. A passive one is `compression_ignored`.
+///
+/// (Not the `up30` row of X17: that element runs over the ground, so its crossing is in the air.)
 #[test]
 fn compressed_active_applies_u_equal_d_and_passive_is_ignored() {
-    // up30: head (36; 28), tip (59.38; 41.5): the part under the surface is toward the head, d = -a.
-    let tip = [59.382686, 41.5];
-    let a = {
-        let (dx, dy): (f64, f64) = (tip[0] - 36.0, tip[1] - 28.0);
-        let l = dx.hypot(dy);
-        [dx / l, dy / l]
+    // A short element in the soil that climbs 40° through the base near (42; 27.9): X14 section 5 and X17 section 1.4.
+    let th = 40f64.to_radians();
+    let (cx, cy, half) = (42.0, 27.9, 4.0);
+    let (head, tip) = (
+        [cx - half * th.cos(), cy - half * th.sin()],
+        [cx + half * th.cos(), cy + half * th.sin()],
+    );
+    let element = |application: &str, direction: &str| {
+        json!({"type": "anchor", "id": "A1", "x1": head[0], "y1": head[1], "x2": tip[0], "y2": tip[1],
+               "application": application, "tensile_capacity": 100, "direction": direction})
     };
+    let a = [th.cos(), th.sin()];
     for direction in ["axial", "tangent", "bisector"] {
-        let f = forces_of(&doc_with(json!([anchor("A1", "active", direction, tip)])), 0);
-        assert_eq!(f.len(), 1, "{direction}");
+        let f = forces_of(&doc_with(json!([element("active", direction)])), 0);
+        assert_eq!(f.len(), 1, "{direction}: {f:?}");
         assert_eq!(f[0].status, ForceStatus::Applied, "{direction}");
-        // d = -a (the element enters the mass up and to the right; the stable side is down and to the left).
+        // d = -a: the element enters the mass up and to the right, so the stable side is down and to the left.
         close(&format!("{direction} fx"), f[0].fx, -100.0 * a[0], 1e-9);
         close(&format!("{direction} fy"), f[0].fy, -100.0 * a[1], 1e-9);
     }
-    let report = analyze_doc(&doc_with(json!([anchor("A1", "passive", "axial", tip)])));
+    let report = analyze_doc(&doc_with(json!([element("passive", "axial")])));
     for (i, r) in report.results.iter().enumerate() {
         let f = &r.reinforcement_forces[0];
         assert_eq!(f.status, ForceStatus::CompressionIgnored, "{}", METHODS[i]);
         assert_eq!((f.fx, f.fy), (0.0, 0.0));
         assert!(f.available > 0.0, "the available force is still reported");
         assert!(
-            r.warnings.iter().any(|w| w == "reinforcement_compression_ignored"),
+            r.warnings
+                .iter()
+                .any(|w| w == "reinforcement_compression_ignored"),
             "{:?}",
             r.warnings
         );
-        // Nothing reaches the slices: FS of the slope without the element.
-        assert!(r.slices.iter().all(|s| s.passive_v == 0.0 && s.passive_h == 0.0));
+        // Nothing reaches the slices.
+        assert!(
+            r.slices
+                .iter()
+                .all(|s| s.passive_v == 0.0 && s.passive_h == 0.0)
+        );
     }
 }
 
@@ -613,7 +716,12 @@ fn pile_directions_oppose_the_movement() {
     close("angle 20 fx", up.fx, 40.0 * 20f64.to_radians().cos(), 1e-9);
     close("angle 20 fy", up.fy, 40.0 * 20f64.to_radians().sin(), 1e-9);
     let down = get(p("angle", Some(-20.0), [38.0, 22.0]));
-    close("angle -20 fy", down.fy, -40.0 * 20f64.to_radians().sin(), 1e-9);
+    close(
+        "angle -20 fy",
+        down.fy,
+        -40.0 * 20f64.to_radians().sin(),
+        1e-9,
+    );
     // Perpendicular of the inclined pile (38; 33) -> (42; 22): (37.59; 13.67), 20° up (X17 §1.3).
     let perp = get(p("perpendicular", None, [42.0, 22.0]));
     let theta = (4.0f64).atan2(11.0);
@@ -634,7 +742,9 @@ fn pile_directions_oppose_the_movement() {
 #[test]
 fn mirror_gives_the_same_factors_and_the_mirrored_forces() {
     for row in rows() {
-        if row.label.contains("pas") || !(row.label.starts_with("F4.13") || row.label.contains("down30")) {
+        if row.label.contains("pas")
+            || !(row.label.starts_with("F4.13") || row.label.contains("down30"))
+        {
             continue;
         }
         let doc = doc_with(json!([row.element]));
@@ -648,16 +758,18 @@ fn mirror_gives_the_same_factors_and_the_mirrored_forces() {
         mdoc["reinforcements"] = els;
         mdoc["version"] = json!("0.4");
         let (a, b) = (analyze_doc(&doc), analyze_doc(&mdoc));
-        for i in 0..METHODS.len() {
+        for (i, method) in METHODS.iter().enumerate() {
             let (fa, fb) = (a.results[i].fos.unwrap(), b.results[i].fos.unwrap());
             assert!(
                 (fa - fb).abs() <= 1e-9 * fa,
-                "{} {}: {fa} against {fb}",
-                row.label,
-                METHODS[i]
+                "{} {method}: {fa} against {fb}",
+                row.label
             );
         }
-        let (fa, fb) = (&a.results[0].reinforcement_forces[0], &b.results[0].reinforcement_forces[0]);
+        let (fa, fb) = (
+            &a.results[0].reinforcement_forces[0],
+            &b.results[0].reinforcement_forces[0],
+        );
         close(&format!("{} mirrored x", row.label), fb.x, -fa.x, 1e-6);
         close(&format!("{} mirrored y", row.label), fb.y, fa.y, 1e-6);
         close(&format!("{} mirrored fx", row.label), fb.fx, -fa.fx, 1e-6);
@@ -667,22 +779,48 @@ fn mirror_gives_the_same_factors_and_the_mirrored_forces() {
 
 // ------------------------------------------------------------------------- crossings, statuses and notes
 
-/// A line that crosses the circle twice gives two forces, in order from the head, each with its own `along` and
-/// `T(s_c)`. A 60 m line through (42; 27.88) at 20° crosses the lower arc twice (X17 §1.4).
+/// A line that crosses the lower arc twice gives two forces, in order from the head, each with its own `along` and
+/// `T(s_c)` (X17 §1.4: a line at 20° through (42; 27.88) cuts the arc twice). Active: both are applied. Passive: the
+/// crossing that is compressed (`along > 0`) is `compression_ignored` and the other one is applied.
 #[test]
 fn two_crossings_give_two_forces() {
-    // Active: both are applied (the compressed one with u = d, E14m-1).
-    let element = json!({"type": "anchor", "id": "A1", "x1": 20, "y1": 20.0, "x2": 62.0, "y2": 29.0,
-        "application": "active", "tensile_capacity": 50, "direction": "axial",
-        "pullout": {"model": "development", "length1": 10, "length2": 5}});
-    let f = forces_of(&doc_with(json!([element])), 0);
+    let element = |application: &str| {
+        json!({"type": "anchor", "id": "A1", "x1": 48.0, "y1": 30.06, "x2": 26.0, "y2": 22.06,
+            "application": application, "tensile_capacity": 50, "direction": "axial",
+            "pullout": {"model": "development", "length1": 10, "length2": 5}})
+    };
+    let f = forces_of(&doc_with(json!([element("active")])), 0);
     println!("{f:#?}");
-    assert!(f.len() >= 2, "expected two crossings, got {f:?}");
+    assert_eq!(f.len(), 2, "expected two crossings, got {f:?}");
     for (i, c) in f.iter().enumerate() {
         assert_eq!(c.crossing, i);
         assert_eq!(c.id, "A1");
+        assert_eq!(c.status, ForceStatus::Applied);
     }
-    assert!(f.windows(2).all(|w| w[0].station < w[1].station));
+    assert!(f[0].station < f[1].station && f[0].x > f[1].x);
+    // Each crossing has its own capacity: development 10/5 at its own station.
+    let len = (22.0f64).hypot(8.0);
+    for c in &f {
+        let want = (50.0f64)
+            .min(50.0 * c.station / 10.0)
+            .min(50.0 * (len - c.station) / 5.0);
+        close("T(s_c)", c.available, want, 1e-9);
+        // axial: the force has the module T(s_c).
+        close("|P|", c.fx.hypot(c.fy), want, 1e-9);
+    }
+    let p = forces_of(&doc_with(json!([element("passive")])), 0);
+    assert_eq!(p.len(), 2);
+    let ignored = p
+        .iter()
+        .filter(|c| c.status == ForceStatus::CompressionIgnored)
+        .count();
+    let applied = p
+        .iter()
+        .filter(|c| c.status == ForceStatus::Applied)
+        .count();
+    assert_eq!((ignored, applied), (1, 1), "{p:?}");
+    // The two forces of the active element differ in direction (each has its own `along`): the compressed one uses u = d.
+    assert!((f[0].fx * f[1].fy - f[0].fy * f[1].fx).abs() < 1e-9 * 50.0 * 50.0);
 }
 
 /// A crossing in the air: the element crosses the circle where the arc is above the ground. `outside_mass`, no force,
@@ -713,12 +851,11 @@ fn crossing_in_the_air_is_outside_mass() {
         d["analysis"]["interslice"] = json!({"function": "constant"});
         run(&d)
     };
-    for i in 0..METHODS.len() {
+    for (i, method) in METHODS.iter().enumerate() {
         assert_eq!(
             report.results[i].fos.unwrap().to_bits(),
             bare.results[i].fos.unwrap().to_bits(),
-            "{}",
-            METHODS[i]
+            "{method}"
         );
     }
     // An element far from the surface: no crossing, no entry, and the note.
@@ -726,7 +863,12 @@ fn crossing_in_the_air_is_outside_mass() {
         "application": "passive", "tensile_capacity": 100, "direction": "axial"});
     let r = analyze_doc(&doc_with(json!([far])));
     assert!(r.results[0].reinforcement_forces.is_empty());
-    assert!(r.results[0].warnings.iter().any(|w| w == "reinforcement_outside_mass"));
+    assert!(
+        r.results[0]
+            .warnings
+            .iter()
+            .any(|w| w == "reinforcement_outside_mass")
+    );
 }
 
 /// `structural_checks_not_covered` appears whenever a pile or a sheet pile is in the model, crossed or not; not
@@ -750,7 +892,12 @@ fn structural_note_for_piles() {
             .iter()
             .any(|w| w == "structural_checks_not_covered")
     );
-    let tension = analyze_doc(&doc_with(json!([anchor("A1", "active", "axial", [59.38, 14.5])])));
+    let tension = analyze_doc(&doc_with(json!([anchor(
+        "A1",
+        "active",
+        "axial",
+        [59.38, 14.5]
+    )])));
     assert!(
         !tension.results[0]
             .warnings
@@ -779,6 +926,10 @@ fn search_with_an_anchor_runs_and_reports_the_final_surface() {
     let mut doc = doc_with(json!([rows()[0].element.clone()]));
     doc["analysis"].as_object_mut().unwrap().remove("surface");
     doc["analysis"]["methods"] = json!(["bishop"]);
+    doc["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("interslice");
     doc["analysis"]["search"] = json!({"type": "circular_entry_exit", "entry": [40.0, 60.0], "exit": [20.0, 40.0],
         "n_entry": 5, "n_exit": 5, "n_radius": 4});
     let report = match serde_json::from_value::<Model>(doc.clone()) {
