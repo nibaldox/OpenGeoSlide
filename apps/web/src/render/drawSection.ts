@@ -159,18 +159,26 @@ export function drawSection(
       ctx.stroke();
     }
 
-    // Superficie crítica (arco inferior entre el pie y el coronamiento)
-    const { circle, slices } = scene.surface;
-    const xmin = Math.min(...slices.map((s) => s.x_left));
-    const xmax = Math.max(...slices.map((s) => s.x_right));
+    // Superficie del informe: la polilínea ajustada (F3.7) o el arco inferior del círculo entre el pie y el coronamiento.
+    const { circle, polyline, slices } = scene.surface;
     ctx.beginPath();
-    for (let i = 0; i <= 240; i++) {
-      const x = xmin + ((xmax - xmin) * i) / 240;
-      const d = circle.r * circle.r - (x - circle.xc) ** 2;
-      if (d < 0) continue;
-      const [sx, sy] = worldToScreen(vp, x, circle.yc - Math.sqrt(d));
-      if (i === 0) ctx.moveTo(sx, sy);
-      else ctx.lineTo(sx, sy);
+    if (polyline) {
+      polyline.forEach(([x, y], i) => {
+        const [sx, sy] = worldToScreen(vp, x, y);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      });
+    } else if (circle) {
+      const xmin = Math.min(...slices.map((s) => s.x_left));
+      const xmax = Math.max(...slices.map((s) => s.x_right));
+      for (let i = 0; i <= 240; i++) {
+        const x = xmin + ((xmax - xmin) * i) / 240;
+        const d = circle.r * circle.r - (x - circle.xc) ** 2;
+        if (d < 0) continue;
+        const [sx, sy] = worldToScreen(vp, x, circle.yc - Math.sqrt(d));
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
     }
     ctx.setLineDash([]);
     // Halo bajo la superficie crítica (UX-06): conserva el contraste sobre cualquier material.

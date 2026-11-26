@@ -2,7 +2,7 @@
 
 import type { Scene } from '../render/scene';
 
-export type LegendSwatch = 'line-red' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic';
+export type LegendSwatch = 'line-red' | 'line-polyline-dashed' | 'line-unconverged' | 'slice' | 'line-blue' | 'line-blue-dotted' | 'band-entry' | 'band-exit' | 'line-load' | 'line-seismic';
 
 export interface LegendExtraItem {
   key: string;
@@ -23,18 +23,30 @@ export interface LegendOptions {
   seismic?: boolean;
   /** La piezométrica no cubre todo el ancho y el motor la prolonga en horizontal: se rotula el tramo punteado (R9-05d). El editor lo calcula con `piezoExtension`. */
   piezoExtrapolated?: boolean;
+  /**
+   * El modelo tiene una polilínea fija (F3.3): el editor la dibuja discontinua aunque no haya resultado. Sin resultado se rotula
+   * aparte; con resultado, «Superficie fija (polilínea)» sustituye a «Superficie crítica». La vista Casos no necesita la opción:
+   * lo deduce de `scene.surface.polyline`.
+   */
+  fixedPolyline?: boolean;
 }
 
 /** Elementos distintos de los materiales, en orden fijo: superficie, dovelas, piezométrica, bandas, cargas, sismo. */
-export function legendItems(scene: Pick<Scene, 'piezo'>, options: LegendOptions = {}): LegendExtraItem[] {
-  const { surface = true, unconverged = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false } = options;
+export const FIXED_POLYLINE_LABEL = 'Superficie fija (polilínea)';
+
+export function legendItems(scene: Pick<Scene, 'piezo'> & { surface?: Pick<NonNullable<Scene['surface']>, 'polyline'> | null }, options: LegendOptions = {}): LegendExtraItem[] {
+  const { surface = true, unconverged = false, slices = true, bands = false, loads = false, seismic = false, piezoExtrapolated = false, fixedPolyline = false } = options;
   const items: LegendExtraItem[] = [];
+  // Con una polilínea la superficie no es «crítica»: la da el usuario (fija) y el cálculo solo la ajusta al terreno.
+  const polyline = fixedPolyline || Boolean(scene.surface?.polyline);
   if (surface) {
     items.push(
       unconverged
         ? { key: 'surface', label: 'Superficie evaluada (sin convergencia)', swatch: 'line-unconverged' }
-        : { key: 'surface', label: 'Superficie crítica', swatch: 'line-red' },
+        : { key: 'surface', label: polyline ? FIXED_POLYLINE_LABEL : 'Superficie crítica', swatch: 'line-red' },
     );
+  } else if (fixedPolyline) {
+    items.push({ key: 'surface-fixed', label: FIXED_POLYLINE_LABEL, swatch: 'line-polyline-dashed' });
   }
   if (slices) items.push({ key: 'slices', label: 'Dovelas', swatch: 'slice' });
   if (scene.piezo) items.push({ key: 'piezo', label: 'Piezométrica', swatch: 'line-blue' });
