@@ -3,7 +3,7 @@
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **90** (v0.1: **41**, v0.2 con sismo o cargas: **5**, v0.3: **44**), con **208** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Casos no incluidos: **97** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **93** (v0.1: **41**, v0.2 con sismo o cargas: **5**, v0.3: **47**), con **211** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -24,6 +24,7 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V013a | Cai & Ugai (2000) slope, no pile (see V013b, V013c, V013d and V013e for the pile rows) | Cai & Ugai (2000), Soils and Foundations 40(1). | SI | — | 2 / 0 / 0 / 0 / 0 | search | 0.1 |
 | V016a | Stepped gabion wall, equivalent cohesion | Cao et al. (2016); Grodecki (2017). | SI | — | 2 / 1 / 0 / 0 / 0 | fixed | 0.1 |
 | V016c | Gabion wall with weak joint layers | Cao et al. (2016); Grodecki (2017). | SI | — | 1 / 0 / 0 / 0 / 0 | fixed | 0.1 |
+| V018 | Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism | Chen, Z. & Shao, C. (1988). Evaluation of minimum factor of safety in slope stability analysis. Can. Geotech. J. 25(4), 735–748. | SI | udl q = 149.31 en [5.7735, 15.7735] | 0 / 1 / 0 / 0 / 0 | fixed | 0.3 |
 | V019 | Cheng et al. 11 m homogeneous slope | Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150. | SI | — | 1 / 3 / 0 / 0 / 0 | search | 0.1 |
 | V020 | Cheng et al. benched slope, global minimum | Cheng, Y.M., Lansivaara, T. & Wei, W.B. (2007). Two-dimensional slope stability analysis by limit equilibrium and strength reduction methods. Computers and Geotechnics 34(3), 137–150. | SI | — | 1 / 3 / 0 / 0 / 0 | search | 0.1 |
 | V021a | Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2 | Chowdhury & Xu (1995); Ireland (1954). | SI | — | 2 / 0 / 1 / 0 / 0 | fixed | 0.3 |
@@ -88,6 +89,8 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V069b | Morgenstern complete drawdown, the reference circle | Morgenstern, N. (1963). Stability charts for earth slopes during rapid drawdown. Géotechnique 13(2). Verification manual of a commercial slope stability program. | SI | — | 1 / 0 / 0 / 0 / 0 | fixed | 0.1 |
 | V071a | Pockoski & Duncan (2000) slope 1 | Pockoski & Duncan (2000), slope 1. | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.1 |
 | V071b | Pockoski & Duncan slope 1, circular search | Pockoski & Duncan (2000), slope 1. Verification manual of a commercial slope stability program. | SI | — | 1 / 1 / 0 / 1 / 0 | search | 0.3 |
+| V077 | Prandtl bearing capacity on level ground | Prandtl (1920). Über die Härte plastischer Körper. Nachr. Ges. Wiss. Göttingen, Math.-phys. Kl., 74–85. | SI | udl q = 102.83 en [-5, 5] | 0 / 1 / 0 / 0 / 0 | fixed | 0.3 |
+| V078 | Prandtl bearing capacity, fully specified Prandtl surface (reference values) | Prandtl (1920). Über die Härte plastischer Körper. Nachr. Ges. Wiss. Göttingen, Math.-phys. Kl., 74–85. | SI | udl q = 102.83 en [0, 10] | 0 / 0 / 1 / 0 / 0 | fixed | 0.3 |
 | V081a | Sharma (1996) reinforcement example, unreinforced | Sharma (1996). | SI | udl q = 40 en [17, 30] | 1 / 0 / 0 / 0 / 0 | fixed | 0.2 |
 | V081b | Sharma (1996) slope with a reinforced zone (φ = 54.93°) | Sharma (1996). Verification manual of a commercial slope stability program. | SI | udl q = 40 en [17, 30] | 1 / 0 / 0 / 0 / 0 | fixed | 0.2 |
 | V086e | Tandjiria embankment, sand fill, the paper's geometry | Tandjiria, V., Low, B.K. & Teh, C.I. (2002). Effect of reinforcement force distribution on stability of embankments. Geotextiles and Geomembranes 20, 423–443; problem 2. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.3 |
@@ -126,6 +129,7 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 
 - V026: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terraplén simétrico sobre arcilla (ambos pies a y = 50) y sin rangos de búsqueda, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates), el círculo crítico de Duncan & Wright, (500, 174) en el marco del modelo, está en la cara derecha (masa hacia +x) y, al ser la búsqueda simétrica, ogs y cSlope dan el mismo FS con ltr y con rtl.
 - V063: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): auto no puede resolver el sentido en esta presa simétrica con entry == exit; la orientación ltr reproduce el círculo crítico de cSlope (centro ≈ (154.2, 76.6), r ≈ 69.4).
+- V077: slope.direction fijado a left_to_right por el importador (DIRECTION_OVERRIDES): terreno plano y una polilínea simétrica con los dos extremos a la misma cota, así que auto no tiene pista; cSlope toma ltr con crestas iguales (infer_orientation_from_coordinates) y el oráculo da el mismo FS con ltr y con rtl.
 
 ## Problemas con peso saturado (`unitWeightSat`) no incluidos
 
@@ -165,7 +169,6 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 | V016b | definition con clave que cambia el problema: reinforcements |
 | V017a | contorno no válido (Self-intersection[13.8160684182133 100.095038741757]) |
 | V017b | definition con clave que cambia el problema: reinforcements |
-| V018 | definition con clave que cambia el problema: customSurfaces |
 | V023 | material 'San Francisco Bay Mud' con modelo 'undrained' |
 | V024 | piezométrica sobre el terreno (agua embalsada) |
 | V035a | definition con clave que cambia el problema: reinforcements |
@@ -205,8 +208,6 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 | V074 | definition con clave que cambia el problema: customSurfaces, reinforcements |
 | V075 | definition con clave que cambia el problema: customSurfaces, reinforcements |
 | V076 | definition con clave que cambia el problema: reinforcements |
-| V077 | definition con clave que cambia el problema: customSurfaces |
-| V078 | definition con clave que cambia el problema: customSurfaces |
 | V079 | definition con clave que cambia el problema: customSurfaces |
 | V080 | definition con clave que cambia el problema: customSurfaces |
 | V082a | opción de check que cambia el problema: tensionCrackDepth |

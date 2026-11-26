@@ -172,16 +172,6 @@
   },
   "checks": [
     {
-      "method": "spencer",
-      "kind": "fixed",
-      "published": 1.051,
-      "published_by": "Commercial program A",
-      "tolerance": 0.010475737392959086,
-      "options": {
-        "slices": 50
-      }
-    },
-    {
       "method": "morgenstern_price",
       "kind": "fixed",
       "published": 1.009,
