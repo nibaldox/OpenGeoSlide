@@ -173,7 +173,7 @@ Estos criterios son gates de cada ola.
 - **E15h (G0).** Decide si hace falta un campo nuevo en `Slice` para el momento del peso del agua respecto del punto
   medio. El escritor de G0 lo justifica con el uso real de `h_moment_base` y `driving_extra` en `methods/*` y en el
   equilibrio global. Si hace falta, lo agrega con valor neutro 0 y demuestra la identidad.
-- **E15i.** Reservada para Ito-Matsui (ola G3), que se especificará después del núcleo.
+- **E15i.** Ito-Matsui (ola G3): véase §F5.10.
 
 ## F5.9 Enmiendas tras G1 y G2 (E15j, decisiones del coordinador)
 
@@ -234,3 +234,100 @@ Estos criterios son gates de cada ola.
   - **cSlope evalúa esos mismos círculos igual**: 0,8247, 0,9708, 0,7127 y 0,8217.
   - Es coherente con la física: el corte vertical de 12 m supera su altura crítica, `4c/γ·tan(45° + φ/2) ≈ 7,0 m`.
   - El criterio diferencial `ogs ≤ cSlope·1,01` se cumple.
+
+## F5.10 Ito-Matsui: fuerza de pilote por la presión del suelo (E15i, ola G3)
+
+**Fuente:** `docs/fase3/exploracion/X22.md`. El prototipo coincide con cSlope a ≤ 0,057 % en 28 filas y en los cinco
+métodos. Base bibliográfica: Ito y Matsui (1975), *Soils and Foundations* 15(4):43-59, ecuaciones 13, 14 y 23, leídas del
+original. Las convenciones de este apartado son las de X22 §1 a §4.
+
+- **E15i-1, formato (v0.5).**
+  - En un `pile`, `force` pasa a ser opcional y aparece el campo nuevo `lateral_pressure`:
+
+    ```json
+    { "type": "pile", "x1": 17.5, "y1": 5.0, "x2": 17.5, "y2": -10.0, "spacing": 2.4,
+      "application": "passive", "direction": { "type": "angle", "angle": 0 },
+      "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" },
+      "capacity": { "shear": 150.0, "moment": 250.0 } }
+    ```
+
+  - **Exclusión:** `force` y `lateral_pressure` se excluyen; tiene que estar **exactamente uno**.
+  - **`lateral_pressure`:**
+    - `model` solo admite `"ito_matsui"`;
+    - `diameter` es finito y > 0;
+    - `location` es `"centroid"` o `"slip_surface"`, es **obligatorio** y la web propone `"centroid"`;
+    - `deny_unknown_fields`.
+  - **`capacity`** es opcional y solo se admite junto con `lateral_pressure`.
+    - Lleva `shear` (fuerza por pilote), `moment` (momento por pilote) o ambos, y no puede ir vacío.
+    - Cada valor es finito y > 0.
+  - **Validación**, con su ruta JSON:
+    - el pilote es vertical, `|x2 − x1| ≤ tol`;
+    - `spacing > diameter`;
+    - `application` y `direction` siguen siendo obligatorios.
+  - **Versión.** `lateral_pressure` o `capacity` exigen `"0.5"`, con el error `InvalidModel: lateral_pressure requiere
+    version "0.5"`.
+  - Se agrega al esquema 0.5.
+- **E15i-2, presión.** `p(z) = c·A1 + σ′v·A2`, por pilote y por unidad de profundidad.
+  - Con φ > 0 se usan las ecuaciones 13 y 14, con `X = √Nφ·tanφ + Nφ − 1` y `Nφ = tan²(45° + φ/2)`.
+  - Con φ < 0,01° o material `undrained` se usa la ecuación 23 (φ = 0) con la tensión **total** `σv`.
+  - Se usan `S = spacing` entre ejes, `D2 = S − diameter` y `d = diameter`.
+  - **Piso de φ = 0:** `A = max(A_cφ, A_φ=0)`.
+    - No viene del artículo: es la regla de cSlope y de XSLOPE.
+    - Hace que la fuerza no baje al subir φ, y solo actúa con S/D ≥ 8.
+    - Se documenta como tal (X22 §1.3).
+- **E15i-3, integración.**
+  - Sobre la vertical del pilote, desde `z_top = max(0, terreno − cabeza)` hasta el cruce `zf = terreno − y_cruce`.
+  - Usa la regla del punto medio con un paso ≤ 0,05 m, o el equivalente en imperial. Se admite la integración exacta por
+    tramos si cumple las filas.
+  - En cada punto se toman el material, `c` y `φ` de ese punto. Con `strength_gradient`, `Su(y)`.
+  - **Tensión efectiva:** `σ′v = σv − u − ru·σ_suelo`.
+    - `σv` se integra desde el terreno con `γ`, o con `γsat` bajo la piezométrica, y suma el agua embalsada que hay sobre
+      el terreno (E15c).
+    - `u = γw·max(0, piezo − y)`.
+  - Las cargas de superficie **no** entran en `σv`, como en cSlope.
+  - Si `zf ≤ z_top`, la fuerza vale 0.
+- **E15i-4, fuerza.**
+  - Por pilote: `F = min(∫p dz, shear, moment/L_m)`, donde `L_m = ∫(zf − z)·p dz / ∫p dz` es el brazo de la resultante
+    sobre el cruce.
+  - Por metro: `F/spacing`.
+  - Se informa qué gobierna: `soil`, `shear` o `bending`.
+- **E15i-5, punto de aplicación.**
+  - Con `centroid`, la fuerza actúa sobre la vertical del pilote a `L_m` **por encima** del cruce. Es la regla de Cai y
+    Ugai (2000), ecuación 9, y la de cSlope.
+  - Con `slip_surface`, actúa en el cruce, como en E14e.
+  - Los términos por método son los de E14f y E14g, con el punto de aplicación real.
+- **E15i-6, activo o pasivo y dirección.**
+  - Valen las reglas de E14f y E14g: lo publicado es **pasivo**, se divide por F.
+  - La dirección sale del `direction` del refuerzo (E14e). Una presión de suelo sobre un pilote vertical es horizontal,
+    `angle` 0.
+  - Con `tangent`, el FS de los casos publicados baja alrededor de 0,3 % y sigue dentro de la tolerancia.
+- **E15i-7, salida.**
+  - Cada cruce de un pilote con `lateral_pressure` agrega `soil_force` (fuerza del suelo por metro, antes del tope),
+    `governs` y `arm` (`L_m`).
+  - Esos campos se omiten en un pilote con `force`, para mantener la identidad.
+- **E15i-8, aviso.** `ito_matsui_spacing_range` (aviso) se emite si `S/D < 2` o `S/D > 8`, con el texto: «Pilote
+  Ito-Matsui con S/D = … fuera de 2 a 8: la fórmula pierde validez (sobrestima la fuerza con S/D pequeño y la subestima con
+  S/D grande; Ukritchon y Keawsawasvong 2017). Revise el espaciamiento.»
+  - Va a E6 y a `warnings.ts`.
+  - La Ayuda explica el límite y los supuestos: pilotes rígidos, deformación plana y dos superficies plásticas.
+- **E15i-9, criterios** (gate de G3):
+  - las 28 filas de `docs/fase3/exploracion/X22_filas/` a ≤ 0,1 % de `resultados.json`;
+  - **S06**, con D1/D = 0,25 y FS de alrededor de 11,6, converge en Bishop, por el acotamiento de E14o-2 o una bisección;
+  - neutralidad: sin `lateral_pressure`, la salida es byte a byte, y N01 y N02 dan el FS sin pilote;
+  - espejo S05/V013c ≤ 1e-9;
+  - equilibrio global independiente;
+  - monotonía de la fuerza con S/D;
+  - **identidad** con 0 diferencias, según las excepciones declaradas.
+- **E15i-10, verificación.**
+  - V013b a V013e, con 4 checks de búsqueda de Bishop, pasan a `cases`. El oráculo da entre +0,05 % y +0,50 %.
+  - El conversor escribe `diameter` y quita `force`, convierte `location: slip_surface` en `slip-surface` y pasa
+    `capacity` a `shearCapacity` y `momentCapacity`.
+
+## F5.11 γsat verificado (E15k)
+
+- **Ya hay verificación publicada.** Cuatro casos promovidos en F3G usan un `unit_weight_sat` distinto de
+  `unit_weight` bajo la piezométrica: V082a, V082b, V088 y V089. Cumplen sus checks y cSlope los reproduce.
+- **Por lo tanto:**
+  - se **retira** el aviso del editor `editor.gamma_sat_unverified`;
+  - se corrigen las líneas del README y de `docs/limitaciones.md` que dicen que γsat no está verificado;
+  - la nota `editor.gamma_sat_lt_gamma` se mantiene.
