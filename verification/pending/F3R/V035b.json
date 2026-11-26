@@ -1,0 +1,111 @@
+{
+  "id": "V035b",
+  "title": "Duncan & Wright tieback, passive",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V035b",
+      "title": "Duncan & Wright tieback, passive",
+      "notes": "As V035a with the tieback applied as a passive force (divided by F), on the reference printed Bishop circle."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "saturated_clay",
+        "name": "saturated clay",
+        "model": "undrained",
+        "unit_weight": 15.39457,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.75809,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "saturated_clay",
+        "polygon": [
+          [
+            4.572,
+            3.048
+          ],
+          [
+            7.62,
+            9.144
+          ],
+          [
+            17.3736,
+            9.144
+          ],
+          [
+            17.3736,
+            3.048
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "anchor",
+        "x1": 6.096,
+        "y1": 6.096,
+        "x2": 17.3736,
+        "y2": 6.096,
+        "application": "passive",
+        "tensile_capacity": 40.03398,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 5.23311,
+        "yc": 10.5095,
+        "r": 7.45693
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.324,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010377643504531723,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.32,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.013787878787878788,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.34.",
+    "derived_from": "cSlope verification problem V035b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

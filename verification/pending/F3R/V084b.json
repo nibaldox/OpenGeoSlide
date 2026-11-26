@@ -1,0 +1,262 @@
+{
+  "id": "V084b",
+  "title": "Soil-nailed wall in sand (Clouterre test wall), 45° plane",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V084b",
+      "title": "Soil-nailed wall in sand (Clouterre test wall), 45° plane",
+      "notes": "The V084a wall on the 45° plane through the toe."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fontainebleau_sand",
+        "name": "Fontainebleau Sand",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 3.0,
+        "friction_angle": 38.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "fontainebleau_sand",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            8.0
+          ],
+          [
+            12.0,
+            8.0
+          ],
+          [
+            12.0,
+            7.9993
+          ],
+          [
+            12.001,
+            1.0007
+          ],
+          [
+            12.001,
+            1.0
+          ],
+          [
+            20.0,
+            1.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "type": "line",
+        "id": "l1",
+        "x": 11.7,
+        "p": 13.2,
+        "angle": 0.0
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 7.5,
+        "x2": 6.09015,
+        "y2": 6.45811,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R2",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 6.5,
+        "x2": 4.12054,
+        "y2": 5.11081,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R3",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 5.5,
+        "x2": 4.61294,
+        "y2": 4.19764,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R4",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 4.5,
+        "x2": 4.12054,
+        "y2": 3.11081,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R5",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 3.5,
+        "x2": 4.12054,
+        "y2": 2.11081,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R6",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 2.5,
+        "x2": 4.12054,
+        "y2": 1.11081,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      },
+      {
+        "id": "R7",
+        "type": "nail",
+        "x1": 11.999,
+        "y1": 1.5,
+        "x2": 6.09015,
+        "y2": 0.45811,
+        "application": "passive",
+        "tensile_capacity": 15.0,
+        "direction": "axial",
+        "end1_capacity": 59.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.15,
+        "pullout": {
+          "model": "development",
+          "length1": 2.0,
+          "length2": 2.0
+        }
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            4.7,
+            8.21
+          ],
+          [
+            5.0,
+            8.0
+          ],
+          [
+            12.0,
+            1.0
+          ],
+          [
+            12.3,
+            1.21
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.123,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010445235975066785,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Sheahan & Ho (2003).",
+    "derived_from": "cSlope verification problem V084b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Sheahan & Ho 1.176 (force-equilibrium trial wedge).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

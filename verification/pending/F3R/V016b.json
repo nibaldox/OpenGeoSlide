@@ -1,0 +1,280 @@
+{
+  "id": "V016b",
+  "title": "Stepped gabion wall, mesh as geosynthetic supports",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V016b",
+      "title": "Stepped gabion wall, mesh as geosynthetic supports",
+      "notes": "As V016a with the mesh as geosynthetic supports (T = 100 kN/m) at the course interfaces."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil #1",
+        "model": "mohr_coulomb",
+        "unit_weight": 21.0,
+        "unit_weight_sat": null,
+        "cohesion": 5.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "soil_2",
+        "name": "Soil #2",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 25.0,
+        "ru": null
+      },
+      {
+        "id": "gabion_wall",
+        "name": "Gabion wall",
+        "model": "mohr_coulomb",
+        "unit_weight": 23.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 42.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "gabion_wall",
+        "polygon": [
+          [
+            14.472,
+            5.456
+          ],
+          [
+            14.611,
+            6.4465
+          ],
+          [
+            15.6015,
+            6.3075
+          ],
+          [
+            15.7405,
+            7.298
+          ],
+          [
+            16.731,
+            7.159
+          ],
+          [
+            16.87,
+            8.1495
+          ],
+          [
+            17.8605,
+            8.0105
+          ],
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            18.99,
+            8.862
+          ],
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.456
+          ],
+          [
+            14.472,
+            5.456
+          ],
+          [
+            16.453,
+            5.178
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            17.9995,
+            9.001
+          ],
+          [
+            30.0,
+            9.0
+          ],
+          [
+            30.0,
+            7.0
+          ],
+          [
+            18.573,
+            5.8905
+          ],
+          [
+            18.99,
+            8.862
+          ]
+        ]
+      },
+      {
+        "material": "soil_2",
+        "polygon": [
+          [
+            30.0,
+            7.0
+          ],
+          [
+            30.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            16.453,
+            5.178
+          ],
+          [
+            18.434,
+            4.9
+          ],
+          [
+            18.573,
+            5.8905
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 15.6015,
+        "y1": 6.3075,
+        "x2": 18.573,
+        "y2": 5.8905,
+        "application": "active",
+        "tensile_capacity": 100.0,
+        "direction": "tangent",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0
+      },
+      {
+        "id": "R2",
+        "type": "geosynthetic",
+        "x1": 16.731,
+        "y1": 7.159,
+        "x2": 18.712,
+        "y2": 6.881,
+        "application": "active",
+        "tensile_capacity": 100.0,
+        "direction": "tangent",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0
+      },
+      {
+        "id": "R3",
+        "type": "geosynthetic",
+        "x1": 17.8605,
+        "y1": 8.0105,
+        "x2": 18.851,
+        "y2": 7.8715,
+        "application": "active",
+        "tensile_capacity": 100.0,
+        "direction": "tangent",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 16.087,
+        "yc": 10.358,
+        "r": 6.052
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.835,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010272479564032698,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.839,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010271886895051659,
+      "options": {
+        "slices": 60
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.83,
+      "published_by": "Program D",
+      "tolerance": 0.01273224043715847,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Cao et al. (2016); Grodecki (2017).",
+    "derived_from": "cSlope verification problem V016b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Commercial program A's Fig. 108.2 draws a geosynthetic support on every gabion edge (base, course interfaces, step tops, the vertical joints and the faces); only the three internal course interfaces are modeled here. The reference circle passes wholly beneath the wall, so it crosses none of them (cSlope gives 1.830 with and without the supports): the missing lines matter only for a search.",
+      "Cao et al. (2016) contain no 4 m wall and none of these soils; Grodecki (2017) supports only the equivalent-cohesion method. The geometry and materials are a commercial program's verification problem.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

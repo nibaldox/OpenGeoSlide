@@ -66,7 +66,9 @@ def validate_case(case: dict) -> None:
 def load_cases(cases_dir: str) -> list[dict]:
     if not os.path.isdir(cases_dir):
         raise SystemExit(f"error: cases directory not found: {cases_dir}")
-    paths = sorted(glob.glob(os.path.join(cases_dir, "*.json")))
+    # report.json (the output of a previous run) and HOLD.json (the held checks) live in some case directories
+    paths = sorted(p for p in glob.glob(os.path.join(cases_dir, "*.json"))
+                   if os.path.basename(p) not in ("report.json", "HOLD.json"))
     if not paths:
         raise SystemExit(f"error: no verification cases (*.json) in {cases_dir}")
     cases, errors = [], []
@@ -180,6 +182,8 @@ def run_cslope(cs, document: dict) -> dict:
     crit = result.get("criticalSurface") or {}
     res["fos"] = float(fos)
     res["status"] = "converged" if crit.get("converged", True) else "not_converged"
+    res["forces"] = [{k: f.get(k) for k in ("index", "pile", "x", "y", "fx", "fy", "force", "passive")}
+                     for f in crit.get("reinforcementForces") or []]
     res["warnings"] += [f"{w.get('code')}: {w.get('message')}" for w in result.get("warnings") or []]
     return res
 
@@ -234,6 +238,7 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
                 cs_res["error"] = f"conversión fallida: {type(exc).__name__}: {_first_line(str(exc))}"
             cs_v = verdict(cs_res["fos"], cs_res["status"], published, tolerance)
 
+            applied = cs_res.pop("forces", None)
             rows.append({
                 "case_id": case["id"],
                 "title": case.get("title", ""),
@@ -256,6 +261,11 @@ def build_rows(cases: list[dict], ogs_binary: str | None, cs) -> list[dict]:
                 },
                 "estado": estado(og_v, cs_v),
             })
+            n_items = len(case["model"].get("reinforcements") or [])
+            if n_items and applied is not None:
+                # v0.4: how many forces the oracle applied on its critical surface (a force of 0 kN/m is not applied)
+                rows[-1]["cslope"]["reinforcement_forces"] = {"elements": n_items, "applied": len(applied),
+                                                              "forces": applied}
     return rows
 
 

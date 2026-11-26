@@ -1,0 +1,110 @@
+{
+  "id": "V095c",
+  "title": "Homogeneous slope with a micro-pile row",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V095c",
+      "title": "Homogeneous slope with a micro-pile row",
+      "notes": "As V095a with a micro-pile row (1 m spacing) whose shear strength of 10.7 kN acts as a passive force tangent to the slip surface, on the reference with-pile circle (2.674, 7.376, R = 8.102)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 15.68,
+        "unit_weight_sat": null,
+        "cohesion": 4.9,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            -6.0,
+            -5.0
+          ],
+          [
+            -6.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            8.0,
+            4.0
+          ],
+          [
+            12.0,
+            4.0
+          ],
+          [
+            12.0,
+            -5.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "P1",
+        "type": "pile",
+        "x1": 9.0,
+        "y1": 4.0,
+        "x2": 9.0,
+        "y2": -2.0,
+        "application": "passive",
+        "force": 10.7,
+        "direction": "tangent",
+        "spacing": 1.0
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 2.674,
+        "yc": 7.376,
+        "r": 8.102
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.193,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010419111483654653,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Yamagami et al. (2000).",
+    "derived_from": "cSlope verification problem V095c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Yamagami 1.20, commercial program B 1.223; program D 1.185 (Ito & Matsui force, active, on the no-pile circle).",
+      "On this circle the 10.7 kN passive force gives 1.172 horizontal and 1.195 tilted 51.3° (the base inclination where the circle crosses the pile).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

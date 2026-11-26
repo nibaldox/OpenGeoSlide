@@ -1,0 +1,167 @@
+{
+  "id": "V083",
+  "title": "Soil-nailed wall in clay (Amherst test wall)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V083",
+      "title": "Soil-nailed wall in clay (Amherst test wall)",
+      "notes": "6.1 m vertical cut in undrained clay (Su = 25 kPa) with two nail rows at 20° (tensile 118 kN, plate 86 kN, bond 15 kN/m, spacing 1.5 m; axial, passive) and the facing weight as a line load; the critical plane printed by a commercial program, from the toe (0, 0) to the crest (6.279, 6.1), 44.2°."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "amherst_clay",
+        "name": "Amherst Clay",
+        "model": "undrained",
+        "unit_weight": 18.9,
+        "unit_weight_sat": null,
+        "undrained_strength": 25.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "amherst_clay",
+        "polygon": [
+          [
+            -6.0,
+            -2.0
+          ],
+          [
+            -6.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0006
+          ],
+          [
+            0.001,
+            6.0994
+          ],
+          [
+            0.001,
+            6.1
+          ],
+          [
+            11.0,
+            6.1
+          ],
+          [
+            11.0,
+            -2.0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "type": "line",
+        "id": "l1",
+        "x": 0.3,
+        "p": 14.6,
+        "angle": 0.0
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "nail",
+        "x1": 0.001,
+        "y1": 5.0,
+        "x2": 4.60549,
+        "y2": 3.3241,
+        "application": "passive",
+        "tensile_capacity": 118.0,
+        "direction": "axial",
+        "end1_capacity": 86.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.5,
+        "pullout": {
+          "model": "development",
+          "length1": 7.86667,
+          "length2": 7.86667
+        }
+      },
+      {
+        "id": "R2",
+        "type": "nail",
+        "x1": 0.001,
+        "y1": 3.5,
+        "x2": 4.60549,
+        "y2": 1.8241,
+        "application": "passive",
+        "tensile_capacity": 118.0,
+        "direction": "axial",
+        "end1_capacity": 86.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.5,
+        "pullout": {
+          "model": "development",
+          "length1": 7.86667,
+          "length2": 7.86667
+        }
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_corrected"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            -0.3,
+            0.21
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.279,
+            6.1
+          ],
+          [
+            6.579,
+            6.31
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.89,
+      "published_by": "Commercial program A",
+      "tolerance": 0.015617977528089888,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Sheahan & Ho (2003).",
+    "derived_from": "cSlope verification problem V083 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Sheahan (trial wedge) 0.887; program D 0.899 on the earlier input (6 m wall, plane at 44.5°).",
+      "Wall height 6.1 m and plane from commercial program A's critical surface (Fig. 47.2: left and right slope intercepts (0, 6.100) and (6.279, 6.100)); the figure labels (0, 6) and (11, 6) are rounded, as everywhere in that manual. Before this correction the wall was 6 m high and the plane ran to (6.106, 6): cSlope 0.899 (+1.0 %); now 0.885 (-0.6 %). Sheahan & Ho (2003), Table 1, give the Amherst wall 6.1 m high, with nails 1.5 m apart both ways at 20°, head 86 kN, tensile 118 kN, bond 15 kN/m and shotcrete 14.6 kN/m, as here.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

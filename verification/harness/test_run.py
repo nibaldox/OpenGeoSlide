@@ -114,3 +114,26 @@ def test_model_for_check_drops_interslice_for_the_other_methods_even_if_the_chec
     model = {"analysis": {"interslice": {"function": "half_sine"}}}
     check = {"method": "spencer", "kind": "fixed", "options": {"interslice": {"function": "trapezoidal"}}}
     assert "interslice" not in run.model_for_check(model, check)["analysis"]
+
+
+# ---- v0.4: the oracle forces in the report, and the directories that hold a previous report.json
+
+def test_load_cases_ignores_the_report_and_the_hold_file_of_a_case_directory(tmp_path):
+    case = {"id": "T1", "model": MODEL, "checks": [CHECK]}
+    (tmp_path / "T1.json").write_text(json.dumps(case), encoding="utf-8")
+    (tmp_path / "report.json").write_text(json.dumps({"checks": []}), encoding="utf-8")
+    (tmp_path / "HOLD.json").write_text(json.dumps({"held": []}), encoding="utf-8")
+    assert [c["id"] for c in run.load_cases(str(tmp_path))] == ["T1"]
+
+
+def test_the_report_row_of_a_reinforced_model_carries_the_forces_of_the_oracle():
+    cs = pytest.importorskip("cslope")
+    from test_to_cslope import ANCHOR, v047a_v04
+    case = {"id": "T-REINF", "title": "t", "_path": "t.json", "checks": [dict(CHECK, published=1.33, tolerance=0.01)],
+            "model": v047a_v04([ANCHOR])}
+    plain = {**case, "id": "T-PLAIN", "model": v047a_v04([])}
+    rows = run.build_rows([case, plain], run.ORACLE_ONLY, cs)
+    forces = rows[0]["cslope"]["reinforcement_forces"]
+    assert (forces["elements"], forces["applied"]) == (1, 1)
+    assert forces["forces"][0]["fx"] == pytest.approx(100.0) and forces["forces"][0]["passive"] is False
+    assert "reinforcement_forces" not in rows[1]["cslope"]          # a model without reinforcements: the old report

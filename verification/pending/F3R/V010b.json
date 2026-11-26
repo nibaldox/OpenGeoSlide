@@ -1,0 +1,245 @@
+{
+  "id": "V010b",
+  "title": "Borges & Cardoso embankment 2 (geosynthetic), the paper's circle B",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V010b",
+      "title": "Borges & Cardoso embankment 2 (geosynthetic), the paper's circle B",
+      "notes": "The V010 embankment as Borges & Cardoso analyze it: the 200 kN/m geosynthetic at 0.9 m height (p. 407) with its full horizontal force in the resisting moment (passive), on their circle B (3.0, 8.0, R = 15.04)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 35.0,
+        "ru": null
+      },
+      {
+        "id": "clay_1",
+        "name": "Clay 1",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 33.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_2",
+        "name": "Clay 2",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.0,
+        "strength_datum": -1.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "clay_3",
+        "name": "Clay 3",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.0,
+        "strength_datum": -4.5,
+        "strength_gradient": 0.95,
+        "ru": null
+      },
+      {
+        "id": "clay_4",
+        "name": "Clay 4",
+        "model": "undrained",
+        "unit_weight": 17.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 18.375,
+        "strength_datum": -7.0,
+        "strength_gradient": 2.625,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay_1",
+        "polygon": [
+          [
+            -30.0,
+            -1.0
+          ],
+          [
+            -30.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            42.56,
+            0.0
+          ],
+          [
+            45.0,
+            0.0
+          ],
+          [
+            45.0,
+            -1.0
+          ]
+        ]
+      },
+      {
+        "material": "clay_2",
+        "polygon": [
+          [
+            -30.0,
+            -4.5
+          ],
+          [
+            -30.0,
+            -1.0
+          ],
+          [
+            45.0,
+            -1.0
+          ],
+          [
+            45.0,
+            -4.5
+          ]
+        ]
+      },
+      {
+        "material": "clay_3",
+        "polygon": [
+          [
+            -30.0,
+            -7.0
+          ],
+          [
+            -30.0,
+            -4.5
+          ],
+          [
+            45.0,
+            -4.5
+          ],
+          [
+            45.0,
+            -7.0
+          ]
+        ]
+      },
+      {
+        "material": "clay_4",
+        "polygon": [
+          [
+            -30.0,
+            -21.0
+          ],
+          [
+            -30.0,
+            -7.0
+          ],
+          [
+            45.0,
+            -7.0
+          ],
+          [
+            45.0,
+            -21.0
+          ]
+        ]
+      },
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.15,
+            5.0
+          ],
+          [
+            36.41,
+            5.0
+          ],
+          [
+            42.56,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 1.107,
+        "y1": 0.9,
+        "x2": 41.453,
+        "y2": 0.9,
+        "application": "passive",
+        "tensile_capacity": 200.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "interface",
+          "adhesion": 0.0,
+          "friction_angle": 33.7,
+          "coverage": 1.0
+        }
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 3.0,
+        "yc": 8.0,
+        "r": 15.04
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.15,
+      "published_by": "Borges & Cardoso",
+      "tolerance": 0.02434782608695652,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Borges, J.L. & Cardoso, A.S. (2002). Overall stability of geosynthetic-reinforced embankments on soft soils. Geotextiles and Geomembranes 20, 395–421; case 2, Table 11, Fig. 14.",
+    "derived_from": "cSlope verification problem V010b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Table 11 confirms the level: the reinforcement's resisting moments 820 and 1420 kNm/m are 200 × (Y0 − 0.9) for the two circles. cSlope on circle B: Bishop 1.1585, Morgenstern-Price 1.1582. Circle A gives 1.19 (limit equilibrium) and 1.22 (finite elements) in the paper; cSlope 1.161 on it (docs/kallor/borges-cardoso-2002.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

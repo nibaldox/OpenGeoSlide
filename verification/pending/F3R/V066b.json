@@ -1,0 +1,511 @@
+{
+  "id": "V066b",
+  "title": "Leshchinsky & Han MSE wall, L = 4.2 m",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V066b",
+      "title": "Leshchinsky & Han MSE wall, L = 4.2 m",
+      "notes": "As V066a with 4.2 m geotextiles (Ta = 11.4 kN/m)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "reinforced_and_retained_fill",
+        "name": "Reinforced and retained fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_soil",
+        "name": "Foundation soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "blocks",
+        "name": "Blocks",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 2.5,
+        "friction_angle": 34.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            6.0,
+            6.0
+          ],
+          [
+            6.0,
+            9.0
+          ],
+          [
+            6.3,
+            9.0
+          ],
+          [
+            6.3,
+            6.0
+          ]
+        ]
+      },
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            7.2,
+            9.0
+          ],
+          [
+            7.2,
+            12.0
+          ],
+          [
+            7.5,
+            12.0
+          ],
+          [
+            7.5,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            8.4,
+            12.0
+          ],
+          [
+            8.4,
+            15.0
+          ],
+          [
+            8.7,
+            15.0
+          ],
+          [
+            8.7,
+            12.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation_soil",
+        "polygon": [
+          [
+            24.0,
+            6.0
+          ],
+          [
+            24.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            6.0
+          ],
+          [
+            6.0,
+            6.0
+          ],
+          [
+            6.3,
+            6.0
+          ]
+        ]
+      },
+      {
+        "material": "reinforced_and_retained_fill",
+        "polygon": [
+          [
+            8.7,
+            15.0
+          ],
+          [
+            24.0,
+            15.0
+          ],
+          [
+            24.0,
+            6.0
+          ],
+          [
+            6.3,
+            6.0
+          ],
+          [
+            6.3,
+            9.0
+          ],
+          [
+            7.2,
+            9.0
+          ],
+          [
+            7.5,
+            9.0
+          ],
+          [
+            7.5,
+            12.0
+          ],
+          [
+            8.4,
+            12.0
+          ],
+          [
+            8.7,
+            12.0
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 6.3,
+        "x2": 10.5,
+        "y2": 6.3,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.21735,
+          "length2": 0.06745
+        }
+      },
+      {
+        "id": "R2",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 6.9,
+        "x2": 10.5,
+        "y2": 6.9,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.27945,
+          "length2": 0.07245
+        }
+      },
+      {
+        "id": "R3",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 7.5,
+        "x2": 10.5,
+        "y2": 7.5,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.39123,
+          "length2": 0.07825
+        }
+      },
+      {
+        "id": "R4",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 8.1,
+        "x2": 10.5,
+        "y2": 8.1,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.65205,
+          "length2": 0.08505
+        }
+      },
+      {
+        "id": "R5",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 8.7,
+        "x2": 10.5,
+        "y2": 8.7,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.95616,
+          "length2": 0.09315
+        }
+      },
+      {
+        "id": "R6",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 9.3,
+        "x2": 11.7,
+        "y2": 9.3,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.21735,
+          "length2": 0.10296
+        }
+      },
+      {
+        "id": "R7",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 9.9,
+        "x2": 11.7,
+        "y2": 9.9,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.27945,
+          "length2": 0.11507
+        }
+      },
+      {
+        "id": "R8",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 10.5,
+        "x2": 11.7,
+        "y2": 10.5,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.39123,
+          "length2": 0.13041
+        }
+      },
+      {
+        "id": "R9",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 11.1,
+        "x2": 11.7,
+        "y2": 11.1,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.65205,
+          "length2": 0.15047
+        }
+      },
+      {
+        "id": "R10",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 11.7,
+        "x2": 11.7,
+        "y2": 11.7,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.95616,
+          "length2": 0.17783
+        }
+      },
+      {
+        "id": "R11",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 12.3,
+        "x2": 12.9,
+        "y2": 12.3,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.21735,
+          "length2": 0.21735
+        }
+      },
+      {
+        "id": "R12",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 12.9,
+        "x2": 12.9,
+        "y2": 12.9,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.27945,
+          "length2": 0.27945
+        }
+      },
+      {
+        "id": "R13",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 13.5,
+        "x2": 12.9,
+        "y2": 13.5,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.39123,
+          "length2": 0.39123
+        }
+      },
+      {
+        "id": "R14",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 14.1,
+        "x2": 12.9,
+        "y2": 14.1,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.65205,
+          "length2": 0.65205
+        }
+      },
+      {
+        "id": "R15",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 14.7,
+        "x2": 12.9,
+        "y2": 14.7,
+        "application": "passive",
+        "tensile_capacity": 11.4,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.95616,
+          "length2": 1.95616
+        }
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -17.531,
+        "yc": 39.139,
+        "r": 40.572
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.011,
+      "published_by": "Program D",
+      "tolerance": 0.010494559841740851,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Leshchinsky & Han (2004), J. Geotech. Geoenviron. Eng. 130(12).",
+    "derived_from": "cSlope verification problem V066b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Not compared with Leshchinsky & Han's finite-difference strength reduction: on refined meshes cSlope's finite element analysis finds a local failure of the 0.3 m facing blocks into the foundation (V065: 0.86, 0.77 and about 0.27 on three meshes; V066b and V066c give the same factor, so the reinforcement does not take part), which their grid does not resolve; the comparison tests the facing model, not the reinforcement.",
+      "commercial program A reports 0.971 (Spencer) and 0.976 (Bishop) with the same Ta = 11.4 kN/m (Table 89.2); cSlope and program D are 4 % higher on the reference circle. The difference is not explained (the reinforcement model of the tiers is the likely cause), so the commercial program A value is not used as a check. L&H 0.98 (finite difference).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

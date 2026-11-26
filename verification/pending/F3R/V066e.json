@@ -1,0 +1,520 @@
+{
+  "id": "V066e",
+  "title": "Leshchinsky & Han MSE wall, surcharge",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V066e",
+      "title": "Leshchinsky & Han MSE wall, surcharge",
+      "notes": "As V066a (Ta = 10 kN/m) with a 20 kPa surcharge on the top tier (x = 8.7 to 24)."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "reinforced_and_retained_fill",
+        "name": "Reinforced and retained fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "foundation_soil",
+        "name": "Foundation soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 34.0,
+        "ru": null
+      },
+      {
+        "id": "blocks",
+        "name": "Blocks",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 2.5,
+        "friction_angle": 34.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            6.0,
+            6.0
+          ],
+          [
+            6.0,
+            9.0
+          ],
+          [
+            6.3,
+            9.0
+          ],
+          [
+            6.3,
+            6.0
+          ]
+        ]
+      },
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            7.2,
+            9.0
+          ],
+          [
+            7.2,
+            12.0
+          ],
+          [
+            7.5,
+            12.0
+          ],
+          [
+            7.5,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "blocks",
+        "polygon": [
+          [
+            8.4,
+            12.0
+          ],
+          [
+            8.4,
+            15.0
+          ],
+          [
+            8.7,
+            15.0
+          ],
+          [
+            8.7,
+            12.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation_soil",
+        "polygon": [
+          [
+            24.0,
+            6.0
+          ],
+          [
+            24.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            6.0
+          ],
+          [
+            6.0,
+            6.0
+          ],
+          [
+            6.3,
+            6.0
+          ]
+        ]
+      },
+      {
+        "material": "reinforced_and_retained_fill",
+        "polygon": [
+          [
+            8.7,
+            15.0
+          ],
+          [
+            24.0,
+            15.0
+          ],
+          [
+            24.0,
+            6.0
+          ],
+          [
+            6.3,
+            6.0
+          ],
+          [
+            6.3,
+            9.0
+          ],
+          [
+            7.2,
+            9.0
+          ],
+          [
+            7.5,
+            9.0
+          ],
+          [
+            7.5,
+            12.0
+          ],
+          [
+            8.4,
+            12.0
+          ],
+          [
+            8.7,
+            12.0
+          ]
+        ]
+      }
+    ],
+    "loads": [
+      {
+        "type": "udl",
+        "id": "u1",
+        "x1": 8.7,
+        "x2": 24.0,
+        "q": 20.0
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 6.3,
+        "x2": 12.6,
+        "y2": 6.3,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.19066,
+          "length2": 0.05917
+        }
+      },
+      {
+        "id": "R2",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 6.9,
+        "x2": 12.6,
+        "y2": 6.9,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.24513,
+          "length2": 0.06355
+        }
+      },
+      {
+        "id": "R3",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 7.5,
+        "x2": 12.6,
+        "y2": 7.5,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.34319,
+          "length2": 0.06864
+        }
+      },
+      {
+        "id": "R4",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 8.1,
+        "x2": 12.6,
+        "y2": 8.1,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.57198,
+          "length2": 0.07461
+        }
+      },
+      {
+        "id": "R5",
+        "type": "geosynthetic",
+        "x1": 6.05,
+        "y1": 8.7,
+        "x2": 12.6,
+        "y2": 8.7,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.71593,
+          "length2": 0.08171
+        }
+      },
+      {
+        "id": "R6",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 9.3,
+        "x2": 13.8,
+        "y2": 9.3,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.19066,
+          "length2": 0.09031
+        }
+      },
+      {
+        "id": "R7",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 9.9,
+        "x2": 13.8,
+        "y2": 9.9,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.24513,
+          "length2": 0.10094
+        }
+      },
+      {
+        "id": "R8",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 10.5,
+        "x2": 13.8,
+        "y2": 10.5,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.34319,
+          "length2": 0.1144
+        }
+      },
+      {
+        "id": "R9",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 11.1,
+        "x2": 13.8,
+        "y2": 11.1,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.57198,
+          "length2": 0.13199
+        }
+      },
+      {
+        "id": "R10",
+        "type": "geosynthetic",
+        "x1": 7.25,
+        "y1": 11.7,
+        "x2": 13.8,
+        "y2": 11.7,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.71593,
+          "length2": 0.15599
+        }
+      },
+      {
+        "id": "R11",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 12.3,
+        "x2": 15.0,
+        "y2": 12.3,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.19066,
+          "length2": 0.19066
+        }
+      },
+      {
+        "id": "R12",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 12.9,
+        "x2": 15.0,
+        "y2": 12.9,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.24513,
+          "length2": 0.24513
+        }
+      },
+      {
+        "id": "R13",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 13.5,
+        "x2": 15.0,
+        "y2": 13.5,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.34319,
+          "length2": 0.34319
+        }
+      },
+      {
+        "id": "R14",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 14.1,
+        "x2": 15.0,
+        "y2": 14.1,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 0.57198,
+          "length2": 0.57198
+        }
+      },
+      {
+        "id": "R15",
+        "type": "geosynthetic",
+        "x1": 8.45,
+        "y1": 14.7,
+        "x2": 15.0,
+        "y2": 14.7,
+        "application": "passive",
+        "tensile_capacity": 10.0,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 1.0,
+        "pullout": {
+          "model": "development",
+          "length1": 1.71593,
+          "length2": 1.71593
+        }
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": -8.825,
+        "yc": 23.102,
+        "r": 22.603
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 0.958,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010521920668058455,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Leshchinsky & Han (2004), J. Geotech. Geoenviron. Eng. 130(12).",
+    "derived_from": "cSlope verification problem V066e (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Not compared with Leshchinsky & Han's finite-difference strength reduction: on refined meshes cSlope's finite element analysis finds a local failure of the 0.3 m facing blocks into the foundation (V065: 0.86, 0.77 and about 0.27 on three meshes; V066b and V066c give the same factor, so the reinforcement does not take part), which their grid does not resolve; the comparison tests the facing model, not the reinforcement.",
+      "commercial program A's Table 93.2 lists Ta = 11.6 kN/m (L&H's design value for this case), but its 0.958 (Bishop; 0.957 Spencer on the printed circle, Fig. 93.2: center (-8.825, 23.102), R 22.603) is reproduced with the baseline Ta = 10 kN/m (cSlope 0.961); with 11.6 cSlope gives 1.017 on that circle. Its model evidently kept Ta = 10, and so does this problem (same in V066d: Table 92.2 lists 9.25, its 1.037 needs 10).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

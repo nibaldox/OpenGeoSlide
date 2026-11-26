@@ -1,0 +1,103 @@
+{
+  "id": "V035a",
+  "title": "Duncan & Wright tieback, active",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.4",
+    "meta": {
+      "id": "V035a",
+      "title": "Duncan & Wright tieback, active",
+      "notes": "Homogeneous slope with a 9000 lb/ft tieback applied horizontally at mid-height as an active force, on the reference printed GLE circle. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "saturated_clay",
+        "name": "saturated clay",
+        "model": "undrained",
+        "unit_weight": 15.39457,
+        "unit_weight_sat": null,
+        "undrained_strength": 16.75809,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "saturated_clay",
+        "polygon": [
+          [
+            4.572,
+            3.048
+          ],
+          [
+            7.62,
+            9.144
+          ],
+          [
+            17.3736,
+            9.144
+          ],
+          [
+            17.3736,
+            3.048
+          ]
+        ]
+      }
+    ],
+    "reinforcements": [
+      {
+        "id": "R1",
+        "type": "anchor",
+        "x1": 6.096,
+        "y1": 6.096,
+        "x2": 17.3736,
+        "y2": 6.096,
+        "application": "active",
+        "tensile_capacity": 40.03398,
+        "direction": "axial",
+        "end1_capacity": 0.0,
+        "end2_capacity": 0.0,
+        "spacing": 0.3048
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "morgenstern_price"
+      ],
+      "slices": 60,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 4.70794,
+        "yc": 11.4678,
+        "r": 8.41065
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.575,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.010317460317460317,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.34.",
+    "derived_from": "cSlope verification problem V035a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A's Bishop (1.531) and Spencer (1.884) belong to their own critical circles; on this circle cSlope's Bishop is 1.568. Duncan & Wright 1.51.",
+      "Duncan, Wright & Brandon (2014, Fig. 6.36, p. 116, the 1st edition's fig. 6.34) give no slip surface or method for 1.51; it belongs to their own critical surface. The unreinforced slope gives 0.91; the factor on the anchor force alone 4.82.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
