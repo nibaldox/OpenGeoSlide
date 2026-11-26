@@ -105,16 +105,22 @@ sismo y cargas, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (21 casos) | **51/51** | [REPORT](verification/REPORT.md) |
+| Valores publicados (93 casos) | **213/213** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
-| Web y `ogs` (113 modelos) | **113/113** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D17) | **43/43** | [diferencial](verification/differential/REPORT.md) |
+| Web y `ogs` (275 modelos) | **275/275** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 51 checks de 21 casos de la bibliografía (16 en el esquema v0.1 y 5 con sismo o cargas), cada
-  uno dentro de su tolerancia.
+- **Valores publicados:** 213 checks de 93 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2 y 47 en v0.3), cada uno dentro de su tolerancia: 95 de Bishop, 76 de Spencer, 27 de Morgenstern-Price, 7 de
+  Janbu simplificado y 8 de Janbu corregido. Otros 6 checks, en 4 casos, quedan retenidos con su diagnóstico
+  ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
 - **cSlope, superficie fija:** el mismo círculo en los dos programas; el FS difiere en 0,5 % o menos.
+- **cSlope, Fase 3a:** Morgenstern-Price y Janbu corregido sobre el círculo fijo de esos 14 modelos, más tres modelos
+  nuevos (terraplén sobre arcilla blanda con Su lineal, relaves con Su constante y un bloque sobre una capa débil con
+  polilínea fija), con el mismo criterio de 0,5 %.
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 
 Reproducción y detalle (paridad del editor, rendimiento nativo y WASM) en [`docs/verificacion.md`](docs/verificacion.md).
@@ -122,17 +128,22 @@ Esta batería no cubre todo: véanse las limitaciones.
 
 ## Limitaciones conocidas
 
-- **Solo superficies circulares** (fijas o halladas por la búsqueda de entrada y salida), con **Bishop simplificado y
-  Spencer**.
-- **Solo Mohr-Coulomb.** Sin análisis de deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
-- **Sin refuerzos** (geosintéticos, anclajes ni pernos). **No sirve para diseñar muros de tierra mecánicamente
-  estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el muro
-  modelado como una región de suelo.
-- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 21 casos lo usa.
+- **La búsqueda es solo circular.** Las superficies no circulares se fijan a mano como polilínea; la búsqueda no
+  circular es de la Fase 3b. **Bishop simplificado solo admite círculos**; con una polilínea quedan Spencer,
+  Morgenstern-Price y Janbu.
+- **Solo Mohr-Coulomb y no drenado** (Su constante o lineal con la cota); no hay Hoek-Brown ni SHANSEP. Sin análisis de
+  deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
+- **Sin refuerzos** (tablestacas, pilotes, anclajes, clavos ni geosintéticos). **No sirve para diseñar muros de tierra
+  mecánicamente estabilizada (TEM) ni otras estructuras de contención**: solo para revisar la estabilidad global, con el
+  muro modelado como una región de suelo.
+- **El peso unitario saturado (γsat) no está verificado** frente a otro programa; ninguno de los 93 casos lo usa.
 - **La línea piezométrica se prolonga en horizontal hasta los bordes del modelo** si no los cubre, y `ru` tiene
   precedencia sobre ella; con unidades imperiales, γw debe ser explícito.
-- **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer puede no hallar solución o, con tracción en
-  la base, quedar por debajo de Bishop: revise los avisos.
+- **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
+  solución o, con tracción en la base, quedar por debajo de Bishop. En polilíneas con forma de V pueden converger con un
+  FS no físico (aviso `interslice_shear_exceeds_strength`): compárelo con Janbu. Revise siempre los avisos.
+- **Casos publicados retenidos:** V027, V028 y V068 (aviso de normal efectiva negativa) y V032a (la búsqueda halla un
+  mínimo real, más conservador).
 
 El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
 [`docs/limitaciones.md`](docs/limitaciones.md).
