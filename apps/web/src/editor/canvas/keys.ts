@@ -6,6 +6,7 @@
 //   Insert (o «i»): inserta un vértice en el punto medio de la arista siguiente. Supr/Retroceso: quita el vértice o punto
 //   y el foco pasa al vecino. + (o =), − y 0: acercar, alejar y encuadrar.
 
+import { circleSpec } from '../../engine/surface';
 import type { Point } from '../../engine/types';
 import { worldToScreen } from '../../geometry/viewport';
 import { coincidentVertices, piezoPoints } from './geom';
@@ -275,7 +276,7 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
     );
   }
   // surface_circle
-  const c = doc.analysis.surface;
+  const c = circleSpec(doc.analysis.surface);
   if (!c) return NOT_HANDLED;
   if (part === 'radius') {
     // Derecha o arriba agrandan el radio; izquierda o abajo lo reducen.

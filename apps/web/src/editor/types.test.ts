@@ -1,7 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { Load, LineLoad, UdlLoad } from '../engine/types';
+import type {
+  IntersliceSpec,
+  Load,
+  LineLoad,
+  Material,
+  MethodKind,
+  SurfaceSpec,
+  UdlLoad,
+} from '../engine/types';
 import { describeWarning } from '../engine/warnings';
 import type { CsvImportResult, DxfImportResult } from '../io/types';
 import type { BuildReportPdf, ReportInput } from '../report/types';
@@ -54,9 +62,11 @@ describe('tipos congelados v0.2 del editor', () => {
     expect(doc.analysis.seismic).toEqual({ kh: 0.1, kv: 0 });
     const v01: ModelDoc = { ...doc, version: '0.1', loads: undefined, analysis: { methods: ['bishop'] } };
     expect(v01.version).toBe('0.1');
-    // @ts-expect-error la versión solo admite '0.1' y '0.2'
-    const bad: ModelDoc['version'] = '0.3';
-    expect(bad).toBe('0.3');
+    const v03: ModelDoc['version'] = '0.3';
+    expect(v03).toBe('0.3');
+    // @ts-expect-error la versión solo admite '0.1', '0.2' y '0.3'
+    const bad: ModelDoc['version'] = '0.4';
+    expect(bad).toBe('0.4');
   });
 
   it('el JSON de ejemplo de F1.1 coincide con los tipos', () => {
@@ -79,6 +89,61 @@ describe('tipos congelados v0.2 del editor', () => {
     expect(example.version).toBe('0.2');
     expect(loads).toEqual(doc.loads);
     expect(seismic).toEqual(doc.analysis.seismic);
+  });
+
+  it('el JSON de ejemplo de F3.1 coincide con los tipos v0.3', () => {
+    const contract = readFileSync(
+      fileURLToPath(new URL('../../../../briefs/02_CONTRATOS_FASE3.md', import.meta.url)),
+      'utf8',
+    );
+    // Primer bloque json del contrato de la Fase 3 (F3.1).
+    const block = /```json\n([\s\S]*?)\n```/.exec(contract);
+    expect(block, 'no se encuentra el JSON de ejemplo de F3.1').not.toBeNull();
+    const example = JSON.parse(block![1]) as {
+      format: string;
+      version: ModelDoc['version'];
+      materials: Material[];
+      analysis: { methods: MethodKind[]; interslice: IntersliceSpec; surface: SurfaceSpec };
+    };
+    // Asignación tipada: si el JSON deja de ser compatible con los tipos, no compila.
+    const materials: Material[] = example.materials;
+    const methods: MethodKind[] = example.analysis.methods;
+    const interslice: IntersliceSpec = example.analysis.interslice;
+    const surface: SurfaceSpec = example.analysis.surface;
+    expect(example.format).toBe('opengeoslide');
+    expect(example.version).toBe('0.3');
+    expect(materials[0].model).toBe('undrained');
+    expect(materials[0].undrained_strength).toBe(20);
+    expect(materials[0].strength_datum).toBe(30);
+    expect(materials[0].strength_gradient).toBe(1.5);
+    expect(materials[0].strength_limit).toBe(60);
+    expect(methods).toEqual(['spencer', 'morgenstern_price', 'janbu_simplified', 'janbu_corrected']);
+    expect(interslice).toEqual({
+      function: 'data_points',
+      points: [
+        [0, 0],
+        [0.5, 1],
+        [1, 0],
+      ],
+    });
+    expect(surface.type).toBe('polyline');
+    if (surface.type === 'polyline') {
+      expect(surface.points).toEqual([
+        [30, 25],
+        [40, 26.9],
+        [51.3, 35],
+      ]);
+    }
+    // El documento completo del ejemplo, con sus campos opcionales, también tipa como ModelDoc.
+    const full: ModelDoc = {
+      format: example.format,
+      version: example.version,
+      meta: {},
+      materials,
+      regions: [],
+      analysis: example.analysis,
+    };
+    expect(full.analysis.surface).toEqual(surface);
   });
 
   it('hay un EditorCommand de cada tipo', () => {

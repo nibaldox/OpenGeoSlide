@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ComponentType } from 'react';
 import { loadBuiltinCases } from '../cases';
 import type { EngineClient } from '../engine/client';
+import { reportCircle } from '../engine/surface';
 import type { MethodKind } from '../engine/types';
 import { loadDraftChain, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
@@ -512,7 +513,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   // ───────── Presentación ─────────
 
   const shown = engine.run?.report.results.find((r) => r.method === shownMethod) ?? engine.run?.report.results[0] ?? null;
-  const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices } : undefined;
+  // La polilínea del informe (`{points}`) no se superpone todavía en el lienzo: llega con F3-W1f.
+  const shownCircle = shown ? reportCircle(shown.surface) : null;
+  const canvasResult = engine.current && shown && shownCircle && shown.slices.length > 0 ? { surface: shownCircle, slices: shown.slices } : undefined;
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
   const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;

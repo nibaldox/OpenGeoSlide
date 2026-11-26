@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { circleSpec } from '../../engine/surface';
 import type { Point } from '../../engine/types';
 import { createFakeStore, makeDoc, makeState, toPx, VP, type FakeStore } from './fakeStore';
 import {
@@ -184,7 +185,7 @@ describe('piezométrica y círculo', () => {
     const doc = makeDoc();
     const p = applyPreview(doc, { kind: 'circle', circle: { xc: 1, yc: 2, r: 3 }, snap: null });
     expect(p.analysis.surface).toEqual({ type: 'circle', xc: 1, yc: 2, r: 3 });
-    expect(doc.analysis.surface?.xc).toBe(30);
+    expect(circleSpec(doc.analysis.surface)?.xc).toBe(30);
     expect(applyPreview(doc, null)).toBe(doc);
   });
 });

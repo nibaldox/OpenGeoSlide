@@ -1,6 +1,7 @@
 // Tiradores del lienzo en orden de recorrido por teclado (tabindex itinerante, R7-04): vértices por región,
 // puntos de la piezométrica, centro del círculo y tirador de su radio. Puro: sin React ni DOM.
 
+import { circleSpec } from '../../engine/surface';
 import type { Point } from '../../engine/types';
 import type { ModelDoc, Selection } from '../types';
 import { piezoPoints } from './geom';
@@ -91,11 +92,11 @@ export function handleWorldPoint(doc: ModelDoc, h: HandleRef): Point | null {
     case 'piezo_point':
       return piezoPoints(doc)[h.index] ?? null;
     case 'circle_center': {
-      const c = doc.analysis.surface;
+      const c = circleSpec(doc.analysis.surface);
       return c ? [c.xc, c.yc] : null;
     }
     case 'circle_radius': {
-      const c = doc.analysis.surface;
+      const c = circleSpec(doc.analysis.surface);
       return c ? radiusHandlePoint(c) : null;
     }
   }

@@ -1,4 +1,12 @@
-import type { AnalysisReport, MethodReport, SolveStatus } from './types';
+import type { AnalysisReport, MethodKind, MethodReport, SolveStatus } from './types';
+
+const METHODS: readonly MethodKind[] = [
+  'bishop',
+  'spencer',
+  'morgenstern_price',
+  'janbu_simplified',
+  'janbu_corrected',
+];
 
 const STATUSES: readonly SolveStatus[] = ['converged', 'not_converged', 'invalid'];
 
@@ -10,19 +18,39 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
+function isPoint(value: unknown): boolean {
+  return Array.isArray(value) && value.length === 2 && isFiniteNumber(value[0]) && isFiniteNumber(value[1]);
+}
+
+function isPointList(value: unknown, min: number): boolean {
+  return Array.isArray(value) && value.length >= min && value.every(isPoint);
+}
+
+/** Superficie de un informe (F3.7): `{xc, yc, r}` de un círculo o `{points}` de una polilínea (≥ 2 puntos finitos). */
+function isReportSurface(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if ('points' in value) return isPointList(value.points, 2);
+  return isFiniteNumber(value.xc) && isFiniteNumber(value.yc) && isFiniteNumber(value.r);
+}
+
+/** `interslice` del informe de M-P: `{function, points?}`. */
+function isIntersliceReport(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.function === 'string' &&
+    (value.points === undefined || isPointList(value.points, 0))
+  );
+}
+
 function isMethodReport(value: unknown): value is MethodReport {
   if (!isRecord(value)) return false;
-  const surface = value.surface;
   return (
-    (value.method === 'bishop' || value.method === 'spencer') &&
+    METHODS.includes(value.method as MethodKind) &&
     (value.fos === null || isFiniteNumber(value.fos)) &&
     STATUSES.includes(value.status as SolveStatus) &&
     isFiniteNumber(value.iterations) &&
     (value.lambda === null || isFiniteNumber(value.lambda)) &&
-    isRecord(surface) &&
-    isFiniteNumber(surface.xc) &&
-    isFiniteNumber(surface.yc) &&
-    isFiniteNumber(surface.r) &&
+    isReportSurface(value.surface) &&
     Array.isArray(value.slices) &&
     value.slices.every(
       (s) =>
@@ -38,7 +66,9 @@ function isMethodReport(value: unknown): value is MethodReport {
         isFiniteNumber(value.search.evaluated) &&
         isFiniteNumber(value.search.valid))) &&
     Array.isArray(value.warnings) &&
-    value.warnings.every((w) => typeof w === 'string')
+    value.warnings.every((w) => typeof w === 'string') &&
+    (value.correction_factor === undefined || isFiniteNumber(value.correction_factor)) &&
+    (value.interslice === undefined || isIntersliceReport(value.interslice))
   );
 }
 

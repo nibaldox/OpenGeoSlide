@@ -103,7 +103,13 @@ export function baseFileName(fileName: string | null, doc: ModelDoc): string {
   return safe === '' ? 'modelo' : safe;
 }
 
-const CAPTION_METHOD: Record<MethodKind, string> = { bishop: 'Bishop simplificado', spencer: 'Spencer' };
+const CAPTION_METHOD: Record<MethodKind, string> = {
+  bishop: 'Bishop simplificado',
+  spencer: 'Spencer',
+  morgenstern_price: 'Morgenstern-Price',
+  janbu_simplified: 'Janbu simplificado',
+  janbu_corrected: 'Janbu corregido',
+};
 
 /**
  * Pie de la sección dibujada. Un método que no convergió no tiene superficie crítica: la superficie mostrada es solo la

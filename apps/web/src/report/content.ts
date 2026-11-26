@@ -7,6 +7,7 @@ import { slideDirection } from '../editor/canvas/layout';
 import { geotechAdvisories, piezoExtension } from '../editor/state/geotech';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
+import { reportCircle } from '../engine/surface';
 import type { Load, MethodKind, MethodReport, Point, Slice } from '../engine/types';
 import { describeWarning } from '../engine/warnings';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
@@ -26,8 +27,10 @@ export interface DrawingSurface {
   points: Point[];
   /** Límites de las dovelas: de la base al terreno. */
   sliceLines: [Point, Point][];
-  center: Point;
-  radius: number;
+  /** Solo en una superficie circular. */
+  center?: Point;
+  /** Solo en una superficie circular. */
+  radius?: number;
 }
 
 /** Carga de superficie ya situada sobre el terreno (R9-05a). `ground` es el perfil del terreno bajo la carga distribuida. */
@@ -87,6 +90,9 @@ export interface ReportContent {
 const METHOD_LABEL: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
   spencer: 'Spencer',
+  morgenstern_price: 'Morgenstern-Price',
+  janbu_simplified: 'Janbu simplificado',
+  janbu_corrected: 'Janbu corregido',
 };
 const STATUS_LABEL: Record<MethodReport['status'], string> = {
   converged: 'Convergió',
@@ -223,11 +229,14 @@ function primaryResult(results: MethodReport[]): MethodReport | undefined {
 
 function circleArc(model: ModelDoc, r: MethodReport, bounds: SectionDrawing['bounds']): Point[] {
   const pts: Point[] = [];
+  const c = reportCircle(r.surface);
+  // Polilínea: sus propios vértices (ya ajustados al terreno por el motor).
+  if (!c) return 'points' in r.surface ? r.surface.points.map((p): Point => [p[0], p[1]]) : pts;
   const n = 180;
   for (let i = 0; i <= n; i++) {
     const t = Math.PI + (Math.PI * i) / n; // semicírculo inferior
-    const x = r.surface.xc + r.surface.r * Math.cos(t);
-    const y = r.surface.yc + r.surface.r * Math.sin(t);
+    const x = c.xc + c.r * Math.cos(t);
+    const y = c.yc + c.r * Math.sin(t);
     const top = terrainY(model, x);
     if (x >= bounds.xmin && x <= bounds.xmax && y >= bounds.ymin && top !== null && y <= top) pts.push([x, y]);
   }
@@ -343,7 +352,8 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
       points = circleArc(model, res, bounds);
     }
     for (const [, y] of points) bounds.ymin = Math.min(bounds.ymin, y);
-    surface = { method: res.method, points, sliceLines, center: [res.surface.xc, res.surface.yc], radius: res.surface.r };
+    const circle = reportCircle(res.surface);
+    surface = { method: res.method, points, sliceLines, ...(circle ? { center: [circle.xc, circle.yc] as Point, radius: circle.r } : {}) };
   }
 
   const legend: LegendItem[] = [];
@@ -408,6 +418,9 @@ function modelSection(model: ModelDoc): ReportSection {
       ['Ancho mínimo', s.min_width === undefined || s.min_width === null ? 'por defecto (1 % del ancho del modelo)' : `${fmtParam(s.min_width)} ${u.length}`],
       ['Refinamiento', (s.refine ?? true) ? 'Sí' : 'No'],
     );
+  } else if (a.surface && a.surface.type === 'polyline') {
+    // La descripción completa de la polilínea en el informe llega con F3-W1f.
+    rows.push(['Superficies', 'Polilínea fija'], ['Vértices', String(a.surface.points.length)]);
   } else if (a.surface) {
     rows.push(
       ['Superficies', 'Círculo fijo'],
@@ -479,8 +492,8 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
           r.method === 'spencer' && r.status === 'converged' ? fmt(r.lambda, 4) : DASH,
           r.search ? String(r.search.evaluated) : DASH,
           r.search ? String(r.search.valid) : DASH,
-          `${fmt(r.surface.xc, 2)}; ${fmt(r.surface.yc, 2)}`,
-          fmt(r.surface.r, 2),
+          reportCircle(r.surface) ? `${fmt(reportCircle(r.surface)?.xc ?? null, 2)}; ${fmt(reportCircle(r.surface)?.yc ?? null, 2)}` : DASH,
+          reportCircle(r.surface) ? fmt(reportCircle(r.surface)?.r ?? null, 2) : DASH,
         ]),
       },
     ],

@@ -106,4 +106,74 @@ describe('mockEngine (motor simulado)', () => {
     badMethod.analysis.methods = ['fellenius'];
     expect(() => analyzeMock(JSON.stringify(badMethod))).toThrow(/^InvalidModel/);
   });
+
+  describe('modelos con campos de la versión 0.3 (F3.9)', () => {
+    const REJECT = /^InvalidModel: el motor simulado no admite .*0\.3/;
+    const mutate = (fn: (m: Record<string, any>) => void, version = '0.3'): string => {
+      const m = JSON.parse(acadsJson);
+      m.version = version;
+      fn(m);
+      return JSON.stringify(m);
+    };
+
+    it('rechaza cada campo nuevo con un error explícito y nunca devuelve un FS', () => {
+      const cases: Record<string, (m: Record<string, any>) => void> = {
+        'material no drenado': (m) => {
+          m.materials[0] = { id: m.materials[0].id, name: 'u', model: 'undrained', unit_weight: 18, undrained_strength: 20 };
+        },
+        undrained_strength: (m) => {
+          m.materials[0].undrained_strength = 20;
+        },
+        strength_datum: (m) => {
+          m.materials[0].strength_datum = 30;
+        },
+        strength_gradient: (m) => {
+          m.materials[0].strength_gradient = 1;
+        },
+        strength_limit: (m) => {
+          m.materials[0].strength_limit = 60;
+        },
+        'superficie polilínea': (m) => {
+          m.analysis.surface = {
+            type: 'polyline',
+            points: [
+              [0, 0],
+              [1, 1],
+            ],
+          };
+        },
+        morgenstern_price: (m) => {
+          m.analysis.methods = ['morgenstern_price'];
+        },
+        janbu_simplified: (m) => {
+          m.analysis.methods = ['janbu_simplified'];
+        },
+        janbu_corrected: (m) => {
+          m.analysis.methods = ['bishop', 'janbu_corrected'];
+        },
+        interslice: (m) => {
+          m.analysis.interslice = { function: 'half_sine' };
+        },
+      };
+      for (const [name, fn] of Object.entries(cases)) {
+        expect(() => analyzeMock(mutate(fn)), name).toThrow(EngineError);
+        expect(() => analyzeMock(mutate(fn)), name).toThrow(REJECT);
+        // Con una versión menor, los campos nuevos tampoco se simulan.
+        expect(() => analyzeMock(mutate(fn, '0.2')), `${name} (0.2)`).toThrow(REJECT);
+      }
+    });
+
+    it('el motor simulado asíncrono también rechaza (nunca resuelve con un informe)', async () => {
+      const engine = createMockEngine();
+      const json = mutate((m) => {
+        m.analysis.methods = ['morgenstern_price'];
+      });
+      await expect(engine.analyze(json)).rejects.toThrow(REJECT);
+    });
+
+    it('un modelo 0.2 sin campos nuevos sigue funcionando', () => {
+      const ok = mutate(() => {}, '0.2');
+      expect(isAnalysisReport(analyzeMock(ok))).toBe(true);
+    });
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Load, Material } from '../../engine/types';
+import type { Load, Material, SurfaceSpec } from '../../engine/types';
 import { RULE_TEXT, validateLocal } from '../state/validateLocal';
 import type { Issue, ModelDoc } from '../types';
 import {
@@ -327,7 +327,7 @@ describe('superficie', () => {
     for (const analysis of starts) {
       for (const mode of ['search', 'fixed'] as const) {
         const doc = makeDoc({ analysis });
-        let surface = analysis.surface ?? null;
+        let surface: SurfaceSpec | null = analysis.surface ?? null;
         let search = analysis.search ?? null;
         for (const c of surfaceModeCommands(doc, mode)) {
           if (c.type === 'surface/set') surface = c.surface;

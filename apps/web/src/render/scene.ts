@@ -1,5 +1,6 @@
 // Escena de dibujo: regiones, piezométrica, superficie crítica y dovelas, en metros (mundo).
 
+import { reportCircle } from '../engine/surface';
 import type { Circle, MethodReport, Model, Point, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
@@ -48,8 +49,10 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   }));
   const materials = model.materials.map((m, i) => ({ id: m.id, name: m.name, color: materialColor(i) }));
   const piezo = model.water?.piezometric_line?.length ? [...model.water.piezometric_line].sort((a, b) => a[0] - b[0]) : null;
+  // La superficie polilínea (`{points}`) no se dibuja todavía: llega con F3-W1f.
+  const circle = method ? reportCircle(method.surface) : null;
   const surface =
-    method && method.slices.length > 0 ? { circle: method.surface, slices: method.slices, converged: method.status === 'converged' } : null;
+    method && circle && method.slices.length > 0 ? { circle, slices: method.slices, converged: method.status === 'converged' } : null;
 
   const xs: number[] = [];
   const ys: number[] = [];

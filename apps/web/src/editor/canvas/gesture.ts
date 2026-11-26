@@ -4,6 +4,7 @@
 // Arrastre (X3 §2.3): pointerdown en un tirador → beginGesture; pointermove solo actualiza la vista previa;
 // pointerup → comando(s) + endGesture. Un gesto = una entrada de historial. Un clic sin mover cancela el gesto.
 
+import { circleSpec } from '../../engine/surface';
 import type { Circle, Point } from '../../engine/types';
 import type { EditorCommand, EditorState, EditorStore, ModelDoc, UiAction } from '../types';
 import { screenToWorld, type Viewport } from '../../geometry/viewport';
@@ -100,14 +101,14 @@ function computePreview(target: DragTarget, ctx: GestureContext, input: PointerI
       return { kind: 'piezo_point', index: target.index, to, snap };
     }
     case 'circle_center': {
-      const c = doc.analysis.surface;
+      const c = circleSpec(doc.analysis.surface);
       if (!c) return null;
       // Solo rejilla: alinear el centro con vértices del modelo no tiene sentido geométrico.
       const snap = snapPoint(raw, { doc, vp, snap: { ...ui.snap, vertex: false, axis: false } });
       return { kind: 'circle', circle: { xc: snap.point[0], yc: snap.point[1], r: c.r }, snap };
     }
     case 'circle_radius': {
-      const c = doc.analysis.surface;
+      const c = circleSpec(doc.analysis.surface);
       if (!c) return null;
       let r = Math.hypot(raw[0] - c.xc, raw[1] - c.yc);
       const step = ui.snap.gridStep;
@@ -159,7 +160,7 @@ function commitActions(preview: Preview, doc: ModelDoc): CanvasAction[] {
       return next ? [{ type: 'piezo/set', points: next }] : [];
     }
     case 'circle': {
-      const cur = doc.analysis.surface;
+      const cur = circleSpec(doc.analysis.surface);
       const c = preview.circle;
       if (cur && cur.xc === c.xc && cur.yc === c.yc && cur.r === c.r) return [];
       return [{ type: 'surface/set', surface: { type: 'circle', xc: c.xc, yc: c.yc, r: c.r } }];

@@ -2,6 +2,7 @@
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { circleSpec } from '../../engine/surface';
 import type { Circle, Point, Slice } from '../../engine/types';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
@@ -455,7 +456,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       const p = piezoPoints(s.doc)[sel.index];
       return p ? piezoAnnouncement(sel.index, p, unitsEff) : null;
     }
-    const c = s.doc.analysis.surface;
+    const c = circleSpec(s.doc.analysis.surface);
     if (sel.kind === 'surface_circle' && c) return target === 'circle_radius' ? circleRadiusLabel(c.r, unitsEff) : circleCenterLabel(c.xc, c.yc, unitsEff);
     return null;
   };
@@ -643,7 +644,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const titles = axisTitles(unitsEff);
   const pz = piezoPoints(shown);
   const pzExtra = piezoExtension(shown);
-  const circle = shown.analysis.surface ?? null;
+  const circle = circleSpec(shown.analysis.surface);
   const loads = loadShapes(shown, vp);
   const seismic = shown.analysis.seismic ?? null;
   const dir = slideDirection(shown);

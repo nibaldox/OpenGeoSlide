@@ -9,6 +9,9 @@ import type { Diagnostics, Issue } from '../types';
 const METHOD_NAME: Record<MethodKind, string> = {
   bishop: 'Bishop simplificado',
   spencer: 'Spencer',
+  morgenstern_price: 'Morgenstern-Price',
+  janbu_simplified: 'Janbu simplificado',
+  janbu_corrected: 'Janbu corregido',
 };
 
 const STATUS_TEXT: Record<Exclude<SolveStatus, 'converged'>, string> = {

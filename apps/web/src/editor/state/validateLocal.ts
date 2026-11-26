@@ -413,7 +413,8 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
   if ((s === undefined || s === null) && (a.search === undefined || a.search === null)) {
     issues.push(error('editor.no_surface', `${RULE_TEXT.noSurface}.`, '/analysis'));
   }
-  if (s !== undefined && s !== null) {
+  // La validación de la polilínea llega con F3-W1e.
+  if (s !== undefined && s !== null && s.type !== 'polyline') {
     if (!(isNum(s.xc) && isNum(s.yc))) {
       issues.push(
         error('editor.out_of_range', `${RULE_TEXT.surfaceCenter}. Valores actuales: xc ${fmt(s.xc)}, yc ${fmt(s.yc)}.`, '/analysis/surface'),
