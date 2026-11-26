@@ -443,7 +443,7 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
     expect(textsOf(withAnalysis({ surface, max_iterations: 0 }))).toEqual([
       'Iteraciones máximas: use un número entero entre 1 y 100000 (ej. 500). Valor actual: 0.',
     ]);
-    expect(textsOf(withAnalysis({ surface, methods: [] }))).toEqual(['Métodos de análisis: marque al menos uno (Bishop simplificado o Spencer).']);
+    expect(textsOf(withAnalysis({ surface, methods: [] }))).toEqual(['Métodos de análisis: marque al menos uno.']);
     expect(textsOf(withAnalysis({ surface, methods: ['bishop', 'bishop'] }))).toEqual([
       'Métodos de análisis: hay un método repetido; marque cada uno una sola vez.',
     ]);
