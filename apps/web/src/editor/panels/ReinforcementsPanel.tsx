@@ -2,7 +2,6 @@ import { useId, useMemo } from 'react';
 import type { Reinforcement } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { createToolSwitch } from '../app/discard';
-import { deepEqual } from '../state/docUtils';
 import type { EditorStore } from '../types';
 import { REINFORCEMENT_LABEL } from '../state/validateLocal';
 import { LabeledField, PanelSection } from './Fields';
@@ -20,13 +19,12 @@ import {
   alignedSheet,
   isInclinedSheet,
   isTensionType,
-  reinforcementFromForm,
+  evaluateCard,
   reinforcementLength,
   reinforcementRemoveCommand,
   reinforcementToForm,
   reinforcementUnits,
   reinforcementUpsertCommand,
-  reinforcementsEqual,
   switchDirection,
   switchPullout,
   type PulloutKind,
@@ -83,8 +81,8 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   const otherIds = list.flatMap((r, i) => (i !== index ? [r.id] : []));
   // R11B-10: una tablestaca que el archivo trae inclinada enseña su x2 y su error en vez de forzar x2 = x1 sin avisar.
   const inclined = isInclinedSheet(reinforcement);
-  const outcome = reinforcementFromForm(form, { otherIds, index, units: docUnits, inclined });
-  const errors = outcome.ok ? {} : outcome.errors;
+  const ctx = { otherIds, index, units: docUnits, inclined };
+  const { errors, pending, valid } = evaluateCard(form, reinforcement, ctx);
   const scope = `Refuerzo ${index + 1}`;
   const tension = isTensionType(form.type);
   const sheet = form.type === 'sheet_pile';
@@ -92,8 +90,8 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
 
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'reinforcement', index } });
   const commitForm = (next: ReinforcementForm): void => {
-    const out = reinforcementFromForm(next, { otherIds, index, units: docUnits, inclined });
-    if (out.ok && !reinforcementsEqual(out.value, reinforcement)) store.dispatch(reinforcementUpsertCommand(index, out.value));
+    const { commit: value } = evaluateCard(next, reinforcement, ctx);
+    if (value) store.dispatch(reinforcementUpsertCommand(index, value));
   };
   const commit = (): void => commitForm(form);
   // Las listas desplegables confirman al elegir: el borrador y el documento cambian a la vez.
@@ -122,8 +120,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   );
 
   // R11B-10: con algún error en el borrador, un cambio de lista desplegable se ve en el control pero no llega al modelo; se avisa.
-  const pending = !outcome.ok && !deepEqual(form, reinforcementToForm(reinforcement));
-  const length = outcome.ok ? reinforcementLength(outcome.value) : null;
+  const length = valid ? reinforcementLength(valid) : null;
   const forceUnit = sheet ? units.forcePerLength : units.force;
 
   return (

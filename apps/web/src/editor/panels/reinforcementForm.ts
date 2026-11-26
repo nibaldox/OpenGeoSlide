@@ -277,6 +277,29 @@ export interface ReinforcementFormContext {
   inclined?: boolean;
 }
 
+/** Qué hace la tarjeta de un refuerzo con su borrador (R11B-10): qué se guarda en el modelo y si el borrador queda pendiente. */
+export interface CardEvaluation {
+  /** Errores por campo del borrador (vacío si es válido). */
+  errors: FieldErrors;
+  /** El refuerzo que describe el borrador, si es válido (aunque sea igual al del modelo). */
+  valid: Reinforcement | null;
+  /** El refuerzo a escribir en el modelo: solo si el borrador es válido y distinto del que ya está. */
+  commit: Reinforcement | null;
+  /** Hay cambios en el borrador (una lista desplegable o un campo) que no llegan al modelo por errores en la tarjeta. */
+  pending: boolean;
+}
+
+/**
+ * Evalúa el borrador de una tarjeta frente al refuerzo del modelo. Con errores, `commit` es `null` y el borrador se conserva: el control
+ * muestra la elección y la tarjeta avisa que está pendiente. Ni validar ni volver a dibujar el panel lo descartan: el borrador solo se
+ * reinicia si cambia el refuerzo del modelo (Esc, deshacer) y el modelo no cambia mientras haya errores.
+ */
+export function evaluateCard(form: ReinforcementForm, reinforcement: Reinforcement, ctx: ReinforcementFormContext): CardEvaluation {
+  const outcome = reinforcementFromForm(form, ctx);
+  if (!outcome.ok) return { errors: outcome.errors, valid: null, commit: null, pending: !deepEqual(form, reinforcementToForm(reinforcement)) };
+  return { errors: {}, valid: outcome.value, commit: reinforcementsEqual(outcome.value, reinforcement) ? null : outcome.value, pending: false };
+}
+
 /** ¿Es una tablestaca con x1 ≠ x2? Un archivo puede traerla (el motor la rechaza y `validateLocal` la marca en `x2`). */
 export function isInclinedSheet(r: Reinforcement): boolean {
   return r.type === 'sheet_pile' && r.x1 !== r.x2;

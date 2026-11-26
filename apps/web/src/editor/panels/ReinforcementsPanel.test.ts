@@ -8,7 +8,7 @@ import { FIVE, anchor, pile, sheet } from '../state/reinforcementFixtures';
 import { validateLocal } from '../state/validateLocal';
 import { createFakeStore } from './fakeStore';
 import { ReinforcementsPanel } from './index';
-import { REINFORCEMENT_TYPES, alignedSheet, reinforcementAddCommand } from './reinforcementForm';
+import { REINFORCEMENT_TYPES, alignedSheet, evaluateCard, reinforcementAddCommand, reinforcementToForm, switchDirection } from './reinforcementForm';
 
 const doc = (over: Partial<ModelDoc> = {}): ModelDoc => ({
   format: 'opengeoslide',
@@ -145,6 +145,58 @@ describe('ReinforcementsPanel: nombres accesibles', () => {
       const out = html(doc({ reinforcements: [sheet()] }));
       expect(accessibleNames(out)).not.toContain('Refuerzo 1: Punta x2 (m)');
       expect(out).not.toContain('Alinear verticalmente');
+    });
+    // R11B-10: con errores en la tarjeta, el cambio de una lista desplegable se conserva como borrador (no llega al modelo, no se pierde al validar).
+    describe('un cambio de lista desplegable con errores en la tarjeta', () => {
+      const CTX = { otherIds: [], index: 0, units: 'SI', inclined: true } as const;
+      const card = () => (inclined().reinforcements ?? [])[0] as Parameters<typeof evaluateCard>[1];
+
+      it('queda como borrador pendiente: el control conserva la elección y el modelo no se toca', () => {
+        const r = card();
+        const form = switchDirection(reinforcementToForm(r), 'angle');
+        const ev = evaluateCard(form, r, CTX);
+        expect(form.direction).toBe('angle'); // lo que muestra la lista desplegable
+        expect(ev.commit).toBeNull(); // no se escribe en el modelo mientras x2 siga mal
+        expect(ev.pending).toBe(true); // y la tarjeta lo avisa
+        expect(Object.keys(ev.errors)).toContain('x2');
+      });
+
+      it('validar o volver a evaluar el mismo borrador no lo pierde ni cambia el modelo', () => {
+        const store = createEditorStore(inclined(), null);
+        const before = store.getState().doc.reinforcements?.[0] as Parameters<typeof evaluateCard>[1];
+        const form = switchDirection(reinforcementToForm(before), 'angle');
+        for (let i = 0; i < 3; i += 1) {
+          expect(evaluateCard(form, before, CTX)).toMatchObject({ commit: null, pending: true });
+          validateLocal(store.getState().doc); // validar no escribe el modelo
+        }
+        // `useDraft` reinicia el borrador solo si cambia la referencia del refuerzo: sigue siendo la misma y no hay pasos de historial.
+        expect(store.getState().doc.reinforcements?.[0]).toBe(before);
+        expect(store.getState().history.past).toHaveLength(0);
+        expect(form.direction).toBe('angle');
+      });
+
+      it('una lista desplegable más (Aplicación) también queda pendiente, y la elección anterior se conserva', () => {
+        const r = card();
+        const a = switchDirection(reinforcementToForm(r), 'angle');
+        const b = { ...a, application: 'active' as const };
+        expect(evaluateCard(b, r, CTX)).toMatchObject({ commit: null, pending: true });
+        expect(b.direction).toBe('angle');
+      });
+
+      it('al corregir el error, el cambio pendiente se escribe con la corrección (un solo comando)', () => {
+        const r = card();
+        const pending = switchDirection(reinforcementToForm(r), 'angle');
+        const fixed = { ...pending, x2: pending.x1 };
+        const ev = evaluateCard(fixed, r, CTX);
+        expect(ev.errors).toEqual({});
+        expect(ev.pending).toBe(false);
+        expect(ev.commit).toMatchObject({ type: 'sheet_pile', x1: 40, x2: 40, direction: 'angle', angle: 0 });
+      });
+
+      it('sin cambios en el borrador no hay aviso de pendiente aunque la tarjeta tenga errores', () => {
+        const r = card();
+        expect(evaluateCard(reinforcementToForm(r), r, CTX)).toMatchObject({ commit: null, pending: false });
+      });
     });
     it('«Alinear» deja x2 = x1 en el almacén en un solo paso deshacible', () => {
       const store = createEditorStore(inclined(), null);
