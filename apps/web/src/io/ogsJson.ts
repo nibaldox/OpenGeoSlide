@@ -1,10 +1,11 @@
 // Abrir y guardar `.ogs.json` (X3 §2.6, F1.1, F1.4).
 //
-// - `openOgsJson` acepta v0.1 a v0.4 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
-//   mínima que lo describe (F3.9, F4.1): `"0.2"` sin campos de la v0.3, `"0.3"` con alguno y `"0.4"` solo si hay refuerzos.
+// - `openOgsJson` acepta v0.1 a v0.5 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
+//   mínima que lo describe (F3.9, F4.1, F5.1): `"0.2"` sin campos de la v0.3, `"0.3"` con alguno, `"0.4"` si hay refuerzos y
+//   `"0.5"` solo si existe `analysis.tension_crack`.
 // - `saveOgsJson` escribe esa versión mínima, con el orden de claves canónico de 00_CONTRATOS.md §1
-//   (`loads` después de `water`, `reinforcements` después de `loads`, `analysis.seismic` e `interslice` al final de
-//   `analysis`) y 2 espacios. Los números se escriben
+//   (`loads` después de `water`, `reinforcements` después de `loads`, `analysis.seismic`, `interslice` y `tension_crack` al
+//   final de `analysis`) y 2 espacios. Los números se escriben
 //   **sin redondear**, con la representación de ida y vuelta más corta de JS (E12g): abrir y guardar no cambia el
 //   resultado del motor ni un bit.
 // - `openOgsJson` es estricto, igual que el motor (`deny_unknown_fields`, E12h): un campo desconocido, o `loads` o
@@ -20,8 +21,10 @@ export const OGS_SAVE_VERSION = '0.2';
 export const OGS_V03 = '0.3';
 /** Versión que se guarda cuando el modelo tiene refuerzos (F4.1). */
 export const OGS_V04 = '0.4';
+/** Versión que se guarda cuando el modelo tiene la grieta de tracción `analysis.tension_crack` (F5.1). */
+export const OGS_V05 = '0.5';
 
-type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04;
+type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04 | typeof OGS_V05;
 
 export interface OpenOgsResult {
   /** `null` si el archivo se rechaza (hay al menos una incidencia con severidad `error`). */
@@ -86,7 +89,9 @@ const ANALYSIS_KEYS = [
   'search',
   'seismic',
   'interslice',
+  'tension_crack',
 ] as const;
+const CRACK_KEYS = ['depth', 'water_fill'] as const;
 const SURFACE_KEYS = ['type', 'xc', 'yc', 'r', 'points'] as const;
 const INTERSLICE_KEYS = ['function', 'points'] as const;
 const SEARCH_KEYS = [
@@ -158,6 +163,8 @@ const FIELD_NAME: Readonly<Record<string, string>> = {
   strength_limit: 'límite de Su',
   function: 'función',
   points: 'puntos',
+  depth: 'profundidad',
+  water_fill: 'fracción de agua',
 };
 
 /** Campos de un refuerzo en palabras de la interfaz (v0.4). */
@@ -220,6 +227,7 @@ export function describePath(path: string): string {
         search: 'la búsqueda',
         seismic: 'el sismo',
         interslice: 'la función de fuerzas entre dovelas',
+        tension_crack: 'la grieta de tracción',
       };
       if (b === undefined) return 'la configuración del análisis';
       if (b === 'surface' && c === 'points' && d !== undefined) return `la polilínea fija, punto ${n(d)}`;
@@ -473,8 +481,11 @@ const analysisSub: Sub = (v, path, ctx) => {
     search: orderedWith(SEARCH_KEYS),
     seismic: orderedWith(SEISMIC_KEYS),
     interslice: orderedWith(INTERSLICE_KEYS),
+    tension_crack: orderedWith(CRACK_KEYS),
   })(v, path, ctx);
   if (isRecord(out) && out.interslice === null) delete out.interslice;
+  // Un `null` es ausente (como en el motor): la grieta vacía no se escribe.
+  if (isRecord(out) && out.tension_crack === null) delete out.tension_crack;
   return out;
 };
 
@@ -540,11 +551,18 @@ export function v04Fields(model: unknown): V03Field[] {
   return [{ path: '/reinforcements', what: 'los refuerzos' }];
 }
 
+/** Campos de la v0.5 que usa un modelo (F5.1): `analysis.tension_crack`. Un `null` cuenta como ausente, como en el motor (`first_v05_field`). */
+export function v05Fields(model: unknown): V03Field[] {
+  if (!isRecord(model) || !isRecord(model.analysis) || !present(model.analysis.tension_crack)) return [];
+  return [{ path: '/analysis/tension_crack', what: 'la grieta de tracción' }];
+}
+
 /**
- * Versión mínima con la que se guarda el modelo (F3.9, F4.1): `"0.4"` si hay refuerzos, `"0.3"` si usa algún campo de la v0.3, si
- * no `"0.2"`.
+ * Versión mínima con la que se guarda el modelo (F3.9, F4.1, F5.1): `"0.5"` si hay grieta de tracción, `"0.4"` si hay refuerzos,
+ * `"0.3"` si usa algún campo de la v0.3, si no `"0.2"`. El agua embalsada no tiene campo y no sube la versión.
  */
 export function minimalVersion(model: unknown): OgsVersion {
+  if (v05Fields(model).length > 0) return OGS_V05;
   if (v04Fields(model).length > 0) return OGS_V04;
   return v03Fields(model).length > 0 ? OGS_V03 : OGS_SAVE_VERSION;
 }
@@ -573,7 +591,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
   return result;
 }
 
-/** Documento en orden canónico y con la versión mínima (`"0.2"`, `"0.3"` o `"0.4"`), sin serializar (para borradores y pruebas). Sin redondeo. */
+/** Documento en orden canónico y con la versión mínima (`"0.2"`, `"0.3"`, `"0.4"` o `"0.5"`), sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const version = minimalVersion(doc);
   const withVersion = { ...doc, format: OGS_FORMAT, version } as ModelDoc;
@@ -586,7 +604,7 @@ export function saveOgsJson(doc: ModelDoc): string {
 }
 
 /**
- * Copia del modelo lista para el motor: con la versión `"0.4"` si tiene refuerzos y `"0.3"` si su contenido la exige (los modelos de los casos pueden traer una
+ * Copia del modelo lista para el motor: con la versión `"0.5"` si tiene grieta de tracción, `"0.4"` si tiene refuerzos y `"0.3"` si su contenido la exige (los modelos de los casos pueden traer una
  * versión menor que la que piden los métodos que se eligen en «Casos») y sin `analysis.interslice` cuando `morgenstern_price` no
  * está entre los métodos (el motor lo rechaza: solo tiene sentido con ese método).
  */
@@ -594,9 +612,10 @@ export function engineModel(model: ModelDoc): ModelDoc {
   const analysis = { ...model.analysis };
   if (analysis.interslice !== undefined && !(analysis.methods ?? []).includes('morgenstern_price')) delete analysis.interslice;
   const copy: ModelDoc = { ...model, analysis };
-  // Solo se sube la versión si hace falta: un modelo de la v0.1 o v0.2 sin campos nuevos se envía tal cual. Con refuerzos, 0.4.
-  if (v04Fields(copy).length > 0) return { ...copy, version: OGS_V04 };
-  return v03Fields(copy).length > 0 && copy.version !== OGS_V04 ? { ...copy, version: OGS_V03 } : copy;
+  // Solo se sube la versión si hace falta: un modelo de la v0.1 o v0.2 sin campos nuevos se envía tal cual. Con grieta, 0.5; con refuerzos, 0.4.
+  if (v05Fields(copy).length > 0) return { ...copy, version: OGS_V05 };
+  if (v04Fields(copy).length > 0) return copy.version === OGS_V05 ? copy : { ...copy, version: OGS_V04 };
+  return v03Fields(copy).length > 0 && copy.version !== OGS_V04 && copy.version !== OGS_V05 ? { ...copy, version: OGS_V03 } : copy;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -732,11 +751,32 @@ function checkShape(model: Rec, issues: Issue[]): void {
       search: 'La búsqueda de superficies',
       seismic: 'El sismo (coeficientes kh y kv)',
       interslice: 'La función de fuerzas entre dovelas',
+      tension_crack: 'La grieta de tracción',
     } as const;
-    for (const key of ['surface', 'search', 'seismic', 'interslice'] as const) {
+    for (const key of ['surface', 'search', 'seismic', 'interslice', 'tension_crack'] as const) {
       const v = model.analysis[key];
       if (v !== undefined && v !== null && !isRecord(v)) {
         err('io.shape', `${blockName[key]} no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacío (null).`, `/analysis/${key}`);
+      }
+    }
+    // F5.2: `depth` es un número o «auto»; `water_fill` es un número y no tiene valor por defecto. Los rangos son de `validateLocal`.
+    const crack = model.analysis.tension_crack;
+    if (isRecord(crack)) {
+      if (!(typeof crack.depth === 'number' || crack.depth === 'auto')) {
+        err(
+          'io.shape',
+          'La profundidad de la grieta de tracción debe ser un número o «auto» (profundidad automática); indique uno de los dos.',
+          '/analysis/tension_crack/depth',
+          `depth = ${JSON.stringify(crack.depth) ?? 'ausente'}`,
+        );
+      }
+      if (typeof crack.water_fill !== 'number') {
+        err(
+          'io.shape',
+          'La fracción de agua de la grieta de tracción es obligatoria y debe ser un número de 0 a 1 (0 seca, 1 llena); no tiene valor por defecto.',
+          '/analysis/tension_crack/water_fill',
+          `water_fill = ${JSON.stringify(crack.water_fill) ?? 'ausente'}`,
+        );
       }
     }
   }
@@ -856,11 +896,11 @@ export function openOgsJson(text: string): OpenOgsResult {
       `format = ${JSON.stringify(model.format) ?? 'ausente'}`,
     );
   }
-  if (model.version !== '0.1' && model.version !== '0.2' && model.version !== '0.3' && model.version !== '0.4') {
+  if (model.version !== '0.1' && model.version !== '0.2' && model.version !== '0.3' && model.version !== '0.4' && model.version !== '0.5') {
     const shown = typeof model.version === 'string' ? `la versión "${model.version}"` : 'ninguna versión';
     return reject(
       'io.version',
-      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3 y 0.4. Guárdelo de nuevo con una versión compatible.`,
+      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4 y 0.5. Guárdelo de nuevo con una versión compatible.`,
       '/version',
       `version = ${JSON.stringify(model.version) ?? 'ausente'}`,
     );
@@ -896,7 +936,7 @@ export function openOgsJson(text: string): OpenOgsResult {
   }
 
   // Como el motor (E13a): un campo de la v0.3 en un archivo v0.1 o v0.2 es un error.
-  if (model.version !== '0.3' && model.version !== '0.4') {
+  if (model.version !== '0.3' && model.version !== '0.4' && model.version !== '0.5') {
     for (const { path, what } of v03Fields(model)) {
       issues.push(
         issue(
@@ -909,14 +949,28 @@ export function openOgsJson(text: string): OpenOgsResult {
     }
   }
 
-  // Como el motor (E14a): `reinforcements` no vacío exige la versión 0.4.
-  if (model.version !== '0.4') {
+  // Como el motor (E14a): `reinforcements` no vacío exige la versión 0.4 o la 0.5.
+  if (model.version !== '0.4' && model.version !== '0.5') {
     for (const { path, what } of v04Fields(model)) {
       issues.push(
         issue(
           'error',
           'io.version_fields',
           `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.4" o quite ese dato.`,
+          path,
+        ),
+      );
+    }
+  }
+
+  // Como el motor (E15a): `analysis.tension_crack` exige la versión 0.5 (`tension_crack requiere version "0.5"`).
+  if (model.version !== '0.5') {
+    for (const { path, what } of v05Fields(model)) {
+      issues.push(
+        issue(
+          'error',
+          'io.version_fields',
+          `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.5" o quite ese dato.`,
           path,
         ),
       );

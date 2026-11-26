@@ -69,7 +69,7 @@ describe('ogsJson: ida y vuelta con los casos de verificación', () => {
       // F3.9 extendida (briefs/03_CONTRATOS_REFUERZOS.md F4.1): se guarda con la versión mínima que el modelo necesita: los casos de v0.1 y
       // v0.2 en 0.2, uno que declara 0.3 conserva 0.3 y uno con refuerzos (promovidos desde F3R) conserva 0.4.
       const version = minimalVersion(parsed.model);
-      if (parsed.model.version === '0.3' || parsed.model.version === '0.4') expect(version).toBe(parsed.model.version);
+      if (parsed.model.version === '0.3' || parsed.model.version === '0.4' || parsed.model.version === '0.5') expect(version).toBe(parsed.model.version);
       expect(saved.version).toBe(version);
       expect(saved).toEqual({ ...(parsed.model as unknown as Json), version });
       expect(isSubsequence(Object.keys(saved), CANONICAL_TOP_V04)).toBe(true);
@@ -164,7 +164,7 @@ describe('ogsJson: abrir', () => {
     const badFormat = openOgsJson(JSON.stringify({ ...base(), format: 'otro' }));
     expect(badFormat.doc).toBeNull();
     expect(badFormat.issues[0]).toMatchObject({ severity: 'error', code: 'io.format' });
-    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.5' }));
+    const badVersion = openOgsJson(JSON.stringify({ ...base(), version: '0.6' }));
     expect(badVersion.doc).toBeNull();
     expect(badVersion.issues[0]?.code).toBe('io.version');
     expect(openOgsJson(JSON.stringify({ ...base(), version: undefined })).doc).toBeNull();
@@ -511,11 +511,11 @@ describe('ogsJson: mensajes en lenguaje de usuario (R7-19, UX-13)', () => {
     );
     expect(f?.detail).toBe('format = "otro"');
     expect(firstError({ ...base(), format: undefined })?.text).toContain('no tiene marca de formato');
-    const v = firstError({ ...base(), version: '0.5' });
+    const v = firstError({ ...base(), version: '0.6' });
     expect(v?.text).toBe(
-      'El archivo declara la versión "0.5" del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3 y 0.4. Guárdelo de nuevo con una versión compatible.',
+      'El archivo declara la versión "0.6" del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4 y 0.5. Guárdelo de nuevo con una versión compatible.',
     );
-    expect(v?.detail).toBe('version = "0.5"');
+    expect(v?.detail).toBe('version = "0.6"');
     expect(firstError({ ...base(), version: undefined })?.text).toContain('ninguna versión');
   });
 
