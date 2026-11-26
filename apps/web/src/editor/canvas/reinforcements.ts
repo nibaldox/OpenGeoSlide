@@ -7,7 +7,7 @@
 
 import type { Point, Reinforcement, ReinforcementApplication, ReinforcementForce } from '../../engine/types';
 import { worldToScreen, type Viewport } from '../../geometry/viewport';
-import { isImperialUnits } from '../state/units';
+import { UNIT_FACTORS, isImperialUnits } from '../state/units';
 import type { ModelDoc } from '../types';
 import { formatNumber, lengthUnitOf } from './layout';
 
@@ -90,6 +90,10 @@ export function nextReinforcementId(doc: ModelDoc, type: ReinforcementType): str
 function forceIn(units: string | null | undefined, kn: number): number {
   return isImperialUnits(units) ? Number((kn * 224.809).toPrecision(3)) : kn;
 }
+/** Espaciamiento (m → ft), con tres cifras significativas: 1 m → 3,28 ft. Un `spacing` en pies con el número de SI sería otra malla (E14o-12, R11B-07). */
+function spacingIn(units: string | null | undefined, m: number): number {
+  return isImperialUnits(units) ? Number((m * UNIT_FACTORS.length).toPrecision(3)) : m;
+}
 function perLengthIn(units: string | null | undefined, knPerM: number): number {
   return isImperialUnits(units) ? Number((knPerM * 68.5218).toPrecision(3)) : knPerM;
 }
@@ -97,7 +101,8 @@ function perLengthIn(units: string | null | undefined, knPerM: number): number {
 /**
  * Refuerzo nuevo de `type` entre la cabeza `p1` y la punta `p2`, con valores razonables que el panel «Refuerzos» edita después.
  * Anclaje: activo, con `end1_capacity = tensile_capacity` (E14m-2). Clavo y geosintético: pasivos. Pilote y tablestaca:
- * pasivos, con fuerza horizontal (`angle` 0). La tablestaca es vertical: x2 = x1.
+ * pasivos, con fuerza horizontal (`angle` 0). La tablestaca es vertical: x2 = x1. En imperial, las capacidades van en lbf y el `spacing` en pies
+ * (E14o-12): la resistencia por unidad de ancho es la misma que en SI.
  */
 export function newReinforcement(type: ReinforcementType, id: string, p1: Point, p2: Point, units?: string | null): Reinforcement {
   const base = { id, x1: p1[0], y1: p1[1], x2: type === 'sheet_pile' ? p1[0] : p2[0], y2: p2[1] };
@@ -105,17 +110,17 @@ export function newReinforcement(type: ReinforcementType, id: string, p1: Point,
   switch (type) {
     case 'anchor': {
       const t = forceIn(units, 150);
-      r = { ...base, type, application: 'active', tensile_capacity: t, end1_capacity: t, spacing: 1, direction: 'axial' };
+      r = { ...base, type, application: 'active', tensile_capacity: t, end1_capacity: t, spacing: spacingIn(units, 1), direction: 'axial' };
       break;
     }
     case 'nail':
-      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 100), spacing: 1.5, direction: 'axial', pullout: { model: 'bond', strength: perLengthIn(units, 30) } };
+      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 100), spacing: spacingIn(units, 1.5), direction: 'axial', pullout: { model: 'bond', strength: perLengthIn(units, 30) } };
       break;
     case 'geosynthetic':
-      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 40), spacing: 1, direction: 'axial' };
+      r = { ...base, type, application: 'passive', tensile_capacity: forceIn(units, 40), spacing: spacingIn(units, 1), direction: 'axial' };
       break;
     case 'pile':
-      r = { ...base, type, application: 'passive', force: forceIn(units, 60), spacing: 1.5, direction: 'angle', angle: 0 };
+      r = { ...base, type, application: 'passive', force: forceIn(units, 60), spacing: spacingIn(units, 1.5), direction: 'angle', angle: 0 };
       break;
     case 'sheet_pile':
       r = { ...base, type, application: 'passive', force: perLengthIn(units, 120), direction: 'angle', angle: 0 };
@@ -231,8 +236,8 @@ export function reinforcementShape(r: Reinforcement, index: number, vp: Viewport
 }
 
 /** Ancho aproximado de un carácter del rótulo (12 px) y alto de la línea, para que los rótulos de refuerzos vecinos no se pisen. */
-const LABEL_CHAR_PX = 6.6;
-const LABEL_LINE_PX = 14;
+export const LABEL_CHAR_PX = 6.6;
+export const LABEL_LINE_PX = 14;
 
 export function reinforcementShapes(list: readonly Reinforcement[] | undefined, vp: Viewport, units?: string | null): ReinforcementShape[] {
   const shapes = (list ?? []).map((r, i) => reinforcementShape(r, i, vp, units));
@@ -326,4 +331,63 @@ export function forceShapes(forces: readonly ReinforcementForce[] | undefined, v
       title: `${text}. Cruce ${f.crossing + 1}, estación ${formatNumber(f.station)} ${lengthUnitOf(units)}`,
     };
   });
+}
+
+// ───────────────────────── Rótulos sin solapes (E14o-16, R11B-05) ─────────────────────────
+
+interface LabelBox {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+}
+
+const LABEL_PAD_PX = 2;
+const labelBox = (text: string, x: number, y: number): LabelBox => {
+  const half = (text.length * LABEL_CHAR_PX) / 2;
+  return { x1: x - half, x2: x + half, y1: y - LABEL_LINE_PX, y2: y };
+};
+const overlapArea = (a: LabelBox, b: LabelBox): number => {
+  const w = Math.min(a.x2 + LABEL_PAD_PX, b.x2 + LABEL_PAD_PX) - Math.max(a.x1 - LABEL_PAD_PX, b.x1 - LABEL_PAD_PX);
+  const h = Math.min(a.y2 + LABEL_PAD_PX, b.y2 + LABEL_PAD_PX) - Math.max(a.y1 - LABEL_PAD_PX, b.y1 - LABEL_PAD_PX);
+  return w > 0 && h > 0 ? w * h : 0;
+};
+
+/**
+ * Coloca **todos** los rótulos del dibujo (los de los refuerzos y los de las fuerzas) sin que se pisen: cada uno prueba su sitio natural y, si
+ * choca con uno ya puesto, los desplazamientos verticales de una línea y los horizontales de medio rótulo, del más cercano al más lejano, siempre
+ * dentro del lienzo. Si ninguno queda libre, toma el de menor solape. Primero se colocan las fuerzas (su magnitud es lo que se lee) y después los
+ * símbolos. Devuelve copias: no muta las formas de entrada. Lo usan el editor (SVG) y Casos (Canvas 2D); el PDF tiene su propia pasada en mm.
+ */
+export function placeReinforcementLabels(
+  shapes: readonly ReinforcementShape[],
+  forces: readonly ForceShape[],
+  vp: Pick<Viewport, 'width' | 'height'>,
+): { shapes: ReinforcementShape[]; forces: ForceShape[] } {
+  const placed: LabelBox[] = [];
+  const inside = (b: LabelBox): boolean => b.x1 >= LABEL_PAD_PX && b.x2 <= vp.width - LABEL_PAD_PX && b.y1 >= LABEL_PAD_PX && b.y2 <= vp.height - LABEL_PAD_PX;
+  const place = (label: { x: number; y: number; text: string }): { x: number; y: number; text: string } => {
+    const w = label.text.length * LABEL_CHAR_PX;
+    const offsets: [number, number][] = [];
+    for (let j = -6; j <= 6; j += 1) for (let k = -12; k <= 12; k += 1) offsets.push([j * (w / 2 + LABEL_PAD_PX), k * LABEL_LINE_PX]);
+    offsets.sort((a, b) => Math.abs(a[1]) + 0.6 * Math.abs(a[0]) - (Math.abs(b[1]) + 0.6 * Math.abs(b[0])));
+    let best: { box: LabelBox; dx: number; dy: number; cost: number } | null = null;
+    for (const [dx, dy] of offsets) {
+      const box = labelBox(label.text, label.x + dx, label.y + dy);
+      if (!inside(box)) continue;
+      const cost = placed.reduce((sum, b) => sum + overlapArea(box, b), 0);
+      if (cost === 0) {
+        placed.push(box);
+        return { ...label, x: label.x + dx, y: label.y + dy };
+      }
+      if (best === null || cost < best.cost) best = { box, dx, dy, cost };
+    }
+    // Sin sitio libre: el de menor solape; sin ningún sitio dentro del lienzo, el natural.
+    const chosen = best ?? { box: labelBox(label.text, label.x, label.y), dx: 0, dy: 0, cost: 0 };
+    placed.push(chosen.box);
+    return { ...label, x: label.x + chosen.dx, y: label.y + chosen.dy };
+  };
+  const forceOut = forces.map((f) => ({ ...f, label: place(f.label) }));
+  const shapeOut = shapes.map((s) => ({ ...s, label: place(s.label) }));
+  return { shapes: shapeOut, forces: forceOut };
 }

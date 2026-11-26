@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Reinforcement } from '../../engine/types';
 import { FIVE, anchor, pile, sheet } from './reinforcementFixtures';
+import type { ModelDoc } from '../types';
 import { baseDoc } from './testFixtures';
 import { UNIT_FACTORS, convertDocUnits } from './units';
 
@@ -54,10 +55,11 @@ describe('convertDocUnits con refuerzos', () => {
     });
   });
 
-  it('los opcionales ausentes siguen ausentes y los tipos no se tocan', () => {
+  it('los opcionales ausentes siguen ausentes (salvo spacing, que se escribe explícito) y los tipos no se tocan', () => {
     const out = convertDocUnits(withR([anchor()]), 'imperial').reinforcements?.[0] as Reinforcement;
     expect('end1_capacity' in out).toBe(false);
-    expect('spacing' in out).toBe(false);
+    // E14o-12 (R11B-01): el `spacing` omitido (1 en la unidad del modelo) se escribe siempre explícito y convertido: 1 m → 3,28084 ft.
+    expect((out as { spacing?: number }).spacing).toBeCloseTo(UNIT_FACTORS.length, 12);
     expect('pullout' in out).toBe(false);
     expect(out.type).toBe('anchor');
     expect(out.direction).toBe('axial');
@@ -73,5 +75,34 @@ describe('convertDocUnits con refuerzos', () => {
     const frozen = JSON.stringify(doc);
     convertDocUnits(doc, 'imperial');
     expect(JSON.stringify(doc)).toBe(frozen);
+  });
+});
+
+describe('spacing omitido en la conversión (E14o-12, R11B-01)', () => {
+  const noSpacing = (): Reinforcement[] => [
+    { type: 'anchor', id: 'a', x1: 0, y1: 0, x2: 1, y2: 0, application: 'active', tensile_capacity: 100, direction: 'axial' },
+    { type: 'nail', id: 'n', x1: 0, y1: 0, x2: 1, y2: 0, application: 'passive', tensile_capacity: 100, direction: 'axial' },
+    { type: 'geosynthetic', id: 'g', x1: 0, y1: 0, x2: 1, y2: 0, application: 'passive', tensile_capacity: 40, direction: 'tangent' },
+    { type: 'pile', id: 'p', x1: 0, y1: 0, x2: 0, y2: -1, application: 'passive', force: 60, direction: 'angle', angle: 0 },
+    { type: 'sheet_pile', id: 's', x1: 0, y1: 0, x2: 0, y2: -1, application: 'passive', force: 120, direction: 'angle', angle: 0 },
+  ];
+  const sp = (r: Reinforcement): number | undefined => (r as { spacing?: number }).spacing;
+
+  it('SI → imperial: cada tipo con espaciamiento escribe 3,28084 ft (1 m) y la tablestaca no lleva spacing', () => {
+    const out = convertDocUnits(withR(noSpacing()), 'imperial').reinforcements ?? [];
+    for (const r of out.filter((x) => x.type !== 'sheet_pile')) expect(sp(r), r.id).toBeCloseTo(UNIT_FACTORS.length, 12);
+    expect('spacing' in (out[4] as object)).toBe(false);
+  });
+
+  it('imperial → SI: el spacing omitido (1 ft) pasa a 0,3048 m', () => {
+    const imp = { ...withR(noSpacing()), units: 'imperial' } as ModelDoc;
+    const out = convertDocUnits(imp, 'SI').reinforcements ?? [];
+    for (const r of out.filter((x) => x.type !== 'sheet_pile')) expect(sp(r), r.id).toBeCloseTo(0.3048, 12);
+  });
+
+  it('un spacing nulo se trata como omitido', () => {
+    const list = noSpacing().map((r) => (r.type === 'sheet_pile' ? r : ({ ...r, spacing: null } as unknown as Reinforcement)));
+    const out = convertDocUnits(withR(list), 'imperial').reinforcements ?? [];
+    expect(sp(out[0] as Reinforcement)).toBeCloseTo(UNIT_FACTORS.length, 12);
   });
 });

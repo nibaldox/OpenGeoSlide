@@ -81,4 +81,41 @@ describe.skipIf(!haveEngine)(`conversión de unidades de refuerzos con el motor 
     const c = run(convertDocUnits(imp(), 'SI'));
     for (const m of METHODS) expect(Math.abs((a.get(m)!.fos as number) - (c.get(m)!.fos as number)), m).toBeLessThan(1e-9);
   });
+
+  // R11B-01 / E14o-12: con `spacing` omitido (1 en la unidad del modelo) la conversión debe escribirlo explícito; si no, 1 m pasaba a 1 ft
+  // y el FS subía un +203 %. Todos los elementos del modelo van sin `spacing` y con espaciamiento implícito.
+  describe('spacing omitido', () => {
+    const noSpacing = (): ModelDoc => {
+      const d = model();
+      d.reinforcements = (d.reinforcements ?? []).map((r) => {
+        const { spacing: _s, ...rest } = r as Reinforcement & { spacing?: number };
+        void _s;
+        return rest as Reinforcement;
+      });
+      return d;
+    };
+    const SI = memo(() => run(noSpacing()));
+    const IMP = memo(() => run(convertDocUnits(noSpacing(), 'imperial')));
+    const BACK = memo(() => run(convertDocUnits(convertDocUnits(noSpacing(), 'imperial'), 'SI')));
+    it.each(METHODS)('%s: el FS es el mismo en SI e imperial con spacing omitido (1e-9)', (method) => {
+      const x = SI().get(method)!;
+      const y = IMP().get(method)!;
+      expect(x.status).toBe('converged');
+      expect(y.status).toBe('converged');
+      expect(Math.abs((x.fos as number) - (y.fos as number)), `${method}: SI ${x.fos} vs imperial ${y.fos}`).toBeLessThan(1e-9);
+      expect(Math.abs((x.fos as number) - (BACK().get(method)!.fos as number)), `${method} ida y vuelta`).toBeLessThan(1e-9);
+    });
+    it('imperial → SI con spacing omitido también conserva el FS', () => {
+      const imperial = convertDocUnits(noSpacing(), 'imperial');
+      const without = { ...imperial, reinforcements: (imperial.reinforcements ?? []).map((r) => {
+        const { spacing: _s, ...rest } = r as Reinforcement & { spacing?: number };
+        void _s;
+        return rest as Reinforcement;
+      }) } as ModelDoc;
+      // El mismo modelo imperial sin spacing es otro modelo (1 ft): su conversión a SI debe valer 0,3048 m y dar el mismo FS imperial.
+      const a = run(without);
+      const b = run(convertDocUnits(without, 'SI'));
+      for (const m of METHODS) expect(Math.abs((a.get(m)!.fos as number) - (b.get(m)!.fos as number)), m).toBeLessThan(1e-9);
+    });
+  });
 });

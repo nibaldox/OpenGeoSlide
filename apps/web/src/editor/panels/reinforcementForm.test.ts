@@ -11,7 +11,9 @@ import {
   REINFORCEMENT_TYPES,
   REINFORCEMENT_TYPE_LABELS,
   TENSION_DIRECTION_OPTIONS,
+  alignedSheet,
   defaultReinforcement,
+  isInclinedSheet,
   nextReinforcementId,
   reinforcementFromForm,
   reinforcementLength,
@@ -26,6 +28,7 @@ import {
 import { FIVE, anchor, pile, sheet } from '../state/reinforcementFixtures';
 import { validateLocal } from '../state/validateLocal';
 import { baseDoc } from '../state/testFixtures';
+import { UNIT_FACTORS } from '../state/units';
 
 const slope = (over: Partial<ModelDoc> = {}): ModelDoc => ({
   ...baseDoc(),
@@ -77,12 +80,54 @@ describe('valores iniciales', () => {
     }
   });
 
+  // R11B-08 / E14o-16: el pilote y la tablestaca nuevos son siempre válidos, hacia abajo y dentro del suelo, también con un pie largo y bajo.
+  describe('pilote y tablestaca nuevos con terreno de pie largo (R11B-08)', () => {
+    const toe = (yToe: number, top = 40): ModelDoc => slope({ regions: [{ material: 'm1', polygon: [[0, 0], [100, 0], [100, yToe], [40, yToe], [20, top], [0, top]] }] });
+    /** Cota de la base del suelo en `x` (todas las regiones de estos modelos llegan hasta y = 0). */
+    const checkInside = (doc: ModelDoc, type: 'pile' | 'sheet_pile'): Reinforcement => {
+      const r = defaultReinforcement(type, doc) as Reinforcement;
+      expect(r, type).not.toBeNull();
+      expect(r.y2, `${type}: la punta debe quedar bajo la cabeza (y1 ${r.y1}, y2 ${r.y2})`).toBeLessThan(r.y1);
+      expect(r.y2, `${type}: la punta debe quedar dentro del suelo`).toBeGreaterThan(0);
+      expect(r.x1).toBe(r.x2);
+      const bad = validateLocal({ ...doc, version: '0.4', reinforcements: [r] }).filter((i) => i.severity === 'error');
+      expect(bad, type).toEqual([]);
+      return r;
+    };
+    it.each(['pile', 'sheet_pile'] as const)('%s: pie de 2 con la cota yMin + 5 % de la altura (contraejemplo del revisor: longitud 0)', (type) => {
+      const r = checkInside(toe(2), type);
+      expect(r.y1).toBeGreaterThan(r.y2 + 0.01);
+    });
+    it.each(['pile', 'sheet_pile'] as const)('%s: pie de 1, menor que yMin + 5 % (contraejemplo: la punta quedaba sobre la cabeza)', (type) => {
+      checkInside(toe(1), type);
+    });
+    it.each(['pile', 'sheet_pile'] as const)('%s: siempre válido con pies de 0,05 a 38 y taludes de 3 a 200 de alto', (type) => {
+      for (const top of [3, 10, 40, 200]) for (const yToe of [0.05, 0.2, 1, 2, top * 0.05, top * 0.5, top - 0.5]) if (yToe < top) checkInside(toe(yToe, top), type);
+    });
+    it('con terreno sin espesor en el centro, busca una columna con suelo', () => {
+      const r = checkInside(toe(0.5), 'pile');
+      expect(r.y1).toBeLessThanOrEqual(40);
+    });
+  });
+
   it('un anclaje nuevo propone end1_capacity = tensile_capacity (E14m-2)', () => {
     const r = defaultReinforcement('anchor', slope());
     expect(r?.type).toBe('anchor');
     if (r?.type === 'anchor') {
       expect(r.end1_capacity).toBe(r.tensile_capacity);
       expect(r.application).toBe('active');
+    }
+  });
+
+  // E14o-12: el panel en imperial propone valores de la misma resistencia por unidad de ancho (capacidad entre espaciamiento) que en SI.
+  it('en imperial, la resistencia por ancho de cada tipo con espaciamiento equivale a la de SI (5 %)', () => {
+    type Flat = { tensile_capacity?: number; force?: number; spacing?: number };
+    for (const type of ['anchor', 'nail', 'geosynthetic', 'pile'] as const) {
+      const si = defaultReinforcement(type, slope({ units: 'SI' })) as unknown as Flat;
+      const im = defaultReinforcement(type, slope({ units: 'imperial' })) as unknown as Flat;
+      const wSi = (si.tensile_capacity ?? si.force ?? 0) / (si.spacing ?? 1);
+      const wIm = (im.tensile_capacity ?? im.force ?? 0) / (im.spacing ?? 1);
+      expect(Math.abs(wIm / UNIT_FACTORS.lineForce / wSi - 1), `${type}: ${wIm} lbf/ft vs ${wSi} kN/m`).toBeLessThan(0.05);
     }
   });
 
@@ -147,6 +192,26 @@ describe('formulario ↔ refuerzo', () => {
     const f = { ...reinforcementToForm(sheet()), x1: '41,5', x2: '99' };
     const out = reinforcementFromForm(f, ctx);
     expect(out.ok && out.value.x1 === 41.5 && out.value.x2 === 41.5).toBe(true);
+  });
+
+  // R11B-10: con `inclined` (la tablestaca abierta ya traía x1 ≠ x2) el formulario no fuerza x2 = x1: lo valida, con el texto de validateLocal.
+  it('una tablestaca inclinada conserva su x2 y el formulario da el mismo error que validateLocal', () => {
+    const f = reinforcementToForm(sheet({ x1: 40, x2: 42 }));
+    const out = reinforcementFromForm(f, { ...ctx, inclined: true });
+    expect(errorsOf(out).x2).toMatch(/la tablestaca es vertical; la x de la punta debe ser igual a la de la cabeza \(x1 = 40/);
+    expect(errorsOf(out).x2).toContain('Valor actual: 42');
+    const fixed = reinforcementFromForm({ ...f, x2: '40' }, { ...ctx, inclined: true });
+    expect(fixed.ok && fixed.value.x2 === 40).toBe(true);
+    // Sin `inclined` se conserva el comportamiento de siempre (la x de la punta es la de la cabeza).
+    expect(reinforcementFromForm(f, ctx).ok).toBe(true);
+  });
+
+  it('alignedSheet devuelve la tablestaca con x2 = x1 y no toca el resto', () => {
+    const r = sheet({ x1: 40, x2: 42 });
+    expect(alignedSheet(r)).toEqual({ ...r, x2: 40 });
+    expect(isInclinedSheet(r)).toBe(true);
+    expect(isInclinedSheet(sheet())).toBe(false);
+    expect(isInclinedSheet(pile())).toBe(false);
   });
 
   it('el ángulo solo se escribe con la dirección «Ángulo»', () => {

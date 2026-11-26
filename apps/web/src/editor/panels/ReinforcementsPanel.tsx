@@ -2,6 +2,7 @@ import { useId, useMemo } from 'react';
 import type { Reinforcement } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { createToolSwitch } from '../app/discard';
+import { deepEqual } from '../state/docUtils';
 import type { EditorStore } from '../types';
 import { REINFORCEMENT_LABEL } from '../state/validateLocal';
 import { LabeledField, PanelSection } from './Fields';
@@ -16,6 +17,8 @@ import {
   STRUCTURAL_LIMIT_TEXT,
   TENSION_DIRECTION_OPTIONS,
   reinforcementAddCommand,
+  alignedSheet,
+  isInclinedSheet,
   isTensionType,
   reinforcementFromForm,
   reinforcementLength,
@@ -78,7 +81,9 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   );
   const [form, setForm, reset] = useDraft<ReinforcementForm>(() => reinforcementToForm(reinforcement), [reinforcement]);
   const otherIds = list.flatMap((r, i) => (i !== index ? [r.id] : []));
-  const outcome = reinforcementFromForm(form, { otherIds, index, units: docUnits });
+  // R11B-10: una tablestaca que el archivo trae inclinada enseña su x2 y su error en vez de forzar x2 = x1 sin avisar.
+  const inclined = isInclinedSheet(reinforcement);
+  const outcome = reinforcementFromForm(form, { otherIds, index, units: docUnits, inclined });
   const errors = outcome.ok ? {} : outcome.errors;
   const scope = `Refuerzo ${index + 1}`;
   const tension = isTensionType(form.type);
@@ -87,7 +92,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
 
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'reinforcement', index } });
   const commitForm = (next: ReinforcementForm): void => {
-    const out = reinforcementFromForm(next, { otherIds, index, units: docUnits });
+    const out = reinforcementFromForm(next, { otherIds, index, units: docUnits, inclined });
     if (out.ok && !reinforcementsEqual(out.value, reinforcement)) store.dispatch(reinforcementUpsertCommand(index, out.value));
   };
   const commit = (): void => commitForm(form);
@@ -116,6 +121,8 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
     />
   );
 
+  // R11B-10: con algún error en el borrador, un cambio de lista desplegable se ve en el control pero no llega al modelo; se avisa.
+  const pending = !outcome.ok && !deepEqual(form, reinforcementToForm(reinforcement));
   const length = outcome.ok ? reinforcementLength(outcome.value) : null;
   const forceUnit = sheet ? units.forcePerLength : units.force;
 
@@ -163,6 +170,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
             {field('x1', 'Posición x (vertical)', units.length)}
             {field('y1', L.y1, units.length)}
             {field('y2', L.y2, units.length)}
+            {inclined ? field('x2', L.x2, units.length) : null}
           </>
         ) : (
           <>
@@ -218,6 +226,22 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
           {form.direction === 'angle' ? field('angle', L.angle, '°') : null}
         </div>
       )}
+      {inclined ? (
+        <div className="ep-actions">
+          <button
+            type="button"
+            aria-label={`Alinear verticalmente la tablestaca del refuerzo ${index + 1} (x2 = x1)`}
+            onClick={() => store.dispatch(reinforcementUpsertCommand(index, alignedSheet(reinforcement)))}
+          >
+            Alinear verticalmente (x2 = x1)
+          </button>
+        </div>
+      ) : null}
+      {pending ? (
+        <p className="ep-note small" role="status" data-testid="reinforcement-pending">
+          Hay cambios de esta tarjeta sin aplicar al modelo: corrija los errores para guardarlos.
+        </p>
+      ) : null}
       <div className="ep-actions">
         <button type="button" aria-label={`Quitar el refuerzo ${index + 1}`} onClick={() => store.dispatch(reinforcementRemoveCommand(index))}>
           Quitar

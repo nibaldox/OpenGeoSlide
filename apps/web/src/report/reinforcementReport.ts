@@ -17,6 +17,18 @@ export const STRUCTURAL_LIMIT_TEXT =
 /** Leyenda de una fuerza pasiva (F4.9). */
 export const PASSIVE_LEGEND = 'se moviliza dividida por F';
 
+/**
+ * Aclaración de la tabla de fuerzas (E14o-14, R11B-03): la web, el PDF y el CSV dicen lo mismo. «Disponible» y «Aplicada» son la fuerza antes de
+ * dividir por el factor de seguridad F del método; «Movilizada» es la que actúa en el equilibrio: la pasiva, dividida por F, y la activa, la aplicada.
+ */
+export const FORCE_TABLE_NOTE =
+  `Pasiva: ${PASSIVE_LEGEND}. En la tabla va la fuerza disponible, antes de dividir por el factor de seguridad F de cada método. ` +
+  'La fuerza movilizada es la que actúa en el equilibrio: en una pasiva, la aplicada dividida por F; en una activa, la aplicada.';
+
+/** Notas de las filas del CSV de fuerzas (E14o-13). */
+export const CSV_PASSIVE_NOTE = `pasiva: ${PASSIVE_LEGEND}`;
+export const CSV_STRUCTURAL_NOTE = 'solo estabilidad global: no calcula empuje, empotramiento, momento ni deflexión';
+
 export const REINFORCEMENT_FORCE_BASIS =
   'Las fuerzas del resultado son por metro de talud y actúan sobre la masa deslizante en cada cruce del refuerzo con la superficie. ' +
   'Las capacidades de entrada son por elemento: el espaciamiento las pasa a fuerza por metro.';
@@ -42,8 +54,8 @@ export function hasStructuralElements(list: readonly Reinforcement[] | undefined
   return (list ?? []).some((r) => r.type === 'pile' || r.type === 'sheet_pile');
 }
 
-export function reinforcementUnits(units: string | null | undefined): { length: string; force: string; line: string } {
-  return isImperialUnits(units) ? { length: 'ft', force: 'lbf', line: 'lbf/ft' } : { length: 'm', force: 'kN', line: 'kN/m' };
+export function reinforcementUnits(units: string | null | undefined): { length: string; force: string; line: string; stress: string } {
+  return isImperialUnits(units) ? { length: 'ft', force: 'lbf', line: 'lbf/ft', stress: 'psf' } : { length: 'm', force: 'kN', line: 'kN/m', stress: 'kPa' };
 }
 
 const DIRECTION_LABEL: Record<string, string> = { axial: 'Axial', tangent: 'Tangente', bisector: 'Bisectriz', perpendicular: 'Perpendicular' };
@@ -56,7 +68,7 @@ function directionText(r: Reinforcement): string {
 function capacityText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>): string {
   if (r.type === 'pile') return `Fuerza ${p(r.force)} ${u.force} por pilote`;
   if (r.type === 'sheet_pile') return `Fuerza ${p(r.force)} ${u.line} de muro`;
-  return `Tracción ${p(r.tensile_capacity)} ${u.force} · cabeza ${p(r.end1_capacity ?? 0)} · punta ${p(r.end2_capacity ?? 0)}`;
+  return `Tracción ${p(r.tensile_capacity)} ${u.force} · cabeza ${p(r.end1_capacity ?? 0)} ${u.force} · punta ${p(r.end2_capacity ?? 0)} ${u.force}`;
 }
 
 function pulloutText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>): string {
@@ -67,7 +79,7 @@ function pulloutText(r: Reinforcement, u: ReturnType<typeof reinforcementUnits>)
     case 'bond':
       return `Adherencia ${p(po.strength)} ${u.line}${po.bonded_length ? ` en los últimos ${p(po.bonded_length)} ${u.length}` : ''}`;
     case 'interface':
-      return `Interfaz: adhesión ${p(po.adhesion)}, δ ${p(po.friction_angle)}°, Rc ${p(po.coverage)}`;
+      return `Interfaz: adhesión ${p(po.adhesion)} ${u.stress}, δ ${p(po.friction_angle)}°, Rc ${p(po.coverage)}`;
     case 'development':
       return `Rampa: ℓ₁ ${p(po.length1)} ${u.length}, ℓ₂ ${p(po.length2)} ${u.length}`;
   }
@@ -114,6 +126,26 @@ export interface ForceRecord {
   fy: number;
   application: ReinforcementForce['application'];
   status: ForceStatus;
+  /** FS (F) del método que dio la fuerza; `null` si no lo trae. */
+  fs: number | null;
+}
+
+/**
+ * Fuerza que actúa en el equilibrio: una pasiva se moviliza dividida por F; una activa es la aplicada. `null` si F no es un número
+ * positivo (no hay con qué dividir).
+ */
+export function mobilizedForce(r: Pick<ForceRecord, 'application' | 'fx' | 'fy' | 'fs'>): [number, number] | null {
+  if (r.application !== 'passive') return [r.fx, r.fy];
+  if (r.fs === null || !Number.isFinite(r.fs) || !(r.fs > 0)) return null;
+  return [r.fx / r.fs, r.fy / r.fs];
+}
+
+/** Nota de la fila del CSV: la de las pasivas y, en un pilote o una tablestaca, el límite estructural (F4.8). */
+export function csvRowNote(r: Pick<ForceRecord, 'application' | 'type'>): string {
+  const notes: string[] = [];
+  if (r.application === 'passive') notes.push(CSV_PASSIVE_NOTE);
+  if (r.type === 'pile' || r.type === 'sheet_pile') notes.push(CSV_STRUCTURAL_NOTE);
+  return notes.join('; ');
 }
 
 /** Filas de fuerzas de todos los métodos que las traen, en el orden del informe. */
@@ -134,9 +166,28 @@ export function forceRecords(results: readonly MethodReport[], list: readonly Re
         fy: f.fy,
         application: f.application,
         status: f.status as ForceStatus,
+        fs: typeof r.fos === 'number' && Number.isFinite(r.fos) ? r.fos : null,
       }),
     ),
   );
+}
+
+/** ¿El resultado viene del motor simulado? No calcula fuerzas de refuerzo: la ausencia de cruces no significa nada. */
+export const isMockResult = (r: Pick<MethodReport, 'warnings'>): boolean => (r.warnings ?? []).includes('mock_engine');
+
+/**
+ * Refuerzos del modelo que no aparecen en las fuerzas de un método **convergido** (E14o-16, R11B-06): no cruzaron la superficie final.
+ * Solo cuenta los métodos del motor real que convergieron; vacío si el método no tiene refuerzos sin cruce.
+ */
+export function uncrossedByMethod(results: readonly MethodReport[], list: readonly Reinforcement[] | undefined): { method: MethodKind; ids: string[] }[] {
+  const out: { method: MethodKind; ids: string[] }[] = [];
+  for (const r of results) {
+    if (r.status !== 'converged' || isMockResult(r)) continue;
+    const crossed = new Set((r.reinforcement_forces ?? []).map((f) => f.id));
+    const ids = (list ?? []).map((x) => x.id).filter((id) => !crossed.has(id));
+    if (ids.length > 0) out.push({ method: r.method, ids });
+  }
+  return out;
 }
 
 const cap = (s: string): string => s[0]!.toUpperCase() + s.slice(1);
@@ -150,21 +201,25 @@ export function statusText(status: ForceStatus): string {
   return cap(FORCE_STATUS_LABEL[status] ?? String(status));
 }
 
-/** Tabla de fuerzas de un método: id, tipo, cruce, estación, disponible, aplicada (fx; fy), activa o pasiva y estado. */
+/** Tabla de fuerzas de un método: id, tipo, cruce, estación, disponible, aplicada (fx; fy), movilizada (fx; fy), activa o pasiva y estado. */
 export function forcesTable(records: readonly ForceRecord[], units: string | null | undefined): { header: string[]; rows: string[][] } {
   const u = reinforcementUnits(units);
   return {
-    header: ['Id', 'Tipo', 'Cruce', `Estación (${u.length})`, `Disponible (${u.line})`, `Aplicada fx; fy (${u.line})`, 'Aplicación', 'Estado'],
-    rows: records.map((r) => [
-      r.id,
-      r.type ? REINFORCEMENT_TYPE_LABEL[r.type] : DASH,
-      String(r.crossing),
-      f3(r.station),
-      f3(r.available),
-      `${f3(r.fx)}; ${f3(r.fy)}`,
-      applicationText(r.application),
-      statusText(r.status),
-    ]),
+    header: ['Id', 'Tipo', 'Cruce', `Estación (${u.length})`, `Disponible (${u.line})`, `Aplicada fx; fy (${u.line})`, `Movilizada fx; fy (${u.line})`, 'Aplicación', 'Estado'],
+    rows: records.map((r) => {
+      const m = mobilizedForce(r);
+      return [
+        r.id,
+        r.type ? REINFORCEMENT_TYPE_LABEL[r.type] : DASH,
+        String(r.crossing),
+        f3(r.station),
+        f3(r.available),
+        `${f3(r.fx)}; ${f3(r.fy)}`,
+        m ? `${f3(m[0])}; ${f3(m[1])}` : DASH,
+        applicationText(r.application),
+        statusText(r.status),
+      ];
+    }),
   };
 }
 

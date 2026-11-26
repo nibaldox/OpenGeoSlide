@@ -126,10 +126,14 @@ describe('tabla de fuerzas en Casos y en el editor', () => {
   it('una tabla por método con las columnas de F4.9 y el tipo del refuerzo', () => {
     const h = html();
     expect((h.match(/<table/g) ?? []).length).toBe(2);
-    expect(h).toContain('Fuerzas de los refuerzos por cruce con la superficie final (Bishop simplificado)');
-    for (const col of ['Id', 'Tipo', 'Cruce', 'Estación (m)', 'Disponible (kN/m)', 'Aplicada fx; fy (kN/m)', 'Aplicación', 'Estado']) expect(h).toContain(`>${col}</th>`);
+    expect(h).toContain('Fuerzas de los refuerzos por cruce con la superficie final (Bishop simplificado; F = 0,985)');
+    for (const col of ['Id', 'Tipo', 'Cruce', 'Estación (m)', 'Disponible (kN/m)', 'Aplicada fx; fy (kN/m)', 'Movilizada fx; fy (kN/m)', 'Aplicación', 'Estado']) expect(h).toContain(`>${col}</th>`);
     expect(h).toContain('>Tablestaca</td>');
     expect(h).toContain('Pasiva: se moviliza dividida por F');
+    // E14o-14 (R11B-03): la aclaración del PDF también va en la vista web, y la tabla dice el F del método.
+    expect(h).toContain('data-testid="force-table-note"');
+    expect(h).toContain('antes de dividir por el factor de seguridad F de cada método');
+    expect(h).toContain('F = 0,98');
     expect(h).toContain('Ignorada por compresión');
     expect(h).toContain('class="row-warn"');
   });
@@ -141,6 +145,23 @@ describe('tabla de fuerzas en Casos y en el editor', () => {
 
   it('sin fuerzas ni elementos estructurales no pinta nada', () => {
     expect(renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: 'x', results: [] }, reinforcements: [ANCHOR] }))).toBe('');
+  });
+
+  // E14o-16 (R11B-06): los refuerzos que no cruzan la superficie convergida se nombran.
+  it('nombra los refuerzos sin cruce de cada método convergido', () => {
+    const results = input.results.map((r) => ({ ...r, reinforcement_forces: (r.reinforcement_forces ?? []).filter((f) => f.id !== 'anclaje-1') }));
+    const h = renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: input.engineName, results }, reinforcements: input.model.reinforcements, units: 'SI' }));
+    expect(h).toContain('Sin cruce con la superficie final (Bishop simplificado): anclaje-1. No aportaron fuerza.');
+    expect(h).toContain('Sin cruce con la superficie final (Spencer): anclaje-1. No aportaron fuerza.');
+  });
+
+  it('sin ningún cruce en los métodos convergidos, no hay tablas pero sí el aviso de los refuerzos sin cruce', () => {
+    const results = input.results.map((r) => ({ ...r, reinforcement_forces: undefined }));
+    const h = renderToStaticMarkup(createElement(ReinforcementForces, { report: { engine: input.engineName, results }, reinforcements: input.model.reinforcements, units: 'SI' }));
+    expect(h).not.toContain('<table');
+    expect(h).toContain('data-testid="uncrossed"');
+    expect(h).toContain('tablestaca-1, anclaje-1, clavo-1, geosintetico-1');
+    expect(h).not.toContain('force-table-note');
   });
 
   it('con elementos estructurales y sin fuerzas (motor sin cruces) sigue diciendo el límite', () => {
