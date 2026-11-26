@@ -1,0 +1,53 @@
+diff --git a/verification/tools/test_schema.py b/verification/tools/test_schema.py
+index 9eedb3a..49e5f02 100644
+--- a/verification/tools/test_schema.py
++++ b/verification/tools/test_schema.py
+@@ -3,7 +3,7 @@
+     env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with jsonschema --with pytest \\
+         python -m pytest -q verification/tools/test_schema.py
+ 
+-- the 21 cases of verification/cases, the 4+10 models of the differential battery and examples/ validate;
++- the cases of verification/cases (their number is read from INDEX.md), the 4+10 models of the differential battery and examples/ validate;
+ - version "0.1" with non-empty `loads` or non-null `analysis.seismic` fails (`loads: []` and `seismic: null` count as
+   absent, as in the engine), and ogs-0.1 stays as it was (it rejects them too);
+ - malformed loads and seismic coefficients fail;
+@@ -17,6 +17,7 @@ import copy
+ import glob
+ import json
+ import os
++import re
+ import shutil
+ import subprocess
+ 
+@@ -69,18 +70,27 @@ def test_schema_is_a_valid_draft_2020_12_document_and_v0_1_is_still_there():
+     assert "loads" not in SCHEMA_01["properties"]
+ 
+ 
+-def test_the_21_cases_validate_against_v0_2():
++def _index_cases() -> tuple[int, int]:
++    """(casos, casos v0.1) que declara verification/cases/INDEX.md: nunca un literal (contrato F3.8)."""
++    with open(os.path.join(ROOT, "verification", "cases", "INDEX.md"), encoding="utf-8") as fh:
++        text = fh.read()
++    m = re.search(r"Casos convertidos e incluidos: \*\*(\d+)\*\* \(v0\.1: \*\*(\d+)\*\*", text)
++    assert m, "INDEX.md no declara el número de casos"
++    return int(m.group(1)), int(m.group(2))
++
++
++def test_the_cases_of_the_index_validate_against_v0_2():
+     models = _case_models()
+-    assert len(models) == 21 and set(V02_CASE_IDS) <= set(models)
++    assert len(models) == _index_cases()[0] and set(V02_CASE_IDS) <= set(models)
+     for cid, model in models.items():
+         assert _errors(model) == [], cid
+         expected = "0.2" if cid in V02_CASE_IDS else "0.1"
+         assert model["version"] == expected, cid
+ 
+ 
+-def test_the_16_v0_1_cases_still_validate_against_v0_1():
++def test_the_v0_1_cases_still_validate_against_v0_1():
+     models = {cid: m for cid, m in _case_models().items() if cid not in V02_CASE_IDS}
+-    assert len(models) == 16
++    assert len(models) == _index_cases()[1]
+     for cid, model in models.items():
+         assert _errors(model, SCHEMA_01) == [], cid
+ 
