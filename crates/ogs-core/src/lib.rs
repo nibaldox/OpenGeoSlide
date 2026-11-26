@@ -53,7 +53,7 @@ use search::{
     ElementEnd, MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings,
     search_circular_reinforced,
 };
-use slicer::{Slice, SurfaceError, slice_circle_with, slice_surface_of};
+use slicer::{Slice, SurfaceError, slice_surface_cracked};
 use surface::{Surface, validate_polyline};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -387,7 +387,12 @@ fn analyze_method(
                 // that does not get to the crack is discarded.
                 let surface = Surface::Circle(*candidate);
                 let plan = match &analysis.tension_crack {
-                    Some(tc) => Some(crack::locate(tc, pm, &surface, load_case).ok()?),
+                    // A candidate that cannot be sliced is discarded below, with or without a crack.
+                    Some(tc) => match crack::locate(tc, pm, &surface, load_case) {
+                        Ok(plan) => Some(plan),
+                        Err(crack::CrackError::NoGround) => None,
+                        Err(crack::CrackError::NotReached) => return None,
+                    },
                     None => None,
                 };
                 let case;
@@ -407,7 +412,10 @@ fn analyze_method(
                     case = load_case.with_extra_breaks(nodes);
                     &case
                 };
-                let mut slices = slice_circle_with(pm, candidate, n, load_case).ok()?;
+                let crack_x = plan.as_ref().map(|plan| plan.x_c);
+                let mut slices = slice_surface_cracked(pm, &surface, n, load_case, crack_x)
+                    .ok()?
+                    .slices;
                 if let Some(plan) = &plan {
                     crack::truncate(plan, pm, &surface, &mut slices);
                 }
@@ -477,14 +485,17 @@ fn analyze_method(
     // E15d (G1): the position of the crack on the fitted surface. A surface that does not get to it has no mass: the
     // analysis fails with the stable reason (the search discards such candidates instead, G9).
     let crack_plan = match &analysis.tension_crack {
-        Some(tc) => Some(crack::locate(tc, pm, &surface, load_case).map_err(
-            |crack::CrackError::NotReached| {
-                OgsError::NoValidSurface(format!(
+        Some(tc) => match crack::locate(tc, pm, &surface, load_case) {
+            Ok(plan) => Some(plan),
+            // No sliding range: the slicing below gives the usual reason.
+            Err(crack::CrackError::NoGround) => None,
+            Err(crack::CrackError::NotReached) => {
+                return Err(OgsError::NoValidSurface(format!(
                     "{}: la superficie no alcanza la profundidad de la grieta de tracción",
                     crack::TENSION_CRACK_NOT_REACHED
-                ))
-            },
-        )?),
+                )));
+            }
+        },
         None => None,
     };
     let reinforced_case;
@@ -502,8 +513,14 @@ fn analyze_method(
         reinforced_case = load_case.with_extra_breaks(nodes);
         &reinforced_case
     };
-    let sliced = slice_surface_of(pm, &surface, n, slicing_case)
-        .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
+    let sliced = slice_surface_cracked(
+        pm,
+        &surface,
+        n,
+        slicing_case,
+        crack_plan.as_ref().map(|plan| plan.x_c),
+    )
+    .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;
     // E15d (G2, G3): the slices on the crest side of the crack go, and the water of the crack acts on the face.
     let crack_report: Option<CrackReport> = crack_plan

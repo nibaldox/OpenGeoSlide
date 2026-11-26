@@ -424,7 +424,23 @@ pub fn slice_surface_of(
     n: usize,
     loads: &LoadCase,
 ) -> Result<SlicedSurface, SurfaceError> {
-    let (built, tramo) = build_slices_with(pm, surface, n, loads)?;
+    slice_surface_cracked(pm, surface, n, loads, None)
+}
+
+/// [`slice_surface_of`] of the mass that a tension crack leaves (E15d, G2). With `crack_x = Some(x_c)` the mass ends in
+/// the vertical face at `x_c`: the span that is sliced runs from the toe to `x_c` (the node of the cut is the face
+/// itself), so the `n` divisions apply to the mass and everything on the crest side is gone. Every later check (E10a,
+/// E10a′, E11d, `check_block_ends`) then applies to that mass, whose crest end is `(x_c, base(x_c))`, not to the whole
+/// arc: a circle that leaves the model past the crack is valid. `None`, or an `x_c` at the entry crossing, is
+/// [`slice_surface_of`] as it always was.
+pub fn slice_surface_cracked(
+    pm: &PreparedModel,
+    surface: &Surface,
+    n: usize,
+    loads: &LoadCase,
+    crack_x: Option<f64>,
+) -> Result<SlicedSurface, SurfaceError> {
+    let (built, tramo) = build_slices_cracked(pm, surface, n, loads, crack_x)?;
     let Built {
         mut slices,
         mut air,
@@ -529,21 +545,44 @@ pub(crate) fn build_slices(
     circle: &Circle,
     n: usize,
 ) -> Result<(Built, Tramo), SurfaceError> {
-    build_slices_with(pm, &Surface::Circle(*circle), n, &LoadCase::default())
+    build_slices_cracked(pm, &Surface::Circle(*circle), n, &LoadCase::default(), None)
 }
 
-/// [`build_slices`] with the seismic coefficients and the loads of `loads`, on any surface.
+/// [`build_slices_cracked`] without a crack, for the geometry tests of any surface.
+#[cfg(test)]
 fn build_slices_with(
     pm: &PreparedModel,
     surface: &Surface,
     n: usize,
     loads: &LoadCase,
 ) -> Result<(Built, Tramo), SurfaceError> {
+    build_slices_cracked(pm, surface, n, loads, None)
+}
+
+/// [`build_slices`] with the loads of `loads`, on any surface, over the span that a crack at `crack_x` leaves: the crest end of the sliding range moves to
+/// the face (see [`slice_surface_cracked`]).
+fn build_slices_cracked(
+    pm: &PreparedModel,
+    surface: &Surface,
+    n: usize,
+    loads: &LoadCase,
+    crack_x: Option<f64>,
+) -> Result<(Built, Tramo), SurfaceError> {
     if n == 0 {
         return Err(SurfaceError::TooFewSlices);
     }
     let tramo = surface.ground_crossings(pm)?;
-    let built = slice_span(pm, surface, tramo.p, tramo.q, &tramo.breaks, n, loads)?;
+    let (mut p, mut q) = (tramo.p, tramo.q);
+    if let Some(x_c) = crack_x.filter(|x| x.is_finite()) {
+        let tol = pm.tol();
+        match pm.sliding {
+            // The crest is on the right when the mass slides toward -x.
+            Sliding::RightToLeft if x_c < q - tol => q = x_c.max(p),
+            Sliding::LeftToRight if x_c > p + tol => p = x_c.min(q),
+            _ => {}
+        }
+    }
+    let built = slice_span(pm, surface, p, q, &tramo.breaks, n, loads)?;
     // Degenerate case (E2): every slice has its base above the ground, so there is no soil to slide.
     if !built.slices.iter().any(|s| s.weight > 0.0) {
         return Err(SurfaceError::AboveGround);
