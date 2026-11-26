@@ -1,6 +1,6 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-26T06:03:39-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-26T07:45:41-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
@@ -24,7 +24,7 @@ Generado: 2026-11-26T06:03:39-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 3.911 s · cSlope 1.822 s.
+Tiempo total: ogs 3.887 s · cSlope 1.985 s.
 
 ## Tabla de línea base
 
@@ -72,61 +72,61 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.046 | 0.050 |
+| D01 | bishop | search | 0.051 | 0.056 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.112 | 0.074 |
+| D01 | spencer | search | 0.117 | 0.076 |
 | D01 | spencer | fixed | 0.002 | 0.001 |
-| D02 | bishop | search | 0.035 | 0.045 |
+| D02 | bishop | search | 0.037 | 0.045 |
 | D02 | bishop | fixed | 0.001 | 0.001 |
-| D02 | spencer | search | 0.155 | 0.076 |
-| D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.048 | 0.045 |
-| D03 | bishop | fixed | 0.001 | 0.001 |
-| D03 | spencer | search | 0.158 | 0.083 |
-| D03 | spencer | fixed | 0.001 | 0.001 |
-| D04 | bishop | search | 0.112 | 0.033 |
-| D04 | bishop | fixed | 0.001 | 0.001 |
-| D04 | spencer | search | 0.387 | 0.060 |
-| D04 | spencer | fixed | 0.002 | 0.001 |
-| D05 | bishop | search | 0.039 | 0.047 |
-| D05 | bishop | fixed | 0.002 | 0.001 |
-| D05 | spencer | search | 0.126 | 0.079 |
+| D02 | spencer | search | 0.145 | 0.079 |
+| D02 | spencer | fixed | 0.001 | 0.001 |
+| D03 | bishop | search | 0.050 | 0.046 |
+| D03 | bishop | fixed | 0.010 | 0.001 |
+| D03 | spencer | search | 0.178 | 0.137 |
+| D03 | spencer | fixed | 0.002 | 0.001 |
+| D04 | bishop | search | 0.126 | 0.038 |
+| D04 | bishop | fixed | 0.002 | 0.001 |
+| D04 | spencer | search | 0.389 | 0.065 |
+| D04 | spencer | fixed | 0.001 | 0.001 |
+| D05 | bishop | search | 0.042 | 0.050 |
+| D05 | bishop | fixed | 0.001 | 0.001 |
+| D05 | spencer | search | 0.123 | 0.085 |
 | D05 | spencer | fixed | 0.002 | 0.001 |
-| D06 | bishop | search | 0.039 | 0.044 |
-| D06 | bishop | fixed | 0.001 | 0.001 |
-| D06 | spencer | search | 0.117 | 0.074 |
-| D06 | spencer | fixed | 0.001 | 0.001 |
-| D07 | bishop | search | 0.027 | 0.043 |
+| D06 | bishop | search | 0.039 | 0.046 |
+| D06 | bishop | fixed | 0.002 | 0.001 |
+| D06 | spencer | search | 0.115 | 0.080 |
+| D06 | spencer | fixed | 0.002 | 0.001 |
+| D07 | bishop | search | 0.029 | 0.044 |
 | D07 | bishop | fixed | 0.002 | 0.001 |
-| D07 | spencer | search | 0.134 | 0.074 |
+| D07 | spencer | search | 0.135 | 0.081 |
 | D07 | spencer | fixed | 0.002 | 0.001 |
-| D08 | bishop | search | 0.059 | 0.045 |
-| D08 | bishop | fixed | 0.001 | 0.035 |
-| D08 | spencer | search | 0.251 | 0.066 |
-| D08 | spencer | fixed | 0.002 | 0.035 |
-| D09 | bishop | search | 0.067 | 0.048 |
-| D09 | bishop | fixed | 0.001 | 0.001 |
-| D09 | spencer | search | 0.343 | 0.173 |
-| D09 | spencer | fixed | 0.001 | 0.001 |
-| D10 | bishop | search | 0.033 | 0.047 |
+| D08 | bishop | search | 0.060 | 0.048 |
+| D08 | bishop | fixed | 0.002 | 0.038 |
+| D08 | spencer | search | 0.244 | 0.070 |
+| D08 | spencer | fixed | 0.002 | 0.036 |
+| D09 | bishop | search | 0.070 | 0.053 |
+| D09 | bishop | fixed | 0.002 | 0.001 |
+| D09 | spencer | search | 0.313 | 0.194 |
+| D09 | spencer | fixed | 0.002 | 0.001 |
+| D10 | bishop | search | 0.034 | 0.047 |
 | D10 | bishop | fixed | 0.001 | 0.001 |
-| D10 | spencer | search | 0.138 | 0.080 |
+| D10 | spencer | search | 0.133 | 0.085 |
 | D10 | spencer | fixed | 0.002 | 0.001 |
-| D11 | bishop | search | 0.181 | 0.033 |
-| D11 | bishop | fixed | 0.001 | 0.001 |
-| D11 | spencer | search | 0.435 | 0.060 |
-| D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.042 | 0.048 |
+| D11 | bishop | search | 0.182 | 0.035 |
+| D11 | bishop | fixed | 0.002 | 0.001 |
+| D11 | spencer | search | 0.434 | 0.062 |
+| D11 | spencer | fixed | 0.001 | 0.001 |
+| D12 | bishop | search | 0.043 | 0.049 |
 | D12 | bishop | fixed | 0.001 | 0.001 |
-| D12 | spencer | search | 0.145 | 0.081 |
+| D12 | spencer | search | 0.138 | 0.081 |
 | D12 | spencer | fixed | 0.002 | 0.001 |
-| D13 | bishop | search | 0.048 | 0.041 |
-| D13 | bishop | fixed | 0.002 | 0.001 |
-| D13 | spencer | search | 0.189 | 0.057 |
+| D13 | bishop | search | 0.049 | 0.040 |
+| D13 | bishop | fixed | 0.001 | 0.001 |
+| D13 | spencer | search | 0.179 | 0.061 |
 | D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.086 | 0.051 |
+| D14 | bishop | search | 0.088 | 0.053 |
 | D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.318 | 0.076 |
+| D14 | spencer | search | 0.291 | 0.084 |
 | D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
@@ -160,58 +160,58 @@ Se corre, sobre el círculo fijo de cada uno de los 14 modelos, Morgenstern-Pric
 
 | capacidad | soportada por el motor | detalle |
 |---|---|---|
-| undrained | no | exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `undrained`, expected `mohr_coulomb` at line 14 column 26 |
-| morgenstern_price | no | exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `morgenstern_price`, expected `bishop` or `spencer` at line 53 column 25 |
-| janbu_corrected | no | exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `janbu_corrected`, expected `bishop` or `spencer` at line 53 column 23 |
-| polyline | no | exit 2: ogs: InvalidModel: el documento no coincide con el esquema: unknown variant `polyline`, expected `circle` at line 130 column 24 |
+| undrained | sí | — |
+| morgenstern_price | sí | — |
+| janbu_corrected | sí | — |
+| polyline | sí | — |
 
-**OK 0/43** · FALLA 0 · sin dato 0 · pendiente 43 (de los OK, 0 por concordancia: ambos sin solución).
+**OK 43/43** · FALLA 0 · sin dato 0 · pendiente 0 (de los OK, 1 por concordancia: ambos sin solución).
 
 | caso | método | tipo | ogs | cSlope | Δ% | veredicto |
 |---|---|---|---:|---:|---:|---|
-| D01 | morgenstern_price | fixed | — | 0.8551 | — | pendiente |
-| D01 | janbu_corrected | fixed | — | 0.8570 | — | pendiente |
-| D02 | morgenstern_price | fixed | — | 0.3854 | — | pendiente |
-| D02 | janbu_corrected | fixed | — | 0.3383 | — | pendiente |
-| D03 | morgenstern_price | fixed | — | — | — | pendiente |
-| D03 | janbu_corrected | fixed | — | 0.6860 | — | pendiente |
-| D04 | morgenstern_price | fixed | — | 1.5914 | — | pendiente |
-| D04 | janbu_corrected | fixed | — | 1.6007 | — | pendiente |
-| D05 | morgenstern_price | fixed | — | 1.0063 | — | pendiente |
-| D05 | janbu_corrected | fixed | — | 1.0107 | — | pendiente |
-| D06 | morgenstern_price | fixed | — | 0.7145 | — | pendiente |
-| D06 | janbu_corrected | fixed | — | 0.7078 | — | pendiente |
-| D07 | morgenstern_price | fixed | — | 1.0517 | — | pendiente |
-| D07 | janbu_corrected | fixed | — | 1.1140 | — | pendiente |
-| D08 | morgenstern_price | fixed | — | 1.6040 | — | pendiente |
-| D08 | janbu_corrected | fixed | — | 1.6107 | — | pendiente |
-| D09 | morgenstern_price | fixed | — | 0.4253 | — | pendiente |
-| D09 | janbu_corrected | fixed | — | 0.3125 | — | pendiente |
-| D10 | morgenstern_price | fixed | — | 1.0414 | — | pendiente |
-| D10 | janbu_corrected | fixed | — | 1.0570 | — | pendiente |
-| D11 | morgenstern_price | fixed | — | 1.0865 | — | pendiente |
-| D11 | janbu_corrected | fixed | — | 1.0754 | — | pendiente |
-| D12 | morgenstern_price | fixed | — | 1.0483 | — | pendiente |
-| D12 | janbu_corrected | fixed | — | 1.0543 | — | pendiente |
-| D13 | morgenstern_price | fixed | — | 1.4554 | — | pendiente |
-| D13 | janbu_corrected | fixed | — | 1.4053 | — | pendiente |
-| D14 | morgenstern_price | fixed | — | 1.1333 | — | pendiente |
-| D14 | janbu_corrected | fixed | — | 1.0906 | — | pendiente |
-| D15 | bishop | search | — | 1.0828 | — | pendiente |
-| D15 | bishop | fixed | — | 1.0828 | — | pendiente |
-| D15 | spencer | search | — | 1.0774 | — | pendiente |
-| D15 | spencer | fixed | — | 1.0775 | — | pendiente |
-| D15 | morgenstern_price | fixed | — | 1.0803 | — | pendiente |
-| D15 | janbu_corrected | fixed | — | 1.0743 | — | pendiente |
-| D16 | bishop | search | — | 1.1713 | — | pendiente |
-| D16 | bishop | fixed | — | 1.7480 | — | pendiente |
-| D16 | spencer | search | — | 1.1713 | — | pendiente |
-| D16 | spencer | fixed | — | 1.8313 | — | pendiente |
-| D16 | morgenstern_price | fixed | — | 1.8312 | — | pendiente |
-| D16 | janbu_corrected | fixed | — | 1.7475 | — | pendiente |
-| D17 | spencer | fixed (polilínea) | — | 1.6721 | — | pendiente |
-| D17 | morgenstern_price | fixed (polilínea) | — | 1.5937 | — | pendiente |
-| D17 | janbu_corrected | fixed (polilínea) | — | 1.4735 | — | pendiente |
+| D01 | morgenstern_price | fixed | 0.8551 | 0.8551 | +0.01 | OK |
+| D01 | janbu_corrected | fixed | 0.8572 | 0.8570 | +0.01 | OK |
+| D02 | morgenstern_price | fixed | 0.3855 | 0.3854 | +0.02 | OK |
+| D02 | janbu_corrected | fixed | 0.3384 | 0.3383 | +0.03 | OK |
+| D03 | morgenstern_price | fixed | — | — | — | OK (concordancia: ambos sin solución) |
+| D03 | janbu_corrected | fixed | 0.6868 | 0.6860 | +0.13 | OK |
+| D04 | morgenstern_price | fixed | 1.5916 | 1.5914 | +0.01 | OK |
+| D04 | janbu_corrected | fixed | 1.6010 | 1.6007 | +0.02 | OK |
+| D05 | morgenstern_price | fixed | 1.0063 | 1.0063 | +0.00 | OK |
+| D05 | janbu_corrected | fixed | 1.0107 | 1.0107 | +0.00 | OK |
+| D06 | morgenstern_price | fixed | 0.7147 | 0.7145 | +0.03 | OK |
+| D06 | janbu_corrected | fixed | 0.7080 | 0.7078 | +0.03 | OK |
+| D07 | morgenstern_price | fixed | 1.0519 | 1.0517 | +0.03 | OK |
+| D07 | janbu_corrected | fixed | 1.1144 | 1.1140 | +0.04 | OK |
+| D08 | morgenstern_price | fixed | 1.6041 | 1.6040 | +0.00 | OK |
+| D08 | janbu_corrected | fixed | 1.6109 | 1.6107 | +0.01 | OK |
+| D09 | morgenstern_price | fixed | 0.4254 | 0.4253 | +0.02 | OK |
+| D09 | janbu_corrected | fixed | 0.3126 | 0.3125 | +0.04 | OK |
+| D10 | morgenstern_price | fixed | 1.0418 | 1.0414 | +0.04 | OK |
+| D10 | janbu_corrected | fixed | 1.0574 | 1.0570 | +0.03 | OK |
+| D11 | morgenstern_price | fixed | 1.0866 | 1.0865 | +0.01 | OK |
+| D11 | janbu_corrected | fixed | 1.0756 | 1.0754 | +0.01 | OK |
+| D12 | morgenstern_price | fixed | 1.0483 | 1.0483 | +0.00 | OK |
+| D12 | janbu_corrected | fixed | 1.0543 | 1.0543 | +0.00 | OK |
+| D13 | morgenstern_price | fixed | 1.4524 | 1.4554 | -0.21 | OK |
+| D13 | janbu_corrected | fixed | 1.4026 | 1.4053 | -0.19 | OK |
+| D14 | morgenstern_price | fixed | 1.1338 | 1.1333 | +0.04 | OK |
+| D14 | janbu_corrected | fixed | 1.0913 | 1.0906 | +0.06 | OK |
+| D15 | bishop | search | 1.0809 | 1.0828 | -0.18 | OK |
+| D15 | bishop | fixed | 1.0831 | 1.0828 | +0.03 | OK |
+| D15 | spencer | search | 1.0753 | 1.0774 | -0.20 | OK |
+| D15 | spencer | fixed | 1.0778 | 1.0775 | +0.03 | OK |
+| D15 | morgenstern_price | fixed | 1.0806 | 1.0803 | +0.03 | OK |
+| D15 | janbu_corrected | fixed | 1.0746 | 1.0743 | +0.03 | OK |
+| D16 | bishop | search | 1.1653 | 1.1713 | -0.51 | OK |
+| D16 | bishop | fixed | 1.7482 | 1.7480 | +0.01 | OK |
+| D16 | spencer | search | 1.1653 | 1.1713 | -0.51 | OK |
+| D16 | spencer | fixed | 1.8314 | 1.8313 | +0.00 | OK |
+| D16 | morgenstern_price | fixed | 1.8313 | 1.8312 | +0.00 | OK |
+| D16 | janbu_corrected | fixed | 1.7476 | 1.7475 | +0.01 | OK |
+| D17 | spencer | fixed (polilínea) | 1.6721 | 1.6721 | -0.00 | OK |
+| D17 | morgenstern_price | fixed (polilínea) | 1.5938 | 1.5937 | +0.00 | OK |
+| D17 | janbu_corrected | fixed (polilínea) | 1.4736 | 1.4735 | +0.00 | OK |
 
 ### Fallos y datos faltantes de la Fase 3a
 

@@ -280,6 +280,10 @@ def test_v0_2_conversion_needs_one_seismic_pair_for_all_the_checks():
 def _v02_model() -> dict:
     model = _model_from_fixture()
     model["version"] = "0.2"
+    # V047a is a v0.3 case (it also carries M-P and Janbu checks). A v0.2 model has only Bishop and Spencer (F3.1):
+    # the schema validates against the version the model declares, so the fixture is reduced to what 0.2 admits.
+    model["analysis"]["methods"] = ["bishop", "spencer"]
+    model["analysis"].pop("interslice", None)
     model["loads"] = [{"type": "udl", "id": "u1", "x1": 50.0, "x2": 70.0, "q": 20.0},
                       {"type": "line", "id": "l1", "x": 40.0, "p": 20.0, "angle": 10.0}]
     model["analysis"]["seismic"] = {"kh": 0.1, "kv": 0.0}
@@ -302,6 +306,25 @@ def test_schema_accepts_a_v0_2_model_and_only_v0_2_has_loads_and_seismic():
     assert _schema_errors(model) == []        # F3.1: the importer's schema accepts 0.3 too
     model["version"] = "0.4"
     assert _schema_errors(model)
+
+
+def test_schema_requires_version_0_3_for_every_v0_3_field():
+    """F3.9: M-P, Janbu, `interslice`, `undrained` and polylines need version 0.3; 0.1 and 0.2 reject them."""
+    for version, ok in (("0.1", False), ("0.2", False), ("0.3", True)):
+        for method in ("morgenstern_price", "janbu_simplified", "janbu_corrected"):
+            model = _v02_model()
+            model["version"] = version
+            if version == "0.1":
+                model.pop("loads"), model["analysis"].pop("seismic")
+            model["analysis"]["methods"] = ["spencer", method]
+            assert (_schema_errors(model) == []) is ok, (version, method)
+        model = _v02_model()
+        model["version"] = version
+        if version == "0.1":
+            model.pop("loads"), model["analysis"].pop("seismic")
+        model["analysis"]["methods"] = ["morgenstern_price"]
+        model["analysis"]["interslice"] = {"function": "half_sine"}
+        assert (_schema_errors(model) == []) is ok, (version, "interslice")
 
 
 @pytest.mark.parametrize("mutate", [
@@ -409,20 +432,41 @@ def test_cases_index_lists_the_v0_2_cases_with_their_seismic_and_loads():
         assert f"| {cid} |" in index, cid
 
 
+def _uses_v03(model: dict) -> bool:
+    """F3.1 / F3.9: does the model use a field that exists only from v0.3?"""
+    analysis = model.get("analysis") or {}
+    return bool(
+        any(m.get("model") == "undrained" for m in model["materials"])
+        or (analysis.get("surface") or {}).get("type") == "polyline"
+        or any(x in ("morgenstern_price", "janbu_simplified", "janbu_corrected") for x in analysis["methods"])
+        or "interslice" in analysis
+    )
+
+
 def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
-    n = 0
+    # Not every case of verification/cases is v0.1 or v0.2 any more: the cases with M-P, Janbu, undrained strength or a
+    # polyline are v0.3 (F3.1). So each case is checked against the version it declares, and the declared version must
+    # be the minimal one (F3.9): 0.1 without loads, seismic or v0.3 fields; 0.2 with loads or seismic only; 0.3 otherwise.
+    counts = {"0.1": 0, "0.2": 0, "0.3": 0}
     for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
+        model = case["model"]
+        version = model["version"]
+        counts[version] += 1
+        has_v02 = "loads" in model or "seismic" in model["analysis"]
+        expected = "0.3" if _uses_v03(model) else ("0.2" if has_v02 else "0.1")
         if case["id"] in V02_IDS:
-            continue
-        n += 1
-        assert case["model"]["version"] == "0.1", path
-        assert "loads" not in case["model"] and "seismic" not in case["model"]["analysis"], path
+            expected = "0.2"
+        assert version == expected, path
+        assert [e.message for e in jsonschema.Draft202012Validator(imp.MODEL_SCHEMA).iter_errors(model)] == [], path
+        if version == "0.1":
+            assert not has_v02, path
     # the number comes from the index, never from a literal (contract F3.8)
     with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
-        m = re.search(r"v0\.1: \*\*(\d+)\*\*", fh.read())
-    assert m and n == int(m.group(1))
+        index = fh.read()
+    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*", index, re.S)
+    assert m and (counts["0.1"], counts["0.2"], counts["0.3"]) == tuple(int(g) for g in m.groups())
 
 
 # ------------------------------------------------------------ batch 0 (F3.8): no cap, no selection

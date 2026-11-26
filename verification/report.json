@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T06:04:00-03:00",
+  "generated_at": "2026-11-26T07:45:34-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -22,7 +22,7 @@
       "id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
       "path": "verification/cases/V001.json",
-      "n_checks": 2
+      "n_checks": 4
     },
     {
       "id": "V002",
@@ -34,19 +34,19 @@
       "id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
       "path": "verification/cases/V003.json",
-      "n_checks": 3
+      "n_checks": 4
     },
     {
       "id": "V004a",
       "title": "4:1 slope, Mohr-Coulomb fit",
       "path": "verification/cases/V004a.json",
-      "n_checks": 1
+      "n_checks": 2
     },
     {
       "id": "V004b",
       "title": "Baker (2003) ex. 2 slope, Mohr-Coulomb iteration parameters",
       "path": "verification/cases/V004b.json",
-      "n_checks": 1
+      "n_checks": 2
     },
     {
       "id": "V005",
@@ -55,9 +55,27 @@
       "n_checks": 2
     },
     {
+      "id": "V006",
+      "title": "Baker & Leshchinsky (2001) planar surface",
+      "path": "verification/cases/V006.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V007a",
+      "title": "Baker (2003) ex. 1, Mohr-Coulomb, Janbu simplified on the reference circle",
+      "path": "verification/cases/V007a.json",
+      "n_checks": 1
+    },
+    {
       "id": "V007b",
       "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
       "path": "verification/cases/V007b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V007c",
+      "title": "Baker (2003) ex. 3, Janbu simplified",
+      "path": "verification/cases/V007c.json",
       "n_checks": 1
     },
     {
@@ -91,6 +109,12 @@
       "n_checks": 1
     },
     {
+      "id": "V018",
+      "title": "Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism",
+      "path": "verification/cases/V018.json",
+      "n_checks": 3
+    },
+    {
       "id": "V019",
       "title": "Cheng et al. 11 m homogeneous slope",
       "path": "verification/cases/V019.json",
@@ -103,10 +127,70 @@
       "n_checks": 4
     },
     {
+      "id": "V021a",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2",
+      "path": "verification/cases/V021a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021b",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+      "path": "verification/cases/V021b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021c",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 2",
+      "path": "verification/cases/V021c.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021d",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 3",
+      "path": "verification/cases/V021d.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021e",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 2",
+      "path": "verification/cases/V021e.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021f",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 3",
+      "path": "verification/cases/V021f.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V021g",
+      "title": "Chowdhury & Xu (1995) example 4, Congress Street cut, circle tangent to the base of clay 2",
+      "path": "verification/cases/V021g.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V022a",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+      "path": "verification/cases/V022a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V022b",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5",
+      "path": "verification/cases/V022b.json",
+      "n_checks": 2
+    },
+    {
       "id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
       "path": "verification/cases/V025.json",
       "n_checks": 2
+    },
+    {
+      "id": "V026",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay",
+      "path": "verification/cases/V026.json",
+      "n_checks": 3
     },
     {
       "id": "V027",
@@ -157,46 +241,112 @@
       "n_checks": 2
     },
     {
+      "id": "V034a",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+      "path": "verification/cases/V034a.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V034b",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf",
+      "path": "verification/cases/V034b.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V036a",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "path": "verification/cases/V036a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V036b",
+      "title": "Embankment on an undrained foundation, cz = 5 psf/ft",
+      "path": "verification/cases/V036b.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V036c",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
+      "path": "verification/cases/V036c.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V036d",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft",
+      "path": "verification/cases/V036d.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V040",
+      "title": "James Bay dyke, reference model (deterministic)",
+      "path": "verification/cases/V040.json",
+      "n_checks": 1
+    },
+    {
       "id": "V044",
       "title": "Fredlund & Krahn (1977), dry",
       "path": "verification/cases/V044.json",
-      "n_checks": 2
+      "n_checks": 3
     },
     {
       "id": "V044b",
       "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
       "path": "verification/cases/V044b.json",
-      "n_checks": 2
+      "n_checks": 3
     },
     {
       "id": "V045",
       "title": "Fredlund & Krahn (1977), with water table",
       "path": "verification/cases/V045.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V046a",
+      "title": "Fredlund & Krahn slope on a weak seam, composite surface",
+      "path": "verification/cases/V046a.json",
+      "n_checks": 3
+    },
+    {
+      "id": "V046b",
+      "title": "Fredlund & Krahn slope on a weak seam, with a piezometric line",
+      "path": "verification/cases/V046b.json",
       "n_checks": 2
+    },
+    {
+      "id": "V046c",
+      "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+      "path": "verification/cases/V046c.json",
+      "n_checks": 3
     },
     {
       "id": "V047a",
       "title": "ACADS 1(a), homogeneous slope, dry",
       "path": "verification/cases/V047a.json",
-      "n_checks": 4
+      "n_checks": 6
     },
     {
       "id": "V049",
       "title": "ACADS 1(c), three-layer slope",
       "path": "verification/cases/V049.json",
+      "n_checks": 5
+    },
+    {
+      "id": "V050a",
+      "title": "ACADS 3(b), weak layer, specified non-circular surface",
+      "path": "verification/cases/V050a.json",
       "n_checks": 3
     },
     {
       "id": "V052a",
       "title": "Talbingo Dam, end of construction",
       "path": "verification/cases/V052a.json",
-      "n_checks": 3
+      "n_checks": 4
     },
     {
       "id": "V052b",
       "title": "Talbingo Dam, specified circle",
       "path": "verification/cases/V052b.json",
-      "n_checks": 2
+      "n_checks": 4
     },
     {
       "id": "V054",
@@ -208,6 +358,24 @@
       "id": "V055",
       "title": "Griffiths & Lane example 2, slope with a foundation layer",
       "path": "verification/cases/V055.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V056",
+      "title": "Griffiths & Lane example 3, thin weak layer, cu2/cu1 = 0.2",
+      "path": "verification/cases/V056.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V057a",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle)",
+      "path": "verification/cases/V057a.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V057b",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 2 (toe circle)",
+      "path": "verification/cases/V057b.json",
       "n_checks": 2
     },
     {
@@ -283,6 +451,12 @@
       "n_checks": 2
     },
     {
+      "id": "V067",
+      "title": "Low (1989), layered undrained clay",
+      "path": "verification/cases/V067.json",
+      "n_checks": 1
+    },
+    {
       "id": "V069a",
       "title": "Morgenstern (1963) complete drawdown, 3:1",
       "path": "verification/cases/V069a.json",
@@ -304,7 +478,19 @@
       "id": "V071b",
       "title": "Pockoski & Duncan slope 1, circular search",
       "path": "verification/cases/V071b.json",
-      "n_checks": 2
+      "n_checks": 3
+    },
+    {
+      "id": "V077",
+      "title": "Prandtl bearing capacity on level ground",
+      "path": "verification/cases/V077.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V078",
+      "title": "Prandtl bearing capacity, fully specified Prandtl surface (reference values)",
+      "path": "verification/cases/V078.json",
+      "n_checks": 1
     },
     {
       "id": "V081a",
@@ -319,10 +505,16 @@
       "n_checks": 1
     },
     {
+      "id": "V086e",
+      "title": "Tandjiria embankment, sand fill, the paper's geometry",
+      "path": "verification/cases/V086e.json",
+      "n_checks": 1
+    },
+    {
       "id": "V090",
       "title": "USACE EM 1110-2-1902, example F-5",
       "path": "verification/cases/V090.json",
-      "n_checks": 2
+      "n_checks": 4
     },
     {
       "id": "V093",
@@ -340,13 +532,13 @@
       "id": "V096d",
       "title": "Zhu & Lee slope, the paper's surface 3, dry",
       "path": "verification/cases/V096d.json",
-      "n_checks": 1
+      "n_checks": 2
     },
     {
       "id": "V096e",
       "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
       "path": "verification/cases/V096e.json",
-      "n_checks": 1
+      "n_checks": 2
     },
     {
       "id": "V097a",
@@ -386,22 +578,22 @@
     }
   ],
   "summary": {
-    "checks": 120,
+    "checks": 213,
     "ogs": {
-      "OK": 120,
+      "OK": 213,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 119,
+      "OK": 212,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 1
     },
     "cslope_reproduces": {
-      "n": 119,
-      "N": 120
+      "n": 212,
+      "N": 213
     }
   },
   "checks": [
@@ -447,6 +639,45 @@
       "case_id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
       "source_path": "verification/cases/V001.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.414,
+      "published_by": "Commercial program A (GLE)",
+      "tolerance": 0.020353606789250352,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.401274923814589,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.8999346665778618,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4009576360031655,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9223736914310079,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V001",
+      "title": "Arai & Tagyo (1985) example 1",
+      "source_path": "verification/cases/V001.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.417,
@@ -476,6 +707,45 @@
           "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V001",
+      "title": "Arai & Tagyo (1985) example 1",
+      "source_path": "verification/cases/V001.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.414,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020353606789250352,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.401274923814589,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.8999346665778618,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4009576360031655,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.9223736914310079,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -603,6 +873,46 @@
       "case_id": "V003",
       "title": "Arai & Tagyo (1985) example 3, water table",
       "source_path": "verification/cases/V003.json",
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.131,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020442086648983202,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.1307312393862965,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.023763095818170772,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1289439401586165,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18179132107722917,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"a_t_ex3_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.82 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 76° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V003",
+      "title": "Arai & Tagyo (1985) example 3, water table",
+      "source_path": "verification/cases/V003.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.112,
@@ -665,6 +975,74 @@
         "status": "converged",
         "error": null,
         "err_pct": 0.2849955550141228,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V004a",
+      "title": "4:1 slope, Mohr-Coulomb fit",
+      "source_path": "verification/cases/V004a.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 2.662,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020187828700225396,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.6863328164567517,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.914080257578955,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.676191260989603,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.5331052212472992,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V004b",
+      "title": "Baker (2003) ex. 2 slope, Mohr-Coulomb iteration parameters",
+      "source_path": "verification/cases/V004b.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 2.61,
+      "published_by": "Commercial program A",
+      "tolerance": 0.021915708812260536,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.611113729388268,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.04267162407157654,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.608904511025127,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.04197275765796484,
         "verdict": "OK",
         "warnings": [],
         "notes": [
@@ -780,6 +1158,145 @@
       "estado": "OK"
     },
     {
+      "case_id": "V006",
+      "title": "Baker & Leshchinsky (2001) planar surface",
+      "source_path": "verification/cases/V006.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.351,
+      "published_by": "Commercial program C",
+      "tolerance": 0.010370096225018504,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3519977288111815,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.07385113332209785,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3519977288111802,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.07385113332199923,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V006",
+      "title": "Baker & Leshchinsky (2001) planar surface",
+      "source_path": "verification/cases/V006.json",
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.351,
+      "published_by": "Commercial program C",
+      "tolerance": 0.010370096225018504,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3519977288111815,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.07385113332209785,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.35199772881118,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.0738511333219828,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 9 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V007a",
+      "title": "Baker (2003) ex. 1, Mohr-Coulomb, Janbu simplified on the reference circle",
+      "source_path": "verification/cases/V007a.json",
+      "method": "janbu_simplified",
+      "kind": "fixed",
+      "published": 1.469,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010340367597004765,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4686451217744831,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.024157809769703293,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4683390836522239,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.04499090182275072,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 74° and 4 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V007b",
+      "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
+      "source_path": "verification/cases/V007b.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 0.957,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02052246603970742,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9553683114142832,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.17050037468304258,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.955304096413237,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.17721040614033126,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V007b",
       "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
       "source_path": "verification/cases/V007b.json",
@@ -807,6 +1324,45 @@
         "err_pct": -0.3466618312424642,
         "verdict": "OK",
         "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V007c",
+      "title": "Baker (2003) ex. 3, Janbu simplified",
+      "source_path": "verification/cases/V007c.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.291,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020387296669248645,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2902990741909495,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.054293246247130646,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.290074608765503,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07168018857450535,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 73° and 3 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -1113,6 +1669,114 @@
           "steep-entry-tension: The surface enters the slope at 80° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V018",
+      "title": "Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism",
+      "source_path": "verification/cases/V018.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.051,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010475737392959086,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0520418941171956,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.09913359821081688,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0520419444906277,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.09913839111586847,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V018",
+      "title": "Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism",
+      "source_path": "verification/cases/V018.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.009,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010495540138751239,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0077913398592067,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.11978792277435467,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0077887292967236,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.12004665047337093,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice data-point-specified (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V018",
+      "title": "Chen & Shao (1988) frictionless 60° slope, Prandtl mechanism",
+      "source_path": "verification/cases/V018.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.017,
+      "published_by": "Commercial program B",
+      "tolerance": 0.01049164208456244,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0077913398592067,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.9054729735293261,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0077887292967236,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.905729666005538,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice data-point-specified (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },
@@ -1425,6 +2089,1004 @@
       "estado": "OK"
     },
     {
+      "case_id": "V021a",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.132,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020441696113074205,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1285773508419759,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.30235416590318365,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.12828159491741,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.32848101436305693,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021a",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1178,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020044730721059223,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1285634811675946,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.9629165474677702,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.12828159491741,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.9376985970128991,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021a",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.128,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02044326241134752,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.1284566196392258,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.04048046447038488,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1282910025100648,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.025798094863906374,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021b",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.116,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020448028673835127,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1101337128344988,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5256529718191133,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.109799485738027,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5556016363775279,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021b",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1088,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020045093795093796,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1101178772133176,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.11885617003224686,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.109799485738027,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.09014121013950974,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021b",
+      "title": "Chowdhury & Xu (1995) example 1, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.109,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020450856627592426,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.1100084098935856,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.0909296567705715,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1098260448886272,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.07448556254528882,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021c",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021c.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.11,
+      "published_by": "Commercial program B",
+      "tolerance": 0.024504504504504504,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1086790449662316,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.11900495799716221,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1083891340592693,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1451230577234944,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021c",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021c.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1096,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.02004506128334535,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1086676917036988,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.08402201660968707,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1083891340592693,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.10912634649699081,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021c",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021c.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.108,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020451263537906137,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1086676917036988,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.06026098408833359,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1083891340592693,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.03512040246112038,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021d",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021d.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.063,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020470366886171217,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0583458719495316,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.4378295437881831,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.058031353094549,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4674173946802302,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021d",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021d.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.0639,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020046996898204716,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0583338630438714,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5231823438413967,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.058031353094549,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5516164024298307,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021d",
+      "title": "Chowdhury & Xu (1995) example 2, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021d.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.058,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020472589792060493,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0583338630438714,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.031556053295973184,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.058031353094549,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.00296343048667741,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021e",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021e.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.248,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020222419928825622,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.245525750791334,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.11006446657766959,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.2449380093020848,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1362095506190152,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021e",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021e.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.2343,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.02002237837353981,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.2455023401616785,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.501380305316131,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.2449380093020848,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.4761226917640685,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021e",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021e.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.245,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02022271714922049,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.2455023401616785,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.02237595374959389,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.2449380093020848,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.002761278303578993,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021f",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021f.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.138,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020233863423760524,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.1287193680958043,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.4340800703552662,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.12808667410674,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.46367286685032716,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021f",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021f.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.1396,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020023368853991398,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.128695152356293,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5096675847685197,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.12808667410674,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.538106463510014,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021f",
+      "title": "Chowdhury & Xu (1995) example 3, Congress Street cut, circle tangent to the base of clay 3",
+      "source_path": "verification/cases/V021f.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 2.128,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020234962406015036,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.128695152356293,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.032666934036316035,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.12808667410674,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.0040730313317571655,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 21 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021g",
+      "title": "Chowdhury & Xu (1995) example 4, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021g.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.422,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020351617440225036,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.428556005001103,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.4610411393180797,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4281095586376982,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.4296454738184418,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 17 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V021g",
+      "title": "Chowdhury & Xu (1995) example 4, Congress Street cut, circle tangent to the base of clay 2",
+      "source_path": "verification/cases/V021g.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.4239,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.020035114825479317,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4283827336558634,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.3148208199918176,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4279479233886103,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.2842842466894006,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_1\" lies partly below its water line but has no unitWeightSat: its unit weight 17 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_2\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"clay_3\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"bed\" lies partly below its water line but has no unitWeightSat: its unit weight 22 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V022a",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+      "source_path": "verification/cases/V022a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.158,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010431778929188255,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.157260784655705,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.06383552195983469,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1571344261951435,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.07474730611886116,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V022a",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+      "source_path": "verification/cases/V022a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1625,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.010043010752688172,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1586829434500368,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.32834895053448065,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1585682713372383,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.33821321830209145,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V022a",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+      "source_path": "verification/cases/V022a.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.16,
+      "published_by": "Commercial program A",
+      "tolerance": 0.014310344827586207,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.1586190025066254,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.1190515080495261,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1585502972228936,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1249743773367518,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V022b",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5",
+      "source_path": "verification/cases/V022b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.178,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010424448217317488,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.175643607582039,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.2000333122208013,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1745854613887725,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.28985896529944183,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V022b",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 5",
+      "source_path": "verification/cases/V022b.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.185,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010421940928270042,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.1779826395015023,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5921823205483351,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1773323617774563,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6470580778517969,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 77° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V025",
       "title": "Duncan & Wright fig. 6.38, piezometric line",
       "source_path": "verification/cases/V025.json",
@@ -1496,6 +3158,108 @@
           "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V026",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay",
+      "source_path": "verification/cases/V026.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.228,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020407166123778502,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2213075476158664,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.5449879791639763,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2197933452286849,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6682943624849432,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V026",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay",
+      "source_path": "verification/cases/V026.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.22,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.024098360655737706,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2213075476158664,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.10717603408740801,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2197933452286849,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.01693891568156522,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V026",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay",
+      "source_path": "verification/cases/V026.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.19,
+      "published_by": "Duncan & Wright",
+      "tolerance": 0.02420168067226891,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1965161350941602,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.5475743776605269,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1948934532418833,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.41121455814146174,
+        "verdict": "OK",
+        "warnings": [],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -2114,6 +3878,584 @@
       "estado": "OK"
     },
     {
+      "case_id": "V034a",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+      "source_path": "verification/cases/V034a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.313,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020380807311500382,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3062483783662002,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.514213376527016,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3060090371655855,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5324419523544913,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V034a",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+      "source_path": "verification/cases/V034a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.276,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020391849529780563,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2767631239298465,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.059805950614925885,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2761905902827695,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.014936542536791926,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V034b",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf",
+      "source_path": "verification/cases/V034b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.335,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020374531835205992,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3303516073332229,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.3481942072492194,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3299061022202776,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.38156537675822894,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V034b",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf",
+      "source_path": "verification/cases/V034b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.328,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.020376506024096387,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3285504851877625,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.04145219787367934,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.328024564203648,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.0018497141301073434,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036a",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "source_path": "verification/cases/V036a.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.761,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020657030223390275,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.7604205434450728,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.07614409394575473,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7567551715431167,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5577961178558926,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036a",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "source_path": "verification/cases/V036a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.756,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020661375661375662,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.7563550455569994,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.04696369801579224,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7520865200817519,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5176560738423395,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036a",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "source_path": "verification/cases/V036a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.75,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.02666666666666667,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.7563550455569994,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.8473394075999193,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7520865200817519,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.2782026775669225,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036b",
+      "title": "Embankment on an undrained foundation, cz = 5 psf/ft",
+      "source_path": "verification/cases/V036b.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 0.909,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02055005500550055,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.9083186384670431,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.07495726435169943,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9058587800918508,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.34556874677108856,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036b",
+      "title": "Embankment on an undrained foundation, cz = 5 psf/ft",
+      "source_path": "verification/cases/V036b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.898,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020556792873051226,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.9011467413209537,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.3504166281685653,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.8981663564856963,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.018525221124309033,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036b",
+      "title": "Embankment on an undrained foundation, cz = 5 psf/ft",
+      "source_path": "verification/cases/V036b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.9,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.025555555555555557,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.9011467413209537,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.12741570232819052,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.8981663564856963,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2037381682559674,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036c",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
+      "source_path": "verification/cases/V036c.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.045,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020478468899521533,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.042365866637583,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.2520701782217141,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.042476329545174,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.24149956505511316,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036c",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
+      "source_path": "verification/cases/V036c.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.032,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02048449612403101,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.028661208620621,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.32352629645145153,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0285618079482675,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3331581445477296,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036c",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
+      "source_path": "verification/cases/V036c.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.03,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.024854368932038837,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.028661208620621,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.12997974557077463,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0285618079482675,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.13963029628471527,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036d",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft",
+      "source_path": "verification/cases/V036d.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.154,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020433275563258232,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.1518700292084036,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.18457285889049133,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1520526335287429,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.168749260940818,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036d",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft",
+      "source_path": "verification/cases/V036d.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.134,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020440917107583775,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.1317103709826042,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.20190732075799925,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1315349900614378,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.21737301045521473,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036d",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft",
+      "source_path": "verification/cases/V036d.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.13,
+      "published_by": "Duncan & Wright (reference)",
+      "tolerance": 0.024424778761061947,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.1317103709826042,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.15136026394728253,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1315349900614378,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.1358398284458291,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V040",
+      "title": "James Bay dyke, reference model (deterministic)",
+      "source_path": "verification/cases/V040.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.461,
+      "published_by": "Commercial program B",
+      "tolerance": 0.030342231348391514,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4629652928534318,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.1345169646428283,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.459288228263672,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.11716438989240051,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V044",
       "title": "Fredlund & Krahn (1977), dry",
       "source_path": "verification/cases/V044.json",
@@ -2146,6 +4488,44 @@
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V044",
+      "title": "Fredlund & Krahn (1977), dry",
+      "source_path": "verification/cases/V044.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.076,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010240847784200386,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 2.0723583606175837,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.17541615522236756,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.0716878166409183,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2077159614201247,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },
@@ -2218,6 +4598,44 @@
           "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V044b",
+      "title": "Fredlund & Krahn (1977), rᵤ = 0.25",
+      "source_path": "verification/cases/V044b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.764,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01028344671201814,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.7575525440048134,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.3655020405434575,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.7569006890683516,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.40245526823403605,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },
@@ -2298,6 +4716,45 @@
       "case_id": "V045",
       "title": "Fredlund & Krahn (1977), with water table",
       "source_path": "verification/cases/V045.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.832,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01027292576419214,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.8276273247642603,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.23868314605566643,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.8267234911203678,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.28801904364804964,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V045",
+      "title": "Fredlund & Krahn (1977), with water table",
+      "source_path": "verification/cases/V045.json",
       "method": "spencer",
       "kind": "fixed",
       "published": 1.83,
@@ -2326,6 +4783,304 @@
         "warnings": [
           "missing-unit-weight-sat: Material \"soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
           "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046a",
+      "title": "Fredlund & Krahn slope on a weak seam, composite surface",
+      "source_path": "verification/cases/V046a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.382,
+      "published_by": "Commercial program A",
+      "tolerance": 0.01036179450072359,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3793238237503909,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.1936451700151252,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3794253314360823,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.18630018552226027,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046a",
+      "title": "Fredlund & Krahn slope on a weak seam, composite surface",
+      "source_path": "verification/cases/V046a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.37,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.013649635036496351,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3697873022552198,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.015525382830677146,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3698888167636498,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.008115564697101268,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046a",
+      "title": "Fredlund & Krahn slope on a weak seam, composite surface",
+      "source_path": "verification/cases/V046a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.373,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010364166059723234,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3793238237503909,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.46058439551280894,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3794253314360823,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.46797752629878075,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046b",
+      "title": "Fredlund & Krahn slope on a weak seam, with a piezometric line",
+      "source_path": "verification/cases/V046b.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.245,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01040160642570281,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.241636084602887,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.2701940078002413,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2416933863563915,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2655914573179618,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"upper_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"weak_seam\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046b",
+      "title": "Fredlund & Krahn slope on a weak seam, with a piezometric line",
+      "source_path": "verification/cases/V046b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.245,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01040160642570281,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2348537494282756,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.8149598852790737,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2348995182074114,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8112836781195752,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"upper_soil\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"weak_seam\" lies partly below its water line but has no unitWeightSat: its unit weight 18.85 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046c",
+      "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+      "source_path": "verification/cases/V046c.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.124,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010444839857651246,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1221289811387603,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.16646075277934688,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1222319309551068,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1573015164495863,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046c",
+      "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+      "source_path": "verification/cases/V046c.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.118,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010447227191413238,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.112417241871727,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.4993522476093939,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1125086064349878,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.49118010420503305,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V046c",
+      "title": "Fredlund & Krahn slope on a weak seam, rᵤ = 0.25",
+      "source_path": "verification/cases/V046c.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.118,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.010447227191413238,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1221289811387603,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.3693185276171866,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1222319309551068,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.37852691906141817,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
         "notes": []
       },
@@ -2398,6 +5153,77 @@
         "verdict": "OK",
         "warnings": [],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "verification/cases/V047a.json",
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 0.99,
+      "published_by": "Commercial program A",
+      "tolerance": 0.025050505050505052,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9855796590505889,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.4464990857991038,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9854548679957774,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.45910424285076507,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V047a",
+      "title": "ACADS 1(a), homogeneous slope, dry",
+      "source_path": "verification/cases/V047a.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 0.991,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020504540867810294,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9841201185689425,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "truncated_mass"
+        ],
+        "err_pct": -0.6942362695315282,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9840741753405983,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.6988723167912941,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -2547,6 +5373,75 @@
       "case_id": "V049",
       "title": "ACADS 1(c), three-layer slope",
       "source_path": "verification/cases/V049.json",
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.357,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020368459837877672,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.3555833489059983,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.10439580648501741,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3549615682825942,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.15021604402400948,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "source_path": "verification/cases/V049.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.382,
+      "published_by": "Commercial program B",
+      "tolerance": 0.02036179450072359,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.3718914409448872,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.7314442152758796,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3716306351073797,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7503158388292469,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V049",
+      "title": "ACADS 1(c), three-layer slope",
+      "source_path": "verification/cases/V049.json",
       "method": "bishop",
       "kind": "search",
       "published": 1.403,
@@ -2573,6 +5468,119 @@
         "warnings": [],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V050a",
+      "title": "ACADS 3(b), weak layer, specified non-circular surface",
+      "source_path": "verification/cases/V050a.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.294,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010386398763523957,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2942320690087223,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.01793423560450557,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2938983805297974,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.007853127527248557,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_1_below\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V050a",
+      "title": "ACADS 3(b), weak layer, specified non-circular surface",
+      "source_path": "verification/cases/V050a.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.277,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010391542678151918,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2761766292457668,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.06447695804487943,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2761908576814132,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.06336275008510203,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_1_below\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V050a",
+      "title": "ACADS 3(b), weak layer, specified non-circular surface",
+      "source_path": "verification/cases/V050a.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.261,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010396510705789057,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.26047285171092,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.041803988031708844,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2604872771835471,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.04066001716516731,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_1_below\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
         ]
       },
       "estado": "OK"
@@ -2642,6 +5650,42 @@
         "verdict": "OK",
         "warnings": [
           "frictional-surface-slide: The ground surface from (315.50, 162.00) to (0.00, 0.00) in rockfill (c′ = 0, φ′ = 45.0°) is inclined at 27.2°: a shallow slide parallel to it has F = tan φ′/tan β = 1.948, below 1.948. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V052a",
+      "title": "Talbingo Dam, end of construction",
+      "source_path": "verification/cases/V052a.json",
+      "method": "janbu_corrected",
+      "kind": "search",
+      "published": 1.949,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02025654181631606,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 1.9671103569612944,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.9292127737965301,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.9520328906604116,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.15561265574199945,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (315.50, 162.00) to (0.00, 0.00) in rockfill (c′ = 0, φ′ = 45.0°) is inclined at 27.2°: a shallow slide parallel to it has F = tan φ′/tan β = 1.948, below 1.952. The analysis cannot represent so thin a slide; the slope face governs."
         ],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
@@ -2750,6 +5794,76 @@
           "frictional-surface-slide: The ground surface from (315.50, 162.00) to (0.00, 0.00) in rockfill (c′ = 0, φ′ = 45.0°) is inclined at 27.2°: a shallow slide parallel to it has F = tan φ′/tan β = 1.948, below 2.290. The analysis cannot represent so thin a slide; the slope face governs."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V052b",
+      "title": "Talbingo Dam, specified circle",
+      "source_path": "verification/cases/V052b.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 2.073,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010241196333815726,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 2.0729424800424217,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.002774720577824424,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.072765236042295,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.011324841182100438,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (315.50, 162.00) to (0.00, 0.00) in rockfill (c′ = 0, φ′ = 45.0°) is inclined at 27.2°: a shallow slide parallel to it has F = tan φ′/tan β = 1.948, below 2.073. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V052b",
+      "title": "Talbingo Dam, specified circle",
+      "source_path": "verification/cases/V052b.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 2.299,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010217485863418878,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 2.2992833664510144,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.012325639452564381,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.299409863742934,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.01782791400321648,
+        "verdict": "OK",
+        "warnings": [
+          "frictional-surface-slide: The ground surface from (315.50, 162.00) to (0.00, 0.00) in rockfill (c′ = 0, φ′ = 45.0°) is inclined at 27.2°: a shallow slide parallel to it has F = tan φ′/tan β = 1.948, below 2.299. The analysis cannot represent so thin a slide; the slope face governs."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },
@@ -2891,6 +6005,196 @@
         "err_pct": 0.012221578484849815,
         "verdict": "OK",
         "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V056",
+      "title": "Griffiths & Lane example 3, thin weak layer, cu2/cu1 = 0.2",
+      "source_path": "verification/cases/V056.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 0.485,
+      "published_by": "Griffiths & Lane (Janbu wedge, Fig. 7)",
+      "tolerance": 0.03103092783505155,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.4997855409211348,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 3.0485651383783137,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.4994688513733391,
+        "status": "converged",
+        "error": null,
+        "err_pct": 2.9832683243998117,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V057a",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle)",
+      "source_path": "verification/cases/V057a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.46,
+      "published_by": "Griffiths & Lane (LE curve)",
+      "tolerance": 0.033424657534246574,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.4771791763422286,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 1.1766559138512775,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.472096239513407,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.8285095557128077,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V057a",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 1 (deep base circle)",
+      "source_path": "verification/cases/V057a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.468,
+      "published_by": "Program D",
+      "tolerance": 0.020340599455040874,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.4771791763422286,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.6252844919774282,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.472096239513407,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.2790353891966611,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 72° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V057b",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 2 (toe circle)",
+      "source_path": "verification/cases/V057b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.04,
+      "published_by": "Griffiths & Lane (LE curve)",
+      "tolerance": 0.03245098039215687,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 2.02755529894106,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.6100343656343202,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.0229363807299756,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8364519250011972,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V057b",
+      "title": "Griffiths & Lane example 4, cu2/cu1 = 2 (toe circle)",
+      "source_path": "verification/cases/V057b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 2.022,
+      "published_by": "Program D",
+      "tolerance": 0.020247279920870425,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 2.02755529894106,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.2747427765113801,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 2.0229363807299756,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.046309630562602205,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
         "notes": [
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
@@ -3640,6 +6944,44 @@
       "estado": "OK"
     },
     {
+      "case_id": "V067",
+      "title": "Low (1989), layered undrained clay",
+      "source_path": "verification/cases/V067.json",
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.439,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020347463516330787,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.4527053136025048,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.9524192913484856,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.435866439942262,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.21775955925906992,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V069a",
       "title": "Morgenstern (1963) complete drawdown, 3:1",
       "source_path": "verification/cases/V069a.json",
@@ -3907,6 +7249,112 @@
       "estado": "OK"
     },
     {
+      "case_id": "V071b",
+      "title": "Pockoski & Duncan slope 1, circular search",
+      "source_path": "verification/cases/V071b.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.151,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02043440486533449,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.149881511849968,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.09717533883858613,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1478020762074876,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2778387308872616,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"sandy_clay\" lies partly below its water line but has no unitWeightSat: its unit weight 18.851 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 75° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V077",
+      "title": "Prandtl bearing capacity on level ground",
+      "source_path": "verification/cases/V077.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 0.94,
+      "published_by": "Commercial program A",
+      "tolerance": 0.015319148936170214,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 0.9428402332910114,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": 0.3021524777671769,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9428404915465354,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.30217995175908813,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V078",
+      "title": "Prandtl bearing capacity, fully specified Prandtl surface (reference values)",
+      "source_path": "verification/cases/V078.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 0.96,
+      "published_by": "Commercial program B",
+      "tolerance": 0.015208333333333334,
+      "options": {
+        "slices": 60
+      },
+      "ogs": {
+        "fos": 0.9578270695425091,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -0.22634692265530165,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9578250158677049,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.22656084711407398,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V081a",
       "title": "Sharma (1996) reinforcement example, unreinforced",
       "source_path": "verification/cases/V081a.json",
@@ -3973,6 +7421,40 @@
           "frictional-surface-slide: The ground surface from (17.00, 17.00) to (5.00, 5.00) in reinforced_zone (c′ = 0, φ′ = 54.9°) is inclined at 45.0°: a shallow slide parallel to it has F = tan φ′/tan β = 1.424, below 1.501. The analysis cannot represent so thin a slide; the slope face governs."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V086e",
+      "title": "Tandjiria embankment, sand fill, the paper's geometry",
+      "source_path": "verification/cases/V086e.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.219,
+      "published_by": "Tandjiria, Low & Teh",
+      "tolerance": 0.02041017227235439,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2066745263816898,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [],
+        "err_pct": -1.0111135043732786,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.204416507178077,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.19634887792642,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
       },
       "estado": "OK"
     },
@@ -4045,6 +7527,80 @@
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V090",
+      "title": "USACE EM 1110-2-1902, example F-5",
+      "source_path": "verification/cases/V090.json",
+      "method": "janbu_corrected",
+      "kind": "fixed",
+      "published": 1.345,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010371747211895911,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3408365319342415,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.3095515290526776,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3405119218373984,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.33368610874360966,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V090",
+      "title": "USACE EM 1110-2-1902, example F-5",
+      "source_path": "verification/cases/V090.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.327,
+      "published_by": "Commercial program A",
+      "tolerance": 0.010376789751318765,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.316551978684425,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.7873414706537207,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3163684965466562,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.801168308465994,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },
@@ -4160,6 +7716,45 @@
       "estado": "OK"
     },
     {
+      "case_id": "V096d",
+      "title": "Zhu & Lee slope, the paper's surface 3, dry",
+      "source_path": "verification/cases/V096d.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.823,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.02027427317608338,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.809746390329576,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.727021923775309,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.8083732434575643,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.8023453945384319,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 78° and a slice on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V096e",
       "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
       "source_path": "verification/cases/V096e.json",
@@ -4197,6 +7792,49 @@
           "steep-entry-tension: The surface enters the slope at 78° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V096e",
+      "title": "Zhu & Lee slope, the paper's surface 3, with the water table",
+      "source_path": "verification/cases/V096e.json",
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.197,
+      "published_by": "Zhu & Lee (2002)",
+      "tolerance": 0.020417710944026734,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.198744052530231,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.1.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.14570196576700264,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1968581438145363,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.01185097622922362,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"layer_1\" lies partly below its water line but has no unitWeightSat: its unit weight 18.8 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 18.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_3\" lies partly below its water line but has no unitWeightSat: its unit weight 18.4 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_4\" lies partly below its water line but has no unitWeightSat: its unit weight 18 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base.",
+          "steep-entry-tension: The surface enters the slope at 78° and 2 slices on its steep part rely on tension at the base (N′ < 0 or a low m_α), which soil cannot take; the factor of safety is then unreliable (higher or lower than with the steep part cut off). A tension crack cutting off the steep part (Options › Crack at base angle, for example 60–70°) removes it."
+        ],
+        "notes": [
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
       },
       "estado": "OK"
     },

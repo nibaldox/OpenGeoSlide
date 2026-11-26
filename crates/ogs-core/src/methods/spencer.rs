@@ -583,7 +583,8 @@ struct Root {
 /// Without loads and with `kv ≤ 0`, `ΣW* ≤ ΣW` and the scale is `ΣW`, bit for bit. With a (nearly) weightless soil, as
 /// in the Prandtl cases V018, V077 and V078 (γ = 1e-6), the soil weight alone is a scale 1e7 times smaller than the
 /// loads that drive the mass, and the closure cannot reach `1e-6·ΣW` in double precision. E3 (`no_driving`) and the
-/// negative-normal guard keep `ΣW`.
+/// air-gap threshold keep `ΣW`; the classification of the negative normal forces (E7d, `negative_normal_message`) uses
+/// this scale, so that the share `f` of V018 is not measured over a weight 1e7 times smaller than its loads.
 pub(crate) fn force_scale(slices: &[Slice]) -> f64 {
     let soil: f64 = slices.iter().map(|s| s.weight).sum();
     let with_loads: f64 = slices.iter().map(|s| s.total_weight()).sum();
