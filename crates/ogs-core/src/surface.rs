@@ -848,6 +848,87 @@ mod tests {
         assert_eq!(got.len(), 5, "both ends are extended: {got:?}");
     }
 
+    /// A bench with a vertical face: the upper ground is 30 for x ≤ 20, the face drops to 20 at x = 20, and the lower
+    /// ground is flat at 20 up to x = 30, climbs to 26 at x = 40 and is flat to x = 50.
+    fn pm_face() -> PreparedModel {
+        pm_of(json!([
+            [0, 0],
+            [0, 30],
+            [20, 30],
+            [20, 20],
+            [30, 20],
+            [40, 26],
+            [50, 26],
+            [50, 0]
+        ]))
+    }
+
+    /// An end extends to its **first** crossing with the ground (F3.3), even if the line is under the ground again
+    /// farther on, toward the wall of the model. (cSlope looks at the sign of the line at the wall and rejects such a
+    /// polyline; the contract asks for the first crossing.) The right end is over the flat ground y = 35 and is trimmed.
+    #[test]
+    fn the_extension_stops_at_the_first_crossing_even_if_the_line_is_under_the_ground_again() {
+        let pm = pm_v047a();
+        // Slope 0.4327 < 0.5: going left the line meets the ramp at x = 47.449 and would be under the flat toe (25)
+        // again at the wall x = 20.
+        let got = fitted_points(&pm, &[[49.376544, 34.558057], [55.169382, 37.063078]]);
+        assert_eq!(
+            got.len(),
+            3,
+            "extended at the start, trimmed at the end: {got:?}"
+        );
+        assert_eq!(got[1], [49.376544, 34.558057]);
+        assert!((got[0][0] - 47.449_312_894_65).abs() < 1e-8, "{got:?}");
+        assert!(
+            (got[0][1] - (10.0 + 0.5 * got[0][0])).abs() < 1e-9,
+            "{got:?}"
+        );
+        assert!(
+            (got[2][0] - 50.398_533_118_75).abs() < 1e-8 && (got[2][1] - 35.0).abs() < 1e-9,
+            "{got:?}"
+        );
+    }
+
+    /// The surface comes out through a vertical face of the ground: the extension ends on the face, at the ordinate of
+    /// the line (not at the foot or at the top of the face).
+    #[test]
+    fn an_extension_comes_out_through_a_vertical_face() {
+        let pm = pm_face();
+        // Left: slope −5/12 reaches the upper ground y = 30 at x = 4.4. Right: slope −1/3, and at x = 20 the line is at
+        // y = 24, between the foot (20) and the top (30) of the face.
+        let got = fitted_points(&pm, &[[8.0, 28.5], [14.0, 26.0], [17.0, 25.0]]);
+        assert_points(
+            &got,
+            &[
+                [4.4, 30.0],
+                [8.0, 28.5],
+                [14.0, 26.0],
+                [17.0, 25.0],
+                [20.0, 24.0],
+            ],
+            1e-9,
+        );
+    }
+
+    /// A polyline that goes through the face and over the lower ground leaves the soil in the middle: it is
+    /// `polyline_outside_ground` and is not cut at the face (cSlope drops the rest of the polyline and analyses the
+    /// first block; the contract says that no segment passes over the ground).
+    #[test]
+    fn a_polyline_that_leaves_through_a_vertical_face_is_outside_ground() {
+        let pm = pm_face();
+        assert_eq!(
+            polyline(&[
+                [14.807276, 28.907264],
+                [16.854317, 28.679223],
+                [18.803038, 28.189081],
+                [23.634029, 12.021849],
+                [33.59807, 21.859028]
+            ])
+            .fit_to_ground(&pm),
+            Err(POLYLINE_OUTSIDE_GROUND)
+        );
+    }
+
     /// The breakpoints of a polyline: its vertices (obligatory nodes), the vertices of the regions that fall inside,
     /// and the crossings of its segments with the region edges.
     #[test]
