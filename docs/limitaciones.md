@@ -217,6 +217,26 @@ Son las bases del pie de un círculo de φ = 0 con cohesión alta (V027 y V028) 
 (V068), que cSlope también declara sensible al corte. La decisión del coordinador fue **dejarlos retenidos**. Con el
 aviso tratado como informativo, los tres entrarían dentro de la tolerancia.
 
+### V035b y V083: retenidos por `negative_effective_normal_major`, tracción real del modelo (E14n-1)
+
+El FS de ogs reproduce el publicado (V035b, Bishop: 1,3210 frente a 1,324 y 1,32; V083, Janbu corregido: 0,8845 frente a
+0,89), pero el motor emite `negative_effective_normal_major` y la aceptación lo rechaza (E5). Es una **tracción real del
+modelo, presente también sin refuerzos**; no es un artefacto de la fuerza puntual de un cruce:
+
+| Caso | Dovelas con N′ < 0 | FS sin refuerzos | Fuente |
+|---|---|---:|---|
+| V035b (Bishop, 2 checks) | 4 dovelas normales, k = 59 a 62, x 12,03 a 12,56, ancho 0,133 m; N′ de −2,14 a −30,57 kN | 0,929 | [`pending/F3R`](../verification/pending/F3R/INDEX.md) |
+| V083 (Janbu corregido, 1 check) | 12 dovelas normales, k = 45 a 56, x 4,77 a 6,28, ancho 0,126 m; N′ de −0,16 a −4,61 kN | 0,834 | ídem |
+
+La **E14n-1** (§F4.17, adoptada) suma, solo para clasificar la N′ negativa, las dovelas finas de un cruce con las dos
+vecinas. Equilibrio, FS y dovelas del informe no cambian. Elimina el aviso en V014 con Janbu corregido, donde venía de 8
+dovelas finas de 7,6e-5 m (ese caso volvió a `verification/cases`), y en V010 con M-P y V014 con Spencer quita la nota
+`negative_effective_normal`. No toca V035b ni V083: en V035b la dovela fina del cruce no tiene N′ < 0 (el ancla es
+horizontal y en Bishop `passive_h` solo entra en el momento) y en V083 las dovelas finas de los dos cruces tampoco; los
+negativos son los de arriba, idénticos con y sin la regla. Una tracción real sobre dovelas de ancho normal sigue dando el
+aviso mayor (test `crates/ogs-core/tests/f3r2_e14n1.rs`). Los dos casos quedan retenidos junto con V027, V028 y V068, sin
+relajar ninguna tolerancia; los checks están en `verification/pending/F3R/HOLD.json`.
+
 ### V032a: un mínimo real, más conservador, que sale de los rangos efectivos
 
 La búsqueda de OpenGeoSlide encuentra en V032a un mínimo **real** con FS 1,1706 (Bishop y Spencer iguales), por debajo

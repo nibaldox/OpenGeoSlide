@@ -39,7 +39,7 @@ el elemento incluido, no su diseño estructural ([límite](docs/limitaciones.md#
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 241 de 241 checks contra valores publicados (116 casos) y
+- **Está verificado y se puede reproducir.** El motor cumple 243 de 243 checks contra valores publicados (116 casos) y
   coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
   Fase 3a (más 12 de 12 de los refuerzos v0.4). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
@@ -113,16 +113,16 @@ sismo, cargas y refuerzos, está en [`docs/formato-ogs-json.md`](docs/formato-og
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (116 casos) | **241/241** | [REPORT](verification/REPORT.md) |
+| Valores publicados (116 casos) | **243/243** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
-| Web y `ogs` (303 modelos) | **303/303** | [detalle](docs/verificacion.md) |
+| Web y `ogs` (305 modelos) | **305/305** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 241 checks de 116 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
+- **Valores publicados:** 243 checks de 116 casos de la bibliografía (41 en el esquema v0.1, 5 con sismo o cargas en
   v0.2, 47 en v0.3 y 23 con refuerzos en v0.4), cada uno dentro de su tolerancia: 108 de Bishop, 81 de Spencer, 29 de
-  Morgenstern-Price, 8 de Janbu simplificado y 15 de Janbu corregido. Otros 11 checks, en 7 casos, quedan retenidos con
+  Morgenstern-Price, 8 de Janbu simplificado y 17 de Janbu corregido. Otros 9 checks, en 6 casos, quedan retenidos con
   su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
   supera en más de 1 % al de cSlope.
@@ -157,7 +157,7 @@ Esta batería no cubre todo: véanse las limitaciones.
 - **Sismo solo pseudoestático y cargas solo uniformes o lineales.** Spencer y Morgenstern-Price pueden no hallar
   solución o, con tracción en la base, quedar por debajo de Bishop. En polilíneas con forma de V pueden converger con un
   FS no físico (aviso `interslice_shear_exceeds_strength`): compárelo con Janbu. Revise siempre los avisos.
-- **Casos publicados retenidos:** V027, V028 y V068 (aviso de normal efectiva negativa) y V032a (la búsqueda halla un
+- **Casos publicados retenidos:** V027, V028, V068, V035b y V083 (aviso de normal efectiva negativa) y V032a (la búsqueda halla un
   mínimo real, más conservador).
 
 El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
@@ -183,7 +183,7 @@ OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stabil
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; the unreleased v0.4 format adds reinforcements: anchors, soil nails,
 geosynthetics, piles and sheet piles). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 241/241 published values (116 cases) and cSlope in
+runs in your browser and works offline, a Python package and a CLI. It matches 243/243 published values (116 cases) and cSlope in
 28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks and 12/12 reinforcement checks. The search is circular only. With piles or sheet piles it checks the global stability
 with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
 moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or

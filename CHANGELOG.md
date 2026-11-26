@@ -83,6 +83,23 @@ byte, que la v0.2.0.**
   en `interface`, VP 58 pendiente, y las discontinuidades de la búsqueda con refuerzos (el círculo crítico puede esquivar
   el refuerzo).
 - Los modelos sin refuerzos no cambian: la identidad byte a byte con la v0.2.0 es un gate de cada ola.
+- **E14n-1 (§F4.17): clasificación de la N′ negativa con refuerzos.** Para decidir entre `negative_effective_normal` y
+  `negative_effective_normal_major` (E7d, E8c y E11f), las dovelas finas de un cruce de refuerzo se suman con sus dos
+  vecinas. Es solo una clasificación: el equilibrio, el FS y las dovelas del informe no cambian. Efecto medido: V014 con
+  Janbu corregido pierde el aviso mayor (venía de 8 dovelas finas de 7,6e-5 m) y V014 con Spencer y V010 con M-P pierden
+  la nota `negative_effective_normal`, con el FS idéntico. Una tracción real sobre dovelas normales conserva el aviso.
+  V014 (2 checks de Janbu corregido) vuelve a `verification/cases`: 116 casos, 243 checks. V035b (2) y V083 (1)
+  quedan retenidos en `verification/pending/F3R/HOLD.json`: sus N′ < 0 son de dovelas normales y el modelo sin refuerzos
+  da el mismo aviso (FS 0,929 y 0,834). Test `crates/ogs-core/tests/f3r2_e14n1.rs`.
+
+### Fixed
+- **Círculo con la tangente vertical sobre el terreno (V065).** `ogs analyze` rechazaba con `NoValidSurface: el círculo
+  no corta el terreno` un círculo con el centro a la cota de la coronación (V065: `xc` 4,658, `yc` 15,000, `r` 10,934).
+  Su arco termina en `x = xc + r`, y `(xc + r) − xc` valía `r − 1,8e-15`, de modo que `sqrt(r² − t²)` daba 2,06e-7 en
+  lugar de 0: pérdida de cifras que la tolerancia geométrica tomaba por un arco bajo el terreno. En el extremo propio
+  del círculo la altura es `yc` por construcción (`slicer.rs`, `check_block_ends_circle`). La regla de qué extremos
+  admite el círculo no cambia. Spencer da 0,96037 (cSlope 0,9585; publicado 0,964), y los 121 modelos sin refuerzos
+  siguen idénticos byte a byte (test `f3r2_tangent_end.rs`).
 
 ### Known issues
 - **Activo comprimido y el oráculo instalado (E14m-1).** El binario instalado de cSlope (`a80f9a0`) descarta los
