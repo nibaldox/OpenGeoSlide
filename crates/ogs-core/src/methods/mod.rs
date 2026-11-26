@@ -70,14 +70,17 @@ pub fn effective_normal(s: &Slice, fos: f64, delta_x: f64) -> f64 {
 /// Classification of the negative effective normal forces (E4e, E7d). `normal(k, s)` gives the normal
 /// force of slice `k`; air slices are not classified.
 ///
-/// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW` and
+/// Returns `None` when no soil slice has `N' < −1e-6·ΣW`. Otherwise, with `f = Σ_{N'<0} |N'| / ΣW` (`ΣW` is the force
+/// scale `max(ΣW, ΣW*)` of E13j-6, which is the soil weight when there are no loads) and
 /// `λ_neg = Σ_{N'<0} b / Σ_soil b` (share of the soil base length): `negative_effective_normal` (note) if
 /// `f ≤ 0.05` **and** `λ_neg ≤ 0.25`; `negative_effective_normal_major` (warning) otherwise (E8c, E11f).
 pub(crate) fn negative_normal_message(
     slices: &[Slice],
     normal: impl Fn(usize, &Slice) -> f64,
 ) -> Option<&'static str> {
-    let total_w: f64 = slices.iter().map(|s| s.weight).sum();
+    // E13j-6: the scale is `max(ΣW, ΣW*)`, as in the closure of the solvers. With a nearly weightless soil under loads
+    // (V018: ΣW = 6.3e-5, ΣW* = 1.5e3) the normal forces come from the loads, and over ΣW alone `f` is 1.6e4.
+    let total_w: f64 = spencer::force_scale(slices);
     let floor = -NEGATIVE_NORMAL_FRACTION * total_w;
     let mut triggered = false;
     let mut negative_sum = 0.0_f64;
@@ -338,6 +341,47 @@ mod tests {
             class_of(&[1.0, 3.0], &[-0.2, 90.0]),
             Some("negative_effective_normal")
         );
+    }
+
+    /// E13j-6 applied to E7d: `f = Σ_{N'<0}|N'| / ΣW` is measured over `max(ΣW, ΣW*)`. Two soil slices that weigh 5e-5
+    /// each (V018, γ = 1e-6) carry vertical loads of 750 each; one normal force is −1 (and the other 10). Over the soil
+    /// weight `f` would be 1e4 (major); over the force scale `ΣW* ≈ 1.5e3` it is 6.7e-4 (note). With a negative force
+    /// of 100 the share over the force scale is 0.067, still above the threshold, so the loads do not silence the major
+    /// class; and without loads the scale is the soil weight, as before.
+    #[test]
+    fn e13j6_the_negative_normal_share_is_over_the_force_scale() {
+        let slice = |weight: f64, extra: f64| Slice {
+            x_left: 0.0,
+            x_right: 1.0,
+            y_base_left: 0.0,
+            y_base_right: 0.0,
+            y_top_mid: 1.0,
+            width: 1.0,
+            alpha: 0.0,
+            base_length: 1.0,
+            weight,
+            weight_extra: extra,
+            cohesion: 1.0,
+            tan_phi: 0.5,
+            material: 0,
+            ..crate::slicer::ZERO_SLICE
+        };
+        // The negative slice is 1 of 10 base lengths, so E11f (length share) does not decide the class.
+        let long = |s: Slice| Slice {
+            base_length: 9.0,
+            ..s
+        };
+        let loaded = vec![slice(5e-5, 750.0), long(slice(5e-5, 750.0))];
+        let class =
+            |s: &[Slice], n: f64| negative_normal_message(s, |k, _| if k == 0 { n } else { 10.0 });
+        assert_eq!(class(&loaded, -1.0), Some("negative_effective_normal"));
+        assert_eq!(
+            class(&loaded, -100.0),
+            Some("negative_effective_normal_major")
+        );
+        // Without loads the scale is ΣW, as before: f = 1/1e-4.
+        let bare = vec![slice(5e-5, 0.0), long(slice(5e-5, 0.0))];
+        assert_eq!(class(&bare, -1.0), Some("negative_effective_normal_major"));
     }
 
     /// E8d: the notes of a converged state keep a fixed order, the air gap first.
