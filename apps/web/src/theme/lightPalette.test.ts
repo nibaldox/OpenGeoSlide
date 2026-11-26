@@ -22,6 +22,7 @@ describe('LIGHT_SECTION_PALETTE', () => {
     expect(P.surface).toBe(light('--canvas-surface'));
     expect(P.surfaceUnconverged).toBe(light('--canvas-surface-unconverged'));
     expect(P.piezo).toBe(light('--canvas-piezo'));
+    expect(P.pond).toBe(light('--canvas-pond'));
     expect(P.reinforcement).toBe(light('--canvas-reinforcement'));
     expect(P.sliceFill).toBe(light('--canvas-slice-fill'));
     expect(P.sliceEdge).toBe(light('--canvas-slice-edge'));

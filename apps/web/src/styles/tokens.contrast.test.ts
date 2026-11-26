@@ -100,9 +100,12 @@ const PAIRS: Pair[] = [
   ['canvas-load', 'canvas-bg', TEXT, 'etiqueta de carga'],
   ['canvas-reinforcement', 'canvas-bg', TEXT, 'rótulo de refuerzo y de su fuerza'],
   ['canvas-seismic', 'canvas-seismic-bg', TEXT, 'insignia sísmica'],
+  // Agua embalsada (F5.3) y grieta de tracción (F5.4): los rótulos de la grieta (color de la superficie y de la piezométrica) y los ejes
+  // se leen sobre el fondo y sobre el relleno `--canvas-pond`.
+  ...['canvas-surface', 'canvas-piezo', 'canvas-axis-text', 'canvas-axis'].flatMap((fg): Pair[] => ['canvas-bg', 'canvas-pond'].map((bg): Pair => [fg, bg, TEXT, 'rótulo sobre el agua embalsada'])),
   // Trazos del lienzo sobre el fondo y sobre cada material (3:1)
   ...['canvas-surface', 'canvas-surface-unconverged', 'canvas-piezo', 'canvas-load', 'canvas-reinforcement', 'canvas-region-edge', 'canvas-selected', 'canvas-handle-ring'].flatMap(
-    (stroke): Pair[] => ['canvas-bg', ...MATS].map((bg): Pair => [stroke, bg, UI, 'trazo esencial del lienzo']),
+    (stroke): Pair[] => ['canvas-bg', 'canvas-pond', ...MATS].map((bg): Pair => [stroke, bg, UI, 'trazo esencial del lienzo']),
   ),
   // Dovelas (UX9-07): el trazo se compone sobre cada material y sobre el panel, donde está la muestra de la leyenda
   // La muestra de la leyenda (B-05) es una línea con este mismo token sobre el panel: se cubren todas las superficies de la interfaz.

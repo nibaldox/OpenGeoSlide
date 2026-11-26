@@ -5,6 +5,8 @@ import { analyzedPolyline } from '../report/methodInfo';
 import type { Circle, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
+import { crackGeometry, type CrackGeometry } from './crack';
+import { pondPolygons } from './pond';
 
 /** Número de tonos de material del tema (`--canvas-mat-0` … `--canvas-mat-6`); los materiales siguientes los reciclan. */
 export const MATERIAL_SLOTS = 7;
@@ -36,6 +38,10 @@ export interface Scene {
   piezo: Point[] | null;
   /** Tramos horizontales que el motor extrapola a cada lado de la piezométrica hasta los bordes del modelo (R9-05d); `null` si no hay o ya cubre el ancho. */
   piezoExtension?: PiezoExtension | null;
+  /** Agua embalsada (F5.3): polígonos entre la piezométrica y el terreno donde la piezométrica pasa sobre el terreno; ausente si no hay. Capa propia bajo la piezométrica. */
+  pond?: Point[][];
+  /** Grieta de tracción de la superficie dibujada (F5.4): `x_c`, profundidad y `Pw`; ausente sin grieta. */
+  crack?: CrackGeometry;
   /**
    * Superficie del informe: `circle` (círculo `{xc, yc, r}`) o `polyline` (la polilínea ajustada al terreno, F3.7); nunca las dos.
    * `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b).
@@ -111,11 +117,16 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
 
   // La misma regla que el editor (`piezoExtension`), sobre la línea ya ordenada por x como la que se dibuja.
   const piezoExt = piezo ? piezoExtension({ ...model, water: { ...model.water, piezometric_line: piezo } }) : null;
+  const pond = pondPolygons(regions, piezo);
+  // La grieta se dibuja solo con una superficie con dovelas; la fracción llena la da el modelo (`water_fill`).
+  const crack = surface && method?.tension_crack ? crackGeometry(method.tension_crack, surface.slices, model.analysis?.tension_crack?.water_fill) : null;
   return {
     regions,
     materials,
     piezo,
     piezoExtension: piezoExt,
+    ...(pond.length > 0 ? { pond } : {}),
+    ...(crack ? { crack } : {}),
     surface,
     ...(reinforcements.length > 0 ? { reinforcements, reinforcementForces } : {}),
     bounds: { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY },

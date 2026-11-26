@@ -48,7 +48,7 @@ function recorder() {
 }
 
 const dark: SectionPalette = {
-  bg: 'BG', grid: 'GRID', axis: 'AXIS', axisText: 'TEXT', halo: 'HALO', regionEdge: 'EDGE', surface: 'SURF', surfaceUnconverged: 'UNCONV', piezo: 'PIEZO', reinforcement: 'REINF',
+  bg: 'BG', grid: 'GRID', axis: 'AXIS', axisText: 'TEXT', halo: 'HALO', regionEdge: 'EDGE', surface: 'SURF', surfaceUnconverged: 'UNCONV', piezo: 'PIEZO', pond: 'POND', reinforcement: 'REINF',
   sliceFill: 'SFILL', sliceEdge: 'SEDGE', materials: ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'], materialUnknown: 'MU',
 };
 

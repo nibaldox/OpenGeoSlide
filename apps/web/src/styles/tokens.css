@@ -61,6 +61,7 @@
   --canvas-surface: #a31515;
   --canvas-surface-unconverged: #9a3412;
   --canvas-piezo: #1e40af;
+  --canvas-pond: #bfdbfe;
   --canvas-load: #6d28d9;
   --canvas-reinforcement: #0f5132;
   --canvas-seismic: #9a3412;
@@ -132,6 +133,7 @@
     --canvas-surface: #fca5a5;
     --canvas-surface-unconverged: #fdba74;
     --canvas-piezo: #7dd3fc;
+    --canvas-pond: #1e3a5f;
     --canvas-load: #d8b4fe;
     --canvas-reinforcement: #5eead4;
     --canvas-seismic: #fdba74;
@@ -197,6 +199,7 @@
     --canvas-surface: light-dark(#a31515, #fca5a5);
     --canvas-surface-unconverged: light-dark(#9a3412, #fdba74);
     --canvas-piezo: light-dark(#1e40af, #7dd3fc);
+    --canvas-pond: light-dark(#bfdbfe, #1e3a5f);
     --canvas-load: light-dark(#6d28d9, #d8b4fe);
     --canvas-reinforcement: light-dark(#0f5132, #5eead4);
     --canvas-seismic: light-dark(#9a3412, #fdba74);
@@ -270,6 +273,7 @@ html[data-theme='dark'] {
     --canvas-surface: #a31515;
     --canvas-surface-unconverged: #9a3412;
     --canvas-piezo: #1e40af;
+    --canvas-pond: #bfdbfe;
     --canvas-load: #6d28d9;
     --canvas-reinforcement: #0f5132;
     --canvas-seismic: #9a3412;
@@ -333,6 +337,7 @@ html[data-theme='dark'] {
     --canvas-surface: #fca5a5;
     --canvas-surface-unconverged: #fdba74;
     --canvas-piezo: #7dd3fc;
+    --canvas-pond: #1e3a5f;
     --canvas-load: #d8b4fe;
     --canvas-reinforcement: #5eead4;
     --canvas-seismic: #fdba74;
