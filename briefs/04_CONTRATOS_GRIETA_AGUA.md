@@ -333,3 +333,194 @@ original. Las convenciones de este apartado son las de X22 §1 a §4.
   - se **retira** el aviso del editor `editor.gamma_sat_unverified`;
   - se corrigen las líneas del README y de `docs/limitaciones.md` que dicen que γsat no está verificado;
   - la nota `editor.gamma_sat_lt_gamma` se mantiene.
+
+## F5.12 Correcciones de la revisión R12 (E15l)
+
+**Fuentes:** `docs/reviews/R12_agy_A.md` (lente A, mecánica) y `docs/reviews/R12_agy_B.md` (lente B, propagación). Las dos
+dieron NO APTO. El coordinador reprodujo con el binario integrado (`3975701`) los hallazgos críticos y altos del motor:
+
+- **A-01:** el espejo de la reproducción da RTL Bishop 1,726963 con `depth 0`, frente a 1,692572 en LTR con
+  `depth 2,648`.
+- **A-02:** con φ = 35°, S/D = 1,001 y `capacity`, los cuatro métodos fallan: Bishop `invalid` y los demás
+  `not_converged`.
+- **A-03:** se confirmó en el código (`water.rs`, bucle E4 sin asignación única).
+- **A-04:** con una UDL en la coronación, la grieta da `x = −66,5`, `depth 0` y `Pw 0`, pero el FS pasa de 1,117139
+  a 1,102248.
+- **B-01:** `model.rs` y `geometry.rs` usan 9,81 sin mirar las unidades.
+
+Se revisaron los 15 modelos imperiales del corpus: ninguno usa agua sin `unit_weight`.
+
+**Regla común:** las correcciones del motor no cambian ningún byte de los 150 modelos de identidad frente a la v0.3.0, y
+los 327 checks siguen con 0 fallas. Los modelos con grieta, agua embalsada o Ito-Matsui pueden cambiar, pero solo por
+la enmienda que lo dice, con los números antes y después.
+
+### Motor: grieta y agua (dueño M-A)
+
+- **E15l-1 (A-01): grieta automática en el borde del modelo.**
+  - La profundidad de Rankine se evalúa en la columna de `x` acotada a `[x_min + tol, x_max − tol]`, de modo que
+    `x = x_max` (o `x_min`) da la columna del borde y no una vacía.
+  - El cambio se limita al camino de la grieta. Si `PreparedModel::column` en el borde afecta a otro camino, se informa
+    y no se toca.
+  - **Criterios:**
+    - la reproducción de A-01 (geometría de V047a, c = 20, φ = 10°, γ = 18, círculo `xc 45`, `yc 50` por (70, 35),
+      `water_fill 1`) da en RTL lo mismo que su espejo LTR, a ≤ 1e-9;
+    - la búsqueda RTL no acepta ningún candidato con `depth 0` cuando `d(x_entry) > 0`.
+- **E15l-2 (A-04 y E15j-3): grieta sobre una discontinuidad de `d(x)`**, por una UDL o un cambio lateral de material.
+  - **Profundidad que se informa y se usa:** si la bisección termina en `x_c` con `|h_face − d(x_c)| > tol`, la
+    profundidad es la cara real cortada, `h_face = ground(x_c) − base(x_c)`. Si no, sigue siendo `d(x_c)`, como hoy.
+  - **Altura del agua:** `water_height = water_fill · depth`.
+  - **Sin grieta:** si `h_face ≤ tol`, no hay grieta. No se trunca (el cortador recibe `None`) y se informa `depth 0`.
+  - **Criterios:**
+    - la reproducción de A-04 informa `depth = h_face > 0` y `Pw = ½·γw·(water_fill·h_face)²`;
+    - las 55 filas de `f3g_rows.rs` no cambian (≤ 1e-12).
+- **E15l-3 (A-08): barrido de la grieta.**
+  - Al barrido uniforme de `crack::locate` se suman las abscisas que caen dentro del tramo de deslizamiento:
+    - los vértices de una superficie poligonal;
+    - los vértices del terreno;
+    - los bordes de las UDL;
+    - los vértices de las regiones.
+  - **Criterio:** la polilínea de A-08 (vano de 86 m, vértice (50,1; 7,0) a 3 m de profundidad, tramo de 0,2 m, d =
+    2,5) alcanza la grieta.
+- **E15l-4 (A-03): empuje de un paramento vertical (E4).** Cada paramento se aplica a **una sola** dovela: la de borde
+  del lado alto más cercano a `wall.x` dentro de `wall_tol`.
+  - **Criterio:** en un modelo esbelto, una carga lineal de 1 kN/m a menos de `wall_tol` del paramento no cambia
+    `Σ h_force` (≤ 1e-9 relativo).
+- **E15l-5 (A-09 y B-03): aviso `water_above_ground`.** Se emite también cuando los términos de agua embalsada
+  aplicados a la superficie no son nulos: alguna dovela con peso del agua mayor que 0 o empuje distinto de 0, E4
+  incluido. El criterio actual se mantiene.
+  - **Criterio:** la presa de B-03 (muro vertical en x = 20 de y = 2 a 14, embalse a y = 10 en x ≤ 20, círculo
+    `xc 19`, `yc 18`, `r 13`) y el muro de A-09 emiten el aviso.
+- **E15l-6 (B-01): γw por defecto según las unidades.** Si falta `water.unit_weight`:
+  - en `SI`, vale 9,81 kN/m³;
+  - en `imperial`, vale el resultado de convertir 9,81 kN/m³ con el mismo factor que usa
+    `apps/web/src/editor/state/units.ts`. Se cita la constante y el valor ronda 62,45 pcf.
+  - **Alcance:** el valor rige para la piezométrica, el agua embalsada y el agua en la grieta.
+  - **Esquema:** cambia solo la descripción del campo en el esquema 0.5.
+  - **Conversor:** `verification/harness/to_cslope.py` sigue la misma regla. Es el único archivo de `verification/`
+    de M-A.
+  - **Criterio:** la grieta con agua de B-01 en imperial, sin `water`, da el mismo FS que en SI, a ≤ 1e-9.
+- **E15l-7 (B-06): mensaje de una búsqueda sin superficies por la grieta.** Si una búsqueda termina en
+  `NoValidSurface` y hubo k > 0 candidatos descartados por `tension_crack_not_reached`, el paréntesis final pasa a:
+
+  ```
+  ({e} evaluadas, 0 válidas; {k} no alcanzan la grieta de tracción, tension_crack_not_reached)
+  ```
+
+  Con k = 0, el mensaje es el de siempre, byte a byte.
+- **E15l-8 (A-13): tolerancias de la grieta.**
+  - `crack.rs` compara el agua con `ground + tol` (E15j-4).
+  - `Pw` se asigna a la última dovela con peso mayor que 0, nunca a una dovela de aire.
+- **E15l-9 (A-12): solo documentación.** El docstring de `Slice` (M-A) y `docs/limitaciones.md` (P) dicen que, tras
+  E15j-8, puede quedar un hueco ≤ 1e-6·ancho entre dos dovelas vecinas. El motor no cambia.
+- **E15l-10 (A-11): filas de agua embalsada.** M-A agrega a `f3g_rows.rs` al menos dos filas con términos de agua
+  embalsada no nulos sobre la superficie analizada, con su valor del oráculo.
+  - Las filas `X21-CP-V042` y `X21-CP-V061` se quedan, con un comentario: «sin términos embalsados en la superficie».
+  - P documenta en `docs/verificacion.md` qué casos ejercitan de verdad el agua embalsada en la superficie de su check.
+    Lo mide con `Σ|weight_extra|` y `Σ|h_force|`.
+
+### Motor: Ito-Matsui (dueño M-B)
+
+- **E15l-11 (A-02): perfil no finito.**
+  - Si un nodo del perfil del pilote (`p`, `F` o `Q`) no es finito, el análisis termina con este error antes de resolver:
+
+    ```
+    InvalidModel: reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = {s/d} y φ = {φ}° (las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente spacing
+    ```
+
+  - La salida nunca lleva `NaN` ni `∞`.
+  - **Criterios:** la reproducción de A-02 da ese error; el perfil 1,47e141 con φ = 25° sigue calculando.
+- **E15l-12 (A-06): precedencia de `ru` en σ′v. Enmienda E15i-3.**
+  - **En un material con `ru`:** `σ′v = σv − ru·σ_suelo`, sin restar la `u` de la piezométrica (E14o-4). Así lo
+    hacen `slicer.rs`, el `interface` de los refuerzos y el conversor a cSlope.
+  - `σv` toma `γ` o `γsat` exactamente como lo hace el cortador para ese material, y suma la sobrecarga del agua
+    embalsada (E15c).
+  - **Sin `ru`:** `σ′v = σv − u`.
+  - **Criterio:** una fila nueva con `ru = 0,2` y piezométrica queda a ≤ 0,1 % del oráculo, pasando por `to_cslope`.
+- **E15l-13 (A-07): el brazo en el primer tramo.** Entre nodos, `F(zf)` sigue interpolándose linealmente, como en
+  cSlope, y `Q` se calcula con la misma fracción:
+
+  ```
+  Q(zf) = Q[k−1] + (F(zf) − F[k−1])·(z[k−1] + zf)/2
+  ```
+
+  - Así `0 < arm ≤ zf − z_top` siempre que `zf > z_top`, y `capacity.moment` aplica siempre que `arm > 0`.
+  - **Criterios:**
+    - la reproducción de A-07 (cabeza a 1,87, cruce a 1,8576, `moment 0,01`) da `governs: bending`;
+    - las 28 filas de X22 siguen a ≤ 0,1 % del oráculo, informando el nuevo máximo.
+
+### Web: agua y grieta (dueño W1)
+
+- **E15l-14 (B-01): γw en la web.**
+  - `convertDocUnits` escribe `water.unit_weight` siempre que se usa agua: con `piezometric_line` o con
+    `tension_crack.water_fill > 0`.
+  - `AnalysisPanel` lo escribe al activar el agua de la grieta en imperial si falta.
+  - El informe muestra γw cuando hay piezométrica, agua embalsada o agua en la grieta. «Sin agua (no aplica)» queda
+    solo para el modelo sin ningún uso del agua.
+  - **Criterio:** la reproducción de B-01 (SI → imperial) da el mismo FS con el motor real, a ≤ 1e-9.
+- **E15l-15 (B-02): grieta con `depth ≤ 0` en el resultado.** La tabla, el PDF, el CSV, el resumen y el lienzo
+  muestran «Sin grieta (z = 0)», sin `x_c` ni porcentaje de agua. `warningContext` marca `tensionCrack` solo si
+  `depth > 0`.
+- **E15l-16 (B-06): errores de la grieta.**
+  - `errors.ts` traduce `tension_crack_not_reached` al español, en las dos formas: superficie fija y búsqueda (E15l-7).
+  - `issueNav` lleva al control de la grieta, `/analysis/tension_crack`.
+- **E15l-17 (B-08): motor simulado.** `mockEngine` rechaza un modelo con agua sobre el terreno o con agua en la
+  grieta, igual que hace con los refuerzos y la grieta: «El motor simulado no modela el agua embalsada; use el motor
+  WASM.».
+- **E15l-18 (B-09): textos.**
+  - `editor.ru_over_piezo` dice que, en ese material, la presión de poros sale de `ru` y no de la piezométrica, pero
+    que la piezométrica sigue aportando el agua embalsada sobre el terreno, su peso y su empuje. Comprueba con el motor
+    lo que hace γsat con `ru` y escríbelo tal cual.
+  - `WaterPanel` y `App` cuentan el agua de la grieta.
+- **E15l-19 (B-10): cambio de criterio al abrir un modelo.**
+  - Un documento de cualquier versión con la piezométrica sobre el terreno produce la nota informativa
+    `io.pond_changed` al abrirlo: «La piezométrica pasa sobre el terreno: desde la v0.4.0 se suma el agua embalsada
+    (peso y empuje), así que el FS puede diferir del calculado con la v0.3.0 o anteriores.».
+  - Si el documento tiene agua sobre el terreno, `io.version_upgraded` no dice «el resultado del cálculo no cambia».
+  - La Ayuda (`POND_CONVENTIONS`) agrega la misma frase.
+- **E15l-20 (A-13, interfaz):** con una grieta de profundidad fija y búsqueda, Diagnósticos muestra la nota
+  informativa `editor.crack_fixed_search`: «Una grieta de profundidad fija descarta las superficies más someras que su
+  profundidad; compare con un análisis sin grieta.». Se agrega solo si no existe ya una equivalente.
+
+### Web: Ito-Matsui en el lienzo y las salidas (dueño W2)
+
+- **E15l-21 (B-05): verticalidad.** `isVerticalReinforcement(r)` es verdadero para una `sheet_pile` o un `pile` con
+  `lateral_pressure`. `moveEnd`, `keys.ts` y `gesture.ts` lo usan para mantener `x1 = x2`.
+- **E15l-22 (B-11): punto de aplicación.**
+  - Con `location: centroid`, la flecha nace en `(x, y + arm)`; con `slip_surface`, en `(x, y)`. Vale para el lienzo,
+    Casos y el PDF.
+  - La información emergente del lienzo muestra `soil_force`, `governs` y `arm`.
+- **E15l-23 (B-12b y B-12c).**
+  - `validate.ts` comprueba la forma de `tension_crack` en el resultado: `x`, `depth` ≥ 0 y `water_force` ≥ 0, todos
+    finitos.
+  - El aviso de S/D de la tarjeta lleva `role="status"`.
+
+### Python, CLI y documentación (dueño P)
+
+- **E15l-24 (B-04): Python v0.5.**
+  - El docstring de `crates/ogs-py/python/opengeoslide/__init__.py` y `crates/ogs-py/README.md` cubren:
+    - la grieta;
+    - el agua embalsada automática y su cambio frente a la v0.3.0;
+    - Ito-Matsui con su alcance estructural exacto.
+  - Se quitan las afirmaciones de la v0.4 que ya son falsas.
+  - Se agrega `crates/ogs-py/tests/test_v05.py`, que se corre con el procedimiento de `docs/desarrollo.md`.
+- **E15l-25 (B-12a): ayuda de la CLI.** El `USAGE` de `crates/ogs-cli/src/main.rs` lista `tension_crack`,
+  `lateral_pressure` y `capacity`, y quita la nota de antes de Ito-Matsui.
+- **E15l-26 (B-07 y A-10): documentación.**
+  - `docs/limitaciones.md`:
+    - quita las entradas de «γsat sin cobertura» (E15k);
+    - actualiza las cifras a 327/327, 151 casos y D28-D42;
+    - documenta E15l-9 (hueco de dovelas) y A-05.
+  - `docs/verificacion.md` y `docs/desarrollo.md` citan `schema/ogs-0.5.schema.json`.
+  - En el bloque en inglés del README, la frase de los pilotes queda coherente con Ito-Matsui.
+- **E15l-27 (A-05): limitación documentada, sin cambio del motor.** Spencer, M-P y los dos Janbu rechazan con
+  `no_driving` una polilínea totalmente sumergida. cSlope tampoco la resuelve.
+
+### Lo que no se adopta o queda para la publicación
+
+- **A-05:** el motor no cambia; queda la documentación de E15l-27. Rechazar es del lado seguro y el oráculo tampoco
+  resuelve el caso.
+- **A-12:** el motor no cambia; queda la documentación de E15l-9. El hueco es de 0,8 µm en un modelo de 100 m.
+- **A-13 (G9):** descartar las superficies más someras es la convención declarada de G9. Solo se agrega la nota de
+  E15l-20.
+- **B-12d:** las versiones `0.4.0` de `Cargo.toml`, `package.json` y `CITATION.cff` las cambia el coordinador en el
+  commit de la publicación.
