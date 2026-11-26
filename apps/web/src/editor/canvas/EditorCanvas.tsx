@@ -137,6 +137,12 @@ export const CANVAS_INSTRUCTIONS =
   'La tecla R elige la herramienta Dibujar región: clic, toque o Espacio colocan un vértice con el cursor del teclado (flechas), Intro cierra la región; se puede dibujar fuera del modelo y cerca del borde la vista se desplaza sola. ' +
   'La tecla D elige Dividir región: una línea que entra y sale del borde de una región la divide en dos.';
 
+/**
+ * Versión breve de las instrucciones para el tirador con el foco (R9-10): los lectores de pantalla leen el `aria-describedby` del
+ * elemento enfocado, no el de su ancestro, y repetir el texto largo en cada tirador sería insufrible al recorrerlos.
+ */
+export const HANDLE_INSTRUCTIONS = 'Flechas: mover el tirador. [ y ]: tirador anterior o siguiente. Supr: eliminar. Tab: salir del lienzo.';
+
 /** Espera, en ms, con el puntero junto al borde antes de que la vista empiece a desplazarse (evita desplazar al cruzar el borde de paso). */
 const EDGE_SCROLL_DWELL_MS = 250;
 /** Período del autodesplazamiento, en ms. */
@@ -211,6 +217,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const readoutRef = useRef<HTMLParagraphElement>(null);
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
+  const handleHelpId = `${markerBase}-handle-help`;
 
   const { doc, ui } = state;
   // Unidades efectivas: la prop del contrato manda; si no, las del documento.
@@ -672,6 +679,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       'data-handle': h.kind,
       'data-handle-key': handleKey(h),
       tabIndex: tabIndexFor(h),
+      ...(tabIndexFor(h) === 0 ? { 'aria-describedby': handleHelpId } : {}),
       role: 'button',
       'aria-label': label,
       ...(pressed === undefined ? {} : { 'aria-pressed': pressed }),
@@ -995,6 +1003,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </div>
       ) : null}
 
+      <p id={handleHelpId} className="visually-hidden">{HANDLE_INSTRUCTIONS}</p>
       <p id={instructionsId} className="visually-hidden">{CANVAS_INSTRUCTIONS}{doc.regions.length === 0 ? ' El modelo no tiene regiones: elija la herramienta Dibujar región (tecla R).' : ''}</p>
       {!onAnnounce && (
         <div className="visually-hidden" role="status" aria-live="polite" aria-atomic="true" data-testid="canvas-live">
