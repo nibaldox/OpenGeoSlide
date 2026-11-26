@@ -218,7 +218,11 @@ fn add_stretch(
     let (Some(wa), Some(wb)) = (pm.piezometric_y(a), pm.piezometric_y(b)) else {
         return;
     };
-    let (da, db) = (wa - ya, wb - yb);
+    // A line that touches the ground (a phreatic line that ends on the slope, V033) is not water over the ground: a
+    // depth under the tolerance of the model is zero, so the terms stay exactly zero and the output does not change.
+    let tol = pm.tol();
+    let clean = |d: f64| if d <= tol { d.min(0.0) } else { d };
+    let (da, db) = (clean(wa - ya), clean(wb - yb));
     if da <= 0.0 && db <= 0.0 {
         return;
     }
@@ -286,7 +290,9 @@ pub fn ponded_terms(
     // at the vertices of the ground and of the line (both are piecewise linear).
     let above = |x: f64| {
         let w = pm.piezometric_y(x).unwrap_or(f64::NEG_INFINITY);
-        pieces.iter().any(|p| x >= p.xa && x <= p.xb && w > p.at(x))
+        pieces
+            .iter()
+            .any(|p| x >= p.xa && x <= p.xb && w - p.at(x) > pm.tol())
     };
     let reaches =
         pieces.iter().any(|p| above(p.xa) || above(p.xb)) || line.iter().any(|p| above(p[0]));

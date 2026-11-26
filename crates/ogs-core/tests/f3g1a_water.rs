@@ -171,6 +171,28 @@ fn without_water_over_the_ground_every_term_is_zero_and_the_slices_do_not_change
 }
 
 #[test]
+fn a_phreatic_line_that_touches_the_ground_gives_exact_zero_terms() {
+    // V021a, V033, V045 and V046b have a piezometric line that ends on the ground of the slope: it touches it, it does
+    // not go over it. A depth of rounding size (`1e-15`) must not become a term of `1e-29` (identity, E15e-1).
+    for name in ["V021a", "V033", "V045", "V046b"] {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join(format!("../../verification/cases/{name}.json"));
+        let case: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let doc = case["model"].clone();
+        assert!(doc["water"]["piezometric_line"].is_array(), "{name}");
+        let report = run(&doc);
+        for r in &report.results {
+            for s in &r.slices {
+                assert_eq!(s.weight_extra.to_bits(), 0.0_f64.to_bits(), "{name}");
+                assert_eq!(s.h_force.to_bits(), 0.0_f64.to_bits(), "{name}");
+                assert_eq!(s.h_moment_base.to_bits(), 0.0_f64.to_bits(), "{name}");
+                assert_eq!(s.driving_extra.to_bits(), 0.0_f64.to_bits(), "{name}");
+            }
+        }
+    }
+}
+
+#[test]
 fn zero_terms_leave_the_slices_bit_for_bit_and_the_neutral_fields_stay_zero() {
     let doc = row_doc("X21-N02");
     let report = run(&doc);
