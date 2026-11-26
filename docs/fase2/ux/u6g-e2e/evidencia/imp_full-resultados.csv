@@ -1,0 +1,3 @@
+﻿metodo,estado,fs,iteraciones,lambda,xc_ft,yc_ft,r_ft,evaluadas,validas,avisos,unidades
+bishop,converged,1.5690068927620495,5,,104.28730246030521,179.0326910204119,97.01265366497543,3830,3385,load_outside_mass,imperial
+spencer,converged,1.5688409039849376,43,0.5039676591008467,104.29919630237649,179.66417908956842,97.64379177951993,3831,3385,load_outside_mass,imperial
