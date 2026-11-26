@@ -4,6 +4,7 @@ import type { Reinforcement } from '../../engine/types';
 import type { EditorCommand, Selection } from '../types';
 import { applyCommand, isSelectionValid } from './reducer';
 import { FIVE, anchor, pile, sheet } from './reinforcementFixtures';
+import { reduce } from './reducer';
 import { createEditorStore } from './store';
 import { baseDoc } from './testFixtures';
 
@@ -184,5 +185,16 @@ describe('selección y versión', () => {
   it('doc/load de un documento con refuerzos y versión menor la sube a 0.4', () => {
     const doc = { ...baseDoc(), reinforcements: [anchor()] };
     expect(applyCommand(baseDoc(), { type: 'doc/replace', doc, fileName: null })?.version).toBe('0.4');
+  });
+});
+
+describe('herramienta draw_reinforcement', () => {
+  it('ui/tool la admite y no entra en el historial', () => {
+    const s = createEditorStore(baseDoc(), null);
+    const before = s.getState();
+    s.dispatch({ type: 'ui/tool', tool: 'draw_reinforcement' });
+    expect(s.getState().ui.tool).toBe('draw_reinforcement');
+    expect(s.getState().history.past).toEqual(before.history.past);
+    expect(reduce(s.getState(), { type: 'ui/tool', tool: 'draw_reinforcement' })).toBe(s.getState());
   });
 });

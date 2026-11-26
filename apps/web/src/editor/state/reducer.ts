@@ -527,7 +527,7 @@ function reduceUi(state: EditorState, action: UiAction): EditorState {
       return { ...state, ui: { ...state.ui, selection: action.selection } };
     }
     case 'ui/tool': {
-      if (action.tool !== 'select' && action.tool !== 'add_vertex' && action.tool !== 'draw_region' && action.tool !== 'split_region' && action.tool !== 'pan') return state;
+      if (action.tool !== 'select' && action.tool !== 'add_vertex' && action.tool !== 'draw_region' && action.tool !== 'split_region' && action.tool !== 'draw_reinforcement' && action.tool !== 'pan') return state;
       return action.tool === state.ui.tool ? state : { ...state, ui: { ...state.ui, tool: action.tool } };
     }
     case 'ui/viewport': {

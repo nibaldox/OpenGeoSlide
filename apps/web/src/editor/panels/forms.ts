@@ -64,7 +64,7 @@ export type FieldErrors = Record<string, string>;
 
 export type FormOutcome<V> = { ok: true; value: V } | { ok: false; errors: FieldErrors };
 
-function done<V>(errors: FieldErrors, value: () => V): FormOutcome<V> {
+export function done<V>(errors: FieldErrors, value: () => V): FormOutcome<V> {
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: value() };
 }
 
@@ -75,7 +75,7 @@ function notANumber(label: string | undefined): string {
   return label ? `${label}: escriba un número (admite coma o punto decimal)` : NOT_A_NUMBER;
 }
 
-interface NumberRule {
+export interface NumberRule {
   /** Si es falso, un campo vacío es válido y el valor es `null`. */
   required: boolean;
   /** Mensaje para un campo obligatorio vacío. */
@@ -134,7 +134,7 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
 };
 
 /** Lee un campo y, si falla, anota el error. Devuelve el valor o `null` (vacío opcional o error). */
-function take(errors: FieldErrors, field: string, text: string, rule: NumberRule): number | null {
+export function take(errors: FieldErrors, field: string, text: string, rule: NumberRule): number | null {
   const r = readNumber(text, { label: FIELD_LABEL[field], ...rule });
   if (!r.ok) {
     errors[field] = r.message;
@@ -143,7 +143,7 @@ function take(errors: FieldErrors, field: string, text: string, rule: NumberRule
   return r.value;
 }
 
-const finite = (v: number): boolean => Number.isFinite(v);
+export const finite = (v: number): boolean => Number.isFinite(v);
 
 // ───────────────────────── Unidades ─────────────────────────
 
@@ -208,7 +208,7 @@ export interface TerrainRanges {
 }
 
 /** Cota de la superficie del terreno (envolvente superior de todas las regiones) en `x`; `-Infinity` fuera. */
-function terrainY(regions: ModelDoc['regions'], x: number, tol: number): number {
+export function terrainY(regions: ModelDoc['regions'], x: number, tol: number): number {
   let best = -Infinity;
   for (const { polygon } of regions) {
     for (let i = 0; i < polygon.length; i += 1) {
@@ -1681,7 +1681,7 @@ function toIndex(segment: string | undefined): number | null {
  * Puntero JSON de una incidencia → elemento a seleccionar. Rutas reconocidas:
  * `/regions/i[/material]` → región; `/regions/i/polygon/j` → vértice; `/materials/k` → material;
  * `/water/piezometric_line/k` → punto de la piezométrica; `/analysis/surface[/…]` → círculo (con una polilínea, `/analysis/surface/points/k` → su vértice k);
- * `/analysis/search/entry|exit` → banda; `/loads/k` → carga. Cualquier otra → `none`.
+ * `/analysis/search/entry|exit` → banda; `/loads/k` → carga; `/reinforcements/k[/…]` → refuerzo. Cualquier otra → `none`.
  */
 export function selectionForPath(path: string | null, doc: ModelDoc): Selection {
   if (path === null || path === '') return { kind: 'none' };
@@ -1719,6 +1719,10 @@ export function selectionForPath(path: string | null, doc: ModelDoc): Selection 
   if (a === 'loads') {
     const k = toIndex(b);
     return k !== null && k < (doc.loads?.length ?? 0) ? { kind: 'load', index: k } : { kind: 'none' };
+  }
+  if (a === 'reinforcements') {
+    const k = toIndex(b);
+    return k !== null && k < (doc.reinforcements?.length ?? 0) ? { kind: 'reinforcement', index: k } : { kind: 'none' };
   }
   return { kind: 'none' };
 }
