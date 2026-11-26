@@ -150,7 +150,8 @@ const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h 
       links: [...d.querySelectorAll('a[target="_blank"]')].map((a) => a.href),
     };
   });
-  step('6 «Ayuda» abre un <dialog> modal con índice, glosario, atajos y enlaces', helpInfo.modal && helpInfo.index.length === 6 && helpInfo.terms.length === 11 && helpInfo.kbd >= 16 && helpInfo.links.length === 4, helpInfo);
+  step('6 «Ayuda» abre un <dialog> modal con índice, glosario, atajos y enlaces', helpInfo.modal && helpInfo.index.length === 6 && helpInfo.terms.length === 12 && // U6-I: 12 y no 11: U6-G (R9-05b) añadió el término «Ángulo de la carga lineal» al glosario
+     helpInfo.kbd >= 16 && helpInfo.links.length === 4, helpInfo);
   await shot(page, 'o-ayuda-claro-1440');
   // Índice: ir al glosario
   await page.getByRole('link', { name: 'Glosario' }).click();
