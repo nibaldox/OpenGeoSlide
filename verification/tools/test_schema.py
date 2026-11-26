@@ -1136,3 +1136,123 @@ def test_the_engine_gate_names_tension_crack_and_the_schema_rejects_the_same_doc
         path.write_text(json.dumps(model), encoding="utf-8")
         proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
         assert proc.returncode != 0 and 'InvalidModel: tension_crack requiere version "0.5"' in proc.stderr, proc.stderr
+
+
+# ------------------------------------------------------------ version 0.5: Ito-Matsui (F5.10, E15i-1)
+
+_LP = {"model": "ito_matsui", "diameter": 0.8, "location": "centroid"}
+
+
+def _ito(**f):
+    """A pile whose force comes from `lateral_pressure` (no `force`); `_DEL` removes a field."""
+    return _pile(**{**{"force": _DEL, "lateral_pressure": dict(_LP), "spacing": 2.4}, **f})
+
+
+def _lp(**f):
+    """The `lateral_pressure` object with some fields changed; `_DEL` removes one."""
+    lp = {**_LP, **f}
+    return {k: v for k, v in lp.items() if v is not _DEL}
+
+
+V05_PILE_TABLE = [
+    # accepted
+    ("ito-matsui centroid", _reinf(_ito()), True),
+    ("ito-matsui slip_surface", _reinf(_ito(lateral_pressure=_lp(location="slip_surface"))), True),
+    ("ito-matsui with capacity shear", _reinf(_ito(capacity={"shear": 150.0})), True),
+    ("ito-matsui with capacity moment", _reinf(_ito(capacity={"moment": 250.0})), True),
+    ("ito-matsui with both capacities", _reinf(_ito(capacity={"shear": 150.0, "moment": 250.0})), True),
+    ("capacity with a null and a value", _reinf(_ito(capacity={"shear": None, "moment": 250.0})), True),
+    ("force null with lateral_pressure", _reinf(_ito(force=None)), True),
+    ("capacity null with lateral_pressure", _reinf(_ito(capacity=None)), True),
+    ("lateral_pressure null with force", _reinf(_pile(lateral_pressure=None)), True),
+    ("capacity null with force", _reinf(_pile(capacity=None)), True),
+    ("spacing by default (1) above the diameter", _reinf(_ito(spacing=_DEL)), True),
+    ("spacing null above the diameter", _reinf(_ito(spacing=None)), True),
+    ("tangent direction", _reinf(_ito(direction="tangent", angle=_DEL)), True),
+    ("active", _reinf(_ito(application="active")), True),
+    ("0.5 pile with force", _reinf(_pile()), True),
+    # exactly one of force and lateral_pressure
+    ("force and lateral_pressure", _reinf(_ito(force=60.0)), False),
+    ("neither force nor lateral_pressure", _reinf(_ito(lateral_pressure=_DEL)), False),
+    ("force null and lateral_pressure null", _reinf(_ito(force=None, lateral_pressure=None)), False),
+    # lateral_pressure
+    ("diameter 0", _reinf(_ito(lateral_pressure=_lp(diameter=0))), False),
+    ("diameter -0.8", _reinf(_ito(lateral_pressure=_lp(diameter=-0.8))), False),
+    ("diameter text", _reinf(_ito(lateral_pressure=_lp(diameter="0.8"))), False),
+    ("diameter missing", _reinf(_ito(lateral_pressure=_lp(diameter=_DEL))), False),
+    ("model missing", _reinf(_ito(lateral_pressure=_lp(model=_DEL))), False),
+    ("another model", _reinf(_ito(lateral_pressure=_lp(model="broms"))), False),
+    ("location missing", _reinf(_ito(lateral_pressure=_lp(location=_DEL))), False),
+    ("location null", _reinf(_ito(lateral_pressure=_lp(location=None))), False),
+    ("location bottom", _reinf(_ito(lateral_pressure=_lp(location="bottom"))), False),
+    ("location with a hyphen", _reinf(_ito(lateral_pressure=_lp(location="slip-surface"))), False),
+    ("unknown field in lateral_pressure", _reinf(_ito(lateral_pressure=_lp(friction=0.3))), False),
+    ("lateral_pressure empty", _reinf(_ito(lateral_pressure={})), False),
+    ("lateral_pressure is a number", _reinf(_ito(lateral_pressure=0.8)), False),
+    # capacity
+    ("empty capacity", _reinf(_ito(capacity={})), False),
+    ("capacity with two nulls", _reinf(_ito(capacity={"shear": None, "moment": None})), False),
+    ("capacity shear 0", _reinf(_ito(capacity={"shear": 0})), False),
+    ("capacity shear negative", _reinf(_ito(capacity={"shear": -1.0})), False),
+    ("capacity moment negative", _reinf(_ito(capacity={"moment": -1.0})), False),
+    ("capacity text", _reinf(_ito(capacity={"shear": "150"})), False),
+    ("unknown field in capacity", _reinf(_ito(capacity={"shear": 10.0, "axial": 3.0})), False),
+    ("capacity with force", _reinf(_pile(capacity={"shear": 10.0})), False),
+    # elsewhere
+    ("lateral_pressure in a sheet_pile", _reinf(_sheet(lateral_pressure=dict(_LP))), False),
+    ("capacity in a sheet_pile", _reinf(_sheet(capacity={"shear": 10.0})), False),
+    ("lateral_pressure in an anchor", _reinf(_anchor(lateral_pressure=dict(_LP))), False),
+    # version gate
+    ("lateral_pressure in 0.4", _both(_version("0.4"), _reinf(_ito())), False),
+    ("lateral_pressure in 0.3", _both(_version("0.3"), _reinf(_ito())), False),
+    ("capacity in 0.4", _both(_version("0.4"), _reinf(_pile(capacity={"shear": 10.0}))), False),
+    ("a pile with force in 0.4", _both(_version("0.4"), _reinf(_pile())), True),
+    ("null lateral_pressure and capacity in 0.4", _both(_version("0.4"), _reinf(_pile(lateral_pressure=None, capacity=None))), True),
+]
+
+# Rules of E15i-1 that only the engine enforces (JSON Schema cannot compare two fields): the schema accepts, the engine rejects.
+V05_PILE_ENGINE_ONLY_TABLE = [
+    ("inclined pile", _reinf(_ito(x2=41.0)), "reinforcements[0].x2"),
+    ("pile 1e-3 off the vertical", _reinf(_ito(x2=40.001)), "reinforcements[0].x2"),
+    ("spacing equal to the diameter", _reinf(_ito(spacing=0.8)), "reinforcements[0].spacing"),
+    ("spacing below the diameter", _reinf(_ito(spacing=0.5)), "reinforcements[0].spacing"),
+    ("default spacing (1) below the diameter", _reinf(_ito(spacing=_DEL, lateral_pressure=_lp(diameter=1.5))), "reinforcements[0].spacing"),
+]
+
+
+def test_the_v0_5_pile_table_has_at_least_45_rows():
+    assert len(V05_PILE_TABLE) >= 45 and len(V05_PILE_ENGINE_ONLY_TABLE) >= 5
+
+
+@pytest.mark.parametrize("name,mutate,accepted", V05_PILE_TABLE, ids=[row[0] for row in V05_PILE_TABLE])
+def test_schema_and_engine_agree_on_the_ito_matsui_table(name, mutate, accepted, tmp_path):
+    model = _prepare_v05(mutate)
+    schema_ok = _errors(model, SCHEMA_05) == []
+    engine_ok, err = _engine_accepts(model, tmp_path)
+    assert engine_ok == accepted, f"motor: esperado {'aceptar' if accepted else 'rechazar'}, dio {err or 'OK'}"
+    assert schema_ok == accepted, f"esquema: esperado {'aceptar' if accepted else 'rechazar'}: {_errors(model, SCHEMA_05)[:2]}"
+
+
+@pytest.mark.parametrize("name,mutate,path", V05_PILE_ENGINE_ONLY_TABLE, ids=[row[0] for row in V05_PILE_ENGINE_ONLY_TABLE])
+def test_ito_matsui_engine_only_rules_pass_the_schema_and_fail_in_the_engine(name, mutate, path, tmp_path):
+    model = _prepare_v05(mutate)
+    assert _errors(model, SCHEMA_05) == [], name
+    ok, err = _engine_accepts(model, tmp_path)
+    assert not ok and "InvalidModel" in err and path in err, (name, err)
+
+
+def test_the_engine_gate_names_lateral_pressure_and_the_schema_rejects_the_same_documents(tmp_path):
+    """E15i-1: with a version below 0.5 the error is `lateral_pressure requiere version "0.5"`."""
+    model = _prepare_v05(_both(_version("0.4"), _reinf(_ito())))
+    assert _errors(model, SCHEMA_05)
+    path = tmp_path / "gate.ogs.json"
+    path.write_text(json.dumps(model), encoding="utf-8")
+    proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+    assert proc.returncode != 0 and 'InvalidModel: lateral_pressure requiere version "0.5"' in proc.stderr, proc.stderr
+
+
+def test_the_ito_matsui_rows_validate_against_the_0_5_schema():
+    paths = sorted(glob.glob(os.path.join(ROOT, "crates", "ogs-core", "tests", "data", "f3g3", "rows", "X22-*.json")))
+    assert len(paths) == 28
+    for path in paths:
+        assert _errors(_load(path), SCHEMA_05) == [], path
