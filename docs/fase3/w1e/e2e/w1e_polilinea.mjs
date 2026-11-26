@@ -27,7 +27,9 @@ await page.waitForSelector('[aria-label="Puntos de la polilínea de falla"]');
 const n0 = await rowsOf();
 const xs0 = [];
 for (let i = 1; i <= n0; i += 1) xs0.push(Number((await pt(i, 'x').inputValue()).replace(',', '.')));
-step('2 al pasar a polilínea se propone la cuerda de 5 puntos del círculo, con x creciente', n0 === 5 && xs0.every((x, i) => i === 0 || x > xs0[i - 1]), { n0, xs0 });
+// C-W (F3A-C): la propuesta ya no es solo la cuerda de 5 puntos del círculo. Para ser admisible por construcción (F3.3) añade un punto en cada
+// vértice del terreno que cae dentro del arco (el pie y el codo de la corona): son 5 puntos del arco más esos vértices (7 en este modelo).
+step('2 al pasar a polilínea se propone una polilínea admisible: ≥ 5 puntos del arco (más un punto en cada vértice del terreno), con x creciente', n0 >= 5 && xs0.every((x, i) => i === 0 || x > xs0[i - 1]), { n0, xs0 });
 await shot(page, '03-polilinea-tabla');
 await tab(page, 'Análisis');
 step('2b Bishop queda desmarcado y deshabilitado; Spencer marcado (mismo paso)', !(await bishopBox().isChecked()) && (await bishopBox().isDisabled()) && (await page.getByRole('checkbox', { name: 'Spencer', exact: true }).isChecked()));
@@ -47,7 +49,7 @@ const y2 = await pt(2, 'y').inputValue();
 await pt(2, 'y').fill('-1,5');
 await pt(2, 'y').press('Enter');
 let surf = await points();
-step('3 editar y del punto 2 se guarda (coma decimal) y el archivo es 0.3 con tipo polyline', surf.type === 'polyline' && surf.points[1][1] === -1.5 && surf.points.length === 5, { surf: surf.points });
+step('3 editar y del punto 2 se guarda (coma decimal) y el archivo es 0.3 con tipo polyline', surf.type === 'polyline' && surf.points[1][1] === -1.5 && surf.points.length === n0, { surf: surf.points });
 await undo();
 step('3b un Deshacer devuelve el valor anterior', (await pt(2, 'y').inputValue()) === y2);
 
