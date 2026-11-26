@@ -1,0 +1,99 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V072a",
+  "title": "Pockoski & Duncan test slope 2, dry tension crack"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "sandy_clay",
+   "name": "Sandy clay",
+   "unit_weight": 18.8504952,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 14.364078000000001,
+   "friction_angle": 30
+  }
+ ],
+ "regions": [
+  {
+   "material": "sandy_clay",
+   "polygon": [
+    [
+     -21.336000000000002,
+     22.86
+    ],
+    [
+     -21.336000000000002,
+     30.48
+    ],
+    [
+     0.0,
+     30.48
+    ],
+    [
+     30.48,
+     45.72
+    ],
+    [
+     51.816,
+     45.72
+    ],
+    [
+     51.816,
+     22.86
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    -21.336000000000002,
+    30.48
+   ],
+   [
+    0,
+    30.48
+   ],
+   [
+    30.48,
+    42.672000000000004
+   ],
+   [
+    51.816,
+    42.672000000000004
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 7.5169776,
+   "yc": 60.2455488,
+   "r": 30.720792000000003
+  },
+  "tension_crack": {
+   "depth": 1.6764000000000001,
+   "water_fill": 0.0
+  }
+ }
+}

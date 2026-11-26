@@ -1,0 +1,103 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-S-V086b-auto",
+  "title": "Tandjiria embankment, clay fill, water-filled crack"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "fill",
+   "name": "Fill",
+   "unit_weight": 19.4,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 20
+  },
+  {
+   "id": "soft_clay",
+   "name": "Soft clay",
+   "unit_weight": 19.4,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 20
+  }
+ ],
+ "regions": [
+  {
+   "material": "soft_clay",
+   "polygon": [
+    [
+     0.0,
+     -2.0
+    ],
+    [
+     0.0,
+     3.0
+    ],
+    [
+     20.0,
+     3.0
+    ],
+    [
+     30.0,
+     3.0
+    ],
+    [
+     30.0,
+     -2.0
+    ]
+   ]
+  },
+  {
+   "material": "fill",
+   "polygon": [
+    [
+     0.0,
+     3.0
+    ],
+    [
+     0.0,
+     9.0
+    ],
+    [
+     10.0,
+     9.0
+    ],
+    [
+     20.0,
+     3.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "tension_crack": {
+   "depth": "auto",
+   "water_fill": 1
+  },
+  "surface": {
+   "type": "circle",
+   "xc": 14.987433587274646,
+   "yc": 12.314988536598802,
+   "r": 12.314910777003446
+  }
+ }
+}

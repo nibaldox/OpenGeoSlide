@@ -1,0 +1,185 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V082a",
+  "title": "Sharma (1996) slope, 11 ft dry tension crack instead of the zero-strength cap"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil_1",
+   "name": "Soil 1",
+   "unit_weight": 18.28498,
+   "unit_weight_sat": 19.51026,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 23.94013,
+   "friction_angle": 14
+  },
+  {
+   "id": "soil_2_zero_strength",
+   "name": "Soil 2 (zero strength)",
+   "unit_weight": 18.28498,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "undrained",
+   "undrained_strength": 0
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil_1",
+   "polygon": [
+    [
+     60.96,
+     30.1752
+    ],
+    [
+     60.96,
+     23.1648
+    ],
+    [
+     49.0728,
+     17.6784
+    ],
+    [
+     40.5384,
+     17.0688
+    ],
+    [
+     34.4424,
+     19.5072
+    ],
+    [
+     28.6512,
+     19.812
+    ],
+    [
+     23.7744,
+     17.0688
+    ],
+    [
+     15.5448,
+     7.9248
+    ],
+    [
+     8.8392,
+     7.3152
+    ],
+    [
+     0.0,
+     4.572
+    ],
+    [
+     0.0,
+     20.7264
+    ],
+    [
+     6.7056,
+     20.4216
+    ],
+    [
+     11.5824,
+     19.2024
+    ],
+    [
+     19.2024,
+     22.2504
+    ],
+    [
+     30.7848,
+     26.8224
+    ]
+   ]
+  },
+  {
+   "material": "soil_1",
+   "polygon": [
+    [
+     30.7848,
+     26.8224
+    ],
+    [
+     42.0624,
+     31.3944
+    ],
+    [
+     60.96,
+     33.528
+    ],
+    [
+     60.96,
+     30.1752
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    0,
+    20.7264
+   ],
+   [
+    6.7056,
+    20.4216
+   ],
+   [
+    11.5824,
+    19.2024
+   ],
+   [
+    19.2024,
+    22.2504
+   ],
+   [
+    25.28316,
+    23.798784
+   ],
+   [
+    31.635192,
+    24.999696
+   ],
+   [
+    37.081968,
+    25.749504
+   ],
+   [
+    42.553128,
+    26.496264
+   ],
+   [
+    60.96,
+    28.28544
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 18.1417,
+   "yc": 66.81521,
+   "r": 48.06086
+  },
+  "tension_crack": {
+   "depth": 3.3528,
+   "water_fill": 0.0
+  }
+ }
+}

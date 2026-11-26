@@ -1,0 +1,78 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-S-V048-fija",
+  "title": "ACADS 1(b), water-filled tension crack"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "unit_weight": 20,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 32,
+   "friction_angle": 10
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     0.0,
+     18.0
+    ],
+    [
+     0.0,
+     25.0
+    ],
+    [
+     30.0,
+     25.0
+    ],
+    [
+     50.0,
+     35.0
+    ],
+    [
+     90.0,
+     35.0
+    ],
+    [
+     90.0,
+     18.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "tension_crack": {
+   "depth": 4,
+   "water_fill": 1
+  },
+  "surface": {
+   "type": "circle",
+   "xc": 37.53507476944863,
+   "yc": 43.16661411420662,
+   "r": 19.66731349614563
+  }
+ }
+}

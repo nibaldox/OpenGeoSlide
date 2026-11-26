@@ -1,0 +1,244 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-CP-V024",
+  "title": "Dam on a layered foundation with artesian uplift, piezometric line (D&W fig. 6.39)"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "outer_shell",
+   "name": "Outer shell",
+   "unit_weight": 19.63593,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 34
+  },
+  {
+   "id": "clay_core",
+   "name": "Clay core",
+   "unit_weight": 19.16467,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 4.78803,
+   "friction_angle": 26
+  },
+  {
+   "id": "foundation_clay",
+   "name": "Foundation clay",
+   "unit_weight": 19.32176,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 24
+  },
+  {
+   "id": "foundation_sand",
+   "name": "Foundation sand",
+   "unit_weight": 19.95011,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 32
+  }
+ ],
+ "regions": [
+  {
+   "material": "foundation_sand",
+   "polygon": [
+    [
+     0.0,
+     55.4736
+    ],
+    [
+     0.0,
+     60.0456
+    ],
+    [
+     275.844,
+     60.0456
+    ],
+    [
+     275.844,
+     55.4736
+    ]
+   ]
+  },
+  {
+   "material": "foundation_clay",
+   "polygon": [
+    [
+     0.0,
+     60.0456
+    ],
+    [
+     0.0,
+     69.1896
+    ],
+    [
+     48.768,
+     69.1896
+    ],
+    [
+     121.158,
+     69.1896
+    ],
+    [
+     154.686,
+     69.1896
+    ],
+    [
+     227.076,
+     69.1896
+    ],
+    [
+     275.844,
+     69.1896
+    ],
+    [
+     275.844,
+     60.0456
+    ]
+   ]
+  },
+  {
+   "material": "outer_shell",
+   "polygon": [
+    [
+     48.768,
+     69.1896
+    ],
+    [
+     121.158,
+     93.3196
+    ],
+    [
+     131.064,
+     96.6216
+    ],
+    [
+     134.112,
+     96.6216
+    ],
+    [
+     141.732,
+     96.6216
+    ],
+    [
+     144.78,
+     96.6216
+    ],
+    [
+     154.686,
+     93.3196
+    ],
+    [
+     227.076,
+     69.1896
+    ],
+    [
+     154.686,
+     69.1896
+    ],
+    [
+     141.732,
+     95.0976
+    ],
+    [
+     134.112,
+     95.0976
+    ],
+    [
+     121.158,
+     69.1896
+    ]
+   ]
+  },
+  {
+   "material": "clay_core",
+   "polygon": [
+    [
+     121.158,
+     69.1896
+    ],
+    [
+     134.112,
+     95.0976
+    ],
+    [
+     141.732,
+     95.0976
+    ],
+    [
+     154.686,
+     69.1896
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    0,
+    92.0496
+   ],
+   [
+    117.348,
+    92.0496
+   ],
+   [
+    132.98424,
+    91.83624
+   ],
+   [
+    143.74368,
+    83.42376
+   ],
+   [
+    151.4856,
+    71.68896
+   ],
+   [
+    194.03568,
+    71.04888
+   ],
+   [
+    227.47224,
+    69.1896
+   ],
+   [
+    275.844,
+    69.1896
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 211.836,
+   "yc": 118.872,
+   "r": 58.8264
+  }
+ }
+}

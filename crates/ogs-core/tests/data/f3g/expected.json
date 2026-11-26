@@ -1,0 +1,949 @@
+{
+ "source": "docs/fase3/exploracion/X21_filas/resultados.json (oracle cSlope 0.1.0, key `oraculo`)",
+ "tolerance_pct": 0.1,
+ "methods": [
+  "bishop",
+  "spencer",
+  "morgenstern_price",
+  "janbu_simplified",
+  "janbu_corrected"
+ ],
+ "rows": {
+  "X21-A01": {
+   "kind": "crack",
+   "description": "V047a con c = 10: z = 2c/(\u03b3\u00b7tan(45\u00b0 \u2212 \u03c6/2)) = 1,4176 m, seca",
+   "oracle": {
+    "bishop": 1.4141391285097564,
+    "spencer": 1.4120183343948685,
+    "morgenstern_price": 1.4120183343948685,
+    "janbu_simplified": 1.3594632969196145,
+    "janbu_corrected": 1.4172164227211055
+   },
+   "oracle_proto_max_dif_pct": 0.012133431828974731,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 49.98270670015802,
+    "depth": 1.417590366488806
+   }
+  },
+  "X21-A02": {
+   "kind": "crack",
+   "description": "\u00eddem con la grieta llena",
+   "oracle": {
+    "bishop": 1.3860960305691687,
+    "spencer": 1.3835619868700728,
+    "morgenstern_price": 1.3835619868700728,
+    "janbu_simplified": 1.3255543252266602,
+    "janbu_corrected": 1.3818669199653268
+   },
+   "oracle_proto_max_dif_pct": 0.012242933201077656,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 49.98270670015802,
+    "depth": 1.417590366488806
+   }
+  },
+  "X21-A03": {
+   "kind": "crack",
+   "description": "material no drenado Su = 25 (\u03c6 = 0): z = 2Su/\u03b3 = 2,5 m",
+   "oracle": {
+    "bishop": 1.5558342695803784,
+    "spencer": 1.5558342695803784,
+    "morgenstern_price": 1.5558342695803784,
+    "janbu_simplified": 1.4990136788744666,
+    "janbu_corrected": 1.574116626523057
+   },
+   "oracle_proto_max_dif_pct": 0.0235830820514075,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 47.24852943672485,
+    "depth": 2.5000000000000004
+   }
+  },
+  "X21-A04": {
+   "kind": "crack",
+   "description": "no drenado con gradiente (Su = 20 + 1,5\u00b7(30 \u2212 y)): z con Su en el terreno de x",
+   "oracle": {
+    "bishop": 1.378068300723766,
+    "spencer": 1.378068300723766,
+    "morgenstern_price": 1.378068300723766,
+    "janbu_simplified": 1.307246908221195,
+    "janbu_corrected": 1.384615124275236
+   },
+   "oracle_proto_max_dif_pct": 0.018615938553399023,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 50.15408374108105,
+    "depth": 1.2501499999999999
+   }
+  },
+  "X21-A05": {
+   "kind": "crack",
+   "description": "dos capas: la grieta usa la capa de coronaci\u00f3n (c=12, \u03c6=15, \u03b3=18)",
+   "oracle": {
+    "bishop": 1.1133840162740656,
+    "spencer": 1.114368161726005,
+    "morgenstern_price": 1.114368161726005,
+    "janbu_simplified": 1.0855872962616875,
+    "janbu_corrected": 1.1300466706523569
+   },
+   "oracle_proto_max_dif_pct": 0.008166243421516348,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 49.32465607761837,
+    "depth": 1.7376338304549408
+   }
+  },
+  "X21-A06": {
+   "kind": "crack",
+   "description": "c = 10, agua libre 2 m sobre la coronaci\u00f3n: q = \u03b3w\u00b72 resta a z",
+   "oracle": {
+    "bishop": 2.0774414621702424,
+    "spencer": 2.0753297459917412,
+    "morgenstern_price": 2.0753297459917412,
+    "janbu_simplified": 2.0270415115654434,
+    "janbu_corrected": 2.11763874198867
+   },
+   "oracle_proto_max_dif_pct": 0.05337040905944039,
+   "migration": [
+    "free_water removed",
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 50.908957076678156,
+    "depth": 0.4368903664888061
+   }
+  },
+  "X21-A07": {
+   "kind": "state",
+   "description": "c = 30: z = 4,24 m > profundidad del c\u00edrculo",
+   "oracle": {},
+   "oracle_proto_max_dif_pct": null,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "expect_error": "tension_crack_not_reached"
+  },
+  "X21-C10": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta seca de 1.0 m",
+   "oracle": {
+    "bishop": 0.9860472455886836,
+    "spencer": 0.9850569230141594,
+    "morgenstern_price": 0.9850569230141594,
+    "janbu_simplified": 0.9456353596955672,
+    "janbu_corrected": 0.9867254207870082
+   },
+   "oracle_proto_max_dif_pct": 0.006865916318672201,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 50.392564268870174,
+    "depth": 1.0
+   }
+  },
+  "X21-C20": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta seca de 2.0 m",
+   "oracle": {
+    "bishop": 1.026301995920345,
+    "spencer": 1.0256096553024814,
+    "morgenstern_price": 1.0256096553024814,
+    "janbu_simplified": 0.9898744183862609,
+    "janbu_corrected": 1.0290333422978906
+   },
+   "oracle_proto_max_dif_pct": 0.004910304663708314,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 48.71086321769263,
+    "depth": 2.0
+   }
+  },
+  "X21-C30": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta seca de 3.0 m",
+   "oracle": {
+    "bishop": 1.2316944547414712,
+    "spencer": 1.2314560092493598,
+    "morgenstern_price": 1.2314560092493598,
+    "janbu_simplified": 1.205665382137971,
+    "janbu_corrected": 1.2431012221696405
+   },
+   "oracle_proto_max_dif_pct": 0.007893737693798794,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 44.81527788340742,
+    "depth": 3.0
+   }
+  },
+  "X21-CP-V009a": {
+   "kind": "crack",
+   "description": "V009a (Baker-Leshchinsky), c\u00edrculo fijo, ltr: embalse + grieta seca de 5 m (las dos juntas)",
+   "oracle": {
+    "bishop": 1.8823181918976424,
+    "spencer": 1.925995755398345,
+    "morgenstern_price": 1.925995755398345,
+    "janbu_simplified": 1.774705032359022,
+    "janbu_corrected": 1.856484294687584
+   },
+   "oracle_proto_max_dif_pct": 0.04907061670196461,
+   "migration": [
+    "free_water removed",
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 109.30949135140291,
+    "depth": 5.0
+   }
+  },
+  "X21-CP-V009b": {
+   "kind": "crack",
+   "description": "V009b, superficie no circular fija de Baker (polil\u00ednea), embalse + grieta seca de 5 m",
+   "oracle": {
+    "spencer": 1.8817377090278091,
+    "morgenstern_price": 1.8817377090278091,
+    "janbu_simplified": 1.7343483082841353,
+    "janbu_corrected": 1.8128647370953657
+   },
+   "oracle_proto_max_dif_pct": 0.009537757774705719,
+   "migration": [
+    "free_water removed",
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 117.0,
+    "depth": 5.0
+   }
+  },
+  "X21-CP-V023": {
+   "kind": "pond",
+   "description": "V023 (LASH), c\u00edrculo fijo, agua embalsada (direcci\u00f3n auto)",
+   "oracle": {
+    "bishop": 1.138071786036764,
+    "spencer": 1.138071786036764,
+    "morgenstern_price": 1.138071786036764,
+    "janbu_simplified": 1.1050653319758703,
+    "janbu_corrected": 1.143887701203815
+   },
+   "oracle_proto_max_dif_pct": 0.04215701140917268,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V024": {
+   "kind": "pond",
+   "description": "V024, presa sobre cimiento con presi\u00f3n artesiana, agua embalsada",
+   "oracle": {
+    "bishop": 1.5716870468895112,
+    "spencer": 1.5621336953491716,
+    "morgenstern_price": 1.5621336953491716,
+    "janbu_simplified": 1.4280482485701134,
+    "janbu_corrected": 1.4953622156178281
+   },
+   "oracle_proto_max_dif_pct": 0.08631855223785731,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V042": {
+   "kind": "pond",
+   "description": "V042, presa de n\u00facleo grueso, embalse de 57 m",
+   "oracle": {
+    "bishop": 1.5819924357018071,
+    "spencer": 1.6492156926066583,
+    "morgenstern_price": 1.6492156926066583,
+    "janbu_simplified": 1.4490341944441893,
+    "janbu_corrected": 1.5012041319756957
+   },
+   "oracle_proto_max_dif_pct": 0.03951279100994184,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V061": {
+   "kind": "pond",
+   "description": "V061 (Clarence Cannon), c\u00edrculo fijo, embalse (opciones del primer check)",
+   "oracle": {
+    "spencer": 2.3878420656416988,
+    "morgenstern_price": 2.3878420656416988,
+    "janbu_simplified": 2.162027241043155,
+    "janbu_corrected": 2.3232615405805532
+   },
+   "oracle_proto_max_dif_pct": 0.01388134291674995,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V072a": {
+   "kind": "crack",
+   "description": "V072a (Pockoski-Duncan), c\u00edrculo fijo, grieta seca 1,676 m",
+   "oracle": {
+    "bishop": 1.2820685270296226,
+    "spencer": 1.2875172451043853,
+    "morgenstern_price": 1.2875172451043853,
+    "janbu_simplified": 1.173808250798093,
+    "janbu_corrected": 1.2478353002116855
+   },
+   "oracle_proto_max_dif_pct": 0.08194118499360904,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 33.61801045675574,
+    "depth": 1.6764000000000001
+   }
+  },
+  "X21-CP-V079-d05": {
+   "kind": "crack",
+   "description": "V079, grieta seca de 5 m",
+   "oracle": {
+    "spencer": 1.095760441989989,
+    "morgenstern_price": 1.095760441989989,
+    "janbu_simplified": 1.0957604419899887,
+    "janbu_corrected": 1.0957604419899887
+   },
+   "oracle_proto_max_dif_pct": 0.0035973037031841707,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 43.30166666666666,
+    "depth": 5.0
+   }
+  },
+  "X21-CP-V079-d10": {
+   "kind": "crack",
+   "description": "V079, grieta seca de 10 m",
+   "oracle": {
+    "spencer": 1.0734207009257124,
+    "morgenstern_price": 1.0734207009257124,
+    "janbu_simplified": 1.0734207009257122,
+    "janbu_corrected": 1.0734207009257122
+   },
+   "oracle_proto_max_dif_pct": 0.004221566961329303,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 34.641333333333336,
+    "depth": 10.0
+   }
+  },
+  "X21-CP-V079-w000-sincrack": {
+   "kind": "control",
+   "description": "V079 sin grieta (control)",
+   "oracle": {
+    "spencer": 1.122317131390284,
+    "morgenstern_price": 1.122317131390284,
+    "janbu_simplified": 1.1223171313902844,
+    "janbu_corrected": 1.1223171313902844
+   },
+   "oracle_proto_max_dif_pct": 0.003386948627825918,
+   "migration": []
+  },
+  "X21-CP-V079-w000": {
+   "kind": "crack",
+   "description": "V079 (Priest), plano fijo, grieta seca de 15 m",
+   "oracle": {
+    "spencer": 1.0683194114134669,
+    "morgenstern_price": 1.0683194114134669,
+    "janbu_simplified": 1.0683194114134666,
+    "janbu_corrected": 1.0683194114134666
+   },
+   "oracle_proto_max_dif_pct": 0.00224123678072024,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 25.981,
+    "depth": 15.0
+   }
+  },
+  "X21-CP-V079-w025": {
+   "kind": "crack",
+   "description": "V079, grieta de 15 m con agua al 25 %",
+   "oracle": {
+    "spencer": 1.0482856494997121,
+    "morgenstern_price": 1.0482856494997121,
+    "janbu_simplified": 1.0482856983947957,
+    "janbu_corrected": 1.0482856983947957
+   },
+   "oracle_proto_max_dif_pct": 0.002820229718273269,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 25.981,
+    "depth": 15.0
+   }
+  },
+  "X21-CP-V079-w050": {
+   "kind": "crack",
+   "description": "V079, grieta de 15 m con agua al 50 %",
+   "oracle": {
+    "spencer": 0.9914791926780602,
+    "morgenstern_price": 0.9914791926780602,
+    "janbu_simplified": 0.9914792047233135,
+    "janbu_corrected": 0.9914792047233135
+   },
+   "oracle_proto_max_dif_pct": 0.0044944079540890315,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 25.981,
+    "depth": 15.0
+   }
+  },
+  "X21-CP-V079-w100": {
+   "kind": "crack",
+   "description": "V079, grieta de 15 m llena",
+   "oracle": {
+    "spencer": 0.8043688524548379,
+    "morgenstern_price": 0.8043688524548379,
+    "janbu_simplified": 0.8043688526313039,
+    "janbu_corrected": 0.8043688526313039
+   },
+   "oracle_proto_max_dif_pct": 0.010459028945824553,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 25.981,
+    "depth": 15.0
+   }
+  },
+  "X21-CP-V080": {
+   "kind": "crack",
+   "description": "V080 (Priest, cara de 60\u00b0), plano fijo, grieta de 15 m al 25 %",
+   "oracle": {
+    "spencer": 1.048991038430804,
+    "morgenstern_price": 1.048991038430804,
+    "janbu_simplified": 1.04899108948286,
+    "janbu_corrected": 1.04899108948286
+   },
+   "oracle_proto_max_dif_pct": 0.002860071904519626,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 25.981,
+    "depth": 15.0
+   }
+  },
+  "X21-CP-V082a": {
+   "kind": "crack",
+   "description": "V082a (Sharma), c\u00edrculo fijo, grieta seca 3,353 m (sin la opci\u00f3n phreatic-correction)",
+   "oracle": {
+    "bishop": 1.5203745076868367,
+    "spencer": 1.5196470262259216,
+    "morgenstern_price": 1.5196470262259216,
+    "janbu_simplified": 1.470072741084305,
+    "janbu_corrected": 1.5332911374011
+   },
+   "oracle_proto_max_dif_pct": 0.02209643279063084,
+   "migration": [
+    "free_water removed",
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 47.33527432341312,
+    "depth": 3.3528
+   }
+  },
+  "X21-CP-V087": {
+   "kind": "pond",
+   "description": "V087 (USACE fig. 4-3), c\u00edrculo fijo, embalse",
+   "oracle": {
+    "bishop": 2.2427328386323033,
+    "spencer": 2.2436638212268236,
+    "morgenstern_price": 2.2436638212268236,
+    "janbu_simplified": 2.1267211590104926,
+    "janbu_corrected": 2.2475521959283533
+   },
+   "oracle_proto_max_dif_pct": 0.05215966060712894,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V088": {
+   "kind": "crack",
+   "description": "V088 (USACE), c\u00edrculo fijo, grieta seca 2,134 m con l\u00ednea de agua",
+   "oracle": {
+    "bishop": 2.4423190307738336,
+    "spencer": 2.441632938273147,
+    "morgenstern_price": 2.441632938273147,
+    "janbu_simplified": 2.311174749565148,
+    "janbu_corrected": 2.4438427025488028
+   },
+   "oracle_proto_max_dif_pct": 0.023480670006564203,
+   "migration": [
+    "free_water removed",
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": -2.533860466763379,
+    "depth": 2.1336
+   }
+  },
+  "X21-CP-V089": {
+   "kind": "pond",
+   "description": "V089 (USACE fig. 4-2), c\u00edrculo fijo, embalse al pie",
+   "oracle": {
+    "bishop": 2.6982126615160613,
+    "spencer": 2.7208025222464305,
+    "morgenstern_price": 2.7208025222464305,
+    "janbu_simplified": 2.4924834925047916,
+    "janbu_corrected": 2.6473343786391106
+   },
+   "oracle_proto_max_dif_pct": 0.0493776548650924,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V091": {
+   "kind": "pond",
+   "description": "V091 (USACE E-2), arcillas no drenadas, embalse",
+   "oracle": {
+    "bishop": 1.2364116205149638,
+    "spencer": 1.2364116205149638,
+    "morgenstern_price": 1.2364116205149638,
+    "janbu_simplified": 1.2446021511889207,
+    "janbu_corrected": 1.390480136783165
+   },
+   "oracle_proto_max_dif_pct": 0.08204693229294242,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V092": {
+   "kind": "pond",
+   "description": "V092 (USACE F-6), embalse",
+   "oracle": {
+    "bishop": 1.9903481718837082,
+    "spencer": 2.004610700308324,
+    "morgenstern_price": 2.004610700308324,
+    "janbu_simplified": 1.74602299056264,
+    "janbu_corrected": 1.8231792049780047
+   },
+   "oracle_proto_max_dif_pct": 0.08121231231090091,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-CP-V096c": {
+   "kind": "crack",
+   "description": "V096c (Zhu-Lee), c\u00edrculo fijo, grieta seca 1,015 m, 4 capas",
+   "oracle": {
+    "bishop": 1.7992295128693108,
+    "spencer": 1.7996820196321692,
+    "morgenstern_price": 1.7996820196321692,
+    "janbu_simplified": 1.613126443542674,
+    "janbu_corrected": 1.750434795821496
+   },
+   "oracle_proto_max_dif_pct": 0.025484682667758184,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 41.66374795851584,
+    "depth": 1.015
+   }
+  },
+  "X21-D01": {
+   "kind": "pond",
+   "description": "cara de presa vertical de 12 m, agua a y=9; el c\u00edrculo sale por el pie (0, 0): empuje puro de la cara",
+   "oracle": {
+    "bishop": 6.316288322022269,
+    "spencer": 6.295316617127554,
+    "morgenstern_price": 6.295316617127554,
+    "janbu_simplified": 4.674023110895857,
+    "janbu_corrected": 5.056289740064139
+   },
+   "oracle_proto_max_dif_pct": 0.006332971725020021,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-D02": {
+   "kind": "pond",
+   "description": "\u00eddem con el c\u00edrculo saliendo por la banqueta en x = -6,76: cara + peso del agua sobre la banqueta",
+   "oracle": {
+    "bishop": 4.985233502924338,
+    "spencer": 4.969957831642953,
+    "morgenstern_price": 4.969957831642953,
+    "janbu_simplified": 3.810482986282487,
+    "janbu_corrected": 4.141057941636898
+   },
+   "oracle_proto_max_dif_pct": 0.01186284540361294,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-D03": {
+   "kind": "pond",
+   "description": "espejo de X21-D01 (left_to_right)",
+   "oracle": {
+    "bishop": 6.316288322022343,
+    "spencer": 6.295316617127618,
+    "morgenstern_price": 6.295316617127618,
+    "janbu_simplified": 4.674023110895866,
+    "janbu_corrected": 5.056289740064149
+   },
+   "oracle_proto_max_dif_pct": 0.006332971724905994,
+   "migration": [
+    "free_water removed"
+   ],
+   "mirror_of": "X21-D01"
+  },
+  "X21-D04": {
+   "kind": "pond",
+   "description": "espejo de X21-D02 (left_to_right)",
+   "oracle": {
+    "bishop": 4.985233502924285,
+    "spencer": 4.969957831642901,
+    "morgenstern_price": 4.969957831642901,
+    "janbu_simplified": 3.81048298628242,
+    "janbu_corrected": 4.141057941636825
+   },
+   "oracle_proto_max_dif_pct": 0.011862845405396274,
+   "migration": [
+    "free_water removed"
+   ],
+   "mirror_of": "X21-D02"
+  },
+  "X21-N01": {
+   "kind": "control",
+   "description": "control de neutralidad: V047a sin agua ni grieta",
+   "oracle": {
+    "bishop": 0.9850842466548518,
+    "spencer": 0.9841002709685136,
+    "morgenstern_price": 0.9841002709685136,
+    "janbu_simplified": 0.9452285578295679,
+    "janbu_corrected": 0.9883537594194384
+   },
+   "oracle_proto_max_dif_pct": 0.010024209361721478,
+   "migration": []
+  },
+  "X21-N02": {
+   "kind": "control",
+   "description": "control de neutralidad: agua libre activada pero la piezom\u00e9trica queda bajo el terreno (y=24)",
+   "oracle": {
+    "bishop": 0.9850842466548518,
+    "spencer": 0.9841002709685136,
+    "morgenstern_price": 0.9841002709685136,
+    "janbu_simplified": 0.9452285578295679,
+    "janbu_corrected": 0.9883537594194384
+   },
+   "oracle_proto_max_dif_pct": 0.010024209361721478,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-N03": {
+   "kind": "crack",
+   "description": "control de neutralidad: grieta de profundidad 0",
+   "oracle": {
+    "bishop": 0.9850842466548518,
+    "spencer": 0.9841002709685136,
+    "morgenstern_price": 0.9841002709685136,
+    "janbu_simplified": 0.9452285578295679,
+    "janbu_corrected": 0.9883537594194384
+   },
+   "oracle_proto_max_dif_pct": 0.010024209361721478,
+   "migration": [
+    "tension_crack.water renamed water_fill",
+    "depth 0 -> 1e-6 (F5.2 requires depth > 0)"
+   ]
+  },
+  "X21-P01": {
+   "kind": "pond",
+   "description": "V047a, c\u00edrculo fijo, piezom\u00e9trica horizontal y=27 (2 m sobre el pie), agua libre",
+   "oracle": {
+    "bishop": 0.9390165587785071,
+    "spencer": 0.9385585096299608,
+    "morgenstern_price": 0.9385585096299608,
+    "janbu_simplified": 0.9036340588640934,
+    "janbu_corrected": 0.9448560025289741
+   },
+   "oracle_proto_max_dif_pct": 0.025131857065939095,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P02": {
+   "kind": "pond",
+   "description": "\u00eddem, y=30 (5 m sobre el pie)",
+   "oracle": {
+    "bishop": 0.9459924352228188,
+    "spencer": 0.9462018192790379,
+    "morgenstern_price": 0.9462018192790379,
+    "janbu_simplified": 0.9044162378489624,
+    "janbu_corrected": 0.945679088130785
+   },
+   "oracle_proto_max_dif_pct": 0.03439519279748665,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P03": {
+   "kind": "pond",
+   "description": "espejo de X21-P01 (left_to_right)",
+   "oracle": {
+    "bishop": 0.939016558778486,
+    "spencer": 0.9385585096299397,
+    "morgenstern_price": 0.9385585096299397,
+    "janbu_simplified": 0.9036340588640696,
+    "janbu_corrected": 0.9448560025289491
+   },
+   "oracle_proto_max_dif_pct": 0.025131857068507575,
+   "migration": [
+    "free_water removed"
+   ],
+   "mirror_of": "X21-P01"
+  },
+  "X21-P04": {
+   "kind": "pond",
+   "description": "X21-P01 con kh = 0,1",
+   "oracle": {
+    "bishop": 0.7436999264814566,
+    "spencer": 0.7447551327313916,
+    "morgenstern_price": 0.7447551327313916,
+    "janbu_simplified": 0.7132961991273264,
+    "janbu_corrected": 0.7458353176436886
+   },
+   "oracle_proto_max_dif_pct": 0.02534026350809722,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P05": {
+   "kind": "pond",
+   "description": "X21-P01 con kv = 0,05",
+   "oracle": {
+    "bishop": 0.9319042728432065,
+    "spencer": 0.9314554848238197,
+    "morgenstern_price": 0.9314554848238197,
+    "janbu_simplified": 0.8965572459633541,
+    "janbu_corrected": 0.9374563598501187
+   },
+   "oracle_proto_max_dif_pct": 0.024294934343462377,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P06": {
+   "kind": "pond",
+   "description": "X21-P01 con kh = 0,1 y kv = 0,05",
+   "oracle": {
+    "bishop": 0.7459179391727703,
+    "spencer": 0.7469148573675827,
+    "morgenstern_price": 0.7469148573675827,
+    "janbu_simplified": 0.7152987882308389,
+    "janbu_corrected": 0.7479292607797313
+   },
+   "oracle_proto_max_dif_pct": 0.02444362442747139,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P07": {
+   "kind": "pond",
+   "description": "V047a, c\u00edrculo fijo, piezom\u00e9trica horizontal y=26 (1 m sobre el pie), agua libre",
+   "oracle": {
+    "bishop": 0.9613413784409786,
+    "spencer": 0.9605063617070201,
+    "morgenstern_price": 0.9605063617070201,
+    "janbu_simplified": 0.9242484158331076,
+    "janbu_corrected": 0.9664114783039116
+   },
+   "oracle_proto_max_dif_pct": 0.020722245293055643,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-P08": {
+   "kind": "pond",
+   "description": "\u00eddem, y=33 (8 m sobre el pie, bajo la coronaci\u00f3n)",
+   "oracle": {
+    "bishop": 1.068949642588092,
+    "spencer": 1.068221320721479,
+    "morgenstern_price": 1.068221320721479,
+    "janbu_simplified": 1.01687158852875,
+    "janbu_corrected": 1.063260925807871
+   },
+   "oracle_proto_max_dif_pct": 0.08930390765108917,
+   "migration": [
+    "free_water removed"
+   ]
+  },
+  "X21-S-V048-fija": {
+   "kind": "crack",
+   "description": "V048/0: c\u00edrculo cr\u00edtico de la b\u00fasqueda de cSlope (grieta 4 m llena), fijo",
+   "oracle": {
+    "bishop": 1.5868457768630757,
+    "spencer": 1.582482608645827,
+    "morgenstern_price": 1.582482608645827,
+    "janbu_simplified": 1.4095797608637135,
+    "janbu_corrected": 1.50015615117576
+   },
+   "oracle_proto_max_dif_pct": 0.01733424892028283,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 52.98747656178047,
+    "depth": 4.0
+   }
+  },
+  "X21-S-V086b-auto": {
+   "kind": "crack",
+   "description": "V086b/1: c\u00edrculo cr\u00edtico de la b\u00fasqueda con grieta autom\u00e1tica y llena, fijo",
+   "oracle": {
+    "bishop": 0.9664597035230079,
+    "spencer": 0.9664597035230079,
+    "morgenstern_price": 0.9664597035230079,
+    "janbu_simplified": 0.8698849645667144,
+    "janbu_corrected": 0.9667757861645612
+   },
+   "oracle_proto_max_dif_pct": 0.02820001525662575,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 3.9083283065034644,
+    "depth": 2.0618556701030935
+   }
+  },
+  "X21-S-V086b-fija": {
+   "kind": "crack",
+   "description": "V086b/0: c\u00edrculo cr\u00edtico de la b\u00fasqueda (grieta 2 m llena, \u03c6 = 0), fijo",
+   "oracle": {
+    "bishop": 0.9683128505641394,
+    "spencer": 0.9683128505641394,
+    "morgenstern_price": 0.9683128505641394,
+    "janbu_simplified": 0.8732015253130616,
+    "janbu_corrected": 0.9706079433539716
+   },
+   "oracle_proto_max_dif_pct": 0.0312177807507752,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 3.8731395921321985,
+    "depth": 2.0
+   }
+  },
+  "X21-S-V096a-fija": {
+   "kind": "crack",
+   "description": "V096a/0: c\u00edrculo cr\u00edtico de la b\u00fasqueda (grieta seca 1,015 m), fijo",
+   "oracle": {
+    "bishop": 1.7934952617543065,
+    "spencer": 1.7943919517852074,
+    "morgenstern_price": 1.7943919517852074,
+    "janbu_simplified": 1.6062542862063518,
+    "janbu_corrected": 1.7434702737938708
+   },
+   "oracle_proto_max_dif_pct": 0.02850183160419681,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 40.77085690358629,
+    "depth": 1.015
+   }
+  },
+  "X21-W025": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta de 2 m con agua al 25 %",
+   "oracle": {
+    "bishop": 1.0231892959389508,
+    "spencer": 1.0224786915744155,
+    "morgenstern_price": 1.0224786915744155,
+    "janbu_simplified": 0.9862967905404458,
+    "janbu_corrected": 1.025314185330809
+   },
+   "oracle_proto_max_dif_pct": 0.0049297210656626435,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 48.71086321769263,
+    "depth": 2.0
+   }
+  },
+  "X21-W050": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta de 2 m con agua al 50 %",
+   "oracle": {
+    "bishop": 1.0140458377219335,
+    "spencer": 1.0132805804747573,
+    "morgenstern_price": 1.0132805804747573,
+    "janbu_simplified": 0.9756968864527035,
+    "janbu_corrected": 1.0142949544780422
+   },
+   "oracle_proto_max_dif_pct": 0.004987479727322832,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 48.71086321769263,
+    "depth": 2.0
+   }
+  },
+  "X21-W100": {
+   "kind": "crack",
+   "description": "V047a, c\u00edrculo fijo, grieta de 2 m con agua al 100 %",
+   "oracle": {
+    "bishop": 0.9794912424732495,
+    "spencer": 0.9785261659063055,
+    "morgenstern_price": 0.9785261659063055,
+    "janbu_simplified": 0.9351970856230309,
+    "janbu_corrected": 0.9721930023151624
+   },
+   "oracle_proto_max_dif_pct": 0.005211675313274252,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "proto_crack": {
+    "x": 48.71086321769263,
+    "depth": 2.0
+   }
+  },
+  "X21-W100m": {
+   "kind": "crack",
+   "description": "espejo de la grieta de 2 m llena (left_to_right)",
+   "oracle": {
+    "bishop": 0.979491242473206,
+    "spencer": 0.9785261659062623,
+    "morgenstern_price": 0.9785261659062623,
+    "janbu_simplified": 0.93519708562299,
+    "janbu_corrected": 0.9721930023151198
+   },
+   "oracle_proto_max_dif_pct": 0.005211675317655079,
+   "migration": [
+    "tension_crack.water renamed water_fill"
+   ],
+   "mirror_of": "X21-W100",
+   "proto_crack": {
+    "x": -48.71086321769263,
+    "depth": 2.0
+   }
+  }
+ }
+}
