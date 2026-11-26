@@ -51,6 +51,7 @@ Seismic ``kh`` acts along the sliding direction in both orientations and ``kv > 
 
 from __future__ import annotations
 
+import bisect
 import math
 from dataclasses import dataclass, field
 from typing import Any
@@ -231,9 +232,8 @@ def resolve_direction(model: dict, outline: Polygon, kind: str | None = None) ->
 
     # 3. fixed circle: its higher outermost ground crossing is the entry
     if surface is not None and search is None and surface.get("type") == "polyline":
-        # the higher end of the polyline is the entry (its ends, as written, stand for the ones fitted to the ground)
-        pts = surface["points"]
-        y_p, y_q = float(pts[0][1]), float(pts[-1][1])
+        # the higher end of the polyline, once fitted to the ground (E13c), is the entry
+        (_, y_p), (_, y_q) = fitted_polyline_ends(surface["points"], outline)
         if abs(y_p - y_q) > 1e-6 * height:
             return "ltr" if y_p > y_q else "rtl"
     elif surface is not None and search is None:
@@ -249,6 +249,93 @@ def resolve_direction(model: dict, outline: Polygon, kind: str | None = None) ->
     raise UnsupportedModel(
         "no se puede determinar el sentido del deslizamiento: indique slope.direction"
     )
+
+
+def _ground_pieces(outline: Polygon) -> list[tuple[float, float, float, float]]:
+    """The terrain as straight pieces (x0, x1, y0, y1) between consecutive vertex abscissae of the outline.
+
+    ``y0`` and ``y1`` are the one-sided limits at ``x0`` and ``x1`` (they differ across a vertical face): they are
+    taken from the heights at the quarter points of the piece, where the terrain is a straight line.
+    """
+    xs = sorted({round(float(x), 12) for x, _ in outline.exterior.coords})
+    pieces = []
+    for x0, x1 in zip(xs, xs[1:]):
+        try:
+            ya, yb = y_top(outline, x0 + 0.25 * (x1 - x0)), y_top(outline, x0 + 0.75 * (x1 - x0))
+        except UnsupportedModel:
+            continue                      # a gap in the ground
+        k = (yb - ya) / (0.5 * (x1 - x0))
+        pieces.append((x0, x1, ya - k * 0.25 * (x1 - x0), yb + k * 0.25 * (x1 - x0)))
+    return pieces
+
+
+def _fit_start(pts: list[tuple[float, float]], pieces: list[tuple[float, float, float, float]],
+               tol: float) -> tuple[float, float]:
+    """The first end of ``pts`` fitted to the ground (E13c): extended along its segment to the first crossing if it is
+    under the ground, trimmed at the first crossing from over to under if it is over, kept if it is on it. The ends as
+    written are returned when no crossing exists (the engine then rejects the polyline, and the direction is moot)."""
+    (x0, y0), (x1, y1) = pts[0], pts[1]
+    g = next(((a, b, ya, yb) for a, b, ya, yb in pieces if a <= x0 < b), None)
+    if g is None:
+        return pts[0]
+    a, b, ya, yb = g
+    h0 = y0 - (ya + (x0 - a) * (yb - ya) / (b - a))
+    if abs(h0) <= tol:
+        return pts[0]
+
+    def ground(piece, x):
+        pa, pb, pya, pyb = piece
+        return pya + (x - pa) * (pyb - pya) / (pb - pa)
+
+    if h0 < 0:                                              # extend toward smaller x
+        slope = (y1 - y0) / (x1 - x0)
+        line = lambda x: y0 + slope * (x - x0)              # noqa: E731
+        for piece in sorted((p for p in pieces if p[0] < x0), key=lambda p: -p[0]):
+            hi = min(piece[1], x0)
+            hb = line(hi) - ground(piece, hi)
+            if hb >= -tol:
+                return (hi, line(hi))                       # comes out through a vertical face
+            ha = line(piece[0]) - ground(piece, piece[0])
+            if ha >= -tol:
+                xc = hi - (hi - piece[0]) * (-hb) / (ha - hb) if ha > 0 else piece[0]
+                return (xc, line(xc))
+        return pts[0]
+    # trim: the first stretch where the polyline goes under the ground
+    xs = sorted({x for x, _ in pts} | {v for p in pieces for v in p[:2]})
+    xs = [x for x in xs if pts[0][0] <= x <= pts[-1][0]]
+
+    px = [x for x, _ in pts]
+
+    def poly_y(x):
+        i = max(0, min(len(pts) - 2, bisect.bisect_right(px, x) - 1))
+        (ax, ay), (bx, by) = pts[i], pts[i + 1]
+        return ay + (x - ax) * (by - ay) / (bx - ax)
+
+    for u, v in zip(xs, xs[1:]):
+        xm = 0.5 * (u + v)
+        piece = next((p for p in pieces if p[0] <= xm <= p[1]), None)
+        if piece is None:
+            return pts[0]
+        hu, hv = poly_y(u + 1e-12 * (v - u)) - ground(piece, u), poly_y(v - 1e-12 * (v - u)) - ground(piece, v)
+        if hu < -tol or hv < -tol:
+            xc = u + (v - u) * hu / (hu - hv) if (hu > 0 and hv < -tol) else u
+            return (xc, poly_y(xc))
+    return pts[0]
+
+
+def fitted_polyline_ends(points: list, outline: Polygon) -> tuple[tuple[float, float], tuple[float, float]]:
+    """The (left, right) ends of a fixed polyline once fitted to the ground (E13c: extended or trimmed to the first
+    crossing). The harness uses them to resolve ``direction: auto`` like the engine does (R10A-11)."""
+    pts = [(float(x), float(y)) for x, y in points]
+    minx, miny, maxx, maxy = outline.bounds
+    tol = 1e-9 * max(maxx - minx, maxy - miny)
+    pieces = _ground_pieces(outline)
+    left = _fit_start(pts, pieces, tol)
+    mirrored = [(-x, y) for x, y in reversed(pts)]
+    mirror_pieces = [(-b, -a, yb, ya) for a, b, ya, yb in reversed(pieces)]
+    mx, my = _fit_start(mirrored, mirror_pieces, tol)
+    return left, (-mx, my)
+
 
 
 def unit_label(model: dict) -> str:
