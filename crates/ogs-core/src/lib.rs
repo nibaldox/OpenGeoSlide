@@ -389,7 +389,16 @@ fn analyze_method(
     let sliced = slice_surface_of(pm, &surface, n, load_case)
         .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let slices = sliced.slices;
-    let result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+    let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+    // E13k: a converged Spencer or Morgenstern-Price whose interslice shear exceeds the strength of the faces.
+    if let Some(ratio) =
+        interslice_shear_ratio_of(pm, method, analysis.interslice.as_ref(), &slices, &result)
+        && ratio > methods::INTERSLICE_SHEAR_LIMIT
+    {
+        result
+            .warnings
+            .push(methods::INTERSLICE_SHEAR_MESSAGE.to_string());
+    }
 
     // 3. Warnings (stable codes, contract E6). Water over the ground inside the sliding mass is ignored in v0.1.
     //    The list is the water note, then the slicing notes (E10a: `truncated_mass`), then the reason of the
@@ -435,6 +444,51 @@ fn analyze_method(
         correction_factor: result.correction_factor,
         interslice: interslice_report(analysis, method),
     })
+}
+
+/// `r_v` of E13k (see `methods::interslice_shear_ratio`) of a converged Spencer or Morgenstern-Price result; `None` for
+/// the other methods (Janbu has `X = 0`, Bishop has no interslice forces) and for a result that did not converge.
+fn interslice_shear_ratio_of(
+    pm: &PreparedModel,
+    method: MethodKind,
+    spec: Option<&IntersliceSpec>,
+    slices: &[Slice],
+    result: &methods::MethodResult,
+) -> Option<f64> {
+    let applies = matches!(method, MethodKind::Spencer | MethodKind::MorgensternPrice);
+    let lambda = result.lambda.filter(|_| applies)?;
+    (result.status == SolveStatus::Converged && result.fos.is_finite() && result.fos > 0.0)
+        .then(|| methods::shear_ratio_of(pm, method, spec, slices, result.fos, lambda))
+}
+
+/// `r_v` of E13k for the result of `report` on `model`: the ratio of the interslice shear to the shear that the
+/// vertical faces can mobilize (Chen and Morgenstern 1983). The warning `interslice_shear_exceeds_strength` is raised
+/// when it is above 3. `None` unless the method is Spencer or Morgenstern-Price and the result converged. It re-reads
+/// the slices of the report, so it is the value of the report, not a new analysis.
+pub fn interslice_shear_ratio(
+    model: &Model,
+    report: &MethodReport,
+) -> Result<Option<f64>, OgsError> {
+    let (Some(fos), Some(lambda)) = (report.fos, report.lambda) else {
+        return Ok(None);
+    };
+    if report.status != SolveStatus::Converged
+        || !matches!(
+            report.method,
+            MethodKind::Spencer | MethodKind::MorgensternPrice
+        )
+    {
+        return Ok(None);
+    }
+    let pm = PreparedModel::new(model)?;
+    Ok(Some(methods::shear_ratio_of(
+        &pm,
+        report.method,
+        model.analysis.interslice.as_ref(),
+        &report.slices,
+        fos,
+        lambda,
+    )))
 }
 
 /// The interslice function reported by `morgenstern_price`: the declared one, or `half_sine` by default (E13d).
