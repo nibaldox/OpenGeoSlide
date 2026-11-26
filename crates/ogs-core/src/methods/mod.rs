@@ -8,8 +8,9 @@ pub mod spencer;
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::{IntersliceSpec, MethodKind};
-use crate::slicer::Slice;
+use crate::geometry::PreparedModel;
+use crate::model::{self, IntersliceSpec, MethodKind};
+use crate::slicer::{FaceStrength, Slice, interslice_face_strength};
 
 /// Relative driving threshold of amendment E3: `Σ W·sin α ≤ 1e-6 · Σ W` means no driving moment.
 const NO_DRIVING_FRACTION: f64 = 1e-6;
@@ -38,6 +39,17 @@ pub(crate) const NEGATIVE_NORMAL_MESSAGE: &str = "negative_effective_normal";
 pub(crate) const NEGATIVE_NORMAL_MAJOR_MESSAGE: &str = "negative_effective_normal_major";
 /// Warning: an interior air run transmits thrust (E7a).
 pub(crate) const AIR_GAP_MESSAGE: &str = "air_gap_thrust";
+
+/// Warning: the interslice shear exceeds the strength of the vertical faces, `r_v > 3` (E13k).
+pub(crate) const INTERSLICE_SHEAR_MESSAGE: &str = "interslice_shear_exceeds_strength";
+
+/// Classification threshold of `interslice_shear_exceeds_strength` (E13k): the warning is raised when `r_v` is above
+/// it. Calibrated, like E8c, between the largest `r_v` of the reference cases (1.63, D13) and the smallest of the
+/// inadmissible solutions of D-1 (3.88); it classifies a warning, it is not a numerical tolerance.
+pub(crate) const INTERSLICE_SHEAR_LIMIT: f64 = 3.0;
+
+/// Faces with `|E|` below this share of the largest `|E|` are not evaluated by `r_v` (E13k).
+const INTERSLICE_FACE_MIN_FRACTION: f64 = 0.02;
 
 /// An air slice (E2): no weight and no strength. It takes no part in the m_α test, nor in the
 /// F sums of the solvers. Spencer still passes the normal force through it (E7a).
@@ -154,6 +166,70 @@ pub(crate) fn converged_notes(air: bool, normal: Option<&'static str>) -> Vec<&'
     }
     codes.extend(normal);
     codes
+}
+
+/// `r_v` of E13k, the ratio of the interslice shear to the shear that the vertical faces can mobilize at the same F
+/// (criterion of Chen and Morgenstern 1983, in the form (d) of Zhu, Lee and Jiang 2003):
+///
+/// `r_v = max_faces |X|·F / (c_v·h + max(E′, 0)·tan φ_v)`, with `X = λ·f·E` and `E′ = −E − P_w`
+///
+/// (compression is positive in `E′`, negative in `E`). `e[0..=n]` are the interslice normal forces at `(fos, lambda)`,
+/// `faces[0..=n]` the values of the interslice function (all `1` in Spencer) and `strength(j)` the
+/// [`FaceStrength`] of the face below slice `j`, for `1 ≤ j ≤ n − 1` (the first and the last faces, with `E = 0`, are
+/// not evaluated).
+///
+/// Only faces with `|E| ≥ 2 %` of `max|E|` and `E′ > 0` count. A face **without strength** (`c_v·h + E′·tan φ_v = 0`,
+/// as the material of Su = 0 of V021) is excluded: it has no capacity to compare with. Returns `0` when no face counts.
+pub fn interslice_shear_ratio(
+    e: &[f64],
+    faces: &[f64],
+    lambda: f64,
+    fos: f64,
+    strength: impl Fn(usize) -> FaceStrength,
+) -> f64 {
+    let e_max = e.iter().fold(0.0_f64, |a, v| a.max(v.abs()));
+    let mut worst = 0.0_f64;
+    for j in 1..e.len().saturating_sub(1) {
+        if e[j].abs() < INTERSLICE_FACE_MIN_FRACTION * e_max {
+            continue;
+        }
+        let face = strength(j);
+        let effective = -e[j] - face.water_force;
+        if effective <= 0.0 {
+            continue;
+        }
+        let capacity = face.cohesion_force + effective * face.tan_phi;
+        if capacity > 0.0 {
+            worst = worst.max((lambda * faces[j] * e[j]).abs() * fos / capacity);
+        }
+    }
+    worst
+}
+
+/// `r_v` (E13k) of a converged Spencer or Morgenstern-Price result on `slices`: the interslice forces at `(fos, lambda)`
+/// and the strength of each face read on `pm`. `spec` is `analysis.interslice` (Morgenstern-Price only).
+pub(crate) fn shear_ratio_of(
+    pm: &PreparedModel,
+    method: MethodKind,
+    spec: Option<&IntersliceSpec>,
+    slices: &[Slice],
+    fos: f64,
+    lambda: f64,
+) -> f64 {
+    let faces = match method {
+        MethodKind::MorgensternPrice => {
+            let (function, points) = match spec {
+                Some(s) => (s.function, s.points.as_deref()),
+                None => (model::IntersliceFunction::HalfSine, None),
+            };
+            morgenstern_price::interslice_faces(slices, function, points)
+        }
+        _ => vec![1.0; slices.len() + 1],
+    };
+    let e = spencer::interslice_forces(slices, &faces, fos, lambda);
+    interslice_shear_ratio(&e, &faces, lambda, fos, |j| {
+        interslice_face_strength(pm, &slices[j - 1], &slices[j])
+    })
 }
 
 /// Amendment E3 (with E12b): true when the surface has no driving moment (`Σ [W*·sin α + M] ≤ 1e-6 · Σ W`, or
@@ -392,5 +468,75 @@ mod tests {
             vec![AIR_GAP_MESSAGE, NEGATIVE_NORMAL_MESSAGE]
         );
         assert_eq!(converged_notes(false, None), Vec::<&str>::new());
+    }
+
+    /// E13k: `r_v = max |λ f E|·F / (c_v h + max(E′, 0) tan φ_v)` over the faces `1..n`, with the faces of
+    /// `|E| < 2 %` of the largest, those with `E′ ≤ 0` and those without strength left out.
+    #[test]
+    fn e13k_r_v_is_the_largest_ratio_of_the_evaluated_faces() {
+        // E (compression negative); faces 1..=4 are evaluated, the ends are not.
+        let e = [0.0, -100.0, -50.0, -1.0, 40.0, 0.0];
+        let faces = [0.0, 1.0, 0.5, 1.0, 1.0, 0.0];
+        let strength = |j: usize| match j {
+            1 => FaceStrength {
+                cohesion_force: 10.0,
+                tan_phi: 0.5,
+                water_force: 20.0,
+            },
+            2 => FaceStrength {
+                cohesion_force: 8.0,
+                tan_phi: 0.0,
+                water_force: 0.0,
+            },
+            _ => FaceStrength {
+                cohesion_force: 1.0,
+                tan_phi: 0.1,
+                water_force: 0.0,
+            },
+        };
+        // Face 1: E′ = 100 − 20 = 80, capacity 10 + 40 = 50, |X| = 0.3·100 = 30 → 30·1.5/50 = 0.9.
+        // Face 2: capacity 8, |X| = 0.3·0.5·50 = 7.5 → 7.5·1.5/8 = 1.40625 (the largest).
+        // Face 3: |E| = 1 is 1 % of 100, not evaluated. Face 4: tension (E > 0), E′ < 0, not evaluated.
+        let r = interslice_shear_ratio(&e, &faces, 0.3, 1.5, strength);
+        assert!((r - 1.40625).abs() < 1e-12, "{r}");
+        // Without any evaluated face: 0.
+        assert_eq!(
+            interslice_shear_ratio(&[0.0, 0.0, 0.0], &[1.0; 3], 0.5, 1.0, |_| {
+                FaceStrength::NONE
+            }),
+            0.0
+        );
+    }
+
+    /// E13k: a face without strength (`c_v·h + E′·tan φ_v = 0`: the material of Su = 0 of V021) is excluded, not
+    /// counted as infinite; a face with water that leaves `E′ ≤ 0` is not evaluated either; and the weakest face that
+    /// does have strength still counts.
+    #[test]
+    fn e13k_faces_without_strength_are_excluded() {
+        let e = [0.0, -100.0, -100.0, 0.0];
+        let faces = [1.0; 4];
+        let none = |_: usize| FaceStrength::NONE;
+        assert_eq!(interslice_shear_ratio(&e, &faces, 0.5, 1.0, none), 0.0);
+        // `tan φ_v > 0` with water that cancels the thrust: capacity 0 too.
+        let drowned = |_: usize| FaceStrength {
+            cohesion_force: 0.0,
+            tan_phi: 0.6,
+            water_force: 100.0,
+        };
+        assert_eq!(interslice_shear_ratio(&e, &faces, 0.5, 1.0, drowned), 0.0);
+        // Face 1 has no strength, face 2 has: only face 2 gives r_v = 0.5·100·2 / 25 = 4.
+        let mixed = |j: usize| {
+            if j == 1 {
+                FaceStrength::NONE
+            } else {
+                FaceStrength {
+                    cohesion_force: 25.0,
+                    tan_phi: 0.0,
+                    water_force: 0.0,
+                }
+            }
+        };
+        assert_eq!(interslice_shear_ratio(&e, &faces, 0.5, 2.0, mixed), 4.0);
+        assert!(interslice_shear_ratio(&e, &faces, 0.5, 2.0, mixed) > INTERSLICE_SHEAR_LIMIT);
     }
 }

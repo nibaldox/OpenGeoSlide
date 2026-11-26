@@ -888,6 +888,122 @@ fn slice_loads(
     }
 }
 
+/// Samples per soil interval of the integral of an undrained strength that varies with the elevation (E13k).
+const FACE_STRENGTH_SAMPLES: usize = 40;
+
+/// Strength mobilizable on the vertical face between two consecutive slices (E13k): the ingredients of the denominator
+/// of `r_v = |X|·F / (c_v·h + max(E′, 0)·tan φ_v)`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FaceStrength {
+    /// `c_v·h = ∫ c dy` over the soil of the face, from the base of the slice to the ground (`Su` for an undrained
+    /// material, at the elevation of each point).
+    pub cohesion_force: f64,
+    /// `tan φ_v`: the height average of `tan φ` over the soil of the face.
+    pub tan_phi: f64,
+    /// Resultant of the water on the face, `P_w` (piezometric line, or `ru·σv` in a material with `ru`), with the
+    /// same `σv` as the pore pressure of the slice bases. `E′ = −E − P_w`.
+    pub water_force: f64,
+}
+
+impl FaceStrength {
+    /// A face without soil (zero height): no strength and no water.
+    pub const NONE: FaceStrength = FaceStrength {
+        cohesion_force: 0.0,
+        tan_phi: 0.0,
+        water_force: 0.0,
+    };
+}
+
+/// [`FaceStrength`] of the face shared by `toe` and `crest`, two consecutive slices of a block in toe → crest order
+/// (E13k). The face runs from the base of `toe` at the shared abscissa up to the ground.
+///
+/// The soil is read on the column of the model just inside `toe` (by `1e-9·scale`, never beyond half its width), so a
+/// face on a vertex of the regions takes the materials of the toe side. The integrals over the soil are exact; the
+/// strength of an `undrained` material with a profile is integrated over `FACE_STRENGTH_SAMPLES` midpoints per
+/// interval. A face of zero height (air slice, base on the ground) has no strength.
+pub(crate) fn interslice_face_strength(
+    pm: &PreparedModel,
+    toe: &Slice,
+    crest: &Slice,
+) -> FaceStrength {
+    // Shared abscissa: the left side of `toe` when the block runs toward −x, the right one otherwise.
+    let on_left = (toe.x_left - crest.x_right).abs() <= (toe.x_right - crest.x_left).abs();
+    let (x, y_base, inward) = if on_left {
+        (toe.x_left, toe.y_base_left, 1.0)
+    } else {
+        (toe.x_right, toe.y_base_right, -1.0)
+    };
+    let x_in = x + inward * pm.tol().min(0.5 * toe.width);
+    let mut column = Vec::with_capacity(8);
+    let mut scratch = Vec::with_capacity(8);
+    pm.column(x_in, &mut column, &mut scratch);
+    let Some(top) = column.iter().map(|c| c.1).max_by(f64::total_cmp) else {
+        return FaceStrength::NONE;
+    };
+    if top - y_base <= pm.tol() {
+        return FaceStrength::NONE;
+    }
+    // Soil intervals clipped to [base, ground], from the top down, so the overburden accumulates. A sliver thinner than
+    // the model tolerance is float noise of a base on a layer interface, not soil (V021: it would make a sand face
+    // look as if it had strength).
+    let mut intervals: Vec<(f64, f64, usize)> = column
+        .iter()
+        .map(|&(lo, hi, mat)| (lo.max(y_base), hi.min(top), mat))
+        .filter(|&(lo, hi, _)| hi - lo > pm.tol())
+        .collect();
+    intervals.sort_by(|a, b| b.1.total_cmp(&a.1));
+    let piezo = pm.piezometric_y(x);
+    let (mut cohesion_force, mut tan_sum, mut soil, mut water) =
+        (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64);
+    let mut sigma_v = 0.0_f64;
+    for &(lo, hi, mat) in &intervals {
+        let m = &pm.materials[mat];
+        let length = hi - lo;
+        soil += length;
+        if m.profile.is_some() {
+            let step = length / FACE_STRENGTH_SAMPLES as f64;
+            for i in 0..FACE_STRENGTH_SAMPLES {
+                let y = lo + (i as f64 + 0.5) * step;
+                let (c, t) = crate::strength::resolve(m, y);
+                cohesion_force += c * step;
+                tan_sum += t * step;
+            }
+        } else {
+            cohesion_force += m.cohesion * length;
+            tan_sum += m.tan_phi * length;
+        }
+        // Pieces of constant unit weight, top first: above and below the piezometric level when `unit_weight_sat`
+        // applies (as in the weight of the slice), the whole interval otherwise.
+        let pieces: [(f64, f64, f64); 2] = match (m.unit_weight_sat, piezo) {
+            (Some(sat), Some(z)) => {
+                let split = z.clamp(lo, hi);
+                [(split, hi, m.unit_weight), (lo, split, sat)]
+            }
+            _ => [(lo, hi, m.unit_weight), (lo, lo, 0.0)],
+        };
+        for (p_lo, p_hi, gamma) in pieces {
+            let len = p_hi - p_lo;
+            if len <= 0.0 {
+                continue;
+            }
+            if let Some(ru) = m.ru {
+                water += ru * (sigma_v * len + 0.5 * gamma * len * len);
+            } else if let Some(z) = piezo {
+                let wet_hi = p_hi.min(z);
+                if wet_hi > p_lo {
+                    water += 0.5 * pm.gamma_w * ((z - p_lo).powi(2) - (z - wet_hi).powi(2));
+                }
+            }
+            sigma_v += gamma * len;
+        }
+    }
+    FaceStrength {
+        cohesion_force,
+        tan_phi: if soil > 0.0 { tan_sum / soil } else { 0.0 },
+        water_force: water,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1219,6 +1335,72 @@ mod tests {
             main[0].x_left >= 30.0 - 1e-6,
             "the toe lens is dropped: main starts at {}",
             main[0].x_left
+        );
+    }
+
+    /// E13k: the strength and the water of a vertical face, on two horizontal layers (`a` over `b`, ground at 10, the
+    /// interface at 6) and a piezometric line at 7. Face from the base at 2 up to the ground:
+    /// `∫c dy = 5·4 + 10·4`, `tan φ_v = (0·4 + tan 30°·4) / 8`, and `P_w = γw·(7 − 2)²/2` (the whole face is under 7).
+    /// With `ru = 0.3` in `b`, that material takes `ru·σv` (`σv = 18·4 + 20·(6 − y)`, integral 448 over `[2, 6]`) and the
+    /// water of the line acts only on `a`, over `[6, 7]`: `γw·0.5`.
+    #[test]
+    fn e13k_the_face_strength_integrates_layers_and_water() {
+        let model = |ru: Value| -> PreparedModel {
+            let doc = json!({
+                "format": "opengeoslide", "version": "0.1",
+                "materials": [
+                    {"id": "a", "name": "A", "model": "mohr_coulomb", "unit_weight": 18.0,
+                     "cohesion": 5.0, "friction_angle": 0.0},
+                    {"id": "b", "name": "B", "model": "mohr_coulomb", "unit_weight": 20.0,
+                     "cohesion": 10.0, "friction_angle": 30.0, "ru": ru}
+                ],
+                "regions": [
+                    {"material": "a", "polygon": [[0, 6], [0, 10], [10, 10], [10, 6]]},
+                    {"material": "b", "polygon": [[0, 0], [0, 6], [10, 6], [10, 0]]}
+                ],
+                "water": {"unit_weight": 10.0, "piezometric_line": [[0, 7], [10, 7]]},
+                "slope": {"direction": "right_to_left"},
+                "analysis": {}
+            });
+            let model: Model = serde_json::from_value(doc).expect("test model");
+            PreparedModel::new(&model).expect("valid model")
+        };
+        let slice = |x_left: f64, x_right: f64| Slice {
+            x_left,
+            x_right,
+            y_base_left: 2.0,
+            y_base_right: 2.0,
+            width: x_right - x_left,
+            base_length: x_right - x_left,
+            ..ZERO_SLICE
+        };
+        // Toe first, running toward +x: the face is the right side of the toe slice.
+        let face =
+            interslice_face_strength(&model(Value::Null), &slice(3.0, 5.0), &slice(5.0, 7.0));
+        let tan30 = 30.0_f64.to_radians().tan();
+        assert!((face.cohesion_force - 60.0).abs() < 1e-9, "{face:?}");
+        assert!((face.tan_phi - 0.5 * tan30).abs() < 1e-12, "{face:?}");
+        assert!((face.water_force - 10.0 * 12.5).abs() < 1e-9, "{face:?}");
+        // Same face, mirrored order (toe on the right): the face is the left side of the toe slice.
+        let mirrored =
+            interslice_face_strength(&model(Value::Null), &slice(5.0, 7.0), &slice(3.0, 5.0));
+        assert_eq!(mirrored, face);
+        let with_ru =
+            interslice_face_strength(&model(json!(0.3)), &slice(3.0, 5.0), &slice(5.0, 7.0));
+        assert!(
+            (with_ru.water_force - (0.3 * 448.0 + 10.0 * 0.5)).abs() < 1e-9,
+            "{with_ru:?}"
+        );
+        assert_eq!(with_ru.cohesion_force, face.cohesion_force);
+        // A base on the ground: no soil on the face, no strength.
+        let flat = Slice {
+            y_base_left: 10.0,
+            y_base_right: 10.0,
+            ..slice(3.0, 5.0)
+        };
+        assert_eq!(
+            interslice_face_strength(&model(Value::Null), &flat, &slice(5.0, 7.0)),
+            FaceStrength::NONE
         );
     }
 }

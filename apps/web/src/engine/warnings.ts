@@ -48,6 +48,7 @@ export const ENGINE_WARNING_CODES = [
   'polyline_no_ground_crossing',
   'polyline_outside_ground',
   'bishop_non_circular',
+  'interslice_shear_exceeds_strength',
 ] as const;
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
@@ -139,6 +140,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'aviso',
     text: 'Bishop simplificado solo es válido en superficies circulares: en una polilínea su FS depende de un eje arbitrario. Use Spencer, Morgenstern-Price o Janbu.',
   },
+  interslice_shear_exceeds_strength: {
+    severity: 'aviso',
+    text: 'Las fuerzas de corte entre dovelas superan la resistencia de las caras verticales (Chen y Morgenstern, 1983): este FS puede no ser físico. Compárelo con Janbu o revise la forma de la superficie.',
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -170,6 +175,7 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   polyline_no_ground_crossing: '/analysis/surface',
   polyline_outside_ground: '/analysis/surface',
   bishop_non_circular: '/analysis/methods',
+  interslice_shear_exceeds_strength: '/analysis/surface',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */
