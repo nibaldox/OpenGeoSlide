@@ -11,7 +11,7 @@ import { screenToWorld, type Viewport } from '../../geometry/viewport';
 import { coincidentVertices, piezoPoints, roundForScale, type VertexRef } from './geom';
 import { handleHitRadius, hitTest, type Hit } from './hitTest';
 import { insertPiezoPoint, movePiezoPoint, removePiezoPoint } from './edits';
-import { insertPolylineVertex, movePolylineVertex, removePolylineVertex } from './polyline';
+import { insertPolylineVertex, modelWidth, movePolylineVertex, polylineMinGap, removePolylineVertex } from './polyline';
 import { snapPoint, type SnapResult } from './snap';
 import { panBy } from './viewportOps';
 
@@ -111,7 +111,7 @@ function computePreview(target: DragTarget, ctx: GestureContext, input: PointerI
       if (surface.points[target.index - 1]) neighbors.push(surface.points[target.index - 1]!);
       if (surface.points[target.index + 1]) neighbors.push(surface.points[target.index + 1]!);
       const snap = snapPoint(raw, { doc, vp, snap: ui.snap, neighbors });
-      const moved = movePolylineVertex(surface.points, target.index, snap.point);
+      const moved = movePolylineVertex(surface.points, target.index, snap.point, polylineMinGap(modelWidth(doc.regions)));
       if (!moved) return null;
       return { kind: 'surface_polyline', index: target.index, points: moved.points, clamped: moved.clamped, snap };
     }
@@ -271,14 +271,15 @@ export function pointerDown(state: GestureState, ctx: GestureContext, input: Poi
       // hitTestFor solo la devuelve con «Agregar vértice».
       const surface = doc.analysis.surface;
       if (ui.tool !== 'add_vertex' || !surface || surface.type !== 'polyline') return { state, actions: [{ type: 'ui/select', selection: { kind: 'none' } }] };
-      const inserted = insertPolylineVertex(surface.points, hit.afterIndex);
+      const minGap = polylineMinGap(modelWidth(doc.regions));
+      const inserted = insertPolylineVertex(surface.points, hit.afterIndex, minGap);
       if (!inserted) return noop(state);
       // El punto va donde se hizo clic (sobre el tramo), con el redondeo de la escala; se conserva el orden estricto de x.
       const at: Point = [roundForScale(hit.point[0], vp.scale), roundForScale(hit.point[1], vp.scale)];
       const a = surface.points[hit.afterIndex]!;
       const b = surface.points[hit.afterIndex + 1]!;
       const points = surface.points.map((p): Point => [p[0], p[1]]);
-      points.splice(hit.afterIndex + 1, 0, at[0] > a[0] && at[0] < b[0] ? at : inserted.points[hit.afterIndex + 1]!);
+      points.splice(hit.afterIndex + 1, 0, at[0] - a[0] >= minGap && b[0] - at[0] >= minGap ? at : inserted.points[hit.afterIndex + 1]!);
       return {
         state,
         actions: [
