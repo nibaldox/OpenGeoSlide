@@ -5,7 +5,7 @@
 
 import { slideDirection } from '../editor/canvas/layout';
 import { geotechAdvisories, piezoExtension } from '../editor/state/geotech';
-import { isImperialUnits } from '../editor/state/units';
+import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
@@ -168,16 +168,20 @@ function units(model: ModelDoc): { gamma: string; stress: string; line: string; 
 }
 
 /**
- * γw del informe (R9-03c). Sin piezométrica no hay agua que pese: «Sin agua (no aplica)», nunca el 9,81 por defecto del motor
- * (que en un modelo imperial sería «9,81 pcf»). Con piezométrica se imprime el valor; si falta, el motor usa 9,81 sin convertir
- * unidades, así que en imperial se dice «no indicado» en lugar de inventar un valor en pcf.
+ * γw del informe (R9-03c, E15l-14). Se muestra cuando el modelo usa el agua: con piezométrica (que incluye el agua embalsada sobre el
+ * terreno) o con agua en la grieta (`tension_crack.water_fill > 0`). Sin ningún uso del agua, «Sin agua (no aplica)», nunca el 9,81 por
+ * defecto del motor. Sin γw explícito, el valor por defecto es 9,81 kN/m³ en SI y su conversión (62,45 pcf) en imperial (E15l-6).
  */
 export function waterUnitWeightText(model: ModelDoc, gammaUnit: string): string {
   const line = model.water?.piezometric_line;
-  if (!Array.isArray(line) || line.length < 2) return 'Sin agua (no aplica)';
+  const hasPiezo = Array.isArray(line) && line.length >= 2;
+  const crackFill = model.analysis.tension_crack?.water_fill;
+  const crackWater = typeof crackFill === 'number' && crackFill > 0;
+  if (!hasPiezo && !crackWater) return 'Sin agua (no aplica)';
   const v = model.water?.unit_weight;
   if (typeof v === 'number') return `${fmtParam(v)} ${gammaUnit}`;
-  return isImperialUnits(model.units) ? 'no indicado (el motor usaría 9,81 sin convertir unidades)' : `9,81 ${gammaUnit} (por defecto)`;
+  const byDefault = isImperialUnits(model.units) ? Number((WATER_UNIT_WEIGHT_SI * UNIT_FACTORS.unitWeight).toFixed(2)) : WATER_UNIT_WEIGHT_SI;
+  return `${fmtParam(byDefault)} ${gammaUnit} (por defecto)`;
 }
 
 /**

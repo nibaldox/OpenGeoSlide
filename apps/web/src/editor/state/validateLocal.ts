@@ -491,6 +491,20 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
     issues.push(error('editor.out_of_range', withValue(RULE_TEXT.waterUnitWeight, water.unit_weight), '/water/unit_weight'));
   }
   const line = water.piezometric_line;
+  // E15l-14: el agua de la grieta también usa γw. Sin piezométrica, un γw en kN/m³ en un modelo imperial es el mismo error de unidades.
+  const crackFill = doc.analysis.tension_crack?.water_fill;
+  const gwCrack = water.unit_weight;
+  if (
+    isImperialUnits(doc.units) &&
+    typeof crackFill === 'number' &&
+    crackFill > 0 &&
+    !(Array.isArray(line) && line.length >= 2) &&
+    isNum(gwCrack) &&
+    gwCrack > 0 &&
+    gwCrack < MIN_IMPERIAL_GAMMA_W
+  ) {
+    issues.push(error('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
+  }
   if (line === undefined || line === null) return;
   const base = '/water/piezometric_line';
   if (line.length < 2) {

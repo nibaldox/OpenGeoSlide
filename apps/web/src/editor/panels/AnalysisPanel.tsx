@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { Direction, IntersliceFunction, MethodKind, Point } from '../../engine/types';
 import type { EditorStore } from '../types';
+import { crackEditCommands } from './crackWater';
 import { applyCommands } from './dispatch';
 import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
@@ -14,7 +15,6 @@ import {
   analysisCommands,
   analysisFromForm,
   analysisToForm,
-  crackCommands,
   crackFromForm,
   crackToForm,
   dataPointsCommand,
@@ -162,7 +162,7 @@ function CrackSection({ store }: { store: EditorStore }) {
   const errors = outcome.ok ? {} : outcome.errors;
   const commitWith = (next: CrackForm): void => {
     const r = crackFromForm(next);
-    if (r.ok) applyCommands(store, 'Editar la grieta de tracción', crackCommands(store.getState().doc, r.value));
+    if (r.ok) applyCommands(store, 'Editar la grieta de tracción', crackEditCommands(store.getState().doc, r.value));
   };
   const checkId = `${base}-on`;
   const modeId = `${base}-mode`;
