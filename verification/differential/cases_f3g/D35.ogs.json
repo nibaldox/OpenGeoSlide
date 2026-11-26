@@ -1,0 +1,128 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D35",
+    "title": "Grieta automática con sobrecarga",
+    "notes": "La geometría de D34 con una sobrecarga de 25 kPa en la corona (x de 2 a 18): la grieta automática resta q/γ (z = 2,10 − 25/19 = 0,78 m) y va llena (water_fill = 1)."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Relleno",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 12.0,
+      "friction_angle": 28.0,
+      "ru": null
+    },
+    {
+      "id": "clay",
+      "name": "Arcilla",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "cohesion": 30.0,
+      "friction_angle": 20.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          0.0,
+          10.0
+        ],
+        [
+          0.0,
+          20.0
+        ],
+        [
+          20.0,
+          20.0
+        ],
+        [
+          30.0,
+          10.0
+        ]
+      ]
+    },
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          30.0,
+          10.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "loads": [
+    {
+      "id": "q1",
+      "type": "udl",
+      "x1": 2.0,
+      "x2": 18.0,
+      "q": 25.0
+    }
+  ],
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 43.36343542609903,
+      "yc": 32.71882939500529,
+      "r": 32.8910564501637
+    },
+    "tension_crack": {
+      "depth": "auto",
+      "water_fill": 1.0
+    }
+  }
+}

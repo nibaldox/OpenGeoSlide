@@ -18,7 +18,7 @@ with passive soil nails (D24), a mechanically stabilized earth (TEM) wall with g
 pile, that is, a sheet pile plus an active anchor (D26), and a row of piles (D27). Each one is a fixed circle (the
 reinforcements cross it) with Bishop, Morgenstern-Price and corrected Janbu.
 
-Writes verification/differential/cases/<id>.ogs.json, cases_f3/<id>.ogs.json and cases_f3r/<id>.ogs.json. Nothing here is a published
+D28-D39 are the models of the tension crack and the ponded water (briefs/F3G_G1.md, task V; contracts F5.2 and F5.3), in\n`cases_f3g/`: reservoirs at the toe and on a dam face (D28-D31), dry, filled and automatic cracks (D32-D35) and combinations of\nboth, with seismic coefficient and with an undrained clay (D36-D39). Each one has a search and a fixed circle, with Bishop and\nSpencer.\n\nWrites verification/differential/cases/<id>.ogs.json, cases_f3/<id>.ogs.json, cases_f3r/<id>.ogs.json and cases_f3g/<id>.ogs.json. Nothing here is a published
 value: the models only feed two engines, and run.py compares the engines with each other (contract E9b).
 
 Usage (from the worktree root):
@@ -42,6 +42,7 @@ HERE = Path(__file__).resolve().parent
 CASES_DIR = HERE / "cases"
 CASES_F3_DIR = HERE / "cases_f3"
 CASES_F3R_DIR = HERE / "cases_f3r"
+CASES_F3G_DIR = HERE / "cases_f3g"
 
 GAMMA_W = 9.807
 SLICES = 50
@@ -723,6 +724,214 @@ def probe_f3r_model(capability: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------- F3G: tension crack and ponded water (v0.5)
+# The fixed circle of each model is the critical circle of cSlope's own Bishop search on that model (with its crack and its
+# ponded water), unrounded for the reason given above.
+FIXED_SURFACES_F3G: dict[str, tuple[float, float, float]] = {
+    "D28": (32.55649204292375, 46.5283183313195, 21.679666431326257),
+    "D29": (32.3345347204876, 49.4544428412654, 24.56569488661423),
+    "D30": (27.076448878025104, 13.339637575128545, 13.656246640307726),
+    "D31": (15.876084829965436, 66.19270054714319, 68.07018735817053),
+    "D32": (47.34927355399914, 33.46500348635452, 34.26241004670533),
+    "D33": (50.010740160957525, 36.845868534216656, 38.1814903212654),
+    "D34": (42.83754354843534, 30.675605247581984, 30.806203737535203),
+    "D35": (43.36343542609903, 32.71882939500529, 32.8910564501637),
+    "D36": (32.41619023008708, 47.95925236388175, 23.086117710374936),
+    "D37": (15.447592648615313, 67.7349718204107, 69.47431565988484),
+    "D38": (32.828659913418406, 46.92813142699123, 22.109917764737766),
+    "D39": (29.989896919681446, 17.775518182062456, 27.77551910225396),
+}
+# ACADS 1(a), the V047a profile: a 10 m slope of 2H:1V with its toe at (30, 25), c = 3, phi = 19.6, gamma = 20.
+V047A_PROFILE = [(20.0, 20.0), (20.0, 25.0), (30.0, 25.0), (50.0, 35.0), (70.0, 35.0), (70.0, 20.0)]
+# Cut of 20 m with a 2H:1V face, crest from x = 0 to 20, level ground to x = 70.
+CUT_20 = [(0.0, -10.0), (0.0, 20.0), (20.0, 20.0), (40.0, 0.0), (70.0, 0.0), (70.0, -10.0)]
+# Dam on a foundation of the same soil: 3H:1V upstream face (x from 0 to 60, y from 0 to 20), crest to x = 70, 2H:1V downstream.
+DAM = [(-20.0, -10.0), (-20.0, 0.0), (0.0, 0.0), (60.0, 20.0), (70.0, 20.0), (110.0, 0.0), (130.0, 0.0), (130.0, -10.0)]
+F3G_METHODS = ["bishop", "spencer"]
+
+
+def _model_f3g(case_id: str, title: str, intent: str, direction: str, version: str, materials: list[dict],
+               regions: list[dict], search: dict, *, piezo: list[tuple[float, float]] | None = None,
+               crack: dict | None = None, loads: list[dict] | None = None, seismic: dict | None = None) -> dict:
+    """A model of F3G: a search and a fixed circle (once `FIXED_SURFACES_F3G` has it), Bishop and Spencer."""
+    water: dict = {"unit_weight": GAMMA_W}
+    if piezo:
+        water["piezometric_line"] = [[x, y] for x, y in piezo]
+    analysis: dict = {
+        "methods": list(F3G_METHODS),
+        "slices": SLICES,
+        "tolerance": 1e-5,
+        "max_iterations": 500,
+        "min_m_alpha": 0.2,
+        "search": search,
+    }
+    if case_id in FIXED_SURFACES_F3G:
+        xc, yc, r = FIXED_SURFACES_F3G[case_id]
+        analysis["surface"] = {"type": "circle", "xc": xc, "yc": yc, "r": r}
+    if seismic is not None:
+        analysis["seismic"] = dict(seismic)
+    if crack is not None:
+        analysis["tension_crack"] = dict(crack)
+    model: dict = {
+        "format": "opengeoslide",
+        "version": version,
+        "meta": {"id": case_id, "title": title, "notes": intent},
+        "units": "SI",
+        "materials": materials,
+        "regions": regions,
+        "water": water,
+    }
+    if loads:
+        model["loads"] = [dict(load) for load in loads]
+    model["slope"] = {"direction": direction}
+    model["analysis"] = analysis
+    return model
+
+
+def _v047a_f3g(case_id: str, title: str, intent: str, version: str, **kw) -> dict:
+    return _model_f3g(case_id, title, intent, "right_to_left", version,
+                      [_material("soil", "Soil", 20.0, 3.0, 19.6)], [_region("soil", V047A_PROFILE)],
+                      _search(), **kw)
+
+
+def d28() -> dict:
+    intent = ("ACADS 1(a) con la piezométrica horizontal en y = 27, 2 m sobre el pie (30, 25): el agua embalsada cubre la "
+              "banqueta del pie. Versión 0.1: el agua embalsada se aplica en todas las versiones (D1).")
+    return _v047a_f3g("D28", "Embalse al pie, 2 m", intent, "0.1", piezo=[(0.0, 27.0), (100.0, 27.0)])
+
+
+def d29() -> dict:
+    intent = ("ACADS 1(a) con la piezométrica en y = 31: el agua llega 6 m sobre el pie y corta el talud en x = 42; el agua "
+              "embalsada es una cuña sobre la cara y la banqueta. Versión 0.1.")
+    return _v047a_f3g("D29", "Embalse parcial del talud, 6 m", intent, "0.1", piezo=[(0.0, 31.0), (100.0, 31.0)])
+
+
+def d30() -> dict:
+    intent = ("Banco de 12 m con la cara vertical en x = 30 sobre una banqueta a y = 0, y un embalse de 8 m al pie (piezométrica en "
+              "y = 8): empuje hidrostático sobre el paramento vertical (E4) hacia el lado del suelo. Deslizamiento hacia −x, con la "
+              "entrada detrás de la cara (x ≥ 32) y la salida en la banqueta: con la entrada sobre la cara cSlope no converge en Spencer. "
+              "Versión 0.1.")
+    profile = [(0.0, -15.0), (0.0, 0.0), (30.0, 0.0), (30.0, 12.0), (70.0, 12.0), (70.0, -15.0)]
+    return _model_f3g("D30", "Cara vertical con embalse al pie", intent, "right_to_left", "0.1",
+                      [_material("soil", "Suelo", 19.0, 20.0, 28.0)], [_region("soil", profile)],
+                      _search(entry=(32.0, 50.0), exit_=(0.0, 28.0), min_width=3.0), piezo=[(0.0, 8.0), (100.0, 8.0)])
+
+
+def d31() -> dict:
+    intent = ("Presa homogénea (c = 15 kPa, φ = 30°) con el embalse a 16 m en la cara de aguas arriba (3H:1V) y la freática "
+              "bajando por el cuerpo hasta el pie de aguas abajo. El deslizamiento es hacia −x, por la cara mojada: el agua "
+              "embalsada pesa sobre la cara y la banqueta del pie. Versión 0.1.")
+    piezo = [(-20.0, 16.0), (48.0, 16.0), (70.0, 9.0), (110.0, 0.0), (130.0, 0.0)]
+    return _model_f3g("D31", "Presa con embalse en la cara de aguas arriba", intent, "right_to_left", "0.1",
+                      [_material("fill", "Relleno", 20.0, 15.0, 30.0)], [_region("fill", DAM)],
+                      _search(entry=(50.0, 70.0), exit_=(-10.0, 30.0)), piezo=piezo)
+
+
+def d32() -> dict:
+    intent = ("Corte de 20 m, 2H:1V, en un suelo c = 20 kPa, φ = 30°, γ = 19: grieta seca de 3 m (Rankine da 3,65 m). Sin "
+              "piezométrica. Deslizamiento hacia +x.")
+    return _model_f3g("D32", "Grieta seca de 3 m", intent, "left_to_right", "0.5",
+                      [_material("soil", "Suelo", 19.0, 20.0, 30.0)], [_region("soil", CUT_20)], _search(),
+                      crack={"depth": 3.0, "water_fill": 0.0})
+
+
+def d33() -> dict:
+    intent = ("El mismo corte de D32 con una grieta de 4 m llena de agua (water_fill = 1): Pw = ½·γw·4² = 78,5 kN/m en el "
+              "sentido del deslizamiento, a 4/3 m sobre la base de la grieta.")
+    return _model_f3g("D33", "Grieta llena de 4 m", intent, "left_to_right", "0.5",
+                      [_material("soil", "Suelo", 19.0, 20.0, 30.0)], [_region("soil", CUT_20)], _search(),
+                      crack={"depth": 4.0, "water_fill": 1.0})
+
+
+def _two_layers() -> tuple[list[dict], list[dict]]:
+    top = [(0.0, 10.0), (0.0, 20.0), (20.0, 20.0), (30.0, 10.0)]
+    bottom = [(0.0, -10.0), (0.0, 10.0), (30.0, 10.0), (40.0, 0.0), (70.0, 0.0), (70.0, -10.0)]
+    return ([_material("fill", "Relleno", 19.0, 12.0, 28.0), _material("clay", "Arcilla", 18.0, 30.0, 20.0)],
+            [_region("fill", top), _region("clay", bottom)])
+
+
+def d34() -> dict:
+    intent = ("Relleno (c = 12 kPa, φ = 28°) de 10 m sobre arcilla (c = 30 kPa, φ = 20°), corte de 20 m con cara 2H:1V: grieta "
+              "automática (z = 2c/(γ·tan(45° − φ/2)) con el material bajo cada x, 2,1 m en el relleno) llena a la mitad.")
+    materials, regions = _two_layers()
+    return _model_f3g("D34", "Grieta automática en dos capas", intent, "left_to_right", "0.5", materials, regions,
+                      _search(), crack={"depth": "auto", "water_fill": 0.5})
+
+
+def d35() -> dict:
+    intent = ("La geometría de D34 con una sobrecarga de 25 kPa en la corona (x de 2 a 18): la grieta automática resta q/γ "
+              "(z = 2,10 − 25/19 = 0,78 m) y va llena (water_fill = 1).")
+    materials, regions = _two_layers()
+    return _model_f3g("D35", "Grieta automática con sobrecarga", intent, "left_to_right", "0.5", materials, regions,
+                      _search(), crack={"depth": "auto", "water_fill": 1.0},
+                      loads=[{"id": "q1", "type": "udl", "x1": 2.0, "x2": 18.0, "q": 25.0}])
+
+
+def d36() -> dict:
+    intent = ("ACADS 1(a) con embalse de 2 m al pie (piezométrica en y = 27) y una grieta de 2 m llena de agua: las dos "
+              "fuerzas del agua juntas (X21 §3.7 muestra que no se solapan).")
+    return _v047a_f3g("D36", "Embalse al pie y grieta llena", intent, "0.5", piezo=[(0.0, 27.0), (100.0, 27.0)],
+                      crack={"depth": 2.0, "water_fill": 1.0})
+
+
+def d37() -> dict:
+    intent = ("La presa de D31 con una grieta automática llena (water_fill = 1) en la corona, donde entra el deslizamiento "
+              "hacia −x, y el embalse de 16 m en la cara de aguas arriba.")
+    piezo = [(-20.0, 16.0), (48.0, 16.0), (70.0, 9.0), (110.0, 0.0), (130.0, 0.0)]
+    return _model_f3g("D37", "Presa con embalse y grieta automática llena", intent, "right_to_left", "0.5",
+                      [_material("fill", "Relleno", 20.0, 15.0, 30.0)], [_region("fill", DAM)],
+                      _search(entry=(50.0, 70.0), exit_=(-10.0, 30.0)), piezo=piezo,
+                      crack={"depth": "auto", "water_fill": 1.0})
+
+
+def d38() -> dict:
+    intent = ("ACADS 1(a) con kh = 0,10, embalse de 2 m al pie y una grieta de 2 m llena a la mitad: el sismo no actúa sobre el "
+              "agua embalsada ni sobre la fuerza de la grieta (E7), solo sobre el suelo.")
+    return _v047a_f3g("D38", "Sismo, embalse y grieta", intent, "0.5", piezo=[(0.0, 27.0), (100.0, 27.0)],
+                      crack={"depth": 2.0, "water_fill": 0.5}, seismic={"kh": 0.1, "kv": 0.0})
+
+
+def d39() -> dict:
+    intent = ("Corte de 10 m, 2H:1V, en arcilla no drenada (Su = 40 kPa, γ = 18) con grieta automática (z = 2·Su/γ = 4,44 m, "
+              "G7) llena de agua. Mohr-Coulomb con φ = 0 daría el mismo FS.")
+    profile = [(0.0, -10.0), (0.0, 10.0), (20.0, 10.0), (40.0, 0.0), (70.0, 0.0), (70.0, -10.0)]
+    return _model_f3g("D39", "Arcilla no drenada con grieta automática", intent, "left_to_right", "0.5",
+                      [_undrained("clay", "Arcilla", 18.0, 40.0)], [_region("clay", profile)], _search(),
+                      crack={"depth": "auto", "water_fill": 1.0})
+
+
+BUILDERS_F3G: list[Callable[[], dict]] = [d28, d29, d30, d31, d32, d33, d34, d35, d36, d37, d38, d39]
+
+# The probes of the engine: V047a with the fixed circle of F3.8, Bishop, and the oracle figures of the rows X21-P01 (ponded
+# water: the piezometric line at y = 27) and X21-W025 (a crack of 2 m filled at 25 %). An engine that does not reproduce them
+# to 0.1 % does not have the capability yet (the base v0.3.0 gives 0.848 for the pond: it leaves the water out).
+PROBE_F3G_BISHOP = {"ponded_water": 0.9390165587785071, "tension_crack": 1.0231892959389508}
+PROBE_F3G_TOLERANCE = 1e-3
+
+
+def probe_f3g_model(capability: str) -> dict:
+    """The model of the probe of one capability of F3G: V047a, the fixed circle, Bishop, version 0.5."""
+    model = {
+        "format": "opengeoslide", "version": "0.5", "meta": {"id": "V047a-probe", "title": "ACADS 1(a), sonda F3G"},
+        "units": "SI",
+        "materials": [_material("soil", "Soil", 20.0, 3.0, 19.6)],
+        "regions": [_region("soil", V047A_PROFILE)],
+        "water": {"unit_weight": GAMMA_W},
+        "slope": {"direction": "right_to_left"},
+        "analysis": {"methods": ["bishop"], "slices": 50, "tolerance": 1e-5, "max_iterations": 500, "min_m_alpha": 0.2,
+                     "surface": {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435,
+                                 "r": 28.641487934160704}},
+    }
+    if capability == "ponded_water":
+        model["version"] = "0.1"
+        model["water"]["piezometric_line"] = [[0.0, 27.0], [100.0, 27.0]]
+    elif capability == "tension_crack":
+        model["analysis"]["tension_crack"] = {"depth": 2.0, "water_fill": 0.25}
+    else:
+        raise ValueError(capability)
+    return model
+
+
 BUILDERS: list[Callable[[], dict]] = [d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14]
 
 
@@ -753,16 +962,30 @@ def build_all_f3r() -> dict[str, dict]:
     return models
 
 
+def build_all_f3g() -> dict[str, dict]:
+    """The v0.5 models D28-D39 (tension crack and ponded water), keyed by id, in order."""
+    models = {}
+    for build in BUILDERS_F3G:
+        model = build()
+        models[model["meta"]["id"]] = model
+    return models
+
+
 def serialize(model: dict) -> str:
     return json.dumps(model, ensure_ascii=False, indent=2) + "\n"
 
 
 def write_cases(directory: Path = CASES_DIR, f3_directory: Path = CASES_F3_DIR,
-                f3r_directory: Path = CASES_F3R_DIR) -> list[Path]:
+                f3r_directory: Path = CASES_F3R_DIR, f3g_directory: Path = CASES_F3G_DIR) -> list[Path]:
     directory.mkdir(parents=True, exist_ok=True)
     f3_directory.mkdir(parents=True, exist_ok=True)
     f3r_directory.mkdir(parents=True, exist_ok=True)
+    f3g_directory.mkdir(parents=True, exist_ok=True)
     paths = []
+    for case_id, model in build_all_f3g().items():
+        path = f3g_directory / f"{case_id}.ogs.json"
+        path.write_text(serialize(model), encoding="utf-8")
+        paths.append(path)
     for case_id, model in build_all_f3r().items():
         path = f3r_directory / f"{case_id}.ogs.json"
         path.write_text(serialize(model), encoding="utf-8")

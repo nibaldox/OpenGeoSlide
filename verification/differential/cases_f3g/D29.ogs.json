@@ -1,0 +1,94 @@
+{
+  "format": "opengeoslide",
+  "version": "0.1",
+  "meta": {
+    "id": "D29",
+    "title": "Embalse parcial del talud, 6 m",
+    "notes": "ACADS 1(a) con la piezométrica en y = 31: el agua llega 6 m sobre el pie y corta el talud en x = 42; el agua embalsada es una cuña sobre la cara y la banqueta. Versión 0.1."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 3.0,
+      "friction_angle": 19.6,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          20.0,
+          20.0
+        ],
+        [
+          20.0,
+          25.0
+        ],
+        [
+          30.0,
+          25.0
+        ],
+        [
+          50.0,
+          35.0
+        ],
+        [
+          70.0,
+          35.0
+        ],
+        [
+          70.0,
+          20.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        31.0
+      ],
+      [
+        100.0,
+        31.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 32.3345347204876,
+      "yc": 49.4544428412654,
+      "r": 24.56569488661423
+    }
+  }
+}

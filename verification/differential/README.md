@@ -1,7 +1,7 @@
 # Batería diferencial ogs vs cSlope (W7b)
 
 Compara el FS de `ogs` (binario CLI) con el oráculo independiente cSlope 0.1.0 (MIT) en catorce modelos
-sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas); D15-D23 son los modelos v0.3 y D24-D27 los de refuerzos (v0.4). Compara motores entre sí: **no contiene valores publicados**.
+sintéticos de tipo minero y civil: D01-D10 (esquema v0.1) y D11-D14 (esquema v0.2, con sismo y cargas); D15-D23 son los modelos v0.3, D24-D27 los de refuerzos (v0.4) y D28-D39 los de grieta de tracción y agua embalsada (v0.5). Compara motores entre sí: **no contiene valores publicados**.
 
 ## Archivos
 
@@ -44,6 +44,39 @@ de antes):
   del motor) y el valor de cSlope igual se calcula como línea base. El código de salida sigue siendo 0.
   Con `--require-f3` sale con código 3 si queda algo pendiente, con fallo o sin dato: úsese al integrar.
 - `report.json` gana la clave `f3` (capacidades, resumen y checks); `REPORT.md` gana la sección «Fase 3a».
+
+## F3G: grieta de tracción y agua embalsada, modelos D28 a D39 (v0.5)
+
+Cuarto bloque de `run.py`, después de los tres anteriores y sin cambiarlos. Doce modelos sintéticos en `cases_f3g/`, cada uno en
+**búsqueda** y en su **círculo fijo** (el crítico de la búsqueda de cSlope sobre ese mismo modelo, sin redondear), con Bishop y
+Spencer y los criterios de E9b (48 checks). Los de agua sin grieta están en versión 0.1: el agua embalsada se aplica en todas
+las versiones (D1). Los de grieta, en 0.5.
+
+| caso | modelo | qué cubre |
+|---|---|---|
+| D28 | ACADS 1(a) con la piezométrica en y = 27 (2 m sobre el pie) | embalse al pie sobre la banqueta |
+| D29 | ACADS 1(a), piezométrica en y = 31 | agua que corta el talud en x = 42: cuña sobre la cara y la banqueta |
+| D30 | banco de 12 m con la cara vertical en x = 30 y un embalse de 8 m al pie | empuje sobre el paramento vertical (E4); entrada de la búsqueda detrás de la cara |
+| D31 | presa homogénea con el embalse a 16 m en la cara de aguas arriba | agua sobre la cara y la banqueta, deslizamiento hacia −x |
+| D32 | corte de 20 m, 2H:1V, c = 20, φ = 30° | grieta seca de 3 m |
+| D33 | el mismo corte | grieta llena de 4 m (`water_fill` = 1, Pw = 78,5 kN/m) |
+| D34 | relleno sobre arcilla, corte de 20 m | grieta automática en dos capas, llena a la mitad |
+| D35 | la geometría de D34 con 25 kPa en la corona | grieta automática que resta q/γ |
+| D36 | ACADS 1(a) con embalse de 2 m | embalse más grieta de 2 m llena |
+| D37 | la presa de D31 | embalse más grieta automática llena en la corona |
+| D38 | ACADS 1(a), kh = 0,10 | sismo, embalse y grieta: el sismo no actúa sobre el agua (E7) |
+| D39 | arcilla no drenada (Su = 40 kPa), corte de 10 m | grieta automática z = 2·Su/γ (G7) llena |
+
+- **Sonda.** Antes de correr, `probe_f3g` prueba cada capacidad (`ponded_water`, `tension_crack`) con V047a: el embalse de 2 m
+  (fila X21-P01, Bishop 0,939017) y una grieta de 2 m llena al 25 % (X21-W025, Bishop 1,023189). Se acepta si Bishop da la cifra
+  del oráculo a 0,1 %. Un motor que deja el agua fuera (la base v0.3.0 da 0,848) o que rechaza la versión 0.5 deja los checks que
+  necesitan esa capacidad en **pendiente**, nunca en falla; el valor de cSlope se calcula igual y queda como línea base.
+- **`--require-f3g`** sale con código 5 si algún check del bloque queda pendiente, con fallo o sin dato: úsese al integrar.
+- `report.json` gana la clave `f3g` (capacidades, resumen y checks; `report_version` 5); `REPORT.md` gana la sección «v0.5».
+- **Estado con el motor de la base de esta rama** (los stubs de G0): **0 de 48 OK, 48 pendientes** (la sonda del agua da 0,848 y
+  la de la grieta ve el pánico `crack.rs`); cSlope resuelve los 48 (convergidos). El resto de la batería no cambia.
+- `build_cases.py` escribe también `cases_f3g/`. Los círculos fijos de `FIXED_SURFACES_F3G` salen de la búsqueda de cSlope sobre cada
+  modelo (oráculo `analyse` con el conversor de este directorio).
 
 ## R10: modelos D18 a D23 (E13l)
 

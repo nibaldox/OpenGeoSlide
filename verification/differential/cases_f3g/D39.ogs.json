@@ -1,0 +1,87 @@
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": {
+    "id": "D39",
+    "title": "Arcilla no drenada con grieta automática",
+    "notes": "Corte de 10 m, 2H:1V, en arcilla no drenada (Su = 40 kPa, γ = 18) con grieta automática (z = 2·Su/γ = 4,44 m, G7) llena de agua. Mohr-Coulomb con φ = 0 daría el mismo FS."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "clay",
+      "name": "Arcilla",
+      "model": "undrained",
+      "unit_weight": 18.0,
+      "unit_weight_sat": null,
+      "undrained_strength": 40.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          10.0
+        ],
+        [
+          20.0,
+          10.0
+        ],
+        [
+          40.0,
+          0.0
+        ],
+        [
+          70.0,
+          0.0
+        ],
+        [
+          70.0,
+          -10.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807
+  },
+  "slope": {
+    "direction": "left_to_right"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true
+    },
+    "surface": {
+      "type": "circle",
+      "xc": 29.989896919681446,
+      "yc": 17.775518182062456,
+      "r": 27.77551910225396
+    },
+    "tension_crack": {
+      "depth": "auto",
+      "water_fill": 1.0
+    }
+  }
+}
