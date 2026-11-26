@@ -67,7 +67,7 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
     titleRef.current?.focus();
     // Al desmontar el navegador saca el diálogo de la capa superior; solo falta devolver el foco al botón «Ayuda».
     return () => {
-      restoreFocus(null, previous); // el foco nunca cae en <body>, aunque el botón «Ayuda» ya no se pueda enfocar (R9-11c)
+      restoreFocus(null, previous, { preventScroll: true }); // el foco nunca cae en <body>, aunque el botón «Ayuda» ya no se pueda enfocar (R9-11c)
     };
   }, [opener]);
 

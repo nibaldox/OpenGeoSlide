@@ -55,7 +55,7 @@ export function Modal({ title, onCancel, children, initialFocus }: {
     return () => {
       // Si el disparador ya no se puede enfocar (elemento de un menú cerrado, botón retirado), va al botón del menú o a #main-content:
       // el foco nunca cae en <body> (R9-11c).
-      restoreFocus(null, previous);
+      restoreFocus(null, previous, { preventScroll: true });
     };
   }, []);
   return (

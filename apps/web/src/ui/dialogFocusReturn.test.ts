@@ -15,6 +15,9 @@ describe.each(['editor/app/ImportDialogs.tsx', 'ui/HelpDialog.tsx', 'ui/ConfirmD
     expect(text).toMatch(/import\s*\{[^}]*\brestoreFocus\b[^}]*\}\s*from\s*'[^']*focusReturn'/);
     expect(text).toMatch(/\brestoreFocus\(/);
   });
+  it.skipIf(file === 'ui/ConfirmDialog.tsx')('no desplaza la página al devolver el foco (preventScroll)', () => {
+    expect(text).toMatch(/restoreFocus\(null, previous, \{ preventScroll: true \}\)/);
+  });
   it('no usa previous?.isConnected && previous.focus()', () => {
     expect(text).not.toMatch(/previous\??\.isConnected/);
     expect(text).not.toMatch(/previous\??\.focus\(\)/);

@@ -59,9 +59,12 @@ export const DOM_FOCUS_LOOKUP: FocusLookup<HTMLElement> = {
   isResolver: (spec): spec is () => HTMLElement | null => typeof spec === 'function',
 };
 
-/** Devuelve el foco al mejor candidato. Resultado: el elemento enfocado o `null` si ninguno servía. */
-export function restoreFocus(explicit: ReturnFocus, opener: HTMLElement | null): HTMLElement | null {
+/**
+ * Devuelve el foco al mejor candidato. Resultado: el elemento enfocado o `null` si ninguno servía. `options.preventScroll` evita que
+ * `focus()` desplace la página: `#main-content` es alto y enfocarlo sin esa opción sube la página hasta su inicio (R9-11c).
+ */
+export function restoreFocus(explicit: ReturnFocus, opener: HTMLElement | null, options?: FocusOptions): HTMLElement | null {
   const el = pickReturnFocus(explicit, opener, DOM_FOCUS_LOOKUP);
-  el?.focus();
+  el?.focus(options);
   return el;
 }
