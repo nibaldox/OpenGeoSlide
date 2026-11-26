@@ -13,9 +13,9 @@ describe('describeWarning', () => {
     );
   });
 
-  it('water_above_ground y max_iterations son avisos', () => {
-    expect(describeWarning('water_above_ground')).toMatchObject({ severity: 'aviso' });
-    expect(describeWarning('water_above_ground').text).toMatch(/agua sobre el terreno se ignora/);
+  it('water_above_ground es una nota (agua embalsada, F5.3) y max_iterations un aviso', () => {
+    expect(describeWarning('water_above_ground')).toMatchObject({ severity: 'nota' });
+    expect(describeWarning('water_above_ground').text).toMatch(/agua embalsada se incluye/);
     expect(describeWarning('max_iterations')).toMatchObject({ severity: 'aviso' });
   });
 
@@ -103,12 +103,10 @@ describe('describeWarning', () => {
 describe('mensajes accionables y sin nombres internos (R7-19, R7-20)', () => {
   const INTERNAL = /min_m_alpha|n_entry|n_exit|n_radius|ogs-core|deny_unknown_fields|performance\.now|v0\.1|\bwasm\b/i;
 
-  it('water_above_ground ya no menciona v0.1 y explica que el agua libre (embalse) no se considera', () => {
+  it('water_above_ground dice que el agua embalsada se incluye con su peso y su empuje horizontal, sin sismo (F5.3)', () => {
     const { text } = describeWarning('water_above_ground');
-    expect(text).not.toMatch(/v0\.1|no soportado/);
-    expect(text).toBe(
-      'La línea piezométrica queda sobre el terreno dentro de la masa deslizante. El agua sobre el terreno se ignora: el agua libre (por ejemplo, un embalse) no se considera en esta versión; revise la línea piezométrica.',
-    );
+    expect(text).not.toMatch(/v0\.1|no soportado|se ignora|no se considera/);
+    expect(text).toBe('La piezométrica queda sobre el terreno: el agua embalsada se incluye con su peso y su empuje horizontal (sin sismo).');
   });
 
   it.each([

@@ -5,6 +5,8 @@ import { applyCommands } from './dispatch';
 import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
+  CRACK_DEFAULT_WATER_FILL,
+  CRACK_DEFAULT_FIXED_DEPTH,
   DIRECTION_OPTIONS,
   INTERSLICE_OPTIONS,
   METHOD_LABELS,
@@ -12,17 +14,23 @@ import {
   analysisCommands,
   analysisFromForm,
   analysisToForm,
+  crackCommands,
+  crackFromForm,
+  crackToForm,
   dataPointsCommand,
   dataPointsFromForm,
   dataPointsToForm,
   canInsertDataPoint,
+  formatNumber,
   insertDataPoint,
   intersliceFunctionCommand,
   intersliceFunctionOf,
   methodDisabledReason,
   removeDataPoint,
   toggleMethod,
+  unitLabels,
   type AnalysisForm,
+  type CrackForm,
 } from './forms';
 
 const NO_POINTS: readonly Point[] = [];
@@ -139,6 +147,101 @@ function IntersliceSection({ store }: { store: EditorStore }) {
   );
 }
 
+/**
+ * Grieta de tracción (v0.5, F5.7): casilla, profundidad (un número o «Automática») y fracción de agua (de 0 a 1, en 1 al crearla). Cada
+ * cambio válido se confirma al instante (casilla y lista) o al salir del campo; un valor fuera de rango muestra el texto del motor y no
+ * se guarda. La posición de la grieta no se escribe: sale de la superficie y de la profundidad.
+ */
+function CrackSection({ store }: { store: EditorStore }) {
+  const base = useId();
+  const crack = useStoreSelector(store, (s) => s.doc.analysis.tension_crack ?? null);
+  const units = useStoreSelector(store, (s) => s.doc.units);
+  const u = unitLabels(units);
+  const [form, setForm, reset] = useDraft(() => crackToForm(store.getState().doc), [crack]);
+  const outcome = crackFromForm(form);
+  const errors = outcome.ok ? {} : outcome.errors;
+  const commitWith = (next: CrackForm): void => {
+    const r = crackFromForm(next);
+    if (r.ok) applyCommands(store, 'Editar la grieta de tracción', crackCommands(store.getState().doc, r.value));
+  };
+  const checkId = `${base}-on`;
+  const modeId = `${base}-mode`;
+  const noteId = `${base}-note`;
+
+  return (
+    <fieldset className="field">
+      <legend>Grieta de tracción</legend>
+      <div className="checkbox">
+        <input
+          id={checkId}
+          type="checkbox"
+          data-path="/analysis/tension_crack"
+          checked={form.enabled}
+          aria-describedby={noteId}
+          onChange={(e) => {
+            const next: CrackForm = e.target.checked
+              ? { enabled: true, auto: true, depth: '', water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) }
+              : { ...form, enabled: false };
+            setForm(next);
+            commitWith(next);
+          }}
+        />
+        <label htmlFor={checkId}>Incluir grieta de tracción</label>
+      </div>
+      <span id={noteId} className="muted small">
+        Grieta vertical en la cresta de la masa deslizante: se quita el suelo del lado de la cresta y, si tiene agua, su empuje horizontal
+        actúa a favor del deslizamiento. Su posición sale de la superficie y de la profundidad.
+      </span>
+      {form.enabled ? (
+        <div className="ep-grid">
+          <div className="field ep-field">
+            <label htmlFor={modeId}>Tipo de profundidad de la grieta</label>
+            <select
+              id={modeId}
+              value={form.auto ? 'auto' : 'fixed'}
+              onChange={(e) => {
+                const auto = e.target.value === 'auto';
+                const next: CrackForm = { ...form, auto, depth: auto || form.depth.trim() !== '' ? form.depth : formatNumber(CRACK_DEFAULT_FIXED_DEPTH) };
+                setForm(next);
+                commitWith(next);
+              }}
+            >
+              <option value="fixed">Fija (un valor)</option>
+              <option value="auto">Automática</option>
+            </select>
+            {form.auto ? (
+              <span className="muted small">Automática: z = 2c/(γ·tan(45° − φ/2)) − q/γ, con el suelo y las sobrecargas de cada x.</span>
+            ) : null}
+          </div>
+          {form.auto ? null : (
+            <LabeledField
+              label="Profundidad de la grieta"
+              unit={u.length}
+              path="/analysis/tension_crack/depth"
+              value={form.depth}
+              hint="Mayor que 0"
+              error={'depth' in errors ? errors.depth : undefined}
+              onChange={(v) => setForm({ ...form, depth: v })}
+              onCommit={() => commitWith(form)}
+              onReset={reset}
+            />
+          )}
+          <LabeledField
+            label="Fracción de agua en la grieta"
+            path="/analysis/tension_crack/water_fill"
+            value={form.water_fill}
+            hint="De 0 a 1: 0 es seca y 1 es llena (lo más conservador)"
+            error={'water_fill' in errors ? errors.water_fill : undefined}
+            onChange={(v) => setForm({ ...form, water_fill: v })}
+            onCommit={() => commitWith(form)}
+            onReset={reset}
+          />
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
 export function AnalysisPanel({ store }: { store: EditorStore }) {
   const analysis = useStoreSelector(store, (s) => s.doc.analysis);
   const slope = useStoreSelector(store, (s) => s.doc.slope);
@@ -203,6 +306,8 @@ export function AnalysisPanel({ store }: { store: EditorStore }) {
       </fieldset>
 
       {form.methods.includes('morgenstern_price') ? <IntersliceSection store={store} /> : null}
+
+      <CrackSection store={store} />
 
       <div className="ep-grid">
         {field('slices', 'Dovelas', 'Entero de 3 a 2000')}

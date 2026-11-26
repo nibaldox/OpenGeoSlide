@@ -117,7 +117,8 @@ describe('AnalysisPanel: los cinco métodos y la función entre dovelas (F3.9)',
   it('ofrece los cinco métodos con las etiquetas completas', () => {
     const out = text(html(AnalysisPanel, makeDoc()));
     for (const label of ['Bishop simplificado', 'Spencer', 'Morgenstern-Price', 'Janbu simplificado', 'Janbu corregido']) expect(out).toContain(label);
-    expect(html(AnalysisPanel, makeDoc()).match(/type="checkbox"/g)).toHaveLength(5);
+    // Cinco métodos y, desde la v0.5, la casilla de la grieta de tracción (F5.7).
+    expect(html(AnalysisPanel, makeDoc()).match(/type="checkbox"/g)).toHaveLength(6);
   });
 
   it('sin Morgenstern-Price marcado no hay selector de función; con él sí, con el medio seno por defecto', () => {

@@ -58,6 +58,10 @@ export function WaterPanel({ store }: { store: EditorStore }) {
 
   return (
     <PanelSection title="Agua">
+      <p className="muted small">
+        Si la línea piezométrica queda sobre el terreno, el agua embalsada se carga automáticamente, con su peso y su empuje horizontal
+        (sin sismo). No hay nada que activar: se calcula con el peso unitario γw de este panel.
+      </p>
       <LabeledField
         label="Peso unitario del agua γw"
         unit={u.unitWeight}
