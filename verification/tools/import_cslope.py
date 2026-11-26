@@ -25,8 +25,8 @@ The source clone is read only. The script writes:
                                  (written by `verification/harness/run.py` over `verification/cases`)
 - verification/pending/F3R/      only an `INDEX.md` that says where the batches went
 - verification/cases/ (v0.3, v0.5) batch F3G (contract F5.6), promoted: the cases with a tension crack and / or ponded
-                                 water (the piezometric line above the ground), written as v0.5 models (v0.3 when they
-                                 have no crack) after the R1 to R4 ones; the «Grieta de tracción y agua embalsada»
+                                 water (the piezometric line above the ground), written as v0.5 models (the minimum
+                                 version of their fields, v0.1 to v0.3, when they have no crack) after the R1 to R4 ones; the «Grieta de tracción y agua embalsada»
                                  section of `cases/INDEX.md` is built from `verification/report.json`
 - verification/pending/F3G/      the F3G checks that the engine does not reproduce: `HOLD.json` (the numbers and the
                                  cause) and `<id>.json` with the held checks, plus an `INDEX.md`
@@ -1323,8 +1323,8 @@ def convert_f3g(raw: dict, prob: dict | None) -> list[tuple[dict, list[str], lis
 
     The crack is a field of the model (`analysis.tension_crack`), not of the check: the checks of a problem that
     ask for different cracks (V086b: a fixed depth of 2 m and the automatic one) go to different cases. The first
-    group keeps the id; the others are `<id>-auto` or `<id>-d<depth>`. A case without a crack is written as v0.3 (the
-    minimum version of its fields, F3.1); the ponded water has no field (F5.3). Returns [] if the problem has neither a
+    group keeps the id; the others are `<id>-auto` or `<id>-d<depth>`. A case without a crack is written with the
+    minimum version of its fields (v0.1 to v0.3, F3.9); the ponded water has no field (F5.3). Returns [] if the problem has neither a
     crack nor ponded water (it belongs to the earlier batches). Raises Omit if no group converts.
     """
     d = raw["definition"]
@@ -1413,8 +1413,8 @@ def build_f3g_section(cases: list[dict], report: dict | None, held_cases: list[d
         "",
         f"**{len(cases)}** casos con **{n_checks}** checks, promovidos desde `verification/pending/F3G` cuando el motor de la "
         "grieta y del agua embalsada (F5.2 y F5.3) reproduce el valor publicado dentro de su tolerancia. Con grieta el caso es "
-        "v0.5 (`analysis.tension_crack`); sin grieta es v0.3 y el agua embalsada la activa que la piezométrica pase sobre el "
-        "terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en "
+        "v0.5 (`analysis.tension_crack`); sin grieta lleva la versión mínima de sus campos (v0.1 a v0.3) y el agua embalsada "
+        "la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en "
         "`V086b-auto`. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`), la "
         "misma convención de los demás casos; no se relajó ninguna ni se tocó ningún dato.",
         "",
@@ -1466,8 +1466,8 @@ def build_f3g_index(cases: list[dict], held_cases: list[dict], hold: dict[tuple,
         "V009b (Spencer) se retiene por otro motivo, el aviso de cortante entre dovelas (véase la tabla). Ninguno se retiene "
         "por la tolerancia. No se relaja ninguna tolerancia ni se toca ningún dato.",
         "",
-        "Un caso sin grieta se escribe en v0.3 (versión mínima de sus campos); con grieta, en v0.5. El agua embalsada no "
-        "tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3).",
+        "Un caso sin grieta se escribe con la versión mínima de sus campos (v0.1 a v0.3); con grieta, en v0.5. El agua "
+        "embalsada no tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3).",
         "",
     ]
     if held_cases:
@@ -1644,7 +1644,8 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
         "Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde "
         "`verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, "
         "promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de "
-        "tracción (v0.5) y con agua embalsada (v0.3 si no tienen grieta), promovidos desde `verification/pending/F3G` "
+        "tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde "
+        "`verification/pending/F3G` "
         "(sección «Grieta de tracción y agua embalsada»). "
         f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
@@ -2130,7 +2131,8 @@ def main() -> int:
     if (root / "verification" / "report.json").is_file():
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
-        all_cases, omitted, {**discarded_by_case, **f3r_dropped, **f3g_dropped},
+        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok}],
+        {**discarded_by_case, **f3r_dropped, **f3g_dropped},
         order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok],
         (sat_ids, sat_reason, sat_included), f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held),
         f3g_section=build_f3g_section(f3g_ok, cases_report, f3g_held)))

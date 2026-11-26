@@ -3,7 +3,7 @@
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **147** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **17**), con **323** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (v0.3 si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Casos no incluidos: **94** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **147** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **17**), con **323** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Casos no incluidos: **41** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -220,88 +220,35 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 | V009a | opción de check que cambia el problema: tensionCrackDepth |
 | V009b | definition con clave que cambia el problema: customSurfaces |
 | V009c | opción de check que cambia el problema: tensionCrackDepth |
-| V010 | definition con clave que cambia el problema: reinforcements |
-| V010b | definition con clave que cambia el problema: reinforcements |
-| V011a | definition con clave que cambia el problema: reinforcements |
-| V011b | definition con clave que cambia el problema: reinforcements |
-| V012 | definition con clave que cambia el problema: reinforcements |
 | V013b | definition con clave que cambia el problema: piles, reinforcements |
 | V013c | definition con clave que cambia el problema: piles, reinforcements |
 | V013d | definition con clave que cambia el problema: piles, reinforcements |
 | V013e | definition con clave que cambia el problema: piles, reinforcements |
-| V014 | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V015 | definition con clave que cambia el problema: customSurfaces, piles, reinforcements |
-| V016b | definition con clave que cambia el problema: reinforcements |
 | V017a | contorno no válido (Self-intersection[13.8160684182133 100.095038741757]) |
 | V017b | definition con clave que cambia el problema: reinforcements |
-| V023 | material 'San Francisco Bay Mud' con modelo 'undrained' |
-| V024 | piezométrica sobre el terreno (agua embalsada) |
-| V035a | definition con clave que cambia el problema: reinforcements |
 | V035b | definition con clave que cambia el problema: reinforcements |
-| V037 | definition con clave que cambia el problema: reinforcements |
-| V038 | piezométrica sobre el terreno (agua embalsada) |
-| V038b | piezométrica sobre el terreno (agua embalsada) |
 | V039 | opción de check que cambia el problema: compositeBase |
-| V041a | piezométrica sobre el terreno (agua embalsada) |
-| V041b | piezométrica sobre el terreno (agua embalsada) |
-| V042 | piezométrica sobre el terreno (agua embalsada) |
 | V043 | definition con clave que cambia el problema: customSurfaces |
-| V047b | opción de check que cambia el problema: tensionCrackDepth |
-| V048 | opción de check que cambia el problema: tensionCrackDepth |
 | V050b | sin checks válidos |
 | V051 | sin checks válidos |
 | V099 | piezométrica sobre el terreno (agua embalsada) |
 | V053 | sin checks válidos |
-| V058 | piezométrica sobre el terreno (agua embalsada) |
 | V059a | material 'Embankment' con modelo 'undrained' |
 | V059b | material 'Embankment' con modelo 'undrained' |
 | V059c | material 'Embankment' con modelo 'undrained' |
-| V061 | definition con clave que cambia el problema: customSurfaces |
 | V100 | material 'Clay' con modelo 'shear-normal' |
-| V064 | definition con clave que cambia el problema: reinforcements |
-| V065 | definition con clave que cambia el problema: reinforcements |
-| V066a | definition con clave que cambia el problema: reinforcements |
-| V066b | definition con clave que cambia el problema: reinforcements |
-| V066c | definition con clave que cambia el problema: reinforcements |
 | V066d | definition con clave que cambia el problema: reinforcements, waterTables |
-| V066e | definition con clave que cambia el problema: reinforcements |
 | V068 | material 'Lower' con modelo 's-f-datum' |
-| V070 | piezométrica sobre el terreno (agua embalsada) |
-| V072a | opción de check que cambia el problema: tensionCrackDepth |
-| V072b | opción de check que cambia el problema: tensionCrackDepth |
-| V073 | opción de check que cambia el problema: tensionCrackDepth |
 | V074 | definition con clave que cambia el problema: customSurfaces, reinforcements |
 | V075 | definition con clave que cambia el problema: customSurfaces, reinforcements |
 | V076 | definition con clave que cambia el problema: reinforcements |
-| V079 | definition con clave que cambia el problema: customSurfaces |
-| V080 | definition con clave que cambia el problema: customSurfaces |
-| V082a | opción de check que cambia el problema: tensionCrackDepth |
-| V082b | opción de check que cambia el problema: tensionCrackDepth |
 | V082c | material 'Soil 2 (zero strength)' con modelo 'undrained' |
 | V082d | material 'Soil 2 (zero strength)' con modelo 'undrained' |
 | V083 | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084a | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084b | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084c | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084d | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084e | definition con clave que cambia el problema: customSurfaces, reinforcements |
-| V084f | definition con clave que cambia el problema: customSurfaces, reinforcements |
 | V085 | opción de check que cambia el problema: tensionCrackDepth |
 | V103 | sin checks válidos |
 | V086a | definition con clave que cambia el problema: reinforcements |
-| V086b | opción de check que cambia el problema: tensionCrackDepth |
-| V086c | opción de check que cambia el problema: tensionCrackDepth |
-| V086d | opción de check que cambia el problema: tensionCrackAuto |
-| V087 | piezométrica sobre el terreno (agua embalsada) |
-| V088 | opción de check que cambia el problema: tensionCrackDepth |
-| V089 | piezométrica sobre el terreno (agua embalsada) |
-| V091 | material 'Soil 1' con modelo 'undrained' |
-| V092 | piezométrica sobre el terreno (agua embalsada) |
 | V094 | sin checks válidos |
-| V095c | definition con clave que cambia el problema: piles, reinforcements |
-| V096a | opción de check que cambia el problema: tensionCrackDepth |
-| V096b | opción de check que cambia el problema: tensionCrackDepth |
-| V096c | opción de check que cambia el problema: tensionCrackDepth |
 | V097b | opción de check que cambia el problema: partialFactors |
 | V104b | material 'embankment' con propiedad no soportada: bBarLoad |
 | V104c | material 'embankment' con propiedad no soportada: bBarLoad |
@@ -362,7 +309,7 @@ La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs 
 
 ## Grieta de tracción y agua embalsada (lote F3G, v0.5)
 
-**31** casos con **80** checks, promovidos desde `verification/pending/F3G` cuando el motor de la grieta y del agua embalsada (F5.2 y F5.3) reproduce el valor publicado dentro de su tolerancia. Con grieta el caso es v0.5 (`analysis.tension_crack`); sin grieta es v0.3 y el agua embalsada la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en `V086b-auto`. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`), la misma convención de los demás casos; no se relajó ninguna ni se tocó ningún dato.
+**31** casos con **80** checks, promovidos desde `verification/pending/F3G` cuando el motor de la grieta y del agua embalsada (F5.2 y F5.3) reproduce el valor publicado dentro de su tolerancia. Con grieta el caso es v0.5 (`analysis.tension_crack`); sin grieta lleva la versión mínima de sus campos (v0.1 a v0.3) y el agua embalsada la activa que la piezométrica pase sobre el terreno (F5.3). La grieta es un campo del modelo, no del check: los checks de V086b con otra grieta están en `V086b-auto`. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`), la misma convención de los demás casos; no se relajó ninguna ni se tocó ningún dato.
 
 **6** checks más (V009a, V009b, V085 ×4) quedan retenidos en `verification/pending/F3G` (`HOLD.json`), con los números y la causa medida.
 

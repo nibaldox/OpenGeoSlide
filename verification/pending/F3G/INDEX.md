@@ -7,7 +7,7 @@ Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.co
 
 **Convención de tolerancia.** El diagnóstico previo (`docs/fase3/exploracion/X18.md` §3.1) leyó la tolerancia del corpus como absoluta (`tolerance/publicado`) y dio por fuera V009b, V087 y V092 (tres métodos). El harness, `acceptance.rs` y el informe de cSlope la leen como relativa (`|Δ|/publicado ≤ tolerance`), la convención de los demás casos. Con ella el oráculo y ogs reproducen esos cinco checks: V087 y V092 (tres métodos) se promovieron y V009b (Spencer) se retiene por otro motivo, el aviso de cortante entre dovelas (véase la tabla). Ninguno se retiene por la tolerancia. No se relaja ninguna tolerancia ni se toca ningún dato.
 
-Un caso sin grieta se escribe en v0.3 (versión mínima de sus campos); con grieta, en v0.5. El agua embalsada no tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3).
+Un caso sin grieta se escribe con la versión mínima de sus campos (v0.1 a v0.3); con grieta, en v0.5. El agua embalsada no tiene campo: la activa que la piezométrica pase sobre el terreno (F5.3).
 
 ## Checks retenidos
 
