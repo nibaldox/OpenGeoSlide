@@ -61,6 +61,11 @@ function isReinforcementForce(value: unknown): boolean {
   );
 }
 
+/** La grieta de tracción del resultado (v0.5, E15l-23): `x`, `depth` ≥ 0 y `water_force` ≥ 0, todos finitos. */
+function isCrackReport(value: unknown): boolean {
+  return isRecord(value) && isFiniteNumber(value.x) && isFiniteNumber(value.depth) && value.depth >= 0 && isFiniteNumber(value.water_force) && value.water_force >= 0;
+}
+
 function isMethodReport(value: unknown): value is MethodReport {
   if (!isRecord(value)) return false;
   return (
@@ -90,7 +95,9 @@ function isMethodReport(value: unknown): value is MethodReport {
     (value.correction_factor === undefined || isFiniteNumber(value.correction_factor)) &&
     (value.interslice === undefined || isIntersliceReport(value.interslice)) &&
     (value.reinforcement_forces === undefined ||
-      (Array.isArray(value.reinforcement_forces) && value.reinforcement_forces.every(isReinforcementForce)))
+      (Array.isArray(value.reinforcement_forces) && value.reinforcement_forces.every(isReinforcementForce))) &&
+    // El motor omite `tension_crack` sin grieta (E15b): ausente o con la forma del contrato.
+    (value.tension_crack === undefined || isCrackReport(value.tension_crack))
   );
 }
 

@@ -264,7 +264,7 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
                 </p>
               ) : null}
               {ratio !== null && itoMatsuiOutOfRange(ratio) ? (
-                <p className="ep-note small" data-testid="ito-matsui-range">
+                <p className="ep-note small" role="status" data-testid="ito-matsui-range">
                   {itoMatsuiRangeText(ratio)}
                 </p>
               ) : null}
