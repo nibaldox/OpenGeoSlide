@@ -1,0 +1,101 @@
+{
+  "id": "V007c",
+  "title": "Baker (2003) ex. 3, Janbu simplified",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V007c",
+      "title": "Baker (2003) ex. 3, Janbu simplified",
+      "notes": "The V008b London clay slope (c′ = 6 kPa, φ′ = 32°) with Janbu simplified (uncorrected); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 6.0,
+        "friction_angle": 32.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.43,
+            6.0
+          ],
+          [
+            20.0,
+            6.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "janbu_simplified"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          0.0,
+          13.7
+        ],
+        "exit": [
+          0.0,
+          13.7
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.291,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020387296669248645,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V007c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 0–13.7 (toe to the crest), as in the source.",
+      "commercial program A geometry: no toe flat, base at toe level (results identical).",
+      "Baker (2003) M-C 1.35.",
+      "Baker (2003) also gives 1.48 with the non-linear envelope through a local linear approximation in Taylor's chart (p. 393, Fig. 7). The search limits are the program manual's, not Baker's.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

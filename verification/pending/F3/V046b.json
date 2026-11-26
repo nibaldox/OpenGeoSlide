@@ -1,0 +1,397 @@
+{
+  "id": "V046b",
+  "title": "Fredlund & Krahn slope on a weak seam, with a piezometric line",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V046b",
+      "title": "Fredlund & Krahn slope on a weak seam, with a piezometric line",
+      "notes": "As V046a with the piezometric line of V045 (from (0, 40) ft to the toe) for both materials: Fredlund & Krahn's case 6. Converted to SI."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "upper_soil",
+        "name": "Upper soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8504956,
+        "unit_weight_sat": null,
+        "cohesion": 28.728156,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "weak_seam",
+        "name": "Weak seam",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.8504956,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "upper_soil",
+        "polygon": [
+          [
+            0.0,
+            4.8768
+          ],
+          [
+            0.0,
+            18.288
+          ],
+          [
+            18.288,
+            18.288
+          ],
+          [
+            42.672,
+            6.096
+          ],
+          [
+            54.864,
+            6.096
+          ],
+          [
+            54.864,
+            4.8768
+          ]
+        ]
+      },
+      {
+        "material": "weak_seam",
+        "polygon": [
+          [
+            0.0,
+            4.572
+          ],
+          [
+            0.0,
+            4.8768
+          ],
+          [
+            54.864,
+            4.8768
+          ],
+          [
+            54.864,
+            4.572
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          12.192
+        ],
+        [
+          42.672,
+          6.096
+        ],
+        [
+          54.864,
+          6.096
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "polyline",
+        "points": [
+          [
+            13.8684,
+            18.546936
+          ],
+          [
+            14.44498,
+            17.194939
+          ],
+          [
+            15.02156,
+            16.030878
+          ],
+          [
+            15.59814,
+            15.001841
+          ],
+          [
+            16.17472,
+            14.07658
+          ],
+          [
+            16.7513,
+            13.234792
+          ],
+          [
+            17.32788,
+            12.462386
+          ],
+          [
+            17.90446,
+            11.74911
+          ],
+          [
+            18.48104,
+            11.087219
+          ],
+          [
+            19.05762,
+            10.470696
+          ],
+          [
+            19.6342,
+            9.894758
+          ],
+          [
+            20.21078,
+            9.355523
+          ],
+          [
+            20.78736,
+            8.849796
+          ],
+          [
+            21.36394,
+            8.37491
+          ],
+          [
+            21.94052,
+            7.928611
+          ],
+          [
+            22.5171,
+            7.508978
+          ],
+          [
+            23.09368,
+            7.11436
+          ],
+          [
+            23.67026,
+            6.743324
+          ],
+          [
+            24.24684,
+            6.394622
+          ],
+          [
+            24.82342,
+            6.067162
+          ],
+          [
+            25.4,
+            5.759979
+          ],
+          [
+            25.97658,
+            5.472224
+          ],
+          [
+            26.55316,
+            5.203142
+          ],
+          [
+            27.12974,
+            4.952062
+          ],
+          [
+            27.70632,
+            4.718387
+          ],
+          [
+            28.2829,
+            4.572
+          ],
+          [
+            28.85948,
+            4.572
+          ],
+          [
+            29.43606,
+            4.572
+          ],
+          [
+            30.01264,
+            4.572
+          ],
+          [
+            30.58922,
+            4.572
+          ],
+          [
+            31.1658,
+            4.572
+          ],
+          [
+            31.74238,
+            4.572
+          ],
+          [
+            32.31896,
+            4.572
+          ],
+          [
+            32.89554,
+            4.572
+          ],
+          [
+            33.47212,
+            4.572
+          ],
+          [
+            34.0487,
+            4.572
+          ],
+          [
+            34.62528,
+            4.572
+          ],
+          [
+            35.20186,
+            4.572
+          ],
+          [
+            35.77844,
+            4.572
+          ],
+          [
+            36.35502,
+            4.572
+          ],
+          [
+            36.9316,
+            4.572
+          ],
+          [
+            37.50818,
+            4.572
+          ],
+          [
+            38.08476,
+            4.572
+          ],
+          [
+            38.66134,
+            4.572
+          ],
+          [
+            39.23792,
+            4.572
+          ],
+          [
+            39.8145,
+            4.572
+          ],
+          [
+            40.39108,
+            4.572
+          ],
+          [
+            40.96766,
+            4.572
+          ],
+          [
+            41.54424,
+            4.572
+          ],
+          [
+            42.12082,
+            4.572
+          ],
+          [
+            42.6974,
+            4.572
+          ],
+          [
+            43.27398,
+            4.572
+          ],
+          [
+            43.85056,
+            4.572
+          ],
+          [
+            44.42714,
+            4.572
+          ],
+          [
+            45.00372,
+            4.572
+          ],
+          [
+            45.5803,
+            4.771417
+          ],
+          [
+            46.15688,
+            5.009106
+          ],
+          [
+            46.73346,
+            5.264333
+          ],
+          [
+            47.31004,
+            5.537712
+          ],
+          [
+            47.88662,
+            5.829932
+          ],
+          [
+            48.4632,
+            6.141769
+          ]
+        ]
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.245,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01040160642570281,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.245,
+      "published_by": "Fredlund & Krahn",
+      "tolerance": 0.01040160642570281,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977). Can. Geotech. J. 14(3).",
+    "derived_from": "cSlope verification problem V046b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fredlund & Krahn (1977), Table 2 case 6: ordinary 1.171, Bishop 1.248, Spencer 1.245, Janbu simplified 1.333, Janbu rigorous 1.298, Morgenstern-Price constant 1.250; Table 3: half-sine 1.245 (Saskatchewan; the Alberta program did not converge). Their cases 3 and 4, with a pore pressure ratio rᵤ = 0.25, are V044b and V046c.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

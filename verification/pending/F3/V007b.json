@@ -1,0 +1,103 @@
+{
+  "id": "V007b",
+  "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V007b",
+      "title": "Baker (2003) ex. 1 slope, Mohr-Coulomb iteration parameters",
+      "notes": "The V008a slope with Baker's Mohr-Coulomb parameters from his iterative linearisation (c′ = 0.39 kPa, φ′ = 38.6°); critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.39,
+        "friction_angle": 38.6,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.43,
+            6.0
+          ],
+          [
+            20.0,
+            6.0
+          ],
+          [
+            20.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "janbu_simplified"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 0.957,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02052246603970742,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.981,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02050968399592253,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V007b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A geometry (0,0)-(6.43,6)-(20,6)-(20,0): no toe flat, base at toe level.",
+      "Baker (2003) non-linear 0.97.",
+      "Baker's Table I gives φ = 38.6°, his text on p. 388 says 38.7°.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

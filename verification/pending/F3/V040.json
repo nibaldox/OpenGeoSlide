@@ -1,0 +1,202 @@
+{
+  "id": "V040",
+  "title": "James Bay dyke, reference model (deterministic)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V040",
+      "title": "James Bay dyke, reference model (deterministic)",
+      "notes": "The James Bay dyke as a commercial program models it (crest 36 m, berm at 30 m, clay crust Su = 43 kPa, till below y = 5.5); critical-circle search, deterministic."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "clay_crust",
+        "name": "Clay crust",
+        "model": "undrained",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "undrained_strength": 43.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "marine_clay",
+        "name": "Marine clay",
+        "model": "undrained",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "undrained_strength": 34.5,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "lacustrine_clay",
+        "name": "Lacustrine clay",
+        "model": "undrained",
+        "unit_weight": 20.3,
+        "unit_weight_sat": null,
+        "undrained_strength": 31.2,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay_crust",
+        "polygon": [
+          [
+            0.0,
+            20.0
+          ],
+          [
+            0.0,
+            24.0
+          ],
+          [
+            132.0,
+            24.0
+          ],
+          [
+            165.0,
+            24.0
+          ],
+          [
+            165.0,
+            20.0
+          ]
+        ]
+      },
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            24.0
+          ],
+          [
+            0.0,
+            36.0
+          ],
+          [
+            40.0,
+            36.0
+          ],
+          [
+            58.0,
+            30.0
+          ],
+          [
+            114.0,
+            30.0
+          ],
+          [
+            132.0,
+            24.0
+          ]
+        ]
+      },
+      {
+        "material": "lacustrine_clay",
+        "polygon": [
+          [
+            0.0,
+            5.5
+          ],
+          [
+            0.0,
+            12.0
+          ],
+          [
+            165.0,
+            12.0
+          ],
+          [
+            165.0,
+            5.5
+          ]
+        ]
+      },
+      {
+        "material": "marine_clay",
+        "polygon": [
+          [
+            0.0,
+            12.0
+          ],
+          [
+            0.0,
+            20.0
+          ],
+          [
+            165.0,
+            20.0
+          ],
+          [
+            165.0,
+            12.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.461,
+      "published_by": "Commercial program B",
+      "tolerance": 0.030342231348391514,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "El-Ramly et al. (2002); Duncan & Wright fig. 7.16.",
+    "derived_from": "cSlope verification problem V040 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Circles only (compositeSurfaces off), as the reference: along the till at y = 5.5 composite circles (compositeBase) give 1.175, the non-circular mechanism of V039.",
+      "Geometry read from Fig. 131/132 (axes, not labeled vertices): crest y = 36 for 40 m, 3:1 slopes, 56 m berm at y = 30, toe y = 24; layer tops 24/20/12, till (bedrock) below y = 5.5 (5.45 in Fig. 131 and 5.6 in Fig. 132, read from the pixel rows; the lacustrine clay is 6.5 m thick, as in V039) — the model base here. Clay crust Su = 43, γ = 18.8 per Table 111 (V039 uses D&W's 41 kPa, γ = 20).",
+      "cSlope's critical circle (center 85.6, 127.0, R 121.5, entry x = 5.1, exit x = 150.0) is tangent to the till at y = 5.5, as the commercial program B circle of Fig. 132 (entry about 5, exit about 151). With the till at y = 5 the search gave 1.432 (−1.9 %).",
+      "Probabilistic (no spatial variability): mean 1.4611, σ 0.21295, PF 1.34 %, β 2.165 with σ(φ fill) = 1°, σ(γ fill) = 1, σ(c marine) = 8.14, σ(c lacustrine) = 8.65.",
+      "El-Ramly et al. (2002) give Bishop 1.46 at mean values on their circle (85.9, 128.3), R 122.8 (Fig. A1–A2, pp. 682–683); cSlope 1.459 on it. Their clay-crust Su is not printed but Fig. A2 implies 41 kPa (here 43, the commercial program's). Their probabilistic results are E[FS] 1.46 with β 2.32 (Monte Carlo with spatial variability), 2.42 (FOSM) and 1.84 (no spatial variability; Table 3); the probabilistic line above uses only Table 1's inherent standard deviations and matches none of them (docs/kallor/el-ramly-2002.md).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

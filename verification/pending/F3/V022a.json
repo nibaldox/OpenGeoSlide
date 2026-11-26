@@ -1,0 +1,179 @@
+{
+  "id": "V022a",
+  "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V022a",
+      "title": "Chowdhury & Xu (1995) example 5, embankment on soft clay, circle tangent to y = 15",
+      "notes": "Chowdhury & Xu example 5: embankment fill (c′ = 10 kPa, φ′ = 12°) on soft clay (Su = 40 kPa), the geometry as a commercial program's verification manual draws it; circle tangent to the fill–clay interface."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "layer_1",
+        "name": "Layer 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.0,
+        "friction_angle": 12.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "undrained",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 40.0,
+        "ru": null
+      },
+      {
+        "id": "hard_layer",
+        "name": "Hard layer",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 1000.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "hard_layer",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0
+          ],
+          [
+            90.0,
+            5.0
+          ],
+          [
+            90.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_1",
+        "polygon": [
+          [
+            30.0,
+            15.0
+          ],
+          [
+            55.0,
+            25.0
+          ],
+          [
+            60.0,
+            25.0
+          ],
+          [
+            80.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            0.0,
+            5.0
+          ],
+          [
+            0.0,
+            15.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            80.0,
+            15.0
+          ],
+          [
+            90.0,
+            15.0
+          ],
+          [
+            90.0,
+            5.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 37.396,
+        "yc": 41.99,
+        "r": 26.99
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "morgenstern_price",
+      "kind": "fixed",
+      "published": 1.158,
+      "published_by": "Commercial program B",
+      "tolerance": 0.010431778929188255,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.1625,
+      "published_by": "Chowdhury & Xu",
+      "tolerance": 0.010043010752688172,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.16,
+      "published_by": "Commercial program A",
+      "tolerance": 0.014310344827586207,
+      "options": {
+        "slices": 60
+      }
+    }
+  ],
+  "source": {
+    "reference": "Chowdhury & Xu (1995).",
+    "derived_from": "cSlope verification problem V022a (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Fixed circle = cSlope's critical M-P circle among circles tangent to the base of the clay layer (cSlope has no tangent-line search; commercial program B's own circle is not printed), so the comparison is that of two searches within the same circle family.",
+      "commercial program B PF 20.98 %, C&X PF 20.225 %. Geometry as commercial program A's Fig. 28.2.",
+      "Critical circle (model coordinates): center (37.396, 41.99), R 26.99, tangent to y = 15.",
+      "On commercial program A's printed circle (Fig. 28.11: center (37.369, 42.429), R 27.429) cSlope gives Bishop 1.1586 (commercial program A 1.160).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

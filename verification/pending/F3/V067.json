@@ -1,0 +1,162 @@
+{
+  "id": "V067",
+  "title": "Low (1989), layered undrained clay",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.3",
+    "meta": {
+      "id": "V067",
+      "title": "Low (1989), layered undrained clay",
+      "notes": "Embankment on three undrained clay layers of different strength; critical-circle search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "a",
+        "name": "A",
+        "model": "undrained",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 30.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "b",
+        "name": "B",
+        "model": "undrained",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 20.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "c",
+        "name": "C",
+        "model": "undrained",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 150.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "a",
+        "polygon": [
+          [
+            0.0,
+            9.0
+          ],
+          [
+            0.0,
+            13.5
+          ],
+          [
+            20.0,
+            13.5
+          ],
+          [
+            33.5,
+            9.0
+          ]
+        ]
+      },
+      {
+        "material": "b",
+        "polygon": [
+          [
+            0.0,
+            4.5
+          ],
+          [
+            0.0,
+            9.0
+          ],
+          [
+            33.5,
+            9.0
+          ],
+          [
+            38.0,
+            7.5
+          ],
+          [
+            60.0,
+            7.5
+          ],
+          [
+            60.0,
+            4.5
+          ]
+        ]
+      },
+      {
+        "material": "c",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.5
+          ],
+          [
+            60.0,
+            4.5
+          ],
+          [
+            60.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "bishop"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "search",
+      "published": 1.439,
+      "published_by": "Commercial program A",
+      "tolerance": 0.020347463516330787,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Low (1989).",
+    "derived_from": "cSlope verification problem V067 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}
