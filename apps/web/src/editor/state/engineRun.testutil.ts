@@ -16,6 +16,7 @@ export interface EngineMethodResult {
   fos: number | null;
   status: string;
   surface?: { xc: number; yc: number; r: number };
+  warnings?: string[];
   slices?: { x_left: number; x_right: number; y_base_left: number; y_base_right: number }[];
 }
 

@@ -42,6 +42,15 @@ export function loadCaseDoc(id: string): ModelDoc {
   return openOgsJson(JSON.stringify(loadCaseModelV02(id))).doc as ModelDoc;
 }
 
+/**
+ * Documento de un caso publicado **tal como está** (versión 0.3 si lo es), para pruebas de geometría o con el motor real
+ * (`OGS_BIN`). No pasar a `analyzeMock`: el simulado lo rechazaría (F3.9).
+ */
+export function loadPublishedDoc(id: string): ModelDoc {
+  const parsed = JSON.parse(readFileSync(new URL(`${id}.json`, casesDir), 'utf8')) as VerificationCase;
+  return openOgsJson(JSON.stringify(parsed.model)).doc as ModelDoc;
+}
+
 export function sampleResults(doc: ModelDoc): MethodReport[] {
   return analyzeMock(saveOgsJson(doc)).results;
 }
