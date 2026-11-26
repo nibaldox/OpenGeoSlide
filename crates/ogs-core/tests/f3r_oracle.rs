@@ -1513,30 +1513,35 @@ fn cap_dev30_30_end2_5_pas_janbu_corrected() {
     );
 }
 
-// The active rows `up30` and `up45` of X17 §4.4 are not oracle rows (see the header): the force is applied by the contract.
+// The active rows `up30` and `up45` of X17 §4.4 are not oracle rows. X17 read them as compressed crossings, but the
+// anchors rise above the face (30° and 45° against a 26.6° face from the head at (36; 28)), so they cross the circle
+// above the ground: the crossing is in the air, `outside_mass` (F4.4.3), and no force applies, active or passive.
+// The rule E14m-1 for a compressed active element is tested with a short element inside the soil in `f3r_forces.rs`.
 /// The factor of safety of V047a with the circle of F3.8 and no reinforcement, Bishop (X17 §4.3, rows `up30` and `up45`).
 const UNREINFORCED_BISHOP: f64 = 0.985084;
 
 const INC_UP30_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 59.382686, "y2": 41.5, "application": "active", "tensile_capacity": 100, "direction": "axial"}]"#;
 
 #[test]
-fn inc_up30_act_applies_the_force() {
+fn inc_up30_act_crosses_in_the_air() {
     let got = fos(&doc(Method::Bishop, INC_UP30_ACT), 0);
     println!("X17-inc-up30-act: ogs {got:.10}, without reinforcement {UNREINFORCED_BISHOP}");
+    // Within the oracle tolerance: the crossing still adds two slice nodes, which moves the FS by 4e-5 relative.
     assert!(
-        (got - UNREINFORCED_BISHOP).abs() > 1e-4,
-        "the active element in compression must apply its force, but the value is the unreinforced one: {got}"
+        ((got - UNREINFORCED_BISHOP) / UNREINFORCED_BISHOP).abs() < TOLERANCE,
+        "the crossing is above the ground (outside_mass), so the FS is the unreinforced one: {got}"
     );
 }
 
 const INC_UP45_ACT: &str = r#"[{"type": "anchor", "id": "A1", "x1": 36, "y1": 28, "x2": 55.091883, "y2": 47.091883, "application": "active", "tensile_capacity": 100, "direction": "axial"}]"#;
 
 #[test]
-fn inc_up45_act_applies_the_force() {
+fn inc_up45_act_crosses_in_the_air() {
     let got = fos(&doc(Method::Bishop, INC_UP45_ACT), 0);
     println!("X17-inc-up45-act: ogs {got:.10}, without reinforcement {UNREINFORCED_BISHOP}");
+    // Within the oracle tolerance: the crossing still adds two slice nodes, which moves the FS by 4e-5 relative.
     assert!(
-        (got - UNREINFORCED_BISHOP).abs() > 1e-4,
-        "the active element in compression must apply its force, but the value is the unreinforced one: {got}"
+        ((got - UNREINFORCED_BISHOP) / UNREINFORCED_BISHOP).abs() < TOLERANCE,
+        "the crossing is above the ground (outside_mass), so the FS is the unreinforced one: {got}"
     );
 }

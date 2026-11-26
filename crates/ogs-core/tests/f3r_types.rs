@@ -2,8 +2,7 @@
 //! serde round trip, the passive fields of `Slice` and the report, which must not change a byte without
 //! reinforcements, and the stub that a valid model reaches.
 //!
-//! Every test here is **green** at the end of R0. `valid_model_reaches_the_stub_of_r1` is the guard that the RED tests
-//! of `f3r_oracle.rs` fail in the stub and not in serde; R1 deletes it when the stub is gone.
+//! Every test here is green. `valid_model_is_analysed` replaced the R0 guard of the stub when R1 implemented the forces.
 
 mod f3_common;
 
@@ -72,22 +71,13 @@ fn pullout(item: Value, p: Value) -> Value {
 }
 
 #[test]
-fn valid_model_reaches_the_stub_of_r1() {
-    // Parses as a Model (serde), passes the validation, and the first call of the stub panics.
+fn valid_model_is_analysed() {
+    // R1 replaced the stub: a valid v0.4 model parses, passes the validation and is analysed without panicking.
     let doc = doc_with(vec![anchor()]);
     let model: Model = serde_json::from_value(doc.clone()).expect("a valid v0.4 model parses");
     assert_eq!(model.reinforcements.len(), 1);
-    let panic = catch_unwind(AssertUnwindSafe(|| ogs_core::analyze(&model)))
-        .expect_err("the stub must panic");
-    let text = panic
-        .downcast_ref::<String>()
-        .cloned()
-        .or_else(|| panic.downcast_ref::<&str>().map(|s| (*s).to_string()))
-        .unwrap_or_default();
-    assert!(
-        text.contains(&format!("not yet implemented: {STUB}")),
-        "{text}"
-    );
+    let report = ogs_core::analyze(&model).expect("a valid v0.4 model is analysed");
+    assert!(!report.results.is_empty());
 }
 
 // ------------------------------------------------------------------------------------------------ the version gate
