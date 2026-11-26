@@ -209,3 +209,28 @@ Estos criterios son gates de cada ola.
     Aceptarlo admitiría superficies que salen del modelo.
   - Afecta a la fila diferencial D39 fija, que se informa como «explicado (E15f)».
   - Los checks de V096a y V086b pasan, porque la búsqueda de ogs encuentra su propio círculo válido.
+- **E15j-8, contacto de aire capilar** (D30, `docs/fase3/g2m/NOTAS.md`).
+  - **Regla.** Un tramo de aire **interior**, con suelo a ambos lados, se trata como contacto y no parte la masa cuando
+    cumple dos condiciones:
+    - su ancho total es ≤ 1e-6·ancho del modelo;
+    - el arco queda, como mucho, a 10·tol sobre el terreno.
+  - **Por qué.** El círculo crítico de cSlope en D30 pasa 3,6e-7 m sobre el pie de un corte vertical. ogs lo partía en
+    dos masas y descartaba 23,5 kN/m de suelo y 117,9 kN/m de cohesión.
+  - **Efecto:**
+
+    | D30 | Antes | Después |
+    |---|---:|---:|
+    | Superficie fija | −15,4 % | +0,13 % |
+    | Seco | −13,2 % | +0,07 % |
+
+  - **Segunda excepción documentada a la identidad.** Con la v0.3.0 solo cambian los contadores `search.evaluated` y
+    `search.valid` de V019, en las variantes `search` y `search@0.4`, que suben de 10040 a 10088 y de 7451 a 7499. El
+    FS, la superficie, los avisos y las dovelas quedan idénticos.
+  - **Límite.** El umbral sigue siendo discontinuo: un arco entre unos 7e-7 y 3e-6 sobre un vértice todavía puede
+    diferir de cSlope.
+- **E15j-9, búsqueda en cortes verticales.** En D30, la búsqueda de ogs encuentra círculos más críticos que la de
+  cSlope.
+  - Bishop da 0,8248 frente a 1,5143 con agua, y 0,7131 en seco.
+  - **cSlope evalúa esos mismos círculos igual**: 0,8247, 0,9708, 0,7127 y 0,8217.
+  - Es coherente con la física: el corte vertical de 12 m supera su altura crítica, `4c/γ·tan(45° + φ/2) ≈ 7,0 m`.
+  - El criterio diferencial `ogs ≤ cSlope·1,01` se cumple.
