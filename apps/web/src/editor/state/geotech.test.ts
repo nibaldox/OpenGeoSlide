@@ -12,18 +12,12 @@ describe('geotechAdvisories (R9-05c/d, R9-12a)', () => {
     expect(codes(baseDoc())).toEqual([]);
   });
 
-  it('γsat: aviso no bloqueante de que no está verificado frente a otro programa (con y sin piezométrica)', () => {
+  it('γsat ≥ γ ya no lleva aviso (E15k: lo verifican V082a, V082b, V088 y V089), con y sin piezométrica', () => {
     const doc = fullPiezo(baseDoc());
     doc.materials[0] = mat('m1', { unit_weight_sat: 20.5 });
-    const [a] = geotechAdvisories(doc);
-    expect(a?.code).toBe('editor.gamma_sat_unverified');
-    expect(a?.text).toContain('«m1»');
-    expect(a?.text).toContain('todavía no está verificado frente a otro programa');
-    expect(a?.path).toBe('/materials/0/unit_weight_sat');
-    const dry = { ...doc, water: undefined };
-    expect(geotechAdvisories(dry)[0]?.text).toContain('Sin línea piezométrica γsat no interviene');
-    // Va a Diagnósticos como aviso (no error).
-    expect(validateLocal(doc).find((i) => i.code === 'editor.gamma_sat_unverified')).toMatchObject({ source: 'local', severity: 'aviso' });
+    expect(geotechAdvisories(doc)).toEqual([]);
+    expect(geotechAdvisories({ ...doc, water: undefined })).toEqual([]);
+    expect(validateLocal(doc).filter((i) => i.code.startsWith('editor.gamma_sat'))).toEqual([]);
   });
 
   it('γsat < γ: aviso con ambos valores; γsat ≥ γ no lo emite', () => {

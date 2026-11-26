@@ -30,7 +30,7 @@ describe('R9-03a: «Comprobar caso» ejecuta la validación local', () => {
     expect(caseBlockers(imperial('imperial', 62.4))).toEqual([]);
     expect(caseBlockers(imperial('Imperial', 64))).toEqual([]);
   });
-  it('los avisos geotécnicos no bloquean (γsat sin verificar)', () => {
+  it('los avisos geotécnicos no bloquean (un material con γsat)', () => {
     const m = imperial('imperial', 62.4);
     m.materials[0] = { ...m.materials[0]!, unit_weight_sat: 125 };
     expect(caseBlockers(m)).toEqual([]);

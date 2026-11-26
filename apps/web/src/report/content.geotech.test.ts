@@ -66,16 +66,16 @@ describe('R9-05b: convenciones de signo en el informe', () => {
 });
 
 describe('R9-05c/d y R9-12a: avisos geotécnicos en el PDF', () => {
-  it('γsat, ru con piezométrica, piezométrica corta y γsat < γ salen en «Avisos y notas» con el texto de Diagnósticos', () => {
+  it('ru con piezométrica, piezométrica corta y γsat < γ salen en «Avisos y notas» con el texto de Diagnósticos', () => {
     const doc = loadCaseDoc('V047a');
     doc.materials[0] = { ...doc.materials[0]!, unit_weight: 20, unit_weight_sat: 19, ru: 0.2 };
     doc.water = { unit_weight: 9.81, piezometric_line: [[20, 25], [40, 30]] };
     const texts = warningTexts(buildReportContent(sampleInput({ model: doc })));
-    expect(texts.some((t) => t.includes('todavía no está verificado frente a otro programa'))).toBe(true);
+    expect(texts.some((t) => t.includes('no está verificado'))).toBe(false); // E15k: γsat ya está verificado, sin aviso
     expect(texts.some((t) => t.includes('ru tiene precedencia'))).toBe(true);
     expect(texts.some((t) => t.includes('extiende en horizontal hasta los bordes'))).toBe(true);
     expect(texts.some((t) => t.includes('γsat (19) es menor que γ (20)'))).toBe(true);
-    expect(texts.filter((t) => t.startsWith('Modelo: '))).toHaveLength(4);
+    expect(texts.filter((t) => t.startsWith('Modelo: '))).toHaveLength(3);
   });
   it('un modelo sin esas situaciones sigue diciendo «Sin avisos ni notas»', () => {
     expect(warningTexts(buildReportContent(sampleInput({ model: dry('SI'), results: [] })))).toEqual(['Sin avisos ni notas.']);
