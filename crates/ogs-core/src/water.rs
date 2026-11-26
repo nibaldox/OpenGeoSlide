@@ -95,6 +95,153 @@ pub fn sliding_sign(pm: &PreparedModel) -> f64 {
     }
 }
 
+/// Nodes and weights of the 3-point Gauss-Legendre rule on `[-1, 1]`. Exact for polynomials up to degree 5; the
+/// integrands of E1 (`h·1`, `h·(x − xm)`, `h·y′·(y − ym)`) have degree 2 on a piece where the ground and the piezometric
+/// line are both straight.
+const GAUSS3: [(f64, f64); 3] = [
+    (-0.774_596_669_241_483_4, 5.0 / 9.0),
+    (0.0, 8.0 / 9.0),
+    (0.774_596_669_241_483_4, 5.0 / 9.0),
+];
+
+/// `∫_a^b f dx` with the 3-point Gauss rule.
+fn gauss3(a: f64, b: f64, f: impl Fn(f64) -> f64) -> f64 {
+    let (half, mid) = (0.5 * (b - a), 0.5 * (a + b));
+    half * GAUSS3
+        .iter()
+        .map(|&(t, w)| w * f(mid + half * t))
+        .sum::<f64>()
+}
+
+/// A straight piece of the ground, between two consecutive vertex abscissae of the model.
+#[derive(Debug, Clone, Copy)]
+struct Piece {
+    xa: f64,
+    xb: f64,
+    ya: f64,
+    yb: f64,
+}
+
+impl Piece {
+    fn at(&self, x: f64) -> f64 {
+        self.ya + (x - self.xa) * (self.yb - self.ya) / (self.xb - self.xa)
+    }
+}
+
+/// A vertical face of the ground (dam face, E4): the ground jumps at `x` from `y_lo` to `y_hi`; the soil is on the
+/// high side.
+#[derive(Debug, Clone, Copy)]
+struct Wall {
+    x: f64,
+    y_lo: f64,
+    y_hi: f64,
+    /// `+1` if the high side (the soil) is at larger `x`, `−1` if it is at smaller `x`.
+    high_side: f64,
+}
+
+/// The ground of the model as straight pieces (the upper envelope between consecutive vertex abscissae, which is one
+/// single edge there because regions do not cross) and its vertical faces.
+fn ground_pieces(pm: &PreparedModel, x0: f64, x1: f64) -> (Vec<Piece>, Vec<Wall>) {
+    let xs = &pm.vertex_xs;
+    let mut pieces: Vec<Piece> = Vec::new();
+    for w in xs.windows(2) {
+        let (va, vb) = (w[0], w[1]);
+        if vb < x0 || va > x1 {
+            continue;
+        }
+        let xm = 0.5 * (va + vb);
+        let mut best: Option<Piece> = None;
+        for [p, q] in &pm.edges {
+            if p[0] == q[0] {
+                continue;
+            }
+            let (lo, hi) = if p[0] < q[0] { (p, q) } else { (q, p) };
+            if xm < lo[0] || xm > hi[0] {
+                continue;
+            }
+            let k = (hi[1] - lo[1]) / (hi[0] - lo[0]);
+            let piece = Piece {
+                xa: va,
+                xb: vb,
+                ya: lo[1] + (va - lo[0]) * k,
+                yb: lo[1] + (vb - lo[0]) * k,
+            };
+            if best.is_none_or(|b| piece.at(xm) > b.at(xm)) {
+                best = Some(piece);
+            }
+        }
+        pieces.extend(best);
+    }
+    let tol = pm.tol();
+    let walls = pieces
+        .windows(2)
+        .filter(|w| w[0].xb == w[1].xa && (w[0].yb - w[1].ya).abs() > tol)
+        .map(|w| Wall {
+            x: w[1].xa,
+            y_lo: w[0].yb.min(w[1].ya),
+            y_hi: w[0].yb.max(w[1].ya),
+            high_side: if w[1].ya > w[0].yb { 1.0 } else { -1.0 },
+        })
+        .collect();
+    (pieces, walls)
+}
+
+/// The sums of E1 over one slice (not yet multiplied by `γw`).
+#[derive(Debug, Default, Clone, Copy)]
+struct Sums {
+    /// `∫h dx`
+    v: f64,
+    /// `∫h·(x − xm) dx`
+    vm: f64,
+    /// `∫h·y′ dx`
+    hx: f64,
+    /// `∫h·y′·(y − ym) dx`
+    hm: f64,
+    /// `∫h·y′·(yc − y) dx` (only with a circle)
+    hd: f64,
+}
+
+/// Adds to `sums` the water over the straight stretch `[a, b]` of the ground piece `piece`, where the piezometric line
+/// is straight too, with `h = max(0, piezo − ground)`.
+#[allow(clippy::too_many_arguments)]
+fn add_stretch(
+    sums: &mut Sums,
+    pm: &PreparedModel,
+    piece: &Piece,
+    a: f64,
+    b: f64,
+    xm: f64,
+    ym: f64,
+    yc: f64,
+) {
+    let (ya, yb) = (piece.at(a), piece.at(b));
+    let (Some(wa), Some(wb)) = (pm.piezometric_y(a), pm.piezometric_y(b)) else {
+        return;
+    };
+    let (da, db) = (wa - ya, wb - yb);
+    if da <= 0.0 && db <= 0.0 {
+        return;
+    }
+    // `h(t) = da + (db − da)·t` on `t ∈ [0, 1]`, clipped where it crosses zero.
+    let (mut ta, mut tb) = (0.0, 1.0);
+    if da <= 0.0 {
+        ta = da / (da - db);
+    }
+    if db <= 0.0 {
+        tb = da / (da - db);
+    }
+    let len = b - a;
+    let slope = (yb - ya) / len;
+    let h = |t: f64| da + (db - da) * t;
+    let x = |t: f64| a + len * t;
+    let y = |t: f64| ya + (yb - ya) * t;
+    sums.v += len * gauss3(ta, tb, h);
+    sums.vm += len * gauss3(ta, tb, |t| h(t) * (x(t) - xm));
+    sums.hx += len * gauss3(ta, tb, |t| h(t) * slope);
+    sums.hm += len * gauss3(ta, tb, |t| h(t) * slope * (y(t) - ym));
+    sums.hd += len * gauss3(ta, tb, |t| h(t) * slope * (yc - y(t)));
+}
+
 /// The terms of the ponded water for each slice of `slices`, **in the same order**, one entry per slice (E1 to E4,
 /// E15c).
 ///
@@ -107,20 +254,127 @@ pub fn sliding_sign(pm: &PreparedModel) -> f64 {
 ///   before any ponded term is added (they carry `pore_pressure` of the base, `weight` and the base midpoint);
 /// - `s`: `+1` if the sliding goes toward `+x`, `−1` otherwise ([`sliding_sign`]).
 ///
-/// Slices outside the water (and air slices) get [`PondTerms::ZERO`]. An implementation may return an **empty**
-/// vector as a fast path when the model has no water over the ground; the caller treats it as all zeros.
-/// The vertical face of a dam (E4) is a vertex pair with the same `x`: its thrust
+/// Slices outside the water (and air slices) get [`PondTerms::ZERO`]. A model without a piezometric line, or whose
+/// line is nowhere above the ground over the slices, gives all zeros (one entry per slice).
+/// The vertical face of a dam (E4) is a jump of the ground at one `x`: its thrust
 /// `½·γw·[(yw − ya)² − (yw − yb)²]` goes to the slice whose edge is the face, on the high side.
 ///
-/// **Stub (G0):** it returns zero terms.
+/// Per slice and per straight stretch (the ground is split at its vertices, at those of the piezometric line and at
+/// their crossings) the integrals of E1 are exact with 3 Gauss points:
+/// `V = γw·∫h dx`, `H = s·γw·∫h·y′ dx`, and the moments of E2 about the midpoint of the base (Spencer, M-P) and about
+/// the centre (Bishop). No seismic force acts on the water (E7), and the pore pressure of the base is not touched
+/// except for a material with `ru` (E15c-ru).
 pub fn ponded_terms(
     pm: &PreparedModel,
     surface: &Surface,
     slices: &[Slice],
     s: f64,
 ) -> Vec<PondTerms> {
-    let _ = (pm, surface, s);
-    vec![PondTerms::ZERO; slices.len()]
+    let mut out = vec![PondTerms::ZERO; slices.len()];
+    let (Some(first), Some(last)) = (slices.first(), slices.last()) else {
+        return out;
+    };
+    let Some(line) = pm.piezometric.as_ref() else {
+        return out;
+    };
+    let (x_lo, x_hi) = (
+        first.x_left.min(last.x_left),
+        first.x_right.max(last.x_right),
+    );
+    let (pieces, walls) = ground_pieces(pm, x_lo, x_hi);
+    // Fast path: nothing to do if the line is under the ground at every abscissa where it can reach above it, that is
+    // at the vertices of the ground and of the line (both are piecewise linear).
+    let above = |x: f64| {
+        let w = pm.piezometric_y(x).unwrap_or(f64::NEG_INFINITY);
+        pieces.iter().any(|p| x >= p.xa && x <= p.xb && w > p.at(x))
+    };
+    let reaches =
+        pieces.iter().any(|p| above(p.xa) || above(p.xb)) || line.iter().any(|p| above(p[0]));
+    if !reaches {
+        return out;
+    }
+    let (yc, radius) = surface.moment_arm().unwrap_or((0.0, 0.0));
+    let gw = pm.gamma_w;
+    let tol = pm.tol();
+    let wall_tol = 1e-7 * pm.scale;
+    for (slice, term) in slices.iter().zip(out.iter_mut()) {
+        let (x0, x1) = (slice.x_left, slice.x_right);
+        let xm = 0.5 * (x0 + x1);
+        let ym = 0.5 * (slice.y_base_left + slice.y_base_right);
+        // An air slice (E2) carries no soil and no water.
+        if slice.y_top_mid - ym <= tol {
+            continue;
+        }
+        let mut sums = Sums::default();
+        let first_piece = pieces.partition_point(|p| p.xb <= x0);
+        for piece in &pieces[first_piece..] {
+            if piece.xa >= x1 {
+                break;
+            }
+            let (a, b) = (piece.xa.max(x0), piece.xb.min(x1));
+            if b <= a {
+                continue;
+            }
+            // The line is straight between its own vertices: split the piece there.
+            let mut cuts = vec![a];
+            cuts.extend(line.iter().map(|p| p[0]).filter(|&x| x > a && x < b));
+            cuts.push(b);
+            for w in cuts.windows(2) {
+                if w[1] > w[0] {
+                    add_stretch(&mut sums, pm, piece, w[0], w[1], xm, ym, yc);
+                }
+            }
+        }
+        let v = gw * sums.v;
+        let mut h_moment = s * gw * (sums.hm + sums.vm);
+        let mut driving = if radius > 0.0 {
+            s * gw * (sums.hd - sums.vm) / radius
+        } else {
+            0.0
+        };
+        let mut h = s * gw * sums.hx;
+        // E4: the thrust of a vertical face whose edge is this slice, on the high side.
+        for wall in &walls {
+            let edge = if wall.high_side > 0.0 { x0 } else { x1 };
+            if (edge - wall.x).abs() > wall_tol {
+                continue;
+            }
+            let Some(yw) = pm.piezometric_y(wall.x) else {
+                continue;
+            };
+            let edge_base = if wall.high_side > 0.0 {
+                slice.y_base_left
+            } else {
+                slice.y_base_right
+            };
+            let ya = wall.y_lo.max(edge_base);
+            let yb = yw.min(wall.y_hi);
+            if yb <= ya {
+                continue;
+            }
+            let force = 0.5 * gw * ((yw - ya).powi(2) - (yw - yb).powi(2));
+            let pressure = gauss3(ya, yb, |y| yw - y);
+            let yg = gauss3(ya, yb, |y| y * (yw - y)) / pressure;
+            let thrust = s * wall.high_side * force;
+            h += thrust;
+            h_moment += thrust * (yg - ym);
+            if radius > 0.0 {
+                driving += thrust * (yc - yg) / radius;
+            }
+        }
+        let ru = pm.materials[slice.material].ru;
+        *term = PondTerms {
+            weight: v,
+            h_force: h,
+            h_moment_base: h_moment,
+            driving_extra: driving,
+            pore_pressure: match ru {
+                Some(ru) if slice.width > 0.0 => ru * v / slice.width,
+                _ => 0.0,
+            },
+        };
+    }
+    out
 }
 
 /// Adds [`ponded_terms`] to `slices` (what `lib.rs` calls).
