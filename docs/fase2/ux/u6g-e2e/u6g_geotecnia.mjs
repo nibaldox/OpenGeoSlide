@@ -151,6 +151,21 @@ for (const theme of ['light', 'dark']) {
   step(`5c axe ${theme} (Casos con resultados): 0 serious/critical`, ax.length === 0, { ax });
   await ctx.close();
 }
+
+// ───── 6. Casos dibuja y rotula el tramo extrapolado de la piezométrica (U6-I, R9-05d): imp_full tiene la línea más corta que el modelo
+{
+  const ctx = await newCtx(); const p = await ctx.newPage(); await ready(p);
+  await casesTab(p).click();
+  const r = await runCase(p, 'imp_full.ogs.json');
+  const leg = await p.evaluate(() => [...document.querySelectorAll('.cases-view .legend li, .cases-view .legend > *')].map((x) => x.textContent?.trim()).filter(Boolean));
+  step('6a Casos: la leyenda rotula «Piezométrica (extrapolada)»', leg.some((t) => /Piezométrica \(extrapolada\)/.test(t)), { banner: r.banner, leg });
+  const canvas = p.locator('.cases-view canvas.section-canvas');
+  await canvas.screenshot({ path: path.join(OUT, 'casos-piezo-extrapolada.png') });
+  // Píxeles azules en la franja izquierda del lienzo (a la izquierda del primer punto de la línea, solo está el tramo extrapolado).
+  const blue = await canvas.evaluate((c) => { const w = c.width; const d = c.getContext('2d').getImageData(Math.round(w * 0.1), 0, Math.round(w * 0.12), c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 150 && d[i] < 90 && d[i + 1] < 130) n++; return n; });
+  step('6b Casos: el tramo extrapolado deja píxeles azules a la izquierda del primer punto', blue > 20, { blue });
+  await ctx.close();
+}
 await b.close();
 const failed = res.filter((r) => !r.ok);
 console.log(`\n${res.length - failed.length}/${res.length} pasos OK`);

@@ -216,14 +216,10 @@ export function drawSection(
         if (i === 0) ctx.moveTo(sx, sy);
         else ctx.lineTo(sx, sy);
       });
-      ctx.setLineDash([]);
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = palette.halo;
-      ctx.lineWidth = 2 + 2 * HALO_EXTRA_PX;
-      ctx.stroke();
+      // Sin halo continuo: un halo blanco de trazo lleno convertiría los puntos en una línea blanca con motas azules.
       ctx.lineCap = 'round';
       ctx.strokeStyle = palette.piezo;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.setLineDash(PIEZO_EXTRAPOLATED_DASH);
       ctx.stroke();
       ctx.setLineDash([]);
