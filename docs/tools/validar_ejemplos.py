@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.4 y contra el binario `ogs`.
+"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.5 y contra el binario `ogs`.
 
 Uso (desde la raíz del repositorio, con el binario compilado: `cargo build --release -p ogs-cli`):
 
@@ -14,6 +14,8 @@ El documento marca cada ejemplo con un comentario HTML justo antes del bloque ``
         `fos=<metodo>:<valor>,<metodo>:<valor>` compara el FS a 4 decimales.
         `fuerzas=<estado>,<estado>` (o `ninguna`): los `status` de `reinforcement_forces`, en orden, deben ser esos en
         **todos** los métodos. `avisos=<codigo>,<codigo>`: cada código debe estar en `warnings` de todos los métodos.
+        `grieta=x:<v>,depth:<v>,water_force:<v>` (o `ninguna`): el objeto `tension_crack` del informe de **todos** los
+        métodos, comparado a 4 decimales (`ninguna` = ningún método lo trae).
 
     <!-- ogs-fragmento base=<id> ruta=<a.b.0.c> esperado=ok|error:<subcadena> esquema=acepta|rechaza [estado=...] -->
         Reemplaza el valor de `ruta` en el ejemplo `base` por el JSON del bloque (una lista usa índices) y lo
@@ -71,6 +73,17 @@ def comprobar_informe(nombre: str, res: list[dict], at: dict[str, str], fallos: 
             obtenido = [f["status"] for f in r.get("reinforcement_forces", [])]
             if obtenido != esperado:
                 fallos.append(f"[{nombre}] {r['method']}: reinforcement_forces {obtenido}, se esperaba {esperado}")
+    if "grieta" in at:
+        for r in res:
+            tc = r.get("tension_crack")
+            if at["grieta"] == "ninguna":
+                if tc is not None:
+                    fallos.append(f"[{nombre}] {r['method']}: tension_crack {tc}, se esperaba ninguna")
+                continue
+            for par in at["grieta"].split(","):
+                k, _, v = par.partition(":")
+                if tc is None or round(tc[k], 4) != round(float(v), 4):
+                    fallos.append(f"[{nombre}] {r['method']}: tension_crack.{k} {None if tc is None else tc[k]}, se esperaba {v}")
     for cod in filter(None, at.get("avisos", "").split(",")):
         for r in res:
             if cod not in r["warnings"]:
@@ -91,7 +104,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ogs", default="target/release/ogs")
     ap.add_argument("--doc", default="docs/formato-ogs-json.md")
-    ap.add_argument("--schema", default="schema/ogs-0.4.schema.json")
+    ap.add_argument("--schema", default="schema/ogs-0.5.schema.json")
     a = ap.parse_args()
 
     validador = Draft202012Validator(json.loads(Path(a.schema).read_text()))

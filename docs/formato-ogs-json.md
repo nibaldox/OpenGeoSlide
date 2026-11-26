@@ -1,7 +1,7 @@
-# Formato `.ogs.json` (v0.1 a v0.4)
+# Formato `.ogs.json` (v0.1 a v0.5)
 
 Los modelos de OpenGeoSlide se guardan como `.ogs.json`. La web los abre y los guarda, la CLI y el paquete de Python
-los leen. El motor acepta cuatro versiones:
+los leen. El motor acepta cinco versiones:
 
 | Versión | Agrega | Esquema |
 |---|---|---|
@@ -9,23 +9,32 @@ los leen. El motor acepta cuatro versiones:
 | `"0.2"` | `loads` y `analysis.seismic` | [`schema/ogs-0.2.schema.json`](../schema/ogs-0.2.schema.json) |
 | `"0.3"` | material **no drenado**, superficie **polilínea**, métodos **Morgenstern-Price** y **Janbu**, `analysis.interslice` | [`schema/ogs-0.3.schema.json`](../schema/ogs-0.3.schema.json) |
 | `"0.4"` | **refuerzos** (`reinforcements`): anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos | [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) |
+| `"0.5"` | **grieta de tracción** (`analysis.tension_crack`) | [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) |
 
-[`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) acepta las cuatro versiones. El ejemplo mínimo es
+[`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) acepta las cinco versiones. El ejemplo mínimo es
 [`examples/acads1a.ogs.json`](../examples/acads1a.ogs.json).
 
-- **Un modelo sin campos nuevos da el mismo resultado en las cuatro versiones**, bit a bit: `fos`, `status`,
+> **La v0.5 está en desarrollo y todavía no se publica** (véase el [registro de cambios](../CHANGELOG.md#unreleased)).
+> La versión publicada, la 0.3.0, llega hasta el formato v0.4 y no incluye la grieta de tracción ni el agua embalsada.
+
+- **Un modelo sin campos nuevos da el mismo resultado en las cinco versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
   a la salida de la v0.2.0, con **una sola excepción documentada**: un círculo cuyo arco termina con la tangente vertical
   sobre el terreno, que la v0.2.0 rechazaba por redondeo (V065), ahora se analiza ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
-- **Cada campo o variante de la versión 0.3 exige `"0.3"` y `reinforcements` exige `"0.4"`** (véase
-  [la compuerta de versión](#compuerta-de-versión)).
+- **Un modelo sin `tension_crack` y con la piezométrica bajo el terreno da la misma salida, byte a byte, que la v0.3.0**
+  (salvo el número de versión del motor). **Excepción documentada:** un modelo cuya piezométrica pasa **sobre el
+  terreno** cambia de resultado en las cinco versiones, porque ahora incluye el agua embalsada
+  ([Agua embalsada](#agua-embalsada-todas-las-versiones) y
+  [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+- **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"` y `analysis.tension_crack`
+  exige `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
 - Todos los objetos rechazan campos desconocidos. Un `null` cuenta como campo ausente.
 
 Los ejemplos de esta página se validan con el esquema y con `ogs analyze`
 ([cómo reproducirlo](#cómo-se-validan-los-ejemplos)).
 
-## Estructura de un modelo v0.4
+## Estructura de un modelo v0.5
 
 ```
 format, version, meta?, units?, materials[], regions[], water?, loads?, reinforcements?, slope?, analysis
@@ -34,8 +43,10 @@ format, version, meta?, units?, materials[], regions[], water?, loads?, reinforc
 `analysis` agrega, respecto de v0.2, el campo `interslice` y el tipo `polyline` en `surface`:
 
 ```
-analysis: { methods[], slices?, tolerance?, max_iterations?, min_m_alpha?, seismic?, interslice?, surface? | search? }
+analysis: { methods[], slices?, tolerance?, max_iterations?, min_m_alpha?, seismic?, interslice?, tension_crack?, surface? | search? }
 ```
+
+`tension_crack` es nuevo en la v0.5. El agua embalsada no tiene campo: sale de `water.piezometric_line` y del terreno.
 
 ## Material no drenado (`model: "undrained"`)
 
@@ -384,8 +395,10 @@ puede traer, además de lo de siempre (`method`, `fos`, `status`, `iterations`, 
 - **`interslice`**, solo en `morgenstern_price`: la función usada (`{ "function", "points"? }`), incluso si fue la
   `half_sine` por omisión.
 - **`lambda`** vale `null` en Bishop y en los dos Janbu.
+- **`tension_crack`**, solo con `analysis.tension_crack`: `{ "x", "depth", "water_force" }` con la posición, la
+  profundidad y el empuje de la grieta de esa superficie ([Grieta de tracción](#grieta-de-tracción-v05)).
 
-Ambos campos opcionales se omiten cuando no aplican. Un resultado de `janbu_corrected` sobre el ejemplo de la
+Los campos opcionales se omiten cuando no aplican. Un resultado de `janbu_corrected` sobre el ejemplo de la
 polilínea (sin las dovelas):
 
 ```json
@@ -437,7 +450,10 @@ Con `"0.1"` o `"0.2"`, cada uso de un campo o variante de la 0.3 da
 - `analysis.interslice` (un `null` cuenta como ausente).
 
 `reinforcements` no vacío exige `"0.4"`: con una versión menor el error es
-`InvalidModel: reinforcements requiere version "0.4"` ([Refuerzos](#refuerzos-v04)).
+`InvalidModel: reinforcements requiere version "0.4"` ([Refuerzos](#refuerzos-v04)). `analysis.tension_crack` exige
+`"0.5"`: con una versión menor el error es `InvalidModel: tension_crack requiere version "0.5"`
+([Grieta de tracción](#grieta-de-tracción-v05)). El agua embalsada **no** tiene compuerta: se aplica en todas las
+versiones.
 
 Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arriba:
 
@@ -452,8 +468,8 @@ Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arr
 ```
 
 El esquema `ogs-0.3.schema.json` aplica la misma regla con un `if/then` por versión. **La web** guarda la versión
-mínima: `"0.2"` si el modelo no usa ningún campo de 0.3, `"0.3"` si usa alguno, y `"0.4"` solo si hay refuerzos; abre
-las cuatro versiones.
+mínima: `"0.2"` si el modelo no usa ningún campo de 0.3, `"0.3"` si usa alguno, `"0.4"` si hay refuerzos y `"0.5"` solo
+si existe `analysis.tension_crack`; abre las cinco versiones.
 
 ## Sismo y cargas (v0.2)
 
@@ -1202,6 +1218,241 @@ Con `version` menor que 0.4, el motor rechaza el uso de `reinforcements` (el esq
 "0.3"
 ```
 
+## Agua embalsada (todas las versiones)
+
+Cuando la línea piezométrica pasa **sobre el terreno** (un embalse al pie del talud, un río, una presa), el motor
+incluye el agua libre **sin ningún campo nuevo y en todas las versiones del formato**, como hacen Slide2, SLOPE/W y
+cSlope: el agua entre la piezométrica y el terreno carga las dovelas con su peso y con su empuje. Antes de la v0.5
+(sin publicar), el motor contaba la presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el
+FS salía muy bajo.
+
+Las convenciones (E15c):
+
+- **Región.** El agua libre es la región entre la piezométrica y el terreno donde `piezométrica > terreno`. Abarca
+  **todo el modelo**, no solo la masa de la superficie evaluada.
+- **Peso.** Por dovela y por tramo recto del terreno, partido en los vértices del terreno y de la piezométrica y en
+  sus cruces: `V = γw·∫h dx`, con `h` la altura de agua sobre el terreno. Es vertical, hacia abajo, y actúa en la
+  parte superior de la dovela.
+- **Empuje.** `H = γw·∫h·y′ dx`, con `y′` la pendiente del terreno: horizontal, igual a la pendiente por el peso, y
+  tomado en el sentido del deslizamiento. Los momentos de `V` y `H` se calculan exactos, con Gauss de 3 puntos.
+- **Cara de presa.** Si el terreno tiene un paramento vertical bajo el agua, su empuje es
+  `½·γw·[(yw − ya)² − (yw − yb)²]`: horizontal, en el centroide de la presión y hacia el lado del suelo. Solo cuenta la
+  parte sobre la superficie de deslizamiento (`ya` es el mayor entre el pie y la base en la cara, `yb` el menor entre
+  el nivel del agua y la cabeza) y lo recibe la dovela cuyo borde es el paramento, del lado alto.
+- **Presión de poros en la base.** Vale `γw·max(0, piezométrica − y_base)` en el punto medio de la base, sin recortar
+  al terreno, como antes.
+- **Sin sismo.** `kh` y `kv` no actúan sobre el agua: ni `kh·V` ni `kv·V`.
+- **Material con `ru`.** `ru` sigue reemplazando a la piezométrica, con `u = ru·(W + V)/b`: `W` es el peso del suelo
+  de la dovela y `V` el del agua embalsada que tiene encima, **sin** cargas externas ni sismo. El agua embalsada sigue
+  cargando la dovela con su peso y su empuje. Esta regla es la de Slide2 y no se puede comparar con el oráculo
+  ([Limitaciones](limitaciones.md#agua-embalsada-con-ru-sin-oráculo)). El `σ′v` del arrancamiento `interface` de un
+  material con `ru` **no** cuenta el agua libre (E14o-4), de modo que con refuerzos no hay doble conteo.
+- **γw** es `water.unit_weight` (9,81 por defecto; en unidades imperiales debe ser explícito,
+  [Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)).
+- **Profundidad bajo la tolerancia.** Una profundidad de agua menor o igual que `1e-9·escala` (la tolerancia del
+  modelo) se toma como 0: una piezométrica que **toca** el terreno, como la freática que termina en el talud, no añade
+  términos.
+- **El aviso `water_above_ground`** se conserva con el mismo nombre, como **nota informativa**: «La piezométrica queda
+  sobre el terreno: el agua embalsada se incluye con su peso y su empuje horizontal (sin sismo).»
+
+### Ejemplo: un embalse al pie
+
+ACADS 1(a) (V047a) con el círculo fijo de su búsqueda y 2 m de agua sobre el banco del pie: la piezométrica es
+horizontal en y = 27 y toca el talud en x = 34. El ejemplo declara la versión `"0.3"` a propósito: el agua embalsada no
+depende de la versión.
+
+<!-- ogs-ejemplo nombre=embalse-al-pie estado=converged fos=bishop:0.9392,spencer:0.9387,morgenstern_price:0.9386,janbu_simplified:0.9038,janbu_corrected:0.9451 avisos=water_above_ground,truncated_mass grieta=ninguna -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "meta": { "id": "ejemplo-embalse", "title": "ACADS 1(a) con 2 m de agua al pie" },
+  "units": "SI",
+  "materials": [
+    { "id": "suelo", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 3.0, "friction_angle": 19.6 }
+  ],
+  "regions": [
+    { "material": "suelo", "polygon": [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]] }
+  ],
+  "water": { "unit_weight": 9.81, "piezometric_line": [[20, 27], [70, 27]] },
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-5,
+    "surface": { "type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704 }
+  }
+}
+```
+
+Medido con `ogs analyze` (las cifras son FS a 4 decimales):
+
+| Método | Sin agua | Con 2 m de agua, v0.3.0 (sin peso ni empuje) | Con 2 m de agua, ahora |
+|---|---:|---:|---:|
+| Bishop | 0,9851 | 0,8481 | 0,9392 |
+| Spencer | 0,9841 | 0,8475 | 0,9387 |
+| Morgenstern-Price | 0,9841 | 0,8476 | 0,9386 |
+| Janbu simplificado | 0,9453 | 0,8260 | 0,9038 |
+| Janbu corregido | 0,9884 | 0,8637 | 0,9451 |
+
+El agua sobre el pie **baja** el FS respecto del talud seco (0,9851 a 0,9392 en Bishop; el efecto neto de la presión de
+poros en la base, del peso y del empuje del agua), pero menos que antes, cuando solo contaba la presión de poros. En la versión 0.3.0 este modelo traía
+además la nota `negative_effective_normal`; ahora ya no la trae. La nota `water_above_ground` sigue en los cinco
+métodos.
+
+El mismo modelo con `"version": "0.5"` da las mismas cifras:
+
+<!-- ogs-fragmento base=embalse-al-pie ruta=version esperado=ok esquema=acepta estado=converged fos=bishop:0.9392,spencer:0.9387,morgenstern_price:0.9386,janbu_simplified:0.9038,janbu_corrected:0.9451 avisos=water_above_ground grieta=ninguna -->
+```json
+"0.5"
+```
+
+Una piezométrica que no sube sobre el terreno no agrega ningún término: la salida es la de la v0.3.0, byte a byte.
+
+## Grieta de tracción (v0.5)
+
+`analysis.tension_crack` agrega una grieta vertical de tracción en la coronación, seca o con agua. Exige
+`"version": "0.5"`. La grieta **trunca cada superficie**: el motor la ubica sobre esa superficie, quita la masa que
+queda del lado de la cresta y deja una cara vertical sin resistencia.
+
+```json
+"analysis": { "tension_crack": { "depth": 2.0, "water_fill": 1.0 } }
+```
+
+| Campo | Significado | Rango |
+|---|---|---|
+| `depth` | profundidad de la grieta, en la unidad de longitud del modelo, o la cadena `"auto"` | número finito > 0, o `"auto"` |
+| `water_fill` | fracción de la grieta llena de agua: 0 = seca, 1 = llena. **Obligatoria, sin valor por defecto** | en [0, 1] |
+
+- **Solo un objeto**, no una lista, y **sin campo de posición**: la `x` de la grieta sale de la superficie y de la
+  profundidad.
+- **Posición (G1).** `x_c` es el primer punto, desde la entrada del lado de la cresta, donde
+  `terreno(x) − base(x) ≥ profundidad`: un barrido de 200 pasos seguido de bisección. Si la superficie **nunca** llega
+  a esa profundidad, no tiene masa: en una superficie fija es `NoValidSurface: tension_crack_not_reached` (con un
+  mensaje que lo explica), y en una búsqueda el candidato se descarta (G9).
+- **Masa (G2).** Se quitan todas las dovelas del lado de la cresta de `x_c`, y esa masa **no** se conserva como carga.
+  La masa termina en una cara vertical. Las comprobaciones de los extremos del bloque (que el arco no salga del modelo,
+  la tangente vertical sobre el terreno) se aplican a la **masa truncada**, cuyo extremo de la cresta es
+  `(x_c, base(x_c))`.
+- **Agua en la grieta (G3).** `Pw = ½·γw·hw²`, con `hw = profundidad·water_fill`. Es horizontal, va **en el sentido del
+  deslizamiento** y actúa a `base(x_c) + hw/3`, sobre la dovela adyacente a la cara. Con `water_fill = 0`, `Pw` vale 0.
+  No hace falta piezométrica: la grieta usa `water.unit_weight` si está y, si no, el γw del modelo (9,81 en SI). El agua
+  de la grieta no cambia la presión de poros de la base ni pesa, y la cara no tiene resistencia (G4). El sismo no actúa
+  sobre `Pw` (E7).
+- **Profundidad automática (G6).** Con `"auto"`, la profundidad de Rankine, en cada `x`:
+  `z(x) = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)`.
+  - `c`, `φ` y `γ` son los del material **bajo el terreno en `x`**, y se recalculan en cada `x`. En un material
+    **no drenado**, `c` es Su en ese punto y `φ` = 0, de modo que `z = 2·Su/γ` (G7).
+  - `q` suma las sobrecargas `udl` que cubren `x` y la columna de agua embalsada en `x`, `γw·(piezo − terreno)`.
+  - Si `z` vale 0 en la entrada (por ejemplo, `c = 0`), no se corta nada: el informe trae la grieta con
+    `depth = 0` y `water_force = 0`, y el FS es el de la superficie sin grieta.
+- **No hay tope de profundidad** por la altura del talud (G8): una grieta más profunda que el talud es un dato suyo.
+- **Búsqueda (G9).** Un candidato que no alcanza la grieta **se descarta**, y si se descartan todos, `NoValidSurface`.
+- **Polilíneas.** El truncado se aplica después del ajuste de la polilínea al terreno. Bishop sigue sin ofrecerse en
+  ellas.
+- **Refuerzos.** Un cruce que queda del lado de la cresta de `x_c` queda fuera de la masa: nota
+  `reinforcement_outside_mass`.
+- **El FS no es monótono con la profundidad** de una grieta **seca**: el signo depende del bloque que se quita (su peso
+  motriz y la resistencia de su base). Sí baja con `water_fill`, y con `depth → 0` tiende al FS de la superficie sin
+  grieta.
+
+### Errores
+
+Todos son `InvalidModel`, con la ruta del campo:
+
+| Caso | Mensaje |
+|---|---|
+| `depth` o `water_fill` ausente, `null` o de otro tipo | `analysis.tension_crack.<campo> es obligatorio` (o `debe ser …`) |
+| `depth` ≤ 0 o no finito | `analysis.tension_crack.depth debe ser finito y mayor que 0 (o "auto")` |
+| `water_fill` fuera de [0, 1] o no finito | `analysis.tension_crack.water_fill debe ser finito y estar en [0, 1]` |
+| un campo desconocido (por ejemplo `x`) o una lista | `unknown field …` o `invalid type: sequence, expected un objeto analysis.tension_crack con depth y water_fill` |
+| `version` menor que `"0.5"` | `tension_crack requiere version "0.5"` |
+
+### La salida
+
+Cada resultado cuya superficie se truncó lleva `tension_crack: { x, depth, water_force }`: la `x` de la grieta
+(`x_c`), su profundidad y `Pw`. Se omite cuando no hay grieta.
+
+### Ejemplos: grieta seca, llena y automática
+
+El mismo ACADS 1(a) y su círculo fijo, sin agua, con una grieta seca de 2 m. La grieta cae en x = 48,7109. Con la
+grieta seca el FS **sube** (la masa que se quita empujaba), de 0,9851 a 1,0263 en Bishop:
+
+<!-- ogs-ejemplo nombre=grieta-seca estado=converged fos=bishop:1.0263,spencer:1.0256,morgenstern_price:1.0257,janbu_simplified:0.9899,janbu_corrected:1.0291 avisos=truncated_mass grieta=x:48.7109,depth:2.0,water_force:0.0 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": { "id": "ejemplo-grieta", "title": "ACADS 1(a) con una grieta de tracción seca de 2 m" },
+  "units": "SI",
+  "materials": [
+    { "id": "suelo", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 3.0, "friction_angle": 19.6 }
+  ],
+  "regions": [
+    { "material": "suelo", "polygon": [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]] }
+  ],
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-5,
+    "tension_crack": { "depth": 2.0, "water_fill": 0.0 },
+    "surface": { "type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704 }
+  }
+}
+```
+
+**Grieta llena.** Con `water_fill = 1` la grieta tiene 2 m de agua: `Pw = ½·9,81·2² = 19,62` por metro de talud, y el FS
+**baja** de 1,0263 a 0,9795 en Bishop (por debajo del de la superficie sin grieta, 0,9851):
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=ok esquema=acepta estado=converged fos=bishop:0.9795,spencer:0.9785,morgenstern_price:0.9788,janbu_simplified:0.9352,janbu_corrected:0.9722 avisos=truncated_mass grieta=x:48.7109,depth:2.0,water_force:19.62 -->
+```json
+{ "depth": 2.0, "water_fill": 1.0 }
+```
+
+**Grieta automática.** Con `"auto"`, la profundidad es la de Rankine: con c = 3, φ = 19,6° y γ = 20,
+`z = 2·3/(20·tan(45° − 9,8°)) = 0,4253 m`. La grieta cae en x = 50,9193 y, llena, `Pw` vale 0,8871:
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=ok esquema=acepta estado=converged fos=bishop:0.9814,spencer:0.9804,morgenstern_price:0.9805,janbu_simplified:0.9405,janbu_corrected:0.9826 avisos=truncated_mass grieta=x:50.9193,depth:0.4253,water_force:0.8871 -->
+```json
+{ "depth": "auto", "water_fill": 1.0 }
+```
+
+**Rechazos.** Cada uno cambia un campo del ejemplo `grieta-seca`. Sin `water_fill`, que es obligatorio:
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=error:analysis.tension_crack.water_fill~es~obligatorio esquema=rechaza -->
+```json
+{ "depth": 2.0 }
+```
+
+Con una profundidad de 0:
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=error:analysis.tension_crack.depth~debe~ser~finito~y~mayor~que~0 esquema=rechaza -->
+```json
+{ "depth": 0, "water_fill": 0.0 }
+```
+
+Con una fracción fuera de [0, 1]:
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=error:analysis.tension_crack.water_fill~debe~ser~finito~y~estar~en~[0,~1] esquema=rechaza -->
+```json
+{ "depth": 2.0, "water_fill": 1.5 }
+```
+
+Con `version` `"0.4"`:
+
+<!-- ogs-fragmento base=grieta-seca ruta=version esperado=error:tension_crack~requiere~version~"0.5" esquema=rechaza -->
+```json
+"0.4"
+```
+
+Con una profundidad que el círculo fijo no alcanza (20 m), el modelo es válido pero la superficie no tiene masa:
+
+<!-- ogs-fragmento base=grieta-seca ruta=analysis.tension_crack esperado=error:NoValidSurface:~tension_crack_not_reached esquema=acepta -->
+```json
+{ "depth": 20.0, "water_fill": 0.0 }
+```
+
 ## Qué valida el esquema y qué solo el motor
 
 El esquema y el binario `ogs` aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede
@@ -1220,8 +1471,8 @@ expresar y que valida solo el motor:
 
 Cada bloque `json` de esta página precedido por un comentario `ogs-ejemplo` u `ogs-fragmento` se prueba con
 [`docs/tools/validar_ejemplos.py`](tools/validar_ejemplos.py): los ejemplos completos contra
-`schema/ogs-0.4.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
-`status` de `reinforcement_forces` y los avisos); los fragmentos, sustituidos en su ejemplo base, con el resultado
+`schema/ogs-0.5.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
+`status` de `reinforcement_forces`, los avisos y el objeto `tension_crack` del informe); los fragmentos, sustituidos en su ejemplo base, con el resultado
 esperado del motor y del esquema.
 
 ```sh
