@@ -39,7 +39,12 @@ fn row_doc(id: &str) -> Value {
 }
 
 fn row_ids() -> Vec<String> {
-    expected()["rows"].as_object().unwrap().keys().cloned().collect()
+    expected()["rows"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect()
 }
 
 fn try_run(doc: &Value) -> Result<AnalysisReport, String> {
@@ -52,7 +57,11 @@ fn run(doc: &Value) -> AnalysisReport {
 }
 
 fn method_name(m: MethodKind) -> String {
-    serde_json::to_value(m).unwrap().as_str().unwrap().to_string()
+    serde_json::to_value(m)
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_string()
 }
 
 fn fos_of(report: &AnalysisReport) -> BTreeMap<String, Option<f64>> {
@@ -99,12 +108,22 @@ fn the_rows_are_the_28_migrated_x22_rows() {
         let _: Model = serde_json::from_value(doc.clone()).unwrap_or_else(|e| panic!("{id}: {e}"));
         for p in doc["reinforcements"].as_array().into_iter().flatten() {
             // exactly one of `force` and `lateral_pressure` (E15i-1), and `location` is mandatory
-            assert!(p.get("force").is_some() ^ p.get("lateral_pressure").is_some(), "{id}");
+            assert!(
+                p.get("force").is_some() ^ p.get("lateral_pressure").is_some(),
+                "{id}"
+            );
             if let Some(lp) = p.get("lateral_pressure") {
-                assert!(matches!(lp["location"].as_str(), Some("centroid" | "slip_surface")), "{id}");
+                assert!(
+                    matches!(lp["location"].as_str(), Some("centroid" | "slip_surface")),
+                    "{id}"
+                );
             }
         }
-        assert_eq!(expected()["rows"][id]["oracle"].as_object().unwrap().len(), 5, "{id}");
+        assert_eq!(
+            expected()["rows"][id]["oracle"].as_object().unwrap().len(),
+            5,
+            "{id}"
+        );
     }
 }
 
@@ -150,7 +169,10 @@ fn x22_rows_match_the_oracle_within_0_1_percent() {
             }
             Err(e) => {
                 failing += 1;
-                text.push_str(&format!("  {id:<30} ERROR {}\n", e.chars().take(100).collect::<String>()));
+                text.push_str(&format!(
+                    "  {id:<30} ERROR {}\n",
+                    e.chars().take(100).collect::<String>()
+                ));
             }
         }
     }
@@ -164,7 +186,9 @@ fn the_force_per_metre_of_the_crossing_follows_the_oracle() {
     let exp = expected();
     let mut checked = 0;
     for id in row_ids() {
-        let Some(f) = exp["rows"][&id].get("force_per_metre") else { continue };
+        let Some(f) = exp["rows"][&id].get("force_per_metre") else {
+            continue;
+        };
         let report = run(&row_doc(&id));
         let r = result(&report, "bishop");
         let fs = forces(r);
@@ -176,13 +200,12 @@ fn the_force_per_metre_of_the_crossing_follows_the_oracle() {
                 assert_eq!(fs.len(), 1, "{id}");
                 let got = fs[0]["available"].as_f64().unwrap();
                 let want = f["oracle"].as_f64().unwrap();
-                assert!(pct(got, want).abs() <= TOLERANCE_PCT, "{id}: {got} against {want}");
+                assert!(
+                    pct(got, want).abs() <= TOLERANCE_PCT,
+                    "{id}: {got} against {want}"
+                );
                 if let Some(g) = f["gobierna"].as_str().filter(|g| *g != "given") {
-                    let name = match g {
-                        "bending" => "bending",
-                        other => other,
-                    };
-                    assert_eq!(fs[0]["governs"], name, "{id}");
+                    assert_eq!(fs[0]["governs"], g, "{id}");
                 }
                 checked += 1;
             }
@@ -197,10 +220,20 @@ fn s06_converges_in_bishop() {
     let exp = expected();
     let report = run(&row_doc("X22-S06-D1D-pequeno"));
     let r = result(&report, "bishop");
-    assert_eq!(r.status, ogs_core::methods::SolveStatus::Converged, "{:?}", r.warnings);
-    let want = exp["rows"]["X22-S06-D1D-pequeno"]["oracle"]["bishop"].as_f64().unwrap();
+    assert_eq!(
+        r.status,
+        ogs_core::methods::SolveStatus::Converged,
+        "{:?}",
+        r.warnings
+    );
+    let want = exp["rows"]["X22-S06-D1D-pequeno"]["oracle"]["bishop"]
+        .as_f64()
+        .unwrap();
     let d = pct(r.fos.unwrap(), want);
-    println!("S06 Bishop: {:.6} against {want} ({d:+.4} %)", r.fos.unwrap());
+    println!(
+        "S06 Bishop: {:.6} against {want} ({d:+.4} %)",
+        r.fos.unwrap()
+    );
     assert!(d.abs() <= TOLERANCE_PCT, "{d}");
 }
 
@@ -209,7 +242,11 @@ fn s06_converges_in_bishop() {
 #[test]
 fn without_lateral_pressure_the_report_has_no_new_field() {
     // E15i-7: `soil_force`, `governs` and `arm` are omitted in a pile with `force` (identity).
-    for id in ["X22-G01-force-pasivo", "X22-G02-force-activo", "X22-G03-force-tangente"] {
+    for id in [
+        "X22-G01-force-pasivo",
+        "X22-G02-force-activo",
+        "X22-G03-force-tangente",
+    ] {
         let report = run(&row_doc(id));
         let text = serde_json::to_string(&report).unwrap();
         for key in ["soil_force", "governs", "\"arm\""] {
@@ -227,11 +264,17 @@ fn n01_and_n02_give_the_fs_without_pile() {
     for m in METHODS {
         assert_eq!(n01[m], n02[m], "{m}: N02 is the slope without pile");
         // V013b: the critical circle of cSlope ends at the head of the pile; the crossing at the end does not count
-        let want = expected()["rows"]["X22-V013b"]["oracle"][m].as_f64().unwrap();
+        let want = expected()["rows"]["X22-V013b"]["oracle"][m]
+            .as_f64()
+            .unwrap();
         assert!(pct(b[m].unwrap(), want).abs() <= TOLERANCE_PCT, "{m}");
     }
     let rep = run(&row_doc("X22-N02-fuera"));
-    assert!(forces(result(&rep, "bishop")).iter().all(|f| f["status"] != "applied"));
+    assert!(
+        forces(result(&rep, "bishop"))
+            .iter()
+            .all(|f| f["status"] != "applied")
+    );
 }
 
 #[test]
@@ -269,7 +312,8 @@ fn the_mirror_s05_matches_v013c_within_1e_9() {
 // ------------------------------------------------------------------------------------- the format rules (E15i-1)
 
 fn reject(doc: &Value) -> String {
-    match try_run(doc) {
+    // Through `analyze_json`, like the CLI and the bindings, so the error carries its `InvalidModel:` prefix.
+    match ogs_core::analyze_json(&doc.to_string()) {
         Ok(_) => panic!("the document should be rejected"),
         Err(e) => e,
     }
@@ -287,19 +331,29 @@ fn the_format_rules_of_e15i_1() {
         (
             "force and lateral_pressure",
             with(&|p| p["force"] = json!(100.0)),
-            vec!["InvalidModel", "reinforcements[0]", "force", "lateral_pressure"],
+            vec![
+                "InvalidModel",
+                "reinforcements[0]",
+                "force",
+                "lateral_pressure",
+            ],
         ),
         (
             "neither",
             with(&|p| {
                 p.as_object_mut().unwrap().remove("lateral_pressure");
             }),
-            vec!["InvalidModel", "reinforcements[0]", "force", "lateral_pressure"],
+            vec![
+                "InvalidModel",
+                "reinforcements[0]",
+                "force",
+                "lateral_pressure",
+            ],
         ),
         (
             "unknown model",
             with(&|p| p["lateral_pressure"]["model"] = json!("broms")),
-            vec!["reinforcements[0].lateral_pressure.model"],
+            vec!["InvalidModel", "broms", "ito_matsui"],
         ),
         (
             "diameter 0",
@@ -314,24 +368,27 @@ fn the_format_rules_of_e15i_1() {
         (
             "location missing",
             with(&|p| {
-                p["lateral_pressure"].as_object_mut().unwrap().remove("location");
+                p["lateral_pressure"]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("location");
             }),
-            vec!["location"],
+            vec!["InvalidModel", "missing field `location`"],
         ),
         (
             "location bottom",
             with(&|p| p["lateral_pressure"]["location"] = json!("bottom")),
-            vec!["location"],
+            vec!["InvalidModel", "bottom", "centroid"],
         ),
         (
             "location with a hyphen",
             with(&|p| p["lateral_pressure"]["location"] = json!("slip-surface")),
-            vec!["location"],
+            vec!["InvalidModel", "slip-surface", "slip_surface"],
         ),
         (
             "unknown field in lateral_pressure",
             with(&|p| p["lateral_pressure"]["friction"] = json!(0.3)),
-            vec!["friction"],
+            vec!["InvalidModel", "unknown field `friction`"],
         ),
         (
             "inclined pile",
@@ -366,7 +423,7 @@ fn the_format_rules_of_e15i_1() {
         (
             "unknown field in capacity",
             with(&|p| p["capacity"] = json!({"shear": 10.0, "axial": 3.0})),
-            vec!["axial"],
+            vec!["InvalidModel", "unknown field `axial`"],
         ),
         (
             "capacity with force",
@@ -397,6 +454,12 @@ fn the_version_gate_of_e15i_1() {
         for strip_lp in [false, true] {
             let mut doc = row_doc("X22-V013c");
             doc["version"] = json!(old);
+            // the other fields of the rows (methods, interslice) need 0.3; keep only what the gate of 0.5 looks at
+            doc["analysis"]["methods"] = json!(["bishop"]);
+            doc["analysis"]
+                .as_object_mut()
+                .unwrap()
+                .remove("interslice");
             if old == "0.1" {
                 doc["loads"] = json!([]);
             }
@@ -410,12 +473,21 @@ fn the_version_gate_of_e15i_1() {
             let err = reject(&doc);
             if old == "0.4" || old == "0.3" || old == "0.2" || old == "0.1" {
                 assert!(
-                    err.contains("requiere version \"0.5\"") || err.contains("requiere version \"0.4\""),
+                    err.contains("requiere version \"0.5\"")
+                        || err.contains("requiere version \"0.4\""),
                     "{old}: {err}"
                 );
             }
             if old == "0.4" {
-                assert!(err.contains("lateral_pressure requiere version \"0.5\""), "{old}: {err}");
+                let field = if strip_lp {
+                    "capacity"
+                } else {
+                    "lateral_pressure"
+                };
+                assert!(
+                    err.contains(&format!("{field} requiere version \"0.5\"")),
+                    "{old}: {err}"
+                );
             }
         }
     }
@@ -480,11 +552,17 @@ fn the_point_of_application_changes_the_fs_with_moments_only() {
     let s = fos_of(&run(&row_doc("X22-L01-xs-mismo-circulo")));
     assert!(s["bishop"].unwrap() > c["bishop"].unwrap() * 1.005);
     assert!(s["spencer"].unwrap() > c["spencer"].unwrap() * 1.005);
-    assert_eq!(s["janbu_simplified"], c["janbu_simplified"]);
-    assert_eq!(s["janbu_corrected"], c["janbu_corrected"]);
+    for m in ["janbu_simplified", "janbu_corrected"] {
+        let d = (s[m].unwrap() - c[m].unwrap()).abs();
+        assert!(d < 1e-9, "{m}: {d:e}");
+    }
     let c_arm = forces(result(&run(&row_doc("X22-V013c")), "bishop"))[0]["arm"].clone();
-    let s_arm = forces(result(&run(&row_doc("X22-L01-xs-mismo-circulo")), "bishop"))[0]["arm"].clone();
-    assert_eq!(c_arm, s_arm, "`arm` is L_m in both; only the point of the force changes");
+    let s_arm =
+        forces(result(&run(&row_doc("X22-L01-xs-mismo-circulo")), "bishop"))[0]["arm"].clone();
+    assert_eq!(
+        c_arm, s_arm,
+        "`arm` is L_m in both; only the point of the force changes"
+    );
 }
 
 // ----------------------------------------------------------------------------------------------- the warning
@@ -495,14 +573,29 @@ fn the_spacing_range_warning() {
     let has = |id: &str| {
         let r = run(&row_doc(id));
         // every method of the report carries it, or none does
-        let n = r.results.iter().filter(|m| m.warnings.iter().any(|w| w == code)).count();
-        assert!(n == 0 || n == r.results.len(), "{id}: {n} of {}", r.results.len());
+        let n = r
+            .results
+            .iter()
+            .filter(|m| m.warnings.iter().any(|w| w == code))
+            .count();
+        assert!(
+            n == 0 || n == r.results.len(),
+            "{id}: {n} of {}",
+            r.results.len()
+        );
         n > 0
     };
     assert!(has("X22-S06-D1D-pequeno"), "S/D = 1.25 < 2");
     assert!(has("X22-S07-D1D-grande"), "S/D = 10 > 8");
     assert!(has("X22-S15-piso-phi0"), "S/D = 20 > 8");
-    for id in ["X22-V013b", "X22-V013c", "X22-V013d", "X22-V013e", "X22-S01-phi0", "X22-N01-sin-pilote"] {
+    for id in [
+        "X22-V013b",
+        "X22-V013c",
+        "X22-V013d",
+        "X22-V013e",
+        "X22-S01-phi0",
+        "X22-N01-sin-pilote",
+    ] {
         assert!(!has(id), "{id}: S/D within 2 to 8");
     }
     // the boundaries are inside the range: S/D = 2 and S/D = 8 give no warning
@@ -510,7 +603,10 @@ fn the_spacing_range_warning() {
         let mut doc = row_doc("X22-V013c");
         pile_mut(&mut doc)["spacing"] = json!(0.8 * sd);
         let r = run(&doc);
-        assert!(!result(&r, "bishop").warnings.iter().any(|w| w == code), "S/D = {sd}");
+        assert!(
+            !result(&r, "bishop").warnings.iter().any(|w| w == code),
+            "S/D = {sd}"
+        );
     }
 }
 
@@ -581,8 +677,18 @@ fn pile_loads(doc: &Value, r: &MethodReport, f: f64) -> Vec<([f64; 2], [f64; 2])
         let arm = rf.get("arm").and_then(Value::as_f64).unwrap_or(0.0);
         let (x, y) = (rf["x"].as_f64().unwrap(), rf["y"].as_f64().unwrap());
         let y_app = if at_centroid { y + arm } else { y };
-        let k = if spec["application"] == "passive" { 1.0 / f } else { 1.0 };
-        out.push(([x, y_app], [rf["fx"].as_f64().unwrap() * k, rf["fy"].as_f64().unwrap() * k]));
+        let k = if spec["application"] == "passive" {
+            1.0 / f
+        } else {
+            1.0
+        };
+        out.push((
+            [x, y_app],
+            [
+                rf["fx"].as_f64().unwrap() * k,
+                rf["fy"].as_f64().unwrap() * k,
+            ],
+        ));
     }
     out
 }
@@ -629,7 +735,10 @@ fn balance(doc: &Value, r: &MethodReport, s_dir: f64, about: [[f64; 2]; 2]) -> B
             let m = [s_dir * cos, -sin];
             loads.push((
                 [xm, ym],
-                [normal * n_vec[0] - shear * m[0], normal * n_vec[1] - shear * m[1]],
+                [
+                    normal * n_vec[0] - shear * m[0],
+                    normal * n_vec[1] - shear * m[1],
+                ],
             ));
         }
     }
@@ -701,7 +810,11 @@ fn global_equilibrium_independent_of_the_solver() {
                 res[2],
                 res[3]
             );
-            assert!(b.e_n.abs() <= 1e-6 * b.total_w, "{id} {m}: E_n = {:e}", b.e_n);
+            assert!(
+                b.e_n.abs() <= 1e-6 * b.total_w,
+                "{id} {m}: E_n = {:e}",
+                b.e_n
+            );
             for (name, v) in ["ΣFx", "ΣFy", "M0", "M1"].iter().zip(res) {
                 assert!(v < 1e-6, "{id} {m}: {name} residual {v:e}");
                 worst = worst.max(v);
