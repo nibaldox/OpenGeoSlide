@@ -56,21 +56,21 @@ step('1b la polilínea propuesta (cuerda del círculo) tiene x creciente y ≥ 3
 // 4. Editar la polilínea en el lienzo: arrastrar el vértice central hacia abajo
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForSelector('[data-handle="surface_vertex"]');
-// Arrastres con el puntero. La cuerda del círculo pasa justo sobre el vértice del pie del terreno y el motor la declara
-// `polyline_outside_ground`; bajar los vértices la hace admisible. Es una edición real del usuario.
-const drag = async (key, dx, dy) => {
-  const bb = await page.locator(`[data-handle-key="${key}"]`).boundingBox();
-  const x = bb.x + bb.width / 2, y = bb.y + bb.height / 2;
-  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + dx, y + dy, { steps: 6 }); await page.mouse.up();
+// Arrastres con el puntero, sin píxeles fijos. Desde C-W (4ed4440) la polilínea propuesta ya es admisible por construcción (sus puntos
+// caen en los vértices del terreno y no se pasa del pie, como antes) y tiene 7 puntos en lugar de 8: arrastrar «s-7» daba TimeoutError
+// porque ese tirador ya no existe. Se pide una forma de cuenco por cota objetivo: la escala (px por metro) sale de dos tiradores y los
+// vértices interiores bajan hasta el estrato no drenado (contacto en y = -3). Es una edición real del usuario.
+const handle = async (key) => { const bb = await page.locator(`[data-handle-key=\"${key}\"]`).boundingBox(); return { x: bb.x + bb.width / 2, y: bb.y + bb.height / 2 }; };
+const last = pts0.length - 1;
+const pxPerM = ((await handle('s-3')).y - (await handle('s-1')).y) / (pts0[1][1] - pts0[3][1]);
+const dragTo = async (i, yTarget) => {
+  const h = await handle(`s-${i}`);
+  await page.mouse.move(h.x, h.y); await page.mouse.down(); await page.mouse.move(h.x, h.y + (pts0[i][1] - yTarget) * pxPerM, { steps: 6 }); await page.mouse.up();
   await page.waitForTimeout(500);
 };
-await drag('s-2', 4, 14);
-// …y el fondo se hunde hasta el estrato no drenado (contacto en y = -3), con una forma de cuenco suave: 16 px ≈ 1 m en el lienzo.
-await drag('s-3', 0, 38);
-await drag('s-4', 0, 47);
-await drag('s-5', 0, 55);
-await drag('s-6', 0, 51);
-await drag('s-7', 0, 30);
+// Cuenco suave: el penúltimo y el antepenúltimo vértice quedan bajo el contacto (-3); los extremos se quedan en el terreno.
+const bowl = { 2: 2.0, 3: -1.5, 4: -3.6, 5: -3.8 };
+for (const [i, y] of Object.entries(bowl)) if (Number(i) < last) await dragTo(Number(i), y);
 const ptsE = JSON.parse((await saveText(page, 'iw-b2.ogs.json')).text).analysis.surface.points;
 step('1b los arrastres en el lienzo dieron a la polilínea un cuenco de x creciente que llega bajo el contacto (y < -3)', JSON.stringify(ptsE[2]) !== JSON.stringify(pts0[2]) && ptsE.every((p, i) => i === 0 || p[0] > ptsE[i - 1][0]) && ptsE[5][1] < -3 && ptsE.length === pts0.length, { pts: ptsE });
 await shot(page, 'b-02-polilinea-lienzo');
