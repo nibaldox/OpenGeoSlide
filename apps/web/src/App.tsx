@@ -12,6 +12,8 @@ import { EditorApp } from './editor/EditorApp';
 import { resultCaption } from './editor/app/reportInput';
 import { lengthUnitOf } from './editor/canvas/layout';
 import { createRunGuard } from './editor/app/runGuard';
+import { BISHOP_POLYLINE_NOTE, METHOD_ORDER, isFixedPolyline } from './editor/panels/forms';
+import { engineModel } from './io/ogsJson';
 import { GuidedTour } from './onboarding/GuidedTour';
 import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
 import { buildScene } from './render/scene';
@@ -27,7 +29,8 @@ import { useRovingTabIndex } from './ui/useRovingTabIndex';
 import { MAX_PERF_RUNS, PerformancePanel } from './ui/PerformancePanel';
 import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 
-const ALL_METHODS: MethodKind[] = ['bishop', 'spencer'];
+/** Los cinco métodos de la vista Casos, en el orden del editor (F3.9). */
+const ALL_METHODS: readonly MethodKind[] = METHOD_ORDER;
 
 interface RunResult {
   report: AnalysisReport;
@@ -41,7 +44,7 @@ function errorMessage(error: unknown): string {
 function describeAnalysis(model: Model): string {
   const parts: string[] = [];
   if (model.analysis.search) parts.push('búsqueda de superficie crítica');
-  else if (model.analysis.surface) parts.push('superficie fija');
+  else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
   parts.push(`${model.materials.length} material(es)`);
   parts.push(`${model.regions.length} región(es)`);
   if (model.water?.piezometric_line?.length) parts.push('con piezométrica');
@@ -57,7 +60,6 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [methods, setMethods] = useState<Record<MethodKind, boolean>>({
     bishop: true,
     spencer: true,
-    // Los métodos de la v0.3 no se ofrecen todavía en esta pantalla (ALL_METHODS): nunca se piden.
     morgenstern_price: false,
     janbu_simplified: false,
     janbu_corrected: false,
@@ -74,7 +76,10 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const guard = useRef(createRunGuard()).current;
 
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
-  const selectedMethods = ALL_METHODS.filter((m) => methods[m]);
+  // F3.6: con una polilínea fija Bishop no se ofrece; no se pide aunque la casilla haya quedado marcada de otro caso.
+  const bishopBlocked = current ? isFixedPolyline(current.caseData.model.analysis) : false;
+  const methodOff = (m: MethodKind): boolean => m === 'bishop' && bishopBlocked;
+  const selectedMethods = ALL_METHODS.filter((m) => methods[m] && !methodOff(m));
 
   const shownResult = run?.report.results.find((r) => r.method === shownMethod) ?? run?.report.results[0] ?? null;
   const scene = useMemo(
@@ -99,7 +104,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
 
   async function runCheck(model: Model, check: VerificationCheck): Promise<CheckRow> {
     try {
-      const { report } = await client.analyze(JSON.stringify(checkModel(model, check)));
+      const { report } = await client.analyze(JSON.stringify(engineModel(checkModel(model, check))));
       const fos = convergedFos(report.results[0]);
       const outcome = evaluateCheck(check, fos);
       return {
@@ -137,7 +142,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     setChecks([]);
     try {
       const model = current.caseData.model;
-      const result: AnalyzeResult = await client.analyze(JSON.stringify(runModel(model, selectedMethods)));
+      const result: AnalyzeResult = await client.analyze(JSON.stringify(engineModel(runModel(model, selectedMethods))));
       if (!guard.isCurrent(id)) return;
       setRun({ report: result.report, elapsedMs: result.elapsed_ms });
       setShownMethod(result.report.results[0]?.method ?? null);
@@ -170,7 +175,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
       return;
     }
     const n = Math.min(MAX_PERF_RUNS, Math.max(1, Math.round(perfRuns) || 1));
-    const json = JSON.stringify(runModel(current.caseData.model, selectedMethods));
+    const json = JSON.stringify(engineModel(runModel(current.caseData.model, selectedMethods)));
     const id = guard.next();
     setBusy(true);
     setError(null);
@@ -234,12 +239,19 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
                 <label key={m} className="checkbox">
                   <input
                     type="checkbox"
-                    checked={methods[m]}
+                    checked={methods[m] && !methodOff(m)}
+                    disabled={methodOff(m)}
+                    aria-describedby={methodOff(m) ? 'cases-bishop-note' : undefined}
                     onChange={(e) => setMethods((prev) => ({ ...prev, [m]: e.target.checked }))}
                   />
                   {METHOD_LABELS[m]}
                 </label>
               ))}
+              {bishopBlocked && (
+                <p id="cases-bishop-note" className="muted small">
+                  {BISHOP_POLYLINE_NOTE}
+                </p>
+              )}
             </fieldset>
 
             <button type="button" className="primary" onClick={calcular} disabled={busy || !info}>
@@ -376,7 +388,7 @@ export default function App() {
       <header className="app-header">
         <div className="app-brand">
           <h1>OpenGeoSlide</h1>
-          <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop y Spencer</p>
+          <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop, Spencer, Morgenstern-Price y Janbu</p>
         </div>
         <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación" ref={modeTabsRef} onKeyDown={modeKeys.onKeyDown}>
           <button type="button" role="tab" id="mode-edit" aria-selected={mode === 'edit'} aria-controls="mode-edit-panel" className={mode === 'edit' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('edit')}>

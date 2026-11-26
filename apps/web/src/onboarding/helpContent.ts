@@ -93,6 +93,36 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
       'Método de dovelas que cumple el equilibrio de fuerzas y de momentos. Supone que la fuerza tangencial entre dovelas es una fracción constante (λ) de la normal. El programa calcula el FS y λ a la vez; si no hay una solución admisible, el método no converge y no se informa FS.',
   },
   {
+    id: 'morgenstern-price',
+    term: 'Morgenstern-Price (M-P)',
+    definition:
+      'Método de dovelas que cumple el equilibrio de fuerzas y de momentos, como Spencer, pero con una fuerza vertical entre dovelas que varía a lo largo de la masa: X = λ·f(ξ)·E, donde f es la función de interfaz. El programa calcula el FS y λ a la vez; con la función «Constante» da el mismo resultado que Spencer. Si no se elige función, usa el medio seno.',
+  },
+  {
+    id: 'interslice-function',
+    term: 'Función de interfaz f(ξ)',
+    definition:
+      'Forma en que la fuerza vertical entre dovelas crece y decrece a lo largo de la masa en Morgenstern-Price. ξ vale 0 en el borde izquierdo de la primera dovela y 1 en el borde derecho de la última. Hay cinco: «Constante» (1), «Medio seno» (sen πξ), «Seno recortado (mín. 0,35)», «Trapezoidal (20 %-80 %)» y «Definida por puntos», una tabla de pares (ξ, f) con ξ creciente de 0 a 1, f igual o mayor que 0 y algún f mayor que 0, que se interpola linealmente. En un tramo de la masa sin suelo (sobre el terreno) f se mantiene en el valor del borde izquierdo del tramo.',
+  },
+  {
+    id: 'janbu',
+    term: 'Janbu simplificado, Janbu corregido y f₀',
+    definition:
+      'Janbu simplificado cumple solo el equilibrio horizontal de fuerzas de toda la masa (no usa momentos) y da F₀. Janbu corregido multiplica ese resultado por un factor f₀ que compensa que se haya despreciado el cortante entre dovelas: F = f₀·F₀, con f₀ = 1 + b₁·(d/L − 1,4·(d/L)²). L es la longitud de la cuerda de la superficie, d la mayor distancia de esa cuerda a la superficie (hacia abajo) y b₁ depende del suelo: 0,69 si solo hay cohesión (también el material no drenado), 0,31 si solo hay fricción y 0,50 si hay de las dos. El informe muestra f₀ junto al FS del método corregido.',
+  },
+  {
+    id: 'su',
+    term: 'Su (resistencia no drenada)',
+    definition:
+      'Resistencia al corte de un suelo fino saturado cargado sin drenaje (φ = 0): vale lo mismo en cualquier punto de la base de la dovela, sin depender de la tensión normal. Se elige el modelo «No drenado (Su)» en el material. Con «Su variable con la cota», Su = Su de referencia + (cota de referencia − y) · gradiente, con y la cota del punto medio de la base de la dovela; el gradiente es positivo si Su crece hacia abajo y puede llevar un límite (máximo si el gradiente es positivo, mínimo si es negativo). Su nunca es negativa. La cota de referencia es una cota (la y del modelo), no una profundidad. Las unidades del gradiente son kPa/m o psf/ft; ru no cambia la resistencia porque φ = 0.',
+  },
+  {
+    id: 'polyline',
+    term: 'Superficie polilínea',
+    definition:
+      'Superficie de falla fija definida por una lista de puntos (x, y) con x estrictamente creciente, en lugar de un círculo. El cálculo prolonga cada extremo en la dirección de su tramo hasta el terreno, o lo recorta si ya está sobre él; los puntos intermedios deben quedar bajo el terreno y dentro del modelo. Con una polilínea se ofrecen Spencer, Morgenstern-Price y Janbu; Bishop no, porque su resultado depende del eje de momentos.',
+  },
+  {
     id: 'lambda',
     term: 'λ (lambda)',
     definition:
@@ -154,8 +184,10 @@ export function glossaryTerms(): string[] {
 
 /** Limitaciones principales; el detalle completo está en el README (`HELP_LINKS.limitations`). */
 export const LIMITATIONS: readonly string[] = [
-  'Es un análisis de equilibrio límite en 2D con material Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción). No calcula deformaciones ni análisis en tres dimensiones.',
-  'Las superficies de deslizamiento son circulares, ya sea fijas o encontradas por la búsqueda de entrada y salida.',
+  'Es un análisis de equilibrio límite en 2D con material Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción) o no drenado (Su constante o variable con la cota). No calcula deformaciones ni análisis en tres dimensiones.',
+  'La búsqueda de la superficie crítica solo encuentra círculos (rangos de entrada y salida). Una superficie fija puede ser un círculo o una polilínea, que se analiza tal como se define: no se optimiza.',
+  'Bishop no se ofrece en superficies no circulares: con una polilínea fija su resultado dependería del eje de momentos. Use Spencer, Morgenstern-Price o Janbu; el editor deshabilita Bishop y el cálculo lo rechaza.',
+  'En Morgenstern-Price la función de interfaz es una elección del usuario y el FS puede cambiar de una a otra: indique cuál se usó al informar el resultado. Janbu corregido aplica una corrección empírica (f₀) y puede diferir de Spencer y Morgenstern-Price; f₀ se muestra junto al FS.',
   'Spencer barre λ con un paso fijo de 0,05: puede no hallar solución (aviso «no_lambda_root») aunque exista. Con tracción en la base, su FS puede quedar por debajo de Bishop; revise los avisos.',
   'Cambiar el sistema de unidades (SI o imperial) ofrece convertir los valores del modelo (el factor de seguridad no cambia) o cambiar solo la etiqueta. El motor nunca convierte: interpreta los números en las unidades declaradas, y con piezométrica en imperial el peso del agua debe ser explícito (62,4 pcf).',
   'Una carga puntual o lineal puede generar círculos diminutos con FS muy bajo bajo ella; fije un «ancho mínimo» de búsqueda y revise aparte la capacidad de soporte local.',

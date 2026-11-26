@@ -84,20 +84,25 @@ function isLoad(value: unknown): boolean {
   return false;
 }
 
+const optionalFinite = (v: unknown): boolean => v === undefined || v === null || isFiniteNumber(v);
+
 function isMaterial(value: unknown): value is Material {
   if (typeof value !== 'object' || value === null) return false;
   const m = value as Record<string, unknown>;
-  return (
+  // Solo la forma (números finitos): los rangos y los campos prohibidos por modelo los señala `validateLocal` (F3.2).
+  const common =
     typeof m.id === 'string' &&
     m.id !== '' &&
     typeof m.name === 'string' &&
-    m.model === 'mohr_coulomb' &&
     isFiniteNumber(m.unit_weight) &&
-    isFiniteNumber(m.cohesion) &&
-    isFiniteNumber(m.friction_angle) &&
-    (m.unit_weight_sat === undefined || m.unit_weight_sat === null || isFiniteNumber(m.unit_weight_sat)) &&
-    (m.ru === undefined || m.ru === null || isFiniteNumber(m.ru))
-  );
+    optionalFinite(m.unit_weight_sat) &&
+    optionalFinite(m.ru);
+  if (!common) return false;
+  if (m.model === 'mohr_coulomb') return isFiniteNumber(m.cohesion) && isFiniteNumber(m.friction_angle);
+  if (m.model === 'undrained') {
+    return isFiniteNumber(m.undrained_strength) && optionalFinite(m.strength_datum) && optionalFinite(m.strength_gradient) && optionalFinite(m.strength_limit);
+  }
+  return false;
 }
 
 function withRegionPolygon(doc: ModelDoc, regionIndex: number, polygon: Point[]): ModelDoc {
@@ -190,8 +195,15 @@ export function applyCommand(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null
       return { ...doc, water: { ...(doc.water ?? {}), piezometric_line: copyPoints(cmd.points) } };
     }
     case 'surface/set': {
-      if (cmd.surface !== null && (!allFinite(cmd.surface) || cmd.surface.type !== 'circle')) return null;
-      return withAnalysis(doc, { surface: cmd.surface === null ? null : { ...cmd.surface } });
+      if (cmd.surface === null) return withAnalysis(doc, { surface: null });
+      if (!allFinite(cmd.surface)) return null;
+      // Círculo o polilínea fija (F3.3): la polilínea necesita al menos 2 puntos; el orden de x lo valida `validateLocal`.
+      if (cmd.surface.type === 'polyline') {
+        if (!isPointList(cmd.surface.points) || cmd.surface.points.length < 2) return null;
+        return withAnalysis(doc, { surface: { type: 'polyline', points: copyPoints(cmd.surface.points) } });
+      }
+      if (cmd.surface.type !== 'circle') return null;
+      return withAnalysis(doc, { surface: { ...cmd.surface } });
     }
     case 'search/set': {
       if (cmd.search !== null && (!allFinite(cmd.search) || cmd.search.type !== 'circular_entry_exit')) return null;

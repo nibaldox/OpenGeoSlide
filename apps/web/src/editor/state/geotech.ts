@@ -5,6 +5,7 @@
 // - γsat < γ: un suelo saturado no pesa menos que el seco; casi siempre es un error de captura.
 // - ru y piezométrica a la vez: en un material con `ru`, la presión de poros es `ru·σv` y la piezométrica **no se usa** para esa
 //   presión (`crates/ogs-core/src/slicer.rs:604-610`: `if let Some(ru) = m.ru { ru·σv } else if let Some(z) = piezo {…}`).
+// - ru en un material no drenado (F3.2): con φ = 0 la presión de poros no cambia la resistencia, así que ru no tiene efecto sobre Su.
 // - piezométrica corta: fuera de su rango x el motor usa el nivel del extremo más cercano, es decir, la prolonga en horizontal
 //   hasta los bordes del modelo (`crates/ogs-core/src/geometry.rs:621-627`, `piezometric_y`).
 
@@ -15,7 +16,7 @@ import { isImperialUnits } from './units';
 
 export interface GeotechAdvisory {
   /** Código estable (`editor.*`). */
-  code: 'editor.gamma_sat_unverified' | 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated';
+  code: 'editor.gamma_sat_unverified' | 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated' | 'editor.undrained_ru';
   text: string;
   /** Puntero JSON al dato que lo causa. */
   path: string | null;
@@ -101,6 +102,20 @@ export function geotechAdvisories(doc: ModelDoc): GeotechAdvisory[] {
         path: `/materials/${i}/unit_weight_sat`,
       });
     }
+  }
+
+  const undrainedRu = materials.map((m, i) => ({ m, i })).filter(({ m }) => m.model === 'undrained' && isNum(m.ru));
+  if (undrainedRu.length > 0) {
+    const names = undrainedRu.map(({ m }) => materialName(m)).join(', ');
+    const many = undrainedRu.length > 1;
+    out.push({
+      code: 'editor.undrained_ru',
+      text:
+        `${many ? 'Los materiales no drenados' : 'El material no drenado'} ${names} ${many ? 'tienen' : 'tiene'} ru. ` +
+        'Con el modelo «No drenado (Su)» el ángulo de fricción es 0, así que la presión de poros no cambia la resistencia y ru no tiene efecto sobre ella; ' +
+        'solo el peso del suelo y la piezométrica siguen contando. No bloquea el cálculo.',
+      path: `/materials/${(undrainedRu[0] as { i: number }).i}/ru`,
+    });
   }
 
   if (piezo) {

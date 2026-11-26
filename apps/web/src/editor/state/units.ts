@@ -1,4 +1,4 @@
-// Conversión de unidades del modelo (R8 A-02): SI (m, kN/m³, kPa, kN/m) ⇄ imperial (ft, pcf, psf, lbf/ft). Puro.
+// Conversión de unidades del modelo (R8 A-02): SI (m, kN/m³, kPa, kN/m, kPa/m) ⇄ imperial (ft, pcf, psf, lbf/ft, psf/ft). Puro.
 //
 // El motor no convierte unidades: `units` es una etiqueta y los números se calculan tal cual (`ogs-core/src/model.rs`). Cambiar
 // solo la etiqueta deja un modelo con números en otro sistema. Esta función reescribe los valores con los factores de abajo, de modo
@@ -32,6 +32,8 @@ export const UNIT_FACTORS = {
   stress: LBF_PER_KN / FT_PER_M ** 2,
   /** kN/m → lbf/ft (carga lineal p). */
   lineForce: LBF_PER_KN / FT_PER_M,
+  /** kPa/m → psf/ft (gradiente de Su, un esfuerzo por unidad de longitud): el factor del esfuerzo entre el de la longitud (= el de γ). */
+  stressGradient: LBF_PER_KN / FT_PER_M ** 2 / FT_PER_M,
 } as const;
 
 /** γw por defecto del motor, en kN/m³. */
@@ -60,15 +62,22 @@ type Scale = (v: number) => number;
 function scalesFor(to: UnitSystem): Record<keyof typeof UNIT_FACTORS, Scale> {
   const up = to === 'imperial';
   const make = (f: number): Scale => (up ? (v) => v * f : (v) => v / f);
-  return { length: make(UNIT_FACTORS.length), unitWeight: make(UNIT_FACTORS.unitWeight), stress: make(UNIT_FACTORS.stress), lineForce: make(UNIT_FACTORS.lineForce) };
+  return {
+    length: make(UNIT_FACTORS.length),
+    unitWeight: make(UNIT_FACTORS.unitWeight),
+    stress: make(UNIT_FACTORS.stress),
+    lineForce: make(UNIT_FACTORS.lineForce),
+    stressGradient: make(UNIT_FACTORS.stressGradient),
+  };
 }
 
 const optional = (v: number | null | undefined, f: Scale): number | null | undefined => (typeof v === 'number' ? f(v) : v);
 
 /**
- * Reescribe los valores del documento al sistema `to`. Convierte longitudes (coordenadas, piezométrica, círculo, rangos y ancho mínimo
- * de la búsqueda, x de las cargas), pesos unitarios (γ, γsat, γw), tensiones (c, q) y la carga lineal p. No cambian φ, ru, kh, kv, los
- * ángulos, la tolerancia, el número de dovelas ni de intentos. Si ya está en `to`, devuelve el mismo documento.
+ * Reescribe los valores del documento al sistema `to`. Convierte longitudes (coordenadas, piezométrica, círculo, puntos de la polilínea
+ * fija, rangos y ancho mínimo de la búsqueda, x de las cargas, cota de referencia de Su), pesos unitarios (γ, γsat, γw), tensiones (c, q,
+ * Su y su límite), la carga lineal p y el gradiente de Su (esfuerzo por longitud). No cambian φ, ru, kh, kv, los ángulos, la tolerancia,
+ * el número de dovelas ni de intentos, ni los puntos (ξ, f) de la función entre dovelas, que son adimensionales. Si ya está en `to`, devuelve el mismo documento.
  */
 export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
   if (unitSystemOf(doc) === to && (doc.units === to || (to === 'SI' && (doc.units === undefined || doc.units === null)))) return doc;
@@ -78,8 +87,13 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
 
   const materials = doc.materials.map((m): Material => {
     const out: Material = { ...m, unit_weight: k.unitWeight(m.unit_weight) };
-    // Los campos del material no drenado (undrained_strength, strength_*) los convierte F3-W1e.
     if (typeof m.cohesion === 'number') out.cohesion = k.stress(m.cohesion);
+    // Material no drenado (F3.2): Su y su límite son esfuerzos, la cota de referencia es una longitud y el gradiente es un esfuerzo por
+    // longitud. Solo se convierten los que existen: un `null` o un campo ausente se queda como está.
+    if (typeof m.undrained_strength === 'number') out.undrained_strength = k.stress(m.undrained_strength);
+    if (typeof m.strength_limit === 'number') out.strength_limit = k.stress(m.strength_limit);
+    if (typeof m.strength_datum === 'number') out.strength_datum = k.length(m.strength_datum);
+    if (typeof m.strength_gradient === 'number') out.strength_gradient = k.stressGradient(m.strength_gradient);
     if (typeof m.unit_weight_sat === 'number') out.unit_weight_sat = k.unitWeight(m.unit_weight_sat);
     return out;
   });

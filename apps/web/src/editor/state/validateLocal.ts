@@ -6,7 +6,7 @@
 // ni `search` son errores; un vértice consecutivo repetido es un aviso (el motor lo acepta). Los rangos numéricos son los de briefs/00_CONTRATOS.md §1 y §4.5, más F1.1 (sismo y cargas).
 // `path` es un puntero JSON. Los números de región y de arista de los textos son de base 1 (como en la UI).
 
-import type { Material, Model, Point } from '../../engine/types';
+import type { AnalysisSettings, Material, Model, Point } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
 import { isFiniteNumber } from './docUtils';
 import { geotechAdvisories } from './geotech';
@@ -31,7 +31,7 @@ export const RULE_TEXT = {
   waterUnitWeight: 'Peso unitario del agua γw: use un valor mayor que 0 (ej. 9,81 kN/m³ o 62,4 pcf)',
   piezoMinPoints: 'Línea piezométrica: indique al menos 2 puntos, o quítela si no hay nivel freático',
   piezoOrder: 'Línea piezométrica: la coordenada x debe aumentar de un punto al siguiente; ordene los puntos de izquierda a derecha',
-  methodsEmpty: 'Métodos de análisis: marque al menos uno (Bishop simplificado o Spencer)',
+  methodsEmpty: 'Métodos de análisis: marque al menos uno',
   methodsRepeated: 'Métodos de análisis: hay un método repetido; marque cada uno una sola vez',
   slices: 'Dovelas: use un número entero entre 3 y 2000 (ej. 50)',
   tolerance: 'Tolerancia: use un valor mayor que 0 y hasta 0,01 (ej. 0,00001)',
@@ -57,6 +57,33 @@ export const RULE_TEXT = {
     'Formato del archivo: las cargas y el sismo requieren el formato 0.2, pero este modelo declara el 0.1; cambie la versión del archivo a 0.2',
   noSurface:
     'Superficie de falla: no hay ninguna definida; en el panel «Superficie de falla» elija «Búsqueda» (superficie crítica automática) o «Fija» (círculo con centro y radio)',
+  undrainedStrength: 'Resistencia no drenada Su: use un valor igual o mayor que 0 (ej. 25 kPa o 500 psf)',
+  strengthDatum: 'Cota de referencia de Su: escriba un número (ej. 30 m); es una cota y, no una profundidad',
+  strengthGradient: 'Gradiente de Su: escriba un número, positivo si Su crece hacia abajo (ej. 1,5 kPa/m o 10 psf/ft)',
+  strengthLimit: 'Límite de Su: use un valor igual o mayor que 0, o déjelo vacío (ej. 60 kPa o 1200 psf)',
+  suPair: 'Su variable con la cota: la cota de referencia y el gradiente van juntos; indique los dos o quite los dos',
+  suLimitNeedsGradient: 'Límite de Su: solo se admite junto con el gradiente; indique el gradiente o quite el límite',
+  mohrCoulombForbidsSu:
+    'el modelo «Mohr-Coulomb» no admite la resistencia no drenada Su ni su variación con la cota; cambie el modelo a «No drenado (Su)» o quite ese dato',
+  undrainedForbidsMohrCoulomb:
+    'el modelo «No drenado (Su)» no admite cohesión ni ángulo de fricción (φ = 0); cambie el modelo a «Mohr-Coulomb» o quite ese dato',
+  polylineMinPoints: 'Superficie fija (polilínea): indique al menos 2 puntos',
+  polylineFinite: 'Superficie fija (polilínea): las coordenadas x e y deben ser números',
+  polylineOrder:
+    'Superficie fija (polilínea): la x debe ser estrictamente creciente, con una separación de al menos 1e-9 por el ancho del modelo; ordene los puntos de izquierda a derecha',
+  // Texto del motor (`lib.rs`, F3.6), con el nombre del campo de la interfaz delante.
+  bishopPolyline: "Métodos de análisis: el método 'bishop' solo admite superficies circulares; use spencer, morgenstern_price o janbu",
+  intersliceNeedsMp:
+    'Función de fuerzas entre dovelas: solo se usa con el método Morgenstern-Price; marque ese método o quite la función',
+  intersliceNeedsPoints: 'Función de fuerzas entre dovelas: la función «Definida por puntos» requiere una tabla de puntos (ξ, f)',
+  intersliceOnlyDataPoints: 'Función de fuerzas entre dovelas: la tabla de puntos solo se admite con la función «Definida por puntos»',
+  intersliceMinPoints: 'Función de fuerzas entre dovelas: la tabla necesita al menos 2 puntos',
+  intersliceFinite: 'Función de fuerzas entre dovelas: todos los valores de la tabla deben ser números finitos',
+  intersliceStart: 'Función de fuerzas entre dovelas: la tabla debe empezar en ξ = 0',
+  intersliceEnd: 'Función de fuerzas entre dovelas: la tabla debe terminar en ξ = 1',
+  intersliceOrder: 'Función de fuerzas entre dovelas: ξ debe ser estrictamente creciente de un punto al siguiente',
+  intersliceNegative: 'Función de fuerzas entre dovelas: f debe ser igual o mayor que 0 en todos los puntos',
+  intersliceAllZero: 'Función de fuerzas entre dovelas: la tabla debe tener algún f > 0',
   waterUnitWeightImperial:
     'Peso unitario del agua γw: el modelo está en unidades imperiales y γw no se indica o es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
     'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
@@ -163,6 +190,52 @@ function modelScale(points: readonly Point[]): number {
   return scale > 0 && Number.isFinite(scale) ? scale : 1;
 }
 
+const isPresent = (v: unknown): boolean => v !== undefined && v !== null;
+
+/** Mohr-Coulomb (F3.2): ninguno de los campos del no drenado; cohesión y fricción obligatorias y en rango. */
+function validateMohrCoulombFields(m: Material, base: string, label: string, issues: Issue[]): void {
+  for (const key of ['undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'] as const) {
+    if (isPresent(m[key])) issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.mohrCoulombForbidsSu}.`, `${base}/${key}`));
+  }
+  if (!(isNum(m.cohesion) && m.cohesion >= 0)) {
+    issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.cohesion), m.cohesion), `${base}/cohesion`));
+  }
+  if (!(isNum(m.friction_angle) && m.friction_angle >= 0 && m.friction_angle < 90)) {
+    issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.frictionAngle), m.friction_angle), `${base}/friction_angle`));
+  }
+}
+
+/**
+ * No drenado (F3.2): Su obligatoria, finita y ≥ 0; la cota y el gradiente van juntos; el límite solo con gradiente y ≥ 0; sin cohesión ni
+ * fricción. Un `null` cuenta como ausente, como en el motor.
+ */
+function validateUndrainedFields(m: Material, base: string, label: string, issues: Issue[]): void {
+  for (const key of ['cohesion', 'friction_angle'] as const) {
+    if (isPresent(m[key])) issues.push(error('editor.out_of_range', `${label}: ${RULE_TEXT.undrainedForbidsMohrCoulomb}.`, `${base}/${key}`));
+  }
+  if (!(isNum(m.undrained_strength) && m.undrained_strength >= 0)) {
+    issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.undrainedStrength), m.undrained_strength), `${base}/undrained_strength`));
+  }
+  const datum = isPresent(m.strength_datum);
+  const gradient = isPresent(m.strength_gradient);
+  if (datum && !isNum(m.strength_datum)) {
+    issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.strengthDatum), m.strength_datum), `${base}/strength_datum`));
+  }
+  if (gradient && !isNum(m.strength_gradient)) {
+    issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.strengthGradient), m.strength_gradient), `${base}/strength_gradient`));
+  }
+  if (datum !== gradient) {
+    issues.push(error('editor.out_of_range', `${label}: ${lcFirst(RULE_TEXT.suPair)}.`, datum ? `${base}/strength_gradient` : `${base}/strength_datum`));
+  }
+  if (isPresent(m.strength_limit)) {
+    if (!gradient) {
+      issues.push(error('editor.out_of_range', `${label}: ${lcFirst(RULE_TEXT.suLimitNeedsGradient)}.`, `${base}/strength_limit`));
+    } else if (!(isNum(m.strength_limit) && m.strength_limit >= 0)) {
+      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.strengthLimit), m.strength_limit), `${base}/strength_limit`));
+    }
+  }
+}
+
 function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
   const seen = new Set<string>();
   doc.materials.forEach((m: Material, i) => {
@@ -183,12 +256,8 @@ function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
     if (m.unit_weight_sat !== undefined && m.unit_weight_sat !== null && !(isNum(m.unit_weight_sat) && m.unit_weight_sat > 0)) {
       issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.unitWeightSat), m.unit_weight_sat), `${base}/unit_weight_sat`));
     }
-    if (!(isNum(m.cohesion) && m.cohesion >= 0)) {
-      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.cohesion), m.cohesion), `${base}/cohesion`));
-    }
-    if (!(isNum(m.friction_angle) && m.friction_angle >= 0 && m.friction_angle < 90)) {
-      issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.frictionAngle), m.friction_angle), `${base}/friction_angle`));
-    }
+    if (m.model === 'undrained') validateUndrainedFields(m, base, label, issues);
+    else validateMohrCoulombFields(m, base, label, issues);
     if (m.ru !== undefined && m.ru !== null && !(isNum(m.ru) && m.ru >= 0 && m.ru < 1)) {
       issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.ru), m.ru), `${base}/ru`));
     }
@@ -387,6 +456,76 @@ function validateRange(
   }
 }
 
+/** Formato de la polilínea fija (F3.3, `validate_polyline`): al menos 2 puntos finitos, x estrictamente creciente con separación mínima 1e-9·ancho. */
+function validatePolyline(points: unknown, extent: { min: number; max: number } | null, issues: Issue[]): void {
+  const base = '/analysis/surface/points';
+  if (!Array.isArray(points) || points.length < 2) {
+    const n = Array.isArray(points) ? points.length : 0;
+    issues.push(error('editor.out_of_range', `${RULE_TEXT.polylineMinPoints} (ahora hay ${n}).`, base));
+    return;
+  }
+  let finite = true;
+  points.forEach((p, i) => {
+    if (!(Array.isArray(p) && isNum(p[0]) && isNum(p[1]))) {
+      finite = false;
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.polylineFinite}; corrija el punto ${i + 1}.`, `${base}/${i}`));
+    }
+  });
+  if (!finite) return;
+  const minDx = extent ? 1e-9 * (extent.max - extent.min) : 0;
+  const pts = points as Point[];
+  for (let i = 1; i < pts.length; i += 1) {
+    const dx = (pts[i] as Point)[0] - (pts[i - 1] as Point)[0];
+    if (!(dx > 0 && dx >= minDx)) {
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.polylineOrder}. Fallan los puntos ${i} y ${i + 1}.`, `${base}/${i}`));
+      return;
+    }
+  }
+}
+
+/** `analysis.interslice` (F3.4, `validate_interslice`): solo con morgenstern_price; `points` solo, y siempre, con data_points. */
+function validateInterslice(a: AnalysisSettings, issues: Issue[]): void {
+  const spec = a.interslice;
+  if (spec === undefined || spec === null) return;
+  const base = '/analysis/interslice';
+  if (!(a.methods ?? []).includes('morgenstern_price')) {
+    issues.push(error('editor.out_of_range', `${RULE_TEXT.intersliceNeedsMp}.`, base));
+    return;
+  }
+  const points = spec.points;
+  const has = points !== undefined && points !== null;
+  if (spec.function === 'data_points') {
+    if (!has) {
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.intersliceNeedsPoints}.`, `${base}/points`));
+      return;
+    }
+    const e = intersliceTableError(points);
+    if (e) issues.push(error('editor.out_of_range', `${e.text}.`, `${base}/points${e.index === null ? '' : `/${e.index}`}`));
+  } else if (has) {
+    issues.push(error('editor.out_of_range', `${RULE_TEXT.intersliceOnlyDataPoints}.`, `${base}/points`));
+  }
+}
+
+/**
+ * Primera regla que incumple la tabla de puntos (ξ, f) de la función «Definida por puntos» (F3.4): al menos 2 puntos finitos, ξ de 0 a 1
+ * estrictamente creciente, f ≥ 0 y algún f > 0. `index` es el punto (desde 0) o `null` si la regla es de toda la tabla. Lo usa también el
+ * formulario del panel «Análisis».
+ */
+export function intersliceTableError(points: unknown): { text: string; index: number | null } | null {
+  if (!Array.isArray(points) || points.length < 2) return { text: RULE_TEXT.intersliceMinPoints, index: null };
+  const bad = points.findIndex((p) => !(Array.isArray(p) && isNum(p[0]) && isNum(p[1])));
+  if (bad >= 0) return { text: RULE_TEXT.intersliceFinite, index: bad };
+  const pts = points as Point[];
+  if ((pts[0] as Point)[0] !== 0) return { text: RULE_TEXT.intersliceStart, index: 0 };
+  if ((pts[pts.length - 1] as Point)[0] !== 1) return { text: RULE_TEXT.intersliceEnd, index: pts.length - 1 };
+  const order = pts.findIndex((p, i) => i > 0 && !(p[0] > (pts[i - 1] as Point)[0]));
+  if (order > 0) return { text: RULE_TEXT.intersliceOrder, index: order };
+  const negative = pts.findIndex((p) => p[1] < 0);
+  if (negative >= 0) return { text: RULE_TEXT.intersliceNegative, index: negative };
+  if (!pts.some((p) => p[1] > 0)) return { text: RULE_TEXT.intersliceAllZero, index: null };
+  return null;
+}
+
 function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | null, tol: number, issues: Issue[]): void {
   const a = doc.analysis;
   const unit = lengthUnit(doc.units);
@@ -413,7 +552,13 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
   if ((s === undefined || s === null) && (a.search === undefined || a.search === null)) {
     issues.push(error('editor.no_surface', `${RULE_TEXT.noSurface}.`, '/analysis'));
   }
-  // La validación de la polilínea llega con F3-W1e.
+  if (s !== undefined && s !== null && s.type === 'polyline') {
+    validatePolyline(s.points, extent, issues);
+    // F3.6: Bishop depende del eje de momentos en una polilínea; solo importa cuando la polilínea es la superficie que se analiza (sin búsqueda).
+    if ((a.search === undefined || a.search === null) && (a.methods ?? []).includes('bishop')) {
+      issues.push(error('editor.out_of_range', `${RULE_TEXT.bishopPolyline}.`, '/analysis/methods'));
+    }
+  }
   if (s !== undefined && s !== null && s.type !== 'polyline') {
     if (!(isNum(s.xc) && isNum(s.yc))) {
       issues.push(
@@ -424,6 +569,7 @@ function validateAnalysis(doc: ModelDoc, extent: { min: number; max: number } | 
       issues.push(error('editor.out_of_range', withValue(RULE_TEXT.surfaceRadius, s.r), '/analysis/surface/r'));
     }
   }
+  validateInterslice(a, issues);
   const q = a.search;
   if (q !== undefined && q !== null) {
     const counts: ['n_entry' | 'n_exit' | 'n_radius', number | undefined][] = [

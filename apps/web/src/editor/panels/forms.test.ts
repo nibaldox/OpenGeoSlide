@@ -142,7 +142,7 @@ describe('unitLabels', () => {
   it('SI por defecto e imperial', () => {
     expect(unitLabels('SI').stress).toBe('kPa');
     expect(unitLabels(undefined).unitWeight).toBe('kN/m³');
-    expect(unitLabels('imperial')).toEqual({ length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft' });
+    expect(unitLabels('imperial')).toEqual({ length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft', stressGradient: 'psf/ft' });
   });
 });
 
@@ -152,7 +152,8 @@ describe('materiales', () => {
   it('convierte un material a formulario y de vuelta, con coma decimal', () => {
     const form = materialToForm(soil);
     expect(form).toEqual({
-      id: 'soil', name: 'Suelo', unit_weight: '20', unit_weight_sat: '', cohesion: '3', friction_angle: '19,6', ru: '',
+      id: 'soil', name: 'Suelo', model: 'mohr_coulomb', unit_weight: '20', unit_weight_sat: '', cohesion: '3', friction_angle: '19,6', ru: '',
+      undrained_strength: '', variable: false, strength_datum: '', strength_gradient: '', strength_limit: '',
     });
     const r = materialFromForm(form, ctx);
     expect(r).toEqual({ ok: true, value: soil });

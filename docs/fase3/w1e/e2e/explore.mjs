@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
+const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome-stable', headless: true, args: ['--no-sandbox'] });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript(() => { try { localStorage.setItem('ogs.onboarding.v1', 'seen'); } catch {} });
+const page = await ctx.newPage();
+await page.goto(URL_);
+await page.waitForSelector('[data-layer="regions"] polygon');
+console.log('tabs', await page.locator('[aria-label="Paneles del modelo"] [role="tab"]').allTextContents());
+console.log('buttons', await page.locator('button').evaluateAll((bs) => bs.map((b) => b.textContent.trim() || b.getAttribute('aria-label')).filter(Boolean).slice(0, 60)));
+console.log('banner', await page.locator('[data-testid="engine-banner"]').textContent().catch(() => null));
+await browser.close();

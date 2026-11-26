@@ -5,8 +5,10 @@
 import type {
   AnalysisSettings,
   Direction,
+  IntersliceFunction,
   Load,
   Material,
+  MaterialModel,
   MethodKind,
   Point,
   SearchSpec,
@@ -16,6 +18,7 @@ import type {
 import {
   RULE_TEXT,
   SEARCH_RANGE_LABEL,
+  intersliceTableError,
   loadXText,
   rangeExtentText,
   rangeOrderText,
@@ -123,6 +126,10 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   q: 'Carga distribuida q',
   p: 'Carga lineal p',
   angle: 'Ángulo de la carga lineal',
+  undrained_strength: 'Resistencia no drenada Su',
+  strength_datum: 'Cota de referencia de Su',
+  strength_gradient: 'Gradiente de Su',
+  strength_limit: 'Límite de Su',
 };
 
 /** Lee un campo y, si falla, anota el error. Devuelve el valor o `null` (vacío opcional o error). */
@@ -144,13 +151,15 @@ export interface UnitLabels {
   unitWeight: string;
   stress: string;
   lineLoad: string;
+  /** Esfuerzo por unidad de longitud: el gradiente de Su (kPa/m o psf/ft). */
+  stressGradient: string;
 }
 
 /** Etiquetas de unidades según `units` del modelo (`imperial` o SI por defecto). */
 export function unitLabels(units: string | undefined): UnitLabels {
   return isImperialUnits(units)
-    ? { length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft' }
-    : { length: 'm', unitWeight: 'kN/m³', stress: 'kPa', lineLoad: 'kN/m' };
+    ? { length: 'ft', unitWeight: 'pcf', stress: 'psf', lineLoad: 'lbf/ft', stressGradient: 'psf/ft' }
+    : { length: 'm', unitWeight: 'kN/m³', stress: 'kPa', lineLoad: 'kN/m', stressGradient: 'kPa/m' };
 }
 
 // ───────────────────────── Geometría del modelo ─────────────────────────
@@ -262,22 +271,44 @@ function insideRange(v: number, range: readonly [number, number]): boolean {
 export interface MaterialForm {
   id: string;
   name: string;
+  /** Modelo constitutivo (F3.2); ausente = `mohr_coulomb`. */
+  model?: MaterialModel;
   unit_weight: string;
   unit_weight_sat: string;
   cohesion: string;
   friction_angle: string;
   ru: string;
+  /** Su, solo con `undrained`. */
+  undrained_strength?: string;
+  /** «Su variable con la cota»: la cota de referencia y el gradiente (y el límite, si hay) existen. */
+  variable?: boolean;
+  strength_datum?: string;
+  strength_gradient?: string;
+  strength_limit?: string;
 }
 
+/** Opciones del selector de modelo constitutivo, con las etiquetas de F3.9. */
+export const MATERIAL_MODEL_OPTIONS: ReadonlyArray<{ value: MaterialModel; label: string }> = [
+  { value: 'mohr_coulomb', label: 'Mohr-Coulomb' },
+  { value: 'undrained', label: 'No drenado (Su)' },
+];
+
 export function materialToForm(m: Material): MaterialForm {
+  const variable = m.strength_datum !== undefined && m.strength_datum !== null ? true : m.strength_gradient !== undefined && m.strength_gradient !== null;
   return {
     id: m.id,
     name: m.name,
+    model: m.model,
     unit_weight: formatNumber(m.unit_weight),
     unit_weight_sat: formatNumber(m.unit_weight_sat),
     cohesion: formatNumber(m.cohesion),
     friction_angle: formatNumber(m.friction_angle),
     ru: formatNumber(m.ru),
+    undrained_strength: formatNumber(m.undrained_strength),
+    variable,
+    strength_datum: formatNumber(m.strength_datum),
+    strength_gradient: formatNumber(m.strength_gradient),
+    strength_limit: formatNumber(m.strength_limit),
   };
 }
 
@@ -290,6 +321,16 @@ export function nextMaterialId(existingIds: readonly string[]): string {
   }
 }
 
+/** Su de partida al pasar a «No drenado» desde un material sin cohesión: un valor típico de una arcilla blanda (25 kPa ≈ 500 psf). */
+export function defaultUndrainedStrength(units?: string): number {
+  return isImperialUnits(units) ? 500 : 25;
+}
+
+/** Gradiente de partida de «Su variable con la cota»: 1,5 kPa/m (≈ 10 psf/ft). */
+export function defaultStrengthGradient(units?: string): number {
+  return isImperialUnits(units) ? 10 : 1.5;
+}
+
 /**
  * Formulario de un material nuevo, con valores típicos de un suelo (el usuario los ajusta). Con `units` imperial
  * usa pcf y psf (mismos valores que `materialForLayer` de la importación DXF); sin él, SI.
@@ -300,24 +341,34 @@ export function newMaterialForm(existingIds: readonly string[], units?: string):
   return {
     id,
     name: `Material ${id.slice(1)}`,
+    model: 'mohr_coulomb',
     unit_weight: imperial ? '115' : '18',
     unit_weight_sat: '',
     cohesion: imperial ? '100' : '5',
     friction_angle: '30',
     ru: '',
+    undrained_strength: formatNumber(defaultUndrainedStrength(units)),
+    variable: false,
+    strength_datum: '',
+    strength_gradient: '',
+    strength_limit: '',
   };
 }
 
 export interface MaterialFormContext {
   /** Ids de los demás materiales del documento (sin contar el que se edita). */
   otherIds: readonly string[];
-  /** Material que se edita; conserva su `model`. `null` = material nuevo. */
+  /** Material que se edita; `null` = material nuevo. El modelo constitutivo lo da el formulario (`form.model`). */
   editing: Material | null;
 }
 
-/** Rangos del motor (geometry.rs `resolve_materials`): γ > 0, γsat > 0, c ≥ 0, φ en [0, 90), ru en [0, 1). */
+/**
+ * Rangos del motor (strength.rs `resolve_materials`): γ > 0, γsat > 0, ru en [0, 1) y, según el modelo, c ≥ 0 y φ en [0, 90) en
+ * Mohr-Coulomb o Su ≥ 0 (con la cota y el gradiente juntos y el límite ≥ 0 opcional) en «No drenado» (F3.2).
+ */
 export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): FormOutcome<Material> {
   const errors: FieldErrors = {};
+  const model: MaterialModel = form.model ?? 'mohr_coulomb';
   const id = form.id.trim();
   if (id === '') errors.id = RULE_TEXT.materialId;
   else if (ctx.otherIds.includes(id)) errors.id = `Identificador del material: «${id}» ya lo usa otro material; use uno distinto`;
@@ -334,18 +385,53 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
     accept: (v) => finite(v) && v > 0,
     range: RULE_TEXT.unitWeightSat,
   });
-  const cohesion = take(errors, 'cohesion', form.cohesion, {
-    required: true,
-    missing: RULE_TEXT.cohesion,
-    accept: (v) => finite(v) && v >= 0,
-    range: RULE_TEXT.cohesion,
-  });
-  const friction = take(errors, 'friction_angle', form.friction_angle, {
-    required: true,
-    missing: RULE_TEXT.frictionAngle,
-    accept: (v) => v >= 0 && v < 90,
-    range: RULE_TEXT.frictionAngle,
-  });
+  let cohesion: number | null = null;
+  let friction: number | null = null;
+  let su: number | null = null;
+  let datum: number | null = null;
+  let gradient: number | null = null;
+  let limit: number | null = null;
+  if (model === 'undrained') {
+    su = take(errors, 'undrained_strength', form.undrained_strength ?? '', {
+      required: true,
+      missing: RULE_TEXT.undrainedStrength,
+      accept: (v) => finite(v) && v >= 0,
+      range: RULE_TEXT.undrainedStrength,
+    });
+    if (form.variable === true) {
+      datum = take(errors, 'strength_datum', form.strength_datum ?? '', {
+        required: true,
+        missing: RULE_TEXT.strengthDatum,
+        accept: finite,
+        range: RULE_TEXT.strengthDatum,
+      });
+      gradient = take(errors, 'strength_gradient', form.strength_gradient ?? '', {
+        required: true,
+        missing: RULE_TEXT.strengthGradient,
+        accept: finite,
+        range: RULE_TEXT.strengthGradient,
+      });
+      limit = take(errors, 'strength_limit', form.strength_limit ?? '', {
+        required: false,
+        missing: '',
+        accept: (v) => finite(v) && v >= 0,
+        range: RULE_TEXT.strengthLimit,
+      });
+    }
+  } else {
+    cohesion = take(errors, 'cohesion', form.cohesion, {
+      required: true,
+      missing: RULE_TEXT.cohesion,
+      accept: (v) => finite(v) && v >= 0,
+      range: RULE_TEXT.cohesion,
+    });
+    friction = take(errors, 'friction_angle', form.friction_angle, {
+      required: true,
+      missing: RULE_TEXT.frictionAngle,
+      accept: (v) => v >= 0 && v < 90,
+      range: RULE_TEXT.frictionAngle,
+    });
+  }
   const ru = take(errors, 'ru', form.ru, {
     required: false,
     missing: '',
@@ -353,16 +439,58 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
     range: RULE_TEXT.ru,
   });
 
-  return done(errors, () => ({
-    id,
-    name: form.name.trim() === '' ? id : form.name.trim(),
-    model: ctx.editing?.model ?? 'mohr_coulomb',
-    unit_weight: unitWeight ?? 0,
-    unit_weight_sat: unitWeightSat,
-    cohesion: cohesion ?? 0,
-    friction_angle: friction ?? 0,
-    ru,
-  }));
+  return done(errors, () => {
+    const base = { id, name: form.name.trim() === '' ? id : form.name.trim(), model, unit_weight: unitWeight ?? 0, unit_weight_sat: unitWeightSat };
+    if (model === 'undrained') {
+      const out: Material = { ...base, ru, undrained_strength: su ?? 0 };
+      if (form.variable === true) {
+        out.strength_datum = datum ?? 0;
+        out.strength_gradient = gradient ?? 0;
+        if (limit !== null) out.strength_limit = limit;
+      }
+      return out;
+    }
+    return { ...base, cohesion: cohesion ?? 0, friction_angle: friction ?? 0, ru };
+  });
+}
+
+/**
+ * El mismo material con otro modelo constitutivo (un solo comando `material/upsert`, un solo paso deshacible). De Mohr-Coulomb a «No
+ * drenado», Su parte de la cohesión (si es 0, de un valor típico) y se pierden c y φ; de «No drenado» a Mohr-Coulomb, c parte de Su y
+ * φ = 0, que da el mismo FS si Su es constante, y se pierde el perfil con la cota. γ, γsat y ru se conservan.
+ */
+export function switchMaterialModel(material: Material, model: MaterialModel, units?: string): Material {
+  if (material.model === model) return material;
+  const common = { id: material.id, name: material.name, model, unit_weight: material.unit_weight, unit_weight_sat: material.unit_weight_sat ?? null, ru: material.ru ?? null };
+  if (model === 'undrained') {
+    const c = material.cohesion;
+    return { ...common, undrained_strength: typeof c === 'number' && c > 0 ? c : defaultUndrainedStrength(units) };
+  }
+  return { ...common, cohesion: material.undrained_strength ?? 0, friction_angle: 0 };
+}
+
+/** Cota más alta de las regiones que usan el material (o del modelo, si ninguna); `null` si el modelo no tiene vértices. */
+export function materialTopElevation(doc: Pick<ModelDoc, 'regions'>, materialId: string): number | null {
+  const own = doc.regions.filter((r) => r.material === materialId);
+  const ys = (own.length > 0 ? own : doc.regions).flatMap((r) => r.polygon.map((v) => v[1])).filter(Number.isFinite);
+  return ys.length > 0 ? Math.max(...ys) : null;
+}
+
+/**
+ * «Su variable con la cota»: activarla agrega la cota de referencia (la cota más alta del material) y un gradiente de partida; desactivarla
+ * quita la cota, el gradiente y el límite (Su vuelve a ser constante). Un solo comando.
+ */
+export function setSuVariable(material: Material, on: boolean, doc: Pick<ModelDoc, 'regions' | 'units'>): Material {
+  if (material.model !== 'undrained') return material;
+  if (!on) {
+    const { strength_datum: _d, strength_gradient: _g, strength_limit: _l, ...rest } = material;
+    void _d;
+    void _g;
+    void _l;
+    return rest;
+  }
+  const top = materialTopElevation(doc, material.id);
+  return { ...material, strength_datum: top === null ? 0 : round2(top), strength_gradient: defaultStrengthGradient(doc.units) };
 }
 
 /** Igualdad de materiales tratando `null` y `undefined` como lo mismo (no genera historial al confirmar sin cambios). */
@@ -373,9 +501,13 @@ export function materialsEqual(a: Material, b: Material): boolean {
     a.model === b.model &&
     a.unit_weight === b.unit_weight &&
     (a.unit_weight_sat ?? null) === (b.unit_weight_sat ?? null) &&
-    a.cohesion === b.cohesion &&
-    a.friction_angle === b.friction_angle &&
-    (a.ru ?? null) === (b.ru ?? null)
+    (a.cohesion ?? null) === (b.cohesion ?? null) &&
+    (a.friction_angle ?? null) === (b.friction_angle ?? null) &&
+    (a.ru ?? null) === (b.ru ?? null) &&
+    (a.undrained_strength ?? null) === (b.undrained_strength ?? null) &&
+    (a.strength_datum ?? null) === (b.strength_datum ?? null) &&
+    (a.strength_gradient ?? null) === (b.strength_gradient ?? null) &&
+    (a.strength_limit ?? null) === (b.strength_limit ?? null)
   );
 }
 
@@ -614,6 +746,175 @@ export function surfaceSetCommand(surface: SurfaceSpec | null): EditorCommand {
   return { type: 'surface/set', surface };
 }
 
+// ── Polilínea fija (F3.3) ──
+
+/** Forma de la superficie fija guardada: `null` si no hay. */
+export function surfaceShape(analysis: Pick<AnalysisSettings, 'surface'>): 'circle' | 'polyline' | null {
+  const s = analysis.surface;
+  if (s === undefined || s === null) return null;
+  return s.type === 'polyline' ? 'polyline' : 'circle';
+}
+
+/** Hay una polilínea fija que se analiza (sin búsqueda): con ella Bishop no se ofrece (F3.6). */
+export function isFixedPolyline(analysis: Pick<AnalysisSettings, 'surface' | 'search'>): boolean {
+  return !analysis.search && analysis.surface?.type === 'polyline';
+}
+
+export interface PolylineRow {
+  x: string;
+  y: string;
+}
+
+export function polylineToForm(points: readonly Point[]): PolylineRow[] {
+  return points.map(([x, y]) => ({ x: formatNumber(x), y: formatNumber(y) }));
+}
+
+/**
+ * Tabla → puntos (F3.3, `validate_polyline`): al menos 2 puntos finitos y x estrictamente creciente, con una separación de al menos
+ * `1e-9 · ancho del modelo` (`xRange`). Los errores llevan la clave `<fila>.x`, `<fila>.y` o `table`.
+ */
+export function polylineFromForm(rows: readonly PolylineRow[], ctx: { xRange: readonly [number, number] | null }): FormOutcome<Point[]> {
+  const errors: FieldErrors = {};
+  const cells = rows.map((row, i) => {
+    const label = (axis: 'x' | 'y'): string => `Polilínea, punto ${i + 1}, coordenada ${axis}`;
+    const rule = (axis: 'x' | 'y'): NumberRule => ({ required: true, missing: `${label(axis)}: escriba un número`, accept: finite, range: notANumber(label(axis)), label: label(axis) });
+    return [take(errors, `${i}.x`, row.x, rule('x')), take(errors, `${i}.y`, row.y, rule('y'))] as const;
+  });
+  if (rows.length < 2) errors.table = `${RULE_TEXT.polylineMinPoints} (ahora hay ${rows.length})`;
+  if (Object.keys(errors).length === 0) {
+    const minDx = ctx.xRange ? 1e-9 * (ctx.xRange[1] - ctx.xRange[0]) : 0;
+    for (let i = 1; i < cells.length; i += 1) {
+      const dx = (cells[i]?.[0] ?? 0) - (cells[i - 1]?.[0] ?? 0);
+      if (!(dx > 0 && dx >= minDx)) {
+        errors[`${i}.x`] = `Polilínea, punto ${i + 1}: la x debe ser mayor que la del punto anterior; ordene los puntos de izquierda a derecha`;
+        errors.table = RULE_TEXT.polylineOrder;
+      }
+    }
+  }
+  return done(errors, () => cells.map(([x, y]): Point => [x ?? 0, y ?? 0]));
+}
+
+export function polylineSetCommand(points: readonly Point[]): EditorCommand {
+  return { type: 'surface/set', surface: { type: 'polyline', points: points.map(([x, y]): Point => [x, y]) } };
+}
+
+/** Punto nuevo después del `index`: el punto medio del tramo siguiente (o, tras el último, a la derecha a su misma altura). La forma no cambia. */
+export function insertPolylinePoint(points: readonly Point[], index: number, xRange?: readonly [number, number] | null): Point[] {
+  const a = points[index] as Point;
+  const b = points[index + 1];
+  const step = xRange ? (xRange[1] - xRange[0]) / 10 : 1;
+  const at: Point = b ? [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)] : [round3(a[0] + step), a[1]];
+  return [...points.slice(0, index + 1), at, ...points.slice(index + 1)];
+}
+
+/** Quita el punto `index`; `null` si quedarían menos de 2. */
+export function removePolylinePoint(points: readonly Point[], index: number): Point[] | null {
+  if (points.length <= 2 || index < 0 || index >= points.length) return null;
+  return points.filter((_, i) => i !== index);
+}
+
+function round3(v: number): number {
+  return Math.round(v * 1000) / 1000;
+}
+
+function sameXs(a: readonly PolylineRow[], b: readonly PolylineRow[]): boolean {
+  return a.length === b.length && a.every((r, i) => r.x === b[i]?.x);
+}
+
+/** Ordena las filas de la tabla por x creciente (las filas con una x que no es un número van al final, en su orden). */
+export function sortPolylineRows(rows: readonly PolylineRow[]): PolylineRow[] {
+  const keyed = rows.map((row, i) => {
+    const p = parseNumber(row.x);
+    return { row, i, x: p.kind === 'ok' ? p.value : Number.POSITIVE_INFINITY };
+  });
+  keyed.sort((p, q) => p.x - q.x || p.i - q.i);
+  return keyed.map((k) => k.row);
+}
+
+/** La tabla ya está ordenada por x (no hay nada que reordenar). */
+export function polylineRowsSorted(rows: readonly PolylineRow[]): boolean {
+  return sameXs(rows, sortPolylineRows(rows));
+}
+
+/**
+ * Polilínea inicial al pasar de círculo a polilínea: la cuerda del círculo (el fijo actual o, si no hay, el círculo de partida) entre sus dos
+ * cruces con el terreno, con 5 puntos en x equiespaciados sobre su arco inferior. Si alguna cuerda queda sobre el terreno se prueba con más
+ * puntos (9, 17, 33). Sin cruces, la polilínea es la recta de dos puntos que baja del pie a media altura bajo la cresta.
+ */
+export function initialPolyline(doc: ModelDoc): Point[] {
+  const bounds = modelBounds(doc);
+  if (!bounds) return [[0, 0], [1, 0]];
+  const range: [number, number] = [bounds.xMin, bounds.xMax];
+  const tol = extentTol(range);
+  const current = doc.analysis.surface;
+  const circle = current && current.type !== 'polyline' ? current : defaultCircle(doc);
+  const lower = (x: number): number => circle.yc - Math.sqrt(Math.max(0, circle.r * circle.r - (x - circle.xc) ** 2));
+  const under = (x: number): boolean => {
+    const t = terrainY(doc.regions, x, tol);
+    return Number.isFinite(t) && lower(x) < t - 1e-6 * Math.max(1, bounds.yMax - bounds.yMin);
+  };
+  // Tramo x donde el arco inferior queda bajo el terreno (dentro del círculo y del modelo).
+  const lo = Math.max(range[0], circle.xc - circle.r);
+  const hi = Math.min(range[1], circle.xc + circle.r);
+  const SAMPLES = 2000;
+  let a = Number.NaN;
+  let b = Number.NaN;
+  for (let k = 0; k <= SAMPLES; k += 1) {
+    const x = lo + ((hi - lo) * k) / SAMPLES;
+    if (under(x)) {
+      if (Number.isNaN(a)) a = x;
+      b = x;
+    }
+  }
+  const chordBelowGround = (pts: readonly Point[]): boolean => {
+    for (let i = 1; i < pts.length; i += 1) {
+      const p = pts[i - 1] as Point;
+      const q = pts[i] as Point;
+      for (let k = 1; k < 20; k += 1) {
+        const x = p[0] + ((q[0] - p[0]) * k) / 20;
+        const y = p[1] + ((q[1] - p[1]) * k) / 20;
+        if (y > terrainY(doc.regions, x, tol)) return false;
+      }
+    }
+    return true;
+  };
+  if (Number.isFinite(a) && Number.isFinite(b) && b - a > 1e-6 * (range[1] - range[0])) {
+    let best: Point[] = [];
+    for (const n of [5, 9, 17, 33]) {
+      const pts: Point[] = Array.from({ length: n }, (_, i) => {
+        const x = a + ((b - a) * i) / (n - 1);
+        return [round3(x), round3(lower(x))];
+      });
+      if (best.length === 0) best = pts;
+      if (chordBelowGround(pts)) return pts;
+    }
+    return best;
+  }
+  const w = range[1] - range[0];
+  const h = bounds.yMax - bounds.yMin;
+  return [
+    [round2(range[0] + 0.25 * w), round2(bounds.yMin + 0.4 * h)],
+    [round2(range[0] + 0.75 * w), round2(bounds.yMin + 0.4 * h)],
+  ];
+}
+
+/**
+ * Comandos para pasar la superficie fija a círculo o a polilínea (un solo paso deshacible). Al pasar a polilínea el círculo se reemplaza por su
+ * cuerda (`initialPolyline`) y Bishop, que no se ofrece en superficies no circulares (F3.6), se quita de los métodos; si no queda ninguno se
+ * marca Spencer. Al pasar a círculo se pone el círculo de partida.
+ */
+export function surfaceShapeCommands(doc: ModelDoc, shape: 'circle' | 'polyline'): EditorCommand[] {
+  if (surfaceShape(doc.analysis) === shape) return [];
+  if (shape === 'circle') return [{ type: 'surface/set', surface: defaultCircle(doc) }];
+  const commands: EditorCommand[] = [polylineSetCommand(initialPolyline(doc))];
+  const methods = doc.analysis.methods ?? ANALYSIS_DEFAULTS.methods;
+  if (methods.includes('bishop')) {
+    const rest = methods.filter((m) => m !== 'bishop');
+    commands.push({ type: 'analysis/patch', patch: { methods: sortMethods(rest.length > 0 ? rest : ['spencer']) } });
+  }
+  return commands;
+}
+
 // ───────────────────────── Búsqueda ─────────────────────────
 
 export const SEARCH_DEFAULTS = {
@@ -773,8 +1074,8 @@ export function searchCandidates(spec: SearchSpec): number {
 
 // ───────────────────────── Análisis ─────────────────────────
 
-// Los métodos de la v0.3 solo tienen etiqueta (METHOD_LABELS) por ahora: se ofrecen en el panel cuando el motor los soporte.
-export const METHOD_ORDER: readonly MethodKind[] = ['bishop', 'spencer'];
+/** Los cinco métodos, en el orden del panel y de la tabla de resultados. */
+export const METHOD_ORDER: readonly MethodKind[] = ['bishop', 'spencer', 'morgenstern_price', 'janbu_simplified', 'janbu_corrected'];
 export const METHOD_LABELS: Readonly<Record<MethodKind, string>> = {
   bishop: 'Bishop simplificado',
   spencer: 'Spencer',
@@ -782,6 +1083,102 @@ export const METHOD_LABELS: Readonly<Record<MethodKind, string>> = {
   janbu_simplified: 'Janbu simplificado',
   janbu_corrected: 'Janbu corregido',
 };
+/** Nombres cortos de los métodos (F3.9), para tablas y espacios estrechos. */
+export const METHOD_SHORT_LABELS: Readonly<Record<MethodKind, string>> = {
+  bishop: 'Bishop',
+  spencer: 'Spencer',
+  morgenstern_price: 'M-P',
+  janbu_simplified: 'Janbu',
+  janbu_corrected: 'Janbu corr.',
+};
+
+/** Por qué Bishop no se ofrece con una polilínea fija (F3.6); se muestra siempre que corresponda. */
+export const BISHOP_POLYLINE_NOTE =
+  'Bishop simplificado no se ofrece en superficies no circulares: con una polilínea su resultado dependería del eje de momentos, que no es un dato físico. Use Spencer, Morgenstern-Price o Janbu.';
+
+/** Motivo por el que un método no se puede marcar con el documento actual, o `null` si se puede. */
+export function methodDisabledReason(method: MethodKind, analysis: Pick<AnalysisSettings, 'surface' | 'search'>): string | null {
+  return method === 'bishop' && isFixedPolyline(analysis) ? BISHOP_POLYLINE_NOTE : null;
+}
+
+// ── Función de fuerzas entre dovelas de Morgenstern-Price (F3.4) ──
+
+/** Funciones de interfaz y sus etiquetas (F3.9). */
+export const INTERSLICE_OPTIONS: ReadonlyArray<{ value: IntersliceFunction; label: string }> = [
+  { value: 'constant', label: 'Constante' },
+  { value: 'half_sine', label: 'Medio seno' },
+  { value: 'clipped_sine', label: 'Seno recortado (mín. 0,35)' },
+  { value: 'trapezoidal', label: 'Trapezoidal (20 %-80 %)' },
+  { value: 'data_points', label: 'Definida por puntos' },
+];
+
+/** Tabla de partida de «Definida por puntos»: la forma de un medio seno con tres puntos. */
+export const DEFAULT_DATA_POINTS: readonly Point[] = [[0, 0], [0.5, 1], [1, 0]];
+
+/** Función vigente: la de `analysis.interslice` o, sin ella, el medio seno que usa el motor. */
+export function intersliceFunctionOf(analysis: Pick<AnalysisSettings, 'interslice'>): IntersliceFunction {
+  return analysis.interslice?.function ?? 'half_sine';
+}
+
+/** Cambia la función: `data_points` conserva su tabla (o toma la de partida) y las demás no llevan puntos. */
+export function intersliceFunctionCommand(doc: ModelDoc, fn: IntersliceFunction): EditorCommand {
+  const kept = doc.analysis.interslice?.points;
+  const points = Array.isArray(kept) && kept.length >= 2 ? kept.map(([x, f]): Point => [x, f]) : DEFAULT_DATA_POINTS.map(([x, f]): Point => [x, f]);
+  return { type: 'analysis/patch', patch: { interslice: fn === 'data_points' ? { function: fn, points } : { function: fn } } };
+}
+
+export interface DataPointRow {
+  xi: string;
+  f: string;
+}
+
+export function dataPointsToForm(points: readonly Point[] | null | undefined): DataPointRow[] {
+  return (points ?? []).map(([xi, f]) => ({ xi: formatNumber(xi), f: formatNumber(f) }));
+}
+
+/**
+ * Tabla → puntos (F3.4): al menos 2 puntos finitos, ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0. Los errores llevan la clave
+ * `<fila>.xi`, `<fila>.f` o `table`, con los mismos textos que `validateLocal`.
+ */
+export function dataPointsFromForm(rows: readonly DataPointRow[]): FormOutcome<Point[]> {
+  const errors: FieldErrors = {};
+  const cells = rows.map((row, i) => {
+    const label = (c: string): string => `Función entre dovelas, punto ${i + 1}, ${c}`;
+    const rule = (c: string): NumberRule => ({ required: true, missing: `${label(c)}: escriba un número`, accept: finite, range: notANumber(label(c)), label: label(c) });
+    return [take(errors, `${i}.xi`, row.xi, rule('ξ')), take(errors, `${i}.f`, row.f, rule('f'))] as const;
+  });
+  if (Object.keys(errors).length === 0) {
+    const points = cells.map(([xi, f]): Point => [xi ?? 0, f ?? 0]);
+    const e = intersliceTableError(points);
+    if (e) {
+      if (e.index === null) errors.table = e.text;
+      else {
+        const col = e.text === RULE_TEXT.intersliceNegative ? 'f' : 'xi';
+        errors[`${e.index}.${col}`] = e.text;
+        errors.table = e.text;
+      }
+    }
+  } else if (rows.length < 2) errors.table = RULE_TEXT.intersliceMinPoints;
+  return done(errors, () => cells.map(([xi, f]): Point => [xi ?? 0, f ?? 0]));
+}
+
+export function dataPointsCommand(points: readonly Point[]): EditorCommand {
+  return { type: 'analysis/patch', patch: { interslice: { function: 'data_points', points: points.map(([x, f]): Point => [x, f]) } } };
+}
+
+/** Punto nuevo después del `index` (hay siempre uno siguiente si no es el último): ξ y f a medio camino, así la forma no cambia. */
+export function insertDataPoint(points: readonly Point[], index: number): Point[] {
+  const a = points[index] as Point;
+  const b = points[index + 1] ?? [a[0] + 0.1, a[1]];
+  return [...points.slice(0, index + 1), [round3((a[0] + b[0]) / 2), round3((a[1] + b[1]) / 2)], ...points.slice(index + 1)];
+}
+
+/** Quita el punto `index`; `null` si quedarían menos de 2. */
+export function removeDataPoint(points: readonly Point[], index: number): Point[] | null {
+  if (points.length <= 2 || index < 0 || index >= points.length) return null;
+  return points.filter((_, i) => i !== index);
+}
+
 export const DIRECTION_OPTIONS: ReadonlyArray<{ value: Direction; label: string }> = [
   { value: 'auto', label: 'Automático' },
   { value: 'left_to_right', label: 'Hacia la derecha (izquierda → derecha)' },
@@ -893,6 +1290,10 @@ export function analysisCommands(doc: ModelDoc, values: AnalysisValues): EditorC
   if (parseNumberOr(current.tolerance) !== values.tolerance) patch.tolerance = values.tolerance;
   if (parseNumberOr(current.max_iterations) !== values.max_iterations) patch.max_iterations = values.max_iterations;
   if (parseNumberOr(current.min_m_alpha) !== values.min_m_alpha) patch.min_m_alpha = values.min_m_alpha;
+  // `interslice` solo se admite con morgenstern_price (F3.4): al desmarcarlo la función se quita en el mismo paso.
+  if (doc.analysis.interslice !== undefined && doc.analysis.interslice !== null && !values.methods.includes('morgenstern_price')) {
+    patch.interslice = undefined;
+  }
   const commands: EditorCommand[] = [];
   if (Object.keys(patch).length > 0) commands.push({ type: 'analysis/patch', patch });
   if (current.direction !== values.direction) commands.push({ type: 'slope/setDirection', direction: values.direction });

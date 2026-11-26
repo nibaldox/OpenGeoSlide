@@ -1,0 +1,16 @@
+import { launch, start, newSlope, tab, shot, openMenu } from './lib.mjs';
+const { browser, page } = await launch();
+await start(page); await newSlope(page);
+await tab(page, 'Análisis');
+await page.getByRole('checkbox', { name: 'Morgenstern-Price', exact: true }).check();
+await page.getByLabel('Función de fuerzas entre dovelas f(ξ)').selectOption('data_points');
+await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).fill('1,2');
+await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).press('Enter');
+console.log('expanded', await page.getByRole('button', { name: 'Archivo', exact: true }).getAttribute('aria-expanded').catch((e) => 'no btn ' + e.message.slice(0,80)));
+console.log(await page.locator('button').evaluateAll((bs) => bs.map((b) => b.textContent.trim()).filter((t) => /Archivo|Guardar/.test(t))));
+await page.getByRole('button', { name: 'Archivo', exact: true }).click();
+await page.waitForTimeout(300);
+console.log('after click', await page.getByRole('button', { name: 'Archivo', exact: true }).getAttribute('aria-expanded'), await page.evaluate(() => document.activeElement?.outerHTML.slice(0,120)));
+console.log(await page.locator('button').evaluateAll((bs) => bs.map((b) => [b.textContent.trim(), b.disabled, b.getAttribute('title')]).filter((t) => /Guardar/.test(t[0]))));
+await shot(page, 'debug-guardar');
+await browser.close();
