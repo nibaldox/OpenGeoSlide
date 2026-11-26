@@ -829,10 +829,33 @@ def test_f3r_batches_are_the_ones_of_f4_12():
     }
 
 
-def _f3r_cases():
-    """The batches R1 to R4 are promoted: their cases live in `verification/cases`."""
+def _held_keys():
+    """(id, method, published) of the checks retained in `pending/F3R/HOLD.json` (E14n-1 of F4.17)."""
+    path = os.path.join(F3R_DIR, "HOLD.json")
+    if not os.path.isfile(path):
+        return set()
+    return {(e["id"], e["method"], e["published"]) for e in json.load(open(path, encoding="utf-8"))}
+
+
+def _f3r_cases(with_held=True):
+    """The batches R1 to R4: promoted ones live in `verification/cases`, held checks in `verification/pending/F3R`. With
+    `with_held` each case has all its checks again (the converted case of the importer)."""
     ids = sorted(i for _, ids in imp.F3R_BATCHES.values() for i in ids)
-    return [json.load(open(os.path.join(CASES_DIR, f"{i}.json"), encoding="utf-8")) for i in ids]
+    out = []
+    for i in ids:
+        parts = []
+        for d in (CASES_DIR, F3R_DIR):
+            path = os.path.join(d, f"{i}.json")
+            if os.path.isfile(path) and (d == CASES_DIR or with_held):
+                parts.append(json.load(open(path, encoding="utf-8")))
+        if not parts:
+            continue
+        case = parts[0]
+        for extra in parts[1:]:
+            assert extra["model"] == case["model"], i
+            case["checks"] = case["checks"] + extra["checks"]
+        out.append(case)
+    return out
 
 
 def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
@@ -848,23 +871,35 @@ def test_the_generated_f3r_cases_pass_every_gate_and_cover_the_batches():
             assert r["application"] in ("active", "passive") and r["direction"], case["id"]
 
 
-def test_the_promoted_f3r_cases_are_in_cases_and_no_longer_pending():
-    assert glob.glob(os.path.join(F3R_DIR, "V*.json")) == []
+def test_the_held_f3r_checks_are_the_five_of_e14n_1_and_nothing_else_is_pending():
+    held = _held_keys()
+    assert held == {("V014", "janbu_corrected", 1.46), ("V014", "janbu_corrected", 1.448),
+                    ("V035b", "bishop", 1.324), ("V035b", "bishop", 1.32), ("V083", "janbu_corrected", 0.89)}
+    pending = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(F3R_DIR, "V*.json")))
+    assert pending == ["V014", "V035b", "V083"]
+    for pid in pending:      # the pending file holds only held checks, the case in cases/ holds none of them
+        file = json.load(open(os.path.join(F3R_DIR, f"{pid}.json"), encoding="utf-8"))
+        assert {(pid, c["method"], c["published"]) for c in file["checks"]} <= held
+        in_cases = os.path.join(CASES_DIR, f"{pid}.json")
+        if os.path.isfile(in_cases):
+            kept = json.load(open(in_cases, encoding="utf-8"))["checks"]
+            assert not {(pid, c["method"], c["published"]) for c in kept} & held
     stub = open(os.path.join(F3R_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "promovidos" in stub and "**25** casos" in stub and "V013b a V013e" in stub
+    assert "promovidos" in stub and "**25** casos" in stub and "**5** checks retenidos" in stub and "V013b a V013e" in stub
 
 
 def test_the_cases_index_lists_every_promoted_check_with_ogs_and_the_oracle():
     index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
     assert "## Casos con refuerzos (v0.4, lotes R1 a R4)" in index
-    assert "**25** casos con **33** checks" in index and "V013b a V013e" in index
-    for case in _f3r_cases():
+    assert "**23** casos con **28** checks" in index and "V013b a V013e" in index
+    assert "**5** checks más (V014 ×2, V035b ×2, V083) quedan retenidos" in index
+    for case in _f3r_cases(with_held=False):
         assert f"| {case['id']} |" in index
         assert case["model"]["version"] == "0.4"
     report = json.load(open(os.path.join(ROOT, "verification", "report.json"), encoding="utf-8"))
     f3r = {i for _, ids in imp.F3R_BATCHES.values() for i in ids}
     rows = [r for r in report["checks"] if r["case_id"] in f3r]
-    assert len(rows) == 33
+    assert len(rows) == 28 and not {(r["case_id"], r["method"], r["published"]) for r in rows} & _held_keys()
     assert all(r["ogs"]["verdict"] == "OK" and r["cslope"]["verdict"] == "OK" for r in rows)
 
 

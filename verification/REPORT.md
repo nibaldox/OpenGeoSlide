@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T11:12:22-03:00 · harness v1 · casos: `verification/cases` (118 casos, 246 checks)
+Generado: 2026-11-26T12:00:07-03:00 · harness v1 · casos: `verification/cases` (116 casos, 241 checks)
 
 ## Motores
 
@@ -11,10 +11,10 @@ Generado: 2026-11-26T11:12:22-03:00 · harness v1 · casos: `verification/cases`
 
 | motor | OK | FALLA | sin dato | no convergido |
 |---|---:|---:|---:|---:|
-| ogs | 246 | 0 | 0 | 0 |
-| cSlope | 245 | 0 | 0 | 1 |
+| ogs | 241 | 0 | 0 | 0 |
+| cSlope | 240 | 0 | 0 | 1 |
 
-cSlope reproduce el valor publicado dentro de tolerancia en **245/246** checks.
+cSlope reproduce el valor publicado dentro de tolerancia en **240/241** checks.
 
 ## Tabla
 
@@ -51,8 +51,6 @@ cSlope reproduce el valor publicado dentro de tolerancia en **245/246** checks.
 | V012 | bishop | fixed | 0.9800 | 0.9817 | +0.18 | 0.9818 | +0.18 | 1.51 | OK |
 | V013a | bishop | search | 1.1400 | 1.1430 | +0.26 | 1.1429 | +0.25 | 2.44 | OK |
 | V013a | bishop | search | 1.1300 | 1.1430 | +1.15 | 1.1429 | +1.14 | 2.44 | OK |
-| V014 | janbu_corrected | fixed | 1.4600 | 1.4484 | -0.79 | 1.4482 | -0.81 | 1.34 | OK |
-| V014 | janbu_corrected | fixed | 1.4480 | 1.4484 | +0.03 | 1.4482 | +0.02 | 1.03 | OK |
 | V014 | spencer | fixed | 1.5760 | 1.5754 | -0.04 | 1.5755 | -0.03 | 1.03 | OK |
 | V015 | janbu_corrected | fixed | 1.4790 | 1.4767 | -0.16 | 1.4764 | -0.18 | 1.03 | OK |
 | V015 | janbu_simplified | fixed | 1.4460 | 1.4418 | -0.29 | 1.4418 | -0.29 | 1.03 | OK |
@@ -126,8 +124,6 @@ cSlope reproduce el valor publicado dentro de tolerancia en **245/246** checks.
 | V034b | bishop | search | 1.3350 | 1.3304 | -0.35 | 1.3299 | -0.38 | 2.04 | OK |
 | V034b | spencer | search | 1.3280 | 1.3286 | +0.04 | 1.3280 | +0.00 | 2.04 | OK |
 | V035a | morgenstern_price | fixed | 1.5750 | 1.5687 | -0.40 | 1.5682 | -0.43 | 1.03 | OK |
-| V035b | bishop | fixed | 1.3240 | 1.3210 | -0.23 | 1.3206 | -0.26 | 1.04 | OK |
-| V035b | bishop | fixed | 1.3200 | 1.3210 | +0.07 | 1.3206 | +0.04 | 1.38 | OK |
 | V036a | bishop | search | 0.7610 | 0.7604 | -0.08 | 0.7568 | -0.56 | 2.07 | OK |
 | V036a | spencer | search | 0.7560 | 0.7564 | +0.05 | 0.7521 | -0.52 | 2.07 | OK |
 | V036a | spencer | search | 0.7500 | 0.7564 | +0.85 | 0.7521 | +0.28 | 2.67 | OK |
@@ -231,7 +227,6 @@ cSlope reproduce el valor publicado dentro de tolerancia en **245/246** checks.
 | V078 | morgenstern_price | fixed | 0.9600 | 0.9578 | -0.23 | 0.9578 | -0.23 | 1.52 | OK |
 | V081a | bishop | fixed | 0.7640 | 0.7641 | +0.01 | 0.7641 | +0.01 | 1.07 | OK |
 | V081b | bishop | fixed | 1.5040 | 1.5015 | -0.17 | 1.5012 | -0.19 | 1.03 | OK |
-| V083 | janbu_corrected | fixed | 0.8900 | 0.8845 | -0.62 | 0.8845 | -0.62 | 1.56 | OK |
 | V084a | janbu_corrected | fixed | 0.9890 | 0.9892 | +0.03 | 0.9884 | -0.07 | 1.05 | OK |
 | V084b | janbu_corrected | fixed | 1.1230 | 1.1250 | +0.18 | 1.1243 | +0.11 | 1.04 | OK |
 | V084c | janbu_corrected | fixed | 1.0430 | 1.0443 | +0.12 | 1.0435 | +0.05 | 1.05 | OK |
@@ -281,8 +276,6 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V011a | bishop | 1 | 1 | 1 | 2.5e-03 | 0.0e+00 | 0 |
 | V011b | bishop | 1 | 1 | 1 | 8.6e-05 | 0.0e+00 | 0 |
 | V012 | bishop | 1 | 1 | 1 | 2.2e-03 | 0.0e+00 | 0 |
-| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
-| V014 | janbu_corrected | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
 | V014 | spencer | 8 | 8 | 8 | 1.8e-15 | 7.2e-11 | 0 |
 | V015 | janbu_corrected | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
 | V015 | janbu_simplified | 3 | 3 | 3 | 9.3e-15 | 5.9e-14 | 0 |
@@ -290,8 +283,6 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V016b | spencer | 0 | 0 | 0 | 0.0e+00 | 0.0e+00 | 0 |
 | V016b | bishop | 0 | 0 | 0 | 0.0e+00 | 0.0e+00 | 0 |
 | V035a | morgenstern_price | 1 | 1 | 1 | 4.7e-04 | 0.0e+00 | 0 |
-| V035b | bishop | 1 | 1 | 1 | 4.5e-04 | 0.0e+00 | 0 |
-| V035b | bishop | 1 | 1 | 1 | 4.5e-04 | 0.0e+00 | 0 |
 | V037 ◇ | bishop | 5 | 5 | 5 | 1.2e-03 | 0.0e+00 | 0 |
 | V037 ◇ | spencer | 5 | 5 | 5 | 1.2e-03 | 0.0e+00 | 0 |
 | V064 | bishop | 15 | 15 | 15 | 8.9e-04 | 2.2e-03 | 0 |
@@ -300,7 +291,6 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V066b | spencer | 9 | 9 | 9 | 2.7e-04 | 1.2e-03 | 0 |
 | V066c | bishop | 15 | 15 | 15 | 4.4e-04 | 0.0e+00 | 0 |
 | V066e | bishop | 15 | 15 | 15 | 4.1e-04 | 0.0e+00 | 0 |
-| V083 | janbu_corrected | 2 | 2 | 2 | 4.4e-16 | 7.8e-15 | 0 |
 | V084a | janbu_corrected | 7 | 7 | 7 | 1.8e-15 | 1.3e-14 | 0 |
 | V084b | janbu_corrected | 7 | 7 | 7 | 1.8e-15 | 1.8e-15 | 0 |
 | V084c | janbu_corrected | 7 | 7 | 7 | 1.8e-15 | 6.3e-15 | 0 |
@@ -309,7 +299,7 @@ Las fuerzas que ogs aplica (`reinforcement_forces`, estado `applied`) frente a l
 | V084f | janbu_corrected | 7 | 7 | 7 | 0.0e+00 | 1.8e-15 | 0 |
 | V095c | bishop | 1 | 1 | 1 | 8.8e-04 | 1.7e-01 | 0 |
 
-**33** checks, **165** cruces emparejados, **0** diferencias sin explicar.
+**28** checks, **145** cruces emparejados, **0** diferencias sin explicar.
 
 Ni ogs ni el oráculo aplican fuerza en: V016b (bishop), V016b (spencer). La superficie no cruza ningún elemento, así que el FS es el del talud sin refuerzo y el acuerdo con lo publicado no prueba nada sobre los refuerzos.
 
@@ -345,7 +335,6 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 | V015 | R2 | 1.77414 | 1.61111 | 271.5039 | -126.6042 | -25.00 | 271.5039 | -126.6042 | -25.00 | +9.3e-15 | — |
 | V015 | P1 | 0.15240 | 0.13840 | 86.1040 | 0.0000 | +0.00 | 86.1040 | 0.0000 | +0.00 | +7.2e-15 | — |
 | V035a | R1 | 11.17963 | 6.09600 | 131.3451 | 0.0000 | +0.00 | 131.3451 | 0.0000 | +0.00 | -4.7e-04 | -3.6e-04 |
-| V035b | R1 | 11.24367 | 6.09600 | 131.3451 | 0.0000 | +0.00 | 131.3451 | 0.0000 | +0.00 | -4.5e-04 | -3.6e-04 |
 | V037 | R1 | 4.46953 | 1.21920 | 11.6751 | 0.0000 | +0.00 | 11.6751 | 0.0000 | +0.00 | -1.2e-03 | -5.3e-04 |
 | V037 | R2 | 6.47726 | 2.43840 | 11.6751 | 0.0000 | +0.00 | 11.6751 | 0.0000 | +0.00 | -6.2e-04 | -3.7e-04 |
 | V037 | R3 | 7.88497 | 3.65760 | 11.6751 | 0.0000 | +0.00 | 11.6751 | 0.0000 | +0.00 | -2.7e-04 | -1.9e-04 |
@@ -427,8 +416,6 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 | V066e | R13 | 11.63709 | 13.50000 | 10.0000 | 0.0000 | +0.00 | 10.0000 | 0.0000 | +0.00 | -6.1e-06 | -5.5e-06 |
 | V066e | R14 | 11.90806 | 14.10000 | 10.0000 | 0.0000 | +0.00 | 10.0000 | 0.0000 | +0.00 | -2.6e-04 | -2.4e-04 |
 | V066e | R15 | 12.15837 | 14.70000 | 10.0000 | 0.0000 | +0.00 | 10.0000 | 0.0000 | +0.00 | -2.1e-04 | -1.9e-04 |
-| V083 | R1 | 3.74429 | 3.63755 | 8.6120 | -3.1345 | -20.00 | 8.6120 | -3.1345 | -20.00 | +4.4e-16 | — |
-| V083 | R2 | 2.62109 | 2.54637 | 19.8440 | -7.2226 | -20.00 | 19.8440 | -7.2226 | -20.00 | +4.4e-16 | — |
 | V084a | R1 | 7.94872 | 6.78583 | -12.1211 | -2.1373 | -170.00 | -12.1211 | -2.1373 | -170.00 | +8.9e-16 | — |
 | V084a | R2 | 8.57198 | 5.89572 | -12.8453 | -2.2650 | -170.00 | -12.8453 | -2.2650 | -170.00 | +0.0e+00 | — |
 | V084a | R3 | 9.19524 | 5.00562 | -12.8453 | -2.2650 | -170.00 | -12.8453 | -2.2650 | -170.00 | +0.0e+00 | — |
@@ -493,7 +480,7 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V011b (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V012 (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V013a (bishop/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
-- V014 (janbu_corrected/fixed, spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
+- V014 (spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): pilotes y tablestacas: location "slip-surface" (sin efecto con fuerza constante, X17 §3); la tablestaca va con spacing 1, force por metro y wall true.
 - V015 (janbu_corrected/fixed, janbu_simplified/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V016b (bishop/fixed, spencer/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
@@ -521,7 +508,6 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V034b (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V035a (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
 - V035a (morgenstern_price/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
-- V035b (bishop/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V036a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V036b (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V036c (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
@@ -558,8 +544,6 @@ Todos los cruces emparejados (los checks con el mismo círculo y las mismas fuer
 - V069a (bishop/search, spencer/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V071b (bishop/search, spencer/search, janbu_simplified/search): search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance).
 - V078 (morgenstern_price/fixed): Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).
-- V083 (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
-- V083 (janbu_corrected/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V084a (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
 - V084a (janbu_corrected/fixed): refuerzos: fx y fy del oráculo en coordenadas del modelo; el binario cSlope 0.1.0 descarta también los activos comprimidos (along > 0), que ogs aplica (E14m-1): las filas de aceptación solo usan along < 0.
 - V084b (janbu_corrected/fixed): cargas lineales: el ángulo va sin cambio a cSlope (positivo hacia +x del modelo, también en rtl; cSlope espeja la geometría rtl y el ángulo internamente).
