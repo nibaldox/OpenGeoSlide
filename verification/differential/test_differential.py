@@ -427,10 +427,40 @@ def test_f3_summary_counts_pending_apart_and_the_old_summary_keys_do_not_change(
     checks = [{"kind": "fixed", "verdict": v, "ogs": {"seconds": 0.0}, "cslope": {"seconds": 0.0}}
               for v in ("OK", "pendiente", "pendiente", "FALLA", "sin dato", run.VERDICT_BOTH_NO_SOLUTION)]
     s = run.summarize_f3(checks)
-    assert s == {"OK": 2, "ambos_sin_solucion": 1, "FALLA": 1, "sin dato": 1, "pendiente": 2, "N": 6}
+    assert s == {"OK": 2, "ambos_sin_solucion": 1, "explicado": 0, "FALLA": 1, "sin dato": 1,
+                 "pendiente": 2, "N": 6}
     old = run.summarize([{"kind": "fixed", "verdict": "OK", "ogs": {"seconds": 0.1}, "cslope": {"seconds": 0.1}}])
     assert set(old) == {"search", "fixed", "ogs_seconds", "cslope_seconds"}
     assert "pendiente" not in old["fixed"]
+
+
+def _tangent_model(under: float) -> dict:
+    return {"regions": [{"polygon": [[0.0, -10.0], [0.0, 10.0], [70.0, 0.0], [70.0, -10.0]]}],
+            "analysis": {"surface": {"type": "circle", "xc": 30.0, "yc": 17.0, "r": 27.0 + under}}}
+
+
+_NO_VALID = {"error": "ogs: exit 2: ogs: NoValidSurface: el arco de deslizamiento sale del modelo", "fos": None,
+             "status": None}
+
+
+def test_a_fixed_circle_tangent_to_the_bottom_is_explained_not_ok_and_not_a_failure():
+    cs = {"fos": 1.2263, "error": None, "status": "converged"}
+    assert run.evaluate("fixed", _NO_VALID, cs)[0] == "sin dato"          # evaluate itself is unchanged
+    why = run.tangent_base_explanation(_tangent_model(9.2e-7), "fixed", _NO_VALID, cs)
+    assert why and "E15f" in why and "E15j-7" in why
+    assert run.VERDICT_EXPLAINED not in run.PASS_VERDICTS
+    rows = [{"verdict": run.VERDICT_EXPLAINED}, {"verdict": "OK"}, {"verdict": "FALLA"}]
+    s = run.summarize_f3(rows)
+    assert (s["OK"], s["explicado"], s["FALLA"], s["sin dato"]) == (1, 1, 1, 0)
+
+
+def test_the_tangent_explanation_does_not_cover_other_cases():
+    cs = {"fos": 1.2263, "error": None, "status": "converged"}
+    assert run.tangent_base_explanation(_tangent_model(2e-6), "fixed", _NO_VALID, cs) is None      # farther than 1e-6
+    assert run.tangent_base_explanation(_tangent_model(-1e-3), "fixed", _NO_VALID, cs) is None     # inside the model
+    assert run.tangent_base_explanation(_tangent_model(9e-7), "search", _NO_VALID, cs) is None
+    assert run.tangent_base_explanation(_tangent_model(9e-7), "fixed", dict(_NO_VALID, error="ogs: exit 2: otra"), cs) is None
+    assert run.tangent_base_explanation(_tangent_model(9e-7), "fixed", _NO_VALID, {"fos": None, "error": None}) is None
 
 
 def test_f3_section_of_the_report_says_pending_and_lists_the_capabilities(tmp_path):

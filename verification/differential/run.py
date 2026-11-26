@@ -86,6 +86,12 @@ VERDICT_OK = "OK"
 # Fixed surface where both engines declare no solution (ogs not_converged/invalid, cSlope EngineError): a match.
 VERDICT_BOTH_NO_SOLUTION = "OK (concordancia: ambos sin solución)"
 PASS_VERDICTS = (VERDICT_OK, VERDICT_BOTH_NO_SOLUTION)
+# Fixed circle tangent to the model bottom (E15f, E15j-7): cSlope's circle passes under the bottom by at most its own
+# search limit (1e-6), ogs rejects it (NoValidSurface), and the tolerance is not relaxed. It is not a match and not a
+# failure: an explicit state with its cause. It is not in PASS_VERDICTS (it does not count as OK).
+VERDICT_EXPLAINED = "explicado (E15f, E15j-7)"
+EXPLAINED_VERDICTS = (VERDICT_EXPLAINED,)
+TANGENT_BASE_MAX = 1e-6    # E15f: the limit of cSlope's search; a circle farther under the bottom is a real failure
 # Informative ogs warnings (contract §4.5 / E5, E7d, E10a, E11a′): notes, not warnings. Any other code is a warning
 # that the report lists. The list must match INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs.
 OGS_INFORMATIVE_WARNINGS = (
@@ -211,6 +217,31 @@ def evaluate(kind: str, ogs: dict, cs: dict) -> tuple[str, str]:
     if rel <= FIXED_MAX_REL:
         return VERDICT_OK, ""
     return "FALLA", f"|Δ| = {rel * 100:.2f} % > 0,5 %"
+
+
+def tangent_base_explanation(model: dict, kind: str, ogs: dict, cs: dict) -> str | None:
+    """The cause (E15f, E15j-7) when a fixed circle is rejected by ogs for passing under the model bottom by a hair.
+
+    Applies only to a fixed circle where ogs answers `NoValidSurface: el arco de deslizamiento sale del modelo` and
+    cSlope gives a FS, and where the lowest point of the circle (yc − r) is under the lowest y of the regions by more
+    than zero and at most TANGENT_BASE_MAX (the search limit of cSlope, 1e-6). Anything else returns None and the
+    verdict of `evaluate` stands. No tolerance is relaxed: the circle really leaves the model by that amount.
+    """
+    if kind != "fixed" or not ogs.get("error") or "NoValidSurface" not in ogs["error"] \
+            or "sale del modelo" not in ogs["error"] or cs.get("fos") is None or cs.get("error"):
+        return None
+    surface = (model.get("analysis") or {}).get("surface") or {}
+    if surface.get("type") != "circle":
+        return None
+    ys = [pt[1] for region in model.get("regions") or [] for pt in region["polygon"]]
+    if not ys:
+        return None
+    under = min(ys) - (surface["yc"] - surface["r"])
+    if not 0.0 < under <= TANGENT_BASE_MAX:
+        return None
+    return (f"círculo fijo tangente al fondo: el de cSlope pasa {under:.2e} bajo el fondo (y = {min(ys):g}), más que "
+            f"la tolerancia del motor, que lo rechaza (NoValidSurface); cSlope da FS {cs['fos']:.4f}. "
+            f"Se explica por E15f y E15j-7; no se relaja la tolerancia")
 
 
 def non_informative_warnings(warnings: list[str]) -> list[str]:
@@ -404,6 +435,9 @@ def run_f3_check(cs_module, ogs_binary: str, case: dict, method: str, kind: str,
             f"{c} ({probe[c]['detail'][:100]})" for c in missing)
     else:
         verdict, reason = evaluate(kind, ogs, cs)
+        explanation = tangent_base_explanation(model, kind, ogs, cs) if verdict == "sin dato" else None
+        if explanation:
+            verdict, reason = VERDICT_EXPLAINED, explanation
     return {
         "case_id": case["id"],
         "title": case["title"],
@@ -428,6 +462,7 @@ def summarize_f3(rows: list[dict]) -> dict:
     return {
         "OK": sum(1 for r in rows if r["verdict"] in PASS_VERDICTS),
         "ambos_sin_solucion": sum(1 for r in rows if r["verdict"] == VERDICT_BOTH_NO_SOLUTION),
+        "explicado": sum(1 for r in rows if r["verdict"] in EXPLAINED_VERDICTS),
         "FALLA": sum(1 for r in rows if r["verdict"] == "FALLA"),
         "sin dato": sum(1 for r in rows if r["verdict"] == "sin dato"),
         "pendiente": sum(1 for r in rows if r["verdict"] == VERDICT_PENDING),
@@ -650,7 +685,9 @@ def f3g_markdown(rows: list[dict], probe: dict) -> list[str]:
         L.append(f"| {cap} | {'sí' if probe[cap]['supported'] else 'no'} | {probe[cap]['detail'] or '—'} |")
     L += [
         "",
-        f"**OK {s['OK']}/{s['N']}** · FALLA {s['FALLA']} · sin dato {s['sin dato']} · pendiente {s['pendiente']}.",
+        f"**OK {s['OK']}/{s['N']}** · explicado {s['explicado']} · FALLA {s['FALLA']} · sin dato {s['sin dato']} · "
+        f"pendiente {s['pendiente']}. «Explicado» no cuenta como OK ni como falla: el motor rechaza un círculo fijo que "
+        "pasa por debajo del fondo del modelo en menos de 1e-6 (E15f, E15j-7) y no se relaja la tolerancia.",
         "",
         "| caso | método | tipo | ogs | cSlope | Δ% | veredicto |",
         "|---|---|---|---:|---:|---:|---|",
@@ -659,12 +696,18 @@ def f3g_markdown(rows: list[dict], probe: dict) -> list[str]:
         L.append("| {cid} | {m} | {k} | {o} | {c} | {d} | {v} |".format(
             cid=r["case_id"], m=r["method"], k=r["kind"], o=_fmt(r["ogs"]["fos"], ".4f"),
             c=_fmt(r["cslope"]["fos"], ".4f"), d=_fmt(r["delta_pct"], "+.2f"), v=r["verdict"]))
-    fails = [r for r in rows if r["verdict"] not in PASS_VERDICTS and r["verdict"] != VERDICT_PENDING]
+    fails = [r for r in rows if r["verdict"] not in PASS_VERDICTS and r["verdict"] not in EXPLAINED_VERDICTS
+             and r["verdict"] != VERDICT_PENDING]
+    explained = [r for r in rows if r["verdict"] in EXPLAINED_VERDICTS]
     L += ["", "### Fallos y datos faltantes de v0.5", ""]
     if not fails:
         L.append("Ninguno.")
     for r in fails:
         L.append(f"- {r['case_id']} {r['method']}/{r['kind']}: **{r['verdict']}**. {r['reason']}")
+    if explained:
+        L += ["", "### Explicados de v0.5", ""]
+        for r in explained:
+            L.append(f"- {r['case_id']} {r['method']}/{r['kind']}: **{r['verdict']}**. {r['reason']}")
     L.append("")
     return L
 
@@ -959,7 +1002,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.require_f3r and f3r_rows and summarize_f3(f3r_rows)["OK"] != len(f3r_rows):
         print("--require-f3r: hay checks de v0.4 pendientes, con fallo o sin dato", file=sys.stderr)
         return EXIT_F3R_PENDING
-    if args.require_f3g and f3g_rows and summarize_f3(f3g_rows)["OK"] != len(f3g_rows):
+    if args.require_f3g and f3g_rows and summarize_f3(f3g_rows)["OK"] + summarize_f3(f3g_rows)["explicado"] != len(f3g_rows):
         print("--require-f3g: hay checks de v0.5 pendientes, con fallo o sin dato", file=sys.stderr)
         return EXIT_F3G_PENDING
     return 0
