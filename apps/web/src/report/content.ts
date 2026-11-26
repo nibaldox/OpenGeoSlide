@@ -17,6 +17,7 @@ import {
   PASSIVE_LEGEND,
   REINFORCEMENT_FORCE_BASIS,
   STRUCTURAL_LIMIT_TEXT,
+  FORCE_TABLE_NOTE,
   forceRecords,
   forcesTable,
   hasStructuralElements,
@@ -648,7 +649,7 @@ function reinforcementsSection(input: ReportInput): ReportSection | null {
     blocks.push({ kind: 'paragraph', text: 'Ningún método devolvió fuerzas de refuerzo: solo se informan los métodos que convergieron, sobre la superficie final.' });
   }
   if (list.some((r) => r.application === 'passive')) {
-    blocks.push({ kind: 'paragraph', text: `Pasiva: ${PASSIVE_LEGEND}. En la tabla va la fuerza disponible, antes de dividir por el factor de seguridad F de cada método.` });
+    blocks.push({ kind: 'paragraph', text: FORCE_TABLE_NOTE });
   }
   if (hasStructuralElements(list)) blocks.push({ kind: 'paragraph', text: `Límite del cálculo. ${STRUCTURAL_LIMIT_TEXT}` });
   return { id: 'reinforcements', title: 'Refuerzos', blocks };

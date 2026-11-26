@@ -55,17 +55,20 @@ describe('sección «Refuerzos» del informe', () => {
     expect(cap.rows[3]![3]).toBe('Interfaz: adhesión 2, δ 20°, Rc 0,8');
   });
 
-  it('la tabla de fuerzas tiene id, tipo, cruce, estación, disponible, aplicada (fx; fy), aplicación y estado, una por método', () => {
+  it('la tabla de fuerzas tiene id, tipo, cruce, estación, disponible, aplicada (fx; fy), movilizada (fx; fy), aplicación y estado, una por método', () => {
     const forceTables = tables(section!.blocks).slice(2);
     expect(forceTables.map((t) => t.title)).toEqual(['Fuerzas por cruce con la superficie final (Bishop simplificado)', 'Fuerzas por cruce con la superficie final (Spencer)']);
     const t = forceTables[0]!;
-    expect(t.header).toEqual(['Id', 'Tipo', 'Cruce', 'Estación (m)', 'Disponible (kN/m)', 'Aplicada fx; fy (kN/m)', 'Aplicación', 'Estado']);
+    expect(t.header).toEqual(['Id', 'Tipo', 'Cruce', 'Estación (m)', 'Disponible (kN/m)', 'Aplicada fx; fy (kN/m)', 'Movilizada fx; fy (kN/m)', 'Aplicación', 'Estado']);
     expect(t.rows).toHaveLength(4);
-    expect(t.rows[0]).toEqual(['tablestaca-1', 'Tablestaca', '1', '6,027', '120,000', '120,000; 0,000', 'Pasiva: se moviliza dividida por F', 'Aplicada']);
-    expect(t.rows[1]![6]).toBe('Activa');
+    // E14o-14: la pasiva se moviliza dividida por F (Bishop de V047a: F = 1,312…); la activa es la aplicada.
+    const F = input.results[0]!.fos as number;
+    expect(t.rows[0]).toEqual(['tablestaca-1', 'Tablestaca', '1', '6,027', '120,000', '120,000; 0,000', `${(120 / F).toFixed(3).replace('.', ',')}; 0,000`, 'Pasiva: se moviliza dividida por F', 'Aplicada']);
+    expect(t.rows[1]![7]).toBe('Activa');
     expect(t.rows[1]![5]).toBe('56,921; -18,974');
-    expect(t.rows[2]![7]).toBe('Ignorada por compresión');
-    expect(t.rows[3]![7]).toBe('Fuera de la masa');
+    expect(t.rows[1]![6]).toBe('56,921; -18,974');
+    expect(t.rows[2]![8]).toBe('Ignorada por compresión');
+    expect(t.rows[3]![8]).toBe('Fuera de la masa');
   });
 
   it('con una tablestaca o un pilote lleva SIEMPRE el texto del límite de F4.8', () => {
@@ -101,6 +104,7 @@ describe('sección «Refuerzos» del informe', () => {
     expect(t.geometry.header[3]).toBe('Cabeza (x; y) (ft)');
     expect(t.capacity.rows[0]![1]).toBe('Fuerza 120 lbf/ft de muro');
     expect(forcesTable(forceRecords(imp.results, imp.model.reinforcements), 'imperial').header[4]).toBe('Disponible (lbf/ft)');
+    expect(forcesTable(forceRecords(imp.results, imp.model.reinforcements), 'imperial').header[6]).toBe('Movilizada fx; fy (lbf/ft)');
   });
 });
 
@@ -133,7 +137,7 @@ describe('CSV de las fuerzas', () => {
     const csv = reinforcementForcesCsv(run);
     const parsed = parseCsv(csv);
     expect(parsed.ok).toBe(true);
-    expect(Object.keys(parsed.rows[0]!)).toEqual(['metodo', 'id', 'tipo', 'cruce', 'x_m', 'y_m', 'estacion_m', 'disponible_kn_m', 'fx_kn_m', 'fy_kn_m', 'aplicacion', 'estado', 'unidades']);
+    expect(Object.keys(parsed.rows[0]!)).toEqual(['metodo', 'id', 'tipo', 'cruce', 'x_m', 'y_m', 'estacion_m', 'disponible_kn_m', 'fx_kn_m', 'fy_kn_m', 'aplicacion', 'estado', 'fs', 'movilizada_fx_kn_m', 'movilizada_fy_kn_m', 'unidades', 'nota']);
     expect(parsed.rows).toHaveLength(8);
     expect(parsed.rows[0]).toMatchObject({ metodo: 'bishop', id: 'tablestaca-1', tipo: 'sheet_pile', cruce: '1', disponible_kn_m: '120', fx_kn_m: '120', fy_kn_m: '0', aplicacion: 'passive', estado: 'applied', unidades: 'SI' });
     expect(parsed.rows[1]).toMatchObject({ id: 'anclaje-1', tipo: 'anchor', aplicacion: 'active' });
@@ -144,7 +148,40 @@ describe('CSV de las fuerzas', () => {
 
   it('imperial: cabeceras en ft y lbf/ft', () => {
     const csv = reinforcementForcesToCsv(forceRecords(input.results, input.model.reinforcements), { units: 'imperial' });
-    expect(csv.split('\r\n')[0]).toBe('metodo,id,tipo,cruce,x_ft,y_ft,estacion_ft,disponible_lbf_ft,fx_lbf_ft,fy_lbf_ft,aplicacion,estado,unidades');
+    expect(csv.split('\r\n')[0]).toBe('metodo,id,tipo,cruce,x_ft,y_ft,estacion_ft,disponible_lbf_ft,fx_lbf_ft,fy_lbf_ft,aplicacion,estado,fs,movilizada_fx_lbf_ft,movilizada_fy_lbf_ft,unidades,nota');
+  });
+
+  // E14o-13 (R11B-02): `fs`, la movilizada (la pasiva dividida por F) y la nota con el límite estructural y la leyenda de las pasivas.
+  it('lleva el FS, la fuerza movilizada y la nota de las pasivas y del límite estructural', () => {
+    const parsed = parseCsv(reinforcementForcesToCsv(forceRecords(input.results, input.model.reinforcements)));
+    const bishop = input.results[0]!.fos as number;
+    const sheet = parsed.rows[0]!;
+    expect(Number(sheet.fs)).toBeCloseTo(bishop, 12);
+    expect(Number(sheet.fx_kn_m)).toBe(120);
+    expect(Number(sheet.movilizada_fx_kn_m)).toBeCloseTo(120 / bishop, 9);
+    expect(Number(sheet.movilizada_fy_kn_m)).toBe(0);
+    expect(sheet.nota).toBe('pasiva: se moviliza dividida por F; solo estabilidad global: no calcula empuje, empotramiento, momento ni deflexión');
+    const anchor = parsed.rows[1]!;
+    expect(Number(anchor.movilizada_fx_kn_m)).toBe(Number(anchor.fx_kn_m)); // activa: la aplicada
+    expect(Number(anchor.movilizada_fy_kn_m)).toBe(Number(anchor.fy_kn_m));
+    expect(anchor.nota).toBe('');
+    const nail = parsed.rows[2]!; // pasiva no estructural: solo la leyenda
+    expect(nail.nota).toBe('pasiva: se moviliza dividida por F');
+    // Spencer (otro F): la fila de la tablestaca se divide por el F de su método.
+    const sp = parsed.rows.find((r) => r.metodo === 'spencer' && r.id === 'tablestaca-1')!;
+    expect(Number(sp.movilizada_fx_kn_m)).toBeCloseTo(120 / (input.results[1]!.fos as number), 9);
+  });
+
+  it('un pilote pasivo lleva el límite estructural y la tablestaca activa solo el límite', () => {
+    const records = [
+      { method: 'bishop', id: 'p', type: 'pile', crossing: 1, x: 0, y: 0, station: 0, available: 50, fx: 50, fy: 0, application: 'passive', status: 'applied', fs: 1.25 },
+      { method: 'bishop', id: 's', type: 'sheet_pile', crossing: 1, x: 0, y: 0, station: 0, available: 80, fx: 80, fy: 0, application: 'active', status: 'applied', fs: 1.25 },
+    ] as unknown as ReturnType<typeof forceRecords>;
+    const rows = parseCsv(reinforcementForcesToCsv(records)).rows;
+    expect(rows[0]!.nota).toContain('solo estabilidad global');
+    expect(Number(rows[0]!.movilizada_fx_kn_m)).toBeCloseTo(40, 12);
+    expect(rows[1]!.nota).toBe('solo estabilidad global: no calcula empuje, empotramiento, momento ni deflexión');
+    expect(Number(rows[1]!.movilizada_fx_kn_m)).toBe(80);
   });
 
   it('un id desconocido no rompe: tipo vacío; sin fuerzas no hay nada que exportar', () => {
@@ -174,7 +211,10 @@ describe('PDF con refuerzos', () => {
     expect(text).toContain('Datos de entrada: capacidades');
     expect(text).toContain('Fuerzas por cruce con la superficie final (Bishop simplificado)');
     expect(text).toContain('Pasiva: se moviliza dividida por F');
-    expect(text).toContain('Ignorada por');
+    // Con la columna «Movilizada» la celda del estado se parte en dos renglones y `-layout` los intercala con otras columnas.
+    expect(text).toContain('Ignorada');
+    expect(text).toContain('Movilizada');
+    expect(text).toContain('antes de dividir por el factor de seguridad F de cada método');
     expect(text).toContain(flat(STRUCTURAL_LIMIT_TEXT));
     // Los rótulos del dibujo (halo y relleno) se revisan a la vista: la extracción de texto los mezcla con la leyenda.
     expect(text).toContain('Refuerzos (un símbolo por tipo');

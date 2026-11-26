@@ -17,6 +17,18 @@ export const STRUCTURAL_LIMIT_TEXT =
 /** Leyenda de una fuerza pasiva (F4.9). */
 export const PASSIVE_LEGEND = 'se moviliza dividida por F';
 
+/**
+ * Aclaración de la tabla de fuerzas (E14o-14, R11B-03): la web, el PDF y el CSV dicen lo mismo. «Disponible» y «Aplicada» son la fuerza antes de
+ * dividir por el factor de seguridad F del método; «Movilizada» es la que actúa en el equilibrio: la pasiva, dividida por F, y la activa, la aplicada.
+ */
+export const FORCE_TABLE_NOTE =
+  `Pasiva: ${PASSIVE_LEGEND}. En la tabla va la fuerza disponible, antes de dividir por el factor de seguridad F de cada método. ` +
+  'La fuerza movilizada es la que actúa en el equilibrio: en una pasiva, la aplicada dividida por F; en una activa, la aplicada.';
+
+/** Notas de las filas del CSV de fuerzas (E14o-13). */
+export const CSV_PASSIVE_NOTE = `pasiva: ${PASSIVE_LEGEND}`;
+export const CSV_STRUCTURAL_NOTE = 'solo estabilidad global: no calcula empuje, empotramiento, momento ni deflexión';
+
 export const REINFORCEMENT_FORCE_BASIS =
   'Las fuerzas del resultado son por metro de talud y actúan sobre la masa deslizante en cada cruce del refuerzo con la superficie. ' +
   'Las capacidades de entrada son por elemento: el espaciamiento las pasa a fuerza por metro.';
@@ -114,6 +126,26 @@ export interface ForceRecord {
   fy: number;
   application: ReinforcementForce['application'];
   status: ForceStatus;
+  /** FS (F) del método que dio la fuerza; `null` si no lo trae. */
+  fs: number | null;
+}
+
+/**
+ * Fuerza que actúa en el equilibrio: una pasiva se moviliza dividida por F; una activa es la aplicada. `null` si F no es un número
+ * positivo (no hay con qué dividir).
+ */
+export function mobilizedForce(r: Pick<ForceRecord, 'application' | 'fx' | 'fy' | 'fs'>): [number, number] | null {
+  if (r.application !== 'passive') return [r.fx, r.fy];
+  if (r.fs === null || !Number.isFinite(r.fs) || !(r.fs > 0)) return null;
+  return [r.fx / r.fs, r.fy / r.fs];
+}
+
+/** Nota de la fila del CSV: la de las pasivas y, en un pilote o una tablestaca, el límite estructural (F4.8). */
+export function csvRowNote(r: Pick<ForceRecord, 'application' | 'type'>): string {
+  const notes: string[] = [];
+  if (r.application === 'passive') notes.push(CSV_PASSIVE_NOTE);
+  if (r.type === 'pile' || r.type === 'sheet_pile') notes.push(CSV_STRUCTURAL_NOTE);
+  return notes.join('; ');
 }
 
 /** Filas de fuerzas de todos los métodos que las traen, en el orden del informe. */
@@ -134,6 +166,7 @@ export function forceRecords(results: readonly MethodReport[], list: readonly Re
         fy: f.fy,
         application: f.application,
         status: f.status as ForceStatus,
+        fs: typeof r.fos === 'number' && Number.isFinite(r.fos) ? r.fos : null,
       }),
     ),
   );
@@ -150,21 +183,25 @@ export function statusText(status: ForceStatus): string {
   return cap(FORCE_STATUS_LABEL[status] ?? String(status));
 }
 
-/** Tabla de fuerzas de un método: id, tipo, cruce, estación, disponible, aplicada (fx; fy), activa o pasiva y estado. */
+/** Tabla de fuerzas de un método: id, tipo, cruce, estación, disponible, aplicada (fx; fy), movilizada (fx; fy), activa o pasiva y estado. */
 export function forcesTable(records: readonly ForceRecord[], units: string | null | undefined): { header: string[]; rows: string[][] } {
   const u = reinforcementUnits(units);
   return {
-    header: ['Id', 'Tipo', 'Cruce', `Estación (${u.length})`, `Disponible (${u.line})`, `Aplicada fx; fy (${u.line})`, 'Aplicación', 'Estado'],
-    rows: records.map((r) => [
-      r.id,
-      r.type ? REINFORCEMENT_TYPE_LABEL[r.type] : DASH,
-      String(r.crossing),
-      f3(r.station),
-      f3(r.available),
-      `${f3(r.fx)}; ${f3(r.fy)}`,
-      applicationText(r.application),
-      statusText(r.status),
-    ]),
+    header: ['Id', 'Tipo', 'Cruce', `Estación (${u.length})`, `Disponible (${u.line})`, `Aplicada fx; fy (${u.line})`, `Movilizada fx; fy (${u.line})`, 'Aplicación', 'Estado'],
+    rows: records.map((r) => {
+      const m = mobilizedForce(r);
+      return [
+        r.id,
+        r.type ? REINFORCEMENT_TYPE_LABEL[r.type] : DASH,
+        String(r.crossing),
+        f3(r.station),
+        f3(r.available),
+        `${f3(r.fx)}; ${f3(r.fy)}`,
+        m ? `${f3(m[0])}; ${f3(m[1])}` : DASH,
+        applicationText(r.application),
+        statusText(r.status),
+      ];
+    }),
   };
 }
 

@@ -73,6 +73,7 @@
   font-weight: 600;
   padding: 4px 0;
 }
+.rf-note,
 .rf-limit {
   margin: 4px 0 0;
   max-width: 70ch;

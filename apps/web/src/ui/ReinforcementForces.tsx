@@ -1,6 +1,8 @@
 import type { AnalysisReport, Reinforcement } from '../engine/types';
-import { STRUCTURAL_LIMIT_TEXT, forceRecords, forcesTable, hasStructuralElements } from '../report/reinforcementReport';
+import { FORCE_TABLE_NOTE, STRUCTURAL_LIMIT_TEXT, forceRecords, forcesTable, hasStructuralElements } from '../report/reinforcementReport';
 import { METHOD_LABELS } from './methodLabels';
+
+const fmtFs = (v: number): string => v.toFixed(3).replace('.', ',');
 
 /**
  * Fuerzas de los refuerzos por cruce (F4.9), una tabla por método que las trae, y el texto del límite de F4.8 cuando el modelo tiene
@@ -9,6 +11,8 @@ import { METHOD_LABELS } from './methodLabels';
 export function ReinforcementForces({ report, reinforcements, units }: { report: AnalysisReport; reinforcements?: readonly Reinforcement[]; units?: string | null }) {
   const withForces = report.results.filter((r) => (r.reinforcement_forces?.length ?? 0) > 0);
   const limit = hasStructuralElements(reinforcements);
+  // E14o-14: la aclaración de F va con la tabla cuando hay una pasiva (en el modelo o en las fuerzas).
+  const passive = (reinforcements ?? []).some((r) => r.application === 'passive') || withForces.some((r) => (r.reinforcement_forces ?? []).some((f) => f.application === 'passive'));
   if (withForces.length === 0 && !limit) return null;
   return (
     <section className="rf" aria-label="Fuerzas de los refuerzos" data-testid="reinforcement-forces">
@@ -17,7 +21,7 @@ export function ReinforcementForces({ report, reinforcements, units }: { report:
         return (
           <div key={r.method} className="rf-method">
             <table className="rf-table" data-method={r.method}>
-              <caption>Fuerzas de los refuerzos por cruce con la superficie final ({METHOD_LABELS[r.method]})</caption>
+              <caption>{`Fuerzas de los refuerzos por cruce con la superficie final (${METHOD_LABELS[r.method]}${typeof r.fos === 'number' ? `; F = ${fmtFs(r.fos)}` : ''})`}</caption>
               <thead>
                 <tr>
                   {t.header.map((h) => (
@@ -29,9 +33,9 @@ export function ReinforcementForces({ report, reinforcements, units }: { report:
               </thead>
               <tbody>
                 {t.rows.map((row, i) => (
-                  <tr key={`${row[0]}-${row[2]}-${i}`} className={row[7] === 'Aplicada' ? undefined : 'row-warn'}>
+                  <tr key={`${row[0]}-${row[2]}-${i}`} className={row[row.length - 1] === 'Aplicada' ? undefined : 'row-warn'}>
                     {row.map((cell, c) => (
-                      <td key={c} className={c >= 2 && c <= 5 ? 'num' : undefined}>
+                      <td key={c} className={c >= 2 && c <= 6 ? 'num' : undefined}>
                         {cell}
                       </td>
                     ))}
@@ -42,6 +46,11 @@ export function ReinforcementForces({ report, reinforcements, units }: { report:
           </div>
         );
       })}
+      {passive && (
+        <p className="rf-note small" data-testid="force-table-note">
+          {FORCE_TABLE_NOTE}
+        </p>
+      )}
       {limit && (
         <p className="rf-limit small" data-testid="structural-limit">
           <strong>Límite del cálculo.</strong> {STRUCTURAL_LIMIT_TEXT}

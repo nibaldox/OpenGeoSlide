@@ -71,7 +71,7 @@ export function legendItems(scene: Pick<Scene, 'piezo' | 'reinforcements' | 'rei
   if (withReinforcements) {
     const forces = scene.reinforcementForces ?? [];
     items.push({ key: 'reinforcements', label: 'Refuerzos (un símbolo por tipo)', swatch: 'line-reinforcement' });
-    if (forces.some((f) => f.status === 'applied')) items.push({ key: 'reinforcement-forces', label: 'Fuerza del refuerzo sobre la masa', swatch: 'arrow-reinforcement' });
+    if (forces.some((f) => f.status === 'applied')) items.push({ key: 'reinforcement-forces', label: 'Fuerza del refuerzo sobre la masa (flecha; la pasiva se moviliza dividida por F)', swatch: 'arrow-reinforcement' });
     if (forces.some((f) => f.status !== 'applied')) items.push({ key: 'reinforcement-inactive', label: 'Cruce sin fuerza aplicada (gris)', swatch: 'mark-inactive' });
   }
   return items;
