@@ -14,6 +14,9 @@ use crate::geometry::PreparedModel;
 use crate::model::{self, IntersliceSpec, MethodKind};
 use crate::slicer::{FaceStrength, Slice, interslice_face_strength};
 
+/// A slice narrower than this fraction of the widest slice is a fine piece of a cut (E14o-6): the nodes of the crossings
+/// (`1e-6·width`) and of the line loads are far under it, and the slices of a normal discretisation are far over it.
+const THIN_SLICE_FRACTION: f64 = 1e-2;
 /// Relative driving threshold of amendment E3: `Σ W·sin α ≤ 1e-6 · Σ W` means no driving moment.
 const NO_DRIVING_FRACTION: f64 = 1e-6;
 
@@ -145,9 +148,9 @@ pub(crate) fn negative_normal_message(
     let mut negative_sum = 0.0_f64;
     let mut soil_length = 0.0_f64;
     let mut negative_length = 0.0_f64;
-    // E14n-1: the thin slice of a reinforcement crossing, with the slice before and the one after it (the three that
-    // came from the same slice before the nodes of the crossing), is one slice: its `N'` is the sum of theirs. Without
-    // a crossing every range is one slice and the loop is the plain one, term by term.
+    // E14n-1, E14o-6: the thin slice of a reinforcement crossing is classified with every piece of the slice that it came
+    // from (`classification_ranges`): its `N'` is the sum of theirs. Without a crossing every range is one slice and the
+    // loop is the plain one, term by term.
     for (start, end) in classification_ranges(slices) {
         let (mut n, mut length, mut any) = (0.0_f64, 0.0_f64, false);
         for (j, s) in slices.iter().enumerate().take(end).skip(start) {
@@ -193,32 +196,47 @@ pub(crate) fn negative_normal_message(
     )
 }
 
-/// The ranges `[start, end)` of the slices that are classified as one (E14n-1). A slice without a reinforcement crossing
-/// next to it is a range of its own. The thin slice of a crossing (`Slice::crossing`) is joined with the slice before it
-/// and the one after it, which came from the same slice before the nodes `x_c ± 1e-6·width` were added; thin slices that
-/// follow each other (two crossings together) are one run, with the slice before the first and the one after the last.
-/// A slice belongs to one range only.
+/// The ranges `[start, end)` of the slices that are classified as one (E14n-1, E14o-6). A slice that is not next to a
+/// reinforcement crossing is a range of its own.
+///
+/// The thin slice of a crossing (`Slice::crossing`) is classified with **every piece of the slice that it came from**,
+/// the one that was cut by the nodes `x_c ± 1e-6·width` and by the other cuts that were already there (a line load, a
+/// second crossing, a vertex). Those cuts leave the pieces of the original slice thin as well, so the range grows from the
+/// crossing to each side over the slices that are thin or are crossings, up to and including the first slice of a normal
+/// width: the original slice is whole there, and a point force is spread over its base and not over `1e-5 m`. A fixed
+/// index on each side (the version of E14n-1) stopped at a thin neighbour and the force was concentrated again (R11A-06).
+///
+/// A slice is thin when its width is under [`THIN_SLICE_FRACTION`] of the widest slice. A slice belongs to one range only.
 fn classification_ranges(slices: &[Slice]) -> Vec<(usize, usize)> {
     let n = slices.len();
+    let widest = slices.iter().map(|s| s.width).fold(0.0_f64, f64::max);
+    let thin = |s: &Slice| s.crossing || s.width < THIN_SLICE_FRACTION * widest;
     let mut ranges = Vec::with_capacity(n);
     let mut k = 0;
     while k < n {
-        let start = k;
-        let mut end = k;
-        if !slices[end].crossing && slices.get(end + 1).is_some_and(|s| s.crossing) {
-            end += 1; // the slice before the crossing
+        let Some(c) = (k..n).find(|&j| slices[j].crossing) else {
+            ranges.extend((k..n).map(|j| (j, j + 1)));
+            break;
+        };
+        // Left: the thin pieces of the original slice and the first one of normal width (not taken by a range before).
+        let mut start = c;
+        while start > k {
+            start -= 1;
+            if !thin(&slices[start]) {
+                break;
+            }
         }
-        while end < n && slices[end].crossing {
+        ranges.extend((k..start).map(|j| (j, j + 1)));
+        // Right: every thin piece or crossing that follows, and the first slice of normal width.
+        let mut end = c + 1;
+        while end < n && thin(&slices[end]) {
             end += 1;
         }
-        if end > start && end < n {
-            end += 1; // the slice after the last crossing of the run
-        }
-        if end == start {
+        if end < n {
             end += 1;
         }
-        ranges.push((start, end.min(n)));
-        k = end.min(n);
+        ranges.push((start, end));
+        k = end;
     }
     ranges
 }
@@ -660,6 +678,38 @@ mod tests {
         );
         assert_eq!(guard_positive_fos(failed.clone()).message, failed.message);
         assert_eq!(guard_positive_fos(failed).status, SolveStatus::Invalid);
+    }
+
+    /// E14o-6: the range of a crossing takes every fine piece around it and the first slice of a normal width; the other
+    /// slices stay alone, and a model without crossings is all single ranges.
+    #[test]
+    fn e14o6_classification_ranges_group_the_fine_pieces_of_a_crossing() {
+        let slice = |width: f64, crossing: bool| Slice {
+            width,
+            crossing,
+            ..crate::slicer::ZERO_SLICE
+        };
+        let plain: Vec<Slice> = (0..4).map(|_| slice(1.0, false)).collect();
+        assert_eq!(
+            classification_ranges(&plain),
+            vec![(0, 1), (1, 2), (2, 3), (3, 4)]
+        );
+        // Normal, normal, fine, fine (crossing), fine, fine, normal, normal: one range from the normal slice before the
+        // fine pieces to the normal slice after them.
+        let fine = [
+            slice(1.0, false),
+            slice(1.0, false),
+            slice(1e-5, false),
+            slice(4e-5, true),
+            slice(1e-5, false),
+            slice(1e-5, false),
+            slice(1.0, false),
+            slice(1.0, false),
+        ];
+        assert_eq!(classification_ranges(&fine), vec![(0, 1), (1, 7), (7, 8)]);
+        // The crossing at the end of the block: no slice after it.
+        let end = [slice(1.0, false), slice(1e-5, false), slice(4e-5, true)];
+        assert_eq!(classification_ranges(&end), vec![(0, 3)]);
     }
 
     /// E8d: the notes of a converged state keep a fixed order, the air gap first.
