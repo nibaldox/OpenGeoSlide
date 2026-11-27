@@ -139,7 +139,7 @@ export function noCrackLabel(crack: CrackReport | null | undefined, slices: read
 }
 
 /** Ancho medio estimado de un carácter del rótulo (fuente de 12 px), en px. Solo dimensiona el área de acierto del lienzo, que no mide texto. */
-export const NO_CRACK_CHAR_PX = 6.4;
+export const NO_CRACK_CHAR_PX = 5.9;
 /** Holgura, en px, que el área de acierto del rótulo añade a cada lado del texto estimado. */
 export const NO_CRACK_HIT_PAD = 4;
 
@@ -150,7 +150,7 @@ export const NO_CRACK_HIT_PAD = 4;
 export function noCrackHitRect(label: Pick<NoCrackLabel, 'x' | 'y' | 'text' | 'anchor'>): { x: number; y: number; width: number; height: number } {
   const width = label.text.length * NO_CRACK_CHAR_PX + 2 * NO_CRACK_HIT_PAD;
   const x = label.anchor === 'start' ? label.x - NO_CRACK_HIT_PAD : label.x - width + NO_CRACK_HIT_PAD;
-  return { x, y: label.y - CRACK_LABEL_PX / 2, width, height: CRACK_LABEL_PX };
+  return { x, y: label.y - (CRACK_LABEL_PX + 2) / 2, width, height: CRACK_LABEL_PX + 2 };
 }
 
 /** Longitud de la flecha de Pw, en px. */
