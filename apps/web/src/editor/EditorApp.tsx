@@ -27,7 +27,7 @@ import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { createConfirmDiscard, createTabSwitch, createToolSwitch, runIfDiscarded } from './app/discard';
-import { saveDocument } from './app/saveDocument';
+import { commitFocusedField, saveDocument } from './app/saveDocument';
 import { visibleExportHint } from './app/exportHint';
 import { editMenuLabel } from './app/editMenuLabel';
 import { useNarrow } from './app/useNarrow';
@@ -562,7 +562,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   actions.current = {
     undo: () => store.undo(),
     redo: () => store.redo(),
-    save: () => onSave(),
+    // R16: con el foco en un campo, su valor se confirma (blur) antes de guardar: el archivo lleva lo que muestra la tarjeta.
+    save: () => {
+      commitFocusedField(document.activeElement);
+      onSave();
+    },
     open: () => openRef.current?.click(),
     check: () => void onCheck(),
     'tool:select': () => void switchTool('select'),

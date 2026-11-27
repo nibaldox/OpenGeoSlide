@@ -50,3 +50,14 @@ export async function saveDocument(deps: SaveDeps): Promise<SaveOutcome> {
     return 'error';
   }
 }
+
+/**
+ * Ctrl+S con el foco en un campo de texto: el valor escrito se confirma al perder el foco (`onBlur`), así que se saca el foco antes
+ * de guardar; si no, el archivo llevaría el valor anterior mientras el campo muestra el nuevo. Devuelve si había un campo con foco.
+ */
+export function commitFocusedField(active: { tagName?: string; blur?: () => void } | null | undefined): boolean {
+  const tag = (active?.tagName ?? '').toLowerCase();
+  if (tag !== 'input' && tag !== 'textarea') return false;
+  active?.blur?.();
+  return true;
+}

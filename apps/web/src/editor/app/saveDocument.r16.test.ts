@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEditorStore } from '../state';
 import { PENDING_DRAFTS_TEXT, clearPendingDrafts, getPendingDrafts, pendingDraftsNotice, setPendingDraft } from '../panels/forms';
 import { newDoc } from './docTemplates';
-import { saveDocument, saveFileName, type SaveDeps } from './saveDocument';
+import { commitFocusedField, saveDocument, saveFileName, type SaveDeps } from './saveDocument';
 
 function setup() {
   const store = createEditorStore(newDoc(), null);
@@ -107,8 +107,8 @@ describe('R16B-01: EditorApp enruta Guardar, Ctrl+S y la paleta por saveDocument
     expect(src).toContain('getPendingDrafts: () => getPendingDrafts(store)');
     expect(src).not.toContain('saveOgsJson');
   });
-  it('el atajo `save` (Ctrl+S y paleta) llama a onSave', () => {
-    expect(src).toContain('save: () => onSave(),');
+  it('el atajo `save` (Ctrl+S y paleta) confirma el campo con foco y llama a onSave', () => {
+    expect(src).toMatch(/save: \(\) => \{\s+commitFocusedField\(document\.activeElement\);\s+onSave\(\);\s+\},/);
   });
   it('el botón «Guardar» se deshabilita con borradores, con el mismo motivo que «Comprobar»', () => {
     const start = src.indexOf('onClick={onSave}');
@@ -116,5 +116,20 @@ describe('R16B-01: EditorApp enruta Guardar, Ctrl+S y la paleta por saveDocument
     expect(block).toContain('disabled={hasDrafts}');
     expect(block).toContain("title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+S'}");
     expect(block).toContain("aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}");
+  });
+});
+
+describe('R16: Ctrl+S con un valor válido escrito y sin confirmar', () => {
+  it('saca el foco de un campo de texto (su blur confirma el valor) antes de guardar', () => {
+    let blurred = 0;
+    expect(commitFocusedField({ tagName: 'INPUT', blur: () => { blurred += 1; } })).toBe(true);
+    expect(commitFocusedField({ tagName: 'TEXTAREA', blur: () => { blurred += 1; } })).toBe(true);
+    expect(blurred).toBe(2);
+  });
+  it('no toca otros elementos (botones, selector, cuerpo, nada)', () => {
+    let blurred = 0;
+    const blur = () => { blurred += 1; };
+    for (const el of [{ tagName: 'BUTTON', blur }, { tagName: 'SELECT', blur }, { tagName: 'BODY', blur }, null, undefined]) expect(commitFocusedField(el)).toBe(false);
+    expect(blurred).toBe(0);
   });
 });
