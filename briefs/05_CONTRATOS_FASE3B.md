@@ -682,5 +682,29 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   `{ratio 0,25, pop 1e308, exponent 0}`, que hoy sale con código 0 y `"ocr": null`. Si el OCR se reporta en otra parte,
   ahí también.
 
+- **E16ac, cierre de R16b (R16b2-01, 02, 04 y 05, 2026-11-27).**
+  - **Identidad exacta (R16b2-01).** `resolve_contact` rehace `col` como `weight / width`, y ese ida y vuelta mete 1 ULP.
+    Pasa en contactos secos con `ru` en el material de abajo: `pore_pressure` difiere en 3,6e-15 y el FS en 8,9e-16.
+    También pasa en un empate exacto, donde el material elegido se invierte. Las dos cosas van contra la identidad de
+    E16aa.
+    - La comparación usa el `col` original del slicer, guardado en la dovela sin serializarse o vuelto a calcular con
+      la misma suma.
+    - Se toma σv = col + (Q + V)/b, de modo que, sin embalse ni cargas, σv es igual a col bit a bit.
+    - `shansep::apply` mantiene (W + Q + V)/b. El invariante de 1e-12 sigue valiendo.
+    - **Prueba:** los modelos secos de R16b con `ru` y el empate dan resultados byte a byte iguales a la v0.4.0.
+  - **σ′v no finita (R16b2-02, BAJA).** Con datos absurdos (γw = 1e308, piezométrica en 1e308 o `udl` = 1e308), la
+    σ′v de una base SHANSEP sale ±∞ o NaN, y hoy se reporta Su = 0 con `"vertical_stress": null` y código 0.
+    - Pasa a `InvalidModel`, con el texto «la tensión vertical efectiva en la base del material SHANSEP '<id>' no es
+      finita (revise los pesos unitarios, el agua y las cargas)».
+    - El mensaje de E16y sigue para Su y OCR.
+  - **API pública (R16b2-04).** El rustdoc de `slicer::slice_*` y de `water::ponded_terms` dice que la elección de
+    material en los contactos (E13l-5 y E16aa) la hace `water::apply_ponded`. Las dovelas que salen del slicer traen el
+    material de arriba.
+  - **Comparación estática (R16b2-05, limitación documentada).** La comparación del contacto usa σv sin `kv` (E16o) y
+    antes de los refuerzos.
+    - Con `kv` = ±0,5 o con un anclaje activo de 3000 kN/m casi vertical, una polilínea exacta sobre el contacto puede
+      quedar entre 0,7 % y 21 % sobre el lado débil.
+    - Se documenta en `docs/limitaciones.md` con esas cifras. El remedio práctico es mover la polilínea 1 mm hacia el
+      lado débil. No se cambia el motor en la 0.5.0.
   Evidencia de E16v a E16z (y de E16aa y E16ab: `$TMPDIR/r16-A/R16_A.md`, con el arbitraje R16): `$TMPDIR/r15-A/R15_A.md`, `$TMPDIR/r15-C/R15_C.md` y el arbitraje del coordinador
   (`$TMPDIR/f3b-coord/r15/arbitraje.md`), con las reproducciones citadas en cada enmienda.
