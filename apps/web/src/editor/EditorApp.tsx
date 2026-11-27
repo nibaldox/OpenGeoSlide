@@ -677,7 +677,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const side = sideLayout({ view, preference: sideCollapsed, desktop });
   // UA2-F1: el encuadre deja libre el HUD (se mide en la tarjeta del lienzo).
   const canvasCardRef = useRef<HTMLElement>(null);
-  const { insets: fitInsets, covered: coveredBoxes } = useHudInsets(canvasCardRef, doc, desktop);
+  const docEpoch = useEditorStore(store, (s) => s.docEpoch);
+  const { insets: fitInsets, covered: coveredBoxes, compact: hudCompact } = useHudInsets(canvasCardRef, doc, desktop, docEpoch);
   const localIssues = useLocalIssues(store);
   const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
   // Un resultado con borradores sin aplicar no es el del modelo que se ve: nunca es «actual» (UA3 A-02, B-01).
@@ -935,7 +936,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                 />
               </div>
               {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
-              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} />
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} compact={hudCompact} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} />
               <Legend
                 scene={scene}
                 label="Leyenda de la sección"

@@ -4,7 +4,7 @@ import { worldToScreen, type Viewport } from '../../../geometry/viewport';
 import { labelCovered } from '../../canvas/EditorCanvas';
 import { makeDoc } from '../../canvas/fakeStore';
 import { docBounds, fitToDocInsets, insetsFeasible, paddedBounds } from '../../canvas/viewportOps';
-import { boxOf, chooseHudFit, hudCandidates, HUD_GAP_PX, insetsEqual, isLastAutoFit, sameViewport, type Box } from './hudFit';
+import { boxOf, chooseHudFit, COMPACT_CARD_HEIGHT_PX, hudCandidates, HUD_GAP_PX, insetsEqual, isLastAutoFit, needsCompactHud, pickDocFor, sameViewport, type Box, type PickKey } from './hudFit';
 import { FIT_INSETS_DESKTOP } from './layout';
 
 const BASE = FIT_INSETS_DESKTOP;
@@ -126,5 +126,65 @@ describe('rótulos del eje y bajo el HUD', () => {
   it('sin cajas se dibujan todos', () => {
     expect(labelCovered('50', 100, undefined)).toBe(false);
     expect(labelCovered('50', 100, [])).toBe(false);
+  });
+});
+
+describe('pickDocFor: editar no cambia el candidato (UA3 A-08)', () => {
+  const key: PickKey = { epoch: 1, refit: 0, width: 1052, height: 576, desktop: true };
+  const first = pickDocFor(null, key, doc);
+  const edited = { ...doc, regions: doc.regions.map((r, i) => (i === 0 ? { ...r, polygon: r.polygon.map(([x, y], k) => (k === 0 ? [x, y + 20] : [x, y])) } : r)) } as typeof doc;
+  it('el primer documento se toma tal cual', () => expect(first.doc).toBe(doc));
+  it('con la misma clave, un documento editado no renueva el documento del candidato', () => {
+    expect(pickDocFor(first, key, edited)).toBe(first);
+    expect(pickDocFor(first, key, edited).doc).toBe(doc);
+  });
+  it('otro documento, «Encuadrar» o la tecla 0 y otro tamaño de tarjeta sí lo renuevan', () => {
+    expect(pickDocFor(first, { ...key, epoch: 2 }, edited).doc).toBe(edited);
+    expect(pickDocFor(first, { ...key, refit: 1 }, edited).doc).toBe(edited);
+    expect(pickDocFor(first, { ...key, width: 1000 }, edited).doc).toBe(edited);
+    expect(pickDocFor(first, { ...key, height: 500 }, edited).doc).toBe(edited);
+  });
+  it('un documento previo sin regiones se renueva en cuanto hay regiones', () => {
+    const empty = pickDocFor(null, key, { ...doc, regions: [] });
+    expect(pickDocFor(empty, key, doc).doc).toBe(doc);
+  });
+  it('una edición que por sí sola cambiaría el candidato no lo cambia mientras no cambie la clave', () => {
+    const hud = hudAt(300, 200);
+    const size = { width: 900, height: 560 };
+    const at = (d: typeof doc, prev?: 'below' | 'beside') => chooseHudFit({ doc: d, ...size, base: BASE, hud, collapsed: false, prev }).pick;
+    const tall = (dy: number) => ({ ...doc, regions: doc.regions.map((r, i) => (i === 0 ? { ...r, polygon: r.polygon.map(([x, y], k) => (k === 0 ? [x, y + dy] : [x, y])) } : r)) }) as typeof doc;
+    const before = at(doc);
+    const flipped = [5, 10, 20, 40, 80, 160, 320, 640].map(tall).find((d) => at(d, before as 'below' | 'beside') !== before);
+    expect(flipped, 'la edición debe poder cambiar el candidato para que la prueba valga').toBeDefined();
+    // Camino de `useHudInsets`: con el documento congelado de `pickDocFor`, la edición no llega a `chooseHudFit`.
+    const k: PickKey = { epoch: 1, refit: 0, ...size, desktop: true };
+    const frozen = pickDocFor(pickDocFor(null, k, doc), k, flipped!);
+    expect(at(frozen.doc, before as 'below' | 'beside')).toBe(before);
+  });
+});
+
+describe('needsCompactHud (UA-E3 §3, A-07)', () => {
+  const hud = hudAt(280, 236);
+  const legend: Box = { left: 16, top: 160, right: 358, bottom: 261 };
+  it('una tarjeta de menos de 360 px de alto pide HUD compacto, con o sin medidas', () => {
+    expect(needsCompactHud({ width: 452, height: COMPACT_CARD_HEIGHT_PX - 1, base: BASE, hud: null, legend: null })).toBe(true);
+    expect(needsCompactHud({ width: 1052, height: 359, base: BASE, hud, legend: null })).toBe(true);
+  });
+  it('800 × 600 con un aviso: tarjeta de 452 × 270, HUD de 280 × 236 sobre la leyenda', () => {
+    expect(needsCompactHud({ width: 452, height: 270, base: BASE, hud, legend })).toBe(true);
+  });
+  it('si ningún candidato deja el modelo libre, compacto aunque la tarjeta mida ≥ 360', () => {
+    const big = hudAt(330, 340);
+    expect(insetsFeasible(420, 400, hudCandidates(BASE, big).below)).toBe(false);
+    expect(insetsFeasible(420, 400, hudCandidates(BASE, big).beside)).toBe(false);
+    expect(needsCompactHud({ width: 420, height: 400, base: BASE, hud: big, legend: null })).toBe(true);
+  });
+  it('el HUD desplegado que cruza la leyenda pide compacto; con aire suficiente, no', () => {
+    expect(needsCompactHud({ width: 1052, height: 576, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 200, right: 300, bottom: 301 } })).toBe(true);
+    expect(needsCompactHud({ width: 1052, height: 576, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 480, right: 300, bottom: 561 } })).toBe(false);
+  });
+  it('1440 × 900 y 1280 × 800 con el HUD completo: no hace falta', () => {
+    expect(needsCompactHud({ width: 1052, height: 576, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 480, right: 330, bottom: 561 } })).toBe(false);
+    expect(needsCompactHud({ width: 892, height: 476, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 400, right: 300, bottom: 461 } })).toBe(false);
   });
 });
