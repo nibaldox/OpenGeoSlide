@@ -13,7 +13,8 @@ publicar**. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a 
 `docs/fase3/exploracion/X18.md` a `X22.md` y `docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack`, sin
 `lateral_pressure` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0** (salvo el número de versión del motor), con dos excepciones documentadas: los modelos cuya
 piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»), y V019 con búsqueda, donde solo
-cambian dos contadores (E15j-8, véase «Changed»).
+cambian dos contadores (E15j-8, véase «Changed»). Las correcciones de la revisión R12 (E15l-1 a E15l-27) están en
+«Fixed», y lo que cambian frente al binario anterior, en «Changed».
 
 ### Added
 - **Formato `.ogs.json` v0.5 (E15a).** El motor acepta 0.1 a 0.5. `analysis.tension_crack` exige `"version": "0.5"`; con
@@ -49,7 +50,8 @@ cambian dos contadores (E15j-8, véase «Changed»).
     opcional (al menos uno, > 0, solo con `lateral_pressure`). El pilote es vertical y `spacing > diameter`. Los errores
     llevan su ruta JSON, salvo `model` y `location` inválidos, que da el deserializador sin ruta. Va en el esquema 0.5.
   - **Presión por capas.** `p(z) = c·A1 + σ′v·A2`, con el material, `c` y φ de cada punto; con φ = 0 (o `undrained`), la
-    ecuación 23 con la tensión **total**; `σ′v = σv − u − ru·σ_suelo`, sin las cargas de superficie. **Piso de φ = 0**
+    ecuación 23 con la tensión **total**; `σ′v = σv − u` (con `ru`, `σ′v = σv − ru·σ_suelo`, E15l-12), sin las cargas de
+    superficie. **Piso de φ = 0**
     (`A = max(A_cφ, A_φ=0)`), que no viene del artículo sino de cSlope y XSLOPE y solo actúa con S/D ≥ 8. El perfil se
     integra una vez por análisis (`PileProfiles`, paso de 0,05 m).
   - **Fuerza y salida.** Por pilote, `min(∫p dz, shear, moment/L_m)`, y por metro, dividida por `spacing`. Cada cruce del
@@ -151,6 +153,81 @@ cambian dos contadores (E15j-8, véase «Changed»).
   desconocida pasan a `"0.6"`.
 - Los modelos sin grieta y sin agua sobre el terreno no cambian: la identidad byte a byte con la v0.3.0 es un gate de
   cada ola.
+- **Cambios de resultados con las correcciones R12, frente al binario anterior a R12.** Son a propósito y están medidos:
+  - **D30** emite ahora el aviso `water_above_ground` (E15l-5); el FS no cambia.
+  - **V013c, V013d y V013e** y **D40 a D42** (Ito-Matsui, E15l-13): el brazo del primer tramo del perfil cambia y el FS
+    varía 1,5e-6 en términos relativos o menos (V013c a V013e, entre −1,5e-7 y −6,4e-7; D40 a D42, hasta −1,5e-6). D40 y
+    D42 eligen un círculo crítico vecino. El brazo del ejemplo de `docs/formato-ogs-json.md` pasa de 1,2237 a 1,2238 m.
+  - **`search.valid`** de algunos casos con grieta (V048, V073, V086b-auto, V086d, D33, D36, D38 y D39): de +1 a +4
+    candidatos válidos más, sin cambio del FS ni de la superficie crítica. <!-- coord: enmienda search.valid -->
+  - Los modelos sin grieta de tracción, sin `lateral_pressure` y sin agua sobre el terreno siguen dando la misma salida,
+    byte a byte, que el binario anterior a R12 (150 modelos, 0 diferencias).
+
+### Fixed
+Correcciones de la revisión R12 (enmiendas E15l-1 a E15l-27 del contrato, `briefs/04_CONTRATOS_GRIETA_AGUA.md` §F5.12).
+
+**Motor**
+- **La grieta automática en el borde del modelo ya no se anula (E15l-1).** Con el deslizamiento de derecha a izquierda y
+  la grieta en el extremo del modelo (`a01_rtl.json`), la grieta quedaba en `depth` 0 y el FS no era el espejo del caso de
+  izquierda a derecha (Bishop 1,726963 frente a 1,692572). Ahora los dos dan 1,692572, con `depth` 2,6483 y `Pw` 34,402.
+- **Profundidad sobre una discontinuidad de `d(x)` (E15l-2).** Con la profundidad automática y una `udl` o un cambio
+  lateral de material, la profundidad es la de la cara realmente cortada, `terreno(x) − base(x)`; sin cara, no hay grieta
+  y no se trunca la masa. Medido (`docs/fase3/r12/repro/a04_udl.json`): `depth` 1,7827 y `Pw` 15,5885, en lugar de 0 y 0, y
+  Bishop 1,095348 en lugar de 1,102248.
+- **El barrido de la grieta incluye los vértices (E15l-3)** de la superficie, del terreno, de las regiones y los bordes de
+  una `udl`, para no saltar una cara estrecha. **Tolerancias de la grieta (E15l-8):** el agua usa terreno + tolerancia y
+  `Pw` va a la última dovela con peso.
+- **El empuje del paramento vertical va en una sola dovela (E15l-4).** Una carga lineal a 5e-6 del paramento
+  duplicaba el empuje: en la presa de B-03, `Σ h_force` pasaba de −120,743 a −241,486 y Bishop daba 1,6642; ahora queda
+  en −120,743 y 1,2637.
+- **`water_above_ground` también con términos embalsados (E15l-5),** incluido el empuje de un paramento vertical: sin la
+  nota, una presa con muro cambiaba su FS un 26 % frente a la v0.3.0 (Bishop 1,0010 → 1,2629).
+- **γw por defecto según las unidades (E15l-6).** Sin `water.unit_weight`, vale 9,81 kN/m³ en SI y ≈ 62,45 pcf en
+  imperial (62,449). Antes, una grieta de 2 m con agua y sin `water`, convertida a imperial, usaba 9,81 «pcf»: `Pw` 211,19
+  en lugar de 1344,40 lbf/ft y Bishop 1,71248 en lugar de 1,69865 (el valor de SI).
+- **Mensaje de una búsqueda sin superficies por la grieta (E15l-7):** termina en `(E evaluadas, 0 válidas; K no alcanzan
+  la grieta de tracción, tension_crack_not_reached)`; por ejemplo, `(7400 evaluadas, 0 válidas; 7397 no alcanzan …)`.
+  Con K = 0 el mensaje es el de siempre.
+- **Filas con agua embalsada activa en la superficie (E15l-10):** tres filas nuevas en `crates/ogs-core/tests/data/f3g/r12/`
+  (V042 aguas arriba, con y sin `kh`, y V061 por el lado derecho) contra cSlope 0.1.0, con 0,081 % de peor diferencia.
+- **Un perfil de Ito-Matsui no finito da `InvalidModel` (E15l-11).** Con φ = 35°, S/D = 1,00125 y `capacity`, Bishop daba
+  `invalid` y los otros tres métodos `not_converged`; ahora el análisis termina antes de resolver con
+  `InvalidModel: reinforcements[0].lateral_pressure: la presión de Ito-Matsui no es finita …`.
+- **`ru` en `σ′v` del pilote de Ito-Matsui (E15l-12):** `σ′v = σv − ru·σ_suelo`, sin restar la `u` de la piezométrica.
+  La fila X22-S16 (`ru` = 0,2 y piezométrica) pasa de −1,97 % a 0,026 % o menos del oráculo en los cinco métodos (0,0185 %
+  en Bishop) y la fuerza por metro, de −10,2 % a 0,041 %.
+- **Brazo positivo en el primer tramo del perfil (E15l-13).** Con la cabeza del pilote a 0,0124 m sobre el cruce (A-07),
+  `arm` era 0 y gobernaba `soil` (0,903); ahora `arm` es 0,006182 m y gobierna `bending` (0,674).
+
+**Web**
+- **γw al convertir unidades y en el informe (E15l-14):** la web escribe `water.unit_weight` de forma explícita al
+  convertir.
+- **Rótulo «Sin grieta (z = 0)» (E15l-15)** en el lienzo.
+- **`tension_crack_not_reached` en español y con navegación (E15l-16).**
+- **El motor simulado rechaza el agua embalsada (E15l-17).**
+- **Textos de `ru` y del agua (E15l-18):** Ayuda, Diagnósticos, panel «Agua» y resumen cuentan lo mismo, incluida el
+  agua de la grieta.
+- **Nota `io.pond_changed` al abrir (E15l-19)** un modelo con la piezométrica sobre el terreno, de cualquier versión.
+- **Nota de grieta fija con búsqueda (E15l-20):** `editor.crack_fixed_search`.
+- **El pilote de Ito-Matsui sigue vertical (E15l-21)** al arrastrarlo y con el teclado.
+- **Flecha del pilote de Ito-Matsui en (x, y + arm) (E15l-22)** con `centroid`, en el lienzo, en «Casos» y en el PDF, con
+  información emergente que muestra la fuerza del suelo, qué gobierna y el brazo.
+- **Validación de la forma de `tension_crack` y `role="status"` del aviso de S/D (E15l-23).**
+
+**Python y CLI**
+- **Docstring, README y `test_v05.py` de `ogs-py` (E15l-24):** reglas y cifras de R12; las tres reproducciones de
+  `docs/fase3/r12/repro/` (E15l-1, E15l-2 y E15l-11) corren sin marcas `xfail` (136 pruebas en `test_v05.py`).
+- **`USAGE` de la CLI (E15l-25)** con `tension_crack`, `lateral_pressure`, `capacity` y el agua embalsada.
+
+**Documentación**
+- **Cifras vigentes y reglas de R12 (E15l-26)** en `docs/limitaciones.md`, `docs/formato-ogs-json.md`,
+  `docs/verificacion.md` y el README; el ejemplo `grieta-udl-automatica` y un fragmento de S/D = 1,000125 son ejecutables
+  (`docs/tools/validar_ejemplos.py`: 9 ejemplos y 66 fragmentos).
+- **Polilínea totalmente sumergida (E15l-27):** se rechaza con `no_driving` en Spencer, Morgenstern-Price y los dos Janbu,
+  del lado seguro; el motor no cambia.
+- **Hueco entre dovelas vecinas (E15l-9):** de menos de 1e-6 veces el ancho del modelo tras el contacto de aire capilar.
+- **Qué casos ejercitan de verdad el agua embalsada:** 8 sí (V023, V041a, V041b, V070, V087, V089, V091 y V092), V024
+  marginal y 5 no (V038, V038b, V042, V058 y V061).
 
 ### Known issues
 - **La grieta es solo vertical, una por superficie, sin zona ni ángulo**, y no tiene tope de profundidad por la altura
@@ -172,11 +249,16 @@ cambian dos contadores (E15j-8, véase «Changed»).
 - **Diferencial v0.5 (D28 a D42): 58 OK de 60.** D39 fija (×2) está explicada por E15f y E15j-7 (el círculo de cSlope
   pasa 9,2e-7 bajo el fondo; el informe la marca «explicado», sin relajar la tolerancia). No quedan fallas abiertas: D30
   fija se corrigió con E15j-8 (véase «Changed») y D40 a D42 pasan con el motor de Ito-Matsui.
+- **Polilínea totalmente sumergida y hueco entre dovelas (R12).** Spencer, Morgenstern-Price y los dos Janbu rechazan con
+  `no_driving` una polilínea fija bajo el agua embalsada (E15l-27; cSlope tampoco la resuelve, y el mismo talud con
+  `γ′ = γ − γw` sí converge), y tras el contacto de aire capilar puede quedar un hueco de menos de 1e-6 veces el ancho
+  del modelo entre dos dovelas vecinas (E15l-9). Ninguno cambia el cálculo.
 - **Pilotes de Ito-Matsui (E15i): una estimación, no un diseño.** La fórmula es para pilotes rígidos y verticales, en
   deformación plana, y vale con S/D de 2 a 8: fuera de ese rango el motor avisa (`ito_matsui_spacing_range`) y la fuerza
   se sobrestima con S/D pequeño y se subestima con S/D grande (Ukritchon y Keawsawasvong, 2017). El piso de φ = 0 no
-  viene del artículo, y las cargas de superficie no entran en `σv`. Con `ru`, `σ′v = σv − u − ru·σ_suelo` (la regla de
-  cSlope) convive con la de las dovelas, `ru·(W + V)/b`. La `capacity` es un tope, no una comprobación del perfil.
+  viene del artículo, y las cargas de superficie no entran en `σv`. Con `ru`, `σ′v = σv − ru·σ_suelo` (E15l-12, la regla
+  de cSlope, sin restar la `u` de la piezométrica) convive con la de las dovelas, `ru·(W + V)/b`. La `capacity` es un
+  tope, no una comprobación del perfil.
 
 ## [0.3.0] - 2026-11-26
 
