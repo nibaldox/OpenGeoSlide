@@ -1,0 +1,131 @@
+{
+ "id": "X28-F-SA",
+ "descripcion": "Sintético SA (X23 §4.1), roca débil, seco, círculo fijo",
+ "grupo": "fijo",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+   "id": "X28-F-SA",
+   "title": "X23 §4.1 SA: roca débil, seco"
+  },
+  "materials": [
+   {
+    "id": "roca",
+    "name": "roca",
+    "model": "hoek_brown",
+    "unit_weight": 25.0,
+    "ucs": 12000.0,
+    "gsi": 25.0,
+    "mi": 8.0,
+    "disturbance": 0.7,
+    "ru": null
+   }
+  ],
+  "regions": [
+   {
+    "material": "roca",
+    "polygon": [
+     [
+      -40,
+      -10
+     ],
+     [
+      72.3205,
+      -10
+     ],
+     [
+      72.3205,
+      30
+     ],
+     [
+      32.3205,
+      30
+     ],
+     [
+      27.3205,
+      30
+     ],
+     [
+      21.547,
+      20
+     ],
+     [
+      16.547,
+      20
+     ],
+     [
+      10.7735,
+      10
+     ],
+     [
+      5.7735,
+      10
+     ],
+     [
+      0,
+      0
+     ],
+     [
+      -40,
+      0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 40,
+   "tolerance": 1e-05,
+   "max_iterations": 1000,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": 11.064761108572334,
+    "yc": 35.672573017328205,
+    "r": 18.85046460530379
+   }
+  }
+ },
+ "oracle": {
+  "bishop": 1.181632,
+  "spencer": 1.188055,
+  "morgenstern_price": 1.188055,
+  "janbu_simplified": 1.136758,
+  "janbu_corrected": 1.179406,
+  "config": "cslope 0.1.0, to_cslope.ogs_to_cslope o cslope_direct (X28_proto/models.py), círculo fijo, slices 40, tolerance 1e-5, maxIterations 1000, método Bishop/Morgenstern-Price constant/Janbu (janbuCorrection false/true)"
+ },
+ "proto": {
+  "bishop": 1.181645,
+  "spencer": 1.188084,
+  "morgenstern_price": 1.188084,
+  "janbu_simplified": 1.136899,
+  "janbu_corrected": 1.179534
+ },
+ "tolerancia": 0.001,
+ "nota": "",
+ "proto_passes": {
+  "bishop": 6,
+  "spencer": 3,
+  "morgenstern_price": 3,
+  "janbu_simplified": 6,
+  "janbu_corrected": 6
+ },
+ "proto_status": {
+  "bishop": "converged",
+  "spencer": "converged",
+  "morgenstern_price": "converged",
+  "janbu_simplified": "converged",
+  "janbu_corrected": "converged"
+ }
+}

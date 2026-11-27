@@ -1,0 +1,355 @@
+{
+ "tolerancia_relativa": 0.001,
+ "filas": [
+  {
+   "id": "X28-F-X25",
+   "metodo": "bishop",
+   "oracle": 1.46604,
+   "proto": 1.466093,
+   "dif_pct": 0.0036,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-X25",
+   "metodo": "spencer",
+   "oracle": 1.468185,
+   "proto": 1.468267,
+   "dif_pct": 0.0056,
+   "dentro": true,
+   "pasadas": 4,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-X25",
+   "metodo": "morgenstern_price",
+   "oracle": 1.468185,
+   "proto": 1.468267,
+   "dif_pct": 0.0056,
+   "dentro": true,
+   "pasadas": 4,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-X25",
+   "metodo": "janbu_simplified",
+   "oracle": 1.392073,
+   "proto": 1.392277,
+   "dif_pct": 0.0147,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-X25",
+   "metodo": "janbu_corrected",
+   "oracle": 1.456504,
+   "proto": 1.456682,
+   "dif_pct": 0.0122,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-HAM1",
+   "metodo": "bishop",
+   "oracle": 1.151807,
+   "proto": 1.151963,
+   "dif_pct": 0.0135,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-HAM1",
+   "metodo": "spencer",
+   "oracle": 1.153019,
+   "proto": 1.15317,
+   "dif_pct": 0.0131,
+   "dentro": true,
+   "pasadas": 3,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-HAM1",
+   "metodo": "morgenstern_price",
+   "oracle": 1.153019,
+   "proto": 1.15317,
+   "dif_pct": 0.0131,
+   "dentro": true,
+   "pasadas": 3,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-HAM1",
+   "metodo": "janbu_simplified",
+   "oracle": 1.091534,
+   "proto": 1.091759,
+   "dif_pct": 0.0206,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-HAM1",
+   "metodo": "janbu_corrected",
+   "oracle": 1.151583,
+   "proto": 1.151789,
+   "dif_pct": 0.0179,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SA",
+   "metodo": "bishop",
+   "oracle": 1.181632,
+   "proto": 1.181645,
+   "dif_pct": 0.0011,
+   "dentro": true,
+   "pasadas": 6,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SA",
+   "metodo": "spencer",
+   "oracle": 1.188055,
+   "proto": 1.188084,
+   "dif_pct": 0.0024,
+   "dentro": true,
+   "pasadas": 3,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SA",
+   "metodo": "morgenstern_price",
+   "oracle": 1.188055,
+   "proto": 1.188084,
+   "dif_pct": 0.0024,
+   "dentro": true,
+   "pasadas": 3,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SA",
+   "metodo": "janbu_simplified",
+   "oracle": 1.136758,
+   "proto": 1.136899,
+   "dif_pct": 0.0124,
+   "dentro": true,
+   "pasadas": 6,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SA",
+   "metodo": "janbu_corrected",
+   "oracle": 1.179406,
+   "proto": 1.179534,
+   "dif_pct": 0.0109,
+   "dentro": true,
+   "pasadas": 6,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SB",
+   "metodo": "bishop",
+   "oracle": 2.090902,
+   "proto": 2.091531,
+   "dif_pct": 0.0301,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SB",
+   "metodo": "spencer",
+   "oracle": 2.107886,
+   "proto": 2.10031,
+   "dif_pct": -0.3594,
+   "dentro": false,
+   "pasadas": 4,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SB",
+   "metodo": "morgenstern_price",
+   "oracle": 2.107886,
+   "proto": 2.10031,
+   "dif_pct": -0.3594,
+   "dentro": false,
+   "pasadas": 4,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SB",
+   "metodo": "janbu_simplified",
+   "oracle": 2.105636,
+   "proto": 2.106541,
+   "dif_pct": 0.043,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-F-SB",
+   "metodo": "janbu_corrected",
+   "oracle": 2.202191,
+   "proto": 2.203104,
+   "dif_pct": 0.0415,
+   "dentro": true,
+   "pasadas": 5,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-W-SB-LINEA16",
+   "metodo": "bishop",
+   "oracle": 2.276196,
+   "proto": 2.277481,
+   "dif_pct": 0.0565,
+   "dentro": true,
+   "pasadas": 7,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-W-SB-LINEA16",
+   "metodo": "spencer",
+   "oracle": 2.27726,
+   "proto": 2.278408,
+   "dif_pct": 0.0504,
+   "dentro": true,
+   "pasadas": 7,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-W-SB-LINEA16",
+   "metodo": "morgenstern_price",
+   "oracle": 2.27726,
+   "proto": 2.278408,
+   "dif_pct": 0.0504,
+   "dentro": true,
+   "pasadas": 7,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-W-SB-LINEA16",
+   "metodo": "janbu_simplified",
+   "oracle": 2.274348,
+   "proto": 2.275976,
+   "dif_pct": 0.0716,
+   "dentro": true,
+   "pasadas": 7,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-W-SB-LINEA16",
+   "metodo": "janbu_corrected",
+   "oracle": 2.378643,
+   "proto": 2.380306,
+   "dif_pct": 0.0699,
+   "dentro": true,
+   "pasadas": 7,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-SB-RU03",
+   "metodo": "bishop",
+   "oracle": 0.961808,
+   "proto": 0.962598,
+   "dif_pct": 0.0821,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-SB-RU03",
+   "metodo": "spencer",
+   "oracle": 1.010265,
+   "proto": 1.010814,
+   "dif_pct": 0.0543,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-SB-RU03",
+   "metodo": "morgenstern_price",
+   "oracle": 1.010265,
+   "proto": 1.010814,
+   "dif_pct": 0.0543,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-SB-RU03",
+   "metodo": "janbu_simplified",
+   "oracle": 0.8737,
+   "proto": 0.874178,
+   "dif_pct": 0.0547,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-SB-RU03",
+   "metodo": "janbu_corrected",
+   "oracle": 0.913764,
+   "proto": 0.91425,
+   "dif_pct": 0.0532,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-X25-RU03",
+   "metodo": "bishop",
+   "oracle": 0.905901,
+   "proto": 0.905941,
+   "dif_pct": 0.0044,
+   "dentro": true,
+   "pasadas": 9,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-X25-RU03",
+   "metodo": "spencer",
+   "oracle": 0.922042,
+   "proto": null,
+   "dif_pct": null,
+   "dentro": null,
+   "pasadas": 2,
+   "estado": "no_solution"
+  },
+  {
+   "id": "X28-R-X25-RU03",
+   "metodo": "morgenstern_price",
+   "oracle": 0.922042,
+   "proto": null,
+   "dif_pct": null,
+   "dentro": null,
+   "pasadas": 2,
+   "estado": "no_solution"
+  },
+  {
+   "id": "X28-R-X25-RU03",
+   "metodo": "janbu_simplified",
+   "oracle": 0.826785,
+   "proto": 0.826924,
+   "dif_pct": 0.0168,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  },
+  {
+   "id": "X28-R-X25-RU03",
+   "metodo": "janbu_corrected",
+   "oracle": 0.865053,
+   "proto": 0.865177,
+   "dif_pct": 0.0143,
+   "dentro": true,
+   "pasadas": 10,
+   "estado": "converged"
+  }
+ ]
+}

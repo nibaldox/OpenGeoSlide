@@ -1,0 +1,904 @@
+{
+ "criterios": {
+  "A2_relativo": 0.01,
+  "evaluador_relativo": 0.001,
+  "A4_vertices_max": 33,
+  "A7_ratio_max": 4.0,
+  "A8_alerta": 0.15
+ },
+ "busqueda": [
+  {
+   "id": "X29-V001-k4",
+   "caso": "V001",
+   "k": 4,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.383717,
+   "FS_ogs_NC": 1.383876,
+   "rel_A2": 0.000115,
+   "FS_motor_circular": 1.402142,
+   "FS_cslope_circular": 1.401839,
+   "rel_circular_motor_vs_cslope": 0.000216,
+   "publicado": 1.386,
+   "tol_publicado": 0.02036075036075036,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 9.919543,
+   "A8_ok": true,
+   "evaluaciones_nc": 4500,
+   "evaluaciones_malla": 8085,
+   "tiempo_s": 2.141,
+   "rechazos_adm": 1043,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.41068,
+     17.368,
+     55.579
+    ],
+    [
+     1.415488,
+     17.368,
+     59.053
+    ],
+    [
+     1.437524,
+     13.895,
+     55.579
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.401839,
+     17.999,
+     56.319
+    ],
+    [
+     1.428277,
+     14.667,
+     56.897
+    ],
+    [
+     1.432737,
+     18.017,
+     60.226
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.3837,
+   "evaluador_rel_vs_cslope": -1.2e-05,
+   "variantes": {
+    "base": {
+     "fos": 1.3838760786423905,
+     "evals_nc": 4500,
+     "vertices": 33,
+     "seconds": 2.1397984009963693,
+     "best_idx": 2
+    },
+    "presupuesto_3000": {
+     "fos": 1.3836710858846142,
+     "evals_nc": 8675,
+     "vertices": 33,
+     "seconds": 4.2359863680030685,
+     "best_idx": 2
+    },
+    "sin_33_(9_17)": {
+     "fos": 1.3854388289194168,
+     "evals_nc": 3962,
+     "vertices": 17,
+     "seconds": 2.4309379390178947,
+     "best_idx": 0
+    },
+    "rondas_3": {
+     "fos": 1.3836855384526865,
+     "evals_nc": 4500,
+     "vertices": 33,
+     "seconds": 3.7755185069836443,
+     "best_idx": 0
+    },
+    "delta0_0.05": {
+     "fos": 1.3850932182049598,
+     "evals_nc": 4502,
+     "vertices": 33,
+     "seconds": 2.3085209280106938,
+     "best_idx": 0
+    },
+    "sin_concavidad": {
+     "fos": 1.385105162290246,
+     "evals_nc": 4501,
+     "vertices": 33,
+     "seconds": 3.3064099339972017,
+     "best_idx": 0
+    },
+    "pulido_4x3000": {
+     "fos": 1.3836719410534755,
+     "evals_nc": 10293,
+     "vertices": 33,
+     "seconds": 6.4057991260051494,
+     "best_idx": 2
+    },
+    "spencer": {
+     "fos": 1.3838760786423905,
+     "evals_nc": 4500,
+     "vertices": 33,
+     "seconds": 2.1043487270071637,
+     "best_idx": 2
+    }
+   }
+  },
+  {
+   "id": "X29-V002-k1",
+   "caso": "V002",
+   "k": 1,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 0.410992,
+   "FS_ogs_NC": 0.412105,
+   "rel_A2": 0.002708,
+   "FS_motor_circular": 0.401964,
+   "FS_cslope_circular": 0.422072,
+   "rel_circular_motor_vs_cslope": -0.047639,
+   "publicado": 0.414,
+   "tol_publicado": 0.021207729468599036,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 7.40889,
+   "A8_ok": true,
+   "evaluaciones_nc": 4502,
+   "evaluaciones_malla": 8139,
+   "tiempo_s": 2.589,
+   "rechazos_adm": 716,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     0.427677,
+     15.158,
+     60.632
+    ],
+    [
+     0.429218,
+     15.158,
+     55.579
+    ],
+    [
+     0.440608,
+     10.105,
+     60.632
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     0.422072,
+     17.999,
+     58.259
+    ],
+    [
+     0.427322,
+     18.207,
+     53.333
+    ],
+    [
+     0.429653,
+     17.778,
+     64.674
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 0.41101,
+   "evaluador_rel_vs_cslope": 4.3e-05,
+   "variantes": null
+  },
+  {
+   "id": "X29-V026-k3",
+   "caso": "V026",
+   "k": 3,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.170166,
+   "FS_ogs_NC": 1.173381,
+   "rel_A2": 0.002748,
+   "FS_motor_circular": 1.196516,
+   "FS_cslope_circular": 1.194907,
+   "rel_circular_motor_vs_cslope": 0.001347,
+   "publicado": 1.19,
+   "tol_publicado": 0.02420168067226891,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 10.762813,
+   "A8_ok": true,
+   "evaluaciones_nc": 4503,
+   "evaluaciones_malla": 8141,
+   "tiempo_s": 2.364,
+   "rechazos_adm": 1072,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.206476,
+     331.579,
+     626.316
+    ],
+    [
+     1.273051,
+     294.737,
+     663.158
+    ],
+    [
+     1.307653,
+     294.737,
+     626.316
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.194907,
+     324.071,
+     623.891
+    ],
+    [
+     1.230275,
+     285.185,
+     627.586
+    ],
+    [
+     1.242557,
+     324.968,
+     660.217
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.170193,
+   "evaluador_rel_vs_cslope": 2.3e-05,
+   "variantes": null
+  },
+  {
+   "id": "X29-V033-k2",
+   "caso": "V033",
+   "k": 2,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.522147,
+   "FS_ogs_NC": 1.524058,
+   "rel_A2": 0.001255,
+   "FS_motor_circular": 1.533588,
+   "FS_cslope_circular": 1.532842,
+   "rel_circular_motor_vs_cslope": 0.000486,
+   "publicado": 1.534,
+   "tol_publicado": 0.02032594524119948,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 7.254612,
+   "A8_ok": true,
+   "evaluaciones_nc": 4503,
+   "evaluaciones_malla": 8143,
+   "tiempo_s": 2.44,
+   "rechazos_adm": 620,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.539273,
+     16.042,
+     48.126
+    ],
+    [
+     1.554712,
+     16.042,
+     51.335
+    ],
+    [
+     1.558374,
+     12.834,
+     51.335
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.532842,
+     15.518,
+     48.78
+    ],
+    [
+     1.552002,
+     14.714,
+     51.929
+    ],
+    [
+     1.562341,
+     12.418,
+     48.348
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.522184,
+   "evaluador_rel_vs_cslope": 2.5e-05,
+   "variantes": null
+  },
+  {
+   "id": "X29-V034a-k2",
+   "caso": "V034a",
+   "k": 2,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.259962,
+   "FS_ogs_NC": 1.264224,
+   "rel_A2": 0.003382,
+   "FS_motor_circular": 1.276763,
+   "FS_cslope_circular": 1.276194,
+   "rel_circular_motor_vs_cslope": 0.000446,
+   "publicado": 1.262,
+   "tol_publicado": 0.02039619651347068,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 8.124468,
+   "A8_ok": true,
+   "evaluaciones_nc": 4503,
+   "evaluaciones_malla": 8180,
+   "tiempo_s": 2.441,
+   "rechazos_adm": 600,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.290122,
+     44.211,
+     81.053
+    ],
+    [
+     1.361753,
+     36.842,
+     81.053
+    ],
+    [
+     1.382379,
+     51.579,
+     81.053
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.276194,
+     46.619,
+     78.297
+    ],
+    [
+     1.334648,
+     43.448,
+     85.377
+    ],
+    [
+     1.365092,
+     36.296,
+     82.069
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.260121,
+   "evaluador_rel_vs_cslope": 0.000126,
+   "variantes": {
+    "base": {
+     "fos": 1.2642235583937806,
+     "evals_nc": 4503,
+     "vertices": 33,
+     "seconds": 2.450146282018977,
+     "best_idx": 2
+    },
+    "presupuesto_3000": {
+     "fos": 1.261817522600436,
+     "evals_nc": 9000,
+     "vertices": 33,
+     "seconds": 5.173753143011709,
+     "best_idx": 1
+    },
+    "sin_33_(9_17)": {
+     "fos": 1.2642144611562223,
+     "evals_nc": 4500,
+     "vertices": 17,
+     "seconds": 2.432036265003262,
+     "best_idx": 2
+    },
+    "rondas_3": {
+     "fos": 1.2683231661672947,
+     "evals_nc": 4500,
+     "vertices": 33,
+     "seconds": 2.91664888599189,
+     "best_idx": 0
+    },
+    "delta0_0.05": {
+     "fos": 1.2695820517957843,
+     "evals_nc": 4503,
+     "vertices": 33,
+     "seconds": 2.440810480999062,
+     "best_idx": 0
+    },
+    "sin_concavidad": {
+     "fos": 1.2638403124405548,
+     "evals_nc": 4503,
+     "vertices": 33,
+     "seconds": 2.441415092020179,
+     "best_idx": 2
+    },
+    "pulido_4x3000": {
+     "fos": 1.261561808860242,
+     "evals_nc": 16308,
+     "vertices": 33,
+     "seconds": 9.795606286003022,
+     "best_idx": 1
+    },
+    "spencer": {
+     "fos": 1.2642235583937806,
+     "evals_nc": 4503,
+     "vertices": 33,
+     "seconds": 2.2788430399959907,
+     "best_idx": 2
+    }
+   }
+  },
+  {
+   "id": "X29-V034b-k2",
+   "caso": "V034b",
+   "k": 2,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.16857,
+   "FS_ogs_NC": 1.170683,
+   "rel_A2": 0.001808,
+   "FS_motor_circular": 1.32855,
+   "FS_cslope_circular": 1.328027,
+   "rel_circular_motor_vs_cslope": 0.000394,
+   "publicado": 1.182,
+   "tol_publicado": 0.02042301184433164,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 8.87756,
+   "A8_ok": true,
+   "evaluaciones_nc": 4501,
+   "evaluaciones_malla": 8178,
+   "tiempo_s": 2.556,
+   "rechazos_adm": 1471,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.340814,
+     7.368,
+     117.895
+    ],
+    [
+     1.341992,
+     14.737,
+     110.526
+    ],
+    [
+     1.344879,
+     22.105,
+     103.158
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.328027,
+     12.153,
+     113.749
+    ],
+    [
+     1.334923,
+     18.148,
+     106.207
+    ],
+    [
+     1.337219,
+     4.828,
+     114.074
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.16929,
+   "evaluador_rel_vs_cslope": 0.000616,
+   "variantes": null
+  },
+  {
+   "id": "X29-V036a-k3",
+   "caso": "V036a",
+   "k": 3,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 0.735992,
+   "FS_ogs_NC": 0.736582,
+   "rel_A2": 0.000801,
+   "FS_motor_circular": 0.756355,
+   "FS_cslope_circular": 0.752094,
+   "rel_circular_motor_vs_cslope": 0.005666,
+   "publicado": 0.74,
+   "tol_publicado": 0.026756756756756758,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 10.527885,
+   "A8_ok": true,
+   "evaluaciones_nc": 4501,
+   "evaluaciones_malla": 8148,
+   "tiempo_s": 2.241,
+   "rechazos_adm": 1576,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     0.778983,
+     8.984,
+     35.934
+    ],
+    [
+     0.780516,
+     6.738,
+     33.688
+    ],
+    [
+     0.797458,
+     8.984,
+     33.688
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     0.752094,
+     7.357,
+     34.77
+    ],
+    [
+     0.761587,
+     7.357,
+     37.14
+    ],
+    [
+     0.767963,
+     5.15,
+     34.77
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 0.736126,
+   "evaluador_rel_vs_cslope": 0.000182,
+   "variantes": {
+    "base": {
+     "fos": 0.7365821175659678,
+     "evals_nc": 4501,
+     "vertices": 33,
+     "seconds": 2.239963524014456,
+     "best_idx": 0
+    },
+    "presupuesto_3000": {
+     "fos": 0.7355740717515946,
+     "evals_nc": 8052,
+     "vertices": 33,
+     "seconds": 4.360608767005033,
+     "best_idx": 0
+    },
+    "sin_33_(9_17)": {
+     "fos": 0.7370345792068034,
+     "evals_nc": 4213,
+     "vertices": 17,
+     "seconds": 2.064814772005775,
+     "best_idx": 0
+    },
+    "rondas_3": {
+     "fos": 0.7356926996585449,
+     "evals_nc": 4500,
+     "vertices": 33,
+     "seconds": 2.6663166280050064,
+     "best_idx": 0
+    },
+    "delta0_0.05": {
+     "fos": 0.7362357238144671,
+     "evals_nc": 4502,
+     "vertices": 33,
+     "seconds": 2.2123186929966323,
+     "best_idx": 0
+    },
+    "sin_concavidad": {
+     "fos": 0.7370260717704298,
+     "evals_nc": 4502,
+     "vertices": 33,
+     "seconds": 2.202396687003784,
+     "best_idx": 0
+    },
+    "pulido_4x3000": {
+     "fos": 0.7355740717509284,
+     "evals_nc": 10557,
+     "vertices": 33,
+     "seconds": 5.914406074996805,
+     "best_idx": 0
+    },
+    "spencer": {
+     "fos": 0.7365821175659678,
+     "evals_nc": 4501,
+     "vertices": 33,
+     "seconds": 2.103419933002442,
+     "best_idx": 0
+    }
+   }
+  },
+  {
+   "id": "X29-V093-k1",
+   "caso": "V093",
+   "k": 1,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 1.322409,
+   "FS_ogs_NC": 1.324241,
+   "rel_A2": 0.001385,
+   "FS_motor_circular": 1.341294,
+   "FS_cslope_circular": 1.340959,
+   "rel_circular_motor_vs_cslope": 0.00025,
+   "publicado": 1.325,
+   "tol_publicado": 0.020377358490566037,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 7.470071,
+   "A8_ok": true,
+   "evaluaciones_nc": 4503,
+   "evaluaciones_malla": 8147,
+   "tiempo_s": 2.183,
+   "rechazos_adm": 435,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.350223,
+     3.947,
+     18.421
+    ],
+    [
+     1.355766,
+     3.947,
+     17.105
+    ],
+    [
+     1.365551,
+     5.263,
+     17.105
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.340959,
+     4.957,
+     17.568
+    ],
+    [
+     1.348166,
+     3.704,
+     17.704
+    ],
+    [
+     1.361235,
+     3.879,
+     18.981
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 1.322427,
+   "evaluador_rel_vs_cslope": 1.4e-05,
+   "variantes": null
+  },
+  {
+   "id": "X29-V102a-k5",
+   "caso": "V102a",
+   "k": 5,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 0.997776,
+   "FS_ogs_NC": 0.998186,
+   "rel_A2": 0.000411,
+   "FS_motor_circular": 1.000969,
+   "FS_cslope_circular": 1.000936,
+   "rel_circular_motor_vs_cslope": 3.3e-05,
+   "publicado": 0.999,
+   "tol_publicado": 0.0205005005005005,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 6.47748,
+   "A8_ok": true,
+   "evaluaciones_nc": 4502,
+   "evaluaciones_malla": 8150,
+   "tiempo_s": 2.392,
+   "rechazos_adm": 953,
+   "rechazos_motor": 2,
+   "semillas_ogs": [
+    [
+     1.01074,
+     2.632,
+     86.842
+    ],
+    [
+     1.013677,
+     -7.895,
+     86.842
+    ],
+    [
+     1.016461,
+     -7.895,
+     97.368
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.000936,
+     -0.001,
+     88.847
+    ],
+    [
+     1.018147,
+     0.058,
+     101.852
+    ],
+    [
+     1.021317,
+     -12.963,
+     87.931
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 0.997836,
+   "evaluador_rel_vs_cslope": 6.1e-05,
+   "variantes": null
+  },
+  {
+   "id": "X29-V102b-k5",
+   "caso": "V102b",
+   "k": 5,
+   "metodo_check": "Morgenstern-Price",
+   "FS_cslope_NC": 0.996529,
+   "FS_ogs_NC": 0.996808,
+   "rel_A2": 0.00028,
+   "FS_motor_circular": 1.000677,
+   "FS_cslope_circular": 1.0006,
+   "rel_circular_motor_vs_cslope": 7.7e-05,
+   "publicado": 0.997,
+   "tol_publicado": 0.020501504513540623,
+   "A1_FS_le_semilla_circular": true,
+   "A2_ok": true,
+   "A3_publicado_ok": true,
+   "A4_vertices": 33,
+   "A4_ok": true,
+   "A5_ok": true,
+   "A6_det_ok": true,
+   "A7_ratio_tiempo_py": 6.655983,
+   "A8_ok": true,
+   "evaluaciones_nc": 4502,
+   "evaluaciones_malla": 8150,
+   "tiempo_s": 2.61,
+   "rechazos_adm": 982,
+   "rechazos_motor": 0,
+   "semillas_ogs": [
+    [
+     1.013723,
+     2.632,
+     86.842
+    ],
+    [
+     1.014323,
+     -7.895,
+     86.842
+    ],
+    [
+     1.02988,
+     -7.895,
+     97.368
+    ]
+   ],
+   "semillas_cslope": [
+    [
+     1.0006,
+     -0.001,
+     85.588
+    ],
+    [
+     1.023847,
+     -12.069,
+     87.037
+    ],
+    [
+     1.027175,
+     -1.724,
+     98.148
+    ]
+   ],
+   "evaluador_fos_motor_sobre_polilinea_cslope_MP": 0.996498,
+   "evaluador_rel_vs_cslope": -3.1e-05,
+   "variantes": null
+  }
+ ],
+ "evaluador": [
+  {
+   "id": "X29-EV-V001-k4",
+   "fos_cslope": 1.383717,
+   "fos_motor_MP": 1.3837,
+   "rel": -1.2e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V002-k1",
+   "fos_cslope": 0.410992,
+   "fos_motor_MP": 0.41101,
+   "rel": 4.3e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V026-k3",
+   "fos_cslope": 1.170166,
+   "fos_motor_MP": 1.170193,
+   "rel": 2.3e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V033-k2",
+   "fos_cslope": 1.522147,
+   "fos_motor_MP": 1.522184,
+   "rel": 2.5e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V034a-k2",
+   "fos_cslope": 1.259962,
+   "fos_motor_MP": 1.260121,
+   "rel": 0.000126,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V034b-k2",
+   "fos_cslope": 1.16857,
+   "fos_motor_MP": 1.16929,
+   "rel": 0.000616,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V036a-k3",
+   "fos_cslope": 0.735992,
+   "fos_motor_MP": 0.736126,
+   "rel": 0.000182,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V093-k1",
+   "fos_cslope": 1.322409,
+   "fos_motor_MP": 1.322427,
+   "rel": 1.4e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V102a-k5",
+   "fos_cslope": 0.997776,
+   "fos_motor_MP": 0.997836,
+   "rel": 6.1e-05,
+   "ok": true
+  },
+  {
+   "id": "X29-EV-V102b-k5",
+   "fos_cslope": 0.996529,
+   "fos_motor_MP": 0.996498,
+   "rel": -3.1e-05,
+   "ok": true
+  }
+ ]
+}

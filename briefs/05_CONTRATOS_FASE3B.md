@@ -109,8 +109,7 @@ forma explícita.
 - **Bishop no se admite** (F3.6, E13f): con `non_circular` y `bishop` en `analysis.methods`, el error es
   `InvalidModel: el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)`.
   La web deshabilita Bishop con esa razón.
-- **Superficie crítica.** Cada método reporta su polilínea refinada como `SurfaceOut::Polyline`, que ya existe.
-- **Algoritmo:** F6.10 **[condicional X29]**.
+- **Superficie crítica y algoritmo:** F6.10. La polilínea refinada sale como `SurfaceOut::Polyline`, que ya existe.
 
 ## F6.5 Interacciones y rechazos (E16e)
 
@@ -131,9 +130,8 @@ Se validan en `loads::validate_document` o en `strength::resolve_materials`, ant
   - Hoek-Brown: `τ(σ′n)` de la envolvente (ecs. 8 y 9, X25 §1.1), con `σ′n` igual al esfuerzo efectivo vertical;
   - SHANSEP: `Su(σ′v)` de F6.9.
 
-  La forma exacta y su efecto se confirman con X28 y X30 **[condicional X28, X30]**; la interfaz de F6.6 no cambia.
-- **Sismo.** Hoek-Brown no cambia: el sismo entra en N′ como hoy. En SHANSEP, qué σ′v se usa con sismo lo fija F6.9
-  **[condicional X30]**.
+  La forma de SHANSEP la fija F6.9; la de Hoek-Brown, F6.8. La interfaz de F6.6 no cambia.
+- **Sismo.** Hoek-Brown no cambia: el sismo entra en N′ como hoy. En SHANSEP, el sismo no entra en σ′v (F6.9).
 
 ## F6.6 Arquitectura del motor, congelada en B0 (E16f)
 
@@ -185,8 +183,9 @@ Según la opción A de X27 §1.4: un lazo exterior que reescribe c y tanφ de la
     solo las dovelas de base `hoek_brown` o `shansep`, con el índice de `slices` del mismo informe. `cohesion` y
     `tan_phi` de cada dovela siguen en `slices`: en Hoek-Brown son los de la última pasada; en SHANSEP, Su y 0;
   - `SearchStats.non_circular: Option<NonCircularStats>`, omitido sin `non_circular`:
-    `{ "seeds": 3, "evaluated": 4210, "seed_fos": 1.402 }`, donde `seed_fos` es el FS del mejor círculo antes de
-    refinar.
+    `{ "seeds": 3, "evaluated": 4210, "seed_fos": 1.402, "polyline_fos": 1.384 }`, donde `seed_fos` es el FS del
+    mejor círculo antes de refinar y `polyline_fos` el de la mejor polilínea refinada, omitido si ninguna fue admisible
+    (E16p).
 - **Módulos nuevos** (los crea B0 con la firma y el stub, y los llena B1): `hoek_brown.rs`, `strength_loop.rs`,
   `shansep.rs` y `noncircular.rs`.
 
@@ -226,30 +225,102 @@ Lo cierra X28, con cifras:
 - la regla de bajo confinamiento (σ′n ≤ σn(σ3 = 0)) y cuándo emite `hoek_brown_low_confinement`;
 - las filas de aceptación (`docs/fase3/exploracion/X28_filas/`).
 
-## F6.9 Física de SHANSEP (E16i) [condicional X30]
+## F6.9 Física de SHANSEP (E16i, cerrada por E16o)
 
-Queda congelado ya: `Su = ratio·σ′v·OCR^exponent` en el punto medio de la base, con φ = 0; con `pop`,
-`OCR = (σ′v + pop)/σ′v`; con `ocr_by_elevation`, OCR interpolado linealmente en la cota del punto medio de la base.
+- **Resistencia.** `Su = ratio·σ′v·OCR^exponent` en el punto medio de la base, con φ = 0, calculada **una vez por dovela
+  y por superficie**. No depende de F, así que no hay iteración.
+- **σ′v en la base** (E16o, X30 §1):
+  - `σ′v = (W + Q + V)/b − u`, donde:
+    - `W` es el peso estático de la dovela, sin `kv·W`;
+    - `Q` son las cargas verticales estáticas (`udl` y `line`) sobre la dovela;
+    - `V` es el peso del agua embalsada sobre la dovela (F5.3);
+    - `b` es el ancho de la dovela;
+    - `u` es la presión de poros de la base que ya calcula el motor: piezométrica sin recortar al terreno, agua
+      embalsada y `ru`.
+  - **El sismo no entra en σ′v.** Con `kh` y `kv`, el oráculo deja Su idéntico dovela por dovela (diferencia 0,0); el
+    sismo actúa solo en las fuerzas de los métodos, como hoy.
+- **OCR:**
+  - `ocr`: el valor constante;
+  - `pop`: `OCR = (σ′v + pop)/σ′v`;
+  - `ocr_by_elevation`: interpolación lineal en la cota del punto medio de la base, `(y_izq + y_der)/2`, y **constante
+    fuera de la tabla**: debajo de la primera fila vale el OCR de la primera; encima de la última, el de la última.
+- **σ′v ≤ 0:** Su = 0 sin evaluar el OCR, y la nota `shansep_nonpositive_stress` (F6.7), una vez por método. Con
+  entradas válidas solo ocurre bajo el agua con `unit_weight` < γw y sin `unit_weight_sat` (X30 §4).
+- **Caras de las dovelas** (F6.5): `∫ Su(σ′v(z)) dz` sobre la cara, con `FACE_STRENGTH_SAMPLES` puntos medios. `σ′v(z)`
+  es el esfuerzo vertical total a la cota z (la columna de suelo, el agua embalsada y la `udl` sobre ella) menos `u(z)`.
+  El oráculo no emite este aviso en V047a (X30 §5), así que se prueba con una identidad: con OCR constante y una capa
+  seca, el resultado es `ratio·OCR^exponent·σ̄′v·h`, donde `σ̄′v` es la media de `σ′v(z)` en la cara.
+- **Superficies muy profundas.** Con OCR 1 en un perfil normalmente consolidado, el mínimo es un círculo muy ancho y
+  poco profundo (r ≈ 257 m en un talud de 15 m en V047a, X30 §6), y el oráculo da el mismo. **No se agrega un aviso**
+  sin un umbral medido. `docs/limitaciones.md` lo explica.
+- **Filas de aceptación:** `docs/fase3/exploracion/X30_filas/`, a ≤ 0,1 % en círculo fijo en los cinco métodos (medido
+  ≤ 0,023 %). Se exceptúa `X30-F-V105a`, que usa `aboveWater` de cSlope (otro material sobre el nivel del agua), fuera
+  del formato v0.6 (F6.3). V105a se importa a `verification/pending/F3B/`. Se promueve solo si el motor reproduce el
+  publicado (1,285 ± 0,01039) sin `aboveWater`. Si no, queda en `HOLD.json` con esa causa.
 
-Lo cierra X30, con cifras:
-- qué entra en `σ′v` (peso, cargas, agua embalsada, sismo, `ru`);
-- la extrapolación de `ocr_by_elevation` fuera de la tabla;
-- la regla con `σ′v ≤ 0`;
-- las filas de aceptación (`docs/fase3/exploracion/X30_filas/`).
+## F6.10 Algoritmo de la búsqueda no circular (E16j, cerrada por E16p)
 
-## F6.10 Algoritmo de la búsqueda no circular (E16j) [condicional X29]
+El algoritmo es el de X29 §9, la variación alterna de Celestino y Duncan tal como la implementa cSlope (X24 §1). Se lee
+y se cita; no se copia.
 
-Queda congelado ya (D4, X24 §6):
-- las semillas son los `seeds` mejores círculos distintos de la búsqueda circular del mismo método;
-- cada semilla se convierte en una polilínea con nodos en x entre la entrada y la salida, y se refina por variación
-  alterna de sus vértices, sin aleatoriedad, con desempate por (FS, índice), y el mismo resultado con y sin la
-  feature `parallel`;
-- cada candidato pasa la admisibilidad de las polilíneas fijas (F3.6, E13l) y la de X24 §6.2;
-- un candidato sin FS convergido nunca es una mejora;
-- el FS refinado nunca es mayor que el de su semilla.
+1. **Semillas.**
+   - La semilla 1 es el círculo crítico de la búsqueda circular del mismo método, después de su refinamiento
+     (`search.rs`, `refine`).
+   - Las otras `seeds − 1` son los mejores círculos de la malla de la búsqueda circular (entrada × salida × radio, con
+     la parametrización de `search.rs`), en orden de (FS, índice). Cada una tiene que diferir de **todas** las semillas
+     ya elegidas en más del 5 % del span de `search.rs`, en la entrada o en la salida.
+   - Si no hay suficientes círculos distintos, se usan los que haya. `stats.non_circular.seeds` dice cuántas se usaron.
+2. **Conversión.** Cada semilla se convierte en una polilínea de **9 vértices** igualmente espaciados en x entre la
+   entrada y la salida, sobre el arco inferior. Los extremos van exactamente sobre el terreno (`fit_to_ground`).
+3. **Niveles.** `9 → 17 → 33` vértices, insertando los puntos medios, y se para en `max_vertices`. Al pasar de nivel,
+   la polilínea se reevalúa.
+4. **Variación alterna,** en cada nivel:
+   - el paso inicial es `Δ₀ = 0,1 ×` el segmento más corto del nivel;
+   - en cada paso hay hasta **6 rondas**. En una ronda:
+     - cada vértice interior se mueve ±Δ sobre la bisectriz de las normales hacia arriba de sus dos segmentos;
+     - los extremos se mueven ±Δ en x, con su y sobre el terreno;
+     - por vértice se ajusta la parábola `t = Δ·(F₋ − F₊)/(2·(F₊ + F₋ − 2F₀))`, acotada a ±Δ. Sin curvatura positiva
+       se toma el mejor de los dos lados;
+     - el movimiento conjunto de todos los vértices se acepta si `F < F₀ − 1e-6`. Si no, se acepta el mejor movimiento
+       individual que mejore. Si ninguno mejora, la ronda no mejora;
+   - después de una ronda sin mejora, Δ se divide entre 2. El nivel termina cuando `Δ < 0,02·Δ₀` (6 pasos: Δ₀ a
+     Δ₀/32).
+5. **Presupuesto:** 1500 evaluaciones admisibles por semilla, sumando todos los niveles. Los candidatos inadmisibles no
+   cuentan. **No hay pulido** en la v0.6: X29 §5 midió que cSlope lo usa y cuesta 3,6 veces más.
+6. **Admisibilidad** de cada candidato, además de la de las polilíneas fijas (F3.6, E13l):
+   - `dx ≥ 1e-6·ancho` del modelo y x estrictamente creciente;
+   - **concavidad**: `α_{i+1} ≤ α_i + 1°`, con `α_i = atan2(y_i − y_{i+1}, x_{i+1} − x_i)`. Es la regla del código de
+     cSlope (`surface.rs:293-304`), no la de su comentario (X29 §3);
+   - vértices interiores bajo el terreno, y segmentos bajo el terreno (comprobados con 8 puntos por segmento);
+   - un candidato sin FS convergido nunca es una mejora.
 
-Lo cierra X29, con cifras: la conversión del círculo, los pasos, las rondas, el presupuesto de evaluaciones, la
-concavidad máxima y las filas de aceptación (`docs/fase3/exploracion/X29_filas/`).
+   **La regla de concavidad vale solo para los candidatos de la búsqueda.** Las polilíneas que fija el usuario no
+   cambian, por la identidad (F6.1).
+7. **Determinismo.**
+   - No hay aleatoriedad, y los desempates son por (FS, índice).
+   - Las evaluaciones de una ronda pueden correr en paralelo, pero la decisión se toma en orden fijo. El resultado es el
+     mismo con y sin la feature `parallel`, y en dos corridas.
+8. **Resultado por método.** El mínimo entre el mejor círculo (la semilla 1) y la mejor polilínea refinada. Con empate
+   gana el círculo.
+   - Si gana la polilínea, la superficie crítica es `SurfaceOut::Polyline`; si gana el círculo, `SurfaceOut::Circle`.
+     Así el FS reportado **nunca** es mayor que el del círculo de la búsqueda circular (A1). X29 midió que una polilínea
+     de semilla puede quedar 2,5 % sobre el círculo del motor (V002).
+   - `stats.non_circular` es `{ seeds, evaluated, seed_fos, polyline_fos }`: `seed_fos` es el FS del círculo de la
+     semilla 1, y `polyline_fos` el de la mejor polilínea refinada, omitido si ninguna fue admisible.
+   - `non_circular_large_change` (F6.7) se calcula con `seed_fos` y el FS reportado.
+9. **Métodos:** Spencer, Morgenstern-Price, Janbu simplificado y Janbu corregido. Bishop no (F6.4).
+10. **Criterios de aceptación** (X29 §7), con las filas de `docs/fase3/exploracion/X29_filas/`:
+    - **A2, de un solo lado:** `FS_ogs ≤ 1,01·FS_cSlope` en las 10 filas de búsqueda. Un FS menor que el de cSlope se
+      acepta, porque es una búsqueda de mínimo, y lo acota A3. Medido: de +0,011 % a +0,338 %;
+    - **A3:** el publicado dentro de la tolerancia de su caso;
+    - **A1:** el FS reportado no supera el del círculo de la búsqueda circular (por construcción, punto 8);
+    - **A4:** vértices ≤ `max_vertices`;
+    - **A6:** determinismo, punto 7;
+    - **evaluador:** las 10 filas `evaluador-*` (la polilínea final de cSlope como superficie fija) a ≤ 0,1 %. Corren ya
+      con la v0.4.0 (medido ≤ 0,062 %);
+    - **costo:** las evaluaciones de la etapa no circular son ≤ `seeds × 1500` por método, por construcción. El tiempo
+      en `release` con V001, V034a y V036a se mide y se informa en la integración, con la meta de ≤ 4 veces la búsqueda
+      circular (X24 §6.3, A7). La meta no es un gate.
 
 ## F6.11 Criterios de aceptación (E16k)
 
@@ -257,7 +328,8 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 1. **Neutralidad e identidad** (F6.1).
 2. **Equilibrio global independiente** con las c y φ finales: residuo ≤ 1e-6 de la escala motriz en Spencer, M-P y
    Janbu simplificado; el balance propio de Bishop ≤ 1e-9.
-3. **Oráculo:** las filas de X28 y X30 a ≤ 0,1 % en superficie fija; las de X29 con la cota que fije F6.10.
+3. **Oráculo:** las filas de X28 (F6.8) y X30 (F6.9) a ≤ 0,1 % en superficie fija, con las excepciones que nombran
+   esas secciones; las de X29, con los criterios de F6.10.
 4. **Espejo:** el mismo FS a ≤ 1e-9.
 5. **Monotonía:** Hoek-Brown sube con GSI y con σci y baja con D; SHANSEP sube con `ratio` y con OCR.
 6. **Hoek-Brown original:** con GSI 100 y D 0 (s = 1 y a ≈ 0,5), la envolvente coincide con la de Hoek y Brown
@@ -308,3 +380,17 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 
   `test_schema.py` agrega estos casos a su lista de diferencias conocidas entre esquema y motor, con la cita de esta
   enmienda. Evidencia: informe de B0M (`deleg_c3d4ada0`).
+
+- **E16o, cierre de SHANSEP (X30, 2026-11-27).** F6.9 queda cerrada: qué entra en σ′v (sin sismo), OCR constante fuera
+  de la tabla, Su = 0 con σ′v ≤ 0, la integral en las caras y la excepción de V105a por `aboveWater`. Evidencia:
+  `docs/fase3/exploracion/X30.md` §1 a §8 y `X30_filas/resultados.json` (de −0,0033 % a +0,0224 % en los cinco
+  métodos).
+- **E16p, cierre de la búsqueda no circular (X29, 2026-11-27).** F6.10 queda cerrada con el algoritmo de X29 §9 y tres
+  cambios del coordinador:
+  - la semilla 1 es el círculo refinado del motor y el resultado es el mínimo entre ese círculo y las polilíneas.
+    Corrige la falla de A1 en V002 (X29 §4);
+  - A2 es de un solo lado;
+  - el costo se mide en evaluaciones.
+
+  F6.6 agrega `polyline_fos` a `stats.non_circular`, y F6.4 remite a F6.10. Evidencia: `docs/fase3/exploracion/X29.md`
+  §4 a §9.

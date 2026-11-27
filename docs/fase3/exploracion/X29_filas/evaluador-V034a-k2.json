@@ -1,0 +1,255 @@
+{
+ "id": "X29-EV-V034a-k2",
+ "descripcion": "Polilínea final de cSlope (V034a k2) como superficie fija en el motor 0.4.0 (aislar el evaluador)",
+ "grupo": "evaluador-superficie-fija",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+   "id": "V034a",
+   "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+   "notes": "Granular fill over clay with undrained strength increasing linearly with depth; critical-circle search."
+  },
+  "units": "imperial",
+  "materials": [
+   {
+    "id": "fill",
+    "name": "Fill",
+    "model": "mohr_coulomb",
+    "unit_weight": 123.0,
+    "unit_weight_sat": null,
+    "cohesion": 0.0,
+    "friction_angle": 36.0,
+    "ru": null
+   },
+   {
+    "id": "clay",
+    "name": "Clay",
+    "model": "undrained",
+    "unit_weight": 97.0,
+    "unit_weight_sat": null,
+    "undrained_strength": 200.0,
+    "strength_datum": 30.0,
+    "strength_gradient": 15.0,
+    "ru": null
+   }
+  ],
+  "regions": [
+   {
+    "material": "clay",
+    "polygon": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      30.0
+     ],
+     [
+      75.0,
+      30.0
+     ],
+     [
+      140.0,
+      30.0
+     ],
+     [
+      140.0,
+      0.0
+     ]
+    ]
+   },
+   {
+    "material": "fill",
+    "polygon": [
+     [
+      0.0,
+      30.0
+     ],
+     [
+      0.0,
+      40.0
+     ],
+     [
+      55.0,
+      40.0
+     ],
+     [
+      75.0,
+      30.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "auto"
+  },
+  "analysis": {
+   "methods": [
+    "morgenstern_price"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "interslice": {
+    "function": "constant"
+   },
+   "surface": {
+    "type": "polyline",
+    "points": [
+     [
+      44.97274004686568,
+      40.0
+     ],
+     [
+      46.373900453824824,
+      37.86669977696583
+     ],
+     [
+      47.74026820600543,
+      35.73082263355692
+     ],
+     [
+      49.12674741782212,
+      33.492200179256066
+     ],
+     [
+      50.50131257048688,
+      31.24659898386753
+     ],
+     [
+      51.220817965773946,
+      30.070291739681647
+     ],
+     [
+      52.318577535386844,
+      29.23443946783788
+     ],
+     [
+      53.436633328246,
+      28.48587038731811
+     ],
+     [
+      54.55608047630315,
+      27.7414195215623
+     ],
+     [
+      55.49419421134837,
+      27.130252774599832
+     ],
+     [
+      56.459910805359016,
+      26.565760359422466
+     ],
+     [
+      57.45429106751298,
+      26.055435625326698
+     ],
+     [
+      58.47604250151885,
+      25.60274976093824
+     ],
+     [
+      59.43808826740903,
+      25.23763885992951
+     ],
+     [
+      60.41867957483717,
+      24.926026435474565
+     ],
+     [
+      61.417256117361056,
+      24.667261266253764
+     ],
+     [
+      62.4289670735338,
+      24.466550972944365
+     ],
+     [
+      63.42422120616415,
+      24.325183966125522
+     ],
+     [
+      64.42605565372747,
+      24.24238975634716
+     ],
+     [
+      65.43196568764152,
+      24.211729864362468
+     ],
+     [
+      66.43797457779053,
+      24.23843371137692
+     ],
+     [
+      67.46111484265086,
+      24.32225357153122
+     ],
+     [
+      68.47876400048229,
+      24.464609576687156
+     ],
+     [
+      69.4840854459214,
+      24.6784562890778
+     ],
+     [
+      70.47521904532013,
+      24.95144832655971
+     ],
+     [
+      71.50960582672916,
+      25.310907002284214
+     ],
+     [
+      72.51460143874742,
+      25.746816161180938
+     ],
+     [
+      73.48700547341512,
+      26.251743281506734
+     ],
+     [
+      74.41803806466999,
+      26.829136486640273
+     ],
+     [
+      75.46723087827075,
+      27.583421752928725
+     ],
+     [
+      76.49358528494945,
+      28.36881918623585
+     ],
+     [
+      77.51417760816662,
+      29.171705002385977
+     ],
+     [
+      78.51790399105676,
+      30.0
+     ]
+    ]
+   }
+  }
+ },
+ "oracle": {
+  "fos": {
+   "morgenstern_price_constante": 1.259962
+  },
+  "config": "cslope 0.1.0, polilínea criticalSurface de la búsqueda NC del check"
+ },
+ "proto": {
+  "fos": {
+   "morgenstern_price_constante": 1.260121,
+   "spencer": 1.260121
+  },
+  "nota": "Si cSlope da x decreciente, se invierte el orden (el motor exige x creciente)."
+ },
+ "tolerancia": {
+  "relativa": 0.001
+ },
+ "nota": "Error del evaluador: 0.000126"
+}

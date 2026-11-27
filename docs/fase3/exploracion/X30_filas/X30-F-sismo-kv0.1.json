@@ -1,0 +1,92 @@
+{
+ "id": "X30-F-sismo-kv0.1",
+ "descripcion": "V047a seco OCR 1 con kv 0,1",
+ "grupo": "sismo",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+   {
+    "id": "soil",
+    "name": "Soil",
+    "model": "shansep",
+    "unit_weight": 20.0,
+    "unit_weight_sat": 20.0,
+    "shansep": {
+     "ratio": 0.25,
+     "exponent": 0.8,
+     "ocr": 1.0
+    }
+   }
+  ],
+  "regions": [
+   {
+    "material": "soil",
+    "polygon": [
+     [
+      20.0,
+      20.0
+     ],
+     [
+      20.0,
+      25.0
+     ],
+     [
+      30.0,
+      25.0
+     ],
+     [
+      50.0,
+      35.0
+     ],
+     [
+      70.0,
+      35.0
+     ],
+     [
+      70.0,
+      20.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": 29.511,
+    "yc": 53.738,
+    "r": 28.742
+   },
+   "seismic": {
+    "kh": 0.0,
+    "kv": 0.1
+   }
+  }
+ },
+ "oracle": {
+  "bishop": 0.620237,
+  "config": "cSlope 0.1.0 (oracle-venv), círculo fijo, to_cslope.ogs_to_cslope + SHANSEP (ratio, exponent, OCR) y agua libre (freeWater true), 50 dovelas, tolerancia 1e-3, M-P con intersliceFunction constant (= Spencer) | solo Bishop; Su por dovela idéntico al caso sin sismo"
+ },
+ "proto": {
+  "bishop": 0.620217
+ },
+ "tolerancia": {
+  "relativa": 0.001
+ },
+ "nota": "kv cambia el FS (0,682261 → 0,620237) pero no Su: σ′v es estática (kv·W fuera)."
+}

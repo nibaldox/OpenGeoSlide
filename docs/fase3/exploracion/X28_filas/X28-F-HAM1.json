@@ -1,0 +1,111 @@
+{
+ "id": "X28-F-HAM1",
+ "descripcion": "Hammah et al. 2005 ej. 1 (geometría X23 §3.2), seco, círculo fijo",
+ "grupo": "fijo",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+   "id": "X28-F-HAM1",
+   "title": "Hammah et al. 2005 ej. 1 (ARMA 05-810), geometría de X23 §3.2 [inferido del tutorial XSLOPE]"
+  },
+  "materials": [
+   {
+    "id": "roca",
+    "name": "roca",
+    "model": "hoek_brown",
+    "unit_weight": 25.0,
+    "ucs": 30000.0,
+    "gsi": 5.0,
+    "mi": 2.0,
+    "disturbance": 0.0,
+    "ru": null
+   }
+  ],
+  "regions": [
+   {
+    "material": "roca",
+    "polygon": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      50.0,
+      0.0
+     ],
+     [
+      50.0,
+      15.0
+     ],
+     [
+      30.0,
+      15.0
+     ],
+     [
+      20.0,
+      5.0
+     ],
+     [
+      0.0,
+      5.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 40,
+   "tolerance": 1e-05,
+   "max_iterations": 1000,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": 17.805083256147483,
+    "yc": 20.77242239082394,
+    "r": 15.922347790860838
+   }
+  }
+ },
+ "oracle": {
+  "bishop": 1.151807,
+  "spencer": 1.153019,
+  "morgenstern_price": 1.153019,
+  "janbu_simplified": 1.091534,
+  "janbu_corrected": 1.151583,
+  "config": "cslope 0.1.0, to_cslope.ogs_to_cslope o cslope_direct (X28_proto/models.py), círculo fijo, slices 40, tolerance 1e-5, maxIterations 1000, método Bishop/Morgenstern-Price constant/Janbu (janbuCorrection false/true)"
+ },
+ "proto": {
+  "bishop": 1.151963,
+  "spencer": 1.15317,
+  "morgenstern_price": 1.15317,
+  "janbu_simplified": 1.091759,
+  "janbu_corrected": 1.151789
+ },
+ "tolerancia": 0.001,
+ "nota": "Publicado (Hammah 2005, geometría reconstruida): Bishop 1,153, Spencer 1,152 (no es esta superficie).",
+ "proto_passes": {
+  "bishop": 5,
+  "spencer": 3,
+  "morgenstern_price": 3,
+  "janbu_simplified": 5,
+  "janbu_corrected": 5
+ },
+ "proto_status": {
+  "bishop": "converged",
+  "spencer": "converged",
+  "morgenstern_price": "converged",
+  "janbu_simplified": "converged",
+  "janbu_corrected": "converged"
+ }
+}

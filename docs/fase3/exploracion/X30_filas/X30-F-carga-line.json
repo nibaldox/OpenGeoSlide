@@ -1,0 +1,106 @@
+{
+ "id": "X30-F-carga-line",
+ "descripcion": "V047a seco OCR 1 con carga de línea P=300 kN/m en x=45",
+ "grupo": "cargas",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+   {
+    "id": "soil",
+    "name": "Soil",
+    "model": "shansep",
+    "unit_weight": 20.0,
+    "unit_weight_sat": 20.0,
+    "shansep": {
+     "ratio": 0.25,
+     "exponent": 0.8,
+     "ocr": 1.0
+    }
+   }
+  ],
+  "regions": [
+   {
+    "material": "soil",
+    "polygon": [
+     [
+      20.0,
+      20.0
+     ],
+     [
+      20.0,
+      25.0
+     ],
+     [
+      30.0,
+      25.0
+     ],
+     [
+      50.0,
+      35.0
+     ],
+     [
+      70.0,
+      35.0
+     ],
+     [
+      70.0,
+      20.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": 29.511,
+    "yc": 53.738,
+    "r": 28.742
+   }
+  },
+  "loads": [
+   {
+    "type": "line",
+    "id": "l1",
+    "x": 45.0,
+    "p": 300.0,
+    "angle": 0.0
+   }
+  ]
+ },
+ "oracle": {
+  "bishop": 0.643422,
+  "spencer": 0.643422,
+  "morgenstern_price": 0.643422,
+  "janbu_simplified": 0.630047,
+  "janbu_corrected": 0.669608,
+  "config": "cSlope 0.1.0 (oracle-venv), círculo fijo, to_cslope.ogs_to_cslope + SHANSEP (ratio, exponent, OCR) y agua libre (freeWater true), 50 dovelas, tolerancia 1e-3, M-P con intersliceFunction constant (= Spencer)"
+ },
+ "proto": {
+  "bishop": 0.6434,
+  "spencer": 0.6434,
+  "morgenstern_price": 0.6434,
+  "janbu_simplified": 0.630046,
+  "janbu_corrected": 0.669596
+ },
+ "tolerancia": {
+  "relativa": 0.001,
+  "nota_tol": "diferencia medida ≤ 0,006 %"
+ },
+ "nota": "Las cargas entran en σ′v (weight_extra de Q) y el oráculo las trae igual."
+}

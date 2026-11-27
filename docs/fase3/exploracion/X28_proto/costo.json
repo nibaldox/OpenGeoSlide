@@ -1,0 +1,192 @@
+{
+ "X25": {
+  "t_hb_s": {
+   "bishop": 0.004090561997145414,
+   "spencer": 2.431756164995022,
+   "morgenstern_price": 2.4177076220075833,
+   "janbu_simplified": 0.03527345199836418,
+   "janbu_corrected": 0.03500252500816714
+  },
+  "analisis_hb": {
+   "bishop": 6,
+   "spencer": 5,
+   "morgenstern_price": 5,
+   "janbu_simplified": 6,
+   "janbu_corrected": 6
+  },
+  "t_un_analisis_s": {
+   "bishop": 0.00025987000359843176,
+   "spencer": 0.4654635016680307,
+   "morgenstern_price": 0.460524964670185,
+   "janbu_simplified": 0.004712199001611832,
+   "janbu_corrected": 0.0048781533308404805
+  },
+  "multiplicador_por_metodo": {
+   "bishop": 2.6234668234779033,
+   "spencer": 1.0448751218003574,
+   "morgenstern_price": 1.0499789620478348,
+   "janbu_simplified": 1.2475934620721918,
+   "janbu_corrected": 1.195893973062698
+  },
+  "multiplicador_total_vs_MC_una_pasada": 5.261409242421371,
+  "analisis_total_hb": 28,
+  "vecinos_bishop": [
+   {
+    "c": [
+     45.569,
+     40.5,
+     36.899
+    ],
+    "F": 1.472025529253001,
+    "pasadas": 5,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     44.569,
+     40.5,
+     36.899
+    ],
+    "F": null,
+    "pasadas": null,
+    "estado": "motor: ogs: ogs: NoValidSurface: el arco de deslizamiento sale del modelo\n"
+   },
+   {
+    "c": [
+     45.069,
+     41.0,
+     36.899
+    ],
+    "F": 1.4824575574001007,
+    "pasadas": 5,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     45.069,
+     40.0,
+     36.899
+    ],
+    "F": null,
+    "pasadas": null,
+    "estado": "motor: ogs: ogs: NoValidSurface: el arco de deslizamiento sale del modelo\n"
+   },
+   {
+    "c": [
+     45.069,
+     40.5,
+     37.399
+    ],
+    "F": null,
+    "pasadas": null,
+    "estado": "motor: ogs: ogs: NoValidSurface: el arco de deslizamiento sale del modelo\n"
+   },
+   {
+    "c": [
+     45.069,
+     40.5,
+     36.399
+    ],
+    "F": 1.4842176361002974,
+    "pasadas": 5,
+    "estado": "converged"
+   }
+  ],
+  "pasadas_media_vecinos": 5.0
+ },
+ "SB": {
+  "t_hb_s": {
+   "bishop": 0.00436138900113292,
+   "spencer": 3.071037167988834,
+   "morgenstern_price": 3.08001260299352,
+   "janbu_simplified": 0.03661905899934936,
+   "janbu_corrected": 0.03659268100454938
+  },
+  "analisis_hb": {
+   "bishop": 6,
+   "spencer": 5,
+   "morgenstern_price": 5,
+   "janbu_simplified": 6,
+   "janbu_corrected": 6
+  },
+  "t_un_analisis_s": {
+   "bishop": 0.0005090703343739733,
+   "spencer": 0.448657834000187,
+   "morgenstern_price": 0.4486933393297174,
+   "janbu_simplified": 0.004175314335346532,
+   "janbu_corrected": 0.004173263664900635
+  },
+  "multiplicador_por_metodo": {
+   "bishop": 1.427893392667216,
+   "spencer": 1.3689885410482119,
+   "morgenstern_price": 1.3728809113122165,
+   "janbu_simplified": 1.4617286292015244,
+   "janbu_corrected": 1.461393445786538
+  },
+  "multiplicador_total_vs_MC_una_pasada": 6.873275509000942,
+  "analisis_total_hb": 28,
+  "vecinos_bishop": [
+   {
+    "c": [
+     0.997,
+     21.328,
+     13.944
+    ],
+    "F": 3.068631440136977,
+    "pasadas": 7,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     -0.003,
+     21.328,
+     13.944
+    ],
+    "F": 2.167742642283215,
+    "pasadas": 5,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     0.497,
+     21.828,
+     13.944
+    ],
+    "F": 2.162825740288236,
+    "pasadas": 5,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     0.497,
+     20.828,
+     13.944
+    ],
+    "F": 3.112765825173718,
+    "pasadas": 7,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     0.497,
+     21.328,
+     14.444
+    ],
+    "F": 3.022325805914269,
+    "pasadas": 7,
+    "estado": "converged"
+   },
+   {
+    "c": [
+     0.497,
+     21.328,
+     13.444
+    ],
+    "F": 2.202715281504358,
+    "pasadas": 5,
+    "estado": "converged"
+   }
+  ],
+  "pasadas_media_vecinos": 6.0
+ }
+}

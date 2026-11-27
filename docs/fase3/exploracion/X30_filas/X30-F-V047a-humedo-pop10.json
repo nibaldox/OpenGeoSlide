@@ -1,0 +1,109 @@
+{
+ "id": "X30-F-V047a-humedo-pop10",
+ "descripcion": "V047a húmedo, POP 10 kPa, círculo fijo crítico MC (29,511; 53,738; r 28,742)",
+ "grupo": "ocr_fuentes",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+   {
+    "id": "soil",
+    "name": "Soil",
+    "model": "shansep",
+    "unit_weight": 20.0,
+    "unit_weight_sat": 20.0,
+    "shansep": {
+     "ratio": 0.25,
+     "exponent": 0.8,
+     "pop": 10.0
+    }
+   }
+  ],
+  "regions": [
+   {
+    "material": "soil",
+    "polygon": [
+     [
+      20.0,
+      20.0
+     ],
+     [
+      20.0,
+      25.0
+     ],
+     [
+      30.0,
+      25.0
+     ],
+     [
+      50.0,
+      35.0
+     ],
+     [
+      70.0,
+      35.0
+     ],
+     [
+      70.0,
+      20.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": 29.511,
+    "yc": 53.738,
+    "r": 28.742
+   }
+  },
+  "water": {
+   "piezometric_line": [
+    [
+     0.0,
+     30.0
+    ],
+    [
+     100.0,
+     30.0
+    ]
+   ]
+  }
+ },
+ "oracle": {
+  "bishop": 0.784706,
+  "spencer": 0.784706,
+  "morgenstern_price": 0.784706,
+  "janbu_simplified": 0.76343,
+  "janbu_corrected": 0.811367,
+  "config": "cSlope 0.1.0 (oracle-venv), círculo fijo, to_cslope.ogs_to_cslope + SHANSEP (ratio, exponent, OCR) y agua libre (freeWater true), 50 dovelas, tolerancia 1e-3, M-P con intersliceFunction constant (= Spencer)"
+ },
+ "proto": {
+  "bishop": 0.784847,
+  "spencer": 0.784858,
+  "morgenstern_price": 0.784858,
+  "janbu_simplified": 0.763601,
+  "janbu_corrected": 0.811535
+ },
+ "tolerancia": {
+  "relativa": 0.001,
+  "nota_tol": "prototipo ≤ 0,02 % en 50 dovelas"
+ },
+ "nota": "Su = 0,25·σ′v·OCR^0,8. Diferencia del prototipo frente al oráculo: ver resultados.json."
+}
