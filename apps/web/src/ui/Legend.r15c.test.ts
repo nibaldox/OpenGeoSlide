@@ -12,7 +12,7 @@ const BASE_MODEL: Model = {
   version: '0.6',
   units: 'SI',
   meta: { id: 'T1', title: 'Prueba' },
-  materials: [{ id: 'm1', name: 'Suelo', unit_weight: 18, cohesion: 10, friction_angle: 30 }],
+  materials: [{ id: 'm1', name: 'Suelo', model: 'mohr_coulomb', unit_weight: 18, cohesion: 10, friction_angle: 30 }],
   regions: [{ material: 'm1', polygon: [[0, 0], [20, 0], [20, 10], [10, 10], [0, 5]] }],
   slope: { direction: 'right_to_left' },
   analysis: { methods: ['spencer'], slices: 20, tolerance: 1e-5, max_iterations: 200, min_m_alpha: 0.2 },
