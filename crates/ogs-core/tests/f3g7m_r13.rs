@@ -78,3 +78,47 @@ fn e15m1_auto_at_a_step_is_unchanged_by_this_amendment() {
     assert!((x - 5.0).abs() < 1e-6, "{x}");
     assert!((depth - 4.970675496255023).abs() < 1e-9, "{depth}");
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-2 (A-02)
+
+fn sum_h(report: &AnalysisReport, i: usize) -> f64 {
+    report.results[i].slices.iter().map(|s| s.h_force).sum()
+}
+
+/// A polyline that starts `dx` inside the vertical face (`dx` ≪ `wall_tol`) keeps the thrust of the face: same FS and
+/// same `Σ h_force` as `dx = 0` (before: `Σ h_force = 0`, Spencer 2.66591 → 3.49275, 31 % on the unsafe side).
+#[test]
+fn e15m2_wall_thrust_is_not_lost_by_rounding() {
+    let reference = run(&data("a02_paramento_dx0"));
+    let h0 = sum_h(&reference, 0);
+    assert!(h0.abs() > 100.0, "the reference carries the thrust: {h0}");
+    let mut docs = vec![("1e-12", data("a02_paramento_dx1e-12"))];
+    let mut doc9 = data("a02_paramento_dx0");
+    doc9["analysis"]["surface"]["points"][0] = json!([20.0 + 1e-9, 6.0]);
+    docs.push(("1e-9", doc9));
+    for (label, doc) in docs {
+        let report = run(&doc);
+        for i in 0..2 {
+            let (a, b) = (
+                report.results[i].fos.unwrap(),
+                reference.results[i].fos.unwrap(),
+            );
+            assert!(
+                (a - b).abs() <= 1e-6 * b,
+                "dx {label}, method {i}: {a} vs {b}"
+            );
+            assert!(
+                report.results[i]
+                    .warnings
+                    .iter()
+                    .any(|w| w == "water_above_ground"),
+                "dx {label}, method {i}: the warning of the face"
+            );
+        }
+        let h = sum_h(&report, 0);
+        assert!(
+            (h - h0).abs() <= 1e-6 * h0.abs(),
+            "dx {label}: Σh_force {h} vs {h0}"
+        );
+    }
+}
