@@ -136,6 +136,13 @@ fn invalid(msg: impl Into<String>) -> OgsError {
     OgsError::InvalidModel(msg.into())
 }
 
+/// E16y: records a non-finite SHANSEP strength found while evaluating a candidate. It keeps the lowest material index, so
+/// the reported error does not depend on the order in which parallel evaluations finish (F6.10, point 7).
+fn record_shansep_error(slot: &Mutex<Option<usize>>, material: usize) {
+    let mut guard = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    *guard = Some(guard.map_or(material, |m| m.min(material)));
+}
+
 fn shansep_invalid(model: &Model, material: usize) -> OgsError {
     invalid(format!(
         "la resistencia SHANSEP del material '{}' no es finita (revise shansep.ocr, pop u ocr_by_elevation)",
@@ -455,7 +462,7 @@ fn analyze_method(
                 }
                 let _ = water::apply_ponded(pm, &surface, &mut slices);
                 if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
-                    shansep_error.lock().unwrap().get_or_insert(material);
+                    record_shansep_error(&shansep_error, material);
                     return None;
                 }
                 if !model.reinforcements.is_empty() {
@@ -829,7 +836,7 @@ fn evaluate_surface(
     }
     let _ = water::apply_ponded(pm, surface, &mut slices);
     if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
-        shansep_error.lock().unwrap().get_or_insert(material);
+        record_shansep_error(shansep_error, material);
         return None;
     }
     if !model.reinforcements.is_empty() {
