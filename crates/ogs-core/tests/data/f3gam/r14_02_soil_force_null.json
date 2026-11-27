@@ -1,0 +1,100 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "R14-02",
+  "title": "R14-02: soil_force null con spacing < 1 y capacity",
+  "notes": "Reproduccion de R14-02 a partir de a01_arm_null.json (pilote en x = 27.045283, spacing 0.40091756815052138, diameter 0.4, capacity)"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "soil",
+   "name": "Soil",
+   "model": "mohr_coulomb",
+   "unit_weight": 19.0,
+   "unit_weight_sat": null,
+   "cohesion": 5.0,
+   "friction_angle": 35.0,
+   "ru": null
+  }
+ ],
+ "regions": [
+  {
+   "material": "soil",
+   "polygon": [
+    [
+     0.0,
+     -10.0
+    ],
+    [
+     0.0,
+     0.0
+    ],
+    [
+     10.0,
+     0.0
+    ],
+    [
+     25.0,
+     10.0
+    ],
+    [
+     35.0,
+     10.0
+    ],
+    [
+     35.0,
+     -10.0
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "janbu_simplified",
+   "morgenstern_price"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "interslice": {
+   "function": "constant"
+  },
+  "surface": {
+   "type": "circle",
+   "xc": 7.4728309668902995,
+   "yc": 26.312711798202947,
+   "r": 26.430944193312815
+  }
+ },
+ "reinforcements": [
+  {
+   "type": "pile",
+   "id": "P1",
+   "x1": 27.045283,
+   "y1": 10.0,
+   "x2": 27.045283,
+   "y2": 8.5,
+   "spacing": 0.4009175681505214,
+   "direction": "angle",
+   "angle": 0.0,
+   "application": "passive",
+   "lateral_pressure": {
+    "model": "ito_matsui",
+    "diameter": 0.4,
+    "location": "centroid"
+   },
+   "capacity": {
+    "shear": 150.0,
+    "moment": 300.0
+   }
+  }
+ ]
+}

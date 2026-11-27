@@ -1,0 +1,84 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "units": "SI",
+ "materials": [
+  {
+   "id": "s",
+   "name": "s",
+   "model": "mohr_coulomb",
+   "unit_weight": 18.0,
+   "cohesion": 15.0,
+   "friction_angle": 25.0
+  }
+ ],
+ "regions": [
+  {
+   "material": "s",
+   "polygon": [
+    [
+     -10,
+     -5
+    ],
+    [
+     -10,
+     14
+    ],
+    [
+     5,
+     14
+    ],
+    [
+     5,
+     12
+    ],
+    [
+     15,
+     12
+    ],
+    [
+     30,
+     2
+    ],
+    [
+     45,
+     2
+    ],
+    [
+     45,
+     -5
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "left_to_right"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer"
+  ],
+  "slices": 50,
+  "tolerance": 1e-06,
+  "surface": {
+   "type": "circle",
+   "xc": 20.0,
+   "yc": 24.0,
+   "r": 19.398195792392652
+  },
+  "tension_crack": {
+   "depth": "auto",
+   "water_fill": 1.0
+  }
+ },
+ "loads": [
+  {
+   "type": "udl",
+   "id": "u1",
+   "x1": 5.0,
+   "x2": 15.0,
+   "q": 100.0
+  }
+ ]
+}
