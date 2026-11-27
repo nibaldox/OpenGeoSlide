@@ -1101,7 +1101,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   if (nc) {
     if (nc.seeds != null && !(Number.isInteger(nc.seeds) && nc.seeds >= 1 && nc.seeds <= 10)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.seeds debe estar en [1, 10], no ${nc.seeds}`, '/analysis/search/non_circular/seeds'));
     if (nc.max_vertices != null && ![9, 17, 33].includes(nc.max_vertices)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.max_vertices debe ser 9, 17 o 33, no ${nc.max_vertices}`, '/analysis/search/non_circular/max_vertices'));
-    if (doc.analysis.methods?.includes('bishop')) issues.push(error('editor.out_of_range', 'el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)', '/analysis/methods'));
+    if ((doc.analysis.methods ?? ['bishop']).includes('bishop')) issues.push(error('editor.out_of_range', 'el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)', '/analysis/methods'));
   }
   if (doc.materials.some(m => m.model === 'hoek_brown' || m.model === 'shansep')) {
     if (doc.analysis.tension_crack?.depth === 'auto') issues.push(error('editor.out_of_range', 'analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; use una profundidad fija', '/analysis/tension_crack/depth'));
