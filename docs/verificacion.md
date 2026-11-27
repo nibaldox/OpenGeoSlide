@@ -286,6 +286,9 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
   contadores `search.evaluated` y `search.valid`. Se informan aparte («EXCEPCIÓN V019 [search]: E15j-8») y no cuentan; el
   resultado es **0 diferencias, 2 excepciones y 18 modelos con agua sobre el terreno** listados
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
+  La tercera excepción (γw por defecto de un archivo imperial con agua y sin `water.unit_weight`, E15l-6 y E15m-6) no
+  aparece en la compuerta porque ningún modelo imperial del corpus usa agua
+  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 - **Oráculo** (`crates/ogs-core/tests/f3r_oracle.rs`): las siete filas de F4.13, 16 de dirección inclinada y nueve de
   capacidad de X17 contra cSlope 0.1.0, con 0,1 % (0,25 % en las dos de `interface` donde gobierna la integral). Con
   E14o-9, las filas pasivas `inc_up30_pas` e `inc_up45_pas` pasan a ser elementos **embebidos** que cruzan la masa con

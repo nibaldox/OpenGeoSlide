@@ -113,6 +113,10 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
   permitidos (rutas JSON con `*` por segmento, como `results.*.search.evaluated`), se informa como «EXCEPCIÓN» y no
   cuenta; si hay otro campo, otro modelo, otro estado o stderr, cuenta. Hoy declara V019 en `search` y `search@0.4`
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
+- **La tercera excepción (γw por defecto en imperial, E15l-6 y E15m-6)** no necesita una entrada en
+  `identity_exceptions.json`: ninguno de los 15 modelos imperiales del corpus usa agua, así que la compuerta no lo ve.
+  Un archivo imperial con agua y sin `water.unit_weight` cambia de FS frente a la v0.3.0 a propósito
+  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 
 El resultado esperado es «0 diferencias» para todo lo demás, con salida `ok` en el baseline.
 
