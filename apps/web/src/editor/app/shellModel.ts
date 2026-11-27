@@ -11,7 +11,7 @@ import { reinforcementsOf } from '../../report/reinforcementReport';
 import { formatFs } from '../../ui/formatFs';
 import { METHOD_ORDER, METHOD_SHORT_LABELS } from '../panels/forms';
 import { REINFORCEMENT_TYPES, REINFORCEMENT_TYPE_LABELS } from '../panels/reinforcementForm';
-import { isImperialUnits } from '../state/units';
+import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../state/units';
 import type { Issue, ModelDoc } from '../types';
 import { issueTargetFor, type PanelTabId } from './issueNav';
 import type { EngineRun } from './reportInput';
@@ -35,10 +35,10 @@ export const STEP_ORDER: readonly PanelTabId[] = [
  * - `done`: completo y sin errores locales;
  * - `error`: alguna incidencia local de severidad `error` apunta a este paso;
  * - `draft`: tiene un borrador sin aplicar (gana sobre `done`, pierde frente a `error`);
+ * - `warn`: alguna incidencia local de severidad `aviso` apunta a este paso (UA-E3 §4; gana sobre `empty`, `optional` y `done`);
  * - `optional`: paso opcional vacío (sin agua, sin búsqueda activa, sin cargas, sin refuerzos, sin sismo, sin título);
  * - `empty`: paso obligatorio vacío (sin regiones, sin materiales).
  */
-/** UA-E3: `warn` = alguna incidencia local de severidad `aviso` apunta al paso (precedencia error › draft › warn › empty/optional › done). */
 export type StepStatus = 'done' | 'error' | 'draft' | 'warn' | 'optional' | 'empty';
 
 export interface StepState {
@@ -161,10 +161,22 @@ function materialsSummary(doc: ModelDoc): Summary {
   };
 }
 
+/**
+ * B-06: el agua no es solo la piezométrica. Sin línea, la grieta de tracción con agua (`water_fill > 0`) usa γw (el mismo criterio que
+ * `waterUnitWeightText` del informe) y una `ru > 0` en algún material pesa en el cálculo sin piezométrica: ninguna de las dos es «sin agua».
+ */
 function waterSummary(doc: ModelDoc): Summary {
   const points = doc.water?.piezometric_line?.length ?? 0;
-  if (points === 0) return { summary: 'Sin piezométrica', base: 'optional' };
-  return { summary: `Piezométrica · ${count(points, 'punto', 'puntos')}`, base: 'done' };
+  if (points > 0) return { summary: `Piezométrica · ${count(points, 'punto', 'puntos')}`, base: 'done' };
+  const fill = doc.analysis?.tension_crack?.water_fill;
+  if (typeof fill === 'number' && fill > 0) {
+    const explicit = doc.water?.unit_weight;
+    const gamma = typeof explicit === 'number' && Number.isFinite(explicit) ? explicit : isImperialUnits(doc.units) ? Number((WATER_UNIT_WEIGHT_SI * UNIT_FACTORS.unitWeight).toFixed(2)) : WATER_UNIT_WEIGHT_SI;
+    return { summary: `Agua en grieta · γw ${num(gamma, 0, 3)}`, base: 'done' };
+  }
+  const withRu = (doc.materials ?? []).filter((m) => typeof m.ru === 'number' && m.ru > 0).length;
+  if (withRu > 0) return { summary: `Sin piezométrica · ru en ${num(withRu)} mat.`, base: 'done' };
+  return { summary: 'Sin piezométrica', base: 'optional' };
 }
 
 function surfaceSummary(doc: ModelDoc): Summary {
@@ -179,16 +191,23 @@ function surfaceSummary(doc: ModelDoc): Summary {
 function searchSummary(doc: ModelDoc, u: { length: string }): Summary {
   const s = doc.analysis?.search;
   if (!s) return { summary: 'Inactiva', base: 'optional' };
-  const range = (r: readonly [number, number] | null | undefined): string | null => (r ? `${num(r[0], 0, 2)}–${num(r[1], 0, 2)}` : null);
+  const range = (r: readonly [number, number] | null | undefined): string | null => {
+    if (!r) return null;
+    // B-12(c): con algún extremo negativo, «a» y el signo menos tipográfico (−25,5 a −10,2); sin negativos, la semirraya de siempre.
+    const negative = r[0] < 0 || r[1] < 0;
+    const text = (n: number): string => (negative ? num(n, 0, 2).replace(/^-/, '\u2212') : num(n, 0, 2));
+    return `${text(r[0])}${negative ? ' a ' : '–'}${text(r[1])}`;
+  };
   const entry = range(s.entry);
   const exit = range(s.exit);
   if (entry === null && exit === null) return { summary: 'Entrada y salida automáticas', base: 'done' };
   const l = u.length;
+  // B-09: cada rango definido lleva su unidad en todas las formas; «auto.» no es un número y no la necesita.
   return {
     summary: fit(
       `${entry ? `Entrada ${entry} ${l}` : 'Entrada automática'} · ${exit ? `salida ${exit} ${l}` : 'salida automática'}`,
-      `${entry ? `Ent. ${entry}` : 'Ent. auto.'} · ${exit ? `sal. ${exit}` : 'sal. auto.'}${entry && exit ? ` ${l}` : ''}`,
-      `${entry ?? 'auto.'} · ${exit ?? 'auto.'}${entry && exit ? ` ${l}` : ''}`,
+      `${entry ? `Ent. ${entry} ${l}` : 'Ent. auto.'} · ${exit ? `sal. ${exit} ${l}` : 'sal. auto.'}`,
+      `${entry ? `${entry} ${l}` : 'auto.'} · ${exit ? `${exit} ${l}` : 'auto.'}`,
     ),
     base: 'done',
   };
@@ -232,7 +251,9 @@ function seismicSummary(doc: ModelDoc): Summary {
   const kh = s?.kh ?? 0;
   const kv = s?.kv ?? 0;
   if (!Number.isFinite(kh) || !Number.isFinite(kv) || (kh === 0 && kv === 0)) return { summary: 'Sin sismo', base: 'optional' };
-  return { summary: fit(`kh ${num(kh, 2, 3)} · kv ${num(kv, 2, 3)}`, `kh ${num(kh, 2, 3)}`), base: 'done' };
+  // B-12(b): un coeficiente no nulo que redondea a 0,000 no se escribe «0,00» (parece sin sismo): «< 0,001».
+  const coef = (label: string, v: number): string => (v !== 0 && Math.abs(v) < 0.0005 ? `${label} ${v > 0 ? '<' : '>'} ${v < 0 ? '\u2212' : ''}0,001` : `${label} ${num(v, 2, 3)}`);
+  return { summary: fit(`${coef('kh', kh)} · ${coef('kv', kv)}`, coef('kh', kh)), base: 'done' };
 }
 
 function projectSummary(doc: ModelDoc): Summary {
@@ -261,18 +282,21 @@ export function stepStates(doc: ModelDoc, issues: readonly Issue[], pendingDraft
     project: projectSummary(doc),
   };
   const errors = new Map<PanelTabId, number>();
+  const advised = new Set<PanelTabId>();
   for (const issue of issues) {
-    if (issue.severity !== 'error') continue;
+    if (issue.severity !== 'error' && issue.severity !== 'aviso') continue;
     const tab = issueTargetFor(issue, doc)?.tab ?? null;
-    if (tab !== null) errors.set(tab, (errors.get(tab) ?? 0) + 1);
+    if (tab === null) continue;
+    if (issue.severity === 'error') errors.set(tab, (errors.get(tab) ?? 0) + 1);
+    else advised.add(tab);
   }
   const drafted = new Set(pendingDrafts.map(draftStep));
   const out = {} as Record<PanelTabId, StepState>;
   for (const id of STEP_ORDER) {
     const { summary, base } = summaries[id];
     const errorCount = errors.get(id) ?? 0;
-    // Precedencia: error › borrador › vacío / opcional › hecho.
-    const status: StepStatus = errorCount > 0 ? 'error' : drafted.has(id) ? 'draft' : base;
+    // Precedencia (UA-E3 §4): error › borrador › aviso › vacío / opcional › hecho.
+    const status: StepStatus = errorCount > 0 ? 'error' : drafted.has(id) ? 'draft' : advised.has(id) ? 'warn' : base;
     out[id] = { summary, status, errorCount };
   }
   return out;
@@ -316,7 +340,25 @@ export interface RunStatus {
 
 const methodNames = (methods: readonly MethodKind[]): string => methods.map((m) => METHOD_SHORT_LABELS[m]).join(', ');
 
-/** Chip de estado de la cabecera (contrato §4.1, tabla de estados). */
+/** Añade « · N avisos» al texto del chip si cabe en 40 caracteres (UA-E3 §5: «+ N avisos si cabe»). */
+function withAdvisories(text: string, advisories: number): string {
+  if (advisories <= 0) return text;
+  const full = `${text} · ${count(advisories, 'aviso', 'avisos')}`;
+  return full.length <= MAX_CHARS ? full : text;
+}
+
+/** `title` = el texto, el detalle que no cabe y, si el texto no lo lleva, el número de avisos (UA-E3 §5). */
+function titled(tone: Tone, text: string, details: readonly string[], advisories: number, advisoriesInText: boolean): RunStatus {
+  const parts = [text, ...details.filter((d) => d !== '')];
+  if (advisories > 0 && !advisoriesInText) parts.push(`Avisos: ${num(advisories)}`);
+  const title = parts.reduce((acc, part) => `${acc.endsWith('.') ? acc : `${acc}.`} ${part}`);
+  return { tone, text, title: parts.length > 1 ? title : text };
+}
+
+/**
+ * Chip de estado de la cabecera (contrato §4.1 con las filas de «resultado actual» de UA-E3 §5): el estado no juzga la
+ * aceptabilidad del talud, así que el tono `ok` no se usa. Un resultado con borradores pendientes nunca es actual.
+ */
 export function runStatus(input: RunStatusInput): RunStatus {
   const same = (tone: Tone, text: string): RunStatus => ({ tone, text, title: text });
   if (input.engineStatus === 'loading') return same('neutral', 'Cargando el motor…');
@@ -326,27 +368,31 @@ export function runStatus(input: RunStatusInput): RunStatus {
     return same('accent', n > 0 ? `Calculando ${count(n, 'método', 'métodos')}…` : 'Calculando…');
   }
   if (!input.hasRegions) return same('neutral', 'Sin modelo');
-  const run = input.run !== null && input.current ? input.run : null;
+  // A-02 y B-01: con borradores sin aplicar el cálculo ya no corresponde a lo que hay en pantalla.
+  const run = input.run !== null && input.current && input.pendingDrafts === 0 ? input.run : null;
   const message = input.message?.replace(/\s+/g, ' ').trim() ?? '';
   if (message !== '' && input.messageKind === 'error' && run === null) {
     const full = `Error: ${message}`;
     return { tone: 'nok', text: full.length <= MAX_CHARS ? full : `${full.slice(0, MAX_CHARS - 1).trimEnd()}${ELLIPSIS}`, title: full };
   }
   if (run !== null) {
+    const advisories = Number.isFinite(input.advisories) ? Math.max(0, Math.trunc(input.advisories ?? 0)) : 0;
     const fs = fsMinimum(run.report);
     const failed = run.report.results.filter((r) => convergedFos(r) === null || !Number.isFinite(convergedFos(r))).map((r) => r.method);
-    if (fs.converged === 0) {
-      const detail = failed.length > 0 ? ` No convergieron: ${methodNames(failed)}.` : '';
-      return { tone: 'warn', text: 'Sin convergencia', title: `Sin convergencia.${detail}` };
-    }
+    const notConverged = failed.length > 0 ? `No convergieron: ${methodNames(failed).replace(/\.?$/, '.')}` : ''; // «Janbu corr.» ya lleva su punto
+    const out = (tone: Tone, base: string, details: readonly string[]): RunStatus => {
+      const text = withAdvisories(base, advisories);
+      return titled(tone, text, details, advisories, text !== base);
+    };
+    if (fs.converged === 0) return out('warn', 'Sin convergencia', notConverged === '' ? [] : [notConverged]);
+    const minimum = `FS mínimo ${fs.text} (${methodNames(fs.methods)})`;
     if (fs.converged < fs.total) {
-      const text = `Parcial · ${fs.converged} de ${fs.total} métodos`;
-      return { tone: 'warn', text, title: `${text}. No convergieron: ${methodNames(failed)}.` };
+      const part = `${fs.converged} de ${fs.total}`;
+      if (fs.below1) return out('nok', `Parcial · ${part} · FS < 1,0`, [minimum, notConverged]);
+      return out('warn', `Parcial · ${part} métodos`, [notConverged]);
     }
-    const detail = `FS mínimo ${fs.text} (${methodNames(fs.methods)})`;
-    if (fs.below1) return { tone: 'nok', text: 'Calculado · FS < 1,0', title: `Calculado · FS < 1,0. ${detail}` };
-    const text = `Calculado · FS mín. ${fs.text}`;
-    return { tone: 'ok', text, title: `${text}. ${detail}` };
+    if (fs.below1) return out('nok', 'Calculado · FS < 1,0', [minimum]);
+    return out(advisories > 0 ? 'warn' : 'neutral', `Calculado · FS mín. ${fs.text}`, [minimum]);
   }
   if (input.run !== null) return same('warn', input.pendingDrafts > 0 ? 'Cambios sin aplicar' : 'Resultados desactualizados');
   if (input.localErrors > 0) return same('warn', `Modelo con ${count(input.localErrors, 'problema', 'problemas')}`);
@@ -357,7 +403,7 @@ export function runStatus(input: RunStatusInput): RunStatus {
 export interface FsMinimum {
   /** Mínimo de los FS de los métodos que convergieron; `null` si ninguno convergió. */
   value: number | null;
-  /** «0,984» (`formatFs`) o «—». */
+  /** «0,984» (`fsText`) o «—». */
   text: string;
   /** Métodos que dan el mínimo (empates incluidos), en el orden del informe. */
   methods: MethodKind[];
@@ -366,6 +412,16 @@ export interface FsMinimum {
   /** Métodos que convergieron y métodos calculados. */
   converged: number;
   total: number;
+}
+
+/**
+ * FS con 3 decimales y coma (`formatFs`), salvo en [0,9995, 1): ahí 3 decimales dan «1,000», que junto al chip «FS < 1,0» se contradice
+ * (B-12a). Se escribe con 4 decimales truncados («0,9997»), para que nunca llegue a «1,0000».
+ */
+export function fsText(value: number | null | undefined): string {
+  const text = formatFs(value);
+  if (typeof value !== 'number' || !(value < 1) || text !== formatFs(1)) return text;
+  return num(Math.floor(Number((value * 1e4).toFixed(6))) / 1e4, 4);
 }
 
 /** FS mínimo del HUD: el menor FS finito de los métodos que convergieron (el de uno que no convergió no es un resultado). */
@@ -377,8 +433,8 @@ export function fsMinimum(report: AnalysisReport): FsMinimum {
   const total = report.results.length;
   if (usable.length === 0) return { value: null, text: '—', methods: [], below1: false, converged: 0, total };
   const value = Math.min(...usable.map((u) => u.fos));
-  const text = formatFs(value);
-  return { value, text, methods: usable.filter((u) => formatFs(u.fos) === text).map((u) => u.method), below1: value < 1, converged: usable.length, total };
+  const text = fsText(value);
+  return { value, text, methods: usable.filter((u) => fsText(u.fos) === text).map((u) => u.method), below1: value < 1, converged: usable.length, total };
 }
 
 export interface ReportContentItem {

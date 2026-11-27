@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AnalysisReport, MethodReport } from '../../engine/types';
 
 vi.mock('./shellModel', () => ({
+  fsText: (value: number | null) => (value === null ? '—' : value.toFixed(3).replace('.', ',')),
   fsMinimum: (report: AnalysisReport) => {
     const ok = report.results.filter((r) => r.status === 'converged');
     const value = ok.length === 0 ? null : Math.min(...ok.map((r) => r.fos as number));
