@@ -205,6 +205,7 @@ where
     // 2. Fold the grid serially, in index order.
     let mut stats = SearchStats::default();
     let mut best: Option<(Circle, f64)> = None;
+    let mut best_ends: Option<(f64, f64)> = None;
     let mut scored: Vec<(f64, usize, Scored)> = Vec::new();
     for (idx, cand) in grid.into_iter().enumerate() {
         let Some(cand) = cand else { continue };
@@ -213,6 +214,9 @@ where
         stats.valid += 1;
         if fs.is_nan() {
             continue;
+        }
+        if best.is_none_or(|(_, b)| fs < b) {
+            best_ends = Some((cand.params.xe, cand.params.xs));
         }
         consider(&mut best, cand.circle, fs);
         scored.push((
@@ -226,6 +230,14 @@ where
             },
         ));
     }
+
+    // Keep the grid candidates for non-circular seeds; circular search consumes its own list.
+    let mut nc_grid = if spec.non_circular.is_some() {
+        scored.clone()
+    } else {
+        Vec::new()
+    };
+    nc_grid.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
 
     // 3. Pattern-search refinement from the best grid seeds.
     let steps0 = [
@@ -249,6 +261,9 @@ where
             stats.evaluated += r.evaluated;
             stats.valid += r.valid;
             if let Some((circle, fs)) = r.best {
+                if best.is_none_or(|(_, b)| fs < b) {
+                    best_ends = r.best_ends;
+                }
                 consider(&mut best, circle, fs);
             }
         }
@@ -280,6 +295,9 @@ where
             if fs.is_nan() {
                 continue;
             }
+            if best.is_none_or(|(_, b)| fs < b) {
+                best_ends = Some((cand.params.xe, cand.params.xs));
+            }
             consider(&mut best, cand.circle, fs);
             pool.push((
                 pi,
@@ -306,16 +324,43 @@ where
                 stats.evaluated += r.evaluated;
                 stats.valid += r.valid;
                 if let Some((circle, fs)) = r.best {
+                    if best.is_none_or(|(_, b)| fs < b) {
+                        best_ends = r.best_ends;
+                    }
                     consider(&mut best, circle, fs);
                 }
             }
         }
     }
 
+    let mut nc_seeds = Vec::new();
+    if spec.non_circular.is_some()
+        && let (Some(first), Some(ends)) = (best, best_ends)
+    {
+        let span = (entry[1] - exit[0])
+            .abs()
+            .max((exit[1] - entry[0]).abs())
+            .max(1.0);
+        let mut chosen = vec![ends];
+        nc_seeds.push(first);
+        for (_, _, candidate) in nc_grid {
+            let p = candidate.params;
+            if chosen
+                .iter()
+                .all(|&(e, x)| (e - p.xe).abs() > 0.05 * span || (x - p.xs).abs() > 0.05 * span)
+            {
+                chosen.push((p.xe, p.xs));
+                nc_seeds.push((candidate.circle, candidate.fs));
+                if nc_seeds.len() == 10 {
+                    break;
+                }
+            }
+        }
+    }
     SearchResult {
         best,
         stats,
-        seeds: Vec::new(),
+        seeds: nc_seeds,
     }
 }
 
@@ -480,6 +525,7 @@ struct Refined {
     evaluated: usize,
     valid: usize,
     best: Option<(Circle, f64)>,
+    best_ends: Option<(f64, f64)>,
 }
 
 /// Immutable search context shared by the grid and the refinement.
@@ -635,6 +681,9 @@ where
     if fs.is_nan() {
         return None;
     }
+    if acc.best.is_none_or(|(_, b)| fs < b) {
+        acc.best_ends = Some((p.xe, p.xs));
+    }
     consider(&mut acc.best, circle, fs);
     Some(Scored {
         params: p,
@@ -728,6 +777,7 @@ where
         evaluated: 0,
         valid: 0,
         best: Some((seed.circle, seed.fs)),
+        best_ends: Some((seed.params.xe, seed.params.xs)),
     };
     let tol = [space.tol_x, space.tol_x, STEP_TOL_RHO];
     let mut base = seed;

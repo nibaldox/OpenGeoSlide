@@ -1,35 +1,324 @@
-//! Non-circular search refinement (F6.4, F6.10). B0 freezes the interface; the writer of B1 (M-NC) fills the algorithm.
-//!
-//! The seeds are the `seeds` best distinct circles of the circular search of the same method (with their FS); each one
-//! is converted into a polyline with nodes in `x` between the entry and the exit, and refined by the alternating
-//! variation of its vertices (D4, X24 §6; the conversion and the budget are fixed by X29). The refined FS is never
-//! larger than that of its seed (F6.10).
-
-use crate::geometry::PreparedModel;
-use crate::model::{Circle, MethodKind, NonCircularSpec, SearchSpec};
+//! Deterministic alternating-variable non-circular refinement (F6.10, X24 §1, X29).
+use crate::geometry::{PreparedModel, Sliding};
+use crate::model::{Circle, MethodKind, NonCircularSpec, Point, SearchSpec};
 use crate::search::NonCircularStats;
-use crate::surface::Surface;
+use crate::surface::{Polyline, Surface, search_circle_polyline, search_polyline_admissible};
 
-/// Code of the informative note of F6.7: the reported FS is more than 15 % below `seed_fos` (F6.10, point 8).
+/// Informative note emitted by the caller when FS falls more than 15%.
 pub const NON_CIRCULAR_LARGE_CHANGE: &str = "non_circular_large_change";
+const BUDGET: usize = 1500;
 
-/// Refines the circular seeds into the critical polyline (F6.6 hook 3, F6.10).
-///
-/// `seeds` are the best distinct circles with their FS; `eval` evaluates a candidate polyline (already fitted to the
-/// ground) with the same steps that `lib.rs` runs on a fixed surface, and returns `Some(FS)` only for a valid,
-/// converged surface. `search` carries the entry and exit windows: the moved end points stay inside them, or inside
-/// the x-extent of the model when a window is absent (E16s). Returns the refined surface (a circle when the seed
-/// circle wins, F6.10 point 8) and the statistics of the refinement.
-///
-/// B0 stub: [`todo!("F3B-M-NC")`]. The writer of B1 replaces it; the signature cannot change without an amendment.
+struct Optimizer<'a, E> {
+    pm: &'a PreparedModel,
+    windows: [[f64; 2]; 2],
+    eval: &'a mut E,
+    used: usize,
+}
+
+impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
+    fn evaluate(&mut self, p: &[Point]) -> Option<f64> {
+        let inside = |x: f64, [a, b]: [f64; 2]| x >= a.min(b) && x <= a.max(b);
+        if self.used >= BUDGET
+            || p.len() < 2
+            || !inside(p[0][0], self.windows[0])
+            || !inside(p[p.len() - 1][0], self.windows[1])
+            || !search_polyline_admissible(self.pm, p)
+        {
+            return None;
+        }
+        self.used += 1;
+        (self.eval)(&Surface::Polyline(Polyline { points: p.to_vec() }))
+            .filter(|f| f.is_finite() && *f > 0.0)
+    }
+    fn moved(&self, points: &[Point], k: usize, t: f64, dirs: &[Point]) -> Option<Point> {
+        let p = points[k];
+        if k == 0 || k + 1 == points.len() {
+            let x = p[0] + t;
+            let [a, b] = self.windows[usize::from(k != 0)];
+            if x < a.min(b) || x > a.max(b) {
+                return None;
+            }
+            Some([x, self.pm.top_at(x)?])
+        } else {
+            Some([p[0] + t * dirs[k][0], p[1] + t * dirs[k][1]])
+        }
+    }
+    fn optimize(&mut self, mut p: Vec<Point>, mut f: f64) -> (Vec<Point>, f64) {
+        let delta0 = 0.1
+            * p.windows(2)
+                .map(|w| (w[1][0] - w[0][0]).hypot(w[1][1] - w[0][1]))
+                .fold(f64::INFINITY, f64::min);
+        if !delta0.is_finite() || delta0 <= 0.0 {
+            return (p, f);
+        }
+        let mut delta = delta0;
+        while delta >= 0.02 * delta0 && self.used < BUDGET {
+            for _ in 0..6 {
+                if self.used >= BUDGET {
+                    break;
+                }
+                let n = p.len();
+                let mut dirs = vec![[0.0, 0.0]; n];
+                for k in 1..n - 1 {
+                    let normal = |a: Point, b: Point| {
+                        let dx = b[0] - a[0];
+                        let dy = b[1] - a[1];
+                        let l = dx.hypot(dy);
+                        [-dy / l, dx / l]
+                    };
+                    let a = normal(p[k - 1], p[k]);
+                    let b = normal(p[k], p[k + 1]);
+                    let (x, y) = (a[0] + b[0], a[1] + b[1]);
+                    let l = x.hypot(y);
+                    dirs[k] = if l < 1e-12 { a } else { [x / l, y / l] };
+                }
+                let mut shifts = vec![0.0; n];
+                let mut best: Option<(f64, Vec<Point>)> = None;
+                for k in 0..n {
+                    let mut sides = [None, None];
+                    for (j, t) in [delta, -delta].into_iter().enumerate() {
+                        if self.used >= BUDGET {
+                            break;
+                        }
+                        let Some(pt) = self.moved(&p, k, t, &dirs) else {
+                            continue;
+                        };
+                        let mut q = p.clone();
+                        q[k] = pt;
+                        if let Some(v) = self.evaluate(&q) {
+                            sides[j] = Some(v);
+                            if best.as_ref().is_none_or(|(b, _)| v < *b) {
+                                best = Some((v, q));
+                            }
+                        }
+                    }
+                    shifts[k] = match (sides[0], sides[1]) {
+                        (Some(fp), Some(fm)) => {
+                            let c = fp + fm - 2.0 * f;
+                            if c > 0.0 {
+                                (delta * (fm - fp) / (2.0 * c)).clamp(-delta, delta)
+                            } else if fp < f || fm < f {
+                                if fp < fm { delta } else { -delta }
+                            } else {
+                                0.0
+                            }
+                        }
+                        (Some(fp), None) if fp < f => delta,
+                        (None, Some(fm)) if fm < f => -delta,
+                        _ => 0.0,
+                    };
+                }
+                if self.used < BUDGET && shifts.iter().any(|s| *s != 0.0) {
+                    let mut q = p.clone();
+                    let mut ok = true;
+                    for k in 0..n {
+                        if shifts[k] != 0.0 {
+                            if let Some(pt) = self.moved(&p, k, shifts[k], &dirs) {
+                                q[k] = pt;
+                            } else {
+                                ok = false;
+                                break;
+                            }
+                        }
+                    }
+                    if ok
+                        && let Some(v) = self.evaluate(&q)
+                        && best.as_ref().is_none_or(|(b, _)| v < *b)
+                    {
+                        best = Some((v, q));
+                    }
+                }
+                match best {
+                    Some((v, q)) if v < f - 1e-6 => {
+                        p = q;
+                        f = v;
+                    }
+                    _ => break,
+                }
+            }
+            delta *= 0.5;
+        }
+        (p, f)
+    }
+}
+
+/// Refine each seed, keeping the circle on ties (F6.10 and E16s).
 pub(crate) fn refine(
     pm: &PreparedModel,
-    method: MethodKind,
+    _method: MethodKind,
     search: &SearchSpec,
     spec: &NonCircularSpec,
     seeds: Vec<(Circle, f64)>,
     mut eval: impl FnMut(&Surface) -> Option<f64>,
 ) -> (Surface, NonCircularStats) {
-    let _ = (&pm, method, search, spec, &seeds, &mut eval);
-    todo!("F3B-M-NC")
+    let (circle, seed_fos) = seeds[0];
+    let full = [pm.x_min, pm.x_max];
+    let entry = search.entry.unwrap_or(full);
+    let exit = search.exit.unwrap_or(full);
+    let windows = match pm.sliding {
+        Sliding::LeftToRight => [entry, exit],
+        Sliding::RightToLeft => [exit, entry],
+    };
+    let mut stats = NonCircularStats {
+        seeds: 0,
+        evaluated: 0,
+        seed_fos,
+        polyline_fos: None,
+    };
+    let mut best_surface = Surface::Circle(circle);
+    for (circle, _) in seeds.into_iter().take(spec.seeds()) {
+        stats.seeds += 1;
+        let mut opt = Optimizer {
+            pm,
+            windows,
+            eval: &mut eval,
+            used: 0,
+        };
+        if let Some(mut p) = search_circle_polyline(pm, &circle)
+            && let Some(mut f) = opt.evaluate(&p)
+        {
+            for level in [9, 17, 33] {
+                if level > spec.max_vertices() {
+                    break;
+                }
+                if p.len() < level {
+                    let mut q = Vec::with_capacity(level);
+                    for w in p.windows(2) {
+                        q.push(w[0]);
+                        q.push([(w[0][0] + w[1][0]) * 0.5, (w[0][1] + w[1][1]) * 0.5]);
+                    }
+                    q.push(*p.last().unwrap());
+                    if let Some(v) = opt.evaluate(&q) {
+                        p = q;
+                        f = v;
+                    } else {
+                        break;
+                    }
+                }
+                (p, f) = opt.optimize(p, f);
+                if stats.polyline_fos.is_none_or(|v| f < v) {
+                    stats.polyline_fos = Some(f);
+                    if f < seed_fos {
+                        best_surface = Surface::Polyline(Polyline { points: p.clone() });
+                    }
+                }
+            }
+        }
+        stats.evaluated += opt.used;
+    }
+    (best_surface, stats)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::Model;
+    use serde_json::{Value, json};
+
+    fn fixture(name: &str) -> (Value, Model, PreparedModel) {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/data/f3b/nc")
+            .join(name);
+        let row: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let v = row["model"].clone();
+        let m: Model = serde_json::from_value(v.clone()).unwrap();
+        let pm = PreparedModel::new(&m).unwrap();
+        (v, m, pm)
+    }
+
+    #[test]
+    fn search_concavity_does_not_change_fixed_polylines() {
+        let (_, _, pm) = fixture("V001-k4.json");
+        let points = vec![
+            [0.0, 15.0],
+            [10.0, 9.0],
+            [20.0, 11.0],
+            [30.0, 12.0],
+            [40.0, pm.top_at(40.0).unwrap()],
+        ];
+        assert!(!search_polyline_admissible(&pm, &points));
+        let surface = Surface::Polyline(Polyline { points });
+        assert!(surface.fit_to_ground(&pm).is_ok());
+    }
+
+    #[test]
+    fn no_evaluable_polyline_omits_polyline_fos() {
+        let (_, model, pm) = fixture("V001-k4.json");
+        let search = model.analysis.search.as_ref().unwrap();
+        let spec = search.non_circular.as_ref().unwrap();
+        let c = Circle {
+            xc: 35.0,
+            yc: 40.0,
+            r: 25.0,
+        };
+        let (surface, stats) = refine(
+            &pm,
+            MethodKind::Spencer,
+            search,
+            spec,
+            vec![(c, 1.0)],
+            |_| None,
+        );
+        assert!(matches!(surface, Surface::Circle(_)));
+        assert!(stats.polyline_fos.is_none());
+        assert!(
+            serde_json::to_value(stats)
+                .unwrap()
+                .get("polyline_fos")
+                .is_none()
+        );
+    }
+
+    // Instrument all converged candidate polylines without changing the product interface.
+    #[test]
+    #[ignore = "diagnostic: re-analyzes every candidate"]
+    fn v002_tension_candidate_proportion() {
+        let (mut doc, model, pm) = fixture("V002-k1.json");
+        let search = model.analysis.search.as_ref().unwrap();
+        let spec = search.non_circular.as_ref().unwrap();
+        doc["analysis"].as_object_mut().unwrap().remove("search");
+        let fixed = |doc: &mut Value, surface: Value| -> Option<Value> {
+            doc["analysis"]["surface"] = surface;
+            Some(serde_json::from_str::<Value>(&crate::analyze_json(&doc.to_string()).ok()?).ok()?["results"][0].clone())
+        };
+        let search_result = crate::search::search_circular(&pm, search, |c| {
+            let mut d = doc.clone();
+            let r = fixed(&mut d, json!({"type":"circle","xc":c.xc,"yc":c.yc,"r":c.r}))?;
+            (r["status"] == "converged")
+                .then(|| r["fos"].as_f64())
+                .flatten()
+        });
+        let (mut converged, mut major) = (0usize, 0usize);
+        let (_, stats) = refine(
+            &pm,
+            MethodKind::MorgensternPrice,
+            search,
+            spec,
+            search_result.seeds,
+            |s| {
+                let Surface::Polyline(p) = s else {
+                    unreachable!()
+                };
+                let r = fixed(&mut doc, json!({"type":"polyline","points":p.points}))?;
+                if r["status"] != "converged" {
+                    return None;
+                }
+                converged += 1;
+                if r["warnings"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|w| w == "negative_effective_normal_major")
+                {
+                    major += 1;
+                }
+                r["fos"].as_f64()
+            },
+        );
+        println!(
+            "V002 candidate warnings: {major}/{converged} converged; {} admissible evaluations",
+            stats.evaluated
+        );
+        assert!(converged > 0);
+    }
 }

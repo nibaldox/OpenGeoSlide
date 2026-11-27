@@ -221,6 +221,59 @@ impl Surface {
     }
 }
 
+/// Convert a circle's ground crossings to nine lower-arc vertices (F6.10).
+pub(crate) fn search_circle_polyline(pm: &PreparedModel, circle: &Circle) -> Option<Vec<Point>> {
+    let span = sliding_span(pm, circle).ok()?;
+    let (a, b) = (span.p, span.q);
+    let mut points = Vec::with_capacity(9);
+    for i in 0..=8 {
+        let x = a + (b - a) * i as f64 / 8.0;
+        let y = if i == 0 || i == 8 {
+            pm.top_at(x)?
+        } else {
+            pm.arc_y(circle, true, x)
+        };
+        points.push([x, y]);
+    }
+    Some(points)
+}
+
+/// Search-only geometric checks; fixed user polylines do not acquire a concavity restriction.
+pub(crate) fn search_polyline_admissible(pm: &PreparedModel, points: &[Point]) -> bool {
+    if points.len() < 2 || points.iter().flatten().any(|v| !v.is_finite()) {
+        return false;
+    }
+    let mut previous = None;
+    for w in points.windows(2) {
+        let dx = w[1][0] - w[0][0];
+        if dx <= 0.0 || dx < 1e-6 * (pm.x_max - pm.x_min) {
+            return false;
+        }
+        let alpha = (w[0][1] - w[1][1]).atan2(dx);
+        if previous.is_some_and(|p| alpha > p + 1.0_f64.to_radians()) {
+            return false;
+        }
+        previous = Some(alpha);
+        for i in 1..8 {
+            let t = i as f64 / 8.0;
+            let x = w[0][0] + t * dx;
+            let y = w[0][1] + t * (w[1][1] - w[0][1]);
+            if pm.top_at(x).is_none_or(|g| y >= g) {
+                return false;
+            }
+        }
+    }
+    for p in &points[1..points.len() - 1] {
+        if pm.top_at(p[0]).is_none_or(|g| p[1] >= g - 1e-6) || p[1] <= pm.y_min {
+            return false;
+        }
+    }
+    let s = Surface::Polyline(Polyline {
+        points: points.to_vec(),
+    });
+    s.fit_to_ground(pm).is_ok()
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Polyline operations
 

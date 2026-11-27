@@ -1,0 +1,285 @@
+{
+ "id": "X29-EV-V002-k1",
+ "descripcion": "Polilínea final de cSlope (V002 k1) como superficie fija en el motor 0.4.0 (aislar el evaluador)",
+ "grupo": "evaluador-superficie-fija",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+   "id": "V002",
+   "title": "Arai & Tagyo (1985) example 2, three layers",
+   "notes": "Slope with a weak middle layer between a stronger upper layer and a very strong base; critical-circle search."
+  },
+  "units": "SI",
+  "materials": [
+   {
+    "id": "upper",
+    "name": "Upper",
+    "model": "mohr_coulomb",
+    "unit_weight": 18.82,
+    "unit_weight_sat": null,
+    "cohesion": 29.4,
+    "friction_angle": 12.0,
+    "ru": null
+   },
+   {
+    "id": "middle",
+    "name": "Middle",
+    "model": "mohr_coulomb",
+    "unit_weight": 18.82,
+    "unit_weight_sat": null,
+    "cohesion": 9.8,
+    "friction_angle": 5.0,
+    "ru": null
+   },
+   {
+    "id": "lower",
+    "name": "Lower",
+    "model": "mohr_coulomb",
+    "unit_weight": 18.82,
+    "unit_weight_sat": null,
+    "cohesion": 294.0,
+    "friction_angle": 40.0,
+    "ru": null
+   }
+  ],
+  "regions": [
+   {
+    "material": "lower",
+    "polygon": [
+     [
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      3.0
+     ],
+     [
+      96.0,
+      35.0
+     ],
+     [
+      96.0,
+      0.0
+     ]
+    ]
+   },
+   {
+    "material": "middle",
+    "polygon": [
+     [
+      0.0,
+      3.0
+     ],
+     [
+      0.0,
+      15.0
+     ],
+     [
+      18.0,
+      15.0
+     ],
+     [
+      24.0,
+      19.0
+     ],
+     [
+      72.0,
+      35.0
+     ],
+     [
+      96.0,
+      35.0
+     ]
+    ]
+   },
+   {
+    "material": "upper",
+    "polygon": [
+     [
+      24.0,
+      19.0
+     ],
+     [
+      48.0,
+      35.0
+     ],
+     [
+      72.0,
+      35.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "auto"
+  },
+  "analysis": {
+   "methods": [
+    "morgenstern_price"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "interslice": {
+    "function": "constant"
+   },
+   "surface": {
+    "type": "polyline",
+    "points": [
+     [
+      17.88546131739868,
+      15.0
+     ],
+     [
+      19.252037093370646,
+      14.267471400707661
+     ],
+     [
+      20.655231352858763,
+      13.745328029035349
+     ],
+     [
+      22.085853867649547,
+      13.384664286729679
+     ],
+     [
+      23.542498235559478,
+      13.155498658185197
+     ],
+     [
+      25.05792827530601,
+      13.039021145870384
+     ],
+     [
+      26.57775118496673,
+      13.034723469740749
+     ],
+     [
+      28.093989430987378,
+      13.129018606705943
+     ],
+     [
+      29.601626476597175,
+      13.315047479089046
+     ],
+     [
+      31.089822133384402,
+      13.582225287616065
+     ],
+     [
+      32.562009960310995,
+      13.927371764567306
+     ],
+     [
+      34.01472867971909,
+      14.344774747898319
+     ],
+     [
+      35.45001899733819,
+      14.81843818993137
+     ],
+     [
+      36.892957366287504,
+      15.299297441197613
+     ],
+     [
+      38.32274474063706,
+      15.81491295856633
+     ],
+     [
+      39.72872203593487,
+      16.3812747243782
+     ],
+     [
+      41.10865470447887,
+      17.00865155073352
+     ],
+     [
+      42.51317449961949,
+      17.710503979120002
+     ],
+     [
+      43.8856566291003,
+      18.472698603079593
+     ],
+     [
+      45.2275820403236,
+      19.28666620335552
+     ],
+     [
+      46.53353244953897,
+      20.157737078371298
+     ],
+     [
+      47.896073562402705,
+      21.154017389984347
+     ],
+     [
+      49.23179290777936,
+      22.187356282190905
+     ],
+     [
+      50.569261111420886,
+      23.22468863909236
+     ],
+     [
+      51.906321620271555,
+      24.262698761142698
+     ],
+     [
+      53.40170194000483,
+      25.42012158535864
+     ],
+     [
+      54.89872329831217,
+      26.575382136684787
+     ],
+     [
+      56.39323895657594,
+      27.727757180826355
+     ],
+     [
+      57.89062535905445,
+      28.876534979852263
+     ],
+     [
+      59.6122343805313,
+      30.173863076562327
+     ],
+     [
+      61.35026867290594,
+      31.44758383334436
+     ],
+     [
+      62.25170841163567,
+      33.22411905712313
+     ],
+     [
+      63.0979003479305,
+      35.0
+     ]
+    ]
+   }
+  }
+ },
+ "oracle": {
+  "fos": {
+   "morgenstern_price_constante": 0.410992
+  },
+  "config": "cslope 0.1.0, polilínea criticalSurface de la búsqueda NC del check"
+ },
+ "proto": {
+  "fos": {
+   "morgenstern_price_constante": 0.41101,
+   "spencer": 0.41101
+  },
+  "nota": "Si cSlope da x decreciente, se invierte el orden (el motor exige x creciente)."
+ },
+ "tolerancia": {
+  "relativa": 0.001
+ },
+ "nota": "Error del evaluador: 4.3e-05"
+}
