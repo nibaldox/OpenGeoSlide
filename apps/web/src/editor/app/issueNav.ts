@@ -39,9 +39,29 @@ export function findIssueFocus(target: IssueTarget, root: ParentNode = document)
 }
 
 const ANALYSIS_FIELDS = new Set(['slices', 'tolerance', 'max_iterations', 'min_m_alpha', 'methods']);
-const SEARCH_FIELDS = new Set(['n_entry', 'n_exit', 'n_radius', 'max_radius_factor', 'min_width']);
+const SEARCH_FIELDS = new Set(['n_entry', 'n_exit', 'n_radius', 'max_radius_factor', 'min_width', 'non_circular']);
 const META_FIELDS = new Set(['id', 'title', 'notes']);
-const MATERIAL_FIELDS = new Set(['name', 'unit_weight', 'unit_weight_sat', 'cohesion', 'friction_angle', 'ru']);
+const MATERIAL_FIELDS = new Set([
+  'name',
+  'unit_weight',
+  'unit_weight_sat',
+  'cohesion',
+  'friction_angle',
+  'ru',
+  'undrained_strength',
+  'strength_datum',
+  'strength_gradient',
+  'strength_limit',
+  'ucs',
+  'gsi',
+  'mi',
+  'disturbance',
+  'ratio',
+  'exponent',
+  'ocr',
+  'pop',
+]);
+const SHANSEP_FLAT_FIELDS = new Set(['ratio', 'exponent', 'ocr', 'pop']);
 
 function index(seg: string | undefined): number | null {
   return seg !== undefined && /^\d+$/.test(seg) ? Number(seg) : null;
@@ -68,6 +88,19 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
   if (a === 'materials') {
     const k = index(b);
     if (k === null || k >= doc.materials.length) return null;
+    if (c === 'shansep') {
+      if (d !== undefined && SHANSEP_FLAT_FIELDS.has(d)) return { tab: 'materials', selection, fieldPath: `/materials/${k}/${d}` };
+      if (d === 'ocr_by_elevation') {
+        const rows = doc.materials[k]?.shansep?.ocr_by_elevation;
+        if (Array.isArray(rows) && rows.length > 0) {
+          const r = index(seg[4]);
+          const row = r !== null && r < rows.length ? r : 0;
+          const col = index(seg[5]) === 1 ? 1 : 0;
+          return { tab: 'materials', selection, fieldPath: `/materials/${k}/shansep/ocr_by_elevation/${row}/${col}` };
+        }
+      }
+      return { tab: 'materials', selection, fieldPath: `/materials/${k}/shansep` };
+    }
     const field = c !== undefined && MATERIAL_FIELDS.has(c) ? c : 'name';
     return { tab: 'materials', selection, fieldPath: `/materials/${k}/${field}` };
   }
@@ -113,6 +146,10 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     if (b === 'seismic') return { tab: 'seismic', selection, fieldPath: `/analysis/seismic/${c === 'kv' ? 'kv' : 'kh'}` };
     if (b === 'search') {
       if (c === 'entry' || c === 'exit') return { tab: 'search', selection, fieldPath: `/analysis/search/${c}/${d === 'hi' ? 'hi' : 'lo'}` };
+      if (c === 'non_circular') {
+        const sub = d === 'seeds' || d === 'max_vertices' ? `/${d}` : '';
+        return { tab: 'search', selection, fieldPath: `/analysis/search/non_circular${sub}` };
+      }
       if (c !== undefined && SEARCH_FIELDS.has(c)) return { tab: 'search', selection, fieldPath: `/analysis/search/${c}` };
       return { tab: 'search', selection, fieldPath: null };
     }

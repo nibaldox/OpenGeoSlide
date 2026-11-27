@@ -136,6 +136,16 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   strength_datum: 'Cota de referencia de Su',
   strength_gradient: 'Gradiente de Su',
   strength_limit: 'Límite de Su',
+  ucs: 'Resistencia σci',
+  gsi: 'GSI',
+  mi: 'Constante mi',
+  disturbance: 'Factor de perturbación D',
+  ratio: 'Relación S',
+  exponent: 'Exponente m',
+  ocr: 'OCR constante',
+  pop: 'POP',
+  seeds: 'Semillas',
+  max_vertices: 'Máximo de vértices',
   crack_depth: 'Grieta de tracción, profundidad',
   crack_water_fill: 'Grieta de tracción, fracción de agua',
 };
@@ -481,18 +491,34 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
     range: RULE_TEXT.ru,
   });
 
-  const readNew = (key: 'ucs' | 'gsi' | 'mi' | 'disturbance' | 'ratio' | 'exponent' | 'ocr' | 'pop', required: boolean, accept: (n: number) => boolean) =>
-    take(errors, key, form[key] ?? '', { required, missing: `El campo ${key} es obligatorio`, accept: n => finite(n) && accept(n), range: `Valor no válido para ${key}` });
+  const readNew = (
+    key: 'ucs' | 'gsi' | 'mi' | 'disturbance' | 'ratio' | 'exponent' | 'ocr' | 'pop',
+    required: boolean,
+    accept: (n: number) => boolean,
+    rangeRule: string,
+  ) => {
+    const label = FIELD_LABEL[key] ?? key;
+    return take(errors, key, form[key] ?? '', {
+      required,
+      missing: `${label}: falta el valor (${rangeRule})`,
+      accept: (n) => finite(n) && accept(n),
+      range: `${label}: ${rangeRule}`,
+      label,
+    });
+  };
   let ucs: number | null = null, gsi: number | null = null, mi: number | null = null, disturbance: number | null = null;
   let ratio: number | null = null, exponent: number | null = null, ocr: number | null = null, pop: number | null = null;
   let rows: Point[] = [];
   if (model === 'hoek_brown') {
-    ucs = readNew('ucs', true, n => n > 0); gsi = readNew('gsi', true, n => n >= 0 && n <= 100);
-    mi = readNew('mi', true, n => n > 0); disturbance = readNew('disturbance', true, n => n >= 0 && n <= 1);
+    ucs = readNew('ucs', true, n => n > 0, 'debe ser mayor que 0');
+    gsi = readNew('gsi', true, n => n >= 0 && n <= 100, 'debe estar entre 0 y 100');
+    mi = readNew('mi', true, n => n > 0, 'debe ser mayor que 0');
+    disturbance = readNew('disturbance', true, n => n >= 0 && n <= 1, 'debe estar entre 0 y 1');
   } else if (model === 'shansep') {
-    ratio = readNew('ratio', true, n => n > 0); exponent = readNew('exponent', false, n => n >= 0 && n <= 1);
-    if ((form.ocrSource ?? 'ocr') === 'ocr') ocr = readNew('ocr', true, n => n >= 1);
-    else if (form.ocrSource === 'pop') pop = readNew('pop', true, n => n >= 0);
+    ratio = readNew('ratio', true, n => n > 0, 'debe ser mayor que 0');
+    exponent = readNew('exponent', false, n => n >= 0 && n <= 1, 'debe estar entre 0 y 1');
+    if ((form.ocrSource ?? 'ocr') === 'ocr') ocr = readNew('ocr', true, n => n >= 1, 'debe ser igual o mayor que 1');
+    else if (form.ocrSource === 'pop') pop = readNew('pop', true, n => n >= 0, 'debe ser igual o mayor que 0');
     else {
       rows = (form.ocrRows ?? []).map((row, i) => {
         const y = take(errors, `row${i}y`, row.y, { required: true, missing: 'Indique la cota', accept: finite, range: 'Indique una cota finita' });
