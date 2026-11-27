@@ -1,0 +1,139 @@
+{
+  "id": "X28-W-SB-LINEA16",
+  "descripcion": "SB con piezom\u00e9trica a 16 m (cruza las bases; to_cslope)",
+  "grupo": "agua",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "units": "SI",
+    "meta": {
+      "id": "X28-W-SB-LINEA16",
+      "title": "X23 \u00a74.2 SB: roca media"
+    },
+    "materials": [
+      {
+        "id": "roca",
+        "name": "roca",
+        "model": "hoek_brown",
+        "unit_weight": 25.0,
+        "ucs": 15000.0,
+        "gsi": 40.0,
+        "mi": 10.0,
+        "disturbance": 0.5,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "roca",
+        "polygon": [
+          [
+            -40,
+            -10
+          ],
+          [
+            57.2794,
+            -10
+          ],
+          [
+            57.2794,
+            20
+          ],
+          [
+            17.2794,
+            20
+          ],
+          [
+            12.2794,
+            20
+          ],
+          [
+            8.6397,
+            10
+          ],
+          [
+            3.6397,
+            10
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            -40,
+            0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_simplified",
+        "janbu_corrected"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 1000,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 0.4973779725993346,
+        "yc": 21.32778875698778,
+        "r": 13.94398882380097
+      },
+      "interslice": {
+        "function": "constant"
+      }
+    },
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          -40.0,
+          16.0
+        ],
+        [
+          70.0,
+          16.0
+        ]
+      ]
+    }
+  },
+  "oracle": {
+    "bishop": 2.276196,
+    "spencer": 2.27726,
+    "morgenstern_price": 2.27726,
+    "janbu_simplified": 2.274348,
+    "janbu_corrected": 2.378643,
+    "config": "cslope 0.1.0, to_cslope.ogs_to_cslope o cslope_direct (X28_proto/models.py), c\u00edrculo fijo, slices 40, tolerance 1e-5, maxIterations 1000, m\u00e9todo Bishop/Morgenstern-Price constant/Janbu (janbuCorrection false/true) + waterTable via to_cslope"
+  },
+  "proto": {
+    "bishop": 2.277481,
+    "spencer": 2.278408,
+    "morgenstern_price": 2.278408,
+    "janbu_simplified": 2.275976,
+    "janbu_corrected": 2.380306
+  },
+  "tolerancia": 0.001,
+  "nota": "Or\u00e1culo por to_cslope (freeWater true, followBoundary false). Con la l\u00ednea de X23 (bajo la superficie) el FS no cambia: la l\u00ednea no toca ninguna base [verificado].",
+  "proto_passes": {
+    "bishop": 7,
+    "spencer": 7,
+    "morgenstern_price": 7,
+    "janbu_simplified": 7,
+    "janbu_corrected": 7
+  },
+  "proto_status": {
+    "bishop": "converged",
+    "spencer": "converged",
+    "morgenstern_price": "converged",
+    "janbu_simplified": "converged",
+    "janbu_corrected": "converged"
+  }
+}

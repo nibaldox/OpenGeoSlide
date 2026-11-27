@@ -1,0 +1,114 @@
+{
+  "id": "X28-R-X25-RU03",
+  "descripcion": "X25 con ru = 0,3",
+  "grupo": "ru",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "units": "SI",
+    "meta": {
+      "id": "X28-R-X25-RU03",
+      "title": "X25 \u00a74.1 (talud 20 m, 1H:1V, roca simple)"
+    },
+    "materials": [
+      {
+        "id": "roca",
+        "name": "roca",
+        "model": "hoek_brown",
+        "unit_weight": 25.0,
+        "ucs": 5000.0,
+        "gsi": 20.0,
+        "mi": 8.0,
+        "disturbance": 0.0,
+        "ru": 0.3
+      }
+    ],
+    "regions": [
+      {
+        "material": "roca",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            25.0
+          ],
+          [
+            15.0,
+            25.0
+          ],
+          [
+            35.0,
+            5.0
+          ],
+          [
+            50.0,
+            5.0
+          ],
+          [
+            50.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_simplified",
+        "janbu_corrected"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 1000,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 45.069233527553195,
+        "yc": 40.50013129624809,
+        "r": 36.89913503366865
+      },
+      "interslice": {
+        "function": "constant"
+      }
+    }
+  },
+  "oracle": {
+    "bishop": 0.905901,
+    "spencer": 0.922042,
+    "morgenstern_price": 0.922042,
+    "janbu_simplified": 0.826785,
+    "janbu_corrected": 0.865053,
+    "config": "cslope 0.1.0, to_cslope.ogs_to_cslope o cslope_direct (X28_proto/models.py), c\u00edrculo fijo, slices 40, tolerance 1e-5, maxIterations 1000, m\u00e9todo Bishop/Morgenstern-Price constant/Janbu (janbuCorrection false/true) + ru=0.3"
+  },
+  "proto": {
+    "bishop": 0.905941,
+    "spencer": null,
+    "morgenstern_price": null,
+    "janbu_simplified": 0.826924,
+    "janbu_corrected": 0.865177
+  },
+  "tolerancia": 0.001,
+  "nota": "Spencer/MP: el prototipo no encuentra soluci\u00f3n en la pasada 2 (ver proto_status); no es comparable.",
+  "proto_passes": {
+    "bishop": 9,
+    "spencer": 2,
+    "morgenstern_price": 2,
+    "janbu_simplified": 10,
+    "janbu_corrected": 10
+  },
+  "proto_status": {
+    "bishop": "converged",
+    "spencer": "no_solution",
+    "morgenstern_price": "no_solution",
+    "janbu_simplified": "converged",
+    "janbu_corrected": "converged"
+  }
+}
