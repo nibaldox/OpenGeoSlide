@@ -176,8 +176,9 @@ Errores de material (el motor responde `InvalidModel`, código de salida 2):
 { "type": "polyline", "points": [[30, 25.0], [40, 26.9], [51.3, 35.0]] }
 ```
 
-**La búsqueda sigue siendo circular.** La polilínea es solo una superficie fija que usted dibuja o importa; la búsqueda
-no circular queda para la Fase 3b ([Limitaciones](limitaciones.md)).
+**La búsqueda es circular.** La polilínea es una superficie fija que usted dibuja o importa. Desde la v0.6, una búsqueda
+circular puede **refinarse a una polilínea** con `analysis.search.non_circular`
+([Búsqueda no circular](#búsqueda-no-circular-analysissearchnon_circular)).
 
 ### Polilínea fija
 
