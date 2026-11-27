@@ -282,7 +282,7 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-25.5, -10.2] } }), 'search')).toBe('Ent. −25,5 a −10,2 m · sal. auto.');
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-5, 10], exit: [20, 30] } }), 'search')).toBe('Entrada −5 a 10 m · salida 20–30 m');
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10, 25] } }), 'search')).toBe('Entrada 10–25 m · salida automática');
-    for (const id of ['V047a']) expect(summaryOf(acadsDoc(), 'search')).not.toMatch(/-\d/);
+    expect(summaryOf(acadsDoc(), 'search')).not.toMatch(/-\d/);
   });
 
   it('project: título (o «Sin título») y el sistema de unidades', () => {
