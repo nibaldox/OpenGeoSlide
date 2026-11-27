@@ -63,7 +63,7 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 3c la vista Casos calcula el modelo 0.4 y muestra la tabla de fuerzas y el límite de F4.8`, (await page.locator('#mode-cases-panel [data-testid="reinforcement-forces"] table').count()) >= 1 && /No calcula el empuje sobre el elemento/.test(casesText), { tables: await page.locator('#mode-cases-panel [data-testid="reinforcement-forces"] table').count() });
   await shot(page, `ida-${scheme}-2-casos`);
   await axe(page, `Casos con refuerzos (${tag})`);
-  await page.getByRole('tab', { name: 'Editar' }).click();
+  await page.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await page.waitForSelector('[data-layer="regions"] polygon');
 
   // 4. Rechazos: el modelo abierto no cambia.

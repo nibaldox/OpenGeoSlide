@@ -2,7 +2,7 @@
 // Los clavos se agregan y ajustan en el panel; un tirador se arrastra con el dedo (eventos táctiles reales por CDP) y otro se mueve con las
 // flechas. Un clavo empinado (vertical) queda en compresión: estado `compression_ignored` visible en la tabla, en el lienzo y en las notas.
 // Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node r2i2_clavos.mjs
-import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, saveText, cli, compare, baseModel, writeModel, setField, fieldOf } from './lib.mjs';
+import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, showView, saveText, cli, compare, baseModel, writeModel, setField, fieldOf } from './lib.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const live = (page) => page.waitForTimeout(450).then(() => page.textContent('[data-testid="live-polite"]')).then((t) => (t ?? '').trim());
@@ -102,6 +102,8 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 4g el rótulo del cruce dice «ignorada por compresión»`, /ignorada por compresión/.test(lbl ?? ''), { lbl });
   await shot(page, `clavos-${scheme}-2-resultado`);
   await canvasShot(page, `clavos-${scheme}-3-lienzo`);
+  // UA: la tabla de fuerzas y las notas viven en la vista «Resultados»; se abre para leerlas y se vuelve a «Lienzo».
+  await showView(page, 'Resultados');
   const row = page.locator('[data-testid="reinforcement-forces"] tr.row-warn').first();
   await row.scrollIntoViewIfNeeded();
   const rowText = (await row.innerText()).replace(/\s+/g, ' ');
@@ -110,6 +112,7 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 4i las notas dicen que el refuerzo pasivo queda comprimido y no aporta fuerza`, /quedaría comprimido por el deslizamiento y no aporta fuerza/.test(notes));
   await shot(page, `clavos-${scheme}-4-tabla`);
   await axe(page, `resultado con clavo en compresión (${tag})`);
+  await showView(page, 'Lienzo');
   step(`(${tag}) sin errores del motor ni de consola`, (await page.evaluate(() => window.__errors.length)) === 0);
   await browser.close();
 }

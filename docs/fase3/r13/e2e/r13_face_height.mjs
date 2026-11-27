@@ -294,7 +294,7 @@ for (const theme of ['light', 'dark']) {
   // ── 4. Grieta real: sin rótulo de corte ──
   fill = await casos(fCrack);
   step(`${theme}: Casos (grieta fija de 1,5 m): dibuja «Grieta d = …» y NO el rótulo del corte ni «Sin grieta»`, fill.some((f) => /^Grieta d = /.test(f.t)) && !fill.some((f) => CUT_SHORT.test(f.t) || f.t === 'Sin grieta (z = 0)'), { textos: fill.filter((f) => /grieta|Pw/i.test(f.t)).map((f) => f.t) });
-  await p.getByRole('tab', { name: 'Editar' }).click();
+  await p.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await p.waitForSelector('[data-layer="regions"] polygon');
   await openFile(fCrack);
   await p.getByRole('tab', { name: 'Análisis' }).click();
@@ -302,7 +302,7 @@ for (const theme of ['light', 'dark']) {
   await p.waitForSelector('[data-crack-label="depth"]', { state: 'attached', timeout: 30000 });
   step(`${theme}: editor (grieta fija): rotula la profundidad y no el corte`, (await p.locator('[data-crack-label="cut"]').count()) === 0, {});
   // ── 5. Sin grieta (c = 0): el rótulo «Sin grieta (z = 0)» en el lienzo (alcanzable) y en la figura del PDF ──
-  await p.getByRole('tab', { name: 'Editar' }).click().catch(() => {});
+  await p.locator('#mode-edit').click().catch(() => {}); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await p.waitForSelector('[data-layer="regions"] polygon');
   await openFile(fC0);
   await p.getByRole('tab', { name: 'Análisis' }).click();

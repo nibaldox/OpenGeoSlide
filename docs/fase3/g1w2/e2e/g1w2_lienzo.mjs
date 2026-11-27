@@ -99,7 +99,7 @@ for (const theme of ['light', 'dark']) {
 
     // Calcular con el motor real.
     await p.getByRole('button', { name: 'Comprobar', exact: true }).click();
-    await p.waitForSelector('[data-testid="results-panel"] table', { timeout: 60000 });
+    await p.waitForSelector('[data-testid="result-summary"][data-state="current"]', { timeout: 60000 }); // UA: el resultado se espera en el HUD (la tabla está en la vista «Resultados»)
     await p.waitForTimeout(600);
     const legend = await p.locator('ul.legend').innerText();
     step(`${tag}: la leyenda dice «Agua embalsada»`, legend.includes('Agua embalsada'));
@@ -132,12 +132,14 @@ for (const theme of ['light', 'dark']) {
       step(`${tag}: rótulos de profundidad y Pw`, labels.some((t) => t.startsWith('Grieta d =')) && labels.some((t) => t.startsWith('Pw =')), { labels });
       step(`${tag}: leyenda con «Grieta de tracción»`, legend.includes('Grieta de tracción'));
       // Tabla bajo Resultados: x_c, profundidad y Pw del motor por método.
+      await p.locator('#view-results').click(); // UA: la tabla de la grieta y su resumen (Diagnósticos) están en la vista «Resultados»
       const rows = await p.locator('[data-testid="crack-results"] tbody tr').allInnerTexts();
       const want = Object.values(exp).map((v) => [num(v.x), num(v.depth), num(v.water_force)]);
       const allShown = rows.length >= 1 && rows.every((r) => want.some((w) => w.every((c) => r.includes(c))));
       step(`${tag}: tabla de la grieta con x_c, profundidad y Pw del motor`, allShown, { filas: rows, esperado: want.slice(0, 2) });
       const sum = await p.locator('[data-testid="crack-summary"]').innerText().catch(() => '');
       step(`${tag}: resumen de la grieta en Diagnósticos con x_c y Pw del motor`, sum.includes(num(Object.values(exp)[0].x).replace(/(\.|,)\d+$/, '')) && sum.includes('Pw ='), { sum: sum.slice(0, 200) });
+      await p.locator('#mode-edit').click(); // UA: de vuelta al lienzo
     }
     await p.locator('[data-testid="editor-canvas"]').screenshot({ path: path.join(SHOTS, `${theme}-${name}-2-lienzo.png`) });
     await p.screenshot({ path: path.join(SHOTS, `${theme}-${name}-3-pagina.png`), fullPage: true });
