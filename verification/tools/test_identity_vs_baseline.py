@@ -146,6 +146,23 @@ def test_split_ito_matsui_separates_the_piles_with_lateral_pressure(tmp_path):
     assert sorted(rest) == ["force.json", "plain.json"] and sorted(skipped) == ["ito.json"]
 
 
+
+def test_has_v06_fields_detects_the_three_fields_and_the_version():
+    assert ivb.has_v06_fields({"version": "0.6"})
+    assert ivb.has_v06_fields({"materials": [{"id": "r", "model": "hoek_brown"}]})
+    assert ivb.has_v06_fields({"materials": [{"id": "c", "model": "shansep"}]})
+    assert ivb.has_v06_fields({"analysis": {"search": {"type": "circular_entry_exit", "non_circular": {"seeds": 3}}}})
+    assert not ivb.has_v06_fields({"version": "0.5", "materials": [{"model": "mohr_coulomb"}],
+                                   "analysis": {"search": {"type": "circular_entry_exit"}}})
+    assert not ivb.has_v06_fields({})
+
+
+def test_split_v06_separates_the_models_the_v0_4_baseline_cannot_read(tmp_path):
+    paths = {"hb.json": _write(tmp_path, "hb.json", materials=[{"id": "r", "model": "hoek_brown"}]),
+             "plain.json": _write(tmp_path, "plain.json", analysis={"methods": ["bishop"]})}
+    rest, skipped = ivb.split_v06(paths)
+    assert sorted(rest) == ["plain.json"] and sorted(skipped) == ["hb.json"]
+
 # ------------------------------------------------------------ E15j-8: declared exceptions to the identity
 
 def _out(evaluated=10040, valid=7451, fos=1.25, extra=None):
