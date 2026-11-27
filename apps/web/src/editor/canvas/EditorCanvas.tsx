@@ -107,6 +107,8 @@ const COLOR_MATERIAL_UNKNOWN = 'var(--canvas-mat-unknown)';
 const HANDLE_R = 6;
 /** Radio del área de acierto transparente de cada tirador: 24 px de diámetro (WCAG 2.5.8). */
 const HIT_AREA_R = 12;
+/** Ancho (px) del trazo transparente que da área de acierto a las líneas con información emergente (flechas, grieta, refuerzos): 14 px, más que el trazo visible. */
+const INFO_HIT_W = 14;
 /** Trazo discontinuo de la superficie cuando el cálculo no convergió. */
 const UNCONVERGED_DASH = '10 6';
 const COLOR_RESULT = COLOR_SURFACE;
@@ -1117,6 +1119,55 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
             {guides.y !== null && <line x1={0} x2={vp.width} y1={toS([0, guides.y])[1]} y2={toS([0, guides.y])[1]} />}
           </g>
         )}
+
+        {/*
+          E15m-10 (R13B-02): áreas de acierto de la información emergente. Las capas con `<title>` (flechas de fuerza, grieta, refuerzos,
+          piezométrica extrapolada) llevan `pointer-events: none` para no robar el gesto al lienzo, así que su tooltip era inalcanzable. Esta capa
+          repite el `<title>` sobre un trazo transparente de 14 px, por ENCIMA de las regiones y las bandas de búsqueda y por DEBAJO de los tiradores
+          y de la capa de trazo. Las herramientas y el arrastre no se ven afectados: los eventos suben al `<svg>`, que decide por coordenadas
+          (`hitTest`), no por el elemento que recibió el puntero. Es decorativa para lectores de pantalla (la tabla de fuerzas y el panel dicen lo mismo).
+        */}
+        <g data-layer="info-hit" aria-hidden="true" fill="none" stroke={COLOR_HANDLE_FILL} strokeOpacity={0} strokeWidth={INFO_HIT_W} strokeLinecap="round" strokeLinejoin="round" pointerEvents="visibleStroke">
+          {crack && crackPx && (
+            <>
+              <line data-info-hit="crack-line" x1={crackPx.top[0]} y1={crackPx.top[1]} x2={crackPx.bottom[0]} y2={crackPx.bottom[1]}>
+                <title>{crackPx.title}</title>
+              </line>
+              {crackPx.arrow && (
+                <line data-info-hit="crack-arrow" x1={crackPx.arrow.at[0]} y1={crackPx.arrow.at[1]} x2={crackPx.arrow.tip[0]} y2={crackPx.arrow.tip[1]}>
+                  <title>{crackPx.title}</title>
+                </line>
+              )}
+            </>
+          )}
+          {reinforcements.map((rs: ReinforcementShape) => (
+            <line key={`ih-rf${rs.index}`} data-info-hit="reinforcement" data-info-reinforcement={rs.index} x1={rs.p1[0]} y1={rs.p1[1]} x2={rs.p2[0]} y2={rs.p2[1]}>
+              <title>{rs.title}</title>
+            </line>
+          ))}
+          {forces.map((f) =>
+            f.tip ? (
+              <line key={`ih-${f.key}`} data-info-hit="force" data-info-force={f.id} data-info-crossing={f.crossing} x1={f.at[0]} y1={f.at[1]} x2={f.tip[0]} y2={f.tip[1]}>
+                <title>{f.title}</title>
+              </line>
+            ) : (
+              // Cruce sin fuerza (cruz gris): un círculo de 7 px de radio con el mismo título, para leer por qué no se aplica.
+              <circle key={`ih-${f.key}`} data-info-hit="force" data-info-force={f.id} data-info-crossing={f.crossing} cx={f.at[0]} cy={f.at[1]} r={7} fill={COLOR_HANDLE_FILL} fillOpacity={0} stroke="none" pointerEvents="all">
+                <title>{f.title}</title>
+              </circle>
+            ),
+          )}
+          {pzExtra &&
+            (['left', 'right'] as const).map((side) => {
+              const seg = pzExtra[side];
+              if (!seg) return null;
+              return (
+                <polyline key={`ih-pz-${side}`} data-info-hit="piezo-extrapolated" data-info-side={side} points={pointsAttr(vp, [...seg])}>
+                  <title>Piezométrica extrapolada: el motor la prolonga en horizontal hasta el borde del modelo</title>
+                </polyline>
+              );
+            })}
+        </g>
 
         {isTraceTool(ui.tool) && <DrawLayer draft={draft} vp={vp} mode={ui.tool === 'split_region' ? 'split' : ui.tool === 'draw_reinforcement' ? 'reinforce' : 'draw'} />}
 
