@@ -952,7 +952,6 @@ fn weaker_at_contact(
     let sigma = col * alpha.cos().powi(2);
     let strength = |mat: usize| {
         let m = &pm.materials[mat];
-        let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
         let u = if let Some(ru) = m.ru {
             ru * col
         } else if let Some(z) = piezo {
@@ -960,7 +959,18 @@ fn weaker_at_contact(
         } else {
             0.0
         };
-        c + (sigma - u).max(0.0) * tan_phi
+        match &m.law {
+            crate::strength::StrengthLaw::Linear => {
+                let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
+                c + (sigma - u).max(0.0) * tan_phi
+            }
+            crate::strength::StrengthLaw::HoekBrown(p) => {
+                crate::hoek_brown::tau_at_normal(p, (sigma - u).max(0.0))
+            }
+            crate::strength::StrengthLaw::Shansep(p) => {
+                crate::shansep::su_at(p, col - u, y_base_mid)
+            }
+        }
     };
     (strength(below) < strength(above)).then_some(below)
 }
