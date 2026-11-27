@@ -196,7 +196,8 @@ Esta batería no cubre todo: véanse las limitaciones.
   ([detalle](docs/limitaciones.md#limitaciones-numéricas-conocidas-del-motor)). Medido: una grieta de 2 m con agua y sin
   `water`, en imperial, da Bishop 1,69865, igual que en SI (γw = 62,449 pcf), en lugar de 1,71248. **Es una tercera excepción a la
   identidad con la v0.3.0**: un archivo imperial con agua (también una piezométrica bajo el terreno) y sin `water.unit_weight` cambia de FS,
-  y el motor avisa con `water_unit_weight_default` ([detalle](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar -->
+  y el motor avisa con `water_unit_weight_default`; medido con ACADS 1(a) en pies y una piezométrica bajo el terreno, Bishop da 0,6339
+  en lugar de 0,9300 ([detalle](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 - **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
   piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
   y sin línea piezométrica γsat no interviene en el cálculo.

@@ -323,10 +323,10 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
   pie, Ito-Matsui y grieta con UDL y profundidad automática) con sus fragmentos; las filas contra el oráculo a 0,1 %
   (55 de X21, 3 de R12 con agua embalsada activa, 28 de X22 y la de `ru` con piezométrica); la neutralidad entre v0.3 y
   v0.5, el espejo, la monotonía con `water_fill`, la compuerta de versión, los rechazos con su ruta y la salida siempre
-  finita; y las reproducciones de las revisiones R12 y R13: E15l-1, -2, -5, -6, -7 y -11 sin marcas, y E15m-1, -2, -6 y
-  -7 con `xfail(strict=False)` mientras el motor de la rama no traiga la corrección (quitar las marcas al integrar). Son
-  170 pruebas en `test_v05.py` y 261 en `crates/ogs-py/tests` con las 2 omitidas de pánico; hasta la integración, 8 de
-  ellas son `xfail`. <!-- R13: medir al integrar -->
+  finita; y las reproducciones de las revisiones R12 y R13: E15l-1, -5, -6, -7 y -11, y E15m-1, -2, -6, -7 y -15 sin marcas
+  (E15m-15 revisa E15l-2 y fija la grieta sobre una discontinuidad contra cSlope, con `face_height`). Son 173 pruebas en
+  `test_v05.py` y 264 en `crates/ogs-py/tests`: con el wheel de producción pasan 262 y se omiten las 2 de pánico, y con el
+  wheel de `--features test-hooks` pasan las 264; no hay ninguna `xfail`.
 - **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`, y
   `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4 y que el uso lista `tension_crack`,
   `lateral_pressure`, `capacity` y `soil_force` (E15l-25).
