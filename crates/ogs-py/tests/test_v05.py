@@ -5,16 +5,21 @@ Se ejecutan contra el wheel instalado, como `test_v03.py` y `test_v04.py`, y se 
 `ogs_core::analyze_json`, así que estos tests fijan que los campos, los estados, los avisos y los errores de la v0.5 llegan
 a Python sin cambios. Cuatro fuentes de verdad:
 
-1. **Los ejemplos de `docs/formato-ogs-json.md`** (grieta seca, embalse al pie y pilote de Ito-Matsui, con sus fragmentos): el
-   FS a 4 decimales, los avisos, el objeto `tension_crack` y el cruce de Ito-Matsui que declara cada marca. Es la misma
-   lectura que hace `docs/tools/validar_ejemplos.py`, pero a través del wheel.
-2. **Las 55 filas de X21** (grieta y agua embalsada, `crates/ogs-core/tests/data/f3g/`) y **las 28 de X22** (Ito-Matsui,
-   `crates/ogs-core/tests/data/f3g3/`) contra el oráculo cSlope 0.1.0, a 0,1 %. Las cifras de referencia están en los
-   `expected.json` de esas carpetas, con su origen: aquí no se importa cSlope y las filas se leen de donde las lee el motor.
+1. **Los ejemplos de `docs/formato-ogs-json.md`** (grieta seca, embalse al pie, pilote de Ito-Matsui y grieta con UDL y
+   profundidad automática, con sus fragmentos): el FS a 4 decimales, los avisos, el objeto `tension_crack` y el cruce de
+   Ito-Matsui que declara cada marca. Es la misma lectura que hace `docs/tools/validar_ejemplos.py`, pero a través del
+   wheel.
+2. **Las filas contra el oráculo cSlope 0.1.0**, a 0,1 %: las 55 de X21 (grieta y agua embalsada,
+   `crates/ogs-core/tests/data/f3g/`) y las 3 de R12 con agua embalsada activa (`f3g/r12/`), las 28 de X22 (Ito-Matsui,
+   `crates/ogs-core/tests/data/f3g3/`) y la de R12 (`f3g3/expected_r12.json`, `ru` con piezométrica). Las cifras de
+   referencia están en los `expected*.json` de esas carpetas, con su origen: aquí no se importa cSlope y las filas se leen
+   de donde las lee el motor.
 3. **Propiedades** que no dependen del oráculo: neutralidad, espejo, monotonía con `water_fill`, continuidad con
    `depth → 0`, la compuerta de versión, los rechazos con su ruta y que la salida nunca lleve `NaN` ni `∞`.
-4. **Las reproducciones de la revisión R12** (`docs/fase3/r12/repro/`): las enmiendas E15l-1, E15l-2 y E15l-11 ya están
-   en el motor que se prueba, y los tres tests corren sin marcas `xfail`.
+4. **Las reproducciones de las revisiones R12 y R13** (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1,
+   E15l-2 y E15l-11 corren sin marcas; E15l-5, E15l-6 y E15l-7 también. Los tests de **E15m-1, E15m-2, E15m-6 y E15m-7**
+   (la corrección va en el motor de la rama M) llevan `xfail(strict=False)` hasta la integración: con el motor corregido
+   pasan, y entonces se quitan las marcas.
 """
 
 import copy
@@ -32,11 +37,16 @@ ACADS1A = REPO_ROOT / "examples" / "acads1a.ogs.json"
 FORMAT_DOC = REPO_ROOT / "docs" / "formato-ogs-json.md"
 X21_DIR = REPO_ROOT / "crates" / "ogs-core" / "tests" / "data" / "f3g"
 X22_DIR = REPO_ROOT / "crates" / "ogs-core" / "tests" / "data" / "f3g3"
+X21_R12_DIR = X21_DIR / "r12"
 R12_REPRO = REPO_ROOT / "docs" / "fase3" / "r12" / "repro"
+R13_REPRO = REPO_ROOT / "docs" / "fase3" / "r13" / "repro"
+
+# E15m-1, E15m-2, E15m-6 y E15m-7: el motor de la rama M todavía no los trae; con la integración pasan y se quitan las marcas
+pending_m = lambda amendment: pytest.mark.xfail(strict=False, reason=f"{amendment}: se corrige en el motor de la rama M; pasa al integrar")
 
 V047A_CIRCLE = {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704}
 REL_ORACLE = 1e-3  # E15e-3: 0,1 % contra cSlope 0.1.0
-V05_BASES = {"grieta-seca", "embalse-al-pie", "ito-matsui-centroide"}  # los ejemplos de la v0.5 de docs/formato-ogs-json.md
+V05_BASES = {"grieta-seca", "embalse-al-pie", "ito-matsui-centroide", "grieta-udl-automatica"}  # los ejemplos de la v0.5 de docs/formato-ogs-json.md
 
 
 # ------------------------------------------------------------------------------------------------- utilidades
@@ -178,7 +188,7 @@ def test_documented_examples_run_through_the_wheel(name, doc, attrs):
     assert_finite(report)
 
 
-def test_the_three_v05_examples_of_the_format_doc_are_there():
+def test_the_four_v05_examples_of_the_format_doc_are_there():
     names = {p.values[0] for p in doc_cases() if p.id.startswith("ejemplo:")}
     assert names == V05_BASES
 
@@ -186,14 +196,21 @@ def test_the_three_v05_examples_of_the_format_doc_are_there():
 # ------------------------------------------------------------------ 2. las filas de X21 y de X22 (oráculo)
 
 
-def rows(directory: Path) -> list:
-    expected = json.loads((directory / "expected.json").read_text(encoding="utf-8"))
+def rows(directory: Path, expected_file: str = "expected.json") -> list:
+    expected = json.loads((directory / expected_file).read_text(encoding="utf-8"))
     return [pytest.param(directory, row_id, row, id=row_id) for row_id, row in expected["rows"].items()]
 
 
-@pytest.mark.parametrize("directory, row_id, row", rows(X21_DIR) + rows(X22_DIR))
+def row_doc(directory: Path, row_id: str) -> dict:
+    return json.loads((directory / "rows" / f"{row_id}.json").read_text(encoding="utf-8"))
+
+
+ORACLE_ROWS = rows(X21_DIR) + rows(X21_R12_DIR) + rows(X22_DIR) + rows(X22_DIR, "expected_r12.json")
+
+
+@pytest.mark.parametrize("directory, row_id, row", ORACLE_ROWS)
 def test_rows_of_x21_and_x22_match_the_oracle(directory, row_id, row):
-    doc = json.loads((directory / "rows" / f"{row_id}.json").read_text(encoding="utf-8"))
+    doc = row_doc(directory, row_id)
     code = row.get("expect_error")
     if code:
         # X21-A07: el oráculo descarta la fila y el motor tiene que decir por qué (E15j-2)
@@ -207,10 +224,31 @@ def test_rows_of_x21_and_x22_match_the_oracle(directory, row_id, row):
         assert results[method]["fos"] == pytest.approx(oracle, rel=REL_ORACLE), (row_id, method)
 
 
+def test_the_ru_with_piezometric_row_matches_the_oracle_force_per_metre():
+    # E15l-12: X22-S16-ru-piezo, la fuerza por metro del pilote (`available`) a 0,1 % del oráculo
+    ((_, row_id, row),) = (p.values for p in rows(X22_DIR, "expected_r12.json"))
+    force = row["force_per_metre"]
+    (crossing,) = by_method(opengeoslide.analyze(row_doc(X22_DIR, row_id)))["bishop"]["reinforcement_forces"]
+    assert crossing["status"] == force["estado"] and crossing["governs"] == force["gobierna"]
+    assert crossing["available"] == pytest.approx(force["oracle"], rel=REL_ORACLE)
+
+
+@pytest.mark.parametrize("directory, row_id, row", rows(X21_R12_DIR))
+def test_the_r12_rows_have_active_ponded_terms(directory, row_id, row):
+    # E15l-10: la superficie atraviesa el embalse, así que el peso y el empuje del agua actúan en cada método
+    for result in opengeoslide.analyze(row_doc(directory, row_id))["results"]:
+        weight = sum(abs(s["weight_extra"]) for s in result["slices"])
+        thrust = sum(abs(s["h_force"]) for s in result["slices"])
+        assert weight > 1.0 and thrust > 1.0, (row_id, result["method"], weight, thrust)
+
+
 def test_the_rows_cover_crack_pond_and_ito_matsui():
     kinds = {row["kind"] for _, _, row in (p.values for p in rows(X21_DIR))}
     assert {"crack", "pond", "state"} <= kinds
     assert len(rows(X21_DIR)) >= 55 and len(rows(X22_DIR)) >= 28
+    # R12: 3 filas con agua embalsada activa y la de `ru` con piezométrica
+    assert len(rows(X21_R12_DIR)) == 3 and len(rows(X22_DIR, "expected_r12.json")) == 1
+    assert len(ORACLE_ROWS) >= 55 + 3 + 28 + 1
 
 
 # -------------------------------------------------------------------------------- 3. la grieta de tracción
@@ -343,7 +381,9 @@ def test_a_piezometric_line_under_the_ground_is_neutral():
         assert all(s["weight_extra"] == 0.0 and s["h_force"] == 0.0 for s in r["slices"])
     old = copy.deepcopy(dry_level)
     old["version"] = "0.3"
-    assert dry_dumps(opengeoslide.analyze(old)) == dry_dumps(opengeoslide.analyze({**dry_level, "version": "0.3"}))
+    # la comparación real: el mismo modelo como v0.3 y como v0.5 (`dry_level` es v0.5) da el mismo informe (E15m-13)
+    assert dry_level["version"] == "0.5" and old["version"] == "0.3"
+    assert dry_dumps(opengeoslide.analyze(old)) == dry_dumps(opengeoslide.analyze(dry_level))
 
 
 def test_the_crack_filled_with_water_needs_no_piezometric_line():
