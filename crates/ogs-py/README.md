@@ -32,7 +32,7 @@ VIRTUAL_ENV="$TMPDIR/ogs-py-venv-hooks" uv pip install "$TMPDIR"/ogs-py-dist-hoo
 ```python
 import opengeoslide
 
-opengeoslide.version()                  # p. ej. "0.2.0": versión de ogs-core
+opengeoslide.version()                  # p. ej. "0.3.0": versión de ogs-core (la de su Cargo.toml)
 report_json = opengeoslide.analyze_json(model_json)   # str en, str (JSON del informe) fuera
 report = opengeoslide.analyze(model)    # dict en, dict fuera (envoltorio sobre analyze_json)
 ```
@@ -203,7 +203,7 @@ for r0, r1 in zip(base["results"], cracked["results"]):
 el agua libre (su peso y su empuje horizontal) en **todas** las versiones del formato, sin ningún campo: la v0.3.0 solo
 contaba la presión de poros. Es una corrección de física y **cambia el FS** de esos modelos (la v0.3.0 los marcaba con
 `water_above_ground`); si guardó resultados de un modelo con agua sobre el terreno, vuelva a calcularlos. Un modelo sin agua
-sobre el terreno y sin grieta da la misma salida, byte a byte, que la v0.3.0. Con 2 m de agua sobre el pie de ACADS 1(a):
+sobre el terreno y sin grieta da la misma salida, byte a byte, que la v0.3.0, **salvo en unidades imperiales** (véase abajo). Con 2 m de agua sobre el pie de ACADS 1(a):
 
 ```python
 model = json.load(open("examples/acads1a.ogs.json"))
@@ -220,6 +220,13 @@ for r in opengeoslide.analyze(model)["results"]:
 
 Con la v0.3.0, Bishop daba 0,848 en ese mismo modelo (sin el peso ni el empuje del agua) y cSlope da 0,939.
 `water_above_ground` es ahora una **nota informativa**.
+
+**Una tercera excepción a la identidad con la v0.3.0: γw por defecto en imperial** (E15l-6, E15m-6). Un archivo
+`imperial` que usa agua (piezométrica, aunque quede bajo el terreno, agua embalsada o agua en la grieta) y no indica
+`water.unit_weight` toma γw ≈ 62,45 pcf, no 9,81 «pcf» como la v0.3.0, y **cambia de FS** (ACADS 1(a) en pies con una
+piezométrica bajo el terreno: Bishop 0,9300 con la v0.3.0 y 0,6339 ahora, el valor del mismo modelo en SI). En ese caso el
+motor agrega a `warnings` el aviso informativo `water_unit_weight_default`; escriba `water.unit_weight` (62,4 pcf) para
+fijar el valor. En SI no cambia nada ni se emite el aviso. <!-- R13: medir al integrar -->
 
 - **Convenciones.** El sismo pseudoestático no actúa sobre el agua embalsada ni sobre `Pw`. En un material con `ru`,
   `u = ru·(W + V)/b` (con `V` el peso del agua embalsada): es la regla de Slide2 y no se puede comparar con el oráculo.
