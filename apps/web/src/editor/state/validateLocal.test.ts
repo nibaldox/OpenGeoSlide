@@ -386,7 +386,8 @@ describe('validateLocal: neutralidad frente a los casos de verificación', () =>
 
   it.each(files)('%s: 0 errores', (file) => {
     const data = JSON.parse(readFileSync(casesDir + file, 'utf8')) as VerificationCase;
-    expect(validateLocal(data.model)).toEqual([]);
+    // E15l-20: los casos con grieta de profundidad fija y búsqueda traen la nota informativa `editor.crack_fixed_search`; no hay nada más.
+    expect(validateLocal(data.model).filter((i) => i.code !== 'editor.crack_fixed_search')).toEqual([]);
   });
 
   it('el ejemplo ACADS 1(a) de src/examples tampoco da errores', () => {
