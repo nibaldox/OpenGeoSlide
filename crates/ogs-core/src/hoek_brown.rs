@@ -3,20 +3,21 @@ use crate::strength::HoekBrownParams;
 
 fn envelope(p: &HoekBrownParams, s3: f64) -> (f64, f64, f64) {
     let base = (p.mb * s3 / p.ucs + p.s).max(1e-12);
-    let delta = p.ucs * base.powf(p.a);
-    let k = 1.0 + p.a * p.mb * base.powf(p.a - 1.0);
+    let ba = base.powf(p.a);
+    let delta = p.ucs * ba;
+    let k = 1.0 + p.a * p.mb * (ba / base);
     let sn = s3 + delta / (k + 1.0);
     let tau = delta * k.sqrt() / (k + 1.0);
     (sn, tau, k)
 }
 
 pub(crate) fn sn_zero(p: &HoekBrownParams) -> f64 {
-    envelope(p, 0.0).0
+    p.sn_zero
 }
 
 fn point(p: &HoekBrownParams, sn: f64, compatibility: bool) -> Option<(f64, f64, f64)> {
-    let zero = sn_zero(p);
-    let tension = -p.s * p.ucs / p.mb;
+    let zero = p.sn_zero;
+    let tension = p.tension;
     if compatibility && sn <= zero {
         return Some(envelope(p, 0.0));
     }
@@ -26,25 +27,40 @@ fn point(p: &HoekBrownParams, sn: f64, compatibility: bool) -> Option<(f64, f64,
     let (mut lo, mut hi) = if sn <= zero {
         (tension, 0.0)
     } else {
-        let mut hi = sn.abs().max(1.0);
-        while envelope(p, hi).0 < sn && hi.is_finite() {
-            hi *= 2.0;
-        }
-        (0.0, hi)
+        (0.0, sn)
     };
+    let mut x = lo + (hi - lo) * 0.5;
     for _ in 0..256 {
-        if hi - lo <= 1e-12 * p.ucs {
+        if hi - lo <= 1e-12 * p.ucs || x == lo || x == hi {
             break;
         }
-        let mid = lo + (hi - lo) * 0.5;
-        if mid == lo || mid == hi {
-            break;
+        let value = envelope(p, x);
+        let residual = value.0 - sn;
+        if residual.abs() <= 1e-14 * p.ucs.max(sn.abs()) {
+            return Some(value);
         }
-        if envelope(p, mid).0 < sn {
-            lo = mid;
+        if residual < 0.0 {
+            lo = x;
         } else {
-            hi = mid;
+            hi = x;
         }
+        let raw_base = p.mb * x / p.ucs + p.s;
+        let base = raw_base.max(1e-12);
+        let delta = value.1 * ((value.2 + 1.0) / value.2.sqrt());
+        let k = value.2;
+        let dk = if raw_base > 1e-12 {
+            (k - 1.0) * (p.a - 1.0) * (p.mb / p.ucs) / base
+        } else {
+            0.0
+        };
+        let dd = if raw_base > 1e-12 { k - 1.0 } else { 0.0 };
+        let slope = 1.0 + dd / (k + 1.0) - (delta / (k + 1.0)) * (dk / (k + 1.0));
+        let next = x - residual / slope;
+        x = if slope.is_finite() && slope > 0.0 && next > lo && next < hi {
+            next
+        } else {
+            lo + (hi - lo) * 0.5
+        };
     }
     Some(envelope(p, lo + (hi - lo) * 0.5))
 }
@@ -71,12 +87,7 @@ mod tests {
     use super::*;
     #[test]
     fn original_1980_envelope_at_gsi_100() {
-        let p = HoekBrownParams {
-            ucs: 5000.0,
-            mb: 8.0,
-            s: 1.0,
-            a: 0.5,
-        };
+        let p = HoekBrownParams::new(5000.0, 8.0, 1.0, 0.5);
         for s3 in [0.0, 10.0, 100.0, 1000.0] {
             let (normal, tau, _) = envelope(&p, s3);
             let s1 = s3 + (p.mb * p.ucs * s3 + p.ucs * p.ucs).sqrt();
@@ -88,13 +99,52 @@ mod tests {
     }
 
     #[test]
+    fn safeguarded_solution_matches_bisection_over_envelope() {
+        for (ucs, mb, s, a) in [
+            (15000.0, 0.1, 0.0001, 0.5),
+            (5000.0, 8.0, 1.0, 0.5),
+            (12000.0, 0.08, 1e-6, 0.53),
+        ] {
+            let p = HoekBrownParams::new(ucs, mb, s, a);
+            for sn in [
+                p.tension * 0.9,
+                p.tension * 0.5,
+                0.0,
+                p.sn_zero,
+                1.0,
+                100.0,
+                10000.0,
+            ] {
+                if sn <= p.tension {
+                    continue;
+                }
+                let (mut lo, mut hi) = if sn <= p.sn_zero {
+                    (p.tension, 0.0)
+                } else {
+                    (0.0, sn)
+                };
+                for _ in 0..200 {
+                    let mid = lo + (hi - lo) * 0.5;
+                    if mid == lo || mid == hi {
+                        break;
+                    }
+                    if envelope(&p, mid).0 < sn {
+                        lo = mid;
+                    } else {
+                        hi = mid;
+                    }
+                }
+                let expected = envelope(&p, lo + (hi - lo) * 0.5);
+                let actual = point(&p, sn, false).unwrap();
+                assert!((actual.0 - expected.0).abs() <= 1e-10 * ucs, "sn={sn}");
+                assert!((actual.1 - expected.1).abs() <= 1e-9 * ucs, "sn={sn}");
+            }
+        }
+    }
+
+    #[test]
     fn tension_cut_and_compatibility() {
-        let p = HoekBrownParams {
-            ucs: 15000.0,
-            mb: 0.1,
-            s: 0.0001,
-            a: 0.5,
-        };
+        let p = HoekBrownParams::new(15000.0, 0.1, 0.0001, 0.5);
         let st = -p.s * p.ucs / p.mb;
         assert_eq!(tangent(&p, st, false), (0.0, 0.0));
         assert_eq!(tau_at_normal(&p, st), 0.0);
