@@ -9,12 +9,14 @@ import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../editor/s
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
-import type { CrackReport, Load, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
+import type { CrackReport, Load, MaterialModel, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, ShansepSpec, Slice } from '../engine/types';
 import { describeWarning, warningContext } from '../engine/warnings';
 import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
 import { crackGeometry, type CrackGeometry } from '../render/crack';
 import { pondPolygons } from '../render/pond';
+import { MATERIAL_MODEL_LABEL } from '../render/scene';
 import { CRACK_CONVENTIONS, POND_CONVENTIONS, crackInputRows, crackRecords, crackTable, pondSummary } from './crackReport';
+import { deriveHoekBrownFromMaterial } from './hoekBrown';
 import { PDF_PALETTE, pdfMaterialColor, type Rgb } from './palette';
 import {
   PASSIVE_LEGEND,
@@ -324,7 +326,9 @@ function drawingLoads(model: ModelDoc): DrawingLoad[] {
 export function surfaceLegendLabel(res: MethodReport | undefined, methodLabel: string): string {
   if (res === undefined || res.status === 'not_converged') return `Superficie evaluada, sin convergencia (${methodLabel})`;
   if (res.status === 'invalid') return `Superficie evaluada, no válida (${methodLabel})`;
-  if (isPolylineReport(res.surface)) return `Superficie fija, polilínea (${methodLabel})`;
+  if (isPolylineReport(res.surface)) {
+    return res.search == null ? `Superficie fija, polilínea (${methodLabel})` : `Superficie crítica, polilínea (${methodLabel})`;
+  }
   return res.search == null ? `Superficie fija, círculo (${methodLabel})` : `Superficie crítica (${methodLabel})`;
 }
 
@@ -416,11 +420,15 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
 
   const legend: LegendItem[] = [];
   const seen = new Set<string>();
+  const hasF3bMaterials = model.materials.some((m) => m.model === 'hoek_brown' || m.model === 'shansep');
   for (const r of regions) {
     if (seen.has(r.materialId)) continue;
     seen.add(r.materialId);
-    const name = model.materials.find((m) => m.id === r.materialId)?.name;
-    legend.push({ kind: 'material', label: name && name !== r.materialId ? `${r.materialId} (${name})` : r.materialId, color: r.color });
+    const mat = model.materials.find((m) => m.id === r.materialId);
+    const name = mat?.name;
+    const baseLabel = name && name !== r.materialId ? `${r.materialId} (${name})` : r.materialId;
+    const modelSuffix = hasF3bMaterials ? ` · ${MATERIAL_MODEL_LABEL[(mat?.model ?? 'mohr_coulomb') as MaterialModel]}` : '';
+    legend.push({ kind: 'material', label: `${baseLabel}${modelSuffix}`, color: r.color });
   }
   if (piezo) legend.push({ kind: 'piezo', label: 'Línea piezométrica', color: [...PDF_PALETTE.piezo] });
   if (piezoExt.length > 0) legend.push({ kind: 'piezo_ext', label: 'Piezométrica (extrapolada)', color: [...PDF_PALETTE.piezo] });
@@ -483,6 +491,14 @@ function modelSection(model: ModelDoc): ReportSection {
       ['Ancho mínimo', s.min_width === undefined || s.min_width === null ? 'por defecto (1 % del ancho del modelo)' : `${fmtParam(s.min_width)} ${u.length}`],
       ['Refinamiento', (s.refine ?? true) ? 'Sí' : 'No'],
     );
+    if (s.non_circular) {
+      const nc = s.non_circular;
+      rows.push(
+        ['Búsqueda no circular', 'Sí (variación alterna)'],
+        ['Semillas no circulares', dflt(nc.seeds, fmtParam(nc.seeds ?? 3))],
+        ['Vértices máximos (polilínea)', dflt(nc.max_vertices, fmtParam(nc.max_vertices ?? 33))],
+      );
+    }
   } else if (a.surface && a.surface.type === 'polyline') {
     rows.push(['Superficies', 'Polilínea fija'], ['Puntos de la polilínea', String(a.surface.points.length)]);
     polylinePoints = a.surface.points;
@@ -530,6 +546,26 @@ function modelSection(model: ModelDoc): ReportSection {
   return { id: 'model', title: 'Datos del modelo', blocks };
 }
 
+/**
+ * Nota fija de todo informe con materiales Hoek-Brown (F6.8, X25 §1.5):
+ * declara la regla de la envolvente completa bajo confinamiento bajo y la advertencia de Hoek (1994) sobre la cohesión tangente.
+ */
+export const HOEK_BROWN_REPORT_NOTE =
+  'Criterio de Hoek-Brown generalizado (Hoek, Carranza-Torres y Corkum, 2002): en cada dovela se evalúa la tangente instantánea (cᵢ, φᵢ) a la envolvente curvilínea en el esfuerzo normal efectivo σ′n de la base. ' +
+  'Bajo confinamiento bajo o tracción (σ′n ≤ sn(0), donde sn(0) corresponde a σ′3 = 0), se aplica la regla de la envolvente completa hasta la resistencia a tracción σt = −s·σci/mb, y para σ′n ≤ σt la base no resiste (c = 0, tan φ = 0); no se extrapola la recta tangente de σ′3 = 0, diferencia conservadora de 0 % a −2,9 % frente a cSlope en los modelos de prueba. ' +
+  'Advertencia de Hoek (1994, ISRM News Journal, citado en Hoek et al., 2002): la cohesión determinada ajustando una tangente a la envolvente curvilínea de Mohr es un valor de cota superior y puede dar resultados optimistas en cálculos de estabilidad.';
+
+function shansepOcrCells(spec: ShansepSpec | null | undefined, stressUnit: string, lengthUnit: string): [string, string] {
+  if (!spec) return [DASH, DASH];
+  if (spec.ocr !== undefined && spec.ocr !== null) return ['OCR constante', `OCR = ${fmtParam(spec.ocr)}`];
+  if (spec.pop !== undefined && spec.pop !== null) return ['POP (sobreconsolidación)', `POP = ${fmtParam(spec.pop)} ${stressUnit}`];
+  if (Array.isArray(spec.ocr_by_elevation) && spec.ocr_by_elevation.length > 0) {
+    const pts = spec.ocr_by_elevation.map(([y, ocr]) => `(${fmtParam(y)} ${lengthUnit}; OCR ${fmtParam(ocr)})`).join(' ');
+    return ['OCR por cota', pts];
+  }
+  return [DASH, DASH];
+}
+
 function materialsSection(model: ModelDoc): ReportSection {
   const u = units(model);
   // Un material no drenado no tiene c ni φ: su resistencia (Su, constante o lineal con la cota) va en su propia tabla.
@@ -545,6 +581,39 @@ function materialsSection(model: ModelDoc): ReportSection {
             rows: undrained.map((m) => [m.id, fmtParam(m.undrained_strength), fmtParam(m.strength_datum), fmtParam(m.strength_gradient), fmtParam(m.strength_limit)]),
           },
         ];
+  const hoekBrown = model.materials.filter((m) => m.model === 'hoek_brown');
+  const hoekBrownBlocks: ReportBlock[] =
+    hoekBrown.length === 0
+      ? []
+      : [
+          {
+            kind: 'table',
+            title: 'Materiales Hoek-Brown generalizado',
+            header: ['Id', `σci (${u.stress})`, 'GSI', 'mi', 'D', 'mb', 's', 'a'],
+            rows: hoekBrown.map((m) => {
+              const d = deriveHoekBrownFromMaterial(m);
+              return [m.id, fmtParam(m.ucs), fmtParam(m.gsi), fmtParam(m.mi), fmtParam(m.disturbance), fmtParam(d?.mb), fmtParam(d?.s), fmtParam(d?.a)];
+            }),
+          },
+          { kind: 'paragraph', text: HOEK_BROWN_REPORT_NOTE },
+        ];
+  const shansep = model.materials.filter((m) => m.model === 'shansep');
+  const shansepBlocks: ReportBlock[] =
+    shansep.length === 0
+      ? []
+      : [
+          {
+            kind: 'table',
+            title: 'Materiales SHANSEP',
+            header: ['Id', 'Cociente S', 'Exponente m', 'Fuente OCR', 'Historia de esfuerzos'],
+            rows: shansep.map((m) => {
+              const s = m.shansep;
+              const expText = !s ? DASH : s.exponent === undefined || s.exponent === null ? `${fmtParam(0.8)} (por defecto)` : fmtParam(s.exponent);
+              const [source, detail] = shansepOcrCells(s, u.stress, u.length);
+              return [m.id, fmtParam(s?.ratio), expText, source, detail];
+            }),
+          },
+        ];
   return {
     id: 'materials',
     title: 'Materiales',
@@ -555,7 +624,7 @@ function materialsSection(model: ModelDoc): ReportSection {
         rows: model.materials.map((m) => [
           m.id,
           m.name,
-          m.model === 'undrained' ? 'No drenado (Su)' : 'Mohr-Coulomb',
+          MATERIAL_MODEL_LABEL[(m.model ?? 'mohr_coulomb') as MaterialModel] ?? 'Mohr-Coulomb',
           fmtParam(m.unit_weight),
           fmtParam(m.unit_weight_sat),
           fmtParam(m.cohesion),
@@ -564,11 +633,13 @@ function materialsSection(model: ModelDoc): ReportSection {
         ]),
       },
       ...undrainedBlocks,
+      ...hoekBrownBlocks,
+      ...shansepBlocks,
     ],
   };
 }
 
-/** Filas de «Parámetros por método»: la función de Morgenstern-Price y, en Janbu corregido, f₀ y F₀ = FS / f₀ (F3.5, F3.7). */
+/** Filas de «Parámetros por método»: la función de Morgenstern-Price, f₀ y F₀ de Janbu corregido, y las pasadas de Hoek-Brown (F3.5, F3.7, F6.6). */
 function methodParameterRows(results: MethodReport[]): string[][] {
   const rows: string[][] = [];
   for (const r of results) {
@@ -582,8 +653,28 @@ function methodParameterRows(results: MethodReport[]): string[][] {
       rows.push([METHOD_LABEL[r.method], 'Factor de corrección f₀', correctionFactorText(d.f0)]);
       if (d.F0 !== undefined) rows.push([METHOD_LABEL[r.method], 'F₀ (Janbu simplificado) = FS / f₀', fmt(d.F0, 3)]);
     }
+    if (typeof r.strength?.passes === 'number') {
+      rows.push([METHOD_LABEL[r.method], 'Pasadas del lazo de Hoek-Brown', String(r.strength.passes)]);
+    }
   }
   return rows;
+}
+
+/** Tabla de estadísticas de la búsqueda no circular por método (F6.6, F6.10 punto 8). */
+function nonCircularStatsTable(results: MethodReport[]): ReportBlock | null {
+  const ncResults = results.filter((r) => r.search?.non_circular !== undefined);
+  if (ncResults.length === 0) return null;
+  return {
+    kind: 'table',
+    title: 'Búsqueda no circular (refinamiento de semillas)',
+    header: ['Método', 'Semillas', 'Eval. no circ.', 'FS círculo (semilla)', 'FS polilínea', 'Superficie ganadora'],
+    rows: ncResults.map((r) => {
+      const nc = r.search!.non_circular!;
+      const polyText = nc.polyline_fos !== undefined ? fmt(nc.polyline_fos, 3) : 'Sin polilínea admisible';
+      const winner = r.status !== 'converged' ? DASH : isPolylineReport(r.surface) ? 'Polilínea' : 'Círculo';
+      return [METHOD_LABEL[r.method], String(nc.seeds), String(nc.evaluated), fmt(nc.seed_fos, 3), polyText, winner];
+    }),
+  };
 }
 
 /** Las dos polilíneas son la misma salvo ruido de coma flotante (1e-9 de la mayor coordenada). */
@@ -594,27 +685,38 @@ function samePolyline(a: readonly Point[], b: readonly Point[]): boolean {
 }
 
 /**
- * Tabla de la polilínea **ajustada** que analizó el motor, cuando difiere de la de entrada (R10B-07): sin ella, «Polilínea
- * (5 puntos)» no se puede auditar con los 3 puntos de «Datos del modelo». Es la polilínea del informe, ya prolongada o
- * recortada al terreno y limitada al rango de las dovelas. Los métodos que comparten la misma comparten tabla.
+ * Tabla de la polilínea **ajustada** (superficie fija, R10B-07) o de los **vértices de la polilínea crítica** (búsqueda no circular, F6.10).
+ * Los métodos que comparten la misma polilínea comparten tabla.
  */
 function fittedPolylineTables(results: MethodReport[], model: ModelDoc): ReportBlock[] {
   const u = units(model);
   const input = model.analysis.surface?.type === 'polyline' ? model.analysis.surface.points : null;
-  const groups: { points: Point[]; methods: MethodKind[] }[] = [];
+  const groups: { points: Point[]; methods: MethodKind[]; fromSearch: boolean }[] = [];
   for (const r of results) {
+    const fromSearch = r.search != null;
+    if (fromSearch && r.status !== 'converged') continue;
     const pts = analyzedPolyline(r);
-    if (!pts || (input && samePolyline(pts, input))) continue;
-    const g = groups.find((x) => samePolyline(x.points, pts));
+    if (!pts || (!fromSearch && input && samePolyline(pts, input))) continue;
+    const g = groups.find((x) => x.fromSearch === fromSearch && samePolyline(x.points, pts));
     if (g) g.methods.push(r.method);
-    else groups.push({ points: pts, methods: [r.method] });
+    else groups.push({ points: pts, methods: [r.method], fromSearch });
   }
-  return groups.map((g) => ({
-    kind: 'table',
-    title: groups.length === 1 ? 'Polilínea ajustada al terreno (superficie analizada)' : `Polilínea ajustada al terreno (${g.methods.map((m) => METHOD_LABEL[m]).join(', ')})`,
-    header: ['N.º', `x (${u.length})`, `y (${u.length})`],
-    rows: g.points.map((p, i) => [String(i + 1), fmtCoord(p[0]), fmtCoord(p[1])]),
-  }));
+  return groups.map((g) => {
+    const methodsText = g.methods.map((m) => METHOD_LABEL[m]).join(', ');
+    const title = g.fromSearch
+      ? groups.filter((x) => x.fromSearch).length === 1
+        ? 'Vértices de la polilínea crítica (búsqueda no circular)'
+        : `Vértices de la polilínea crítica (${methodsText})`
+      : groups.filter((x) => !x.fromSearch).length === 1
+        ? 'Polilínea ajustada al terreno (superficie analizada)'
+        : `Polilínea ajustada al terreno (${methodsText})`;
+    return {
+      kind: 'table',
+      title,
+      header: ['N.º', `x (${u.length})`, `y (${u.length})`],
+      rows: g.points.map((p, i) => [String(i + 1), fmtCoord(p[0]), fmtCoord(p[1])]),
+    };
+  });
 }
 
 function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection {
@@ -622,7 +724,8 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
   const summaries = results.map((r) => resultSurfaceSummary(r));
   // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
   const allPolyline = results.length > 0 && summaries.every((x) => x !== null);
-  const surfaceHeader = allPolyline ? ['Superficie fija'] : [`Centro (xc; yc) (${u.length})`, `Radio (${u.length})`];
+  const anySearch = results.some((r) => r.search != null);
+  const surfaceHeader = allPolyline ? [anySearch ? 'Superficie crítica' : 'Superficie fija'] : [`Centro (xc; yc) (${u.length})`, `Radio (${u.length})`];
   const surfaceCells = (r: MethodReport, i: number): string[] => {
     const c = reportCircle(r.surface);
     if (allPolyline) return [summaries[i] as string];
@@ -644,6 +747,8 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
       ]),
     },
   ];
+  const ncTable = nonCircularStatsTable(results);
+  if (ncTable) blocks.push(ncTable);
   const fitted = fittedPolylineTables(results, model);
   blocks.push(...fitted);
   const params = methodParameterRows(results);

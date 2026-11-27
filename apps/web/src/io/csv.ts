@@ -9,7 +9,7 @@ import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
 import { NO_CRACK_TEXT, crackCsvHeader, hasFace, isNoCrack } from '../report/crackReport';
 import { csvRowNote, hasItoMatsui, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
-import type { MethodReport, Point } from '../engine/types';
+import type { Material, MethodReport, Point, SliceStrength } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
 import type { ModelDoc } from '../editor/types';
 import type { CsvImportResult, ImportIssue } from './types';
@@ -290,8 +290,9 @@ function crackCsvCells(r: MethodReport, withFace: boolean): CsvCell[] {
  */
 export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
-  // Columnas que solo existen cuando algún método las necesita: así el CSV de un modelo sin polilínea ni M-P ni Janbu corregido no cambia.
-  const withSurface = results.some((r) => isPolylineReport(r.surface));
+  // Columnas que solo existen cuando algún método las necesita: así el CSV de un modelo v0.5 o anterior no cambia byte a byte.
+  const withNonCircular = results.some((r) => r.search?.non_circular !== undefined);
+  const withSurface = results.some((r) => isPolylineReport(r.surface)) || withNonCircular;
   const withFunction = results.some((r) => r.interslice !== undefined);
   const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
   // F5.4: la grieta de tracción (`x_c`, profundidad usada y `Pw`) solo agrega columnas cuando algún método la trae; sin grieta el CSV no cambia.
@@ -300,9 +301,12 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
   const withFace = results.some((r) => hasFace(r.tension_crack));
   // R10B-07: con `data_points` la función son sus pares (ξ; f); sin ellos el CSV no identifica la f(ξ) usada.
   const withPoints = results.some((r) => intersliceCell(r, false) !== null);
+  // F6.6: pasadas del lazo de Hoek-Brown y estadísticas de búsqueda no circular, solo cuando algún método las informa.
+  const withHbPasses = results.some((r) => r.strength?.passes !== undefined);
   const decimalComma = (options.decimalComma ?? false) && (options.delimiter ?? ',') !== ',';
   const rows: CsvCell[][] = results.map((r) => {
     const circle = reportCircle(r.surface);
+    const nc = r.search?.non_circular;
     return [
       r.method,
       r.status,
@@ -322,6 +326,8 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       ...(withPoints ? [intersliceCell(r, decimalComma)] : []),
       ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
       ...(withCrack ? crackCsvCells(r, withFace) : []),
+      ...(withHbPasses ? [r.strength?.passes ?? null] : []),
+      ...(withNonCircular ? [nc?.seeds ?? null, nc?.evaluated ?? null, nc?.seed_fos ?? null, nc?.polyline_fos ?? null] : []),
     ];
   });
   const header = [
@@ -342,6 +348,8 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     ...(withPoints ? ['puntos_interslice'] : []),
     ...(withF0 ? ['f0'] : []),
     ...(withCrack ? crackCsvHeader(options.units, withFace) : []),
+    ...(withHbPasses ? ['pasadas_hb'] : []),
+    ...(withNonCircular ? ['semillas_nc', 'evaluadas_nc', 'fs_semilla', 'fs_polilinea'] : []),
   ];
   return toCsv(header, rows, options);
 }
@@ -362,6 +370,83 @@ export function polylineSurfaceRows(r: MethodReport): CsvCell[][] {
 export function surfaceToCsv(rows: CsvCell[][], options: ResultsCsvOptions = {}): string {
   const u = csvUnits(options.units);
   return toCsv(['metodo', 'estado', 'punto', `x_${u.length}`, `y_${u.length}`, 'unidades'], rows.map((r) => [...r, u.label]), options);
+}
+
+export interface SlicesCsvOptions extends ResultsCsvOptions {
+  /** Materiales del modelo (opcional): permite distinguir `mohr_coulomb` de `undrained` en las dovelas lineales cuando el informe trae `strength`. */
+  materials?: readonly Pick<Material, 'model'>[];
+}
+
+/**
+ * Tabla CSV por dovela (F6.6, F6.13): geometría, peso, resistencia instantánea (`cohesion`, `tan_phi`) y presión de poros de cada dovela.
+ * Las columnas nuevas (`ley`, `normal_stress_<unidad>`, `vertical_stress_<unidad>` y `ocr`) solo aparecen cuando algún método del informe
+ * trae `strength`, de modo que el CSV de un modelo v0.5 o anterior no incluye columnas de v0.6.
+ */
+export function slicesToCsv(results: readonly MethodReport[], options: SlicesCsvOptions = {}): string {
+  const u = csvUnits(options.units);
+  const line = u.system === 'imperial' ? 'lbf_ft' : 'kn_m';
+  const stress = u.system === 'imperial' ? 'psf' : 'kpa';
+  const withStrength = results.some((r) => r.strength !== undefined);
+  const withNormal = results.some((r) => r.strength?.slices.some((s) => s.law === 'hoek_brown') ?? false);
+  const withShansep = results.some((r) => r.strength?.slices.some((s) => s.law === 'shansep') ?? false);
+
+  const rows: CsvCell[][] = [];
+  for (const r of results) {
+    if (r.status !== 'converged') continue;
+    const byIndex = new Map<number, SliceStrength>();
+    for (const st of r.strength?.slices ?? []) byIndex.set(st.index, st);
+    r.slices.forEach((sl, idx) => {
+      const entry = byIndex.get(idx);
+      const fallbackLaw = options.materials?.[sl.material]?.model ?? 'linear';
+      const law = entry ? entry.law : fallbackLaw;
+      rows.push([
+        r.method,
+        r.status,
+        idx + 1,
+        sl.x_left,
+        sl.x_right,
+        sl.y_base_left,
+        sl.y_base_right,
+        sl.y_top_mid,
+        sl.width,
+        sl.alpha,
+        sl.base_length,
+        sl.weight,
+        sl.cohesion,
+        sl.tan_phi,
+        sl.pore_pressure,
+        sl.material,
+        u.label,
+        ...(withStrength ? [law] : []),
+        ...(withNormal ? [entry?.law === 'hoek_brown' ? entry.normal_stress : null] : []),
+        ...(withShansep ? [entry?.law === 'shansep' ? entry.vertical_stress : null, entry?.law === 'shansep' ? entry.ocr : null] : []),
+      ]);
+    });
+  }
+
+  const header = [
+    'metodo',
+    'estado',
+    'dovela',
+    `x_izq_${u.length}`,
+    `x_der_${u.length}`,
+    `y_base_izq_${u.length}`,
+    `y_base_der_${u.length}`,
+    `y_sup_${u.length}`,
+    `ancho_${u.length}`,
+    'alfa_rad',
+    `long_base_${u.length}`,
+    `peso_${line}`,
+    `cohesion_${stress}`,
+    'tan_phi',
+    `presion_poros_${stress}`,
+    'material',
+    'unidades',
+    ...(withStrength ? ['ley'] : []),
+    ...(withNormal ? [`normal_stress_${stress}`] : []),
+    ...(withShansep ? [`vertical_stress_${stress}`, 'ocr'] : []),
+  ];
+  return toCsv(header, rows, options);
 }
 
 /**
