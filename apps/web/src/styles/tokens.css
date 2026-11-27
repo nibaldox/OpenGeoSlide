@@ -23,9 +23,12 @@
  *   --canvas-slice-edge: alfa claro 0,45 → 0,62 (2,21 sobre --canvas-mat-4) y oscuro 0,22 → 0,55 (1,63 sobre --canvas-mat-6); ahora ≥ 3,0.
  *   --ui-info-border (nuevo, UA2-F7) claro #d2cbe6 → #857ab5 (1,46 sobre --ui-surface; ahora 3,60 sobre --ui-surface y 3,19 sobre --ui-info-bg) y oscuro #7693b7 (6,00 sobre --ui-surface y 5,17 sobre --ui-info-bg).
  *   --canvas-handle-sel oscuro #d97706 → #b45309 (2,62 del aro #e6e9ee sobre él, pide 3:1; ahora 4,13).
- *   Sin ajuste, pero fuera de los pares: --ui-border-strong y --ui-border-dashed son bordes decorativos (de la suite, con alfa); --canvas-band-entry/exit
- *   (suite) quedan bajo 3:1 como trazo aislado sobre el fondo del lienzo (entrada 2,73 y 2,03; salida 3,02 y 1,95, en oscuro y en claro); son bandas translúcidas
- *   y el color no es su único portador: llevan rótulo y leyenda.
+ *   --canvas-band-entry/exit (UA3-C2, B-08): el alfa de la suite dejaba la banda bajo 3:1 sobre --canvas-bg (entrada 2,73 oscuro y 2,03 claro; salida 3,02 y 1,95).
+ *   Alfa claro 0,45 → 0,75 en las dos (entrada 3,59 y salida 3,34) y oscuro entrada 0,55 → 0,65 (3,41) y salida 0,55 → 0,60 (3,41); el tono no cambia. Entran en PAIRS.
+ *   Sobre los materiales no se fija 3:1 (las bandas van en el aire, sobre el terreno, no sobre el relleno de un material); se mide y se anota: con el alfa nuevo,
+ *   el peor material da 2,33 (entrada) y 2,12 (salida) en claro, y 1,62 y 1,65 en oscuro.
+ *   --ui-warn-ink claro #8a5a12 → #85550f (4,48 sobre --ui-accent-bg compuesto sobre --ui-bg, en la fila mostrada de un método que no convergió; ahora 4,82).
+ *   Sin ajuste, pero fuera de los pares: --ui-border-strong y --ui-border-dashed son bordes decorativos (de la suite, con alfa).
  */
 
 :root {
@@ -60,7 +63,7 @@
   --ui-ok-ink: #1d6b3f;
   --ui-ok-border: #b9dcc6;
   --ui-warn-bg: #f6ecd9;
-  --ui-warn-ink: #8a5a12;
+  --ui-warn-ink: #85550f;
   --ui-warn-border: #e6cf9f;
   --ui-err-bg: #f5e1e1;
   --ui-err-ink: #9b2c2c;
@@ -93,8 +96,8 @@
   --canvas-seismic: #9a3412;
   --canvas-seismic-bg: rgb(246 247 249 / 0.88);
   /* Lienzo: bandas de entrada y salida */
-  --canvas-band-entry: rgb(29 107 63 / 0.45);
-  --canvas-band-exit: rgb(138 90 18 / 0.45);
+  --canvas-band-entry: rgb(29 107 63 / 0.75);
+  --canvas-band-exit: rgb(138 90 18 / 0.75);
   /* Lienzo: dovelas */
   --canvas-slice-fill: rgb(31 41 51 / 0.06);
   --canvas-slice-edge: rgb(31 41 51 / 0.62);
@@ -190,8 +193,8 @@
     --canvas-seismic: #fdba74;
     --canvas-seismic-bg: rgb(6 6 7 / 0.88);
     /* Lienzo: bandas de entrada y salida */
-    --canvas-band-entry: rgb(57 171 96 / 0.55);
-    --canvas-band-exit: rgb(230 143 25 / 0.55);
+    --canvas-band-entry: rgb(57 171 96 / 0.65);
+    --canvas-band-exit: rgb(230 143 25 / 0.60);
     /* Lienzo: dovelas */
     --canvas-slice-fill: rgb(255 255 255 / 0.05);
     --canvas-slice-edge: rgb(255 255 255 / 0.55);
@@ -244,7 +247,7 @@
     --ui-ok-ink: light-dark(#1d6b3f, #39ab60);
     --ui-ok-border: light-dark(#b9dcc6, #39ab60);
     --ui-warn-bg: light-dark(#f6ecd9, rgb(230 143 25 / 0.12));
-    --ui-warn-ink: light-dark(#8a5a12, #e68f19);
+    --ui-warn-ink: light-dark(#85550f, #e68f19);
     --ui-warn-border: light-dark(#e6cf9f, #e68f19);
     --ui-err-bg: light-dark(#f5e1e1, rgb(232 49 73 / 0.12));
     --ui-err-ink: light-dark(#9b2c2c, #ee5a6c);
@@ -277,8 +280,8 @@
     --canvas-seismic: light-dark(#9a3412, #fdba74);
     --canvas-seismic-bg: light-dark(rgb(246 247 249 / 0.88), rgb(6 6 7 / 0.88));
     /* Lienzo: bandas de entrada y salida */
-    --canvas-band-entry: light-dark(rgb(29 107 63 / 0.45), rgb(57 171 96 / 0.55));
-    --canvas-band-exit: light-dark(rgb(138 90 18 / 0.45), rgb(230 143 25 / 0.55));
+    --canvas-band-entry: light-dark(rgb(29 107 63 / 0.75), rgb(57 171 96 / 0.65));
+    --canvas-band-exit: light-dark(rgb(138 90 18 / 0.75), rgb(230 143 25 / 0.60));
     /* Lienzo: dovelas */
     --canvas-slice-fill: light-dark(rgb(31 41 51 / 0.06), rgb(255 255 255 / 0.05));
     --canvas-slice-edge: light-dark(rgb(31 41 51 / 0.62), rgb(255 255 255 / 0.55));
@@ -340,7 +343,7 @@ html[data-theme='dark'] {
     --ui-ok-ink: #1d6b3f;
     --ui-ok-border: #b9dcc6;
     --ui-warn-bg: #f6ecd9;
-    --ui-warn-ink: #8a5a12;
+    --ui-warn-ink: #85550f;
     --ui-warn-border: #e6cf9f;
     --ui-err-bg: #f5e1e1;
     --ui-err-ink: #9b2c2c;
@@ -373,8 +376,8 @@ html[data-theme='dark'] {
     --canvas-seismic: #9a3412;
     --canvas-seismic-bg: rgb(246 247 249 / 0.88);
     /* Lienzo: bandas de entrada y salida */
-    --canvas-band-entry: rgb(29 107 63 / 0.45);
-    --canvas-band-exit: rgb(138 90 18 / 0.45);
+    --canvas-band-entry: rgb(29 107 63 / 0.75);
+    --canvas-band-exit: rgb(138 90 18 / 0.75);
     /* Lienzo: dovelas */
     --canvas-slice-fill: rgb(31 41 51 / 0.06);
     --canvas-slice-edge: rgb(31 41 51 / 0.62);
@@ -457,8 +460,8 @@ html[data-theme='dark'] {
     --canvas-seismic: #fdba74;
     --canvas-seismic-bg: rgb(6 6 7 / 0.88);
     /* Lienzo: bandas de entrada y salida */
-    --canvas-band-entry: rgb(57 171 96 / 0.55);
-    --canvas-band-exit: rgb(230 143 25 / 0.55);
+    --canvas-band-entry: rgb(57 171 96 / 0.65);
+    --canvas-band-exit: rgb(230 143 25 / 0.60);
     /* Lienzo: dovelas */
     --canvas-slice-fill: rgb(255 255 255 / 0.05);
     --canvas-slice-edge: rgb(255 255 255 / 0.55);

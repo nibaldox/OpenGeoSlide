@@ -66,3 +66,15 @@ export function neighborView(id: ViewId, step: 1 | -1): ViewId {
 export function viewForIssueTarget(tab: string | null, current: ViewId): ViewId {
   return tab === null ? 'canvas' : current;
 }
+
+export type ShortcutDisposition = 'run' | 'swallow' | 'ignore';
+
+/**
+ * Qué hace el armazón con un atajo (UA-E3 §1). `run`: ejecuta la acción. `swallow`: no hace nada pero llama a `preventDefault()`
+ * (en Casos, un atajo de documento fuera de un campo de Casos: si no, el navegador aplicaría su deshacer a un campo del editor
+ * oculto). `ignore`: el evento sigue su camino.
+ */
+export function shortcutDisposition(view: ViewId, action: ShortcutAction, inField: boolean): ShortcutDisposition {
+  if (shortcutActsIn(view, action)) return 'run';
+  return view === 'cases' && isDocumentAction(action) && !inField ? 'swallow' : 'ignore';
+}

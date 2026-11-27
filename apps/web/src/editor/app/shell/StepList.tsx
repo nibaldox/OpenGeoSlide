@@ -5,7 +5,7 @@
 // `pointer-events: none`) del mismo envoltorio `role="presentation"`, y el resumen llega al lector por `aria-describedby`.
 
 import { useId, useRef, type ReactNode } from 'react';
-import { IconCheck, IconChevronDown } from '../../../ui/icons';
+import { IconCheck, IconChevronDown, IconWarning } from '../../../ui/icons';
 import { useRovingTabIndex } from '../../../ui/useRovingTabIndex';
 import type { PanelTabId } from '../issueNav';
 import type { StepState, StepStatus } from '../shellModel';
@@ -29,11 +29,12 @@ function DraftMark() {
   );
 }
 
-/** Contenido de la insignia: ✓ (hecho), ! (error), punto (borrador) o el número del paso (opcional y vacío). */
+/** Contenido de la insignia: ✓ (hecho), ! (error), punto (borrador), ícono de aviso (con avisos) o el número del paso (opcional y vacío). */
 function BadgeMark({ status, number }: { status: StepStatus; number: number }) {
   if (status === 'done') return <IconCheck size={15} />;
   if (status === 'error') return <BangMark />;
   if (status === 'draft') return <DraftMark />;
+  if (status === 'warn') return <IconWarning size={15} />;
   return <>{number}</>;
 }
 

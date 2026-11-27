@@ -19,7 +19,7 @@ import { validateLocal } from '../state';
 import type { Issue, ModelDoc } from '../types';
 import type { PanelTabId } from './issueNav';
 import { buildReportInput, type EngineRun } from './reportInput';
-import { STEP_ORDER, draftStep, fsMinimum, reportContents, runStatus, stepStates, type RunStatusInput } from './shellModel';
+import { STEP_ORDER, draftStep, fsMinimum, fsText, reportContents, runStatus, stepStates, type RunStatusInput } from './shellModel';
 
 // ───────── Documentos ─────────
 
@@ -133,6 +133,33 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(statusOf(none, 'water')).toBe('optional');
   });
 
+  it('water (B-06): grieta con agua → «Agua en grieta · γw 9,81» (done); γw explícito o por defecto, también en imperial', () => {
+    const crack = (fill: number, extra: Record<string, unknown> = {}): ModelDoc =>
+      mini({ analysis: { methods: ['bishop'], slices: 50, surface: { type: 'circle', xc: 5, yc: 8, r: 8 }, tension_crack: { depth: 'auto', water_fill: fill } }, ...extra });
+    expect(summaryOf(crack(1), 'water')).toBe('Agua en grieta · γw 9,81');
+    expect(statusOf(crack(0.5), 'water')).toBe('done');
+    expect(summaryOf(crack(1, { water: { unit_weight: 9.807 } }), 'water')).toBe('Agua en grieta · γw 9,807');
+    expect(summaryOf(crack(1, { units: 'imperial' }), 'water')).toBe('Agua en grieta · γw 62,45');
+    // grieta seca: no hay agua
+    expect(summaryOf(crack(0), 'water')).toBe('Sin piezométrica');
+    expect(statusOf(crack(0), 'water')).toBe('optional');
+    // con piezométrica, manda la piezométrica
+    expect(summaryOf(crack(1, { water: { piezometric_line: [[0, 1], [10, 2]] } }), 'water')).toBe('Piezométrica · 2 puntos');
+  });
+
+  it('water (B-06): ru > 0 en algún material → «Sin piezométrica · ru en N mat.» (done); ru = 0 o nulo no cuenta', () => {
+    const m = (id: string, ru: number | null | undefined) => ({ id, name: id, model: 'mohr_coulomb', unit_weight: 20, cohesion: 5, friction_angle: 30, ru });
+    expect(summaryOf(mini({ materials: [m('a', 0.2), m('b', 0), m('c', null), m('d', 0.1)] }), 'water')).toBe('Sin piezométrica · ru en 2 mat.');
+    expect(summaryOf(mini({ materials: [m('a', 0.2)] }), 'water')).toBe('Sin piezométrica · ru en 1 mat.');
+    expect(statusOf(mini({ materials: [m('a', 0.2)] }), 'water')).toBe('done');
+    expect(summaryOf(mini({ materials: [m('a', 0), m('b', undefined)] }), 'water')).toBe('Sin piezométrica');
+  });
+
+  it('water (B-06): los casos publicados con grieta llena (V048, V086b, V086d) y con ru (V044b, V101, V103) ya no dicen «Sin piezométrica» a secas', () => {
+    for (const id of ['V048', 'V086b', 'V086d']) expect([id, summaryOf(fromCase(id), 'water'), statusOf(fromCase(id), 'water')]).toEqual([id, 'Agua en grieta · γw 9,807', 'done']);
+    for (const id of ['V044b', 'V101', 'V103']) expect([id, summaryOf(fromCase(id), 'water'), statusOf(fromCase(id), 'water')]).toEqual([id, 'Sin piezométrica · ru en 1 mat.', 'done']);
+  });
+
   it('surface: las cuatro formas y el vacío', () => {
     expect(summaryOf(mini(), 'surface')).toBe('Circular fija');
     const poly = miniAnalysis({ surface: { type: 'polyline', points: [[0, 5], [2, 3], [4, 2], [6, 2], [8, 3], [10, 5]] } });
@@ -166,9 +193,31 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit' } }), 'search')).toBe('Entrada y salida automáticas');
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10, 25] } }), 'search')).toBe('Entrada 10–25 m · salida automática');
     const medium = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [100.5, 125.5], exit: [140.5, 160.5] } }), 'search');
-    expect(medium).toBe('Ent. 100,5–125,5 · sal. 140,5–160,5 m');
+    expect(medium).toBe('Ent. 100,5–125,5 m · sal. 140,5–160,5 m');
     const long = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [100.25, 125.75], exit: [140.25, 160.75] } }), 'search');
-    expect(long).toBe('100,25–125,75 · 140,25–160,75 m');
+    expect(long).toBe('100,25–125,75 m · 140,25–160,75 m');
+  });
+
+  it('search (B-09): con un solo rango definido, la forma corta conserva la unidad (m y ft)', () => {
+    const entryOnly = miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10.25, 25.55], exit: null } });
+    expect(summaryOf(entryOnly, 'search')).toBe('Ent. 10,25–25,55 m · sal. auto.');
+    const exitOnly = miniAnalysis({ search: { type: 'circular_entry_exit', exit: [10.25, 25.55] } });
+    expect(summaryOf(exitOnly, 'search')).toBe('Ent. auto. · sal. 10,25–25,55 m');
+    const imperial = mini({ units: 'imperial', analysis: { methods: ['bishop'], slices: 50, search: { type: 'circular_entry_exit', entry: [110.25, 125.55] } } });
+    expect(summaryOf(imperial, 'search')).toBe('Ent. 110,25–125,55 ft · sal. auto.');
+    const veryLong = miniAnalysis({ search: { type: 'circular_entry_exit', entry: [1100.25, 1125.55] } });
+    expect(summaryOf(veryLong, 'search')).toBe('Ent. 1.100,25–1.125,55 m · sal. auto.');
+  });
+
+  it('search (B-09): ninguna forma deja un número sin unidad, con cualquier combinación de rangos', () => {
+    const ranges = [undefined, null, [1, 2], [10.5, 25.25], [100.25, 125.75], [1100.5, 1125.5]] as const;
+    for (const entry of ranges) {
+      for (const exit of ranges) {
+        const text = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry, exit } }), 'search');
+        const numbers = text.match(/\d[\d.,]*–\d[\d.,]*/g) ?? [];
+        for (const n of numbers) expect([text, n, new RegExp(`${n.replace(/[.,–]/g, (c) => `\\${c}`)} (m|ft)`).test(text)]).toEqual([text, n, true]);
+      }
+    }
   });
 
   it('analysis: nombres cortos de los métodos en el orden de la UI y dovelas; la forma corta si no cabe', () => {
@@ -218,6 +267,22 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(summaryOf(miniAnalysis({ seismic: { kh: 0, kv: 0 } }), 'seismic')).toBe('Sin sismo');
     expect(summaryOf(miniAnalysis({ seismic: null }), 'seismic')).toBe('Sin sismo');
     expect(statusOf(miniAnalysis({ seismic: null }), 'seismic')).toBe('optional');
+  });
+
+  it('seismic (B-12b): un coeficiente no nulo que redondea a cero es «< 0,001», no «0,00»', () => {
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0004, kv: 0 } }), 'seismic')).toBe('kh < 0,001 · kv 0,00');
+    expect(statusOf(miniAnalysis({ seismic: { kh: 0.0004 } }), 'seismic')).toBe('done');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.1, kv: 0.0002 } }), 'seismic')).toBe('kh 0,10 · kv < 0,001');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0004, kv: 0.0003 } }), 'seismic')).toBe('kh < 0,001 · kv < 0,001');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0005, kv: 0 } }), 'seismic')).toBe('kh 0,001 · kv 0,00');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.1, kv: -0.0002 } }), 'seismic')).toBe('kh 0,10 · kv > −0,001');
+  });
+
+  it('search (B-12c): los rangos con negativos usan «a» y el signo menos (−)', () => {
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-25.5, -10.2] } }), 'search')).toBe('Ent. −25,5 a −10,2 m · sal. auto.');
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-5, 10], exit: [20, 30] } }), 'search')).toBe('Entrada −5 a 10 m · salida 20–30 m');
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10, 25] } }), 'search')).toBe('Entrada 10–25 m · salida automática');
+    expect(summaryOf(acadsDoc(), 'search')).not.toMatch(/-\d/);
   });
 
   it('project: título (o «Sin título») y el sistema de unidades', () => {
@@ -317,7 +382,46 @@ describe('stepStates: precedencia de estados', () => {
   it('avisos y notas no cuentan como error; una incidencia sin destino tampoco', () => {
     const s = stepStates(mini(), [issue('/regions/0', 'x', 'aviso'), issue('/materials/0', 'x', 'nota'), issue(null, 'x'), issue('/nada', 'x')], []);
     for (const id of STEP_ORDER) expect(s[id].errorCount).toBe(0);
-    expect(s.geometry.status).toBe('done');
+    expect(s.materials.status).toBe('done'); // una nota no cambia el estado
+  });
+
+  it('warn (UA-E3 §4, B-02): un aviso local cuyo destino es el paso lo marca; las notas, los errores ajenos y los avisos sin destino no', () => {
+    const doc = mini();
+    const s = stepStates(doc, [issue('/regions/0', 'x', 'aviso'), issue('/materials/0', 'x', 'nota'), issue(null, 'x', 'aviso'), issue('/nada', 'x', 'aviso')], []);
+    expect(s.geometry).toMatchObject({ status: 'warn', errorCount: 0 });
+    expect(s.materials.status).toBe('done');
+    for (const id of STEP_ORDER.filter((x) => x !== 'geometry')) expect(s[id].status).not.toBe('warn');
+  });
+
+  it('warn reparte cada aviso con issueTargetFor: ru y σci en Materiales, piezométrica en Agua', () => {
+    const doc = mini({ water: { piezometric_line: [[0, 1], [10, 2]] } });
+    const s = stepStates(doc, [issue('/materials/0/ru', 'a', 'aviso'), issue('/water/piezometric_line/1', 'b', 'aviso')], []);
+    expect(s.materials.status).toBe('warn');
+    expect(s.water.status).toBe('warn');
+    expect(s.water.summary).toBe('Piezométrica · 2 puntos');
+  });
+
+  it('warn gana sobre `optional` y `empty` (un aviso no deja el paso en gris)', () => {
+    expect(stepStates(mini(), [issue('/water/unit_weight', 'x', 'aviso')], []).water.status).toBe('warn');
+    expect(stepStates(mini({ materials: [] }), [issue('/materials/0', 'x', 'aviso')], []).materials.status).toBe('empty'); // sin destino real: no hay material 0
+  });
+
+  it('precedencia completa: error › borrador › warn › resto', () => {
+    const doc = mini();
+    const warnOnly = stepStates(doc, [issue('/regions/0', 'x', 'aviso')], []);
+    expect(warnOnly.geometry.status).toBe('warn');
+    const warnDraft = stepStates(doc, [issue('/regions/0', 'x', 'aviso')], ['Vértice 1 (0, 0) de la región 1']);
+    expect(warnDraft.geometry.status).toBe('draft');
+    const all = stepStates(doc, [issue('/regions/0', 'x', 'aviso'), issue('/regions/0/polygon/1', 'y', 'error')], ['Vértice 1 (0, 0) de la región 1']);
+    expect(all.geometry).toMatchObject({ status: 'error', errorCount: 1 });
+  });
+
+  it('avisos reales de validateLocal (γsat < γ, ru) marcan Materiales', () => {
+    const doc = mini({ materials: [{ id: 'm1', name: 'S', model: 'mohr_coulomb', unit_weight: 22, unit_weight_sat: 18, cohesion: 5, friction_angle: 30, ru: 0.25 }] });
+    const issues = validateLocal(doc);
+    expect(issues.some((i) => i.severity === 'aviso')).toBe(true);
+    const s = stepStates(doc, issues, []);
+    expect(s.materials.status).toBe('warn');
   });
 
   it('cada ruta se reparte en el paso que abre issueNav (clima, sismo, cargas, refuerzos, agua, búsqueda, proyecto)', () => {
@@ -508,7 +612,10 @@ describe('runStatus: una fila por condición, de arriba abajo', () => {
     ['calculando 1 método', { busy: true, methodsRequested: 1 }, { tone: 'accent', text: 'Calculando 1 método…' }],
     ['sin regiones', { hasRegions: false }, { tone: 'neutral', text: 'Sin modelo' }],
     ['error del motor sin resultado actual', { message: 'Falló', messageKind: 'error' }, { tone: 'nok', text: 'Error: Falló' }],
-    ['resultado actual', { run: okRun, current: true }, { tone: 'ok', text: 'Calculado · FS mín. 1,234' }],
+    ['resultado actual, FS ≥ 1, sin avisos (neutral, no ok)', { run: okRun, current: true }, { tone: 'neutral', text: 'Calculado · FS mín. 1,234' }],
+    ['resultado actual, FS ≥ 1, con avisos', { run: okRun, current: true, advisories: 2 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 2 avisos' }],
+    ['resultado actual con un solo aviso (singular)', { run: okRun, current: true, advisories: 1 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 1 aviso' }],
+    ['resultado actual con borradores: nunca es actual (A-02, B-01)', { run: okRun, current: true, pendingDrafts: 1 }, { tone: 'warn', text: 'Cambios sin aplicar' }],
     ['resultado no actual con borradores', { run: okRun, current: false, pendingDrafts: 2 }, { tone: 'warn', text: 'Cambios sin aplicar' }],
     ['resultado no actual', { run: okRun, current: false }, { tone: 'warn', text: 'Resultados desactualizados' }],
     ['3 problemas', { localErrors: 3 }, { tone: 'warn', text: 'Modelo con 3 problemas' }],
@@ -591,8 +698,59 @@ describe('runStatus: resultado actual', () => {
     expect(s.title).toBe('Parcial · 3 de 4 métodos. No convergieron: Janbu.');
   });
 
-  it('parcial gana sobre FS < 1', () => {
-    expect(cur(report(result('bishop', 0.8), result('spencer', 1.2, 'not_converged'))).text).toBe('Parcial · 1 de 2 métodos');
+  it('parcial con FS mínimo < 1 → «Parcial · c de t · FS < 1,0» (nok, B-04b)', () => {
+    const s = cur(report(result('bishop', 0.985), result('spencer', 1.2, 'not_converged'), result('morgenstern_price', 1.1, 'not_converged')));
+    expect(s).toMatchObject({ tone: 'nok', text: 'Parcial · 1 de 3 · FS < 1,0' });
+    expect(s.title).toBe('Parcial · 1 de 3 · FS < 1,0. FS mínimo 0,985 (Bishop). No convergieron: Spencer, M-P.');
+  });
+
+  it('parcial con FS mínimo ≥ 1 → «Parcial · c de t métodos» (warn)', () => {
+    expect(cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged')))).toMatchObject({ tone: 'warn', text: 'Parcial · 1 de 2 métodos' });
+  });
+
+  it('el título no duplica el punto de «Janbu corr.»', () => {
+    const s = cur(report(result('bishop', 1.2), result('janbu_corrected', 0.9, 'not_converged')));
+    expect(s.title).toBe('Parcial · 1 de 2 métodos. No convergieron: Janbu corr.');
+    expect(s.title).not.toContain('..');
+    expect(cur(report(result('janbu_corrected', 0.9, 'not_converged'))).title).toBe('Sin convergencia. No convergieron: Janbu corr.');
+  });
+
+  it('sin avisos o con 0 no cambia el texto; el título nombra los avisos si el texto no los lleva', () => {
+    const r = report(result('bishop', 0.984), result('spencer', 1.02));
+    expect(cur(r, { advisories: 0 }).text).toBe('Calculado · FS < 1,0');
+    const s = cur(r, { advisories: 3 });
+    expect(s).toMatchObject({ tone: 'nok', text: 'Calculado · FS < 1,0 · 3 avisos' });
+    expect(s.title).toBe('Calculado · FS < 1,0 · 3 avisos. FS mínimo 0,984 (Bishop)');
+  });
+
+  it('« · N avisos» solo si cabe en 40 caracteres; si no, el número va en el título', () => {
+    const r = report(result('bishop', 1.234), result('spencer', 1.5, 'not_converged'), result('janbu_simplified', 1.6, 'not_converged'));
+    const s = cur(r, { advisories: 12 });
+    expect(s.text.length).toBeLessThanOrEqual(40);
+    expect(s.text).toBe('Parcial · 1 de 3 métodos · 12 avisos');
+    const long = cur(report(result('bishop', 0.9), result('spencer', 1.5, 'not_converged'), result('janbu_simplified', 1.6, 'not_converged')), { advisories: 99999 });
+    expect(long.text).toBe('Parcial · 1 de 3 · FS < 1,0');
+    expect(long.title).toContain('Avisos: 99.999');
+  });
+
+  it('sin convergencia mantiene su tono warn y suma los avisos si caben', () => {
+    expect(cur(report(result('bishop', 0.9, 'not_converged')), { advisories: 2 })).toMatchObject({ tone: 'warn', text: 'Sin convergencia · 2 avisos' });
+  });
+
+  it('el tono `ok` ya no se usa en el chip, con ningún resultado', () => {
+    for (const fos of [0.5, 0.9997, 1, 1.35, 3]) {
+      for (const advisories of [0, 2]) expect(cur(report(result('bishop', fos)), { advisories }).tone).not.toBe('ok');
+    }
+  });
+
+  it('borradores pendientes: aunque `current` sea verdadero el resultado no es actual y no se muestra FS', () => {
+    const s = runStatus(base({ run: emptyRun(report(result('bishop', 0.8))), current: true, pendingDrafts: 2, advisories: 4 }));
+    expect(s).toMatchObject({ tone: 'warn', text: 'Cambios sin aplicar' });
+  });
+
+  it('borradores y un error del motor: manda el error (no hay resultado actual)', () => {
+    const s = runStatus(base({ run: emptyRun(report(result('bishop', 1.2))), current: true, pendingDrafts: 1, message: 'Falló', messageKind: 'error' }));
+    expect(s).toMatchObject({ tone: 'nok', text: 'Error: Falló' });
   });
 
   it('FS mínimo < 1 → «Calculado · FS < 1,0» (nok)', () => {
@@ -605,9 +763,9 @@ describe('runStatus: resultado actual', () => {
     expect(cur(report(result('bishop', 1))).text).toBe('Calculado · FS mín. 1,000');
   });
 
-  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (ok); el título lleva los métodos del mínimo, empates incluidos', () => {
+  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (neutral); el título lleva los métodos del mínimo, empates incluidos', () => {
     const s = cur(report(result('bishop', 1.2344), result('spencer', 1.2339), result('morgenstern_price', 1.5)));
-    expect(s).toMatchObject({ tone: 'ok', text: 'Calculado · FS mín. 1,234' });
+    expect(s).toMatchObject({ tone: 'neutral', text: 'Calculado · FS mín. 1,234' });
     expect(s.title).toBe('Calculado · FS mín. 1,234. FS mínimo 1,234 (Bishop, Spencer)');
   });
 
@@ -660,10 +818,27 @@ describe('fsMinimum', () => {
     expect(fs).toMatchObject({ value: null, text: '—', methods: [], converged: 0, total: 2 });
   });
 
-  it('`below1` usa el valor crudo: 0,9996 se ve «1,000» pero es < 1', () => {
+  it('`below1` usa el valor crudo y, en [0,9995, 1), el texto lleva 4 decimales: nunca «1,000» junto a «FS < 1,0» (B-12a)', () => {
     const fs = fsMinimum(report(result('bishop', 0.9996)));
-    expect(fs.text).toBe('1,000');
+    expect(fs.text).toBe('0,9996');
     expect(fs.below1).toBe(true);
+    expect(fsMinimum(report(result('bishop', 0.9997))).text).toBe('0,9997');
+    expect(fsMinimum(report(result('bishop', 0.99996))).text).toBe('0,9999');
+    expect(fsMinimum(report(result('bishop', 0.9995))).text).toBe('0,9995');
+    // fuera del intervalo, tres decimales de siempre
+    expect(fsMinimum(report(result('bishop', 0.9994))).text).toBe('0,999');
+    expect(fsMinimum(report(result('bishop', 1))).text).toBe('1,000');
+    expect(fsMinimum(report(result('bishop', 1.0004))).text).toBe('1,000');
+  });
+
+  it('fsText: el chip y el HUD usan el mismo texto; los empates se comparan con él', () => {
+    expect(fsText(0.9997)).toBe('0,9997');
+    expect(fsText(null)).toBe('—');
+    const fs = fsMinimum(report(result('bishop', 0.9997), result('spencer', 0.9997), result('morgenstern_price', 0.9998)));
+    expect(fs.methods).toEqual(['bishop', 'spencer']);
+    const chip = runStatus(base({ run: emptyRun(report(result('bishop', 0.9997))), current: true }));
+    expect(chip.text).toBe('Calculado · FS < 1,0');
+    expect(chip.title).toBe('Calculado · FS < 1,0. FS mínimo 0,9997 (Bishop)');
   });
 
   it('con los resultados reales del motor (reporte guardado)', () => {

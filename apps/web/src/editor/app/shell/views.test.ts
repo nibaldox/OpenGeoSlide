@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ShortcutAction } from '../shortcuts';
-import { canvasVisible, DEFAULT_VIEW, isDocumentAction, neighborView, shortcutActsIn, VIEWS, viewDef, viewForIssueTarget, viewTitle, type ViewId } from './views';
+import { canvasVisible, DEFAULT_VIEW, isDocumentAction, neighborView, shortcutActsIn, shortcutDisposition, VIEWS, viewDef, viewForIssueTarget, viewTitle, type ViewId } from './views';
 
 const DOCUMENT: ShortcutAction[] = ['undo', 'redo', 'save', 'open', 'check'];
 const TOOLS: ShortcutAction[] = ['tool:select', 'tool:add_vertex', 'tool:draw_region', 'tool:split_region', 'tool:draw_reinforcement', 'tool:pan'];
@@ -61,5 +61,21 @@ describe('navegación', () => {
   it('una incidencia con destino en el lienzo vuelve a Lienzo; una con paso, no cambia de vista', () => {
     expect(viewForIssueTarget(null, 'results')).toBe('canvas');
     expect(viewForIssueTarget('materials', 'results')).toBe('results');
+  });
+});
+
+describe('shortcutDisposition (UA-E3 §1)', () => {
+  it('en Casos, un atajo de documento fuera de un campo se traga (preventDefault) sin actuar', () => {
+    for (const a of DOCUMENT) expect(shortcutDisposition('cases', a, false), a).toBe('swallow');
+  });
+  it('en Casos, dentro de un campo de Casos el atajo sigue su camino, y las herramientas también', () => {
+    for (const a of DOCUMENT) expect(shortcutDisposition('cases', a, true), a).toBe('ignore');
+    for (const a of TOOLS) expect(shortcutDisposition('cases', a, false), a).toBe('ignore');
+  });
+  it('en las demás vistas actúa lo que corresponde y el resto se deja pasar', () => {
+    expect(shortcutDisposition('canvas', 'undo', false)).toBe('run');
+    expect(shortcutDisposition('results', 'save', false)).toBe('run');
+    expect(shortcutDisposition('results', 'tool:pan', false)).toBe('ignore');
+    expect(shortcutDisposition('report', 'tool:select', false)).toBe('ignore');
   });
 });

@@ -109,6 +109,9 @@ const PAIRS: Pair[] = [
     [`ui-${s}-ink`, 'ui-bg', TEXT, `estado «${s}» sobre el fondo`],
   ]),
   ['ui-warn-ink', 'ui-row-warn', TEXT, 'aviso sobre fila'],
+  // UA3-C2 (B-08): la fila mostrada del HUD (`.rs-item-shown`) es --ui-accent-bg; con un método que no convergió, su FS y su estado van en --ui-warn-ink
+  ...ON('ui-accent-bg').map((bg): Pair => ['ui-warn-ink', bg, TEXT, 'fila mostrada del HUD con un método que no convergió (B-08)']),
+  ['ui-warn-ink', 'ui-surface-hover', TEXT, 'aviso del HUD con el cursor encima'],
   ['ui-err-ink', 'ui-input-err-bg', TEXT, 'error en campo'],
   ['ui-note-ink', 'ui-note-bg', TEXT, 'nota'],
   // Elementos de interfaz (3:1)
@@ -136,6 +139,9 @@ const PAIRS: Pair[] = [
   ...['canvas-bg', ...UI_SURFACES, 'ui-row-warn', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
   // Muestras de la leyenda (F5.3, F5.4): el borde del «Agua embalsada» y la línea de la «Grieta de tracción» sobre el panel.
   ...UI_SURFACES.flatMap((bg): Pair[] => ['canvas-piezo', 'canvas-surface'].map((fg): Pair => [fg, bg, UI, 'muestra de la leyenda (agua embalsada y grieta)'])),
+  // UA3-C2 (B-08): las bandas de entrada y salida de la búsqueda (objeto gráfico esencial, 3:1) sobre el fondo del lienzo. Con alfa, se componen sobre él.
+  // Sobre los materiales no se fijan: las bandas van en el aire, sobre el terreno (cifras en la cabecera de tokens.css).
+  ...['canvas-band-entry', 'canvas-band-exit'].map((fg): Pair => [fg, 'canvas-bg', UI, 'banda de entrada o salida de la búsqueda (B-08)']),
   // Tiradores: relleno y aro, y el tirador de la piezométrica
   ['canvas-handle-ring', 'canvas-handle-sel', UI, 'tirador seleccionado'],
   ['canvas-handle-ring', 'canvas-handle-snap', UI, 'tirador con imán'],

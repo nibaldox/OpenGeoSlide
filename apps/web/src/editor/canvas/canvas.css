@@ -54,7 +54,9 @@
 .ec-palette[data-scroll='true'] {
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* B-10c: la barra se ve (fina, con color propio) para que se note que hay más botones; no es solo un recorte. */
   scrollbar-width: thin;
+  scrollbar-color: var(--ui-control-border) var(--ui-surface);
 }
 /* Grupos de botones (el de zoom y el que pasa el armazón): una columna. */
 .ec-palette [role='group'],
@@ -162,6 +164,31 @@
 @media (pointer: coarse) {
   .ec-palette .gs-tip {
     display: none;
+  }
+}
+
+/* B-10c: paleta compacta cuando no cabe a 42 (desde 761 px; hasta 760 va en fila): botones de 36, sin rótulos y con menos aire. */
+@media (min-width: 761px) {
+  .ec-palette[data-compact='true'] {
+    width: auto;
+    gap: 4px;
+    padding: 6px;
+  }
+  .ec-palette[data-compact='true'] [role='group'],
+  .ec-palette[data-compact='true'] .ec-tools {
+    gap: 4px;
+  }
+  .ec-palette[data-compact='true'] .ec-palette-label {
+    display: none;
+  }
+  .ec-palette[data-compact='true'] .ec-palette-divider {
+    margin: 2px 2px;
+  }
+  .ec-palette[data-compact='true'] .gs-tool,
+  .ec-palette[data-compact='true'] .ec-tool {
+    width: 36px;
+    height: 36px;
+    min-height: 36px; /* `.gs-tool` fija min-height: 42px */
   }
 }
 
