@@ -1277,7 +1277,8 @@ fn face_side(
                 for i in 0..FACE_STRENGTH_SAMPLES {
                     let y = lo + (i as f64 + 0.5) * step;
                     // Total vertical stress at `y`: the overburden above the interval plus the pieces above `y`.
-                    let mut sigma_v_y = sigma_v;
+                    let mut sigma_v_y =
+                        sigma_v + piezo.map_or(0.0, |z| pm.gamma_w * (z - top).max(0.0));
                     for &(p_lo, p_hi, gamma) in &pieces {
                         let above = p_hi - p_lo.max(y);
                         if above > 0.0 {

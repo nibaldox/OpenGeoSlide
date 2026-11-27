@@ -41,7 +41,7 @@ pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> Shanse
         let y = 0.5 * (slice.y_base_left + slice.y_base_right);
         let (su, ocr) = if sigma_v > 0.0 {
             let ocr = ocr_at(&params.ocr, sigma_v, y);
-            (strength_from(params, sigma_v, ocr), ocr)
+            (su_at(params, sigma_v, y), ocr)
         } else {
             outcome.nonpositive_stress = true;
             (0.0, 1.0)
@@ -62,7 +62,14 @@ pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> Shanse
 /// as [`apply`], used by the interslice faces (F6.5).
 pub(crate) fn su_at(params: &ShansepParams, sigma_v: f64, y: f64) -> f64 {
     if sigma_v > 0.0 {
-        strength_from(params, sigma_v, ocr_at(&params.ocr, sigma_v, y))
+        match &params.ocr {
+            OcrSource::Pop(pop) => {
+                params.ratio
+                    * sigma_v.powf(1.0 - params.exponent)
+                    * (sigma_v + pop).powf(params.exponent)
+            }
+            _ => strength_from(params, sigma_v, ocr_at(&params.ocr, sigma_v, y)),
+        }
     } else {
         0.0
     }
@@ -182,6 +189,14 @@ mod tests {
         // POP 0 is OCR 1.
         let zero = params(OcrSource::Pop(0.0));
         assert!((su_at(&zero, 50.0, 0.0) - 0.25 * 50.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn pop_without_ocr_quotient_stays_finite_at_tiny_stress() {
+        let p = params(OcrSource::Pop(1.0e100));
+        let actual = su_at(&p, 1.0e-250, 0.0);
+        let expected = 0.25 * (1.0e-250_f64).powf(0.2) * (1.0e100_f64).powf(0.8);
+        assert!(actual.is_finite() && (actual / expected - 1.0).abs() < 1e-12);
     }
 
     #[test]
@@ -318,6 +333,29 @@ mod tests {
         );
         assert_eq!(strength.tan_phi, 0.0);
         assert_eq!(strength.water_force, 0.0);
+    }
+
+    #[test]
+    fn ponded_face_uses_water_overburden() {
+        let dry = model(json!({"ratio": 0.25, "ocr": 1.0}), Value::Null);
+        let wet = model(
+            json!({"ratio": 0.25, "ocr": 1.0}),
+            json!({"unit_weight": 10.0, "piezometric_line": [[0, 12], [10, 12]]}),
+        );
+        let face = |x_left: f64, x_right: f64| Slice {
+            x_left,
+            x_right,
+            y_base_left: 6.0,
+            y_base_right: 6.0,
+            width: x_right - x_left,
+            base_length: x_right - x_left,
+            ..ZERO_SLICE
+        };
+        let d = interslice_face_strength(&dry, &face(3.0, 5.0), &face(5.0, 7.0));
+        let w = interslice_face_strength(&wet, &face(3.0, 5.0), &face(5.0, 7.0));
+        // With the same total soil unit weight, water reduces the effective gradient by gamma_w.
+        assert!((d.cohesion_force - 0.25 * 18.0 * 8.0).abs() < 1e-9);
+        assert!((w.cohesion_force - 0.25 * 8.0 * 8.0).abs() < 1e-9);
     }
 
     /// With a piezometric line, `σ′v(z) = σv(z) − γw·(z_w − z)`: the face of a submerged layer follows the column.
