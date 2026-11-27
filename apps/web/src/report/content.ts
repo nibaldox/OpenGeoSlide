@@ -665,7 +665,11 @@ function crackSection(input: ReportInput): ReportSection | null {
         kind: 'paragraph',
         text:
           'x_c es la posición de la grieta en la superficie de falla y la profundidad es la usada en x_c (la fija, o la automática). ' +
-          'Pw es la fuerza del agua en la grieta por metro de talud; con la grieta seca vale 0. «Sin grieta (z = 0)» indica que ese método no cortó ninguna grieta: la profundidad en x_c es 0.',
+          'Pw es la fuerza del agua en la grieta por metro de talud; con la grieta seca vale 0. «Sin grieta (z = 0)» indica que ese método no cortó ninguna grieta: la profundidad en x_c es 0.' +
+          (records.some((r) => r.face !== undefined)
+            ? ' La cara cortada es la altura de la cara vertical de la masa en x_c (terreno menos base de la superficie); el motor la informa solo cuando difiere de la profundidad. ' +
+              '«Corte de la masa … sin grieta de tracción» indica que la masa se cortó en x_c pero la profundidad de Rankine es 0 en ese punto (p. ej., bajo una sobrecarga).'
+            : ''),
       });
     } else if (results.some(isMockResult)) {
       blocks.push({ kind: 'paragraph', text: 'El motor simulado no calcula la grieta de tracción.' });

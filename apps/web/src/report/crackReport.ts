@@ -37,9 +37,32 @@ const DASH = '—';
 /** Texto de una grieta que el motor informa con `depth = 0` (E15j-3, E15l-15): no se cortó ninguna grieta. */
 export const NO_CRACK_TEXT = 'Sin grieta (z = 0)';
 
-/** ¿El motor informó «sin grieta»? Profundidad no positiva (o no finita): la superficie no tiene grieta aunque el modelo la pida. */
-export function isNoCrack(c: { depth: number } | null | undefined): boolean {
-  return !!c && !(c.depth > 0);
+/** ¿El motor informó una cara cortada (E15m-15)? `face_height` finito y positivo. */
+export function hasFace(c: { face_height?: number | null } | null | undefined): boolean {
+  return !!c && typeof c.face_height === 'number' && Number.isFinite(c.face_height) && c.face_height > 0;
+}
+
+/**
+ * ¿Corte de la masa sin grieta de tracción (E15m-15)? Profundidad no positiva con cara cortada: la profundidad de Rankine es 0 en `x_c`
+ * (p. ej., bajo una sobrecarga) pero la masa se truncó. No es «Sin grieta».
+ */
+export function isCutNoCrack(c: { depth: number; face_height?: number | null } | null | undefined): boolean {
+  return !!c && !(c.depth > 0) && hasFace(c);
+}
+
+/** ¿El motor informó «sin grieta»? Profundidad no positiva (o no finita) y sin cara cortada: la superficie no tiene grieta aunque el modelo la pida. */
+export function isNoCrack(c: { depth: number; face_height?: number | null } | null | undefined): boolean {
+  return !!c && !(c.depth > 0) && !hasFace(c);
+}
+
+/** Frase del corte de la masa sin grieta de tracción (E15m-15): la de la tabla, el PDF, el resumen y el título del lienzo. */
+export function cutNoCrackText(x: number, face: number, units: string | null | undefined): string {
+  return `Corte de la masa en x = ${num(x)} (cara de ${num(face)} ${lengthUnitOf(units)}) sin grieta de tracción: la profundidad de Rankine es 0 en ese punto (p. ej., bajo una sobrecarga)`;
+}
+
+/** La cara cortada junto a la profundidad: «(cara de 4,971 m)»; vacío si el motor no la informó. */
+export function faceSuffix(face: number | null | undefined, units: string | null | undefined): string {
+  return typeof face === 'number' && Number.isFinite(face) && face > 0 ? ` (cara de ${num(face)} ${lengthUnitOf(units)})` : '';
 }
 
 /** Número con coma decimal y hasta `digits` decimales, sin ceros de relleno: «2,4». */
@@ -53,6 +76,8 @@ export interface CrackRecord {
   x: number;
   depth: number;
   force: number;
+  /** Altura de la cara cortada (E15m-15); ausente si el motor no la informó (coincide con la profundidad). */
+  face?: number;
   /** F del método; `null` si no es finito. */
   fs: number | null;
 }
@@ -62,7 +87,7 @@ export function crackRecords(results: readonly MethodReport[]): CrackRecord[] {
   return results.flatMap((r) => {
     const c: CrackReport | undefined = r.tension_crack;
     if (!c) return [];
-    return [{ method: r.method, x: c.x, depth: c.depth, force: c.water_force, fs: typeof r.fos === 'number' && Number.isFinite(r.fos) ? r.fos : null }];
+    return [{ method: r.method, x: c.x, depth: c.depth, force: c.water_force, ...(hasFace(c) ? { face: c.face_height as number } : {}), fs: typeof r.fos === 'number' && Number.isFinite(r.fos) ? r.fos : null }];
   });
 }
 
@@ -98,14 +123,19 @@ export function crackInputRows(model: Pick<ModelDoc, 'analysis' | 'units'>): [st
  */
 export function crackTable(records: readonly CrackRecord[], units: string | null | undefined, waterFill: number | null | undefined): { header: string[]; rows: string[][] } {
   const u = crackUnits(units);
+  // E15m-15: la columna de la cara cortada solo existe cuando algún método la informa; sin ella la tabla no cambia.
+  const withFace = records.some((r) => r.face !== undefined);
+  const header = ['Método', `x_c (${u.length})`, `Profundidad (${u.length})`, ...(withFace ? [`Cara cortada (${u.length})`] : []), 'Agua en la grieta', `Pw (${u.line})`];
+  const face = (r: CrackRecord): string[] => (withFace ? [r.face === undefined ? DASH : num(r.face)] : []);
   return {
-    header: ['Método', `x_c (${u.length})`, `Profundidad (${u.length})`, 'Agua en la grieta', `Pw (${u.line})`],
-    // E15l-15: con `depth ≤ 0` no hay grieta: ni x_c, ni porcentaje de agua, ni Pw.
-    rows: records.map((r) =>
-      isNoCrack(r)
-        ? [METHOD_NAME[r.method], DASH, NO_CRACK_TEXT, DASH, DASH]
-        : [METHOD_NAME[r.method], num(r.x), num(r.depth), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)],
-    ),
+    header,
+    rows: records.map((r) => {
+      // E15m-15: profundidad 0 con cara cortada es un corte de la masa sin grieta de tracción, no «Sin grieta».
+      if (isCutNoCrack({ depth: r.depth, face_height: r.face })) return [METHOD_NAME[r.method], DASH, cutNoCrackText(r.x, r.face as number, units), ...face(r), DASH, DASH];
+      // E15l-15: con `depth ≤ 0` y sin cara no hay grieta: ni x_c, ni porcentaje de agua, ni Pw.
+      if (isNoCrack({ depth: r.depth, face_height: r.face })) return [METHOD_NAME[r.method], DASH, NO_CRACK_TEXT, ...face(r), DASH, DASH];
+      return [METHOD_NAME[r.method], num(r.x), num(r.depth), ...face(r), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)];
+    }),
   };
 }
 
@@ -126,9 +156,9 @@ export function pondSummary(model: Pick<ModelDoc, 'regions' | 'water' | 'units'>
   return { maxDepth, text: `Agua embalsada: calado máximo ${num(maxDepth, 2)} ${lengthUnitOf(model.units)}. ${POND_NOTE}` };
 }
 
-/** Columnas del CSV de resultados cuando algún método trae grieta: `grieta_x_<L>`, `grieta_profundidad_<L>` y `grieta_pw_<F>`. */
-export function crackCsvHeader(units: string | null | undefined): string[] {
+/** Columnas del CSV de resultados cuando algún método trae grieta: `grieta_x_<L>`, `grieta_profundidad_<L>` y `grieta_pw_<F>`; con la cara cortada (E15m-15) agrega `grieta_cara_<L>`. */
+export function crackCsvHeader(units: string | null | undefined, withFace = false): string[] {
   const imperial = forceUnit(units) === 'lbf/ft';
   const L = lengthUnitOf(units);
-  return [`grieta_x_${L}`, `grieta_profundidad_${L}`, `grieta_pw_${imperial ? 'lbf_ft' : 'kn_m'}`];
+  return [`grieta_x_${L}`, `grieta_profundidad_${L}`, `grieta_pw_${imperial ? 'lbf_ft' : 'kn_m'}`, ...(withFace ? [`grieta_cara_${L}`] : [])];
 }

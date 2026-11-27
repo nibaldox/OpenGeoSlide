@@ -7,7 +7,7 @@
 import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
-import { NO_CRACK_TEXT, crackCsvHeader, isNoCrack } from '../report/crackReport';
+import { NO_CRACK_TEXT, crackCsvHeader, hasFace, isNoCrack } from '../report/crackReport';
 import { csvRowNote, hasItoMatsui, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
@@ -272,11 +272,15 @@ function intersliceCell(r: MethodReport, comma: boolean): string | null {
   return spec.points.map(([xi, f]) => `${formatNumber(xi, comma)}:${formatNumber(f, comma)}`).join(INTERSLICE_PAIR_SEPARATOR);
 }
 
-/** Celdas de la grieta: `x_c`, profundidad y Pw; con `depth ≤ 0` («sin grieta», E15l-15) solo el texto en la profundidad. */
-function crackCsvCells(r: MethodReport): CsvCell[] {
+/**
+ * Celdas de la grieta: `x_c`, profundidad y Pw; con `depth ≤ 0` y sin cara («sin grieta», E15l-15) solo el texto en la profundidad. Con la cara cortada
+ * (E15m-15, `withFace`) agrega su altura; un corte sin grieta de tracción (`depth` 0 y cara > 0) conserva los números: `x_c`, 0, Pw y la cara.
+ */
+function crackCsvCells(r: MethodReport, withFace: boolean): CsvCell[] {
   const c = r.tension_crack;
-  if (c && isNoCrack(c)) return [null, NO_CRACK_TEXT, null];
-  return [c?.x ?? null, c?.depth ?? null, c?.water_force ?? null];
+  const face: CsvCell[] = withFace ? [c && hasFace(c) ? (c.face_height as number) : null] : [];
+  if (c && isNoCrack(c)) return [null, NO_CRACK_TEXT, null, ...face];
+  return [c?.x ?? null, c?.depth ?? null, c?.water_force ?? null, ...face];
 }
 
 /**
@@ -292,6 +296,8 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
   const withF0 = results.some((r) => methodDetails(r).f0 !== undefined);
   // F5.4: la grieta de tracción (`x_c`, profundidad usada y `Pw`) solo agrega columnas cuando algún método la trae; sin grieta el CSV no cambia.
   const withCrack = results.some((r) => r.tension_crack !== undefined);
+  // E15m-15: la columna de la cara cortada solo existe si algún método la informa (el motor la omite cuando coincide con la profundidad).
+  const withFace = results.some((r) => hasFace(r.tension_crack));
   // R10B-07: con `data_points` la función son sus pares (ξ; f); sin ellos el CSV no identifica la f(ξ) usada.
   const withPoints = results.some((r) => intersliceCell(r, false) !== null);
   const decimalComma = (options.decimalComma ?? false) && (options.delimiter ?? ',') !== ',';
@@ -315,7 +321,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       ...(withFunction ? [r.interslice?.function ?? null] : []),
       ...(withPoints ? [intersliceCell(r, decimalComma)] : []),
       ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
-      ...(withCrack ? crackCsvCells(r) : []),
+      ...(withCrack ? crackCsvCells(r, withFace) : []),
     ];
   });
   const header = [
@@ -335,7 +341,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     ...(withFunction ? ['funcion_interslice'] : []),
     ...(withPoints ? ['puntos_interslice'] : []),
     ...(withF0 ? ['f0'] : []),
-    ...(withCrack ? crackCsvHeader(options.units) : []),
+    ...(withCrack ? crackCsvHeader(options.units, withFace) : []),
   ];
   return toCsv(header, rows, options);
 }
