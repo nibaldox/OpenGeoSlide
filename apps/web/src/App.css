@@ -448,6 +448,12 @@ td.num,
   border-color: var(--ui-accent);
 }
 
+/* La flecha de los disparadores es un ícono SVG (UA2-F2), no un glifo de texto. */
+.dd-trigger > svg {
+  flex: none;
+  vertical-align: -2px;
+}
+
 .dd-menu {
   margin: 0;
   padding: 6px;

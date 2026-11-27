@@ -5,6 +5,7 @@
 // controles del menú y, al salir del último, lo cierra.
 
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { IconChevronDown } from './icons';
 import { nextRovingIndex } from './rovingTabIndex';
 
 // Las flechas recorren los botones; un <select> del menú (Ejemplos) se alcanza con Tab y conserva sus propias teclas.
@@ -141,7 +142,7 @@ export function DropdownMenu({ label, children, className }: { label: string; ch
           keyboardOpen.current = false;
         }}
       >
-        {label} <span aria-hidden="true">▾</span>
+        {label} <IconChevronDown size={14} />
       </button>
       <div
         ref={menuRef}
