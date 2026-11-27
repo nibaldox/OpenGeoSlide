@@ -20,7 +20,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
 | Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas con el binario `248c9efe…` de `22c8977`; véase «Reproducir» abajo) | `ogs-core` **778** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4023 de 4023** con el motor real (`OGS_BIN`) y **3703** pasan con 320 omitidas sin él | ídem |
+| Pruebas automáticas (medidas con el binario `248c9efe…` de `22c8977`; véase «Reproducir» abajo) | `ogs-core` **778** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4043 de 4043** con el motor real (`OGS_BIN`) y **3723** pasan con 320 omitidas sin él (4043 en total; cifras del coordinador sobre `f3b-integracion@434e874`, con W-R15c) | ídem |
 
 ## Aceptación: casos publicados
 
@@ -362,7 +362,9 @@ característica `parallel` (compuertas de R15 del coordinador).
   18 688 candidatos evaluados) **1,78 s** y F3B-HB-02 (SB) **1,18 s**, frente a 0,130 s y 0,097 s del mismo modelo con un
   Mohr-Coulomb de c 50 kPa y φ 35° (13,7 y 12,1 veces; el cociente cambia con el modelo y con la malla). Antes de E16w,
   R15-M2 midió 8,16 s y 5,33 s en serie y 0,52 s y 0,35 s con `parallel`; después, 1,79 s y 1,18 s en serie y 0,13 s y
-  0,09 s con `parallel`. El FS cambia 6,2e-14 relativo como máximo.
+  0,09 s con `parallel`. El FS cambia 6,2e-14 relativo como máximo. En el navegador (Chrome con WASM monohilo), la búsqueda
+  de F3B-HB-01 con 4 métodos tarda **unos 20 s** (20,0 s de cálculo y 20,4 s de reloj; medición de W-R15c, `tmp_hb_4m.ogs.json`),
+  frente a 36 s antes de E16w.
 
 ### SHANSEP (M-SH)
 
