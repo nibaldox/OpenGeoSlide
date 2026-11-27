@@ -1,0 +1,51 @@
+{
+ "caso": "V002-k1 (Morgenstern-Price, f constante)",
+ "fuente": "coordinador, 2026-11-27; cslope 0.1.0 (oracle-venv) con customPlanesOnly; motor = rama f3b1-mnc con la implementación parcial de M-NC",
+ "publicado": {
+  "valor": 0.414,
+  "tolerancia_relativa": 0.021207729468599036,
+  "banda": [
+   0.40522,
+   0.42278
+  ],
+  "nota": "la tolerancia de cSlope es relativa (acceptance.rs:176, harness/run.py:203); en X29_filas se rotuló «tolerancia_abs» por error"
+ },
+ "circulo_critico_motor": {
+  "cx": 25.052825961759563,
+  "cy": 42.15198626636139,
+  "r": 28.89878928527152,
+  "fs_motor": 0.4019644325745349,
+  "lambda_motor": -0.4994108320723446,
+  "notas_motor": [
+   "negative_lambda",
+   "multiple_admissible_roots",
+   "negative_effective_normal_major"
+  ],
+  "fs_cslope_misma_superficie": 0.4322092915732135,
+  "avisos_cslope": [
+   "negative-effective-normal",
+   "steep-entry-tension"
+  ]
+ },
+ "polilinea_final_motor": {
+  "fs_motor": 0.3864326198332217,
+  "notas_motor": [
+   "negative_lambda",
+   "negative_effective_normal_major"
+  ],
+  "fs_cslope_misma_superficie": 0.4152248514415246,
+  "avisos_cslope": [
+   "negative-effective-normal"
+  ]
+ },
+ "circulo_critico_cslope": {
+  "cx": 26.920881080590505,
+  "cy": 47.56126035602836,
+  "r": 33.76139335548544,
+  "fs_cslope": 0.42207166441931565
+ },
+ "polilinea_cslope": {
+  "fs_cslope": 0.410992
+ },
+ "conclusion": "En las superficies del motor, motor y cSlope difieren en 7 % por la seleccion de raiz E12e (raiz admisible de menor F, rama con traccion), limitacion conocida de F1.6/R5-05. En las superficies de cSlope coinciden (evaluador <= 0,1 %). La polilinea del motor, evaluada por cSlope (0,415225), cae dentro de la banda publicada y a +1,03 % de la optima de cSlope: el algoritmo no circular funciona; la diferencia es del solver."
+}

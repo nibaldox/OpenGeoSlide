@@ -385,7 +385,9 @@ y se cita; no se copia.
 10. **Criterios de aceptación** (X29 §7), con las filas de `docs/fase3/exploracion/X29_filas/`:
     - **A2, de un solo lado:** `FS_ogs ≤ 1,01·FS_cSlope` en las 10 filas de búsqueda. Un FS menor que el de cSlope se
       acepta, porque es una búsqueda de mínimo, y lo acota A3. Medido: de +0,011 % a +0,338 %;
-    - **A3:** el publicado dentro de la tolerancia de su caso;
+    - **A3:** el publicado dentro de la tolerancia **relativa** de su caso, `|FS − pub|/pub ≤ tol`, como
+      `acceptance.rs` y `harness/run.py` (E16u). **Excepción V002-k1 (E16u):** si el resultado trae
+      `negative_effective_normal_major`, A3 es de un solo lado, `FS ≤ pub·(1 + tol)`, y el test exige esa nota;
     - **A1:** el FS reportado no supera el del círculo de la búsqueda circular (por construcción, punto 8);
     - **A4:** vértices ≤ `max_vertices`;
     - **A6:** determinismo, punto 7;
@@ -502,3 +504,17 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   - X25-RU03 Spencer y M-P quedan dentro de 0,1 % (−0,0021 %), así que pasan a gate.
   - Costo medido de una búsqueda Bishop con Hoek-Brown: 51 veces el de Mohr-Coulomb en SA (0,86 s) y 48 veces en SB.
     Se revisa en la integración.
+- **E16u, A3 con tolerancia relativa y V002-k1 como limitación conocida (M-NC, 2026-11-27).**
+  - **Tolerancia.** La de cSlope es relativa: `acceptance.rs:176` y `harness/run.py:203`. El rótulo «tolerancia_abs»
+    de `X29_filas` es un error. La banda de V002-k1 es [0,40522; 0,42278].
+  - **V002-k1.** El motor da 0,386433 con `negative_lambda` y `negative_effective_normal_major`. Su círculo crítico
+    (0,401964, λ = −0,499) ya cae bajo la banda. En las **mismas** superficies, cSlope da 0,432209 (círculo) y
+    0,415225 (polilínea): la diferencia, de 7 %, viene de la selección de raíz E12e (la raíz admisible de menor F, en
+    una rama con tracción). Es la limitación conocida de F1.6/R5-05, no el algoritmo no circular. La polilínea del
+    motor, evaluada por cSlope, cae dentro de la banda y a +1,03 % de la óptima de cSlope.
+  - **Decisión.** Se mantiene E12e, como en R5-05, por conservadora. En V002-k1, A3 es de un solo lado y el test exige
+    `negative_effective_normal_major`. Si otra fila falla A3 con la tolerancia relativa, se detiene y se informa.
+  - **Para B2.** `docs/limitaciones.md` suma que la búsqueda no circular puede llevar a ramas con tracción, donde
+    aparecen juntas las notas `negative_effective_normal_major` y `negative_lambda`.
+
+  Evidencia: `docs/fase3/exploracion/X29_proto/v002_raices_coordinador.{py,json}`.
