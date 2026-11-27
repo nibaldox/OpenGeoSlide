@@ -6,7 +6,8 @@
 # (docs/fase3/g1w2/e2e/g1w2_*.mjs; necesita OGS_BIN y axe-core en $TMPDIR/x8-ux o w2-e2e)
 # y, desde F3G (I-G), la tarjeta del pilote de Ito-Matsui con su axe en claro y oscuro (docs/fase3/g3w/e2e/g3w_*.mjs)
 # y, desde R12 (I-G2), el recorrido del pilote de Ito-Matsui en el lienzo (docs/fase3/r12/e2e/r12_*.mjs);
-# desde R13, γw por defecto en imperial y «Sin grieta» en Casos (docs/fase3/r13/e2e/r13_*.mjs).
+# desde R13, γw por defecto en imperial y «Sin grieta» en Casos y, desde R13 (I-G3), el rótulo del corte de la masa sin grieta de tracción (E15m-15) en el
+# lienzo, Casos y el PDF (docs/fase3/r13/e2e/r13_*.mjs).
 # Los guiones salen con código 0 aunque fallen: se cuentan las líneas ^FAIL de cada registro y se marcan los que no tienen ^OK.
 # Uso: TMPDIR=<scratch> OGS_REPO=<repo> bash docs/fase3/iw/e2e/run_regression.sh <carpeta de registros>
 set -u
