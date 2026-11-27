@@ -25,7 +25,8 @@
 //! # Position and depth (G1, G6)
 //!
 //! A sweep of 200 steps from the entry (the crest end of the sliding range), plus the vertices of a polyline surface, of
-//! the ground and of the regions and the edges of the `udl` inside that range (E15l-3), looks for the first `x` with
+//! the ground and of the regions, the edges of the `udl` and the vertices of the piezometric line inside that range
+//! (E15l-3, E15m-4), looks for the first `x` with
 //! `ground(x) − base(x) ≥ d(x)`, and a bisection of 60 steps refines it. A depth that is only reached at the exit end
 //! is not reached. The automatic `d(x)` is `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with `c`, `φ` and `γ` of the material
 //! at `2e-5·scale` under the ground at `x` (1e-3 model units in the models of the rows, as the oracle), recomputed at
@@ -165,8 +166,8 @@ impl DepthAt<'_> {
 
 /// The abscissae of the sweep of G1, from the entry (excluded) to the exit (included), in that order: the uniform grid
 /// of [`SWEEP_STEPS`] steps plus (E15l-3) the abscissae inside the sliding range where `ground − base − d` can have a
-/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground)
-/// and the edges of the `udl`.
+/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground),
+/// the edges of the `udl` and (E15m-4) the vertices of the piezometric line.
 fn sweep_abscissae(
     pm: &PreparedModel,
     surface: &Surface,
@@ -182,6 +183,10 @@ fn sweep_abscissae(
     }
     extra.extend(pm.vertex_xs.iter().copied());
     extra.extend(loads.udls.iter().flat_map(|u| [u.x1, u.x2]));
+    // E15m-4: the vertices of the piezometric line, where the ponded water (and so `d(x)`) has a corner.
+    if let Some(line) = &pm.piezometric {
+        extra.extend(line.iter().map(|p| p[0]));
+    }
     extra.retain(|&x| x > lo + tol && x < hi - tol);
     // Distance from the entry, the order of the sweep.
     let mut all: Vec<f64> = (1..=SWEEP_STEPS)

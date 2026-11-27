@@ -348,3 +348,51 @@ fn e15m5_mirror_image_gives_the_same_crack() {
         assert!((fa - fb).abs() <= 1e-9 * fa, "{fa} vs {fb}");
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-4 (A-04)
+
+/// Crest `y = 15` up to `x = 52`, then a slope; circle that enters the crest at `x = 49.95624`; narrow peak of
+/// ponded water (6 m over the ground, 0.13 m wide) at `apex`. The uniform sweep of the crack has a step of
+/// `0.121292` from the entry: its abscissae are 50.4414 (k = 4) and 50.5627 (k = 5).
+fn narrow_peak(apex: f64) -> Value {
+    json!({
+        "format": "opengeoslide", "version": "0.5", "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 18.0,
+                       "cohesion": 15.0, "friction_angle": 25.0}],
+        "regions": [{"material": "s", "polygon": [[0,0],[0,15],[52,15],[72,5],[100,5],[100,0]]}],
+        "slope": {"direction": "left_to_right"},
+        "water": {"unit_weight": 9.81,
+                  "piezometric_line": [[0,12],[apex-0.1,12],[apex,21],[apex+0.1,12],[52,12],[72,2],[100,2]]},
+        "analysis": {"methods": ["bishop", "spencer"], "slices": 50, "tolerance": 1e-6,
+                     "surface": {"type": "circle", "xc": 70.33, "yc": 30.0, "r": 25.3},
+                     "tension_crack": {"depth": "auto", "water_fill": 1.0}}
+    })
+}
+
+/// A narrow peak of the piezometric line between two steps of the sweep is found like one that falls on a step (before:
+/// the sweep skipped it and the crack went 1.9 m down the slope, `x = 52.33`, `depth 2.616`, Bishop 1.837890 against
+/// 1.885066 with the peak on a step).
+#[test]
+fn e15m4_a_piezometric_peak_between_two_steps_is_swept() {
+    let (on_step, between) = (
+        50.4414092201801,
+        0.5 * (50.4414092201801 + 50.56270093293383),
+    );
+    let a = run(&narrow_peak(on_step));
+    let b = run(&narrow_peak(between));
+    for i in 0..2 {
+        let ((xa, da, _), (xb, db, _)) = (crack_of(&a, i), crack_of(&b, i));
+        assert!(
+            (xa - on_step).abs() < 0.07 && da < 1.0,
+            "on a step: x {xa}, depth {da}"
+        );
+        assert!(
+            (xb - between).abs() < 0.07 && db < 1.0,
+            "between steps: x {xb}, depth {db}"
+        );
+        // The crack follows the peak: the same shape moved by 0.06 m gives a depth of the same order.
+        assert!((da - db).abs() < 0.15, "depth {da} vs {db}");
+        let (fa, fb) = (a.results[i].fos.unwrap(), b.results[i].fos.unwrap());
+        assert!((fa - fb).abs() < 5e-3 * fa, "FS {fa} vs {fb}");
+    }
+}
