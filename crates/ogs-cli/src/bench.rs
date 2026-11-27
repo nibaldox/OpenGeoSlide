@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 const USAGE: &str = "uso: ogs bench <caso.json> [--reps N] \
      [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] \
-     (all = los cinco métodos)";
+     (all = los cinco métodos; con analysis.search.non_circular, los cuatro sin bishop)";
 /// Methods that need the format v0.3 (E13a): the benchmark raises the version of the case to 0.3 for them, never lower.
 const V03_METHODS: [&str; 3] = ["morgenstern_price", "janbu_simplified", "janbu_corrected"];
 const WARMUP_RUNS: usize = 1;
@@ -32,6 +32,8 @@ struct Options {
     path: String,
     reps: usize,
     methods: Vec<&'static str>,
+    /// `--method all` (the default): the list was not chosen one by one, so a method the model cannot use is dropped.
+    all_methods: bool,
 }
 
 /// Runs `ogs bench` with the arguments that follow the subcommand name.
@@ -105,6 +107,7 @@ fn parse(args: &[&str]) -> Result<Options, String> {
         path,
         reps,
         methods,
+        all_methods: method == "all",
     })
 }
 
@@ -128,8 +131,18 @@ fn execute(opts: &Options) -> Result<String, String> {
         .unwrap_or("")
         .to_string();
 
+    // F6.4 (R15B-13): Bishop is not admitted with `analysis.search.non_circular` (the critical surface is a polyline).
+    // `--method all` leaves it out and says so on stderr; an explicit `--method bishop` still reaches the engine and
+    // gets its error. (A fixed polyline never gets here: the benchmark needs `analysis.search`.)
+    let non_circular = !model["analysis"]["search"]["non_circular"].is_null();
     let mut records = Vec::with_capacity(opts.methods.len());
     for &method in &opts.methods {
+        if opts.all_methods && non_circular && method == "bishop" {
+            eprintln!(
+                "ogs: bishop omitido: no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)"
+            );
+            continue;
+        }
         records.push(bench_method(&model, &case_id, method, opts.reps)?);
     }
     serde_json::to_string_pretty(&Value::Array(records)).map_err(|e| e.to_string())
@@ -246,6 +259,7 @@ mod tests {
             path: file.to_string_lossy().into_owned(),
             reps: 1,
             methods: methods.clone(),
+            all_methods: false,
         };
         let out = super::execute(&opts);
         std::fs::remove_dir_all(&dir).ok();
@@ -255,6 +269,74 @@ mod tests {
             assert_eq!(record["method"], method);
             assert!(record["fos"].as_f64().is_some(), "{method}: {record}");
         }
+    }
+
+    /// A v0.6 case with a non-circular search (and a small grid, to keep the test fast), as a file in a scratch dir.
+    fn with_non_circular_case<T>(tag: &str, run: impl FnOnce(&str) -> T) -> T {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../verification/cases/V001-nc.json"
+        );
+        let text = std::fs::read_to_string(path).expect("V001-nc.json");
+        let mut root: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let search = &mut root["model"]["analysis"]["search"];
+        assert!(
+            search["non_circular"].is_object(),
+            "V001-nc has no non_circular"
+        );
+        for key in ["n_entry", "n_exit", "n_radius"] {
+            search[key] = serde_json::json!(6);
+        }
+        let dir = std::env::temp_dir().join(format!("ogs-bench-{tag}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("v001-nc-small.json");
+        std::fs::write(&file, root.to_string()).unwrap();
+        let out = run(&file.to_string_lossy());
+        std::fs::remove_dir_all(&dir).ok();
+        out
+    }
+
+    /// R15B-13: `--method all` on a model with `analysis.search.non_circular` leaves Bishop out (F6.4) instead of failing.
+    #[test]
+    fn bench_all_skips_bishop_with_a_non_circular_search() {
+        let records = with_non_circular_case("all", |file| {
+            let opts = parse(&[file, "--reps", "1"]).unwrap();
+            assert!(opts.all_methods);
+            super::execute(&opts).expect("bench --method all of a non-circular case")
+        });
+        let records: serde_json::Value = serde_json::from_str(&records).unwrap();
+        let methods: Vec<&str> = records
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["method"].as_str().unwrap())
+            .collect();
+        assert_eq!(
+            methods,
+            [
+                "spencer",
+                "morgenstern_price",
+                "janbu_simplified",
+                "janbu_corrected"
+            ]
+        );
+        for record in records.as_array().unwrap() {
+            assert!(record["fos"].as_f64().is_some(), "{record}");
+        }
+    }
+
+    /// An explicit `--method bishop` is the user's choice: the engine's own refusal reaches them.
+    #[test]
+    fn bench_explicit_bishop_with_non_circular_still_fails() {
+        let err = with_non_circular_case("bishop", |file| {
+            let opts = parse(&[file, "--reps", "1", "--method", "bishop"]).unwrap();
+            assert!(!opts.all_methods);
+            super::execute(&opts).expect_err("bishop with non_circular")
+        });
+        assert!(
+            err.contains("bishop") && err.contains("non_circular"),
+            "{err}"
+        );
     }
 
     #[test]
