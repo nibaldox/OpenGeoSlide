@@ -84,3 +84,9 @@ Informes completos: `docs/reviews/RUA_agy_A.md` (lente A, estado e interacción:
 
    Se agrega la condición previa: un resultado con `pendingDrafts > 0` nunca es actual. El `title` lista los métodos
    que no convergieron y el número de avisos. El tono `ok` deja de usarse en el chip.
+
+## UA-E4 (tras C2)
+
+`ResultSummary` suma la prop opcional `engineError?: string | null`, con el texto del error del motor. Sin ella, el
+HUD no puede mostrar A-03, porque las props que se congelaron en UA-E3 no traían el texto. C1 la cablea con
+`engineErrorText`.
