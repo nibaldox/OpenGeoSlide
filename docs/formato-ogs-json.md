@@ -30,8 +30,9 @@ los leen. El motor acepta cinco versiones:
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
   **Tercera excepción (E15l-6, E15m-6):** un archivo `imperial` con agua (piezométrica, aunque quede bajo el terreno,
   agua embalsada o agua en la grieta) y sin `water.unit_weight` toma γw ≈ 62,45 pcf en lugar de 9,81 y cambia de FS; el
-  motor emite entonces el aviso informativo `water_unit_weight_default`. En SI no cambia nada
-  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar -->
+  motor emite entonces el aviso informativo `water_unit_weight_default`; medido con ACADS 1(a) en pies y una piezométrica
+  bajo el terreno, Bishop da 0,6339 en lugar de 0,9300 de la v0.3.0 (γw = 9,81 «pcf»). En SI no cambia nada
+  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, y `analysis.tension_crack` y
   el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
@@ -403,8 +404,9 @@ puede traer, además de lo de siempre (`method`, `fos`, `status`, `iterations`, 
 - **`interslice`**, solo en `morgenstern_price`: la función usada (`{ "function", "points"? }`), incluso si fue la
   `half_sine` por omisión.
 - **`lambda`** vale `null` en Bishop y en los dos Janbu.
-- **`tension_crack`**, solo con `analysis.tension_crack`: `{ "x", "depth", "water_force" }` con la posición, la
-  profundidad y el empuje de la grieta de esa superficie ([Grieta de tracción](#grieta-de-tracción-v05)).
+- **`tension_crack`**, solo con `analysis.tension_crack`: `{ "x", "depth", "water_force", "face_height"? }` con la
+  posición, la profundidad y el empuje de la grieta de esa superficie, y la altura de la cara cortada cuando difiere de
+  `depth` ([Grieta de tracción](#grieta-de-tracción-v05)).
 
 Los campos opcionales se omiten cuando no aplican. Un resultado de `janbu_corrected` sobre el ejemplo de la
 polilínea (sin las dovelas):
@@ -1491,7 +1493,7 @@ Las convenciones (E15c):
 - **γw** es `water.unit_weight`. Si falta, vale 9,81 kN/m³ en `SI` y, en `imperial`, el resultado de convertir 9,81 kN/m³
   con el mismo factor que usa la web (alrededor de 62,45 pcf) (E15l-6); rige para la piezométrica, el agua embalsada y el
   agua de la grieta. En `imperial` y sin `water.unit_weight`, el motor emite el aviso `water_unit_weight_default` (E15m-6;
-  [tercera excepción a la identidad con la v0.3.0](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar --> La web escribe `water.unit_weight` de forma explícita al convertir unidades
+  [tercera excepción a la identidad con la v0.3.0](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). La web escribe `water.unit_weight` de forma explícita al convertir unidades
   ([Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)). Medido con una grieta de 2 m con agua y sin
   `water`: en `imperial`, Bishop da 1,69865, igual que en `SI`, y `Pw` = 1344,40 lbf/ft (γw = 62,449 pcf); antes daba 1,71248 y
   211,19 lbf/ft.
@@ -1592,13 +1594,19 @@ queda del lado de la cresta y deja una cara vertical sin resistencia.
   - `q` suma las sobrecargas `udl` que cubren `x` y la columna de agua embalsada en `x`, `γw·(piezo − terreno)`.
   - Si `z` vale 0 en la entrada (por ejemplo, `c = 0`), no se corta nada: el informe trae la grieta con
     `depth = 0` y `water_force = 0`, y el FS es el de la superficie sin grieta.
-- **Profundidad sobre una discontinuidad de `d(x)` (E15l-2).** Con `"auto"`, una carga `udl` o un cambio lateral de
-  material hacen que la profundidad de Rankine salte. Si la bisección termina en un `x_c` donde la cara cortada,
-  `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, el informe trae `depth = h_face` y el
-  agua de la grieta usa `water_fill·h_face`; si `h_face` no pasa de la tolerancia, no hay grieta, no se trunca la masa y
-  `depth` vale 0. Con una `udl` de 100 kN/m sobre la cresta (el ejemplo `grieta-udl-automatica`, más abajo), la grieta cae en
-  el borde de la carga con `depth` 1,7827 y `water_force` 15,5885 (Bishop 1,0953); antes, `depth` y `water_force` valían 0 y el
-  FS era 1,1022.
+- **Profundidad sobre una discontinuidad de `d(x)` (E15m-15, revisa E15l-2).** La profundidad y el agua de la grieta
+  salen de `d(x_c)`, en el `x_c` donde termina la bisección: `water_height = water_fill·d(x_c)`. Es la convención de
+  cSlope y la de antes de R12. Vale para `"auto"` (la de Rankine en `x_c`) y para una profundidad numérica (la suya). Una
+  carga `udl` o un cambio lateral de material hacen saltar `d(x)` en su borde, y entonces la cara que corta la
+  superficie, `terreno(x_c) − base(x_c)`, no coincide con `depth`: el informe agrega `tension_crack.face_height` con esa
+  cara (véase [La salida](#la-salida)). Si esa cara no pasa de la tolerancia, no hay grieta y no se trunca la masa. Con
+  una `udl` de 100 kN/m sobre la cresta (el ejemplo `grieta-udl-automatica`, más abajo), la grieta cae en el borde de la
+  carga y la profundidad de Rankine bajo ella es 0: el informe trae `depth` 0, `water_force` 0 y `face_height` 1,7827
+  (Bishop 1,102248; cSlope 1,102311). E15l-2 había tomado la cara cortada como profundidad (`depth` 1,7827 y `Pw`
+  15,5885, Bishop 1,095348); E15m-15 la revisó tras comparar con cSlope, que se aparta 0,63 % de esa regla. Con un
+  escalón del terreno en `x = 5` (`docs/fase3/r13/repro/a03_escalon_auto.json`, `"auto"`), `depth` 2,61614, `water_force`
+  33,57 y `face_height` 4,97068 (Bishop 1,862343; cSlope 1,862416); con `depth` 2 (`a03_escalon_fija.json`), `depth` 2,
+  `water_force` 19,62 y `face_height` 4,97068 (Bishop 1,882066; cSlope 1,882138).
 - **No hay tope de profundidad** por la altura del talud (G8): una grieta más profunda que el talud es un dato suyo.
 - **Búsqueda (G9).** Un candidato que no alcanza la grieta **se descarta**, y si se descartan todos, `NoValidSurface`. Si
   al menos uno se descartó por esa causa, el mensaje termina en `({e} evaluadas, 0 válidas; {k} no alcanzan la grieta de
@@ -1627,8 +1635,14 @@ Todos son `InvalidModel`, con la ruta del campo:
 
 ### La salida
 
-Cada resultado cuya superficie se truncó lleva `tension_crack: { x, depth, water_force }`: la `x` de la grieta
-(`x_c`), su profundidad y `Pw`. Se omite cuando no hay grieta.
+Cada resultado cuya superficie se truncó lleva `tension_crack: { x, depth, water_force, face_height? }`: la `x` de la
+grieta (`x_c`), su profundidad y `Pw`. Se omite cuando no hay grieta.
+
+`face_height` (E15m-15) es la altura de la cara cortada, `terreno(x_c) − base(x_c)`, medida desde el terreno del lado
+de la masa. Es opcional: se omite cuando `|face_height − depth|` no pasa de la tolerancia, de modo que la salida de una
+grieta normal no cambia. Aparece cuando `depth` y la cara difieren, es decir, cuando la grieta cae sobre una
+discontinuidad del terreno, de una carga `udl` o del material (`depth` 0 y `face_height` > 0 es un corte de la masa sin
+grieta de tracción: la profundidad de Rankine es 0 en ese punto). `Pw` se calcula con `depth`, no con `face_height`.
 
 ### Ejemplos: grieta seca, llena y automática
 
@@ -1675,11 +1689,12 @@ grieta seca el FS **sube** (la masa que se quita empujaba), de 0,9851 a 1,0263 e
 { "depth": "auto", "water_fill": 1.0 }
 ```
 
-**Grieta automática sobre una carga (E15l-2).** Una `udl` en la coronación hace saltar la profundidad de Rankine en su
-borde. Con `"auto"`, la grieta cae en ese borde (x = −66,5) y su profundidad es la cara que corta la superficie, 1,7827 m,
-y no la de Rankine; con agua llena, `Pw = ½·9,81·1,7827² = 15,5885`:
+**Grieta automática sobre una carga (E15m-15).** Una `udl` en la coronación hace saltar la profundidad de Rankine en su
+borde. Con `"auto"`, la grieta cae en ese borde (x = −66,5) y, bajo la carga, la profundidad de Rankine es 0: el informe
+trae `depth` 0 y `water_force` 0, y Bishop da 1,1022 (cSlope, 1,1023). El campo `face_height` informa que el corte de
+la masa pasa por una cara de 1,7827 m:
 
-<!-- ogs-ejemplo nombre=grieta-udl-automatica estado=converged fos=bishop:1.0953,spencer:1.0939 grieta=x:-66.5,depth:1.7827,water_force:15.5885 -->
+<!-- ogs-ejemplo nombre=grieta-udl-automatica estado=converged fos=bishop:1.1022,spencer:1.1009 grieta=x:-66.5,depth:0.0,water_force:0.0,face_height:1.7827 -->
 ```json
 {
   "format": "opengeoslide",
@@ -1706,7 +1721,7 @@ y no la de Rankine; con agua llena, `Pw = ½·9,81·1,7827² = 15,5885`:
 }
 ```
 
-Sin esta regla, el informe traía `depth` 0 y `water_force` 0, y Bishop daba 1,1022 en lugar de 1,0953.
+Con la regla de E15l-2 (la profundidad como la cara cortada), el informe traía `depth` 1,7827 y `water_force` 15,5885, y Bishop daba 1,0953; E15m-15 la revisó porque cSlope da 1,1023 (1,102311).
 
 **Rechazos.** Cada uno cambia un campo del ejemplo `grieta-seca`. Sin `water_fill`, que es obligatorio:
 

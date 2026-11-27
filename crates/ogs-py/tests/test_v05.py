@@ -17,9 +17,9 @@ a Python sin cambios. Cuatro fuentes de verdad:
 3. **Propiedades** que no dependen del oráculo: neutralidad, espejo, monotonía con `water_fill`, continuidad con
    `depth → 0`, la compuerta de versión, los rechazos con su ruta y que la salida nunca lleve `NaN` ni `∞`.
 4. **Las reproducciones de las revisiones R12 y R13** (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1,
-   E15l-2 y E15l-11 corren sin marcas; E15l-5, E15l-6 y E15l-7 también. Los tests de **E15m-1, E15m-2, E15m-6 y E15m-7**
-   (la corrección va en el motor de la rama M) llevan `xfail(strict=False)` hasta la integración: con el motor corregido
-   pasan, y entonces se quitan las marcas.
+   E15l-5, E15l-6, E15l-7 y E15l-11, y E15m-1, E15m-2, E15m-6, E15m-7 y E15m-15 corren sin marcas. E15m-15 revisa E15l-2:
+   la grieta sobre una discontinuidad toma profundidad y agua de `d(x_c)`, como cSlope, y el informe agrega
+   `tension_crack.face_height` cuando la cara cortada difiere de `depth`.
 """
 
 import copy
@@ -40,9 +40,6 @@ X22_DIR = REPO_ROOT / "crates" / "ogs-core" / "tests" / "data" / "f3g3"
 X21_R12_DIR = X21_DIR / "r12"
 R12_REPRO = REPO_ROOT / "docs" / "fase3" / "r12" / "repro"
 R13_REPRO = REPO_ROOT / "docs" / "fase3" / "r13" / "repro"
-
-# E15m-1, E15m-2, E15m-6 y E15m-7: el motor de la rama M todavía no los trae; con la integración pasan y se quitan las marcas
-pending_m = lambda amendment: pytest.mark.xfail(strict=False, reason=f"{amendment}: se corrige en el motor de la rama M; pasa al integrar")
 
 V047A_CIRCLE = {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704}
 REL_ORACLE = 1e-3  # E15e-3: 0,1 % contra cSlope 0.1.0
@@ -525,7 +522,7 @@ def test_without_lateral_pressure_the_report_is_the_v04_report():
     assert dry_dumps(opengeoslide.analyze(up)) == dry_dumps(opengeoslide.analyze(base))
 
 
-# --------------------------------------------- 6. reproducciones de la revisión R12 (E15l-1, -2 y -11)
+# --------------------------------------------- 6. reproducciones de la revisión R12 (E15l-1 y -11) y E15m-15 (que revisa E15l-2)
 
 
 def run_repro(name: str, **overrides) -> dict:
@@ -540,11 +537,13 @@ def test_e15l_1_the_automatic_crack_at_the_model_edge_has_a_mirror():
         assert rtl[method]["tension_crack"]["depth"] > 0.0
 
 
-def test_e15l_2_a_crack_on_a_discontinuity_reports_the_face_it_cuts():
+def test_e15m_15_a_crack_on_a_udl_edge_takes_the_depth_of_the_point_and_reports_the_face():
+    # E15m-15 revisa E15l-2: bajo la UDL la profundidad de Rankine en x_c es 0, y la cara cortada va en `face_height`
     for result in run_repro("a04_udl.json")["results"]:
         crack = result["tension_crack"]
-        assert crack["depth"] > 0.0
-        assert crack["water_force"] == pytest.approx(0.5 * 9.81 * crack["depth"] ** 2, rel=1e-9)  # water_fill = 1
+        assert crack["x"] == pytest.approx(-66.5, abs=5.01e-5)
+        assert crack["depth"] == 0.0 and crack["water_force"] == 0.0, crack
+        assert crack["face_height"] == pytest.approx(1.78272, abs=5.01e-6), crack
 
 
 def test_e15l_11_a_non_finite_ito_matsui_profile_is_an_invalid_model():
@@ -552,7 +551,7 @@ def test_e15l_11_a_non_finite_ito_matsui_profile_is_an_invalid_model():
         run_repro("a02_fixed.json")
 
 
-# ------------------------------------- 7. R12 (E15l-5, -6 y -7) y R13 (E15m-1, -2, -6 y -7) a través del wheel
+# ------------------------------------- 7. R12 (E15l-5, -6 y -7) y R13 (E15m-1, -2, -6, -7 y -15) a través del wheel
 
 
 def dam(depth: float = 14.0) -> dict:
@@ -715,7 +714,6 @@ def test_e15l_7_without_candidates_discarded_by_the_crack_the_message_is_the_usu
 # E15m-1: con `depth` numérica la profundidad es siempre la del usuario (enmienda de E15l-2)
 
 
-@pending_m("E15m-1")
 def test_e15m_1_a_fixed_crack_on_a_ground_step_keeps_the_depth_of_the_user():
     # a03_escalon_fija.json: grieta fija de 2 m en x = 5, sobre un escalón del terreno
     report = by_method(opengeoslide.analyze(json.loads((R13_REPRO / "a03_escalon_fija.json").read_text(encoding="utf-8"))))
@@ -726,14 +724,50 @@ def test_e15m_1_a_fixed_crack_on_a_ground_step_keeps_the_depth_of_the_user():
     assert report["bishop"]["fos"] == pytest.approx(1.882066, abs=5.01e-7)  # E15m-1; el contrato fija 6 decimales
 
 
-def test_e15m_1_the_udl_example_does_not_change():
-    # a04_udl.json (E15l-2, `depth: "auto"` sobre una UDL): las cifras de R13 no se mueven con E15m-1
-    report = by_method(opengeoslide.analyze(json.loads((R12_REPRO / "a04_udl.json").read_text(encoding="utf-8"))))
-    assert report["bishop"]["fos"] == pytest.approx(1.095348, abs=5.01e-7)
-    assert report["spencer"]["fos"] == pytest.approx(1.093936, abs=5.01e-7)
+# E15m-15: la grieta sobre una discontinuidad sigue a cSlope (profundidad y agua de d(x_c)) y el informe trae `face_height`
+
+
+def repro(name: str) -> dict:
+    directory = R12_REPRO if name.startswith("a04") else R13_REPRO
+    return by_method(opengeoslide.analyze(json.loads((directory / name).read_text(encoding="utf-8"))))
+
+
+def test_e15m_15_the_udl_example_follows_cslope():
+    # a04_udl.json (`depth: "auto"` sobre una UDL): 1,102248 (E15l-2 daba 1,095348, −0,63 % frente a cSlope 1,102311)
+    report = repro("a04_udl.json")
+    assert report["bishop"]["fos"] == pytest.approx(1.102248, abs=5.01e-7)
+    assert report["spencer"]["fos"] == pytest.approx(1.100895, abs=5.01e-7)
+    assert report["bishop"]["fos"] == pytest.approx(1.102311, rel=REL_ORACLE)  # cSlope 0.1.0, superficie fija
+
+
+@pytest.mark.parametrize(
+    "name, depth, water_force, bishop, cslope",
+    [
+        ("a03_escalon_auto.json", 2.61614, 33.57, 1.862343, 1.862416),  # E15l-2 daba 1,751144 (−6,0 %)
+        ("a03_escalon_fija.json", 2.0, 19.62, 1.882066, 1.882138),  # la fija no cambia (E15m-1)
+    ],
+)
+def test_e15m_15_the_ground_step_follows_cslope_and_reports_the_face(name, depth, water_force, bishop, cslope):
+    report = repro(name)
+    assert report["bishop"]["fos"] == pytest.approx(bishop, abs=5.01e-7)
+    assert report["bishop"]["fos"] == pytest.approx(cslope, rel=REL_ORACLE)
     for method in ("bishop", "spencer"):
         crack = report[method]["tension_crack"]
-        assert crack["depth"] == pytest.approx(1.7827, abs=5.01e-5) and crack["water_force"] == pytest.approx(15.5885, abs=5.01e-5)
+        assert crack["depth"] == pytest.approx(depth, abs=5.01e-6) and crack["water_force"] == pytest.approx(water_force, abs=5.01e-3), crack
+        assert crack["water_force"] == pytest.approx(0.5 * 9.81 * crack["depth"] ** 2, rel=1e-9), crack  # water_fill = 1: Pw con depth
+        assert crack["face_height"] == pytest.approx(4.97068, abs=5.01e-6), crack
+
+
+def test_e15m_15_face_height_is_only_reported_when_it_differs_from_the_depth():
+    # presente en la UDL y en el escalón (arriba); ausente en una grieta normal: la salida de siempre
+    for result in opengeoslide.analyze(with_crack(v05_model(), 2.0, 1.0))["results"]:
+        assert set(result["tension_crack"]) == {"x", "depth", "water_force"}, result["tension_crack"]
+    for result in opengeoslide.analyze(with_crack(v05_model(), "auto", 1.0))["results"]:
+        assert "face_height" not in result["tension_crack"], result["tension_crack"]
+    for name in ("a04_udl.json", "a03_escalon_auto.json", "a03_escalon_fija.json"):
+        for result in repro(name).values():
+            face = result["tension_crack"]["face_height"]
+            assert math.isfinite(face) and face > 0.0 and abs(face - result["tension_crack"]["depth"]) > 1e-3, (name, result["tension_crack"])
 
 
 # E15m-2: un vértice a 1e-12 del paramento no hace perder el empuje
@@ -745,7 +779,6 @@ def paramento(dx: float) -> dict:
     return model
 
 
-@pending_m("E15m-2")
 @pytest.mark.parametrize("dx", [1e-12, 1e-9])
 def test_e15m_2_a_vertex_next_to_the_wall_gives_the_same_fos_and_thrust(dx):
     base, moved = by_method(opengeoslide.analyze(paramento(0.0))), by_method(opengeoslide.analyze(paramento(dx)))
@@ -780,7 +813,6 @@ def imperial_water_models() -> dict:
 WATER_USES = list(imperial_water_models())
 
 
-@pending_m("E15m-6")
 @pytest.mark.parametrize("use", WATER_USES)
 def test_e15m_6_imperial_water_without_unit_weight_warns_once_per_analysis(use):
     for result in opengeoslide.analyze(imperial_water_models()[use])["results"]:
@@ -817,7 +849,6 @@ def test_e15m_6_in_si_there_is_no_warning_and_the_report_is_the_same_as_with_the
 # E15m-7: un brazo o una fuerza no finitos de Ito-Matsui son un error, nunca `null` ni `no_capacity`
 
 
-@pending_m("E15m-7")
 def test_e15m_7_a_pile_arm_that_overflows_is_an_error_or_a_finite_report():
     model = json.loads((R13_REPRO / "a01_arm_null.json").read_text(encoding="utf-8"))
     try:

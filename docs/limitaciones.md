@@ -574,10 +574,13 @@ Ejemplo medido, ACADS 1(a) en pies, sin `water.unit_weight` y con una piezométr
 El FS de ahora es el del mismo modelo en SI. Si la piezométrica no toca la superficie analizada, o si `water.unit_weight` está escrito, no hay
 diferencia.
 
-- **El aviso (E15m-6).** En ese caso el motor emite una vez por análisis el aviso informativo `water_unit_weight_default`:
-  «El modelo usa agua y no indica `water.unit_weight`: se toma γw = 62,4 pcf (9,81 kN/m³). Las versiones anteriores a la
-  v0.4.0 tomaban 9,81 también en unidades imperiales; indique el valor para fijarlo.». Es informativo, como
-  `water_above_ground`, y no se emite en SI ni cuando el valor está escrito. <!-- R13: medir al integrar -->
+- **El aviso (E15m-6).** En ese caso el motor agrega el código informativo `water_unit_weight_default` a `warnings`, una
+  vez por método y análisis. La web lo muestra como «El modelo usa agua y no indica γw: se toma γw = 62,4 pcf (9,81
+  kN/m³). Las versiones anteriores a la v0.4.0 tomaban 9,81 también en unidades imperiales; escriba el valor en la
+  pestaña «Agua» para fijarlo.». Es informativo, como `water_above_ground`, y no se emite en SI ni cuando el valor está
+  escrito. Medido con `target/release/ogs` sobre el ejemplo anterior: Bishop 0,633903 con `warnings` `["water_unit_weight_default",
+  "truncated_mass", "negative_effective_normal"]` y Spencer 0,635905 con `["water_unit_weight_default", "truncated_mass"]`;
+  con `water.unit_weight` = 9,81 escrito (el valor de la v0.3.0) dan 0,930001 y 0,929373, sin el aviso.
 - **Qué hacer.** Escriba `water.unit_weight` (62,4 pcf en imperial) para fijar el valor, y vuelva a calcular los
   resultados guardados de un archivo imperial con agua y sin ese campo: los de la v0.3.0 usaban un γw varias veces menor.
 - **En el corpus no hay ningún modelo así:** de los 15 modelos imperiales de `verification/cases/`, ninguno usa agua
@@ -597,15 +600,20 @@ diferencia.
   hay ninguna, `NoValidSurface`. Con una superficie fija que no la alcanza, el modelo es válido pero el análisis da
   `NoValidSurface: tension_crack_not_reached`. Una grieta profunda deja pocas superficies válidas: no es un resultado
   sobre «el talud con una grieta», sino sobre las superficies que la cruzan.
-- **Profundidad informada sobre una discontinuidad de `d(x)` (E15l-2, R12A-04).** Con la profundidad automática, una
-  carga `udl` en la coronación o un cambio lateral de material hacen que `d(x)` salte. Si la bisección termina en un `x_c`
-  donde la cara cortada, `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, la profundidad
-  que se informa y se usa es `h_face` (y la altura del agua es `water_fill·h_face`); si no, sigue siendo `d(x_c)`. Si
-  `h_face` no pasa de la tolerancia, no hay grieta: el motor no trunca la masa e informa `depth = 0`. Antes, la masa se
-  truncaba y el informe traía `depth = 0` y `Pw = 0`, y el FS bajaba sin que la grieta lo explicara. Medido con una `udl` de 100 kN/m sobre la cresta
-  (`docs/fase3/r12/repro/a04_udl.json`, círculo fijo): `depth` 1,7827 m, `Pw` 15,5885 kN/m y Bishop 1,095348; antes, `depth` 0,
-  `Pw` 0 y Bishop 1,102248. Con la carga a 1e-10 m de la entrada del círculo, la cara es nula, `depth` vale 0 y el FS es el
-  de la superficie sin grieta (Bishop 1,063223).
+- **Grieta sobre una discontinuidad de `d(x)` (E15m-15, que revisa E15l-2 y R12A-04).** Con la profundidad automática,
+  una carga `udl` en la coronación o un cambio lateral de material hacen que `d(x)` salte, y también un escalón del
+  terreno hace que la cara cortada no coincida con la profundidad. La profundidad y el agua salen de `d(x_c)` en el `x_c`
+  de la bisección (`water_height = water_fill·d(x_c)`), como en cSlope y como antes de R12; con una profundidad
+  numérica, es la del usuario. E15l-2 las había reemplazado por la cara cortada, `h_face = terreno(x_c) − base(x_c)`,
+  pero esa regla se apartaba del oráculo (−0,63 % en `a04_udl`, −6,0 % en el escalón con `"auto"`) y E15m-15 la revisó. Para
+  que el informe no diga «`depth` 0» con la masa truncada sin explicación, `tension_crack.face_height` trae `h_face` cuando
+  difiere de `depth` más que la tolerancia, y se omite en una grieta normal. Si `h_face` no pasa de la tolerancia, no hay
+  grieta: el motor no trunca la masa. Medido con `target/release/ogs` (superficie fija, Bishop frente a cSlope 0.1.0):
+  `a04_udl.json` (`udl` de 100 kN/m sobre la cresta), `depth` 0, `Pw` 0 y `face_height` 1,78272, Bishop 1,102248 (cSlope
+  1,102311; E15l-2 daba 1,095348); `a03_escalon_auto.json`, `depth` 2,61614, `Pw` 33,57 y `face_height` 4,97068, Bishop 1,862343
+  (cSlope 1,862416; E15l-2 daba 1,751144); y `a03_escalon_fija.json` (`depth` 2), `Pw` 19,62 y `face_height` 4,97068,
+  Bishop 1,882066 (cSlope 1,882138). Con la carga a 1e-10 m de la entrada del círculo, la cara es nula, `depth` vale 0 y
+  el FS es el de la superficie sin grieta (Bishop 1,063223).
 - **Una búsqueda que se queda sin superficies por la grieta lo dice (E15l-7, R12B-06).** Si todos los candidatos se
   descartan y al menos uno es por `tension_crack_not_reached`, el error termina en `({e} evaluadas, 0 válidas; {k} no
   alcanzan la grieta de tracción, tension_crack_not_reached)`: revise la profundidad de la grieta o los rangos de búsqueda.
