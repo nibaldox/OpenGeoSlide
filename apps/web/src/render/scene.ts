@@ -2,7 +2,7 @@
 
 import { reportCircle } from '../engine/surface';
 import { analyzedPolyline } from '../report/methodInfo';
-import type { Circle, CrackReport, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
+import type { Circle, CrackReport, MaterialModel, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
 import { crackGeometry, type CrackGeometry } from './crack';
@@ -10,6 +10,19 @@ import { pondPolygons } from './pond';
 
 /** Número de tonos de material del tema (`--canvas-mat-0` … `--canvas-mat-6`); los materiales siguientes los reciclan. */
 export const MATERIAL_SLOTS = 7;
+
+/** Rótulo legible de cada ley constitutiva para la leyenda de materiales (F6.2, F6.3, F6.13). */
+export const MATERIAL_MODEL_LABEL: Readonly<Record<MaterialModel, string>> = {
+  mohr_coulomb: 'Mohr-Coulomb',
+  undrained: 'No drenado (Su)',
+  hoek_brown: 'Hoek-Brown',
+  shansep: 'SHANSEP',
+};
+
+/** Rótulo del modelo de un material (`Mohr-Coulomb` si se omite). */
+export function materialModelLabel(model: MaterialModel | undefined | null): string {
+  return MATERIAL_MODEL_LABEL[model ?? 'mohr_coulomb'] ?? 'Mohr-Coulomb';
+}
 
 /** Casilla de color (0 a 6) del material de índice `index`. */
 export function materialSlot(index: number): number {
@@ -30,6 +43,8 @@ export interface SceneMaterial {
   id: string;
   name: string;
   color: string;
+  model: MaterialModel;
+  modelLabel: string;
 }
 
 export interface Scene {
@@ -45,10 +60,11 @@ export interface Scene {
   /** E15m-12: el resultado trae la grieta con `depth = 0` (el motor no cortó nada, E15l-15): Casos dibuja «Sin grieta (z = 0)», como el editor. Excluyente con `crack`. */
   noCrack?: CrackReport;
   /**
-   * Superficie del informe: `circle` (círculo `{xc, yc, r}`) o `polyline` (la polilínea ajustada al terreno, F3.7); nunca las dos.
+   * Superficie del informe: `circle` (círculo `{xc, yc, r}`) o `polyline` (la polilínea ajustada al terreno o crítica no circular, F3.7/F6.10); nunca las dos.
    * `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b).
+   * `search: true` = proviene de `analysis.search` (incluida la búsqueda no circular).
    */
-  surface: { circle?: Circle | null; polyline?: Point[] | null; slices: Slice[]; converged?: boolean } | null;
+  surface: { circle?: Circle | null; polyline?: Point[] | null; slices: Slice[]; converged?: boolean; search?: boolean } | null;
   /** Refuerzos del modelo (v0.4); ausente sin refuerzos. */
   reinforcements?: Reinforcement[];
   /** `reinforcement_forces` del método dibujado (F4.9); ausente si no hay. */
@@ -63,15 +79,28 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     polygon: region.polygon,
     materialIndex: Math.max(0, model.materials.findIndex((m) => m.id === region.material)),
   }));
-  const materials = model.materials.map((m, i) => ({ id: m.id, name: m.name, color: materialColor(i) }));
+  const hasF3bMaterials = model.materials.some((m) => m.model === 'hoek_brown' || m.model === 'shansep');
+  const materials: SceneMaterial[] = model.materials.map((m, i) => {
+    const matModel: MaterialModel = m.model ?? 'mohr_coulomb';
+    const modelLabel = materialModelLabel(matModel);
+    const base = m.name || m.id;
+    return {
+      id: m.id,
+      // Identidad v0.5: el rótulo del modelo solo se agrega cuando el documento usa Hoek-Brown o SHANSEP.
+      name: hasF3bMaterials ? `${base} · ${modelLabel}` : m.name,
+      color: materialColor(i),
+      model: matModel,
+      modelLabel,
+    };
+  });
   const piezo = model.water?.piezometric_line?.length ? [...model.water.piezometric_line].sort((a, b) => a[0] - b[0]) : null;
-  // Círculo `{xc, yc, r}` o polilínea ajustada `{points}` del informe (F3.7).
+  // Círculo `{xc, yc, r}` o polilínea ajustada/crítica `{points}` del informe (F3.7, F6.10).
   const circle = method ? reportCircle(method.surface) : null;
   // R10B-05: la polilínea se limita al rango de las dovelas analizadas, como el trazo de un círculo.
   const polyline = method ? analyzedPolyline(method) : null;
   const surface =
     method && (circle || polyline) && method.slices.length > 0
-      ? { circle, polyline, slices: method.slices, converged: method.status === 'converged' }
+      ? { circle, polyline, slices: method.slices, converged: method.status === 'converged', search: method.search != null }
       : null;
 
   const xs: number[] = [];

@@ -47,7 +47,7 @@ import { calcAnnouncement } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { readOpenFile, readTextFile } from './app/openFile';
-import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, surfaceCoordsCsv } from './app/reportInput';
+import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
 import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
@@ -361,6 +361,10 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     if (!engine.run || !engine.current) return;
     downloadText(resultsCsv(engine.run.report, engine.run.doc.units), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
   };
+  const exportSlices = (): void => {
+    if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
+    downloadText(slicesCsv(engine.run), `${baseFileName(fileName, engine.run.doc)}-dovelas.csv`, 'text/csv;charset=utf-8');
+  };
   const exportSurface = (): void => {
     if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
     downloadText(surfaceCoordsCsv(engine.run.report.results, engine.run.doc.units), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
@@ -617,6 +621,9 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           <DropdownMenu label="Exportar">
             <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
               Exportar resultados (CSV)
+            </button>
+            <button type="button" onClick={exportSlices} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+              Exportar dovelas (CSV)
             </button>
             <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
               Exportar superficie (CSV)

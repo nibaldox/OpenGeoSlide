@@ -11,6 +11,7 @@ import {
   PROFESSIONAL_WARNING,
   QUICK_START,
   SHORTCUTS,
+  type GlossaryTable,
   type Shortcut,
 } from '../onboarding/helpContent';
 import { restoreFocus } from './focusReturn';
@@ -21,6 +22,35 @@ function ExternalLink({ href, children }: { href: string; children: ReactNode })
       {children}
       <span className="visually-hidden"> (se abre en una pestaña nueva)</span>
     </a>
+  );
+}
+
+function GlossaryRefTable({ id, table }: { id: string; table: GlossaryTable }) {
+  return (
+    <div className="help-table-wrap" role="region" aria-labelledby={id} tabIndex={0}>
+      <table className="help-table">
+        <caption id={id}>{table.caption}</caption>
+        <thead>
+          <tr>
+            {table.header.map((col) => (
+              <th key={col} scope="col">
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row) => (
+            <tr key={row[0]}>
+              <th scope="row">{row[0]}</th>
+              {row.slice(1).map((cell, ci) => (
+                <td key={ci}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -142,7 +172,10 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
             {GLOSSARY.map((g) => (
               <div key={g.id} className="help-term">
                 <dt>{g.term}</dt>
-                <dd>{g.definition}</dd>
+                <dd>
+                  <p>{g.definition}</p>
+                  {g.table ? <GlossaryRefTable id={`${titleId}-${g.id}-table`} table={g.table} /> : null}
+                </dd>
               </div>
             ))}
           </dl>

@@ -889,35 +889,54 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </g>
         )}
 
-        {result && result.slices.length > 0 && (
-          <g data-layer="result" aria-hidden="true" pointerEvents="none">
-            {result.slices.map((sl, i) => (
-              <polygon
-                key={i}
-                data-slice={i}
-                points={pointsAttr(vp, [
-                  [sl.x_left, sl.y_base_left],
-                  [sl.x_right, sl.y_base_right],
-                  [sl.x_right, sl.y_top_mid],
-                  [sl.x_left, sl.y_top_mid],
-                ])}
-                fill={COLOR_SLICE_FILL}
-                stroke={COLOR_SLICE_EDGE}
-                strokeWidth={0.6}
+        {result && result.slices.length > 0 && (() => {
+          const resultPolyline = analyzedPolyline(result as Pick<MethodReport, 'surface' | 'slices'>);
+          const surfaceStroke = surfaceConverged ? COLOR_RESULT : COLOR_SURFACE_UNCONVERGED;
+          return (
+            <g data-layer="result" aria-hidden="true" pointerEvents="none">
+              {result.slices.map((sl, i) => (
+                <polygon
+                  key={i}
+                  data-slice={i}
+                  points={pointsAttr(vp, [
+                    [sl.x_left, sl.y_base_left],
+                    [sl.x_right, sl.y_base_right],
+                    [sl.x_right, sl.y_top_mid],
+                    [sl.x_left, sl.y_top_mid],
+                  ])}
+                  fill={COLOR_SLICE_FILL}
+                  stroke={COLOR_SLICE_EDGE}
+                  strokeWidth={0.6}
+                />
+              ))}
+              <polyline points={surfaceArc(vp, result)} fill="none" stroke={COLOR_HALO} strokeWidth={6.5} strokeLinejoin="round" data-halo="critical-surface" />
+              <polyline
+                data-critical-surface
+                data-converged={surfaceConverged ? 'true' : 'false'}
+                points={surfaceArc(vp, result)}
+                fill="none"
+                stroke={surfaceStroke}
+                strokeWidth={2.5}
+                strokeDasharray={surfaceConverged ? undefined : UNCONVERGED_DASH}
               />
-            ))}
-            <polyline points={surfaceArc(vp, result)} fill="none" stroke={COLOR_HALO} strokeWidth={6.5} strokeLinejoin="round" data-halo="critical-surface" />
-            <polyline
-              data-critical-surface
-              data-converged={surfaceConverged ? 'true' : 'false'}
-              points={surfaceArc(vp, result)}
-              fill="none"
-              stroke={surfaceConverged ? COLOR_RESULT : COLOR_SURFACE_UNCONVERGED}
-              strokeWidth={2.5}
-              strokeDasharray={surfaceConverged ? undefined : UNCONVERGED_DASH}
-            />
-          </g>
-        )}
+              {doc.analysis.surface?.type !== 'polyline' && resultPolyline?.map((p, i) => {
+                const [vx, vy] = toS(p);
+                return (
+                  <circle
+                    key={`cv${i}`}
+                    data-critical-vertex={i}
+                    cx={roundPx(vx)}
+                    cy={roundPx(vy)}
+                    r={3.5}
+                    fill={surfaceStroke}
+                    stroke={COLOR_HALO}
+                    strokeWidth={1.5}
+                  />
+                );
+              })}
+            </g>
+          );
+        })()}
 
         {crack && crackPx && (
           <g data-layer="tension-crack" aria-hidden="true" pointerEvents="none" data-crack-x={crack.x} data-crack-depth={crack.depth} data-crack-water-force={crack.force} data-crack-face={crack.face}>
