@@ -304,3 +304,66 @@ fn e15l6_si_default_and_explicit_value() {
     let h = 2.0 * FT_PER_M;
     assert!((pw - 0.5 * 62.4 * h * h).abs() <= 1e-9 * pw, "{pw}");
 }
+
+// ------------------------------------------------------------------------------------------------------- E15l-7 (B-06)
+
+fn search_doc(depth: f64) -> Value {
+    let mut doc = data("a01_ltr");
+    doc["analysis"]["tension_crack"] = json!({"depth": depth, "water_fill": 1.0});
+    let an = doc["analysis"].as_object_mut().unwrap();
+    an.remove("surface");
+    an.insert("search".into(), json!({"type": "circular_entry_exit"}));
+    doc
+}
+
+fn error_text(doc: &Value) -> String {
+    let model: ogs_core::model::Model = serde_json::from_value(doc.clone()).unwrap();
+    ogs_core::analyze(&model)
+        .expect_err("no surface")
+        .to_string()
+}
+
+/// A search whose candidates are all discarded by a crack deeper than any surface says so, with the count and the code.
+#[test]
+fn e15l7_search_message_names_the_crack() {
+    let msg = error_text(&search_doc(40.0));
+    let re = "NoValidSurface: la búsqueda con bishop no encontró ninguna superficie convergida (";
+    assert!(msg.starts_with(re), "{msg}");
+    let tail = msg.strip_prefix(re).unwrap();
+    // `{e} evaluadas, 0 válidas; {k} no alcanzan la grieta de tracción, tension_crack_not_reached)`
+    let (e, rest) = tail
+        .split_once(" evaluadas, 0 válidas; ")
+        .expect("evaluated, valid");
+    let (k, rest) = rest
+        .split_once(" no alcanzan la grieta de tracción, ")
+        .expect("k");
+    assert_eq!(rest, "tension_crack_not_reached)");
+    let (e, k): (usize, usize) = (e.parse().unwrap(), k.parse().unwrap());
+    assert!(k > 0 && k <= e, "{k} of {e}");
+}
+
+/// With no candidate discarded by the crack the message is the one of always, byte by byte.
+#[test]
+fn e15l7_without_discards_the_message_is_unchanged() {
+    // A search that finds nothing for another reason (no candidate is as wide as `min_width`), and no crack.
+    let mut doc = data("a01_ltr");
+    let an = doc["analysis"].as_object_mut().unwrap();
+    an.remove("surface");
+    an.remove("tension_crack");
+    an.insert(
+        "search".into(),
+        json!({"type": "circular_entry_exit", "min_width": 1000.0,
+               "n_entry": 4, "n_exit": 4, "n_radius": 4}),
+    );
+    let msg = error_text(&doc);
+    assert!(
+        msg.starts_with(
+            "NoValidSurface: la búsqueda con bishop no encontró ninguna superficie convergida ("
+        ),
+        "{msg}"
+    );
+    assert!(
+        msg.ends_with(" válidas)") && !msg.contains("grieta"),
+        "{msg}"
+    );
+}

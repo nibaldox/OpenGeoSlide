@@ -54,6 +54,7 @@ use search::{
     search_circular_reinforced,
 };
 use slicer::{Slice, SurfaceError, slice_surface_cracked};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use surface::{Surface, validate_polyline};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -389,6 +390,8 @@ fn analyze_method(
         (Some(spec), _) => {
             // E14o-7: with reinforcements the search also tries circles through their heads and tips.
             let ends = reinforcement_ends(&model.reinforcements);
+            // E15l-7: how many evaluated candidates were discarded because they do not get to the crack.
+            let not_reached = AtomicUsize::new(0);
             let result = search_circular_reinforced(pm, spec, &ends, |candidate| {
                 // E14d.4: the crossings of the reinforcements are computed for each candidate. E15d (G9): a candidate
                 // that does not get to the crack is discarded.
@@ -398,7 +401,10 @@ fn analyze_method(
                     Some(tc) => match crack::locate(tc, pm, &surface, load_case) {
                         Ok(plan) => Some(plan),
                         Err(crack::CrackError::NoGround) => None,
-                        Err(crack::CrackError::NotReached) => return None,
+                        Err(crack::CrackError::NotReached) => {
+                            not_reached.fetch_add(1, Ordering::Relaxed);
+                            return None;
+                        }
                     },
                     None => None,
                 };
@@ -450,9 +456,19 @@ fn analyze_method(
                 valid.then_some((res.fos, crossings))
             });
             let (circle, _fos) = result.best.ok_or_else(|| {
+                // E15l-7: with k > 0 candidates discarded by the crack, the message says so; with k = 0 it is the usual one.
+                let k = not_reached.load(Ordering::Relaxed);
+                let by_crack = if k > 0 {
+                    format!(
+                        "; {k} no alcanzan la grieta de tracción, {}",
+                        crack::TENSION_CRACK_NOT_REACHED
+                    )
+                } else {
+                    String::new()
+                };
                 OgsError::NoValidSurface(format!(
                     "la búsqueda con {} no encontró ninguna superficie convergida \
-                     ({} evaluadas, {} válidas)",
+                     ({} evaluadas, {} válidas{by_crack})",
                     method_name(method),
                     result.stats.evaluated,
                     result.stats.valid
