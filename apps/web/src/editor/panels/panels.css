@@ -70,6 +70,7 @@ ul.ep-error-list {
   gap: 0 12px;
 }
 
+.ep-wide,
 .ep-field.ep-wide {
   grid-column: 1 / -1;
 }
