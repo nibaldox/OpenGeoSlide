@@ -20,6 +20,8 @@ import {
 
 export function SearchPanel({ store }: { store: EditorStore }) {
   const search = useStoreSelector(store, (s) => s.doc.analysis.search ?? null);
+  const methods = useStoreSelector(store, (s) => s.doc.analysis.methods);
+  const bishopActive = (methods ?? ['bishop']).includes('bishop');
   const regions = useStoreSelector(store, (s) => s.doc.regions);
   const units = useStoreSelector(store, (s) => s.doc.units);
   const u = unitLabels(units);
@@ -148,6 +150,11 @@ export function SearchPanel({ store }: { store: EditorStore }) {
         }} />
         Superficie no circular
       </label>
+      {form.non_circular && bishopActive ? (
+        <p className="ep-error" role="alert" data-testid="non-circular-bishop-note">
+          Bishop simplificado no se admite con búsqueda no circular (la superficie crítica es una polilínea). Desmarque Bishop en el panel «Análisis».
+        </p>
+      ) : null}
       {form.non_circular ? <div className="ep-grid">
         <LabeledField label="Semillas" value={form.seeds ?? ''} hint="Entero de 1 a 10; vacío = 3" error={err('seeds')} onChange={v => setForm({ ...form, seeds: v })} onCommit={commit} onReset={reset} />
         <label className="field ep-field"><span>Máximo de vértices</span>

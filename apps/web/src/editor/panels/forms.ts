@@ -1703,6 +1703,22 @@ export interface CrackForm {
   water_fill: string;
 }
 
+/** `true` si el modelo incluye al menos un material Hoek-Brown o SHANSEP (reglas F6.5). */
+export function hasNonLinearStrength(materials: readonly Pick<Material, 'model'>[]): boolean {
+  return materials.some((m) => m.model === 'hoek_brown' || m.model === 'shansep');
+}
+
+/**
+ * Formulario inicial al activar la grieta de tracción (F6.5, R15B-10): con Hoek-Brown o SHANSEP
+ * la profundidad automática de Rankine no se admite, así que se inicia con profundidad numérica fija.
+ */
+export function initialCrackForm(doc: Pick<ModelDoc, 'materials'>): CrackForm {
+  if (hasNonLinearStrength(doc.materials)) {
+    return { enabled: true, auto: false, depth: formatNumber(CRACK_DEFAULT_FIXED_DEPTH), water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) };
+  }
+  return { enabled: true, auto: true, depth: '', water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) };
+}
+
 /** Formulario de la grieta desde el documento. Sin grieta: apagada, automática y con la fracción de agua en 1. */
 export function crackToForm(doc: ModelDoc): CrackForm {
   const c = doc.analysis.tension_crack;
