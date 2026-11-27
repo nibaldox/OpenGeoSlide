@@ -16,7 +16,9 @@ con analysis.tension_crack (grieta de tracción: depth, un número o \"auto\", y
 (topes shear y moment de ese pilote) pide \"version\": \"0.5\" y, con grieta, el informe trae tension_crack; \
 con un material model \"hoek_brown\" (ucs, gsi, mi, disturbance), model \"shansep\" (objeto shansep con ratio, exponent y \
 exactamente una de ocr, pop u ocr_by_elevation) o con analysis.search.non_circular (seeds y max_vertices, no admite bishop) \
-pide \"version\": \"0.6\"; \
+pide \"version\": \"0.6\"; con hoek_brown o shansep, cada método del informe trae strength: con Hoek-Brown, passes (pasadas del lazo) y, por dovela \
+de roca, normal_stress; con SHANSEP, vertical_stress y ocr por dovela; con non_circular, search.non_circular trae seeds, \
+evaluated, seed_fos y polyline_fos (ogs bench --method all omite bishop con non_circular); \
 una piezométrica sobre el terreno suma el agua embalsada en todas las versiones (cambia el FS frente a la v0.3.0); \
 con un pile o una sheet_pile con force se calcula solo la estabilidad global, con el elemento como una fuerza dada, y el pilote \
 de Ito-Matsui estima la fuerza del suelo entre pilotes rígidos pero no es el diseño del pilote \
@@ -96,6 +98,14 @@ mod tests {
             "non_circular",
             "max_vertices",
             "\"0.6\"",
+            "strength",
+            "passes",
+            "normal_stress",
+            "vertical_stress",
+            "ocr",
+            "seed_fos",
+            "polyline_fos",
+            "search.non_circular",
         ] {
             assert!(USAGE.contains(field), "USAGE does not mention {field}");
         }

@@ -314,6 +314,132 @@ for r in opengeoslide.analyze(model)["results"]:
   (antes, Bishop `invalid` y los otros tres `not_converged`); la fila X22-S16, con `ru` y piezométrica, queda a 0,026 % o
   menos del oráculo en los cinco métodos (antes, de −1,88 % a −1,97 %).
 
+### Ejemplo con Hoek-Brown, SHANSEP y búsqueda no circular (esquema v0.6)
+
+La v0.6 agrega dos modelos de resistencia de material, `hoek_brown` y `shansep`, y la búsqueda no circular
+(`analysis.search.non_circular`). Los tres exigen `"version": "0.6"`: con una versión menor, el error es
+`ValueError("InvalidModel: <campo> requiere version \"0.6\"")`, con el primer campo que encuentra, por ejemplo
+`materials[0].model = "hoek_brown" requiere version "0.6"` o `analysis.search.non_circular requiere version "0.6"`. Un
+modelo sin campos v0.6 da la misma salida que antes, aunque declare `"0.6"`. El formato completo y la física están en
+[`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md#hoek-brown-shansep-y-búsqueda-no-circular-v06) y
+[`docs/limitaciones.md`](../../docs/limitaciones.md#hoek-brown-shansep-y-búsqueda-no-circular-formato-v06-qué-hace-y-qué-no).
+
+**Hoek-Brown** (`model: "hoek_brown"`): `unit_weight`, `ucs` (σci de la roca intacta, **en la unidad de esfuerzo del
+modelo**: kPa en SI y psf en imperial; 12 MPa son `12000.0`), `gsi` (0 a 100), `mi` (> 0) y `disturbance` (el factor D, de 0
+a 1, **sin valor por defecto**); `unit_weight_sat` y `ru` son opcionales. No admite `cohesion`, `friction_angle` ni
+`shansep`. La resistencia depende de F, así que el motor itera (hasta 50 pasadas) y el informe trae `passes`.
+
+```python
+import opengeoslide
+
+model = {
+    "format": "opengeoslide", "version": "0.6", "units": "SI",
+    "materials": [{"id": "roca", "name": "Roca", "model": "hoek_brown", "unit_weight": 25.0,
+                   "ucs": 12000.0, "gsi": 25.0, "mi": 8.0, "disturbance": 0.7}],   # ucs en kPa (12 MPa)
+    "regions": [{"material": "roca", "polygon": [[-40, -10], [72.3205, -10], [72.3205, 30], [32.3205, 30], [27.3205, 30],
+                                                  [21.547, 20], [16.547, 20], [10.7735, 10], [5.7735, 10], [0, 0], [-40, 0]]}],
+    "slope": {"direction": "right_to_left"},
+    "analysis": {"methods": ["bishop", "spencer", "janbu_simplified"], "slices": 40,
+                 "surface": {"type": "circle", "xc": 11.0648, "yc": 35.6726, "r": 18.8505}},
+}
+for r in opengeoslide.analyze(model)["results"]:
+    strength = r["strength"]
+    print(r["method"], r["status"], round(r["fos"], 4), "pasadas", strength["passes"],
+          "dovelas de roca", len(strength["slices"]), r["warnings"])
+    print("   ", strength["slices"][0])
+# bishop converged 1.1804 pasadas 13 dovelas de roca 41 ['truncated_driving_mass', 'negative_effective_normal', 'hoek_brown_low_confinement']
+#     {'law': 'hoek_brown', 'index': 0, 'normal_stress': -0.13491808290370108}
+# spencer converged 1.1874 pasadas 11 dovelas de roca 41 ['truncated_driving_mass', 'negative_effective_normal', 'hoek_brown_low_confinement']
+#     {'law': 'hoek_brown', 'index': 0, 'normal_stress': 3.854416496018189}
+# janbu_simplified converged 1.1351 pasadas 13 dovelas de roca 41 ['truncated_driving_mass', 'negative_effective_normal', 'hoek_brown_low_confinement']
+#     {'law': 'hoek_brown', 'index': 0, 'normal_stress': -0.1808731530132286}
+```
+
+(Con `morgenstern_price`, el motor usa la función de fuerzas entre dovelas por defecto, `half_sine`; las filas de referencia
+de X28 usan `{"function": "constant"}`, que es la de cSlope y da el mismo FS que Spencer.)
+
+**SHANSEP** (`model: "shansep"`): `unit_weight` y el objeto `shansep` con `ratio` (S, > 0), `exponent` (m, de 0 a 1, **0,8**
+por defecto) y **exactamente uno** de `ocr` (≥ 1), `pop` (≥ 0, en la unidad de esfuerzo) u `ocr_by_elevation` (tabla
+`[[y, OCR], …]` con `y` creciente, al menos 2 filas, constante fuera de la tabla). `Su = S·σ′v·OCR^m` con φ = 0, una vez por
+dovela, sin iteración: el informe **no** trae `passes`. `σ′v` es estático: el sismo no entra.
+
+```python
+shansep = {
+    "format": "opengeoslide", "version": "0.6", "units": "SI",
+    "materials": [{"id": "arcilla", "name": "Arcilla", "model": "shansep", "unit_weight": 20.0,
+                   "shansep": {"ratio": 0.25, "exponent": 0.8, "ocr_by_elevation": [[20.0, 1.0], [35.0, 1.5]]}}],
+    "regions": [{"material": "arcilla", "polygon": [[20, 20], [20, 25], [30, 25], [50, 35], [70, 35], [70, 20]]}],
+    "slope": {"direction": "right_to_left"},
+    "analysis": {"methods": ["bishop", "spencer"], "slices": 50,
+                 "surface": {"type": "circle", "xc": 29.511, "yc": 53.738, "r": 28.742}},
+}
+for r in opengeoslide.analyze(shansep)["results"]:
+    s = r["strength"]["slices"][0]
+    print(r["method"], round(r["fos"], 4), "passes" in r["strength"], s["law"], round(s["vertical_stress"], 3), round(s["ocr"], 4))
+# bishop 0.831 False shansep 2.026 1.1668
+# spencer 0.831 False shansep 2.026 1.1668
+```
+
+**Búsqueda no circular** (`analysis.search.non_circular`, un objeto con `seeds`, de 1 a 10 y **3** por defecto, y
+`max_vertices`, 9, 17 o 33 y **33** por defecto; `{}` es válido). Parte de los mejores círculos de la búsqueda circular y
+los refina a una polilínea. **No admite Bishop**, tampoco por defecto: sin `analysis.methods`, el método por defecto es
+Bishop y el motor lo rechaza, así que declare los métodos.
+
+```python
+talud = {
+    "format": "opengeoslide", "version": "0.6", "units": "SI",
+    "materials": [{"id": "suelo", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 18.82,
+                   "cohesion": 41.65, "friction_angle": 15.0}],
+    "regions": [{"material": "suelo", "polygon": [[-30, 0], [-30, 15], [18, 15], [48, 35], [100, 35], [100, 0]]}],
+    "slope": {"direction": "auto"},
+    "analysis": {"methods": ["spencer"], "slices": 50,
+                 "search": {"type": "circular_entry_exit", "entry": [0, 66], "exit": [0, 66],
+                            "n_entry": 20, "n_exit": 20, "n_radius": 20, "max_radius_factor": 5.0,
+                            "non_circular": {"seeds": 3, "max_vertices": 33}}},
+}
+r = opengeoslide.analyze(talud)["results"][0]
+nc = r["search"]["non_circular"]
+print(r["method"], round(r["fos"], 4), nc["seeds"], nc["evaluated"], round(nc["seed_fos"], 4), round(nc["polyline_fos"], 4),
+      len(r["surface"]["points"]), r["warnings"])
+# spencer 1.3839 3 4500 1.4021 1.3839 33 ['negative_effective_normal']
+```
+
+- **La salida `strength`** (solo con algún material `hoek_brown` o `shansep`; se omite si no): `results[i]["strength"] =
+  {"passes", "slices"}`. `passes` es el número de pasadas del lazo de Hoek-Brown de ese método y **se omite** sin
+  Hoek-Brown. `slices` lista solo las dovelas de base `hoek_brown` o `shansep`, cada una con `index` (el de
+  `results[i]["slices"]`), `law` y, en Hoek-Brown, `normal_stress` (σ′n de la solución) o, en SHANSEP, `vertical_stress`
+  (σ′v) y `ocr`. En `results[i]["slices"]`, `cohesion` y `tan_phi` son los **con los que se calculó**: en Hoek-Brown, los de la
+  última pasada; en SHANSEP, Su y 0.
+- **La salida `search.non_circular`** (solo con `non_circular`): `results[i]["search"]["non_circular"] = {"seeds",
+  "evaluated", "seed_fos", "polyline_fos"}`. `seed_fos` es el FS del mejor círculo antes de refinar y `polyline_fos` el de la
+  mejor polilínea; `polyline_fos` **se omite** si ninguna polilínea fue admisible (entonces `evaluated` es 0 y el resultado es
+  el círculo, con `surface` `{"xc", "yc", "r"}`, no `{"points"}`). Con polilínea, `fos` es `polyline_fos` y `surface` es
+  `{"points": [[x, y], ...]}`.
+- **Avisos nuevos** (códigos en `results[i]["warnings"]`): `hoek_brown_not_converged` (estado `not_converged`: el lazo no
+  convergió en 50 pasadas), `hoek_brown_low_confinement` (nota: alguna dovela tiene σ′n bajo la regla de bajo confinamiento;
+  una vez por método), `shansep_nonpositive_stress` (nota: alguna dovela tiene σ′v ≤ 0 y queda con Su = 0),
+  `non_circular_large_change` (nota: el FS bajó más de 15 % respecto del mejor círculo) y `non_circular_not_refined` (nota:
+  se pidió `non_circular` y `evaluated` es 0, E16x).
+- **Combinaciones rechazadas** (F6.5), todas `ValueError` con código `InvalidModel`:
+
+  ```python
+  # roca con analysis.tension_crack = {"depth": "auto", "water_fill": 0.0}
+  # InvalidModel: analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; use una profundidad fija
+  # un pile con lateral_pressure (Ito-Matsui) junto a un material hoek_brown o shansep
+  # InvalidModel: lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep
+  # bishop con analysis.search.non_circular
+  # InvalidModel: el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)
+  ```
+
+  La grieta con profundidad numérica y un `pile` con `force` siguen permitidos. Los campos que el modelo no admite
+  (`cohesion` en un `hoek_brown`, `ucs` en un `mohr_coulomb`, etc.) y los rangos (`el GSI del material 'roca' debe estar en
+  [0, 100]`) se rechazan con el material y el campo en el mensaje.
+- **Lo que hay que saber al leer los números.** Hoek-Brown usa la envolvente completa con bajo confinamiento: da el mismo FS que
+  cSlope en roca confinada y **por debajo** (de −0,005 % a −2,9 % en las filas de X28) donde hay dovelas en tracción;
+  nunca por encima. Una búsqueda no circular puede entrar a una rama con tracción (`negative_lambda` junto con
+  `negative_effective_normal_major`) y dar un FS menor que el real: compare con Janbu o Bishop circular y revise N′. Véanse
+  [Limitaciones](../../docs/limitaciones.md#hoek-brown-shansep-y-búsqueda-no-circular-formato-v06-qué-hace-y-qué-no).
+
 ## Pánicos
 
 Un pánico de Rust dentro del motor **no** aborta el intérprete. `analyze_json` lo captura con
@@ -329,7 +455,13 @@ OGS_PY_TEST_HOOKS=0 $TMPDIR/ogs-py-venv/bin/python -m pytest tests -v
 OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 ```
 
-`tests/test_v03.py` cubre el formato v0.3 (polilínea, no drenado, M-P, Janbu y el aviso de E13k) con valores de cSlope
+`tests/test_v06.py` cubre el formato v0.6 con el wheel real: Hoek-Brown (las 20 filas de círculo fijo de X28 contra el prototipo de
+la envolvente completa a 0,1 % y contra cSlope como cota, `strength.passes` y `strength.slices`, espejo, monotonía, sismo e
+imperial), SHANSEP (las 13 filas de X30 contra cSlope 0.1.0 a 0,1 %, Su y OCR por dovela para `ocr`, `pop` y
+`ocr_by_elevation`, sismo sin efecto en σ′v y el aviso de σ′v ≤ 0), la búsqueda no circular (V001-nc contra el publicado, las
+cuatro cifras de `search.non_circular`, V050b, V093-nc, V103 sin polilínea admisible y la prohibición de Bishop), las
+combinaciones de F6.5 y los rechazos de campos, rangos y versión. Las filas se leen de `docs/fase3/exploracion/` y
+`verification/cases/`. `tests/test_v03.py` cubre el formato v0.3 (polilínea, no drenado, M-P, Janbu y el aviso de E13k) con valores de cSlope
 0.1.0. `tests/test_v04.py` cubre el formato v0.4: las 32 filas de `docs/fase3/exploracion/X17.md` (siete de F4.13, 16 de
 dirección inclinada y nueve de capacidad) contra el oráculo, con los cinco tipos y los tres modelos de `pullout`, los
 estados de `reinforcement_forces` (`applied`, `outside_mass`, `compression_ignored` y `no_capacity`), las tres notas
