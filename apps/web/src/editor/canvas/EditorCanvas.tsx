@@ -78,6 +78,7 @@ import {
 } from './layout';
 import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
 import { isTraceTool, traceOnDocChange, traceOnToolChange } from './trace';
+import { isLastAutoFit } from '../app/shell/hudFit';
 import { coordinateReadout, edgeScrollDelta, fitToDoc, fitToDocInsets, isMajorGridLine, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
 import { IconFit, IconZoomIn, IconZoomOut } from '../../ui/icons';
 import './canvas.css';
@@ -228,6 +229,19 @@ export interface EditorCanvasProps {
    * (HUD, paleta, leyenda). Sin esta prop, el margen uniforme de siempre.
    */
   fitInsets?: FitInsets;
+  /**
+   * UA2-F1: cajas en px del lienzo que una capa flotante (el HUD) deja tapadas. Los rótulos del eje y que caerían debajo no se
+   * dibujan, para que no asomen cortados por el borde de la capa.
+   */
+  coveredBoxes?: readonly CoverBox[];
+}
+
+/** Caja en px de pantalla, relativa a la esquina superior izquierda del lienzo. */
+export interface CoverBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 /** UA0 (contrato §4.2): márgenes de encuadre en px de pantalla. */
@@ -240,6 +254,16 @@ export interface FitInsets {
 
 /** Movimiento máximo, en píxeles, entre pulsar y soltar para que un toque o clic cuente como «colocar un punto». */
 const DRAW_TAP_SLOP_PX = 6;
+
+/** ¿El rótulo del eje y (a la izquierda, sobre la línea `px`) queda bajo alguna de las cajas cubiertas? Cuenta un aire de 2 px. */
+export function labelCovered(label: string, px: number, boxes: readonly CoverBox[] | undefined): boolean {
+  if (!boxes?.length) return false;
+  const x0 = 4;
+  const x1 = 4 + label.length * AXIS_FONT_PX * 0.62;
+  const y0 = px - 2 - AXIS_FONT_PX;
+  const y1 = px - 2 + 3;
+  return boxes.some((b) => x1 + 2 > b.left && x0 - 2 < b.right && y1 + 2 > b.top && y0 - 2 < b.bottom);
+}
 
 const roundPx = (v: number): number => Math.round(v * 100) / 100;
 
@@ -261,7 +285,7 @@ function hexagon(cx: number, cy: number, r: number): string {
   return Array.from({ length: 6 }, (_, i) => `${roundPx(cx + r * Math.cos((Math.PI / 3) * i))},${roundPx(cy + r * Math.sin((Math.PI / 3) * i))}`).join(' ');
 }
 
-export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState, paletteTools, fitInsets }: EditorCanvasProps) {
+export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState, paletteTools, fitInsets, coveredBoxes }: EditorCanvasProps) {
   // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
   const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
   const getState = useCallback(() => store.getState(), [store]);
@@ -304,6 +328,14 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const fit = (d: ModelDoc, w: number, h: number): Viewport => {
     const insets = fitInsetsRef.current;
     return insets ? fitToDocInsets(d, w, h, insets) : fitToDoc(d, w, h);
+  };
+  // UA2-F1: último encuadre automático (al abrir, «Encuadrar», tecla 0 o un reencuadre por cambio de márgenes). Mientras la
+  // vista siga siendo exactamente esa, un cambio de márgenes o de tamaño la reencuadra; si el usuario la movió, no se toca.
+  const lastAutoFit = useRef<Viewport | null>(null);
+  const autoFit = (d: ModelDoc, w: number, h: number): Viewport => {
+    const next = fit(d, w, h);
+    lastAutoFit.current = next;
+    return next;
   };
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
@@ -357,11 +389,22 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (vp === null) {
       // El ajuste inicial espera a la primera medida real: con el tamaño por defecto el modelo quedaba
       // centrado en 800 × 600 y, en un lienzo más ancho, con un margen vacío a la derecha.
-      if (measured) store.dispatch({ type: 'ui/viewport', viewport: fit(s.doc, size.w, size.h) });
+      if (measured) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, size.w, size.h) });
     } else if (vp.width !== size.w || vp.height !== size.h) {
-      store.dispatch({ type: 'ui/viewport', viewport: resizeViewport(vp, size.w, size.h) });
+      // Si la vista era el último encuadre automático, el tamaño nuevo también se encuadra (los márgenes del HUD cambian con él).
+      const wasAuto = isLastAutoFit(vp, lastAutoFit.current);
+      store.dispatch({ type: 'ui/viewport', viewport: wasAuto ? autoFit(s.doc, size.w, size.h) : resizeViewport(vp, size.w, size.h) });
     }
   }, [store, size.w, size.h, measured, ui.viewport]);
+
+  // UA2-F1: cuando cambian los márgenes (el HUD aparece, se pliega o cambia de tamaño), se reencuadra solo si la vista es el último encuadre automático.
+  const insetsKey = fitInsets ? `${fitInsets.top}|${fitInsets.right}|${fitInsets.bottom}|${fitInsets.left}` : '';
+  useEffect(() => {
+    const s = store.getState();
+    const vp = s.ui.viewport;
+    if (vp && fitInsetsRef.current && isLastAutoFit(vp, lastAutoFit.current)) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, vp.width, vp.height) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambian los valores de los márgenes
+  }, [insetsKey]);
 
   // ¿La paleta es más alta que el lienzo? Con `overflow` visible, `scrollHeight` mide el contenido completo.
   useEffect(() => {
@@ -745,7 +788,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     const cvp = ctx.ui.viewport;
     const actions =
       e.key === '0' && r.handled && fitInsetsRef.current && cvp && r.actions.length === 1 && r.actions[0]?.type === 'ui/viewport'
-        ? [{ type: 'ui/viewport' as const, viewport: fit(ctx.doc, cvp.width, cvp.height) }]
+        ? [{ type: 'ui/viewport' as const, viewport: autoFit(ctx.doc, cvp.width, cvp.height) }]
         : r.actions;
     runActions(store, actions);
     if (r.announce) announce(r.announce);
@@ -765,7 +808,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const viewAction = (kind: 'in' | 'out' | 'fit'): void => {
     const cur = store.getState().ui.viewport ?? vp;
     if (kind === 'fit') {
-      store.dispatch({ type: 'ui/viewport', viewport: fit(store.getState().doc, cur.width, cur.height) });
+      store.dispatch({ type: 'ui/viewport', viewport: autoFit(store.getState().doc, cur.width, cur.height) });
       announce('Vista encuadrada al modelo');
       return;
     }
@@ -888,7 +931,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           {grid.horizontal.map((l) => (
             <g key={`gy${l.px}`}>
               <line x1={0} x2={vp.width} y1={l.px} y2={l.px} stroke={isMajorGridLine(vp, 'y', l.px, grid.step) ? COLOR_GRID_MAJOR : COLOR_GRID} strokeWidth={1} />
-              {l.px > AXIS_TITLE_RESERVE_PX / 2 && (
+              {l.px > AXIS_TITLE_RESERVE_PX / 2 && !labelCovered(l.label, l.px, coveredBoxes) && (
                 <text x={4} y={l.px - 2} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{l.label}</text>
               )}
             </g>

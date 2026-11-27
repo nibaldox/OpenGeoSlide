@@ -49,7 +49,7 @@ import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
 import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
-import { FIT_INSETS_DESKTOP, FIT_INSETS_MOBILE } from './app/shell/layout';
+import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
 import { ReportView } from './app/shell/ReportView';
 import { ResultsView } from './app/shell/ResultsView';
@@ -654,7 +654,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
   const narrow = useNarrow();
   const desktop = useIsDesktop();
-  const fitInsets = desktop ? FIT_INSETS_DESKTOP : FIT_INSETS_MOBILE;
+  // UA2-F1: el encuadre deja libre el HUD (se mide en la tarjeta del lienzo).
+  const canvasCardRef = useRef<HTMLElement>(null);
+  const { insets: fitInsets, covered: coveredBoxes } = useHudInsets(canvasCardRef, doc, desktop);
   const localIssues = useLocalIssues(store);
   const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
   const status = runStatus({
@@ -881,7 +883,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         {/* Los cuatro paneles permanecen montados: al volver a «Lienzo» se conservan el modelo, el historial, el trazo y la vista. */}
         <div className="ua-panels">
           <div id="mode-edit-panel" className="ua-view ua-view-canvas" role="tabpanel" aria-labelledby="mode-edit" hidden={view !== 'canvas'}>
-            <section className="ua-canvas-card" aria-label="Sección del modelo">
+            <section className="ua-canvas-card" aria-label="Sección del modelo" ref={canvasCardRef}>
               <div className="ea-canvas ua-canvas" data-testid="editor-canvas">
                 <EditorCanvas
                   store={store}
@@ -889,6 +891,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                   {...canvasContract}
                   paletteTools={<PaletteTools tool={tool} onSelect={(t) => void switchTool(t)} />}
                   fitInsets={fitInsets}
+                  coveredBoxes={coveredBoxes}
                 />
               </div>
               {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
