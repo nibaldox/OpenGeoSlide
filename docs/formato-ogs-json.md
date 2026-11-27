@@ -208,7 +208,9 @@ circular puede **refinarse a una polilínea** con `analysis.search.non_circular`
   corta por tener una distancia horizontal menor que la tolerancia.
 - **Material de la base.** Cada dovela toma el material de su base. Si el punto medio de la base está sobre un contacto
   entre dos materiales (a menos de `1e-9 · escala` del modelo), se toma el **más débil**, por
-  `c + máx(0, σ′)·tan φ` (o Su en no drenado) con `σ′ = máx(0, W·cos²α/b − u)` (E13l-5). Con un material `hoek_brown` o
+  `c + máx(0, σ′)·tan φ` (o Su en no drenado) con `σ′ = máx(0, σv·cos²α − u)` (E13l-5), donde `σv` incluye suelo,
+  embalse y cargas verticales, sin sismo (E16aa). Corrige deliberadamente la v0.4.0: en un contacto lineal bajo embalse,
+  Spencer pasa de 1,0591 a 0,7356; en la versión integrada previa, con UDL y SHANSEP, de 1,4222 a 1,0615. Con un material `hoek_brown` o
   `shansep` en el contacto se compara su **resistencia real** con los mismos σ y u (E16v): en Hoek-Brown, `τ(σ′n)` de la
   envolvente completa; en SHANSEP, Su con el σ′v de la columna. Antes ganaba siempre el material nuevo, aunque fuera el más
   resistente (18,04 frente a 1,234 en un modelo de prueba). Con empate se conserva el material de arriba. Es el caso de una

@@ -756,10 +756,7 @@ fn slice_span(
                 _ => m.unit_weight * (hi_c - lo_c),
             };
         }
-        // E13l-5: a base on a contact of two materials takes the weaker one.
-        let base_material = base_material.map(|above| {
-            weaker_at_contact(pm, &column, above, y_base_mid, col, alpha, piezo).unwrap_or(above)
-        });
+        // E16aa: choose between contact materials after water and all loads are known.
         let Some(mat) = base_material else {
             // The base lies outside the model: no material. Checked only if the slice stays in the main block (E10a′).
             slices.push(Slice {
@@ -922,19 +919,24 @@ fn drop_hairline_air(pm: &PreparedModel, built: &mut Built) {
 ///
 /// `above` is the material just over the base midpoint (the one the column gives at `y_base_mid + tol`). When the
 /// point just under it, at `y_base_mid − tol`, belongs to other materials only, the base is on a contact (a polyline
-/// run along it, a circle that grazes it at the midpoint). Then it takes the weaker of the two, compared with the
-/// strength `c + max(0, σ′)·tan φ` (`Su` for an undrained material) at the stress of the ordinary method of slices,
-/// `σ′ = W·cos²α/b − u`, so that a surface along the top or the bottom of a weak layer is analysed in the weak layer.
-/// A tie keeps `above`. Returns `None` when the base is not on a contact.
-fn weaker_at_contact(
+/// run along it, a circle that grazes it at the midpoint), it takes the weaker of the two. Strengths use
+/// σv = (W + pond + vertical loads)/b, excluding seismic acceleration;
+/// each candidate uses its own pore pressure. A tie keeps `above`.
+pub(crate) fn resolve_contact(
     pm: &PreparedModel,
-    column: &[(f64, f64, usize)],
-    above: usize,
-    y_base_mid: f64,
-    col: f64,
-    alpha: f64,
-    piezo: Option<f64>,
-) -> Option<usize> {
+    slice: &mut Slice,
+    pond: f64,
+    kv: f64,
+    column: &mut Vec<(f64, f64, usize)>,
+    scratch: &mut Vec<f64>,
+) {
+    let y_base_mid = 0.5 * (slice.y_base_left + slice.y_base_right);
+    if slice.y_top_mid - y_base_mid <= pm.tol() {
+        return;
+    }
+    let x = 0.5 * (slice.x_left + slice.x_right);
+    pm.column(x, column, scratch);
+    let above = slice.material;
     let y_under = y_base_mid - pm.tol();
     let holds_under = |&&(lo, hi, _): &&(f64, f64, usize)| lo <= y_under && y_under < hi;
     if column
@@ -942,23 +944,35 @@ fn weaker_at_contact(
         .filter(holds_under)
         .any(|&(_, _, mat)| mat == above)
     {
-        return None;
+        return;
     }
-    let below = column
+    let Some(below) = column
         .iter()
         .filter(holds_under)
         .map(|&(_, _, mat)| mat)
-        .next()?;
-    let sigma = col * alpha.cos().powi(2);
-    let strength = |mat: usize| {
+        .next()
+    else {
+        return;
+    };
+    let col = slice.weight / slice.width;
+    // This is exactly SHANSEP's computation after PondTerms::add_to.
+    let sigma_v = (slice.weight + (slice.weight_extra + pond - kv * slice.weight)) / slice.width;
+    let sigma = sigma_v * slice.alpha.cos().powi(2);
+    let pressure = |mat: usize| {
         let m = &pm.materials[mat];
-        let u = if let Some(ru) = m.ru {
-            ru * col
-        } else if let Some(z) = piezo {
+        if mat == above {
+            slice.pore_pressure + m.ru.map_or(0.0, |ru| ru * pond / slice.width)
+        } else if let Some(ru) = m.ru {
+            ru * col + ru * pond / slice.width
+        } else if let Some(z) = pm.piezometric_y(x) {
             pm.gamma_w * (z - y_base_mid).max(0.0)
         } else {
             0.0
-        };
+        }
+    };
+    let strength = |mat: usize| {
+        let m = &pm.materials[mat];
+        let u = pressure(mat);
         match &m.law {
             crate::strength::StrengthLaw::Linear => {
                 let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
@@ -968,11 +982,23 @@ fn weaker_at_contact(
                 crate::hoek_brown::tau_at_normal(p, (sigma - u).max(0.0))
             }
             crate::strength::StrengthLaw::Shansep(p) => {
-                crate::shansep::su_at(p, col - u, y_base_mid)
+                crate::shansep::su_at(p, sigma_v - u, y_base_mid)
             }
         }
     };
-    (strength(below) < strength(above)).then_some(below)
+    if strength(below) < strength(above) {
+        let pore_pressure = match pm.materials[below].ru {
+            Some(ru) => ru * col,
+            None => pm
+                .piezometric_y(x)
+                .map_or(0.0, |z| pm.gamma_w * (z - y_base_mid).max(0.0)),
+        };
+        slice.material = below;
+        (slice.cohesion, slice.tan_phi) =
+            crate::strength::resolve(&pm.materials[below], y_base_mid);
+        // PondTerms adds ru·pond/b afterwards.
+        slice.pore_pressure = pore_pressure;
+    }
 }
 
 /// Adds the line loads to the soil slices of a span (E12f).

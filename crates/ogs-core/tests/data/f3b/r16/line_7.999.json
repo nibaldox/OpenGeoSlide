@@ -1,0 +1,117 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+    {
+      "id": "mc_m",
+      "name": "MC med",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "cohesion": 25.0,
+      "friction_angle": 5.0
+    },
+    {
+      "id": "sh_m",
+      "name": "SH",
+      "model": "shansep",
+      "unit_weight": 18.0,
+      "shansep": {
+        "ratio": 0.5,
+        "ocr": 1.0,
+        "exponent": 0.8
+      }
+    }
+  ],
+  "regions": [
+    {
+      "material": "mc_m",
+      "polygon": [
+        [
+          0,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          40,
+          15
+        ],
+        [
+          25,
+          15
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ]
+    },
+    {
+      "material": "sh_m",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          0,
+          8
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "loads": [
+    {
+      "type": "line",
+      "x": 16.0,
+      "p": 1000.0,
+      "angle": 0.0
+    }
+  ],
+  "analysis": {
+    "methods": [
+      "spencer",
+      "janbu_simplified"
+    ],
+    "slices": 40,
+    "surface": {
+      "type": "polyline",
+      "points": [
+        [
+          10,
+          10
+        ],
+        [
+          14,
+          7.999
+        ],
+        [
+          28,
+          7.999
+        ],
+        [
+          34,
+          15
+        ]
+      ]
+    }
+  }
+}
