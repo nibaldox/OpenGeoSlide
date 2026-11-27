@@ -21,6 +21,7 @@
  *   --canvas-axis claro #5b6673 → #55606c (4,11 sobre --canvas-pond) y oscuro #8f9aa8 → #99a3b0 (4,03); ahora 4,51 y 4,50.
  *   --canvas-surface oscuro #ff5a6e → #ff9ca8 (2,00 sobre --canvas-mat-6 y 3,80 sobre el agua; pide 3:1 y 4,5:1; ahora ≥ 3,05).
  *   --canvas-slice-edge: alfa claro 0,45 → 0,62 (2,21 sobre --canvas-mat-4) y oscuro 0,22 → 0,55 (1,63 sobre --canvas-mat-6); ahora ≥ 3,0.
+ *   --ui-info-border (nuevo, UA2-F7) claro #d2cbe6 → #857ab5 (1,46 sobre --ui-surface; ahora 3,60 sobre --ui-surface y 3,19 sobre --ui-info-bg) y oscuro #7693b7 (6,00 sobre --ui-surface y 5,17 sobre --ui-info-bg).
  *   --canvas-handle-sel oscuro #d97706 → #b45309 (2,62 del aro #e6e9ee sobre él, pide 3:1; ahora 4,13).
  *   Sin ajuste, pero fuera de los pares: --ui-border-strong y --ui-border-dashed son bordes decorativos (de la suite, con alfa); --canvas-band-entry/exit
  *   (suite) quedan bajo 3:1 como trazo aislado sobre el fondo del lienzo (entrada 2,73 y 2,03; salida 3,02 y 1,95, en oscuro y en claro); son bandas translúcidas
@@ -66,6 +67,7 @@
   --ui-err-border: #c0494b;
   --ui-info-bg: #ebe8f3;
   --ui-info-ink: #4f3f80;
+  --ui-info-border: #857ab5;
   --ui-note-bg: #e1e5ea;
   --ui-note-ink: #46525f;
   /* Filas e inputs */
@@ -162,6 +164,7 @@
     --ui-err-border: #e83149;
     --ui-info-bg: rgb(118 147 183 / 0.12);
     --ui-info-ink: #92a9c7;
+    --ui-info-border: #7693b7;
     --ui-note-bg: #18181b;
     --ui-note-ink: #b3bcc8;
     /* Filas e inputs */
@@ -248,6 +251,7 @@
     --ui-err-border: light-dark(#c0494b, #e83149);
     --ui-info-bg: light-dark(#ebe8f3, rgb(118 147 183 / 0.12));
     --ui-info-ink: light-dark(#4f3f80, #92a9c7);
+    --ui-info-border: light-dark(#857ab5, #7693b7);
     --ui-note-bg: light-dark(#e1e5ea, #18181b);
     --ui-note-ink: light-dark(#46525f, #b3bcc8);
     /* Filas e inputs */
@@ -343,6 +347,7 @@ html[data-theme='dark'] {
     --ui-err-border: #c0494b;
     --ui-info-bg: #ebe8f3;
     --ui-info-ink: #4f3f80;
+    --ui-info-border: #857ab5;
     --ui-note-bg: #e1e5ea;
     --ui-note-ink: #46525f;
     /* Filas e inputs */
@@ -426,6 +431,7 @@ html[data-theme='dark'] {
     --ui-err-border: #e83149;
     --ui-info-bg: rgb(118 147 183 / 0.12);
     --ui-info-ink: #92a9c7;
+    --ui-info-border: #7693b7;
     --ui-note-bg: #18181b;
     --ui-note-ink: #b3bcc8;
     /* Filas e inputs */

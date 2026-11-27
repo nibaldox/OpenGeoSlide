@@ -114,6 +114,7 @@ const PAIRS: Pair[] = [
   // Elementos de interfaz (3:1)
   ...[...UI_SURFACES, 'ui-surface-sunken'].map((bg): Pair => ['ui-control-border', bg, UI, 'borde de control (UX-06)']),
   ...[...UI_SURFACES, 'ui-surface-sunken', ...ON('ui-surface-active'), 'canvas-bg'].map((bg): Pair => ['ui-focus', bg, UI, 'anillo de foco']),
+  ...['ui-surface', 'ui-bg', ...ON('ui-info-bg')].map((bg): Pair => ['ui-info-border', bg, UI, 'borde del aviso informativo']),
   ['ui-err-border', 'ui-surface', UI, 'borde de campo inválido'],
   ['ui-err-border', 'ui-surface-sunken', UI, 'borde de campo inválido'],
   ['ui-err-border', 'ui-input-err-bg', UI, 'borde de campo inválido'],
@@ -175,6 +176,7 @@ describe('tokens.css: contrato y respaldos', () => {
     ...(['ok', 'warn', 'err'] as const).flatMap((s) => [`ui-${s}-bg`, `ui-${s}-ink`, `ui-${s}-border`]),
     'ui-info-bg',
     'ui-info-ink',
+    'ui-info-border',
     'ui-note-bg',
     'ui-note-ink',
     'ui-row-selected',
