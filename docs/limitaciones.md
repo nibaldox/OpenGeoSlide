@@ -788,6 +788,12 @@ salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada): est
   que `|ΔF| ≤ 1e-6·|F|`, el resultado es `not_converged` con `hoek_brown_not_converged` y sin FS; en una búsqueda, ese
   candidato se descarta, como en cSlope. Sin el promedio (w = 1), el lazo cicla en SB con Bishop y Janbu. Ningún modelo
   medido (X28 y la batería F3B) llegó al máximo.
+- **Una base sin resistencia puede dejar el análisis sin FS.** Con `σ′n ≤ σt` la base no resiste. En el modelo SB con
+  `ru` = 0,3 (`X28-R-SB-RU03`, un círculo fijo), el motor no entrega FS: Bishop da `invalid` (`m_alpha`) y Spencer,
+  Morgenstern-Price y los dos Janbu, `not_converged` (`no_admissible_root`); cSlope, que da resistencia en tracción con su
+  recta de σ3 = 0, entrega 0,9618 (Bishop) y 1,0103 (Spencer). Con el mismo `ru` en X25 sí converge (Bishop 0,9057 frente a
+  0,9059 de cSlope). Medido con el binario de release de esta rama. Si un modelo con presión de poros alta queda sin FS,
+  revise la presión de poros antes que el material.
 - **Parámetros del criterio.** Solo GSI, mi, D y σci. No hay `mb`, `s` ni `a` directos (cSlope los admite), ni el ajuste lineal
   de Hoek et al. (2002, ecs. 12 y 13), que cSlope tampoco implementa.
 - **Sin oráculo para el caso publicado completo.** HAM1 (Hammah et al., 2005, ejemplo 1) usa una **geometría reconstruida** del
