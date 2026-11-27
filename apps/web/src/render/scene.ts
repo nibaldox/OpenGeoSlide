@@ -122,7 +122,8 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   const pond = pondPolygons(regions, piezo);
   // La grieta se dibuja solo con una superficie con dovelas; la fracción llena la da el modelo (`water_fill`).
   const crack = surface && method?.tension_crack ? crackGeometry(method.tension_crack, surface.slices, model.analysis?.tension_crack?.water_fill) : null;
-  // E15m-12: sin geometría (profundidad 0) pero con grieta informada, la escena lo recuerda para el rótulo.
+  // E15m-12: sin geometría (profundidad 0) pero con grieta informada, la escena lo recuerda para el rótulo (E15m-15: con su `face_height`, que pasa
+  // dentro del informe, el rótulo es el del corte de la masa sin grieta de tracción).
   const noCrack = surface && method?.tension_crack && !crack ? method.tension_crack : null;
   return {
     regions,

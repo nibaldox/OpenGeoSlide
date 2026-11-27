@@ -61,9 +61,20 @@ function isReinforcementForce(value: unknown): boolean {
   );
 }
 
-/** La grieta de tracción del resultado (v0.5, E15l-23): `x`, `depth` ≥ 0 y `water_force` ≥ 0, todos finitos. */
+/**
+ * La grieta de tracción del resultado (v0.5, E15l-23): `x`, `depth` ≥ 0 y `water_force` ≥ 0, todos finitos; y, opcional, `face_height` finito y
+ * ≥ 0 (E15m-15). Un `face_height` negativo, no finito o no numérico rechaza el informe.
+ */
 function isCrackReport(value: unknown): boolean {
-  return isRecord(value) && isFiniteNumber(value.x) && isFiniteNumber(value.depth) && value.depth >= 0 && isFiniteNumber(value.water_force) && value.water_force >= 0;
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value.x) &&
+    isFiniteNumber(value.depth) &&
+    value.depth >= 0 &&
+    isFiniteNumber(value.water_force) &&
+    value.water_force >= 0 &&
+    (value.face_height === undefined || (isFiniteNumber(value.face_height) && value.face_height >= 0))
+  );
 }
 
 function isMethodReport(value: unknown): value is MethodReport {

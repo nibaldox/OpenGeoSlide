@@ -27,8 +27,15 @@ export interface CrackGeometry {
   yForce: number;
   /** Pw por metro de talud; 0 con la grieta seca. */
   force: number;
+  /** Altura de la cara cortada (E15m-15), solo si el motor la informa (> 0); se muestra junto a la profundidad. */
+  face?: number;
   /** Sentido horizontal de Pw en el mundo: +1 hacia +x, −1 hacia −x (el de las dovelas respecto de la cara). */
   dir: 1 | -1;
+}
+
+/** ¿`face_height` es una cara cortada para mostrar (E15m-15)? Finito y positivo. */
+function isFace(v: number | undefined): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0;
 }
 
 /**
@@ -68,6 +75,7 @@ export function crackGeometry(crack: CrackReport | null | undefined, slices: rea
     hw,
     yForce: yBase + hw / 3,
     force: crack.water_force,
+    ...(isFace(crack.face_height) ? { face: crack.face_height } : {}),
     dir: meanMid >= crack.x ? 1 : -1,
   };
 }
@@ -80,6 +88,21 @@ export interface NoCrackLabel {
   y: number;
   text: string;
   anchor: 'start' | 'end';
+  /** `'cut'` (E15m-15): la masa se cortó (`depth` 0 y `face_height` > 0) sin grieta de tracción; `'none'`: sin grieta. */
+  kind: 'none' | 'cut';
+  /** Descripción completa del rótulo (la frase de E15m-15 en un corte; el mismo texto sin grieta). */
+  title: string;
+}
+
+/** Rótulo breve del lienzo para un corte sin grieta de tracción (E15m-15); la frase completa va en el título accesible y en la tabla. */
+export function cutNoCrackLabelText(face: number, units?: string | null): string {
+  return `Corte de la masa (cara de ${formatNumber(face, 1, 2)} ${lengthUnitOf(units)}) sin grieta de tracción`;
+}
+
+/** Frase completa del corte sin grieta de tracción (E15m-15), la misma de la tabla y el informe. */
+export function cutNoCrackTitle(x: number, face: number, units?: string | null): string {
+  const L = lengthUnitOf(units);
+  return `Corte de la masa en x = ${formatNumber(x, 0, 3)} (cara de ${formatNumber(face, 0, 3)} ${L}) sin grieta de tracción: la profundidad de Rankine es 0 en ese punto (p. ej., bajo una sobrecarga)`;
 }
 
 /**
@@ -87,7 +110,7 @@ export interface NoCrackLabel {
  * porcentaje. Se coloca sobre el terreno en `x_c`, del lado de la masa. `null` si la grieta tiene profundidad (la dibuja `crackShape`), si
  * no hay grieta o dovelas, o si los datos no son finitos.
  */
-export function noCrackLabel(crack: CrackReport | null | undefined, slices: readonly Slice[], vp: Viewport): NoCrackLabel | null {
+export function noCrackLabel(crack: CrackReport | null | undefined, slices: readonly Slice[], vp: Viewport, units?: string | null): NoCrackLabel | null {
   if (!crack || slices.length === 0 || !Number.isFinite(crack.x) || !Number.isFinite(crack.depth) || crack.depth > 0) return null;
   let yBase = Number.NaN;
   let best = Infinity;
@@ -108,7 +131,11 @@ export function noCrackLabel(crack: CrackReport | null | undefined, slices: read
   if (!Number.isFinite(yBase)) return null;
   const dir = sumMid / slices.length >= crack.x ? 1 : -1;
   const [px, py] = worldToScreen(vp, crack.x, yBase);
-  return { x: px + dir * 8, y: py - CRACK_LABEL_GAP - CRACK_LABEL_PX / 2, text: NO_CRACK_LABEL, anchor: dir === 1 ? 'start' : 'end' };
+  const base = { x: px + dir * 8, y: py - CRACK_LABEL_GAP - CRACK_LABEL_PX / 2, anchor: (dir === 1 ? 'start' : 'end') as 'start' | 'end' };
+  // E15m-15: profundidad 0 con cara cortada: la masa se cortó, así que no se dice «Sin grieta».
+  const face = crack.face_height;
+  if (isFace(face)) return { ...base, text: cutNoCrackLabelText(face, units), kind: 'cut', title: cutNoCrackTitle(crack.x, face, units) };
+  return { ...base, text: NO_CRACK_LABEL, kind: 'none', title: NO_CRACK_LABEL };
 }
 
 /** Longitud de la flecha de Pw, en px. */
@@ -141,9 +168,10 @@ export interface CrackShape {
   title: string;
 }
 
-/** Texto del rótulo de la profundidad: «Grieta d = 2.43 m». */
-export function crackDepthText(depth: number, units?: string | null): string {
-  return `Grieta d = ${formatNumber(depth, 1, 2)} ${lengthUnitOf(units)}`;
+/** Texto del rótulo de la profundidad: «Grieta d = 2,43 m»; con la cara cortada (E15m-15), «Grieta d = 2,6 m (cara de 5 m)». */
+export function crackDepthText(depth: number, units?: string | null, face?: number): string {
+  const L = lengthUnitOf(units);
+  return `Grieta d = ${formatNumber(depth, 1, 2)} ${L}${isFace(face) ? ` (cara de ${formatNumber(face, 1, 2)} ${L})` : ''}`;
 }
 
 /** Texto del rótulo de la fuerza del agua: «Pw = 19.6 kN/m». */
@@ -152,9 +180,9 @@ export function crackForceText(force: number, units?: string | null): string {
 }
 
 /** Descripción accesible y pie del dibujo: posición, profundidad y fuerza del agua. */
-export function crackTitle(g: Pick<CrackGeometry, 'x' | 'depth' | 'waterFill' | 'force'>, units?: string | null): string {
+export function crackTitle(g: Pick<CrackGeometry, 'x' | 'depth' | 'waterFill' | 'force' | 'face'>, units?: string | null): string {
   const L = lengthUnitOf(units);
-  const head = `Grieta de tracción en x = ${formatNumber(g.x, 1, 2)} ${L}, profundidad ${formatNumber(g.depth, 1, 2)} ${L}`;
+  const head = `Grieta de tracción en x = ${formatNumber(g.x, 1, 2)} ${L}, profundidad ${formatNumber(g.depth, 1, 2)} ${L}${isFace(g.face) ? ` (cara cortada de ${formatNumber(g.face, 1, 2)} ${L})` : ''}`;
   return g.force > 0 || g.waterFill > 0
     ? `${head}; agua en la grieta ${formatNumber(g.waterFill * 100, 0, 0)} %, Pw = ${formatNumber(g.force, 1, 2)} ${forceUnit(units)}`
     : `${head}; grieta seca (Pw = 0)`;
@@ -181,9 +209,9 @@ export function crackShape(g: CrackGeometry, vp: Viewport, units?: string | null
   const aboveGround = top[1] - CRACK_LABEL_GAP - CRACK_LABEL_PX / 2; // centro del rótulo de la fila inferior
   const labelX = top[0] + g.dir * 8;
   const depthLabel: CrackShape['depthLabel'] = shallow
-    ? { x: labelX, y: wet ? aboveGround - CRACK_LABEL_PX : aboveGround, text: crackDepthText(g.depth, units), anchor: massSide }
+    ? { x: labelX, y: wet ? aboveGround - CRACK_LABEL_PX : aboveGround, text: crackDepthText(g.depth, units, g.face), anchor: massSide }
     : // La profundidad va del lado de la cresta, a media altura.
-      { x: top[0] - g.dir * 8, y: 0.5 * (top[1] + bottom[1]), text: crackDepthText(g.depth, units), anchor: crestSide };
+      { x: top[0] - g.dir * 8, y: 0.5 * (top[1] + bottom[1]), text: crackDepthText(g.depth, units, g.face), anchor: crestSide };
   const forceLabel: CrackShape['forceLabel'] = !wet
     ? null
     : shallow

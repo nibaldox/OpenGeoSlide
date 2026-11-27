@@ -1,5 +1,5 @@
 import type { AnalysisReport, TensionCrack } from '../engine/types';
-import { CRACK_PW_NOTE, NO_CRACK_TEXT, crackRecords, crackTable, crackUnits, isNoCrack, waterFillText } from '../report/crackReport';
+import { CRACK_PW_NOTE, NO_CRACK_TEXT, crackRecords, crackTable, crackUnits, cutNoCrackText, faceSuffix, isCutNoCrack, isNoCrack, waterFillText } from '../report/crackReport';
 import { METHOD_LABELS } from './methodLabels';
 
 const fmt = (v: number, digits = 2): string => new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: digits }).format(v);
@@ -12,6 +12,8 @@ export function CrackTable({ report, tensionCrack, units }: { report: AnalysisRe
   const records = crackRecords(report.results);
   if (records.length === 0) return null;
   const t = crackTable(records, units, tensionCrack?.water_fill);
+  // El texto (método, agua y la frase del corte) va a la izquierda; las cifras, a la derecha.
+  const waterCol = t.header.indexOf('Agua en la grieta');
   return (
     <section className="rf crack-results" aria-label="Grieta de tracción" data-testid="crack-results">
       <table className="rf-table">
@@ -29,7 +31,7 @@ export function CrackTable({ report, tensionCrack, units }: { report: AnalysisRe
           {t.rows.map((row) => (
             <tr key={row[0]}>
               {row.map((cell, c) => (
-                <td key={c} className={c === 0 || c === 3 ? undefined : 'num'}>
+                <td key={c} className={c === 0 || c === waterCol || cell.startsWith('Corte de la masa') ? undefined : 'num'}>
                   {cell}
                 </td>
               ))}
@@ -59,11 +61,14 @@ export function CrackSummary({ report, tensionCrack, units }: { report: Analysis
         {records.map((r) => (
           <li key={r.method}>
             <span className="muted">{METHOD_LABELS[r.method]}:</span>{' '}
-            {isNoCrack(r) ? (
+            {isCutNoCrack({ depth: r.depth, face_height: r.face }) ? (
+              cutNoCrackText(r.x, r.face as number, units)
+            ) : isNoCrack({ depth: r.depth, face_height: r.face }) ? (
               NO_CRACK_TEXT
             ) : (
               <>
-                x_c = {fmt(r.x)} {u.length}, profundidad = {fmt(r.depth)} {u.length}, Pw = {fmt(r.force)} {u.line}
+                x_c = {fmt(r.x)} {u.length}, profundidad = {fmt(r.depth)} {u.length}
+                {faceSuffix(r.face, units)}, Pw = {fmt(r.force)} {u.line}
                 {tensionCrack ? ` (agua en la grieta: ${waterFillText(tensionCrack.water_fill)})` : ''}
               </>
             )}

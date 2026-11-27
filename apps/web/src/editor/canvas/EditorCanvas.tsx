@@ -749,7 +749,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const crack = result && result.slices.length > 0 ? crackGeometry(result.tensionCrack, result.slices, shown.analysis.tension_crack?.water_fill) : null;
   const crackPx = crack ? crackShape(crack, vp, unitsEff) : null;
   // E15l-15: una grieta con `depth = 0` es «sin grieta»: no se dibuja y se rotula.
-  const noCrack = result && result.slices.length > 0 ? noCrackLabel(result.tensionCrack, result.slices, vp) : null;
+  const noCrack = result && result.slices.length > 0 ? noCrackLabel(result.tensionCrack, result.slices, vp, unitsEff) : null;
   const circle = circleSpec(shown.analysis.surface);
   const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
@@ -920,7 +920,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         )}
 
         {crack && crackPx && (
-          <g data-layer="tension-crack" aria-hidden="true" pointerEvents="none" data-crack-x={crack.x} data-crack-depth={crack.depth} data-crack-water-force={crack.force}>
+          <g data-layer="tension-crack" aria-hidden="true" pointerEvents="none" data-crack-x={crack.x} data-crack-depth={crack.depth} data-crack-water-force={crack.force} data-crack-face={crack.face}>
             <title>{crackPx.title}</title>
             {crackPx.water && <rect data-crack-water x={crackPx.water.x} y={crackPx.water.y} width={crackPx.water.width} height={crackPx.water.height} fill={COLOR_POND} stroke={COLOR_PIEZO} strokeWidth={1.25} />}
             <line x1={crackPx.top[0]} y1={crackPx.top[1]} x2={crackPx.bottom[0]} y2={crackPx.bottom[1]} stroke={COLOR_HALO} strokeWidth={6.5} strokeLinecap="round" />
@@ -939,8 +939,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         )}
 
         {noCrack && (
-          <g data-layer="tension-crack-none" aria-hidden="true" pointerEvents="none">
-            <text data-crack-label="none" x={noCrack.x} y={noCrack.y} dy="0.35em" fontSize={12} fill={COLOR_SURFACE} {...HALO_LABEL} textAnchor={noCrack.anchor}>{noCrack.text}</text>
+          <g data-layer={noCrack.kind === 'cut' ? 'tension-crack-cut' : 'tension-crack-none'} aria-hidden="true" pointerEvents="none">
+            <title>{noCrack.title}</title>
+            <text data-crack-label={noCrack.kind} x={noCrack.x} y={noCrack.y} dy="0.35em" fontSize={12} fill={COLOR_SURFACE} {...HALO_LABEL} textAnchor={noCrack.anchor}>{noCrack.text}</text>
           </g>
         )}
 
