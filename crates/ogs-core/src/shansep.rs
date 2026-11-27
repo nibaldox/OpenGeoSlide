@@ -20,6 +20,19 @@ pub(crate) struct ShansepOutcome {
     pub(crate) nonpositive_stress: bool,
 }
 
+/// Deterministically ordered by material and then failure kind across parallel candidates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct ShansepError {
+    pub(crate) material: usize,
+    pub(crate) kind: ShansepErrorKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum ShansepErrorKind {
+    VerticalStress,
+    Strength,
+}
+
 /// Writes `cohesion = Su` and `tan_phi = 0` on the `shansep` base slices (F6.6 hook 1, F6.9).
 ///
 /// Called right after `water::apply_ponded` and before the reinforcements (E16r), when `weight_extra` is exactly
@@ -31,7 +44,7 @@ pub(crate) fn apply(
     pm: &PreparedModel,
     kv: f64,
     slices: &mut [Slice],
-) -> Result<ShansepOutcome, usize> {
+) -> Result<ShansepOutcome, ShansepError> {
     let mut outcome = ShansepOutcome::default();
     for (index, slice) in slices.iter_mut().enumerate() {
         if crate::methods::is_inert(slice) {
@@ -42,6 +55,12 @@ pub(crate) fn apply(
         };
         let load_and_water = slice.weight_extra - kv * slice.weight;
         let sigma_v = (slice.weight + load_and_water) / slice.width - slice.pore_pressure;
+        if !sigma_v.is_finite() {
+            return Err(ShansepError {
+                material: slice.material,
+                kind: ShansepErrorKind::VerticalStress,
+            });
+        }
         let y = 0.5 * (slice.y_base_left + slice.y_base_right);
         let (su, ocr) = if sigma_v > 0.0 {
             let ocr = ocr_at(&params.ocr, sigma_v, y);
@@ -51,7 +70,10 @@ pub(crate) fn apply(
             (0.0, 1.0)
         };
         if !su.is_finite() || !ocr.is_finite() {
-            return Err(slice.material);
+            return Err(ShansepError {
+                material: slice.material,
+                kind: ShansepErrorKind::Strength,
+            });
         }
         slice.cohesion = su;
         slice.tan_phi = 0.0;
@@ -68,7 +90,10 @@ pub(crate) fn apply(
     {
         for face in slices.windows(2) {
             if let Some(material) = crate::slicer::invalid_shansep_face(pm, &face[0], &face[1]) {
-                return Err(material);
+                return Err(ShansepError {
+                    material,
+                    kind: ShansepErrorKind::Strength,
+                });
             }
         }
     }
@@ -367,7 +392,13 @@ mod tests {
         let mut b = a;
         b.x_left = 5.0;
         b.x_right = 7.0;
-        assert_eq!(apply(&pm, 0.0, &mut [a, b]), Err(1));
+        assert_eq!(
+            apply(&pm, 0.0, &mut [a, b]),
+            Err(ShansepError {
+                material: 1,
+                kind: ShansepErrorKind::Strength
+            })
+        );
     }
 
     #[test]

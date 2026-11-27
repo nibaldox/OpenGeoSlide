@@ -267,6 +267,10 @@ fn add_stretch(
 /// `V = γw·∫h dx`, `H = s·γw·∫h·y′ dx`, and the moments of E2 about the midpoint of the base (Spencer, M-P) and about
 /// the centre (Bishop). No seismic force acts on the water (E7), and the pore pressure of the base is not touched
 /// except for a material with `ru` (E15c-ru).
+///
+/// Contact materials in raw `slicer::slice_*` results are the material above, not necessarily the weaker one.
+/// Consequently `pore_pressure` here uses that unresolved material; the analysis pipeline chooses the contact
+/// material in `water::apply_ponded` (E13l-5, E16aa) before applying the final terms.
 pub fn ponded_terms(
     pm: &PreparedModel,
     surface: &Surface,

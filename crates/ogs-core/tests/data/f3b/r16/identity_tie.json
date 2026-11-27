@@ -1,0 +1,105 @@
+{
+  "format": "opengeoslide",
+  "version": "0.3",
+  "units": "SI",
+  "materials": [
+    {
+      "id": "top",
+      "name": "Coh",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.3,
+      "cohesion": 116.99659143108914,
+      "friction_angle": 0.0
+    },
+    {
+      "id": "bot",
+      "name": "Fric",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.3,
+      "cohesion": 0.0,
+      "friction_angle": 25.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "top",
+      "polygon": [
+        [
+          0,
+          7.0
+        ],
+        [
+          40,
+          7.0
+        ],
+        [
+          40,
+          20
+        ],
+        [
+          25,
+          20
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ]
+    },
+    {
+      "material": "bot",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          40,
+          7.0
+        ],
+        [
+          0,
+          7.0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "janbu_simplified"
+    ],
+    "slices": 31,
+    "surface": {
+      "type": "polyline",
+      "points": [
+        [
+          10.0,
+          10.0
+        ],
+        [
+          14.0,
+          7.0
+        ],
+        [
+          26.0,
+          7.0
+        ],
+        [
+          33.0,
+          20.0
+        ]
+      ]
+    }
+  }
+}

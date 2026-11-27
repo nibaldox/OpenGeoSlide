@@ -113,3 +113,84 @@ fn six_dry_contacts_remain_weak() {
         assert!((on / weak - 1.0).abs() <= 0.005, "{name}: {on} {weak}");
     }
 }
+
+// The baseline files are verbatim v0.4.0 CLI reports, with only the engine version normalized.
+#[test]
+fn dry_ru_and_exact_tie_are_byte_identical_to_v040() {
+    for name in [
+        "identity_dry_ru_23",
+        "identity_dry_ru_27",
+        "identity_dry_ru_29",
+        "identity_dry_ru_31",
+        "identity_dry_ru_33",
+        "identity_dry_ru_37",
+        "identity_dry_ru_34",
+        "identity_tie",
+    ] {
+        let path = format!(
+            "{}/tests/data/f3b/r16/{name}.baseline.json",
+            env!("CARGO_MANIFEST_DIR")
+        );
+        let expected = std::fs::read_to_string(path).unwrap();
+        let actual = ogs_core::analyze_json(&model(name).to_string())
+            .unwrap()
+            .replace(
+                &format!("ogs-core {}", ogs_core::VERSION),
+                "ogs-core NORMALIZADO",
+            )
+            + "\n";
+        assert_eq!(actual, expected, "{name}");
+    }
+}
+
+#[test]
+fn nonfinite_shansep_vertical_stress_is_invalid() {
+    let mut d = json!({
+        "format":"opengeoslide", "version":"0.6", "units":"SI",
+        "materials":[{"id":"sh","name":"SH","model":"shansep","unit_weight":18.0,
+                      "shansep":{"ratio":0.25,"ocr":1.5,"exponent":0.8}}],
+        "regions":[{"material":"sh","polygon":[[0,0],[40,0],[40,20],[25,20],[15,10],[0,10]]}],
+        "slope":{"direction":"right_to_left"},
+        "analysis":{"methods":["spencer"],"slices":10,
+                    "surface":{"type":"polyline","points":[[10,10],[14,7],[26,7],[33,20]]}}
+    });
+    let error = "la tensión vertical efectiva en la base del material SHANSEP 'sh' no es finita (revise los pesos unitarios, el agua y las cargas)";
+    for (water, loads, count) in [
+        (
+            json!({"unit_weight":1e308,"piezometric_line":[[0,9],[40,9]]}),
+            Value::Null,
+            10,
+        ),
+        (
+            json!({"unit_weight":9.81,"piezometric_line":[[0,1e308],[40,1e308]]}),
+            Value::Null,
+            10,
+        ),
+        (
+            Value::Null,
+            json!([{"type":"udl","x1":15,"x2":38,"q":1e308}]),
+            5,
+        ),
+        (
+            json!({"unit_weight":1e308,"piezometric_line":[[0,9],[40,9]]}),
+            json!([{"type":"udl","x1":15,"x2":38,"q":1e308}]),
+            5,
+        ),
+    ] {
+        let obj = d.as_object_mut().unwrap();
+        obj.remove("water");
+        obj.remove("loads");
+        if !water.is_null() {
+            d["water"] = water;
+        }
+        if !loads.is_null() {
+            d["loads"] = loads;
+        }
+        d["analysis"]["slices"] = json!(count);
+        f3_common::expect_invalid(&d, &[error]);
+    }
+    d.as_object_mut().unwrap().remove("loads");
+    d["analysis"] =
+        json!({"methods":["spencer"],"slices":10,"search":{"n_entry":5,"n_exit":5,"n_radius":4}});
+    f3_common::expect_invalid(&d, &[error]);
+}

@@ -376,6 +376,10 @@ fn check_block_ends_circle(
 ///
 /// ORDER: `slices[0]` is the toe slice (exit); `slices[last]` is the crest slice (entry), regardless of sliding direction.
 /// E10a/E10a″: only the main soil block (the entry block) is kept (see [`slice_surface`]); this function drops the notes.
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_circle(
     pm: &PreparedModel,
     circle: &Circle,
@@ -385,6 +389,10 @@ pub fn slice_circle(
 }
 
 /// Like [`slice_circle`], with the seismic coefficients and the loads of `loads` (E12b).
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_circle_with(
     pm: &PreparedModel,
     circle: &Circle,
@@ -404,6 +412,10 @@ pub fn slice_circle_with(
 ///
 /// Notes: `truncated_mass` when only the main block is analysed. `truncated_driving_mass` (E11e′) replaces it when a
 /// discarded block is driving (see [`discards_driving`]).
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_surface(
     pm: &PreparedModel,
     circle: &Circle,
@@ -416,6 +428,10 @@ pub fn slice_surface(
 ///
 /// The loads act only on the soil slices that remain in the analysed block: air slices and discarded blocks (E10a)
 /// carry none. The breakpoints of the loads also apply to the second slicing of E11d.
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_surface_with(
     pm: &PreparedModel,
     circle: &Circle,
@@ -431,6 +447,10 @@ pub fn slice_surface_with(
 ///
 /// Everything described in [`slice_surface`] applies to the polyline too. Its vertices are obligatory nodes, so the
 /// base of each slice is straight.
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_surface_of(
     pm: &PreparedModel,
     surface: &Surface,
@@ -446,6 +466,10 @@ pub fn slice_surface_of(
 /// E10a′, E11d, `check_block_ends`) then applies to that mass, whose crest end is `(x_c, base(x_c))`, not to the whole
 /// arc: a circle that leaves the model past the crack is valid. `None`, or an `x_c` at the entry crossing, is
 /// [`slice_surface_of`] as it always was.
+///
+/// Contact bases initially carry the material above the contact, not necessarily the weaker material (E13l-5,
+/// E16aa). The analysis pipeline resolves the contact in `water::apply_ponded` after water and loads; these slices
+/// alone must not be treated as final contact strengths or pore pressures.
 pub fn slice_surface_cracked(
     pm: &PreparedModel,
     surface: &Surface,
@@ -734,28 +758,11 @@ fn slice_span(
         let piezo = pm.piezometric_y(xm);
 
         // Σ γ_k h_k along the column between the base midpoint and the ground.
-        let mut col = 0.0;
+        let col = column_stress(pm, &column, y_base_mid, y_top_mid, piezo);
         let probe = y_base_mid + eps;
-        let mut base_material = None;
-        for &(lo, hi, mat) in &column {
-            if lo <= probe && probe < hi {
-                base_material = Some(mat);
-            }
-            let lo_c = lo.max(y_base_mid);
-            let hi_c = hi.min(y_top_mid);
-            if hi_c <= lo_c {
-                continue;
-            }
-            let m = &pm.materials[mat];
-            col += match (m.unit_weight_sat, piezo) {
-                (Some(gs), Some(z)) => {
-                    let below = (hi_c.min(z) - lo_c).max(0.0);
-                    let above = (hi_c - lo_c) - below;
-                    gs * below + m.unit_weight * above
-                }
-                _ => m.unit_weight * (hi_c - lo_c),
-            };
-        }
+        let base_material = column
+            .iter()
+            .find_map(|&(lo, hi, mat)| (lo <= probe && probe < hi).then_some(mat));
         // E16aa: choose between contact materials after water and all loads are known.
         let Some(mat) = base_material else {
             // The base lies outside the model: no material. Checked only if the slice stays in the main block (E10a′).
@@ -922,6 +929,33 @@ fn drop_hairline_air(pm: &PreparedModel, built: &mut Built) {
 /// run along it, a circle that grazes it at the midpoint), it takes the weaker of the two. Strengths use
 /// σv = (W + pond + vertical loads)/b, excluding seismic acceleration;
 /// each candidate uses its own pore pressure. A tie keeps `above`.
+fn column_stress(
+    pm: &PreparedModel,
+    column: &[(f64, f64, usize)],
+    y_base: f64,
+    y_top: f64,
+    piezo: Option<f64>,
+) -> f64 {
+    let mut col = 0.0;
+    for &(lo, hi, mat) in column {
+        let lo_c = lo.max(y_base);
+        let hi_c = hi.min(y_top);
+        if hi_c <= lo_c {
+            continue;
+        }
+        let m = &pm.materials[mat];
+        col += match (m.unit_weight_sat, piezo) {
+            (Some(gs), Some(z)) => {
+                let below = (hi_c.min(z) - lo_c).max(0.0);
+                let above = (hi_c - lo_c) - below;
+                gs * below + m.unit_weight * above
+            }
+            _ => m.unit_weight * (hi_c - lo_c),
+        };
+    }
+    col
+}
+
 pub(crate) fn resolve_contact(
     pm: &PreparedModel,
     slice: &mut Slice,
@@ -954,9 +988,9 @@ pub(crate) fn resolve_contact(
     else {
         return;
     };
-    let col = slice.weight / slice.width;
-    // This is exactly SHANSEP's computation after PondTerms::add_to.
-    let sigma_v = (slice.weight + (slice.weight_extra + pond - kv * slice.weight)) / slice.width;
+    let col = column_stress(pm, column, y_base_mid, slice.y_top_mid, pm.piezometric_y(x));
+    // Preserve the original column bit for bit in the absence of water and loads (E16ac).
+    let sigma_v = col + (slice.weight_extra + pond - kv * slice.weight) / slice.width;
     let sigma = sigma_v * slice.alpha.cos().powi(2);
     let pressure = |mat: usize| {
         let m = &pm.materials[mat];
