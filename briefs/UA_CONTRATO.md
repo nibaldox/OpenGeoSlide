@@ -444,3 +444,16 @@ Además (UA2):
   - `--canvas-handle-sel` oscuro `#b45309`.
 
   Quedan como valores propios de OpenGeoSlide, anotados en la cabecera de `tokens.css`.
+
+### UA-E2 (27-nov, tras UA1-Q): el nombre accesible contiene todo el texto visible del control
+
+- **Regla:** axe 4.14 trae activa por defecto `label-content-name-mismatch` (WCAG 2.5.3, serious). Ningún botón ni
+  pestaña tiene texto visible fuera de su nombre accesible. `aria-hidden` dentro del control no basta. `::before` y
+  `::after` tampoco, porque entran en el nombre que calculan Chrome y Playwright.
+- **Pasos:** el `button[role=tab]` solo lleva el título. La insignia y el resumen van en un hermano decorativo
+  (`aria-hidden="true"`, `pointer-events: none`) dentro de un envoltorio `role="presentation"`, y el resumen se expone
+  con `aria-describedby`.
+- **Contadores de «Vistas»** y `<kbd>` de «Comprobar»: hermanos decorativos fuera del botón.
+- **Tooltips `gs-tip`:** cuando no se ven, `visibility: hidden` además de `opacity: 0`. Lo integra el coordinador en
+  `canvas.css` y `components.css`.
+- **Pie sticky de móvil:** `z-index` mayor que la tarjeta del lienzo.
