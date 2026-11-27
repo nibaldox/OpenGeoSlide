@@ -44,6 +44,15 @@ export function ResultSummary({ run, current, busy, shownMethod, elapsedSeconds,
    * enfoca la tabla). Sin ella, el comportamiento de siempre (`focusResultsTable()`).
    */
   onShowTable?: () => void;
+  /**
+   * UA-E3: el armazón pide el HUD plegado (tarjeta del lienzo baja o sin sitio). Si el usuario lo despliega a mano
+   * mientras `compact` sigue en `true`, se respeta su elección hasta que `compact` vuelva a `false`.
+   */
+  compact?: boolean;
+  /** UA-E3: número de incidencias locales de severidad `aviso` del modelo (no del cálculo). */
+  localAdvisories?: number;
+  /** UA-E3: «Ver avisos» del HUD; el armazón abre «Resultados» y enfoca Diagnósticos. */
+  onShowAdvisories?: () => void;
 }) {
   const staleNoteId = useId();
   const bodyId = useId();

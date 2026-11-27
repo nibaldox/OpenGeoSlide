@@ -22,6 +22,7 @@ export const STATUS_TEXT: Readonly<Record<StepStatus, string>> = {
   done: 'Completo',
   error: 'Con error',
   draft: 'Borrador',
+  warn: 'Con avisos',
   optional: 'Opcional',
   empty: 'Vacío',
 };

@@ -38,7 +38,8 @@ export const STEP_ORDER: readonly PanelTabId[] = [
  * - `optional`: paso opcional vacío (sin agua, sin búsqueda activa, sin cargas, sin refuerzos, sin sismo, sin título);
  * - `empty`: paso obligatorio vacío (sin regiones, sin materiales).
  */
-export type StepStatus = 'done' | 'error' | 'draft' | 'optional' | 'empty';
+/** UA-E3: `warn` = alguna incidencia local de severidad `aviso` apunta al paso (precedencia error › draft › warn › empty/optional › done). */
+export type StepStatus = 'done' | 'error' | 'draft' | 'warn' | 'optional' | 'empty';
 
 export interface StepState {
   /** Una línea, ≤ 40 caracteres, con unidades y coma decimal. Nunca vacía: «—» o «Ninguno» si no hay nada. */
@@ -298,6 +299,11 @@ export interface RunStatusInput {
   /** Último mensaje de `useEngineCheck` (`message`, `messageKind`). */
   message: string | null;
   messageKind: 'error' | 'info';
+  /**
+   * UA-E3: avisos vigentes (incidencias locales de severidad `aviso` más avisos de severidad `aviso` del cálculo
+   * actual). Opcional; por omisión 0.
+   */
+  advisories?: number;
 }
 
 export interface RunStatus {
