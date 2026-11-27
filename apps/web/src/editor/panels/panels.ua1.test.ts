@@ -11,7 +11,7 @@ const project = read('project.css');
 function rule(css: string, selector: string): string {
   const bodies: string[] = [];
   for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const sels = m[1]!.replace(/\/\*[\s\S]*?\*\//g, '').split(',').map((s) => s.trim());
+    const sels = m[1]!.replace(/\/\*[\s\S]*?\*\//g, '').split(/,(?![^(]*\))/).map((s) => s.trim());
     if (sels.includes(selector)) bodies.push(m[2]!);
   }
   if (bodies.length === 0) throw new Error(`sin regla para ${selector}`);
