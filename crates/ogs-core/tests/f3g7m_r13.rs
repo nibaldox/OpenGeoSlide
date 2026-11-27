@@ -236,3 +236,52 @@ fn e15m6_si_output_is_unchanged() {
         assert_eq!(plain.results[i].fos, declared.results[i].fos);
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-3 (A-05)
+
+/// Slender dam (width 10, height 200, `wall_tol = 2e-5`): vertical face at `x = 6` (`y` 16 → 200, the soil on the
+/// side of `+x`), reservoir at `y = 100` on the low side, and a polyline that stays entirely on the low side.
+fn slender_wall(load_x: Option<f64>) -> Value {
+    let mut doc = json!({
+        "format": "opengeoslide", "version": "0.5", "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 20.0,
+                       "cohesion": 10.0, "friction_angle": 30.0}],
+        "regions": [{"material": "s", "polygon": [[0,0],[0,16],[6,16],[6,200],[10,200],[10,0]]}],
+        "slope": {"direction": "right_to_left"},
+        "water": {"unit_weight": 9.81, "piezometric_line": [[0,100],[6,100],[6.1,16],[10,16]]},
+        "analysis": {"methods": ["spencer", "janbu_simplified"], "slices": 50, "tolerance": 1e-6,
+                     "surface": {"type": "polyline",
+                                 "points": [[0.5, 16], [1.5, 14], [4.5, 13], [6.0, 16]]}}
+    });
+    if let Some(x) = load_x {
+        doc["loads"] = json!([{"type": "line", "id": "l1", "x": x, "p": 1.0, "angle": 0.0}]);
+    }
+    doc
+}
+
+/// A mass entirely on the low side of the face takes no thrust of it, with or without a load beside the face (before:
+/// the slice `[5.999985, 6]`, whose edge is 1.5e-5 < `wall_tol` from the face, took the whole thrust: Σh_force 0 →
+/// −34609.68 kN/m).
+#[test]
+fn e15m3_the_thrust_of_the_face_never_goes_to_a_slice_on_the_low_side() {
+    let without = run(&slender_wall(None));
+    let with = run(&slender_wall(Some(5.999995)));
+    assert_eq!(
+        with.results[0].slices.len(),
+        without.results[0].slices.len() + 1
+    );
+    for i in 0..2 {
+        let (a, b) = (sum_h(&without, i), sum_h(&with, i));
+        assert!(
+            (a - b).abs() <= 1e-9 * a.abs().max(1.0),
+            "method {i}: Σh_force {a} vs {b}"
+        );
+        assert!(
+            !with.results[i]
+                .slices
+                .iter()
+                .any(|s| s.h_force.abs() > 1000.0),
+            "no slice carries the thrust of the face"
+        );
+    }
+}

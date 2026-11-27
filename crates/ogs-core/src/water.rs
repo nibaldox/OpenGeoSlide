@@ -309,8 +309,8 @@ pub fn ponded_terms(
     let (yc, radius) = surface.moment_arm().unwrap_or((0.0, 0.0));
     let gw = pm.gamma_w;
     let tol = pm.tol();
-    // E15l-4: each vertical face goes to ONE slice, the soil slice whose edge on the high side is the nearest to
-    // `wall.x` within `wall_tol` (the first one, toe first, on a tie). Two edges within `wall_tol` of the same face (a
+    // E15l-4: each vertical face goes to ONE slice, the soil slice (centre on the high side, E15m-3) whose edge on the
+    // high side is the nearest to `wall.x` within `wall_tol` (the first one, toe first, on a tie). Two edges within `wall_tol` of the same face (a
     // node of a load or of a reinforcement beside it) must not apply the thrust twice.
     let owner: Vec<Option<usize>> = walls
         .iter()
@@ -318,6 +318,11 @@ pub fn ponded_terms(
             let mut best: Option<(usize, f64)> = None;
             for (i, slice) in slices.iter().enumerate() {
                 if slice.y_top_mid - 0.5 * (slice.y_base_left + slice.y_base_right) <= tol {
+                    continue;
+                }
+                // E15m-3: the thrust goes only to a slice whose centre is on the high side of the face, so a mass on the
+                // low side whose edge is within `wall_tol` of the face takes none of it.
+                if (0.5 * (slice.x_left + slice.x_right) - wall.x) * wall.high_side <= 0.0 {
                     continue;
                 }
                 let edge = if wall.high_side > 0.0 {
