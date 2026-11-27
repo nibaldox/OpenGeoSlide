@@ -50,6 +50,7 @@ import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
 import { ActionFoot, CollapsedActions, ExportHint } from './app/shell/ActionFoot';
 import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
+import { reportDocTitle, reportNotice } from './app/shell/reportTitle';
 import { pickShownMethod } from './app/shell/shownMethod';
 import { buildRunStatusInput } from './app/shell/statusInput';
 import { useHudInsets } from './app/shell/useHudInsets';
@@ -991,13 +992,13 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
           <div id="view-report-panel" className="ua-view" role="tabpanel" aria-labelledby="view-report" hidden={view !== 'report'}>
             <ReportView
-              title={doc.meta.title ?? ''}
+              title={reportDocTitle(doc.meta.title, doc.meta.id)}
+              notice={reportNotice({ hasRun: engine.run !== null, current: engine.current, hasDrafts, draftsText: PENDING_DRAFTS_TEXT, staleText: exportHintText })}
               contents={contents}
               hasRun={engine.run !== null}
               reportBusy={reportBusy}
               reportDisabled={reportDisabled}
               reportTitle={exportBlockedTitle}
-              reportDescribedBy={exportDescribedBy}
               onReport={() => void onReport()}
               csvDisabled={!canExport}
               onCsv={exportResults}

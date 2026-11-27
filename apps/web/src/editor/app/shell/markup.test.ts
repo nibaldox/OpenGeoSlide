@@ -172,7 +172,19 @@ describe('ReportView', () => {
     expect(html).toContain('Refuerzos y fuerzas (no aplica a este modelo)');
   });
   it('sin cálculo, la lista vacía lo explica; sin título, «Sin título»', () => {
-    expect(view({ contents: [], hasRun: false, title: '  ' })).toMatch(/Calcule el modelo[\s\S]*Sin título|Sin título[\s\S]*Calcule el modelo/);
+    expect(view({ contents: [], hasRun: false, title: 'Sin título' })).toMatch(/Calcule el modelo[\s\S]*Sin título|Sin título[\s\S]*Calcule el modelo/);
+  });
+  it('B-11: el título va en <dl><dt><dd> y ningún <p> lleva aria-labelledby', () => {
+    const html = view();
+    expect(html).toMatch(/<dl class="ua-report-doc"><dt[^>]*>Título del documento<\/dt><dd[^>]*>.*data-testid="report-title"/);
+    expect(html).not.toMatch(/<p[^>]*aria-labelledby/);
+  });
+  it('B-07: el aviso de desactualizado es de la tarjeta y los botones lo referencian', () => {
+    expect(view()).not.toContain('report-notice');
+    expect(view().match(/aria-describedby/g)).toBeNull();
+    const html = view({ notice: 'El modelo cambió desde el último cálculo.', reportDisabled: true, csvDisabled: true });
+    expect(html).toMatch(/id="ua-report-notice"[^>]*data-testid="report-notice"[^>]*>El modelo cambió/);
+    expect(html.match(/aria-describedby="ua-report-notice"/g)).toHaveLength(2);
   });
   it('los botones bloqueados llevan disabled', () => {
     expect(view({ reportDisabled: true, csvDisabled: true }).match(/disabled/g)).toHaveLength(2);

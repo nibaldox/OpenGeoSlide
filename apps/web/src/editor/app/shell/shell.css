@@ -683,6 +683,17 @@
   display: grid;
   gap: 6px;
 }
+.ua-report-doc dt,
+.ua-report-doc dd {
+  margin: 0;
+}
+.ua-report-card > .ua-report-notice {
+  justify-self: start;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  white-space: normal;
+}
 .ua-report-doc-row {
   display: flex;
   flex-wrap: wrap;
