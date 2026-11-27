@@ -207,8 +207,11 @@ button.primary:disabled {
 }
 
 .link-button.active {
-  background: var(--ui-err-bg);
-  border-color: var(--ui-err-border);
+  /* Seleccionado (aria-pressed), no error: el rojo solo comunica falla (UA-D5). */
+  background: var(--ui-accent-bg);
+  border-color: var(--ui-accent-bright);
+  color: var(--ui-accent-bright);
+  font-weight: 600;
 }
 
 .perf-controls {
