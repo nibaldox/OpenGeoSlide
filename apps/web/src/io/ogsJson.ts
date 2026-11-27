@@ -13,7 +13,9 @@
 //   JSON, no un aviso. Un `null` cuenta como campo ausente, como en el motor.
 
 import type { Issue, ModelDoc } from '../editor/types';
-import { pondPolygons } from '../render/pond';
+// Con extensión `.ts` (R12, E15l-19): `verification/tools/web_roundtrip_save.mjs` carga este módulo con `node --experimental-strip-types`,
+// que no resuelve importaciones de valor sin extensión (la cadena pond → polylineGround también la lleva).
+import { pondPolygons } from '../render/pond.ts';
 
 export const OGS_FORMAT = 'opengeoslide';
 /** Versión que se guarda cuando el modelo no usa ningún campo de la v0.3 (F3.9). */
