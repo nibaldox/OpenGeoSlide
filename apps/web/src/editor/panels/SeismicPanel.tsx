@@ -1,13 +1,27 @@
+import { useEffect } from 'react';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
-import { SEISMIC_HELP, seismicFromForm, seismicSetCommand, seismicToForm, seismicsEqual } from './forms';
+import { SEISMIC_HELP, seismicFromForm, seismicSetCommand, seismicToForm, seismicsEqual, setPendingDraft } from './forms';
+
+/** R16c: registro del borrador del sismo. */
+export const SEISMIC_DRAFT = { key: 'seismic', label: 'Sismo' } as const;
+/** kh o kv inválidos que difieren del documento: borrador sin aplicar. */
+export function seismicDraftPending(form: ReturnType<typeof seismicToForm>, doc: Parameters<typeof seismicToForm>[0]): boolean {
+  return !seismicFromForm(form).ok && JSON.stringify(form) !== JSON.stringify(seismicToForm(doc));
+}
 
 export function SeismicPanel({ store }: { store: EditorStore }) {
   const seismic = useStoreSelector(store, (s) => s.doc.analysis.seismic ?? null);
   const [form, setForm, reset] = useDraft(() => seismicToForm(store.getState().doc), [seismic]);
   const outcome = seismicFromForm(form);
   const errors = outcome.ok ? {} : outcome.errors;
+  // R16c: un kh o kv inválido que difiere del documento es un borrador sin aplicar.
+  const pending = seismicDraftPending(form, store.getState().doc);
+  useEffect(() => {
+    setPendingDraft(store, SEISMIC_DRAFT.key, pending ? SEISMIC_DRAFT.label : null);
+    return () => setPendingDraft(store, SEISMIC_DRAFT.key, null);
+  }, [store, pending]);
   const commit = (): void => {
     if (outcome.ok && !seismicsEqual(outcome.value, seismic)) store.dispatch(seismicSetCommand(outcome.value));
   };

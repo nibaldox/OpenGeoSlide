@@ -6,7 +6,7 @@ import type { EditorStore, Issue } from '../types';
 import { createToolSwitch } from '../app/discard';
 import { applyCommands } from './dispatch';
 import { PanelSection, TextInput } from './Fields';
-import { regionMaterialCommand, unitLabels } from './forms';
+import { regionMaterialCommand, setPendingDraft, unitLabels } from './forms';
 import {
   GRID_CHOICES,
   coordText,
@@ -24,6 +24,15 @@ import {
 } from './geometry';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import './geometry.css';
+
+/** R16c: registro del borrador de un vértice (clave y etiqueta) para Guardar, Comprobar, el cambio de pestaña y `beforeunload`. */
+export const vertexDraftKey = (regionIndex: number, vertexIndex: number): string => `geometry:${regionIndex}:${vertexIndex}`;
+export const vertexDraftLabel = (regionIndex: number, vertexIndex: number, point: Point): string =>
+  `Vértice ${vertexIndex + 1} (${coordText(point[0])}, ${coordText(point[1])}) de la región ${regionIndex + 1}`;
+/** Una coordenada inválida que difiere del texto del documento es un borrador sin aplicar; una válida se confirma al salir del campo. */
+export function vertexDraftPending(form: { x: string; y: string }, point: Point, errors: { x: string | null; y: string | null }): boolean {
+  return (errors.x !== null && form.x !== coordText(point[0])) || (errors.y !== null && form.y !== coordText(point[1]));
+}
 
 const FIELD_PATH = (regionIndex: number, vertexIndex: number, axis: 'x' | 'y'): string => `/regions/${regionIndex}/polygon/${vertexIndex}/${axis}`;
 
@@ -46,6 +55,14 @@ function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, on
   const errX = errorOf('x');
   const errY = errorOf('y');
   const error = errX ?? errY;
+  // R16c: una coordenada inválida que difiere del documento es un borrador sin aplicar (Guardar, Comprobar y cambiar de pestaña lo consultan).
+  const pending = vertexDraftPending(form, point, { x: errX, y: errY });
+  const scope = vertexDraftLabel(regionIndex, vertexIndex, point);
+  useEffect(() => {
+    const key = vertexDraftKey(regionIndex, vertexIndex);
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, regionIndex, vertexIndex, pending, scope]);
 
   const commit = (axis: 'x' | 'y'): void => {
     setCommitted(true);

@@ -17,11 +17,14 @@ export interface UnloadGuardInput {
   failure: string | null;
   /** Puntos de un trazo a medias («Dibujar región», «Dividir región»): no está en el borrador, así que se perdería (R9-11a). */
   tracePoints?: number;
+  /** Tarjetas con un valor sin aplicar al modelo (R16c): no están en el documento ni en el borrador, así que se perderían. */
+  pendingDrafts?: number;
 }
 
 /** ¿Hay trabajo que se perdería al cerrar la pestaña? Con el borrador a salvo, no se molesta al usuario (R7-18). */
 export function shouldWarnBeforeUnload(s: UnloadGuardInput): boolean {
   if ((s.tracePoints ?? 0) > 0) return true;
+  if ((s.pendingDrafts ?? 0) > 0) return true;
   return s.dirty && (!s.autosaveEnabled || !s.persistent || s.failure !== null);
 }
 

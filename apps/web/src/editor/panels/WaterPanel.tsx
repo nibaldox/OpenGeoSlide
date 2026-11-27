@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
@@ -12,6 +13,7 @@ import {
   piezoSetCommand,
   piezoToForm,
   removePiezoPoint,
+  setPendingDraft,
   unitLabels,
   waterUnitWeightCommand,
   waterUnitWeightHint,
@@ -21,6 +23,15 @@ import {
 function samePoints(a: readonly Point[], b: readonly Point[]): boolean {
   return a.length === b.length && a.every((p, i) => p[0] === b[i][0] && p[1] === b[i][1]);
 }
+
+/** R16c: registro de los borradores del agua (γw y tabla piezométrica). */
+export const WATER_GAMMA_DRAFT = { key: 'water:unit_weight', label: 'Agua: peso unitario γw' } as const;
+export const WATER_PIEZO_DRAFT = { key: 'water:piezometric_line', label: 'Agua: línea piezométrica' } as const;
+/** γw inválido que difiere del documento: borrador sin aplicar. */
+export const gammaDraftPending = (text: string, unitWeight: number | undefined): boolean => !waterUnitWeightFromForm(text).ok && text !== formatNumber(unitWeight);
+/** Tabla piezométrica inválida que difiere del documento: borrador sin aplicar. */
+export const piezoDraftPending = (rows: ReturnType<typeof piezoToForm>, points: readonly Point[] | null): boolean =>
+  !piezoFromForm(rows).ok && JSON.stringify(rows) !== JSON.stringify(piezoToForm(points));
 
 export function WaterPanel({ store }: { store: EditorStore }) {
   const unitWeight = useStoreSelector(store, (s) => s.doc.water?.unit_weight);
@@ -33,6 +44,12 @@ export function WaterPanel({ store }: { store: EditorStore }) {
 
   const [gammaText, setGammaText, resetGamma] = useDraft(() => formatNumber(unitWeight), [unitWeight]);
   const gamma = waterUnitWeightFromForm(gammaText);
+  // R16c: γw o la tabla piezométrica inválidos que difieren del documento son borradores sin aplicar.
+  const gammaPending = gammaDraftPending(gammaText, unitWeight);
+  useEffect(() => {
+    setPendingDraft(store, WATER_GAMMA_DRAFT.key, gammaPending ? WATER_GAMMA_DRAFT.label : null);
+    return () => setPendingDraft(store, WATER_GAMMA_DRAFT.key, null);
+  }, [store, gammaPending]);
   const commitGamma = (): void => {
     if (gamma.ok && gamma.value !== unitWeight) store.dispatch(waterUnitWeightCommand(gamma.value));
   };
@@ -40,6 +57,11 @@ export function WaterPanel({ store }: { store: EditorStore }) {
   const [rows, setRows, resetRows] = useDraft(() => piezoToForm(points), [points]);
   const table = piezoFromForm(rows);
   const tableErrors = table.ok ? {} : table.errors;
+  const rowsPending = piezoDraftPending(rows, points);
+  useEffect(() => {
+    setPendingDraft(store, WATER_PIEZO_DRAFT.key, rowsPending ? WATER_PIEZO_DRAFT.label : null);
+    return () => setPendingDraft(store, WATER_PIEZO_DRAFT.key, null);
+  }, [store, rowsPending]);
   const commitRows = (): void => {
     if (table.ok && table.value !== null && !(points && samePoints(points, table.value))) {
       store.dispatch(piezoSetCommand(table.value));

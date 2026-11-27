@@ -196,7 +196,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
   const dirty = docDirty || tracePoints > 0;
   const tool = useEditorStore(store, (s) => s.ui.tool);
-  useUnloadGuard(shouldWarnBeforeUnload({ dirty: docDirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure, tracePoints }));
+  useUnloadGuard(shouldWarnBeforeUnload({ dirty: docDirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure, tracePoints, pendingDrafts: engine.pendingDrafts.length }));
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
   const canRedo = useEditorStore(store, (s) => s.history.future.length > 0);
 
