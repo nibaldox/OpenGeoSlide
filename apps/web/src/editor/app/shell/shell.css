@@ -400,6 +400,13 @@
 .ua-check-wrap .ua-check:disabled + .ua-kbd {
   color: var(--ui-ink-muted);
 }
+/* UA2-F6: la tecla es solo un recordatorio de escritorio. Con 760 px o menos y con puntero táctil no se muestra; entre 761 y
+   1099 px (barra lateral de 300) tampoco, porque pisa el texto del botón. */
+@media (max-width: 1099px), (pointer: coarse) {
+  .ua-check-wrap .ua-kbd {
+    display: none;
+  }
+}
 .ua-check.ua-check-compact {
   width: auto;
   min-width: 0;
