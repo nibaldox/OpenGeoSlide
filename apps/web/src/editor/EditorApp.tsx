@@ -59,7 +59,7 @@ import { ReportView } from './app/shell/ReportView';
 import { ResultsView } from './app/shell/ResultsView';
 import { browserSideStorage, readSideCollapsed, sideLayout, writeSideCollapsed } from './app/shell/sideState';
 import { StepList } from './app/shell/StepList';
-import { toolDef, toolStatusText } from './app/shell/tools';
+import { toolStatusText } from './app/shell/tools';
 import { useIsDesktop } from './app/shell/useMedia';
 import { ViewTabs } from './app/shell/ViewTabs';
 import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
@@ -903,7 +903,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.
               <div className="ua-edit" role="group" aria-label="Edición">
-                <DropdownMenu label={editMenuLabel(tool, toolDef(tool)?.label)}>{undoRedoMenu}</DropdownMenu>
+                <DropdownMenu label={editMenuLabel()}>{undoRedoMenu}</DropdownMenu>
               </div>
             ) : (
               <div className="ua-edit" role="group" aria-label="Edición">
