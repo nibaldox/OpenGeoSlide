@@ -37,6 +37,24 @@ pub(crate) struct HoekBrownParams {
     pub(crate) s: f64,
     /// `a = 1/2 + (exp(−GSI/15) − exp(−20/3))/6` (eq. 5).
     pub(crate) a: f64,
+    pub(crate) sn_zero: f64,
+    pub(crate) tension: f64,
+}
+
+impl HoekBrownParams {
+    pub(crate) fn new(ucs: f64, mb: f64, s: f64, a: f64) -> Self {
+        let base = s.max(1e-12);
+        let ba = base.powf(a);
+        let k = 1.0 + a * mb * (ba / base);
+        Self {
+            ucs,
+            mb,
+            s,
+            a,
+            sn_zero: ucs * ba / (k + 1.0),
+            tension: -s * ucs / mb,
+        }
+    }
 }
 
 /// Source of the OCR of a SHANSEP material (F6.3), already validated: exactly one of the three.
@@ -460,7 +478,7 @@ pub(crate) fn resolve_materials(model: &Model) -> Result<Vec<ResolvedMaterial>, 
                     0.0,
                     0.0,
                     None,
-                    StrengthLaw::HoekBrown(HoekBrownParams { ucs, mb, s, a }),
+                    StrengthLaw::HoekBrown(HoekBrownParams::new(ucs, mb, s, a)),
                 )
             }
             MaterialModel::Shansep => {
@@ -587,12 +605,7 @@ mod tests {
     #[test]
     fn the_new_laws_resolve_to_zero_strength() {
         let hb = ResolvedMaterial {
-            law: StrengthLaw::HoekBrown(HoekBrownParams {
-                ucs: 30_000.0,
-                mb: 0.5,
-                s: 1e-4,
-                a: 0.5,
-            }),
+            law: StrengthLaw::HoekBrown(HoekBrownParams::new(30_000.0, 0.5, 1e-4, 0.5)),
             ..material(0.0, 0.0, None)
         };
         assert_eq!(resolve(&hb, 10.0), (0.0, 0.0));

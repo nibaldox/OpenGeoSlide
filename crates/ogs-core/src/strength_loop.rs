@@ -79,12 +79,14 @@ fn solve_rule(
             StrengthReport::default(),
         );
     }
+    let mut applied_low = false;
     for &i in &indices {
         let s = &mut slices[i];
         let StrengthLaw::HoekBrown(p) = &pm.materials[s.material].law else {
             unreachable!()
         };
-        let sn = s.weight / s.width * s.alpha.cos().powi(2) - s.pore_pressure;
+        let sn = (s.weight / s.width * s.alpha.cos().powi(2) - s.pore_pressure).max(0.0);
+        applied_low |= sn <= hoek_brown::sn_zero(p);
         (s.cohesion, s.tan_phi) = hoek_brown::tangent(p, sn, compatibility);
     }
     let mut previous: Option<f64> = None;
@@ -95,6 +97,11 @@ fn solve_rule(
             slices: Vec::new(),
         };
         if result.status != SolveStatus::Converged {
+            if applied_low {
+                result
+                    .warnings
+                    .push("hoek_brown_low_confinement".to_owned());
+            }
             return (result, report);
         }
         let ns = normals(slices, &result, interslice);
@@ -122,10 +129,24 @@ fn solve_rule(
         }
         if pass == max_passes {
             result.status = SolveStatus::NotConverged;
+            result.fos = f64::NAN;
             result.message = Some("hoek_brown_not_converged".to_owned());
-            result.warnings.clear();
+            result
+                .warnings
+                .retain(|w| w == "hoek_brown_low_confinement");
+            if (applied_low || low)
+                && !result
+                    .warnings
+                    .iter()
+                    .any(|w| w == "hoek_brown_low_confinement")
+            {
+                result
+                    .warnings
+                    .push("hoek_brown_low_confinement".to_owned());
+            }
             return (result, report);
         }
+        applied_low = low;
         previous = Some(f);
         for &i in &indices {
             let s = &mut slices[i];
@@ -155,6 +176,7 @@ mod tests {
                 .unwrap();
         for result in output["results"].as_array().unwrap() {
             assert_eq!(result["status"], "not_converged");
+            assert!(result["fos"].is_null(), "{result}");
             assert!(
                 result["warnings"]
                     .as_array()
@@ -164,6 +186,55 @@ mod tests {
             );
         }
         PASS_LIMIT.with(|c| c.set(50));
+    }
+
+    #[test]
+    fn low_confinement_survives_failed_outer_loop() {
+        PASS_LIMIT.with(|c| c.set(1));
+        let fixture: Value =
+            serde_json::from_str(include_str!("../tests/data/f3b/hb/X28-F-SB.json")).unwrap();
+        let output: Value =
+            serde_json::from_str(&crate::analyze_json(&fixture["model"].to_string()).unwrap())
+                .unwrap();
+        PASS_LIMIT.with(|c| c.set(50));
+        for result in output["results"].as_array().unwrap() {
+            assert_eq!(result["status"], "not_converged");
+            assert!(result["fos"].is_null());
+            assert!(
+                result["warnings"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|w| w == "hoek_brown_low_confinement"),
+                "{result}"
+            );
+        }
+    }
+
+    #[test]
+    fn low_confinement_survives_method_failure() {
+        let mut model: Value =
+            serde_json::from_str(include_str!("../tests/data/f3b/r15/hb/hb_sb_ru03.json")).unwrap();
+        model["analysis"]["min_m_alpha"] = serde_json::json!(0.99);
+        let output: Value =
+            serde_json::from_str(&crate::analyze_json(&model.to_string()).unwrap()).unwrap();
+        let failed: Vec<_> = output["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["status"] != "converged")
+            .collect();
+        assert!(!failed.is_empty());
+        for result in failed {
+            assert!(
+                result["warnings"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|w| w == "hoek_brown_low_confinement"),
+                "{result}"
+            );
+        }
     }
 
     #[test]
