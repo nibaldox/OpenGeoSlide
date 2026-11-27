@@ -35,6 +35,7 @@ describe('B-10c: modo de la paleta', () => {
     const media = /@media \(min-width: 761px\) \{([\s\S]*?)\n\}\n/.exec(css)?.[1] ?? '';
     expect(media).toMatch(/\[data-compact='true'\] \.ec-palette-label\s*\{\s*display:\s*none/);
     expect(media).toMatch(/\.ec-tool\s*\{\s*width:\s*36px;\s*height:\s*36px/);
+    expect(media).toMatch(/\.ec-tool\s*\{[^}]*min-height:\s*36px/); // `.gs-tool` fija min-height: 42px y ganaría sobre height
     const scroll = /\.ec-palette\[data-scroll='true'\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(scroll).toMatch(/overflow-y:\s*auto/);
     expect(scroll).toMatch(/scrollbar-width:\s*thin/);

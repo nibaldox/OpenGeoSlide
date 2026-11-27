@@ -188,6 +188,7 @@
   .ec-palette[data-compact='true'] .ec-tool {
     width: 36px;
     height: 36px;
+    min-height: 36px; /* `.gs-tool` fija min-height: 42px */
   }
 }
 
