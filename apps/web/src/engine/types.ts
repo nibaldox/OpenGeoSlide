@@ -1,17 +1,36 @@
 // Tipos fieles a briefs/00_CONTRATOS.md: §1 (modelo .ogs.json), §2 (caso de verificación)
-// y §3 (AnalysisReport), con las enmiendas de briefs/01_CONTRATOS_FASE1.md (v0.2) y
-// briefs/02_CONTRATOS_FASE3.md (v0.3, F3.1-F3.7) y briefs/03_CONTRATOS_REFUERZOS.md (v0.4, F4.1-F4.2 y F4.9). Los nombres son snake_case, igual que el JSON del motor.
+// y §3 (AnalysisReport), con las enmiendas de briefs/01_CONTRATOS_FASE1.md (v0.2),
+// briefs/02_CONTRATOS_FASE3.md (v0.3, F3.1-F3.7), briefs/03_CONTRATOS_REFUERZOS.md (v0.4, F4.1-F4.2 y F4.9),
+// briefs/04_CONTRATOS_GRIETA_AGUA.md (v0.5, F5.1-F5.2) y briefs/05_CONTRATOS_FASE3B.md (v0.6, F6.1-F6.4 y F6.6).
+// Los nombres son snake_case, igual que el JSON del motor.
 // Los campos marcados como opcionales son los que tienen default en el motor (#[serde(default)]).
 
 export type Point = [number, number];
 
-/** `undrained` exige version "0.3" (F3.2). */
-export type MaterialModel = 'mohr_coulomb' | 'undrained';
+/** `undrained` exige version "0.3" (F3.2); `hoek_brown` y `shansep` exigen version "0.6" (F6.1-F6.3). */
+export type MaterialModel = 'mohr_coulomb' | 'undrained' | 'hoek_brown' | 'shansep';
 
 export interface Meta {
   id?: string | null;
   title?: string | null;
   notes?: string | null;
+}
+
+/**
+ * Parámetros del modelo `shansep` (v0.6, F6.3): `Su = ratio · σ′v · OCR^exponent`.
+ * `exponent` vale 0,8 si se omite; debe existir exactamente uno de `ocr`, `pop` o `ocr_by_elevation`.
+ */
+export interface ShansepSpec {
+  /** Cociente S, finito y > 0. */
+  ratio: number;
+  /** Exponente m, finito en [0, 1]; por defecto 0,8. */
+  exponent?: number | null;
+  /** Razón de sobreconsolidación constante (≥ 1). */
+  ocr?: number | null;
+  /** Presión de sobreconsolidación en la unidad de esfuerzo del modelo (≥ 0). */
+  pop?: number | null;
+  /** Tabla [[y, OCR], …] con al menos 2 filas, y estrictamente creciente y OCR ≥ 1. */
+  ocr_by_elevation?: Point[] | null;
 }
 
 export interface Material {
@@ -21,19 +40,29 @@ export interface Material {
   /** kN/m³ (SI) o pcf (imperial). */
   unit_weight: number;
   unit_weight_sat?: number | null;
-  /** kPa (SI) o psf. Obligatoria con `mohr_coulomb` y prohibida con `undrained` (F3.2). */
+  /** kPa (SI) o psf. Obligatoria con `mohr_coulomb` y prohibida con los demás modelos (F3.2, F6.2, F6.3). */
   cohesion?: number | null;
-  /** Grados. Obligatoria con `mohr_coulomb` y prohibida con `undrained` (F3.2). */
+  /** Grados. Obligatoria con `mohr_coulomb` y prohibida con los demás modelos (F3.2, F6.2, F6.3). */
   friction_angle?: number | null;
   ru?: number | null;
-  /** Su en `strength_datum` (kPa o psf, ≥ 0). Obligatoria con `undrained`; prohibida con `mohr_coulomb`. Solo version "0.3". */
+  /** Su en `strength_datum` (kPa o psf, ≥ 0). Obligatoria con `undrained`; prohibida con los demás modelos. Solo version "0.3" o superior. */
   undrained_strength?: number | null;
-  /** Cota y de referencia de Su (no una profundidad). Va junto con `strength_gradient`. Solo version "0.3". */
+  /** Cota y de referencia de Su (no una profundidad). Va junto con `strength_gradient`. Solo version "0.3" o superior. */
   strength_datum?: number | null;
-  /** Variación de Su por unidad de longitud en y (kPa/m o psf/ft, finito y de cualquier signo): Su = Su₀ + (datum − y)·gradient. Solo version "0.3". */
+  /** Variación de Su por unidad de longitud en y (kPa/m o psf/ft, finito y de cualquier signo): Su = Su₀ + (datum − y)·gradient. Solo version "0.3" o superior. */
   strength_gradient?: number | null;
-  /** Tope de Su (≥ 0); solo con `strength_gradient`. Solo version "0.3". */
+  /** Tope de Su (≥ 0); solo con `strength_gradient`. Solo version "0.3" o superior. */
   strength_limit?: number | null;
+  /** Resistencia a compresión simple de la roca intacta σci (kPa o psf, > 0). Obligatoria con `hoek_brown` (v0.6, F6.2). */
+  ucs?: number | null;
+  /** Índice de resistencia geológica en [0, 100]. Obligatorio con `hoek_brown` (v0.6, F6.2). */
+  gsi?: number | null;
+  /** Constante mi de la roca intacta (> 0). Obligatoria con `hoek_brown` (v0.6, F6.2). */
+  mi?: number | null;
+  /** Factor de perturbación D en [0, 1], sin valor por defecto. Obligatorio con `hoek_brown` (v0.6, F6.2). */
+  disturbance?: number | null;
+  /** Parámetros SHANSEP. Obligatorio con `shansep` (v0.6, F6.3). */
+  shansep?: ShansepSpec | null;
 }
 
 export interface Region {
@@ -84,6 +113,14 @@ export interface IntersliceSpec {
   points?: Point[];
 }
 
+/** Refinamiento no circular de la búsqueda circular (v0.6, F6.4). `{}` usa los valores por defecto (`seeds` = 3, `max_vertices` = 33). */
+export interface NonCircularSpec {
+  /** Número de semillas circulares a refinar, entero en [1, 10]; por defecto 3. */
+  seeds?: number | null;
+  /** Número máximo de vértices de la polilínea (9, 17 o 33); por defecto 33. */
+  max_vertices?: number | null;
+}
+
 export interface SearchSpec {
   type: 'circular_entry_exit';
   /** Rango en x del punto de entrada (coronamiento). */
@@ -96,6 +133,8 @@ export interface SearchSpec {
   max_radius_factor?: number;
   min_width?: number | null;
   refine?: boolean;
+  /** Refinamiento no circular (v0.6, F6.4). Exige version "0.6". Un valor null cuenta como ausente. */
+  non_circular?: NonCircularSpec | null;
 }
 
 /** Coeficientes sísmicos pseudoestáticos (v0.2). Ausente equivale a kh = kv = 0. */
@@ -280,7 +319,7 @@ export interface AnalysisSettings {
 
 export interface Model {
   format: string;
-  version: '0.1' | '0.2' | '0.3' | '0.4' | '0.5';
+  version: '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6';
   meta: Meta;
   units?: string;
   materials: Material[];
@@ -324,9 +363,19 @@ export interface VerificationCase {
 
 export type SolveStatus = 'converged' | 'not_converged' | 'invalid';
 
+/** Estadísticas del refinamiento no circular (v0.6, F6.6). */
+export interface NonCircularStats {
+  seeds: number;
+  evaluated: number;
+  /** FS del mejor círculo antes de refinar. */
+  seed_fos: number;
+}
+
 export interface SearchStats {
   evaluated: number;
   valid: number;
+  /** Estadísticas del refinamiento no circular (v0.6, F6.6); el motor lo omite sin `non_circular`. */
+  non_circular?: NonCircularStats;
 }
 
 /** Dovela. Ver contratos §3 para el significado de cada campo. */
@@ -428,6 +477,30 @@ export interface CrackReport {
   face_height?: number;
 }
 
+/** Estado de esfuerzo en la base de una dovela `hoek_brown` o `shansep` (v0.6, F6.6). */
+export type SliceStrength =
+  | {
+      /** Índice en `MethodReport.slices`. */
+      index: number;
+      law: 'hoek_brown';
+      normal_stress: number;
+    }
+  | {
+      /** Índice en `MethodReport.slices`. */
+      index: number;
+      law: 'shansep';
+      vertical_stress: number;
+      ocr: number;
+    };
+
+/** Informe de resistencia por método (v0.6, F6.6); el motor lo omite sin materiales `hoek_brown` ni `shansep`. */
+export interface StrengthReport {
+  /** Número de pasadas del lazo de Hoek-Brown de ese método; el motor lo omite sin Hoek-Brown. */
+  passes?: number;
+  /** Solo las dovelas cuya base es `hoek_brown` o `shansep`. */
+  slices: SliceStrength[];
+}
+
 export interface MethodReport {
   method: MethodKind;
   /** null cuando el FS no es finito (E4f); `status` y los avisos explican el motivo. */
@@ -447,6 +520,8 @@ export interface MethodReport {
   reinforcement_forces?: ReinforcementForce[];
   /** La grieta de tracción que truncó la superficie (v0.5, F5.2); el motor lo omite sin grieta. */
   tension_crack?: CrackReport;
+  /** Estado de resistencia en las dovelas `hoek_brown` y `shansep` (v0.6, F6.6); el motor lo omite si no hay ninguna. */
+  strength?: StrengthReport;
 }
 
 export interface AnalysisReport {

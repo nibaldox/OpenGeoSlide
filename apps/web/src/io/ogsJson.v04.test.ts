@@ -72,10 +72,11 @@ describe('v0.4: versión mínima y compuerta', () => {
     expect(errors(model('0.2', []))).toEqual([]);
   });
 
-  it('la versión 0.6 se rechaza y el texto nombra la 0.4 y la 0.5', () => {
-    const e = errors(model('0.6', [anchor()])).find((i) => i.code === 'io.version');
+  it('la versión 0.7 se rechaza y el texto nombra la 0.4, la 0.5 y la 0.6', () => {
+    const e = errors(model('0.7', [anchor()])).find((i) => i.code === 'io.version');
     expect(e?.text).toContain('0.4');
     expect(e?.text).toContain('0.5');
+    expect(e?.text).toContain('0.6');
   });
 
   it('v04Fields y engineModel', () => {

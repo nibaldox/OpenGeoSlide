@@ -179,7 +179,7 @@ describe('abrir 0.3: forma y campos desconocidos', () => {
   });
 
   it('un modelo constitutivo desconocido, una polilínea mal formada y una función desconocida se rechazan con su puntero', () => {
-    const badModel = openOgsJson(JSON.stringify({ ...modelV03(), materials: [{ ...arcilla, model: 'hoek_brown' }] }));
+    const badModel = openOgsJson(JSON.stringify({ ...modelV03(), materials: [{ ...arcilla, model: 'cam_clay' }] }));
     expect(badModel.doc).toBeNull();
     expect(badModel.issues[0]).toMatchObject({ code: 'io.shape', path: '/materials/0/model' });
     const m = modelV03();

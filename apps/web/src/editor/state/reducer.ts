@@ -17,7 +17,7 @@ import type {
   Selection,
   UiAction,
 } from '../types';
-import { v03Fields, v04Fields, v05Fields } from '../../io/ogsJson';
+import { VERSION_FIELD_TABLE, versionAtLeast } from '../../io/ogsJson';
 import { allFinite, copyPoints, deepEqual, isFiniteNumber, isPoint, isPointList } from './docUtils';
 import { convertDocUnits, isUnitSystem } from './units';
 
@@ -70,15 +70,17 @@ function ensureV02(doc: ModelDoc): ModelDoc {
 }
 
 /**
- * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9, F4.1, F5.1): si un comando deja un campo
- * de la 0.3 (material no drenado, polilínea, método nuevo o función entre dovelas) en un documento 0.1 o 0.2, lo sube a 0.3, con
- * refuerzos (cualquier versión menor que la 0.4) a 0.4 y con la grieta de tracción (menor que la 0.5) a 0.5, como hace
- * `saveOgsJson`. Nunca la baja: el motor acepta un modelo 0.5 sin grieta, y al guardar se recalcula la versión mínima.
+ * Mantiene la invariante «la versión del documento alcanza para sus campos» (R10B-08, F3.9, F4.1, F5.1, F6.1) usando la tabla única
+ * `VERSION_FIELD_TABLE` de `ogsJson.ts`. Nunca baja la versión en memoria: el motor acepta versiones superiores y al guardar se
+ * recalcula la versión mínima con `minimalVersion`.
  */
 function syncVersion(doc: ModelDoc): ModelDoc {
-  if (doc.version !== '0.5' && v05Fields(doc).length > 0) return { ...doc, version: '0.5' };
-  if (doc.version !== '0.4' && doc.version !== '0.5' && v04Fields(doc).length > 0) return { ...doc, version: '0.4' };
-  if ((doc.version === '0.1' || doc.version === '0.2') && v03Fields(doc).length > 0) return { ...doc, version: '0.3' };
+  for (let i = VERSION_FIELD_TABLE.length - 1; i >= 0; i -= 1) {
+    const gate = VERSION_FIELD_TABLE[i]!;
+    if (gate.fields(doc).length > 0) {
+      return versionAtLeast(doc.version, gate.version) ? doc : { ...doc, version: gate.version };
+    }
+  }
   return doc;
 }
 
@@ -185,21 +187,59 @@ function copyReinforcement(r: Reinforcement): Reinforcement {
   return out as unknown as Reinforcement;
 }
 
+const SHANSEP_FIELDS = ['ratio', 'exponent', 'ocr', 'pop', 'ocr_by_elevation'];
+
+function isOptionalShansep(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const s = value as Record<string, unknown>;
+  return (
+    Object.keys(s).every((k) => SHANSEP_FIELDS.includes(k) || s[k] === undefined) &&
+    isFiniteNumber(s.ratio) &&
+    optionalFinite(s.exponent) &&
+    optionalFinite(s.ocr) &&
+    optionalFinite(s.pop) &&
+    (s.ocr_by_elevation === undefined || s.ocr_by_elevation === null || isPointList(s.ocr_by_elevation))
+  );
+}
+
+function isOptionalNonCircular(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const nc = value as Record<string, unknown>;
+  return (
+    Object.keys(nc).every((k) => k === 'seeds' || k === 'max_vertices' || nc[k] === undefined) &&
+    optionalFinite(nc.seeds) &&
+    optionalFinite(nc.max_vertices)
+  );
+}
+
 function isMaterial(value: unknown): value is Material {
   if (typeof value !== 'object' || value === null) return false;
   const m = value as Record<string, unknown>;
-  // Solo la forma (números finitos): los rangos y los campos prohibidos por modelo los señala `validateLocal` (F3.2).
+  // Solo la forma (números finitos): los rangos y los campos prohibidos por modelo los señala `validateLocal` (F3.2, F6.2, F6.3).
   const common =
     typeof m.id === 'string' &&
     m.id !== '' &&
     typeof m.name === 'string' &&
     isFiniteNumber(m.unit_weight) &&
     optionalFinite(m.unit_weight_sat) &&
-    optionalFinite(m.ru);
+    optionalFinite(m.ru) &&
+    optionalFinite(m.ucs) &&
+    optionalFinite(m.gsi) &&
+    optionalFinite(m.mi) &&
+    optionalFinite(m.disturbance) &&
+    isOptionalShansep(m.shansep);
   if (!common) return false;
   if (m.model === 'mohr_coulomb') return isFiniteNumber(m.cohesion) && isFiniteNumber(m.friction_angle);
   if (m.model === 'undrained') {
     return isFiniteNumber(m.undrained_strength) && optionalFinite(m.strength_datum) && optionalFinite(m.strength_gradient) && optionalFinite(m.strength_limit);
+  }
+  if (m.model === 'hoek_brown') {
+    return isFiniteNumber(m.ucs) && isFiniteNumber(m.gsi) && isFiniteNumber(m.mi) && isFiniteNumber(m.disturbance);
+  }
+  if (m.model === 'shansep') {
+    return m.shansep !== undefined && m.shansep !== null;
   }
   return false;
 }
@@ -309,8 +349,17 @@ function applyCommandRaw(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
       return withAnalysis(doc, { surface: { ...cmd.surface } });
     }
     case 'search/set': {
-      if (cmd.search !== null && (!allFinite(cmd.search) || cmd.search.type !== 'circular_entry_exit')) return null;
-      return withAnalysis(doc, { search: cmd.search === null ? null : { ...cmd.search } });
+      if (
+        cmd.search !== null &&
+        (!allFinite(cmd.search) || cmd.search.type !== 'circular_entry_exit' || !isOptionalNonCircular(cmd.search.non_circular))
+      ) {
+        return null;
+      }
+      if (cmd.search === null) return withAnalysis(doc, { search: null });
+      const nc = cmd.search.non_circular;
+      return withAnalysis(doc, {
+        search: nc && typeof nc === 'object' ? { ...cmd.search, non_circular: { ...nc } } : { ...cmd.search },
+      });
     }
     case 'analysis/patch': {
       if (typeof cmd.patch !== 'object' || cmd.patch === null || !allFinite(cmd.patch)) return null;
