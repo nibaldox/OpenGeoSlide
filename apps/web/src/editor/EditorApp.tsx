@@ -50,6 +50,7 @@ import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
 import { ActionFoot, CollapsedActions, ExportHint } from './app/shell/ActionFoot';
 import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
+import { issueNavPlan } from './app/shell/issueNavPlan';
 import { reportDocTitle, reportNotice } from './app/shell/reportTitle';
 import { pickShownMethod } from './app/shell/shownMethod';
 import { buildRunStatusInput } from './app/shell/statusInput';
@@ -194,6 +195,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     sideToggled.current = true;
     setSideCollapsedState(collapsed);
     writeSideCollapsed(browserSideStorage(), collapsed);
+  }, []);
+  /** Despliega la barra desde un flujo programático (Diagnósticos, «Editar título»): se guarda y el foco lo lleva el destino, no el botón «Contraer» (A-09). */
+  const expandSide = useCallback((): void => {
+    setSideCollapsedState(false);
+    writeSideCollapsed(browserSideStorage(), false);
   }, []);
   // Al plegar o desplegar, el foco pasa al botón contrario (el que acaba de aparecer): nunca cae en <body>.
   useEffect(() => {
@@ -560,15 +566,25 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const navigateIssue = useCallback(
     (_issue: unknown, target: IssueTarget): void => {
       void (async () => {
-        if (target.tab && !(await setTab(target.tab))) return;
-        // Un paso se abre en la barra lateral (si estaba plegada, se despliega); un destino en el lienzo vuelve a «Lienzo».
-        if (target.tab) setSideCollapsedState(false);
-        else onViewChange('canvas');
+        const plan = issueNavPlan(target);
+        if (plan.step && !(await setTab(plan.step))) return;
+        // Un campo de un paso se abre en la barra lateral (si estaba plegada, se despliega y se guarda); un destino en el lienzo o en su
+        // paleta vuelve a «Lienzo» (A-10).
+        if (plan.expandSide) expandSide();
+        if (plan.toCanvas) onViewChange('canvas');
         setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
       })();
     },
-    [setTab, onViewChange],
+    [setTab, onViewChange, expandSide],
   );
+  /** «Editar título» del informe: confirma el cambio de paso (borradores), despliega la barra y enfoca el título (A-09). */
+  const editTitle = useCallback((): void => {
+    void (async () => {
+      if (!(await setTab('project'))) return;
+      expandSide();
+      setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target: { tab: 'project', selection: { kind: 'none' }, fieldPath: '/meta/title' } }));
+    })();
+  }, [setTab, expandSide]);
   // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
   useEffect(() => {
     if (!pendingFocus) return;
@@ -1003,10 +1019,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               onReport={() => void onReport()}
               csvDisabled={!canExport}
               onCsv={exportResults}
-              onEditTitle={() => {
-                setSideCollapsedState(false);
-                selectStep('project');
-              }}
+              onEditTitle={editTitle}
             />
           </div>
         </div>
