@@ -159,7 +159,8 @@ cambian dos contadores (E15j-8, véase «Changed»). Las correcciones de la revi
     varía 1,5e-6 en términos relativos o menos (V013c a V013e, entre −1,5e-7 y −6,4e-7; D40 a D42, hasta −1,5e-6). D40 y
     D42 eligen un círculo crítico vecino. El brazo del ejemplo de `docs/formato-ogs-json.md` pasa de 1,2237 a 1,2238 m.
   - **`search.valid`** de algunos casos con grieta (V048, V073, V086b-auto, V086d, D33, D36, D38 y D39): de +1 a +4
-    candidatos válidos más, sin cambio del FS ni de la superficie crítica. <!-- coord: enmienda search.valid -->
+    candidatos válidos más, sin cambio del FS ni de la superficie crítica. Lo produce E15l-3: con los vértices en el
+    barrido, algunos candidatos que antes no encontraban la grieta ahora la alcanzan (`docs/fase3/r12/NOTAS_integracion.md`).
   - Los modelos sin grieta de tracción, sin `lateral_pressure` y sin agua sobre el terreno siguen dando la misma salida,
     byte a byte, que el binario anterior a R12 (150 modelos, 0 diferencias).
 
