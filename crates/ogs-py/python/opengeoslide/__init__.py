@@ -95,7 +95,10 @@ es ``u = ru·(W + V)/b`` (``V`` es el peso del agua embalsada), la regla de Slid
 oráculo. **Cambia el resultado frente a la v0.3.0:** un modelo cuya piezométrica pasa sobre el terreno, que la v0.3.0
 marcaba con ``water_above_ground``, da otro FS a propósito (V047a con 2 m de agua al pie, Bishop con superficie fija:
 0,848 con la v0.3.0 y 0,939 ahora, el valor de cSlope); si guardó resultados de ese tipo, vuelva a calcularlos. Un modelo
-sin agua sobre el terreno y sin ``tension_crack`` da la misma salida, byte a byte, que la v0.3.0. ``water_above_ground``
+sin agua sobre el terreno y sin ``tension_crack`` da la misma salida, byte a byte, que la v0.3.0, **salvo en unidades
+imperiales con agua y sin ``water.unit_weight``**: ese archivo toma γw ≈ 62,45 pcf (la v0.3.0 tomaba 9,81 «pcf»), cambia
+de FS a propósito (tercera excepción a la identidad, E15l-6 y E15m-6) y el motor agrega el aviso informativo
+``water_unit_weight_default``. ``water_above_ground``
 queda como **nota informativa**. El peso unitario del agua es ``water.unit_weight``; si falta, vale 9,81 kN/m³ en SI y,
 en imperial, el resultado de convertir ese valor (alrededor de 62,45 pcf), y rige para la piezométrica, el agua embalsada
 y el agua de la grieta. Medido: una grieta de 2 m con agua y sin bloque ``water``, convertida de SI a imperial, da con

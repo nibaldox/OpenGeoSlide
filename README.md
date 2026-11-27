@@ -41,7 +41,9 @@ formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundid
 **agua embalsada** (cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
 su peso y su empuje, en todas las versiones del formato) y la **fuerza de un pilote por la presión del suelo de
 Ito-Matsui** (`lateral_pressure`, con una capacidad de corte y de momento opcional). **Esto cambia el resultado de los modelos con agua sobre el
-terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)),
+y también el de un archivo **imperial** con agua que no indica `water.unit_weight`, que ahora toma γw ≈ 62,45 pcf en lugar de 9,81
+([tercera excepción](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 
 ## Por qué es distinto
 
@@ -192,7 +194,9 @@ Esta batería no cubre todo: véanse las limitaciones.
   de hasta 1e-6 veces el ancho del modelo entre dos dovelas vecinas. Si falta `water.unit_weight`, el motor usa 9,81 kN/m³ en SI
   y su equivalente (alrededor de 62,45 pcf) en imperial, también en el agua de la grieta
   ([detalle](docs/limitaciones.md#limitaciones-numéricas-conocidas-del-motor)). Medido: una grieta de 2 m con agua y sin
-  `water`, en imperial, da Bishop 1,69865, igual que en SI (γw = 62,449 pcf), en lugar de 1,71248.
+  `water`, en imperial, da Bishop 1,69865, igual que en SI (γw = 62,449 pcf), en lugar de 1,71248. **Es una tercera excepción a la
+  identidad con la v0.3.0**: un archivo imperial con agua (también una piezométrica bajo el terreno) y sin `water.unit_weight` cambia de FS,
+  y el motor avisa con `water_unit_weight_default` ([detalle](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar -->
 - **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
   piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
   y sin línea piezométrica γsat no interviene en el cálculo.
@@ -228,7 +232,7 @@ OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stabil
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
-the result of models with water above the ground compared with v0.3.0, and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
+the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
 28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With a pile or sheet pile that carries a given force it checks the
 global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of

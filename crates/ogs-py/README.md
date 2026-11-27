@@ -32,7 +32,7 @@ VIRTUAL_ENV="$TMPDIR/ogs-py-venv-hooks" uv pip install "$TMPDIR"/ogs-py-dist-hoo
 ```python
 import opengeoslide
 
-opengeoslide.version()                  # p. ej. "0.2.0": versión de ogs-core
+opengeoslide.version()                  # p. ej. "0.3.0": versión de ogs-core (la de su Cargo.toml)
 report_json = opengeoslide.analyze_json(model_json)   # str en, str (JSON del informe) fuera
 report = opengeoslide.analyze(model)    # dict en, dict fuera (envoltorio sobre analyze_json)
 ```
@@ -203,7 +203,7 @@ for r0, r1 in zip(base["results"], cracked["results"]):
 el agua libre (su peso y su empuje horizontal) en **todas** las versiones del formato, sin ningún campo: la v0.3.0 solo
 contaba la presión de poros. Es una corrección de física y **cambia el FS** de esos modelos (la v0.3.0 los marcaba con
 `water_above_ground`); si guardó resultados de un modelo con agua sobre el terreno, vuelva a calcularlos. Un modelo sin agua
-sobre el terreno y sin grieta da la misma salida, byte a byte, que la v0.3.0. Con 2 m de agua sobre el pie de ACADS 1(a):
+sobre el terreno y sin grieta da la misma salida, byte a byte, que la v0.3.0, **salvo en unidades imperiales** (véase abajo). Con 2 m de agua sobre el pie de ACADS 1(a):
 
 ```python
 model = json.load(open("examples/acads1a.ogs.json"))
@@ -220,6 +220,13 @@ for r in opengeoslide.analyze(model)["results"]:
 
 Con la v0.3.0, Bishop daba 0,848 en ese mismo modelo (sin el peso ni el empuje del agua) y cSlope da 0,939.
 `water_above_ground` es ahora una **nota informativa**.
+
+**Una tercera excepción a la identidad con la v0.3.0: γw por defecto en imperial** (E15l-6, E15m-6). Un archivo
+`imperial` que usa agua (piezométrica, aunque quede bajo el terreno, agua embalsada o agua en la grieta) y no indica
+`water.unit_weight` toma γw ≈ 62,45 pcf, no 9,81 «pcf» como la v0.3.0, y **cambia de FS** (ACADS 1(a) en pies con una
+piezométrica bajo el terreno: Bishop 0,9300 con la v0.3.0 y 0,6339 ahora, el valor del mismo modelo en SI). En ese caso el
+motor agrega a `warnings` el aviso informativo `water_unit_weight_default`; escriba `water.unit_weight` (62,4 pcf) para
+fijar el valor. En SI no cambia nada ni se emite el aviso. <!-- R13: medir al integrar -->
 
 - **Convenciones.** El sismo pseudoestático no actúa sobre el agua embalsada ni sobre `Pw`. En un material con `ru`,
   `u = ru·(W + V)/b` (con `V` el peso del agua embalsada): es la regla de Slide2 y no se puede comparar con el oráculo.
@@ -310,12 +317,15 @@ OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 dirección inclinada y nueve de capacidad) contra el oráculo, con los cinco tipos y los tres modelos de `pullout`, los
 estados de `reinforcement_forces` (`applied`, `outside_mass`, `compression_ignored` y `no_capacity`), las tres notas
 nuevas, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON. `tests/test_v05.py`
-cubre el formato v0.5: los tres ejemplos de [`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md) (grieta seca, embalse
-al pie y pilote de Ito-Matsui) con sus fragmentos, leídos del propio documento; las 55 filas de grieta y agua embalsada
-de X21 y las 28 de Ito-Matsui de X22 contra cSlope 0.1.0 a 0,1 % (se leen de `crates/ogs-core/tests/data/f3g*/`); las
-propiedades (neutralidad, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua, la
-compuerta de versión, los rechazos con su ruta y la salida siempre finita); y tres reproducciones de R12
-(`docs/fase3/r12/repro/`: E15l-1, E15l-2 y E15l-11), que el motor integrado pasa sin marcas `xfail`. Los tests usan el wheel instalado, no el código fuente.
+cubre el formato v0.5: los cuatro ejemplos de [`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md) (grieta seca, embalse
+al pie, pilote de Ito-Matsui y grieta con UDL y profundidad automática) con sus fragmentos, leídos del propio documento;
+las filas contra cSlope 0.1.0 a 0,1 % (55 de grieta y agua embalsada de X21, 3 de R12 con agua embalsada activa, 28 de
+Ito-Matsui de X22 y la de `ru` con piezométrica; se leen de `crates/ogs-core/tests/data/f3g*/`); las propiedades
+(neutralidad entre v0.3 y v0.5, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua,
+la compuerta de versión, los rechazos con su ruta y la salida siempre finita); y las reproducciones de las revisiones R12
+y R13 (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1, -2, -5, -6, -7 y -11 corren sin marcas, y E15m-1, -2,
+-6 y -7 llevan `xfail(strict=False)` mientras el motor no traiga la corrección. Los tests usan el wheel instalado, no el
+código fuente.
 `OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 

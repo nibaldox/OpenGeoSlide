@@ -3,9 +3,10 @@ message: "Si usa OpenGeoSlide en su trabajo, cítelo con estos metadatos."
 title: "OpenGeoSlide"
 type: software
 abstract: >-
-  Software libre para el análisis de estabilidad de taludes 2D por equilibrio límite (Bishop simplificado y Spencer).
-  El motor está escrito en Rust y compila a binario nativo, a WebAssembly y a un paquete de Python; se verifica frente
-  a valores publicados y frente al oráculo cSlope.
+  Software libre para el análisis de estabilidad de taludes 2D por equilibrio límite (Bishop simplificado, Spencer,
+  Morgenstern-Price y Janbu), con superficies circulares y poligonales, agua, cargas sísmicas y de
+  superficie, y refuerzos. El motor está escrito en Rust y compila a binario nativo, a WebAssembly y a un paquete de Python; se
+  verifica frente a valores publicados y frente al oráculo cSlope.
 authors:
   - name: "Colaboradores de OpenGeoSlide"
 version: "0.3.0"

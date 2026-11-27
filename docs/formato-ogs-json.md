@@ -22,12 +22,16 @@ los leen. El motor acepta cinco versiones:
   a la salida de la v0.2.0, con **una sola excepción documentada**: un círculo cuyo arco termina con la tangente vertical
   sobre el terreno, que la v0.2.0 rechazaba por redondeo (V065), ahora se analiza ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
 - **Un modelo sin `tension_crack` y con la piezométrica bajo el terreno da la misma salida, byte a byte, que la v0.3.0**
-  (salvo el número de versión del motor). **Excepción documentada:** un modelo cuya piezométrica pasa **sobre el
+  (salvo el número de versión del motor, y con la excepción de γw en imperial que sigue). **Excepción documentada:** un modelo cuya piezométrica pasa **sobre el
   terreno** cambia de resultado en las cinco versiones, porque ahora incluye el agua embalsada
   ([Agua embalsada](#agua-embalsada-todas-las-versiones) y
   [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)). **Segunda excepción
   (E15j-8):** en V019 con búsqueda solo cambian los contadores `search.evaluated` y `search.valid`
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
+  **Tercera excepción (E15l-6, E15m-6):** un archivo `imperial` con agua (piezométrica, aunque quede bajo el terreno,
+  agua embalsada o agua en la grieta) y sin `water.unit_weight` toma γw ≈ 62,45 pcf en lugar de 9,81 y cambia de FS; el
+  motor emite entonces el aviso informativo `water_unit_weight_default`. En SI no cambia nada
+  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar -->
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, y `analysis.tension_crack` y
   el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
@@ -1486,7 +1490,8 @@ Las convenciones (E15c):
   material con `ru` **no** cuenta el agua libre (E14o-4), de modo que con refuerzos no hay doble conteo.
 - **γw** es `water.unit_weight`. Si falta, vale 9,81 kN/m³ en `SI` y, en `imperial`, el resultado de convertir 9,81 kN/m³
   con el mismo factor que usa la web (alrededor de 62,45 pcf) (E15l-6); rige para la piezométrica, el agua embalsada y el
-  agua de la grieta. La web escribe `water.unit_weight` de forma explícita al convertir unidades
+  agua de la grieta. En `imperial` y sin `water.unit_weight`, el motor emite el aviso `water_unit_weight_default` (E15m-6;
+  [tercera excepción a la identidad con la v0.3.0](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). <!-- R13: medir al integrar --> La web escribe `water.unit_weight` de forma explícita al convertir unidades
   ([Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)). Medido con una grieta de 2 m con agua y sin
   `water`: en `imperial`, Bishop da 1,69865, igual que en `SI`, y `Pw` = 1344,40 lbf/ft (γw = 62,449 pcf); antes daba 1,71248 y
   211,19 lbf/ft.

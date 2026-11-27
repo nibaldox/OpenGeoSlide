@@ -113,6 +113,10 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
   permitidos (rutas JSON con `*` por segmento, como `results.*.search.evaluated`), se informa como «EXCEPCIÓN» y no
   cuenta; si hay otro campo, otro modelo, otro estado o stderr, cuenta. Hoy declara V019 en `search` y `search@0.4`
   ([Limitaciones](limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)).
+- **La tercera excepción (γw por defecto en imperial, E15l-6 y E15m-6)** no necesita una entrada en
+  `identity_exceptions.json`: ninguno de los 15 modelos imperiales del corpus usa agua, así que la compuerta no lo ve.
+  Un archivo imperial con agua y sin `water.unit_weight` cambia de FS frente a la v0.3.0 a propósito
+  ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 
 El resultado esperado es «0 diferencias» para todo lo demás, con salida `ok` en el baseline.
 
@@ -145,7 +149,7 @@ versión que fija el crate.
 
 Los tests de `crates/ogs-py/tests` (incluidos `test_v04.py`, con las filas de refuerzos de X17, y `test_v05.py`, con los
 ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md), las filas de X21 y X22 de `crates/ogs-core/tests/data/f3g*/` y
-las reproducciones de `docs/fase3/r12/repro/`; por eso se corren desde la raíz del repositorio) corren contra el **wheel
+las reproducciones de `docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`; por eso se corren desde la raíz del repositorio) corren contra el **wheel
 instalado**, no contra el código fuente. Con `uv`, un wheel de producción y un venv en `$TMPDIR`:
 
 ```sh
@@ -158,8 +162,10 @@ cd ../..
 OGS_PY_TEST_HOOKS=0 "$TMPDIR/ogs-py-venv/bin/python" -m pytest crates/ogs-py/tests -q
 ```
 
-Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tres tests de
-R12 de `test_v05.py` (E15l-1, E15l-2 y E15l-11) corren sin marcas `xfail`: si uno falla, el motor perdió esa enmienda. Los tests de pánico
+Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tests de
+R12 de `test_v05.py` (E15l-1, E15l-2, E15l-5, E15l-6, E15l-7 y E15l-11) corren sin marcas: si uno falla, el motor perdió
+esa enmienda. Los de R13 de E15m-1, E15m-2, E15m-6 y E15m-7 llevan `xfail(strict=False)` hasta que el motor integrado
+traiga su corrección; entonces se quitan las marcas. Los tests de pánico
 necesitan un segundo wheel con `--features test-hooks` ([`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
 
 ## Compilar la web en local
