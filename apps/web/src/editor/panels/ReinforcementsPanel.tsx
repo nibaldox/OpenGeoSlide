@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import type { Reinforcement } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { createToolSwitch } from '../app/discard';
@@ -7,7 +7,7 @@ import { structuralLimitText } from '../../report/reinforcementReport';
 import type { EditorStore } from '../types';
 import { REINFORCEMENT_LABEL } from '../state/validateLocal';
 import { LabeledField, PanelSection } from './Fields';
-import { formatNumber, modelBounds } from './forms';
+import { formatNumber, hasNonLinearStrength, modelBounds, setPendingDraft } from './forms';
 import {
   APPLICATION_OPTIONS,
   LOCATION_OPTIONS,
@@ -70,13 +70,14 @@ function SelectField<V extends string>({ scope, label, value, options, path, onC
 }
 
 /** Un refuerzo como tarjeta apilada con etiquetas visibles (como las cargas): nombres accesibles «Refuerzo N: Campo (unidad)». */
-function ReinforcementCard({ store, reinforcement, index, list, docUnits, units }: {
+function ReinforcementCard({ store, reinforcement, index, list, docUnits, units, hasNonLinear }: {
   store: EditorStore;
   reinforcement: Reinforcement;
   index: number;
   list: readonly Reinforcement[];
   docUnits: string | undefined;
   units: ReinforcementUnits;
+  hasNonLinear: boolean;
 }) {
   const selected = useStoreSelector(
     store,
@@ -89,6 +90,11 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   const ctx = { otherIds, index, units: docUnits, inclined };
   const { errors, pending, valid } = evaluateCard(form, reinforcement, ctx);
   const scope = `Refuerzo ${index + 1}`;
+  useEffect(() => {
+    const key = `reinforcement:${index}`;
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, index, pending, scope]);
   const tension = isTensionType(form.type);
   const sheet = form.type === 'sheet_pile';
   // E15i-1: un pilote con la presión del suelo de Ito-Matsui es vertical y no lleva `force`, sino diámetro, ubicación y capacidad.
@@ -158,6 +164,17 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
             onChange={(source) => apply(switchPileSource(form, source, docUnits))}
             onFocus={select}
           />
+        ) : null}
+        {form.type === 'pile' && hasNonLinear ? (
+          <p
+            className={ito ? 'ep-error ep-wide' : 'ep-note small ep-wide'}
+            role={ito ? 'alert' : 'status'}
+            data-testid={ito ? 'ito-matsui-f65-note' : 'ito-matsui-f65-hint'}
+          >
+            {ito
+              ? 'La presión del suelo de Ito-Matsui no se admite con materiales Hoek-Brown o SHANSEP (requiere c y φ constantes). Cambie el origen a «Fuerza fija» o quite esos materiales.'
+              : 'La presión del suelo de Ito-Matsui no se admite con materiales Hoek-Brown o SHANSEP.'}
+          </p>
         ) : null}
         {tension ? (
           <SelectField
@@ -309,6 +326,8 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
 export function ReinforcementsPanel({ store }: { store: EditorStore }) {
   const list = useStoreSelector(store, (s) => s.doc.reinforcements ?? NO_REINFORCEMENTS);
   const regions = useStoreSelector(store, (s) => s.doc.regions);
+  const materials = useStoreSelector(store, (s) => s.doc.materials);
+  const hasNonLinear = hasNonLinearStrength(materials);
   const docUnits = useStoreSelector(store, (s) => s.doc.units);
   const drawing = useStoreSelector(store, (s) => s.ui.tool === 'draw_reinforcement');
   const units = reinforcementUnits(docUnits);
@@ -331,7 +350,7 @@ export function ReinforcementsPanel({ store }: { store: EditorStore }) {
       ) : (
         <div className="ep-cards">
           {list.map((r, i) => (
-            <ReinforcementCard key={i} store={store} reinforcement={r} index={i} list={list} docUnits={docUnits} units={units} />
+            <ReinforcementCard key={i} store={store} reinforcement={r} index={i} list={list} docUnits={docUnits} units={units} hasNonLinear={hasNonLinear} />
           ))}
         </div>
       )}

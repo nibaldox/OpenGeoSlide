@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
 import './App.css';
 import './ui/targets.css';
 import { blockedMessage, caseBlockers } from './analysis/caseGate';
 import { checkModel, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
-import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
+import { EngineCancelledError, getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
 import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
@@ -12,7 +12,7 @@ import { EditorApp } from './editor/EditorApp';
 import { resultCaption } from './editor/app/reportInput';
 import { lengthUnitOf } from './editor/canvas/layout';
 import { createRunGuard } from './editor/app/runGuard';
-import { BISHOP_POLYLINE_NOTE, METHOD_ORDER, isFixedPolyline } from './editor/panels/forms';
+import { METHOD_ORDER, methodDisabledReason } from './editor/panels/forms';
 import { engineModel } from './io/ogsJson';
 import { GuidedTour } from './onboarding/GuidedTour';
 import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
@@ -33,6 +33,27 @@ import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 /** Los cinco métodos de la vista Casos, en el orden del editor (F3.9). */
 const ALL_METHODS: readonly MethodKind[] = METHOD_ORDER;
 
+/** Selección inicial de métodos en Casos de verificación. */
+export const DEFAULT_CASE_METHODS: Readonly<Record<MethodKind, boolean>> = {
+  bishop: true,
+  spencer: true,
+  morgenstern_price: false,
+  janbu_simplified: false,
+  janbu_corrected: false,
+};
+
+/** Métodos efectivos que pide Casos con la selección dada, omitiendo Bishop si no aplica (polilínea fija o búsqueda no circular, F3.6 / F6.4). */
+export function effectiveCaseMethods(model: Model, selection: Readonly<Record<MethodKind, boolean>> = DEFAULT_CASE_METHODS): MethodKind[] {
+  const bishopBlocked = methodDisabledReason('bishop', model.analysis) !== null;
+  return ALL_METHODS.filter((m) => selection[m] && !(m === 'bishop' && bishopBlocked));
+}
+
+/** Texto de avance durante un cálculo largo en Casos de verificación (R15B-11). */
+export function formatCasesProgress(elapsedSeconds: number, activeMethod?: MethodKind | null): string {
+  const secs = Math.max(0, Math.floor(elapsedSeconds));
+  return activeMethod ? `Comprobando ${METHOD_LABELS[activeMethod]}… (${secs} s)` : `Comprobando… (${secs} s)`;
+}
+
 interface RunResult {
   report: AnalysisReport;
   elapsedMs: number;
@@ -44,8 +65,9 @@ function errorMessage(error: unknown): string {
 
 export function describeAnalysis(model: Model): string {
   const parts: string[] = [];
-  if (model.analysis.search) parts.push('búsqueda de superficie crítica');
-  else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
+  if (model.analysis.search) {
+    parts.push(model.analysis.search.non_circular ? 'búsqueda de superficie crítica (no circular)' : 'búsqueda de superficie crítica');
+  } else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
   parts.push(`${model.materials.length} material(es)`);
   parts.push(`${model.regions.length} región(es)`);
   // E15l-18: el agua de la grieta (`water_fill > 0`) también es agua.
@@ -61,29 +83,50 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [cases, setCases] = useState<CaseEntry[]>(loadBuiltinCases);
   // Vacío hasta elegir: current cae en el primer caso.
   const [caseKey, setCaseKey] = useState<string>('');
-  const [methods, setMethods] = useState<Record<MethodKind, boolean>>({
-    bishop: true,
-    spencer: true,
-    morgenstern_price: false,
-    janbu_simplified: false,
-    janbu_corrected: false,
-  });
+  const [methods, setMethods] = useState<Record<MethodKind, boolean>>(() => ({ ...DEFAULT_CASE_METHODS }));
   const [busy, setBusy] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [activeMethod, setActiveMethod] = useState<MethodKind | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<RunResult | null>(null);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
   const [checks, setChecks] = useState<CheckRow[]>([]);
   const [perfRuns, setPerfRuns] = useState(10);
   const [perf, setPerf] = useState<TimeSummary | null>(null);
+  const engineStatus = useSyncExternalStore(
+    useCallback((listener: () => void) => client.subscribe(listener), [client]),
+    () => client.getStatus(),
+    () => client.getStatus(),
+  );
 
-  // Token de solicitud: solo la última ejecución puede escribir resultados; una respuesta tardía del caso anterior se descarta (R7-09).
+  // Token de solicitud y AbortController: descarta respuestas tardías y permite cancelar cálculos largos (R7-09, R15B-11).
   const guard = useRef(createRunGuard()).current;
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!busy) {
+      setElapsedSec(0);
+      return;
+    }
+    const start = Date.now();
+    setElapsedSec(0);
+    const timer = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - start) / 1000));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [busy]);
+
+  useEffect(() => () => {
+    abortRef.current?.abort();
+  }, []);
 
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
-  // F3.6: con una polilínea fija Bishop no se ofrece; no se pide aunque la casilla haya quedado marcada de otro caso.
-  const bishopBlocked = current ? isFixedPolyline(current.caseData.model.analysis) : false;
+  // F3.6 / F6.4: con una polilínea fija o búsqueda no circular, Bishop no se ofrece ni se pide aunque haya quedado marcado.
+  const bishopReason = current ? methodDisabledReason('bishop', current.caseData.model.analysis) : null;
+  const bishopBlocked = bishopReason !== null;
   const methodOff = (m: MethodKind): boolean => m === 'bishop' && bishopBlocked;
-  const selectedMethods = ALL_METHODS.filter((m) => methods[m] && !methodOff(m));
+  const selectedMethods = current ? effectiveCaseMethods(current.caseData.model, methods) : [];
 
   const shownResult = run?.report.results.find((r) => r.method === shownMethod) ?? run?.report.results[0] ?? null;
   const scene = useMemo(
@@ -92,12 +135,27 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   );
 
   function resetOutputs() {
+    abortRef.current?.abort();
+    abortRef.current = null;
     guard.invalidate();
     setBusy(false);
+    setActiveMethod(null);
+    setNotice(null);
     setRun(null);
     setChecks([]);
     setPerf(null);
     setShownMethod(null);
+  }
+
+  function cancelar() {
+    if (!busy) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    guard.invalidate();
+    client.cancel();
+    setBusy(false);
+    setActiveMethod(null);
+    setNotice('Cálculo cancelado.');
   }
 
   function selectCase(key: string) {
@@ -106,17 +164,20 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     setError(null);
   }
 
-  async function runCheck(model: Model, check: VerificationCheck): Promise<CheckRow> {
+  async function runCheck(model: Model, check: VerificationCheck, signal: AbortSignal): Promise<CheckRow | null> {
+    if (signal.aborted) return null;
     try {
       const { report } = await client.analyze(JSON.stringify(engineModel(checkModel(model, check))));
+      if (signal.aborted) return null;
       return checkRowFromResult(check, report.results[0]);
     } catch (err) {
+      if (signal.aborted || err instanceof EngineCancelledError) return null;
       return { check, fos: null, errorRel: null, ok: false, message: userMessage(err) };
     }
   }
 
   async function calcular() {
-    if (!current) return;
+    if (!current || engineStatus !== 'ready') return;
     if (selectedMethods.length === 0) {
       setError('Seleccione al menos un método.');
       return;
@@ -131,36 +192,47 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
       setError(blockedMessage(blockers));
       return;
     }
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     const id = guard.next();
     setBusy(true);
+    setActiveMethod(selectedMethods.length === 1 ? selectedMethods[0]! : null);
+    setNotice(null);
     setError(null);
     setPerf(null);
     setChecks([]);
     try {
       const model = current.caseData.model;
       const result: AnalyzeResult = await client.analyze(JSON.stringify(engineModel(runModel(model, selectedMethods))));
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id)) return;
       setRun({ report: result.report, elapsedMs: result.elapsed_ms });
       setShownMethod(result.report.results[0]?.method ?? null);
 
       const rows: CheckRow[] = [];
       for (const check of current.caseData.checks ?? []) {
-        const row = await runCheck(model, check);
-        if (!guard.isCurrent(id)) return;
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
+        setActiveMethod(check.method);
+        const row = await runCheck(model, check, ac.signal);
+        if (row === null || ac.signal.aborted || !guard.isCurrent(id)) return;
         rows.push(row);
       }
       setChecks(rows);
     } catch (err) {
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id) || err instanceof EngineCancelledError) return;
       setRun(null);
       setError(userMessage(err));
     } finally {
-      if (guard.isCurrent(id)) setBusy(false);
+      if (abortRef.current === ac) abortRef.current = null;
+      if (guard.isCurrent(id)) {
+        setBusy(false);
+        setActiveMethod(null);
+      }
     }
   }
 
   async function medir() {
-    if (!current) return;
+    if (!current || engineStatus !== 'ready') return;
     if (selectedMethods.length === 0) {
       setError('Seleccione al menos un método.');
       return;
@@ -172,22 +244,32 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     }
     const n = Math.min(MAX_PERF_RUNS, Math.max(1, Math.round(perfRuns) || 1));
     const json = JSON.stringify(engineModel(runModel(current.caseData.model, selectedMethods)));
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     const id = guard.next();
     setBusy(true);
+    setActiveMethod(selectedMethods.length === 1 ? selectedMethods[0]! : null);
+    setNotice(null);
     setError(null);
     try {
       const times: number[] = [];
       for (let i = 0; i < n; i++) {
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
         const result = await client.analyze(json);
-        if (!guard.isCurrent(id)) return;
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
         times.push(result.elapsed_ms);
       }
       setPerf(summarizeTimes(times));
     } catch (err) {
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id) || err instanceof EngineCancelledError) return;
       setError(userMessage(err));
     } finally {
-      if (guard.isCurrent(id)) setBusy(false);
+      if (abortRef.current === ac) abortRef.current = null;
+      if (guard.isCurrent(id)) {
+        setBusy(false);
+        setActiveMethod(null);
+      }
     }
   }
 
@@ -245,26 +327,43 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
               ))}
               {bishopBlocked && (
                 <p id="cases-bishop-note" className="muted small">
-                  {BISHOP_POLYLINE_NOTE}
+                  {bishopReason}
                 </p>
               )}
             </fieldset>
 
-            <button type="button" className="primary" onClick={calcular} disabled={busy || !info}>
-              {busy ? 'Comprobando…' : 'Comprobar caso'}
-            </button>
+            <div className="ep-actions">
+              <button type="button" className="primary" onClick={calcular} disabled={busy || !info || engineStatus !== 'ready'}>
+                {busy ? 'Comprobando…' : 'Comprobar caso'}
+              </button>
+              {busy && (
+                <button type="button" onClick={cancelar} title="Termina el cálculo y reinicia el motor" data-testid="cases-cancel">
+                  Cancelar
+                </button>
+              )}
+            </div>
+            {busy && (
+              <p className="muted small" role="status" data-testid="cases-progress">
+                {formatCasesProgress(elapsedSec, activeMethod)}
+              </p>
+            )}
           </section>
 
           <PerformancePanel
             summary={perf}
             runs={perfRuns}
-            busy={busy || !info}
+            busy={busy || !info || engineStatus !== 'ready'}
             onRunsChange={setPerfRuns}
             onMeasure={medir}
           />
         </aside>
 
         <div className="content">
+          {notice && (
+            <div className="banner" role="status" data-testid="cases-notice">
+              {notice}
+            </div>
+          )}
           {error && (
             <div className="banner banner-error" role="alert">
               {error}

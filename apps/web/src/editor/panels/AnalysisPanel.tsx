@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId } from 'react';
 import type { Direction, IntersliceFunction, MethodKind, Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { crackEditCommands } from './crackWater';
@@ -6,7 +6,6 @@ import { applyCommands } from './dispatch';
 import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
-  CRACK_DEFAULT_WATER_FILL,
   CRACK_DEFAULT_FIXED_DEPTH,
   DIRECTION_OPTIONS,
   INTERSLICE_OPTIONS,
@@ -22,11 +21,14 @@ import {
   dataPointsToForm,
   canInsertDataPoint,
   formatNumber,
+  hasNonLinearStrength,
+  initialCrackForm,
   insertDataPoint,
   intersliceFunctionCommand,
   intersliceFunctionOf,
   methodDisabledReason,
   removeDataPoint,
+  setPendingDraft,
   toggleMethod,
   unitLabels,
   type AnalysisForm,
@@ -51,6 +53,11 @@ function IntersliceSection({ store }: { store: EditorStore }) {
   const [rows, setRows, resetRows] = useDraft(() => dataPointsToForm(points), [interslice]);
   const table = dataPointsFromForm(rows);
   const tableErrors = table.ok ? {} : table.errors;
+  const rowsPending = fn === 'data_points' && !table.ok && JSON.stringify(rows) !== JSON.stringify(dataPointsToForm(points));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis:interslice', rowsPending ? 'Función entre dovelas' : null);
+    return () => setPendingDraft(store, 'analysis:interslice', null);
+  }, [store, rowsPending]);
   const commitRows = (): void => {
     if (table.ok && !samePoints(points, table.value)) store.dispatch(dataPointsCommand(table.value));
   };
@@ -155,11 +162,18 @@ function IntersliceSection({ store }: { store: EditorStore }) {
 function CrackSection({ store }: { store: EditorStore }) {
   const base = useId();
   const crack = useStoreSelector(store, (s) => s.doc.analysis.tension_crack ?? null);
+  const materials = useStoreSelector(store, (s) => s.doc.materials);
+  const hasNonLinear = hasNonLinearStrength(materials);
   const units = useStoreSelector(store, (s) => s.doc.units);
   const u = unitLabels(units);
   const [form, setForm, reset] = useDraft(() => crackToForm(store.getState().doc), [crack]);
   const outcome = crackFromForm(form);
   const errors = outcome.ok ? {} : outcome.errors;
+  const crackPending = !outcome.ok && JSON.stringify(form) !== JSON.stringify(crackToForm(store.getState().doc));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis:crack', crackPending ? 'Grieta de tracción' : null);
+    return () => setPendingDraft(store, 'analysis:crack', null);
+  }, [store, crackPending]);
   const commitWith = (next: CrackForm): void => {
     const r = crackFromForm(next);
     if (r.ok) applyCommands(store, 'Editar la grieta de tracción', crackEditCommands(store.getState().doc, r.value));
@@ -180,7 +194,7 @@ function CrackSection({ store }: { store: EditorStore }) {
           aria-describedby={noteId}
           onChange={(e) => {
             const next: CrackForm = e.target.checked
-              ? { enabled: true, auto: true, depth: '', water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) }
+              ? initialCrackForm(store.getState().doc)
               : { ...form, enabled: false };
             setForm(next);
             commitWith(next);
@@ -193,50 +207,61 @@ function CrackSection({ store }: { store: EditorStore }) {
         actúa a favor del deslizamiento. Su posición sale de la superficie y de la profundidad.
       </span>
       {form.enabled ? (
-        <div className="ep-grid">
-          <div className="field ep-field">
-            <label htmlFor={modeId}>Tipo de profundidad de la grieta</label>
-            <select
-              id={modeId}
-              value={form.auto ? 'auto' : 'fixed'}
-              onChange={(e) => {
-                const auto = e.target.value === 'auto';
-                const next: CrackForm = { ...form, auto, depth: auto || form.depth.trim() !== '' ? form.depth : formatNumber(CRACK_DEFAULT_FIXED_DEPTH) };
-                setForm(next);
-                commitWith(next);
-              }}
-            >
-              <option value="fixed">Fija (un valor)</option>
-              <option value="auto">Automática</option>
-            </select>
-            {form.auto ? (
-              <span className="muted small">Automática: z = 2c/(γ·tan(45° − φ/2)) − q/γ, con el suelo y las sobrecargas de cada x.</span>
-            ) : null}
-          </div>
-          {form.auto ? null : (
+        <>
+          {hasNonLinear ? (
+            <p className={form.auto ? 'ep-error' : 'ep-note small'} role={form.auto ? 'alert' : 'status'} data-testid="crack-f65-note">
+              {form.auto
+                ? 'La profundidad automática (Rankine) no se admite con materiales Hoek-Brown o SHANSEP: elija una profundidad fija.'
+                : 'Con materiales Hoek-Brown o SHANSEP la grieta usa una profundidad fija (la profundidad automática de Rankine requiere c y φ constantes).'}
+            </p>
+          ) : null}
+          <div className="ep-grid">
+            <div className="field ep-field">
+              <label htmlFor={modeId}>Tipo de profundidad de la grieta</label>
+              <select
+                id={modeId}
+                value={form.auto ? 'auto' : 'fixed'}
+                onChange={(e) => {
+                  const auto = e.target.value === 'auto';
+                  const next: CrackForm = { ...form, auto, depth: auto || form.depth.trim() !== '' ? form.depth : formatNumber(CRACK_DEFAULT_FIXED_DEPTH) };
+                  setForm(next);
+                  commitWith(next);
+                }}
+              >
+                <option value="fixed">Fija (un valor)</option>
+                <option value="auto" disabled={hasNonLinear && !form.auto}>
+                  Automática
+                </option>
+              </select>
+              {form.auto ? (
+                <span className="muted small">Automática: z = 2c/(γ·tan(45° − φ/2)) − q/γ, con el suelo y las sobrecargas de cada x.</span>
+              ) : null}
+            </div>
+            {form.auto ? null : (
+              <LabeledField
+                label="Profundidad de la grieta"
+                unit={u.length}
+                path="/analysis/tension_crack/depth"
+                value={form.depth}
+                hint="Mayor que 0"
+                error={'depth' in errors ? errors.depth : undefined}
+                onChange={(v) => setForm({ ...form, depth: v })}
+                onCommit={() => commitWith(form)}
+                onReset={reset}
+              />
+            )}
             <LabeledField
-              label="Profundidad de la grieta"
-              unit={u.length}
-              path="/analysis/tension_crack/depth"
-              value={form.depth}
-              hint="Mayor que 0"
-              error={'depth' in errors ? errors.depth : undefined}
-              onChange={(v) => setForm({ ...form, depth: v })}
+              label="Fracción de agua en la grieta"
+              path="/analysis/tension_crack/water_fill"
+              value={form.water_fill}
+              hint="De 0 a 1: 0 es seca y 1 es llena (lo más conservador)"
+              error={'water_fill' in errors ? errors.water_fill : undefined}
+              onChange={(v) => setForm({ ...form, water_fill: v })}
               onCommit={() => commitWith(form)}
               onReset={reset}
             />
-          )}
-          <LabeledField
-            label="Fracción de agua en la grieta"
-            path="/analysis/tension_crack/water_fill"
-            value={form.water_fill}
-            hint="De 0 a 1: 0 es seca y 1 es llena (lo más conservador)"
-            error={'water_fill' in errors ? errors.water_fill : undefined}
-            onChange={(v) => setForm({ ...form, water_fill: v })}
-            onCommit={() => commitWith(form)}
-            onReset={reset}
-          />
-        </div>
+          </div>
+        </>
       ) : null}
     </fieldset>
   );
@@ -249,6 +274,11 @@ export function AnalysisPanel({ store }: { store: EditorStore }) {
   const [form, setForm, reset] = useDraft(() => analysisToForm(store.getState().doc), [analysis, slope]);
   const outcome = analysisFromForm(form);
   const errors = outcome.ok ? {} : outcome.errors;
+  const analysisPending = !outcome.ok && JSON.stringify(form) !== JSON.stringify(analysisToForm(store.getState().doc));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis', analysisPending ? 'Análisis' : null);
+    return () => setPendingDraft(store, 'analysis', null);
+  }, [store, analysisPending]);
 
   const commitWith = (next: AnalysisForm): void => {
     const r = analysisFromForm(next);

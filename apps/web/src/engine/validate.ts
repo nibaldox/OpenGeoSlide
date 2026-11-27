@@ -77,6 +77,40 @@ function isCrackReport(value: unknown): boolean {
   );
 }
 
+/** Estadísticas del refinamiento no circular (v0.6, F6.6). */
+function isNonCircularStats(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value.seeds) &&
+    Number.isInteger(value.seeds) &&
+    value.seeds >= 0 &&
+    isFiniteNumber(value.evaluated) &&
+    Number.isInteger(value.evaluated) &&
+    value.evaluated >= 0 &&
+    isFiniteNumber(value.seed_fos) &&
+    (value.polyline_fos === undefined || isFiniteNumber(value.polyline_fos))
+  );
+}
+
+/** Estado de esfuerzo de una dovela `hoek_brown` o `shansep` (v0.6, F6.6). */
+function isSliceStrength(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (!(isFiniteNumber(value.index) && Number.isInteger(value.index) && value.index >= 0)) return false;
+  if (value.law === 'hoek_brown') return isFiniteNumber(value.normal_stress);
+  if (value.law === 'shansep') return isFiniteNumber(value.vertical_stress) && isFiniteNumber(value.ocr);
+  return false;
+}
+
+/** Informe de resistencia por método (v0.6, F6.6): `passes` opcional y arreglo `slices`. */
+function isStrengthReport(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.passes === undefined || (isFiniteNumber(value.passes) && Number.isInteger(value.passes) && value.passes >= 0)) &&
+    Array.isArray(value.slices) &&
+    value.slices.every(isSliceStrength)
+  );
+}
+
 function isMethodReport(value: unknown): value is MethodReport {
   if (!isRecord(value)) return false;
   return (
@@ -100,7 +134,8 @@ function isMethodReport(value: unknown): value is MethodReport {
     (value.search === null ||
       (isRecord(value.search) &&
         isFiniteNumber(value.search.evaluated) &&
-        isFiniteNumber(value.search.valid))) &&
+        isFiniteNumber(value.search.valid) &&
+        (value.search.non_circular === undefined || isNonCircularStats(value.search.non_circular)))) &&
     Array.isArray(value.warnings) &&
     value.warnings.every((w) => typeof w === 'string') &&
     (value.correction_factor === undefined || isFiniteNumber(value.correction_factor)) &&
@@ -108,7 +143,9 @@ function isMethodReport(value: unknown): value is MethodReport {
     (value.reinforcement_forces === undefined ||
       (Array.isArray(value.reinforcement_forces) && value.reinforcement_forces.every(isReinforcementForce))) &&
     // El motor omite `tension_crack` sin grieta (E15b): ausente o con la forma del contrato.
-    (value.tension_crack === undefined || isCrackReport(value.tension_crack))
+    (value.tension_crack === undefined || isCrackReport(value.tension_crack)) &&
+    // El motor omite `strength` sin materiales `hoek_brown` ni `shansep` (F6.6).
+    (value.strength === undefined || isStrengthReport(value.strength))
   );
 }
 

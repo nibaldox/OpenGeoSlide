@@ -7,6 +7,7 @@ import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   MATERIAL_MODEL_OPTIONS,
   defaultStrengthGradient,
+  evaluateMaterialCard,
   formatNumber,
   materialFromForm,
   materialRemoveCommand,
@@ -14,9 +15,9 @@ import {
   materialTopElevation,
   materialUpsertCommand,
   materialUsage,
-  materialsEqual,
   newMaterialForm,
   regionMaterialCommand,
+  setPendingDraft,
   setSuVariable,
   switchMaterialModel,
   unitLabels,
@@ -104,8 +105,18 @@ export const MATERIAL_RANGES_NOTE =
   'SHANSEP: S mayor que 0, exponente m en [0, 1] (vacío = 0,8), exactamente una fuente de OCR (OCR constante, POP o tabla por cota), OCR ≥ 1 y POP ≥ 0; ' +
   'la tabla necesita al menos 2 filas con la cota estrictamente creciente.';
 
-function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form: MaterialForm; setForm: (f: MaterialForm) => void; scope: string; units: UnitLabels; errors: Record<string, string>; commit?: (f: MaterialForm) => void }) {
+function MaterialExtras({ form, setForm, scope, units, errors, commit, index, onReset }: {
+  form: MaterialForm;
+  setForm: (f: MaterialForm) => void;
+  scope: string;
+  units: UnitLabels;
+  errors: Record<string, string>;
+  commit?: (f: MaterialForm) => void;
+  index?: number;
+  onReset?: () => void;
+}) {
   const sourceId = useId();
+  const basePath = index !== undefined ? `/materials/${index}` : undefined;
   const update = (next: MaterialForm) => { setForm(next); commit?.(next); };
   if (form.model === 'hoek_brown') {
     const values = [form.gsi, form.mi, form.disturbance].map(v => v == null || v.trim() === '' ? NaN : Number(v.replace(',', '.')));
@@ -119,11 +130,28 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form:
   }
   if (form.model !== 'shansep') return null;
   const rows = form.ocrRows ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }];
+  const ocrKey = form.ocrSource === 'pop' ? 'pop' : 'ocr';
   return <fieldset className="field" style={{ gridColumn: '1 / -1' }}><legend>Fuente de OCR</legend>
-    <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select id={sourceId} value={form.ocrSource ?? 'ocr'} onChange={e => update({ ...form, ocrSource: e.target.value as 'ocr' | 'pop' | 'table', ocrRows: rows })}>
+    <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select
+      id={sourceId}
+      data-path={basePath ? `${basePath}/shansep` : undefined}
+      value={form.ocrSource ?? 'ocr'}
+      onChange={e => update({ ...form, ocrSource: e.target.value as 'ocr' | 'pop' | 'table', ocrRows: rows })}
+      onKeyDown={onReset ? (e) => { if (e.key === 'Escape') onReset(); } : undefined}
+    >
       <option value="ocr">OCR constante</option><option value="pop">POP</option><option value="table">Tabla por cota</option>
     </select></div>
-    {(form.ocrSource ?? 'ocr') !== 'table' ? <LabeledField scope={scope} label={form.ocrSource === 'pop' ? 'POP' : 'OCR constante'} unit={form.ocrSource === 'pop' ? units.stress : undefined} value={form.ocrSource === 'pop' ? form.pop ?? '' : form.ocr ?? ''} error={errors[form.ocrSource === 'pop' ? 'pop' : 'ocr']} onChange={v => setForm({ ...form, [form.ocrSource === 'pop' ? 'pop' : 'ocr']: v })} onCommit={() => commit?.(form)} /> : <>
+    {(form.ocrSource ?? 'ocr') !== 'table' ? <LabeledField
+      scope={scope}
+      label={form.ocrSource === 'pop' ? 'POP' : 'OCR constante'}
+      unit={form.ocrSource === 'pop' ? units.stress : undefined}
+      path={basePath ? `${basePath}/${ocrKey}` : undefined}
+      value={form.ocrSource === 'pop' ? form.pop ?? '' : form.ocr ?? ''}
+      error={errors[ocrKey]}
+      onChange={v => setForm({ ...form, [ocrKey]: v })}
+      onCommit={() => commit?.(form)}
+      onReset={onReset}
+    /> : <>
       <div className="ep-table-wrap" role="region" aria-label={`${scope}: OCR por cota`} tabIndex={0}>
         <table className="ep-table">
           <thead>
@@ -136,8 +164,15 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form:
           <tbody>
             {rows.map((row, i) => <tr key={i}>
               {(['y', 'ocr'] as const).map(k => <td key={k}>
-                <TextInput value={row[k]} ariaLabel={`${scope}: fila ${i + 1}, ${k === 'y' ? 'Cota' : 'OCR'}`} invalid={`row${i}${k}` in errors}
-                  onChange={v => setForm({ ...form, ocrRows: rows.map((r, j) => i === j ? { ...r, [k]: v } : r) })} onCommit={() => commit?.(form)} />
+                <TextInput
+                  value={row[k]}
+                  ariaLabel={`${scope}: fila ${i + 1}, ${k === 'y' ? 'Cota' : 'OCR'}`}
+                  path={basePath ? `${basePath}/shansep/ocr_by_elevation/${i}/${k === 'y' ? 0 : 1}` : undefined}
+                  invalid={`row${i}${k}` in errors}
+                  onChange={v => setForm({ ...form, ocrRows: rows.map((r, j) => i === j ? { ...r, [k]: v } : r) })}
+                  onCommit={() => commit?.(form)}
+                  onReset={onReset}
+                />
               </td>)}
               <td><button type="button" disabled={rows.length <= 2} aria-label={`${scope}: quitar la fila ${i + 1}`} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar</button></td>
             </tr>)}
@@ -210,19 +245,22 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
 }) {
   const [form, setForm, reset] = useDraft(() => materialToForm(material), [material]);
   const selected = useStoreSelector(store, (s) => s.ui.selection.kind === 'material' && s.ui.selection.materialId === material.id);
-  const outcome = materialFromForm(form, { otherIds, editing: material });
-  const errors = outcome.ok ? {} : outcome.errors;
+  const { errors, pending } = evaluateMaterialCard(form, material, { otherIds, editing: material });
 
   const commitWith = (next: MaterialForm): void => {
-    const result = materialFromForm(next, { otherIds, editing: material });
-    if (!result.ok || materialsEqual(result.value, material)) return;
-    store.dispatch(materialUpsertCommand(result.value));
+    const { commit: value } = evaluateMaterialCard(next, material, { otherIds, editing: material });
+    if (value) store.dispatch(materialUpsertCommand(value));
   };
   const commit = (): void => commitWith(form);
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'material', materialId: material.id } });
   const remove = materialRemoveCommand(store.getState().doc, material.id);
 
   const scope = `Material ${material.id}`;
+  useEffect(() => {
+    const key = `material:${material.id}`;
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, material.id, pending, scope]);
   const model: MaterialModel = form.model ?? 'mohr_coulomb';
   const fields = materialFields(units, model, form.variable === true);
   const field = ({ key, label, unit, mode, hint }: FieldSpec) => (
@@ -264,8 +302,16 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         ) : null}
         {fields.variable.map(field)}
         {fields.after.map(field)}
-        <MaterialExtras form={form} setForm={setForm} scope={scope} units={units} errors={errors} commit={commitWith} />
+        <MaterialExtras form={form} setForm={setForm} scope={scope} units={units} errors={errors} commit={commitWith} index={index} onReset={reset} />
       </div>
+      {pending ? (
+        <p className="ep-note small" role="status" data-testid="material-pending">
+          Hay cambios de esta tarjeta sin aplicar al modelo: corrija los errores para guardarlos.{' '}
+          <button type="button" className="link-button" aria-label={`Descartar cambios del material ${material.id}`} onClick={reset}>
+            Descartar cambios
+          </button>
+        </p>
+      ) : null}
       <div className="ep-actions">
         <button
           type="button"

@@ -1,4 +1,4 @@
-import { reportCircle } from '../engine/surface';
+import { isPolylineReport, reportCircle } from '../engine/surface';
 import type { AnalysisReport, MethodKind, Reinforcement, SolveStatus, TensionCrack } from '../engine/types';
 import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
@@ -63,6 +63,8 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
   // Con polilínea no hay centro ni radio: si todos los métodos la usan, una sola columna; en un informe mixto, el resumen va en la celda del centro.
   const polylines = report.results.map((r) => resultSurfaceSummary(r));
   const allPolyline = report.results.length > 0 && polylines.every((p) => p !== null);
+  const anySearch = report.results.some((r) => r.search != null);
+  const nonCircularResults = report.results.filter((r) => r.search?.non_circular !== undefined);
   const circleColumns = Boolean(lengthUnit) && !allPolyline;
   const columns = 7 + (circleColumns ? 2 : 0) + (allPolyline ? 1 : 0) + 1; // + «Superficie» (Dibujar)
   return (
@@ -78,7 +80,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
             <th scope="col">λ</th>
             <th scope="col">Superficies evaluadas</th>
             <th scope="col">Superficies válidas</th>
-            {allPolyline && <th scope="col">Superficie fija</th>}
+            {allPolyline && <th scope="col">{anySearch ? 'Superficie crítica' : 'Superficie fija'}</th>}
             {circleColumns && <th scope="col">Centro (xc; yc) ({lengthUnit})</th>}
             {circleColumns && <th scope="col">Radio ({lengthUnit})</th>}
             <th scope="col">Superficie</th>
@@ -102,6 +104,14 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
                   <>
                     <br />
                     <span className="muted small">f₀ = {correctionFactorText(detail.f0)}</span>
+                  </>
+                )}
+                {typeof r.strength?.passes === 'number' && (
+                  <>
+                    <br />
+                    <span className="muted small">
+                      Hoek-Brown: {r.strength.passes} {r.strength.passes === 1 ? 'pasada' : 'pasadas'}
+                    </span>
                   </>
                 )}
               </td>
@@ -141,6 +151,41 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
           </tr>
         </tfoot>
       </table>
+      {nonCircularResults.length > 0 && (
+        <section className="rf nc-results" aria-label="Búsqueda no circular" data-testid="non-circular-summary">
+          <table className="rf-table">
+            <caption>Búsqueda no circular (refinamiento de semillas)</caption>
+            <thead>
+              <tr>
+                <th scope="col">Método</th>
+                <th scope="col">Semillas</th>
+                <th scope="col">Eval. no circ.</th>
+                <th scope="col">FS círculo (semilla)</th>
+                <th scope="col">FS polilínea</th>
+                <th scope="col">Superficie ganadora</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nonCircularResults.map((r) => {
+                const nc = r.search!.non_circular!;
+                const winner = r.status !== 'converged' ? '—' : isPolylineReport(r.surface) ? 'Polilínea' : 'Círculo';
+                return (
+                  <tr key={r.method}>
+                    <td>{METHOD_LABELS[r.method]}</td>
+                    <td className="num">{nc.seeds}</td>
+                    <td className="num">{nc.evaluated}</td>
+                    <td className="num">{formatFs(nc.seed_fos)}</td>
+                    <td className={nc.polyline_fos !== undefined ? 'num' : undefined}>
+                      {nc.polyline_fos !== undefined ? formatFs(nc.polyline_fos) : 'Sin polilínea admisible'}
+                    </td>
+                    <td>{winner}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
       <CrackTable report={report} tensionCrack={tensionCrack} units={lengthUnit === 'ft' ? 'imperial' : 'SI'} />
       <ReinforcementForces report={report} reinforcements={reinforcements} units={lengthUnit === 'ft' ? 'imperial' : 'SI'} />
       {notes.length > 0 && (

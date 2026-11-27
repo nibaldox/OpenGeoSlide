@@ -136,6 +136,16 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   strength_datum: 'Cota de referencia de Su',
   strength_gradient: 'Gradiente de Su',
   strength_limit: 'Límite de Su',
+  ucs: 'Resistencia σci',
+  gsi: 'GSI',
+  mi: 'Constante mi',
+  disturbance: 'Factor de perturbación D',
+  ratio: 'Relación S',
+  exponent: 'Exponente m',
+  ocr: 'OCR constante',
+  pop: 'POP',
+  seeds: 'Semillas',
+  max_vertices: 'Máximo de vértices',
   crack_depth: 'Grieta de tracción, profundidad',
   crack_water_fill: 'Grieta de tracción, fracción de agua',
 };
@@ -481,18 +491,34 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
     range: RULE_TEXT.ru,
   });
 
-  const readNew = (key: 'ucs' | 'gsi' | 'mi' | 'disturbance' | 'ratio' | 'exponent' | 'ocr' | 'pop', required: boolean, accept: (n: number) => boolean) =>
-    take(errors, key, form[key] ?? '', { required, missing: `El campo ${key} es obligatorio`, accept: n => finite(n) && accept(n), range: `Valor no válido para ${key}` });
+  const readNew = (
+    key: 'ucs' | 'gsi' | 'mi' | 'disturbance' | 'ratio' | 'exponent' | 'ocr' | 'pop',
+    required: boolean,
+    accept: (n: number) => boolean,
+    rangeRule: string,
+  ) => {
+    const label = FIELD_LABEL[key] ?? key;
+    return take(errors, key, form[key] ?? '', {
+      required,
+      missing: `${label}: falta el valor (${rangeRule})`,
+      accept: (n) => finite(n) && accept(n),
+      range: `${label}: ${rangeRule}`,
+      label,
+    });
+  };
   let ucs: number | null = null, gsi: number | null = null, mi: number | null = null, disturbance: number | null = null;
   let ratio: number | null = null, exponent: number | null = null, ocr: number | null = null, pop: number | null = null;
   let rows: Point[] = [];
   if (model === 'hoek_brown') {
-    ucs = readNew('ucs', true, n => n > 0); gsi = readNew('gsi', true, n => n >= 0 && n <= 100);
-    mi = readNew('mi', true, n => n > 0); disturbance = readNew('disturbance', true, n => n >= 0 && n <= 1);
+    ucs = readNew('ucs', true, n => n > 0, 'debe ser mayor que 0');
+    gsi = readNew('gsi', true, n => n >= 0 && n <= 100, 'debe estar entre 0 y 100');
+    mi = readNew('mi', true, n => n > 0, 'debe ser mayor que 0');
+    disturbance = readNew('disturbance', true, n => n >= 0 && n <= 1, 'debe estar entre 0 y 1');
   } else if (model === 'shansep') {
-    ratio = readNew('ratio', true, n => n > 0); exponent = readNew('exponent', false, n => n >= 0 && n <= 1);
-    if ((form.ocrSource ?? 'ocr') === 'ocr') ocr = readNew('ocr', true, n => n >= 1);
-    else if (form.ocrSource === 'pop') pop = readNew('pop', true, n => n >= 0);
+    ratio = readNew('ratio', true, n => n > 0, 'debe ser mayor que 0');
+    exponent = readNew('exponent', false, n => n >= 0 && n <= 1, 'debe estar entre 0 y 1');
+    if ((form.ocrSource ?? 'ocr') === 'ocr') ocr = readNew('ocr', true, n => n >= 1, 'debe ser igual o mayor que 1');
+    else if (form.ocrSource === 'pop') pop = readNew('pop', true, n => n >= 0, 'debe ser igual o mayor que 0');
     else {
       rows = (form.ocrRows ?? []).map((row, i) => {
         const y = take(errors, `row${i}y`, row.y, { required: true, missing: 'Indique la cota', accept: finite, range: 'Indique una cota finita' });
@@ -581,6 +607,110 @@ export function materialsEqual(a: Material, b: Material): boolean {
 
 export function materialUpsertCommand(material: Material): EditorCommand {
   return { type: 'material/upsert', material };
+}
+
+/** Compara dos formularios de material (campos visibles y tabla de OCR por cota) para detectar borradores sin aplicar (R15B-01). */
+export function materialFormsEqual(a: MaterialForm, b: MaterialForm): boolean {
+  const keys = [
+    'id', 'name', 'unit_weight', 'unit_weight_sat', 'cohesion', 'friction_angle', 'ru',
+    'undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit',
+    'ucs', 'gsi', 'mi', 'disturbance', 'ratio', 'exponent', 'ocr', 'pop',
+  ] as const;
+  if ((a.model ?? 'mohr_coulomb') !== (b.model ?? 'mohr_coulomb')) return false;
+  if (Boolean(a.variable) !== Boolean(b.variable)) return false;
+  if ((a.ocrSource ?? 'ocr') !== (b.ocrSource ?? 'ocr')) return false;
+  for (const k of keys) {
+    if ((a[k] ?? '') !== (b[k] ?? '')) return false;
+  }
+  const rowsA = a.ocrRows ?? [];
+  const rowsB = b.ocrRows ?? [];
+  if (rowsA.length !== rowsB.length) return false;
+  return rowsA.every((r, i) => r.y === rowsB[i]?.y && r.ocr === rowsB[i]?.ocr);
+}
+
+/** Qué hace la tarjeta de un material con su borrador (R15B-01, homólogo a `evaluateCard` de refuerzos). */
+export interface MaterialCardEvaluation {
+  errors: FieldErrors;
+  valid: Material | null;
+  commit: Material | null;
+  /** Hay cambios locales en la tarjeta (cambio de modelo, tabla `ocr_by_elevation` o campo inválido) sin aplicar al modelo. */
+  pending: boolean;
+}
+
+/** Evalúa el borrador de `MaterialCard` frente al material guardado en el documento. */
+export function evaluateMaterialCard(form: MaterialForm, material: Material, ctx: MaterialFormContext): MaterialCardEvaluation {
+  const outcome = materialFromForm(form, ctx);
+  if (!outcome.ok) {
+    return { errors: outcome.errors, valid: null, commit: null, pending: !materialFormsEqual(form, materialToForm(material)) };
+  }
+  return { errors: {}, valid: outcome.value, commit: materialsEqual(outcome.value, material) ? null : outcome.value, pending: false };
+}
+
+// ── Registro de borradores sin aplicar por store (R15B-01) ──
+
+export const PENDING_DRAFTS_TEXT =
+  'Hay cambios en una tarjeta sin aplicar al modelo. Corrija los errores o descarte los cambios antes de comprobar o exportar.';
+
+interface PendingDraftChannel {
+  entries: Map<string, string>;
+  snapshot: readonly string[];
+  listeners: Set<() => void>;
+}
+
+const EMPTY_DRAFTS: readonly string[] = Object.freeze([]);
+const pendingDraftChannels = new WeakMap<object, PendingDraftChannel>();
+
+function draftChannel(store: object): PendingDraftChannel {
+  let ch = pendingDraftChannels.get(store);
+  if (!ch) {
+    ch = { entries: new Map(), snapshot: EMPTY_DRAFTS, listeners: new Set() };
+    pendingDraftChannels.set(store, ch);
+  }
+  return ch;
+}
+
+function notifyDraftChannel(ch: PendingDraftChannel): void {
+  ch.snapshot = ch.entries.size === 0 ? EMPTY_DRAFTS : Object.freeze(Array.from(ch.entries.values()));
+  for (const listener of [...ch.listeners]) listener();
+}
+
+/** Registra o limpia un borrador de tarjeta sin aplicar al documento. */
+export function setPendingDraft(store: object, key: string, label: string | null): void {
+  const ch = draftChannel(store);
+  if (label === null) {
+    if (!ch.entries.delete(key)) return;
+  } else {
+    if (ch.entries.get(key) === label) return;
+    ch.entries.set(key, label);
+  }
+  notifyDraftChannel(ch);
+}
+
+/** Limpia todos los borradores registrados (al cargar otro documento). */
+export function clearPendingDrafts(store: object): void {
+  const ch = pendingDraftChannels.get(store);
+  if (!ch || ch.entries.size === 0) return;
+  ch.entries.clear();
+  notifyDraftChannel(ch);
+}
+
+/** Lista estable de tarjetas con cambios sin aplicar (apta para `useSyncExternalStore`). */
+export function getPendingDrafts(store: object): readonly string[] {
+  return pendingDraftChannels.get(store)?.snapshot ?? EMPTY_DRAFTS;
+}
+
+/** `true` si alguna tarjeta del editor tiene un borrador con cambios sin aplicar al modelo. */
+export function hasPendingDrafts(store: object): boolean {
+  return getPendingDrafts(store).length > 0;
+}
+
+/** Suscripción a cambios en los borradores pendientes del store. */
+export function subscribePendingDrafts(store: object, listener: () => void): () => void {
+  const ch = draftChannel(store);
+  ch.listeners.add(listener);
+  return () => {
+    ch.listeners.delete(listener);
+  };
 }
 
 /** Índices de las regiones que usan el material. */
@@ -1597,6 +1727,22 @@ export interface CrackForm {
   auto: boolean;
   depth: string;
   water_fill: string;
+}
+
+/** `true` si el modelo incluye al menos un material Hoek-Brown o SHANSEP (reglas F6.5). */
+export function hasNonLinearStrength(materials: readonly Pick<Material, 'model'>[]): boolean {
+  return materials.some((m) => m.model === 'hoek_brown' || m.model === 'shansep');
+}
+
+/**
+ * Formulario inicial al activar la grieta de tracción (F6.5, R15B-10): con Hoek-Brown o SHANSEP
+ * la profundidad automática de Rankine no se admite, así que se inicia con profundidad numérica fija.
+ */
+export function initialCrackForm(doc: Pick<ModelDoc, 'materials'>): CrackForm {
+  if (hasNonLinearStrength(doc.materials)) {
+    return { enabled: true, auto: false, depth: formatNumber(CRACK_DEFAULT_FIXED_DEPTH), water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) };
+  }
+  return { enabled: true, auto: true, depth: '', water_fill: formatNumber(CRACK_DEFAULT_WATER_FILL) };
 }
 
 /** Formulario de la grieta desde el documento. Sin grieta: apagada, automática y con la fracción de agua en 1. */
