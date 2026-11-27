@@ -122,3 +122,41 @@ fn e15m2_wall_thrust_is_not_lost_by_rounding() {
         );
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-7 (A-01)
+
+/// `S/D = 1.0023` makes the profile of Ito-Matsui huge but finite (`soil_force 1.1e308`): the arm is not `zf·soil` (that
+/// overflowed to `∞` and was serialized as `null`, with `no_capacity`). The analysis either ends with the error of
+/// E15l-11 or gives finite numbers with `arm > 0` and a coherent `governs`.
+#[test]
+fn e15m7_a_huge_finite_profile_never_gives_a_null_arm() {
+    let doc = data("a01_arm_null");
+    let model: ogs_core::model::Model = serde_json::from_value(doc.clone()).unwrap();
+    match ogs_core::analyze(&model) {
+        Err(e) => {
+            let text = e.to_string();
+            assert!(
+                text.starts_with("InvalidModel: reinforcements[0].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = ")
+                    && text.contains("φ = 35°")
+                    && text.ends_with("aumente spacing"),
+                "{text}"
+            );
+        }
+        Ok(report) => {
+            for r in &report.results {
+                assert!(r.fos.is_some_and(f64::is_finite), "{:?}", r.method);
+                for f in &r.reinforcement_forces {
+                    let arm = f.arm.expect("the arm is serialized");
+                    assert!(arm.is_finite() && arm > 0.0, "arm {arm}");
+                    assert!(f.available.is_finite() && f.fx.is_finite() && f.fy.is_finite());
+                    assert!(f.soil_force.is_some_and(f64::is_finite));
+                    assert!(
+                        f.status != ogs_core::report::ForceStatus::NoCapacity,
+                        "{:?}",
+                        f.status
+                    );
+                }
+            }
+        }
+    }
+}
