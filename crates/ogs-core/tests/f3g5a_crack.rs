@@ -6,6 +6,7 @@
 mod f3_common;
 
 use f3_common::{fos, mirror, run};
+use ogs_core::crack;
 use ogs_core::report::AnalysisReport;
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -442,4 +443,64 @@ fn e15l3_udl_edge_is_swept() {
     let base = 308.0 - (300.0_f64 * 300.0 - 20.0 * 20.0).sqrt();
     assert!((x - 30.0).abs() <= 1e-9, "{x}");
     assert!((depth - (10.0 - base)).abs() <= 1e-9, "{depth}");
+}
+
+// ------------------------------------------------------------------------------------------------------- E15l-8 (A-13)
+
+/// A line at `ground + tol/2` is not water over the ground (E15j-4): `d(x)` of the automatic crack does not feel it. The
+/// depth is the same as with the line under the crest (before: 1e-8 less, from `q = γw·(w − ground)`).
+#[test]
+fn e15l8_water_within_the_tolerance_is_not_over_the_ground_in_the_crack() {
+    let depth_with = |y: f64| {
+        let mut doc = data("a01_rtl");
+        doc["water"] = json!({"piezometric_line": [[20.0, y], [70.0, y]]});
+        crack_of(&run(&doc), 0).1
+    };
+    // tol = 1e-9·scale = 5e-8 here: the line 2e-8 over the crest (35) is within it.
+    let (dry, within) = (depth_with(34.0), depth_with(35.0 + 2e-8));
+    assert!((dry - within).abs() <= 1e-12, "{dry} vs {within}");
+    // Beyond the tolerance it does count: the ponded water is a surcharge q = γw·h.
+    let over = depth_with(35.0 + 1e-3);
+    assert!(over < dry - 1e-4, "{over} vs {dry}");
+}
+
+/// `Pw` goes to the last slice with weight, not to an air slice that follows it.
+#[test]
+fn e15l8_pw_goes_to_the_last_slice_with_weight() {
+    use ogs_core::crack::CrackPlan;
+    use ogs_core::geometry::PreparedModel;
+    use ogs_core::model::{Circle, Model};
+    use ogs_core::surface::Surface;
+    let mut doc = data("a01_ltr");
+    doc["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tension_crack");
+    let report = run(&doc);
+    let mut slices = report.results[0].slices.clone();
+    let model: Model = serde_json::from_value(doc).unwrap();
+    let pm = PreparedModel::new(&model).unwrap();
+    let c = Circle {
+        xc: 20.0,
+        yc: 20.0,
+        r: 10.0,
+    };
+    let surface = Surface::Circle(c);
+    // The face-side slice (the last one, toe first) becomes air.
+    let n = slices.len();
+    slices[n - 1].weight = 0.0;
+    let x_c = slices
+        .iter()
+        .map(|s| s.x_left)
+        .fold(f64::INFINITY, f64::min);
+    let plan = CrackPlan {
+        x_c,
+        depth: 1.0,
+        breaks: vec![x_c],
+        water_height: 1.0,
+        gamma_w: 9.81,
+    };
+    let _ = crack::truncate(&plan, &pm, &surface, &mut slices);
+    assert_eq!(slices[n - 1].h_force, 0.0, "the air slice gets no thrust");
+    assert!((slices[n - 2].h_force - 0.5 * 9.81).abs() <= 1e-12);
 }

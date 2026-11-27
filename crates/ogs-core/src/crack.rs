@@ -37,7 +37,7 @@
 //!
 //! `Pw = ½·γw·hw²`, `hw = d·water_fill`, horizontal and **in the sliding direction**: in the model frame
 //! `H_x = s·Pw` (`s = +1` for `LeftToRight`), and in the sliding direction, which is what `Slice::h_force` holds,
-//! `H = Pw`. It acts at `y_g = base(x_c) + hw/3`, on the slice adjacent to the face (the last one of the mass). For
+//! `H = Pw`. It acts at `y_g = base(x_c) + hw/3`, on the slice adjacent to the face (the last one of the mass with weight above 0, E15l-8). For
 //! that slice, with `(xm, ym)` the midpoint of its base: `h_force += Pw`, `h_moment_base += Pw·(y_g − ym)` (Spencer,
 //! M-P) and `driving_extra += Pw·(yc − y_g)/R` (Bishop, circle); Janbu uses only the force. It does not change the
 //! pore pressure of the base, it has no weight and the face has no strength (G4); no seismic force acts on it (E7).
@@ -150,8 +150,9 @@ impl DepthAt<'_> {
             .filter(|u| u.x1 <= x && x <= u.x2)
             .map(|u| u.q)
             .sum();
+        // E15l-8: the water counts over the ground only beyond the tolerance of the model (E15j-4), as in `water.rs`.
         if let Some(w) = pm.piezometric_y(x)
-            && w > ground
+            && w > ground + pm.tol()
         {
             q += pm.gamma_w * (w - ground);
         }
@@ -302,8 +303,9 @@ pub fn truncate(
     }
     let hw = plan.water_height;
     let mut water_force = 0.0;
+    // E15l-8: the slice of the face is the last one with soil (weight above 0), never an air slice.
     if hw > 0.0
-        && let Some(face) = slices.last_mut()
+        && let Some(face) = slices.iter_mut().rev().find(|s| s.weight > 0.0)
     {
         // G3: horizontal, in the sliding direction, at hw/3 over the base of the crack, on the slice of the face.
         water_force = 0.5 * plan.gamma_w * hw * hw;
