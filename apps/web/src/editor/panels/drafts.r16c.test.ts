@@ -26,6 +26,7 @@ import {
   type LoadForm,
 } from './forms';
 import { coordText } from './geometry';
+import { metaPatchCommand, projectToForm } from './projectForm';
 import { vertexDraftKey, vertexDraftLabel, vertexDraftPending } from './GeometryPanel';
 import { SEISMIC_DRAFT, seismicDraftPending } from './SeismicPanel';
 import { WATER_GAMMA_DRAFT, WATER_PIEZO_DRAFT, gammaDraftPending, piezoDraftPending } from './WaterPanel';
@@ -256,6 +257,22 @@ describe('R16c: formulario de material nuevo', () => {
   it('ciclo completo: Agregar o Cancelar lo limpian', async () => {
     const store = createEditorStore(newDoc(), null);
     await cycle(store, NEW_MATERIAL_DRAFT.key, NEW_MATERIAL_DRAFT.label, true, false);
+  });
+});
+
+describe('R16c: Proyecto no registra borradores (no tiene valores que no se puedan aplicar)', () => {
+  // `title`, `id` y `notes` son texto libre: `metaPatchCommand` da siempre un comando o `null` (texto equivalente, y la tarjeta se
+  // restablece). No existe un valor inválido ni incompleto; el texto válido se confirma al salir del campo (y Ctrl+S, antes de guardar).
+  // Registrarlo mientras el campo tiene el foco bloquearía Ctrl+S sin que el usuario pueda resolverlo (comprobado en Chrome).
+  it('cualquier texto da un comando o ninguno, nunca un error', () => {
+    const doc = newDoc();
+    for (const field of ['id', 'title', 'notes'] as const) {
+      for (const text of ['', '  ', 'Mi proyecto', 'dos\nlíneas', 'x'.repeat(5000), '\u00e9\u00f1']) {
+        const cmd = metaPatchCommand(doc, field, text);
+        expect(cmd === null || cmd.type === 'meta/patch').toBe(true);
+      }
+    }
+    expect(metaPatchCommand(doc, 'title', projectToForm(doc).title)).toBeNull();
   });
 });
 
