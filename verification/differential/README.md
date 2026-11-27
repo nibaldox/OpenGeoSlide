@@ -93,6 +93,60 @@ En D40 a D42 el círculo fijo es el crítico de la búsqueda Bishop de cSlope **
 - `build_cases.py` escribe también `cases_f3g/`. Los círculos fijos de `FIXED_SURFACES_F3G` salen de la búsqueda de cSlope sobre cada
   modelo (oráculo `analyse` con el conversor de este directorio).
 
+## F3B: Hoek-Brown, SHANSEP y búsqueda no circular, modelos F3B-HB-01 a F3B-NC-V034a (v0.6)
+
+Doce modelos v0.6 en `cases_f3b/` (los escribe `build_f3b.py`), con 42 checks: búsqueda (Bishop y Spencer; solo Spencer en los dos
+no circulares) y círculo fijo en los diez que tienen uno. **El bloque no corre por defecto**: el motor de B1 no tiene la
+física v0.6 (stubs `todo!()`). B2 lo activa con `--include-f3b` (o `OGS_DIFFERENTIAL_F3B=1`), y `--require-f3b` sale con código 6 si
+algún check no pasa. Los tests de `test_f3b.py` no corren ogs: comprueban las entradas, el plan, las cifras registradas del
+oráculo y los veredictos.
+
+| modelo | material | piezométrica | búsqueda cSlope (Bishop / Spencer) | círculo fijo cSlope (Bishop / Spencer) |
+|---|---|---|---|---|
+| F3B-HB-01 | σci 12000, GSI 25, mi 8, D 0.7 | sin | 1.1414 / 1.1380 | 1.1816 / 1.1881 |
+| F3B-HB-02 | σci 15000, GSI 40, mi 10, D 0.5 | con | 2.0741 / 2.0710 | 2.0909 / — |
+| F3B-HB-03 | σci 8000, GSI 20, mi 6, D 1 | sin | 0.4282 / 0.4273 | 0.4787 / 0.4827 |
+| F3B-HB-04 | σci 20000, GSI 35, mi 10, D 0 | con | 1.9281 / 1.9245 | 3.2084 / 3.2041 |
+| F3B-HB-05 | σci 18000, GSI 30, mi 9, D 0.3 | sin | 2.0966 / 2.0916 | 2.3415 / 2.3503 |
+| F3B-HB-06 | σci 10000, GSI 30, mi 8, D 0.8 | con | 0.5279 / 0.5426 | 0.5619 / 0.5762 |
+| F3B-HB-07 | σci 18000, GSI 38, mi 10, D 0 | sin | 2.8126 / 2.8111 | 2.8126 / 2.8121 |
+| F3B-HB-08 | σci 25000, GSI 45, mi 10, D 1 | con | 1.2393 / 1.2310 | 1.2488 / 1.2472 |
+| F3B-SH-OCR1 | SHANSEP ratio 0.25, exponent 0.8, ocr 1.0 | sin | 0.6250 / 0.6250 | 0.6823 / 0.6823 |
+| F3B-SH-POP | SHANSEP ratio 0.25, exponent 0.8, pop 10.0 | sin | 0.8031 / 0.8031 | 0.8041 / 0.8041 |
+| F3B-NC-V001 | no circular | sin | — / 1.3837 | — / — |
+| F3B-NC-V034a | no circular | sin | — / 1.2649 | — / — |
+
+- **Geometrías.** HB-01, 03, 04 y 05 son SA (3 bancos, 60°, X23 §4.1); HB-02, 06, 07 y 08, SB (2 bancos, 70°, X23 §4.2). Hay D de 0
+  a 1 y σci de 8 a 25 MPa. Los modelos SHANSEP son V047a (X30) con OCR 1 y con POP de 10 kPa; los no circulares, V001 y V034a (X29).
+- **Piezométrica.** La de X23 §4.2 (de −2 a 8 m) queda bajo todas las bases y no cambia el FS (X23, X28 §5): solo HB-02 la conserva,
+  porque es el SB de X23. Los otros modelos con agua (HB-04, 06 y 08) usan una línea 2 m bajo el terreno en cada vértice del perfil
+  (`PIEZOMETRIC` de `build_f3b.py`) y `unit_weight_sat` igual a `unit_weight`; ahí el FS de cSlope sí cambia.
+- **Círculos fijos.** Los de SA y SB son los de X23 (§4.1 y §4.2). El de SB entra a 84,5° del horizonte: cSlope declara Spencer sin
+  solución ("No valid slip surface … enters the slope at 85°: cohesion along a nearly vertical base can only hold it with tension at
+  the base") y avisa `steep-entry-tension` en Bishop. Por eso HB-07 y HB-08 llevan el círculo que encuentra la búsqueda Bishop de
+  cSlope en su propio modelo (entrada a 68,8° y 68,6°), que tiene solución en los dos métodos. HB-02 y HB-06 conservan el de SB, donde
+  Bishop converge.
+- **SB con Spencer en su círculo fijo (E16t).** Con la regla de cSlope no hay raíz de λ (`not_converged`, minFOS 2,1079 que no es una
+  raíz): `oracle.json` lo guarda en `no_solution` y el check de HB-02 es `explicado (E16t)`: se informa la cifra de ogs frente al
+  prototipo de la envolvente completa (2,094657) sin gate, como pide F6.8. No es referencia.
+- **Hoek-Brown en círculo fijo (F6.8).** cSlope toma la tangente de σ3 = 0 para todo σ′n ≤ sn(0); el producto usa la envolvente completa.
+  Donde hay dovelas en bajo confinamiento la diferencia es conservadora y llega a −2,6 % (HB-04 Bishop). `cases_f3b/prototype.json`
+  guarda, para cada check fijo, el FS del prototipo independiente de X28 con la envolvente completa (`product`, regla `cut`) y con la
+  de cSlope (`compat`); lo escribe `f3b_prototype.py` con el binario base v0.4.0. El veredicto exige ogs a ≤ 0,1 % del prototipo y a
+  ≤ 0,5 % de cSlope, salvo que el prototipo mismo difiera más de 0,5 % de cSlope: `OK (F6.8: envolvente completa)`. La regla de cSlope
+  del prototipo reproduce al oráculo a ≤ 0,12 % (`test_f3b_recorded_prototype_rows_reproduce_f68`).
+- **Búsqueda.** Un solo lado, como en E9b: ogs ≤ cSlope · 1,01 (el producto es conservador en Hoek-Brown y la no circular acota el FS
+  desde abajo, X29 A2).
+- **Cifras del oráculo.** `cases_f3b/oracle.json` las escribe `f3b_oracle.py` (cslope 0.1.0, `ogs_to_cslope`); se reproducen sin
+  diferencia. `to_cslope.py` escribe `nonCircularOptimization` sin `seeds` ni `max_vertices` (cSlope no los tiene).
+
+Comando para B2, con el motor que ya tiene la física:
+
+```bash
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely python \
+  verification/differential/run.py --ogs $CARGO_TARGET_DIR/release/ogs --out $TMPDIR/f3b-diff --require-f3b
+```
+
 ## R10: modelos D18 a D23 (E13l)
 
 La revisión R10 (hallazgos R10A-02, R10A-04 y R10A-11) mostró cinco usos del formato v0.3 que ningún caso ni modelo

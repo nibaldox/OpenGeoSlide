@@ -1,0 +1,108 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "F3B-NC-V034a",
+    "title": "V034a, búsqueda no circular"
+  },
+  "units": "imperial",
+  "materials": [
+    {
+      "id": "fill",
+      "name": "Fill",
+      "model": "mohr_coulomb",
+      "unit_weight": 123.0,
+      "unit_weight_sat": null,
+      "cohesion": 0.0,
+      "friction_angle": 36.0,
+      "ru": null
+    },
+    {
+      "id": "clay",
+      "name": "Clay",
+      "model": "undrained",
+      "unit_weight": 97.0,
+      "unit_weight_sat": null,
+      "undrained_strength": 200.0,
+      "strength_datum": 30.0,
+      "strength_gradient": 15.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "clay",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          30.0
+        ],
+        [
+          75.0,
+          30.0
+        ],
+        [
+          140.0,
+          30.0
+        ],
+        [
+          140.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "material": "fill",
+      "polygon": [
+        [
+          0.0,
+          30.0
+        ],
+        [
+          0.0,
+          40.0
+        ],
+        [
+          55.0,
+          40.0
+        ],
+        [
+          75.0,
+          30.0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "auto"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "non_circular": {
+        "seeds": 3,
+        "max_vertices": 33
+      }
+    },
+    "interslice": {
+      "function": "constant"
+    }
+  }
+}

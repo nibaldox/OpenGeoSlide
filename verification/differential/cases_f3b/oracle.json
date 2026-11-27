@@ -1,0 +1,303 @@
+{
+  "source": "cslope 0.1.0 mediante ogs_to_cslope",
+  "fixed_max_rel": 0.005,
+  "search_max_rel": 0.01,
+  "no_solution": [
+    {
+      "id": "F3B-HB-02",
+      "method": "spencer",
+      "kind": "fixed",
+      "status": "not_converged",
+      "reason": "no convergido (status not_converged, minFOS 2.1079 no es una raíz)"
+    }
+  ],
+  "rows": [
+    {
+      "id": "F3B-HB-01",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 1.1414336659642357,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-01",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 1.1816320142387637,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-01",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 1.1380494027198045,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-01",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 1.1880550637138545,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-02",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 2.074093699485063,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-02",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 2.090902265431638,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-02",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 2.0710076444791756,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 0.4281982950648746,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 0.4786748697490631,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 0.42728218504641796,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 0.48269847787183534,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 1.928051868339857,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 3.2084049537182855,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 1.9244920330590896,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 3.204112520906414,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 2.0965525772520515,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 2.341518927540367,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 2.0915655541621567,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 2.3502932427401517,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 0.5278775675258732,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 0.5618892862946161,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 0.5426414201144181,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 0.5761687785082695,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 2.8125518957463873,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 2.8125518957463873,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 2.8111497623468744,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 2.8121059047901795,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 1.2393346067134332,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 1.2488134011253267,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 1.2310134075766346,
+      "converged": true
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 1.2471791754688126,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-OCR1",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 0.6250261045392922,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-OCR1",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 0.6822607730327611,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-OCR1",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 0.6250212039438209,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-OCR1",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 0.6822607730327611,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-POP",
+      "method": "bishop",
+      "kind": "search",
+      "fos": 0.8031259296941016,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-POP",
+      "method": "bishop",
+      "kind": "fixed",
+      "fos": 0.8040642710227669,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-POP",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 0.8031259296941016,
+      "converged": true
+    },
+    {
+      "id": "F3B-SH-POP",
+      "method": "spencer",
+      "kind": "fixed",
+      "fos": 0.8040642710227669,
+      "converged": true
+    },
+    {
+      "id": "F3B-NC-V001",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 1.3837204423582525,
+      "converged": true
+    },
+    {
+      "id": "F3B-NC-V034a",
+      "method": "spencer",
+      "kind": "search",
+      "fos": 1.2649251927651408,
+      "converged": true
+    }
+  ]
+}

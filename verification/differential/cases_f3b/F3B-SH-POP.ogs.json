@@ -1,0 +1,76 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "shansep",
+      "unit_weight": 20.0,
+      "unit_weight_sat": 20.0,
+      "shansep": {
+        "ratio": 0.25,
+        "exponent": 0.8,
+        "pop": 10.0
+      }
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [
+        [
+          20.0,
+          20.0
+        ],
+        [
+          20.0,
+          25.0
+        ],
+        [
+          30.0,
+          25.0
+        ],
+        [
+          50.0,
+          35.0
+        ],
+        [
+          70.0,
+          35.0
+        ],
+        [
+          70.0,
+          20.0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 29.511,
+      "yc": 53.738,
+      "r": 28.742
+    },
+    "search": {
+      "type": "circular_entry_exit"
+    }
+  },
+  "meta": {
+    "id": "F3B-SH-POP",
+    "title": "V047a SHANSEP POP"
+  }
+}

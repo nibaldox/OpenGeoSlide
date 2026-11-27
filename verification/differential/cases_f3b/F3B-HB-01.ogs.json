@@ -1,0 +1,95 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+    "id": "F3B-HB-01",
+    "title": "Rajo SA, Hoek-Brown 1"
+  },
+  "materials": [
+    {
+      "id": "roca",
+      "name": "roca",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 12000,
+      "gsi": 25,
+      "mi": 8,
+      "disturbance": 0.7,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "roca",
+      "polygon": [
+        [
+          -40,
+          -10
+        ],
+        [
+          72.3205,
+          -10
+        ],
+        [
+          72.3205,
+          30
+        ],
+        [
+          32.3205,
+          30
+        ],
+        [
+          27.3205,
+          30
+        ],
+        [
+          21.547,
+          20
+        ],
+        [
+          16.547,
+          20
+        ],
+        [
+          10.7735,
+          10
+        ],
+        [
+          5.7735,
+          10
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -40,
+          0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 1000,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 11.064761108572334,
+      "yc": 35.672573017328205,
+      "r": 18.85046460530379
+    },
+    "search": {
+      "type": "circular_entry_exit"
+    }
+  }
+}

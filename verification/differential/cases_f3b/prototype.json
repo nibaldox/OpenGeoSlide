@@ -1,0 +1,165 @@
+{
+  "source": "X28_proto (reglas cut y cslope, tol 1e-8, w 0,5), F6.8 y E16q",
+  "rows": [
+    {
+      "id": "F3B-HB-01",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 1.180419325351821,
+      "product_status": "converged",
+      "compat": 1.1815772310307349,
+      "compat_status": "converged",
+      "low_confinement_slices": 4
+    },
+    {
+      "id": "F3B-HB-01",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 1.1874088035105692,
+      "product_status": "converged",
+      "compat": 1.1879939092358076,
+      "compat_status": "converged",
+      "low_confinement_slices": 2
+    },
+    {
+      "id": "F3B-HB-02",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 2.0676469376749806,
+      "product_status": "converged",
+      "compat": 2.0913428566171075,
+      "compat_status": "converged",
+      "low_confinement_slices": 12
+    },
+    {
+      "id": "F3B-HB-02",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 2.094657315425958,
+      "product_status": "converged",
+      "compat": 2.1001056527011235,
+      "compat_status": "converged",
+      "low_confinement_slices": 10
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 0.47857970200201533,
+      "product_status": "converged",
+      "compat": 0.47863817163461464,
+      "compat_status": "converged",
+      "low_confinement_slices": 2
+    },
+    {
+      "id": "F3B-HB-03",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 0.48263768864009626,
+      "product_status": "converged",
+      "compat": 0.4826654720027649,
+      "compat_status": "converged",
+      "low_confinement_slices": 1
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 3.1259887667595705,
+      "product_status": "converged",
+      "compat": 3.2092831962076995,
+      "compat_status": "converged",
+      "low_confinement_slices": 31
+    },
+    {
+      "id": "F3B-HB-04",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 3.1462554502752855,
+      "product_status": "converged",
+      "compat": 3.2050495137943864,
+      "compat_status": "converged",
+      "low_confinement_slices": 34
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 2.3240961934818136,
+      "product_status": "converged",
+      "compat": 2.341481340318063,
+      "compat_status": "converged",
+      "low_confinement_slices": 10
+    },
+    {
+      "id": "F3B-HB-05",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 2.3410113108033306,
+      "product_status": "converged",
+      "compat": 2.3502576321812567,
+      "compat_status": "converged",
+      "low_confinement_slices": 8
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 0.5603591750249114,
+      "product_status": "converged",
+      "compat": 0.5625509256931114,
+      "compat_status": "converged",
+      "low_confinement_slices": 7
+    },
+    {
+      "id": "F3B-HB-06",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 0.5750458281315887,
+      "product_status": "converged",
+      "compat": 0.5768479093246242,
+      "compat_status": "converged",
+      "low_confinement_slices": 10
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 2.799661549325849,
+      "product_status": "converged",
+      "compat": 2.81251275611563,
+      "compat_status": "converged",
+      "low_confinement_slices": 7
+    },
+    {
+      "id": "F3B-HB-07",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 2.8031948762058274,
+      "product_status": "converged",
+      "compat": 2.8119960874740704,
+      "compat_status": "converged",
+      "low_confinement_slices": 7
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "bishop",
+      "kind": "fixed",
+      "product": 1.2391457342103986,
+      "product_status": "converged",
+      "compat": 1.2493074066209635,
+      "compat_status": "converged",
+      "low_confinement_slices": 10
+    },
+    {
+      "id": "F3B-HB-08",
+      "method": "spencer",
+      "kind": "fixed",
+      "product": 1.2398797880624928,
+      "product_status": "converged",
+      "compat": 1.2476992542052616,
+      "compat_status": "converged",
+      "low_confinement_slices": 12
+    }
+  ]
+}

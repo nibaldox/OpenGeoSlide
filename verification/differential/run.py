@@ -862,7 +862,89 @@ def write_markdown(path: str, cases: list[dict], checks: list[dict], summary: di
         fh.write("\n".join(L) + "\n")
 
 
-def main(argv: list[str] | None = None) -> int:
+F3B_DIR = os.path.join(HERE, "cases_f3b")
+HB_PRODUCT_MAX_REL = 0.001    # F6.8: producto contra el prototipo de la envolvente completa, ≤ 0,1 %
+VERDICT_F68 = "OK (F6.8: envolvente completa)"
+VERDICT_E16T = "explicado (E16t)"
+PASS_VERDICTS_F3B = PASS_VERDICTS + (VERDICT_F68, VERDICT_E16T)
+
+
+def f3b_reference(name: str) -> dict:
+    """cases_f3b/prototype.json or oracle.json, keyed by (id, method, kind)."""
+    with open(os.path.join(F3B_DIR, name), encoding="utf-8") as fh:
+        return {(r["id"], r["method"], r["kind"]): r for r in json.load(fh)["rows"]}
+
+
+def f3b_evaluate(case: dict, method: str, kind: str, ogs: dict, cs: dict, proto: dict | None) -> tuple[str, str]:
+    """Verdict of a F3B check.
+
+    Hoek-Brown on a fixed circle (F6.8, E16q): cSlope takes the tangent of σ3 = 0 for every σ′n ≤ sn(0); the product uses
+    the complete envelope, which is conservative where slices are in low confinement (up to -3 % in SB). The product is
+    therefore gated against the independent prototype of the complete envelope at 0,1 %, and against cSlope at 0,5 %
+    unless the prototype itself differs from cSlope by more than that (`OK (F6.8…)`). The other rows keep E9b.
+
+    SB with Spencer on its fixed circle (E16t): the rule of cSlope has no root for λ, so cSlope is not a reference. The
+    product has one; it is reported against the prototype without a gate (F6.8) and the verdict is `explicado (E16t)`.
+    """
+    plain = evaluate(kind, ogs, cs)
+    if ogs["error"] or kind != "fixed" or proto is None or proto.get("product") is None:
+        return plain
+    ogs_ok = not ogs["error"] and ogs["status"] in (None, "converged") and ogs["fos"] is not None
+    gap = abs(ogs["fos"] - proto["product"]) / proto["product"] if ogs_ok else None
+    if cslope_declares_no_solution(cs) and method in ("spencer", "morgenstern_price"):
+        if not ogs_ok:
+            return "FALLA", f"ogs sin solución (status {ogs['status']}) donde el prototipo de F6.8 converge"
+        return VERDICT_E16T, (
+            f"cSlope no tiene raíz de λ con su regla de bajo confinamiento ({cslope_no_solution_text(cs)}); no es "
+            f"referencia. Prototipo de la envolvente completa {proto['product']:.6f}; ogs {ogs['fos']:.6f} "
+            f"({gap * 100:+.3f} %, sin gate: F6.8)")
+    if not ogs_ok or cs["error"] or cs["fos"] is None or cslope_declares_no_solution(cs):
+        return plain
+    if gap > HB_PRODUCT_MAX_REL:
+        return "FALLA", (f"ogs {ogs['fos']:.6f} difiere {gap * 100:.3f} % del prototipo de la envolvente completa "
+                         f"{proto['product']:.6f} (> 0,1 %, F6.8)")
+    if plain[0] in PASS_VERDICTS:
+        return plain
+    return VERDICT_F68, (f"|Δ cSlope| = {abs(ogs['fos'] - cs['fos']) / cs['fos'] * 100:.2f} % > 0,5 %: cSlope usa la tangente "
+                         f"de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa "
+                         f"{proto['product']:.6f} ({gap * 100:+.3f} %)")
+
+
+def f3b_check(cs_module, exe: str, case: dict, method: str, kind: str, prototypes: dict) -> dict:
+    """Run one F3B differential check and re-judge it with `f3b_evaluate`."""
+    row = run_check(cs_module, exe, case, method, kind)
+    proto = prototypes.get((case["id"], method, kind))
+    row["verdict"], row["reason"] = f3b_evaluate(case, method, kind, row["ogs"], row["cslope"], proto)
+    if proto and proto.get("product") is not None:
+        row["prototype"] = {"fos": proto["product"], "compat": proto.get("compat"),
+                            "source": "F6.8, X28_proto (regla cut), cases_f3b/prototype.json"}
+    return row
+
+
+def summarize_f3b(rows: list[dict]) -> dict:
+    """OK counts the plain matches and the F6.8 ones; E16t rows are explained, not matched against cSlope."""
+    out = {"OK": sum(1 for r in rows if r["verdict"] in PASS_VERDICTS + (VERDICT_F68,)),
+           "explicado": sum(1 for r in rows if r["verdict"] == VERDICT_E16T),
+           "FALLA": sum(1 for r in rows if r["verdict"] == "FALLA"),
+           "sin dato": sum(1 for r in rows if r["verdict"] == "sin dato"), "N": len(rows)}
+    for kind in KINDS:
+        out[kind] = sum(1 for r in rows if r["kind"] == kind)
+    return out
+
+
+def f3b_plan(cases: list[dict]) -> list[tuple[dict, str, str]]:
+    """F3B comparisons: search for every model and the fixed circle where the model has one (45 checks)."""
+    plan = []
+    for case in cases:
+        model = case["model"]
+        kinds = ("search", "fixed") if model["analysis"].get("surface") else ("search",)
+        for method in model["analysis"]["methods"]:
+            for kind in kinds:
+                plan.append((case, method, kind))
+    return plan
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ogs", default=DEFAULT_OGS, help="binario ogs (ogs analyze <modelo>)")
     ap.add_argument("--cases", default=os.path.join(HERE, "cases"), help="directorio con *.ogs.json")
@@ -879,7 +961,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--require-f3", action="store_true",
                     help=f"salir con código {EXIT_F3_PENDING} si algún check de la Fase 3a queda pendiente, "
                          "falla o no tiene dato (para la integración)")
-    args = ap.parse_args(argv)
+    ap.add_argument("--include-f3b", action="store_true", help="ejecutar la batería F3B (Hoek-Brown, SHANSEP y no circular); sin esta opción se omite, porque el motor de B1 no tiene la física v0.6; también la activa OGS_DIFFERENTIAL_F3B=1")
+    ap.add_argument("--require-f3b", action="store_true", help="activar F3B y fallar si algún check no pasa")
+    return ap.parse_args(argv)
+
+
+def f3b_enabled(args: argparse.Namespace) -> bool:
+    """F3B runs only on request: option, require variant or OGS_DIFFERENTIAL_F3B=1 (B2 activates it)."""
+    return bool(args.include_f3b or args.require_f3b or os.environ.get("OGS_DIFFERENTIAL_F3B") == "1")
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
 
     exe = args.ogs if os.path.isfile(args.ogs) else shutil.which(args.ogs)
     if not exe or not os.path.isfile(exe):
@@ -945,6 +1038,25 @@ def main(argv: list[str] | None = None) -> int:
                                          prepare=f3g_model))
         print(f"v0.5: {summarize_f3(f3g_rows)}", flush=True)
 
+    f3b_cases: list[dict] = []
+    f3b_rows: list[dict] = []
+    if f3b_enabled(args):
+        paths = sorted(glob.glob(os.path.join(HERE, "cases_f3b", "*.ogs.json")))
+        if len(paths) != 12:
+            print(f"error: se esperaban 12 modelos F3B y hay {len(paths)}", file=sys.stderr)
+            return 1
+        for path in paths:
+            with open(path, encoding="utf-8") as fh:
+                model = json.load(fh)
+            case = {"id": model["meta"]["id"], "title": model["meta"]["title"], "model": model,
+                    "path": os.path.relpath(path, start=os.getcwd())}
+            f3b_cases.append(case)
+        prototypes = f3b_reference("prototype.json")
+        for case, method, kind in f3b_plan(f3b_cases):
+            f3b_rows.append(f3b_check(cs_module, exe, case, method, kind, prototypes))
+            print(f"{case['id']} {method} {kind} listo (F3B)", flush=True)
+        print(f"F3B: {summarize_f3b(f3b_rows)}", flush=True)
+
     ogs_version = next((c["ogs"]["engine"] for c in checks if c["ogs"]["engine"]), None)
     meta = {
         "generated_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -992,6 +1104,11 @@ def main(argv: list[str] | None = None) -> int:
             "summary": summarize_f3(f3g_rows),
             "checks": f3g_rows,
         }
+    if f3b_cases:
+        report["f3b"] = {"criteria": {"fixed_max_rel": FIXED_MAX_REL, "search_max_rel": SEARCH_MAX_REL,
+                                      "source": "F6.8, F6.10, F6.12; diferencias de envolvente indicadas en notes"},
+                         "cases": [{"id": c["id"], "title": c["title"], "path": c["path"]} for c in f3b_cases],
+                         "summary": summarize_f3b(f3b_rows), "checks": f3b_rows}
     with open(os.path.join(args.out, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
@@ -1000,9 +1117,25 @@ def main(argv: list[str] | None = None) -> int:
                    f3r_markdown(f3r_rows, f3r_probe) if f3r_cases else None,
                    f3g_markdown(f3g_rows, f3g_probe) if f3g_cases else None)
 
+    if f3b_cases:
+        with open(os.path.join(args.out, "REPORT.md"), "a", encoding="utf-8") as fh:
+            fh.write("\n## F3B: Hoek-Brown, SHANSEP y búsqueda no circular\n\n")
+            summary = summarize_f3b(f3b_rows)
+            fh.write(f"**OK {summary['OK']}/{summary['N']}** · explicado {summary['explicado']} · "
+                     f"FALLA {summary['FALLA']} · sin dato {summary['sin dato']}\n\n")
+            fh.write("| Caso | Método | Tipo | OGS | cSlope | Prototipo F6.8 | Veredicto | Motivo |\n"
+                     "|---|---|---|---:|---:|---:|---|---|\n")
+            for row in f3b_rows:
+                proto = (row.get("prototype") or {}).get("fos")
+                fh.write(f"| {row['case_id']} | {row['method']} | {row['kind']} | {row['ogs']['fos']} | "
+                         f"{row['cslope']['fos']} | {proto if proto is not None else ''} | {row['verdict']} | "
+                         f"{row['reason']} |\n")
     print(f"búsqueda OK {summary['search']['OK']}/{summary['search']['N']}")
     print(f"fija OK {summary['fixed']['OK']}/{summary['fixed']['N']}")
     print(f"wrote {os.path.join(args.out, 'REPORT.md')} and report.json")
+    if args.require_f3b and (not f3b_rows or any(row["verdict"] not in PASS_VERDICTS_F3B for row in f3b_rows)):
+        print("--require-f3b: hay checks F3B con fallo o sin dato", file=sys.stderr)
+        return 6
     if args.require_f3 and f3_rows and summarize_f3(f3_rows)["OK"] != len(f3_rows):
         print("--require-f3: hay checks de la Fase 3a pendientes, con fallo o sin dato", file=sys.stderr)
         return EXIT_F3_PENDING
