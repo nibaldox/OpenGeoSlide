@@ -191,7 +191,13 @@ function surfaceSummary(doc: ModelDoc): Summary {
 function searchSummary(doc: ModelDoc, u: { length: string }): Summary {
   const s = doc.analysis?.search;
   if (!s) return { summary: 'Inactiva', base: 'optional' };
-  const range = (r: readonly [number, number] | null | undefined): string | null => (r ? `${num(r[0], 0, 2)}–${num(r[1], 0, 2)}` : null);
+  const range = (r: readonly [number, number] | null | undefined): string | null => {
+    if (!r) return null;
+    // B-12(c): con algún extremo negativo, «a» y el signo menos tipográfico (−25,5 a −10,2); sin negativos, la semirraya de siempre.
+    const negative = r[0] < 0 || r[1] < 0;
+    const text = (n: number): string => (negative ? num(n, 0, 2).replace(/^-/, '\u2212') : num(n, 0, 2));
+    return `${text(r[0])}${negative ? ' a ' : '–'}${text(r[1])}`;
+  };
   const entry = range(s.entry);
   const exit = range(s.exit);
   if (entry === null && exit === null) return { summary: 'Entrada y salida automáticas', base: 'done' };
@@ -245,7 +251,9 @@ function seismicSummary(doc: ModelDoc): Summary {
   const kh = s?.kh ?? 0;
   const kv = s?.kv ?? 0;
   if (!Number.isFinite(kh) || !Number.isFinite(kv) || (kh === 0 && kv === 0)) return { summary: 'Sin sismo', base: 'optional' };
-  return { summary: fit(`kh ${num(kh, 2, 3)} · kv ${num(kv, 2, 3)}`, `kh ${num(kh, 2, 3)}`), base: 'done' };
+  // B-12(b): un coeficiente no nulo que redondea a 0,000 no se escribe «0,00» (parece sin sismo): «< 0,001».
+  const coef = (label: string, v: number): string => (v !== 0 && Math.abs(v) < 0.0005 ? `${label} ${v > 0 ? '<' : '>'} ${v < 0 ? '\u2212' : ''}0,001` : `${label} ${num(v, 2, 3)}`);
+  return { summary: fit(`${coef('kh', kh)} · ${coef('kv', kv)}`, coef('kh', kh)), base: 'done' };
 }
 
 function projectSummary(doc: ModelDoc): Summary {
@@ -395,7 +403,7 @@ export function runStatus(input: RunStatusInput): RunStatus {
 export interface FsMinimum {
   /** Mínimo de los FS de los métodos que convergieron; `null` si ninguno convergió. */
   value: number | null;
-  /** «0,984» (`formatFs`) o «—». */
+  /** «0,984» (`fsText`) o «—». */
   text: string;
   /** Métodos que dan el mínimo (empates incluidos), en el orden del informe. */
   methods: MethodKind[];
@@ -404,6 +412,16 @@ export interface FsMinimum {
   /** Métodos que convergieron y métodos calculados. */
   converged: number;
   total: number;
+}
+
+/**
+ * FS con 3 decimales y coma (`formatFs`), salvo en [0,9995, 1): ahí 3 decimales dan «1,000», que junto al chip «FS < 1,0» se contradice
+ * (B-12a). Se escribe con 4 decimales truncados («0,9997»), para que nunca llegue a «1,0000».
+ */
+export function fsText(value: number | null | undefined): string {
+  const text = formatFs(value);
+  if (typeof value !== 'number' || !(value < 1) || text !== formatFs(1)) return text;
+  return num(Math.floor(Number((value * 1e4).toFixed(6))) / 1e4, 4);
 }
 
 /** FS mínimo del HUD: el menor FS finito de los métodos que convergieron (el de uno que no convergió no es un resultado). */
@@ -415,8 +433,8 @@ export function fsMinimum(report: AnalysisReport): FsMinimum {
   const total = report.results.length;
   if (usable.length === 0) return { value: null, text: '—', methods: [], below1: false, converged: 0, total };
   const value = Math.min(...usable.map((u) => u.fos));
-  const text = formatFs(value);
-  return { value, text, methods: usable.filter((u) => formatFs(u.fos) === text).map((u) => u.method), below1: value < 1, converged: usable.length, total };
+  const text = fsText(value);
+  return { value, text, methods: usable.filter((u) => fsText(u.fos) === text).map((u) => u.method), below1: value < 1, converged: usable.length, total };
 }
 
 export interface ReportContentItem {

@@ -19,7 +19,7 @@ import { validateLocal } from '../state';
 import type { Issue, ModelDoc } from '../types';
 import type { PanelTabId } from './issueNav';
 import { buildReportInput, type EngineRun } from './reportInput';
-import { STEP_ORDER, draftStep, fsMinimum, reportContents, runStatus, stepStates, type RunStatusInput } from './shellModel';
+import { STEP_ORDER, draftStep, fsMinimum, fsText, reportContents, runStatus, stepStates, type RunStatusInput } from './shellModel';
 
 // ───────── Documentos ─────────
 
@@ -267,6 +267,22 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(summaryOf(miniAnalysis({ seismic: { kh: 0, kv: 0 } }), 'seismic')).toBe('Sin sismo');
     expect(summaryOf(miniAnalysis({ seismic: null }), 'seismic')).toBe('Sin sismo');
     expect(statusOf(miniAnalysis({ seismic: null }), 'seismic')).toBe('optional');
+  });
+
+  it('seismic (B-12b): un coeficiente no nulo que redondea a cero es «< 0,001», no «0,00»', () => {
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0004, kv: 0 } }), 'seismic')).toBe('kh < 0,001 · kv 0,00');
+    expect(statusOf(miniAnalysis({ seismic: { kh: 0.0004 } }), 'seismic')).toBe('done');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.1, kv: 0.0002 } }), 'seismic')).toBe('kh 0,10 · kv < 0,001');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0004, kv: 0.0003 } }), 'seismic')).toBe('kh < 0,001 · kv < 0,001');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.0005, kv: 0 } }), 'seismic')).toBe('kh 0,001 · kv 0,00');
+    expect(summaryOf(miniAnalysis({ seismic: { kh: 0.1, kv: -0.0002 } }), 'seismic')).toBe('kh 0,10 · kv > −0,001');
+  });
+
+  it('search (B-12c): los rangos con negativos usan «a» y el signo menos (−)', () => {
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-25.5, -10.2] } }), 'search')).toBe('Ent. −25,5 a −10,2 m · sal. auto.');
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [-5, 10], exit: [20, 30] } }), 'search')).toBe('Entrada −5 a 10 m · salida 20–30 m');
+    expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10, 25] } }), 'search')).toBe('Entrada 10–25 m · salida automática');
+    for (const id of ['V047a']) expect(summaryOf(acadsDoc(), 'search')).not.toMatch(/-\d/);
   });
 
   it('project: título (o «Sin título») y el sistema de unidades', () => {
@@ -795,10 +811,27 @@ describe('fsMinimum', () => {
     expect(fs).toMatchObject({ value: null, text: '—', methods: [], converged: 0, total: 2 });
   });
 
-  it('`below1` usa el valor crudo: 0,9996 se ve «1,000» pero es < 1', () => {
+  it('`below1` usa el valor crudo y, en [0,9995, 1), el texto lleva 4 decimales: nunca «1,000» junto a «FS < 1,0» (B-12a)', () => {
     const fs = fsMinimum(report(result('bishop', 0.9996)));
-    expect(fs.text).toBe('1,000');
+    expect(fs.text).toBe('0,9996');
     expect(fs.below1).toBe(true);
+    expect(fsMinimum(report(result('bishop', 0.9997))).text).toBe('0,9997');
+    expect(fsMinimum(report(result('bishop', 0.99996))).text).toBe('0,9999');
+    expect(fsMinimum(report(result('bishop', 0.9995))).text).toBe('0,9995');
+    // fuera del intervalo, tres decimales de siempre
+    expect(fsMinimum(report(result('bishop', 0.9994))).text).toBe('0,999');
+    expect(fsMinimum(report(result('bishop', 1))).text).toBe('1,000');
+    expect(fsMinimum(report(result('bishop', 1.0004))).text).toBe('1,000');
+  });
+
+  it('fsText: el chip y el HUD usan el mismo texto; los empates se comparan con él', () => {
+    expect(fsText(0.9997)).toBe('0,9997');
+    expect(fsText(null)).toBe('—');
+    const fs = fsMinimum(report(result('bishop', 0.9997), result('spencer', 0.9997), result('morgenstern_price', 0.9998)));
+    expect(fs.methods).toEqual(['bishop', 'spencer']);
+    const chip = runStatus(base({ run: emptyRun(report(result('bishop', 0.9997))), current: true }));
+    expect(chip.text).toBe('Calculado · FS < 1,0');
+    expect(chip.title).toBe('Calculado · FS < 1,0. FS mínimo 0,9997 (Bishop)');
   });
 
   it('con los resultados reales del motor (reporte guardado)', () => {
