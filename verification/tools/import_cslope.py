@@ -94,12 +94,18 @@ F3G_DIR = Path("verification") / "pending" / "F3G"
 F3G_SCHEMA = Path("schema") / "ogs-0.5.schema.json"
 HOLD_F3G_FILE = F3G_DIR / "HOLD.json"
 CRACK_OPTION_KEYS = ("tensionCrackDepth", "tensionCrackAuto", "tensionCrackWater")
-# Batch F3B (F6.12, X23 §1, X29 §8): Hoek-Brown, SHANSEP and the non-circular search, v0.6, in pending/F3B. Nothing is
-# promoted here: B2 promotes what the engine reproduces.
+# Batch F3B (F6.12, X23 §1, X29 §8): Hoek-Brown, SHANSEP and the non-circular search, v0.6. Written to pending/F3B until the
+# engine reproduces them; B2 promotes them with `import_cslope.py --promote-f3b` (E16l) and flips `F3B_PROMOTED`. What the engine
+# does not reproduce stays in pending/F3B (HOLD.json).
 F6_VERSION = "0.6"
 F3B_DIR = Path("verification") / "pending" / "F3B"
 F3B_SCHEMA = Path("schema") / "ogs-0.6.schema.json"
 HOLD_F3B_FILE = F3B_DIR / "HOLD.json"
+F3B_PROMOTED = True
+# Ten cSlope problems of the list already live in verification/cases with other checks (v0.1 to v0.3, circular search) and another
+# model: their non-circular checks are a different case and take this suffix, as `V086b-auto` does (F3G).
+F3B_RENAMED = ("V001", "V002", "V026", "V033", "V034a", "V034b", "V036a", "V093", "V102a", "V102b")
+F3B_SUFFIX = "-nc"
 # cSlope 0.1.0 has no document fields for the seeds or the vertices of the non-circular search (its engine fixes 3 seeds and up
 # to 33 vertices in `optimize.rs`, X24 §1), so the case writes those values: they are the ones the oracle runs with.
 NC_DEFAULTS = {"seeds": 3, "max_vertices": 33}
@@ -1931,11 +1937,11 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
     v0.3 ones with ponded water: F3G)."""
     """sat_report: (ids of problems with unitWeightSat in the source, reasons per id, ids included)."""
     sat_ids, sat_reason, sat_included = sat_report
-    n_sat_in = sum(1 for c in converted if any(m["unit_weight_sat"] is not None for m in c["model"]["materials"]))
+    n_sat_in = sum(1 for c in converted if any(m.get("unit_weight_sat") is not None for m in c["model"]["materials"]))
     convertible = [cid for cid in sat_ids if cid not in sat_included and sat_reason[cid].startswith("convertible")]
     n_checks = sum(len(c["checks"]) for c in converted)
     lines = [
-        "# Casos de verificación v0.1 a v0.5 (desde cSlope)",
+        "# Casos de verificación v0.1 a v0.6 (desde cSlope)",
         "",
         "Generado por `verification/tools/import_cslope.py`. No editar a mano.",
         "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.",
@@ -1945,14 +1951,16 @@ def build_index(converted, omitted, discarded_by_case, order, sat_report, promot
         f"v0.2 con sismo o cargas: **{sum(c['model']['version'] == '0.2' for c in converted)}**, "
         f"v0.3: **{sum(c['model']['version'] == '0.3' for c in converted)}**, "
         f"v0.4 con refuerzos: **{sum(c['model']['version'] == '0.4' for c in converted)}**, "
-        f"v0.5 con grieta de tracción: **{sum(c['model']['version'] == '0.5' for c in converted)}**), "
+        f"v0.5 con grieta de tracción: **{sum(c['model']['version'] == '0.5' for c in converted)}**, "
+        f"v0.6 con Hoek-Brown o búsqueda no circular: **{sum(c['model']['version'] == '0.6' for c in converted)}**), "
         f"con **{n_checks}** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. "
         "Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde "
         "`verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, "
         "promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de "
         "tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde "
         "`verification/pending/F3G` "
-        "(sección «Grieta de tracción y agua embalsada»). "
+        "(sección «Grieta de tracción y agua embalsada»). Lote F3B: los casos v0.6 con búsqueda no circular y Hoek-Brown, "
+        "promovidos desde `verification/pending/F3B` (sección «Hoek-Brown y búsqueda no circular»). "
         f"Casos no incluidos: **{len(omitted)}** (motivo en cada fila). "
         "Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en "
         "[`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en "
@@ -2195,9 +2203,23 @@ def ham1_case(root: Path) -> dict:
                        "notes": list(HAM1_NOTES)}}
 
 
-def generate_f3b(root: Path, raw_by_id: dict, problems: dict, order: list[str]) -> int:
-    """Write pending/F3B (cases, INDEX.md) and read its HOLD.json. Nothing is promoted: B2 promotes what the engine reproduces."""
-    directory = root / F3B_DIR
+def f3b_rename(case: dict) -> dict:
+    """The non-circular check of a problem that already has a case in verification/cases is a case of its own: `<id>-nc`."""
+    cid = case["id"]
+    if cid not in F3B_RENAMED:
+        return case
+    new = cid + F3B_SUFFIX
+    title = f"{case['title']}, non-circular search"
+    out = {**case, "id": new, "title": title,
+           "model": {**case["model"], "meta": {**case["model"]["meta"], "id": new, "title": title}}}
+    out["source"] = {**case["source"], "notes": [*case["source"]["notes"],
+        f"Checks de búsqueda no circular del problema {cid} de cSlope. El caso lleva el sufijo `{F3B_SUFFIX}` porque `{cid}` ya "
+        "está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."]}
+    return out
+
+
+def build_f3b(root: Path, raw_by_id: dict, problems: dict, order: list[str]) -> dict:
+    """Convert the cases of F3B (not written yet): {cases, omitted, discarded, not_listed, hold, ok, held}."""
     schema = json.loads((root / F3B_SCHEMA).read_text(encoding="utf-8"))
     cases, omitted, discarded = [], [], {}
     for cid in F3B_IDS:
@@ -2212,8 +2234,9 @@ def generate_f3b(root: Path, raw_by_id: dict, problems: dict, order: list[str]) 
                 case["source"]["notes"].append(
                     "La fuente pide porePressureHead=phreatic-correction; ogs usa altura vertical. "
                     "X29 §1 comprobó que en V036a el FS del oráculo no cambia al quitar esta opción.")
+            case = f3b_rename(case)
             cases.append(case)
-            discarded[cid] = disc
+            discarded[case["id"]] = disc
         except (Omit, KeyError, ValueError) as exc:
             omitted.append((cid, str(exc)))
     cases.append(ham1_case(root))
@@ -2234,21 +2257,148 @@ def generate_f3b(root: Path, raw_by_id: dict, problems: dict, order: list[str]) 
             not_listed.append((cid, len(nco), F3B_NOT_LISTED))
         except (Omit, KeyError, ValueError) as exc:
             not_listed.append((cid, len(nco), str(exc)))
-    hold_path = directory / "HOLD.json"
-    hold = load_hold(hold_path)
+    hold = load_hold(root / HOLD_F3B_FILE)
     known = {check_key(c["id"], k) for c in cases for k in c["checks"]}
     unknown = sorted(key for key in hold if key not in known and key[0] not in {cid for cid, _ in omitted})
     if unknown:
-        print(f"ERROR: pending/F3B/HOLD.json con checks que no existen en F3B: {unknown}", file=sys.stderr)
-        return 1
-    directory.mkdir(parents=True, exist_ok=True)
+        raise ValueError(f"pending/F3B/HOLD.json con checks que no existen en F3B: {unknown}")
+    ok, held = [], []
     for case in cases:
+        rest, only_held = split_hold(case, hold)
+        if rest:
+            ok.append(rest)
+        if only_held:
+            held.append(only_held)
+    return {"cases": cases, "omitted": omitted, "discarded": discarded, "not_listed": not_listed, "hold": hold,
+            "ok": ok, "held": held}
+
+
+def generate_f3b(root: Path, f3b: dict, promote: bool) -> int:
+    """Write pending/F3B: every case while nothing is promoted; only the held checks (and the INDEX) once promoted. Promoted
+    cases are written to cases/ by `main`."""
+    directory = root / F3B_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    keep = {f"{c['id']}.json" for c in (f3b["held"] if promote else f3b["cases"])}
+    for stale in sorted(directory.glob("*.json")):
+        if stale.name not in keep and stale.name != "HOLD.json":
+            stale.unlink()
+    for case in (f3b["held"] if promote else f3b["cases"]):
         write_if_changed(directory / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
-    if not hold_path.exists():
-        write_if_changed(hold_path, "[]\n")
-    write_if_changed(directory / "INDEX.md", build_f3b_index(cases, hold, omitted, not_listed, discarded))
-    print(f"F3B: {len(cases)} casos, {sum(len(c['checks']) for c in cases)} checks; omitidos: {omitted}")
+    if not (directory / "HOLD.json").exists():
+        write_if_changed(directory / "HOLD.json", "[]\n")
+    index = (build_f3b_promoted_index(f3b) if promote else
+             build_f3b_index(f3b["cases"], f3b["hold"], f3b["omitted"], f3b["not_listed"], f3b["discarded"]))
+    write_if_changed(directory / "INDEX.md", index)
+    n_ok, n_held = (sum(len(c["checks"]) for c in f3b[k]) for k in ("ok", "held"))
+    print(f"F3B: {len(f3b['cases'])} casos; {'promovidos' if promote else 'sin promover'}: {n_ok} checks; retenidos: {n_held}; "
+          f"omitidos: {f3b['omitted']}")
     return 0
+
+
+F3B_PROMOTE_COMMAND = (
+    "uv run --python 3.13 --no-project --with shapely --with jsonschema python verification/tools/import_cslope.py "
+    "--src $TMPDIR/cslope-src --promote-f3b")
+
+
+def _f3b_search(case: dict) -> str:
+    surface = case["model"]["analysis"].get("surface", {})
+    if surface.get("type") == "circle":
+        return "círculo fijo"
+    return "no circular" if case["model"]["analysis"].get("search", {}).get("non_circular") else "circular"
+
+
+def build_f3b_section(cases: list[dict], report: dict | None, held_cases: list[dict], hold: dict[tuple, dict]) -> str:
+    """Section of `cases/INDEX.md` for the promoted batch F3B: published value, ogs and cSlope per check (from the
+    `report.json` that `verification/harness/run.py` writes for `verification/cases`)."""
+    rows = {(r["case_id"], r["method"], r["published"]): r for r in (report or {}).get("checks", [])}
+    n_checks = sum(len(c["checks"]) for c in cases)
+    n_held = sum(len(c["checks"]) for c in held_cases)
+    lines = [
+        "## Hoek-Brown y búsqueda no circular (lote F3B, v0.6)",
+        "",
+        f"**{len(cases)}** casos con **{n_checks}** checks, promovidos desde `verification/pending/F3B` (F6.12) cuando el motor "
+        "reproduce el valor publicado dentro de su tolerancia. Son los problemas de cSlope con `nonCircularOptimization` de la "
+        "lista de F6.12 (con `analysis.search.non_circular` en sus valores por defecto: 3 semillas y 33 vértices) y el ejemplo 1 "
+        "de Hammah et al. (2005), `HAM1`, con Hoek-Brown, geometría reconstruida, círculo fijo y tolerancia de 0,5 %. Los diez "
+        f"problemas que ya tienen un caso en este directorio con otros checks y otro modelo llevan el sufijo `{F3B_SUFFIX}` "
+        "(como `V086b-auto`): `V001-nc` es el check no circular del problema `V001`, y `V001` sigue con sus checks circulares. "
+        "La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`); no se relajó ninguna "
+        "ni se tocó ningún dato.",
+        "",
+    ]
+    if n_held:
+        lines += [f"**{n_held}** check más ({held_label(held_cases)}) queda retenido en `verification/pending/F3B` "
+                  "(`HOLD.json`), con los números y la causa medida.", ""]
+    if not rows:
+        lines += ["No hay `verification/report.json` con estos casos: corra el harness sobre `verification/cases` y "
+                  "regenere este índice.", ""]
+    lines += ["| caso | v | búsqueda | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |",
+              "|---|---|---|---|---:|---|---:|---:|---:|---:|---:|"]
+    for case in sorted(cases, key=lambda c: (c["id"].split("-")[0], c["id"])):
+        for c in case["checks"]:
+            r = rows.get((case["id"], c["method"], c["published"]))
+            og = cs = d_og = d_cs = "—"
+            if r is not None:
+                fmt = lambda v, f: "—" if v is None else format(v, f)  # noqa: E731
+                og, d_og = fmt(r["ogs"]["fos"], ".4f"), fmt(r["ogs"]["err_pct"], "+.2f")
+                cs, d_cs = fmt(r["cslope"]["fos"], ".4f"), fmt(r["cslope"]["err_pct"], "+.2f")
+            lines.append(f"| {case['id']} | {case['model']['version']} | {_f3b_search(case)} | {c['method']} | {c['published']} "
+                         f"| {md_cell(c['published_by'])} | {100 * c['tolerance']:.2f} | {og} | {d_og} | {cs} | {d_cs} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_f3b_promoted_index(f3b: dict) -> str:
+    """INDEX.md left in pending/F3B once the batch is promoted: the held checks, with their numbers and their cause."""
+    ok, held, hold = f3b["ok"], f3b["held"], f3b["hold"]
+    n_ok = sum(len(c["checks"]) for c in ok)
+    n_held = sum(len(c["checks"]) for c in held)
+    lines = [
+        "# Hoek-Brown, SHANSEP y búsqueda no circular (F3B, formato v0.6): promovidos y retenidos",
+        "",
+        "Generado por `verification/tools/import_cslope.py`. No editar a mano (`HOLD.json` sí: lo lee el generador).",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope, y Hammah et al. "
+        "(2005) para HAM1.",
+        "",
+        f"**{len(ok)}** casos con **{n_ok}** checks pasaron a [`../../cases/`](../../cases/INDEX.md) (sección «Hoek-Brown y "
+        "búsqueda no circular», con la tabla del publicado, ogs y cSlope por check)"
+        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`); la tabla de abajo los lista con sus números y la causa "
+           "medida." if held else ". No queda ninguno retenido."),
+        "",
+        "Los casos de cSlope son los checks con `nonCircularOptimization` (F6.12). Los diez problemas que ya tenían un caso en "
+        f"`verification/cases` con otros checks y otro modelo se llaman `<id>{F3B_SUFFIX}` ({', '.join(F3B_RENAMED)}): es el "
+        "mismo modelo y los mismos checks de la fuente, con otro nombre. Ninguna tolerancia, valor publicado ni modelo cambió "
+        "al promover.",
+        "",
+    ]
+    lines += ["## Checks retenidos", ""]
+    if held or hold:
+        lines += ["Cada check retenido es uno que el motor o el oráculo no reproducen, con su causa. Se promueve quitándolo de "
+                  "`HOLD.json` y regenerando, cuando se reproduzca.", "",
+                  "| caso | método | publicado | por | tol % | ogs | cSlope | motivo y diagnóstico |",
+                  "|---|---|---:|---|---:|---:|---:|---|"]
+
+        def f(v):
+            return "—" if v is None else f"{v:.4f}"
+        tol = {check_key(c["id"], k): k["tolerance"] for c in f3b["cases"] for k in c["checks"]}
+        for key, e in sorted(hold.items()):
+            t = tol.get(key)
+            lines.append(f"| {e['id']} | {e['method']} | {e['published']} | {md_cell(e['published_by'])} "
+                         f"| {'—' if t is None else format(100 * t, '.2f')} | {f(e.get('ogs'))} | {f(e.get('cslope'))} "
+                         f"| {md_cell(e.get('diagnosis', ''))} |")
+    else:
+        lines.append("Ninguno.")
+    lines += ["", "## Casos de la lista que no se escriben", ""]
+    lines += [f"- {cid}: {md_cell(r)}" for cid, r in f3b["omitted"]] or ["- ninguno"]
+    lines += ["", "## Otros casos con búsqueda no circular", "",
+              "El corpus de cSlope tiene más checks con `nonCircularOptimization`. No entran en F3B por el motivo de cada uno:", ""]
+    lines += [f"- {cid} ({n} {'check' if n == 1 else 'checks'}): {md_cell(r)}" for cid, n, r in f3b["not_listed"]] or ["- ninguno"]
+    dropped = {k: v for k, v in f3b["discarded"].items() if v}
+    if dropped:
+        lines += ["", "## Checks descartados dentro de los casos", ""]
+        lines += [f"- {cid}: {md_cell(x)}" for cid, v in sorted(dropped.items()) for x in v]
+    lines.append("")
+    return "\n".join(lines)
 
 
 def build_f3b_index(cases: list[dict], hold: dict[tuple, dict], omitted: list[tuple[str, str]],
@@ -2314,12 +2464,16 @@ def main() -> int:
     ap.add_argument("--promote-f3i", action="store_true",
                     help="write the Ito-Matsui cases V013b to V013e (batch F3I, v0.5) to verification/cases instead of "
                          "verification/pending/F3I (the integrator's promotion, see pending/F3I/INDEX.md)")
-    ap.add_argument("--f3b-only", action="store_true", help="generate only pending/F3B")
+    ap.add_argument("--promote-f3b", action="store_true",
+                    help="write the cases of batch F3B (v0.6) that the engine reproduces to verification/cases and leave the held "
+                         "checks (HOLD.json) in verification/pending/F3B (the integrator's promotion, see pending/F3B/INDEX.md)")
+    ap.add_argument("--f3b-only", action="store_true", help="generate only pending/F3B (the promoted cases are written by the full run)")
     args = ap.parse_args()
 
     src = Path(args.src).expanduser().resolve()
     root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[2]
     promote_f3i = bool(args.promote_f3i or F3I_PROMOTED)
+    promote_f3b = bool(args.promote_f3b or F3B_PROMOTED)
     golden = src / "packages/engine-rs/golden/verification.json"
     problems_path = src / "packages/engine/src/verification/problems.ts"
     license_path = src / "LICENSE"
@@ -2337,8 +2491,9 @@ def main() -> int:
     raw_by_id = {c["id"]: c for c in data["cases"]}
     order = [c["id"] for c in data["cases"]]
     problems = parse_problems(problems_path)
+    f3b = build_f3b(root, raw_by_id, problems, order)
     if args.f3b_only:
-        return generate_f3b(root, raw_by_id, problems, order)
+        return generate_f3b(root, f3b, promote_f3b)
     hold = load_hold(root / HOLD_FILE)
 
     # ---- batch 0: every problem that converts today (v0.1, and v0.2 with seismic coefficients or loads).
@@ -2603,7 +2758,12 @@ def main() -> int:
     cases_dir = root / "verification" / "cases"
     # R1 to R4 are promoted: the v0.4 cases of the reinforcements go to cases/ after the v0.1 to v0.3 ones.
     f3i_promoted = f3i_cases if promote_f3i else []
-    all_cases = converted + f3r_cases + f3g_ok + f3i_promoted
+    f3b_promoted = f3b["ok"] if promote_f3b else []
+    all_cases = converted + f3r_cases + f3g_ok + f3i_promoted + f3b_promoted
+    dup = sorted({c["id"] for c in all_cases if [x["id"] for x in all_cases].count(c["id"]) > 1})
+    if dup:
+        print(f"ERROR: ids repetidos entre lotes: {dup}", file=sys.stderr)
+        return 1
     expected = {f"{c['id']}.json" for c in all_cases}
     changed = 0
     for case in all_cases:
@@ -2617,13 +2777,15 @@ def main() -> int:
     if (root / "verification" / "report.json").is_file():
         cases_report = json.loads((root / "verification" / "report.json").read_text(encoding="utf-8"))
     changed += write_if_changed(cases_dir / "INDEX.md", build_index(
-        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok + f3i_promoted}],
-        {**discarded_by_case, **f3r_dropped, **f3g_dropped},
-        order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok] + [c["id"] for c in f3i_promoted],
+        all_cases, [(cid, r) for cid, r in omitted if cid not in {c["id"] for c in f3r_cases + f3g_ok + f3i_promoted + f3b_promoted}],
+        {**discarded_by_case, **f3r_dropped, **f3g_dropped, **f3b["discarded"]},
+        order + [c["id"] for c in f3r_cases] + [c["id"] for c in f3g_ok] + [c["id"] for c in f3i_promoted]
+        + [c["id"] for c in f3b_promoted],
         (sat_ids, sat_reason, sat_included),
         f3r_section=build_f3r_section(f3r_cases, f3r_lots, cases_report, f3r_held, ito_promoted=promote_f3i),
         f3g_section=build_f3g_section(f3g_ok, cases_report, f3g_held) + (
-            "\n" + build_f3i_section(f3i_promoted, cases_report) if f3i_promoted else "")))
+            "\n" + build_f3i_section(f3i_promoted, cases_report) if f3i_promoted else "") + (
+            "\n" + build_f3b_section(f3b_promoted, cases_report, f3b["held"], f3b["hold"]) if f3b_promoted else "")))
     changed += write_if_changed(root / "NOTICE", build_notice(license_text))
 
     pending_dir = root / "verification" / "pending"
@@ -2734,7 +2896,7 @@ def main() -> int:
         print(f"  {cid}: {reason}")
     print(f"Archivos escritos/modificados en esta ejecución: {changed}")
     print("GATES OK: schema, geometría, v0.3")
-    return generate_f3b(root, raw_by_id, problems, order)    # batch F3B (v0.6): pending/F3B only, nothing promoted
+    return generate_f3b(root, f3b, promote_f3b)    # batch F3B (v0.6): the held checks stay in pending/F3B
 
 
 if __name__ == "__main__":

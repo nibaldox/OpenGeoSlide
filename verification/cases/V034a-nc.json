@@ -1,12 +1,12 @@
 {
-  "id": "V034a",
-  "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+  "id": "V034a-nc",
+  "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth, non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V034a",
-      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
+      "id": "V034a-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth, non-circular search",
       "notes": "Granular fill over clay with undrained strength increasing linearly with depth; critical-circle search."
     },
     "units": "imperial",
@@ -124,7 +124,8 @@
     "derived_from": "cSlope verification problem V034a (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Duncan, Wright & Brandon (2014, Table 14.1) give 1.276 at θs = 1° and 3° and up to 1.323 at larger θs; until 2026-10-25 the check carried 1.300, the midpoint of that range, which is not in the table. Profile I goes with the shallow circle I. commercial program A Spencer 1.285 (circle).",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V034a de cSlope. El caso lleva el sufijo `-nc` porque `V034a` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

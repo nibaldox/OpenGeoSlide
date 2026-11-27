@@ -1,12 +1,12 @@
 {
-  "id": "V033",
-  "title": "Duncan & Wright fig. 14.20a, water table",
+  "id": "V033-nc",
+  "title": "Duncan & Wright fig. 14.20a, water table, non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V033",
-      "title": "Duncan & Wright fig. 14.20a, water table",
+      "id": "V033-nc",
+      "title": "Duncan & Wright fig. 14.20a, water table, non-circular search",
       "notes": "Cohesive-frictional fill over sand with a piezometric line; critical-circle search. Converted to SI."
     },
     "units": "SI",
@@ -144,7 +144,8 @@
     "derived_from": "cSlope verification problem V033 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Duncan, Wright & Brandon (2014, Table 14.1 p. 244) give 1.528–1.542 for side-force inclinations θs of 1° to 10°, 1.529 at the recommended 3°; until 2026-10-25 the check carried 1.535 (the range's midpoint). The book names no method; θs is Spencer's. commercial program A Spencer 1.540 (circle).",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V033 de cSlope. El caso lleva el sufijo `-nc` porque `V033` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

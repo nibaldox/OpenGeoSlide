@@ -1,12 +1,12 @@
 {
-  "id": "V036a",
-  "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+  "id": "V036a-nc",
+  "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9), non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V036a",
-      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9)",
+      "id": "V036a-nc",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9), non-circular search",
       "notes": "Embankment (c′ = 0, φ′ = 35°, γ = 125 pcf) on a 20 ft undrained foundation, cu = 300 psf, constant; circular search. Converted to SI."
     },
     "units": "SI",
@@ -124,7 +124,8 @@
     "derived_from": "cSlope verification problem V036a (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Duncan & Wright's reference values: Spencer's method, printed in the table of fig. 15.9 (fig. 15.11, p. 257, in the 2nd edition, 2014), two digits.",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V036a de cSlope. El caso lleva el sufijo `-nc` porque `V036a` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

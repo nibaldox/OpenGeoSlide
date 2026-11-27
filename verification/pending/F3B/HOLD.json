@@ -1,5 +1,23 @@
 [
   {
+    "id": "V002-nc",
+    "method": "spencer",
+    "published": 0.414,
+    "published_by": "Commercial program A (non-circular)",
+    "ogs": 0.386433,
+    "cslope": 0.411036,
+    "diagnosis": "Limitación conocida de E16u (F6.14): la búsqueda no circular de ogs con Spencer llega a una rama con tracción y da 0,3864 frente al publicado 0,414 ± 2,12 % (banda [0,40522; 0,42278]): −6,66 %, fuera de la tolerancia. Las notas son negative_lambda y negative_effective_normal_major (λ = −0,499 en el círculo crítico). En las mismas superficies cSlope da 0,432209 (círculo) y 0,415225 (polilínea): la diferencia de 7 % viene de la selección de raíz de E12e (la raíz admisible de menor F, en una rama con tracción), la limitación de F1.6/R5-05, no del algoritmo no circular. La polilínea de ogs, evaluada por cSlope, cae dentro de la banda y a +1,03 % de la óptima de cSlope. Se mantiene E12e por conservadora. Evidencia: docs/fase3/exploracion/X29_proto/v002_raices_coordinador.json. El caso es V002 de la fuente (en cases/ ya existe V002 con su check circular de Bishop). No se cambia ninguna tolerancia, valor publicado ni modelo."
+  },
+  {
+    "id": "V009c",
+    "method": "spencer",
+    "published": 1.868,
+    "published_by": "Commercial program B (optimized non-circular)",
+    "ogs": 1.866921,
+    "cslope": 1.866884,
+    "diagnosis": "FS reproducido, aviso no informativo. ogs 1.8669 (-0.06 %), cSlope 1.8669 (-0.06 %), publicado 1.868 (Commercial program B, optimizado no circular), tolerancia 2.03 % (relativa): el FS está dentro de la tolerancia. El motor emite `interslice_shear_exceeds_strength` (E13k) con λ = 0,2271 (además de `water_above_ground`, informativo), y el test de aceptación rechaza todo aviso que no es informativo (E5), como en V009a y V009b de F3G y en V035b y V083 de F3R. No se amplía `INFORMATIVE_WARNINGS`, no se cambia el umbral de 3 y no se toca la tolerancia. El arnés (`verification/harness/run.py`) sí lo da por reproducido (OK); el probe del coordinador (`pending_f3b_probe.txt`) tampoco aplicaba el filtro de avisos de `acceptance.rs`. Es la misma geometría de V009a y V009b (grieta seca de 5 m y embalse sobre el terreno) con la búsqueda no circular."
+  },
+  {
     "id": "V105a",
     "method": "bishop",
     "published": 1.285,

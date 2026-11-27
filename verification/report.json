@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-27T00:24:00-03:00",
+  "generated_at": "2026-11-27T09:19:45-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
     "ogs": {
-      "binary": "target/release/ogs",
+      "binary": "/home/xodla/.hermes/profiles/open-geoslide/cache/scratch/f3b2a-target/release/ogs",
       "version": "ogs-core 0.4.0",
       "error": null
     },
@@ -18,6 +18,18 @@
     "platform": "Linux-7.3.5-2-cachyos-x86_64-with-glibc2.44"
   },
   "cases": [
+    {
+      "id": "HAM1",
+      "title": "Hammah et al. (2005), ejemplo 1",
+      "path": "verification/cases/HAM1.json",
+      "n_checks": 2
+    },
+    {
+      "id": "V001-nc",
+      "title": "Arai & Tagyo (1985) example 1, non-circular search",
+      "path": "verification/cases/V001-nc.json",
+      "n_checks": 1
+    },
     {
       "id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
@@ -271,6 +283,12 @@
       "n_checks": 2
     },
     {
+      "id": "V026-nc",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay, non-circular search",
+      "path": "verification/cases/V026-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V026",
       "title": "Duncan & Wright fig. 7.12, embankment on clay",
       "path": "verification/cases/V026.json",
@@ -319,16 +337,34 @@
       "n_checks": 3
     },
     {
+      "id": "V033-nc",
+      "title": "Duncan & Wright fig. 14.20a, water table, non-circular search",
+      "path": "verification/cases/V033-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V033",
       "title": "Duncan & Wright fig. 14.20a, water table",
       "path": "verification/cases/V033.json",
       "n_checks": 2
     },
     {
+      "id": "V034a-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth, non-circular search",
+      "path": "verification/cases/V034a-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V034a",
       "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
       "path": "verification/cases/V034a.json",
       "n_checks": 2
+    },
+    {
+      "id": "V034b-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf, non-circular search",
+      "path": "verification/cases/V034b-nc.json",
+      "n_checks": 1
     },
     {
       "id": "V034b",
@@ -340,6 +376,12 @@
       "id": "V035a",
       "title": "Duncan & Wright tieback, active",
       "path": "verification/cases/V035a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V036a-nc",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9), non-circular search",
+      "path": "verification/cases/V036a-nc.json",
       "n_checks": 1
     },
     {
@@ -475,6 +517,12 @@
       "n_checks": 3
     },
     {
+      "id": "V050b",
+      "title": "ACADS 3(a), weak layer, non-circular search",
+      "path": "verification/cases/V050b.json",
+      "n_checks": 1
+    },
+    {
       "id": "V052a",
       "title": "Talbingo Dam, end of construction",
       "path": "verification/cases/V052a.json",
@@ -521,6 +569,24 @@
       "title": "Griffiths & Lane example 6, earth dam with full reservoir",
       "path": "verification/cases/V058.json",
       "n_checks": 2
+    },
+    {
+      "id": "V059a",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.4",
+      "path": "verification/cases/V059a.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V059b",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.5",
+      "path": "verification/cases/V059b.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V059c",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.6",
+      "path": "verification/cases/V059c.json",
+      "n_checks": 1
     },
     {
       "id": "V060a",
@@ -841,10 +907,22 @@
       "n_checks": 4
     },
     {
+      "id": "V093-nc",
+      "title": "Yamagami & Ueta (1988), non-circular search",
+      "path": "verification/cases/V093-nc.json",
+      "n_checks": 2
+    },
+    {
       "id": "V093",
       "title": "Yamagami & Ueta (1988)",
       "path": "verification/cases/V093.json",
       "n_checks": 1
+    },
+    {
+      "id": "V094",
+      "title": "Yamagami & Ueta (1988) four-layer slope, non-circular",
+      "path": "verification/cases/V094.json",
+      "n_checks": 2
     },
     {
       "id": "V095a",
@@ -907,16 +985,34 @@
       "n_checks": 3
     },
     {
+      "id": "V102a-nc",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry, non-circular search",
+      "path": "verification/cases/V102a-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V102a",
       "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
       "path": "verification/cases/V102a.json",
       "n_checks": 5
     },
     {
+      "id": "V102b-nc",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5, non-circular search",
+      "path": "verification/cases/V102b-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V102b",
       "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
       "path": "verification/cases/V102b.json",
       "n_checks": 5
+    },
+    {
+      "id": "V103",
+      "title": "Spencer's slope, rᵤ = 0.5, non-circular critical surface",
+      "path": "verification/cases/V103.json",
+      "n_checks": 2
     },
     {
       "id": "V104a",
@@ -926,25 +1022,144 @@
     }
   ],
   "summary": {
-    "checks": 327,
+    "checks": 347,
     "ogs": {
-      "OK": 327,
+      "OK": 347,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 326,
+      "OK": 346,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 1
     },
     "cslope_reproduces": {
-      "n": 326,
-      "N": 327
+      "n": 346,
+      "N": 347
     }
   },
   "checks": [
+    {
+      "case_id": "HAM1",
+      "title": "Hammah et al. (2005), ejemplo 1",
+      "source_path": "verification/cases/HAM1.json",
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.153,
+      "published_by": "Hammah et al. (2005), tabla 2",
+      "tolerance": 0.005,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.150213968368498,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal",
+          "hoek_brown_low_confinement"
+        ],
+        "err_pct": -0.24163327246331653,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1518071000371357,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.10346053450687887,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Hoek-Brown (F6.2, F6.8): ucs, gsi, mi y disturbance explícito; en bajo confinamiento cSlope extrapola la tangente de σ3 = 0 para σ'n <= sn(0), mientras ogs usa la envolvente completa hasta σt (E16q)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "HAM1",
+      "title": "Hammah et al. (2005), ejemplo 1",
+      "source_path": "verification/cases/HAM1.json",
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.152,
+      "published_by": "Hammah et al. (2005), tabla 2",
+      "tolerance": 0.005,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.152052983415579,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal",
+          "hoek_brown_low_confinement"
+        ],
+        "err_pct": 0.0045992548245775275,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1530185372147197,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.088414688777759,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "Hoek-Brown (F6.2, F6.8): ucs, gsi, mi y disturbance explícito; en bajo confinamiento cSlope extrapola la tangente de σ3 = 0 para σ'n <= sn(0), mientras ogs usa la envolvente completa hasta σt (E16q)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V001-nc",
+      "title": "Arai & Tagyo (1985) example 1, non-circular search",
+      "source_path": "verification/cases/V001-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.386,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.02036075036075036,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3838760786423974,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.15324107919210186,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3837204423582525,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1644702483223207,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
     {
       "case_id": "V001",
       "title": "Arai & Tagyo (1985) example 1",
@@ -5994,6 +6209,41 @@
       "estado": "OK"
     },
     {
+      "case_id": "V026-nc",
+      "title": "Duncan & Wright fig. 7.12, embankment on clay, non-circular search",
+      "source_path": "verification/cases/V026-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.19,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.02420168067226891,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.173144000642981,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [],
+        "err_pct": -1.4164705342032757,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.170150014289552,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.668066026088062,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V026",
       "title": "Duncan & Wright fig. 7.12, embankment on clay",
       "source_path": "verification/cases/V026.json",
@@ -6627,6 +6877,47 @@
       "estado": "OK"
     },
     {
+      "case_id": "V033-nc",
+      "title": "Duncan & Wright fig. 14.20a, water table, non-circular search",
+      "source_path": "verification/cases/V033-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.534,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.02032594524119948,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.5236491298395887,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.6747633742119533,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5218601283572915,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.7913866781426712,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"fill\" lies partly below its water line but has no unitWeightSat: its unit weight 19.636 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"sand\" lies partly below its water line but has no unitWeightSat: its unit weight 20.736 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V033",
       "title": "Duncan & Wright fig. 14.20a, water table",
       "source_path": "verification/cases/V033.json",
@@ -6707,6 +6998,41 @@
       "estado": "OK"
     },
     {
+      "case_id": "V034a-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth, non-circular search",
+      "source_path": "verification/cases/V034a-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.262,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.02039619651347068,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2649823216325031,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [],
+        "err_pct": 0.23631708656918507,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2649251927651408,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.2317902349556898,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V034a",
       "title": "Duncan & Wright fig. 14.20b, Su = 200 + 15·depth",
       "source_path": "verification/cases/V034a.json",
@@ -6769,6 +7095,41 @@
         "verdict": "OK",
         "warnings": [],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V034b-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf, non-circular search",
+      "source_path": "verification/cases/V034b-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.182,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.02042301184433164,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1705481309043995,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [],
+        "err_pct": -0.9688552534348964,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.168501914929929,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.141969972087225,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -6933,6 +7294,41 @@
         "unexplained": 0,
         "on_oracle_circle": false
       }
+    },
+    {
+      "case_id": "V036a-nc",
+      "title": "Embankment on an undrained foundation, cz = 0 (D&W fig. 15.9), non-circular search",
+      "source_path": "verification/cases/V036a-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.74,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.026756756756756758,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 0.7365821175659685,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [],
+        "err_pct": -0.46187600459885353,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.7359896801856427,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.5419351100482822,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
     },
     {
       "case_id": "V036a",
@@ -9566,6 +9962,47 @@
       "estado": "OK"
     },
     {
+      "case_id": "V050b",
+      "title": "ACADS 3(a), weak layer, non-circular search",
+      "source_path": "verification/cases/V050b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.246,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02040128410914928,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2387994527960262,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal",
+          "non_circular_large_change"
+        ],
+        "err_pct": -0.5778930340267884,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2253753725334475,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.6552670518902464,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_1_below\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V052a",
       "title": "Talbingo Dam, end of construction",
       "source_path": "verification/cases/V052a.json",
@@ -10248,6 +10685,123 @@
           "missing-unit-weight-sat: Material \"embankment\" lies partly below its water line but has no unitWeightSat: its unit weight 18.2 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
         ],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V059a",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.4",
+      "source_path": "verification/cases/V059a.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.215,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.020411522633744857,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2144942299123542,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.041627167707477486,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2136489059003093,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.11120116046837929,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V059b",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.5",
+      "source_path": "verification/cases/V059b.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.29,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.023875968992248062,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.2897782276983842,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.017191651288046266,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.2892107443649905,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.061182607365080126,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V059c",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.6",
+      "source_path": "verification/cases/V059c.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.315,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.02038022813688213,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3147571420071713,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.018468288428033296,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3118487632409117,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.23963777635652006,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -17684,6 +18238,84 @@
       "estado": "OK"
     },
     {
+      "case_id": "V093-nc",
+      "title": "Yamagami & Ueta (1988), non-circular search",
+      "source_path": "verification/cases/V093-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.325,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020377358490566037,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3252801513390795,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.02114349728902253,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3226834635089515,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.17483294272063848,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V093-nc",
+      "title": "Yamagami & Ueta (1988), non-circular search",
+      "source_path": "verification/cases/V093-nc.json",
+      "method": "janbu_simplified",
+      "kind": "search",
+      "published": 1.178,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020424448217317488,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1775937476681846,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.03448661560401942,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1764240641578234,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1337806317637117,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V093",
       "title": "Yamagami & Ueta (1988)",
       "source_path": "verification/cases/V093.json",
@@ -17716,6 +18348,81 @@
           "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
         ],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V094",
+      "title": "Yamagami & Ueta (1988) four-layer slope, non-circular",
+      "source_path": "verification/cases/V094.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.398,
+      "published_by": "Commercial program A (Monte Carlo)",
+      "tolerance": 0.020357653791130186,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3996840944282831,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [],
+        "err_pct": 0.12046455137934275,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.4000518129055186,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.14676773286972117,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V094",
+      "title": "Yamagami & Ueta (1988) four-layer slope, non-circular",
+      "source_path": "verification/cases/V094.json",
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.389,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020359971202303817,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.3913030051496618,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.16580310652712396,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.3885540726749914,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.032104199064693174,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -18508,6 +19215,46 @@
       "estado": "OK"
     },
     {
+      "case_id": "V102a-nc",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry, non-circular search",
+      "source_path": "verification/cases/V102a-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.999,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.0205005005005005,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9980213905686904,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.09795890203298926,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9978049212917768,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.11962749832064248,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V102a",
       "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, dry",
       "source_path": "verification/cases/V102a.json",
@@ -18685,6 +19432,46 @@
         ],
         "notes": [
           "sismo pseudoestático kh=0.432, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V102b-nc",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5, non-circular search",
+      "source_path": "verification/cases/V102b-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.997,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020501504513540623,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.9966319497876349,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.03691576854213426,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.9965298914006531,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.04715231688534906,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 2 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -18880,6 +19667,86 @@
         ],
         "notes": [
           "sismo pseudoestático kh=0.132, kv=0: kh en el sentido del deslizamiento, kv>0 hacia abajo (misma convención en cSlope, ltr y rtl).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V103",
+      "title": "Spencer's slope, rᵤ = 0.5, non-circular critical surface",
+      "source_path": "verification/cases/V103.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.02,
+      "published_by": "Baker (non-circular)",
+      "tolerance": 0.024901960784313726,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0145897034995384,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.5304212255354562,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0077703729648644,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.1989830426603567,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V103",
+      "title": "Spencer's slope, rᵤ = 0.5, non-circular critical surface",
+      "source_path": "verification/cases/V103.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.01,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.024950495049504952,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.0145897034995384,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.4.0",
+        "warnings": [
+          "truncated_mass",
+          "negative_effective_normal"
+        ],
+        "err_pct": 0.4544260890632036,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0077703729648644,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.22075515199362658,
+        "verdict": "OK",
+        "warnings": [
+          "negative-effective-normal: 3 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
