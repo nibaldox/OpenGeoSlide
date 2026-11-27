@@ -351,6 +351,7 @@ fn the_crack_report_serializes_with_its_three_numbers() {
         x: 48.7109,
         depth: 2.0,
         water_force: 19.614,
+        face_height: None,
     };
     assert_eq!(
         serde_json::to_value(r).unwrap(),

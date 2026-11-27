@@ -334,5 +334,6 @@ pub fn truncate(
         x: plan.x_c,
         depth: plan.depth,
         water_force,
+        face_height: None,
     }
 }
