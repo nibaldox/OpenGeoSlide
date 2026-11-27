@@ -35,10 +35,10 @@ export const STEP_ORDER: readonly PanelTabId[] = [
  * - `done`: completo y sin errores locales;
  * - `error`: alguna incidencia local de severidad `error` apunta a este paso;
  * - `draft`: tiene un borrador sin aplicar (gana sobre `done`, pierde frente a `error`);
+ * - `warn`: alguna incidencia local de severidad `aviso` apunta a este paso (UA-E3 §4; gana sobre `empty`, `optional` y `done`);
  * - `optional`: paso opcional vacío (sin agua, sin búsqueda activa, sin cargas, sin refuerzos, sin sismo, sin título);
  * - `empty`: paso obligatorio vacío (sin regiones, sin materiales).
  */
-/** UA-E3: `warn` = alguna incidencia local de severidad `aviso` apunta al paso (precedencia error › draft › warn › empty/optional › done). */
 export type StepStatus = 'done' | 'error' | 'draft' | 'warn' | 'optional' | 'empty';
 
 export interface StepState {
@@ -261,18 +261,21 @@ export function stepStates(doc: ModelDoc, issues: readonly Issue[], pendingDraft
     project: projectSummary(doc),
   };
   const errors = new Map<PanelTabId, number>();
+  const advised = new Set<PanelTabId>();
   for (const issue of issues) {
-    if (issue.severity !== 'error') continue;
+    if (issue.severity !== 'error' && issue.severity !== 'aviso') continue;
     const tab = issueTargetFor(issue, doc)?.tab ?? null;
-    if (tab !== null) errors.set(tab, (errors.get(tab) ?? 0) + 1);
+    if (tab === null) continue;
+    if (issue.severity === 'error') errors.set(tab, (errors.get(tab) ?? 0) + 1);
+    else advised.add(tab);
   }
   const drafted = new Set(pendingDrafts.map(draftStep));
   const out = {} as Record<PanelTabId, StepState>;
   for (const id of STEP_ORDER) {
     const { summary, base } = summaries[id];
     const errorCount = errors.get(id) ?? 0;
-    // Precedencia: error › borrador › vacío / opcional › hecho.
-    const status: StepStatus = errorCount > 0 ? 'error' : drafted.has(id) ? 'draft' : base;
+    // Precedencia (UA-E3 §4): error › borrador › aviso › vacío / opcional › hecho.
+    const status: StepStatus = errorCount > 0 ? 'error' : drafted.has(id) ? 'draft' : advised.has(id) ? 'warn' : base;
     out[id] = { summary, status, errorCount };
   }
   return out;

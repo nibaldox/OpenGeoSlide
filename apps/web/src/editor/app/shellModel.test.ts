@@ -317,7 +317,46 @@ describe('stepStates: precedencia de estados', () => {
   it('avisos y notas no cuentan como error; una incidencia sin destino tampoco', () => {
     const s = stepStates(mini(), [issue('/regions/0', 'x', 'aviso'), issue('/materials/0', 'x', 'nota'), issue(null, 'x'), issue('/nada', 'x')], []);
     for (const id of STEP_ORDER) expect(s[id].errorCount).toBe(0);
-    expect(s.geometry.status).toBe('done');
+    expect(s.materials.status).toBe('done'); // una nota no cambia el estado
+  });
+
+  it('warn (UA-E3 §4, B-02): un aviso local cuyo destino es el paso lo marca; las notas, los errores ajenos y los avisos sin destino no', () => {
+    const doc = mini();
+    const s = stepStates(doc, [issue('/regions/0', 'x', 'aviso'), issue('/materials/0', 'x', 'nota'), issue(null, 'x', 'aviso'), issue('/nada', 'x', 'aviso')], []);
+    expect(s.geometry).toMatchObject({ status: 'warn', errorCount: 0 });
+    expect(s.materials.status).toBe('done');
+    for (const id of STEP_ORDER.filter((x) => x !== 'geometry')) expect(s[id].status).not.toBe('warn');
+  });
+
+  it('warn reparte cada aviso con issueTargetFor: ru y σci en Materiales, piezométrica en Agua', () => {
+    const doc = mini({ water: { piezometric_line: [[0, 1], [10, 2]] } });
+    const s = stepStates(doc, [issue('/materials/0/ru', 'a', 'aviso'), issue('/water/piezometric_line/1', 'b', 'aviso')], []);
+    expect(s.materials.status).toBe('warn');
+    expect(s.water.status).toBe('warn');
+    expect(s.water.summary).toBe('Piezométrica · 2 puntos');
+  });
+
+  it('warn gana sobre `optional` y `empty` (un aviso no deja el paso en gris)', () => {
+    expect(stepStates(mini(), [issue('/water/unit_weight', 'x', 'aviso')], []).water.status).toBe('warn');
+    expect(stepStates(mini({ materials: [] }), [issue('/materials/0', 'x', 'aviso')], []).materials.status).toBe('empty'); // sin destino real: no hay material 0
+  });
+
+  it('precedencia completa: error › borrador › warn › resto', () => {
+    const doc = mini();
+    const warnOnly = stepStates(doc, [issue('/regions/0', 'x', 'aviso')], []);
+    expect(warnOnly.geometry.status).toBe('warn');
+    const warnDraft = stepStates(doc, [issue('/regions/0', 'x', 'aviso')], ['Vértice 1 (0, 0) de la región 1']);
+    expect(warnDraft.geometry.status).toBe('draft');
+    const all = stepStates(doc, [issue('/regions/0', 'x', 'aviso'), issue('/regions/0/polygon/1', 'y', 'error')], ['Vértice 1 (0, 0) de la región 1']);
+    expect(all.geometry).toMatchObject({ status: 'error', errorCount: 1 });
+  });
+
+  it('avisos reales de validateLocal (γsat < γ, ru) marcan Materiales', () => {
+    const doc = mini({ materials: [{ id: 'm1', name: 'S', model: 'mohr_coulomb', unit_weight: 22, unit_weight_sat: 18, cohesion: 5, friction_angle: 30, ru: 0.25 }] });
+    const issues = validateLocal(doc);
+    expect(issues.some((i) => i.severity === 'aviso')).toBe(true);
+    const s = stepStates(doc, issues, []);
+    expect(s.materials.status).toBe('warn');
   });
 
   it('cada ruta se reparte en el paso que abre issueNav (clima, sismo, cargas, refuerzos, agua, búsqueda, proyecto)', () => {
