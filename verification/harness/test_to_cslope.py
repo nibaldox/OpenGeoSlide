@@ -1658,10 +1658,11 @@ def test_oracle_rows_of_x28_hoek_brown_through_the_converter(rid, row):
     doc = _doc(model, method)
     assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
     res = cs.analyse(doc)
-    # In X28-F-SB (spencer / morgenstern_price) cSlope hits its 30-pass HB cap (F6.8 diagnostic exception); minFOS is
-    # still the figure recorded in X28_filas/resultados.json.
-    if not (rid == "X28-F-SB" and method in ("spencer", "morgenstern_price")):
-        assert res["criticalSurface"].get("converged", True), (rid, method, res["criticalSurface"])
+    # A non-converged cSlope value is a diagnostic only, never an oracle reference.
+    if rid == "X28-F-SB" and method in ("spencer", "morgenstern_price"):
+        assert not res["criticalSurface"].get("converged", True), (rid, method)
+        return
+    assert res["criticalSurface"].get("converged", True), (rid, method, res["criticalSurface"])
     assert res["minFOS"] == pytest.approx(row["oracle"], abs=1e-6), (rid, method)
 
 
@@ -1691,7 +1692,9 @@ def test_oracle_rows_of_x30_shansep_through_the_converter(rid, method, want):
     if kind == "search":
         doc = ogs_to_cslope(model, {"method": method, "kind": "search"}).document
         assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
-        got = cs.analyse(doc)["minFOS"]
+        result = cs.analyse(doc)
+        assert result["criticalSurface"].get("converged", True), (rid, method)
+        got = result["minFOS"]
     else:
         got = _oracle_fos(cs, model, method)
     assert got == pytest.approx(want, abs=2e-6), (rid, method)
