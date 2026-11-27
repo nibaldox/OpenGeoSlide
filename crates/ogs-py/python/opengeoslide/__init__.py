@@ -72,17 +72,20 @@ longitud del modelo, o la cadena ``"auto"``, la profundidad de Rankine) y ``wate
 superficie y de la profundidad. La grieta **trunca cada superficie**: quita la masa del lado de la cresta, que no se
 conserva como carga, y deja una cara vertical sin resistencia. Con agua, ``Pw = ½·γw·(water_fill·depth)²`` es una fuerza
 horizontal en el sentido del deslizamiento, que no pesa ni cambia la presión de poros de la base. Cada resultado cuya
-superficie se truncó trae ``results[i]["tension_crack"] = {"x", "depth", "water_force"}`` (se omite sin grieta; con
+superficie se truncó trae ``results[i]["tension_crack"] = {"x", "depth", "water_force"}`` (más ``"face_height"`` cuando la cara
+cortada difiere de ``depth``; se omite sin grieta; con
 ``"auto"`` y profundidad nula, ``depth`` y ``water_force`` valen 0 y el FS es el de la superficie sin grieta). Una
 superficie que no alcanza la profundidad se descarta en una búsqueda y, si es fija, es
 ``ValueError("NoValidSurface: tension_crack_not_reached: ...")``; no hay tope de profundidad por la altura del talud. Una
 grieta **seca** puede subir el FS (la masa que se quita empujaba); con agua, el FS baja con ``water_fill``.
 
-Si la profundidad automática salta por una carga ``udl`` o por un cambio lateral de material, el motor informa y usa la
-profundidad de la cara realmente cortada, ``terreno(x) − base(x)``, y no la de Rankine; si esa cara no pasa de la
-tolerancia, no hay grieta (``depth`` 0). Medido con una ``udl`` de 100 kN/m sobre la cresta (talud de 10 m, c = 20,
-φ = 10°, círculo fijo, ``docs/fase3/r12/repro/a04_udl.json``), Bishop da ``depth`` 1,7827 m y ``water_force`` 15,5885 kN/m,
-con FS 1,095348; antes de esta regla, ``depth`` y ``water_force`` valían 0 y el FS era 1,102248. Una búsqueda en la que
+Si la profundidad automática salta por una carga ``udl``, por un cambio lateral de material o por un escalón del terreno,
+la profundidad y el agua salen de ``d(x_c)`` en el ``x_c`` de la bisección (como cSlope; con una profundidad numérica, es la
+del usuario), y cuando la cara cortada, ``terreno(x_c) − base(x_c)``, difiere de ``depth``, el informe agrega
+``tension_crack["face_height"]`` (se omite en una grieta normal); si esa cara no pasa de la tolerancia, no hay grieta
+(E15m-15, que revisa E15l-2). Medido con una ``udl`` de 100 kN/m sobre la cresta (talud de 10 m, c = 20, φ = 10°, círculo fijo,
+``docs/fase3/r12/repro/a04_udl.json``), Bishop da ``depth`` 0, ``water_force`` 0 y ``face_height`` 1,78272, con FS 1,102248
+(cSlope 0.1.0, 1,102311; E15l-2 daba 1,095348). Una búsqueda en la que
 todos los candidatos fallan por la grieta termina en ``ValueError("NoValidSurface: ... (E evaluadas, 0 válidas; K no
 alcanzan la grieta de tracción, tension_crack_not_reached)")``; por ejemplo, con ``depth`` 40 m en el talud de
 ``a01_ltr.json``: ``(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta de tracción, tension_crack_not_reached)``.

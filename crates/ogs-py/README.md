@@ -182,7 +182,7 @@ for r0, r1 in zip(base["results"], cracked["results"]):
 ```
 
 - **La salida.** Cada resultado cuya superficie se truncó trae `results[i]["tension_crack"] = {"x", "depth", "water_force"}`
-  (se omite sin grieta; con `"auto"` y profundidad nula, `depth` y `water_force` valen 0 y el FS es el de la superficie
+  (más `"face_height"` cuando la cara cortada difiere de `depth`, E15m-15; se omite sin grieta; con `"auto"` y profundidad nula, `depth` y `water_force` valen 0 y el FS es el de la superficie
   sin grieta). Una grieta **seca** puede subir el FS: la masa que se quita empujaba (con `water_fill = 0` y 2 m, Bishop
   pasa de 0,9851 a 1,0263).
 - **Una superficie que no alcanza la profundidad** se descarta en una búsqueda y, con una superficie fija, es
@@ -190,14 +190,15 @@ for r0, r1 in zip(base["results"], cracked["results"]):
 - **Rechazos** con ruta JSON: `InvalidModel: analysis.tension_crack.water_fill es obligatorio`,
   `analysis.tension_crack.depth debe ser finito y mayor que 0 (o "auto")` y `tension_crack requiere version "0.5"` con una
   versión menor.
-- **Reglas del contrato R12** (E15l-2 y E15l-7), que se cumplen desde el motor integrado: si la profundidad automática
-  salta por una carga `udl` o por un cambio lateral de material, `depth` es la cara realmente cortada,
-  `terreno(x) − base(x)`, y `water_force` se calcula con ella (sin cara, no hay grieta y `depth` vale 0); y una búsqueda en la
-  que todos los candidatos fallan por la grieta termina en `NoValidSurface: ... (E evaluadas, 0 válidas; K no alcanzan la
-  grieta de tracción, tension_crack_not_reached)`. Medido con `docs/fase3/r12/repro/a04_udl.json`, Bishop da `depth`
-  1,7827 m, `water_force` 15,5885 kN/m y FS 1,095348 (antes, `depth` y `water_force` valían 0 y el FS era 1,102248); y una
-  búsqueda con `depth` 40 m en el talud de `a01_ltr.json` termina en `(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta
-  de tracción, tension_crack_not_reached)`.
+- **Reglas de los contratos R12 y R13** (E15m-15, que revisa E15l-2, y E15l-7), que se cumplen desde el motor integrado:
+  la grieta sobre una discontinuidad (una carga `udl`, un cambio lateral de material o un escalón del terreno) toma
+  profundidad y agua de `d(x_c)`, como cSlope; y cuando la cara cortada, `terreno(x_c) − base(x_c)`, difiere de `depth`,
+  el informe agrega `tension_crack["face_height"]` (se omite en una grieta normal). Medido con
+  `docs/fase3/r12/repro/a04_udl.json`, Bishop da `depth` 0, `water_force` 0, `face_height` 1,78272 y FS 1,102248 (cSlope
+  1,102311; E15l-2 daba 1,095348). Una búsqueda en la que todos los candidatos fallan por la grieta termina en
+  `NoValidSurface: ... (E evaluadas, 0 válidas; K no alcanzan la grieta de tracción, tension_crack_not_reached)`; con
+  `depth` 40 m en el talud de `a01_ltr.json`, `(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta de tracción,
+  tension_crack_not_reached)`.
 
 **El agua embalsada cambia el resultado frente a la v0.3.0.** Si la piezométrica pasa **sobre el terreno**, el motor suma
 el agua libre (su peso y su empuje horizontal) en **todas** las versiones del formato, sin ningún campo: la v0.3.0 solo
@@ -226,7 +227,9 @@ Con la v0.3.0, Bishop daba 0,848 en ese mismo modelo (sin el peso ni el empuje d
 `water.unit_weight` toma γw ≈ 62,45 pcf, no 9,81 «pcf» como la v0.3.0, y **cambia de FS** (ACADS 1(a) en pies con una
 piezométrica bajo el terreno: Bishop 0,9300 con la v0.3.0 y 0,6339 ahora, el valor del mismo modelo en SI). En ese caso el
 motor agrega a `warnings` el aviso informativo `water_unit_weight_default`; escriba `water.unit_weight` (62,4 pcf) para
-fijar el valor. En SI no cambia nada ni se emite el aviso. <!-- R13: medir al integrar -->
+fijar el valor. En SI no cambia nada ni se emite el aviso. Medido con ese modelo (ACADS 1(a) en pies, círculo fijo, con la
+piezométrica bajo el terreno): `warnings` de Bishop = `['water_unit_weight_default', 'truncated_mass',
+'negative_effective_normal']`, con el aviso una sola vez por método.
 
 - **Convenciones.** El sismo pseudoestático no actúa sobre el agua embalsada ni sobre `Pw`. En un material con `ru`,
   `u = ru·(W + V)/b` (con `V` el peso del agua embalsada): es la regla de Slide2 y no se puede comparar con el oráculo.
@@ -323,9 +326,9 @@ las filas contra cSlope 0.1.0 a 0,1 % (55 de grieta y agua embalsada de X21, 3 d
 Ito-Matsui de X22 y la de `ru` con piezométrica; se leen de `crates/ogs-core/tests/data/f3g*/`); las propiedades
 (neutralidad entre v0.3 y v0.5, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua,
 la compuerta de versión, los rechazos con su ruta y la salida siempre finita); y las reproducciones de las revisiones R12
-y R13 (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1, -2, -5, -6, -7 y -11 corren sin marcas, y E15m-1, -2,
--6 y -7 llevan `xfail(strict=False)` mientras el motor no traiga la corrección. Los tests usan el wheel instalado, no el
-código fuente.
+y R13 (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1, -5, -6, -7 y -11, y E15m-1, -2, -6, -7 y -15 corren sin marcas
+(E15m-15 revisa E15l-2: la grieta sobre una discontinuidad toma profundidad y agua de `d(x_c)`, como cSlope, y el informe
+trae `tension_crack.face_height`). Los tests usan el wheel instalado, no el código fuente.
 `OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 

@@ -163,9 +163,8 @@ OGS_PY_TEST_HOOKS=0 "$TMPDIR/ogs-py-venv/bin/python" -m pytest crates/ogs-py/tes
 ```
 
 Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tests de
-R12 de `test_v05.py` (E15l-1, E15l-2, E15l-5, E15l-6, E15l-7 y E15l-11) corren sin marcas: si uno falla, el motor perdió
-esa enmienda. Los de R13 de E15m-1, E15m-2, E15m-6 y E15m-7 llevan `xfail(strict=False)` hasta que el motor integrado
-traiga su corrección; entonces se quitan las marcas. Los tests de pánico
+R12 y R13 de `test_v05.py` (E15l-1, E15l-5, E15l-6, E15l-7 y E15l-11; E15m-1, E15m-2, E15m-6, E15m-7 y E15m-15) corren
+sin marcas `xfail`: si uno falla, el motor perdió esa enmienda. Los tests de pánico
 necesitan un segundo wheel con `--features test-hooks` ([`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
 
 ## Compilar la web en local
