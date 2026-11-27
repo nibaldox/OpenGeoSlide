@@ -19,9 +19,14 @@ struct Optimizer<'a, E> {
 }
 
 impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
+    /// Margin of the windows (E16x): `max(pm.tol(), 1e-6·width)`, the scale of the minimum `dx` of F6.10, point 6. A circle
+    /// that leaves grazing the toe crosses the ground almost tangent, and the error of its crossing is of the order of
+    /// the square root of the tolerance (9,5e-6 measured in a berm with the exit in `[10, 20]`).
+    fn window_margin(&self) -> f64 {
+        self.pm.tol().max(1e-6 * (self.pm.x_max - self.pm.x_min))
+    }
     fn evaluate(&mut self, p: &[Point]) -> Option<f64> {
-        // E16x: the ends of the window are inside it with a margin of `pm.tol()` (the crossings come from a root).
-        let tol = self.pm.tol();
+        let tol = self.window_margin();
         let inside = |x: f64, [a, b]: [f64; 2]| x >= a.min(b) - tol && x <= a.max(b) + tol;
         if self.used >= BUDGET
             || p.len() < 2
@@ -40,7 +45,7 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
         if k == 0 || k + 1 == points.len() {
             let x = p[0] + t;
             let [a, b] = self.windows[usize::from(k != 0)];
-            let tol = self.pm.tol();
+            let tol = self.window_margin();
             if x < a.min(b) - tol || x > a.max(b) + tol {
                 return None;
             }
@@ -247,11 +252,11 @@ mod tests {
         assert!(surface.fit_to_ground(&pm).is_ok());
     }
 
-    /// E16x, point 2: an end within `pm.tol()` of the edge of its window is inside; one beyond it is not.
+    /// E16x, point 2: an end within `max(pm.tol(), 1e-6·width)` of the edge of its window is inside; one beyond it is not.
     #[test]
-    fn window_has_a_margin_of_tol() {
+    fn window_has_a_margin_of_1e6_width() {
         let (_, _, pm) = fixture("V001-k4.json");
-        let tol = pm.tol();
+        let tol = pm.tol().max(1e-6 * (pm.x_max - pm.x_min));
         let (x0, x1) = (10.0, 20.0);
         let mut calls = 0;
         let mut eval = |_: &Surface| {

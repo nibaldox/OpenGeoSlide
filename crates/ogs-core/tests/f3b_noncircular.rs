@@ -238,13 +238,32 @@ fn r15_scale_invariance() {
     }
 }
 
-/// E16x, point 4: with `non_circular` and no admissible polyline, the circle is the result and the note says so, once.
-/// The berm with the exit window `[10, 20]`: the block that the slicer analyses starts at 20.00000955, outside the
-/// window by more than the margin of `pm.tol()`, so no polyline has an end inside it.
+/// E16x, point 2 (E16x amended, 24d1490): the berm with the exit window `[10, 20]`. The circle that leaves grazing the toe
+/// crosses the ground almost tangent: the block that the slicer analyses starts at 20.00000955, 9,5e-6 outside the
+/// window. With a margin of `pm.tol()` no polyline had an end inside; the margin `max(pm.tol(), 1e-6·width)` admits it.
 #[test]
-fn r15_not_refined_note() {
+fn r15_berm_window_refines() {
     let model = r15_nc("berm_window.json");
     let r = run(&model);
+    let nc = &r["search"]["non_circular"];
+    assert!(nc["evaluated"].as_u64().unwrap() > 0, "evaluated = 0");
+    assert!(!has_note(&r, "non_circular_not_refined"));
+    let c = circular_only(&model)["fos"].as_f64().unwrap();
+    assert!(r["fos"].as_f64().unwrap() <= c + 1e-12);
+}
+
+/// E16x, point 4: with `non_circular` and no admissible polyline, the circle is the result and the note says so, once.
+///
+/// Why this model does not refine: the berm of `berm_window.json` with the exit window moved to `[0, 8]`, on the lower
+/// floor (y = 9,5) under the bench (y = 10, x in [10, 20]). A circle that reaches that window crosses the bench
+/// region with the arc above the ground (an air gap), so the slicer keeps the crest-side block only
+/// (`truncated_driving_mass`) and its end is on the bench, 2 m or more from the window. The ends of a polyline must
+/// be inside the window (F6.10, point 4), so none of the seeds has an admissible polyline (`evaluated = 0`).
+#[test]
+fn r15_not_refined_note() {
+    let model = r15_nc("berm_exit_below_bench.json");
+    let r = run(&model);
+    assert_eq!(r["status"], "converged");
     assert_eq!(r["search"]["non_circular"]["evaluated"], 0);
     assert!(r["surface"]["points"].is_null());
     let count = r["warnings"]
