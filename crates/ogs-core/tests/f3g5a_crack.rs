@@ -367,3 +367,79 @@ fn e15l7_without_discards_the_message_is_unchanged() {
         "{msg}"
     );
 }
+
+// ------------------------------------------------------------------------------------------------------- E15l-3 (A-08)
+
+fn flat(surface: Value, ground: Value, depth: f64) -> Value {
+    json!({
+        "format": "opengeoslide", "version": "0.5", "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 18.0,
+                       "cohesion": 15.0, "friction_angle": 28.0}],
+        "regions": [{"material": "s", "polygon": ground}],
+        "slope": {"direction": "left_to_right"},
+        "analysis": {"methods": ["bishop"], "slices": 50, "tolerance": 1e-6, "surface": surface,
+                     "tension_crack": {"depth": depth, "water_fill": 0.0}}
+    })
+}
+
+/// A-08: a 86 m span (grid step 0.43 m) and a polyline whose vertex (50.1, 7.0) is 3 m deep, with 0.034 m of surface
+/// below the 2.5 m of the crack. The vertex is in the sweep now: the crack is found at the start of that stretch.
+#[test]
+fn e15l3_polyline_vertex_between_grid_steps_reaches_the_crack() {
+    let doc = flat(
+        json!({"type": "polyline", "points": [[10, 10], [40, 9.9], [50.0, 9.9], [50.1, 7.0], [50.2, 9.9], [60, 9.9], [76, 10]]}),
+        json!([[0, 0], [0, 10], [86, 10], [86, 0]]),
+        2.5,
+    );
+    let mut doc = doc;
+    doc["analysis"]["methods"] = json!(["janbu_simplified"]);
+    let report = run(&doc);
+    let (x, depth, _) = crack_of(&report, 0);
+    // 9.9 − 2.9·t = 7.5 on the leg from (50.0, 9.9) to (50.1, 7.0): x = 50.0 + 0.1·(2.4/2.9).
+    assert!((x - (50.0 + 0.1 * 2.4 / 2.9)).abs() <= 1e-9, "{x}");
+    assert_eq!(depth, 2.5);
+}
+
+/// The vertices of the ground are in the sweep too: a narrow bump (0.07 m of ground more than 2.5 m over the arc) that
+/// falls between two steps of the grid (39.97 and 40.31) is not stepped over.
+#[test]
+fn e15l3_terrain_vertex_between_grid_steps_reaches_the_crack() {
+    let doc = flat(
+        json!({"type": "circle", "xc": 50.0, "yc": 308.0, "r": 300.0}),
+        json!([
+            [0, 0],
+            [0, 10],
+            [40.04, 10],
+            [40.14, 11.0],
+            [40.24, 10],
+            [86, 10],
+            [86, 0]
+        ]),
+        2.5,
+    );
+    let report = run(&doc);
+    let (x, depth, _) = crack_of(&report, 0);
+    let base = 308.0 - (300.0_f64 * 300.0 - (x - 50.0) * (x - 50.0)).sqrt();
+    let ground = 10.0 + (x - 40.04) * 10.0;
+    assert!(x > 40.04 && x < 40.14, "{x}");
+    assert!((ground - base - 2.5).abs() <= 1e-9, "{}", ground - base);
+    assert_eq!(depth, 2.5);
+}
+
+/// The edge of a `udl` is in the sweep: with an automatic crack, a strip of surcharge 0.2 m wide that cancels `d(x)` is
+/// not stepped over, and the crack is the real face at its edge (E15l-2).
+#[test]
+fn e15l3_udl_edge_is_swept() {
+    let mut doc = flat(
+        json!({"type": "circle", "xc": 50.0, "yc": 308.0, "r": 300.0}),
+        json!([[0, 0], [0, 10], [86, 10], [86, 0]]),
+        2.5,
+    );
+    doc["analysis"]["tension_crack"] = json!({"depth": "auto", "water_fill": 0.0});
+    doc["loads"] = json!([{"type": "udl", "id": "u", "x1": 30.0, "x2": 30.2, "q": 100.0}]);
+    let report = run(&doc);
+    let (x, depth, _) = crack_of(&report, 0);
+    let base = 308.0 - (300.0_f64 * 300.0 - 20.0 * 20.0).sqrt();
+    assert!((x - 30.0).abs() <= 1e-9, "{x}");
+    assert!((depth - (10.0 - base)).abs() <= 1e-9, "{depth}");
+}

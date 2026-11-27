@@ -24,7 +24,8 @@
 //!
 //! # Position and depth (G1, G6)
 //!
-//! A sweep of 200 steps from the entry (the crest end of the sliding range) looks for the first `x` with
+//! A sweep of 200 steps from the entry (the crest end of the sliding range), plus the vertices of a polyline surface, of
+//! the ground and of the regions and the edges of the `udl` inside that range (E15l-3), looks for the first `x` with
 //! `ground(x) − base(x) ≥ d(x)`, and a bisection of 60 steps refines it. A depth that is only reached at the exit end
 //! is not reached. The automatic `d(x)` is `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with `c`, `φ` and `γ` of the material
 //! at `2e-5·scale` under the ground at `x` (1e-3 model units in the models of the rows, as the oracle), recomputed at
@@ -160,6 +161,38 @@ impl DepthAt<'_> {
     }
 }
 
+/// The abscissae of the sweep of G1, from the entry (excluded) to the exit (included), in that order: the uniform grid
+/// of [`SWEEP_STEPS`] steps plus (E15l-3) the abscissae inside the sliding range where `ground − base − d` can have a
+/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground)
+/// and the edges of the `udl`.
+fn sweep_abscissae(
+    pm: &PreparedModel,
+    surface: &Surface,
+    loads: &LoadCase,
+    x_entry: f64,
+    x_exit: f64,
+) -> Vec<f64> {
+    let (lo, hi) = (x_entry.min(x_exit), x_entry.max(x_exit));
+    let tol = pm.tol();
+    let mut extra: Vec<f64> = Vec::new();
+    if let Surface::Polyline(line) = surface {
+        extra.extend(line.points.iter().map(|p| p[0]));
+    }
+    extra.extend(pm.vertex_xs.iter().copied());
+    extra.extend(loads.udls.iter().flat_map(|u| [u.x1, u.x2]));
+    extra.retain(|&x| x > lo + tol && x < hi - tol);
+    // Distance from the entry, the order of the sweep.
+    let mut all: Vec<f64> = (1..=SWEEP_STEPS)
+        .map(|k| (x_exit - x_entry) * (k as f64) / (SWEEP_STEPS as f64))
+        .chain(extra.into_iter().map(|x| x - x_entry))
+        .map(f64::abs)
+        .collect();
+    all.sort_by(f64::total_cmp);
+    all.dedup_by(|a, b| (*a - *b).abs() <= tol);
+    let sign = if x_exit >= x_entry { 1.0 } else { -1.0 };
+    all.into_iter().map(|d| x_entry + sign * d).collect()
+}
+
 /// G1 and G6: the position and depth of the crack on `surface` (**fitted**, circle or polyline).
 ///
 /// - `spec`: `analysis.tension_crack`, already validated (`Fixed(d)` with `d > 0` finite, or `Auto`; `water_fill` in
@@ -213,8 +246,7 @@ pub fn locate(
         }
     };
     let mut prev = x_entry;
-    for k in 1..=SWEEP_STEPS {
-        let x = x_entry + (x_exit - x_entry) * (k as f64) / (SWEEP_STEPS as f64);
+    for x in sweep_abscissae(pm, surface, loads, x_entry, x_exit) {
         if below(&mut depth, x) >= 0.0 {
             let (mut lo, mut hi) = (prev, x);
             for _ in 0..BISECTION_ITERATIONS {
