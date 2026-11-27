@@ -33,7 +33,7 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "hoek_brown_low_confinement", // F6.7: Hoek-Brown with σ′n under the low-confinement rule
     "shansep_nonpositive_stress", // F6.7: SHANSEP with σ′v ≤ 0 (Su = 0 there)
     "non_circular_large_change",  // F6.7: the non-circular surface lowered the FS by more than 15 %
-    "non_circular_not_refined",   // E16x: no admissible polyline, the result is the circle of the circular search
+    "non_circular_not_refined", // E16x: no admissible polyline, the result is the circle of the circular search
 ];
 
 #[derive(Deserialize)]
