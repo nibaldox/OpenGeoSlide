@@ -137,8 +137,9 @@
   line-height: 1.3;
   white-space: nowrap;
   opacity: 0;
+  visibility: hidden; /* UA-E2 punto 4 */
   pointer-events: none;
-  transition: opacity 0.12s;
+  transition: opacity 0.12s, visibility 0.12s;
 }
 .ec-palette .gs-tip kbd {
   margin-left: 6px;
@@ -151,6 +152,7 @@
 .ec-palette .gs-tool:hover .gs-tip,
 .ec-palette .gs-tool:focus-visible .gs-tip {
   opacity: 1;
+  visibility: visible;
 }
 @media (prefers-reduced-motion: reduce) {
   .ec-palette .gs-tip {
