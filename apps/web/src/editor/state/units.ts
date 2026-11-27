@@ -94,6 +94,12 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
   const materials = doc.materials.map((m): Material => {
     const out: Material = { ...m, unit_weight: k.unitWeight(m.unit_weight) };
     if (typeof m.cohesion === 'number') out.cohesion = k.stress(m.cohesion);
+    if (typeof m.ucs === 'number') out.ucs = k.stress(m.ucs);
+    if (m.shansep) {
+      out.shansep = { ...m.shansep };
+      if (typeof m.shansep.pop === 'number') out.shansep.pop = k.stress(m.shansep.pop);
+      if (Array.isArray(m.shansep.ocr_by_elevation)) out.shansep.ocr_by_elevation = m.shansep.ocr_by_elevation.map(([y, ocr]) => [k.length(y), ocr]);
+    }
     // Material no drenado (F3.2): Su y su límite son esfuerzos, la cota de referencia es una longitud y el gradiente es un esfuerzo por
     // longitud. Solo se convierten los que existen: un `null` o un campo ausente se queda como está.
     if (typeof m.undrained_strength === 'number') out.undrained_strength = k.stress(m.undrained_strength);

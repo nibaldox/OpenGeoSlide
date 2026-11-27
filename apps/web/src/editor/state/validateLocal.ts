@@ -357,6 +357,42 @@ function validateUndrainedFields(m: Material, base: string, label: string, issue
   }
 }
 
+function validateV06Material(m: Material, base: string, issues: Issue[]): void {
+  const add = (message: string, path: string) => issues.push(error('editor.out_of_range', message, `${base}/${path}`));
+  const oldFields = ['cohesion', 'friction_angle', 'undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'] as const;
+  const hbFields = ['ucs', 'gsi', 'mi', 'disturbance'] as const;
+  const forbidden = m.model === 'hoek_brown' ? [...oldFields, 'shansep' as const]
+    : m.model === 'shansep' ? [...oldFields, ...hbFields] : [...hbFields, 'shansep' as const];
+  for (const key of forbidden) if (isPresent(m[key])) add(`el material '${m.id}' con model "${m.model}" no admite el campo '${key}'`, key);
+  const required = (key: typeof hbFields[number] | 'shansep'): boolean => {
+    if (isPresent(m[key])) return true;
+    add(`el material '${m.id}' con model "${m.model}" requiere el campo '${key}'`, key);
+    return false;
+  };
+  if (m.model === 'hoek_brown') {
+    const checks = [
+      ['ucs', (n: number) => n > 0, `el ucs del material '${m.id}' debe ser finito y > 0`],
+      ['gsi', (n: number) => n >= 0 && n <= 100, `el GSI del material '${m.id}' debe estar en [0, 100]`],
+      ['mi', (n: number) => n > 0, `el mi del material '${m.id}' debe ser finito y > 0`],
+      ['disturbance', (n: number) => n >= 0 && n <= 1, `el disturbance del material '${m.id}' debe estar en [0, 1]`],
+    ] as const;
+    for (const [key, accept, text] of checks) if (required(key) && !(isNum(m[key]) && accept(m[key] as number))) add(text, key);
+  } else if (m.model === 'shansep' && required('shansep') && m.shansep) {
+    const s = m.shansep;
+    if (!(isNum(s.ratio) && s.ratio > 0)) add(`el shansep.ratio del material '${m.id}' debe ser finito y > 0`, 'shansep/ratio');
+    if (isPresent(s.exponent) && !(isNum(s.exponent) && s.exponent >= 0 && s.exponent <= 1)) add(`el shansep.exponent del material '${m.id}' debe estar en [0, 1]`, 'shansep/exponent');
+    if ([s.ocr, s.pop, s.ocr_by_elevation].filter(isPresent).length !== 1) add(`el material '${m.id}' requiere exactamente uno de shansep.ocr, shansep.pop o shansep.ocr_by_elevation`, 'shansep');
+    if (isPresent(s.ocr) && !(isNum(s.ocr) && s.ocr >= 1)) add(`el shansep.ocr del material '${m.id}' debe ser finito y ≥ 1`, 'shansep/ocr');
+    if (isPresent(s.pop) && !(isNum(s.pop) && s.pop >= 0)) add(`el shansep.pop del material '${m.id}' debe ser finito y ≥ 0`, 'shansep/pop');
+    const t = s.ocr_by_elevation;
+    if (Array.isArray(t)) {
+      if (t.length < 2) add(`el shansep.ocr_by_elevation del material '${m.id}' necesita al menos 2 filas`, 'shansep/ocr_by_elevation');
+      else if (t.some(p => !Array.isArray(p) || !isNum(p[0]) || !isNum(p[1]) || p[1] < 1)) add(`el shansep.ocr_by_elevation del material '${m.id}' tiene valores no finitos o OCR < 1`, 'shansep/ocr_by_elevation');
+      else if (t.some((p, i) => i > 0 && p[0] <= t[i - 1][0])) add(`el shansep.ocr_by_elevation del material '${m.id}' debe tener y estrictamente creciente`, 'shansep/ocr_by_elevation');
+    }
+  }
+}
+
 function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
   const seen = new Set<string>();
   doc.materials.forEach((m: Material, i) => {
@@ -377,6 +413,7 @@ function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
     if (m.unit_weight_sat !== undefined && m.unit_weight_sat !== null && !(isNum(m.unit_weight_sat) && m.unit_weight_sat > 0)) {
       issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.unitWeightSat), m.unit_weight_sat), `${base}/unit_weight_sat`));
     }
+    validateV06Material(m, base, issues);
     if (m.model === 'undrained') validateUndrainedFields(m, base, label, issues);
     else if (m.model !== 'hoek_brown' && m.model !== 'shansep') validateMohrCoulombFields(m, base, label, issues);
     if (m.ru !== undefined && m.ru !== null && !(isNum(m.ru) && m.ru >= 0 && m.ru < 1)) {
@@ -1060,6 +1097,16 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     }
   }
   validateMaterials(doc, issues);
+  const nc = doc.analysis.search?.non_circular;
+  if (nc) {
+    if (nc.seeds != null && !(Number.isInteger(nc.seeds) && nc.seeds >= 1 && nc.seeds <= 10)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.seeds debe estar en [1, 10], no ${nc.seeds}`, '/analysis/search/non_circular/seeds'));
+    if (nc.max_vertices != null && ![9, 17, 33].includes(nc.max_vertices)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.max_vertices debe ser 9, 17 o 33, no ${nc.max_vertices}`, '/analysis/search/non_circular/max_vertices'));
+    if (doc.analysis.methods?.includes('bishop')) issues.push(error('editor.out_of_range', 'el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)', '/analysis/methods'));
+  }
+  if (doc.materials.some(m => m.model === 'hoek_brown' || m.model === 'shansep')) {
+    if (doc.analysis.tension_crack?.depth === 'auto') issues.push(error('editor.out_of_range', 'analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; use una profundidad fija', '/analysis/tension_crack/depth'));
+    if (doc.reinforcements?.some(r => r.type === 'pile' && r.lateral_pressure != null)) issues.push(error('editor.out_of_range', 'lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep', '/reinforcements'));
+  }
   validateRegions(doc, scale, tol, issues);
   validateWater(doc, issues);
   const gwNote = waterUnitWeightDefaultNote(doc);
