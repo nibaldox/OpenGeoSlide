@@ -1,16 +1,17 @@
-// Tema de la interfaz: Sistema / Claro / Oscuro (U1-T, guías dark-mode y dark-mode-toggle).
+// Tema de la interfaz: Oscuro (por defecto) / Claro (UA-D4, briefs/UA_CONTRATO.md §3.2).
 //
-// Modelo de 3 estados. «system» (sin valor guardado) sigue a `prefers-color-scheme`; «light» y «dark» se guardan en
-// `localStorage` (`ogs.theme.v1`) y fijan el esquema. Un valor guardado NUNCA se borra porque el sistema llegue a coincidir
-// con él: solo se borra cuando el usuario elige «Sistema». El DOM se actualiza con `data-theme` en <html> (que los tokens
-// leen), el <meta name="color-scheme"> y los <meta name="theme-color">. El mismo cambio lo hace el script en línea de
-// index.html antes de pintar. Este módulo no toca `window` al importarse: todo entra por parámetros (pruebas en Node).
+// Modelo de 2 estados. La preferencia guardada «light» se respeta; cualquier otra cosa, incluida la ausencia, es oscuro. No se sigue
+// a `prefers-color-scheme`. La elección se guarda en `localStorage` (`ogs.theme.v1`) y el DOM se actualiza con `data-theme` en <html>
+// (que los tokens leen), el <meta name="color-scheme"> y los <meta name="theme-color">. El mismo cambio lo hace el script en línea de
+// index.html antes de pintar, y siempre pone `data-theme`. Este módulo no toca `window` al importarse: todo entra por parámetros
+// (pruebas en Node).
 
-export type ThemePref = 'system' | 'light' | 'dark';
-export type ResolvedTheme = 'light' | 'dark';
+export type ThemePref = 'light' | 'dark';
+export type ResolvedTheme = ThemePref;
 
 export const THEME_STORAGE_KEY = 'ogs.theme.v1';
-export const THEME_PREFS: readonly ThemePref[] = ['system', 'light', 'dark'];
+export const THEME_PREFS: readonly ThemePref[] = ['dark', 'light'];
+export const DEFAULT_THEME: ThemePref = 'dark';
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -29,48 +30,39 @@ export interface DocLike {
   querySelectorAll(selector: string): ArrayLike<ElementLike>;
 }
 
-export interface MediaLike {
-  matches: boolean;
-  addEventListener(type: 'change', listener: () => void): void;
-  removeEventListener(type: 'change', listener: () => void): void;
-}
-
 export interface WinLike {
   addEventListener(type: 'storage', listener: (event: { key: string | null }) => void): void;
   removeEventListener(type: 'storage', listener: (event: { key: string | null }) => void): void;
 }
 
-/** Cualquier valor que no sea «light» o «dark» equivale a «system». */
+/** «light» es claro; cualquier otra cosa (incluidos «system», una clave vieja de la versión de tres estados, o la ausencia) es oscuro. */
 export function parsePref(raw: string | null | undefined): ThemePref {
-  return raw === 'light' || raw === 'dark' ? raw : 'system';
+  return raw === 'light' ? 'light' : 'dark';
 }
 
-export function resolveTheme(pref: ThemePref, systemDark: boolean): ResolvedTheme {
-  if (pref === 'system') return systemDark ? 'dark' : 'light';
-  return pref;
+/** El tema al que lleva el botón. */
+export function nextTheme(pref: ThemePref): ThemePref {
+  return pref === 'dark' ? 'light' : 'dark';
 }
 
-/** Texto de cada opción del selector; «Sistema» muestra el tema resuelto. */
-export function optionLabel(pref: ThemePref, systemDark: boolean): string {
-  if (pref === 'light') return 'Claro';
-  if (pref === 'dark') return 'Oscuro';
-  return `Sistema (${systemDark ? 'oscuro' : 'claro'})`;
+/** Nombre accesible del botón de tema: dice a qué tema cambia. */
+export function toggleLabel(pref: ThemePref): string {
+  return pref === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro';
 }
 
 export function readPref(storage: StorageLike | null): ThemePref {
   try {
     return parsePref(storage?.getItem(THEME_STORAGE_KEY));
   } catch {
-    return 'system';
+    return DEFAULT_THEME;
   }
 }
 
-/** Guarda la elección («system» borra la clave). Devuelve false si no se pudo persistir. */
+/** Guarda la elección. Devuelve false si no se pudo persistir. */
 export function storePref(storage: StorageLike | null, pref: ThemePref): boolean {
   if (!storage) return false;
   try {
-    if (pref === 'system') storage.removeItem(THEME_STORAGE_KEY);
-    else storage.setItem(THEME_STORAGE_KEY, pref);
+    storage.setItem(THEME_STORAGE_KEY, pref);
     return true;
   } catch {
     return false;
@@ -78,71 +70,70 @@ export function storePref(storage: StorageLike | null, pref: ThemePref): boolean
 }
 
 /**
- * Refleja la preferencia en el documento. Con una elección explícita, ambos `theme-color` toman el color del tema elegido
- * (el `media` de cada uno seguiría al sistema, no a la elección); con «system» cada uno recupera el suyo.
+ * Refleja la preferencia en el documento. Ambos `theme-color` toman el color del tema elegido (su `media` seguiría al sistema,
+ * no a la elección).
  */
 export function applyTheme(pref: ThemePref, doc: DocLike): void {
-  if (pref === 'system') doc.documentElement.removeAttribute('data-theme');
-  else doc.documentElement.setAttribute('data-theme', pref);
-  doc.querySelector('meta[name="color-scheme"]')?.setAttribute('content', pref === 'system' ? 'light dark' : pref);
+  doc.documentElement.setAttribute('data-theme', pref);
+  doc.querySelector('meta[name="color-scheme"]')?.setAttribute('content', pref);
 
   const metas = Array.from(doc.querySelectorAll('meta[name="theme-color"]'));
-  const chosen = pref === 'system' ? null : metas.find((m) => m.getAttribute('data-scheme') === pref)?.getAttribute('data-color');
-  for (const meta of metas) {
-    const color = chosen ?? meta.getAttribute('data-color');
-    if (color) meta.setAttribute('content', color);
-  }
+  const chosen = metas.find((m) => m.getAttribute('data-scheme') === pref)?.getAttribute('data-color');
+  if (!chosen) return;
+  for (const meta of metas) meta.setAttribute('content', chosen);
 }
 
 export interface ThemeState {
   pref: ThemePref;
-  systemDark: boolean;
+  /** Tema vigente (igual a `pref`; se conserva el nombre porque el Canvas 2D de Casos lo lee). */
   resolved: ResolvedTheme;
 }
 
 export interface ThemeDeps {
   storage: StorageLike | null;
   doc: DocLike;
-  media: MediaLike | null;
   win: WinLike | null;
 }
 
 export interface ThemeController {
   getState(): ThemeState;
   setPref(pref: ThemePref): void;
+  /** Pasa al otro tema. */
+  toggle(): void;
   subscribe(listener: () => void): () => void;
-  /** Aplica el tema y empieza a escuchar `change` de matchMedia y `storage`. Idempotente. */
+  /** Aplica el tema y empieza a escuchar `storage`. Idempotente. */
   start(): void;
   stop(): void;
 }
 
 export function createThemeController(deps: ThemeDeps): ThemeController {
-  const { storage, doc, media, win } = deps;
+  const { storage, doc, win } = deps;
   const listeners = new Set<() => void>();
   let started = false;
 
-  const snapshot = (pref: ThemePref, systemDark: boolean): ThemeState => ({ pref, systemDark, resolved: resolveTheme(pref, systemDark) });
-  let state = snapshot(readPref(storage), media?.matches ?? false);
+  const snapshot = (pref: ThemePref): ThemeState => ({ pref, resolved: pref });
+  let state = snapshot(readPref(storage));
 
-  function commit(pref: ThemePref, systemDark: boolean): void {
-    const next = snapshot(pref, systemDark);
-    const same = next.pref === state.pref && next.systemDark === state.systemDark;
-    if (!same) state = next;
+  function commit(pref: ThemePref): void {
+    const changed = pref !== state.pref;
+    if (changed) state = snapshot(pref);
     applyTheme(state.pref, doc);
-    if (!same) listeners.forEach((l) => l());
+    if (changed) listeners.forEach((l) => l());
   }
 
-  const onMedia = (): void => commit(state.pref, media?.matches ?? false);
   const onStorage = (event: { key: string | null }): void => {
     if (event.key !== null && event.key !== THEME_STORAGE_KEY) return;
-    commit(readPref(storage), media?.matches ?? state.systemDark);
+    commit(readPref(storage));
   };
 
-  return {
+  const controller: ThemeController = {
     getState: () => state,
     setPref(pref) {
       storePref(storage, pref); // si el almacenamiento falla, la elección rige igualmente en esta sesión
-      commit(pref, media?.matches ?? state.systemDark);
+      commit(pref);
+    },
+    toggle() {
+      controller.setPref(nextTheme(state.pref));
     },
     subscribe(listener) {
       listeners.add(listener);
@@ -151,15 +142,14 @@ export function createThemeController(deps: ThemeDeps): ThemeController {
     start() {
       if (started) return;
       started = true;
-      media?.addEventListener('change', onMedia);
       win?.addEventListener('storage', onStorage);
-      commit(readPref(storage), media?.matches ?? false);
+      commit(readPref(storage));
     },
     stop() {
       if (!started) return;
       started = false;
-      media?.removeEventListener('change', onMedia);
       win?.removeEventListener('storage', onStorage);
     },
   };
+  return controller;
 }
