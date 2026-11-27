@@ -72,6 +72,45 @@ export function crackGeometry(crack: CrackReport | null | undefined, slices: rea
   };
 }
 
+/** Texto del rótulo del lienzo cuando el motor informa la grieta con `depth = 0` (E15j-3, E15l-15). Es el mismo de la tabla y del informe. */
+export const NO_CRACK_LABEL = 'Sin grieta (z = 0)';
+
+export interface NoCrackLabel {
+  x: number;
+  y: number;
+  text: string;
+  anchor: 'start' | 'end';
+}
+
+/**
+ * Rótulo «Sin grieta (z = 0)» para una grieta que el motor informa con `depth ≤ 0` (E15l-15): sin línea, sin hueco de agua, sin flecha ni
+ * porcentaje. Se coloca sobre el terreno en `x_c`, del lado de la masa. `null` si la grieta tiene profundidad (la dibuja `crackShape`), si
+ * no hay grieta o dovelas, o si los datos no son finitos.
+ */
+export function noCrackLabel(crack: CrackReport | null | undefined, slices: readonly Slice[], vp: Viewport): NoCrackLabel | null {
+  if (!crack || slices.length === 0 || !Number.isFinite(crack.x) || !Number.isFinite(crack.depth) || crack.depth > 0) return null;
+  let yBase = Number.NaN;
+  let best = Infinity;
+  let sumMid = 0;
+  for (const s of slices) {
+    sumMid += 0.5 * (s.x_left + s.x_right);
+    const dl = Math.abs(s.x_left - crack.x);
+    if (dl < best) {
+      best = dl;
+      yBase = s.y_base_left;
+    }
+    const dr = Math.abs(s.x_right - crack.x);
+    if (dr < best) {
+      best = dr;
+      yBase = s.y_base_right;
+    }
+  }
+  if (!Number.isFinite(yBase)) return null;
+  const dir = sumMid / slices.length >= crack.x ? 1 : -1;
+  const [px, py] = worldToScreen(vp, crack.x, yBase);
+  return { x: px + dir * 8, y: py - CRACK_LABEL_GAP - CRACK_LABEL_PX / 2, text: NO_CRACK_LABEL, anchor: dir === 1 ? 'start' : 'end' };
+}
+
 /** Longitud de la flecha de Pw, en px. */
 export const CRACK_ARROW_PX = 40;
 /** Ancho del hueco de agua dibujado dentro de la grieta, en px. */
