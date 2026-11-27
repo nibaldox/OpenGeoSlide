@@ -570,7 +570,8 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `polyline_no_ground_crossing`, `polyline_outside_ground`, `bishop_non_circular`,
   `interslice_shear_exceeds_strength`, `janbu_correction_extrapolated`, `non_positive_fos`,
   `reinforcement_outside_mass`, `reinforcement_compression_ignored`, `reinforcement_active_compression`,
-  `structural_checks_not_covered`, `ito_matsui_spacing_range`, `water_unit_weight_default`) son
+  `structural_checks_not_covered`, `ito_matsui_spacing_range`, `water_unit_weight_default`,
+  `hoek_brown_not_converged`, `hoek_brown_low_confinement`, `shansep_nonpositive_stress`, `non_circular_large_change`) son
   identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
   porque ya no se emiten); agregar uno nuevo exige
   actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
