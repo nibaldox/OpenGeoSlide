@@ -952,7 +952,6 @@ fn weaker_at_contact(
     let sigma = col * alpha.cos().powi(2);
     let strength = |mat: usize| {
         let m = &pm.materials[mat];
-        let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
         let u = if let Some(ru) = m.ru {
             ru * col
         } else if let Some(z) = piezo {
@@ -960,7 +959,18 @@ fn weaker_at_contact(
         } else {
             0.0
         };
-        c + (sigma - u).max(0.0) * tan_phi
+        match &m.law {
+            crate::strength::StrengthLaw::Linear => {
+                let (c, tan_phi) = crate::strength::resolve(m, y_base_mid);
+                c + (sigma - u).max(0.0) * tan_phi
+            }
+            crate::strength::StrengthLaw::HoekBrown(p) => {
+                crate::hoek_brown::tau_at_normal(p, (sigma - u).max(0.0))
+            }
+            crate::strength::StrengthLaw::Shansep(p) => {
+                crate::shansep::su_at(p, col - u, y_base_mid)
+            }
+        }
     };
     (strength(below) < strength(above)).then_some(below)
 }
@@ -1177,6 +1187,27 @@ pub(crate) fn interslice_face_strength(
     near.strength
 }
 
+/// First non-finite SHANSEP strength on either side of a face (E16y).
+pub(crate) fn invalid_shansep_face(
+    pm: &PreparedModel,
+    toe: &Slice,
+    crest: &Slice,
+) -> Option<usize> {
+    let on_left = (toe.x_left - crest.x_right).abs() <= (toe.x_right - crest.x_left).abs();
+    let (x, y_base, inward) = if on_left {
+        (toe.x_left, toe.y_base_left, 1.0)
+    } else {
+        (toe.x_right, toe.y_base_right, -1.0)
+    };
+    let x_in = x + inward * pm.tol().min(0.5 * toe.width);
+    let near = face_side(pm, x, x_in, y_base, None)?;
+    if near.invalid_shansep.is_some() {
+        return near.invalid_shansep;
+    }
+    let x_out = x - inward * pm.tol().min(0.5 * crest.width);
+    face_side(pm, x, x_out, y_base, Some(near.top)).and_then(|s| s.invalid_shansep)
+}
+
 /// One side of a face (see [`interslice_face_strength`]): its strength and what decides the weaker side.
 struct FaceSide {
     strength: FaceStrength,
@@ -1186,6 +1217,8 @@ struct FaceSide {
     soil: f64,
     /// Ground at the face.
     top: f64,
+    /// First SHANSEP interval with a non-finite strength or integral.
+    invalid_shansep: Option<usize>,
     /// `∫σv dy` over the face: the horizontal force of the overburden with `K = 1`.
     overburden: f64,
 }
@@ -1229,6 +1262,7 @@ fn face_side(
     let (mut cohesion_force, mut tan_sum, mut soil, mut water) =
         (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64);
     let mut sigma_v = 0.0_f64;
+    let mut invalid_shansep = None;
     let mut overburden = 0.0_f64;
     for &(lo, hi, mat) in &intervals {
         let m = &pm.materials[mat];
@@ -1267,7 +1301,8 @@ fn face_side(
                 for i in 0..FACE_STRENGTH_SAMPLES {
                     let y = lo + (i as f64 + 0.5) * step;
                     // Total vertical stress at `y`: the overburden above the interval plus the pieces above `y`.
-                    let mut sigma_v_y = sigma_v;
+                    let mut sigma_v_y =
+                        sigma_v + piezo.map_or(0.0, |z| pm.gamma_w * (z - top).max(0.0));
                     for &(p_lo, p_hi, gamma) in &pieces {
                         let above = p_hi - p_lo.max(y);
                         if above > 0.0 {
@@ -1281,7 +1316,13 @@ fn face_side(
                     } else {
                         0.0
                     };
-                    cohesion_force += crate::strength::face_tau(m, sigma_v_y - u, y) * step;
+                    let tau = crate::strength::face_tau(m, sigma_v_y - u, y);
+                    cohesion_force += tau * step;
+                    if matches!(m.law, crate::strength::StrengthLaw::Shansep(_))
+                        && (!tau.is_finite() || !cohesion_force.is_finite())
+                    {
+                        invalid_shansep.get_or_insert(mat);
+                    }
                 }
             }
         }
@@ -1311,6 +1352,7 @@ fn face_side(
         materials: intervals.iter().map(|i| i.2).collect(),
         soil,
         top,
+        invalid_shansep,
         overburden,
     })
 }

@@ -58,6 +58,7 @@ use search::{
     search_circular_reinforced,
 };
 use slicer::{Slice, SurfaceError, slice_surface_cracked};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use surface::{Surface, validate_polyline};
 
@@ -133,6 +134,13 @@ pub fn analyze(model: &Model) -> Result<AnalysisReport, OgsError> {
 
 fn invalid(msg: impl Into<String>) -> OgsError {
     OgsError::InvalidModel(msg.into())
+}
+
+fn shansep_invalid(model: &Model, material: usize) -> OgsError {
+    invalid(format!(
+        "la resistencia SHANSEP del material '{}' no es finita (revise shansep.ocr, pop u ocr_by_elevation)",
+        model.materials[material].id
+    ))
 }
 
 /// Name of a method, as written in the JSON.
@@ -396,6 +404,7 @@ fn analyze_method(
             let ends = reinforcement_ends(&model.reinforcements);
             // E15l-7: how many evaluated candidates were discarded because they do not get to the crack.
             let not_reached = AtomicUsize::new(0);
+            let shansep_error = Mutex::new(None);
             let result = search_circular_reinforced(pm, spec, &ends, |candidate| {
                 // E14d.4: the crossings of the reinforcements are computed for each candidate. E15d (G9): a candidate
                 // that does not get to the crack is discarded.
@@ -445,7 +454,10 @@ fn analyze_method(
                     crack::truncate(plan, pm, &surface, &mut slices);
                 }
                 let _ = water::apply_ponded(pm, &surface, &mut slices);
-                let _ = shansep::apply(pm, load_case.kv, &mut slices);
+                if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
+                    shansep_error.lock().unwrap().get_or_insert(material);
+                    return None;
+                }
                 if !model.reinforcements.is_empty() {
                     reinforcement::apply_to_slices_with(
                         &model.reinforcements,
@@ -466,6 +478,9 @@ fn analyze_method(
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
                 valid.then_some((res.fos, crossings))
             });
+            if let Some(material) = *shansep_error.lock().unwrap() {
+                return Err(shansep_invalid(model, material));
+            }
             let SearchResult {
                 best,
                 mut stats,
@@ -504,10 +519,13 @@ fn analyze_method(
                             load_case,
                             &pile_profiles,
                             method,
-                            &polyline_opts,
+                            (&polyline_opts, &shansep_error),
                             surface,
                         )
                     });
+                if let Some(material) = *shansep_error.lock().unwrap() {
+                    return Err(shansep_invalid(model, material));
+                }
                 stats.non_circular = Some(nc_stats);
                 (polyline, Some(stats))
             } else {
@@ -611,7 +629,8 @@ fn analyze_method(
         .map(|plan| crack::truncate(plan, pm, &surface, &mut slices));
     // E15c: the weight and the thrust of the ponded water (zero terms without water over the ground).
     let ponded = water::apply_ponded(pm, &surface, &mut slices);
-    let shansep_out = shansep::apply(pm, load_case.kv, &mut slices);
+    let shansep_out = shansep::apply(pm, load_case.kv, &mut slices)
+        .map_err(|material| shansep_invalid(model, material))?;
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
     let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
         (Vec::new(), false)
@@ -770,7 +789,7 @@ fn evaluate_surface(
     load_case: &LoadCase,
     pile_profiles: &reinforcement::PileProfiles,
     method: MethodKind,
-    opts: &SolveOptions,
+    (opts, shansep_error): (&SolveOptions, &Mutex<Option<usize>>),
     surface: &Surface,
 ) -> Option<f64> {
     let analysis = &model.analysis;
@@ -809,7 +828,10 @@ fn evaluate_surface(
         crack::truncate(plan, pm, surface, &mut slices);
     }
     let _ = water::apply_ponded(pm, surface, &mut slices);
-    let _ = shansep::apply(pm, load_case.kv, &mut slices);
+    if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
+        shansep_error.lock().unwrap().get_or_insert(material);
+        return None;
+    }
     if !model.reinforcements.is_empty() {
         reinforcement::apply_to_slices_with(
             &model.reinforcements,

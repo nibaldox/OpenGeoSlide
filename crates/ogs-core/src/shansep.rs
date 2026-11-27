@@ -27,7 +27,11 @@ pub(crate) struct ShansepOutcome {
 /// (E16o). `u` is the `pore_pressure` of the slice. `Su` is computed once per slice and does not depend on `F`.
 /// A slice with `σ′v ≤ 0` gets `Su = 0` (the OCR is not evaluated, it is reported as 1) and raises
 /// `nonpositive_stress`. Without a `shansep` slice it does nothing and returns the default outcome.
-pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> ShansepOutcome {
+pub(crate) fn apply(
+    pm: &PreparedModel,
+    kv: f64,
+    slices: &mut [Slice],
+) -> Result<ShansepOutcome, usize> {
     let mut outcome = ShansepOutcome::default();
     for (index, slice) in slices.iter_mut().enumerate() {
         if crate::methods::is_inert(slice) {
@@ -41,11 +45,14 @@ pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> Shanse
         let y = 0.5 * (slice.y_base_left + slice.y_base_right);
         let (su, ocr) = if sigma_v > 0.0 {
             let ocr = ocr_at(&params.ocr, sigma_v, y);
-            (strength_from(params, sigma_v, ocr), ocr)
+            (su_at(params, sigma_v, y), ocr)
         } else {
             outcome.nonpositive_stress = true;
             (0.0, 1.0)
         };
+        if !su.is_finite() {
+            return Err(slice.material);
+        }
         slice.cohesion = su;
         slice.tan_phi = 0.0;
         outcome.slices.push(SliceStrength::Shansep {
@@ -54,7 +61,18 @@ pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> Shanse
             ocr,
         });
     }
-    outcome
+    if pm
+        .materials
+        .iter()
+        .any(|m| matches!(m.law, StrengthLaw::Shansep(_)))
+    {
+        for face in slices.windows(2) {
+            if let Some(material) = crate::slicer::invalid_shansep_face(pm, &face[0], &face[1]) {
+                return Err(material);
+            }
+        }
+    }
+    Ok(outcome)
 }
 
 /// Undrained strength `Su` of a SHANSEP material at the effective vertical stress `sigma_v` and the elevation `y`
@@ -62,7 +80,14 @@ pub(crate) fn apply(pm: &PreparedModel, kv: f64, slices: &mut [Slice]) -> Shanse
 /// as [`apply`], used by the interslice faces (F6.5).
 pub(crate) fn su_at(params: &ShansepParams, sigma_v: f64, y: f64) -> f64 {
     if sigma_v > 0.0 {
-        strength_from(params, sigma_v, ocr_at(&params.ocr, sigma_v, y))
+        match &params.ocr {
+            OcrSource::Pop(pop) => {
+                params.ratio
+                    * sigma_v.powf(1.0 - params.exponent)
+                    * (sigma_v + pop).powf(params.exponent)
+            }
+            _ => strength_from(params, sigma_v, ocr_at(&params.ocr, sigma_v, y)),
+        }
     } else {
         0.0
     }
@@ -185,6 +210,14 @@ mod tests {
     }
 
     #[test]
+    fn pop_without_ocr_quotient_stays_finite_at_tiny_stress() {
+        let p = params(OcrSource::Pop(1.0e100));
+        let actual = su_at(&p, 1.0e-250, 0.0);
+        let expected = 0.25 * (1.0e-250_f64).powf(0.2) * (1.0e100_f64).powf(0.8);
+        assert!(actual.is_finite() && (actual / expected - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
     fn su_by_elevation_interpolates_and_is_constant_outside() {
         let table = vec![[20.0, 1.0], [30.0, 2.0], [40.0, 2.0]];
         let p = params(OcrSource::ByElevation(table));
@@ -209,7 +242,7 @@ mod tests {
         let pm = model(json!({"ratio": 0.25, "ocr": 1.5}), Value::Null);
         let mut slices = [slice(0, 100.0, 0.0, 0.0)];
         let before = slices;
-        let out = apply(&pm, 0.1, &mut slices);
+        let out = apply(&pm, 0.1, &mut slices).unwrap();
         assert_eq!(out, ShansepOutcome::default());
         assert_eq!(slices[0].cohesion, before[0].cohesion);
         assert_eq!(slices[0].tan_phi, before[0].tan_phi);
@@ -226,7 +259,7 @@ mod tests {
             slice(1, w, kv * w + q, u),
             slice(1, 10.0, kv * 10.0, 20.0),
         ];
-        let out = apply(&pm, kv, &mut slices);
+        let out = apply(&pm, kv, &mut slices).unwrap();
         let sigma = (w + q) / 2.0 - u;
         assert_eq!(
             slices[0].cohesion, 3.0,
@@ -271,7 +304,7 @@ mod tests {
     fn apply_does_not_flag_positive_stress() {
         let pm = model(json!({"ratio": 0.25, "pop": 10.0}), Value::Null);
         let mut slices = [slice(1, 100.0, 0.0, 5.0)];
-        let out = apply(&pm, 0.0, &mut slices);
+        let out = apply(&pm, 0.0, &mut slices).unwrap();
         assert!(!out.nonpositive_stress);
         let sigma: f64 = 100.0 / 2.0 - 5.0;
         let ocr = (sigma + 10.0) / sigma;
@@ -286,7 +319,7 @@ mod tests {
             Value::Null,
         );
         let mut slices = [slice(1, 100.0, 0.0, 0.0)];
-        apply(&pm, 0.0, &mut slices);
+        apply(&pm, 0.0, &mut slices).unwrap();
         let expected = 0.25 * 50.0 * 1.5_f64.powf(0.8);
         assert!((slices[0].cohesion - expected).abs() < 1e-12);
     }
@@ -318,6 +351,153 @@ mod tests {
         );
         assert_eq!(strength.tan_phi, 0.0);
         assert_eq!(strength.water_force, 0.0);
+    }
+
+    #[test]
+    fn nonfinite_shansep_on_face_is_an_error_even_with_linear_bases() {
+        let pm = model(
+            json!({"ratio": 10.0, "exponent": 1.0, "ocr": 1e308}),
+            Value::Null,
+        );
+        let mut a = slice(0, 100.0, 0.0, 0.0);
+        a.x_left = 3.0;
+        a.x_right = 5.0;
+        a.y_base_left = 0.0;
+        a.y_base_right = 0.0;
+        let mut b = a;
+        b.x_left = 5.0;
+        b.x_right = 7.0;
+        assert_eq!(apply(&pm, 0.0, &mut [a, b]), Err(1));
+    }
+
+    #[test]
+    fn archimedes_face_by_face_shansep_and_hoek_brown() {
+        use crate::model::Circle;
+        use crate::slicer::slice_circle;
+        let dry: Value = serde_json::from_str(include_str!(
+            "../tests/data/f3b/r15/faces/sh2_arch_dry.json"
+        ))
+        .unwrap();
+        let wet: Value = serde_json::from_str(include_str!(
+            "../tests/data/f3b/r15/faces/sh2_arch_sub.json"
+        ))
+        .unwrap();
+        let circle = Circle {
+            xc: 32.0,
+            yc: 42.0,
+            r: 20.0,
+        };
+        for hb in [false, true] {
+            let prepare = |mut doc: Value| {
+                if hb {
+                    doc["materials"][0]
+                        .as_object_mut()
+                        .unwrap()
+                        .remove("shansep");
+                    for (key, value) in [
+                        ("model", json!("hoek_brown")),
+                        ("ucs", json!(1000.0)),
+                        ("gsi", json!(50.0)),
+                        ("mi", json!(10.0)),
+                        ("disturbance", json!(0.0)),
+                    ] {
+                        doc["materials"][0][key] = value;
+                    }
+                }
+                let m: Model = serde_json::from_value(doc).unwrap();
+                let pm = PreparedModel::new(&m).unwrap();
+                let slices = slice_circle(&pm, &circle, 50).unwrap();
+                (m, pm, slices)
+            };
+            let (dm, dp, ds) = prepare(dry.clone());
+            let (wm, wp, ws) = prepare(wet.clone());
+            assert_eq!(ds.len(), ws.len());
+            let mut max_relative = 0.0_f64;
+            for (a, b) in ds.windows(2).zip(ws.windows(2)) {
+                let d = interslice_face_strength(&dp, &a[0], &a[1]).cohesion_force;
+                let w = interslice_face_strength(&wp, &b[0], &b[1]).cohesion_force;
+                if d.abs().max(w.abs()) > 0.0 {
+                    max_relative = max_relative.max((d - w).abs() / d.abs().max(w.abs()));
+                }
+            }
+            println!(
+                "{} faces={} max_rel={max_relative:.12e}",
+                if hb { "HB" } else { "SH" },
+                ds.len() - 1
+            );
+            assert!(max_relative < 1e-9);
+            if !hb {
+                let dr = crate::analyze(&dm).unwrap();
+                let wr = crate::analyze(&wm).unwrap();
+                let (d, w) = (&dr.results[0], &wr.results[0]);
+                let force = |r: &crate::report::MethodReport| {
+                    let lambda = r.lambda.unwrap();
+                    let e = crate::methods::spencer::interslice_forces(
+                        &r.slices,
+                        &vec![1.0; r.slices.len() + 1],
+                        r.fos.unwrap(),
+                        lambda,
+                    );
+                    e.into_iter()
+                        .map(|v| (lambda * v).abs())
+                        .collect::<Vec<_>>()
+                };
+                let (dx, wx) = (force(d), force(w));
+                let e = crate::methods::spencer::interslice_forces(
+                    &w.slices,
+                    &vec![1.0; w.slices.len() + 1],
+                    w.fos.unwrap(),
+                    w.lambda.unwrap(),
+                );
+                let emax = e.iter().fold(0.0_f64, |a, x| a.max(x.abs()));
+                // Faces 1..7 trigger the wet warning: e.g. face 1 X dry/wet =
+                // 0.275624292/1.882089203 while capacity is 0.168607061 in both.
+                let mut found = 0;
+                for j in 1..w.slices.len() {
+                    let cap = interslice_face_strength(&wp, &w.slices[j - 1], &w.slices[j]);
+                    if e[j].abs() >= 0.02 * emax
+                        && -e[j] - cap.water_force > 0.0
+                        && cap.cohesion_force > 0.0
+                        && wx[j] * w.fos.unwrap() / cap.cohesion_force > 3.0
+                    {
+                        found += 1;
+                        println!(
+                            "face={j} dry_X={:.9} wet_X={:.9} dry_cap={:.9} wet_cap={:.9}",
+                            dx[j],
+                            wx[j],
+                            interslice_face_strength(&dp, &d.slices[j - 1], &d.slices[j])
+                                .cohesion_force,
+                            cap.cohesion_force
+                        );
+                        assert!(wx[j] > dx[j]);
+                    }
+                }
+                assert!(found > 0);
+            }
+        }
+    }
+
+    #[test]
+    fn ponded_face_uses_water_overburden() {
+        let dry = model(json!({"ratio": 0.25, "ocr": 1.0}), Value::Null);
+        let wet = model(
+            json!({"ratio": 0.25, "ocr": 1.0}),
+            json!({"unit_weight": 10.0, "piezometric_line": [[0, 12], [10, 12]]}),
+        );
+        let face = |x_left: f64, x_right: f64| Slice {
+            x_left,
+            x_right,
+            y_base_left: 6.0,
+            y_base_right: 6.0,
+            width: x_right - x_left,
+            base_length: x_right - x_left,
+            ..ZERO_SLICE
+        };
+        let d = interslice_face_strength(&dry, &face(3.0, 5.0), &face(5.0, 7.0));
+        let w = interslice_face_strength(&wet, &face(3.0, 5.0), &face(5.0, 7.0));
+        // With the same total soil unit weight, water reduces the effective gradient by gamma_w.
+        assert!((d.cohesion_force - 0.25 * 18.0 * 8.0).abs() < 1e-9);
+        assert!((w.cohesion_force - 0.25 * 8.0 * 8.0).abs() < 1e-9);
     }
 
     /// With a piezometric line, `σ′v(z) = σv(z) − γw·(z_w − z)`: the face of a submerged layer follows the column.
