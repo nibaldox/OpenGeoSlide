@@ -81,7 +81,12 @@ for (const theme of ['light', 'dark']) {
   await p.waitForFunction(() => /FS \d/.test(document.body.innerText), null, { timeout: 30000 });
   const after = await p.locator('body').innerText();
   step(`${theme}: «Comprobar» no se bloquea: hay FS y ningún error de γw`, /FS \d/.test(after) && !/Peso unitario del agua γw: el modelo está en unidades imperiales/.test(after), {});
-  step(`${theme}: la nota sigue una sola vez tras calcular`, (after.match(/El modelo usa agua y no indica γw/g) ?? []).length === 1, { n: (after.match(/El modelo usa agua y no indica γw/g) ?? []).length });
+  // Expectativa actualizada en R13 I-G3 (E15m-6 + E15m-9): con el motor integrado, tras calcular el motor emite el aviso `water_unit_weight_default`
+  // (E15m-6) y la web lo muestra en el panel de Resultados («Notas») y en Diagnósticos (con el prefijo del método). Lo que E15m-9 garantiza es que
+  // la nota local de Diagnósticos NO se repite con la del motor: una sola vez en Diagnósticos y una sola en Resultados (antes del motor E15m-6, una en total).
+  const nDiag = ((await p.locator('.ep-issues').innerText()).match(/El modelo usa agua y no indica γw/g) ?? []).length;
+  const nRes = ((await p.locator('[data-testid="results-panel"]').innerText()).match(/El modelo usa agua y no indica γw/g) ?? []).length;
+  step(`${theme}: la nota no se repite tras calcular (una vez en Diagnósticos, la del motor, y una en Resultados)`, nDiag === 1 && nRes === 1 && (after.match(/El modelo usa agua y no indica γw/g) ?? []).length === 2, { nDiag, nRes, total: (after.match(/El modelo usa agua y no indica γw/g) ?? []).length });
   await p.screenshot({ path: path.join(SHOTS, `${theme}-1-imperial-sin-gw.png`) });
   await axe(p, `${theme} editor imperial sin γw (nota)`);
 
