@@ -7,7 +7,7 @@ await load(page);
 await makeSlope(page);
 
 // D con el foco fuera de un campo
-await page.locator('[role="toolbar"]').getByRole('button', { name: 'Seleccionar', exact: true }).focus();
+await page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Seleccionar', exact: true }).focus(); // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
 await page.keyboard.press('d');
 await page.waitForSelector('[data-testid="split-hint"]');
 const focusRole = await page.evaluate(() => document.activeElement?.getAttribute('role'));

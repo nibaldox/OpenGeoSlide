@@ -63,12 +63,8 @@ for (const theme of ['light', 'dark']) {
     // 3. «Editar · Dibujar región» y trazo a medias
     const p = await open();
     await p.getByRole('button', { name: /^Descartar$/ }).click().catch(() => {});
-    if (w <= 480) {
-      await p.getByRole('button', { name: 'Editar', exact: true }).click();
-      await p.getByRole('button', { name: 'Dibujar región', exact: true }).click();
-    } else {
-      await p.getByRole('button', { name: 'Dibujar región', exact: true }).click();
-    }
+    // UA: a 480 px o menos el menú «Editar» solo trae Deshacer y Rehacer; la herramienta se elige siempre en la paleta del lienzo.
+    await p.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región', exact: true }).click();
     const box = await p.locator('svg.ec-svg').boundingBox();
     for (const [fx, fy] of [[0.7, 0.12], [0.85, 0.12]]) await p.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
     await p.waitForTimeout(300);

@@ -71,11 +71,15 @@ await page.getByRole('button', { name: 'Deshacer' }).click(); // queda como el o
 
 // 4/5. Calcular sin sismo
 async function fsTable() {
+  // UA: la tabla vive en la vista «Resultados»: se abre para leerla y se vuelve a «Lienzo».
+  await page.locator('#view-results').click();
   await page.waitForSelector('[data-testid="results-panel"] table tbody tr');
-  return await page.$$eval('[data-testid="results-panel"] table tbody tr', (rows) => rows.map((r) => { const c = [...r.querySelectorAll('td')].map((x) => x.textContent.trim()); return { metodo: c[0], fs: c[1], estado: c[2], iter: c[3], lambda: c[4], evaluadas: c[5], validas: c[6] }; }));
+  const rows = await page.$$eval('[data-testid="results-panel"] table tbody tr', (rows) => rows.map((r) => { const c = [...r.querySelectorAll('td')].map((x) => x.textContent.trim()); return { metodo: c[0], fs: c[1], estado: c[2], iter: c[3], lambda: c[4], evaluadas: c[5], validas: c[6] }; }));
+  await page.locator('#mode-edit').click();
+  return rows;
 }
 await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-await page.waitForSelector('[data-testid="results-panel"] table');
+await page.waitForSelector('[data-testid="result-summary"][data-state="current"]'); // UA: el resultado se espera en el HUD (la tabla está en otra vista)
 await page.waitForSelector('button:has-text("Comprobar"):not([disabled])');
 const t0 = await fsTable();
 const hasResultLayer = (await page.locator('[data-layer="result"] polygon[data-slice]').count()) > 0;
@@ -86,8 +90,9 @@ const fs0 = t0.map((r) => num(r.fs));
 
 // 4b. Un segundo cálculo se bloquea mientras corre uno
 const before = await page.evaluate(() => window.__analyze);
+// UA: «Comprobar» está en .ua-actions (ya no hay role=toolbar)
 const dbl = await page.evaluate(async () => {
-  const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Comprobar' && b.closest('[role="toolbar"]'));
+  const btn = [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Comprobar' && b.closest('.ua-actions'));
   btn.click(); btn.click(); btn.click();
   await new Promise((r) => setTimeout(r, 0));
   return { textoTrasClic: btn.textContent.trim(), deshabilitado: btn.disabled };
@@ -212,7 +217,7 @@ step('9 modo Casos de verificación: calcular sin regresión', casesText === 1, 
 
 
 // 10. Importar CSV (piezométrica) en el editor
-await page.getByRole('tab', { name: 'Editar' }).click();
+await page.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
 const csvPath = path.join(SHOTS, 'piezo.csv');
 writeFileSync(csvPath, 'x;y\n20;22\n40;24,5\n70;30\n');
 await page.setInputFiles('[data-testid="file-csv"]', csvPath);

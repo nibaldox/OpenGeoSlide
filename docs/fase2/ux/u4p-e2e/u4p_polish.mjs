@@ -74,7 +74,7 @@ async function openMenu(page, name) {
   const names = await page.evaluate(() => [...document.querySelectorAll('.ep-panel input')].filter((e) => e.getBoundingClientRect().width > 0).map((e) => (e.getAttribute('aria-label') ?? e.labels?.[0]?.textContent ?? '').replace(/\s+/g, ' ').trim()));
   const dup = names.filter((n, i) => names.indexOf(n) !== i);
   step('3b ningún nombre accesible repetido en el panel', dup.length === 0 && names.length > 10 && names.includes('Nuevo material: Nombre'), { n: names.length, dup });
-  const legend = await page.locator('fieldset.ep-new legend').innerText();
+  const legend = await page.locator('fieldset.ep-new legend').textContent(); // UA: las leyendas se dibujan en mayúsculas con text-transform (innerText devuelve «NUEVO MATERIAL»); el nombre accesible y el texto siguen siendo «Nuevo material»
   step('3c leyenda «Nuevo material»', legend.trim() === 'Nuevo material', legend);
   await page.locator('fieldset.ep-new').getByRole('button', { name: 'Cancelar' }).click();
   const back = await page.evaluate(() => document.activeElement?.textContent?.trim());
@@ -132,8 +132,8 @@ async function openMenu(page, name) {
   const before = await page.evaluate(() => window.scrollY);
   await page.getByRole('button', { name: 'Ver tabla de resultados' }).click();
   await page.waitForTimeout(300);
-  const info = await page.evaluate(() => ({ focus: document.activeElement?.tagName, hasMark: document.activeElement?.hasAttribute('data-results-table'), top: Math.round(document.querySelector('[data-results-table]').getBoundingClientRect().top), scrollY: window.scrollY }));
-  step('6c «Ver tabla de resultados» desplaza y enfoca la tabla', info.focus === 'TABLE' && info.hasMark && info.top < 400 && info.scrollY > before, info);
+  const info = await page.evaluate(() => ({ focus: document.activeElement?.tagName, hasMark: document.activeElement?.hasAttribute('data-results-table'), top: Math.round(document.querySelector('[data-results-table]').getBoundingClientRect().top), scrollY: window.scrollY, view: document.querySelector('#view-results')?.getAttribute('aria-selected') }));
+  step('6c «Ver tabla de resultados» desplaza y enfoca la tabla', info.focus === 'TABLE' && info.hasMark && info.top < 400 && info.view === 'true' /* UA: la página ya no hace scroll (A02); el botón abre la vista «Resultados» y enfoca la tabla, visible bajo las pestañas */, info);
   await ctx.close();
 }
 

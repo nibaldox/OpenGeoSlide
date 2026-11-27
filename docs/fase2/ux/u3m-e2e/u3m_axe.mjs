@@ -48,9 +48,8 @@ for (const theme of ['light', 'dark']) {
     await p.screenshot({ path: `${SHOTS}/u3m-${tag}-1-vacio.png` });
     await axe(p, `${tag} estado vacío (Geometría vacía)`);
     // 2. dibujando
-    // U5-E (B-09): con 480 px o menos Deshacer, Rehacer y las herramientas viven en el menú «Editar»; se abre primero si existe.
-    { const ed = p.getByRole('button', { name: 'Editar', exact: true }); if (await ed.count()) await ed.click(); }
-    await p.locator('[role="toolbar"]').getByRole('button', { name: 'Dibujar región' }).click();
+    // UA: a 480 px o menos el menú «Editar» solo trae Deshacer y Rehacer; las herramientas se eligen siempre en la paleta del lienzo (sin abrir el menú).
+    await p.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región' }).click(); // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
     const box = await p.locator('svg.ec-svg').boundingBox();
     const pts = [[0.2, 0.7], [0.7, 0.7], [0.62, 0.35]];
     for (const [fx, fy] of pts) await p.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
@@ -71,7 +70,7 @@ for (const theme of ['light', 'dark']) {
     await discardIfAsked(p);
     await p.waitForSelector('dialog[open]', { state: 'detached' });
     await p.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-    await p.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });
+    await p.waitForSelector('[data-testid="result-summary"][data-state="current"]', { timeout: 60000 }); // UA: el resultado se espera en el HUD (la tabla está en la vista «Resultados»)
     await p.waitForSelector('button:has-text("Comprobar"):not([disabled])');
     await p.waitForTimeout(400);
     await p.screenshot({ path: `${SHOTS}/u3m-${tag}-4-geometria.png`, fullPage: w < 600 });

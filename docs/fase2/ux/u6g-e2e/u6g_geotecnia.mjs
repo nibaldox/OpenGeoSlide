@@ -105,7 +105,9 @@ for (const theme of ['light', 'dark']) {
   await p.waitForTimeout(600);
   await p.getByRole('button', { name: 'Comprobar', exact: true }).click();
   await p.waitForSelector('[data-testid="fs-bishop"]', { timeout: 60000 });
+  await p.locator('#view-results').click(); // UA: los avisos de Diagnósticos están en la vista «Resultados» (innerText no lee lo oculto)
   const body = await p.evaluate(() => document.body.innerText);
+  await p.locator('#mode-edit').click();
   const adv = {
     // F3G (I-G): γsat ya no lleva el aviso «todavía no está verificado frente a otro programa» (lo verifican V082a, V082b, V088 y V089, E15k;
     // geotech.ts): ahora se exige que el aviso NO aparezca.
