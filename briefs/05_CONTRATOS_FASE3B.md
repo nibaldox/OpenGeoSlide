@@ -518,3 +518,102 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
     aparecen juntas las notas `negative_effective_normal_major` y `negative_lambda`.
 
   Evidencia: `docs/fase3/exploracion/X29_proto/v002_raices_coordinador.{py,json}`.
+
+- **E16v, el contacto entre materiales con Hoek-Brown o SHANSEP (R15A-01, 2026-11-27).**
+  - **Defecto.** `weaker_at_contact` (`slicer.rs`, E13l-5) compara las resistencias con `strength::resolve`, que
+    devuelve (0, 0) para `hoek_brown` y `shansep`. En un contacto con uno de esos materiales, siempre gana el
+    material nuevo, aunque sea el más resistente.
+  - **Medido por el coordinador** en `92fa882`, con Spencer y una polilínea por el contacto horizontal
+    (`r15-A/ct_{ab,on,be}_*.json`):
+
+    | Contacto | Encima | Sobre el contacto | Debajo |
+    |---|---|---|---|
+    | MC débil sobre HB fuerte | 1,2342 | **18,036** | 18,0761 |
+    | MC débil sobre SHANSEP fuerte | 1,2342 | **8,3083** | 8,3101 |
+    | SHANSEP fuerte sobre MC débil | 13,4299 | **13,4306** | 6,3357 |
+
+    El FS de la superficie que corre por el contacto debería ser el de la capa débil.
+  - **Regla.** La comparación usa la resistencia real de cada material, con los mismos σ y u que la rama lineal:
+    - `σ′n = max(0, col·cos²α − u)`;
+    - **Hoek-Brown:** `hoek_brown::tau_at_normal(p, σ′n)`, con la envolvente completa de F6.8;
+    - **SHANSEP:** `shansep::su_at(p, col − u, y_base_mid)`, es decir, σ′v de la columna;
+    - **lineal:** sin cambios, byte a byte (F6.1).
+  - Con empate se conserva el material de arriba, como hoy.
+  - **Prueba.** Las seis combinaciones MC/HB/SH, encima, sobre y debajo del contacto. Sobre el contacto, el FS es el
+    del lado débil con una diferencia ≤ 0,5 %.
+
+- **E16w, el arranque y la no convergencia del lazo de Hoek-Brown (R15A-03, R15A-06, 2026-11-27).**
+  - **Defecto.** En `X28-R-SB-RU03` (rajo SB, `ru` = 0,3, círculo fijo), el arranque de F6.8, punto 1, da `σ′n₀ ≤ σt`
+    en 11 dovelas empinadas, que pasan a (0, 0). Con eso, la dovela 39 (α = 78,6°) queda con `m_α = cos α = 0,197 < 0,2`,
+    y los cinco métodos fallan en la primera pasada.
+  - **Medición de A** con arranque en 0: Bishop converge en 0,886911 y Janbu en 0,727964, con `m_α` mínimo de 2,3.
+  - **Regla nueva, F6.8, punto 1:** `σ′n₀ = max(0, (W/b)·cos²α − u)`. El resto del lazo no cambia.
+    - Donde el arranque viejo convergía, el F convergido no puede moverse más que la tolerancia del lazo. Se comprueba
+      con las 20 filas del producto (≤ 0,001 % frente al prototipo), las 33 de compatibilidad y HAM1.
+    - Si una fila sale de su gate, se detiene y se informa.
+  - **Sin convergencia** (`hoek_brown_not_converged`), `fos` es `null`, como en los demás `NotConverged`. Hoy queda el
+    F de la última pasada.
+  - **Costo.** Se permite cambiar la búsqueda de σ3 en `hoek_brown::point`, siempre que el resultado de las pruebas no
+    cambie más de 1e-9 relativo en el FS:
+    - Newton salvaguardado, o bisección con un intervalo mejor;
+    - `ba/base` en lugar de un segundo `powf`;
+    - `sn_zero` y σt precalculados en `HoekBrownParams`.
+
+    Se mide antes y después en F3B-HB-01 y F3B-HB-02.
+  - **No cambia:** el chequeo de `m_α` de §4.2 (`00_CONTRATOS.md`, línea 333) ni el `fos` que acompaña a Bishop
+    `invalid` (precedente de la v0.4). La documentación debe decir que ese FS no es válido, no que «no hay FS».
+
+- **E16x, los extremos de la conversión no circular, las tolerancias y la nota sin refinamiento (R15A-02, R15A-08,
+  2026-11-27).**
+  - **Defecto.** F6.10, punto 2, pide los 9 vértices «entre la entrada y la salida». `search_circle_polyline` usa en
+    cambio los cruces extremos de `sliding_span`, que incluyen el lente que el slicer descarta bajo el pie (§4.1).
+    - Cuando el círculo roza el terreno en el pie, la cuerda sale sobre el terreno y la semilla es inadmisible.
+    - **Medido:** en 14 de 16 taludes homogéneos (10 m, 45°, `r15-A/diag_u_*.json`), `evaluated = 0` y el resultado es
+      el círculo, sin aviso.
+    - En `bench_nc_ogs.json`, el motor da 1,9177 con el círculo y cSlope 1,8560 con una polilínea (+3,3 %).
+  - **Reglas:**
+    1. **Extremos de la conversión:** los del tramo que analiza el slicer para ese círculo (la masa deslizante, sin
+       lentes descartados). En un círculo de la malla, coinciden con su entrada y su salida.
+    2. **Ventanas:** `Optimizer::evaluate` acepta los extremos con una holgura de `pm.tol()`.
+    3. **Tolerancias con escala:** en `search_polyline_admissible`, `g − pm.tol()` en lugar de `g − 1e-6`; en la
+       selección de semillas (`search.rs`), `span.max(pm.tol())` en lugar de `.max(1.0)`. Las dos son exclusivas de la
+       búsqueda no circular (F6.1 intacta).
+    4. **Nota nueva** `non_circular_not_refined` (informativa, F6.7): `lib.rs` la emite una vez por método si se pidió
+       `non_circular` y `evaluated = 0`. Texto: «La búsqueda no circular no encontró ninguna polilínea admisible: el
+       resultado es el círculo de la búsqueda circular». Entra en las listas de notas informativas de
+       `acceptance.rs`, `verification/differential/run.py` y la web.
+  - **No cambia:** la regla de concavidad por vértice. La curvatura convexa acumulada (R15A-08a) se documenta como
+    limitación.
+  - **Prueba.**
+    - En los 16 taludes homogéneos, `evaluated > 0`, y el FS no circular ≤ el del círculo.
+    - En `bench_nc_ogs.json`, FS ≤ 1,01·cSlope.
+    - Las 10 filas de X29 y los checks promovidos siguen dentro de su banda.
+
+- **E16y, las caras bajo agua embalsada y la forma numérica de SHANSEP (R15A-04, R15A-10, R15C-01, 2026-11-27).**
+  - **Caras** (E16r). En las caras de `hoek_brown` y `shansep`, σv(y) suma el peso del agua embalsada
+    `γw·max(0, piezo − top)`, porque u(y) ya cuenta esa columna de agua. Se aplica solo a esa rama; la rama lineal no
+    cambia (F6.1).
+    - **Prueba de Arquímedes:** una capa seca con γ′ y la misma capa sumergida con γ, γw y el embalse dan el mismo FS
+      con tolerancia 1e-6. Las caras sumergidas no emiten `interslice_shear_exceeds_strength`.
+  - **POP.** `Su = ratio·σ′v^(1−m)·(σ′v + pop)^m`, que es la misma expresión de F6.9 sin el cociente, para σ′v > 0.
+    σ′v ≤ 0 sigue dando Su = 0 y la nota `shansep_nonpositive_stress`.
+  - **Finitud.** Si Su (en la base o en una cara) o la cohesión equivalente no son finitas, el modelo es inválido:
+    `InvalidModel` con el texto «la resistencia SHANSEP del material '<id>' no es finita (revise shansep.ocr, pop u
+    ocr_by_elevation)».
+  - **Prueba:** `ocr` = 1e308 da código 2, con ese mensaje.
+
+- **E16z, la verificación y el esquema (R15A-05, R15A-09, R15A-11, R15C-02, R15C-03, 2026-11-27).**
+  - **Archivos de la batería.** `cases_f3b/F3B-NC-V001` y `F3B-NC-V034a` quitan `analysis.interslice`, que la CLI
+    rechaza sin M-P. `build_f3b.py` deja de escribirlo.
+  - **Informe.** `verification/differential/REPORT.md` se regenera con el motor de la release (hecho en `df7845f`,
+    se rehace tras R15).
+  - **Veredicto `explicado (§4.2: m_α)`.** Solo vale si, además, `FS_ogs ≤ 1,05·FS_cSlope`. Por encima es `FALLA`.
+  - **Notas informativas.** Una sola fuente: un test compara la lista de `run.py` con la de `acceptance.rs`.
+  - **Esquema 0.6.** `non_circular.seeds` y `max_vertices` admiten `null`, como los demás campos opcionales del
+    esquema (precedente: `strength_datum`, `tension_crack` y `capacity`). Hay que revisar los demás campos opcionales
+    de la v0.6 con el mismo criterio.
+  - **Nombres de tests.** `pdf.f3b.test.ts` y `content.f3b.test.ts` dicen «ausente y null dan el mismo PDF», no
+    «identidad». La identidad contra la v0.4.0 es `identity.f3b.mjs`.
+
+  Evidencia de E16v a E16z: `$TMPDIR/r15-A/R15_A.md`, `$TMPDIR/r15-C/R15_C.md` y el arbitraje del coordinador
+  (`$TMPDIR/f3b-coord/r15/arbitraje.md`), con las reproducciones citadas en cada enmienda.
