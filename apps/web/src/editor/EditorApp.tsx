@@ -8,7 +8,7 @@ import type { MethodKind } from '../engine/types';
 import { loadDraftChain, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
 import { parseDxf, type DxfParseResult } from '../io/dxf';
-import { saveOgsJson, sha256Hex } from '../io/ogsJson';
+import { sha256Hex } from '../io/ogsJson';
 import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
@@ -26,7 +26,8 @@ import { lengthUnitOf } from './canvas/layout';
 import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
-import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
+import { createConfirmDiscard, createTabSwitch, createToolSwitch, runIfDiscarded } from './app/discard';
+import { commitFocusedField, saveDocument } from './app/saveDocument';
 import { visibleExportHint } from './app/exportHint';
 import { editMenuLabel } from './app/editMenuLabel';
 import { useNarrow } from './app/useNarrow';
@@ -53,7 +54,7 @@ import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
-import { PENDING_DRAFTS_TEXT } from './panels/forms';
+import { PENDING_DRAFTS_TEXT, clearPendingDrafts, getPendingDrafts, pendingDraftsNotice } from './panels/forms';
 import {
   AnalysisPanel,
   DiagnosticsPanel,
@@ -162,7 +163,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [noticesPaused, setNoticesPaused] = useState(false);
   const live = useAnnouncer();
   const { announce, announceError } = live;
-  const [tab, setTab] = useState<TabId>('geometry');
+  const [tab, setTabState] = useState<TabId>('geometry');
   const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const tablistRef = useRef<HTMLDivElement>(null);
@@ -226,7 +227,30 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // Con cambios sin guardar pregunta con el diálogo de la aplicación (`useConfirm`, asíncrono); sin cambios no pregunta.
   const confirm = useConfirm();
-  const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm), [store, confirm]);
+  const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm, () => getPendingDrafts(store)), [store, confirm]);
+  // R16B-02: cambiar de pestaña desmonta el panel y con él el formulario de sus tarjetas; con borradores sin aplicar se pide confirmación.
+  const confirmTabSwitch = useMemo(
+    () =>
+      createTabSwitch<TabId>({
+        getPendingDrafts: () => getPendingDrafts(store),
+        clearDrafts: () => clearPendingDrafts(store),
+        confirm,
+        // Al cancelar, el foco vuelve a la pestaña que sigue activa (con las flechas ya había pasado a la pestaña de destino).
+        confirmExtras: (from) => ({ returnFocus: () => document.getElementById(`ea-tab-${from}`) }),
+      }),
+    [store, confirm],
+  );
+  const tabRef = useRef<TabId>(tab);
+  tabRef.current = tab;
+  /** Único camino para cambiar de pestaña (botones, flechas del `tablist`, Diagnósticos): `false` si el usuario cancela. */
+  const setTab = useCallback(
+    async (next: TabId): Promise<boolean> => {
+      if (!(await confirmTabSwitch(tabRef.current, next))) return false;
+      setTabState(next);
+      return true;
+    },
+    [confirmTabSwitch],
+  );
   // Cambiar de herramienta con un trazo de 3 o más puntos pide confirmación (A-04); con menos, el lienzo lo descarta y lo anuncia.
   const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
@@ -298,20 +322,19 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     () =>
       // Un doble clic (o Ctrl+S repetido) mientras se calcula el SHA-256 no descarga dos veces (R7-28).
       void saveFlight.current.run(async () => {
-        try {
-          const s = store.getState();
-          const text = saveOgsJson(s.doc);
-          const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
-          const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
-          downloadText(text, finalName, 'application/json');
-          store.markSaved(finalName);
-          setIsExample(false);
-          clearOwnDraft(draftStorage.storage); // solo el de esta pestaña: el de otra pestaña abierta sigue a salvo (R9-01)
-          const sha = await sha256Hex(text);
-          notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
-        } catch (err) {
-          notify('error', `No se pudo guardar: ${err instanceof Error ? err.message : String(err)}`);
-        }
+        // R16B-01: con borradores de tarjeta sin aplicar no se descarga nada: avisa, igual que «Comprobar».
+        await saveDocument({
+          getState: () => store.getState(),
+          markSaved: (name) => store.markSaved(name),
+          getPendingDrafts: () => getPendingDrafts(store),
+          download: downloadText,
+          notify,
+          sha256: sha256Hex,
+          afterSave: () => {
+            setIsExample(false);
+            clearOwnDraft(draftStorage.storage); // solo el de esta pestaña: el de otra pestaña abierta sigue a salvo (R9-01)
+          },
+        });
       }),
     [store, draftStorage, notify],
   );
@@ -409,7 +432,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const onReport = async (): Promise<void> => {
     if (reportBusy) return;
     if (hasDrafts) {
-      notify('aviso', PENDING_DRAFTS_TEXT);
+      notify('aviso', pendingDraftsNotice(pendingDrafts));
       return;
     }
     if (!engine.run || !engine.current) {
@@ -433,13 +456,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const checkDisabled = checkState.disabled || hasDrafts;
   const onCheck = useCallback(async () => {
     if (hasDrafts) {
-      notify('aviso', PENDING_DRAFTS_TEXT);
+      notify('aviso', pendingDraftsNotice(pendingDrafts));
       return;
     }
     if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
     if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
-  }, [engine, engineStatus, hasDrafts, notify]);
+  }, [engine, engineStatus, hasDrafts, pendingDrafts, notify]);
 
   // ───────── Anuncios (regiones vivas persistentes) ─────────
 
@@ -486,10 +509,16 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // ───────── Navegación desde Diagnósticos (R7-11) ─────────
 
-  const navigateIssue = useCallback((_issue: unknown, target: IssueTarget): void => {
-    if (target.tab) setTab(target.tab);
-    setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
-  }, []);
+  // R16B-02: con borradores sin aplicar, abrir otra pestaña pide confirmación; si se cancela no se navega ni se mueve el foco.
+  const navigateIssue = useCallback(
+    (_issue: unknown, target: IssueTarget): void => {
+      void (async () => {
+        if (target.tab && !(await setTab(target.tab))) return;
+        setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
+      })();
+    },
+    [setTab],
+  );
   // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
   useEffect(() => {
     if (!pendingFocus) return;
@@ -533,7 +562,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   actions.current = {
     undo: () => store.undo(),
     redo: () => store.redo(),
-    save: () => onSave(),
+    // R16: con el foco en un campo, su valor se confirma (blur) antes de guardar: el archivo lleva lo que muestra la tarjeta.
+    save: () => {
+      commitFocusedField(document.activeElement);
+      onSave();
+    },
     open: () => openRef.current?.click(),
     check: () => void onCheck(),
     'tool:select': () => void switchTool('select'),
@@ -635,7 +668,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
               Abrir
             </button>
-            <button type="button" onClick={onSave} title="Ctrl+S">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={hasDrafts}
+              title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+S'}
+              aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
+            >
               Guardar
             </button>
             <hr />
@@ -742,7 +781,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         )}
         {hasDrafts && (
           <p id="ea-pending-drafts" className="ea-export-hint ep-error small" role="status" data-testid="pending-drafts-hint">
-            {PENDING_DRAFTS_TEXT} ({pendingDrafts.join(', ')}).
+            {pendingDraftsNotice(pendingDrafts)}
           </p>
         )}
         {exportHint && (
@@ -833,7 +872,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
                 aria-selected={tab === t.id}
                 aria-controls="ea-tabpanel"
                 className={tab === t.id ? 'ea-tab ea-tab-active' : 'ea-tab'}
-                onClick={() => setTab(t.id)}
+                onClick={() => void setTab(t.id)}
               >
                 {t.label}
               </button>

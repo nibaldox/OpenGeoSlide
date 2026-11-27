@@ -278,6 +278,14 @@ button.primary:hover:not(:disabled) {
   border-color: var(--ui-accent-hover);
 }
 
+/* R16: el primario deshabilitado no conserva el color de acción (en oscuro, con solo la opacidad, parecía activo): superficie sutil, tinta atenuada y borde de control. */
+button.primary:disabled {
+  background: var(--ui-surface-subtle);
+  border-color: var(--ui-control-border);
+  color: var(--ui-ink-muted);
+  opacity: 1;
+}
+
 .link-button {
   min-height: 28px;
   padding: 2px 8px;

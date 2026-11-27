@@ -47,18 +47,73 @@ export function hasUnsavedChanges(store: DirtyStateSource): boolean {
   return s.revision !== s.file.savedRevision || tracePoints(s) > 0;
 }
 
-/** Texto de la confirmación según qué se perdería: el modelo, solo el trazo, o ambos. */
-export function discardConfirmFor(s: DirtyState): ConfirmOptions {
+/** Lista de tarjetas con cambios sin aplicar, para los mensajes («Material m1, Búsqueda»). */
+const draftsPhrase = (drafts: readonly string[]): string => drafts.join(', ');
+
+/** Hay borradores de tarjeta sin aplicar al modelo: no cambian el documento, pero se perderían (R16B-02). */
+export const DISCARD_DRAFTS_CONFIRM = (drafts: readonly string[]): ConfirmOptions => ({
+  title: 'Descartar los cambios sin aplicar',
+  message:
+    `Hay cambios sin aplicar al modelo en: ${draftsPhrase(drafts)}. Si continúa se descartan, la tarjeta vuelve al modelo del documento y no se puede deshacer. ` +
+    'Para conservarlos, cancele y complete o corrija la tarjeta hasta que se aplique al modelo.',
+  confirmLabel: 'Descartar cambios',
+  cancelLabel: 'Seguir editando',
+  tone: 'danger',
+});
+
+/**
+ * Texto de la confirmación según qué se perdería: el modelo, el trazo, los borradores de tarjeta o cualquier combinación.
+ * `drafts` son las tarjetas con cambios sin aplicar (R16B-02); sin ellos el resultado es el de siempre.
+ */
+export function discardConfirmFor(s: DirtyState, drafts: readonly string[] = []): ConfirmOptions {
   const trace = tracePoints(s);
   const modelDirty = s.revision !== s.file.savedRevision;
-  if (trace === 0) return DISCARD_CONFIRM;
-  if (!modelDirty) return DISCARD_TRACE_CONFIRM(trace);
-  return { ...DISCARD_CONFIRM, message: `${DISCARD_CONFIRM.message} También se descarta el trazo en curso (${tracePhrase(trace)}).` };
+  const hasDrafts = drafts.length > 0;
+  if (!modelDirty && !hasDrafts) return trace === 0 ? DISCARD_CONFIRM : DISCARD_TRACE_CONFIRM(trace);
+  const base = modelDirty ? DISCARD_CONFIRM : DISCARD_DRAFTS_CONFIRM(drafts);
+  const extras: string[] = [];
+  if (trace > 0) extras.push(`También se descarta el trazo en curso (${tracePhrase(trace)}).`);
+  if (modelDirty && hasDrafts) extras.push(`También se descartan los cambios sin aplicar de: ${draftsPhrase(drafts)}.`);
+  return extras.length === 0 ? base : { ...base, message: `${base.message} ${extras.join(' ')}` };
 }
 
-/** Sin cambios sin guardar no se pregunta nada; con cambios, `true` solo si el usuario acepta descartarlos. */
-export function createConfirmDiscard(store: DirtyStateSource, confirm: ConfirmFn): () => Promise<boolean> {
-  return async () => (hasUnsavedChanges(store) ? await confirm(discardConfirmFor(store.getState())) : true);
+/**
+ * Sin nada que perder no se pregunta; si hay cambios sin guardar, un trazo o borradores de tarjeta sin aplicar (aunque el
+ * documento esté guardado), `true` solo si el usuario acepta descartarlos. `getPendingDrafts` da las tarjetas con borrador
+ * en el momento de preguntar (en la interfaz, el registro del almacén; en las pruebas, un doble).
+ */
+export function createConfirmDiscard(
+  store: DirtyStateSource,
+  confirm: ConfirmFn,
+  getPendingDrafts: () => readonly string[] = () => [],
+): () => Promise<boolean> {
+  return async () => {
+    const drafts = getPendingDrafts();
+    return hasUnsavedChanges(store) || drafts.length > 0 ? await confirm(discardConfirmFor(store.getState(), drafts)) : true;
+  };
+}
+
+/**
+ * Cambio de pestaña lateral (R16B-02): el panel que se abandona se desmonta y con él se pierde el formulario de sus tarjetas.
+ * Con borradores sin aplicar pide confirmación (tono `danger`); si el usuario acepta, `clearDrafts` limpia el registro y la
+ * tarjeta vuelve al modelo del documento. Resuelve a `false` si cancela (queda la pestaña actual con el borrador intacto).
+ * Sin borradores, o si el destino es la pestaña actual, no pregunta.
+ */
+export function createTabSwitch<T>(opts: {
+  getPendingDrafts: () => readonly string[];
+  clearDrafts: () => void;
+  confirm: ConfirmFn;
+  /** Opciones extra de la confirmación (el foco vuelve a la pestaña actual al cancelar). */
+  confirmExtras?: (from: T, to: T) => Partial<ConfirmOptions>;
+}): (from: T, to: T) => Promise<boolean> {
+  return async (from, to) => {
+    if (from === to) return true;
+    const drafts = opts.getPendingDrafts();
+    if (drafts.length === 0) return true;
+    if (!(await opts.confirm({ ...DISCARD_DRAFTS_CONFIRM(drafts), ...opts.confirmExtras?.(from, to) }))) return false;
+    opts.clearDrafts();
+    return true;
+  };
 }
 
 /** Lo mínimo del almacén para cambiar de herramienta. */
