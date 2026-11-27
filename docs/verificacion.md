@@ -9,24 +9,25 @@ un recuento propio de una tabla de esos informes, se dice.
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (151 casos, 327 checks, el corpus anterior a F3B) | **327/327** | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Valores publicados de F3B (v0.6), promovidos de `verification/pending/F3B/` (22 checks) | **<!-- B2a: N -->/<!-- B2a: N -->**; V002 retenido (E16u), V105a retenido; véase [abajo](#casos-promovidos-de-verificationpendingf3b) | ídem |
+| Valores publicados (167 casos, 347 checks; 20 de ellos promovidos de F3B) | **347/347** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados de F3B (v0.6), promovidos de `verification/pending/F3B/` (22 checks) | **20/20** promovidos; V002 retenido (E16u), V009c retenido (E13k), V105a retenido; véase [abajo](#casos-promovidos-de-verificationpendingf3b) | ídem |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
 | cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-agua-embalsada-y-pilotes-de-ito-matsui-v05-d28-a-d42)) | ídem |
 | cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B-HB-01 a F3B-NC-V034a) | **40/42** (2 explicados por E16t y §4.2, ninguna falla; véase [abajo](#batería-diferencial-f3b)) | ídem |
-| cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (18 modelos v0.6, aparte) | `verification/tools/identity_vs_baseline.py` |
-| Web y `ogs` (ida y vuelta; 389 modelos antes de F3B) | **389/389**; el test calcula el número a partir del índice de casos, y los casos promovidos de F3B lo suben | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas con `df2dfd7`) | `ogs-core` **759** pasan y 2 ignoradas, igual con la característica `parallel`; `pytest` **1539** pasan y 1 omitida; web **3864** pasan con el motor real | ídem |
+| cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
+| Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
+| Pruebas automáticas (medidas con `8364f54`) | `ogs-core` **759** pasan y 2 ignoradas, igual con la característica `parallel`; `pytest` **1542** pasan y 1 omitida; web **3942** pasan con el motor real (3638 y 304 saltadas sin él) | ídem |
 
 ## Aceptación: casos publicados
 
-- **327 de 327 checks** publicados cumplen su tolerancia, en **151 casos** (`verification/cases/`), el corpus anterior a F3B; los
-  casos promovidos de la v0.6 suman <!-- B2a: N --> checks más ([abajo](#casos-promovidos-de-verificationpendingf3b)). El informe
-  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 327 OK, 0 fallas, 0 sin dato, 0 no convergidos.
+- **347 de 347 checks** publicados cumplen su tolerancia, en **167 casos** (`verification/cases/`): los 327 checks de los
+  151 casos anteriores a F3B y los 20 checks de los 16 casos v0.6 promovidos de F3B
+  ([abajo](#casos-promovidos-de-verificationpendingf3b)). El informe
+  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 347 OK, 0 fallas, 0 sin dato, 0 no convergidos.
   Test: `cargo test -p ogs-core --test acceptance`. Todo aviso que no sea informativo hace fallar un check (E5).
 - **Por versión del formato** (de [`verification/cases/INDEX.md`](../verification/cases/INDEX.md)):
 
@@ -37,7 +38,8 @@ un recuento propio de una tabla de esos informes, se dice.
   | v0.3 (no drenado, polilínea, M-P, Janbu) | 53 | 139 |
   | v0.4 (refuerzos, lotes R1 a R4) | 23 | 30 |
   | v0.5 (grieta de tracción, lote F3G; pilotes de Ito-Matsui, lote F3I) | 21 | 46 |
-  | **Total** | **151** | **327** |
+  | v0.6 (Hoek-Brown y búsqueda no circular, lote F3B) | 16 | 20 |
+  | **Total** | **167** | **347** |
 
   El lote F3G (31 casos, 80 checks) usa la versión mínima de los campos de cada caso: los 17 casos con grieta van en
   v0.5; los 14 con solo agua embalsada, en v0.1 (8 casos, 21 checks) o v0.3 (6 casos, 17 checks). Por eso v0.1 y v0.3
@@ -48,14 +50,15 @@ un recuento propio de una tabla de esos informes, se dice.
 
   | Método | Checks |
   |---|---:|
-  | Bishop simplificado | 136 |
-  | Spencer | 113 |
-  | Morgenstern-Price | 43 |
-  | Janbu simplificado | 10 |
+  | Bishop simplificado | 137 |
+  | Spencer | 130 |
+  | Morgenstern-Price | 44 |
+  | Janbu simplificado | 11 |
   | Janbu corregido | 25 |
-  | **Total** | **327** |
+  | **Total** | **347** |
 
-  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 155 de búsqueda y 172 de superficie fija.
+  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 173 de búsqueda y 174 de superficie fija. Los
+  20 checks de F3B son 18 de búsqueda no circular y los 2 de HAM1, con círculo fijo.
 - De los **53 casos v0.3**, 47 vienen de los lotes 1 y 2 de la importación desde cSlope (`undrained` y `s-f-datum`; polilíneas
   fijas, M-P y Janbu), promovidos desde `verification/pending/F3/` cuando el motor reproduce sus checks. El lote 0
   (todo lo convertible con v0.1 o v0.2) no tiene tope ni selección. El índice declara 122 checks para esos 47 casos, de
@@ -76,7 +79,7 @@ un recuento propio de una tabla de esos informes, se dice.
   es **relativa**, `|Δ|/publicado ≤ tolerancia`, la misma de los demás casos (E15j-5): X18 la había leído como absoluta y
   había dado por fuera V009b, V087 y V092; con la convención del repositorio V087 y V092 se reproducen y se promueven.
   No se relajó ninguna tolerancia ni se tocó ningún dato.
-- **Retenidos:** el motor no reproduce **15 checks en 9 casos**, que no cuentan en los 327 y se documentan con su
+- **Retenidos:** el motor no reproduce **15 checks en 9 casos**, que no cuentan en los 347 y se documentan con su
   diagnóstico (sin relajar ninguna tolerancia):
   - V027 y V028 (Bishop, 1 check cada uno) y V068 (Bishop, 1 check): el FS cae dentro de la tolerancia, pero el motor
     emite `negative_effective_normal_major` y la aceptación rechaza ese aviso;
@@ -101,7 +104,7 @@ un recuento propio de una tabla de esos informes, se dice.
   Detalle en [`docs/limitaciones.md`](limitaciones.md#checks-retenidos-y-casos-especiales),
   [`pending/lote0/INDEX.md`](../verification/pending/lote0/INDEX.md) y
   [`pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md).
-- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **326 de 327** de esos checks; el restante es V027, donde cSlope
+- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **346 de 347** de esos checks; el restante es V027, donde cSlope
   no converge (`REPORT.md`).
 
 ## Criterios de la Fase 3a (F3.8)
@@ -126,7 +129,7 @@ Los valores de referencia del oráculo para V047a están en `briefs/02_CONTRATOS
 - **Paridad** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos. La prueba
   `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`; sin él
   se omiten) y corre en CI sin casos omitidos.
-- **Ida y vuelta de la web** (E12g): para **389 modelos** (327 checks de los 151 casos, 56 de la batería diferencial y 6
+- **Ida y vuelta de la web** (E12g): para **409 modelos** (347 checks de los 167 casos, 56 de la batería diferencial y 6
   de frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit
   a bit, que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario
   compilado). El número de modelos lo calcula el test a partir del índice de casos.
@@ -438,11 +441,16 @@ código base `34d4ba0`, con el reloj y el azar fijos (`apps/web/src/report/ident
 (F6.12). Contra el motor integrado, **21 de los 22 checks** quedan dentro de su tolerancia (la sonda del coordinador, con el
 binario de `df2dfd7`; `pending_f3b_probe.txt`) y el de V002 queda fuera.
 
-- **Promovidos:** <!-- B2a: N --> checks, a `verification/cases/` (versión v0.6). Se promueve solo lo que cumple la aceptación,
-  que rechaza todo aviso no informativo (E5).
+- **Promovidos:** 20 checks de 16 casos, a `verification/cases/` (versión v0.6), con `import_cslope.py --promote-f3b`:
+  HAM1 (Bishop y Spencer), V001-nc, V026-nc, V033-nc, V034a-nc, V034b-nc, V036a-nc, V093-nc (Spencer y Janbu
+  simplificado), V102a-nc, V102b-nc, V050b, V059a, V059b, V059c, V094 (Spencer y Morgenstern-Price) y V103 (2 checks).
+  El sufijo `-nc` distingue los casos que ya existían con su búsqueda circular, que no cambian. Se promueve solo lo que
+  cumple la aceptación, que rechaza todo aviso no informativo (E5).
 - **Retenidos, en `HOLD.json`, con su causa:**
   - **V002** (Spencer, 0,3864 frente a 0,414): la selección de raíz E12e en una rama con tracción, con las notas
     `negative_lambda` y `negative_effective_normal_major` (E16u, arriba). No se relaja la tolerancia.
+  - **V009c** (Spencer, 1,8669 frente a 1,868): queda dentro de su tolerancia, pero emite
+    `interslice_shear_exceeds_strength` (E13k), que la aceptación no admite; es la misma causa que retiene V009a y V009b.
   - **V105a** (Bishop): `aboveWater`, fuera de v0.6.
 
 ### Reproducir F3B

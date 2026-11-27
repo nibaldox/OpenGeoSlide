@@ -56,7 +56,7 @@ límites están en [Limitaciones conocidas](#limitaciones-conocidas); el formato
 
 ## Por qué es distinto
 
-- **Está verificado y se puede reproducir.** El motor cumple 327 de 327 checks contra valores publicados (151 casos) y
+- **Está verificado y se puede reproducir.** El motor cumple 347 de 347 checks contra valores publicados (167 casos) y
   coincide con el programa independiente cSlope en 28 de 28 búsquedas, 28 de 28 superficies fijas y 71 de 71 checks de la
   Fase 3a (más 12 de 12 de los refuerzos v0.4 y 58 de 60 del bloque v0.5 de grieta, agua embalsada y pilotes de
   Ito-Matsui, con 2 explicados y ninguna falla abierta). Es la batería real
@@ -133,19 +133,20 @@ sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP y búsqueda n
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (151 casos) | **327/327** | [REPORT](verification/REPORT.md) |
+| Valores publicados (167 casos) | **347/347** | [REPORT](verification/REPORT.md) |
 | cSlope 0.1.0, búsqueda (14 modelos) | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija | **28/28** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B) | **40/42** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
-| cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** | [REPORT](verification/REPORT.md) |
-| Web y `ogs` (389 modelos) | **389/389** | [detalle](docs/verificacion.md) |
+| cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** | [REPORT](verification/REPORT.md) |
+| Web y `ogs` (409 modelos) | **409/409** | [detalle](docs/verificacion.md) |
 
-- **Valores publicados:** 327 checks de 151 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
-  v0.2, 53 en v0.3, 23 con refuerzos en v0.4 y 21 en v0.5: 17 con grieta de tracción y 4 con pilotes de Ito-Matsui),
-  cada uno dentro de su tolerancia: 136 de Bishop, 113 de Spencer, 43 de Morgenstern-Price, 10 de Janbu simplificado y
+- **Valores publicados:** 347 checks de 167 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
+  v0.2, 53 en v0.3, 23 con refuerzos en v0.4, 21 en v0.5, con 17 de grieta de tracción y 4 de pilotes de Ito-Matsui, y
+  16 en v0.6, con HAM1 de Hoek-Brown y 15 de búsqueda no circular),
+  cada uno dentro de su tolerancia: 137 de Bishop, 130 de Spencer, 44 de Morgenstern-Price, 11 de Janbu simplificado y
   25 de Janbu corregido. Otros 15
   checks, en 9 casos, quedan retenidos con su diagnóstico ([`verification/pending/`](verification/pending/INDEX.md)).
 - **cSlope, búsqueda:** Bishop y Spencer en 14 modelos sintéticos, con el mismo método, dovelas y rangos; el FS de ogs no
@@ -259,7 +260,7 @@ Morgenstern-Price and Janbu; circular search with an optional non-circular refin
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
-runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
+runs in your browser and works offline, a Python package and a CLI. It matches 347/347 published values (167 cases) and cSlope in
 28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 40/42 checks of the upcoming v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 2 explained, no open failures). The v0.6 format, due with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). With a pile or sheet pile that carries a given force it checks the
 global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of
 the v0.5 format only estimates the soil force between rigid vertical piles (S/D 2 to 8). Neither computes embedment,

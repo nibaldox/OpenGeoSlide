@@ -939,7 +939,7 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
 verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (los
-327 checks de los 151 casos anteriores a F3B, más los <!-- B2a: N --> checks promovidos de F3B,
+347 checks de los 167 casos, 20 de ellos promovidos de F3B,
 [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
 con Bishop y Spencer; M-P, Janbu corregido, D15-D23, el bloque v0.5 D28-D42, con 58 OK, 2 explicados y 0 fallas, y el bloque
 F3B, con 40 OK, 2 explicados y 0 fallas, en
