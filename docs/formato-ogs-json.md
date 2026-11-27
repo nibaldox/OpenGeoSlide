@@ -39,7 +39,7 @@ los leen. El motor acepta seis versiones:
   ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 - **Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0**, con la versión del motor normalizada: 0
   diferencias en 180 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-reinforced` contra el
-  binario de la 0.4.0); los 18 modelos con campos v0.6 se saltan, porque el binario base no lee esa versión
+  binario de la 0.4.0); los 17 modelos con campos v0.6 se saltan, porque el binario base no lee esa versión
   ([Verificación](verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, `analysis.tension_crack` y
   el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`, y los materiales `hoek_brown` y `shansep` y
@@ -208,8 +208,12 @@ circular puede **refinarse a una polilínea** con `analysis.search.non_circular`
   corta por tener una distancia horizontal menor que la tolerancia.
 - **Material de la base.** Cada dovela toma el material de su base. Si el punto medio de la base está sobre un contacto
   entre dos materiales (a menos de `1e-9 · escala` del modelo), se toma el **más débil**, por
-  `c + máx(0, σ′)·tan φ` (o Su en no drenado) con `σ′ = W·cos²α/b − u` (E13l-5). Es el caso de una polilínea trazada
-  sobre el techo de un estrato débil.
+  `c + máx(0, σ′)·tan φ` (o Su en no drenado) con `σ′ = máx(0, W·cos²α/b − u)` (E13l-5). Con un material `hoek_brown` o
+  `shansep` en el contacto se compara su **resistencia real** con los mismos σ y u (E16v): en Hoek-Brown, `τ(σ′n)` de la
+  envolvente completa; en SHANSEP, Su con el σ′v de la columna. Antes ganaba siempre el material nuevo, aunque fuera el más
+  resistente (18,04 frente a 1,234 en un modelo de prueba). Con empate se conserva el material de arriba. Es el caso de una
+  polilínea trazada sobre el techo de un estrato débil
+  ([medidas](limitaciones.md#contacto-entre-materiales-con-hoek-brown-o-shansep-e16v)).
 - Con `slope.direction = "auto"`, el sentido se lee de los extremos de la polilínea ajustada.
 
 El ejemplo siguiente usa la geometría de ACADS 1(a) con una polilínea de cinco puntos inscrita en el círculo fijo
@@ -1843,7 +1847,8 @@ efectivo de cada dovela.
 
 Con σ3 como esfuerzo principal menor, σ1 = σ3 + σci·(mb·σ3/σci + s)^a (ecuación 2). En el punto de la envolvente con
 σn = σ′n, la tangente es `sen φᵢ = (k − 1)/(k + 1)`, con `k = dσ1/dσ3`, y `cᵢ = τ − σ′n·tan φᵢ` (ecuaciones 8 a 10). El σ3 de
-ese punto se busca por bisección hasta `|Δσ3| ≤ 1e-12·ucs`. Se impone `cᵢ ≥ 0` y `φᵢ ≤ 89,9°`.
+ese punto se busca por Newton salvaguardado, con bisección de respaldo cuando el paso sale del intervalo, hasta
+`|Δσ3| ≤ 1e-12·ucs` (E16w; coincide con la bisección pura de antes a 1e-9 relativo en el FS). Se impone `cᵢ ≥ 0` y `φᵢ ≤ 89,9°`.
 
 #### Bajo confinamiento: la envolvente completa
 
@@ -1868,12 +1873,15 @@ Si alguna dovela de base `hoek_brown` tiene `σ′n ≤ sn(0)` en la solución r
 
 La resistencia depende de `σ′n`, y `σ′n` depende del FS. El motor itera, sin tocar los métodos de equilibrio:
 
-1. **Estado inicial:** `σ′n₀ = (W/b)·cos²α − u` en cada dovela de base `hoek_brown`.
+1. **Estado inicial:** `σ′n₀ = máx(0, (W/b)·cos²α − u)` en cada dovela de base `hoek_brown` (E16w: con el arranque sin el
+   `máx(0, ·)`, las dovelas empinadas con `σ′n₀ ≤ σt` partían en (0, 0) y los cinco métodos fallaban en la primera pasada, como en
+   `X28-R-SB-RU03`, que ahora converge: [Limitaciones](limitaciones.md#hoek-brown-envolvente-completa-costo-y-no-convergencia-v06)).
 2. **Pasada:** resuelve el método con los (c, tan φ) actuales. Con el N′ de esa solución, `σ′n = N′/l`, calcula la
    tangente (cT, tT) y promedia: `c ← (c + cT)/2` y `tan φ ← (tan φ + tT)/2` (**w = 0,5**, como cSlope).
 3. **Convergencia:** `|ΔF| ≤ 1e-6·|F|`, con un máximo de **50 pasadas**.
-4. **Sin convergencia:** el estado es `not_converged` con el aviso `hoek_brown_not_converged`. En una búsqueda, ese candidato
-   se descarta, como en cSlope. Si el método no tiene solución en alguna pasada (por ejemplo, sin raíz de λ), el resultado es
+4. **Sin convergencia:** el estado es `not_converged` con el aviso `hoek_brown_not_converged` y **`fos` `null`**, como en los
+   demás `not_converged` (no queda el F de la última pasada); la nota `hoek_brown_low_confinement` se conserva. En una
+   búsqueda, ese candidato se descarta, como en cSlope. Si el método no tiene solución en alguna pasada (por ejemplo, sin raíz de λ), el resultado es
    el estado de esa pasada y el lazo se detiene.
 
 Sin el promedio (w = 1), el lazo cicla en un modelo de dos bancos con Bishop y Janbu (no converge en 200 pasadas); con w = 0,5
@@ -1895,7 +1903,9 @@ Un resultado con dovelas `hoek_brown` o `shansep` agrega `strength`; sin esos ma
 - `slices`: solo las dovelas de base `hoek_brown` o `shansep`, con su `index` en `slices` del mismo informe y su
   `normal_stress` (σ′n en esa solución) en Hoek-Brown.
 - En `slices[].cohesion` y `slices[].tan_phi` están los (c, tan φ) **con los que se calculó** la última solución, no los
-  promediados después; así el equilibrio global se comprueba con las fuerzas reales de esa solución.
+  promediados después; así el equilibrio global se comprueba con las fuerzas reales de esa solución. Por el promedio con
+  w = 0,5, la tangente evaluada en el σ′n final difiere de ellos en ~0,1 %, y una cohesión grande cerca de σt es el
+  intercepto de una tangente casi vertical que no cambia τ en σ′n (R15A-07).
 
 #### Errores
 
@@ -2081,7 +2091,8 @@ iteración.
 **El sismo no entra en σ′v.** Con `kh` y `kv`, Su queda idéntico dovela por dovela (diferencia de 0,0 en el oráculo); el
 sismo actúa solo en las fuerzas de los métodos, como siempre.
 
-- **OCR.** Con `ocr`, el valor constante. Con `pop`, `OCR = (σ′v + pop)/σ′v`. Con `ocr_by_elevation`, la interpolación
+- **OCR.** Con `ocr`, el valor constante. Con `pop`, `OCR = (σ′v + pop)/σ′v` y, para σ′v > 0, el motor calcula Su como
+  `ratio·σ′v^(1−m)·(σ′v + pop)^m`, la misma expresión sin el cociente (E16y). Con `ocr_by_elevation`, la interpolación
   lineal en la cota del punto medio de la base, `(y_izq + y_der)/2`, y **constante fuera de la tabla**: debajo de la primera
   fila vale el OCR de la primera; encima de la última, el de la última.
 - **σ′v ≤ 0.** Su = 0, sin evaluar el OCR, y la nota informativa `shansep_nonpositive_stress`, **una vez por método**. Con
@@ -2091,7 +2102,10 @@ sismo actúa solo en las fuerzas de los métodos, como siempre.
   la resistencia de una cara es `∫ Su(σ′v(z)) dz` sobre la cara, con puntos medios. `σ′v(z)` es el esfuerzo vertical de la
   **columna de suelo** a la cota z, menos `u(z)`: la misma convención que usan las caras de los otros materiales. En un
   material `hoek_brown`, la cara usa `τ(σ′n)` de la misma envolvente y con la misma regla de bajo confinamiento, con σ′n
-  igual al esfuerzo efectivo vertical.
+  igual al esfuerzo efectivo vertical. Desde E16y, en las caras de `hoek_brown` y `shansep`, σv(z) suma el peso del agua
+  embalsada `γw·máx(0, piezométrica − cota)`, porque u(z) ya cuenta esa columna; la capacidad de cara de una capa seca con γ′
+  y la de la misma capa sumergida coinciden a 5,6e-16 (el FS no es invariante: +0,15 %,
+  [Limitaciones](limitaciones.md#shansep-v06)). La rama lineal no cambia.
 
 #### La salida de SHANSEP
 
@@ -2117,6 +2131,7 @@ es 0. No hay `passes`.
 | `y` no estrictamente creciente | `el shansep.ocr_by_elevation del material 'soil' debe tener y estrictamente creciente` |
 | un campo prohibido | `el material 'soil' con model "shansep" no admite el campo 'friction_angle'` |
 | un campo desconocido en `shansep` (por ejemplo `su_min`) | ``unknown field `su_min`, expected one of …`` |
+| Su (en la base o en una cara) o la cohesión equivalente no es finita, por ejemplo `ocr` = 1e308 | `la resistencia SHANSEP del material 'soil' no es finita (revise shansep.ocr, pop u ocr_by_elevation)` (también en una búsqueda, con código de salida 2) |
 | `version` menor que `"0.6"` | `materials[0].model = "shansep" requiere version "0.6"` |
 
 #### Ejemplo: SHANSEP con POP
@@ -2334,7 +2349,8 @@ Celestino y Duncan (1981) tal como la implementa cSlope, con las diferencias de 
 | `seeds` | número de semillas (círculos de partida) | entero en [1, 10]; **3** por defecto |
 | `max_vertices` | número máximo de vértices de la polilínea | `9`, `17` o `33`; **33** por defecto |
 
-- Los dos campos son opcionales y `{}` es válido. El objeto rechaza campos desconocidos y exige `analysis.search`.
+- Los dos campos son opcionales, `{}` es válido y `null` en `seeds` o en `max_vertices` equivale a omitirlo (el esquema 0.6
+  y el motor lo admiten, como en los demás campos opcionales; E16z). El objeto rechaza campos desconocidos y exige `analysis.search`.
 - **Bishop no se admite.** Con `non_circular` y `bishop` en `analysis.methods`, el error es
   `InvalidModel: el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)`.
   Quedan Spencer, Morgenstern-Price y los dos Janbu. La web deshabilita Bishop con esa razón.
@@ -2349,11 +2365,14 @@ Se aplica por método, después de la búsqueda circular de ese mismo método:
    ya elegidas en más del 5 % del rango de la búsqueda, en la entrada o en la salida. Si no hay suficientes círculos
    distintos, se usan los que haya; `search.non_circular.seeds` dice cuántos.
 2. **Conversión.** Cada semilla se convierte en una polilínea de **9 vértices** igualmente espaciados en x sobre el arco
-   inferior, con los extremos exactamente sobre el terreno.
+   inferior, con los extremos exactamente sobre el terreno. Los extremos son los del **tramo que analiza el slicer** para ese
+   círculo (la masa deslizante, sin el lente que se descarta bajo el pie), que en un círculo de la malla coinciden con su
+   entrada y su salida (E16x; antes, 14 de 16 taludes homogéneos no evaluaban ninguna polilínea).
 3. **Niveles.** 9, 17 y 33 vértices, insertando los puntos medios; se para en `max_vertices`.
 4. **Variación alterna,** en cada nivel. El paso inicial es el 0,1 del segmento más corto. Cada vértice interior se mueve
    hacia arriba o hacia abajo sobre la bisectriz de las normales de sus dos segmentos, y cada extremo se mueve en x,
-   siempre dentro de las ventanas `entry` y `exit` de la búsqueda (o del modelo, si faltan). Por vértice se ajusta una
+   siempre dentro de las ventanas `entry` y `exit` de la búsqueda (o del modelo, si faltan), con una holgura de
+   `máx(tol, 1e-6·ancho)` (E16x). Por vértice se ajusta una
    parábola; se evalúan el movimiento conjunto de todos los vértices y el mejor movimiento individual, y se toma **el de
    menor F** de los dos. Una ronda mejora si F baja más de 1e-6; hasta 6 rondas por paso, y después de una sin mejora
    el paso se divide entre 2. El nivel termina cuando el paso baja a 1/50 del inicial.
@@ -2382,6 +2401,11 @@ Se aplica por método, después de la búsqueda circular de ese mismo método:
 
 `search.evaluated` y `search.valid` siguen contando la etapa circular. El `fos` del resultado es el mínimo entre
 `seed_fos` y `polyline_fos`.
+
+**Nota `non_circular_not_refined`** (informativa, E16x): se pidió `non_circular` y `evaluated` = 0, es decir, ninguna
+polilínea fue admisible. El resultado es el círculo de la búsqueda circular, `polyline_fos` se omite y la nota dice «La
+búsqueda no circular no encontró ninguna polilínea admisible: el resultado es el círculo de la búsqueda circular». Se emite
+una vez por método.
 
 **Nota `non_circular_large_change`** (informativa): `(seed_fos − fos)/seed_fos > 0,15`, el criterio de SLOPE/W. Es una
 señal para revisar la geometría de la superficie crítica, no un error.
@@ -2446,6 +2470,13 @@ polilínea, 1,2525.
 <!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3839,janbu_simplified:1.2525,janbu_corrected:1.3451 nc=spencer:seeds:3,spencer:evaluated:4500 superficie=polilinea:33 -->
 ```json
 {}
+```
+
+`null` en un campo opcional equivale a omitirlo (E16z):
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3839,janbu_simplified:1.2525,janbu_corrected:1.3451 nc=spencer:seeds:3,spencer:evaluated:4500 superficie=polilinea:33 -->
+```json
+{ "seeds": null, "max_vertices": null }
 ```
 
 **Una semilla y 9 vértices.** Una búsqueda más barata (419 evaluaciones) y menos refinada: Spencer da 1,3927:

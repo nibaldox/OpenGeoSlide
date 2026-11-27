@@ -8,6 +8,163 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+## [0.5.0] - sin publicar
+
+Bloque de Hoek-Brown, SHANSEP y búsqueda no circular (F3B): formato v0.6. El contrato es
+`briefs/05_CONTRATOS_FASE3B.md` (F6.1 a F6.14 y las enmiendas E16a a E16z, con las correcciones de la revisión R15); la
+evidencia, `docs/fase3/exploracion/X23*.md` a `X30*` y los prototipos de `docs/fase3/exploracion/X28_proto/`. **Un modelo
+sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada): 0 diferencias en 180
+modelos, con 17 modelos v0.6 saltados aparte (el binario base no lee esa versión) y 23 con agua sobre el terreno idénticos.
+La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versión. Lo que corrigió la revisión R15 (enmiendas E16v a
+E16z, contra `92fa882`) está en «Fixed».
+
+### Added
+- **Formato `.ogs.json` v0.6 (F6.1).** El motor acepta 0.1 a 0.6. Exigen `"version": "0.6"`, y el error nombra el
+  primero que encuentra: `materials[i].model = "hoek_brown"` o `"shansep"`, los campos `ucs`, `gsi`, `mi`, `disturbance` y
+  `shansep`, y `analysis.search.non_circular` (`InvalidModel: <campo> requiere version "0.6"`). La web guarda `"0.6"` solo
+  si el modelo los usa.
+- **Material Hoek-Brown (F6.8, E16q).** `model: "hoek_brown"` con `ucs` (σci, en la unidad de esfuerzo del modelo), `gsi`
+  (0 a 100), `mi` y `disturbance` (D, de 0 a 1, **obligatorio y sin valor por defecto**); `unit_weight_sat` y `ru` como en
+  Mohr-Coulomb. Es el criterio generalizado de Hoek, Carranza-Torres y Corkum (2002) con la **tangente instantánea** a la
+  envolvente en el σ′n de cada dovela, resuelta por un lazo por dovela sin tocar los métodos (promedio w = 0,5,
+  convergencia de 1e-6 relativo, hasta 50 pasadas).
+  - **Envolvente completa en bajo confinamiento:** con `σ′n ≤ sn(0)` el motor toma la tangente de la misma envolvente con σ3
+    en (σt, 0], y con `σ′n ≤ σt` no da resistencia. Es distinta de la de cSlope (tangente de σ3 = 0) y **nunca sobreestima**:
+    en círculo fijo da de 0,005 % a 2,9 % menos que cSlope (SB, Janbu), siempre del lado seguro. La regla de cSlope existe
+    solo en las compilaciones de test (`#[cfg(test)]`, E16t).
+  - **Salida `strength`:** `passes` y, por dovela de roca, `law` y `normal_stress`. `slices[].cohesion` y `tan_phi` son los
+    de la última pasada.
+  - **Avisos:** `hoek_brown_low_confinement` (informativo, una vez por método) y `hoek_brown_not_converged` (estado
+    `not_converged`, sin FS).
+- **Material SHANSEP (F6.9, E16o).** `model: "shansep"` con `shansep.ratio` (S), `exponent` (m, 0,8 por defecto) y
+  exactamente una de `ocr`, `pop` u `ocr_by_elevation`. `Su = S·σ′v·OCR^m`, con φ = 0, una vez por dovela y sin iteración;
+  σ′v = (W + Q + V)/b − u en el punto medio de la base, **sin el sismo** (E16o); las caras usan σ′v de la columna de suelo
+  (E16r). `strength.slices` trae `vertical_stress` y `ocr`; con σ′v ≤ 0, Su = 0 y la nota `shansep_nonpositive_stress`.
+- **Búsqueda no circular (F6.10, E16p, E16s).** `analysis.search.non_circular: { seeds, max_vertices }` (3 y 33 por defecto;
+  `{}` es válido) refina los mejores círculos a una polilínea con la variación alterna de Celestino y Duncan (1981), por
+  método, con 9, 17 y 33 vértices, un presupuesto de 1500 evaluaciones por semilla, concavidad de cSlope y resultado
+  determinista (con o sin `parallel`). **Sin Bishop** (`InvalidModel`). La salida `search.non_circular` trae `seeds`,
+  `evaluated`, `seed_fos` y `polyline_fos`; la nota informativa `non_circular_large_change` avisa de una baja de más de 15 %
+  respecto del círculo. El FS reportado nunca supera el del círculo de la búsqueda circular.
+- **Combinaciones no admitidas (F6.5).** `InvalidModel`, antes de cortar dovelas: Bishop con `non_circular`, grieta con
+  `depth: "auto"` y un material Hoek-Brown o SHANSEP, y Ito-Matsui con esos materiales. Las valida solo el motor.
+- **Esquema (E16n).** `schema/ogs-0.6.schema.json`, que acepta 0.1 a 0.6 y rechaza lo mismo que el motor, salvo lo que JSON
+  Schema no expresa (el orden de `ocr_by_elevation` y las reglas de F6.5); `verification/tools/test_schema.py` compara las
+  dos implementaciones (594 pruebas con `test_cli_usage.py`).
+- **Web.**
+  - Tarjetas de material Hoek-Brown (con la calculadora de `mb`, `s` y `a` y la guía de D, y avisos de σci fuera de
+    1000 a 300 000 kPa) y SHANSEP (con OCR constante, POP u OCR por cota, en una tabla accesible); el FS se conserva al
+    pasar de SI a imperial (|ΔFS| ≤ 1e-9).
+  - Casos con búsqueda no circular (Bishop deshabilitado con su razón), la polilínea crítica con sus vértices en el
+    lienzo, la leyenda por modelo y el resumen no circular de la tabla.
+  - Informe PDF y CSV con las columnas y el bloque de Hoek-Brown, SHANSEP y búsqueda no circular, y el CSV por dovela
+    conectado; Diagnósticos y Ayuda con los modelos y los avisos nuevos. El informe de un modelo v0.5 es idéntico, byte a
+    byte, al del tag `v0.4.0` (`apps/web/src/report/identity.f3b.mjs`).
+- **Python y CLI.** El wheel de `ogs-py` prueba y documenta la v0.6 (`crates/ogs-py/tests/test_v06.py`, 108 pruebas; la
+  docstring del paquete y `crates/ogs-py/README.md`). La CLI documenta en `--help` los campos v0.6 de la entrada y
+  `strength` y `search.non_circular` de la salida.
+- **Verificación.**
+  - **Filas de aceptación por módulo:** Hoek-Brown contra el prototipo de la envolvente completa (20 filas, ≤ 0,0011 %) y
+    contra la regla de cSlope (33 de 35, de 0,0018 % a 0,0716 %); SHANSEP contra cSlope (13 escenarios × 5 métodos, ≤ 0,0224 %);
+    búsqueda no circular contra cSlope (10 búsquedas, de +0,010 % a +0,398 %, y 10 evaluadores, ≤ 0,0616 %); HAM1 (Hammah et
+    al., 2005, ejemplo 1, geometría reconstruida, tolerancia de 0,5 %).
+  - **Importador y conversor de cSlope:** convierten Hoek-Brown, SHANSEP y `nonCircularOptimization`. Se promueven **16
+    casos con 20 checks** a `verification/cases/` (los diez que ya tenían caso se llaman `<id>-nc`).
+    **Total: 167 casos y 347 checks; aceptación 347/347 y cSlope 346/347** (V027 no converge). Quedan retenidos, con su causa,
+    V002-nc (E16u, rama de tracción de E12e), V009c (E13k) y V105a (`aboveWater`, fuera del formato): **18 checks en 12
+    casos** en todo `verification/pending/`.
+  - **Batería diferencial F3B** (`verification/differential/cases_f3b/`, 12 modelos, 42 checks, opcional con
+    `--include-f3b`): **41 OK, 1 explicado (E16t) y 0 fallas**; fase 3a 71/71, v0.4 12/12, v0.5 58 OK y 2 explicados, búsqueda
+    y superficie fija 28/28 cada una.
+  - **Identidad con la 0.4.0** (`identity_vs_baseline.py`): 0 diferencias en 180 modelos, sin agregar excepciones a
+    `identity_exceptions.json`; los modelos v0.6 se cuentan aparte.
+  - **Pruebas medidas con el binario sha256 `248c9efe…` de `22c8977`:** `ogs-core` 778 pasan y 2 ignoradas, igual con
+    `parallel`; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2 omitidas; web
+    4043 de 4043 con el motor real y 3723 pasan con 320 omitidas sin él.
+- **Documentación.** `docs/formato-ogs-json.md` con las secciones de Hoek-Brown, SHANSEP, búsqueda no circular y
+  combinaciones no admitidas (5 ejemplos y 103 fragmentos validados con `docs/tools/validar_ejemplos.py` contra el esquema
+  0.6, que gana `pasadas=`, `ley=`, `sv=`, `nc=` y `superficie=`); `docs/limitaciones.md` con los límites de las tres
+  capacidades; `docs/verificacion.md` con las filas y los costos medidos; el README con las capacidades y las limitaciones.
+
+### Changed
+- **`hoek_brown_not_converged` deja `fos` en `null` (E16w).** Antes quedaba el F de la última pasada. La nota
+  `hoek_brown_low_confinement` se conserva.
+- **La búsqueda con Hoek-Brown es unas 4,5 veces más rápida (E16w).** Newton salvaguardado en `hoek_brown::point`,
+  `ba/base` en lugar de un segundo `powf` y `sn(0)` y σt precalculados. La búsqueda Bishop de F3B-HB-01 baja de 8,16 a 1,79 s
+  en serie y de 0,52 a 0,13 s con `parallel`; F3B-HB-02, de 5,33 a 1,18 s (de unas 50 a unas 12 a 14 veces la de
+  Mohr-Coulomb). El FS cambia 6,2e-14 relativo como máximo. En el navegador, con WASM monohilo, la búsqueda de F3B-HB-01
+  con 4 métodos baja de 36 s a unos 20 s.
+- **El costo de la búsqueda no circular es de 2,3 a 3,1 veces la circular (E16x)**, con los extremos nuevos (V001 2,3,
+  V034a 2,4 y V036a 3,1).
+- **El FS de Hoek-Brown de la fila SB con Bishop del producto** sigue en +0,001024 % frente al prototipo: donde antes se
+  decía «≤ 0,001 %», el gate es «sin cambio» y la cifra, «≤ 0,0011 %».
+- **El esquema 0.6 admite `null`** en `non_circular.seeds` y `max_vertices` (E16z), como los demás campos opcionales.
+- **Los avisos del PDF se deduplican por (código, ruta) y se escriben en las unidades activas.** **Cambio deliberado frente a
+  la v0.4:** dos materiales con γsat < γ dan **dos** avisos en el PDF, no uno.
+- **Una sola lista de notas informativas (E16z).** La de `acceptance.rs`; un test compara la de
+  `verification/differential/run.py`. El veredicto «explicado (§4.2: m_α)» exige además `FS_ogs ≤ 1,05·FS_cSlope`.
+- **`ogs bench --method all` omite Bishop** si el modelo trae `analysis.search.non_circular`, y lo avisa por stderr; un
+  `--method bishop` explícito sigue dando el error del motor.
+
+### Fixed
+- **Revisión R15 (tres lentes, contra `92fa882`; enmiendas E16v a E16z).**
+  - **E16v, contacto entre materiales con Hoek-Brown o SHANSEP (R15A-01, crítica).** `weaker_at_contact` comparaba con una
+    resistencia que vale (0, 0) para esos materiales y ganaba siempre el material nuevo, aunque fuera el más resistente:
+    una polilínea por el contacto de una capa débil bajo roca fuerte se analizaba en la roca, del lado inseguro. Ahora se
+    compara la resistencia real (Hoek-Brown: `τ(σ′n)` de la envolvente completa; SHANSEP: Su con σ′v de la columna). Con
+    Spencer: MC débil sobre HB fuerte, de 18,036 a 1,2342; MC débil sobre SHANSEP, de 8,3083 a 1,2342; SHANSEP fuerte sobre
+    MC débil, de 13,4306 a 6,3363. Sin cambio con materiales lineales.
+  - **E16w, lazo de Hoek-Brown (R15A-03, R15A-06).** El arranque pasa a `máx(0, ·)`: `X28-R-SB-RU03` deja de quedar sin FS
+    y converge en los cinco métodos (Bishop 0,886886, Spencer y M-P 0,943003, Janbu simplificado 0,727964 y corregido
+    0,761333, todos bajo cSlope). Con ello, F3B-HB-06 con Bishop en búsqueda pasa de «explicado (§4.2)» (0,5373) a OK (0,5244
+    frente a 0,5279 de cSlope): la causa era el arranque del lazo.
+  - **E16x, búsqueda no circular (R15A-02, crítica; R15A-08).** Los extremos de la conversión salen del tramo que analiza
+    el slicer, no de los cruces extremos del círculo: **los 16 taludes homogéneos de 10 m y 45° refinan, contra 2 de 16
+    antes**, que devolvían el círculo con `evaluated` = 0 y sin aviso. Holgura de ventanas de `máx(tol, 1e-6·ancho)`,
+    tolerancias con la escala del modelo y la nota informativa `non_circular_not_refined` cuando no se refina. El banco con
+    capa débil queda en +2,87 % sobre cSlope (explicado: cSlope no converge en ese círculo).
+  - **E16y, caras y SHANSEP (R15A-04, R15A-10, R15C-01).** Las caras de `hoek_brown` y `shansep` suman el peso del agua
+    embalsada; la capacidad de cara seca y sumergida coincide a 6e-16 (el FS de equilibrio límite no es invariante: +0,15 %,
+    también con Mohr-Coulomb no drenado, y el aviso de cortante entre dovelas puede seguir en el caso sumergido). POP sin
+    cociente. Si Su no es finita, `InvalidModel: la resistencia SHANSEP del material '<id>' no es finita (revise shansep.ocr,
+    pop u ocr_by_elevation)`, también en una búsqueda; antes, un `ocr` de 1e308 salía con código 0 y 240 `cohesion` `null`.
+  - **E16z, verificación y esquema (R15A-05, R15A-09, R15A-11, R15C-02, R15C-03).** Los casos `F3B-NC-V001` y `F3B-NC-V034a`
+    dejan de escribir `analysis.interslice`, que la CLI rechaza sin M-P; veredicto m_α con cota 1,05; lista única de notas
+    informativas; `null` en el esquema; los tests de «identidad» de la web se llaman «ausente y null dan el mismo PDF», y
+    la identidad es la de `identity.f3b.mjs` contra el tag `v0.4.0`.
+- **Web (R15B).**
+  - Un borrador de material sin aplicar **bloquea calcular y exportar** (era una regresión de B2a que dejaba el borrador sin
+    aviso), y se avisa en la tarjeta.
+  - Bishop por defecto con `non_circular` se valida en paridad con la CLI; los Casos con `non_circular` no usan Bishop.
+  - «Superficie crítica» y el resumen no circular en la tabla; el aviso combinado de la rama de tracción
+    (`negative_lambda` y `negative_effective_normal_major`) sin sugerir Bishop donde no aplica; Hoek-Brown sin FS orientado.
+  - Cambiar un material existente a Hoek-Brown o SHANSEP era imposible (el reducer rechazaba el material a medias): ahora es
+    un borrador de la tarjeta.
+  - La grieta automática con Hoek-Brown o SHANSEP se previene en el editor; las notas de F6.5 salen en línea.
+  - Nota SHANSEP y sismo en el PDF; cronómetro y «Cancelar» en Casos; navegación de Diagnósticos de la v0.6.
+- **Web (W-R15c).** La leyenda rotula «Superficie crítica (polilínea)» en una búsqueda no circular y deja «Superficie fija
+  (polilínea)» para una polilínea fija; con un borrador sin aplicar, el resumen marca los FS del cálculo anterior como
+  desactualizados («Desactualizado: calculado antes de los cambios sin aplicar», atenuados y accesibles); la cabecera
+  distingue el estado del archivo del de los borradores, en lugar de «sin cambios pendientes»; la alerta de Ito-Matsui
+  ocupa el ancho completo.
+- **Python.** `ogs-py` probaba la v0.6 con el test del stub `F3B-M-HB`: pasa a 108 pruebas reales con el wheel; la prueba
+  de la nota sin refinamiento usa el modelo `berm_exit_below_bench.json`, porque V103 refina desde E16x.
+
+### Known issues
+- **V002 (Spencer, búsqueda no circular)** da 0,3864 frente a 0,414 publicado (−6,66 %, con una tolerancia de 2,12 %): la
+  polilínea entra a una rama con tracción y E12e elige la raíz de menor F (E16u); cSlope evalúa esa misma polilínea en
+  0,4152. Queda retenido, junto con **V009c** (aviso `interslice_shear_exceeds_strength`, E13k) y **V105a** (`aboveWater`).
+- **Hoek-Brown en bajo confinamiento** da hasta −2,9 % frente a cSlope en círculo fijo (siempre conservador, por la
+  envolvente completa); F3B-HB-02 con Spencer en círculo fijo queda «explicado (E16t)» porque cSlope no tiene raíz de λ.
+- **La búsqueda no circular es un mínimo local**, sin pulido final, y su regla de concavidad (la de cSlope, por vértice)
+  no acota la curvatura convexa acumulada (R15A-08a).
+- **Los (c, tan φ) reportados de Hoek-Brown** son los de la última pasada y difieren ~0,1 % de la tangente en σ′n (R15A-07).
+- **El FS que acompaña a un Bishop `invalid` no es válido** (precedente de la v0.4): lea el estado y el aviso.
+- **El FS de equilibrio límite con agua embalsada no es invariante** frente a la formulación con γ′ (+0,15 %); el aviso de
+  cortante entre dovelas puede seguir en el caso sumergido.
+- **SHANSEP** no tiene `aboveWater`, tiene φ = 0 y no incluye el sismo en σ′v. Ni Hoek-Brown ni SHANSEP se combinan con la
+  grieta automática ni con Ito-Matsui. Detalle en [`docs/limitaciones.md`](docs/limitaciones.md).
+
 ## [0.4.0] - 2026-11-27
 
 Bloque de grieta de tracción, agua embalsada y pilotes de Ito-Matsui (F3G): formato v0.5. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15n, con las correcciones de las revisiones R12 a R14); la evidencia,
