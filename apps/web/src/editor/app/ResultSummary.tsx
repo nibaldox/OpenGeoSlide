@@ -28,6 +28,11 @@ export function ResultSummary({ run, current, busy, shownMethod, elapsedSeconds,
   elapsedSeconds?: number;
   activeMethod?: MethodKind | null;
   hasPendingDrafts?: boolean;
+  /**
+   * UA0 (contrato §4.3): «Ver tabla de resultados» llama a esta función (el armazón abre la vista «Resultados» y
+   * enfoca la tabla). Sin ella, el comportamiento de siempre (`focusResultsTable()`).
+   */
+  onShowTable?: () => void;
 }) {
   const staleNoteId = useId();
   const [measuredSec, setMeasuredSec] = useState(0);

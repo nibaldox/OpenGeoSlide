@@ -216,6 +216,24 @@ export interface EditorCanvasProps {
   onAnnounce?: (msg: string) => void;
   /** Contenido que se muestra sobre el lienzo cuando el modelo no tiene regiones (mensaje con las acciones para empezar). */
   emptyState?: ReactNode;
+  /**
+   * UA0 (contrato §4.2): botones de herramienta que el lienzo coloca en su paleta flotante, encima del grupo «Vista»
+   * (Acercar, Alejar, Encuadrar). Sin esta prop, la paleta solo trae el grupo «Vista».
+   */
+  paletteTools?: ReactNode;
+  /**
+   * UA0 (contrato §4.2): márgenes en px que «Encuadrar» y el encuadre inicial dejan libres para las capas flotantes
+   * (HUD, paleta, leyenda). Sin esta prop, el margen uniforme de siempre.
+   */
+  fitInsets?: FitInsets;
+}
+
+/** UA0 (contrato §4.2): márgenes de encuadre en px de pantalla. */
+export interface FitInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 /** Movimiento máximo, en píxeles, entre pulsar y soltar para que un toque o clic cuente como «colocar un punto». */
