@@ -76,6 +76,8 @@ describe('Ayuda F3B: glosario y limitaciones', () => {
     const limText = LIMITATIONS.join('\n');
     expect(limText).toContain('Hoek-Brown');
     expect(limText).toContain('SHANSEP');
+    expect(limText).toContain('círculos muy anchos y poco profundos');
+    expect(limText).not.toContain('círculos muy anchos y profundos');
     expect(limText).toContain('Búsqueda no circular');
     expect(limText).not.toContain('La búsqueda de la superficie crítica solo encuentra círculos');
 
