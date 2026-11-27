@@ -26,7 +26,7 @@ import { lengthUnitOf } from './canvas/layout';
 import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
-import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
+import { createConfirmDiscard, createTabSwitch, createToolSwitch, runIfDiscarded } from './app/discard';
 import { saveDocument } from './app/saveDocument';
 import { visibleExportHint } from './app/exportHint';
 import { editMenuLabel } from './app/editMenuLabel';
@@ -54,7 +54,7 @@ import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
-import { PENDING_DRAFTS_TEXT, getPendingDrafts, pendingDraftsNotice } from './panels/forms';
+import { PENDING_DRAFTS_TEXT, clearPendingDrafts, getPendingDrafts, pendingDraftsNotice } from './panels/forms';
 import {
   AnalysisPanel,
   DiagnosticsPanel,
@@ -163,7 +163,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const [noticesPaused, setNoticesPaused] = useState(false);
   const live = useAnnouncer();
   const { announce, announceError } = live;
-  const [tab, setTab] = useState<TabId>('geometry');
+  const [tab, setTabState] = useState<TabId>('geometry');
   const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const tablistRef = useRef<HTMLDivElement>(null);
@@ -228,6 +228,29 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   // Con cambios sin guardar pregunta con el diálogo de la aplicación (`useConfirm`, asíncrono); sin cambios no pregunta.
   const confirm = useConfirm();
   const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm), [store, confirm]);
+  // R16B-02: cambiar de pestaña desmonta el panel y con él el formulario de sus tarjetas; con borradores sin aplicar se pide confirmación.
+  const confirmTabSwitch = useMemo(
+    () =>
+      createTabSwitch<TabId>({
+        getPendingDrafts: () => getPendingDrafts(store),
+        clearDrafts: () => clearPendingDrafts(store),
+        confirm,
+        // Al cancelar, el foco vuelve a la pestaña que sigue activa (con las flechas ya había pasado a la pestaña de destino).
+        confirmExtras: (from) => ({ returnFocus: () => document.getElementById(`ea-tab-${from}`) }),
+      }),
+    [store, confirm],
+  );
+  const tabRef = useRef<TabId>(tab);
+  tabRef.current = tab;
+  /** Único camino para cambiar de pestaña (botones, flechas del `tablist`, Diagnósticos): `false` si el usuario cancela. */
+  const setTab = useCallback(
+    async (next: TabId): Promise<boolean> => {
+      if (!(await confirmTabSwitch(tabRef.current, next))) return false;
+      setTabState(next);
+      return true;
+    },
+    [confirmTabSwitch],
+  );
   // Cambiar de herramienta con un trazo de 3 o más puntos pide confirmación (A-04); con menos, el lienzo lo descarta y lo anuncia.
   const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
@@ -486,10 +509,16 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // ───────── Navegación desde Diagnósticos (R7-11) ─────────
 
-  const navigateIssue = useCallback((_issue: unknown, target: IssueTarget): void => {
-    if (target.tab) setTab(target.tab);
-    setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
-  }, []);
+  // R16B-02: con borradores sin aplicar, abrir otra pestaña pide confirmación; si se cancela no se navega ni se mueve el foco.
+  const navigateIssue = useCallback(
+    (_issue: unknown, target: IssueTarget): void => {
+      void (async () => {
+        if (target.tab && !(await setTab(target.tab))) return;
+        setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
+      })();
+    },
+    [setTab],
+  );
   // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
   useEffect(() => {
     if (!pendingFocus) return;
@@ -839,7 +868,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
                 aria-selected={tab === t.id}
                 aria-controls="ea-tabpanel"
                 className={tab === t.id ? 'ea-tab ea-tab-active' : 'ea-tab'}
-                onClick={() => setTab(t.id)}
+                onClick={() => void setTab(t.id)}
               >
                 {t.label}
               </button>

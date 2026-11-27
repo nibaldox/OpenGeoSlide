@@ -47,6 +47,43 @@ export function hasUnsavedChanges(store: DirtyStateSource): boolean {
   return s.revision !== s.file.savedRevision || tracePoints(s) > 0;
 }
 
+/** Lista de tarjetas con cambios sin aplicar, para los mensajes («Material m1, Búsqueda»). */
+const draftsPhrase = (drafts: readonly string[]): string => drafts.join(', ');
+
+/** Hay borradores de tarjeta sin aplicar al modelo: no cambian el documento, pero se perderían (R16B-02). */
+export const DISCARD_DRAFTS_CONFIRM = (drafts: readonly string[]): ConfirmOptions => ({
+  title: 'Descartar los cambios sin aplicar',
+  message:
+    `Hay cambios sin aplicar al modelo en: ${draftsPhrase(drafts)}. Si continúa se descartan, la tarjeta vuelve al modelo del documento y no se puede deshacer. ` +
+    'Para conservarlos, cancele y complete o corrija la tarjeta hasta que se aplique al modelo.',
+  confirmLabel: 'Descartar cambios',
+  cancelLabel: 'Seguir editando',
+  tone: 'danger',
+});
+
+/**
+ * Cambio de pestaña lateral (R16B-02): el panel que se abandona se desmonta y con él se pierde el formulario de sus tarjetas.
+ * Con borradores sin aplicar pide confirmación (tono `danger`); si el usuario acepta, `clearDrafts` limpia el registro y la
+ * tarjeta vuelve al modelo del documento. Resuelve a `false` si cancela (queda la pestaña actual con el borrador intacto).
+ * Sin borradores, o si el destino es la pestaña actual, no pregunta.
+ */
+export function createTabSwitch<T>(opts: {
+  getPendingDrafts: () => readonly string[];
+  clearDrafts: () => void;
+  confirm: ConfirmFn;
+  /** Opciones extra de la confirmación (el foco vuelve a la pestaña actual al cancelar). */
+  confirmExtras?: (from: T, to: T) => Partial<ConfirmOptions>;
+}): (from: T, to: T) => Promise<boolean> {
+  return async (from, to) => {
+    if (from === to) return true;
+    const drafts = opts.getPendingDrafts();
+    if (drafts.length === 0) return true;
+    if (!(await opts.confirm({ ...DISCARD_DRAFTS_CONFIRM(drafts), ...opts.confirmExtras?.(from, to) }))) return false;
+    opts.clearDrafts();
+    return true;
+  };
+}
+
 /** Texto de la confirmación según qué se perdería: el modelo, solo el trazo, o ambos. */
 export function discardConfirmFor(s: DirtyState): ConfirmOptions {
   const trace = tracePoints(s);
