@@ -315,7 +315,8 @@ al pie y pilote de Ito-Matsui) con sus fragmentos, leídos del propio documento;
 de X21 y las 28 de Ito-Matsui de X22 contra cSlope 0.1.0 a 0,1 % (se leen de `crates/ogs-core/tests/data/f3g*/`); las
 propiedades (neutralidad, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua, la
 compuerta de versión, los rechazos con su ruta y la salida siempre finita); y tres reproducciones de R12
-(`docs/fase3/r12/repro/`: E15l-1, E15l-2 y E15l-11), que el motor integrado pasa sin marcas `xfail`. Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
+(`docs/fase3/r12/repro/`: E15l-1, E15l-2 y E15l-11), que el motor integrado pasa sin marcas `xfail`. Los tests usan el wheel instalado, no el código fuente.
+`OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
 ## Licencia
