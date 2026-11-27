@@ -48,7 +48,7 @@ import { calcAnnouncement, focusResultsTable } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
-import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
+import { ActionFoot, CollapsedActions, ExportHint } from './app/shell/ActionFoot';
 import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
 import { pickShownMethod } from './app/shell/shownMethod';
 import { buildRunStatusInput } from './app/shell/statusInput';
@@ -848,7 +848,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         reportTitle={exportBlockedTitle}
         reportDescribedBy={exportDescribedBy}
         onReport={() => void onReport()}
-        exportHint={exportHint}
+        exportHint={side.hidden ? undefined : exportHint}
         hidden={side.hidden}
       />
 
@@ -897,7 +897,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             ) : null}
             <h2>{viewTitle(view)}</h2>
             <span className="ua-spacer" />
-            {side.collapsed ? <CheckButton {...checkProps} variant="compact" /> : null}
+            {side.collapsed ? <CollapsedActions check={checkProps} busy={engine.busy} onCancel={engine.cancel} engineFailed={engineStatus === 'failed'} onRestartEngine={() => client.cancel()} /> : null}
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.
               <div className="ua-edit" role="group" aria-label="Edición">
@@ -914,6 +914,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               </div>
             )}
           </div>
+          {/* Con la barra plegada el pie no se ve: la pista de bloqueo vive aquí (UA-E3 §2). En Casos no hay pista: el pie y el aviso son del editor. */}
+          {side.collapsed && exportHint ? <ExportHint text={exportHint} /> : null}
           <ViewTabs view={view} onChange={onViewChange} />
         </div>
 

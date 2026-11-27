@@ -40,6 +40,45 @@ export function CheckButton({ label, disabled, title, describedBy, onCheck, vari
   );
 }
 
+/** Pista de bloqueo de las exportaciones. Un solo nodo con este `id`: vive en el pie o, con la barra plegada, en la cabecera del área. */
+export function ExportHint({ text }: { text: string }) {
+  return (
+    <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
+      {text}
+    </p>
+  );
+}
+
+export interface CollapsedActionsProps {
+  check: Omit<CheckButtonProps, 'variant'>;
+  busy: boolean;
+  onCancel: () => void;
+  engineFailed: boolean;
+  onRestartEngine: () => void;
+}
+
+/**
+ * Con la barra plegada el pie de acción está oculto: «Comprobar», «Cancelar cálculo» (si hay un cálculo en curso) y «Reiniciar
+ * el motor» (si el motor falló) pasan a la cabecera del área (UA-E3 §2). Cada uno es el único visible con su nombre.
+ */
+export function CollapsedActions({ check, busy, onCancel, engineFailed, onRestartEngine }: CollapsedActionsProps) {
+  return (
+    <div className="ua-collapsed-actions" role="group" aria-label="Cálculo">
+      <CheckButton {...check} variant="compact" />
+      {busy ? (
+        <button type="button" className="gs-btn ua-compact-btn" onClick={onCancel} title="Termina el cálculo y reinicia el motor">
+          Cancelar cálculo
+        </button>
+      ) : null}
+      {engineFailed ? (
+        <button type="button" className="gs-btn ua-compact-btn" onClick={onRestartEngine}>
+          Reiniciar el motor
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export interface ActionFootProps {
   check: CheckButtonProps;
   /** Hay un resultado y no corresponde al modelo actual (o hay borradores): «Hay cambios sin calcular». */
@@ -81,11 +120,7 @@ export function ActionFoot({ check, stale, busy, onCancel, engineFailed, onResta
         <IconPdf size={16} />
         <span>{reportBusy ? 'Generando…' : 'Informe PDF'}</span>
       </button>
-      {exportHint ? (
-        <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
-          {exportHint}
-        </p>
-      ) : null}
+      {exportHint ? <ExportHint text={exportHint} /> : null}
     </section>
   );
 }

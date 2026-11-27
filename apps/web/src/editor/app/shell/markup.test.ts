@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { STEP_ORDER, type StepState } from '../shellModel';
 import type { PanelTabId } from '../issueNav';
-import { ActionFoot, type ActionFootProps } from './ActionFoot';
+import { ActionFoot, CollapsedActions, ExportHint, type ActionFootProps } from './ActionFoot';
 import { PaletteTools } from './PaletteTools';
 import { ReportView } from './ReportView';
 import { ResultsView } from './ResultsView';
@@ -185,5 +185,34 @@ describe('ResultsView sin cálculo (UA-E3 §1, B-13d)', () => {
     expect(html).toContain('data-testid="results-empty"');
     expect(html).not.toContain('<button');
     expect(html).toContain('«Comprobar»');
+  });
+});
+
+describe('barra plegada: acciones en la cabecera del área (UA-E3 §2, A-06)', () => {
+  const actions = (over: Record<string, unknown> = {}): string =>
+    renderToStaticMarkup(
+      createElement(CollapsedActions, {
+        check: { label: 'Comprobar', disabled: false, title: 'Ctrl+Intro', onCheck: noop },
+        busy: false,
+        onCancel: noop,
+        engineFailed: false,
+        onRestartEngine: noop,
+        ...over,
+      }),
+    );
+  it('«Comprobar» siempre; «Cancelar cálculo» y «Reiniciar el motor» solo cuando corresponden', () => {
+    const idle = actions();
+    expect(idle).toContain('<span>Comprobar</span>');
+    expect(idle).not.toContain('Cancelar cálculo');
+    expect(idle).not.toContain('Reiniciar el motor');
+    expect(actions({ busy: true })).toContain('Cancelar cálculo');
+    expect(actions({ engineFailed: true })).toContain('Reiniciar el motor');
+  });
+  it('el botón compacto no lleva la tecla decorativa del pie', () => {
+    expect(actions()).not.toContain('Ctrl Intro');
+  });
+  it('la pista de bloqueo es un nodo propio con el mismo id y data-testid que en el pie', () => {
+    const html = renderToStaticMarkup(createElement(ExportHint, { text: 'Pulse «Comprobar»' }));
+    expect(html).toMatch(/id="ea-export-hint"[^>]*data-testid="export-hint"/);
   });
 });

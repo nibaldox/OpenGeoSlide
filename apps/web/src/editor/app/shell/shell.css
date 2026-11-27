@@ -471,15 +471,19 @@
   align-items: center;
   gap: 8px;
 }
+/* UA-E3 §2: la cabecera del área envuelve (320 px con «Mostrar panel», «Comprobar» y «Editar») y nada se aplasta por debajo de su contenido. */
 .ua-title {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   min-width: 0;
   min-height: 32px;
 }
 .ua-title h2 {
-  min-width: 0;
+  flex: 0 1 auto;
+  min-width: min(100%, max-content);
+  max-width: 100%;
   margin: 0;
   overflow: hidden;
   font-size: 24px;
@@ -488,8 +492,29 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ua-title :is(.ua-show-side, .ua-edit, .ua-check-compact, .ua-compact-btn) {
+  flex: none;
+}
 .ua-spacer {
   flex: 1 1 0;
+}
+/* Con la barra plegada, «Comprobar», «Cancelar cálculo» y «Reiniciar el motor» viven en la cabecera del área. */
+.ua-collapsed-actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: min-content;
+}
+.ua-collapsed-actions .ua-compact-btn {
+  min-height: 32px;
+  white-space: nowrap;
+}
+.ua-main-head > .ea-export-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ui-ink-muted);
 }
 .ua-edit {
   display: flex;
