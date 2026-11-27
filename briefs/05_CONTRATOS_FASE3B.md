@@ -161,8 +161,9 @@ Según la opción A de X27 §1.4: un lazo exterior que reescribe c y tanφ de la
   `face_tau` integrado, B0 conserva la forma cerrada para `Linear` y usa el muestreo solo para los otros dos.
 - **Ganchos en `lib.rs`**, en el camino de la búsqueda y en el de la superficie fija, después de
   `reinforcement::apply_*` y antes de resolver:
-  1. `shansep::apply(&pm, &mut slices)`: escribe Su y tanφ = 0 en las dovelas de base `shansep`. Sin dovelas
-     `shansep` no hace nada. B0: `todo!("F3B-M-SH")` si hay alguna;
+  1. `shansep::apply(&pm, kv, &mut slices) -> ShansepOutcome` (E16r): escribe Su y tanφ = 0 en las dovelas de base
+     `shansep`. Va **justo después de `water::apply_ponded` y antes de los refuerzos**, porque ahí `weight_extra` vale
+     exactamente `kv·W + Q + V`. Sin dovelas `shansep` no hace nada. B0: `todo!("F3B-M-SH")` si hay alguna;
   2. `strength_loop::solve(&pm, &mut slices, method, opts)` reemplaza a `methods::solve_with`. Sin dovelas
      `hoek_brown` llama a `solve_with` tal cual, así que la identidad se cumple por construcción. B0: `todo!("F3B-M-HB")`
      si hay alguna;
@@ -315,7 +316,8 @@ Se agregan a la lista E6 de `00_CONTRATOS.md` y a `apps/web/src/engine/warnings.
 - **σ′v ≤ 0:** Su = 0 sin evaluar el OCR, y la nota `shansep_nonpositive_stress` (F6.7), una vez por método. Con
   entradas válidas solo ocurre bajo el agua con `unit_weight` < γw y sin `unit_weight_sat` (X30 §4).
 - **Caras de las dovelas** (F6.5): `∫ Su(σ′v(z)) dz` sobre la cara, con `FACE_STRENGTH_SAMPLES` puntos medios. `σ′v(z)`
-  es el esfuerzo vertical total a la cota z (la columna de suelo, el agua embalsada y la `udl` sobre ella) menos `u(z)`.
+  es el esfuerzo vertical de la **columna de suelo** a la cota z menos `u(z)`, la misma convención que el motor ya usa
+  en las caras de los otros materiales (`slicer.rs`, `ru`; E16r).
   El oráculo no emite este aviso en V047a (X30 §5), así que se prueba con una identidad: con OCR constante y una capa
   seca, el resultado es `ratio·OCR^exponent·σ̄′v·h`, donde `σ̄′v` es la media de `σ′v(z)` en la cara.
 - **Superficies muy profundas.** Con OCR 1 en un perfil normalmente consolidado, el mínimo es un círculo muy ancho y
@@ -472,3 +474,13 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 
   Evidencia: `docs/fase3/exploracion/X28.md` §1 a §9 y `X28_filas/reglas_coordinador.json`
   (`X28_proto/coord_reglas.py`). Con w = 1, el lazo no converge en SB.
+- **E16r, el gancho de SHANSEP (M-SH, 2026-11-27).**
+  - **Dónde va.** `shansep::apply` va justo después de `water::apply_ponded` y antes de los refuerzos, con la firma
+    `apply(pm, kv, slices) -> ShansepOutcome { slices, nonpositive_stress }`. Antes de los refuerzos, `weight_extra`
+    vale exactamente `kv·W + Q + V`, y los refuerzos no leen `cohesion` ni `tan_phi`.
+  - **Qué hace `lib.rs`** con el resultado: agrega las entradas `shansep` a `MethodReport.strength`, ordenadas por
+    índice junto con las de Hoek-Brown, y la nota `shansep_nonpositive_stress`.
+  - **Caras.** Usan σ′v de la columna de suelo, como los demás materiales.
+
+  Evidencia: el informe de M-SH (`$TMPDIR/agy-f3b/b1-msh/out.md`, §1 y §2) y el diff que propuso, integrado por el
+  coordinador.

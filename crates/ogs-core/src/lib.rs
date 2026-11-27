@@ -445,6 +445,7 @@ fn analyze_method(
                     crack::truncate(plan, pm, &surface, &mut slices);
                 }
                 let _ = water::apply_ponded(pm, &surface, &mut slices);
+                let _ = shansep::apply(pm, load_case.kv, &mut slices);
                 if !model.reinforcements.is_empty() {
                     reinforcement::apply_to_slices_with(
                         &model.reinforcements,
@@ -454,7 +455,6 @@ fn analyze_method(
                         &pile_profiles,
                     );
                 }
-                shansep::apply(pm, &mut slices);
                 let (res, _strength) = strength_loop::solve(
                     pm,
                     &mut slices,
@@ -611,6 +611,7 @@ fn analyze_method(
         .map(|plan| crack::truncate(plan, pm, &surface, &mut slices));
     // E15c: the weight and the thrust of the ponded water (zero terms without water over the ground).
     let ponded = water::apply_ponded(pm, &surface, &mut slices);
+    let shansep_out = shansep::apply(pm, load_case.kv, &mut slices);
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
     let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
         (Vec::new(), false)
@@ -636,18 +637,24 @@ fn analyze_method(
     };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
     let truncated = !sliced.notes.is_empty() || crack_report.is_some();
-    shansep::apply(pm, &mut slices);
     let final_opts = SolveOptions {
         circular: !surface.is_polyline(),
         ..*opts
     };
-    let (mut result, strength) = strength_loop::solve(
+    let (mut result, mut strength) = strength_loop::solve(
         pm,
         &mut slices,
         method,
         &final_opts,
         analysis.interslice.as_ref(),
     );
+    if !shansep_out.slices.is_empty() {
+        strength.slices.extend(shansep_out.slices);
+        strength.slices.sort_by_key(|s| match s {
+            report::SliceStrength::HoekBrown { index, .. }
+            | report::SliceStrength::Shansep { index, .. } => *index,
+        });
+    }
     if result.status != SolveStatus::Converged {
         reinforcement_forces.clear();
     }
@@ -694,6 +701,11 @@ fn analyze_method(
         .chain(effective)
         .chain(result.message)
         .chain(result.warnings)
+        .chain(
+            shansep_out
+                .nonpositive_stress
+                .then(|| shansep::SHANSEP_NONPOSITIVE_STRESS.to_string()),
+        )
     {
         if !warnings.contains(&code) {
             warnings.push(code);
@@ -779,6 +791,7 @@ fn evaluate_surface(
         crack::truncate(plan, pm, surface, &mut slices);
     }
     let _ = water::apply_ponded(pm, surface, &mut slices);
+    let _ = shansep::apply(pm, load_case.kv, &mut slices);
     if !model.reinforcements.is_empty() {
         reinforcement::apply_to_slices_with(
             &model.reinforcements,
@@ -788,7 +801,6 @@ fn evaluate_surface(
             pile_profiles,
         );
     }
-    shansep::apply(pm, &mut slices);
     let (res, _strength) =
         strength_loop::solve(pm, &mut slices, method, opts, analysis.interslice.as_ref());
     (res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0)
