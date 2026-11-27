@@ -12,7 +12,7 @@ import { EditorApp } from './editor/EditorApp';
 import { resultCaption } from './editor/app/reportInput';
 import { lengthUnitOf } from './editor/canvas/layout';
 import { createRunGuard } from './editor/app/runGuard';
-import { BISHOP_POLYLINE_NOTE, METHOD_ORDER, isFixedPolyline } from './editor/panels/forms';
+import { METHOD_ORDER, methodDisabledReason } from './editor/panels/forms';
 import { engineModel } from './io/ogsJson';
 import { GuidedTour } from './onboarding/GuidedTour';
 import { autoOpenTour, initialTour, tourReducer } from './onboarding/tour';
@@ -33,6 +33,21 @@ import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 /** Los cinco métodos de la vista Casos, en el orden del editor (F3.9). */
 const ALL_METHODS: readonly MethodKind[] = METHOD_ORDER;
 
+/** Selección inicial de métodos en Casos de verificación. */
+export const DEFAULT_CASE_METHODS: Readonly<Record<MethodKind, boolean>> = {
+  bishop: true,
+  spencer: true,
+  morgenstern_price: false,
+  janbu_simplified: false,
+  janbu_corrected: false,
+};
+
+/** Métodos efectivos que pide Casos con la selección dada, omitiendo Bishop si no aplica (polilínea fija o búsqueda no circular, F3.6 / F6.4). */
+export function effectiveCaseMethods(model: Model, selection: Readonly<Record<MethodKind, boolean>> = DEFAULT_CASE_METHODS): MethodKind[] {
+  const bishopBlocked = methodDisabledReason('bishop', model.analysis) !== null;
+  return ALL_METHODS.filter((m) => selection[m] && !(m === 'bishop' && bishopBlocked));
+}
+
 interface RunResult {
   report: AnalysisReport;
   elapsedMs: number;
@@ -44,8 +59,9 @@ function errorMessage(error: unknown): string {
 
 export function describeAnalysis(model: Model): string {
   const parts: string[] = [];
-  if (model.analysis.search) parts.push('búsqueda de superficie crítica');
-  else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
+  if (model.analysis.search) {
+    parts.push(model.analysis.search.non_circular ? 'búsqueda de superficie crítica (no circular)' : 'búsqueda de superficie crítica');
+  } else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
   parts.push(`${model.materials.length} material(es)`);
   parts.push(`${model.regions.length} región(es)`);
   // E15l-18: el agua de la grieta (`water_fill > 0`) también es agua.
@@ -61,13 +77,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [cases, setCases] = useState<CaseEntry[]>(loadBuiltinCases);
   // Vacío hasta elegir: current cae en el primer caso.
   const [caseKey, setCaseKey] = useState<string>('');
-  const [methods, setMethods] = useState<Record<MethodKind, boolean>>({
-    bishop: true,
-    spencer: true,
-    morgenstern_price: false,
-    janbu_simplified: false,
-    janbu_corrected: false,
-  });
+  const [methods, setMethods] = useState<Record<MethodKind, boolean>>(() => ({ ...DEFAULT_CASE_METHODS }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<RunResult | null>(null);
@@ -80,10 +90,11 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const guard = useRef(createRunGuard()).current;
 
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
-  // F3.6: con una polilínea fija Bishop no se ofrece; no se pide aunque la casilla haya quedado marcada de otro caso.
-  const bishopBlocked = current ? isFixedPolyline(current.caseData.model.analysis) : false;
+  // F3.6 / F6.4: con una polilínea fija o búsqueda no circular, Bishop no se ofrece ni se pide aunque haya quedado marcado.
+  const bishopReason = current ? methodDisabledReason('bishop', current.caseData.model.analysis) : null;
+  const bishopBlocked = bishopReason !== null;
   const methodOff = (m: MethodKind): boolean => m === 'bishop' && bishopBlocked;
-  const selectedMethods = ALL_METHODS.filter((m) => methods[m] && !methodOff(m));
+  const selectedMethods = current ? effectiveCaseMethods(current.caseData.model, methods) : [];
 
   const shownResult = run?.report.results.find((r) => r.method === shownMethod) ?? run?.report.results[0] ?? null;
   const scene = useMemo(
@@ -245,7 +256,7 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
               ))}
               {bishopBlocked && (
                 <p id="cases-bishop-note" className="muted small">
-                  {BISHOP_POLYLINE_NOTE}
+                  {bishopReason}
                 </p>
               )}
             </fieldset>
