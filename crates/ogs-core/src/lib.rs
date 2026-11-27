@@ -54,6 +54,7 @@ use search::{
     search_circular_reinforced,
 };
 use slicer::{Slice, SurfaceError, slice_surface_cracked};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use surface::{Surface, validate_polyline};
 
 /// Crate version, as declared in `Cargo.toml`.
@@ -389,6 +390,8 @@ fn analyze_method(
         (Some(spec), _) => {
             // E14o-7: with reinforcements the search also tries circles through their heads and tips.
             let ends = reinforcement_ends(&model.reinforcements);
+            // E15l-7: how many evaluated candidates were discarded because they do not get to the crack.
+            let not_reached = AtomicUsize::new(0);
             let result = search_circular_reinforced(pm, spec, &ends, |candidate| {
                 // E14d.4: the crossings of the reinforcements are computed for each candidate. E15d (G9): a candidate
                 // that does not get to the crack is discarded.
@@ -398,7 +401,10 @@ fn analyze_method(
                     Some(tc) => match crack::locate(tc, pm, &surface, load_case) {
                         Ok(plan) => Some(plan),
                         Err(crack::CrackError::NoGround) => None,
-                        Err(crack::CrackError::NotReached) => return None,
+                        Err(crack::CrackError::NotReached) => {
+                            not_reached.fetch_add(1, Ordering::Relaxed);
+                            return None;
+                        }
                     },
                     None => None,
                 };
@@ -424,14 +430,17 @@ fn analyze_method(
                     case = load_case.with_extra_breaks(nodes);
                     &case
                 };
-                let crack_x = plan.as_ref().map(|plan| plan.x_c);
+                let crack_x = plan
+                    .as_ref()
+                    .filter(|plan| plan.depth > 0.0)
+                    .map(|plan| plan.x_c);
                 let mut slices = slice_surface_cracked(pm, &surface, n, load_case, crack_x)
                     .ok()?
                     .slices;
                 if let Some(plan) = &plan {
                     crack::truncate(plan, pm, &surface, &mut slices);
                 }
-                water::apply_ponded(pm, &surface, &mut slices);
+                let _ = water::apply_ponded(pm, &surface, &mut slices);
                 if !model.reinforcements.is_empty() {
                     reinforcement::apply_to_slices_with(
                         &model.reinforcements,
@@ -447,9 +456,19 @@ fn analyze_method(
                 valid.then_some((res.fos, crossings))
             });
             let (circle, _fos) = result.best.ok_or_else(|| {
+                // E15l-7: with k > 0 candidates discarded by the crack, the message says so; with k = 0 it is the usual one.
+                let k = not_reached.load(Ordering::Relaxed);
+                let by_crack = if k > 0 {
+                    format!(
+                        "; {k} no alcanzan la grieta de tracción, {}",
+                        crack::TENSION_CRACK_NOT_REACHED
+                    )
+                } else {
+                    String::new()
+                };
                 OgsError::NoValidSurface(format!(
                     "la búsqueda con {} no encontró ninguna superficie convergida \
-                     ({} evaluadas, {} válidas)",
+                     ({} evaluadas, {} válidas{by_crack})",
                     method_name(method),
                     result.stats.evaluated,
                     result.stats.valid
@@ -535,7 +554,10 @@ fn analyze_method(
         &surface,
         n,
         slicing_case,
-        crack_plan.as_ref().map(|plan| plan.x_c),
+        crack_plan
+            .as_ref()
+            .filter(|plan| plan.depth > 0.0)
+            .map(|plan| plan.x_c),
     )
     .map_err(|e| OgsError::NoValidSurface(surface_reason(e, &surface)))?;
     let mut slices = sliced.slices;
@@ -544,7 +566,7 @@ fn analyze_method(
         .as_ref()
         .map(|plan| crack::truncate(plan, pm, &surface, &mut slices));
     // E15c: the weight and the thrust of the ponded water (zero terms without water over the ground).
-    water::apply_ponded(pm, &surface, &mut slices);
+    let ponded = water::apply_ponded(pm, &surface, &mut slices);
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
     let (mut reinforcement_forces, active_compressed) = if model.reinforcements.is_empty() {
         (Vec::new(), false)
@@ -588,7 +610,9 @@ fn analyze_method(
     //    The list is the water note, then the slicing notes (E10a: `truncated_mass`), then the reason of the
     //    status (E8d), then the notes of the state, without duplicates and in a fixed order.
     let mut warnings: Vec<String> = Vec::new();
-    if water_over_ground(pm, &slices) {
+    // E15l-5: also when the ponded terms applied to the surface are not zero (the vertical face of E4 included, where
+    // the ground at the face is the crest and the line is under it).
+    if ponded || water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
     }
     // E12b: a declared load that acts on no soil slice of the reported surface (informative note).

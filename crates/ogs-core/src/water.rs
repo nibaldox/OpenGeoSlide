@@ -302,7 +302,31 @@ pub fn ponded_terms(
     let gw = pm.gamma_w;
     let tol = pm.tol();
     let wall_tol = 1e-7 * pm.scale;
-    for (slice, term) in slices.iter().zip(out.iter_mut()) {
+    // E15l-4: each vertical face goes to ONE slice, the soil slice whose edge on the high side is the nearest to
+    // `wall.x` within `wall_tol` (the first one, toe first, on a tie). Two edges within `wall_tol` of the same face (a
+    // node of a load or of a reinforcement beside it) must not apply the thrust twice.
+    let owner: Vec<Option<usize>> = walls
+        .iter()
+        .map(|wall| {
+            let mut best: Option<(usize, f64)> = None;
+            for (i, slice) in slices.iter().enumerate() {
+                if slice.y_top_mid - 0.5 * (slice.y_base_left + slice.y_base_right) <= tol {
+                    continue;
+                }
+                let edge = if wall.high_side > 0.0 {
+                    slice.x_left
+                } else {
+                    slice.x_right
+                };
+                let dist = (edge - wall.x).abs();
+                if dist <= wall_tol && best.is_none_or(|(_, d)| dist < d) {
+                    best = Some((i, dist));
+                }
+            }
+            best.map(|(i, _)| i)
+        })
+        .collect();
+    for (si, (slice, term)) in slices.iter().zip(out.iter_mut()).enumerate() {
         let (x0, x1) = (slice.x_left, slice.x_right);
         let xm = 0.5 * (x0 + x1);
         let ym = 0.5 * (slice.y_base_left + slice.y_base_right);
@@ -339,11 +363,11 @@ pub fn ponded_terms(
         };
         let mut h = s * gw * sums.hx;
         // E4: the thrust of a vertical face whose edge is this slice, on the high side.
-        for wall in &walls {
-            let edge = if wall.high_side > 0.0 { x0 } else { x1 };
-            if (edge - wall.x).abs() > wall_tol {
-                continue;
-            }
+        for wall in walls
+            .iter()
+            .zip(&owner)
+            .filter_map(|(wall, owner)| (*owner == Some(si)).then_some(wall))
+        {
             let Some(yw) = pm.piezometric_y(wall.x) else {
                 continue;
             };
@@ -382,10 +406,14 @@ pub fn ponded_terms(
     out
 }
 
-/// Adds [`ponded_terms`] to `slices` (what `lib.rs` calls).
-pub(crate) fn apply_ponded(pm: &PreparedModel, surface: &Surface, slices: &mut [Slice]) {
+/// Adds [`ponded_terms`] to `slices` (what `lib.rs` calls). It returns whether some slice got a non-zero term of
+/// ponded water: a weight above 0 or a thrust different from 0, the vertical faces of E4 included (E15l-5).
+pub(crate) fn apply_ponded(pm: &PreparedModel, surface: &Surface, slices: &mut [Slice]) -> bool {
     let terms = ponded_terms(pm, surface, slices, sliding_sign(pm));
+    let mut active = false;
     for (slice, term) in slices.iter_mut().zip(&terms) {
+        active |= term.weight > 0.0 || term.h_force != 0.0;
         term.add_to(slice);
     }
+    active
 }

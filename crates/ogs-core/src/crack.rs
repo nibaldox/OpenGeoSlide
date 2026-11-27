@@ -24,7 +24,8 @@
 //!
 //! # Position and depth (G1, G6)
 //!
-//! A sweep of 200 steps from the entry (the crest end of the sliding range) looks for the first `x` with
+//! A sweep of 200 steps from the entry (the crest end of the sliding range), plus the vertices of a polyline surface, of
+//! the ground and of the regions and the edges of the `udl` inside that range (E15l-3), looks for the first `x` with
 //! `ground(x) − base(x) ≥ d(x)`, and a bisection of 60 steps refines it. A depth that is only reached at the exit end
 //! is not reached. The automatic `d(x)` is `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with `c`, `φ` and `γ` of the material
 //! at `2e-5·scale` under the ground at `x` (1e-3 model units in the models of the rows, as the oracle), recomputed at
@@ -36,7 +37,7 @@
 //!
 //! `Pw = ½·γw·hw²`, `hw = d·water_fill`, horizontal and **in the sliding direction**: in the model frame
 //! `H_x = s·Pw` (`s = +1` for `LeftToRight`), and in the sliding direction, which is what `Slice::h_force` holds,
-//! `H = Pw`. It acts at `y_g = base(x_c) + hw/3`, on the slice adjacent to the face (the last one of the mass). For
+//! `H = Pw`. It acts at `y_g = base(x_c) + hw/3`, on the slice adjacent to the face (the last one of the mass with weight above 0, E15l-8). For
 //! that slice, with `(xm, ym)` the midpoint of its base: `h_force += Pw`, `h_moment_base += Pw·(y_g − ym)` (Spencer,
 //! M-P) and `driving_extra += Pw·(yc − y_g)/R` (Bishop, circle); Janbu uses only the force. It does not change the
 //! pore pressure of the base, it has no weight and the face has no strength (G4); no seismic force acts on it (E7).
@@ -86,7 +87,9 @@ pub struct CrackPlan {
     /// steps and a bisection down to the tolerance `tol` of the model. When the automatic depth is 0 at the entry
     /// (nothing to cut), `x_c` is the entry itself and nothing is truncated.
     pub x_c: f64,
-    /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7).
+    /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7). Where the bisection ends on a jump
+    /// of `d(x)` (a `udl` edge, a change of material) it is the real face `ground(x_c) − base(x_c)` (E15l-2); `0` if
+    /// that face is not larger than the tolerance (no crack, nothing is cut).
     pub depth: f64,
     /// Extra nodes of the cut: a node at `x_c` (pass them to `LoadCase::with_extra_breaks`). The slicer of the
     /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut.
@@ -114,8 +117,17 @@ impl DepthAt<'_> {
     }
 
     /// `z(x) = max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with the material under the ground at `x` (G6).
+    ///
+    /// E15l-1: `x` is bounded to `[x_min + tol, x_max − tol]`, so that the model edge gives the column next to it and
+    /// not an empty one (`PreparedModel::column` is half-open). The rest of the model is not touched.
     fn rankine(&mut self, x: f64) -> f64 {
         let pm = self.pm;
+        let tol = pm.tol();
+        let x = if pm.x_max - pm.x_min > 2.0 * tol {
+            x.clamp(pm.x_min + tol, pm.x_max - tol)
+        } else {
+            x
+        };
         let Some(ground) = pm.top_at(x) else {
             return 0.0;
         };
@@ -138,8 +150,9 @@ impl DepthAt<'_> {
             .filter(|u| u.x1 <= x && x <= u.x2)
             .map(|u| u.q)
             .sum();
+        // E15l-8: the water counts over the ground only beyond the tolerance of the model (E15j-4), as in `water.rs`.
         if let Some(w) = pm.piezometric_y(x)
-            && w > ground
+            && w > ground + pm.tol()
         {
             q += pm.gamma_w * (w - ground);
         }
@@ -147,6 +160,38 @@ impl DepthAt<'_> {
         let z = 2.0 * c / (gamma * (std::f64::consts::FRAC_PI_4 - 0.5 * phi).tan()) - q / gamma;
         z.max(0.0)
     }
+}
+
+/// The abscissae of the sweep of G1, from the entry (excluded) to the exit (included), in that order: the uniform grid
+/// of [`SWEEP_STEPS`] steps plus (E15l-3) the abscissae inside the sliding range where `ground − base − d` can have a
+/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground)
+/// and the edges of the `udl`.
+fn sweep_abscissae(
+    pm: &PreparedModel,
+    surface: &Surface,
+    loads: &LoadCase,
+    x_entry: f64,
+    x_exit: f64,
+) -> Vec<f64> {
+    let (lo, hi) = (x_entry.min(x_exit), x_entry.max(x_exit));
+    let tol = pm.tol();
+    let mut extra: Vec<f64> = Vec::new();
+    if let Surface::Polyline(line) = surface {
+        extra.extend(line.points.iter().map(|p| p[0]));
+    }
+    extra.extend(pm.vertex_xs.iter().copied());
+    extra.extend(loads.udls.iter().flat_map(|u| [u.x1, u.x2]));
+    extra.retain(|&x| x > lo + tol && x < hi - tol);
+    // Distance from the entry, the order of the sweep.
+    let mut all: Vec<f64> = (1..=SWEEP_STEPS)
+        .map(|k| (x_exit - x_entry) * (k as f64) / (SWEEP_STEPS as f64))
+        .chain(extra.into_iter().map(|x| x - x_entry))
+        .map(f64::abs)
+        .collect();
+    all.sort_by(f64::total_cmp);
+    all.dedup_by(|a, b| (*a - *b).abs() <= tol);
+    let sign = if x_exit >= x_entry { 1.0 } else { -1.0 };
+    all.into_iter().map(|d| x_entry + sign * d).collect()
 }
 
 /// G1 and G6: the position and depth of the crack on `surface` (**fitted**, circle or polyline).
@@ -202,8 +247,7 @@ pub fn locate(
         }
     };
     let mut prev = x_entry;
-    for k in 1..=SWEEP_STEPS {
-        let x = x_entry + (x_exit - x_entry) * (k as f64) / (SWEEP_STEPS as f64);
+    for x in sweep_abscissae(pm, surface, loads, x_entry, x_exit) {
         if below(&mut depth, x) >= 0.0 {
             let (mut lo, mut hi) = (prev, x);
             for _ in 0..BISECTION_ITERATIONS {
@@ -219,6 +263,12 @@ pub fn locate(
                 return Err(CrackError::NotReached);
             }
             let d = depth.at(hi);
+            // E15l-2: across a discontinuity of `d(x)` (a `udl` edge, a lateral change of material) the bisection ends
+            // where the depth jumps and the real face is the ground over the base at `x_c`, not `d`.
+            let face = pm.top_at(hi).map_or(d, |g| g - surface.y_at(pm, hi));
+            if (face - d).abs() > pm.tol() {
+                return Ok(finish(hi, if face > pm.tol() { face } else { 0.0 }));
+            }
             return Ok(finish(hi, d));
         }
         prev = x;
@@ -253,8 +303,9 @@ pub fn truncate(
     }
     let hw = plan.water_height;
     let mut water_force = 0.0;
+    // E15l-8: the slice of the face is the last one with soil (weight above 0), never an air slice.
     if hw > 0.0
-        && let Some(face) = slices.last_mut()
+        && let Some(face) = slices.iter_mut().rev().find(|s| s.weight > 0.0)
     {
         // G3: horizontal, in the sliding direction, at hw/3 over the base of the crack, on the slice of the face.
         water_force = 0.5 * plan.gamma_w * hw * hw;
