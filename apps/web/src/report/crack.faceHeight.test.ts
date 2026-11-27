@@ -1,5 +1,6 @@
 // E15m-15 (R13): `tension_crack.face_height` en la tabla, el PDF, el CSV y el resumen de Diagnósticos. Salidas del motor construidas a mano (el motor de
 // esta rama aún no emite el campo; el test con el motor real está en `editor/state/faceHeight.engine.test.ts`).
+import { readFileSync } from 'node:fs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +11,7 @@ import { CrackSummary, CrackTable } from '../ui/CrackResults';
 import { buildReportContent, type ReportBlock } from './content';
 import { NO_CRACK_TEXT, crackCsvHeader, crackRecords, crackTable, cutNoCrackText, isCutNoCrack, isNoCrack } from './crackReport';
 import { loadCaseDoc, sampleInput } from './fixtures';
+import { buildReportPdfWith } from './pdf';
 
 const slice = (xl: number, xr: number, yl: number, yr: number) => ({
   x_left: xl, x_right: xr, y_base_left: yl, y_base_right: yr, y_top_mid: 30, width: xr - xl, alpha: 0.2, base_length: xr - xl, weight: 100, cohesion: 3, tan_phi: 0.35, pore_pressure: 0,
@@ -29,7 +31,7 @@ describe('E15m-15: clasificación y frase', () => {
   it('depth 0 con cara > 0 es un corte, no «Sin grieta»; sin cara (o 0) sigue siendo «Sin grieta»', () => {
     expect(isCutNoCrack(CUT)).toBe(true);
     expect(isNoCrack(CUT)).toBe(false);
-    expect(isNoCrack({ x: 1, depth: 0, water_force: 0 })).toBe(true);
+    expect(isNoCrack({ depth: 0 })).toBe(true);
     expect(isNoCrack({ depth: 0, face_height: 0 })).toBe(true);
     expect(isCutNoCrack({ depth: 2.4, face_height: 4 })).toBe(false);
   });
@@ -136,5 +138,20 @@ describe('E15m-15: CSV', () => {
     expect(h).not.toContain('grieta_cara');
     expect(row!.endsWith(',47,2.4,28.2')).toBe(true);
     expect(resultsToCsv([rep({ x: 47, depth: 0, water_force: 0 })], { units: 'SI' }).split('\r\n')[1]!.endsWith(`,,${NO_CRACK_TEXT},`)).toBe(true);
+  });
+});
+
+describe('E15m-15: PDF generado', () => {
+  const loadFont = async (file: 'DejaVuSans.ttf' | 'DejaVuSans-Bold.ttf'): Promise<Uint8Array> => new Uint8Array(readFileSync(new URL(`../../public/fonts/${file}`, import.meta.url)));
+  it.each([
+    ['corte sin grieta de tracción', CUT],
+    ['grieta con cara', DEEP],
+  ])('se genera con %s (sección de la grieta con la columna de la cara)', async (_name, crack) => {
+    const model: ModelDoc = loadCaseDoc('V047a');
+    model.version = '0.5';
+    model.analysis = { ...model.analysis, tension_crack: { depth: 'auto', water_fill: 1 } };
+    const input = sampleInput({ model, results: [rep(crack)], engineName: 'ogs-core 0.5.0', checks: [] });
+    const pdf = await buildReportPdfWith(input, { loadFont, compress: true });
+    expect(pdf.size).toBeGreaterThan(5000);
   });
 });
