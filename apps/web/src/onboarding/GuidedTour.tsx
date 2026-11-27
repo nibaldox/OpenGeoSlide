@@ -7,7 +7,7 @@
 // cierran y el foco vuelve al control destacado (o, si no es enfocable, al botón «Ayuda»).
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { TOUR_STEPS, matchesTarget, placePopover, ringRect, shouldCloseTourOnEscape, stepProgress, type Placed, type Rect, type TargetSpec } from './tour';
+import { TOUR_STEPS, clipRect, matchesTarget, placePopover, revealBlock, ringRect, shouldCloseTourOnEscape, stepProgress, type Placed, type Rect, type TargetSpec } from './tour';
 
 const FOCUSABLE = 'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]';
 
@@ -65,10 +65,11 @@ export function GuidedTour({ open, index, focusOnOpen, onNext, onPrev, onSkip, f
     if (!pop) return;
     const target = findTarget(step.target);
     lastTarget.current = target;
-    if (target && reveal) target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    const rect = target ? toRect(target.getBoundingClientRect()) : null;
-    const size = { width: pop.offsetWidth, height: pop.offsetHeight };
     const vp = { width: document.documentElement.clientWidth, height: window.innerHeight };
+    if (target && reveal) target.scrollIntoView({ block: revealBlock(toRect(target.getBoundingClientRect()), vp.height), inline: 'nearest' });
+    // UA2-F8: el resaltado se limita a la parte visible del destino (la lista de pasos apilada a 390 px mide más que la pantalla).
+    const rect = target ? clipRect(toRect(target.getBoundingClientRect()), vp) : null;
+    const size = { width: pop.offsetWidth, height: pop.offsetHeight };
     setLayout({ ring: rect ? ringRect(rect) : null, pop: placePopover(rect, size, vp) });
   }, [step]);
 

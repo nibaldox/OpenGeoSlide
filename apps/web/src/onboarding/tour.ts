@@ -180,6 +180,28 @@ export function ringRect(target: Rect): Rect {
   return { x: target.x - RING_PAD, y: target.y - RING_PAD, width: target.width + 2 * RING_PAD, height: target.height + 2 * RING_PAD };
 }
 
+/**
+ * Parte del control que se ve en el viewport (UA2-F8): un destino más alto que la pantalla (la lista de pasos apilada a 390 px
+ * mide más de 1400 px) no puede resaltarse entero; el anillo se limita a la parte visible, con el margen del propio anillo.
+ */
+export function clipRect(target: Rect, vp: Size, inset: number = RING_PAD): Rect {
+  const x0 = Math.max(target.x, inset);
+  const y0 = Math.max(target.y, inset);
+  const x1 = Math.min(target.x + target.width, vp.width - inset);
+  const y1 = Math.min(target.y + target.height, vp.height - inset);
+  if (x1 <= x0 || y1 <= y0) return target; // fuera de la pantalla: se deja como está (el anillo quedará fuera hasta el próximo ajuste)
+  return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+}
+
+/**
+ * Cómo desplazar el destino a la vista con `scrollIntoView` (UA2-F8): si es más alto que el viewport, por su inicio; si ya se
+ * ve entero con un margen, `nearest` (no mueve nada); si queda cortado o fuera, al centro (no pegado al borde).
+ */
+export function revealBlock(target: Rect, vpHeight: number, margin: number = VIEWPORT_MARGIN): 'start' | 'center' | 'nearest' {
+  if (target.height > vpHeight - 2 * margin) return 'start';
+  return target.y >= margin && target.y + target.height <= vpHeight - margin ? 'nearest' : 'center';
+}
+
 // ───────── Esc global (A-06) ─────────
 
 export interface EscapeContext {
