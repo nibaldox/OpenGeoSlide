@@ -1,0 +1,215 @@
+{
+  "id": "V094",
+  "title": "Yamagami & Ueta (1988) four-layer slope, non-circular",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V094",
+      "title": "Yamagami & Ueta (1988) four-layer slope, non-circular",
+      "notes": "Four-layer slope without water whose critical surface is non-circular; circular search followed by non-circular optimization."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "upper_layer",
+        "name": "Upper layer",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.38,
+        "unit_weight_sat": null,
+        "cohesion": 49.0,
+        "friction_angle": 29.0,
+        "ru": null
+      },
+      {
+        "id": "layer_2",
+        "name": "Layer 2",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.64,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "layer_3",
+        "name": "Layer 3",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.38,
+        "unit_weight_sat": null,
+        "cohesion": 7.84,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "bottom_layer",
+        "name": "Bottom layer",
+        "model": "mohr_coulomb",
+        "unit_weight": 17.64,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "bottom_layer",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            26.0
+          ],
+          [
+            260.0,
+            26.0
+          ],
+          [
+            260.0,
+            0.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_2",
+        "polygon": [
+          [
+            0.0,
+            35.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            60.0,
+            40.0
+          ],
+          [
+            260.0,
+            40.0
+          ],
+          [
+            260.0,
+            35.0
+          ]
+        ]
+      },
+      {
+        "material": "layer_3",
+        "polygon": [
+          [
+            0.0,
+            26.0
+          ],
+          [
+            0.0,
+            35.0
+          ],
+          [
+            260.0,
+            35.0
+          ],
+          [
+            260.0,
+            26.0
+          ]
+        ]
+      },
+      {
+        "material": "upper_layer",
+        "polygon": [
+          [
+            60.0,
+            40.0
+          ],
+          [
+            180.0,
+            100.0
+          ],
+          [
+            200.0,
+            100.0
+          ],
+          [
+            260.0,
+            70.0
+          ],
+          [
+            260.0,
+            40.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer",
+        "morgenstern_price"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "entry": [
+          0.0,
+          200.0
+        ],
+        "exit": [
+          0.0,
+          200.0
+        ],
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.398,
+      "published_by": "Commercial program A (Monte Carlo)",
+      "tolerance": 0.020357653791130186,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "morgenstern_price",
+      "kind": "search",
+      "published": 1.389,
+      "published_by": "Commercial program B",
+      "tolerance": 0.020359971202303817,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Greco (1996) example 4; Yamagami & Ueta (1988).",
+    "derived_from": "cSlope verification problem V094 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Search limited to x = 0–200; the down-slope beyond the crest is not searched, as in the source.",
+      "Greco publishes 1.40–1.42 for the non-circular surface; the best circle gives 1.430.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

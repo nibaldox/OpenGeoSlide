@@ -1406,3 +1406,296 @@ def test_oracle_rows_of_x22_through_the_converter(rid):
             m["analysis"]["interslice"] = {"function": "constant"}
         got = _oracle_fos(cs, m, method)
         assert got == pytest.approx(figures["oracle"], abs=1e-6), (rid, method)
+
+
+# ---------------------------- Hoek-Brown, SHANSEP and non-circular search (schema v0.6, F6.1-F6.5)
+
+X28_ROWS = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "fase3", "exploracion", "X28_filas"))
+X29_ROWS = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "fase3", "exploracion", "X29_filas"))
+X30_ROWS = os.path.normpath(os.path.join(HERE, "..", "..", "docs", "fase3", "exploracion", "X30_filas"))
+
+HB_MAT = {
+    "id": "soil", "name": "Rock", "model": "hoek_brown", "unit_weight": 26.0,
+    "ucs": 30000.0, "gsi": 50.0, "mi": 10.0, "disturbance": 0.7,
+}
+SH_MAT = {
+    "id": "soil", "name": "Clay", "model": "shansep", "unit_weight": 18.0,
+    "shansep": {"ratio": 0.25, "exponent": 0.8, "ocr": 1.5},
+}
+
+
+def v06_model(material: dict | None = None, **analysis) -> dict:
+    model = v047a_fixed()
+    model["version"] = "0.6"
+    if material is not None:
+        model["materials"] = [json.loads(json.dumps(material))]
+    model["analysis"].update(analysis)
+    return model
+
+
+def test_hoek_brown_maps_all_fields_and_always_writes_disturbance():
+    cs = pytest.importorskip("cslope")
+    for d_val in (0.0, 0.7, 1.0):
+        conv = ogs_to_cslope(v06_model(dict(HB_MAT, disturbance=d_val)), _check("fixed", "bishop"))
+        mat = conv.document["definition"]["materials"][0]["model"]
+        assert mat == {
+            "kind": "hoek-brown",
+            "unitWeight": 26.0,
+            "ucs": 30000.0,
+            "gsi": 50.0,
+            "mi": 10.0,
+            "disturbance": d_val,
+        }
+        assert "disturbance" in mat
+        assert any("Hoek-Brown" in n for n in conv.notes)
+        assert [i for i in cs.validate(conv.document) if i.get("severity") == "error"] == []
+
+
+def test_hoek_brown_keeps_unit_weight_sat_and_ru():
+    mat = ogs_to_cslope(
+        v06_model(dict(HB_MAT, unit_weight_sat=27.0, ru=0.25)),
+        _check("fixed", "bishop"),
+    ).document["definition"]["materials"][0]["model"]
+    assert mat["unitWeightSat"] == 27.0 and mat["ru"] == 0.25
+
+
+@pytest.mark.parametrize("source, expected_key, expected_val", [
+    ({"ocr": 1.5}, "ocr", 1.5),
+    ({"pop": 30.0}, "pop", 30.0),
+    ({"ocr_by_elevation": [[20.0, 1.0], [35.0, 2.0]]}, "ocrByElevation", [[20.0, 1.0], [35.0, 2.0]]),
+])
+def test_shansep_maps_ratio_exponent_and_each_ocr_source(source, expected_key, expected_val):
+    cs = pytest.importorskip("cslope")
+    # Default exponent (0.8) when omitted, and explicit exponent when provided.
+    for exp_in, exp_out in ((None, 0.8), (0.85, 0.85)):
+        spec = {"ratio": 0.24, **source}
+        if exp_in is not None:
+            spec["exponent"] = exp_in
+        m = dict(SH_MAT, shansep=spec)
+        conv = ogs_to_cslope(v06_model(m), _check("fixed", "bishop"))
+        mdl = conv.document["definition"]["materials"][0]["model"]
+        assert mdl == {
+            "kind": "shansep",
+            "unitWeight": 18.0,
+            "ratio": 0.24,
+            "exponent": exp_out,
+            expected_key: expected_val,
+        }
+        assert len({"ocr", "pop", "ocrByElevation"} & set(mdl)) == 1
+        assert [i for i in cs.validate(conv.document) if i.get("severity") == "error"] == []
+
+
+def test_non_circular_search_sets_option_and_notes_cslope_defaults():
+    cs = pytest.importorskip("cslope")
+    for nc in ({}, {"seeds": 3, "max_vertices": 33}, {"seeds": 5, "max_vertices": 17}, {"seeds": 1, "max_vertices": 9}):
+        model = v06_model(methods=["spencer"])
+        model["analysis"].pop("surface", None)
+        model["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": nc}
+        conv = ogs_to_cslope(model, _check("search", "spencer"))
+        assert conv.document["options"]["nonCircularOptimization"] is True
+        assert any("nonCircularOptimization=true" in n and "3 semillas" in n for n in conv.notes)
+        assert [i for i in cs.validate(conv.document) if i.get("severity") == "error"] == []
+
+
+def test_every_v06_field_needs_version_0_6_in_contract_order():
+    # Each v0.6 field alone is refused below 0.6.
+    for version in ("0.1", "0.2", "0.3", "0.4", "0.5"):
+        m_hb = v06_model(HB_MAT)
+        m_hb["version"] = version
+        with pytest.raises(UnsupportedModel, match=r'materials\[0\]\.model = "hoek_brown" requiere version "0\.6"'):
+            _mapped(m_hb)
+        m_sh = v06_model(SH_MAT)
+        m_sh["version"] = version
+        with pytest.raises(UnsupportedModel, match=r'materials\[0\]\.model = "shansep" requiere version "0\.6"'):
+            _mapped(m_sh)
+    for field_name, val in (
+        ("ucs", 30000.0), ("gsi", 50.0), ("mi", 10.0), ("disturbance", 0.7),
+        ("shansep", {"ratio": 0.25, "ocr": 1.5}),
+    ):
+        m = v06_model()
+        m["version"] = "0.5"
+        m["materials"][0][field_name] = val
+        with pytest.raises(UnsupportedModel, match=rf'materials\[0\]\.{field_name} requiere version "0\.6"'):
+            _mapped(m)
+    m_nc = v06_model(methods=["spencer"])
+    m_nc["version"] = "0.5"
+    m_nc["analysis"].pop("surface", None)
+    m_nc["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": {}}
+    with pytest.raises(UnsupportedModel, match=r'analysis\.search\.non_circular requiere version "0\.6"'):
+        ogs_to_cslope(m_nc, _check("search", "spencer"))
+    # Order: ucs before gsi, material fields before non_circular.
+    m_order = v06_model(methods=["spencer"])
+    m_order["version"] = "0.5"
+    m_order["materials"][0]["gsi"] = 50.0
+    m_order["materials"][0]["ucs"] = 30000.0
+    m_order["analysis"].pop("surface", None)
+    m_order["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": {}}
+    with pytest.raises(UnsupportedModel, match=r'materials\[0\]\.ucs requiere version "0\.6"'):
+        ogs_to_cslope(m_order, _check("search", "spencer"))
+
+
+def test_unknown_version_lists_all_six_versions():
+    for bad in ("0.0", "0.7", "1.0", "v0.6"):
+        m = v06_model()
+        m["version"] = bad
+        with pytest.raises(UnsupportedModel, match='"0.1", "0.2", "0.3", "0.4", "0.5" o "0.6"'):
+            _mapped(m)
+
+
+def test_previous_version_gates_accept_version_0_6():
+    model = v05({"depth": 2.0, "water_fill": 0.25}, loads=[{"type": "line", "x": 30, "p": 20}])
+    model["version"] = "0.6"
+    model["analysis"].update(seismic={"kh": 0.1}, methods=["janbu_corrected"])
+    model["reinforcements"] = [dict(IM_PILE, x1=30, x2=30, y1=15, y2=5, capacity={"shear": 150.0})]
+    doc = ogs_to_cslope(model, _check("fixed", "janbu_corrected")).document
+    assert doc["options"]["tensionCrackDepth"] == 2.0
+    assert doc["options"]["seismicHorizontal"] == 0.1
+    assert doc["definition"]["piles"][0]["diameter"] == 0.8
+
+
+@pytest.mark.parametrize("mutate, match", [
+    (lambda m: m.pop("ucs"), "requiere el campo 'ucs'"),
+    (lambda m: m.pop("gsi"), "requiere el campo 'gsi'"),
+    (lambda m: m.pop("mi"), "requiere el campo 'mi'"),
+    (lambda m: m.pop("disturbance"), "requiere el campo 'disturbance'"),
+    (lambda m: m.update(ucs=0.0), "ucs"),
+    (lambda m: m.update(ucs=-10.0), "ucs"),
+    (lambda m: m.update(gsi=-0.1), "GSI"),
+    (lambda m: m.update(gsi=100.1), "GSI"),
+    (lambda m: m.update(mi=0.0), "mi"),
+    (lambda m: m.update(disturbance=-0.1), "disturbance"),
+    (lambda m: m.update(disturbance=1.1), "disturbance"),
+    (lambda m: m.update(cohesion=5.0), "no admite el campo 'cohesion'"),
+    (lambda m: m.update(friction_angle=20.0), "no admite el campo 'friction_angle'"),
+    (lambda m: m.update(undrained_strength=10.0), "no admite el campo 'undrained_strength'"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr": 1.0}), "no admite el campo 'shansep'"),
+])
+def test_invalid_hoek_brown_materials_are_refused(mutate, match):
+    mat = dict(HB_MAT)
+    mutate(mat)
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(v06_model(mat))
+
+
+@pytest.mark.parametrize("mutate, match", [
+    (lambda m: m.pop("shansep"), "requiere el campo 'shansep'"),
+    (lambda m: m.update(shansep={"ratio": 0.0, "ocr": 1.0}), "shansep.ratio"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "exponent": -0.1, "ocr": 1.0}), "shansep.exponent"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "exponent": 1.1, "ocr": 1.0}), "shansep.exponent"),
+    (lambda m: m.update(shansep={"ratio": 0.25}), "exactamente uno"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr": 1.5, "pop": 10.0}), "exactamente uno"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr": 0.9}), "shansep.ocr"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "pop": -1.0}), "shansep.pop"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr_by_elevation": [[0.0, 1.5]]}), "al menos 2 filas"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr_by_elevation": [[0.0, 1.5], [10.0, 0.8]]}), "OCR < 1"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr_by_elevation": [[5.0, 1.5], [5.0, 1.2]]}), "estrictamente creciente"),
+    (lambda m: m.update(shansep={"ratio": 0.25, "ocr": 1.0, "su_min": 5.0}), "desconocidos"),
+    (lambda m: m.update(above_water={"cohesion": 0}), "desconocidos"),
+    (lambda m: m.update(cohesion=5.0), "no admite el campo 'cohesion'"),
+    (lambda m: m.update(ucs=1000.0), "no admite el campo 'ucs'"),
+])
+def test_invalid_shansep_materials_are_refused(mutate, match):
+    mat = json.loads(json.dumps(SH_MAT))
+    mutate(mat)
+    with pytest.raises(UnsupportedModel, match=match):
+        _mapped(v06_model(mat))
+
+
+def test_f64_and_f65_rejections_match_the_engine():
+    # Bishop with non_circular.
+    m_nc = v06_model(methods=["bishop", "spencer"])
+    m_nc["analysis"].pop("surface", None)
+    m_nc["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": {}}
+    with pytest.raises(UnsupportedModel, match="el método bishop no se admite con analysis.search.non_circular"):
+        ogs_to_cslope(m_nc, _check("search", "spencer"))
+    m_nc["analysis"]["methods"] = ["spencer"]
+    with pytest.raises(UnsupportedModel, match="el método bishop no se admite con analysis.search.non_circular"):
+        ogs_to_cslope(m_nc, _check("search", "bishop"))
+    # Invalid seeds / max_vertices / extra key in non_circular.
+    for bad_nc, match in (
+        ({"seeds": 0}, r"\[1, 10\]"),
+        ({"seeds": 11}, r"\[1, 10\]"),
+        ({"seeds": True}, r"\[1, 10\]"),
+        ({"max_vertices": 8}, "9, 17 o 33"),
+        ({"extra": 1}, "desconocidos"),
+    ):
+        m_bad = v06_model(methods=["spencer"])
+        m_bad["analysis"].pop("surface", None)
+        m_bad["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": bad_nc}
+        with pytest.raises(UnsupportedModel, match=match):
+            ogs_to_cslope(m_bad, _check("search", "spencer"))
+    # Automatic tension crack and Ito-Matsui with hoek_brown or shansep.
+    for mat in (HB_MAT, SH_MAT):
+        auto = v06_model(mat, tension_crack={"depth": "auto", "water_fill": 0.5})
+        with pytest.raises(UnsupportedModel, match='analysis.tension_crack.depth "auto" no se admite'):
+            _mapped(auto)
+        fixed = v06_model(mat, tension_crack={"depth": 2.0, "water_fill": 0.5})
+        assert _mapped(fixed)["options"]["tensionCrackDepth"] == 2.0
+        ito = v06_model(mat)
+        ito["reinforcements"] = [dict(IM_PILE)]
+        with pytest.raises(UnsupportedModel, match=r"lateral_pressure \(Ito-Matsui\) no se admite"):
+            _mapped(ito)
+        force_pile = v06_model(mat)
+        force_pile["reinforcements"] = [dict(PILE)]
+        assert _mapped(force_pile)["definition"]["piles"][0]["force"] == 60.0
+
+
+def _x28_rows() -> list[tuple[str, dict]]:
+    with open(os.path.join(X28_ROWS, "resultados.json"), encoding="utf-8") as fh:
+        data = json.load(fh)
+    return [(r["id"], r) for r in data["filas"]]
+
+
+@pytest.mark.parametrize("rid, row", _x28_rows(), ids=[f"{r['id']}-{r['metodo']}" for _, r in _x28_rows()])
+def test_oracle_rows_of_x28_hoek_brown_through_the_converter(rid, row):
+    """Every X28 fixed-circle Hoek-Brown row reproduces the cSlope oracle figure via ``ogs_to_cslope``."""
+    cs = pytest.importorskip("cslope")
+    with open(os.path.join(X28_ROWS, f"{rid}.json"), encoding="utf-8") as fh:
+        model = json.load(fh)["model"]
+    method = row["metodo"]
+    if method == "morgenstern_price":
+        model["analysis"]["interslice"] = {"function": "constant"}
+    doc = _doc(model, method)
+    assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
+    res = cs.analyse(doc)
+    # A non-converged cSlope value is a diagnostic only, never an oracle reference.
+    if rid == "X28-F-SB" and method in ("spencer", "morgenstern_price"):
+        assert not res["criticalSurface"].get("converged", True), (rid, method)
+        return
+    assert res["criticalSurface"].get("converged", True), (rid, method, res["criticalSurface"])
+    assert res["minFOS"] == pytest.approx(row["oracle"], abs=1e-6), (rid, method)
+
+
+def _x30_rows() -> list[tuple[str, str, float]]:
+    with open(os.path.join(X30_ROWS, "resultados.json"), encoding="utf-8") as fh:
+        data = json.load(fh)
+    out = []
+    for rid, methods in data["tabla"].items():
+        if rid == "X30-F-V105a":
+            continue  # carries prototype `above_water`, excluded from v0.6 by F6.3
+        for method, vals in methods.items():
+            if vals["oracle"] is not None:
+                out.append((rid, method, vals["oracle"]))
+    return out
+
+
+@pytest.mark.parametrize("rid, method, want", _x30_rows(), ids=[f"{r}-{m}" for r, m, _ in _x30_rows()])
+def test_oracle_rows_of_x30_shansep_through_the_converter(rid, method, want):
+    """Every v0.6 SHANSEP row of X30 reproduces the cSlope oracle figure via ``ogs_to_cslope``."""
+    cs = pytest.importorskip("cslope")
+    with open(os.path.join(X30_ROWS, f"{rid}.json"), encoding="utf-8") as fh:
+        entry = json.load(fh)
+    model = entry["model"]
+    if method == "morgenstern_price":
+        model["analysis"]["interslice"] = {"function": "constant"}
+    kind = "search" if "search" in model["analysis"] else "fixed"
+    if kind == "search":
+        doc = ogs_to_cslope(model, {"method": method, "kind": "search"}).document
+        assert [i for i in cs.validate(doc) if i.get("severity") == "error"] == []
+        result = cs.analyse(doc)
+        assert result["criticalSurface"].get("converged", True), (rid, method)
+        got = result["minFOS"]
+    else:
+        got = _oracle_fos(cs, model, method)
+    assert got == pytest.approx(want, abs=2e-6), (rid, method)
+

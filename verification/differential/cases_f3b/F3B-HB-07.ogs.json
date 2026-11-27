@@ -1,0 +1,87 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+    "id": "F3B-HB-07",
+    "title": "Rajo SB, Hoek-Brown 7"
+  },
+  "materials": [
+    {
+      "id": "roca",
+      "name": "roca",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 18000,
+      "gsi": 38,
+      "mi": 10,
+      "disturbance": 0.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "roca",
+      "polygon": [
+        [
+          -40,
+          -10
+        ],
+        [
+          57.2794,
+          -10
+        ],
+        [
+          57.2794,
+          20
+        ],
+        [
+          17.2794,
+          20
+        ],
+        [
+          12.2794,
+          20
+        ],
+        [
+          8.6397,
+          10
+        ],
+        [
+          3.6397,
+          10
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -40,
+          0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 1000,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": -17.081603792975912,
+      "yc": 33.65278020556687,
+      "r": 37.739522331730406
+    },
+    "search": {
+      "type": "circular_entry_exit"
+    }
+  }
+}

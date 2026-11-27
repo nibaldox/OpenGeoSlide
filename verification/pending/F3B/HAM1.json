@@ -1,0 +1,109 @@
+{
+  "id": "HAM1",
+  "title": "Hammah et al. (2005), ejemplo 1",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "units": "SI",
+    "meta": {
+      "id": "HAM1",
+      "title": "Hammah et al. 2005 ej. 1 (ARMA 05-810), geometría de X23 §3.2 [inferido del tutorial XSLOPE]"
+    },
+    "materials": [
+      {
+        "id": "roca",
+        "name": "roca",
+        "model": "hoek_brown",
+        "unit_weight": 25.0,
+        "ucs": 30000.0,
+        "gsi": 5.0,
+        "mi": 2.0,
+        "disturbance": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "roca",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            50.0,
+            0.0
+          ],
+          [
+            50.0,
+            15.0
+          ],
+          [
+            30.0,
+            15.0
+          ],
+          [
+            20.0,
+            5.0
+          ],
+          [
+            0.0,
+            5.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 1000,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 17.805083256147483,
+        "yc": 20.77242239082394,
+        "r": 15.922347790860838
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "bishop",
+      "kind": "fixed",
+      "published": 1.153,
+      "published_by": "Hammah et al. (2005), tabla 2",
+      "tolerance": 0.005,
+      "options": {
+        "slices": 40
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "fixed",
+      "published": 1.152,
+      "published_by": "Hammah et al. (2005), tabla 2",
+      "tolerance": 0.005,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Hammah et al. (2005), ARMA/USRMS 05-810",
+    "derived_from": "https://www.rocscience.com/assets/resources/learning/papers/The-Shear-Strength-Reduction-Method-for-the-Generalized-Hoek-Brown-Criterion.pdf",
+    "notes": [
+      "Geometría reconstruida (X23 §3.2, inferida del tutorial de XSLOPE): pie en (20, 5), corona en (30, 15), terreno llano de x = 0 a 20 en y = 5 y de x = 30 a 50 en y = 15, base en y = 0. La cimentación de 5 m (de y = 0 a 5) es un supuesto: la fuente no la da.",
+      "Supuestos escritos en el caso: terreno seco (la fuente no da el nivel freático), γ = 25 kN/m³ (supuesto de X28), roca única con σci = 30 000 kPa, GSI = 5, mi = 2 y D = 0 (tabla 1 de la fuente).",
+      "Círculo fijo: el que encuentra la búsqueda de cSlope con entrada [−20, 40] y salida [10, 60] (centro (17,81; 20,77), r = 15,92; X23 §3.2). Los publicados son resultados de búsqueda de la fuente, no de este círculo: el oráculo da Bishop 1,151807 (−0,11 %) y Spencer 1,153019 (+0,08 %).",
+      "Tolerancia de 0,5 % (F6.12): la geometría está reconstruida, así que no se compara con la última cifra publicada.",
+      "F6.8: el producto usa la envolvente completa en bajo confinamiento, no la tangente de σ3 = 0 de cSlope. El prototipo da Bishop 1,150215 (−0,24 %) y Spencer 1,152052 (+0,005 %) con ella, dentro de 0,5 %."
+    ]
+  }
+}

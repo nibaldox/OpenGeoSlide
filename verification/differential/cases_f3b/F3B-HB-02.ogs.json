@@ -1,0 +1,112 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+    "id": "F3B-HB-02",
+    "title": "Rajo SB, Hoek-Brown 2"
+  },
+  "materials": [
+    {
+      "id": "roca",
+      "name": "roca",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 15000,
+      "gsi": 40,
+      "mi": 10,
+      "disturbance": 0.5,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "roca",
+      "polygon": [
+        [
+          -40,
+          -10
+        ],
+        [
+          57.2794,
+          -10
+        ],
+        [
+          57.2794,
+          20
+        ],
+        [
+          17.2794,
+          20
+        ],
+        [
+          12.2794,
+          20
+        ],
+        [
+          8.6397,
+          10
+        ],
+        [
+          3.6397,
+          10
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -40,
+          0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 1000,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": 0.4973779725993346,
+      "yc": 21.32778875698778,
+      "r": 13.94398882380097
+    },
+    "search": {
+      "type": "circular_entry_exit"
+    }
+  },
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        -40,
+        -2
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        15,
+        5
+      ],
+      [
+        30,
+        8
+      ],
+      [
+        50,
+        8
+      ]
+    ]
+  }
+}

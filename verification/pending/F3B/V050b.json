@@ -1,0 +1,178 @@
+{
+  "id": "V050b",
+  "title": "ACADS 3(a), weak layer, non-circular search",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V050b",
+      "title": "ACADS 3(a), weak layer, non-circular search",
+      "notes": "As V050a, with a circular search followed by non-circular optimization; the critical surface slides along the weak layer with a back scarp to the crest."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 28.5,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "weak_layer",
+        "name": "Weak layer",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 10.0,
+        "ru": null
+      },
+      {
+        "id": "soil_1_below",
+        "name": "Soil 1 below",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 28.5,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            20.0,
+            27.0
+          ],
+          [
+            20.0,
+            27.75
+          ],
+          [
+            43.0,
+            27.75
+          ],
+          [
+            67.5,
+            40.0
+          ],
+          [
+            84.0,
+            40.0
+          ],
+          [
+            84.0,
+            27.0
+          ]
+        ]
+      },
+      {
+        "material": "soil_1_below",
+        "polygon": [
+          [
+            20.0,
+            20.0
+          ],
+          [
+            20.0,
+            26.5
+          ],
+          [
+            84.0,
+            26.5
+          ],
+          [
+            84.0,
+            20.0
+          ]
+        ]
+      },
+      {
+        "material": "weak_layer",
+        "polygon": [
+          [
+            20.0,
+            26.5
+          ],
+          [
+            20.0,
+            27.0
+          ],
+          [
+            84.0,
+            27.0
+          ],
+          [
+            84.0,
+            26.5
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          20.0,
+          26.5
+        ],
+        [
+          84.0,
+          26.5
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "right_to_left"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.246,
+      "published_by": "Commercial program A",
+      "tolerance": 0.02040128410914928,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989), ACADS problem 3(a).",
+    "derived_from": "cSlope verification problem V050b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The best circle gives 1.51; the optimized surface follows the weak layer with a wedge up to the crest. ACADS accepts about 1.24–1.27.",
+      "Known gap: commercial program B's optimized Morgenstern-Price (half-sine) reports 1.261, the value of the specified surface of 3(b) (V050a), so its search found nothing lower; cSlope's search finds 1.218 (half-sine) and 1.228 (Spencer), a complete-equilibrium solution with one root that holds at 50, 100 and 200 slices. A search difference, not a model one: not a check.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

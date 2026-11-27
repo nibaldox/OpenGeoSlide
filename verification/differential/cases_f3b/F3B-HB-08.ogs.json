@@ -1,0 +1,121 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "meta": {
+    "id": "F3B-HB-08",
+    "title": "Rajo SB, Hoek-Brown 8"
+  },
+  "materials": [
+    {
+      "id": "roca",
+      "name": "roca",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 25000,
+      "gsi": 45,
+      "mi": 10,
+      "disturbance": 1.0,
+      "ru": null,
+      "unit_weight_sat": 25.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "roca",
+      "polygon": [
+        [
+          -40,
+          -10
+        ],
+        [
+          57.2794,
+          -10
+        ],
+        [
+          57.2794,
+          20
+        ],
+        [
+          17.2794,
+          20
+        ],
+        [
+          12.2794,
+          20
+        ],
+        [
+          8.6397,
+          10
+        ],
+        [
+          3.6397,
+          10
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -40,
+          0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "bishop",
+      "spencer"
+    ],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 1000,
+    "min_m_alpha": 0.2,
+    "surface": {
+      "type": "circle",
+      "xc": -17.635179996821776,
+      "yc": 33.97019760716269,
+      "r": 38.274719955832644
+    },
+    "search": {
+      "type": "circular_entry_exit"
+    }
+  },
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        -40,
+        -2
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        3.6397,
+        8
+      ],
+      [
+        8.6397,
+        8
+      ],
+      [
+        12.2794,
+        18
+      ],
+      [
+        17.2794,
+        18
+      ],
+      [
+        57.2794,
+        18
+      ]
+    ]
+  }
+}
