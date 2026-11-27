@@ -369,6 +369,8 @@ export interface NonCircularStats {
   evaluated: number;
   /** FS del mejor círculo antes de refinar. */
   seed_fos: number;
+  /** FS de la mejor polilínea refinada; el motor lo omite si ninguna fue admisible (E16p). */
+  polyline_fos?: number;
 }
 
 export interface SearchStats {
