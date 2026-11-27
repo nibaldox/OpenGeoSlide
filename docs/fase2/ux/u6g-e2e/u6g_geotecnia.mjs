@@ -40,12 +40,13 @@ async function runCase(p, file) {
 {
   const ctx = await newCtx(); const p = await ctx.newPage(); await ready(p);
   await casesTab(p).click();
-  const blocked = { imp_nogw: 'sin γw', imp_gw98: 'γw = 9,8', imp_gw980665: 'γw = 9,80665', imp_gw981: 'γw = 9,81', imp_Imperial_gw981: 'units «Imperial»' };
+  // R13 (E15m-9): un modelo imperial SIN γw ya no se bloquea (el motor toma 62,4 pcf y la web lo dice con una nota); solo se bloquea el γw explícito < 20 pcf.
+  const blocked = { imp_gw98: 'γw = 9,8', imp_gw980665: 'γw = 9,80665', imp_gw981: 'γw = 9,81', imp_Imperial_gw981: 'units «Imperial»' };
   for (const [f, why] of Object.entries(blocked)) {
     const r = await runCase(p, `${f}.ogs.json`);
     step(`1 Casos imperial ${why}: bloquea (sin FS)`, r.banner !== null && r.bishopFs === null && /γw/.test(r.banner), r);
   }
-  for (const [f, why] of Object.entries({ imp_gw624: 'γw = 62,4', imp_gw640: 'γw = 64,0', imp_dry: 'seco (sin piezométrica)' })) {
+  for (const [f, why] of Object.entries({ imp_nogw: 'sin γw (E15m-9: nota, no bloqueo)', imp_gw624: 'γw = 62,4', imp_gw640: 'γw = 64,0', imp_dry: 'seco (sin piezométrica)' })) {
     const r = await runCase(p, `${f}.ogs.json`);
     step(`1 Casos imperial ${why}: calcula`, r.banner === null && /^\d/.test(r.bishopFs ?? ''), r);
   }
