@@ -28,6 +28,11 @@ use crate::surface::Surface;
 /// `h_moment_base`, `driving_extra` and `y_centroid`; the passive reinforcements (E14g) go into the `passive_*` fields. `weight`
 /// stays the soil weight `W` and keeps its meaning. They are all zero in an air slice and in any model without
 /// `kh`, `kv` or loads.
+///
+/// Adjacent slices share an edge (`slices[k].x_right == slices[k + 1].x_left`) **except** after the removal of a hairline
+/// of air (E15j-8, `drop_hairline_air`): there the two soil neighbours of the removed run stay as they are, and a hole
+/// of at most `1e-6 · width` (`HAIRLINE_WIDTH_FRACTION`) may be left between them (E15l-9). It carries no weight,
+/// strength or water; a consumer that walks the slices and needs them contiguous must allow for it.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Slice {
     pub x_left: f64,
