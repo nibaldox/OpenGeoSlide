@@ -48,6 +48,10 @@ version 0.5. Their capability is compared with the oracle (`verification/differe
 The models with a pile `lateral_pressure` (Ito-Matsui, version 0.5: V013b-e and D40-D42, promoted in cc66c2e) are **skipped and
 counted apart** as well: the baseline rejects version 0.5 and does not know the field. Their capability is the oracle's.
 
+The models with fields of version 0.6 (`hoek_brown` or `shansep` materials, `search.non_circular`, or `version: "0.6"`)
+are **always skipped and counted apart** (F3B): the v0.4.0 baseline reads up to version 0.5. Their capability is the
+oracle's (`verification/differential`, `verification/pending/F3B`).
+
 The models with a non-empty `reinforcements` list are **skipped and counted apart** (F3R-R2): the baseline cannot read
 them (v0.2.0 rejects the field), so there is nothing to compare; the identity gate is the one of the models without
 reinforcements.
@@ -139,6 +143,31 @@ def split_ito_matsui(models: dict[str, str]) -> tuple[dict[str, str], dict[str, 
     for name, path in models.items():
         (ito if has_lateral_pressure(_load(path)) else rest)[name] = path
     return rest, ito
+
+
+V06_MATERIAL_MODELS = ("hoek_brown", "shansep")
+
+
+def has_v06_fields(model: dict) -> bool:
+    """`True` when the model needs version 0.6 (F3B): it declares it, or it has a `hoek_brown` or `shansep` material or a
+    `search.non_circular` (the v0.4.0 baseline reads up to version 0.5, so there is nothing to compare)."""
+    analysis = model.get("analysis") or {}
+    search = analysis.get("search") if isinstance(analysis, dict) else None
+    return (
+        model.get("version") == "0.6"
+        or any(isinstance(m, dict) and m.get("model") in V06_MATERIAL_MODELS for m in model.get("materials") or [])
+        or (isinstance(search, dict) and search.get("non_circular") is not None)
+    )
+
+
+def split_v06(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+    """Splits `models` into the ones the baseline can read and the ones with fields of version 0.6 (skipped and counted
+    apart, always: their capability is the oracle's, `verification/differential` and `pending/F3B`)."""
+    rest: dict[str, str] = {}
+    v06: dict[str, str] = {}
+    for name, path in models.items():
+        (v06 if has_v06_fields(_load(path)) else rest)[name] = path
+    return rest, v06
 
 
 def split_ponded(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -404,6 +433,7 @@ def main() -> int:
     else:
         models, cracked = split_cracked(models)
         models, ito = split_ito_matsui(models)
+    models, v06 = split_v06(models)
     models, ponded = split_ponded(models)
     print(f"{len(models)} modelos sin agua sobre el terreno; variantes own, search, fixed, search@0.4 y fixed@0.4"
           + (" (versión del motor normalizada)" if NORMALIZE else ""))
@@ -411,6 +441,7 @@ def main() -> int:
     print(f"{len(cracked)} modelos con tension_crack saltados aparte (el binario base no lee la versión 0.5)")
     print(f"{len(ito)} modelos con lateral_pressure (Ito-Matsui) saltados aparte (el binario base no lee la versión 0.5)")
     print(f"{len(ponded)} modelos con la piezométrica sobre el terreno, aparte (excepción de F5.1: agua embalsada)")
+    print(f"{len(v06)} modelos con campos v0.6 saltados aparte (el binario base no lee la versión 0.6)")
     diffs: list[tuple[str, str, str]] = []
     exception: list[tuple[str, str, str]] = []
     excepted: list[tuple[str, str, dict, str]] = []
@@ -433,7 +464,8 @@ def main() -> int:
     plain_ponded = [n for n, p in sorted(ponded.items()) if not has_reinforcements(_load(p))]
     print(f"{len(plain_ponded)} modelos con agua sobre el terreno y sin refuerzos: {', '.join(plain_ponded) or '(ninguno)'}")
     print(f"{len(diffs)} diferencias en {len(models)} modelos sin agua sobre el terreno ({len(skipped)} con refuerzos y "
-          f"{len(cracked)} con tension_crack y {len(ito)} con lateral_pressure, saltados; {len(ponded)} con agua sobre el terreno, aparte)")
+          f"{len(cracked)} con tension_crack, {len(ito)} con lateral_pressure y {len(v06)} con campos v0.6, saltados; "
+          f"{len(ponded)} con agua sobre el terreno, aparte)")
     print(f"{len(excepted)} excepciones declaradas informadas aparte, que no cuentan "
           f"(de {len(exceptions)} entradas en {os.path.basename(args.exceptions) or 'ninguna'})")
     return 1 if diffs else 0
