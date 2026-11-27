@@ -36,6 +36,30 @@ fn product_matches_independent_full_envelope() {
 }
 
 #[test]
+fn r15_ru03_converges_with_full_envelope() {
+    let model: Value =
+        serde_json::from_str(include_str!("data/f3b/r15/hb/hb_sb_ru03.json")).unwrap();
+    let report = analyze(&model);
+    let results = report["results"].as_array().unwrap();
+    assert_eq!(results.len(), 5);
+    for r in results {
+        println!(
+            "RU03 {}: {} passes={}",
+            r["method"], r["fos"], r["strength"]["passes"]
+        );
+        assert_eq!(r["status"], "converged", "{r}");
+        let f = r["fos"].as_f64().unwrap();
+        assert!(f > 0.0);
+        if r["method"] == "bishop" {
+            assert!(f < 0.9618);
+        }
+        if r["method"] == "spencer" || r["method"] == "morgenstern_price" {
+            assert!(f < 1.0103);
+        }
+    }
+}
+
+#[test]
 fn mixed_mohr_coulomb_and_hoek_brown() {
     fn clip(points: &[[f64; 2]], cut: f64, left: bool) -> Vec<[f64; 2]> {
         let inside = |p: [f64; 2]| if left { p[0] <= cut } else { p[0] >= cut };

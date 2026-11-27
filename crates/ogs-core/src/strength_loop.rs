@@ -84,7 +84,7 @@ fn solve_rule(
         let StrengthLaw::HoekBrown(p) = &pm.materials[s.material].law else {
             unreachable!()
         };
-        let sn = s.weight / s.width * s.alpha.cos().powi(2) - s.pore_pressure;
+        let sn = (s.weight / s.width * s.alpha.cos().powi(2) - s.pore_pressure).max(0.0);
         (s.cohesion, s.tan_phi) = hoek_brown::tangent(p, sn, compatibility);
     }
     let mut previous: Option<f64> = None;
