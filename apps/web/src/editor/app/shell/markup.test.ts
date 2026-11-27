@@ -6,6 +6,7 @@ import type { PanelTabId } from '../issueNav';
 import { ActionFoot, type ActionFootProps } from './ActionFoot';
 import { PaletteTools } from './PaletteTools';
 import { ReportView } from './ReportView';
+import { ResultsView } from './ResultsView';
 import { StepList } from './StepList';
 import { ViewTabs } from './ViewTabs';
 
@@ -175,5 +176,14 @@ describe('ReportView', () => {
   });
   it('los botones bloqueados llevan disabled', () => {
     expect(view({ reportDisabled: true, csvDisabled: true }).match(/disabled/g)).toHaveLength(2);
+  });
+});
+
+describe('ResultsView sin cálculo (UA-E3 §1, B-13d)', () => {
+  const html = renderToStaticMarkup(createElement(ResultsView, { run: null, current: false, hasDrafts: false, shownMethod: null, onShowMethod: noop, diagnostics: null }));
+  it('no repite «Comprobar» como botón: queda el del pie o el de la cabecera', () => {
+    expect(html).toContain('data-testid="results-empty"');
+    expect(html).not.toContain('<button');
+    expect(html).toContain('«Comprobar»');
   });
 });

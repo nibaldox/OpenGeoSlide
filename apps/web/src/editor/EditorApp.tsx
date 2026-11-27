@@ -56,12 +56,12 @@ import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
 import { ReportView } from './app/shell/ReportView';
 import { ResultsView } from './app/shell/ResultsView';
-import { browserSideStorage, readSideCollapsed, writeSideCollapsed } from './app/shell/sideState';
+import { browserSideStorage, readSideCollapsed, sideLayout, writeSideCollapsed } from './app/shell/sideState';
 import { StepList } from './app/shell/StepList';
 import { toolDef, toolStatusText } from './app/shell/tools';
 import { useIsDesktop } from './app/shell/useMedia';
 import { ViewTabs } from './app/shell/ViewTabs';
-import { shortcutActsIn, viewTitle, type ViewId } from './app/shell/views';
+import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
@@ -294,6 +294,10 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
   const resetEngine = engine.reset;
+  /** UA-E3 §1: lo que carga o crea un modelo (y lo importado) se ve en Lienzo, no detrás de otra vista. */
+  const backToCanvas = useCallback((): void => {
+    if (view !== 'canvas') onViewChange('canvas');
+  }, [view, onViewChange]);
   /**
    * Carga otro documento (Nuevo, Abrir, Ejemplos, Recuperar): reinicia el historial (`doc/load`) y descarta el resultado,
    * el diagnóstico y las respuestas pendientes del modelo anterior (R7-05, R7-08). `saved` marca el documento como guardado.
@@ -307,8 +311,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       setShownMethod(null);
       methodChosen.current = false;
       setIsExample(opts.example);
+      backToCanvas();
     },
-    [store, resetEngine],
+    [store, resetEngine, backToCanvas],
   );
 
   // «Nuevo» = «Modelo vacío»: sin regiones y con un material por defecto; el lienzo invita a «Dibujar región» (UX-01).
@@ -427,6 +432,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     applyRegionImport(store, plan, mode);
     setDxf(null);
     setCsv(null);
+    backToCanvas();
     notify(
       'info',
       `${source}: ${plan.regions.length} región(es) importada(s) (${mode === 'add' ? 'agregadas' : 'reemplazan a las anteriores'}). Se deshace con Ctrl+Z.`,
@@ -635,9 +641,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         inField: isEditableTag(t?.tagName, t?.isContentEditable ?? false),
       });
       // En «Casos de verificación» el editor sigue montado pero oculto: ningún atajo actúa (R7-07); las herramientas solo en «Lienzo».
-      if (!action || !shortcutActsIn(view, action)) return;
+      // Fuera de un campo de Casos, un atajo de documento se traga (UA-E3 §1): el navegador no aplica su Ctrl+Z a un campo del editor.
+      const disposition = action ? shortcutDisposition(view, action, isEditableTag(t?.tagName, t?.isContentEditable ?? false)) : 'ignore';
+      if (!action || disposition === 'ignore') return;
       e.preventDefault();
-      actions.current[action]();
+      if (disposition === 'run') actions.current[action]();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -664,6 +672,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
   const narrow = useNarrow();
   const desktop = useIsDesktop();
+  // Qué se ve de la barra lateral: plegada solo desde 761 px, y oculta en Casos (UA-E3 §1 y §2).
+  const side = sideLayout({ view, preference: sideCollapsed, desktop });
   // UA2-F1: el encuadre deja libre el HUD (se mide en la tarjeta del lienzo).
   const canvasCardRef = useRef<HTMLElement>(null);
   const { insets: fitInsets, covered: coveredBoxes } = useHudInsets(canvasCardRef, doc, desktop);
@@ -815,7 +825,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       {headerSlots?.menus ? createPortal(menusEl, headerSlots.menus) : null}
 
       {/* Barra lateral «Modelo»: pasos, panel en línea y pie de acción. En el orden de foco va antes que el área principal. */}
-      <aside id="ua-side" className="ua-side" aria-label="Modelo" hidden={sideCollapsed}>
+      <aside id="ua-side" className="ua-side" aria-label="Modelo" hidden={side.hidden}>
         <div className="ua-side-head">
           <h2>Modelo</h2>
           <button type="button" ref={hideSideRef} className="gs-icon-btn" aria-label="Contraer panel" aria-expanded="true" aria-controls="ua-side" onClick={() => setSideCollapsed(true)}>
@@ -839,10 +849,10 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         reportDescribedBy={exportDescribedBy}
         onReport={() => void onReport()}
         exportHint={exportHint}
-        hidden={sideCollapsed}
+        hidden={side.hidden}
       />
 
-      <main id="main-content" className="ua-main" tabIndex={-1} data-side={sideCollapsed ? 'collapsed' : 'open'}>
+      <main id="main-content" className="ua-main" tabIndex={-1} data-side={side.hidden ? 'collapsed' : 'open'}>
         <div className="ua-notices">
           {sessionBanners}
           {draft && (
@@ -877,7 +887,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             </div>
           ) : null}
           <div className="ua-title">
-            {sideCollapsed ? (
+            {side.collapsed ? (
               <button type="button" ref={showSideRef} className="gs-btn ua-show-side" aria-expanded="false" aria-controls="ua-side" onClick={() => setSideCollapsed(false)}>
                 <span className="ua-flip" aria-hidden="true">
                   <IconCollapse size={16} />
@@ -887,7 +897,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             ) : null}
             <h2>{viewTitle(view)}</h2>
             <span className="ua-spacer" />
-            {sideCollapsed ? <CheckButton {...checkProps} variant="compact" /> : null}
+            {side.collapsed ? <CheckButton {...checkProps} variant="compact" /> : null}
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.
               <div className="ua-edit" role="group" aria-label="Edición">
@@ -963,7 +973,6 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               hasDrafts={hasDrafts}
               shownMethod={shownMethod ?? shown?.method ?? null}
               onShowMethod={chooseMethod}
-              check={{ ...checkProps, variant: 'compact' }}
               diagnostics={
                 <DiagnosticsPanel
                   store={store}
@@ -1044,6 +1053,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           onApplyRegions={(plan, mode) => applyRegions(plan, mode, csv.fileName)}
           onApplyPiezo={(points) => {
             applyPiezoImport(store, points);
+            backToCanvas();
             notify('info', `${csv.fileName}: piezométrica importada (${points.length} puntos). Se deshace con Ctrl+Z.`);
             setCsv(null);
           }}
