@@ -82,11 +82,12 @@ fn a_null_crack_counts_as_absent_in_every_version() {
 }
 
 #[test]
-fn version_0_5_without_a_crack_is_a_plain_model_and_0_6_is_unknown() {
+fn version_0_5_without_a_crack_is_a_plain_model_and_0_7_is_unknown() {
     assert_eq!(verdict(&doc_with("0.5", Value::Null)), Ok(()));
-    let err = verdict(&doc_with("0.6", ok_crack())).expect_err("0.6");
+    assert_eq!(verdict(&doc_with("0.6", Value::Null)), Ok(()));
+    let err = verdict(&doc_with("0.7", ok_crack())).expect_err("0.7");
     assert!(
-        err.starts_with("InvalidModel: version debe ser") && err.contains("\"0.5\""),
+        err.starts_with("InvalidModel: version debe ser") && err.contains("\"0.6\""),
         "{err}"
     );
 }

@@ -66,6 +66,7 @@ fn default_spec() -> SearchSpec {
         max_radius_factor: 5.0,
         min_width: None,
         refine: true,
+        non_circular: None,
     }
 }
 

@@ -77,12 +77,29 @@ pub struct ElementEnd {
 }
 
 /// Search counters.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct SearchStats {
     /// Number of calls to `eval`.
     pub evaluated: usize,
     /// Number of calls that returned `Some`.
     pub valid: usize,
+    /// Statistics of the non-circular refinement (F6.6); omitted without `non_circular`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub non_circular: Option<NonCircularStats>,
+}
+
+/// Statistics of the non-circular refinement (F6.6): `seed_fos` is the FS of the best circle before refining.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct NonCircularStats {
+    /// Number of seeds refined.
+    pub seeds: usize,
+    /// Number of candidate polylines evaluated.
+    pub evaluated: usize,
+    /// FS of the best circle before refining.
+    pub seed_fos: f64,
+    /// FS of the best admissible refined polyline, if any (E16p).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub polyline_fos: Option<f64>,
 }
 
 /// Best surface found and its statistics.
@@ -90,6 +107,9 @@ pub struct SearchStats {
 pub struct SearchResult {
     pub best: Option<(Circle, f64)>,
     pub stats: SearchStats,
+    /// The best distinct circles with their FS, the seeds of the non-circular refinement (F6.6). B0 leaves it empty;
+    /// M-NC fills it.
+    pub seeds: Vec<(Circle, f64)>,
 }
 
 /// Searches the critical circle. `eval` returns `Some(FS)` only for valid, converged surfaces.
@@ -132,6 +152,7 @@ where
     let empty = SearchResult {
         best: None,
         stats: SearchStats::default(),
+        seeds: Vec::new(),
     };
     if grid_size(spec).is_none() {
         return empty;
@@ -291,7 +312,11 @@ where
         }
     }
 
-    SearchResult { best, stats }
+    SearchResult {
+        best,
+        stats,
+        seeds: Vec::new(),
+    }
 }
 
 /// Advisory codes of the effective block of a searched surface (contract E11d′). The chord `(x_e, x_s)` is what

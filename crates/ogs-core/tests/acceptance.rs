@@ -28,8 +28,11 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "reinforcement_compression_ignored",
     "reinforcement_active_compression",
     "structural_checks_not_covered",
-    "water_above_ground",        // F5.3: a note, the ponded water is included
-    "water_unit_weight_default", // E15m-6: imperial model with water and without water.unit_weight
+    "water_above_ground",         // F5.3: a note, the ponded water is included
+    "water_unit_weight_default",  // E15m-6: imperial model with water and without water.unit_weight
+    "hoek_brown_low_confinement", // F6.7: Hoek-Brown with σ′n under the low-confinement rule
+    "shansep_nonpositive_stress", // F6.7: SHANSEP with σ′v ≤ 0 (Su = 0 there)
+    "non_circular_large_change",  // F6.7: the non-circular surface lowered the FS by more than 15 %
 ];
 
 #[derive(Deserialize)]

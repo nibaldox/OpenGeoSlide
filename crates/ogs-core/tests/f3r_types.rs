@@ -113,9 +113,11 @@ fn version_0_4_without_reinforcements_is_a_plain_model() {
     doc["version"] = json!("0.5");
     assert_eq!(verdict(&doc), Ok(()));
     doc["version"] = json!("0.6");
-    let err = verdict(&doc).expect_err("0.6");
+    assert_eq!(verdict(&doc), Ok(()));
+    doc["version"] = json!("0.7");
+    let err = verdict(&doc).expect_err("0.7");
     assert!(
-        err.contains("version debe ser") && err.contains("\"0.5\""),
+        err.contains("version debe ser") && err.contains("\"0.6\""),
         "{err}"
     );
 }

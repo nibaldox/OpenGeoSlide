@@ -30,27 +30,31 @@
 
 pub mod crack;
 pub mod geometry;
+pub mod hoek_brown;
 pub mod loads;
 pub mod methods;
 pub mod model;
+pub mod noncircular;
 pub mod reinforcement;
 pub mod report;
 pub mod search;
+pub mod shansep;
 pub mod slicer;
 pub mod strength;
+pub mod strength_loop;
 pub mod surface;
 pub mod water;
 
 use geometry::{Ground, PreparedModel};
 use loads::{LOAD_OUTSIDE_MASS, LoadCase};
-use methods::{SolveOptions, SolveStatus, is_inert, solve_with};
+use methods::{SolveOptions, SolveStatus, is_inert};
 use model::{
     AnalysisSettings, FORMAT, IntersliceFunction, IntersliceSpec, MethodKind, Model, SearchSpec,
     SurfaceSpec,
 };
 use report::{AnalysisReport, CrackReport, MethodReport};
 use search::{
-    ElementEnd, MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, effective_block_warnings,
+    ElementEnd, MAX_AXIS_POINTS, MAX_GRID_CANDIDATES, SearchResult, effective_block_warnings,
     search_circular_reinforced,
 };
 use slicer::{Slice, SurfaceError, slice_surface_cracked};
@@ -450,12 +454,24 @@ fn analyze_method(
                         &pile_profiles,
                     );
                 }
-                let res = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+                shansep::apply(pm, &mut slices);
+                let (res, _strength) = strength_loop::solve(
+                    pm,
+                    &mut slices,
+                    method,
+                    opts,
+                    analysis.interslice.as_ref(),
+                );
                 let valid =
                     res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0;
                 valid.then_some((res.fos, crossings))
             });
-            let (circle, _fos) = result.best.ok_or_else(|| {
+            let SearchResult {
+                best,
+                mut stats,
+                seeds,
+            } = result;
+            let (circle, _fos) = best.ok_or_else(|| {
                 // E15l-7: with k > 0 candidates discarded by the crack, the message says so; with k = 0 it is the usual one.
                 let k = not_reached.load(Ordering::Relaxed);
                 let by_crack = if k > 0 {
@@ -470,11 +486,33 @@ fn analyze_method(
                     "la búsqueda con {} no encontró ninguna superficie convergida \
                      ({} evaluadas, {} válidas{by_crack})",
                     method_name(method),
-                    result.stats.evaluated,
-                    result.stats.valid
+                    stats.evaluated,
+                    stats.valid
                 ))
             })?;
-            (Surface::Circle(circle), Some(result.stats))
+            if let Some(nc_spec) = &spec.non_circular {
+                // F6.6 hook 3: refine the critical circle into a polyline (B0: `todo!("F3B-M-NC")`).
+                let (polyline, nc_stats) =
+                    noncircular::refine(pm, method, nc_spec, seeds, |surface| {
+                        let polyline_opts = SolveOptions {
+                            circular: false,
+                            ..*opts
+                        };
+                        evaluate_surface(
+                            model,
+                            pm,
+                            load_case,
+                            &pile_profiles,
+                            method,
+                            &polyline_opts,
+                            surface,
+                        )
+                    });
+                stats.non_circular = Some(nc_stats);
+                (polyline, Some(stats))
+            } else {
+                (Surface::Circle(circle), Some(stats))
+            }
         }
         (None, Some(spec)) => (Surface::from_spec(spec), None),
         (None, None) => return Err(OgsError::NoSurface),
@@ -517,6 +555,7 @@ fn analyze_method(
                 interslice: interslice_report(analysis, method),
                 reinforcement_forces: Vec::new(),
                 tension_crack: None,
+                strength: None,
             });
         }
     };
@@ -597,7 +636,18 @@ fn analyze_method(
     };
     // E13l-7: a mass that was truncated is reported over the range that was analysed.
     let truncated = !sliced.notes.is_empty() || crack_report.is_some();
-    let mut result = solve_with(&slices, method, opts, analysis.interslice.as_ref());
+    shansep::apply(pm, &mut slices);
+    let final_opts = SolveOptions {
+        circular: !surface.is_polyline(),
+        ..*opts
+    };
+    let (mut result, strength) = strength_loop::solve(
+        pm,
+        &mut slices,
+        method,
+        &final_opts,
+        analysis.interslice.as_ref(),
+    );
     if result.status != SolveStatus::Converged {
         reinforcement_forces.clear();
     }
@@ -677,7 +727,72 @@ fn analyze_method(
         interslice: interslice_report(analysis, method),
         reinforcement_forces,
         tension_crack: crack_report,
+        strength: (!strength.is_empty()).then_some(strength),
     })
+}
+
+/// Slices and solves a candidate surface with the fixed-surface steps (crack, water, reinforcements, SHANSEP and the
+/// Hoek-Brown loop). Returns `Some(FS)` only for a valid, converged surface. This is the polyline evaluator of the
+/// non-circular search (F6.6 hook 3).
+fn evaluate_surface(
+    model: &Model,
+    pm: &PreparedModel,
+    load_case: &LoadCase,
+    pile_profiles: &reinforcement::PileProfiles,
+    method: MethodKind,
+    opts: &SolveOptions,
+    surface: &Surface,
+) -> Option<f64> {
+    let analysis = &model.analysis;
+    let n = analysis.slices;
+    let plan = match &analysis.tension_crack {
+        Some(tc) => match crack::locate(tc, pm, surface, load_case) {
+            Ok(plan) => Some(plan),
+            Err(crack::CrackError::NoGround) => None,
+            Err(crack::CrackError::NotReached) => return None,
+        },
+        None => None,
+    };
+    let mut nodes = if model.reinforcements.is_empty() {
+        Vec::new()
+    } else {
+        reinforcement::crossing_nodes_with(&model.reinforcements, pm, surface, pile_profiles)
+    };
+    if let Some(plan) = &plan {
+        nodes.extend_from_slice(&plan.breaks);
+    }
+    let case;
+    let slicing_case = if model.reinforcements.is_empty() && plan.is_none() {
+        load_case
+    } else {
+        case = load_case.with_extra_breaks(nodes);
+        &case
+    };
+    let crack_x = plan
+        .as_ref()
+        .filter(|plan| !plan.breaks.is_empty())
+        .map(|plan| plan.x_c);
+    let mut slices = slice_surface_cracked(pm, surface, n, slicing_case, crack_x)
+        .ok()?
+        .slices;
+    if let Some(plan) = &plan {
+        crack::truncate(plan, pm, surface, &mut slices);
+    }
+    let _ = water::apply_ponded(pm, surface, &mut slices);
+    if !model.reinforcements.is_empty() {
+        reinforcement::apply_to_slices_with(
+            &model.reinforcements,
+            pm,
+            surface,
+            &mut slices,
+            pile_profiles,
+        );
+    }
+    shansep::apply(pm, &mut slices);
+    let (res, _strength) =
+        strength_loop::solve(pm, &mut slices, method, opts, analysis.interslice.as_ref());
+    (res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0)
+        .then_some(res.fos)
 }
 
 /// E15m-6: the model is imperial, uses water and takes the default `γw` (no `water.unit_weight`). The water is in use

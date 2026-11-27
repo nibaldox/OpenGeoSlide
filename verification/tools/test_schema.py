@@ -1,4 +1,4 @@
-"""Tests of schema/ogs-0.5.schema.json (contract F5.2), of schema/ogs-0.4.schema.json (contract F4.2), of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of
+"""Tests of schema/ogs-0.6.schema.json (contracts F6.1 a F6.4 and E16n), of schema/ogs-0.5.schema.json (contract F5.2), of schema/ogs-0.4.schema.json (contract F4.2), of schema/ogs-0.3.schema.json (contracts F1.1 and F3.1) and of
 the 0.2 and 0.1 schemas, which are kept. Run
 from the worktree root:
 
@@ -18,6 +18,11 @@ from the worktree root:
 - version "0.4" (reinforcements): the table at the end of the file, with the schema and the engine in agreement (a
   document that reaches the `todo!("R1: ...")` stub of the engine counts as accepted), and the rules that only the
   engine enforces;
+- version "0.6" (Hoek-Brown, SHANSEP and the non-circular search, F6.1 a F6.4): the table at the end of the file, with
+  the schema and the engine in agreement (a document that reaches a `todo!("F3B-M-…")` stub of the engine counts as
+  accepted), and the rules that only the engine enforces (E16n: `ocr_by_elevation` with `y` strictly increasing, and
+  the F6.5 rules that relate two parts of the document — crack `auto` or Ito-Matsui with Hoek-Brown/SHANSEP materials,
+  and Bishop with `non_circular`);
 - the same documents are accepted or rejected by the ogs binary (it must exist: the tests fail otherwise), including a
   table of boundary values of every bound in briefs/00_CONTRATOS.md §4.5 (E12h, R5-07).
 """
@@ -37,6 +42,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_06 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"), encoding="utf-8"))
 SCHEMA_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
 SCHEMA_04 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
 SCHEMA_03 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.3.schema.json"), encoding="utf-8"))
@@ -48,6 +54,10 @@ STUB_MARKS = (
     "not yet implemented: G1: grieta de tracción",
     # A surface that does not get to the crack (G1) is a valid document whose analysis has no surface.
     "tension_crack_not_reached",
+    # The B0 stubs of the F3B block: a valid Hoek-Brown, SHANSEP or non-circular document stops at one of them.
+    "not yet implemented: F3B-M-HB",
+    "not yet implemented: F3B-M-SH",
+    "not yet implemented: F3B-M-NC",
 )
 OGS_BIN = os.environ.get("OGS_BIN", os.path.join(ROOT, "target", "release", "ogs"))
 
@@ -111,8 +121,8 @@ def test_every_case_validates_against_the_current_schema_and_the_index_counts_th
     models = _case_models()
     assert len(models) == _index_case_count() and set(V02_CASE_IDS) <= set(models)
     for cid, model in models.items():
-        assert _errors(model, {"0.5": SCHEMA_05, "0.4": SCHEMA_04}.get(model["version"], SCHEMA_03)) == [], cid
-        assert model["version"] in ("0.1", "0.2", "0.3", "0.4", "0.5"), cid
+        assert _errors(model, {"0.6": SCHEMA_06, "0.5": SCHEMA_05, "0.4": SCHEMA_04}.get(model["version"], SCHEMA_03)) == [], cid
+        assert model["version"] in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6"), cid
         # V013b-e (Ito-Matsui, promoted in cc66c2e) carry reinforcements and are v0.5 because of `lateral_pressure`.
         ito = any("lateral_pressure" in r for r in model.get("reinforcements") or [])
         crack = model["analysis"].get("tension_crack") is not None
@@ -284,7 +294,7 @@ def test_engine_accepts_every_v0_2_case_and_the_complete_model(tmp_path):
     lambda m: m["analysis"]["seismic"].update(kv=-1.0),
     lambda m: m["analysis"]["seismic"].update(kz=0.1),
     lambda m: m.update(version="0.1"),
-    lambda m: m.update(version="0.6"),
+    lambda m: m.update(version="0.7"),
 ])
 def test_schema_and_engine_both_reject_the_same_malformed_documents(mutate, tmp_path):
     model = _base_v02()
@@ -494,7 +504,7 @@ BOUNDARY_TABLE = [
     ("v0.1, loads=null", _both(_set("version", "0.1"), _set("loads", None), _set("analysis.seismic", None)), False),
     ("v0.2, loads=[] and seismic=null", _both(_set("loads", []), _set("analysis.seismic", None)), True),
     ("version='0.3' without fields of 0.3", _set("version", "0.3"), True),
-    ("version='0.6'", _set("version", "0.6"), False),
+    ("version='0.7'", _set("version", "0.7"), False),
     ("version=0.2 (number)", _set("version", 0.2), False),
 ]
 
@@ -840,7 +850,7 @@ V04_TABLE = [
     ("reinforcements=null", _set("reinforcements", None), False),
     ("reinforcements=null in version 0.3", _both(_set("version", "0.3"), _set("reinforcements", None)), False),
     ("reinforcements that is not a list", _set("reinforcements", {"type": "anchor"}), False),
-    ("version 0.6", _both(_set("version", "0.6"), _reinf(_anchor())), False),
+    ("version 0.7", _both(_set("version", "0.7"), _reinf(_anchor())), False),
     # the tag, the fields and the enums
     ("unknown type", _reinf(_anchor(type="strut")), False),
     ("without type", _reinf(_anchor(type=_DEL)), False),
@@ -1042,7 +1052,7 @@ V05_TABLE = [
     ("crack in 0.3", _both(_version("0.3"), _crack()), False),
     ("crack in 0.2", _both(_version("0.2"), _crack()), False),
     ("crack in 0.1", _both(_version("0.1"), _crack()), False),
-    ("crack in 0.6", _both(_version("0.6"), _crack()), False),
+    ("crack in 0.7", _both(_version("0.7"), _crack()), False),
     # depth
     ("depth 0", _crack(0.0), False),
     ("depth -2", _crack(-2.0), False),
@@ -1262,3 +1272,231 @@ def test_the_ito_matsui_rows_validate_against_the_0_5_schema():
     assert len(paths) == 29
     for path in paths:
         assert _errors(_load(path), SCHEMA_05) == [], path
+
+
+# ------------------------------------------------------------ version 0.6: Hoek-Brown, SHANSEP and non-circular (F6.1 a F6.4, E16n)
+
+_SH_POP = {"ratio": 0.25, "exponent": 0.8, "pop": 30.0}
+_SH_ELEV = [[10.0, 1.0], [20.0, 1.5], [30.0, 2.0]]
+
+
+def _base_v06() -> dict:
+    """The complete v0.2 model, declared as version 0.6, with no new field yet."""
+    model = _base_v02()
+    model["version"] = "0.6"
+    return model
+
+
+def _hb(**f):
+    """Replaces the material by a Hoek-Brown one (same id, name and unit weight); `_DEL` removes a field."""
+    def mutate(m: dict) -> None:
+        old = m["materials"][0]
+        mat = {"id": old["id"], "name": old["name"], "model": "hoek_brown",
+               "unit_weight": old["unit_weight"], "ucs": 30000.0, "gsi": 50.0,
+               "mi": 10.0, "disturbance": 0.7, **f}
+        m["materials"][0] = {k: v for k, v in mat.items() if v is not _DEL}
+    return mutate
+
+
+def _sh(spec=_SH_POP, **f):
+    """Replaces the material by a SHANSEP one (same id, name and unit weight); `_DEL` removes a material field."""
+    def mutate(m: dict) -> None:
+        old = m["materials"][0]
+        mat = {"id": old["id"], "name": old["name"], "model": "shansep",
+               "unit_weight": old["unit_weight"], "shansep": spec, **f}
+        m["materials"][0] = {k: v for k, v in mat.items() if v is not _DEL}
+    return mutate
+
+
+def _shan(**f):
+    """The `shansep` object (pop by default) with some fields changed; `_DEL` removes one."""
+    return _item(dict(_SH_POP), **f)
+
+
+def _noncirc(**f):
+    """A cheap Spencer search with `analysis.search.non_circular`; `_DEL` removes a field of the object."""
+    def mutate(m: dict) -> None:
+        m["analysis"]["surface"] = None
+        m["analysis"]["methods"] = ["spencer"]
+        m["analysis"]["search"] = {"type": "circular_entry_exit", "n_entry": 3, "n_exit": 3,
+                                   "n_radius": 3, "non_circular": _item({}, **f)}
+    return mutate
+
+
+V06_TABLE = [
+    # the format is neutral in 0.6 (F6.1 identity)
+    ("no new fields in 0.6", lambda m: None, True),
+    ("0.6 with reinforcements and a crack", _both(_reinf(_anchor()), _crack()), True),
+    # Hoek-Brown (F6.2)
+    ("hoek_brown", _hb(), True),
+    ("hoek_brown with unit_weight_sat and ru", _hb(unit_weight_sat=27.0, ru=0.2), True),
+    ("hoek_brown with null optionals", _hb(unit_weight_sat=None, ru=None), True),
+    ("gsi 0", _hb(gsi=0.0), True),
+    ("gsi 100", _hb(gsi=100.0), True),
+    ("disturbance 0", _hb(disturbance=0.0), True),
+    ("disturbance 1", _hb(disturbance=1.0), True),
+    ("tiny ucs and mi", _hb(ucs=1e-9, mi=1e-9), True),
+    ("hoek_brown without ucs", _hb(ucs=_DEL), False),
+    ("hoek_brown without gsi", _hb(gsi=_DEL), False),
+    ("hoek_brown without mi", _hb(mi=_DEL), False),
+    ("hoek_brown without disturbance", _hb(disturbance=_DEL), False),
+    ("ucs 0", _hb(ucs=0.0), False),
+    ("ucs negative", _hb(ucs=-1.0), False),
+    ("gsi -0.1", _hb(gsi=-0.1), False),
+    ("gsi 100.1", _hb(gsi=100.1), False),
+    ("mi 0", _hb(mi=0.0), False),
+    ("mi negative", _hb(mi=-1.0), False),
+    ("disturbance -0.1", _hb(disturbance=-0.1), False),
+    ("disturbance 1.1", _hb(disturbance=1.1), False),
+    ("hoek_brown with cohesion", _hb(cohesion=8.0), False),
+    ("hoek_brown with friction_angle", _hb(friction_angle=23.0), False),
+    ("hoek_brown with undrained_strength", _hb(undrained_strength=25.0), False),
+    ("hoek_brown with strength_datum", _hb(strength_datum=35.0), False),
+    ("hoek_brown with strength_gradient", _hb(strength_gradient=1.0), False),
+    ("hoek_brown with strength_limit", _hb(strength_limit=50.0), False),
+    ("hoek_brown with shansep", _hb(shansep=_SH_POP), False),
+    ("hoek_brown with null prohibited fields", _hb(cohesion=None, friction_angle=None, undrained_strength=None,
+                                                   strength_datum=None, strength_gradient=None, strength_limit=None,
+                                                   shansep=None), True),
+    ("mohr_coulomb with ucs", _mc_with(ucs=30000.0), False),
+    ("mohr_coulomb with gsi", _mc_with(gsi=50.0), False),
+    ("mohr_coulomb with mi", _mc_with(mi=10.0), False),
+    ("mohr_coulomb with disturbance", _mc_with(disturbance=0.7), False),
+    ("mohr_coulomb with shansep", _mc_with(shansep=_SH_POP), False),
+    ("mohr_coulomb with null 0.6 fields", _mc_with(ucs=None, gsi=None, mi=None, disturbance=None, shansep=None), True),
+    ("undrained with ucs", _undrained(undrained_strength=20.0, ucs=1.0), False),
+    ("undrained with null ucs", _undrained(undrained_strength=20.0, ucs=None), True),
+    # SHANSEP (F6.3)
+    ("shansep pop", _sh(), True),
+    ("shansep ocr", _sh(_shan(pop=_DEL, ocr=1.6)), True),
+    ("shansep ocr 1", _sh(_shan(pop=_DEL, ocr=1.0)), True),
+    ("shansep ocr_by_elevation", _sh(_shan(pop=_DEL, ocr_by_elevation=_SH_ELEV)), True),
+    ("shansep ocr_by_elevation with 2 rows", _sh(_shan(pop=_DEL, ocr_by_elevation=[[0.0, 1.0], [10.0, 2.0]])), True),
+    ("shansep without exponent (default 0.8)", _sh(_shan(exponent=_DEL)), True),
+    ("shansep exponent null (default 0.8)", _sh(_shan(exponent=None)), True),
+    ("shansep exponent 0", _sh(_shan(exponent=0.0)), True),
+    ("shansep exponent 1", _sh(_shan(exponent=1.0)), True),
+    ("shansep pop 0", _sh(_shan(pop=0.0)), True),
+    ("shansep with unit_weight_sat and ru", _sh(unit_weight_sat=19.0, ru=0.3), True),
+    ("shansep without the object", _sh(spec=_DEL), False),
+    ("shansep null object", _sh(shansep=None), False),
+    ("shansep without ratio", _sh(_shan(ratio=_DEL)), False),
+    ("shansep ratio 0", _sh(_shan(ratio=0.0)), False),
+    ("shansep ratio negative", _sh(_shan(ratio=-0.1)), False),
+    ("shansep exponent 1.1", _sh(_shan(exponent=1.1)), False),
+    ("shansep exponent -0.1", _sh(_shan(exponent=-0.1)), False),
+    ("shansep with no source", _sh(_shan(pop=_DEL)), False),
+    ("shansep with ocr and pop", _sh(_shan(ocr=1.6)), False),
+    ("shansep ocr 0.999", _sh(_shan(pop=_DEL, ocr=0.999)), False),
+    ("shansep pop negative", _sh(_shan(pop=-1.0)), False),
+    ("shansep ocr_by_elevation with 1 row", _sh(_shan(pop=_DEL, ocr_by_elevation=[[0.0, 1.0]])), False),
+    ("shansep ocr_by_elevation row with 3 numbers", _sh(_shan(pop=_DEL, ocr_by_elevation=[[0.0, 1.0, 2.0], [1.0, 1.5]])), False),
+    ("shansep ocr_by_elevation OCR below 1", _sh(_shan(pop=_DEL, ocr_by_elevation=[[0.0, 1.0], [10.0, 0.5]])), False),
+    ("shansep unknown field", _sh(_shan(su_min=1.0)), False),
+    ("shansep with cohesion", _sh(cohesion=8.0), False),
+    ("shansep with friction_angle", _sh(friction_angle=23.0), False),
+    ("shansep with undrained_strength", _sh(undrained_strength=25.0), False),
+    ("shansep with ucs", _sh(ucs=30000.0), False),
+    ("shansep with gsi", _sh(gsi=50.0), False),
+    ("shansep with mi", _sh(mi=10.0), False),
+    ("shansep with disturbance", _sh(disturbance=0.7), False),
+    ("shansep with null prohibited fields", _sh(cohesion=None, friction_angle=None, undrained_strength=None,
+                                                ucs=None, gsi=None, mi=None, disturbance=None), True),
+    # non-circular search (F6.4)
+    ("non_circular {}", _noncirc(), True),
+    ("non_circular seeds 3 and max_vertices 33", _noncirc(seeds=3, max_vertices=33), True),
+    ("non_circular seeds 1", _noncirc(seeds=1), True),
+    ("non_circular seeds 10", _noncirc(seeds=10), True),
+    ("non_circular max_vertices 9", _noncirc(max_vertices=9), True),
+    ("non_circular max_vertices 17", _noncirc(max_vertices=17), True),
+    ("non_circular null", _search(non_circular=None), True),
+    ("non_circular seeds 0", _noncirc(seeds=0), False),
+    ("non_circular seeds 11", _noncirc(seeds=11), False),
+    ("non_circular seeds 2.5", _noncirc(seeds=2.5), False),
+    ("non_circular max_vertices 8", _noncirc(max_vertices=8), False),
+    ("non_circular max_vertices 16", _noncirc(max_vertices=16), False),
+    ("non_circular max_vertices 34", _noncirc(max_vertices=34), False),
+    ("non_circular unknown field", _noncirc(vertices=10), False),
+    # version gate (F6.1)
+    ("hoek_brown in 0.5", _both(_version("0.5"), _hb()), False),
+    ("shansep in 0.5", _both(_version("0.5"), _sh()), False),
+    ("ucs in 0.5", _both(_version("0.5"), _mc_with(ucs=1.0)), False),
+    ("non_circular in 0.5", _both(_version("0.5"), _noncirc()), False),
+    ("non_circular null in 0.5", _both(_version("0.5"), _search(non_circular=None)), True),
+    ("null 0.6 fields in 0.5", _both(_version("0.5"), _mc_with(ucs=None, gsi=None, mi=None, disturbance=None, shansep=None)), True),
+]
+
+# Rules of F6.3 and F6.5 that only the engine enforces (E16n): the schema accepts, the engine rejects. JSON Schema
+# cannot compare two values (`y` strictly increasing) nor relate two parts of the document (crack "auto" or Ito-Matsui
+# with the new materials, Bishop with `non_circular`). Enmienda E16n (briefs/05_CONTRATOS_FASE3B.md).
+V06_ENGINE_ONLY_TABLE = [
+    ("ocr_by_elevation with y not increasing", _sh(_shan(pop=_DEL, ocr_by_elevation=[[10.0, 1.0], [5.0, 1.5]])), "ocr_by_elevation"),
+    ("crack auto with hoek_brown", _both(_hb(), _crack("auto", 0.25)), "tension_crack.depth"),
+    ("crack auto with shansep", _both(_sh(), _crack("auto", 0.25)), "tension_crack.depth"),
+    ("ito-matsui with hoek_brown", _both(_hb(), _reinf(_ito())), "lateral_pressure"),
+    ("ito-matsui with shansep", _both(_sh(), _reinf(_ito())), "lateral_pressure"),
+    ("bishop with non_circular", _both(_noncirc(), _set("analysis.methods", ["bishop"])), "non_circular"),
+]
+
+
+def _prepare_v06(mutate) -> dict:
+    model = _base_v06()
+    mutate(model)
+    return model
+
+
+def test_every_case_the_battery_and_the_examples_validate_against_the_0_6_schema():
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_06)
+    assert SCHEMA_06["$id"] == "ogs-0.6.schema.json"
+    assert SCHEMA_06["properties"]["version"] == {"enum": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6"]}
+    models = {**_case_models(), **_battery_models()}
+    for path in glob.glob(os.path.join(ROOT, "examples", "*.ogs.json")):
+        models[os.path.basename(path)] = _load(path)
+    assert len(models) >= _index_case_count()
+    for cid, model in models.items():
+        assert _errors(model, SCHEMA_06) == [], cid
+    # the older schemas do not know 0.6
+    assert _errors(_base_v06(), SCHEMA_05)
+
+
+def test_the_v0_6_table_has_at_least_90_rows():
+    assert len(V06_TABLE) >= 90 and len(V06_ENGINE_ONLY_TABLE) >= 6
+
+
+@pytest.mark.parametrize("name,mutate,accepted", V06_TABLE, ids=[row[0] for row in V06_TABLE])
+def test_schema_and_engine_agree_on_the_v0_6_table(name, mutate, accepted, tmp_path):
+    model = _prepare_v06(mutate)
+    schema_ok = _errors(model, SCHEMA_06) == []
+    engine_ok, err = _engine_accepts(model, tmp_path)
+    assert engine_ok == accepted, f"motor: esperado {'aceptar' if accepted else 'rechazar'}, dio {err or 'OK'}"
+    assert schema_ok == accepted, f"esquema: esperado {'aceptar' if accepted else 'rechazar'}: {_errors(model, SCHEMA_06)[:2]}"
+
+
+@pytest.mark.parametrize("name,mutate,path", V06_ENGINE_ONLY_TABLE, ids=[row[0] for row in V06_ENGINE_ONLY_TABLE])
+def test_v0_6_engine_only_rules_pass_the_schema_and_fail_in_the_engine(name, mutate, path, tmp_path):
+    model = _prepare_v06(mutate)
+    assert _errors(model, SCHEMA_06) == [], name
+    ok, err = _engine_accepts(model, tmp_path)
+    assert not ok and "InvalidModel" in err and path in err, (name, err)
+
+
+def test_the_engine_gate_names_the_v0_6_fields_and_the_schema_rejects_the_same_documents(tmp_path):
+    """F6.1: with a version below 0.6 the error is `<campo> requiere version "0.6"`, naming the first field."""
+    cases = [
+        (_hb(), "hoek_brown"),
+        (_sh(), "shansep"),
+        (_mc_with(ucs=1.0), "ucs"),
+        (_mc_with(gsi=1.0), "gsi"),
+        (_mc_with(mi=1.0), "mi"),
+        (_mc_with(disturbance=1.0), "disturbance"),
+        (_mc_with(shansep=_SH_POP), "shansep"),
+        (_noncirc(), "non_circular"),
+    ]
+    for mutate, token in cases:
+        for old in ("0.1", "0.2", "0.3", "0.4", "0.5"):
+            model = _prepare_v06(_both(_version(old), mutate))
+            assert _errors(model, SCHEMA_06), (token, old)
+            path = tmp_path / "gate.ogs.json"
+            path.write_text(json.dumps(model), encoding="utf-8")
+            proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
+            assert proc.returncode != 0 and 'requiere version "0.6"' in proc.stderr and token in proc.stderr, proc.stderr
