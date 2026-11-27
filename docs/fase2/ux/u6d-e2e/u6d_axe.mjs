@@ -42,6 +42,7 @@ for (const theme of ['light', 'dark']) {
       if (session) await p.addInitScript((s) => { for (const [k, v] of Object.entries(s)) sessionStorage.setItem(k, v); }, session);
       await p.goto(URL_);
       await p.waitForSelector('[data-layer="regions"] polygon');
+      await p.waitForTimeout(600); // UA: axe no debe correr en pleno cambio de color de los botones (transición de `.gs-btn`): mide un «Comprobar» a medio camino
       return p;
     };
     const a = await open();
