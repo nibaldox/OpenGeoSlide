@@ -96,9 +96,12 @@ En D40 a D42 el círculo fijo es el crítico de la búsqueda Bishop de cSlope **
 ## F3B: Hoek-Brown, SHANSEP y búsqueda no circular, modelos F3B-HB-01 a F3B-NC-V034a (v0.6)
 
 Doce modelos v0.6 en `cases_f3b/` (los escribe `build_f3b.py`), con 42 checks: búsqueda (Bishop y Spencer; solo Spencer en los dos
-no circulares) y círculo fijo en los diez que tienen uno. **El bloque no corre por defecto**: el motor de B1 no tiene la
-física v0.6 (stubs `todo!()`). B2 lo activa con `--include-f3b` (o `OGS_DIFFERENTIAL_F3B=1`), y `--require-f3b` sale con código 6 si
-algún check no pasa. Los tests de `test_f3b.py` no corren ogs: comprueban las entradas, el plan, las cifras registradas del
+no circulares) y círculo fijo en los diez que tienen uno. **El bloque no corre por defecto** (se introdujo cuando el motor de B1
+tenía la física v0.6 como stubs `todo!()`): se activa con `--include-f3b` (o `OGS_DIFFERENTIAL_F3B=1`), y `--require-f3b` sale con
+código 6 si algún check no pasa.
+
+- **Estado con el motor 0.5.0** (`ogs --version`: ogs 0.5.0): **41 de 42 OK, 1 explicado (E16t: HB-02 Spencer en círculo fijo) y
+  0 FALLA**; `--require-f3b` sale con 0. Los tests de `test_f3b.py` no corren ogs: comprueban las entradas, el plan, las cifras registradas del
 oráculo y los veredictos.
 
 | modelo | material | piezométrica | búsqueda cSlope (Bishop / Spencer) | círculo fijo cSlope (Bishop / Spencer) |

@@ -9,7 +9,7 @@ abstract: >-
   verifica frente a valores publicados y frente al oráculo cSlope.
 authors:
   - name: "Colaboradores de OpenGeoSlide"
-version: "0.4.0"
+version: "0.5.0"
 date-released: "2026-11-27"
 license: Apache-2.0
 repository-code: "https://github.com/nibaldox/OpenGeoSlide"

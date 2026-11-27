@@ -18,8 +18,8 @@ los leen. El motor acepta seis versiones:
 > **La v0.5 se publicó con la 0.4.0** (véase el [registro de cambios](../CHANGELOG.md#040---2026-11-27)). La 0.3.0,
 > la versión anterior, llega hasta el formato v0.4 y no incluye la grieta de tracción ni el agua embalsada.
 >
-> **La v0.6 saldrá con la 0.5.0** y aún no está publicada: la 0.4.0 no lee los materiales `hoek_brown` y `shansep` ni
-> `analysis.search.non_circular`.
+> **La v0.6 se publicó con la 0.5.0** (véase el [registro de cambios](../CHANGELOG.md#050---2026-11-27)). La 0.4.0 no lee
+> los materiales `hoek_brown` y `shansep` ni `analysis.search.non_circular`.
 
 - **Un modelo sin campos nuevos da el mismo resultado en las seis versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
@@ -1794,7 +1794,7 @@ Con una profundidad que el círculo fijo no alcanza (20 m), el modelo es válido
 La versión `"0.6"` agrega dos modelos de resistencia, `hoek_brown` y `shansep`, y la búsqueda no circular
 (`analysis.search.non_circular`). El esquema es [`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json). **Un modelo
 sin ninguno de estos campos da la misma salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada). La v0.6
-saldrá con la 0.5.0; la 0.4.0 publicada llega hasta el formato v0.5.
+se publicó con la 0.5.0; la 0.4.0 llega hasta el formato v0.5.
 
 ### Versión mínima 0.6
 

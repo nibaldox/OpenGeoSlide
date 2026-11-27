@@ -8,17 +8,17 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
-## [0.5.0] - sin publicar
+## [0.5.0] - 2026-11-27
 
 Bloque de Hoek-Brown, SHANSEP y búsqueda no circular (F3B): formato v0.6. El contrato es
-`briefs/05_CONTRATOS_FASE3B.md` (F6.1 a F6.14 y las enmiendas E16a a E16ab, con las correcciones de las revisiones R15 y R16); la
+`briefs/05_CONTRATOS_FASE3B.md` (F6.1 a F6.14 y las enmiendas E16a a E16ac, con las correcciones de las revisiones R15 y R16); la
 evidencia, `docs/fase3/exploracion/X23*.md` a `X30*` y los prototipos de `docs/fase3/exploracion/X28_proto/`. **Un modelo
 sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada): 0 diferencias en 180
 modelos, con 17 modelos v0.6 saltados aparte (el binario base no lee esa versión) y 23 con agua sobre el terreno idénticos.
 La única excepción deliberada es E16aa (R16): en un contacto entre dos materiales bajo agua embalsada o con cargas, la
 elección del material más débil cambia respecto de la 0.4.0, que podía elegir el más resistente; ningún modelo del corpus
-cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versión. Lo que corrigieron las revisiones R15
-(enmiendas E16v a E16z, contra `92fa882`) y R16 (E16aa y E16ab, contra `9c5a881`) está en «Fixed».
+cambia. Lo que corrigieron las revisiones R15
+(enmiendas E16v a E16z, contra `92fa882`) y R16 (E16aa a E16ac, contra `9c5a881` y `7b40e98`) está en «Fixed».
 
 ### Added
 - **Formato `.ogs.json` v0.6 (F6.1).** El motor acepta 0.1 a 0.6. Exigen `"version": "0.6"`, y el error nombra el
@@ -80,9 +80,9 @@ cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versió
     y superficie fija 28/28 cada una.
   - **Identidad con la 0.4.0** (`identity_vs_baseline.py`): 0 diferencias en 180 modelos, sin agregar excepciones a
     `identity_exceptions.json`; los modelos v0.6 se cuentan aparte.
-  - **Pruebas medidas con el binario sha256 `038c9255…` de `5f1575b` (tras R16):** `ogs-core` 782 pasan y 2 ignoradas,
-    igual con `parallel`; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2
-    omitidas; web 4085 de 4085 con el motor real y 3765 pasan con 320 omitidas sin él.
+  - **Pruebas medidas en el commit de la release:** `ogs-core` 784 pasan y 2 ignoradas, igual con `parallel`; `ogs-cli`
+    8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2 omitidas; web 4136 de 4136 con el
+    motor real y 3816 pasan con 320 omitidas sin él.
 - **Documentación.** `docs/formato-ogs-json.md` con las secciones de Hoek-Brown, SHANSEP, búsqueda no circular y
   combinaciones no admitidas (5 ejemplos nuevos; en total, 14 ejemplos y 103 fragmentos validados con
   `docs/tools/validar_ejemplos.py` contra el esquema 0.6, que gana `pasadas=`, `ley=`, `sv=`, `nc=` y `superficie=`); `docs/limitaciones.md` con los límites de las tres
@@ -109,7 +109,8 @@ cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versió
   `--method bishop` explícito sigue dando el error del motor.
 
 ### Fixed
-- **Revisión de cierre R16 (dos lentes, contra `9c5a881`; enmiendas E16aa y E16ab).**
+- **Revisión de cierre R16 (dos lentes contra `9c5a881` y una verificación focalizada contra `7b40e98`; enmiendas E16aa a
+  E16ac).**
   - **E16aa, contacto entre materiales bajo agua embalsada o con cargas (R16A-01, alta).** La comparación del material
     más débil en un contacto usaba solo el peso del suelo, pero restaba la presión de agua completa: bajo embalse o con una
     sobrecarga veía una tensión efectiva casi nula y podía elegir el material más resistente, del lado inseguro. El
@@ -128,6 +129,17 @@ cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versió
     oscuro.
   - **Documentación (R16A-03).** La identidad web se documenta contra el tag `v0.4.0` (seis modelos, `git archive`) y el
     índice de `pending/F3B` cuenta los 3 retenidos de `HOLD.json`.
+  - **E16ac, cierre de la verificación R16b (contra `7b40e98`).** La comparación del contacto usa el peso de la columna del
+    slicer sin rehacerlo como `weight / width`: en contactos secos con `ru` y en un empate exacto el informe vuelve a ser
+    byte a byte el de la 0.4.0 (antes difería en 1 ULP: FS 1,9356487327666008 frente a …665999, o el material de una dovela
+    en el empate). Una tensión vertical efectiva SHANSEP no finita (datos de ~1e308) da `InvalidModel: la tensión vertical
+    efectiva en la base del material SHANSEP '<id>' no es finita (revise los pesos unitarios, el agua y las cargas)`, en
+    lugar de `"vertical_stress": null`. El rustdoc de `slicer::slice_*` y `water::ponded_terms` dice que el material del
+    contacto lo elige `water::apply_ponded`.
+  - **Web (R16b2-03).** Los borradores sin aplicar de Geometría (vértice), Agua (γw y piezométrica), Sismo, Superficie fija
+    (círculo y polilínea), Cargas y el formulario de material nuevo entran al mismo registro que Materiales, Refuerzos,
+    Análisis y Búsqueda: bloquean Guardar y Comprobar, piden confirmación al cambiar de pestaña y activan el aviso al cerrar
+    o recargar la página. Proyecto no registra borradores porque su texto siempre se aplica.
 - **Revisión R15 (tres lentes, contra `92fa882`; enmiendas E16v a E16z).**
   - **E16v, contacto entre materiales con Hoek-Brown o SHANSEP (R15A-01, crítica).** `weaker_at_contact` comparaba con una
     resistencia que vale (0, 0) para esos materiales y ganaba siempre el material nuevo, aunque fuera el más resistente:
@@ -185,6 +197,13 @@ cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versió
   cortante entre dovelas puede seguir en el caso sumergido.
 - **SHANSEP** no tiene `aboveWater`, tiene φ = 0 y no incluye el sismo en σ′v. Ni Hoek-Brown ni SHANSEP se combinan con la
   grieta automática ni con Ito-Matsui. Detalle en [`docs/limitaciones.md`](docs/limitaciones.md).
+- **El contacto entre materiales se compara en estático** (sin `kv` ni refuerzos, E16ac): con un sismo vertical de ±0,5 o
+  un anclaje activo casi vertical de 3000 kN/m, una polilínea exacta sobre el contacto puede quedar entre 0,7 % y 21 % sobre
+  el lado débil; desplácela 1 mm hacia el lado débil ([límite](docs/limitaciones.md)).
+- **Borradores en el editor web (anteriores a la 0.5.0):** tras «Nuevo» o «Abrir», un campo cuyo valor del documento es
+  nulo (por ejemplo Sismo sin sismo) puede conservar el texto inválido anterior, aunque el bloqueo se levanta; en una fila
+  de vértice con `x` válida e `y` inválida, confirmar `x` borra el texto de `y`; «Agregar punto» en las tablas de puntos
+  descarta una fila inválida sin preguntar; Ctrl+Intro no calcula con el foco dentro de un campo de texto.
 
 ## [0.4.0] - 2026-11-27
 
@@ -934,7 +953,8 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...v0.2.0

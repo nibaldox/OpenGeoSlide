@@ -1013,13 +1013,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--require-f3", action="store_true",
                     help=f"salir con código {EXIT_F3_PENDING} si algún check de la Fase 3a queda pendiente, "
                          "falla o no tiene dato (para la integración)")
-    ap.add_argument("--include-f3b", action="store_true", help="ejecutar la batería F3B (Hoek-Brown, SHANSEP y no circular); sin esta opción se omite, porque el motor de B1 no tiene la física v0.6; también la activa OGS_DIFFERENTIAL_F3B=1")
+    ap.add_argument("--include-f3b", action="store_true", help="ejecutar la batería F3B (Hoek-Brown, SHANSEP y no circular, formato v0.6); sin esta opción se omite (opcional desde B1); también la activa OGS_DIFFERENTIAL_F3B=1")
     ap.add_argument("--require-f3b", action="store_true", help="activar F3B y fallar si algún check no pasa")
     return ap.parse_args(argv)
 
 
 def f3b_enabled(args: argparse.Namespace) -> bool:
-    """F3B runs only on request: option, require variant or OGS_DIFFERENTIAL_F3B=1 (B2 activates it)."""
+    """F3B runs only on request: option, require variant or OGS_DIFFERENTIAL_F3B=1 (opt-in since B1)."""
     return bool(args.include_f3b or args.require_f3b or os.environ.get("OGS_DIFFERENTIAL_F3B") == "1")
 
 

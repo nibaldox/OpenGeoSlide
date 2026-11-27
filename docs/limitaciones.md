@@ -3,7 +3,7 @@
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
 con el bloque de refuerzos: formato v0.4; con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
-v0.5, publicado con la 0.4.0, y con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, que saldrá con la
+v0.5, publicado con la 0.4.0, y con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, publicado con la
 0.5.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l), más lo que corrigió la revisión R15 del bloque F3B

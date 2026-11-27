@@ -20,7 +20,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
 | Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas con el binario `038c9255…` de `5f1575b`, tras R16; véase «Reproducir» abajo) | `ogs-core` **782** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4085 de 4085** con el motor real (`OGS_BIN`) y **3765** pasan con 320 omitidas sin él (4085 en total; compuertas del coordinador sobre `f3b-integracion@5f1575b`, con R16) | ídem |
+| Pruebas automáticas (medidas en el commit de la release 0.5.0; véase «Reproducir» abajo) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4136 de 4136** con el motor real (`OGS_BIN`) y **3816** pasan con 320 omitidas sin él (4136 en total) | ídem |
 
 ## Aceptación: casos publicados
 
@@ -292,7 +292,7 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
 
 ## Hoek-Brown, SHANSEP y búsqueda no circular (v0.6)
 
-El bloque F3B (formato v0.6, que saldrá con la 0.5.0) se verifica por módulo contra un prototipo independiente en Python y
+El bloque F3B (formato v0.6, publicado con la 0.5.0) se verifica por módulo contra un prototipo independiente en Python y
 contra cSlope 0.1.0, con las mismas reglas de siempre: **no se relajó ninguna tolerancia** y un check que el motor no
 reproduce queda retenido con su causa. Las cifras son las **finales tras la revisión R15** (enmiendas E16v a E16z):
 salen del binario de release de `22c8977` (`cargo build --release -p ogs-cli`, sha256 `248c9efe…`, el mismo de las
@@ -310,9 +310,9 @@ V034a +4,8 %, V013b +5,2 %; F3B-HB-01 sin cambio), por la segunda consulta de la
 
 Las pruebas de F3B de `ogs-core` pasan: `f3b_format` 12, `f3b_hoek_brown` 6, `f3b_shansep` 14 y `f3b_noncircular` 8
 (`cargo test -p ogs-core --release --test f3b_format --test f3b_hoek_brown --test f3b_shansep --test f3b_noncircular`), las
-de R15 `f3b_r15_contact` 2 y `f3b_r15_faces` 3, las de R16 `f3b_r16_contact` 3 y `f3b_r16_ocr` 1, y las 71 de la
-biblioteca, con 1 ignorada (`cargo test -p ogs-core --release --lib`). El total de `ogs-core` es de **782 que pasan y 2
-ignoradas**, igual con la característica `parallel` (compuertas de R16 del coordinador).
+de R15 `f3b_r15_contact` 2 y `f3b_r15_faces` 3, las de R16 `f3b_r16_contact` y `f3b_r16_ocr`, y las 71 de la
+biblioteca, con 1 ignorada (`cargo test -p ogs-core --release --lib`). El total de `ogs-core` es de **784 que pasan y 2
+ignoradas**, igual con la característica `parallel` (compuertas de la release).
 
 ### Hoek-Brown (M-HB)
 

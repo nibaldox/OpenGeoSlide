@@ -25,6 +25,6 @@ crate-type = ["cdylib"]
 test-hooks = []
 
 [dependencies]
-ogs-core = { version = "0.4.0", path = "../ogs-core" }
+ogs-core = { version = "0.5.0", path = "../ogs-core" }
 # abi3-py311: one wheel (cp311-abi3) for CPython >= 3.11, including 3.13 and 3.14.
 pyo3 = { version = "0.30", features = ["extension-module", "abi3-py311"] }

@@ -29,16 +29,17 @@ y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión publicada es la **0.4.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
-con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.5 con **grieta de
-tracción**, **agua embalsada** y pilotes de **Ito-Matsui**, el formato v0.4 con **refuerzos** (anclajes, clavos de
-suelo, geosintéticos, pilotes y tablestacas, activos y pasivos, con su fuerza en cada cruce con la superficie de falla),
-la CLI, el editor web (PWA), el paquete de Python y las pruebas de aceptación.
+La versión publicada es la **0.5.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
+con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.6 con los materiales
+**Hoek-Brown** y **SHANSEP** y la **búsqueda no circular**, el formato v0.5 con **grieta de tracción**, **agua embalsada**
+y pilotes de **Ito-Matsui**, el formato v0.4 con **refuerzos** (anclajes, clavos de suelo, geosintéticos, pilotes y
+tablestacas, activos y pasivos, con su fuerza en cada cruce con la superficie de falla), la CLI, el editor web (PWA), el
+paquete de Python y las pruebas de aceptación.
 
 Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** con el elemento incluido, no su diseño
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
 
-La v0.4.0 (véase el [registro de cambios](CHANGELOG.md#040---2026-11-27)) agrega el
+La 0.4.0 (véase el [registro de cambios](CHANGELOG.md#040---2026-11-27)) agregó el
 formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundidad fija o automática, seca o con agua), el
 **agua embalsada** (cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
 su peso y su empuje, en todas las versiones del formato) y la **fuerza de un pilote por la presión del suelo de
@@ -47,7 +48,7 @@ terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#e
 y también el de un archivo **imperial** con agua que no indica `water.unit_weight`, que ahora toma γw ≈ 62,45 pcf en lugar de 9,81
 ([tercera excepción](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
 
-El formato **v0.6**, que saldrá con la **0.5.0** (aún no publicada), agrega tres capacidades: el material **Hoek-Brown**
+El formato **v0.6**, publicado con la **0.5.0** (véase el [registro de cambios](CHANGELOG.md#050---2026-11-27)), agrega tres capacidades: el material **Hoek-Brown**
 (roca fracturada, con la envolvente completa en bajo confinamiento), el material **SHANSEP** (resistencia no drenada
 normalizada por el esfuerzo vertical efectivo, con OCR constante, POP u OCR por cota) y la **búsqueda no circular**
 (`analysis.search.non_circular`, sin Bishop). Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0. Los
@@ -55,9 +56,11 @@ límites están en [Limitaciones conocidas](#limitaciones-conocidas); el formato
 [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#hoek-brown-shansep-y-búsqueda-no-circular-v06). La web calcula y
 exporta esos modelos (los borradores de material sin aplicar bloquean calcular y exportar, y marcan los FS anteriores como
 desactualizados), el wheel de Python los prueba y los documenta, y `ogs bench --method all` omite Bishop con
-`non_circular`. La revisión adversarial R15 corrigió antes de la release el contacto entre materiales con Hoek-Brown o
-SHANSEP, el arranque del lazo de Hoek-Brown y la búsqueda no circular, que no refinaba 14 de 16 taludes homogéneos
-([registro de cambios](CHANGELOG.md)).
+`non_circular`. Las revisiones adversariales R15 y R16 corrigieron antes de la release el contacto entre materiales con Hoek-Brown o
+SHANSEP, y también bajo agua embalsada o con cargas (un defecto que la 0.4.0 tenía entre dos materiales lineales: es
+la única excepción deliberada a la identidad con la 0.4.0, y ningún modelo del corpus cambia), el arranque del lazo de
+Hoek-Brown y la búsqueda no circular, que no refinaba 14 de 16 taludes homogéneos
+([registro de cambios](CHANGELOG.md#050---2026-11-27)).
 
 ## Por qué es distinto
 
@@ -93,12 +96,12 @@ oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desar
 ### Python
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
-[Release v0.4.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.4.0). El wheel es `abi3` y sirve para
+[Release v0.5.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.5.0). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.4.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.4.0/$WHL"
+WHL=opengeoslide-0.5.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.5.0/$WHL"
 ```
 
 Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
@@ -107,7 +110,7 @@ su plataforma, que figura en la página del release. También sirve descargarlo 
 ```python
 # desde la raíz del repositorio, donde está examples/
 import json, opengeoslide
-print(opengeoslide.version())                    # 0.4.0, la versión de ogs-core
+print(opengeoslide.version())                    # 0.5.0, la versión de ogs-core
 report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
 for r in report["results"]:
     print(r["method"], round(r["fos"], 4), r["status"])
@@ -115,10 +118,9 @@ for r in report["results"]:
 # spencer 0.9841 converged
 ```
 
-El paquete publicado (formato v0.5) también lee `analysis.tension_crack` y los pilotes de Ito-Matsui, y
-suma el agua embalsada cuando la piezométrica pasa sobre el terreno, lo que **cambia el FS** de esos modelos respecto de la
-v0.3.0. El wheel de la rama (formato v0.6, 0.5.0 sin publicar) agrega Hoek-Brown, SHANSEP y la búsqueda no circular, con 370
-pruebas que pasan y 2 omitidas. Más detalle y ejemplos en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
+El paquete (formato v0.6) lee Hoek-Brown, SHANSEP y la búsqueda no circular, además de `analysis.tension_crack` y los
+pilotes de Ito-Matsui del formato v0.5, y suma el agua embalsada cuando la piezométrica pasa sobre el terreno, lo que
+**cambia el FS** de esos modelos respecto de la v0.3.0. Sus pruebas: 370 pasan y 2 omitidas. Más detalle y ejemplos en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
 
 ### CLI (`ogs`)
 
@@ -267,7 +269,7 @@ pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format
 geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 347/347 published values (167 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 41/42 checks of the upcoming v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 1 explained, no open failures). The v0.6 format, due with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). With a pile or sheet pile that carries a given force it checks the
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 41/42 checks of the v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 1 explained, no open failures). The v0.6 format, released with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). With a pile or sheet pile that carries a given force it checks the
 global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of
 the v0.5 format only estimates the soil force between rigid vertical piles (S/D 2 to 8). Neither computes embedment,
 bending moment, deflection or the internal and external checks of a wall, so OpenGeoSlide is not a tool for designing

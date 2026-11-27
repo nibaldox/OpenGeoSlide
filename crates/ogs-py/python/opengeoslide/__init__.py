@@ -135,7 +135,7 @@ externas de un muro, y no comprueba que el perfil resista ``shear`` o ``moment``
 ``structural_checks_not_covered`` sale siempre que hay un ``pile`` o una ``sheet_pile``. Véanse
 ``docs/formato-ogs-json.md`` y ``docs/limitaciones.md``.
 
-Formato v0.6 (``"version": "0.6"``): los materiales ``hoek_brown`` y ``shansep`` y la búsqueda no circular
+Formato v0.6 (``"version": "0.6"``), publicado en la 0.5.0: los materiales ``hoek_brown`` y ``shansep`` y la búsqueda no circular
 (``analysis.search.non_circular``). Un campo de 0.6 con una versión menor es ``InvalidModel`` (``<campo> requiere version
 "0.6"``, con el primero que encuentra: ``materials[i].model = "hoek_brown"``, ``materials[i].ucs``,
 ``analysis.search.non_circular``, etc.); un modelo sin campos v0.6 da la misma salida aunque declare ``"0.6"``.
