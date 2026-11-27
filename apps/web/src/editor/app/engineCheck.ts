@@ -76,7 +76,14 @@ export function createEngineCheck(store: EditorStore, client: Pick<EngineClient,
       set({ busy: false, run: result, engine: { status: 'ok', issues: issuesFromReport(report), revision } });
       return result;
     } catch (error) {
-      if (!guard.isCurrent(id) || error instanceof EngineCancelledError) return null;
+      if (!guard.isCurrent(id)) return null;
+      if (error instanceof EngineCancelledError) {
+        // Cancelación externa (UA3 A-01): el cliente es compartido (Casos, «Reiniciar el motor») y la guardia sigue vigente,
+        // así que nadie más va a cerrar este cálculo: se restaura el estado como en `cancel()`.
+        guard.invalidate();
+        set({ busy: false, engine: previousEngine, message: CANCELLED_TEXT, messageKind: 'info' });
+        return null;
+      }
       set({ busy: false, run: null, engine: { status: 'error', issues: [issueFromEngineError(error)], revision } });
       return null;
     }
