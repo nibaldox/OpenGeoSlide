@@ -14,6 +14,6 @@ cargo build -p ogs-wasm --target wasm32-unknown-unknown --release
 
 echo "[2/2] wasm-bindgen --target web -> apps/web/src/wasm"
 wasm-bindgen --target web --out-dir "$out_dir" \
-  target/wasm32-unknown-unknown/release/ogs_wasm.wasm
+  "${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/release/ogs_wasm.wasm"
 
 echo "Listo: $out_dir/ogs_wasm.js"
