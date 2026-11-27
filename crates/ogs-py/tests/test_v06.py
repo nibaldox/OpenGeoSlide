@@ -649,3 +649,15 @@ def test_non_circular_with_hoek_brown_reports_both_blocks():
     else:  # sin ella, el círculo semilla (E16p)
         assert result['fos'] == pytest.approx(stats['seed_fos'], rel=1e-12)
         assert set(result['surface']) == {'xc', 'yc', 'r'}
+
+
+def test_package_docstring_documents_the_v06_format():
+    """R15B-06: el docstring del paquete nombra los campos y las salidas de la v0.6."""
+    doc = opengeoslide.__doc__
+    for text in (
+        'Formato v0.6', 'hoek_brown', 'shansep', 'ocr_by_elevation', 'non_circular', 'strength', 'passes',
+        'normal_stress', 'vertical_stress', 'seed_fos', 'polyline_fos', 'hoek_brown_not_converged',
+        'hoek_brown_low_confinement', 'shansep_nonpositive_stress', 'non_circular_large_change',
+        'non_circular_not_refined',
+    ):
+        assert text in doc, f'el docstring no menciona {text}'

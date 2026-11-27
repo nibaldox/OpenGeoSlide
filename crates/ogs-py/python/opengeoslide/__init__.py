@@ -134,6 +134,50 @@ supone un pilote rígido, no calcula el empotramiento, el momento flector, la de
 externas de un muro, y no comprueba que el perfil resista ``shear`` o ``moment``. La nota
 ``structural_checks_not_covered`` sale siempre que hay un ``pile`` o una ``sheet_pile``. Véanse
 ``docs/formato-ogs-json.md`` y ``docs/limitaciones.md``.
+
+Formato v0.6 (``"version": "0.6"``): los materiales ``hoek_brown`` y ``shansep`` y la búsqueda no circular
+(``analysis.search.non_circular``). Un campo de 0.6 con una versión menor es ``InvalidModel`` (``<campo> requiere version
+"0.6"``, con el primero que encuentra: ``materials[i].model = "hoek_brown"``, ``materials[i].ucs``,
+``analysis.search.non_circular``, etc.); un modelo sin campos v0.6 da la misma salida aunque declare ``"0.6"``.
+
+**Hoek-Brown** (``model: "hoek_brown"``): ``unit_weight``, ``ucs`` (σci en la unidad de esfuerzo del modelo: kPa en SI,
+psf en imperial), ``gsi`` (0 a 100), ``mi`` (> 0) y ``disturbance`` (el factor D, de 0 a 1, sin valor por defecto);
+``unit_weight_sat`` y ``ru`` opcionales; sin ``cohesion``, ``friction_angle`` ni ``shansep``. La resistencia depende de F:
+el motor itera (envolvente completa, promedio w = 0,5, convergencia 1e-6, hasta 50 pasadas); sin convergencia, el estado es
+``not_converged`` con ``hoek_brown_not_converged``.
+
+**SHANSEP** (``model: "shansep"``): ``unit_weight`` y el objeto ``shansep``: ``ratio`` (S, > 0), ``exponent`` (m, de 0 a 1,
+0,8 por defecto) y exactamente uno de ``ocr`` (≥ 1), ``pop`` (≥ 0) u ``ocr_by_elevation`` (tabla ``[[y, OCR], ...]`` con
+``y`` creciente, constante fuera de la tabla). ``Su = S·σ′v·OCR^m``, con φ = 0, una vez por dovela y sin iteración; σ′v es
+estático (el sismo no entra, E16o).
+
+**Búsqueda no circular**: ``analysis.search.non_circular = {"seeds", "max_vertices"}`` (``seeds`` de 1 a 10, 3 por defecto;
+``max_vertices`` 9, 17 o 33, 33 por defecto; ``{}`` es válido) refina los mejores círculos de la búsqueda a una polilínea.
+No admite Bishop, tampoco por defecto (sin ``analysis.methods`` el método es Bishop): hay que declarar los métodos.
+
+Combinaciones rechazadas (F6.5, ``InvalidModel``): ``analysis.tension_crack.depth = "auto"`` con un material
+``hoek_brown`` o ``shansep`` (use una profundidad fija); ``lateral_pressure`` (Ito-Matsui) con esos materiales; Bishop con
+``non_circular``.
+
+Informe v0.6 (``results[i]``):
+
+- ``strength`` (solo con dovelas ``hoek_brown`` o ``shansep``): ``{"passes", "slices"}``. ``passes`` es el número de
+  pasadas del lazo de Hoek-Brown de ese método y se omite sin Hoek-Brown. ``slices`` lista solo las dovelas de base
+  ``hoek_brown`` o ``shansep``: ``index`` (el de ``results[i]["slices"]``), ``law`` y, en Hoek-Brown, ``normal_stress``
+  (σ′n de la solución) o, en SHANSEP, ``vertical_stress`` (σ′v) y ``ocr``. ``cohesion`` y ``tan_phi`` de ``slices`` son los
+  con los que se calculó (en SHANSEP, Su y 0).
+- ``search["non_circular"]`` (solo con ``non_circular``): ``{"seeds", "evaluated", "seed_fos", "polyline_fos"}``.
+  ``seed_fos`` es el FS del mejor círculo antes de refinar y ``polyline_fos`` el de la mejor polilínea; este último se
+  omite si ninguna fue admisible (``evaluated`` = 0): entonces el resultado es el círculo (``surface`` con ``xc``, ``yc`` y
+  ``r``), no una polilínea (``surface`` con ``points``).
+- Avisos nuevos: ``hoek_brown_not_converged`` (estado ``not_converged``), y las notas ``hoek_brown_low_confinement``
+  (alguna dovela con σ′n bajo la regla de bajo confinamiento, una vez por método), ``shansep_nonpositive_stress`` (σ′v ≤ 0:
+  Su = 0), ``non_circular_large_change`` (el FS bajó más de 15 % frente al mejor círculo) y ``non_circular_not_refined``
+  (``non_circular`` pedido y ``evaluated`` = 0, E16x). Si aparecen juntas ``negative_lambda`` y
+  ``negative_effective_normal_major`` en una búsqueda no circular, el FS puede venir de una rama con tracción y quedar bajo el
+  real: compárelo con Janbu o Bishop circular y revise N′.
+
+Ejemplos y filas de referencia: ``crates/ogs-py/README.md``, ``docs/formato-ogs-json.md`` y ``docs/limitaciones.md``.
 """
 
 import json
