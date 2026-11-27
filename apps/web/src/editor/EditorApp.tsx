@@ -227,7 +227,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
   // Con cambios sin guardar pregunta con el diálogo de la aplicación (`useConfirm`, asíncrono); sin cambios no pregunta.
   const confirm = useConfirm();
-  const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm), [store, confirm]);
+  const confirmDiscard = useMemo(() => createConfirmDiscard(store, confirm, () => getPendingDrafts(store)), [store, confirm]);
   // R16B-02: cambiar de pestaña desmonta el panel y con él el formulario de sus tarjetas; con borradores sin aplicar se pide confirmación.
   const confirmTabSwitch = useMemo(
     () =>
