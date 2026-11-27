@@ -7,6 +7,7 @@ import type { CrackReport, MethodReport, Point, ReinforcementForce, ReportSurfac
 import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
+import { axisTitleBaseline } from './axisTitle';
 import { nextPaletteMode, type PaletteMode } from './paletteMode';
 import type { EditorStore, ModelDoc } from '../types';
 import {
@@ -827,6 +828,14 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const toS = (p: Point): [number, number] => worldToScreen(vp, p[0], p[1]);
   const grid = gridLines(vp);
   const titles = axisTitles(unitsEff);
+  // B-13b: el título «y (m)» va en el primer hueco libre del eje: ni bajo el HUD o la leyenda ni encima de un rótulo de marca.
+  const yTitleBaseline = axisTitleBaseline({
+    title: titles.y,
+    fontPx: AXIS_FONT_PX,
+    height: vp.height,
+    covered: coveredBoxes ?? [],
+    ticks: grid.horizontal.filter((l) => l.px > AXIS_TITLE_RESERVE_PX / 2 && !labelCovered(l.label, l.px, coveredBoxes)).map((l) => ({ label: l.label, px: l.px })),
+  });
   const pz = piezoPoints(shown);
   const pzExtra = piezoExtension(shown);
   // F5.3: el agua embalsada es la región entre la piezométrica y el terreno donde la piezométrica pasa sobre él, en todo el modelo.
@@ -944,7 +953,9 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
             </g>
           ))}
           <text data-axis-title="x" x={vp.width - 6} y={vp.height - 4} textAnchor="end" fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.x}</text>
-          <text data-axis-title="y" x={6} y={AXIS_FONT_PX + 4} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.y}</text>
+          {yTitleBaseline !== null && (
+            <text data-axis-title="y" x={6} y={yTitleBaseline} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.y}</text>
+          )}
         </g>
 
         <g data-layer="regions">
