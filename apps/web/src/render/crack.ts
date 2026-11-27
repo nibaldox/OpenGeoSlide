@@ -138,6 +138,21 @@ export function noCrackLabel(crack: CrackReport | null | undefined, slices: read
   return { ...base, text: NO_CRACK_LABEL, kind: 'none', title: NO_CRACK_LABEL };
 }
 
+/** Ancho medio estimado de un carácter del rótulo (fuente de 12 px), en px. Solo dimensiona el área de acierto del lienzo, que no mide texto. */
+export const NO_CRACK_CHAR_PX = 6.4;
+/** Holgura, en px, que el área de acierto del rótulo añade a cada lado del texto estimado. */
+export const NO_CRACK_HIT_PAD = 4;
+
+/**
+ * Rectángulo en px (área de acierto transparente de `info-hit`, E15n-4) que cubre el rótulo del lienzo: del ancla hacia el lado de la masa,
+ * con el alto de una línea de rótulo. El ancho es una estimación por número de caracteres, porque el SVG renderizado en el servidor no mide texto.
+ */
+export function noCrackHitRect(label: Pick<NoCrackLabel, 'x' | 'y' | 'text' | 'anchor'>): { x: number; y: number; width: number; height: number } {
+  const width = label.text.length * NO_CRACK_CHAR_PX + 2 * NO_CRACK_HIT_PAD;
+  const x = label.anchor === 'start' ? label.x - NO_CRACK_HIT_PAD : label.x - width + NO_CRACK_HIT_PAD;
+  return { x, y: label.y - CRACK_LABEL_PX / 2, width, height: CRACK_LABEL_PX };
+}
+
 /** Longitud de la flecha de Pw, en px. */
 export const CRACK_ARROW_PX = 40;
 /** Ancho del hueco de agua dibujado dentro de la grieta, en px. */
