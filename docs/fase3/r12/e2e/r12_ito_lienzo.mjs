@@ -98,6 +98,8 @@ async function handlesWin(p) {
 /** Con una herramienta activa, un gesto que empieza sobre el área de la información (px, py) hace lo suyo: se mide con la posición del primer tirador. */
 async function toolsKeepWorking(p, theme, px, py) {
   const pos = async () => { const r = await p.locator('[data-handle-key]').first().locator('[data-hit-area]').boundingBox(); return [r.x, r.y]; };
+  // UA: el lienzo se reencuadra solo tras «Comprobar» (deja libre el HUD): se espera a que la posición del primer tirador se estabilice antes de medir.
+  for (let prev = null, i = 0; i < 25; i += 1) { const cur = JSON.stringify(await pos()); if (cur === prev) break; prev = cur; await p.waitForTimeout(200); }
   const before = await pos();
   await p.getByRole('button', { name: 'Mover vista' }).click();
   await p.mouse.move(px, py);
