@@ -116,6 +116,27 @@ function formatWhen(iso: string): string {
 }
 
 /**
+ * Estado del archivo y de los borradores en la cabecera del editor (W-R15c): distingue el estado guardado del
+ * documento del de los borradores de tarjetas sin aplicar, evitando decir «sin cambios pendientes» junto a un
+ * borrador abierto.
+ */
+export function fileStatusText({
+  dirty,
+  pendingDraftCount = 0,
+  busy = false,
+}: {
+  dirty: boolean;
+  pendingDraftCount?: number;
+  busy?: boolean;
+}): string {
+  const parts = [dirty ? 'archivo con cambios sin guardar' : 'archivo sin cambios'];
+  if (pendingDraftCount === 1) parts.push('borrador sin aplicar');
+  else if (pendingDraftCount > 1) parts.push(`${pendingDraftCount} borradores sin aplicar`);
+  if (busy) parts.push('calculando…');
+  return `· ${parts.join(' · ')}`;
+}
+
+/**
  * `active`: el editor está a la vista. Permanece montado al cambiar a «Casos de verificación» (conserva modelo, historial
  * y resultados), pero entonces sus atajos de teclado no deben actuar (R7-07).
  */
@@ -712,8 +733,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       <div className="ea-statusbar">
         <p className="ea-status small" data-testid="file-status">
           <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
-          {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
-          {engine.busy ? ' · calculando…' : ''}
+          {fileStatusText({ dirty, pendingDraftCount: pendingDrafts.length, busy: engine.busy })}
         </p>
         {checkState.status && (
           <p className="ea-engine-status small" data-testid="engine-status">
@@ -757,7 +777,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
       <div className="ea-layout">
         <div className="ea-main">
-          <ResultSummary run={engine.run} current={engine.current} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
+          <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
           <section className="panel ea-canvas-panel" aria-label="Sección del modelo">
             <div className="ea-canvas" data-testid="editor-canvas">
               <EditorCanvas store={store} result={canvasResult} {...canvasContract} />
@@ -792,7 +812,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
           {engine.run && (
             <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
-              <h2 id="ea-results-title">Resultados{engine.current ? '' : ' (desactualizados)'}</h2>
+              <h2 id="ea-results-title">Resultados{engine.current && !hasDrafts ? '' : ' (desactualizados)'}</h2>
               <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} tensionCrack={engine.run.doc.analysis.tension_crack} />
               <p className="small muted">
                 Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
