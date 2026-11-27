@@ -21,6 +21,8 @@ const PIEZO_EXTRAPOLATED_DASH = [1, 5];
 const CRACK_DASH = [5, 4];
 /** Grosor del halo de los rótulos. */
 const HALO_TEXT_PX = 3;
+/** Radio (px CSS) de la marca de cada vértice de una superficie polilínea (crítica no circular). */
+const POLYLINE_VERTEX_R = 3.2;
 
 /** Paso "bonito" (1, 2 o 5 × 10^k) para unas `target` divisiones del intervalo. */
 export function niceStep(span: number, target = 8): number {
@@ -379,6 +381,22 @@ export function drawSection(
     ctx.setLineDash(converged ? [] : UNCONVERGED_DASH);
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // F6.13: los vértices de la polilínea crítica de la búsqueda no circular se marcan con un disco con halo; una polilínea fija se dibuja como siempre (identidad v0.5).
+    if (polyline && scene.surface.search) {
+      const vertexColor = converged ? palette.surface : palette.surfaceUnconverged;
+      for (const [x, y] of polyline) {
+        const [sx, sy] = worldToScreen(vp, x, y);
+        ctx.beginPath();
+        ctx.arc(sx, sy, POLYLINE_VERTEX_R + 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = palette.halo;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, POLYLINE_VERTEX_R, 0, Math.PI * 2);
+        ctx.fillStyle = vertexColor;
+        ctx.fill();
+      }
+    }
   }
 
   // Piezométrica (azul discontinuo)
