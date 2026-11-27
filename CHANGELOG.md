@@ -11,10 +11,11 @@ API pueden cambiar entre versiones menores.
 Bloque de grieta de tracción, agua embalsada y pilotes de Ito-Matsui (F3G): formato v0.5, **en desarrollo y sin
 publicar**. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15k); la evidencia,
 `docs/fase3/exploracion/X18.md` a `X22.md` y `docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack`, sin
-`lateral_pressure` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0** (salvo el número de versión del motor), con dos excepciones documentadas: los modelos cuya
-piezométrica pasa sobre el terreno cambian de resultado a propósito (véase «Changed»), y V019 con búsqueda, donde solo
-cambian dos contadores (E15j-8, véase «Changed»). Las correcciones de la revisión R12 (E15l-1 a E15l-27) están en
-«Fixed», y lo que cambian frente al binario anterior, en «Changed».
+`lateral_pressure` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0** (salvo el número de versión del motor), con tres excepciones documentadas: los modelos cuya
+piezométrica pasa sobre el terreno cambian de resultado a propósito, V019 con búsqueda, donde solo cambian dos
+contadores (E15j-8), y los archivos imperiales con agua y sin `water.unit_weight` (E15l-6, E15m-6); véase «Changed». Las
+correcciones de las revisiones R12 (E15l-1 a E15l-27) y R13 (E15m-1 a E15m-15) están en «Fixed», y lo que cambian frente
+al binario anterior, en «Changed».
 
 ### Added
 - **Formato `.ogs.json` v0.5 (E15a).** El motor acepta 0.1 a 0.5. `analysis.tension_crack` exige `"version": "0.5"`; con
@@ -128,6 +129,15 @@ cambian dos contadores (E15j-8, véase «Changed»). Las correcciones de la revi
   (10040 → 10088) y `search.valid` (7451 → 7499) de Janbu simplificado; el FS, la superficie, los avisos y las dovelas
   son idénticos. Está declarada en `verification/tools/identity_exceptions.json` y en
   [`docs/limitaciones.md`](docs/limitaciones.md#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8).
+- **γw por defecto en imperial (E15l-6, E15m-6, tercera excepción a la identidad con la v0.3.0).** Un archivo
+  `imperial` que usa agua (piezométrica, aunque quede bajo el terreno, agua embalsada o agua en la grieta) y no indica
+  `water.unit_weight` toma γw ≈ 62,45 pcf (9,81 kN/m³ convertido), no 9,81 «pcf» como la v0.3.0, y **cambia de FS**. El
+  motor agrega entonces a `warnings` el aviso informativo `water_unit_weight_default`, una vez por método y análisis; en
+  SI no cambia nada ni se emite. Ejemplo medido, ACADS 1(a) en pies con una piezométrica bajo el terreno y el círculo de
+  V047a: Bishop 0,9300 con la v0.3.0 y 0,6339 ahora (Spencer 0,9294 y 0,6359), y 1,71248 → 1,69865 con una grieta de 2 m
+  con agua y sin `water`. Escribir `water.unit_weight` fija el valor. No hay ningún modelo así en el corpus: los 15
+  imperiales de `verification/cases/` no usan agua. Véase
+  [`docs/limitaciones.md`](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6).
 - **Web: rótulos de una grieta poco profunda.** Con una grieta automática de pocos píxeles (0,43 m en V047a con la
   piezométrica en y = 27), el rótulo «Grieta d = …» caía sobre la línea del terreno y el de Pw se le acercaba; ahora los
   dos se apilan sobre el terreno, del lado de la masa, sin tocarlo ni superponerse (lienzo, Casos y PDF).
@@ -171,10 +181,10 @@ Correcciones de la revisión R12 (enmiendas E15l-1 a E15l-27 del contrato, `brie
 - **La grieta automática en el borde del modelo ya no se anula (E15l-1).** Con el deslizamiento de derecha a izquierda y
   la grieta en el extremo del modelo (`a01_rtl.json`), la grieta quedaba en `depth` 0 y el FS no era el espejo del caso de
   izquierda a derecha (Bishop 1,726963 frente a 1,692572). Ahora los dos dan 1,692572, con `depth` 2,6483 y `Pw` 34,402.
-- **Profundidad sobre una discontinuidad de `d(x)` (E15l-2).** Con la profundidad automática y una `udl` o un cambio
-  lateral de material, la profundidad es la de la cara realmente cortada, `terreno(x) − base(x)`; sin cara, no hay grieta
-  y no se trunca la masa. Medido (`docs/fase3/r12/repro/a04_udl.json`): `depth` 1,7827 y `Pw` 15,5885, en lugar de 0 y 0, y
-  Bishop 1,095348 en lugar de 1,102248.
+- **Profundidad sobre una discontinuidad de `d(x)` (E15l-2, revisada por E15m-15).** Con la profundidad automática y una
+  `udl` o un cambio lateral de material, E15l-2 informaba la cara cortada, `terreno(x) − base(x)`, como profundidad
+  (`a04_udl.json`: `depth` 1,7827, Bishop 1,095348); E15m-15 la revisó tras compararla con cSlope (véase «Correcciones de
+  la revisión R13»). Lo que se mantiene: sin cara, no hay grieta y no se trunca la masa.
 - **El barrido de la grieta incluye los vértices (E15l-3)** de la superficie, del terreno, de las regiones y los bordes de
   una `udl`, para no saltar una cara estrecha. **Tolerancias de la grieta (E15l-8):** el agua usa terreno + tolerancia y
   `Pw` va a la última dovela con peso.
@@ -216,8 +226,8 @@ Correcciones de la revisión R12 (enmiendas E15l-1 a E15l-27 del contrato, `brie
 - **Validación de la forma de `tension_crack` y `role="status"` del aviso de S/D (E15l-23).**
 
 **Python y CLI**
-- **Docstring, README y `test_v05.py` de `ogs-py` (E15l-24):** reglas y cifras de R12; las tres reproducciones de
-  `docs/fase3/r12/repro/` (E15l-1, E15l-2 y E15l-11) corren sin marcas `xfail` (136 pruebas en `test_v05.py`).
+- **Docstring, README y `test_v05.py` de `ogs-py` (E15l-24):** reglas y cifras de R12; las reproducciones de
+  `docs/fase3/r12/repro/` (E15l-1 y E15l-11; la de E15l-2 pasó a E15m-15) corren sin marcas `xfail`.
 - **`USAGE` de la CLI (E15l-25)** con `tension_crack`, `lateral_pressure`, `capacity` y el agua embalsada.
 
 **Documentación**
@@ -229,6 +239,61 @@ Correcciones de la revisión R12 (enmiendas E15l-1 a E15l-27 del contrato, `brie
 - **Hueco entre dovelas vecinas (E15l-9):** de menos de 1e-6 veces el ancho del modelo tras el contacto de aire capilar.
 - **Qué casos ejercitan de verdad el agua embalsada:** 8 sí (V023, V041a, V041b, V070, V087, V089, V091 y V092), V024
   marginal y 5 no (V038, V038b, V042, V058 y V061).
+
+Correcciones de la revisión R13 (enmiendas E15m-1 a E15m-15 del contrato, §F5.13 de `briefs/04_CONTRATOS_GRIETA_AGUA.md`).
+Medidas con `target/release/ogs`; los modelos sin grieta, sin `lateral_pressure` y sin agua sobre el terreno siguen
+iguales, byte a byte.
+
+**Motor**
+- **La grieta fija no se reescribe (E15m-1, enmienda de E15l-2).** Con `depth` numérica, la profundidad informada y el
+  agua son siempre las del usuario, como antes de R12 y como cSlope. En el escalón de `a03_escalon_fija.json` (grieta de
+  2 m): `depth` 2, `Pw` 19,62 y Bishop 1,882066 (cSlope 1,882138); con E15l-2 daba `depth` 4,9707, `Pw` 121,19 y 1,751144.
+- **La grieta sobre una discontinuidad vuelve a la convención de cSlope (E15m-15, revisa E15l-2).** La profundidad y el
+  agua salen de `d(x_c)` en el `x_c` de la bisección, no de la cara cortada. E15l-2 se había adoptado sin compararla con el
+  oráculo, y la comparación con `to_cslope` la contradijo (−0,63 % en `a04_udl`, −6,0 % en el escalón con `"auto"`). El
+  informe agrega `tension_crack.face_height`, la altura de la cara cortada `terreno(x_c) − base(x_c)`, solo cuando
+  difiere de `depth`; en una grieta normal la salida no cambia. Medido: `a04_udl` con Bishop 1,102248 (`depth` 0,
+  `water_force` 0, `face_height` 1,78272; cSlope 1,102311), `a03_escalon_auto` con 1,862343 (`depth` 2,61614,
+  `water_force` 33,57, `face_height` 4,97068; cSlope 1,862416) y `a03_escalon_fija` con 1,882066 (`depth` 2,
+  `water_force` 19,62, `face_height` 4,97068).
+- **El paramento vertical no se pierde por redondeo (E15m-2).** Una polilínea que nace 1e-12 dentro del paramento llevaba
+  Spencer de 2,66591 a 3,49275 (+31 %, del lado inseguro); ahora `dx` = 1e-12 y `dx` = 0 dan 2,66591 y el mismo empuje.
+- **El empuje del paramento va solo a una dovela con el centro del lado alto (E15m-3)**, y la masa del lado bajo no lo
+  absorbe.
+- **El barrido de la grieta incluye los vértices de la piezométrica (E15m-4)**, para no saltar un pico estrecho de agua.
+- **El atajo de la entrada se evalúa hacia dentro (E15m-5):** `x_entry + s·tol`; una `udl` que solo toca la entrada desde
+  fuera ya no anula la grieta automática.
+- **Aviso `water_unit_weight_default` (E15m-6).** Un archivo imperial con agua y sin `water.unit_weight` lleva el aviso
+  informativo, que entra en el catálogo de avisos informativos. Es la tercera excepción a la identidad con la v0.3.0
+  (véase «Changed»).
+- **El brazo de Ito-Matsui sin producto intermedio (E15m-7).** Un brazo o una fuerza no finitos son el `InvalidModel` de
+  E15l-11, nunca `arm: null` ni `no_capacity`. En `a01_arm_null.json`, con `capacity.shear`, el brazo es finito (1,1486 m)
+  y gobierna `shear`.
+- **`pressure_step` usa `is_imperial_units` (E15m-8).** `units: "imp"` da lo mismo que `"imperial"`.
+
+**Web**
+- **γw omitido en imperial es una nota, no un bloqueo (E15m-9).** `editor.water_unit_weight_default` reemplaza el error
+  `editor.water_unit_weight`, que afirmaba un valor de 9,81 que el motor ya no usa; se mantiene el error con γw en
+  unidades equivocadas. Corrigen sus textos la ayuda y `warnings.ts`.
+- **Información emergente alcanzable (E15m-10):** las flechas de Ito-Matsui, la grieta y los refuerzos tienen un área de
+  acierto, y `r12_ito_lienzo.mjs` lo prueba con `elementFromPoint`.
+- **`pnpm test` sin `OGS_BIN` da 0 fallas (E15m-11):** `pdf.engine.test.ts` llama al motor solo en `beforeAll`.
+- **«Sin grieta (z = 0)» en Casos (E15m-12),** como en el editor.
+- **`face_height` (E15m-15):** el tipo y la validación del informe lo aceptan como opcional; la tabla, el PDF, el CSV, el
+  resumen, el lienzo y Casos muestran la cara cortada, y con `depth` 0 y `face_height` > 0 el rótulo dice «Corte de la
+  masa … sin grieta de tracción» en lugar de «Sin grieta».
+
+**Python y documentación**
+- **`test_v05.py` (E15m-13):** la neutralidad compara `"0.3"` con `"0.5"`, `grieta-udl-automatica` entra en `V05_BASES` y se
+  suman las filas `f3g/r12` y `f3g3/expected_r12.json` y las pruebas de E15l-5, -6, -7 y E15m-6. Con E15m-15 se quitan
+  todas las marcas `xfail` (E15m-1, -2, -6 y -7) y se agregan las pruebas de `a04_udl`, del escalón y de `face_height`:
+  173 pruebas en `test_v05.py` y 264 en `crates/ogs-py/tests` (262 con el wheel de producción y 2 omitidas de pánico, que
+  pasan con `--features test-hooks`), 0 `xfail`.
+- **Documentación (E15m-14, E15m-15):** ramas efímeras fuera de `docs/verificacion.md`, `γsat` con `ru` en
+  `docs/limitaciones.md`, resumen de `CITATION.cff` y ejemplo de `version()` de `ogs-py`; la tercera excepción a la
+  identidad en el README, el formato, `docs/limitaciones.md` y `ogs-py`; y la regla de E15m-15 y `face_height` en
+  `docs/formato-ogs-json.md` (el ejemplo `grieta-udl-automatica` da Bishop 1,1022 y Spencer 1,1009), `docs/limitaciones.md`,
+  `docs/verificacion.md` y `ogs-py`.
 
 ### Known issues
 - **La grieta es solo vertical, una por superficie, sin zona ni ángulo**, y no tiene tope de profundidad por la altura
