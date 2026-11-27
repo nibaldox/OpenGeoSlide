@@ -9,7 +9,7 @@ import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../editor/s
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
-import type { Load, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
+import type { CrackReport, Load, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import { describeWarning, warningContext } from '../engine/warnings';
 import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
 import { crackGeometry, type CrackGeometry } from '../render/crack';
@@ -83,6 +83,11 @@ export interface SectionDrawing {
   pond: Point[][];
   /** Grieta de tracción de la superficie del resultado principal (F5.4); `null` sin grieta. */
   crack: CrackGeometry | null;
+  /**
+   * E15n-4: la grieta que el motor informa con `depth` 0 (sin grieta, o corte de la masa si trae `face_height`) y las dovelas con que se ubica su rótulo;
+   * la figura dibuja el mismo rótulo que el lienzo y Casos (`noCrackLabel`). `null` si hay grieta con profundidad o no hay informe de grieta.
+   */
+  noCrack: { crack: CrackReport; slices: readonly Slice[] } | null;
   surface: DrawingSurface | null;
   loads: DrawingLoad[];
   seismic: DrawingSeismic | null;
@@ -422,6 +427,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
   const pond = pondPolygons(model.regions, model.water?.piezometric_line);
   if (pond.length > 0) legend.push({ kind: 'pond', label: 'Agua embalsada (piezométrica sobre el terreno)', color: [...PDF_PALETTE.pond] });
   const crack = res && res.slices.length > 0 ? crackGeometry(res.tension_crack, res.slices, model.analysis.tension_crack?.water_fill) : null;
+  const noCrack = res && res.slices.length > 0 && res.tension_crack && !crack && Number.isFinite(res.tension_crack.x) && res.tension_crack.depth <= 0 ? { crack: res.tension_crack, slices: res.slices } : null;
   if (crack) legend.push({ kind: 'crack', label: 'Grieta de tracción (línea discontinua; flecha: Pw del agua en la grieta)', color: [...PDF_PALETTE.surface] });
   if (surface) {
     legend.push({ kind: 'surface', label: surfaceLegendLabel(res, METHOD_LABEL[surface.method]), color: [...PDF_PALETTE.surface] });
@@ -433,7 +439,7 @@ export function buildSectionDrawing(model: ModelDoc, results: MethodReport[]): S
     if (forces.some((f) => f.status === 'applied')) legend.push({ kind: 'force', label: `Fuerza del refuerzo sobre la masa (flecha, ${units(model).line}; la pasiva ${PASSIVE_LEGEND})`, color: [...PDF_PALETTE.reinforcement] });
     if (forces.some((f) => f.status !== 'applied')) legend.push({ kind: 'force_off', label: 'Cruce sin fuerza aplicada (gris): fuera de la masa, compresión o sin capacidad', color: [...PDF_PALETTE.inkMuted] });
   }
-  return { bounds, regions, piezo, piezoExtension: piezoExt, pond, crack, surface, loads, seismic, reinforcements, forces, units: model.units, unit: units(model).length, legend };
+  return { bounds, regions, piezo, piezoExtension: piezoExt, pond, crack, noCrack, surface, loads, seismic, reinforcements, forces, units: model.units, unit: units(model).length, legend };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
