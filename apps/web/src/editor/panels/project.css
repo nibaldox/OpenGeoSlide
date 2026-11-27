@@ -1,4 +1,4 @@
-/* Diálogo de cambio de unidades (panel «Proyecto»). Solo consume tokens de styles/tokens.css. */
+/* Diálogo de cambio de unidades (panel «Proyecto», piel UA1-S). Solo consume tokens de styles/tokens.css. */
 .pj-units-options {
   list-style: none;
   margin: 12px 0 0;
@@ -12,7 +12,7 @@
   gap: 4px;
   padding: 10px 12px;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-lg, 12px);
   background: var(--ui-surface-subtle);
 }
 

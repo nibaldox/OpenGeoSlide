@@ -1,10 +1,27 @@
-/* Barra de avisos: lista + «Ver más» y «Cerrar todos» (UX9-06). Solo tokens de PLAN_UX. */
+/* Barra de avisos: lista + «Ver más» y «Cerrar todos» (UX9-06, piel UA1-S). Solo tokens del tema. */
 .ea-notice-bar {
   margin-bottom: 8px;
 }
 
 .ea-notice-bar .ea-notices {
   margin-bottom: 4px;
+}
+
+/* Cada aviso: radio 8, borde del tono del estado, 13 px. */
+.ea-notice-bar .ea-notice {
+  padding: 6px 12px;
+  border: 1px solid var(--ui-info-border, var(--ui-border-strong, var(--ui-border)));
+  border-radius: var(--ui-radius-md, 8px);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ea-notice-bar .ea-notice-aviso {
+  border-color: var(--ui-warn-border);
+}
+
+.ea-notice-bar .ea-notice-error {
+  border-color: var(--ui-err-border);
 }
 
 .ea-notice-actions {
@@ -18,14 +35,36 @@
   margin-left: 8px;
   padding: 0 8px;
   border: 1px solid currentColor;
-  border-radius: 10px;
-  font-size: 0.8rem;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Botones de los avisos («Cerrar», «Ver N más», «Cerrar todos»): compactos y con anillo de foco de la suite. */
+.ea-notice-bar button {
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--ui-border-strong, var(--ui-control-border));
+  border-radius: var(--ui-radius-md, 8px);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ea-notice-bar button:focus-visible {
+  outline: 2px solid var(--ui-accent-bright, var(--ui-focus));
+  outline-offset: 2px;
 }
 
 /* El botón «Cerrar» no se parte en dos líneas cuando el texto del aviso es largo. */
 .ea-notice-bar .ea-notice button {
   flex: none;
   white-space: nowrap;
+}
+
+/* Hasta 760 px los botones de los avisos miden al menos 40 de alto. */
+@media (max-width: 760px) {
+  .ea-notice-bar button {
+    min-height: 40px;
+  }
 }
