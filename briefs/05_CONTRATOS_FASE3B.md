@@ -576,7 +576,11 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   - **Reglas:**
     1. **Extremos de la conversión:** los del tramo que analiza el slicer para ese círculo (la masa deslizante, sin
        lentes descartados). En un círculo de la malla, coinciden con su entrada y su salida.
-    2. **Ventanas:** `Optimizer::evaluate` acepta los extremos con una holgura de `pm.tol()`.
+    2. **Ventanas:** `Optimizer::evaluate` acepta los extremos con una holgura de `max(pm.tol(), 1e-6·ancho)`, la
+       misma escala que el `dx` mínimo del punto 6 de F6.10.
+       - Un círculo que sale rozando el pie cruza el terreno casi tangente, y su cruce tiene un error del orden de la
+         raíz de la tolerancia. M3 midió 9,5e-6 en `berm_window`, con la salida en `[10, 20]`, y con `pm.tol()` eso
+         dejaba `evaluated = 0`.
     3. **Tolerancias con escala:** en `search_polyline_admissible`, `g − pm.tol()` en lugar de `g − 1e-6`; en la
        selección de semillas (`search.rs`), `span.max(pm.tol())` en lugar de `.max(1.0)`. Las dos son exclusivas de la
        búsqueda no circular (F6.1 intacta).
@@ -588,7 +592,12 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
     limitación.
   - **Prueba.**
     - En los 16 taludes homogéneos, `evaluated > 0`, y el FS no circular ≤ el del círculo.
-    - En `bench_nc_ogs.json`, FS ≤ 1,01·cSlope.
+    - En `bench_nc_ogs.json`, FS menor que el del círculo. El criterio ≤ 1,01·cSlope no aplica en ese caso:
+      - la referencia de cSlope (1,8560) viene de un círculo crítico con `converged: false` (brecha 0,0084);
+      - ogs no tiene raíz de λ en esa superficie;
+      - en la polilínea de ogs, los dos evaluadores coinciden a 1e-8 (1,90928617 frente a 1,90928616).
+
+      Medido por R15-M3.
     - Las 10 filas de X29 y los checks promovidos siguen dentro de su banda.
 
 - **E16y, las caras bajo agua embalsada y la forma numérica de SHANSEP (R15A-04, R15A-10, R15C-01, 2026-11-27).**
