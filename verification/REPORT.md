@@ -1,10 +1,10 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-27T09:19:45-03:00 · harness v1 · casos: `verification/cases` (167 casos, 347 checks)
+Generado: 2026-11-27T12:18:25-03:00 · harness v1 · casos: `verification/cases` (167 casos, 347 checks)
 
 ## Motores
 
-- **ogs**: binario `/home/xodla/.hermes/profiles/open-geoslide/cache/scratch/f3b2a-target/release/ogs` · versión: ogs-core 0.4.0
+- **ogs**: binario `target/release/ogs` · versión: ogs-core 0.4.0
 - **cSlope**: cslope 0.1.0 · motor 0.1.0+a80f9a024954 · esquema 0.1.0 · Python 3.13.14
 
 ## Resumen
@@ -364,8 +364,8 @@ cSlope reproduce el valor publicado dentro de tolerancia en **346/347** checks.
 | V102b | spencer | search | 1.0010 | 1.0007 | -0.03 | 1.0006 | -0.04 | 2.05 | OK |
 | V102b | bishop | search | 0.9870 | 0.9865 | -0.06 | 0.9864 | -0.07 | 2.05 | OK |
 | V102b | bishop | search | 0.9880 | 0.9865 | -0.16 | 0.9864 | -0.17 | 2.05 | OK |
-| V103 | spencer | search | 1.0200 | 1.0146 | -0.53 | 1.0078 | -1.20 | 2.49 | OK |
-| V103 | spencer | search | 1.0100 | 1.0146 | +0.45 | 1.0078 | -0.22 | 2.50 | OK |
+| V103 | spencer | search | 1.0200 | 1.0081 | -1.17 | 1.0078 | -1.20 | 2.49 | OK |
+| V103 | spencer | search | 1.0100 | 1.0081 | -0.19 | 1.0078 | -0.22 | 2.50 | OK |
 | V104a | bishop | search | 2.3000 | 2.3058 | +0.25 | 2.2918 | -0.36 | 2.22 | OK |
 
 Estado: veredicto de ogs (OK / FALLA / sin dato / no convergido). Si cSlope no reproduce el publicado, se añade «revisar conversión» (el fallo puede estar en el conversor, en el publicado o en el motor).

@@ -613,12 +613,29 @@ def test_non_circular_large_change_note_appears_only_above_15_percent():
 
 
 def test_non_circular_without_an_admissible_polyline_keeps_the_seed():
-    """E16p: sin polilínea admisible, ``polyline_fos`` se omite y el resultado es el del círculo semilla (V103)."""
-    result = cached('case:V103')['results'][0]
+    """E16p y E16x: sin polilínea admisible, ``polyline_fos`` se omite, el resultado es el del círculo semilla y sale la
+    nota ``non_circular_not_refined``.
+
+    Modelo de R15-M3 (``berm_exit_below_bench.json``): la ventana de salida queda bajo el banco y el tramo analizado
+    termina a más de 2 m de ella, así que ningún extremo de polilínea cabe. V103, que antes servía para esta prueba,
+    refina desde E16x (los extremos salen del tramo analizado).
+    """
+    path = ROOT / 'crates/ogs-core/tests/data/f3b/r15/nc/berm_exit_below_bench.json'
+    result = opengeoslide.analyze(json.loads(path.read_text()))['results'][0]
     stats = non_circular_of(result)
     assert 'polyline_fos' not in stats and stats['evaluated'] == 0
     assert result['fos'] == pytest.approx(stats['seed_fos'], rel=1e-12)
     assert set(result['surface']) == {'xc', 'yc', 'r'}
+    assert 'non_circular_not_refined' in result['warnings']
+
+
+def test_v103_refines_since_e16x():
+    """E16x: V103 refina (``evaluated > 0``) y su FS no supera el del círculo semilla."""
+    result = cached('case:V103')['results'][0]
+    stats = non_circular_of(result)
+    assert stats['evaluated'] > 0
+    assert result['fos'] <= stats['seed_fos']
+    assert 'non_circular_not_refined' not in result['warnings']
 
 
 def test_non_circular_gives_each_method_its_own_search_summary():

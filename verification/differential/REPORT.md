@@ -1,6 +1,6 @@
 # Batería diferencial: ogs vs cSlope 0.1.0 (W9)
 
-Generado: 2026-11-27T10:14:42-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
+Generado: 2026-11-27T12:19:32-03:00 · casos: 14 · checks: 56 (búsqueda + superficie fija, bishop y spencer)
 
 ## Motores
 
@@ -24,7 +24,7 @@ Generado: 2026-11-27T10:14:42-03:00 · casos: 14 · checks: 56 (búsqueda + supe
 | búsqueda | 28 | 0 | 0 | 0 |
 | fija | 28 | 1 | 0 | 0 |
 
-Tiempo total: ogs 4.062 s · cSlope 1.818 s.
+Tiempo total: ogs 4.076 s · cSlope 1.803 s.
 
 ## Tabla de línea base
 
@@ -72,61 +72,61 @@ Ninguno.
 
 | caso | método | tipo | ogs s | cSlope s |
 |---|---|---|---:|---:|
-| D01 | bishop | search | 0.042 | 0.051 |
+| D01 | bishop | search | 0.048 | 0.051 |
 | D01 | bishop | fixed | 0.002 | 0.001 |
-| D01 | spencer | search | 0.120 | 0.077 |
-| D01 | spencer | fixed | 0.001 | 0.001 |
+| D01 | spencer | search | 0.120 | 0.079 |
+| D01 | spencer | fixed | 0.002 | 0.001 |
 | D02 | bishop | search | 0.040 | 0.043 |
-| D02 | bishop | fixed | 0.001 | 0.001 |
-| D02 | spencer | search | 0.153 | 0.078 |
+| D02 | bishop | fixed | 0.002 | 0.001 |
+| D02 | spencer | search | 0.154 | 0.076 |
 | D02 | spencer | fixed | 0.002 | 0.001 |
-| D03 | bishop | search | 0.055 | 0.047 |
+| D03 | bishop | search | 0.056 | 0.046 |
 | D03 | bishop | fixed | 0.002 | 0.001 |
-| D03 | spencer | search | 0.167 | 0.081 |
-| D03 | spencer | fixed | 0.001 | 0.001 |
-| D04 | bishop | search | 0.127 | 0.032 |
+| D03 | spencer | search | 0.166 | 0.082 |
+| D03 | spencer | fixed | 0.002 | 0.001 |
+| D04 | bishop | search | 0.126 | 0.032 |
 | D04 | bishop | fixed | 0.001 | 0.001 |
-| D04 | spencer | search | 0.407 | 0.058 |
-| D04 | spencer | fixed | 0.001 | 0.001 |
-| D05 | bishop | search | 0.044 | 0.048 |
+| D04 | spencer | search | 0.412 | 0.059 |
+| D04 | spencer | fixed | 0.002 | 0.001 |
+| D05 | bishop | search | 0.044 | 0.047 |
 | D05 | bishop | fixed | 0.001 | 0.001 |
-| D05 | spencer | search | 0.132 | 0.077 |
-| D05 | spencer | fixed | 0.001 | 0.001 |
-| D06 | bishop | search | 0.044 | 0.046 |
+| D05 | spencer | search | 0.132 | 0.078 |
+| D05 | spencer | fixed | 0.002 | 0.001 |
+| D06 | bishop | search | 0.044 | 0.044 |
 | D06 | bishop | fixed | 0.001 | 0.001 |
-| D06 | spencer | search | 0.124 | 0.074 |
+| D06 | spencer | search | 0.124 | 0.073 |
 | D06 | spencer | fixed | 0.001 | 0.001 |
-| D07 | bishop | search | 0.032 | 0.042 |
+| D07 | bishop | search | 0.032 | 0.043 |
 | D07 | bishop | fixed | 0.001 | 0.001 |
-| D07 | spencer | search | 0.137 | 0.073 |
+| D07 | spencer | search | 0.137 | 0.072 |
 | D07 | spencer | fixed | 0.001 | 0.001 |
-| D08 | bishop | search | 0.065 | 0.046 |
-| D08 | bishop | fixed | 0.001 | 0.035 |
-| D08 | spencer | search | 0.255 | 0.065 |
-| D08 | spencer | fixed | 0.001 | 0.036 |
-| D09 | bishop | search | 0.074 | 0.048 |
+| D08 | bishop | search | 0.065 | 0.045 |
+| D08 | bishop | fixed | 0.002 | 0.035 |
+| D08 | spencer | search | 0.253 | 0.064 |
+| D08 | spencer | fixed | 0.001 | 0.034 |
+| D09 | bishop | search | 0.075 | 0.045 |
 | D09 | bishop | fixed | 0.001 | 0.001 |
-| D09 | spencer | search | 0.323 | 0.170 |
+| D09 | spencer | search | 0.323 | 0.169 |
 | D09 | spencer | fixed | 0.002 | 0.001 |
-| D10 | bishop | search | 0.039 | 0.046 |
+| D10 | bishop | search | 0.040 | 0.046 |
 | D10 | bishop | fixed | 0.001 | 0.001 |
-| D10 | spencer | search | 0.143 | 0.083 |
-| D10 | spencer | fixed | 0.002 | 0.001 |
+| D10 | spencer | search | 0.141 | 0.081 |
+| D10 | spencer | fixed | 0.001 | 0.001 |
 | D11 | bishop | search | 0.197 | 0.033 |
 | D11 | bishop | fixed | 0.002 | 0.001 |
-| D11 | spencer | search | 0.453 | 0.060 |
-| D11 | spencer | fixed | 0.002 | 0.001 |
-| D12 | bishop | search | 0.049 | 0.047 |
+| D11 | spencer | search | 0.459 | 0.060 |
+| D11 | spencer | fixed | 0.001 | 0.001 |
+| D12 | bishop | search | 0.048 | 0.049 |
 | D12 | bishop | fixed | 0.001 | 0.001 |
-| D12 | spencer | search | 0.151 | 0.080 |
-| D12 | spencer | fixed | 0.002 | 0.001 |
-| D13 | bishop | search | 0.055 | 0.039 |
+| D12 | spencer | search | 0.150 | 0.079 |
+| D12 | spencer | fixed | 0.001 | 0.001 |
+| D13 | bishop | search | 0.054 | 0.039 |
 | D13 | bishop | fixed | 0.001 | 0.001 |
-| D13 | spencer | search | 0.191 | 0.057 |
+| D13 | spencer | search | 0.191 | 0.059 |
 | D13 | spencer | fixed | 0.002 | 0.001 |
-| D14 | bishop | search | 0.096 | 0.051 |
-| D14 | bishop | fixed | 0.002 | 0.001 |
-| D14 | spencer | search | 0.309 | 0.077 |
+| D14 | bishop | search | 0.096 | 0.050 |
+| D14 | bishop | fixed | 0.001 | 0.001 |
+| D14 | spencer | search | 0.308 | 0.075 |
 | D14 | spencer | fixed | 0.002 | 0.001 |
 
 ## Notas de conversión
@@ -369,49 +369,49 @@ uv run --python 3.13 --no-project --with cslope==0.1.0 --with shapely \
 
 ## F3B: Hoek-Brown, SHANSEP y búsqueda no circular
 
-**OK 40/42** · explicado 2 · FALLA 0 · sin dato 0
+**OK 41/42** · explicado 1 · FALLA 0 · sin dato 0
 
 | Caso | Método | Tipo | OGS | cSlope | Prototipo F6.8 | Veredicto | Motivo |
 |---|---|---|---:|---:|---:|---|---|
-| F3B-HB-01 | bishop | search | 1.1414213591695048 | 1.1414336659642357 |  | OK |  |
-| F3B-HB-01 | bishop | fixed | 1.180411091439942 | 1.1816320142387637 | 1.180419325351821 | OK |  |
-| F3B-HB-01 | spencer | search | 1.1380645623208014 | 1.1380494027198045 |  | OK |  |
-| F3B-HB-01 | spencer | fixed | 1.1874097690347634 | 1.1880550637138545 | 1.1874088035105692 | OK |  |
-| F3B-HB-02 | bishop | search | 2.0656893699899674 | 2.074093699485063 |  | OK |  |
-| F3B-HB-02 | bishop | fixed | 2.067668166240111 | 2.090902265431638 | 2.0676469376749806 | OK (F6.8: envolvente completa) | |Δ cSlope| = 1.11 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 2.067647 (+0.001 %) |
-| F3B-HB-02 | spencer | search | 2.0679365794340208 | 2.0710076444791756 |  | OK |  |
-| F3B-HB-02 | spencer | fixed | 2.0946593601560495 | 2.1078856864141917 | 2.094657315425958 | explicado (E16t) | cSlope no tiene raíz de λ con su regla de bajo confinamiento (no convergido (status not_converged, minFOS 2.1079 no es una raíz)); no es referencia. Prototipo de la envolvente completa 2.094657; ogs 2.094659 (+0.000 %, sin gate: F6.8) |
+| F3B-HB-01 | bishop | search | 1.1414213591695046 | 1.1414336659642357 |  | OK |  |
+| F3B-HB-01 | bishop | fixed | 1.1804110914399426 | 1.1816320142387637 | 1.180419325351821 | OK |  |
+| F3B-HB-01 | spencer | search | 1.1380645623208008 | 1.1380494027198045 |  | OK |  |
+| F3B-HB-01 | spencer | fixed | 1.187409769034763 | 1.1880550637138545 | 1.1874088035105692 | OK |  |
+| F3B-HB-02 | bishop | search | 2.0656893699899936 | 2.074093699485063 |  | OK |  |
+| F3B-HB-02 | bishop | fixed | 2.0676681662401117 | 2.090902265431638 | 2.0676469376749806 | OK (F6.8: envolvente completa) | |Δ cSlope| = 1.11 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 2.067647 (+0.001 %) |
+| F3B-HB-02 | spencer | search | 2.0679365794340216 | 2.0710076444791756 |  | OK |  |
+| F3B-HB-02 | spencer | fixed | 2.0946593601560504 | 2.1078856864141917 | 2.094657315425958 | explicado (E16t) | cSlope no tiene raíz de λ con su regla de bajo confinamiento (no convergido (status not_converged, minFOS 2.1079 no es una raíz)); no es referencia. Prototipo de la envolvente completa 2.094657; ogs 2.094659 (+0.000 %, sin gate: F6.8) |
 | F3B-HB-03 | bishop | search | 0.4281878350260759 | 0.4281982950648746 |  | OK |  |
-| F3B-HB-03 | bishop | fixed | 0.47857720312194935 | 0.4786748697490631 | 0.47857970200201533 | OK |  |
-| F3B-HB-03 | spencer | search | 0.4273442606015363 | 0.42728218504641796 |  | OK |  |
-| F3B-HB-03 | spencer | fixed | 0.48263798705411054 | 0.48269847787183534 | 0.48263768864009626 | OK |  |
-| F3B-HB-04 | bishop | search | 1.9240610992884786 | 1.928051868339857 |  | OK |  |
-| F3B-HB-04 | bishop | fixed | 3.125977756315156 | 3.2084049537182855 | 3.1259887667595705 | OK (F6.8: envolvente completa) | |Δ cSlope| = 2.57 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 3.125989 (+0.000 %) |
-| F3B-HB-04 | spencer | search | 1.919906901281375 | 1.9244920330590896 |  | OK |  |
-| F3B-HB-04 | spencer | fixed | 3.1462572625885508 | 3.204112520906414 | 3.1462554502752855 | OK (F6.8: envolvente completa) | |Δ cSlope| = 1.81 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 3.146255 (+0.000 %) |
+| F3B-HB-03 | bishop | fixed | 0.4785772031219493 | 0.4786748697490631 | 0.47857970200201533 | OK |  |
+| F3B-HB-03 | spencer | search | 0.4273442606015364 | 0.42728218504641796 |  | OK |  |
+| F3B-HB-03 | spencer | fixed | 0.4826379870541104 | 0.48269847787183534 | 0.48263768864009626 | OK |  |
+| F3B-HB-04 | bishop | search | 1.9240609898334131 | 1.928051868339857 |  | OK |  |
+| F3B-HB-04 | bishop | fixed | 3.125977756315291 | 3.2084049537182855 | 3.1259887667595705 | OK (F6.8: envolvente completa) | |Δ cSlope| = 2.57 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 3.125989 (+0.000 %) |
+| F3B-HB-04 | spencer | search | 1.919907450635764 | 1.9244920330590896 |  | OK |  |
+| F3B-HB-04 | spencer | fixed | 3.146257262588547 | 3.204112520906414 | 3.1462554502752855 | OK (F6.8: envolvente completa) | |Δ cSlope| = 1.81 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 3.146255 (+0.000 %) |
 | F3B-HB-05 | bishop | search | 2.0958560736608143 | 2.0965525772520515 |  | OK |  |
-| F3B-HB-05 | bishop | fixed | 2.324078639898861 | 2.341518927540367 | 2.3240961934818136 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.74 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 2.324096 (+0.001 %) |
-| F3B-HB-05 | spencer | search | 2.0907395905239468 | 2.0915655541621567 |  | OK |  |
-| F3B-HB-05 | spencer | fixed | 2.3410125229977403 | 2.3502932427401517 | 2.3410113108033306 | OK |  |
-| F3B-HB-06 | bishop | search | 0.5372991630712984 | 0.5278775675258732 |  | explicado (§4.2: m_α) | ogs 0.5373 > cSlope·1,01 = 0.5332 (ogs no conservador); el círculo crítico de cSlope (xc -9.2772, yc 10.7172, r 14.1746) es inadmisible en ogs por m_α < min_m_alpha (§4.2) y cSlope lo marca con steep-entry-tension; no se relaja el criterio |
-| F3B-HB-06 | bishop | fixed | 0.5603458147999235 | 0.5618892862946161 | 0.5603591750249114 | OK |  |
-| F3B-HB-06 | spencer | search | 0.531728435391105 | 0.5426414201144181 |  | OK |  |
-| F3B-HB-06 | spencer | fixed | 0.5750452891651499 | 0.5761687785082695 | 0.5750458281315887 | OK |  |
-| F3B-HB-07 | bishop | search | 2.7994954350593133 | 2.8125518957463873 |  | OK |  |
-| F3B-HB-07 | bishop | fixed | 2.799649531101828 | 2.8125518957463873 | 2.799661549325849 | OK |  |
-| F3B-HB-07 | spencer | search | 2.8018736914061377 | 2.8111497623468744 |  | OK |  |
-| F3B-HB-07 | spencer | fixed | 2.803197068270176 | 2.8121059047901795 | 2.8031948762058274 | OK |  |
-| F3B-HB-08 | bishop | search | 1.2305042306784946 | 1.2393346067134332 |  | OK |  |
-| F3B-HB-08 | bishop | fixed | 1.2391373860125916 | 1.2488134011253267 | 1.2391457342103986 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.77 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 1.239146 (+0.001 %) |
-| F3B-HB-08 | spencer | search | 1.217648639245332 | 1.2310134075766346 |  | OK |  |
-| F3B-HB-08 | spencer | fixed | 1.239880893762773 | 1.2471791754688126 | 1.2398797880624928 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.59 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 1.239880 (+0.000 %) |
+| F3B-HB-05 | bishop | fixed | 2.324078639898878 | 2.341518927540367 | 2.3240961934818136 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.74 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 2.324096 (+0.001 %) |
+| F3B-HB-05 | spencer | search | 2.090739590523947 | 2.0915655541621567 |  | OK |  |
+| F3B-HB-05 | spencer | fixed | 2.3410125229977368 | 2.3502932427401517 | 2.3410113108033306 | OK |  |
+| F3B-HB-06 | bishop | search | 0.5243665673618269 | 0.5278775675258732 |  | OK |  |
+| F3B-HB-06 | bishop | fixed | 0.5603457944547486 | 0.5618892862946161 | 0.5603591750249114 | OK |  |
+| F3B-HB-06 | spencer | search | 0.5328142943767736 | 0.5426414201144181 |  | OK |  |
+| F3B-HB-06 | spencer | fixed | 0.5750461753274969 | 0.5761687785082695 | 0.5750458281315887 | OK |  |
+| F3B-HB-07 | bishop | search | 2.799495435059312 | 2.8125518957463873 |  | OK |  |
+| F3B-HB-07 | bishop | fixed | 2.7996495311018252 | 2.8125518957463873 | 2.799661549325849 | OK |  |
+| F3B-HB-07 | spencer | search | 2.8018736914061426 | 2.8111497623468744 |  | OK |  |
+| F3B-HB-07 | spencer | fixed | 2.8031970682701774 | 2.8121059047901795 | 2.8031948762058274 | OK |  |
+| F3B-HB-08 | bishop | search | 1.230504524566203 | 1.2393346067134332 |  | OK |  |
+| F3B-HB-08 | bishop | fixed | 1.2391373860125927 | 1.2488134011253267 | 1.2391457342103986 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.77 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 1.239146 (+0.001 %) |
+| F3B-HB-08 | spencer | search | 1.2176504488974749 | 1.2310134075766346 |  | OK |  |
+| F3B-HB-08 | spencer | fixed | 1.2398808937627743 | 1.2471791754688126 | 1.2398797880624928 | OK (F6.8: envolvente completa) | |Δ cSlope| = 0.59 % > 0,5 %: cSlope usa la tangente de σ3 = 0 en bajo confinamiento; ogs coincide con el prototipo de la envolvente completa 1.239880 (+0.000 %) |
 | F3B-NC-V001 | spencer | search | 1.3838760786423974 | 1.3837204423582525 |  | OK |  |
 | F3B-NC-V034a | spencer | search | 1.2649823216325031 | 1.2649251927651408 |  | OK |  |
 | F3B-SH-OCR1 | bishop | search | 0.6250000007322929 | 0.6250261045392922 |  | OK |  |
 | F3B-SH-OCR1 | bishop | fixed | 0.6822385279669482 | 0.6822607730327611 |  | OK |  |
 | F3B-SH-OCR1 | spencer | search | 0.625000000732293 | 0.6250212039438209 |  | OK |  |
 | F3B-SH-OCR1 | spencer | fixed | 0.6822398961644295 | 0.6822607730327611 |  | OK |  |
-| F3B-SH-POP | bishop | search | 0.8031320926045148 | 0.8031259296941016 |  | OK |  |
+| F3B-SH-POP | bishop | search | 0.8031320926045149 | 0.8031259296941016 |  | OK |  |
 | F3B-SH-POP | bishop | fixed | 0.8040681163068664 | 0.8040642710227669 |  | OK |  |
-| F3B-SH-POP | spencer | search | 0.8031332389616767 | 0.8031259296941016 |  | OK |  |
+| F3B-SH-POP | spencer | search | 0.8031332389616765 | 0.8031259296941016 |  | OK |  |
 | F3B-SH-POP | spencer | fixed | 0.804069636715796 | 0.8040642710227669 |  | OK |  |

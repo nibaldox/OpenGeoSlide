@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-27T09:19:45-03:00",
+  "generated_at": "2026-11-27T12:18:25-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
     "ogs": {
-      "binary": "/home/xodla/.hermes/profiles/open-geoslide/cache/scratch/f3b2a-target/release/ogs",
+      "binary": "target/release/ogs",
       "version": "ogs-core 0.4.0",
       "error": null
     },
@@ -1054,7 +1054,7 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.150213968368498,
+        "fos": 1.1502139683684969,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.4.0",
@@ -1063,7 +1063,7 @@
           "negative_effective_normal",
           "hoek_brown_low_confinement"
         ],
-        "err_pct": -0.24163327246331653,
+        "err_pct": -0.24163327246341282,
         "verdict": "OK"
       },
       "cslope": {
@@ -1094,7 +1094,7 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.152052983415579,
+        "fos": 1.1520529834155766,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.4.0",
@@ -1103,7 +1103,7 @@
           "negative_effective_normal",
           "hoek_brown_low_confinement"
         ],
-        "err_pct": 0.0045992548245775275,
+        "err_pct": 0.004599254824365505,
         "verdict": "OK"
       },
       "cslope": {
@@ -19685,15 +19685,14 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.0145897034995384,
+        "fos": 1.0080668034682976,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.4.0",
         "warnings": [
-          "truncated_mass",
           "negative_effective_normal"
         ],
-        "err_pct": -0.5304212255354562,
+        "err_pct": -1.1699212285982783,
         "verdict": "OK"
       },
       "cslope": {
@@ -19725,15 +19724,14 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.0145897034995384,
+        "fos": 1.0080668034682976,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.4.0",
         "warnings": [
-          "truncated_mass",
           "negative_effective_normal"
         ],
-        "err_pct": 0.4544260890632036,
+        "err_pct": -0.19140559719826042,
         "verdict": "OK"
       },
       "cslope": {
