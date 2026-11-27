@@ -44,7 +44,7 @@ import { REINFORCE_INSTRUCTIONS, constrainReinforceDraft, reinforceClick, reinfo
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { piezoExtension } from './piezoExtension';
-import { crackGeometry, crackShape, noCrackLabel } from '../../render/crack';
+import { crackGeometry, crackShape, noCrackHitRect, noCrackLabel } from '../../render/crack';
 import { pondPolygons } from '../../render/pond';
 import { polylineCrossingMessage } from './polyline';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
@@ -1140,6 +1140,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
                 </line>
               )}
             </>
+          )}
+          {noCrack && (
+            // E15n-4 (R14-03): el rótulo «Sin grieta» o «Corte de la masa…» (su capa visible no recibe el puntero) repite su título en un rectángulo transparente.
+            <rect data-info-hit={noCrack.kind === 'cut' ? 'crack-cut' : 'crack-none'} {...noCrackHitRect(noCrack)} fill={COLOR_HANDLE_FILL} fillOpacity={0} stroke="none" pointerEvents="all">
+              <title>{noCrack.title}</title>
+            </rect>
           )}
           {reinforcements.map((rs: ReinforcementShape) => (
             <line key={`ih-rf${rs.index}`} data-info-hit="reinforcement" data-info-reinforcement={rs.index} x1={rs.p1[0]} y1={rs.p1[1]} x2={rs.p2[0]} y2={rs.p2[1]}>

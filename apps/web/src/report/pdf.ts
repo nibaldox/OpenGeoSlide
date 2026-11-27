@@ -9,7 +9,7 @@ import type { jsPDF } from 'jspdf';
 import type { Point } from '../engine/types';
 import { forceShapes, reinforcementShapes, type PxPoint, type ShapePart } from '../editor/canvas/reinforcements';
 import type { Viewport } from '../geometry/viewport';
-import { crackShape } from '../render/crack';
+import { crackShape, noCrackLabel } from '../render/crack';
 import {
   buildReportContent,
   type ReportBlock,
@@ -146,6 +146,14 @@ export function tableColumnWidths(doc: jsPDF, header: string[], rows: string[][]
   };
   const mins = header.map((h, c) => Math.max(widest([h], 'bold', false), widest(rows.map((r) => r[c] ?? ''), 'normal', true)) + CELL_PAD);
   return allocateColumnWidths(weights, mins, total);
+}
+
+/** Caja de un rótulo en mm de página. */
+interface LabelBox {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
 }
 
 class Writer {
@@ -426,6 +434,9 @@ class Writer {
     if (d.piezo) polyline(d.piezo, piezoColor, 0.5, [2, 1]);
     if (d.surface) polyline(d.surface.points, d.legend.find((l) => l.kind === 'surface')?.color ?? [...P.surface], 0.7);
 
+    // Cajas (mm de página) de los rótulos de la figura ya colocados: los que se colocan después (el de «Sin grieta») las esquivan.
+    const figBoxes: LabelBox[] = [];
+
     // Grieta de tracción (F5.4): línea discontinua en x_c, hueco de agua, flecha de Pw y rótulos, con la forma del lienzo (px → mm de página).
     if (d.crack) {
       const vpPx: Viewport = { scale: scale * PX_PER_MM, tx: -xmin * scale * PX_PER_MM, ty: ymax * scale * PX_PER_MM, width: drawW * PX_PER_MM, height: drawH * PX_PER_MM };
@@ -515,7 +526,7 @@ class Writer {
         labels.push({ text: rs.label.text, x: lx, y: ly, color: [...P.reinforcement] });
       }
       this.font('normal', 6.5);
-      const boxes: { x1: number; x2: number; y1: number; y2: number }[] = [];
+      const boxes = figBoxes;
       const top = y0 + head + 2.6;
       const bottom = y0 + drawH - 1;
       for (const l of labels) {
@@ -548,9 +559,11 @@ class Writer {
       let row = 0;
       while (labelBoxes.some((b) => b.row === row && cxc - half < b.x2 + 1 && cxc + half > b.x1 - 1)) row += 1;
       labelBoxes.push({ x1: cxc - half, x2: cxc + half, row });
+      const textY = tailY - 1.5 - row * LABEL_ROW;
+      figBoxes.push({ x1: cxc - half - 0.5, x2: cxc + half + 0.5, y1: textY - 2.9, y2: textY + 1 });
       pendingLabels.push(() => {
         doc.setTextColor(...P.load);
-        this.haloText(text, cxc, tailY - 1.5 - row * LABEL_ROW, 'center');
+        this.haloText(text, cxc, textY, 'center');
       });
     };
     for (const load of d.loads) {
@@ -610,6 +623,40 @@ class Writer {
         const x1 = s.dir === 1 ? ax - 9 : ax;
         const x2 = s.dir === 1 ? ax : ax - 9;
         this.arrow(x1, y0 + 3.6, x2, y0 + 3.6, P.seismic, 0.5);
+      }
+    }
+
+    // E15n-4: «Sin grieta (z = 0)» o «Corte de la masa (cara de …) sin grieta de tracción», el mismo rótulo (texto, unidades y ancla) del lienzo y de
+    // Casos (`noCrackLabel`), en el color de la superficie. Se coloca el último: dentro del marco, bajo la franja de cargas y sismo y sin pisar los
+    // demás rótulos (se desplaza en vertical hasta no encimarse, como los de los refuerzos).
+    if (d.noCrack) {
+      const vpPx: Viewport = { scale: scale * PX_PER_MM, tx: -xmin * scale * PX_PER_MM, ty: ymax * scale * PX_PER_MM, width: drawW * PX_PER_MM, height: drawH * PX_PER_MM };
+      const label = noCrackLabel(d.noCrack.crack, d.noCrack.slices, vpPx, d.units);
+      if (label) {
+        let size = 6.5;
+        this.font('normal', size);
+        let tw = doc.getTextWidth(label.text);
+        while (tw > drawW - 2 && size > 4.5) {
+          size -= 0.25;
+          this.font('normal', size);
+          tw = doc.getTextWidth(label.text);
+        }
+        const lx = x0 + label.x / PX_PER_MM;
+        const ly = y0 + head + label.y / PX_PER_MM + 1;
+        const left = Math.min(Math.max(label.anchor === 'start' ? lx : lx - tw, x0 + 1), Math.max(x0 + 1, x0 + drawW - 1 - tw));
+        const top = y0 + head + 2.6;
+        const bottom = y0 + drawH - 1;
+        let at: LabelBox & { y: number } | null = null;
+        for (let k = 0; k < 24 && !at; k += 1) {
+          const y = Math.min(Math.max(ly + (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * 3, top), bottom);
+          const box = { x1: left - 0.5, x2: left + tw + 0.5, y1: y - 2.6, y2: y + 0.8 };
+          if (!figBoxes.some((b) => box.x1 < b.x2 && box.x2 > b.x1 && box.y1 < b.y2 && box.y2 > b.y1)) at = { ...box, y };
+        }
+        const y = at?.y ?? Math.min(Math.max(ly, top), bottom);
+        doc.setTextColor(...P.surface);
+        this.haloText(label.text, left, y, 'left');
+        figBoxes.push({ x1: left - 0.5, x2: left + tw + 0.5, y1: y - 2.6, y2: y + 0.8 });
+        doc.setTextColor(...P.ink);
       }
     }
 
