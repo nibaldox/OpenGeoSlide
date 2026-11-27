@@ -178,23 +178,25 @@ const menu = async (p, name, item) => { await p.getByRole('button', { name, exac
   await ctx.close();
 }
 
-// ───────── R9-11b: «Editar» muestra la herramienta activa a 480 px o menos ─────────
+// ───────── R9-11b: «Editar» a 480 px o menos ─────────
+// UA: el menú estrecho se llama siempre exactamente «Editar» (ya no «Editar · <herramienta>») y solo trae Deshacer y Rehacer; la herramienta activa se elige y se ve en la paleta del lienzo (aria-pressed) y en la barra de estado.
 for (const w of [480, 390, 320]) {
   const ctx = await newCtx({ width: w, height: 844 });
   const p = await open(ctx);
   const before = (await p.locator('button.dd-trigger', { hasText: 'Editar' }).innerText()).trim();
-  await menu(p, 'Editar', 'Dibujar región');
+  const palette = p.locator('nav[aria-label="Herramientas del lienzo"]');
+  await palette.getByRole('button', { name: 'Dibujar región', exact: true }).click();
   await p.waitForTimeout(300);
   const trig = p.locator('button.dd-trigger', { hasText: 'Editar' });
   const text = (await trig.innerText()).trim();
   const name = await trig.evaluate((el) => el.textContent.replace(/\s+/g, ' ').trim());
   const fits = await trig.evaluate((el) => { const r = el.getBoundingClientRect(); return r.right <= innerWidth && r.left >= 0 && document.documentElement.scrollWidth <= innerWidth; });
-  step(`R9-11b ${w} px: «Editar» pasa de «${before}» a «${text}» y cabe`, /Editar · Dibujar región/.test(name) && /^Editar/.test(before) && fits, { before, text, fits });
-  await p.getByRole('button', { name: /^Editar · Dibujar región/ }).click();
-  await p.getByRole('button', { name: 'Seleccionar', exact: true }).click();
+  const pressed = await palette.getByRole('button', { name: 'Dibujar región', exact: true }).getAttribute('aria-pressed');
+  step(`R9-11b ${w} px: «Editar» sigue llamándose «Editar» con «Dibujar región» activa (la herramienta se ve en la paleta) y cabe`, name === 'Editar' && /^Editar/.test(before) && fits && pressed === 'true', { before, text, fits, pressed });
+  await palette.getByRole('button', { name: 'Seleccionar', exact: true }).click();
   await p.waitForTimeout(300);
   const back = (await p.locator('button.dd-trigger', { hasText: 'Editar' }).innerText()).trim();
-  step(`R9-11b ${w} px: con «Seleccionar» vuelve a «Editar»`, /^Editar\s*▾?$/.test(back), { back });
+  step(`R9-11b ${w} px: con «Seleccionar» «Editar» sigue igual`, /^Editar\s*▾?$/.test(back), { back });
   await ctx.close();
 }
 

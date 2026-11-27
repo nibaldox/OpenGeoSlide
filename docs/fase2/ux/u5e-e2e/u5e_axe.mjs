@@ -51,10 +51,10 @@ for (const theme of ['light', 'dark']) {
       await p.waitForTimeout(200);
       await p.screenshot({ path: path.join(SHOTS, `axe-${tag}-editar.png`) });
       await axe(p, `${tag} menú Editar abierto`);
-      await p.getByRole('menuitem', { name: 'Dibujar región' }).click().catch(async () => p.locator('.dd-menu:popover-open').getByRole('button', { name: 'Dibujar región' }).click());
-    } else {
-      await p.getByRole('button', { name: 'Dibujar región', exact: true }).click();
+      // UA: el menú «Editar» solo trae Deshacer y Rehacer: se cierra y la herramienta se elige en la paleta.
+      await p.keyboard.press('Escape');
     }
+    await p.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región', exact: true }).click(); // UA: las herramientas están en la paleta del lienzo
     // 2. trazo en curso con lectura del cursor
     const box = await p.locator('svg.ec-svg').boundingBox();
     for (const [fx, fy] of [[0.7, 0.12], [0.85, 0.12], [0.85, 0.25]]) await p.mouse.click(box.x + box.width * fx, box.y + box.height * fy);

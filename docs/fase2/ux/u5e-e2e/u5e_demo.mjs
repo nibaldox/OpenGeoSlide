@@ -187,7 +187,7 @@ async function check(page) {
   const asked = await dlg.isVisible().catch(() => false);
   const info = asked ? { title: await dlg.locator('h2').textContent(), tone: await dlg.getAttribute('data-tone'), buttons: await dlg.locator('button').allTextContents() } : null;
   if (asked) await dlg.getByRole('button', { name: 'Seguir trazando' }).click();
-  const stillDraw = (await page.locator('[role="toolbar"]').getByRole('button', { name: 'Dibujar región' }).getAttribute('aria-pressed')) === 'true';
+  const stillDraw = (await page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región' }).getAttribute('aria-pressed')) === 'true'; // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
   step('A-04 con 3 puntos, cambiar de herramienta pide confirmación (danger) y «Seguir trazando» conserva el trazo', asked && info.tone === 'danger' && stillDraw, { info, sigueDibujando: stillDraw });
   await ctx.close();
   const second = await newPage();
@@ -210,7 +210,7 @@ async function check(page) {
   await page.mouse.move(b.x + b.width * 0.5 + 5, b.y + b.height * 0.5 + 3);
   const text = await page.locator('[data-testid="cursor-readout"]').textContent().catch(() => null);
   const hidden = await page.locator('[data-testid="cursor-readout"]').getAttribute('aria-hidden').catch(() => null);
-  step('R7-02 el cursor muestra x e y con unidad en una línea y aria-hidden', /^x -?[\d,]+ · y -?[\d,]+ m$/.test(text ?? '') && hidden === 'true', { texto: text, ariaHidden: hidden });
+  step('R7-02 el cursor muestra x e y con unidad en una línea y aria-hidden', /^x -?[\d,]+ m · y -?[\d,]+ m$/.test(text ?? '') /* UA: la píldora de coordenadas del lienzo lleva la unidad tras cada valor («x 41,32 m · y 29,76 m», UA1-C) */ && hidden === 'true', { texto: text, ariaHidden: hidden });
   await page.screenshot({ path: path.join(SHOTS, `${LABEL}-cursor.png`) });
   await ctx.close();
 }
@@ -254,6 +254,7 @@ async function check(page) {
   await page.getByRole('button', { name: 'Comprobar', exact: true }).click();
   await page.waitForTimeout(1500);
   const state = await page.getAttribute('[data-testid="result-summary"]', 'data-state');
+  await page.locator('#view-results').click(); // UA: Diagnósticos vive en la vista «Resultados»
   const diag = await page.locator('text=Peso unitario del agua').first().textContent().catch(() => null);
   const goBtn = page.locator('button', { hasText: /Agua|Ir a/ }).filter({ hasNot: page.locator('[role="tab"]') });
   const btnTexts = await page.locator('[data-testid="diagnostics"] button, section button').allTextContents().catch(() => []);
@@ -270,17 +271,20 @@ async function check(page) {
 {
   const { ctx, page } = await newPage({ width: 320, height: 844 });
   const m = await page.evaluate(() => ({
-    barra: document.querySelector('.ea-toolbar').getBoundingClientRect().height,
+    // UA: ya no existe `.ea-toolbar`; las herramientas están en la paleta del lienzo (nav «Herramientas del lienzo»), cuyo alto es el que se acota.
+    barra: document.querySelector('nav[aria-label="Herramientas del lienzo"]').getBoundingClientRect().height,
     lienzoY: document.querySelector('[data-testid="editor-canvas"]').getBoundingClientRect().top + scrollY,
     editar: [...document.querySelectorAll('button.dd-trigger')].some((b) => b.textContent.trim().startsWith('Editar')),
     scrollW: document.documentElement.scrollWidth,
   }));
-  step('B-09 a 320 px la barra mide ≤ 120 px y el lienzo empieza antes de y = 400', m.barra <= 120 && m.lienzoY < 400 && m.editar && m.scrollW <= 320, m);
+  step('B-09 a 320 px la paleta de herramientas mide ≤ 120 px y el lienzo empieza antes de y = 400', m.barra <= 120 && m.lienzoY < 400 && m.editar && m.scrollW <= 320, m);
   await page.screenshot({ path: path.join(SHOTS, `${LABEL}-320.png`) });
   if (m.editar) {
     await page.getByRole('button', { name: 'Editar', exact: true }).click();
     const names = await page.locator('.dd-menu:popover-open button').allTextContents();
-    step('B-09 el menú «Editar» conserva los nombres de Deshacer, Rehacer y las 5 herramientas', ['Deshacer', 'Rehacer', 'Seleccionar', 'Agregar vértice', 'Dibujar región', 'Dividir región', 'Mover vista'].every((n) => names.map((x) => x.trim()).includes(n)), { names });
+    // UA: a 480 px o menos el menú «Editar» solo trae Deshacer y Rehacer; las herramientas se eligen en la paleta, que conserva los nombres.
+    const palette = await page.locator('nav[aria-label="Herramientas del lienzo"] button').evaluateAll((bs) => bs.map((x) => x.getAttribute('aria-label')));
+    step('B-09 el menú «Editar» conserva los nombres de Deshacer y Rehacer, y la paleta los de las herramientas', ['Deshacer', 'Rehacer'].every((n) => names.map((x) => x.trim()).includes(n)) && ['Seleccionar', 'Agregar vértice', 'Dibujar región', 'Dividir región', 'Mover vista'].every((n) => palette.includes(n)), { names, palette });
     await page.screenshot({ path: path.join(SHOTS, `${LABEL}-320-menu.png`) });
   }
   await ctx.close();

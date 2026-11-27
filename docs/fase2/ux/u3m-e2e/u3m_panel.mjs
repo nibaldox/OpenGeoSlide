@@ -140,6 +140,7 @@ await field(0, 4, 'y').fill('-5'); await field(0, 4, 'y').press('Enter');
 await page.waitForSelector('.gp-issues');
 const issueText = await page.locator('.gp-issues').textContent();
 await page.getByRole('tab', { name: 'Materiales' }).click();
+await page.locator('#view-results').click(); // UA: Diagnósticos vive en la vista «Resultados»
 const issueBtn = page.locator('section:has(h2:text("Diagnósticos")) button', { hasText: /cruza/ }).first();
 await issueBtn.click();
 await page.waitForTimeout(300);

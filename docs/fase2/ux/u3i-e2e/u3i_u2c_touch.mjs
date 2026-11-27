@@ -38,7 +38,8 @@ const scrollY = () => page.evaluate(() => Math.round(window.scrollY));
 const h0 = await page.evaluate(() => document.querySelector('svg[role="application"]').getBoundingClientRect().height);
 // Integración U2-L: por debajo de 640 px el contenedor usa clamp(320px, 48dvh, 640px) para que el lienzo quepa entero en 390×844.
 const vh = await page.evaluate(() => innerHeight);
-step('1 altura del lienzo en móvil = clamp(320px, 48dvh, 640px)', Math.abs(h0 - Math.min(640, Math.max(320, 0.48 * vh))) < 4, { altura: h0, esperado: 0.48 * vh });
+// UA: el armazón A ya no fija el alto con clamp(320px, 48dvh, 640px): la tarjeta del lienzo toma el alto restante (contrato UA §4.7) y la paleta pasa a una fila al pie. Se conserva la intención de U2-L: el lienzo cabe entero en la pantalla y sigue siendo usable (≥ 240 px).
+step('1 el lienzo en móvil cabe entero en la pantalla (240 px ≤ alto ≤ alto de la ventana)', h0 >= 240 && h0 <= vh, { altura: h0, ventana: vh });
 const ts = await page.evaluate(() => getComputedStyle(document.querySelector('svg[role="application"]')).touchAction);
 step('2 touch-action del lienzo permite desplazar la página (herramienta Seleccionar)', ts === 'pan-x pan-y', { touchAction: ts });
 
@@ -109,7 +110,8 @@ await page.screenshot({ path: path.join(SHOTS, 'touch-03-arrastre-tirador.png') 
 const sizes = await page.evaluate(() => {
   const hit = [...document.querySelectorAll('[data-hit-area]')].map((e) => e.getBoundingClientRect().width);
   const shapes = [...document.querySelectorAll('[data-handle-shape="vertex"]')].map((e) => e.getBoundingClientRect().width);
-  const btns = [...document.querySelectorAll('.ec-tool')].map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; });
+  // UA: con puntero táctil y ≤ 760 px, «Acercar» y «Alejar» no se muestran (se hace pellizco); solo se miden los botones visibles.
+  const btns = [...document.querySelectorAll('.ec-tool')].map((e) => { const b = e.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; }).filter(([w, h]) => w > 0 && h > 0);
   return { hitMin: Math.min(...hit), vertexMin: Math.min(...shapes), btns };
 });
 step('7 objetivos: área de acierto ≥ 24 px, marca visible ≥ 12 px, botones de zoom ≥ 24 px', sizes.hitMin >= 24 && sizes.vertexMin >= 12 && sizes.btns.every(([w, h]) => w >= 24 && h >= 24), sizes);

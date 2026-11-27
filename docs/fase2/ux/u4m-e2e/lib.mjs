@@ -60,6 +60,8 @@ export async function load(page) {
  * posición en px del SVG). Devuelve {px(x, y) → [sx, sy] de página, world(sx, sy), scale, box}.
  */
 export async function viewportOf(page) {
+  // UA: en móvil el lienzo queda por encima de la lista de pasos y la página puede estar desplazada: se trae el lienzo a la vista antes de medir.
+  await page.locator('svg.ec-svg').scrollIntoViewIfNeeded();
   const box = await page.locator('svg.ec-svg').boundingBox();
   const hs = await page.evaluate(() => [...document.querySelectorAll('[data-handle="vertex"]')].map((g) => {
     const m = /x (-?[\d.,]+) \w+, y (-?[\d.,]+)/.exec(g.getAttribute('aria-label') ?? '');
@@ -93,11 +95,23 @@ export const polys = (page) => page.evaluate(() => [...document.querySelectorAll
 
 export async function check(page) {
   await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-  await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 90000 });
+  // UA: el resultado se espera en el HUD (result-summary, data-state=current) y la tabla se lee en la vista «Resultados»; después se vuelve a «Lienzo».
+  await page.waitForSelector('[data-testid="result-summary"][data-state="current"]', { state: 'attached', timeout: 90000 });
   await page.waitForSelector('button:has-text("Comprobar"):not([disabled])', { timeout: 90000 });
+  await showView(page, 'Resultados');
+  await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 90000 });
   const rows = await page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
   const head = await page.$$eval('[data-testid="results-panel"] table thead th', (r) => r.map((x) => x.textContent.trim()));
+  await showView(page, 'Lienzo');
   return { head, rows };
+}
+
+// UA: la vista activa se elige en el tablist «Vistas» (Lienzo = #mode-edit, Resultados = #view-results); la tabla ya no está en el lienzo.
+export async function showView(page, name) {
+  const ids = { Lienzo: 'mode-edit', Resultados: 'view-results', Casos: 'mode-cases', 'Casos de verificación': 'mode-cases', Informe: 'view-report' };
+  const t = page.locator(`#${ids[name] ?? name}`);
+  if ((await t.getAttribute('aria-selected')) !== 'true') await t.click();
+  await page.waitForSelector(`#${ids[name] ?? name}[aria-selected="true"]`);
 }
 
 /** «Talud simple…» con los datos de T2 (H = 15 m, 1,5H:1V, arcilla, piezométrica en el pie); `lower` agrega el estrato de roca (contacto 5 m bajo el pie). */

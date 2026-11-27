@@ -72,15 +72,18 @@ for (const theme of ['light', 'dark']) {
   // ── E15m-9 (a-d): editor ──
   await openFile(fImpNoGw);
   await p.getByRole('tab', { name: 'Agua' }).click();
-  const bodyNow = await p.locator('body').innerText();
+  // UA: el texto de la pantalla se reparte entre las vistas: el HUD y el lienzo en «Lienzo», Diagnósticos y la tabla en «Resultados» (innerText no lee lo oculto). Se lee en las dos y se deja «Resultados» abierta.
+  const bodyAll = async () => { await p.locator('#mode-edit').click(); const a = await p.locator('body').innerText(); await p.locator('#view-results').click(); return `${a}\n${await p.locator('body').innerText()}`; };
+  const bodyNow = await bodyAll();
   step(`${theme}: imperial sin γw: la nota de γw por defecto está en Diagnósticos antes de calcular`, GW_NOTE.test(bodyNow) && /Las versiones anteriores a la v0\.4\.0/.test(bodyNow), {});
   const noteBadge = await p.locator('.ep-issue-item', { hasText: 'El modelo usa agua y no indica γw' }).locator('.ep-badge').innerText();
   step(`${theme}: la incidencia es una «Nota», no un «Error»`, /^nota$/i.test(noteBadge), { noteBadge });
   step(`${theme}: la ayuda del campo γw dice que vacío usa 62,4 pcf (y no 9,81)`, /Si lo deja vacío, el cálculo usa 62,4 pcf/.test(bodyNow) && !/el cálculo usa 9,81/.test(bodyNow), {});
+  await p.locator('#mode-edit').click(); // UA: «Comprobar» también está en el estado vacío de «Resultados» (2 botones); se vuelve a «Lienzo»
   await p.getByRole('button', { name: 'Comprobar' }).click();
-  await p.waitForFunction(() => /FS \d/.test(document.body.innerText), null, { timeout: 30000 });
-  const after = await p.locator('body').innerText();
-  step(`${theme}: «Comprobar» no se bloquea: hay FS y ningún error de γw`, /FS \d/.test(after) && !/Peso unitario del agua γw: el modelo está en unidades imperiales/.test(after), {});
+  await p.waitForSelector('[data-testid="result-summary"][data-state="current"]', { state: 'attached', timeout: 30000 }); // UA: el FS se espera en el HUD (oculto fuera de «Lienzo»)
+  const after = await bodyAll();
+  step(`${theme}: «Comprobar» no se bloquea: hay FS y ningún error de γw`, /FS (mín\. )?\d/.test(after) /* UA: el chip de la cabecera dice «FS mín. 1,234» */ && !/Peso unitario del agua γw: el modelo está en unidades imperiales/.test(after), {});
   // Expectativa actualizada en R13 I-G3 (E15m-6 + E15m-9): con el motor integrado, tras calcular el motor emite el aviso `water_unit_weight_default`
   // (E15m-6) y la web lo muestra en el panel de Resultados («Notas») y en Diagnósticos (con el prefijo del método). Lo que E15m-9 garantiza es que
   // la nota local de Diagnósticos NO se repite con la del motor: una sola vez en Diagnósticos y una sola en Resultados (antes del motor E15m-6, una en total).
@@ -93,7 +96,7 @@ for (const theme of ['light', 'dark']) {
   // ── E15m-9 (f): γw explícito de 9,81 en imperial = error ──
   await openFile(fImpGw981);
   await p.getByRole('tab', { name: 'Agua' }).click();
-  const bodyErr = await p.locator('body').innerText();
+  const bodyErr = await bodyAll();
   const errBadge = await p.locator('.ep-issue-item', { hasText: 'Peso unitario del agua γw' }).first().locator('.ep-badge').innerText().catch(() => '');
   step(`${theme}: γw = 9,81 explícito en imperial: error con la acción para corregirlo`, /^error$/i.test(errBadge) && /menor que 20 pcf/.test(bodyErr) && /Escriba 62,4 pcf/.test(bodyErr) && !GW_NOTE.test(bodyErr), { errBadge });
 
@@ -116,7 +119,7 @@ for (const theme of ['light', 'dark']) {
   step(`${theme}: Casos: γw = 9,81 explícito en imperial sí se bloquea con el mensaje del editor`, /No se calculó el caso/.test(caseBody) && /menor que 20 pcf/.test(caseBody), {});
 
   // ── E15m-12: Casos dibuja «Sin grieta (z = 0)» ──
-  await p.getByRole('tab', { name: 'Editar' }).click();
+  await p.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await p.waitForSelector('[data-layer="regions"] polygon');
   const granular = (name, depth) => write(name, (m) => {
     m.version = '0.5';
@@ -144,7 +147,7 @@ for (const theme of ['light', 'dark']) {
   await p.screenshot({ path: path.join(SHOTS, `${theme}-3-casos-grieta-fija.png`), fullPage: true });
 
   // El editor, con el mismo modelo, repite el rótulo en SVG (paridad con Casos).
-  await p.getByRole('tab', { name: 'Editar' }).click();
+  await p.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await p.waitForSelector('[data-layer="regions"] polygon');
   await openFile(fAuto0);
   await p.getByRole('tab', { name: 'Análisis' }).click();

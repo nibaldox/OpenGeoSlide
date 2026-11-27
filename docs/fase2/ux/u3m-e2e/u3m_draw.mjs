@@ -40,7 +40,7 @@ async function openMenu(name) {
 }
 const live = () => page.waitForTimeout(300).then(() => page.textContent('[data-testid="live-polite"]')).then((t) => (t ?? '').trim());
 const nRegions = () => page.locator('[data-layer="regions"] polygon').count();
-const toolBtn = () => page.locator('[role="toolbar"]').getByRole('button', { name: 'Dibujar región' });
+const toolBtn = () => page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región' }); // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
 const polys = () => page.evaluate(() => [...document.querySelectorAll('[data-layer="regions"] polygon')].map((p) => p.getAttribute('points')));
 
 await page.goto(URL_);
@@ -66,9 +66,11 @@ const pressed = await toolBtn().getAttribute('aria-pressed');
 const focusOnSvg = await page.evaluate(() => document.activeElement?.getAttribute('role') === 'application');
 const box = await page.locator('svg.ec-svg').boundingBox();
 // Viewport inicial del modelo vacío: encuadre de 60 × 30 con el espacio libre de U4-M (25 % del alto a los lados y bajo la base, 10 % arriba) y margen 24
-const scale = Math.min((box.width - 48) / 75, (box.height - 48) / 40.5);
-const tx = box.width / 2 - scale * 30;
-const ty = box.height / 2 + scale * 12.75;
+// UA: el encuadre deja libres los márgenes del armazón A (fitInsets desde 761 px: arriba 24, derecha 92, abajo 72, izquierda 24) y centra el modelo en el rectángulo libre.
+const [fx0, fx1, fy0, fy1] = [24, box.width - 92, 24, box.height - 72];
+const scale = Math.min((fx1 - fx0) / 75, (fy1 - fy0) / 40.5);
+const tx = (fx0 + fx1) / 2 - scale * 30;
+const ty = (fy0 + fy1) / 2 + scale * 12.75;
 const px = (x, y) => [box.x + tx + scale * x, box.y + ty - scale * y];
 const click = async (x, y) => { const [sx, sy] = px(x, y); await page.mouse.move(sx, sy); await page.mouse.click(sx, sy); };
 await click(0, -3);
@@ -99,7 +101,7 @@ step('3 un solo Deshacer quita la región entera (y Rehacer la devuelve)', after
 
 // 4. Dibujar con el teclado (R, flechas, Espacio, Intro), sin rejilla: paso de 0,1 m
 await page.getByLabel('Rejilla de ajuste').selectOption('');
-await page.locator('[role="toolbar"]').getByRole('button', { name: 'Seleccionar', exact: true }).focus();
+await page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Seleccionar', exact: true }).focus(); // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
 await page.keyboard.press('r');
 await page.waitForSelector('[data-testid="draw-hint"]');
 const kbFocus = await page.evaluate(() => document.activeElement?.getAttribute('role'));
@@ -153,19 +155,23 @@ step('5 asignar material a la región dibujada con el teclado', mat1 === 'm1');
 
 // 6. Comprobar → FS (CLI: Bishop 2,0759, Spencer 2,0754)
 await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });
+await page.waitForSelector('[data-testid="result-summary"][data-state="current"]', { timeout: 60000 }); // UA: el resultado se espera en el HUD y la tabla se lee en la vista «Resultados»
 await page.waitForSelector('button:has-text("Comprobar"):not([disabled])');
+await page.locator('#view-results').click();
+await page.waitForSelector('[data-testid="results-panel"] table tbody tr');
 const rows = await page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
+await page.locator('#mode-edit').click(); // UA: de vuelta al lienzo
 const fs = rows.map((r) => num(r[1]));
 step('6 Comprobar: FS finito de Bishop y Spencer, igual que el CLI (1,7724 / 1,7717)', fs.length === 2 && Math.abs(fs[0] - 1.7724) < 5e-4 && Math.abs(fs[1] - 1.7717) < 5e-4, { filas: rows.map((r) => r.slice(0, 3)), shot: await shot('04-fs-dibujado') });
 
 // 7. Cierre inválido: un solape no se agrega y explica el problema (el cruce del contorno se rechaza al colocar el punto)
 await page.keyboard.press('Escape'); // salir de cualquier foco
-await page.locator('[role="toolbar"]').getByRole('button', { name: 'Dibujar región' }).click();
+// UA: tras «Comprobar» el HUD queda en la esquina superior izquierda del lienzo y el encuadre cambia: los puntos del solape se calculan en metros (región 2), no en píxeles fijos del lienzo.
+const vpH = await page.evaluate(() => { const hs = [...document.querySelectorAll('[data-handle="vertex"]')].map((g) => { const m = /x (-?[\d.,]+) \w+, y (-?[\d.,]+)/.exec(g.getAttribute('aria-label') ?? ''); const c = g.querySelector('[data-handle-shape]'); return m ? { x: Number(m[1].replace(',', '.')), y: Number(m[2].replace(',', '.')), cx: Number(c.getAttribute('cx')), cy: Number(c.getAttribute('cy')) } : null; }).filter(Boolean); const a = hs[0]; const b = hs.find((h) => Math.abs(h.x - a.x) > 1e-6); const scale = Math.abs((b.cx - a.cx) / (b.x - a.x)); return { scale, tx: a.cx - scale * a.x, ty: a.cy + scale * a.y }; });
+await page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name: 'Dibujar región' }).click(); // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
 const box2 = await page.locator('svg.ec-svg').boundingBox();
 const vp2 = await page.evaluate(() => { const g = document.querySelector('[data-layer="grid"]'); return null; });
-const [a1x, a1y] = [box2.x + 120, box2.y + 120];
-for (const [dx, dy] of [[0, 0], [150, 120], [150, 0], [0, 120]]) { await page.mouse.click(a1x + dx, a1y + dy); }
+for (const [wx, wy] of [[10, 2], [30, 10], [30, 2], [10, 10]]) await page.mouse.click(box2.x + vpH.tx + vpH.scale * wx, box2.y + vpH.ty - vpH.scale * wy);
 await page.keyboard.press('Enter');
 await page.waitForTimeout(300);
 const err = await page.textContent('[data-testid="draw-hint"]');
@@ -195,8 +201,10 @@ await page.waitForSelector('dialog[open]', { state: 'detached' });
 await page.waitForFunction(() => document.querySelectorAll('[data-layer="regions"] polygon').length === 1);
 const slopePoly = (await polys())[0];
 await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });
+await page.waitForSelector('[data-testid="result-summary"][data-state="current"]', { timeout: 60000 }); // UA: el resultado se espera en el HUD y la tabla se lee en la vista «Resultados»
 await page.waitForSelector('button:has-text("Comprobar"):not([disabled])');
+await page.locator('#view-results').click();
+await page.waitForSelector('[data-testid="results-panel"] table tbody tr');
 const rows2 = await page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
 const fs2 = rows2.map((r) => num(r[1]));
 step('8 Talud simple (H=10, β=45°, c=10, φ=30, γ=20): FS finito con Bishop y Spencer = CLI (1,2039 / 1,1995)', prevOk && fs2.length === 2 && Math.abs(fs2[0] - 1.2039) < 5e-4 && Math.abs(fs2[1] - 1.1995) < 5e-4, { filas: rows2.map((r) => r.slice(0, 3)), poligono: slopePoly, shot: await shot('07-talud-fs'), dlg: dlgShot });

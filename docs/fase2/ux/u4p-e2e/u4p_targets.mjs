@@ -9,7 +9,9 @@ async function scan(p, label) {
   const small = await p.evaluate((SEL) => {
     const vis = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && !e.closest('[hidden],[inert]'); };
     const path = (e) => { const n = []; for (let x = e; x && n.length < 3; x = x.parentElement) n.push(x.tagName.toLowerCase() + (x.id ? '#' + x.id : '') + (x.className && typeof x.className === 'string' ? '.' + x.className.split(' ')[0] : '')); return n.join(' < '); };
-    return [...document.querySelectorAll(SEL)].filter(vis).map((e) => ({ e, r: e.getBoundingClientRect() })).filter(({ r }) => r.width < 23.5 || r.height < 23.5).map(({ e, r }) => ({
+    // UA: el objetivo de clic de una casilla o un radio es el `label` que lo envuelve (≥ 24 px de alto); el control nativo sigue midiendo 16 px (UA2-F3, WCAG 2.5.8).
+    const rectOf = (e) => { const l = (e.type === 'checkbox' || e.type === 'radio') ? (e.labels?.[0] ?? e.closest('label')) : null; return (l ?? e).getBoundingClientRect(); };
+    return [...document.querySelectorAll(SEL)].filter(vis).map((e) => ({ e, r: rectOf(e) })).filter(({ r }) => r.width < 23.5 || r.height < 23.5).map(({ e, r }) => ({
       tag: e.tagName, type: e.type ?? null, w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10, name: (e.getAttribute('aria-label') ?? e.labels?.[0]?.textContent ?? e.textContent ?? '').trim().slice(0, 50), where: path(e),
     }));
   }, SEL);

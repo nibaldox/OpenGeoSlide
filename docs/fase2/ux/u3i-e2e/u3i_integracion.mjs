@@ -28,7 +28,7 @@ page.on('console', (m) => { if (m.type() === 'error' && !(m.location()?.url ?? '
 const CONFIRM = '[data-testid="confirm-dialog"]';
 const status = async () => (await page.textContent('[data-testid="file-status"]')).trim();
 const nRegions = () => page.locator('[data-layer="regions"] polygon').count();
-const pressed = async (name) => (await page.locator('[role="toolbar"]').getByRole('button', { name }).getAttribute('aria-pressed')) === 'true';
+const pressed = async (name) => (await page.locator('nav[aria-label="Herramientas del lienzo"]').getByRole('button', { name }).getAttribute('aria-pressed')) === 'true'; // UA: las herramientas están en la paleta del lienzo, no en un role=toolbar
 async function openMenu(name) {
   const t = page.getByRole('button', { name, exact: true });
   if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
