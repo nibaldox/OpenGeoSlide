@@ -1258,6 +1258,7 @@ def test_the_engine_gate_names_lateral_pressure_and_the_schema_rejects_the_same_
 
 def test_the_ito_matsui_rows_validate_against_the_0_5_schema():
     paths = sorted(glob.glob(os.path.join(ROOT, "crates", "ogs-core", "tests", "data", "f3g3", "rows", "X22-*.json")))
-    assert len(paths) == 28
+    # 28 filas de E15i y la X22-S16 (ru y piezométrica, oráculo cSlope por to_cslope) que suma R12 M-B (E15l-12).
+    assert len(paths) == 29
     for path in paths:
         assert _errors(_load(path), SCHEMA_05) == [], path

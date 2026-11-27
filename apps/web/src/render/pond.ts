@@ -3,7 +3,7 @@
 // bordes del modelo (`piezoExtension`). Módulo puro: lo consumen el lienzo del editor (SVG), la vista de Casos (Canvas 2D) y el PDF.
 
 import type { Point } from '../engine/types';
-import { groundPieces } from '../editor/state/polylineGround';
+import { groundPieces } from '../editor/state/polylineGround.ts';
 
 type Regions = ReadonlyArray<{ polygon: ReadonlyArray<readonly [number, number]> }>;
 

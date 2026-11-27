@@ -146,12 +146,25 @@ pub struct Region {
     pub polygon: Vec<Point>,
 }
 
+/// Deserializes a number that may be absent (`#[serde(default)]` gives `None`) but never `null`: the schema declares
+/// `water.unit_weight` as `number`, so `"unit_weight": null` stays an error as it was before E15l-6 made the field optional.
+fn deserialize_present_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    f64::deserialize(deserializer).map(Some)
+}
+
 /// Water data. `unit_weight` absent means the default of the units of the model: 9.81 kN/m³ in `SI`, the equivalent
 /// (≈ 62.45 pcf) in imperial (see [`default_water_unit_weight`], E15l-6).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Water {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_present_f64"
+    )]
     pub unit_weight: Option<f64>,
     #[serde(default)]
     pub piezometric_line: Option<Vec<Point>>,
@@ -788,6 +801,14 @@ mod tests {
         assert_eq!(a.min_m_alpha, 0.2);
         assert!(a.surface.is_none() && a.search.is_none());
         assert!(m.materials[0].unit_weight_sat.is_none() && m.materials[0].ru.is_none());
+    }
+
+    #[test]
+    fn water_unit_weight_null_is_still_rejected() {
+        // E15l-6 made the field optional; the schema (`type: number`) still rejects `null`, and so must the engine.
+        assert!(serde_json::from_str::<Water>(r#"{"unit_weight": null}"#).is_err());
+        let w: Water = serde_json::from_str(r#"{"unit_weight": 9.5}"#).unwrap();
+        assert_eq!(w.unit_weight, Some(9.5));
     }
 
     #[test]
