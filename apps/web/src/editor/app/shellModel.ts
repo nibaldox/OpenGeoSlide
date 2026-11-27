@@ -379,7 +379,7 @@ export function runStatus(input: RunStatusInput): RunStatus {
     const advisories = Number.isFinite(input.advisories) ? Math.max(0, Math.trunc(input.advisories ?? 0)) : 0;
     const fs = fsMinimum(run.report);
     const failed = run.report.results.filter((r) => convergedFos(r) === null || !Number.isFinite(convergedFos(r))).map((r) => r.method);
-    const notConverged = failed.length > 0 ? `No convergieron: ${methodNames(failed)}.` : '';
+    const notConverged = failed.length > 0 ? `No convergieron: ${methodNames(failed).replace(/\.?$/, '.')}` : ''; // «Janbu corr.» ya lleva su punto
     const out = (tone: Tone, base: string, details: readonly string[]): RunStatus => {
       const text = withAdvisories(base, advisories);
       return titled(tone, text, details, advisories, text !== base);

@@ -708,6 +708,13 @@ describe('runStatus: resultado actual', () => {
     expect(cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged')))).toMatchObject({ tone: 'warn', text: 'Parcial · 1 de 2 métodos' });
   });
 
+  it('el título no duplica el punto de «Janbu corr.»', () => {
+    const s = cur(report(result('bishop', 1.2), result('janbu_corrected', 0.9, 'not_converged')));
+    expect(s.title).toBe('Parcial · 1 de 2 métodos. No convergieron: Janbu corr.');
+    expect(s.title).not.toContain('..');
+    expect(cur(report(result('janbu_corrected', 0.9, 'not_converged'))).title).toBe('Sin convergencia. No convergieron: Janbu corr.');
+  });
+
   it('sin avisos o con 0 no cambia el texto; el título nombra los avisos si el texto no los lleva', () => {
     const r = report(result('bishop', 0.984), result('spencer', 1.02));
     expect(cur(r, { advisories: 0 }).text).toBe('Calculado · FS < 1,0');
