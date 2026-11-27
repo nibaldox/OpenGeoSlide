@@ -21,9 +21,10 @@
 ## Qué es
 
 OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado**,
-**Spencer**, **Morgenstern-Price** y **Janbu**. Usted dibuja o importa la sección (estratos Mohr-Coulomb o no drenados,
-línea piezométrica, sismo pseudoestático y cargas), el programa busca la superficie de falla circular con el menor FS o
-analiza la polilínea que usted fija, y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
+**Spencer**, **Morgenstern-Price** y **Janbu**. Usted dibuja o importa la sección (estratos Mohr-Coulomb, no drenados,
+Hoek-Brown o SHANSEP, línea piezométrica, sismo pseudoestático y cargas), el programa busca la superficie de falla circular
+con el menor FS (y, desde el formato v0.6, puede refinarla a una polilínea no circular) o analiza la polilínea que usted fija,
+y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
@@ -45,6 +46,13 @@ Ito-Matsui** (`lateral_pressure`, con una capacidad de corte y de momento opcion
 terreno** respecto de la v0.3.0 ([excepción documentada](docs/limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)),
 y también el de un archivo **imperial** con agua que no indica `water.unit_weight`, que ahora toma γw ≈ 62,45 pcf en lugar de 9,81
 ([tercera excepción](docs/limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
+
+El formato **v0.6**, que saldrá con la **0.5.0** (aún no publicada), agrega tres capacidades: el material **Hoek-Brown**
+(roca fracturada, con la envolvente completa en bajo confinamiento), el material **SHANSEP** (resistencia no drenada
+normalizada por el esfuerzo vertical efectivo, con OCR constante, POP u OCR por cota) y la **búsqueda no circular**
+(`analysis.search.non_circular`, sin Bishop). Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0. Los
+límites están en [Limitaciones conocidas](#limitaciones-conocidas); el formato, en
+[`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#hoek-brown-shansep-y-búsqueda-no-circular-v06).
 
 ## Por qué es distinto
 
@@ -118,8 +126,8 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.5), con
-sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.6), con
+sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP y búsqueda no circular, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
 
@@ -131,6 +139,7 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 | cSlope 0.1.0, M-P, Janbu, no drenado y polilínea (D01-D23) | **71/71** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
+| cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B) | **40/42** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** | [REPORT](verification/REPORT.md) |
 | Web y `ogs` (389 modelos) | **389/389** | [detalle](docs/verificacion.md) |
 
@@ -148,6 +157,10 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
 - **cSlope, v0.5:** los 12 modelos de grieta y agua embalsada (D28 a D39) y los 3 de pilotes de Ito-Matsui (D40 a D42),
   en búsqueda y en superficie fija, con Bishop y Spencer: 58 de 60 checks, con 2 explicados (D39 fija, E15f) y ninguna
   falla abierta.
+- **cSlope, v0.6:** 12 modelos de rajo con Hoek-Brown, V047a con SHANSEP y dos casos de búsqueda no circular, en búsqueda y en
+  superficie fija: 40 de 42 checks, con 2 explicados (el lazo de Hoek-Brown sin raíz de λ en cSlope, y un círculo de cSlope
+  inadmisible por `m_α`) y ninguna falla. En círculo fijo, el producto da hasta −2,9 % frente a cSlope en Hoek-Brown, siempre del
+  lado seguro ([detalle](docs/verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 - **Agua embalsada:** de los 14 casos publicados con la piezométrica sobre el terreno, 8 reciben su peso y su empuje en la
   superficie de sus checks, 1 apenas (V024) y 5 no (V038, V038b, V042, V058 y V061); la tabla medida está en
@@ -158,11 +171,21 @@ Esta batería no cubre todo: véanse las limitaciones.
 
 ## Limitaciones conocidas
 
-- **La búsqueda es solo circular.** Las superficies no circulares se fijan a mano como polilínea; la búsqueda no
-  circular es de la Fase 3b. **Bishop simplificado solo admite círculos**; con una polilínea quedan Spencer,
-  Morgenstern-Price y Janbu.
-- **Solo Mohr-Coulomb y no drenado** (Su constante o lineal con la cota); no hay Hoek-Brown ni SHANSEP. Sin análisis de
-  deformaciones, en 3D ni de flujo; el agua entra como piezométrica o como `ru`.
+- **La búsqueda es circular, con un refinamiento no circular opcional** (formato v0.6). Es un mínimo local desde 3 círculos,
+  con hasta 33 vértices, que cuesta de 2,4 a 3,3 veces la búsqueda circular y que, en materiales con una capa débil, puede
+  llevar a una rama con tracción donde el FS de Spencer o Morgenstern-Price queda bajo el publicado (V002: 0,3864 frente a
+  0,414; revise las notas `negative_lambda` y `negative_effective_normal_major` y compare con Bishop circular). **Bishop
+  simplificado solo admite círculos**: con una polilínea o con la búsqueda no circular quedan Spencer, Morgenstern-Price y
+  Janbu ([detalle](docs/limitaciones.md#búsqueda-no-circular-v06)).
+- **Cuatro modelos de resistencia:** Mohr-Coulomb, no drenado (Su constante o lineal con la cota), Hoek-Brown y SHANSEP (v0.6).
+  **Hoek-Brown** usa la envolvente completa en bajo confinamiento, no la tangente de σ3 = 0 de cSlope: en círculo fijo da hasta
+  −2,9 % frente a cSlope, siempre del lado seguro; una búsqueda Bishop tarda unas 50 veces lo que con Mohr-Coulomb; D no
+  tiene valor por defecto, y σci va en kPa, nunca en MPa
+  ([detalle](docs/limitaciones.md#hoek-brown-envolvente-completa-costo-y-no-convergencia-v06)). **SHANSEP** es φ = 0 y no
+  tiene `aboveWater` (V105a queda retenido); el sismo no entra en σ′v, y con OCR 1 en un perfil normalmente consolidado el
+  mínimo es un círculo muy ancho y poco profundo ([detalle](docs/limitaciones.md#shansep-v06)). Ni Hoek-Brown ni SHANSEP se
+  combinan con la grieta de profundidad automática ni con los pilotes de Ito-Matsui. Sin análisis de deformaciones, en 3D ni
+  de flujo; el agua entra como piezométrica o como `ru`.
 - **Refuerzos (formato v0.4): solo estabilidad global.** Con un pilote o una tablestaca, el FS incluye
   su fuerza, que es un dato que usted fija (salvo el pilote de Ito-Matsui de la v0.5, descrito más abajo); **no se
   calcula el empuje sobre el elemento, el empotramiento, el momento
@@ -209,7 +232,8 @@ Esta batería no cubre todo: véanse las limitaciones.
   FS no físico (aviso `interslice_shear_exceeds_strength`): compárelo con Janbu. Revise siempre los avisos.
 - **Casos publicados retenidos:** V027, V028, V068, V035b y V083 (aviso de normal efectiva negativa), V032a (la búsqueda halla un
   mínimo real, más conservador), V009a y V009b (aviso de cortante entre dovelas) y V085 ×4 (la búsqueda de ogs halla un
-  círculo más crítico que el del oráculo).
+  círculo más crítico que el del oráculo); de F3B, V002 (rama de tracción de la búsqueda no circular, E16u) y V105a
+  (SHANSEP con `aboveWater`, fuera del formato).
 
 El detalle completo, con los avisos y los casos numéricos conocidos del motor, está en
 [`docs/limitaciones.md`](docs/limitaciones.md).
@@ -231,12 +255,12 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 ## In English
 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
-Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
+Morgenstern-Price and Janbu; circular search with an optional non-circular refinement, plus fixed polyline surfaces; Mohr-Coulomb, undrained, Hoek-Brown and SHANSEP strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With a pile or sheet pile that carries a given force it checks the
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 40/42 checks of the upcoming v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 2 explained, no open failures). The v0.6 format, due with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). With a pile or sheet pile that carries a given force it checks the
 global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of
 the v0.5 format only estimates the soil force between rigid vertical piles (S/D 2 to 8). Neither computes embedment,
 bending moment, deflection or the internal and external checks of a wall, so OpenGeoSlide is not a tool for designing

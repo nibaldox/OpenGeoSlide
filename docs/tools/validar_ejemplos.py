@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.5 y contra el binario `ogs`.
+"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 y contra el binario `ogs`.
 
 Uso (desde la raíz del repositorio, con el binario compilado: `cargo build --release -p ogs-cli`):
 
@@ -18,6 +18,13 @@ El documento marca cada ejemplo con un comentario HTML justo antes del bloque ``
         métodos, comparado a 4 decimales (`ninguna` = ningún método lo trae).
         `cruce=soil_force:<v>,governs:<soil|shear|bending>,arm:<v>`: el primer cruce de `reinforcement_forces` de
         **todos** los métodos (pilote de Ito-Matsui); los números a 4 decimales, `governs` por igualdad.
+        `pasadas=<metodo>:<n>,…`: `strength.passes` del método (lazo de Hoek-Brown, v0.6), por igualdad.
+        `ley=<hoek_brown|shansep>`: `strength.slices` no vacío y con esa `law` en **todas** sus entradas, en todos los métodos.
+        `sv=<indice>:<vertical_stress>:<ocr>`: la entrada de `strength.slices` con ese `index` (SHANSEP), de **todos** los
+        métodos, a 4 decimales.
+        `nc=<metodo>:<campo>:<valor>,…`: `search.non_circular` del método (`seeds` y `evaluated` por igualdad; `seed_fos`
+        y `polyline_fos`, a 4 decimales). `superficie=polilinea:<max>`: la superficie de **todos** los métodos es una
+        polilínea con a lo sumo `<max>` vértices.
 
     <!-- ogs-fragmento base=<id> ruta=<a.b.0.c> esperado=ok|error:<subcadena> esquema=acepta|rechaza [estado=...] -->
         Reemplaza el valor de `ruta` en el ejemplo `base` por el JSON del bloque (una lista usa índices) y lo
@@ -103,6 +110,39 @@ def comprobar_informe(nombre: str, res: list[dict], at: dict[str, str], fallos: 
                     ok = obt is not None and round(obt, 4) == round(float(v), 4)
                 if not ok:
                     fallos.append(f"[{nombre}] {r['method']}: cruce.{k} {obt}, se esperaba {v}")
+    for par in filter(None, at.get("pasadas", "").split(",")):
+        m, _, v = par.partition(":")
+        r = next((r for r in res if r["method"] == m), None)
+        obt = ((r or {}).get("strength") or {}).get("passes")
+        if obt != int(v):
+            fallos.append(f"[{nombre}] {m}: strength.passes {obt}, se esperaba {v}")
+    if "ley" in at:
+        for r in res:
+            sl = (r.get("strength") or {}).get("slices") or []
+            if not sl or any(x.get("law") != at["ley"] for x in sl):
+                fallos.append(f"[{nombre}] {r['method']}: strength.slices sin la ley {at['ley']}")
+    if "sv" in at:
+        ind, _, resto = at["sv"].partition(":")
+        vs, _, oc = resto.partition(":")
+        for r in res:
+            e = next((x for x in (r.get("strength") or {}).get("slices", []) if x["index"] == int(ind)), None)
+            if e is None or round(e["vertical_stress"], 4) != round(float(vs), 4) or round(e["ocr"], 4) != round(float(oc), 4):
+                fallos.append(f"[{nombre}] {r['method']}: strength.slices[{ind}] {e}, se esperaba σ′v {vs} y OCR {oc}")
+    for par in filter(None, at.get("nc", "").split(",")):
+        m, _, resto = par.partition(":")
+        k, _, v = resto.partition(":")
+        r = next((r for r in res if r["method"] == m), None)
+        nc = ((r or {}).get("search") or {}).get("non_circular") or {}
+        obt = nc.get(k)
+        ok = obt is not None and (obt == int(v) if k in ("seeds", "evaluated") else round(obt, 4) == round(float(v), 4))
+        if not ok:
+            fallos.append(f"[{nombre}] {m}: search.non_circular.{k} {obt}, se esperaba {v}")
+    if "superficie" in at:
+        tipo, _, mx = at["superficie"].partition(":")
+        for r in res:
+            pts = r["surface"].get("points") if r.get("surface") else None
+            if pts is None or len(pts) > int(mx):
+                fallos.append(f"[{nombre}] {r['method']}: superficie {None if pts is None else len(pts)} vértices, se esperaba polilínea de a lo sumo {mx}")
     for cod in filter(None, at.get("avisos", "").split(",")):
         for r in res:
             if cod not in r["warnings"]:
@@ -123,7 +163,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ogs", default="target/release/ogs")
     ap.add_argument("--doc", default="docs/formato-ogs-json.md")
-    ap.add_argument("--schema", default="schema/ogs-0.5.schema.json")
+    ap.add_argument("--schema", default="schema/ogs-0.6.schema.json")
     a = ap.parse_args()
 
     validador = Draft202012Validator(json.loads(Path(a.schema).read_text()))

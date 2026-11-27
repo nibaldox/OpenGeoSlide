@@ -1,7 +1,7 @@
-# Formato `.ogs.json` (v0.1 a v0.5)
+# Formato `.ogs.json` (v0.1 a v0.6)
 
 Los modelos de OpenGeoSlide se guardan como `.ogs.json`. La web los abre y los guarda, la CLI y el paquete de Python
-los leen. El motor acepta cinco versiones:
+los leen. El motor acepta seis versiones:
 
 | Versión | Agrega | Esquema |
 |---|---|---|
@@ -10,20 +10,24 @@ los leen. El motor acepta cinco versiones:
 | `"0.3"` | material **no drenado**, superficie **polilínea**, métodos **Morgenstern-Price** y **Janbu**, `analysis.interslice` | [`schema/ogs-0.3.schema.json`](../schema/ogs-0.3.schema.json) |
 | `"0.4"` | **refuerzos** (`reinforcements`): anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos | [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) |
 | `"0.5"` | **grieta de tracción** (`analysis.tension_crack`) y **presión de suelo de Ito-Matsui** en pilotes (`lateral_pressure`, `capacity`) | [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) |
+| `"0.6"` | materiales **Hoek-Brown** y **SHANSEP**, y **búsqueda no circular** (`analysis.search.non_circular`) | [`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json) |
 
-[`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) acepta las cinco versiones. El ejemplo mínimo es
+[`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json) acepta las seis versiones. El ejemplo mínimo es
 [`examples/acads1a.ogs.json`](../examples/acads1a.ogs.json).
 
 > **La v0.5 se publicó con la 0.4.0** (véase el [registro de cambios](../CHANGELOG.md#040---2026-11-27)). La 0.3.0,
 > la versión anterior, llega hasta el formato v0.4 y no incluye la grieta de tracción ni el agua embalsada.
+>
+> **La v0.6 saldrá con la 0.5.0** y aún no está publicada: la 0.4.0 no lee los materiales `hoek_brown` y `shansep` ni
+> `analysis.search.non_circular`.
 
-- **Un modelo sin campos nuevos da el mismo resultado en las cinco versiones**, bit a bit: `fos`, `status`,
+- **Un modelo sin campos nuevos da el mismo resultado en las seis versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
   a la salida de la v0.2.0, con **una sola excepción documentada**: un círculo cuyo arco termina con la tangente vertical
   sobre el terreno, que la v0.2.0 rechazaba por redondeo (V065), ahora se analiza ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
 - **Un modelo sin `tension_crack` y con la piezométrica bajo el terreno da la misma salida, byte a byte, que la v0.3.0**
   (salvo el número de versión del motor, y con la excepción de γw en imperial que sigue). **Excepción documentada:** un modelo cuya piezométrica pasa **sobre el
-  terreno** cambia de resultado en las cinco versiones, porque ahora incluye el agua embalsada
+  terreno** cambia de resultado en las seis versiones, porque ahora incluye el agua embalsada
   ([Agua embalsada](#agua-embalsada-todas-las-versiones) y
   [Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)). **Segunda excepción
   (E15j-8):** en V019 con búsqueda solo cambian los contadores `search.evaluated` y `search.valid`
@@ -33,15 +37,20 @@ los leen. El motor acepta cinco versiones:
   motor emite entonces el aviso informativo `water_unit_weight_default`; medido con ACADS 1(a) en pies y una piezométrica
   bajo el terreno, Bishop da 0,6339 en lugar de 0,9300 de la v0.3.0 (γw = 9,81 «pcf»). En SI no cambia nada
   ([Limitaciones](limitaciones.md#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)).
-- **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, y `analysis.tension_crack` y
-  el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`** (véase [la compuerta de versión](#compuerta-de-versión)).
+- **Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0**, con la versión del motor normalizada: 0
+  diferencias en 180 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-reinforced` contra el
+  binario de la 0.4.0); los 18 modelos con campos v0.6 se saltan, porque el binario base no lee esa versión
+  ([Verificación](verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
+- **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, `analysis.tension_crack` y
+  el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`, y los materiales `hoek_brown` y `shansep` y
+  `analysis.search.non_circular` exigen `"0.6"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
 - Todos los objetos rechazan campos desconocidos. Un `null` cuenta como campo ausente.
 
 Los ejemplos de esta página se validan con el esquema y con `ogs analyze`
 ([cómo reproducirlo](#cómo-se-validan-los-ejemplos)).
 
-## Estructura de un modelo v0.5
+## Estructura de un modelo v0.6
 
 ```
 format, version, meta?, units?, materials[], regions[], water?, loads?, reinforcements?, slope?, analysis
@@ -56,6 +65,10 @@ analysis: { methods[], slices?, tolerance?, max_iterations?, min_m_alpha?, seism
 `tension_crack` es nuevo en la v0.5, y también los campos `lateral_pressure` y `capacity` de un `pile` de
 `reinforcements` ([Pilotes con presión de suelo de Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). El agua
 embalsada no tiene campo: sale de `water.piezometric_line` y del terreno.
+
+La v0.6 agrega, en `materials[]`, los modelos `hoek_brown` (con `ucs`, `gsi`, `mi` y `disturbance`) y `shansep` (con el
+objeto `shansep`), y `search.non_circular` dentro de `analysis.search`
+([Hoek-Brown, SHANSEP y búsqueda no circular](#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
 
 ## Material no drenado (`model: "undrained"`)
 
@@ -163,8 +176,9 @@ Errores de material (el motor responde `InvalidModel`, código de salida 2):
 { "type": "polyline", "points": [[30, 25.0], [40, 26.9], [51.3, 35.0]] }
 ```
 
-**La búsqueda sigue siendo circular.** La polilínea es solo una superficie fija que usted dibuja o importa; la búsqueda
-no circular queda para la Fase 3b ([Limitaciones](limitaciones.md)).
+**La búsqueda es circular.** La polilínea es una superficie fija que usted dibuja o importa. Desde la v0.6, una búsqueda
+circular puede **refinarse a una polilínea** con `analysis.search.non_circular`
+([Búsqueda no circular](#búsqueda-no-circular-analysissearchnon_circular)).
 
 ### Polilínea fija
 
@@ -407,6 +421,12 @@ puede traer, además de lo de siempre (`method`, `fos`, `status`, `iterations`, 
 - **`tension_crack`**, solo con `analysis.tension_crack`: `{ "x", "depth", "water_force", "face_height"? }` con la
   posición, la profundidad y el empuje de la grieta de esa superficie, y la altura de la cara cortada cuando difiere de
   `depth` ([Grieta de tracción](#grieta-de-tracción-v05)).
+- **`strength`**, solo con dovelas `hoek_brown` o `shansep`: `{ "passes"?, "slices": [{ "law", "index", "normal_stress"? |
+  "vertical_stress"?, "ocr"? }] }`, con el número de pasadas del lazo de Hoek-Brown y, por dovela de base de esos
+  materiales, el esfuerzo de la solución ([Hoek-Brown](#la-salida-strength), [SHANSEP](#la-salida-de-shansep)).
+- **`search.non_circular`**, solo con `analysis.search.non_circular`: `{ "seeds", "evaluated", "seed_fos", "polyline_fos"? }`
+  ([La salida de la búsqueda no circular](#la-salida-de-la-búsqueda-no-circular)). La superficie crítica es una polilínea (`{ "points": [...] }`) si
+  gana la polilínea, y un círculo si gana el círculo de la semilla.
 
 Los campos opcionales se omiten cuando no aplican. Un resultado de `janbu_corrected` sobre el ejemplo de la
 polilínea (sin las dovelas):
@@ -464,7 +484,10 @@ Con `"0.1"` o `"0.2"`, cada uso de un campo o variante de la 0.3 da
 `"0.5"`: con una versión menor el error es `InvalidModel: tension_crack requiere version "0.5"`
 ([Grieta de tracción](#grieta-de-tracción-v05)). `lateral_pressure` o `capacity` en un pilote exigen `"0.5"`: el error es
 `InvalidModel: lateral_pressure requiere version "0.5"`
-([Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). El agua embalsada **no** tiene compuerta: se aplica en todas las
+([Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). Los materiales `hoek_brown` y `shansep`, sus campos (`ucs`, `gsi`,
+`mi`, `disturbance` y `shansep`) y `analysis.search.non_circular` exigen `"0.6"`: con una versión menor, el error es
+`InvalidModel: <campo> requiere version "0.6"`, con el **primer** campo en ese orden
+([Versión mínima 0.6](#versión-mínima-06)). El agua embalsada **no** tiene compuerta: se aplica en todas las
 versiones.
 
 Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arriba:
@@ -481,7 +504,8 @@ Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arr
 
 El esquema `ogs-0.3.schema.json` aplica la misma regla con un `if/then` por versión. **La web** guarda la versión
 mínima: `"0.2"` si el modelo no usa ningún campo de 0.3, `"0.3"` si usa alguno, `"0.4"` si hay refuerzos y `"0.5"` solo
-si existe `analysis.tension_crack` o algún pilote lleva `lateral_pressure`; abre las cinco versiones.
+si existe `analysis.tension_crack` o algún pilote lleva `lateral_pressure`, y `"0.6"` solo si hay un material `hoek_brown` o
+`shansep`, alguno de sus campos o `analysis.search.non_circular`; abre las seis versiones.
 
 ## Sismo y cargas (v0.2)
 
@@ -1758,6 +1782,828 @@ Con una profundidad que el círculo fijo no alcanza (20 m), el modelo es válido
 { "depth": 20.0, "water_fill": 0.0 }
 ```
 
+## Hoek-Brown, SHANSEP y búsqueda no circular (v0.6)
+
+La versión `"0.6"` agrega dos modelos de resistencia, `hoek_brown` y `shansep`, y la búsqueda no circular
+(`analysis.search.non_circular`). El esquema es [`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json). **Un modelo
+sin ninguno de estos campos da la misma salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada). La v0.6
+saldrá con la 0.5.0; la 0.4.0 publicada llega hasta el formato v0.5.
+
+### Versión mínima 0.6
+
+Exigen `"0.6"`, en este orden (el error nombra el **primero** que encuentra):
+
+1. por material, en el orden de la lista: `materials[i].model = "hoek_brown"` o `materials[i].model = "shansep"`; después,
+   los campos `ucs`, `gsi`, `mi`, `disturbance` y `shansep`, en ese orden, presentes en cualquier material;
+2. `analysis.search.non_circular`.
+
+Con una versión menor, el error es `InvalidModel: <campo> requiere version "0.6"`, por ejemplo
+`materials[0].model = "hoek_brown" requiere version "0.6"`, `materials[0].ucs requiere version "0.6"` o
+`analysis.search.non_circular requiere version "0.6"`. Un campo que exigía `"0.3"`, `"0.4"` o `"0.5"` se acepta también
+con `"0.6"`. La web guarda `"0.6"` solo si el modelo usa alguno de estos campos.
+
+### Material Hoek-Brown (`model: "hoek_brown"`)
+
+La resistencia de una roca fracturada según el criterio generalizado de Hoek-Brown (Hoek, Carranza-Torres y Corkum,
+2002, «Hoek-Brown failure criterion, 2002 edition»), con la tangente instantánea a la envolvente en el esfuerzo normal
+efectivo de cada dovela.
+
+```json
+{ "id": "roca", "name": "Roca", "model": "hoek_brown", "unit_weight": 25.0, "ucs": 12000.0, "gsi": 25.0, "mi": 8.0,
+  "disturbance": 0.7 }
+```
+
+| Campo | Significado | Rango |
+|---|---|---|
+| `unit_weight` | peso unitario | número finito > 0, como siempre |
+| `ucs` | resistencia a compresión simple de la roca intacta, σci, en la unidad de esfuerzo del modelo (kPa en SI, psf en imperial) | número finito > 0 |
+| `gsi` | Geological Strength Index | número finito en [0, 100] |
+| `mi` | constante de la roca intacta | número finito > 0 |
+| `disturbance` | factor de perturbación D. **Obligatorio, sin valor por defecto** | número finito en [0, 1] |
+| `unit_weight_sat`, `ru` | opcionales, con las reglas de Mohr-Coulomb | |
+
+- **D no tiene valor por defecto.** cSlope usa 0 cuando falta, pero Hoek et al. (2002, §7) advierten que D = 0 da
+  propiedades demasiado optimistas en minas a cielo abierto. El editor pide elegirlo y muestra la guía de su Tabla 1.
+- **Prohibidos** en un material `hoek_brown`: `cohesion`, `friction_angle`, `undrained_strength`, `strength_datum`,
+  `strength_gradient`, `strength_limit` y `shansep`. A la inversa, `ucs`, `gsi`, `mi` y `disturbance` están prohibidos en
+  `mohr_coulomb`, `undrained` y `shansep`.
+- **Los parámetros derivados no son campos del formato.** El motor los calcula con las ecuaciones 3 a 5 de Hoek et al.
+  (2002), y la web los muestra con la misma fórmula:
+  - `mb = mi·exp((GSI − 100)/(28 − 14·D))`
+  - `s = exp((GSI − 100)/(9 − 3·D))`
+  - `a = 1/2 + (exp(−GSI/15) − exp(−20/3))/6`
+
+  Para el ejemplo de abajo (σci 12 000 kPa, GSI 25, mi 8, D 0,7): mb = 0,1298, s = 1,903·10⁻⁵ y a = 0,5313.
+- **Unidades.** `ucs` es un esfuerzo. Una σci escrita en MPa como si fueran kPa es el error más común: la web avisa cuando
+  σci es menor que 1000 kPa o mayor que 300 000 kPa (o su equivalente imperial).
+- **Sismo y agua.** El sismo entra en el esfuerzo normal efectivo como en los demás materiales, y `unit_weight_sat` y `ru`
+  funcionan igual.
+
+#### La envolvente y la tangente
+
+Con σ3 como esfuerzo principal menor, σ1 = σ3 + σci·(mb·σ3/σci + s)^a (ecuación 2). En el punto de la envolvente con
+σn = σ′n, la tangente es `sen φᵢ = (k − 1)/(k + 1)`, con `k = dσ1/dσ3`, y `cᵢ = τ − σ′n·tan φᵢ` (ecuaciones 8 a 10). El σ3 de
+ese punto se busca por bisección hasta `|Δσ3| ≤ 1e-12·ucs`. Se impone `cᵢ ≥ 0` y `φᵢ ≤ 89,9°`.
+
+#### Bajo confinamiento: la envolvente completa
+
+Con `σt = −s·σci/mb` (la resistencia a tracción del macizo) y `sn(0)`, el σn del punto con σ3 = 0:
+
+| Esfuerzo normal efectivo | Tangente que usa el motor |
+|---|---|
+| `σ′n > sn(0)` | la del punto con σ3 ≥ 0 (igual que cSlope) |
+| `σt < σ′n ≤ sn(0)` | la del punto de la **misma envolvente** con σ3 en (σt, 0] |
+| `σ′n ≤ σt` | `c = 0` y `tan φ = 0`: la base no resiste |
+
+cSlope usa en cambio la tangente de σ3 = 0 para todo `σ′n ≤ sn(0)`. Esa recta queda sobre la envolvente cóncava y da
+resistencia incluso en tracción (9,5 kPa con `σ′n = −0,88 kPa` en el caso de X25 §3.4). **La regla del producto nunca
+sobreestima la resistencia** y es el criterio tal como lo define la fuente; su diferencia con cSlope es conservadora y
+crece con las dovelas en bajo confinamiento (véase [Limitaciones](limitaciones.md#hoek-brown-envolvente-completa-costo-y-no-convergencia-v06)).
+En el ejemplo de abajo, `sn(0)` = 2,811 kPa y `σt` = −1,759 kPa.
+
+Si alguna dovela de base `hoek_brown` tiene `σ′n ≤ sn(0)` en la solución reportada, el motor emite la nota informativa
+`hoek_brown_low_confinement`, **una vez por método**: revise la presión de poros y las grietas.
+
+#### El lazo por dovela
+
+La resistencia depende de `σ′n`, y `σ′n` depende del FS. El motor itera, sin tocar los métodos de equilibrio:
+
+1. **Estado inicial:** `σ′n₀ = (W/b)·cos²α − u` en cada dovela de base `hoek_brown`.
+2. **Pasada:** resuelve el método con los (c, tan φ) actuales. Con el N′ de esa solución, `σ′n = N′/l`, calcula la
+   tangente (cT, tT) y promedia: `c ← (c + cT)/2` y `tan φ ← (tan φ + tT)/2` (**w = 0,5**, como cSlope).
+3. **Convergencia:** `|ΔF| ≤ 1e-6·|F|`, con un máximo de **50 pasadas**.
+4. **Sin convergencia:** el estado es `not_converged` con el aviso `hoek_brown_not_converged`. En una búsqueda, ese candidato
+   se descarta, como en cSlope. Si el método no tiene solución en alguna pasada (por ejemplo, sin raíz de λ), el resultado es
+   el estado de esa pasada y el lazo se detiene.
+
+Sin el promedio (w = 1), el lazo cicla en un modelo de dos bancos con Bishop y Janbu (no converge en 200 pasadas); con w = 0,5
+converge en 10 a 12 pasadas en los cuatro modelos medidos (X28). N′ es el de la ecuación de cada método: el de Bishop, el de
+(F, λ) en Spencer y Morgenstern-Price, y el de F₀ en los dos Janbu (el factor de corrección de Janbu corregido se aplica al
+final, con los (c, tan φ) finales). En ningún modelo medido (X28 y la batería F3B) se llegó al máximo de pasadas.
+
+#### La salida: `strength`
+
+Un resultado con dovelas `hoek_brown` o `shansep` agrega `strength`; sin esos materiales se omite y la salida no cambia:
+
+```json
+"strength": { "passes": 13,
+              "slices": [ { "law": "hoek_brown", "index": 0, "normal_stress": -0.1350 },
+                          { "law": "hoek_brown", "index": 12, "normal_stress": 25.8956 } ] }
+```
+
+- `passes`: el número de pasadas del lazo de ese método (solo con Hoek-Brown).
+- `slices`: solo las dovelas de base `hoek_brown` o `shansep`, con su `index` en `slices` del mismo informe y su
+  `normal_stress` (σ′n en esa solución) en Hoek-Brown.
+- En `slices[].cohesion` y `slices[].tan_phi` están los (c, tan φ) **con los que se calculó** la última solución, no los
+  promediados después; así el equilibrio global se comprueba con las fuerzas reales de esa solución.
+
+#### Errores
+
+Todos son `InvalidModel` y nombran el material y el campo. Los valores de abajo son los del ejemplo (`roca`):
+
+| Caso | Mensaje |
+|---|---|
+| falta `ucs`, `gsi`, `mi` o `disturbance` | `el material 'roca' con model "hoek_brown" requiere el campo 'disturbance'` |
+| `ucs` ≤ 0 o no finito | `el ucs del material 'roca' debe ser finito y > 0` |
+| `gsi` fuera de [0, 100] | `el GSI del material 'roca' debe estar en [0, 100]` |
+| `mi` ≤ 0 o no finito | `el mi del material 'roca' debe ser finito y > 0` |
+| `disturbance` fuera de [0, 1] | `el disturbance del material 'roca' debe estar en [0, 1]` |
+| un campo prohibido | `el material 'roca' con model "hoek_brown" no admite el campo 'cohesion'` |
+| `ucs`, `gsi`, `mi` o `disturbance` en otro modelo | `el material 'roca' con model "mohr_coulomb" no admite el campo 'gsi'` |
+| `version` menor que `"0.6"` | `materials[0].model = "hoek_brown" requiere version "0.6"` |
+
+#### Ejemplo: el rajo SA con Hoek-Brown
+
+El sintético SA de X23 §4.1: tres bancos de 10 m con taludes de 60°, en una roca débil (σci 12 000 kPa, GSI 25, mi 8,
+D 0,7), seco, con un círculo fijo. Las dovelas 0, 1, 39 y 40 quedan en bajo confinamiento (σ′n de −0,135, 2,172, 1,757 y
+−0,787 kPa, todas ≤ `sn(0)` y por encima de `σt`), así que sale la nota `hoek_brown_low_confinement`. El lazo converge en 13
+pasadas con Bishop y los dos Janbu, y en 11 con Spencer y Morgenstern-Price. Frente a cSlope en el mismo círculo
+(1,1816, 1,1881, 1,1368 y 1,1794), el FS del motor es de 0,05 % a 0,15 % menor; en este modelo, solo 4 de 41 dovelas quedan en
+bajo confinamiento.
+
+<!-- ogs-ejemplo nombre=hb-roca-sa estado=converged fos=bishop:1.1804,spencer:1.1874,morgenstern_price:1.1874,janbu_simplified:1.1351,janbu_corrected:1.1777 avisos=hoek_brown_low_confinement pasadas=bishop:13,spencer:11,morgenstern_price:11,janbu_simplified:13,janbu_corrected:13 ley=hoek_brown -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "ejemplo-hoek-brown",
+    "title": "Sintético SA (X23 §4.1): rajo de tres bancos en roca débil con Hoek-Brown, círculo fijo"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "roca",
+      "name": "Roca",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 12000.0,
+      "gsi": 25.0,
+      "mi": 8.0,
+      "disturbance": 0.7
+    }
+  ],
+  "regions": [
+    {
+      "material": "roca",
+      "polygon": [
+        [-40, -10], [72.3205, -10], [72.3205, 30], [32.3205, 30], [27.3205, 30], [21.547, 20], [16.547, 20], [10.7735, 10],
+        [5.7735, 10], [0, 0], [-40, 0]
+      ]
+    }
+  ],
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 1000,
+    "min_m_alpha": 0.2,
+    "surface": { "type": "circle", "xc": 11.064761108572334, "yc": 35.672573017328205, "r": 18.85046460530379 },
+    "interslice": { "function": "constant" }
+  }
+}
+```
+
+**D = 0.** Con un macizo sin perturbar, la roca es mucho más resistente (Bishop pasa de 1,1804 a 2,0215):
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0.disturbance esperado=ok esquema=acepta estado=converged fos=bishop:2.0215,spencer:2.0351,morgenstern_price:2.0351,janbu_simplified:1.9563,janbu_corrected:2.0297 -->
+```json
+0.0
+```
+
+**Grieta con profundidad fija.** Con Hoek-Brown se admite la grieta de profundidad fija (la automática no, véase
+[Combinaciones no admitidas](#combinaciones-no-admitidas-v06)):
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=analysis.tension_crack esperado=ok esquema=acepta estado=converged fos=bishop:1.1806,spencer:1.1868,morgenstern_price:1.1868,janbu_simplified:1.1324,janbu_corrected:1.1684 -->
+```json
+{ "depth": 2.0, "water_fill": 0.0 }
+```
+
+**Rechazos.** Cada uno cambia un campo del ejemplo `hb-roca-sa`. Sin `disturbance`:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0 esperado=error:el~material~'roca'~con~model~"hoek_brown"~requiere~el~campo~'disturbance' esquema=rechaza -->
+```json
+{ "id": "roca", "name": "Roca", "model": "hoek_brown", "unit_weight": 25.0, "ucs": 12000.0, "gsi": 25.0, "mi": 8.0 }
+```
+
+Con GSI 120:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0.gsi esperado=error:el~GSI~del~material~'roca'~debe~estar~en~[0,~100] esquema=rechaza -->
+```json
+120.0
+```
+
+Con `ucs` 0:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0.ucs esperado=error:el~ucs~del~material~'roca'~debe~ser~finito~y~>~0 esquema=rechaza -->
+```json
+0.0
+```
+
+Con `mi` 0:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0.mi esperado=error:el~mi~del~material~'roca'~debe~ser~finito~y~>~0 esquema=rechaza -->
+```json
+0.0
+```
+
+Con D = 1,5:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0.disturbance esperado=error:el~disturbance~del~material~'roca'~debe~estar~en~[0,~1] esquema=rechaza -->
+```json
+1.5
+```
+
+Con una `cohesion`, que un material `hoek_brown` no admite:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0 esperado=error:el~material~'roca'~con~model~"hoek_brown"~no~admite~el~campo~'cohesion' esquema=rechaza -->
+```json
+{ "id": "roca", "name": "Roca", "model": "hoek_brown", "unit_weight": 25.0, "ucs": 12000.0, "gsi": 25.0, "mi": 8.0,
+  "disturbance": 0.7, "cohesion": 10.0 }
+```
+
+Con un campo de Hoek-Brown en un material de Mohr-Coulomb:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=materials.0 esperado=error:el~material~'roca'~con~model~"mohr_coulomb"~no~admite~el~campo~'gsi' esquema=rechaza -->
+```json
+{ "id": "roca", "name": "Roca", "model": "mohr_coulomb", "unit_weight": 25.0, "cohesion": 10.0, "friction_angle": 30.0, "gsi": 25.0 }
+```
+
+Con `version` `"0.5"`:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=version esperado=error:materials[0].model~=~"hoek_brown"~requiere~version~"0.6" esquema=rechaza -->
+```json
+"0.5"
+```
+
+### Material SHANSEP (`model: "shansep"`)
+
+La resistencia no drenada normalizada por el esfuerzo vertical efectivo, `Su = S·σ′v·OCR^m` (Ladd, 1991), con φ = 0. El
+motor la calcula **una vez por dovela y por superficie**, en el punto medio de la base; no depende de F, así que no hay
+iteración.
+
+```json
+{ "id": "arcilla", "name": "Arcilla", "model": "shansep", "unit_weight": 18.0,
+  "shansep": { "ratio": 0.25, "exponent": 0.8, "pop": 30.0 } }
+```
+
+| Campo | Significado | Rango |
+|---|---|---|
+| `unit_weight` | peso unitario | número finito > 0 |
+| `shansep.ratio` | el cociente S de resistencia normalizada | número finito > 0 |
+| `shansep.exponent` | el exponente m. **Opcional**; vale **0,8** si falta (cSlope; Ladd, 1991) | número finito en [0, 1] |
+| `shansep.ocr` | OCR constante | número finito ≥ 1 |
+| `shansep.pop` | presión de preconsolidación en exceso (POP), en la unidad de esfuerzo del modelo | número finito ≥ 0 |
+| `shansep.ocr_by_elevation` | tabla `[[y, OCR], …]` | al menos 2 filas, `y` estrictamente creciente y OCR finito ≥ 1 |
+| `unit_weight_sat`, `ru` | opcionales | como en Mohr-Coulomb |
+
+- **Exactamente una** de `ocr`, `pop` u `ocr_by_elevation`. Ninguna o más de una es
+  `InvalidModel: el material '<id>' requiere exactamente uno de shansep.ocr, shansep.pop o shansep.ocr_by_elevation`. cSlope
+  usa OCR = 1 sin avisar cuando falta; aquí es un error.
+- **Prohibidos** en un material `shansep`: `cohesion`, `friction_angle`, `undrained_strength`, `strength_datum`,
+  `strength_gradient`, `strength_limit`, `ucs`, `gsi`, `mi` y `disturbance`. El campo `shansep` está prohibido en los demás
+  modelos. El objeto `shansep` rechaza campos desconocidos.
+- **Fuera del formato v0.6** (cSlope los tiene): `su_min`, `yield_stress`, `su_by_stress`, `anisotropy`,
+  `yield_from_earlier_stage`, `above_water` y `b_bar`.
+
+#### El esfuerzo vertical efectivo en la base (σ′v)
+
+`σ′v = (W + Q + V)/b − u`, en el punto medio de la base de cada dovela, donde:
+
+- `W` es el peso **estático** de la dovela (sin `kv·W`);
+- `Q` son las cargas verticales estáticas (`udl` y `line`) sobre la dovela;
+- `V` es el peso del agua embalsada sobre la dovela;
+- `b` es el ancho de la dovela, y
+- `u` es la presión de poros de la base que ya calcula el motor: la piezométrica sin recortar al terreno, el agua embalsada
+  y `ru`.
+
+**El sismo no entra en σ′v.** Con `kh` y `kv`, Su queda idéntico dovela por dovela (diferencia de 0,0 en el oráculo); el
+sismo actúa solo en las fuerzas de los métodos, como siempre.
+
+- **OCR.** Con `ocr`, el valor constante. Con `pop`, `OCR = (σ′v + pop)/σ′v`. Con `ocr_by_elevation`, la interpolación
+  lineal en la cota del punto medio de la base, `(y_izq + y_der)/2`, y **constante fuera de la tabla**: debajo de la primera
+  fila vale el OCR de la primera; encima de la última, el de la última.
+- **σ′v ≤ 0.** Su = 0, sin evaluar el OCR, y la nota informativa `shansep_nonpositive_stress`, **una vez por método**. Con
+  entradas válidas solo ocurre bajo el agua, con `unit_weight` menor que γw y sin `unit_weight_sat`
+  ([ejemplo](#ejemplo-shansep-con-ocr-por-cota-y-la-piezométrica-sobre-el-terreno)).
+- **Las caras de las dovelas** (el aviso [`interslice_shear_exceeds_strength`](#aviso-interslice_shear_exceeds_strength)):
+  la resistencia de una cara es `∫ Su(σ′v(z)) dz` sobre la cara, con puntos medios. `σ′v(z)` es el esfuerzo vertical de la
+  **columna de suelo** a la cota z, menos `u(z)`: la misma convención que usan las caras de los otros materiales. En un
+  material `hoek_brown`, la cara usa `τ(σ′n)` de la misma envolvente y con la misma regla de bajo confinamiento, con σ′n
+  igual al esfuerzo efectivo vertical.
+
+#### La salida de SHANSEP
+
+Cada dovela de base `shansep` trae en `strength.slices` su `vertical_stress` (σ′v) y su `ocr`; `cohesion` es Su y `tan_phi`
+es 0. No hay `passes`.
+
+```json
+"strength": { "slices": [ { "law": "shansep", "index": 24, "vertical_stress": 61.2810, "ocr": 1.1632 } ] }
+```
+
+#### Errores
+
+| Caso | Mensaje |
+|---|---|
+| falta el objeto `shansep` | `el material 'soil' con model "shansep" requiere el campo 'shansep'` |
+| `ratio` ≤ 0 o no finito | `el shansep.ratio del material 'soil' debe ser finito y > 0` |
+| `exponent` fuera de [0, 1] | `el shansep.exponent del material 'soil' debe estar en [0, 1]` |
+| ninguna o más de una fuente de OCR | `el material 'soil' requiere exactamente uno de shansep.ocr, shansep.pop o shansep.ocr_by_elevation` |
+| `ocr` < 1 | `el shansep.ocr del material 'soil' debe ser finito y ≥ 1` |
+| `pop` < 0 | `el shansep.pop del material 'soil' debe ser finito y ≥ 0` |
+| tabla con menos de 2 filas | `el shansep.ocr_by_elevation del material 'soil' necesita al menos 2 filas` |
+| un OCR < 1 o un valor no finito en la tabla | `el shansep.ocr_by_elevation del material 'soil' tiene valores no finitos o OCR < 1` |
+| `y` no estrictamente creciente | `el shansep.ocr_by_elevation del material 'soil' debe tener y estrictamente creciente` |
+| un campo prohibido | `el material 'soil' con model "shansep" no admite el campo 'friction_angle'` |
+| un campo desconocido en `shansep` (por ejemplo `su_min`) | ``unknown field `su_min`, expected one of …`` |
+| `version` menor que `"0.6"` | `materials[0].model = "shansep" requiere version "0.6"` |
+
+#### Ejemplo: SHANSEP con POP
+
+V047a (la geometría de ACADS 1(a): talud de 10 m, 2H:1V) con una arcilla SHANSEP (S 0,25, m 0,8) y un POP de 10 kPa, seca, en el círculo
+crítico de Mohr-Coulomb. En la dovela 24, `W/b` = 61,281 kPa y `u` = 0, así que σ′v = 61,281, `OCR = (61,281 + 10)/61,281`
+= 1,1632 y `Su = 0,25·61,281·1,1632^0,8` = 17,290 kPa. Contra cSlope, los cinco métodos difieren 0,0007 % o menos en
+Bishop, Spencer y Morgenstern-Price y 0,0051 % o menos en los dos Janbu:
+
+<!-- ogs-ejemplo nombre=shansep-pop estado=converged fos=bishop:0.8041,spencer:0.8041,morgenstern_price:0.8041,janbu_simplified:0.7830,janbu_corrected:0.8322 ley=shansep sv=24:61.2810:1.1632 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "ejemplo-shansep-pop",
+    "title": "V047a con arcilla SHANSEP (S 0,25, m 0,8) y POP de 10 kPa, círculo fijo, seco"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "shansep",
+      "unit_weight": 20.0,
+      "shansep": { "ratio": 0.25, "exponent": 0.8, "pop": 10.0 }
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [[20.0, 20.0], [20.0, 25.0], [30.0, 25.0], [50.0, 35.0], [70.0, 35.0], [70.0, 20.0]]
+    }
+  ],
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": { "type": "circle", "xc": 29.511, "yc": 53.738, "r": 28.742 }
+  }
+}
+```
+
+**`ocr` constante.** Con `ocr` 1,5 y el exponente por defecto, Bishop da 0,9436 (cSlope, 0,9437):
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=ok esquema=acepta estado=converged fos=bishop:0.9436,spencer:0.9436,morgenstern_price:0.9436,janbu_simplified:0.9178,janbu_corrected:0.9754 ley=shansep -->
+```json
+{ "ratio": 0.25, "ocr": 1.5 }
+```
+
+**`ocr_by_elevation`.** Con una tabla de 1,0 en la cota 20 a 1,5 en la cota 35, el OCR sube con la cota de la base:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=ok esquema=acepta estado=converged fos=bishop:0.8310,spencer:0.8310,morgenstern_price:0.8310,janbu_simplified:0.8125,janbu_corrected:0.8635 ley=shansep -->
+```json
+{ "ratio": 0.25, "exponent": 0.8, "ocr_by_elevation": [[20.0, 1.0], [35.0, 1.5]] }
+```
+
+Fuera de la tabla, el OCR es constante: con una tabla de 1,0 en la cota 22 a 2,0 en la cota 30, toda base bajo 22 m
+usa 1,0 y toda base sobre 30 m usa 2,0 (Bishop, 1,0622):
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=ok esquema=acepta estado=converged fos=bishop:1.0622,spencer:1.0622,morgenstern_price:1.0622,janbu_simplified:1.0427,janbu_corrected:1.1081 ley=shansep -->
+```json
+{ "ratio": 0.25, "exponent": 0.8, "ocr_by_elevation": [[22.0, 1.0], [30.0, 2.0]] }
+```
+
+#### Ejemplo: SHANSEP con OCR por cota y la piezométrica sobre el terreno
+
+El mismo talud, con una piezométrica a la cota 30 que pasa **sobre el terreno** al pie (cota 25), y el OCR por cota. La
+dovela 0 tiene `W` = 0,8634 kN/m, `V` = 20,454 kN/m de agua embalsada, `b` = 0,4261 m y `u` = 48,997 kPa, de modo que
+`σ′v = (0,8634 + 20,454)/0,4261 − 48,997` = 1,0324 kPa. El punto medio de su base está en la cota 25,005, donde el OCR
+interpolado es 1,1668 y `Su` = 0,292 kPa. Los cinco métodos coinciden con cSlope a 0,021 % o menos:
+
+<!-- ogs-ejemplo nombre=shansep-ocr-cota estado=converged fos=bishop:0.7798,spencer:0.7799,morgenstern_price:0.7799,janbu_simplified:0.7653,janbu_corrected:0.8133 avisos=water_above_ground ley=shansep sv=0:1.0324:1.1668 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "ejemplo-shansep-ocr-cota",
+    "title": "V047a con SHANSEP, OCR por cota y la piezométrica sobre el terreno al pie"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "shansep",
+      "unit_weight": 20.0,
+      "unit_weight_sat": 20.0,
+      "shansep": { "ratio": 0.25, "exponent": 0.8, "ocr_by_elevation": [[20.0, 1.0], [35.0, 1.5]] }
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [[20.0, 20.0], [20.0, 25.0], [30.0, 25.0], [50.0, 35.0], [70.0, 35.0], [70.0, 20.0]]
+    }
+  ],
+  "water": { "piezometric_line": [[0.0, 30.0], [100.0, 30.0]] },
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "surface": { "type": "circle", "xc": 29.511, "yc": 53.738, "r": 28.742 }
+  }
+}
+```
+
+**σ′v ≤ 0.** Con `unit_weight` 8 (menor que γw = 9,81) y sin `unit_weight_sat`, el suelo bajo el agua tiene un esfuerzo
+efectivo negativo. Las dovelas con σ′v ≤ 0 tienen Su = 0, y el motor lo avisa con `shansep_nonpositive_stress`; además,
+la masa sin resistencia tiene tracción, y sale `negative_effective_normal_major`. Bishop baja de 0,7798 a 0,7660:
+
+<!-- ogs-fragmento base=shansep-ocr-cota ruta=materials.0 esperado=ok esquema=acepta estado=converged fos=bishop:0.7660,spencer:0.7660,morgenstern_price:0.7660,janbu_simplified:0.7480,janbu_corrected:0.7950 avisos=shansep_nonpositive_stress,negative_effective_normal_major -->
+```json
+{ "id": "soil", "name": "Soil", "model": "shansep", "unit_weight": 8.0,
+  "shansep": { "ratio": 0.25, "exponent": 0.8, "ocr_by_elevation": [[20.0, 1.0], [35.0, 1.5]] } }
+```
+
+**Rechazos.** Cada uno cambia el objeto `shansep` del ejemplo `shansep-pop`. Con `ocr` y `pop` a la vez:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~material~'soil'~requiere~exactamente~uno~de~shansep.ocr,~shansep.pop~o~shansep.ocr_by_elevation esquema=rechaza -->
+```json
+{ "ratio": 0.25, "ocr": 1.5, "pop": 10.0 }
+```
+
+Con ninguna de las tres:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~material~'soil'~requiere~exactamente~uno~de~shansep.ocr,~shansep.pop~o~shansep.ocr_by_elevation esquema=rechaza -->
+```json
+{ "ratio": 0.25, "exponent": 0.8 }
+```
+
+Con `ratio` 0:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.ratio~del~material~'soil'~debe~ser~finito~y~>~0 esquema=rechaza -->
+```json
+{ "ratio": 0.0, "pop": 10.0 }
+```
+
+Con `exponent` 1,5:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.exponent~del~material~'soil'~debe~estar~en~[0,~1] esquema=rechaza -->
+```json
+{ "ratio": 0.25, "exponent": 1.5, "pop": 10.0 }
+```
+
+Con `ocr` menor que 1:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.ocr~del~material~'soil'~debe~ser~finito~y~≥~1 esquema=rechaza -->
+```json
+{ "ratio": 0.25, "ocr": 0.9 }
+```
+
+Con `pop` negativo:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.pop~del~material~'soil'~debe~ser~finito~y~≥~0 esquema=rechaza -->
+```json
+{ "ratio": 0.25, "pop": -1.0 }
+```
+
+Con una tabla de una sola fila:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.ocr_by_elevation~del~material~'soil'~necesita~al~menos~2~filas esquema=rechaza -->
+```json
+{ "ratio": 0.25, "ocr_by_elevation": [[20.0, 1.0]] }
+```
+
+Con la `y` de la tabla en desorden. **Este rechazo es solo del motor** (E16n): el esquema no compara valores entre sí
+([Qué valida el esquema y qué solo el motor](#qué-valida-el-esquema-y-qué-solo-el-motor)):
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:el~shansep.ocr_by_elevation~del~material~'soil'~debe~tener~y~estrictamente~creciente esquema=acepta -->
+```json
+{ "ratio": 0.25, "ocr_by_elevation": [[35.0, 1.5], [20.0, 1.0]] }
+```
+
+Con un campo que el formato no admite (`su_min`):
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0.shansep esperado=error:unknown~field~`su_min` esquema=rechaza -->
+```json
+{ "ratio": 0.25, "pop": 10.0, "su_min": 5.0 }
+```
+
+Con una `friction_angle`, que un material `shansep` no admite:
+
+<!-- ogs-fragmento base=shansep-pop ruta=materials.0 esperado=error:el~material~'soil'~con~model~"shansep"~no~admite~el~campo~'friction_angle' esquema=rechaza -->
+```json
+{ "id": "soil", "name": "Soil", "model": "shansep", "unit_weight": 20.0, "friction_angle": 20.0,
+  "shansep": { "ratio": 0.25, "pop": 10.0 } }
+```
+
+Con `version` `"0.5"`:
+
+<!-- ogs-fragmento base=shansep-pop ruta=version esperado=error:materials[0].model~=~"shansep"~requiere~version~"0.6" esquema=rechaza -->
+```json
+"0.5"
+```
+
+### Búsqueda no circular (`analysis.search.non_circular`)
+
+Un objeto opcional dentro de `analysis.search` que refina el círculo crítico a una polilínea. Es la variación alterna de
+Celestino y Duncan (1981) tal como la implementa cSlope, con las diferencias de abajo.
+
+```json
+"search": { "type": "circular_entry_exit", "non_circular": { "seeds": 3, "max_vertices": 33 } }
+```
+
+| Campo | Significado | Rango |
+|---|---|---|
+| `seeds` | número de semillas (círculos de partida) | entero en [1, 10]; **3** por defecto |
+| `max_vertices` | número máximo de vértices de la polilínea | `9`, `17` o `33`; **33** por defecto |
+
+- Los dos campos son opcionales y `{}` es válido. El objeto rechaza campos desconocidos y exige `analysis.search`.
+- **Bishop no se admite.** Con `non_circular` y `bishop` en `analysis.methods`, el error es
+  `InvalidModel: el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)`.
+  Quedan Spencer, Morgenstern-Price y los dos Janbu. La web deshabilita Bishop con esa razón.
+- Exige `"0.6"`.
+
+#### El algoritmo
+
+Se aplica por método, después de la búsqueda circular de ese mismo método:
+
+1. **Semillas.** La semilla 1 es el círculo crítico de la búsqueda circular, ya refinado. Las otras `seeds − 1` son los
+   mejores círculos de la malla (entrada × salida × radio), en orden de (FS, índice); cada una debe diferir de **todas** las
+   ya elegidas en más del 5 % del rango de la búsqueda, en la entrada o en la salida. Si no hay suficientes círculos
+   distintos, se usan los que haya; `search.non_circular.seeds` dice cuántos.
+2. **Conversión.** Cada semilla se convierte en una polilínea de **9 vértices** igualmente espaciados en x sobre el arco
+   inferior, con los extremos exactamente sobre el terreno.
+3. **Niveles.** 9, 17 y 33 vértices, insertando los puntos medios; se para en `max_vertices`.
+4. **Variación alterna,** en cada nivel. El paso inicial es el 0,1 del segmento más corto. Cada vértice interior se mueve
+   hacia arriba o hacia abajo sobre la bisectriz de las normales de sus dos segmentos, y cada extremo se mueve en x,
+   siempre dentro de las ventanas `entry` y `exit` de la búsqueda (o del modelo, si faltan). Por vértice se ajusta una
+   parábola; se evalúan el movimiento conjunto de todos los vértices y el mejor movimiento individual, y se toma **el de
+   menor F** de los dos. Una ronda mejora si F baja más de 1e-6; hasta 6 rondas por paso, y después de una sin mejora
+   el paso se divide entre 2. El nivel termina cuando el paso baja a 1/50 del inicial.
+5. **Presupuesto.** 1500 evaluaciones admisibles por semilla, sumando todos los niveles. Los candidatos inadmisibles no
+   cuentan. **No hay pulido final.**
+6. **Admisibilidad** de cada candidato, además de las reglas de una [polilínea fija](#polilínea-fija): `x` estrictamente
+   creciente, vértices y segmentos bajo el terreno, y **concavidad**: cada tramo puede inclinarse a lo sumo 1° más que
+   el anterior (`α_{i+1} ≤ α_i + 1°`, con `α_i = atan2(y_i − y_{i+1}, x_{i+1} − x_i)`). **La concavidad vale solo para los candidatos de la
+   búsqueda;** una polilínea que usted fija no cambia. Un candidato sin FS convergido nunca es una mejora.
+7. **Resultado por método: el mínimo entre la semilla 1 y la mejor polilínea refinada.** Con empate, gana el círculo. Si
+   gana la polilínea, `surface` es una polilínea (`{ "points": [...] }`); si gana el círculo, es el círculo. Por eso el FS
+   reportado **nunca** supera el de la búsqueda circular del mismo método.
+8. **Determinismo.** No hay aleatoriedad y los desempates son por (FS, índice). El resultado es el mismo en dos corridas y
+   con o sin la característica `parallel` del motor.
+
+#### La salida de la búsqueda no circular
+
+`search.non_circular` es `{ seeds, evaluated, seed_fos, polyline_fos }`:
+
+| Campo | Significado |
+|---|---|
+| `seeds` | semillas usadas |
+| `evaluated` | evaluaciones admisibles de la etapa no circular; a lo sumo `seeds × 1500` |
+| `seed_fos` | el FS del círculo de la semilla 1, antes de refinar |
+| `polyline_fos` | el FS de la mejor polilínea refinada; se omite si ninguna fue admisible |
+
+`search.evaluated` y `search.valid` siguen contando la etapa circular. El `fos` del resultado es el mínimo entre
+`seed_fos` y `polyline_fos`.
+
+**Nota `non_circular_large_change`** (informativa): `(seed_fos − fos)/seed_fos > 0,15`, el criterio de SLOPE/W. Es una
+señal para revisar la geometría de la superficie crítica, no un error.
+
+#### Ejemplo: V001, un talud homogéneo de 20 m
+
+V001 (Arai y Tagyo, 1985, ejemplo 1; el programa A comercial publica 1,386 con búsqueda no circular). El círculo crítico da
+Spencer 1,4021 y la polilínea de 33 vértices, **1,3839**: −1,3 % frente al círculo, +0,01 % frente a cSlope (1,3837) y −0,15 %
+frente al publicado. Las 4500 evaluaciones son las 3 semillas × 1500. Con Janbu simplificado el círculo da 1,3185 y la
+polilínea, 1,2525.
+
+<!-- ogs-ejemplo nombre=nc-v001 estado=converged fos=spencer:1.3839,janbu_simplified:1.2525,janbu_corrected:1.3451 avisos=negative_effective_normal nc=spencer:seeds:3,spencer:evaluated:4500,spencer:seed_fos:1.4021,spencer:polyline_fos:1.3839 superficie=polilinea:33 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "ejemplo-no-circular",
+    "title": "V001 (Arai y Tagyo, 1985): talud homogéneo de 20 m con búsqueda no circular"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil",
+      "name": "Soil",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.82,
+      "cohesion": 41.65,
+      "friction_angle": 15.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil",
+      "polygon": [[-30.0, 0.0], [-30.0, 15.0], [18.0, 15.0], [48.0, 35.0], [100.0, 35.0], [100.0, 0.0]]
+    }
+  ],
+  "slope": { "direction": "auto" },
+  "analysis": {
+    "methods": ["spencer", "janbu_simplified", "janbu_corrected"],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "entry": [0.0, 66.0],
+      "exit": [0.0, 66.0],
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "refine": true,
+      "non_circular": { "seeds": 3, "max_vertices": 33 }
+    }
+  }
+}
+```
+
+**Valores por defecto.** `{}` equivale a `seeds` 3 y `max_vertices` 33:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3839,janbu_simplified:1.2525,janbu_corrected:1.3451 nc=spencer:seeds:3,spencer:evaluated:4500 superficie=polilinea:33 -->
+```json
+{}
+```
+
+**Una semilla y 9 vértices.** Una búsqueda más barata (419 evaluaciones) y menos refinada: Spencer da 1,3927:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3927,janbu_simplified:1.2583,janbu_corrected:1.3515 nc=spencer:seeds:1,spencer:evaluated:419,spencer:polyline_fos:1.3927 superficie=polilinea:9 -->
+```json
+{ "seeds": 1, "max_vertices": 9 }
+```
+
+**Hasta 17 vértices** (3963 evaluaciones; Spencer 1,3855):
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3855,janbu_simplified:1.2527,janbu_corrected:1.3461 nc=spencer:evaluated:3963 superficie=polilinea:17 -->
+```json
+{ "seeds": 3, "max_vertices": 17 }
+```
+
+**Más semillas no siempre mejoran.** Con 10 semillas, el costo es de 15 000 evaluaciones y Spencer da el mismo 1,3839:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=ok esquema=acepta estado=converged fos=spencer:1.3839,janbu_simplified:1.2525,janbu_corrected:1.3451 nc=spencer:seeds:10,spencer:evaluated:15000 superficie=polilinea:33 -->
+```json
+{ "seeds": 10, "max_vertices": 33 }
+```
+
+**Rechazos.** Sin semillas:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=error:analysis.search.non_circular.seeds~debe~estar~en~[1,~10],~no~0 esquema=rechaza -->
+```json
+{ "seeds": 0 }
+```
+
+Con 11 semillas:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=error:analysis.search.non_circular.seeds~debe~estar~en~[1,~10],~no~11 esquema=rechaza -->
+```json
+{ "seeds": 11 }
+```
+
+Con 20 vértices:
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.search.non_circular esperado=error:analysis.search.non_circular.max_vertices~debe~ser~9,~17~o~33,~no~20 esquema=rechaza -->
+```json
+{ "max_vertices": 20 }
+```
+
+Con Bishop. **Este rechazo es solo del motor** (E16n):
+
+<!-- ogs-fragmento base=nc-v001 ruta=analysis.methods esperado=error:el~método~bishop~no~se~admite~con~analysis.search.non_circular esquema=acepta -->
+```json
+["bishop", "spencer"]
+```
+
+Con `version` `"0.5"`:
+
+<!-- ogs-fragmento base=nc-v001 ruta=version esperado=error:analysis.search.non_circular~requiere~version~"0.6" esquema=rechaza -->
+```json
+"0.5"
+```
+
+#### Ejemplo: un cambio grande respecto del círculo (V050b)
+
+ACADS 3(a) con una capa débil de 0,5 m (c 0, φ 10°): el mejor círculo da Spencer 1,5117, y la polilínea, que corre por la
+base de la capa débil (cota 26,5) y sube a la cresta, da **1,2388**. El cambio es de 18,05 %, mayor que 15 %, y el motor
+emite `non_circular_large_change`. El publicado es 1,246 (el programa A comercial, con tolerancia de 2,04 %):
+
+<!-- ogs-ejemplo nombre=nc-v050b estado=converged fos=spencer:1.2388 avisos=non_circular_large_change,negative_effective_normal nc=spencer:seed_fos:1.5117,spencer:polyline_fos:1.2388 superficie=polilinea:33 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "ejemplo-no-circular-capa-debil",
+    "title": "ACADS 3(a) con capa débil: la polilínea baja el FS 18 % respecto del mejor círculo"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "soil_1",
+      "name": "Soil 1",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.84,
+      "cohesion": 28.5,
+      "friction_angle": 20.0
+    },
+    {
+      "id": "weak_layer",
+      "name": "Weak layer",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.84,
+      "cohesion": 0.0,
+      "friction_angle": 10.0
+    },
+    {
+      "id": "soil_1_below",
+      "name": "Soil 1 below",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.84,
+      "cohesion": 28.5,
+      "friction_angle": 20.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "soil_1",
+      "polygon": [[20.0, 27.0], [20.0, 27.75], [43.0, 27.75], [67.5, 40.0], [84.0, 40.0], [84.0, 27.0]]
+    },
+    { "material": "soil_1_below", "polygon": [[20.0, 20.0], [20.0, 26.5], [84.0, 26.5], [84.0, 20.0]] },
+    { "material": "weak_layer", "polygon": [[20.0, 26.5], [20.0, 27.0], [84.0, 27.0], [84.0, 26.5]] }
+  ],
+  "water": { "unit_weight": 9.807, "piezometric_line": [[20.0, 26.5], [84.0, 26.5]] },
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["spencer"],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "refine": true,
+      "non_circular": { "seeds": 3, "max_vertices": 33 }
+    }
+  }
+}
+```
+
+### Combinaciones no admitidas (v0.6)
+
+Se rechazan antes de cortar dovelas, con `InvalidModel`:
+
+| Combinación | Mensaje | Por qué |
+|---|---|---|
+| `bishop` con `analysis.search.non_circular` | `el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)` | el FS de Bishop en una superficie no circular depende de un eje de momentos sin significado físico |
+| `tension_crack.depth = "auto"` con un material `hoek_brown` o `shansep` | `analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; use una profundidad fija` | la profundidad de Rankine necesita c y φ fijos |
+| un pilote con `lateral_pressure` (Ito-Matsui) con un material `hoek_brown` o `shansep` | `lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep` | la fórmula de Ito-Matsui necesita c y φ fijos |
+
+La grieta con **profundidad fija** sí se admite (ejemplo arriba). El arrancamiento `interface` de un refuerzo usa su propio
+`friction_angle` y no cambia. Las tres son reglas que relacionan dos partes del documento: **las valida solo el motor**, y el
+esquema las acepta.
+
+Con una grieta automática:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=analysis.tension_crack esperado=error:analysis.tension_crack.depth~"auto"~no~se~admite~con~materiales~hoek_brown~o~shansep;~use~una~profundidad~fija esquema=acepta -->
+```json
+{ "depth": "auto", "water_fill": 0.0 }
+```
+
+Con un pilote de Ito-Matsui:
+
+<!-- ogs-fragmento base=hb-roca-sa ruta=reinforcements esperado=error:lateral_pressure~(Ito-Matsui)~no~se~admite~con~materiales~hoek_brown~o~shansep esquema=acepta -->
+```json
+[ { "type": "pile", "id": "P1", "x1": 21.0, "y1": 20.0, "x2": 21.0, "y2": 10.0, "spacing": 2.4, "application": "passive",
+    "direction": "angle", "angle": 0, "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" } } ]
+```
+
 ## Qué valida el esquema y qué solo el motor
 
 El esquema y el binario `ogs` aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede
@@ -1774,13 +2620,21 @@ expresar y que valida solo el motor:
 - **pilotes de Ito-Matsui**: exactamente uno de `force` y `lateral_pressure`, `capacity` solo con `lateral_pressure`,
   pilote vertical y `spacing > diameter`. El esquema sí rechaza un `capacity` vacío y un `model` o `location` fuera de
   su enumeración.
+- **Hoek-Brown y SHANSEP (v0.6):** los rangos de cada campo, los campos requeridos y los prohibidos de cada `model`, y
+  «exactamente uno de» `ocr`, `pop` u `ocr_by_elevation` (con `oneOf`) los validan el esquema y el motor, con las mismas
+  reglas. **Solo el motor** valida la `y` estrictamente creciente de `ocr_by_elevation` (E16n): el esquema comprueba que la
+  tabla tenga al menos 2 filas y que cada OCR sea ≥ 1, pero no compara valores entre sí, como tampoco compara `x1 < x2`.
+- **Búsqueda no circular (v0.6):** el esquema valida los rangos de `seeds` (entero en [1, 10]) y de `max_vertices` (9, 17 o
+  33), y la puerta de versión. **Solo el motor** valida las reglas que relacionan dos partes del documento
+  ([Combinaciones no admitidas](#combinaciones-no-admitidas-v06)): Bishop con `non_circular`, la grieta de profundidad
+  `"auto"` con un material `hoek_brown` o `shansep`, y un pilote de Ito-Matsui con esos materiales (E16n).
 
 ## Cómo se validan los ejemplos
 
 Cada bloque `json` de esta página precedido por un comentario `ogs-ejemplo` u `ogs-fragmento` se prueba con
 [`docs/tools/validar_ejemplos.py`](tools/validar_ejemplos.py): los ejemplos completos contra
-`schema/ogs-0.5.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
-`status` de `reinforcement_forces`, los avisos, el objeto `tension_crack` del informe y los campos `soil_force`, `governs` y `arm` del cruce de un pilote de Ito-Matsui); los fragmentos, sustituidos en su ejemplo base, con el resultado
+`schema/ogs-0.6.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
+`status` de `reinforcement_forces`, los avisos, el objeto `tension_crack` del informe, los campos `soil_force`, `governs` y `arm` del cruce de un pilote de Ito-Matsui, y, en la v0.6, `strength.passes`, la `law` y los `vertical_stress` y `ocr` de `strength.slices`, el objeto `search.non_circular` y que la superficie crítica sea una polilínea de a lo sumo `max_vertices` vértices); los fragmentos, sustituidos en su ejemplo base, con el resultado
 esperado del motor y del esquema.
 
 ```sh

@@ -2,8 +2,9 @@
 
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
-con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
-v0.5, publicado con la 0.4.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+con el bloque de refuerzos: formato v0.4; con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
+v0.5, publicado con la 0.4.0, y con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, que saldrá con la
+0.5.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
@@ -13,10 +14,19 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
 - **Solo equilibrio límite en 2D**, con **Bishop simplificado**, **Spencer**, **Morgenstern-Price** y **Janbu**
   (simplificado y corregido). No calcula deformaciones, ni análisis en tres dimensiones, ni flujo de agua: el agua entra
   como línea piezométrica o como coeficiente `ru`.
-- **La búsqueda automática es solo circular** (entrada y salida). Las superficies no circulares se **fijan a mano**
-  como polilínea; no hay búsqueda no circular (queda para la Fase 3b, véase [más abajo](#lo-que-queda-para-la-fase-3b)).
-- **Solo dos modelos de resistencia:** Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción, con `unit_weight_sat`
-  y `ru` opcionales) y **no drenado** (φ = 0, Su constante o lineal con la cota). No hay Hoek-Brown ni SHANSEP.
+- **La búsqueda automática es circular (entrada y salida), con un refinamiento no circular opcional** (formato v0.6,
+  `analysis.search.non_circular`): una variación alterna desde 3 círculos que entrega una polilínea de hasta 33 vértices.
+  Es un mínimo local, **sin Bishop**, que puede quedar bajo el publicado en materiales con capa débil y tracción (V002) y
+  que cuesta de 2,4 a 3,3 veces la búsqueda circular. Las superficies no circulares también se pueden **fijar a mano**
+  como polilínea. Los detalles están [más abajo](#búsqueda-no-circular-v06).
+- **Cuatro modelos de resistencia:** Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción, con `unit_weight_sat`
+  y `ru` opcionales), **no drenado** (φ = 0, Su constante o lineal con la cota), **Hoek-Brown** (roca fracturada; v0.6) y
+  **SHANSEP** (resistencia no drenada normalizada por σ′v; v0.6), estos dos con sus límites
+  ([Hoek-Brown](#hoek-brown-envolvente-completa-costo-y-no-convergencia-v06), [SHANSEP](#shansep-v06)): Hoek-Brown usa
+  la envolvente completa en bajo confinamiento, distinta de la de cSlope (hasta −2,9 % en círculo fijo, siempre del lado
+  seguro), y SHANSEP no tiene `aboveWater` (V105a está retenido), tiene φ = 0 y no incluye el sismo en σ′v. Ni
+  Hoek-Brown ni SHANSEP se combinan con la grieta de profundidad automática ni con los pilotes de Ito-Matsui
+  ([combinaciones](#combinaciones-no-admitidas-v06)).
 - **Refuerzos con límites** (formato v0.4: anclajes, clavos, geosintéticos, pilotes y tablestacas). OpenGeoSlide calcula
   la estabilidad **global** con la fuerza del refuerzo incluida en el equilibrio límite. **No** sirve para diseñar
   muros de tierra mecánicamente estabilizada (TEM) ni otras estructuras de contención, y **no** calcula el empuje sobre
@@ -45,7 +55,7 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
 spencer, morgenstern_price o janbu`. El FS de Bishop en una superficie no circular depende del eje de momentos, que no
 tiene significado físico; cSlope lo calcula con el aviso `bishop-non-circular`, pero OpenGeoSlide no entrega un FS que
 dependa de un parámetro arbitrario. En la web, la casilla de Bishop queda deshabilitada con una polilínea y explica por
-qué. Con `analysis.search` (círculos), Bishop sigue disponible.
+qué. Con `analysis.search` (círculos), Bishop sigue disponible; con `analysis.search.non_circular` (v0.6), no: la superficie crítica es una polilínea.
 
 ### Ajuste de la polilínea al terreno: primer cruce
 
@@ -166,7 +176,7 @@ limitación del criterio, no un error que se vaya a corregir con otro umbral.
 - `strength_datum` es una **cota**, no una profundidad. Un gradiente negativo (Su decrece hacia abajo) es válido.
 - `ru` no cambia la resistencia de un material no drenado, porque φ = 0.
 - Un material con Su = 0 no aporta resistencia: sus caras quedan excluidas del criterio `r_v`.
-- No hay SHANSEP ni Su dependiente de la tensión efectiva (queda para la Fase 3b).
+- Un Su que depende de la tensión efectiva es el modelo `shansep` de la v0.6 ([más abajo](#shansep-v06)); el modelo `undrained` no.
 
 ## Revisión R10: lo que cambió (E13l) y lo que sigue abierto
 
@@ -280,14 +290,17 @@ del publicado (1,23, 1,209 y 1,21 en las tres referencias) y del que cSlope entr
 Si el aviso `effective_ends_outside_range` aparece en su modelo, revise si la superficie crítica corresponde al
 mecanismo que usted busca y acote los rangos o fije `search.min_width`.
 
-## Lo que queda para la Fase 3b
+## Lo que sigue fuera tras la Fase 3b
 
-La Fase 3b tendrá su propio bloque de enmiendas. Hoy **no** existe:
+Con el formato v0.6 ya existen la búsqueda no circular, Hoek-Brown y SHANSEP, cada uno con los límites de
+[más abajo](#hoek-brown-shansep-y-búsqueda-no-circular-formato-v06-qué-hace-y-qué-no). Hoy **no** existe:
 
-- **Búsqueda no circular** (refinamiento de Celestino y Duncan): hoy la polilínea se fija a mano.
-- **Hoek-Brown generalizado** (cSlope lo tiene: `kind "hoek-brown"`, con σci en `ucs`).
-- **SHANSEP.** Por ejemplo, V105a usa un material `shansep`.
-- El caso publicado de Hammah et al. (2005b).
+- **Los campos de cSlope fuera del formato v0.6:** en Hoek-Brown, `mb`, `s` y `a` directos; en SHANSEP, `su_min`, `yield_stress`,
+  `su_by_stress`, `anisotropy`, `yield_from_earlier_stage`, `above_water` y `b_bar`.
+- **V105a** (SHANSEP con `aboveWater`) y **V002** (búsqueda no circular con la rama de tracción de E12e): retenidos en
+  `verification/pending/F3B/HOLD.json`, con su causa.
+- **El ejemplo 2 de Hammah et al. (2005)**, que no se reprodujo (X23 §3.2). El ejemplo 1 (HAM1) sí, con su geometría reconstruida.
+- **Un pulido final de la búsqueda no circular** (cSlope lo usa; cuesta 3,6 veces más, X29 §5).
 
 ## Refuerzos (formato v0.4): qué hace y qué no
 
@@ -727,6 +740,142 @@ menos en los cinco métodos. **Esto no es el diseño de un pilote:** el límite 
   V013b con el círculo crítico de cSlope.
 - **Con refuerzos, la búsqueda circular puede esquivar el pilote** ([más arriba](#la-búsqueda-con-refuerzos-tiene-discontinuidades)).
 
+## Hoek-Brown, SHANSEP y búsqueda no circular (formato v0.6): qué hace y qué no
+
+Las tres capacidades del bloque F3B ([formato](formato-ogs-json.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)) con
+sus límites. Las cifras salen de las filas de aceptación y de la batería diferencial
+([Verificación](verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)). **Un modelo sin campos v0.6 da la misma
+salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada): esta sección no cambia nada de lo anterior.
+
+### Hoek-Brown: envolvente completa, costo y no convergencia (v0.6)
+
+- **En bajo confinamiento, la regla del producto no es la de cSlope.** Para `σ′n ≤ sn(0)`, cSlope toma la tangente de
+  σ3 = 0 (una sola recta, que queda sobre la envolvente cóncava y da resistencia incluso en tracción: 9,5 kPa con
+  `σ′n = −0,88 kPa`). OpenGeoSlide toma la tangente de la **misma envolvente** en el punto con σ3 en (σt, 0], y no da
+  resistencia con `σ′n ≤ σt` (la envolvente completa, F6.8). La diferencia es **siempre conservadora**: el FS del motor
+  queda igual o menor que el de cSlope. Crece con las dovelas en bajo confinamiento, en círculo fijo y en los cinco métodos
+  (X28, cSlope 0.1.0 contra el prototipo de la envolvente completa):
+
+  | Modelo | Dovelas en bajo confinamiento | Diferencia con cSlope |
+  |---|---:|---|
+  | X25 | 0 a 1 | de −0,005 % a +0,005 % |
+  | HAM1 (Hammah et al., 2005) | 3 a 4 | de −0,084 % a −0,262 % |
+  | SA (3 bancos, 60°) | 2 a 4 | de −0,054 % a −0,148 % |
+  | SB (2 bancos, 70°) | 10 a 12 | de −0,628 % a **−2,880 %** |
+
+  El máximo es **−2,9 %**: Janbu simplificado, −2,878 %, y Janbu corregido, −2,880 %, en SB. En la batería diferencial
+  F3B, la mayor diferencia en círculo fijo es −2,57 % (F3B-HB-04, Bishop). Con la regla de cSlope, el motor reproduce a
+  cSlope a 0,0018 % a 0,0716 % en las 33 filas de compatibilidad (regla solo para los tests, `#[cfg(test)]`, E16t).
+  - **Spencer y Morgenstern-Price en SB.** Con la regla de cSlope no hay raíz de λ (cSlope da `not_converged`); con la
+    envolvente completa sí convergen. La batería lo marca «explicado (E16t)» y no lo usa como referencia.
+  - Revise siempre la nota `hoek_brown_low_confinement`: indica que parte de la base trabaja en tracción o con muy poco
+    esfuerzo, y que la presión de poros o una grieta pueden estar gobernando el resultado.
+- **Aviso de Hoek (1994) sobre la tangente.** Según Hoek et al. (2002, p. 3), Hoek (1994) advirtió que la cohesión
+  determinada con una tangente a la envolvente curva de Mohr es un valor de **cota superior y puede dar resultados
+  optimistas** en cálculos de estabilidad; propone, en su lugar, un ajuste lineal por mínimos cuadrados. OpenGeoSlide
+  usa la tangente instantánea en el σ′n de cada dovela, como cSlope, OGR y SLOPE/W, no el ajuste lineal. La Ayuda lo repite.
+- **El factor D es un dato suyo.** Hoek et al. (2002, §7) advierten que D = 0 da propiedades demasiado optimistas en minas
+  a cielo abierto. En el rajo SA, Bishop pasa de 1,1804 con D = 0,7 a 2,0215 con D = 0.
+- **σci en la unidad del modelo.** `ucs` va en kPa (o psf); escribir en kPa un valor en MPa baja la resistencia 1000 veces:
+  X25 §5.2 midió FS 0,2839 con σci = 30 «kPa» frente a 1,8028 con 5000 kPa, sin aviso del motor. La web advierte con σci
+  menor que 1000 kPa o mayor que 300 000 kPa, pero el motor no los rechaza.
+- **El costo.** El lazo por dovela resuelve el método varias veces por superficie: en el rajo SA, de 11 a 13 pasadas por método en el círculo
+  fijo. **Una búsqueda Bishop con Hoek-Brown tarda unas 50 veces lo que con Mohr-Coulomb**: 51 veces en SA
+  (0,86 s) y 48 veces en SB (M-HB, E16t). Con la búsqueda por defecto de F3B-HB-01 (18 688 candidatos evaluados), medí 8,2 s
+  en un hilo de esta máquina, frente a 0,12 s de un Mohr-Coulomb de c 300 kPa y φ 35° (69 veces: el cociente cambia con el
+  modelo y con la malla). Reduzca la malla (`n_entry`, `n_exit`, `n_radius`) para explorar y use la malla fina al final.
+- **No convergencia.** Con w = 0,5, el lazo converge en 10 a 13 pasadas en los modelos medidos. Si llegara a 50 pasadas sin
+  que `|ΔF| ≤ 1e-6·|F|`, el resultado es `not_converged` con `hoek_brown_not_converged` y sin FS; en una búsqueda, ese
+  candidato se descarta, como en cSlope. Sin el promedio (w = 1), el lazo cicla en SB con Bishop y Janbu. Ningún modelo
+  medido (X28 y la batería F3B) llegó al máximo.
+- **Una base sin resistencia puede dejar el análisis sin FS.** Con `σ′n ≤ σt` la base no resiste. En el modelo SB con
+  `ru` = 0,3 (`X28-R-SB-RU03`, un círculo fijo), el motor no entrega FS: Bishop da `invalid` (`m_alpha`) y Spencer,
+  Morgenstern-Price y los dos Janbu, `not_converged` (`no_admissible_root`); cSlope, que da resistencia en tracción con su
+  recta de σ3 = 0, entrega 0,9618 (Bishop) y 1,0103 (Spencer). Con el mismo `ru` en X25 sí converge (Bishop 0,9057 frente a
+  0,9059 de cSlope). Medido con el binario de release de esta rama. Si un modelo con presión de poros alta queda sin FS,
+  revise la presión de poros antes que el material.
+- **Parámetros del criterio.** Solo GSI, mi, D y σci. No hay `mb`, `s` ni `a` directos (cSlope los admite), ni el ajuste lineal
+  de Hoek et al. (2002, ecs. 12 y 13), que cSlope tampoco implementa.
+- **Sin oráculo para el caso publicado completo.** HAM1 (Hammah et al., 2005, ejemplo 1) usa una **geometría reconstruida** del
+  tutorial de XSLOPE, con la cimentación y γ como supuestos escritos en el caso: por eso su tolerancia es de 0,5 % y no se
+  compara con la última cifra. El motor da Bishop 1,1502 (publicado 1,153; −0,24 %) y Spencer 1,1521 (1,152; +0,005 %), dentro de
+  0,5 %. El ejemplo 2 de Hammah et al. **no** se reprodujo (X23 §3.2: con su capa de Mohr-Coulomb inferida, cSlope da 1,028 frente al 0,963 publicado, +6,7 %; sin resolver).
+- **Con Hoek-Brown no se admite** la grieta con profundidad automática ni un pilote de Ito-Matsui
+  ([combinaciones](#combinaciones-no-admitidas-v06)).
+
+### SHANSEP (v0.6)
+
+- **Sin `aboveWater`, y por eso V105a está retenido.** cSlope permite, en un material SHANSEP, cambiar el modelo sobre el
+  nivel del agua (`aboveWater`). El formato v0.6 no lo tiene. V105a (Commercial program J) lo usa: sin él, el motor da Bishop
+  1,2524 frente al publicado 1,285 (−2,54 %, fuera de la tolerancia del caso), y cSlope con `aboveWater`, 1,2851. El check está en
+  `verification/pending/F3B/HOLD.json`, sin sustituir `aboveWater` por otra cosa. También quedan fuera del formato: `su_min`,
+  `yield_stress`, `su_by_stress`, `anisotropy`, `yield_from_earlier_stage` y `b_bar`.
+- **φ = 0.** SHANSEP es una resistencia **no drenada** normalizada: la dovela no tiene fricción (`tan φ = 0`) y `ru` y la
+  piezométrica solo entran en σ′v, no en la resistencia directamente. No describe una arcilla drenada ni una roca.
+- **El sismo no entra en σ′v** (E16o). Con `kh` y `kv`, Su queda idéntico dovela por dovela (diferencia 0,0 en el oráculo):
+  el sismo actúa solo en las fuerzas de los métodos. Si usted espera que `kv` reduzca la resistencia por el menor esfuerzo
+  vertical, el modelo no lo hace.
+- **σ′v ≤ 0.** La dovela tiene Su = 0 (sin evaluar el OCR) y el motor emite `shansep_nonpositive_stress`, una vez por método. Con
+  entradas válidas solo ocurre **bajo el agua con `unit_weight` menor que γw y sin `unit_weight_sat`**. Es un dato mal
+  declarado: en el ejemplo del formato, con `unit_weight` 8, Bishop baja de 0,7798 a 0,7660 y aparece
+  `negative_effective_normal_major`.
+- **Círculos muy anchos y poco profundos.** Con OCR 1 en un perfil normalmente consolidado, Su es proporcional a σ′v y el
+  mínimo es un círculo muy ancho y poco profundo: en V047a, cuyo suelo tiene 15 m de espesor, r ≈ 257 m y FS 0,6250 (el oráculo da el mismo). La búsqueda no lo avisa, porque no hay un umbral medido que lo distinga. Si su perfil es normalmente
+  consolidado y la superficie crítica sale mucho más extensa que el talud, fije `search.min_width` y las ventanas de entrada y
+  salida, y revise si ese mecanismo es el que le interesa.
+- **Las caras de las dovelas** usan la columna de suelo (`∫ Su(σ′v(z)) dz`), como los demás materiales. El oráculo no emite el
+  aviso `interslice_shear_exceeds_strength` en V047a, así que se prueba con una identidad (OCR constante en una capa seca), no
+  con una cifra del oráculo.
+- **Con SHANSEP no se admite** la grieta con profundidad automática ni un pilote de Ito-Matsui.
+
+### Búsqueda no circular (v0.6)
+
+- **Puede llevar a la rama de tracción de E12e, y quedar bajo el publicado (V002 y E16u).** En materiales con una capa débil, la
+  polilínea puede entrar a una rama con tracción, donde la selección de raíz de Spencer y Morgenstern-Price (E12e: la raíz
+  admisible de menor F) da un FS bajo. Se reconoce porque aparecen **juntas** las notas `negative_lambda` y
+  `negative_effective_normal_major`. V002 da **0,3864 frente a 0,414** publicado (−6,66 %, con una tolerancia de 2,12 %): el
+  círculo de la semilla ya da 0,4020. **cSlope evalúa esa misma polilínea en 0,4152**, dentro de la banda publicada, y la
+  óptima de cSlope es 0,4110: la diferencia de 7 % no es del algoritmo no circular, sino de la selección de raíz, la
+  limitación conocida de R5-05 ([más abajo](#limitaciones-numéricas-conocidas-del-motor)). Se mantiene E12e por conservadora.
+  **Qué hacer:** compare con Bishop circular (que no tiene λ) y revise N′ por dovela: si hay tracción en la base, el FS de
+  Spencer o de Morgenstern-Price no es fiable.
+- **HB-06 y §4.2: el FS de la búsqueda puede quedar sobre el de cSlope.** El motor descarta las superficies con
+  `m_α < min_m_alpha` (0,2), que cSlope acepta con el aviso `steep-entry-tension` (un FS poco fiable según su propia cuenta).
+  En bancos empinados esto importa: en F3B-HB-06 (Bishop, banco de 70°), el círculo crítico de cSlope entra a 87° y ogs lo
+  declara inválido por `m_alpha`; la búsqueda de ogs da 0,5373 y la de cSlope, 0,5279 (+1,78 %). La batería lo marca «explicado
+  (§4.2: m_α)». No es un error de la búsqueda no circular, pero **en bancos empinados un FS por encima del de cSlope no es
+  necesariamente del lado inseguro**: revise la superficie y fije un `min_m_alpha` que usted pueda justificar.
+- **Sin Bishop.** El FS de Bishop en una superficie no circular depende de un eje de momentos sin significado físico; con
+  `non_circular`, Bishop es un error y la web lo deshabilita. Compare con la búsqueda circular de Bishop aparte.
+- **Un mínimo local, no el global.** Es una variación alterna desde 3 círculos (por defecto) con un presupuesto de 1500
+  evaluaciones por semilla: la polilínea final depende de las semillas y de `max_vertices`. En V001, con 1 semilla y 9 vértices,
+  Spencer da 1,3927; con 3 y 17, 1,3855, y con 3 y 33 (el valor por defecto), 1,3839. Con 10 semillas da lo mismo que con 3.
+  **No hay pulido final** (X29 §5: cSlope lo usa y cuesta 3,6 veces más).
+- **El costo.** La etapa no circular evalúa a lo sumo `seeds × 1500` candidatos por método, y suma el tiempo de la búsqueda
+  circular. M-NC midió **de 2,4 a 2,9 veces** el costo de la búsqueda circular sola; en esta máquina, con V001, V034a y V036a,
+  medí 2,37, 2,63 y 3,27 veces. Es una meta (≤ 4), no un gate.
+- **La regla de concavidad** (cada tramo se inclina a lo sumo 1° más que el anterior) es la del código de cSlope, no la de
+  su comentario (X29 §3), y vale solo para los candidatos de la búsqueda: una superficie con curvatura invertida de más de
+  1° entre dos tramos no puede ser la crítica de la búsqueda, aunque usted sí puede fijarla como polilínea.
+- **`non_circular_large_change`.** Si el FS baja más de 15 % respecto del mejor círculo (el criterio de SLOPE/W), el motor lo
+  avisa: puede ser un mecanismo real (V050b, con una capa débil: 1,5117 → 1,2388, −18,05 %) o una superficie con una geometría
+  que conviene revisar.
+- **Determinismo.** No hay aleatoriedad: el resultado es el mismo en dos corridas y con o sin la característica `parallel`
+  del motor. La búsqueda circular de cSlope, en cambio, es estocástica (V085 ×4, [Verificación](verificacion.md)).
+- **Retenidos de F3B** (`verification/pending/F3B/HOLD.json`): V105a (SHANSEP, arriba) y V002 (búsqueda no circular, E16u, arriba).
+
+### Combinaciones no admitidas (v0.6)
+
+El motor rechaza, con `InvalidModel`, antes de cortar dovelas (F6.5):
+
+- **Bishop con `analysis.search.non_circular`.**
+- **Grieta con `depth: "auto"` y un material `hoek_brown` o `shansep`:** la profundidad de Rankine necesita c y φ fijos. La
+  profundidad fija sí se admite.
+- **Ito-Matsui (`lateral_pressure`) con un material `hoek_brown` o `shansep`:** la fórmula necesita c y φ fijos.
+
+Los mensajes exactos están en el [formato](formato-ogs-json.md#combinaciones-no-admitidas-v06). El esquema no las rechaza (E16n):
+relacionan dos partes del documento.
+
 ## Avisos geotécnicos de la aplicación
 
 Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF:
@@ -771,6 +920,14 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   de búsqueda y revise aparte la capacidad de soporte local.
 - **Aviso de cortante entre dovelas** (`interslice_shear_exceeds_strength`): véase
   [arriba](#aviso-interslice_shear_exceeds_strength).
+- **Notas de Hoek-Brown, SHANSEP y búsqueda no circular (v0.6).** Tres son informativas y una de estado:
+  - `hoek_brown_low_confinement`: alguna dovela de base `hoek_brown` tiene `σ′n ≤ sn(0)` y se tomó con la envolvente
+    completa; una vez por método. Revise la presión de poros y las grietas.
+  - `shansep_nonpositive_stress`: alguna dovela de base `shansep` tiene `σ′v ≤ 0` y queda con Su = 0; una vez por método.
+  - `non_circular_large_change`: la polilínea baja el FS más de 15 % respecto del mejor círculo; revise la geometría.
+  - `hoek_brown_not_converged` (estado `not_converged`, sin FS): el lazo no converge en 50 pasadas.
+  Los textos de la web están en `apps/web/src/engine/warnings.ts`. Además, Diagnósticos avisa cuando σci es menor que
+  1000 kPa o mayor que 300 000 kPa (a menudo un valor en MPa escrito como kPa).
 - **Notas de refuerzos** (informativas): `reinforcement_outside_mass` (un refuerzo no aplica fuerza sobre la
   superficie), `reinforcement_compression_ignored` (un pasivo comprimido no aporta), `reinforcement_active_compression` (un activo
   se aplica comprimido y, en suelos con fricción, puede subir el FS: [el activo comprimido](#el-activo-comprimido-e14m-1-e14o-8-y-el-oráculo-instalado))
@@ -781,9 +938,11 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 ## Limitaciones numéricas conocidas del motor
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
-verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (327/327
-checks en 151 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
-con Bishop y Spencer; M-P, Janbu corregido, D15-D23 y el bloque v0.5 D28-D42, con 58 OK, 2 explicados y 0 fallas, en
+verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (los
+327 checks de los 151 casos anteriores a F3B, más los <!-- B2a: N --> checks promovidos de F3B,
+[`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
+con Bishop y Spencer; M-P, Janbu corregido, D15-D23, el bloque v0.5 D28-D42, con 58 OK, 2 explicados y 0 fallas, y el bloque
+F3B, con 40 OK, 2 explicados y 0 fallas, en
 [`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en
 [`verificacion.md`](verificacion.md)). Las limitaciones de Spencer
 (R4-01, R4-02, R5-05) valen también para Morgenstern-Price, que comparte su solver y sus guardas.
