@@ -508,7 +508,10 @@ describe('runStatus: una fila por condición, de arriba abajo', () => {
     ['calculando 1 método', { busy: true, methodsRequested: 1 }, { tone: 'accent', text: 'Calculando 1 método…' }],
     ['sin regiones', { hasRegions: false }, { tone: 'neutral', text: 'Sin modelo' }],
     ['error del motor sin resultado actual', { message: 'Falló', messageKind: 'error' }, { tone: 'nok', text: 'Error: Falló' }],
-    ['resultado actual', { run: okRun, current: true }, { tone: 'ok', text: 'Calculado · FS mín. 1,234' }],
+    ['resultado actual, FS ≥ 1, sin avisos (neutral, no ok)', { run: okRun, current: true }, { tone: 'neutral', text: 'Calculado · FS mín. 1,234' }],
+    ['resultado actual, FS ≥ 1, con avisos', { run: okRun, current: true, advisories: 2 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 2 avisos' }],
+    ['resultado actual con un solo aviso (singular)', { run: okRun, current: true, advisories: 1 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 1 aviso' }],
+    ['resultado actual con borradores: nunca es actual (A-02, B-01)', { run: okRun, current: true, pendingDrafts: 1 }, { tone: 'warn', text: 'Cambios sin aplicar' }],
     ['resultado no actual con borradores', { run: okRun, current: false, pendingDrafts: 2 }, { tone: 'warn', text: 'Cambios sin aplicar' }],
     ['resultado no actual', { run: okRun, current: false }, { tone: 'warn', text: 'Resultados desactualizados' }],
     ['3 problemas', { localErrors: 3 }, { tone: 'warn', text: 'Modelo con 3 problemas' }],
@@ -591,8 +594,52 @@ describe('runStatus: resultado actual', () => {
     expect(s.title).toBe('Parcial · 3 de 4 métodos. No convergieron: Janbu.');
   });
 
-  it('parcial gana sobre FS < 1', () => {
-    expect(cur(report(result('bishop', 0.8), result('spencer', 1.2, 'not_converged'))).text).toBe('Parcial · 1 de 2 métodos');
+  it('parcial con FS mínimo < 1 → «Parcial · c de t · FS < 1,0» (nok, B-04b)', () => {
+    const s = cur(report(result('bishop', 0.985), result('spencer', 1.2, 'not_converged'), result('morgenstern_price', 1.1, 'not_converged')));
+    expect(s).toMatchObject({ tone: 'nok', text: 'Parcial · 1 de 3 · FS < 1,0' });
+    expect(s.title).toBe('Parcial · 1 de 3 · FS < 1,0. FS mínimo 0,985 (Bishop). No convergieron: Spencer, M-P.');
+  });
+
+  it('parcial con FS mínimo ≥ 1 → «Parcial · c de t métodos» (warn)', () => {
+    expect(cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged')))).toMatchObject({ tone: 'warn', text: 'Parcial · 1 de 2 métodos' });
+  });
+
+  it('sin avisos o con 0 no cambia el texto; el título nombra los avisos si el texto no los lleva', () => {
+    const r = report(result('bishop', 0.984), result('spencer', 1.02));
+    expect(cur(r, { advisories: 0 }).text).toBe('Calculado · FS < 1,0');
+    const s = cur(r, { advisories: 3 });
+    expect(s).toMatchObject({ tone: 'nok', text: 'Calculado · FS < 1,0 · 3 avisos' });
+    expect(s.title).toBe('Calculado · FS < 1,0 · 3 avisos. FS mínimo 0,984 (Bishop)');
+  });
+
+  it('« · N avisos» solo si cabe en 40 caracteres; si no, el número va en el título', () => {
+    const r = report(result('bishop', 1.234), result('spencer', 1.5, 'not_converged'), result('janbu_simplified', 1.6, 'not_converged'));
+    const s = cur(r, { advisories: 12 });
+    expect(s.text.length).toBeLessThanOrEqual(40);
+    expect(s.text).toBe('Parcial · 1 de 3 métodos · 12 avisos');
+    const long = cur(report(result('bishop', 0.9), result('spencer', 1.5, 'not_converged'), result('janbu_simplified', 1.6, 'not_converged')), { advisories: 99999 });
+    expect(long.text).toBe('Parcial · 1 de 3 · FS < 1,0');
+    expect(long.title).toContain('Avisos: 99.999');
+  });
+
+  it('sin convergencia mantiene su tono warn y suma los avisos si caben', () => {
+    expect(cur(report(result('bishop', 0.9, 'not_converged')), { advisories: 2 })).toMatchObject({ tone: 'warn', text: 'Sin convergencia · 2 avisos' });
+  });
+
+  it('el tono `ok` ya no se usa en el chip, con ningún resultado', () => {
+    for (const fos of [0.5, 0.9997, 1, 1.35, 3]) {
+      for (const advisories of [0, 2]) expect(cur(report(result('bishop', fos)), { advisories }).tone).not.toBe('ok');
+    }
+  });
+
+  it('borradores pendientes: aunque `current` sea verdadero el resultado no es actual y no se muestra FS', () => {
+    const s = runStatus(base({ run: emptyRun(report(result('bishop', 0.8))), current: true, pendingDrafts: 2, advisories: 4 }));
+    expect(s).toMatchObject({ tone: 'warn', text: 'Cambios sin aplicar' });
+  });
+
+  it('borradores y un error del motor: manda el error (no hay resultado actual)', () => {
+    const s = runStatus(base({ run: emptyRun(report(result('bishop', 1.2))), current: true, pendingDrafts: 1, message: 'Falló', messageKind: 'error' }));
+    expect(s).toMatchObject({ tone: 'nok', text: 'Error: Falló' });
   });
 
   it('FS mínimo < 1 → «Calculado · FS < 1,0» (nok)', () => {
@@ -605,9 +652,9 @@ describe('runStatus: resultado actual', () => {
     expect(cur(report(result('bishop', 1))).text).toBe('Calculado · FS mín. 1,000');
   });
 
-  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (ok); el título lleva los métodos del mínimo, empates incluidos', () => {
+  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (neutral); el título lleva los métodos del mínimo, empates incluidos', () => {
     const s = cur(report(result('bishop', 1.2344), result('spencer', 1.2339), result('morgenstern_price', 1.5)));
-    expect(s).toMatchObject({ tone: 'ok', text: 'Calculado · FS mín. 1,234' });
+    expect(s).toMatchObject({ tone: 'neutral', text: 'Calculado · FS mín. 1,234' });
     expect(s.title).toBe('Calculado · FS mín. 1,234. FS mínimo 1,234 (Bishop, Spencer)');
   });
 

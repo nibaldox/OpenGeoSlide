@@ -316,7 +316,25 @@ export interface RunStatus {
 
 const methodNames = (methods: readonly MethodKind[]): string => methods.map((m) => METHOD_SHORT_LABELS[m]).join(', ');
 
-/** Chip de estado de la cabecera (contrato §4.1, tabla de estados). */
+/** Añade « · N avisos» al texto del chip si cabe en 40 caracteres (UA-E3 §5: «+ N avisos si cabe»). */
+function withAdvisories(text: string, advisories: number): string {
+  if (advisories <= 0) return text;
+  const full = `${text} · ${count(advisories, 'aviso', 'avisos')}`;
+  return full.length <= MAX_CHARS ? full : text;
+}
+
+/** `title` = el texto, el detalle que no cabe y, si el texto no lo lleva, el número de avisos (UA-E3 §5). */
+function titled(tone: Tone, text: string, details: readonly string[], advisories: number, advisoriesInText: boolean): RunStatus {
+  const parts = [text, ...details.filter((d) => d !== '')];
+  if (advisories > 0 && !advisoriesInText) parts.push(`Avisos: ${num(advisories)}`);
+  const title = parts.reduce((acc, part) => `${acc.endsWith('.') ? acc : `${acc}.`} ${part}`);
+  return { tone, text, title: parts.length > 1 ? title : text };
+}
+
+/**
+ * Chip de estado de la cabecera (contrato §4.1 con las filas de «resultado actual» de UA-E3 §5): el estado no juzga la
+ * aceptabilidad del talud, así que el tono `ok` no se usa. Un resultado con borradores pendientes nunca es actual.
+ */
 export function runStatus(input: RunStatusInput): RunStatus {
   const same = (tone: Tone, text: string): RunStatus => ({ tone, text, title: text });
   if (input.engineStatus === 'loading') return same('neutral', 'Cargando el motor…');
@@ -326,27 +344,31 @@ export function runStatus(input: RunStatusInput): RunStatus {
     return same('accent', n > 0 ? `Calculando ${count(n, 'método', 'métodos')}…` : 'Calculando…');
   }
   if (!input.hasRegions) return same('neutral', 'Sin modelo');
-  const run = input.run !== null && input.current ? input.run : null;
+  // A-02 y B-01: con borradores sin aplicar el cálculo ya no corresponde a lo que hay en pantalla.
+  const run = input.run !== null && input.current && input.pendingDrafts === 0 ? input.run : null;
   const message = input.message?.replace(/\s+/g, ' ').trim() ?? '';
   if (message !== '' && input.messageKind === 'error' && run === null) {
     const full = `Error: ${message}`;
     return { tone: 'nok', text: full.length <= MAX_CHARS ? full : `${full.slice(0, MAX_CHARS - 1).trimEnd()}${ELLIPSIS}`, title: full };
   }
   if (run !== null) {
+    const advisories = Number.isFinite(input.advisories) ? Math.max(0, Math.trunc(input.advisories ?? 0)) : 0;
     const fs = fsMinimum(run.report);
     const failed = run.report.results.filter((r) => convergedFos(r) === null || !Number.isFinite(convergedFos(r))).map((r) => r.method);
-    if (fs.converged === 0) {
-      const detail = failed.length > 0 ? ` No convergieron: ${methodNames(failed)}.` : '';
-      return { tone: 'warn', text: 'Sin convergencia', title: `Sin convergencia.${detail}` };
-    }
+    const notConverged = failed.length > 0 ? `No convergieron: ${methodNames(failed)}.` : '';
+    const out = (tone: Tone, base: string, details: readonly string[]): RunStatus => {
+      const text = withAdvisories(base, advisories);
+      return titled(tone, text, details, advisories, text !== base);
+    };
+    if (fs.converged === 0) return out('warn', 'Sin convergencia', notConverged === '' ? [] : [notConverged]);
+    const minimum = `FS mínimo ${fs.text} (${methodNames(fs.methods)})`;
     if (fs.converged < fs.total) {
-      const text = `Parcial · ${fs.converged} de ${fs.total} métodos`;
-      return { tone: 'warn', text, title: `${text}. No convergieron: ${methodNames(failed)}.` };
+      const part = `${fs.converged} de ${fs.total}`;
+      if (fs.below1) return out('nok', `Parcial · ${part} · FS < 1,0`, [minimum, notConverged]);
+      return out('warn', `Parcial · ${part} métodos`, [notConverged]);
     }
-    const detail = `FS mínimo ${fs.text} (${methodNames(fs.methods)})`;
-    if (fs.below1) return { tone: 'nok', text: 'Calculado · FS < 1,0', title: `Calculado · FS < 1,0. ${detail}` };
-    const text = `Calculado · FS mín. ${fs.text}`;
-    return { tone: 'ok', text, title: `${text}. ${detail}` };
+    if (fs.below1) return out('nok', 'Calculado · FS < 1,0', [minimum]);
+    return out(advisories > 0 ? 'warn' : 'neutral', `Calculado · FS mín. ${fs.text}`, [minimum]);
   }
   if (input.run !== null) return same('warn', input.pendingDrafts > 0 ? 'Cambios sin aplicar' : 'Resultados desactualizados');
   if (input.localErrors > 0) return same('warn', `Modelo con ${count(input.localErrors, 'problema', 'problemas')}`);
