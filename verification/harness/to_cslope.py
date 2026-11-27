@@ -1,7 +1,21 @@
-"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 / v0.5 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 / v0.5 / v0.6 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
+
+Hoek-Brown, SHANSEP and non-circular search (schema v0.6, contracts F6.1-F6.5)
+------------------------------------------------------------------------------
+- material ``hoek_brown`` -> cSlope ``hoek-brown``: ``ucs``, ``gsi``, ``mi`` and ``disturbance`` (always written
+  explicitly; ogs gives ``disturbance`` no default, F6.2). In low confinement ogs follows the full Hoek-Brown envelope
+  down to ``σt = -s·ucs/mb`` while cSlope extrapolates the ``σ3 = 0`` tangent (F6.8, E16q); the note records this.
+- material ``shansep`` -> cSlope ``shansep``: ``shansep.ratio`` -> ``ratio``, ``shansep.exponent`` -> ``exponent``
+  (default ``0.8``, always written), and the single OCR source ``shansep.ocr`` -> ``ocr``, ``shansep.pop`` -> ``pop``
+  or ``shansep.ocr_by_elevation`` -> ``ocrByElevation`` (F6.3; X26 §2.1). Missing or multiple OCR sources are refused.
+- ``analysis.search.non_circular {seeds, max_vertices}`` -> ``options.nonCircularOptimization = true`` on ``search``
+  checks (F6.4). cSlope 0.1.0 has no document fields for ``seeds`` or ``max_vertices`` (its engine fixes 3 seeds and up
+  to 33 vertices in ``optimize.rs``), so they stay at cSlope's built-in defaults and a conversion note records it.
+  ``bishop`` with ``non_circular`` is refused, as are ``tension_crack.depth = "auto"`` and ``lateral_pressure`` with
+  ``hoek_brown`` or ``shansep`` materials (F6.4, F6.5).
 
 Schema v0.3 (contract F3.8)
 ---------------------------
@@ -121,10 +135,13 @@ SEISMIC_LOADS_VERSION = "0.2"
 F3_VERSION = "0.3"
 F4_VERSION = "0.4"
 F5_VERSION = "0.5"
+F6_VERSION = "0.6"
+ALL_VERSIONS = ("0.1", SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
 # versions that admit the fields of each stage (a later version admits everything of the earlier ones)
-SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION)
-F3_VERSIONS = (F3_VERSION, F4_VERSION, F5_VERSION)
-F4_VERSIONS = (F4_VERSION, F5_VERSION)
+SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
+F3_VERSIONS = (F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
+F4_VERSIONS = (F4_VERSION, F5_VERSION, F6_VERSION)
+F5_VERSIONS = (F5_VERSION, F6_VERSION)
 F3_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 # ogs interslice function -> cSlope `intersliceFunction`
 INTERSLICE_MAP = {
@@ -768,7 +785,7 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
             _unknown(item, _PILE_KEYS_V05 if kind == "pile" else _SHEET_KEYS, where)
             lateral = item.get("lateral_pressure")
             if lateral is not None or item.get("capacity") is not None:
-                if model.get("version") != F5_VERSION:
+                if model.get("version") not in F5_VERSIONS:
                     raise UnsupportedModel(f'lateral_pressure requiere version "{F5_VERSION}"')
             direction = item.get("direction")
             if direction not in ("angle", "tangent", "perpendicular"):
@@ -819,31 +836,205 @@ def reinforcements_to_cslope(model: dict, notes: list[str]) -> dict[str, list[di
 
 # ------------------------------------------------------------- conversion
 
+_ALL_MATERIAL_KEYS = {
+    "id", "name", "model", "unit_weight", "unit_weight_sat", "ru",
+    "cohesion", "friction_angle",
+    "undrained_strength", "strength_datum", "strength_gradient", "strength_limit",
+    "ucs", "gsi", "mi", "disturbance", "shansep",
+}
+_SHANSEP_KEYS = {"ratio", "exponent", "ocr", "pop", "ocr_by_elevation"}
+_NON_CIRCULAR_KEYS = {"seeds", "max_vertices"}
+
+
+def _material_field_rules(m: dict, model_name: str, forbidden: tuple[str, ...]) -> None:
+    mid = m.get("id", "")
+    unknown = sorted(set(m) - _ALL_MATERIAL_KEYS)
+    if unknown:
+        raise UnsupportedModel(f"material {mid} ({model_name}) con campos desconocidos: " + ", ".join(unknown))
+    for field_name in forbidden:
+        if m.get(field_name) is not None:
+            raise UnsupportedModel(
+                f"el material '{mid}' con model \"{model_name}\" no admite el campo '{field_name}'"
+            )
+
+
+def _require_material_field(m: dict, model_name: str, field_name: str) -> Any:
+    if m.get(field_name) is None:
+        raise UnsupportedModel(
+            f"el material '{m.get('id', '')}' con model \"{model_name}\" requiere el campo '{field_name}'"
+        )
+    return m[field_name]
+
+
+def _mohr_coulomb_definition(m: dict) -> dict:
+    mid = m["id"]
+    _material_field_rules(
+        m,
+        "mohr_coulomb",
+        ("undrained_strength", "strength_datum", "strength_gradient", "strength_limit",
+         "ucs", "gsi", "mi", "disturbance", "shansep"),
+    )
+    cohesion = _finite(_require_material_field(m, "mohr_coulomb", "cohesion"), f"material {mid}.cohesion")
+    if cohesion < 0.0:
+        raise UnsupportedModel(f"la cohesión del material '{mid}' debe ser ≥ 0")
+    phi = _finite(_require_material_field(m, "mohr_coulomb", "friction_angle"), f"material {mid}.friction_angle")
+    if not 0.0 <= phi < 90.0:
+        raise UnsupportedModel(f"el ángulo de fricción del material '{mid}' debe estar en [0, 90)")
+    return {
+        "kind": "mohr-coulomb",
+        "unitWeight": _positive(m.get("unit_weight"), f"material {mid}.unit_weight"),
+        "cohesion": cohesion,
+        "frictionAngle": phi,
+    }
+
+
+def _hoek_brown_definition(m: dict) -> dict:
+    """ogs ``hoek_brown`` -> cSlope ``hoek-brown`` (F6.2). ``disturbance`` is always written explicitly."""
+    mid = m["id"]
+    _material_field_rules(
+        m,
+        "hoek_brown",
+        ("cohesion", "friction_angle", "undrained_strength", "strength_datum",
+         "strength_gradient", "strength_limit", "shansep"),
+    )
+    uw = _positive(m.get("unit_weight"), f"material {mid}.unit_weight")
+    raw_ucs = _require_material_field(m, "hoek_brown", "ucs")
+    raw_gsi = _require_material_field(m, "hoek_brown", "gsi")
+    raw_mi = _require_material_field(m, "hoek_brown", "mi")
+    raw_d = _require_material_field(m, "hoek_brown", "disturbance")
+    ucs = _finite(raw_ucs, f"material {mid}.ucs")
+    if ucs <= 0.0:
+        raise UnsupportedModel(f"el ucs del material '{mid}' debe ser finito y > 0")
+    gsi = _finite(raw_gsi, f"material {mid}.gsi")
+    if not 0.0 <= gsi <= 100.0:
+        raise UnsupportedModel(f"el GSI del material '{mid}' debe estar en [0, 100]")
+    mi = _finite(raw_mi, f"material {mid}.mi")
+    if mi <= 0.0:
+        raise UnsupportedModel(f"el mi del material '{mid}' debe ser finito y > 0")
+    disturbance = _finite(raw_d, f"material {mid}.disturbance")
+    if not 0.0 <= disturbance <= 1.0:
+        raise UnsupportedModel(f"el disturbance del material '{mid}' debe estar en [0, 1]")
+    return {
+        "kind": "hoek-brown",
+        "unitWeight": uw,
+        "ucs": ucs,
+        "gsi": gsi,
+        "mi": mi,
+        "disturbance": disturbance,
+    }
+
+
+def _shansep_definition(m: dict) -> dict:
+    """ogs ``shansep`` -> cSlope ``shansep`` (F6.3; X26 §2.1)."""
+    mid = m["id"]
+    _material_field_rules(
+        m,
+        "shansep",
+        ("cohesion", "friction_angle", "undrained_strength", "strength_datum",
+         "strength_gradient", "strength_limit", "ucs", "gsi", "mi", "disturbance"),
+    )
+    uw = _positive(m.get("unit_weight"), f"material {mid}.unit_weight")
+    spec = _require_material_field(m, "shansep", "shansep")
+    if not isinstance(spec, dict):
+        raise UnsupportedModel(f"material {mid}.shansep debe ser un objeto")
+    _unknown(spec, _SHANSEP_KEYS, f"material {mid}.shansep")
+    if spec.get("ratio") is None:
+        raise UnsupportedModel(f"el shansep.ratio del material '{mid}' es obligatorio")
+    ratio = _finite(spec["ratio"], f"material {mid}.shansep.ratio")
+    if ratio <= 0.0:
+        raise UnsupportedModel(f"el shansep.ratio del material '{mid}' debe ser finito y > 0")
+    if spec.get("exponent") is None:
+        exponent = 0.8
+    else:
+        exponent = _finite(spec["exponent"], f"material {mid}.shansep.exponent")
+        if not 0.0 <= exponent <= 1.0:
+            raise UnsupportedModel(f"el shansep.exponent del material '{mid}' debe estar en [0, 1]")
+    present = [k for k in ("ocr", "pop", "ocr_by_elevation") if spec.get(k) is not None]
+    if len(present) != 1:
+        raise UnsupportedModel(
+            f"el material '{mid}' requiere exactamente uno de shansep.ocr, shansep.pop o shansep.ocr_by_elevation"
+        )
+    out: dict[str, Any] = {
+        "kind": "shansep",
+        "unitWeight": uw,
+        "ratio": ratio,
+        "exponent": exponent,
+    }
+    src = present[0]
+    if src == "ocr":
+        ocr = _finite(spec["ocr"], f"material {mid}.shansep.ocr")
+        if ocr < 1.0:
+            raise UnsupportedModel(f"el shansep.ocr del material '{mid}' debe ser finito y ≥ 1")
+        out["ocr"] = ocr
+    elif src == "pop":
+        pop = _finite(spec["pop"], f"material {mid}.shansep.pop")
+        if pop < 0.0:
+            raise UnsupportedModel(f"el shansep.pop del material '{mid}' debe ser finito y ≥ 0")
+        out["pop"] = pop
+    else:
+        raw_table = spec["ocr_by_elevation"]
+        if not isinstance(raw_table, list) or len(raw_table) < 2:
+            raise UnsupportedModel(f"el shansep.ocr_by_elevation del material '{mid}' necesita al menos 2 filas")
+        table: list[list[float]] = []
+        for row in raw_table:
+            if not isinstance(row, (list, tuple)) or len(row) != 2:
+                raise UnsupportedModel(f"el shansep.ocr_by_elevation del material '{mid}' debe ser una lista de pares [y, OCR]")
+            try:
+                y_val = _finite(row[0], f"material {mid}.shansep.ocr_by_elevation.y")
+                ocr_val = _finite(row[1], f"material {mid}.shansep.ocr_by_elevation.ocr")
+            except UnsupportedModel as exc:
+                raise UnsupportedModel(
+                    f"el shansep.ocr_by_elevation del material '{mid}' tiene valores no finitos o OCR < 1"
+                ) from exc
+            if ocr_val < 1.0:
+                raise UnsupportedModel(
+                    f"el shansep.ocr_by_elevation del material '{mid}' tiene valores no finitos o OCR < 1"
+                )
+            table.append([y_val, ocr_val])
+        if any(b[0] <= a[0] for a, b in zip(table, table[1:])):
+            raise UnsupportedModel(
+                f"el shansep.ocr_by_elevation del material '{mid}' debe tener y estrictamente creciente"
+            )
+        out["ocrByElevation"] = table
+    return out
+
+
 def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[list[dict], bool]:
     materials = model.get("materials", [])
+    for i, m in enumerate(materials):
+        if not m.get("id"):
+            raise UnsupportedModel(f"el id del material {i} está vacío: debe tener al menos un carácter")
     ids = [m["id"] for m in materials]
     if len(set(ids)) != len(ids):
         raise UnsupportedModel("repeated material ids")
     defs: list[dict] = []
     needs_dry_line = False
+    has_hb = False
+    has_sh = False
     for m in materials:
         kind = m.get("model", "mohr_coulomb")
         if kind == "undrained":
             model_def = _undrained_definition(m)
         elif kind == "mohr_coulomb":
-            model_def = {
-                "kind": "mohr-coulomb",
-                "unitWeight": float(m["unit_weight"]),
-                "cohesion": float(m["cohesion"]),
-                "frictionAngle": float(m["friction_angle"]),
-            }
+            model_def = _mohr_coulomb_definition(m)
+        elif kind == "hoek_brown":
+            model_def = _hoek_brown_definition(m)
+            has_hb = True
+        elif kind == "shansep":
+            model_def = _shansep_definition(m)
+            has_sh = True
         else:
-            raise UnsupportedModel(f"material model {m.get('model')!r} is not mohr_coulomb or undrained")
+            raise UnsupportedModel(
+                f"material model {m.get('model')!r} is not mohr_coulomb, undrained, hoek_brown or shansep"
+            )
         if m.get("unit_weight_sat") is not None:
-            model_def["unitWeightSat"] = float(m["unit_weight_sat"])
+            model_def["unitWeightSat"] = _positive(m["unit_weight_sat"], f"material {m['id']}.unit_weight_sat")
         mdef: dict[str, Any] = {"name": m["id"], "model": model_def}
         if m.get("ru") is not None:
-            model_def["ru"] = float(m["ru"])
+            ru_val = _finite(m["ru"], f"material {m['id']}.ru")
+            if not 0.0 <= ru_val < 1.0:
+                raise UnsupportedModel(f"ru del material '{m['id']}' debe estar en [0, 1)")
+            model_def["ru"] = ru_val
             if piezo:
                 # OpenGeoSlide: ru replaces the piezometric pressure in this material,
                 # cSlope adds ru*sigma_v to the pressure of its water line. Giving the
@@ -861,29 +1052,46 @@ def _material_definitions(model: dict, notes: list[str], piezo: bool) -> tuple[l
                     "mapped with a dry water line (cSlope adds ru·σv to its line)."
                 )
         defs.append(mdef)
+    if has_hb:
+        notes.append(
+            "Hoek-Brown (F6.2, F6.8): ucs, gsi, mi y disturbance explícito; en bajo confinamiento cSlope extrapola "
+            "la tangente de σ3 = 0 para σ'n <= sn(0), mientras ogs usa la envolvente completa hasta σt (E16q)."
+        )
+    if has_sh:
+        notes.append(
+            "SHANSEP (F6.3, F6.9): ratio, exponent explícito y fuente de OCR (ocr, pop u ocrByElevation)."
+        )
     return defs, needs_dry_line
 
 
 def _undrained_definition(m: dict) -> dict:
     """ogs ``undrained`` -> cSlope ``undrained`` (F3.2 / F3.8). The datum is an elevation in both."""
-    unknown = sorted(set(m) - {"id", "name", "model", "unit_weight", "unit_weight_sat", "undrained_strength",
-                               "strength_datum", "strength_gradient", "strength_limit", "ru"})
-    if unknown:
-        raise UnsupportedModel(f"material {m['id']} (undrained) con campos desconocidos: " + ", ".join(unknown))
+    mid = m["id"]
+    _material_field_rules(
+        m,
+        "undrained",
+        ("cohesion", "friction_angle", "ucs", "gsi", "mi", "disturbance", "shansep"),
+    )
+    su = _finite(_require_material_field(m, "undrained", "undrained_strength"), f"material {mid}.undrained_strength")
+    if su < 0.0:
+        raise UnsupportedModel(f"undrained_strength del material '{mid}' debe ser finito y ≥ 0")
     out: dict[str, Any] = {
         "kind": "undrained",
-        "unitWeight": float(m["unit_weight"]),
-        "undrainedShearStrength": _finite(m.get("undrained_strength"), f"material {m['id']}.undrained_strength"),
+        "unitWeight": _positive(m.get("unit_weight"), f"material {mid}.unit_weight"),
+        "undrainedShearStrength": su,
     }
     if m.get("strength_datum") is not None or m.get("strength_gradient") is not None:
         if m.get("strength_datum") is None or m.get("strength_gradient") is None:
-            raise UnsupportedModel(f"material {m['id']}: strength_datum y strength_gradient van juntos")
-        out["suRefDepth"] = _finite(m["strength_datum"], f"material {m['id']}.strength_datum")
-        out["suRateOfChange"] = _finite(m["strength_gradient"], f"material {m['id']}.strength_gradient")
+            raise UnsupportedModel(f"material {mid}: strength_datum y strength_gradient van juntos")
+        out["suRefDepth"] = _finite(m["strength_datum"], f"material {mid}.strength_datum")
+        out["suRateOfChange"] = _finite(m["strength_gradient"], f"material {mid}.strength_gradient")
     if m.get("strength_limit") is not None:
         if m.get("strength_gradient") is None:
-            raise UnsupportedModel(f"material {m['id']}: strength_limit sin strength_gradient")
-        out["suMax"] = _finite(m["strength_limit"], f"material {m['id']}.strength_limit")
+            raise UnsupportedModel(f"material {mid}: strength_limit sin strength_gradient")
+        limit = _finite(m["strength_limit"], f"material {mid}.strength_limit")
+        if limit < 0.0:
+            raise UnsupportedModel(f"strength_limit del material '{mid}' debe ser ≥ 0")
+        out["suMax"] = limit
     return out
 
 
@@ -925,6 +1133,91 @@ def interslice_options(model: dict, check: dict, notes: list[str]) -> dict[str, 
     return out
 
 
+def first_v06_field(model: dict) -> str | None:
+    """First field of ``model`` that needs version ``"0.6"`` (contract F6.1; ``loads.rs::first_v06_field``)."""
+    for i, m in enumerate(model.get("materials") or []):
+        if not isinstance(m, dict):
+            continue
+        if m.get("model") == "hoek_brown":
+            return f'materials[{i}].model = "hoek_brown"'
+        if m.get("model") == "shansep":
+            return f'materials[{i}].model = "shansep"'
+        for name in ("ucs", "gsi", "mi", "disturbance", "shansep"):
+            if m.get(name) is not None:
+                return f"materials[{i}].{name}"
+    search = (model.get("analysis") or {}).get("search")
+    if isinstance(search, dict) and search.get("non_circular") is not None:
+        return "analysis.search.non_circular"
+    return None
+
+
+def _has_new_v06_material(model: dict) -> bool:
+    return any(isinstance(m, dict) and m.get("model") in ("hoek_brown", "shansep")
+               for m in (model.get("materials") or []))
+
+
+def validate_v06_interactions(model: dict) -> None:
+    """Contract F6.5 rejections: ``tension_crack.depth == "auto"`` and ``lateral_pressure`` with ``hoek_brown`` or
+    ``shansep``."""
+    if not _has_new_v06_material(model):
+        return
+    crack = (model.get("analysis") or {}).get("tension_crack")
+    if isinstance(crack, dict) and crack.get("depth") == "auto":
+        raise UnsupportedModel(
+            'analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; '
+            "use una profundidad fija"
+        )
+    for r in model.get("reinforcements") or []:
+        if isinstance(r, dict) and r.get("type") == "pile" and r.get("lateral_pressure") is not None:
+            raise UnsupportedModel(
+                "lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep"
+            )
+
+
+def non_circular_options(model: dict, method: str, kind: str, notes: list[str]) -> dict[str, Any]:
+    """``analysis.search.non_circular`` (v0.6, F6.4) -> ``options.nonCircularOptimization`` on search checks.
+
+    cSlope 0.1.0 fixes ``SEEDS = 3`` and ``MAX_VERTICES = 33`` internally and exposes no option for them, so they stay
+    at cSlope's built-in defaults and a note records the requested values.
+    """
+    analysis = model.get("analysis") or {}
+    search = analysis.get("search")
+    if not isinstance(search, dict) or search.get("non_circular") is None:
+        return {}
+    nc = search["non_circular"]
+    if not isinstance(nc, dict):
+        raise UnsupportedModel("analysis.search.non_circular debe ser un objeto")
+    _unknown(nc, _NON_CIRCULAR_KEYS, "analysis.search.non_circular")
+    raw_seeds = nc.get("seeds")
+    if raw_seeds is None:
+        seeds = 3
+    else:
+        if isinstance(raw_seeds, bool) or not isinstance(raw_seeds, int) or not 1 <= raw_seeds <= 10:
+            raise UnsupportedModel(f"analysis.search.non_circular.seeds debe estar en [1, 10], no {raw_seeds!r}")
+        seeds = raw_seeds
+    raw_mv = nc.get("max_vertices")
+    if raw_mv is None:
+        max_vertices = 33
+    else:
+        if isinstance(raw_mv, bool) or not isinstance(raw_mv, int) or raw_mv not in (9, 17, 33):
+            raise UnsupportedModel(
+                f"analysis.search.non_circular.max_vertices debe ser 9, 17 o 33, no {raw_mv!r}"
+            )
+        max_vertices = raw_mv
+    if method == "bishop" or "bishop" in (analysis.get("methods") or []):
+        raise UnsupportedModel(
+            "el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)"
+        )
+    if kind != "search":
+        return {}
+    notes.append(
+        f"búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds={seeds}, "
+        f"max_vertices={max_vertices}, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos "
+        "por defecto (3 semillas, hasta 33 vértices)."
+    )
+    return {"nonCircularOptimization": True}
+
+
 def tension_crack_options(model: dict) -> dict[str, Any]:
     """``analysis.tension_crack`` (v0.5, F5.2) -> the cSlope options of the crack; ``{}`` without crack.
 
@@ -934,7 +1227,7 @@ def tension_crack_options(model: dict) -> dict[str, Any]:
     crack = (model.get("analysis") or {}).get("tension_crack")
     if crack is None:
         return {}
-    if model.get("version") != F5_VERSION:
+    if model.get("version") not in F5_VERSIONS:
         raise UnsupportedModel(f'tension_crack requiere version "{F5_VERSION}"')
     if not isinstance(crack, dict):
         raise UnsupportedModel("analysis.tension_crack debe ser un objeto")
@@ -971,6 +1264,10 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     kind = check.get("kind")
     if method not in METHOD_MAP:
         raise UnsupportedModel(f"unsupported method {method!r}")
+    if "version" in model and model["version"] not in ALL_VERSIONS:
+        raise UnsupportedModel(
+            f'version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no {model["version"]!r}'
+        )
     analysis = model.get("analysis") or {}
     notes: list[str] = []
 
@@ -982,6 +1279,21 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     features = v03_features(model)
     if features and model.get("version") not in F3_VERSIONS:
         raise UnsupportedModel(f"{features[0]} requiere version \"{F3_VERSION}\"")
+    raw_reinf = model.get("reinforcements")
+    if isinstance(raw_reinf, list) and raw_reinf and model.get("version") not in F4_VERSIONS:
+        raise UnsupportedModel(f'reinforcements requiere version "{F4_VERSION}"')
+    if isinstance(raw_reinf, list) and any(
+        isinstance(r, dict) and r.get("type") == "pile"
+        and (r.get("lateral_pressure") is not None or r.get("capacity") is not None)
+        for r in raw_reinf
+    ) and model.get("version") not in F5_VERSIONS:
+        raise UnsupportedModel(f'lateral_pressure requiere version "{F5_VERSION}"')
+    crack_options = tension_crack_options(model)
+    v06_field = first_v06_field(model)
+    if v06_field is not None and model.get("version") != F6_VERSION:
+        raise UnsupportedModel(f'{v06_field} requiere version "{F6_VERSION}"')
+    validate_v06_interactions(model)
+    nc_options = non_circular_options(model, method, kind, notes)
     if method == "bishop" and (analysis.get("surface") or {}).get("type") == "polyline" and kind == "fixed":
         raise UnsupportedModel(
             "el método 'bishop' solo admite superficies circulares; use spencer, morgenstern_price o janbu (F3.6)"
@@ -995,7 +1307,6 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
     water = model.get("water") or {}
     piezo = water.get("piezometric_line") or None
     gamma_w = float(water.get("unit_weight", default_water_unit_weight(model)))
-    crack_options = tension_crack_options(model)
     # the crack weighs gamma_w too when it holds water (F5.2): cSlope only knows 9.807
     uses_water = bool(piezo) or float(crack_options.get("tensionCrackWater", 0.0)) > 0.0
     if uses_water and abs(gamma_w - CSLOPE_WATER_UNIT_WEIGHT) > WATER_UNIT_WEIGHT_TOL:
@@ -1070,6 +1381,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         notes.append("min_m_alpha has no cSlope equivalent; cSlope applies its own validity rule.")
     options.update(seismic_options(model, notes))
     options.update(crack_options)
+    options.update(nc_options)
     definition.update(loads_to_cslope(model, notes))
     definition.update(reinforcements_to_cslope(model, notes))
 
