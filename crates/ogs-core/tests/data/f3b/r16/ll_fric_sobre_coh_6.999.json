@@ -1,0 +1,119 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "units": "SI",
+ "materials": [
+  {
+   "id": "A",
+   "name": "A friccional",
+   "model": "mohr_coulomb",
+   "unit_weight": 18.0,
+   "cohesion": 2.0,
+   "friction_angle": 35.0
+  },
+  {
+   "id": "Bm",
+   "name": "B cohesivo",
+   "model": "mohr_coulomb",
+   "unit_weight": 18.0,
+   "cohesion": 10.0,
+   "friction_angle": 0.0
+  }
+ ],
+ "regions": [
+  {
+   "material": "A",
+   "polygon": [
+    [
+     0,
+     7
+    ],
+    [
+     40,
+     7
+    ],
+    [
+     40,
+     20
+    ],
+    [
+     25,
+     20
+    ],
+    [
+     15,
+     10
+    ],
+    [
+     0,
+     10
+    ]
+   ]
+  },
+  {
+   "material": "Bm",
+   "polygon": [
+    [
+     0,
+     0
+    ],
+    [
+     40,
+     0
+    ],
+    [
+     40,
+     7
+    ],
+    [
+     0,
+     7
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "right_to_left"
+ },
+ "water": {
+  "unit_weight": 10.0,
+  "piezometric_line": [
+   [
+    0,
+    19
+   ],
+   [
+    40,
+    19
+   ]
+  ]
+ },
+ "analysis": {
+  "methods": [
+   "spencer",
+   "janbu_simplified"
+  ],
+  "slices": 40,
+  "surface": {
+   "type": "polyline",
+   "points": [
+    [
+     10,
+     10
+    ],
+    [
+     14,
+     6.999
+    ],
+    [
+     26,
+     6.999
+    ],
+    [
+     33,
+     20
+    ]
+   ]
+  }
+ }
+}

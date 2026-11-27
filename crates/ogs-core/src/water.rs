@@ -420,11 +420,22 @@ pub fn ponded_terms(
 
 /// Adds [`ponded_terms`] to `slices` (what `lib.rs` calls). It returns whether some slice got a non-zero term of
 /// ponded water: a weight above 0 or a thrust different from 0, the vertical faces of E4 included (E15l-5).
-pub(crate) fn apply_ponded(pm: &PreparedModel, surface: &Surface, slices: &mut [Slice]) -> bool {
+pub(crate) fn apply_ponded(
+    pm: &PreparedModel,
+    surface: &Surface,
+    slices: &mut [Slice],
+    kv: f64,
+) -> bool {
     let terms = ponded_terms(pm, surface, slices, sliding_sign(pm));
     let mut active = false;
-    for (slice, term) in slices.iter_mut().zip(&terms) {
+    let mut column = Vec::with_capacity(8);
+    let mut scratch = Vec::with_capacity(8);
+    for (slice, mut term) in slices.iter_mut().zip(terms) {
         active |= term.weight > 0.0 || term.h_force != 0.0;
+        crate::slicer::resolve_contact(pm, slice, term.weight, kv, &mut column, &mut scratch);
+        term.pore_pressure = pm.materials[slice.material]
+            .ru
+            .map_or(0.0, |ru| ru * term.weight / slice.width);
         term.add_to(slice);
     }
     active

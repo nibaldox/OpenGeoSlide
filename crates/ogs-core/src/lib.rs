@@ -460,7 +460,7 @@ fn analyze_method(
                 if let Some(plan) = &plan {
                     crack::truncate(plan, pm, &surface, &mut slices);
                 }
-                let _ = water::apply_ponded(pm, &surface, &mut slices);
+                let _ = water::apply_ponded(pm, &surface, &mut slices, load_case.kv);
                 if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
                     record_shansep_error(&shansep_error, material);
                     return None;
@@ -635,7 +635,7 @@ fn analyze_method(
         .as_ref()
         .map(|plan| crack::truncate(plan, pm, &surface, &mut slices));
     // E15c: the weight and the thrust of the ponded water (zero terms without water over the ground).
-    let ponded = water::apply_ponded(pm, &surface, &mut slices);
+    let ponded = water::apply_ponded(pm, &surface, &mut slices, load_case.kv);
     let shansep_out = shansep::apply(pm, load_case.kv, &mut slices)
         .map_err(|material| shansep_invalid(model, material))?;
     // E14d: the forces of the reinforcements on the final surface (reported only for a converged method, E14i).
@@ -834,7 +834,7 @@ fn evaluate_surface(
     if let Some(plan) = &plan {
         crack::truncate(plan, pm, surface, &mut slices);
     }
-    let _ = water::apply_ponded(pm, surface, &mut slices);
+    let _ = water::apply_ponded(pm, surface, &mut slices, load_case.kv);
     if let Err(material) = shansep::apply(pm, load_case.kv, &mut slices) {
         record_shansep_error(shansep_error, material);
         return None;
