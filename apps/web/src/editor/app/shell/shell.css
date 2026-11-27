@@ -918,6 +918,9 @@
   .ua-canvas-card {
     display: flex;
     flex-direction: column;
+    /* UA4-F: 360 de alto como máximo; con 844 de alto de ventana baja a 314 (sin bajar de 260) para que la paleta de dos filas
+       quede entera por encima del pie fijo a scroll 0. */
+    --ua-canvas-h: clamp(260px, calc(100dvh - 530px), 360px);
   }
   /* Orden del contrato §2 (UA3 B-13a): lienzo de 360 de alto, HUD estático debajo y después la paleta en fila, luego la leyenda. La
      paleta vive dentro de `.ec-root`: `.ua-canvas` y `.ec-root` no generan caja y el SVG, el HUD, la paleta y la leyenda son los
@@ -931,11 +934,11 @@
     flex: none;
     order: 0;
     /* El lienzo fija `height: 100%` en línea: sin una altura de la tarjeta, el SVG tomaría la de su relación de aspecto. */
-    height: 360px !important;
+    height: var(--ua-canvas-h) !important;
   }
   .ua-canvas-card .ec-empty {
     inset: 0 0 auto 0;
-    height: 360px;
+    height: var(--ua-canvas-h);
   }
   /* El HUD (`div.rs`) y la leyenda pasan a ser estáticos debajo del lienzo (sus hojas lo hacen); aquí solo su margen lateral. */
   .ua-canvas-card > div.rs {
@@ -963,15 +966,60 @@
   .ua-steps {
     overflow: visible;
   }
+  /* UA4-F: una sola fila compacta de 57 px (8 + 40 + 8 y el borde): «Comprobar» ocupa el espacio flexible y «Informe PDF» va a su
+     lado. «Cancelar cálculo» y «Reiniciar el motor» ocupan el lugar de «Informe PDF». El aviso de cambios y la pista de bloqueo
+     van en una línea de 12 px encima. Así el pie no tapa la paleta a 390×844 a scroll 0. */
   .ua-actions {
     position: sticky;
     bottom: 0;
     z-index: 5;
     order: 3;
-    padding: 10px 14px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 8px 14px;
+  }
+  .ua-actions .ua-stale-chip,
+  .ua-actions .ea-export-hint {
+    flex: 0 0 100%;
+    order: -1;
+    margin: 0;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .ua-actions .ua-stale-chip {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+  .ua-actions .ua-check-wrap {
+    flex: 1 1 0;
+    min-width: 0;
   }
   .ua-actions .gs-btn {
     min-height: 40px;
+    height: 40px;
+  }
+  .ua-actions .gs-btn:not(.ua-check) {
+    flex: none;
+    width: auto;
+    padding: 0 14px;
+  }
+  .ua-actions[data-swap='true'] .ua-report-btn {
+    display: none;
+  }
+  /* WCAG 2.4.11: el foco nunca queda bajo el pie: 57 px; 77 con el aviso encima; 137 con la pista (hasta cuatro líneas a 320). */
+  html {
+    scroll-padding-bottom: 57px;
+  }
+  html:has(.ua-actions:not([hidden]) .ua-stale-chip) {
+    scroll-padding-bottom: 77px;
+  }
+  html:has(.ua-actions:not([hidden]) .ea-export-hint) {
+    scroll-padding-bottom: 137px;
   }
   .ua-status {
     order: 4;

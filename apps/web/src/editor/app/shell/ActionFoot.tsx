@@ -99,7 +99,7 @@ export interface ActionFootProps {
 
 export function ActionFoot({ check, stale, busy, onCancel, engineFailed, onRestartEngine, reportBusy, reportDisabled, reportTitle, reportDescribedBy, onReport, exportHint, hidden }: ActionFootProps) {
   return (
-    <section className="ua-actions" aria-label="Cálculo e informe" hidden={hidden}>
+    <section className="ua-actions" aria-label="Cálculo e informe" hidden={hidden} data-swap={busy || engineFailed ? 'true' : undefined}>
       {stale ? (
         <p className="gs-chip ua-stale-chip" data-tone="warn">
           Hay cambios sin calcular
@@ -116,7 +116,7 @@ export function ActionFoot({ check, stale, busy, onCancel, engineFailed, onResta
           Reiniciar el motor
         </button>
       ) : null}
-      <button type="button" className="gs-btn" onClick={onReport} disabled={reportDisabled} title={reportTitle} aria-describedby={reportDescribedBy}>
+      <button type="button" className="gs-btn ua-report-btn" onClick={onReport} disabled={reportDisabled} title={reportTitle} aria-describedby={reportDescribedBy}>
         <IconPdf size={16} />
         <span>{reportBusy ? 'Generando…' : 'Informe PDF'}</span>
       </button>
