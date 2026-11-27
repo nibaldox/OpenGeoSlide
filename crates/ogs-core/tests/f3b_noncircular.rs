@@ -237,3 +237,24 @@ fn r15_scale_invariance() {
         assert!((f - f0).abs() / f0 < 1e-6, "scale {s}: {f} vs {f0}");
     }
 }
+
+/// E16x, point 4: with `non_circular` and no admissible polyline, the circle is the result and the note says so, once.
+/// The berm with the exit window `[10, 20]`: the block that the slicer analyses starts at 20.00000955, outside the
+/// window by more than the margin of `pm.tol()`, so no polyline has an end inside it.
+#[test]
+fn r15_not_refined_note() {
+    let model = r15_nc("berm_window.json");
+    let r = run(&model);
+    assert_eq!(r["search"]["non_circular"]["evaluated"], 0);
+    assert!(r["surface"]["points"].is_null());
+    let count = r["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|w| *w == "non_circular_not_refined")
+        .count();
+    assert_eq!(count, 1);
+    let c = circular_only(&model);
+    assert_eq!(r["fos"], c["fos"]);
+    assert!(!has_note(&c, "non_circular_not_refined"));
+}

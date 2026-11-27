@@ -706,6 +706,11 @@ fn analyze_method(
                 && nc.seed_fos > 0.0
                 && (nc.seed_fos - result.fos) / nc.seed_fos > 0.15
         });
+    // E16x: the non-circular search was asked for and no polyline was admissible: the result is the circle.
+    let not_refined = search
+        .as_ref()
+        .and_then(|s| s.non_circular)
+        .is_some_and(|nc| nc.evaluated == 0);
     for code in sliced
         .notes
         .into_iter()
@@ -718,6 +723,7 @@ fn analyze_method(
                 .then(|| shansep::SHANSEP_NONPOSITIVE_STRESS.to_string()),
         )
         .chain(large_change.then(|| noncircular::NON_CIRCULAR_LARGE_CHANGE.to_string()))
+        .chain(not_refined.then(|| noncircular::NON_CIRCULAR_NOT_REFINED.to_string()))
     {
         if !warnings.contains(&code) {
             warnings.push(code);
