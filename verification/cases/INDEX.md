@@ -443,5 +443,5 @@ La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs 
 | V094 | 0.6 | no circular | morgenstern_price | 1.389 | Commercial program B | 2.04 | 1.3913 | +0.17 | 1.3886 | -0.03 |
 | V102a-nc | 0.6 | no circular | spencer | 0.999 | Commercial program A (non-circular) | 2.05 | 0.9980 | -0.10 | 0.9978 | -0.12 |
 | V102b-nc | 0.6 | no circular | spencer | 0.997 | Commercial program A (non-circular) | 2.05 | 0.9966 | -0.04 | 0.9965 | -0.05 |
-| V103 | 0.6 | no circular | spencer | 1.02 | Baker (non-circular) | 2.49 | 1.0146 | -0.53 | 1.0078 | -1.20 |
-| V103 | 0.6 | no circular | spencer | 1.01 | Commercial program A (non-circular) | 2.50 | 1.0146 | +0.45 | 1.0078 | -0.22 |
+| V103 | 0.6 | no circular | spencer | 1.02 | Baker (non-circular) | 2.49 | 1.0081 | -1.17 | 1.0078 | -1.20 |
+| V103 | 0.6 | no circular | spencer | 1.01 | Commercial program A (non-circular) | 2.50 | 1.0081 | -0.19 | 1.0078 | -0.22 |
