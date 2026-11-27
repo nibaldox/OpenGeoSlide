@@ -32,9 +32,10 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
 - `schema/ogs-0.3.schema.json`: JSON Schema del formato `.ogs.json` v0.3 (agrega material no drenado, superficie polilínea,
   Morgenstern-Price, Janbu y `analysis.interslice`; acepta también v0.1 y v0.2).
 - `schema/ogs-0.4.schema.json`: JSON Schema del formato `.ogs.json` v0.4 (agrega `reinforcements`: anclajes, clavos,
-  geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3).
+  geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3). Lo reemplaza el 0.5, que acepta todas las versiones.
 - `schema/ogs-0.5.schema.json`: JSON Schema del formato `.ogs.json` v0.5 (agrega `analysis.tension_crack` y, en un `pile`,
-  `lateral_pressure` y `capacity`; acepta también v0.1 a v0.4). Es el que valida `docs/tools/`.
+  `lateral_pressure` y `capacity`; acepta también v0.1 a v0.4). Es el vigente: lo valida `docs/tools/validar_ejemplos.py`
+  y lo compara con el motor `verification/tools/test_schema.py`.
 - `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](../apps/web/README.md).
 - `verification/`: casos publicados (`cases/`), checks retenidos (`pending/`), harness y batería diferencial frente a
   cSlope, importador (`tools/import_cslope.py`) y pruebas en Python.
@@ -133,12 +134,18 @@ con las 28 filas de X22 de `tests/data/f3g3/rows/`, el espejo, el equilibrio glo
 S/D). El importador promueve V013b a V013e desde `verification/pending/F3I/` a `verification/cases/` (`import_cslope.py
 --promote-f3i`, idempotente), y el conversor `to_cslope.py` traduce `lateral_pressure` y `capacity` al oráculo.
 
+Qué casos de `verification/cases/` reciben de verdad el peso y el empuje del agua embalsada en la superficie de su check
+(y cuáles no, E15l-10) lo mide `docs/fase3/r12/p-medir_agua_embalsada.py target/release/ogs`; la tabla está en
+[`verificacion.md`](verificacion.md#qué-casos-ejercitan-de-verdad-el-agua-embalsada-e15l-10-r12a-11).
+
 Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
 versión que fija el crate.
 
 ## Probar el paquete de Python
 
-Los tests de `crates/ogs-py/tests` (incluido `test_v04.py`, con las filas de refuerzos de X17) corren contra el **wheel
+Los tests de `crates/ogs-py/tests` (incluidos `test_v04.py`, con las filas de refuerzos de X17, y `test_v05.py`, con los
+ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md), las filas de X21 y X22 de `crates/ogs-core/tests/data/f3g*/` y
+las reproducciones de `docs/fase3/r12/repro/`; por eso se corren desde la raíz del repositorio) corren contra el **wheel
 instalado**, no contra el código fuente. Con `uv`, un wheel de producción y un venv en `$TMPDIR`:
 
 ```sh
@@ -151,7 +158,9 @@ cd ../..
 OGS_PY_TEST_HOOKS=0 "$TMPDIR/ogs-py-venv/bin/python" -m pytest crates/ogs-py/tests -q
 ```
 
-Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tests de pánico
+Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Mientras el motor no
+tenga las enmiendas E15l-1, E15l-2 y E15l-11, tres tests de `test_v05.py` salen `xfail` (no estricto): al integrarlas pasan
+a `XPASS` y se quitan las marcas. <!-- R12: medir al integrar --> Los tests de pánico
 necesitan un segundo wheel con `--features test-hooks` ([`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
 
 ## Compilar la web en local
