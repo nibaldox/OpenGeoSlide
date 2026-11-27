@@ -102,7 +102,7 @@ export const PARITY_TABLE: ParityRow[] = [
   row('reinforcements=null in version 0.3', both(set('version', '0.3'), set('reinforcements', null)), false),
   row('reinforcements that is not a list', set('reinforcements', { type: 'anchor' }), false),
   row('reinforcements in version 0.5', both(set('version', '0.5'), reinf(anchor())), true),
-  row('version 0.6', both(set('version', '0.6'), reinf(anchor())), false),
+  row('version 0.7', both(set('version', '0.7'), reinf(anchor())), false),
   // la etiqueta, los campos y las enumeraciones
   row('unknown type', reinf(anchor({ type: 'strut' })), false),
   row('without type', reinf(anchor({ type: DEL })), false),

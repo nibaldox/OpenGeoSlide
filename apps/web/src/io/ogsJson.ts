@@ -1,16 +1,16 @@
 // Abrir y guardar `.ogs.json` (X3 §2.6, F1.1, F1.4).
 //
-// - `openOgsJson` acepta v0.1 a v0.5 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
-//   mínima que lo describe (F3.9, F4.1, F5.1): `"0.2"` sin campos de la v0.3, `"0.3"` con alguno, `"0.4"` si hay refuerzos y
-//   `"0.5"` solo si existe `analysis.tension_crack`.
+// - `openOgsJson` acepta v0.1 a v0.6 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
+//   mínima que lo describe (F3.9, F4.1, F5.1, F6.1): `"0.2"` sin campos posteriores, `"0.3"` con alguno de v0.3, `"0.4"` si hay
+//   refuerzos, `"0.5"` con grieta de tracción o pilote con presión del suelo y `"0.6"` si usa Hoek-Brown, SHANSEP o búsqueda no circular.
 // - `saveOgsJson` escribe esa versión mínima, con el orden de claves canónico de 00_CONTRATOS.md §1
 //   (`loads` después de `water`, `reinforcements` después de `loads`, `analysis.seismic`, `interslice` y `tension_crack` al
 //   final de `analysis`) y 2 espacios. Los números se escriben
 //   **sin redondear**, con la representación de ida y vuelta más corta de JS (E12g): abrir y guardar no cambia el
 //   resultado del motor ni un bit.
-// - `openOgsJson` es estricto, igual que el motor (`deny_unknown_fields`, E12h): un campo desconocido, o `loads` o
-//   `analysis.seismic` en un archivo v0.1, o un campo de la v0.3 en un archivo v0.1 o v0.2, es un error con su puntero
-//   JSON, no un aviso. Un `null` cuenta como campo ausente, como en el motor.
+// - `openOgsJson` es estricto, igual que el motor (`deny_unknown_fields`, E12h): un campo desconocido, o un campo en una
+//   versión anterior a la de su puerta, es un error con su puntero JSON, no un aviso. Un `null` cuenta como campo ausente,
+//   como en el motor.
 
 import type { Issue, ModelDoc } from '../editor/types';
 // Con extensión `.ts` (R12, E15l-19): `verification/tools/web_roundtrip_save.mjs` carga este módulo con `node --experimental-strip-types`,
@@ -18,16 +18,37 @@ import type { Issue, ModelDoc } from '../editor/types';
 import { pondPolygons } from '../render/pond.ts';
 
 export const OGS_FORMAT = 'opengeoslide';
-/** Versión que se guarda cuando el modelo no usa ningún campo de la v0.3 (F3.9). */
+/** Versión que se guarda cuando el modelo no usa ningún campo de la v0.3 o superior (F3.9). */
 export const OGS_SAVE_VERSION = '0.2';
 /** Versión que se guarda cuando el modelo usa algún campo de la v0.3 (F3.9). */
 export const OGS_V03 = '0.3';
 /** Versión que se guarda cuando el modelo tiene refuerzos (F4.1). */
 export const OGS_V04 = '0.4';
-/** Versión que se guarda cuando el modelo tiene la grieta de tracción `analysis.tension_crack` (F5.1). */
+/** Versión que se guarda cuando el modelo tiene la grieta de tracción `analysis.tension_crack` o un pilote con presión del suelo (F5.1, E15i-1). */
 export const OGS_V05 = '0.5';
+/** Versión que se guarda cuando el modelo usa materiales `hoek_brown` o `shansep` o `analysis.search.non_circular` (F6.1). */
+export const OGS_V06 = '0.6';
 
-type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04 | typeof OGS_V05;
+export const OGS_VERSIONS = ['0.1', OGS_SAVE_VERSION, OGS_V03, OGS_V04, OGS_V05, OGS_V06] as const;
+export type KnownOgsVersion = (typeof OGS_VERSIONS)[number];
+
+type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04 | typeof OGS_V05 | typeof OGS_V06;
+
+export function isKnownOgsVersion(v: unknown): v is KnownOgsVersion {
+  return typeof v === 'string' && (OGS_VERSIONS as readonly string[]).includes(v);
+}
+
+/** ¿`declared` es igual o posterior a `required` dentro de `OGS_VERSIONS`? */
+export function versionAtLeast(declared: string, required: KnownOgsVersion): boolean {
+  const d = (OGS_VERSIONS as readonly string[]).indexOf(declared);
+  const r = OGS_VERSIONS.indexOf(required);
+  return d >= r && r >= 0;
+}
+
+/** Mensaje de versión desconocida, igual en Rust, Python y la web (F6.1). */
+export function unknownVersionMessage(version: unknown): string {
+  return `version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no "${String(version)}"`;
+}
 
 export interface OpenOgsResult {
   /** `null` si el archivo se rechaza (hay al menos una incidencia con severidad `error`). */
@@ -54,6 +75,8 @@ const TOP_KEYS = [
 ] as const;
 const META_KEYS = ['id', 'title', 'notes'] as const;
 const MATERIAL_V03_KEYS = ['undrained_strength', 'strength_datum', 'strength_gradient', 'strength_limit'] as const;
+const MATERIAL_HB_KEYS = ['ucs', 'gsi', 'mi', 'disturbance'] as const;
+const MATERIAL_V06_KEYS = [...MATERIAL_HB_KEYS, 'shansep'] as const;
 const MATERIAL_KEYS = [
   'id',
   'name',
@@ -64,7 +87,10 @@ const MATERIAL_KEYS = [
   'friction_angle',
   'ru',
   ...MATERIAL_V03_KEYS,
+  ...MATERIAL_V06_KEYS,
 ] as const;
+const SHANSEP_KEYS = ['ratio', 'exponent', 'ocr', 'pop', 'ocr_by_elevation'] as const;
+const SHANSEP_OPTIONAL_KEYS = ['exponent', 'ocr', 'pop', 'ocr_by_elevation'] as const;
 const REGION_KEYS = ['material', 'polygon'] as const;
 const WATER_KEYS = ['unit_weight', 'piezometric_line'] as const;
 const UDL_KEYS = ['type', 'id', 'x1', 'x2', 'q'] as const;
@@ -110,7 +136,9 @@ const SEARCH_KEYS = [
   'max_radius_factor',
   'min_width',
   'refine',
+  'non_circular',
 ] as const;
+const NON_CIRCULAR_KEYS = ['seeds', 'max_vertices'] as const;
 const SEISMIC_KEYS = ['kh', 'kv'] as const;
 
 type Rec = Record<string, unknown>;
@@ -171,6 +199,19 @@ const FIELD_NAME: Readonly<Record<string, string>> = {
   points: 'puntos',
   depth: 'profundidad',
   water_fill: 'fracción de agua',
+  ucs: 'resistencia a compresión simple σci',
+  gsi: 'índice GSI',
+  mi: 'constante mi',
+  disturbance: 'factor de perturbación D',
+  shansep: 'parámetros SHANSEP',
+  ratio: 'cociente S',
+  exponent: 'exponente m',
+  ocr: 'OCR',
+  pop: 'presión de sobreconsolidación POP',
+  ocr_by_elevation: 'perfil de OCR por cota',
+  non_circular: 'búsqueda no circular',
+  seeds: 'semillas',
+  max_vertices: 'vértices máximos',
 };
 
 /** Campos de un refuerzo en palabras de la interfaz (v0.4). */
@@ -216,7 +257,13 @@ export function describePath(path: string): string {
     case undefined:
       return 'el nivel principal del archivo';
     case 'materials':
-      return b === undefined ? 'la lista de materiales' : c === undefined ? `el material ${n(b)}` : `el material ${n(b)} (${field(c)})`;
+      if (b === undefined) return 'la lista de materiales';
+      if (c === undefined) return `el material ${n(b)}`;
+      if (c === 'shansep' && d !== undefined) {
+        if (d === 'ocr_by_elevation' && seg[4] !== undefined) return `el material ${n(b)} (parámetros SHANSEP, fila ${n(seg[4])})`;
+        return `el material ${n(b)} (parámetros SHANSEP, ${field(d)})`;
+      }
+      return `el material ${n(b)} (${field(c)})`;
     case 'regions':
       if (b === undefined) return 'la lista de regiones';
       if (c === 'polygon' && d !== undefined) return `la región ${n(b)}, vértice ${n(d)}`;
@@ -250,6 +297,9 @@ export function describePath(path: string): string {
       if (b === undefined) return 'la configuración del análisis';
       if (b === 'surface' && c === 'points' && d !== undefined) return `la polilínea fija, punto ${n(d)}`;
       if (b === 'interslice' && c === 'points' && d !== undefined) return `la función de fuerzas entre dovelas, punto ${n(d)}`;
+      if (b === 'search' && c === 'non_circular') {
+        return d === undefined ? 'la búsqueda no circular' : `la búsqueda no circular (${field(d)})`;
+      }
       if (c === undefined) return section[b] ? section[b] : `la configuración del análisis (${field(b)})`;
       return `${section[b] ?? 'el análisis'} (${field(c)})`;
     }
@@ -498,10 +548,13 @@ const reinforcementSub: Sub = (v, path, ctx) => {
   return dropNull(orderedWith(keys, subs), REINFORCEMENT_OPTIONAL_KEYS)(v, path, ctx);
 };
 
+const nonCircularSub: Sub = dropNull(orderedWith(NON_CIRCULAR_KEYS), NON_CIRCULAR_KEYS);
+const searchSub: Sub = dropNull(orderedWith(SEARCH_KEYS, { non_circular: nonCircularSub }), ['non_circular']);
+
 const analysisSub: Sub = (v, path, ctx) => {
   const out = orderedWith(ANALYSIS_KEYS, {
     surface: orderedWith(SURFACE_KEYS),
-    search: orderedWith(SEARCH_KEYS),
+    search: searchSub,
     seismic: orderedWith(SEISMIC_KEYS),
     interslice: orderedWith(INTERSLICE_KEYS),
     tension_crack: orderedWith(CRACK_KEYS),
@@ -512,7 +565,8 @@ const analysisSub: Sub = (v, path, ctx) => {
   return out;
 };
 
-const materialSub: Sub = dropNull(orderedWith(MATERIAL_KEYS), MATERIAL_V03_KEYS);
+const shansepSub: Sub = dropNull(orderedWith(SHANSEP_KEYS), SHANSEP_OPTIONAL_KEYS);
+const materialSub: Sub = dropNull(orderedWith(MATERIAL_KEYS, { shansep: shansepSub }), [...MATERIAL_V03_KEYS, ...MATERIAL_V06_KEYS]);
 
 const INTERSLICE_FUNCTIONS: readonly string[] = ['constant', 'half_sine', 'clipped_sine', 'trapezoidal', 'data_points'];
 
@@ -520,10 +574,30 @@ const NEW_METHODS: readonly string[] = ['morgenstern_price', 'janbu_simplified',
 
 const present = (v: unknown): boolean => v !== undefined && v !== null;
 
-/** Un campo de la v0.3 que usa el documento: dónde está (puntero JSON) y cómo se llama en la interfaz. */
-export interface V03Field {
+/** Un campo asociado a una versión del formato: puntero JSON, nombre canónico del motor y etiqueta de la interfaz. */
+export interface VersionField {
   path: string;
+  field: string;
   what: string;
+}
+
+/** Alias compatible con los tests de la v0.3-v0.5. */
+export type V03Field = VersionField;
+
+/**
+ * Campos de la v0.2 que usa un modelo (F1.1, E12a/E12h): `loads` no vacío y `analysis.seismic`. `loads: []` y `seismic: null`
+ * cuentan como ausentes, igual que en el motor.
+ */
+export function v02Fields(model: unknown): VersionField[] {
+  const out: VersionField[] = [];
+  if (!isRecord(model)) return out;
+  if (Array.isArray(model.loads) && model.loads.length > 0) {
+    out.push({ path: '/loads', field: 'loads', what: 'las cargas' });
+  }
+  if (isRecord(model.analysis) && present(model.analysis.seismic)) {
+    out.push({ path: '/analysis/seismic', field: 'analysis.seismic', what: 'el sismo (coeficientes kh y kv)' });
+  }
+  return out;
 }
 
 /**
@@ -531,36 +605,42 @@ export interface V03Field {
  * campos), polilínea, métodos y `interslice`. Un `null` cuenta como ausente. Trabaja sobre el JSON sin tipar, así que sirve
  * tanto al abrir un archivo como al guardar.
  */
-export function v03Fields(model: unknown): V03Field[] {
-  const out: V03Field[] = [];
+export function v03Fields(model: unknown): VersionField[] {
+  const out: VersionField[] = [];
   if (!isRecord(model)) return out;
   if (Array.isArray(model.materials)) {
     model.materials.forEach((m, i) => {
       if (!isRecord(m)) return;
       const base = `/materials/${i}`;
       const label = `el material ${i + 1}`;
-      if (m.model === 'undrained') out.push({ path: `${base}/model`, what: `${label} con el modelo «No drenado (Su)»` });
+      if (m.model === 'undrained') {
+        out.push({ path: `${base}/model`, field: `materials[${i}].model = "undrained"`, what: `${label} con el modelo «No drenado (Su)»` });
+      }
       const names: Record<(typeof MATERIAL_V03_KEYS)[number], string> = {
         undrained_strength: 'la resistencia no drenada Su',
         strength_datum: 'la cota de referencia de Su',
         strength_gradient: 'el gradiente de Su',
         strength_limit: 'el límite de Su',
       };
-      for (const key of MATERIAL_V03_KEYS) if (present(m[key])) out.push({ path: `${base}/${key}`, what: `${names[key]} de ${label}` });
+      for (const key of MATERIAL_V03_KEYS) {
+        if (present(m[key])) out.push({ path: `${base}/${key}`, field: `materials[${i}].${key}`, what: `${names[key]} de ${label}` });
+      }
     });
   }
   const a = model.analysis;
   if (isRecord(a)) {
-    if (isRecord(a.surface) && a.surface.type === 'polyline') out.push({ path: '/analysis/surface', what: 'la superficie fija como polilínea' });
+    if (isRecord(a.surface) && a.surface.type === 'polyline') {
+      out.push({ path: '/analysis/surface', field: 'analysis.surface.type = "polyline"', what: 'la superficie fija como polilínea' });
+    }
     if (Array.isArray(a.methods)) {
       const names: Record<string, string> = { morgenstern_price: 'Morgenstern-Price', janbu_simplified: 'Janbu simplificado', janbu_corrected: 'Janbu corregido' };
       a.methods.forEach((method, i) => {
         if (typeof method === 'string' && NEW_METHODS.includes(method)) {
-          out.push({ path: `/analysis/methods/${i}`, what: `el método ${names[method]}` });
+          out.push({ path: `/analysis/methods/${i}`, field: `analysis.methods = "${method}"`, what: `el método ${names[method]}` });
         }
       });
     }
-    if (present(a.interslice)) out.push({ path: '/analysis/interslice', what: 'la función de fuerzas entre dovelas' });
+    if (present(a.interslice)) out.push({ path: '/analysis/interslice', field: 'analysis.interslice', what: 'la función de fuerzas entre dovelas' });
   }
   return out;
 }
@@ -569,36 +649,117 @@ export function v03Fields(model: unknown): V03Field[] {
  * Campos de la v0.4 que usa un modelo (F4.1): `reinforcements` no vacío. Una lista vacía o `null` cuenta como ausente, como en el
  * motor (`first_v04_field`).
  */
-export function v04Fields(model: unknown): V03Field[] {
+export function v04Fields(model: unknown): VersionField[] {
   if (!isRecord(model) || !Array.isArray(model.reinforcements) || model.reinforcements.length === 0) return [];
-  return [{ path: '/reinforcements', what: 'los refuerzos' }];
+  return [{ path: '/reinforcements', field: 'reinforcements', what: 'los refuerzos' }];
 }
 
 /**
  * Campos de la v0.5 que usa un modelo (F5.1, E15i-1): `analysis.tension_crack` y, en un `pile`, `lateral_pressure` y `capacity`. Un `null`
  * cuenta como ausente, como en el motor (`first_v05_field`).
  */
-export function v05Fields(model: unknown): V03Field[] {
-  const out: V03Field[] = [];
-  if (isRecord(model) && isRecord(model.analysis) && present(model.analysis.tension_crack)) out.push({ path: '/analysis/tension_crack', what: 'la grieta de tracción' });
+export function v05Fields(model: unknown): VersionField[] {
+  const out: VersionField[] = [];
+  if (isRecord(model) && isRecord(model.analysis) && present(model.analysis.tension_crack)) {
+    out.push({ path: '/analysis/tension_crack', field: 'tension_crack', what: 'la grieta de tracción' });
+  }
   if (isRecord(model) && Array.isArray(model.reinforcements)) {
     model.reinforcements.forEach((r, i) => {
       if (!isRecord(r) || r.type !== 'pile') return;
-      if (present(r.lateral_pressure)) out.push({ path: `/reinforcements/${i}/lateral_pressure`, what: 'la presión del suelo de un pilote (Ito-Matsui)' });
-      if (present(r.capacity)) out.push({ path: `/reinforcements/${i}/capacity`, what: 'la capacidad de un pilote' });
+      if (present(r.lateral_pressure)) {
+        out.push({ path: `/reinforcements/${i}/lateral_pressure`, field: 'lateral_pressure', what: 'la presión del suelo de un pilote (Ito-Matsui)' });
+      }
+      if (present(r.capacity)) {
+        out.push({ path: `/reinforcements/${i}/capacity`, field: 'capacity', what: 'la capacidad de un pilote' });
+      }
     });
   }
   return out;
 }
 
 /**
- * Versión mínima con la que se guarda el modelo (F3.9, F4.1, F5.1, E15i-1): `"0.5"` si hay grieta de tracción o un pilote con presión del suelo, `"0.4"` si hay refuerzos,
- * `"0.3"` si usa algún campo de la v0.3, si no `"0.2"`. El agua embalsada no tiene campo y no sube la versión.
+ * Campos de la v0.6 que usa un modelo, en el orden exacto de F6.1 (`first_v06_field` de `loads.rs`):
+ * 1. material por material: `materials[i].model = "hoek_brown"` o `"shansep"`, y después `ucs`, `gsi`, `mi`, `disturbance` y `shansep`;
+ * 2. `analysis.search.non_circular`.
+ * Un `null` cuenta como ausente.
+ */
+export function v06Fields(model: unknown): VersionField[] {
+  const out: VersionField[] = [];
+  if (!isRecord(model)) return out;
+  if (Array.isArray(model.materials)) {
+    model.materials.forEach((m, i) => {
+      if (!isRecord(m)) return;
+      const base = `/materials/${i}`;
+      const num = i + 1;
+      if (m.model === 'hoek_brown') {
+        out.push({
+          path: `${base}/model`,
+          field: `materials[${i}].model = "hoek_brown"`,
+          what: `el material ${num} con el modelo «Hoek-Brown»`,
+        });
+      } else if (m.model === 'shansep') {
+        out.push({
+          path: `${base}/model`,
+          field: `materials[${i}].model = "shansep"`,
+          what: `el material ${num} con el modelo «SHANSEP»`,
+        });
+      }
+      const names: Record<(typeof MATERIAL_V06_KEYS)[number], string> = {
+        ucs: 'la resistencia a compresión simple σci',
+        gsi: 'el índice GSI',
+        mi: 'la constante mi',
+        disturbance: 'el factor de perturbación D',
+        shansep: 'los parámetros SHANSEP',
+      };
+      for (const key of MATERIAL_V06_KEYS) {
+        if (present(m[key])) {
+          out.push({
+            path: `${base}/${key}`,
+            field: `materials[${i}].${key}`,
+            what: `${names[key]} del material ${num}`,
+          });
+        }
+      }
+    });
+  }
+  if (isRecord(model.analysis) && isRecord(model.analysis.search) && present(model.analysis.search.non_circular)) {
+    out.push({
+      path: '/analysis/search/non_circular',
+      field: 'analysis.search.non_circular',
+      what: 'la búsqueda no circular',
+    });
+  }
+  return out;
+}
+
+export interface VersionGate {
+  readonly version: OgsVersion;
+  readonly fields: (model: unknown) => VersionField[];
+}
+
+/**
+ * Única tabla «campo → versión mínima» de la web (F3.9, F4.1, F5.1, F6.1, X27 §2.1), en orden creciente de versión
+ * y con el mismo orden de campos que el motor (`loads.rs`). La usan `minimalVersion`, `engineModel`, `openOgsJson`,
+ * `syncVersion` (`reducer.ts`) y `validateLocal` (`validateLocal.ts`).
+ */
+export const VERSION_FIELD_TABLE: readonly VersionGate[] = [
+  { version: OGS_SAVE_VERSION, fields: v02Fields },
+  { version: OGS_V03, fields: v03Fields },
+  { version: OGS_V04, fields: v04Fields },
+  { version: OGS_V05, fields: v05Fields },
+  { version: OGS_V06, fields: v06Fields },
+] as const;
+
+/**
+ * Versión mínima con la que se guarda el modelo (F3.9, F4.1, F5.1, F6.1): la mayor versión de `VERSION_FIELD_TABLE` cuyos campos
+ * estén presentes, con `"0.2"` como piso al guardar. El agua embalsada no tiene campo y no sube la versión.
  */
 export function minimalVersion(model: unknown): OgsVersion {
-  if (v05Fields(model).length > 0) return OGS_V05;
-  if (v04Fields(model).length > 0) return OGS_V04;
-  return v03Fields(model).length > 0 ? OGS_V03 : OGS_SAVE_VERSION;
+  for (let i = VERSION_FIELD_TABLE.length - 1; i >= 0; i -= 1) {
+    const gate = VERSION_FIELD_TABLE[i]!;
+    if (gate.version !== OGS_SAVE_VERSION && gate.fields(model).length > 0) return gate.version;
+  }
+  return OGS_SAVE_VERSION;
 }
 
 function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
@@ -625,7 +786,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
   return result;
 }
 
-/** Documento en orden canónico y con la versión mínima (`"0.2"`, `"0.3"`, `"0.4"` o `"0.5"`), sin serializar (para borradores y pruebas). Sin redondeo. */
+/** Documento en orden canónico y con la versión mínima (`"0.2"` a `"0.6"`), sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const version = minimalVersion(doc);
   const withVersion = { ...doc, format: OGS_FORMAT, version } as ModelDoc;
@@ -638,18 +799,21 @@ export function saveOgsJson(doc: ModelDoc): string {
 }
 
 /**
- * Copia del modelo lista para el motor: con la versión `"0.5"` si tiene grieta de tracción, `"0.4"` si tiene refuerzos y `"0.3"` si su contenido la exige (los modelos de los casos pueden traer una
- * versión menor que la que piden los métodos que se eligen en «Casos») y sin `analysis.interslice` cuando `morgenstern_price` no
- * está entre los métodos (el motor lo rechaza: solo tiene sentido con ese método).
+ * Copia del modelo lista para el motor: sube `version` solo si su contenido exige una mayor en `VERSION_FIELD_TABLE` (un modelo de
+ * la v0.1 o v0.2 sin campos nuevos se envía tal cual) y quita `analysis.interslice` cuando `morgenstern_price` no está entre los
+ * métodos (el motor lo rechaza: solo tiene sentido con ese método).
  */
 export function engineModel(model: ModelDoc): ModelDoc {
   const analysis = { ...model.analysis };
   if (analysis.interslice !== undefined && !(analysis.methods ?? []).includes('morgenstern_price')) delete analysis.interslice;
   const copy: ModelDoc = { ...model, analysis };
-  // Solo se sube la versión si hace falta: un modelo de la v0.1 o v0.2 sin campos nuevos se envía tal cual. Con grieta, 0.5; con refuerzos, 0.4.
-  if (v05Fields(copy).length > 0) return { ...copy, version: OGS_V05 };
-  if (v04Fields(copy).length > 0) return copy.version === OGS_V05 ? copy : { ...copy, version: OGS_V04 };
-  return v03Fields(copy).length > 0 && copy.version !== OGS_V04 && copy.version !== OGS_V05 ? { ...copy, version: OGS_V03 } : copy;
+  for (let i = VERSION_FIELD_TABLE.length - 1; i >= 0; i -= 1) {
+    const gate = VERSION_FIELD_TABLE[i]!;
+    if (gate.fields(copy).length > 0) {
+      return versionAtLeast(copy.version, gate.version) ? copy : { ...copy, version: gate.version };
+    }
+  }
+  return copy;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -768,13 +932,53 @@ function checkShape(model: Rec, issues: Issue[]): void {
         err('io.shape', `El material ${i + 1} no tiene un identificador de texto (por ejemplo, «arcilla»).`, `/materials/${i}`);
         return;
       }
-      if (m.model !== undefined && m.model !== 'mohr_coulomb' && m.model !== 'undrained') {
+      if (
+        m.model !== undefined &&
+        m.model !== 'mohr_coulomb' &&
+        m.model !== 'undrained' &&
+        m.model !== 'hoek_brown' &&
+        m.model !== 'shansep'
+      ) {
         err(
           'io.shape',
-          `El modelo constitutivo del material ${i + 1} no se reconoce: debe ser «Mohr-Coulomb» (mohr_coulomb) o «No drenado (Su)» (undrained).`,
+          `El modelo constitutivo del material ${i + 1} no se reconoce: debe ser «Mohr-Coulomb» (mohr_coulomb), «No drenado (Su)» (undrained), «Hoek-Brown» (hoek_brown) o «SHANSEP» (shansep).`,
           `/materials/${i}/model`,
           `model = ${JSON.stringify(m.model) ?? 'ausente'}`,
         );
+      }
+      for (const key of MATERIAL_HB_KEYS) {
+        if (!OPTIONAL_ABSENT(m[key]) && !isNum(m[key])) {
+          err(
+            'io.shape',
+            `En ${describePath(`/materials/${i}/${key}`)} falta un valor numérico; revise ese dato.`,
+            `/materials/${i}/${key}`,
+            `${key} = ${JSON.stringify(m[key]) ?? 'ausente'}`,
+          );
+        }
+      }
+      if (!OPTIONAL_ABSENT(m.shansep)) {
+        const sb = `/materials/${i}/shansep`;
+        if (!isRecord(m.shansep)) {
+          err('io.shape', `En ${describePath(sb)} los datos deben ser un bloque { … }.`, sb, `shansep = ${JSON.stringify(m.shansep) ?? 'ausente'}`);
+        } else {
+          const sh = m.shansep;
+          if (!isNum(sh.ratio)) {
+            err('io.shape', `En ${describePath(`${sb}/ratio`)} falta el valor numérico.`, `${sb}/ratio`, `ratio = ${JSON.stringify(sh.ratio) ?? 'ausente'}`);
+          }
+          for (const key of ['exponent', 'ocr', 'pop'] as const) {
+            if (!OPTIONAL_ABSENT(sh[key]) && !isNum(sh[key])) {
+              err('io.shape', `En ${describePath(`${sb}/${key}`)} falta un valor numérico.`, `${sb}/${key}`, `${key} = ${JSON.stringify(sh[key]) ?? 'ausente'}`);
+            }
+          }
+          const isPairOfNumbers = (row: unknown): boolean => Array.isArray(row) && row.length === 2 && isNum(row[0]) && isNum(row[1]);
+          if (!OPTIONAL_ABSENT(sh.ocr_by_elevation) && (!Array.isArray(sh.ocr_by_elevation) || !sh.ocr_by_elevation.every(isPairOfNumbers))) {
+            err(
+              'io.shape',
+              `En ${describePath(`${sb}/ocr_by_elevation`)} el perfil debe ser una lista de pares [cota, OCR] numéricos.`,
+              `${sb}/ocr_by_elevation`,
+            );
+          }
+        }
       }
     });
   }
@@ -839,6 +1043,25 @@ function checkShape(model: Rec, issues: Issue[]): void {
           '/analysis/tension_crack/water_fill',
           `water_fill = ${JSON.stringify(crack.water_fill) ?? 'ausente'}`,
         );
+      }
+    }
+    // F6.4: `analysis.search.non_circular` es un objeto opcional con `seeds` y `max_vertices` numéricos opcionales (`{}` es válido).
+    const search = model.analysis.search;
+    if (isRecord(search) && !OPTIONAL_ABSENT(search.non_circular)) {
+      const nb = '/analysis/search/non_circular';
+      if (!isRecord(search.non_circular)) {
+        err('io.shape', 'La búsqueda no circular no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacío (null).', nb);
+      } else {
+        for (const key of NON_CIRCULAR_KEYS) {
+          if (!OPTIONAL_ABSENT(search.non_circular[key]) && !isNum(search.non_circular[key])) {
+            err(
+              'io.shape',
+              `En ${describePath(`${nb}/${key}`)} falta un valor numérico.`,
+              `${nb}/${key}`,
+              `${key} = ${JSON.stringify(search.non_circular[key]) ?? 'ausente'}`,
+            );
+          }
+        }
       }
     }
   }
@@ -972,11 +1195,11 @@ export function openOgsJson(text: string): OpenOgsResult {
       `format = ${JSON.stringify(model.format) ?? 'ausente'}`,
     );
   }
-  if (model.version !== '0.1' && model.version !== '0.2' && model.version !== '0.3' && model.version !== '0.4' && model.version !== '0.5') {
+  if (!isKnownOgsVersion(model.version)) {
     const shown = typeof model.version === 'string' ? `la versión "${model.version}"` : 'ninguna versión';
     return reject(
       'io.version',
-      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4 y 0.5. Guárdelo de nuevo con una versión compatible.`,
+      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4, 0.5 y 0.6. Guárdelo de nuevo con una versión compatible.`,
       '/version',
       `version = ${JSON.stringify(model.version) ?? 'ausente'}`,
     );
@@ -985,71 +1208,20 @@ export function openOgsJson(text: string): OpenOgsResult {
   checkShape(model, issues);
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 
-  // Como el motor (E12a/E12h): `loads: []` y `seismic: null` cuentan como ausentes; con datos, exigen v0.2.
-  const hasLoads = Array.isArray(model.loads) && model.loads.length > 0;
-  const hasSeismic = isRecord(model.analysis) && model.analysis.seismic !== undefined && model.analysis.seismic !== null;
-  if (model.version === '0.1') {
-    if (hasLoads) {
-      issues.push(
-        issue(
-          'error',
-          'io.version_fields',
-          'El archivo declara el formato 0.1, que no admite cargas. Cambie la versión del archivo a "0.2" o quite las cargas.',
-          '/loads',
-        ),
-      );
-    }
-    if (hasSeismic) {
-      issues.push(
-        issue(
-          'error',
-          'io.version_fields',
-          'El archivo declara el formato 0.1, que no admite el sismo (coeficientes kh y kv). Cambie la versión del archivo a "0.2" o quite el sismo.',
-          '/analysis/seismic',
-        ),
-      );
-    }
-  }
-
-  // Como el motor (E13a): un campo de la v0.3 en un archivo v0.1 o v0.2 es un error.
-  if (model.version !== '0.3' && model.version !== '0.4' && model.version !== '0.5') {
-    for (const { path, what } of v03Fields(model)) {
-      issues.push(
-        issue(
-          'error',
-          'io.version_fields',
-          `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.3" o quite ese dato.`,
-          path,
-        ),
-      );
-    }
-  }
-
-  // Como el motor (E14a): `reinforcements` no vacío exige la versión 0.4 o la 0.5.
-  if (model.version !== '0.4' && model.version !== '0.5') {
-    for (const { path, what } of v04Fields(model)) {
-      issues.push(
-        issue(
-          'error',
-          'io.version_fields',
-          `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.4" o quite ese dato.`,
-          path,
-        ),
-      );
-    }
-  }
-
-  // Como el motor (E15a): `analysis.tension_crack` exige la versión 0.5 (`tension_crack requiere version "0.5"`).
-  if (model.version !== '0.5') {
-    for (const { path, what } of v05Fields(model)) {
-      issues.push(
-        issue(
-          'error',
-          'io.version_fields',
-          `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "0.5" o quite ese dato.`,
-          path,
-        ),
-      );
+  // Compuertas de versión a partir de la tabla única `VERSION_FIELD_TABLE` (E12a/E12h, E13a, E14a, E15a, E16a):
+  // las puertas anteriores quedan abiertas a 0.6; la puerta de 0.6 emite el mensaje exacto del motor (`<campo> requiere version "0.6"`).
+  for (const gate of VERSION_FIELD_TABLE) {
+    if (versionAtLeast(model.version, gate.version)) continue;
+    for (const { path, field, what } of gate.fields(model)) {
+      const msg =
+        gate.version === OGS_V06
+          ? `${field} requiere version "0.6"`
+          : gate.version === OGS_SAVE_VERSION
+            ? path === '/loads'
+              ? 'El archivo declara el formato 0.1, que no admite cargas. Cambie la versión del archivo a "0.2" o quite las cargas.'
+              : 'El archivo declara el formato 0.1, que no admite el sismo (coeficientes kh y kv). Cambie la versión del archivo a "0.2" o quite el sismo.'
+            : `El archivo declara el formato ${model.version}, que no admite ${what}. Cambie la versión del archivo a "${gate.version}" o quite ese dato.`;
+      issues.push(issue('error', 'io.version_fields', msg, path));
     }
   }
 

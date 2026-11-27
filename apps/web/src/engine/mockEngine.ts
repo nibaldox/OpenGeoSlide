@@ -3,8 +3,8 @@
 // Es determinista: el mismo modelo produce el mismo JSON byte a byte.
 //
 // Solo simula la versión 0.2 del formato: rechaza con un error explícito todo modelo con campos de la versión 0.3
-// (material no drenado, polilínea, Morgenstern-Price, Janbu, interslice; F3.9) o de la 0.4 (refuerzos; F4.11). Nunca
-// inventa un FS para ellos.
+// (material no drenado, polilínea, Morgenstern-Price, Janbu, interslice; F3.9), de la 0.4 (refuerzos; F4.11), de la 0.5
+// (grieta de tracción y agua embalsada) o de la 0.6 (Hoek-Brown, SHANSEP y búsqueda no circular; F6.13). Nunca inventa un FS para ellos.
 //
 // Diferencias con el motor real (se avisan en `warnings` de cada resultado):
 // - Fellenius en lugar de Bishop/Spencer; `lambda` es null e `iterations` vale 1.
@@ -12,6 +12,7 @@
 // - Bordes de dovela uniformes (sin puntos de quiebre).
 
 import { EngineError, type Engine } from './engine';
+import { isKnownOgsVersion, unknownVersionMessage, v06Fields } from '../io/ogsJson';
 import { pondPolygons } from '../render/pond';
 import {
   modelXRange,
@@ -109,6 +110,9 @@ function validateModel(model: Model): void {
   if (model.format !== 'opengeoslide') {
     throw new EngineError(`InvalidModel: format "${String(model.format)}" no reconocido`);
   }
+  if (model.version !== undefined && !isKnownOgsVersion(model.version)) {
+    throw new EngineError(`InvalidModel: ${unknownVersionMessage(model.version)}`);
+  }
   if (Array.isArray(model.reinforcements) && model.reinforcements.length > 0) {
     throw new EngineError(
       'InvalidModel: el motor simulado no admite los refuerzos (reinforcements), un campo de la versión 0.4; use el motor WASM',
@@ -119,6 +123,13 @@ function validateModel(model: Model): void {
   if (model.analysis != null && (model.analysis as { tension_crack?: unknown }).tension_crack != null) {
     throw new EngineError(
       'InvalidModel: el motor simulado no admite la grieta de tracción (analysis.tension_crack), un campo de la versión 0.5; use el motor WASM',
+    );
+  }
+  // Hoek-Brown, SHANSEP y búsqueda no circular (v0.6, F6.13): el motor simulado rechaza todo campo de F6.1.
+  const v06 = v06Fields(model)[0];
+  if (v06 !== undefined) {
+    throw new EngineError(
+      `InvalidModel: el motor simulado no admite ${v06.what} (${v06.field}), un campo de la versión 0.6; use el motor WASM`,
     );
   }
   const v03 = firstV03Field(model);

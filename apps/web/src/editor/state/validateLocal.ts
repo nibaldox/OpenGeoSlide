@@ -8,7 +8,7 @@
 
 import type { AnalysisSettings, Material, Model, Point, Reinforcement } from '../../engine/types';
 import type { Issue, ModelDoc } from '../types';
-import { v03Fields, v04Fields, v05Fields } from '../../io/ogsJson';
+import { VERSION_FIELD_TABLE, isKnownOgsVersion, unknownVersionMessage, versionAtLeast } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
 import { WATER_UNIT_WEIGHT_DEFAULT_TEXT } from '../../engine/warnings';
 import { geotechAdvisories, validPiezo } from './geotech';
@@ -378,7 +378,7 @@ function validateMaterials(doc: ModelDoc, issues: Issue[]): void {
       issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.unitWeightSat), m.unit_weight_sat), `${base}/unit_weight_sat`));
     }
     if (m.model === 'undrained') validateUndrainedFields(m, base, label, issues);
-    else validateMohrCoulombFields(m, base, label, issues);
+    else if (m.model !== 'hoek_brown' && m.model !== 'shansep') validateMohrCoulombFields(m, base, label, issues);
     if (m.ru !== undefined && m.ru !== null && !(isNum(m.ru) && m.ru >= 0 && m.ru < 1)) {
       issues.push(error('editor.out_of_range', withValue(under(label, RULE_TEXT.ru), m.ru), `${base}/ru`));
     }
@@ -1032,26 +1032,31 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     const b = boundsOf(allPoints);
     extent = { min: b.minX, max: b.maxX };
   }
-  const hasV02Fields =
-    (doc.loads !== undefined && doc.loads.length > 0) || (doc.analysis.seismic !== undefined && doc.analysis.seismic !== null);
-  if (doc.version === '0.1' && hasV02Fields) {
-    issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
-  }
-  // R10B-08: como el motor (`<campo> requiere version "0.3"`), con el primer campo de la 0.3 que el documento usa.
-  const first = doc.version === '0.3' || doc.version === '0.4' || doc.version === '0.5' ? undefined : v03Fields(doc)[0];
-  if (first) {
-    issues.push(error('editor.out_of_range', `${version03Text(first.what, String(doc.version))}.`, '/version'));
-  }
-  // F4.1: como el motor (`reinforcements requiere version "0.4"`); la 0.5 también los admite.
-  if (doc.version !== '0.4' && doc.version !== '0.5' && v04Fields(doc).length > 0) {
-    issues.push(error('editor.reinforcement_version', `${version04Text(String(doc.version))}.`, '/version'));
-  }
-  // F5.1: como el motor (`tension_crack requiere version "0.5"`); E15i-1: `lateral_pressure` y `capacity` también.
-  if (doc.version !== '0.5') {
-    const fields = v05Fields(doc);
-    if (fields.some((f) => f.path.startsWith('/analysis/'))) issues.push(error('editor.crack_version', `${version05Text(String(doc.version))}.`, '/version'));
-    if (fields.some((f) => f.path.startsWith('/reinforcements/'))) {
-      issues.push(error('editor.reinforcement_pressure_version', `${version05PressureText(String(doc.version))}.`, '/version'));
+  if (!isKnownOgsVersion(doc.version)) {
+    issues.push(error('editor.out_of_range', unknownVersionMessage(doc.version), '/version'));
+  } else {
+    // Compuertas de versión con la tabla única `VERSION_FIELD_TABLE` (`ogsJson.ts`), en el mismo orden que `loads::validate_document`:
+    // las puertas anteriores quedan abiertas a 0.6; la puerta de 0.6 usa el mensaje exacto del motor (`<campo> requiere version "0.6"`).
+    for (const gate of VERSION_FIELD_TABLE) {
+      if (versionAtLeast(doc.version, gate.version)) continue;
+      const fields = gate.fields(doc);
+      if (fields.length === 0) continue;
+      if (gate.version === '0.2') {
+        issues.push(error('editor.out_of_range', `${RULE_TEXT.version02}.`, '/version'));
+      } else if (gate.version === '0.3') {
+        issues.push(error('editor.out_of_range', `${version03Text(fields[0]!.what, doc.version)}.`, '/version'));
+      } else if (gate.version === '0.4') {
+        issues.push(error('editor.reinforcement_version', `${version04Text(doc.version)}.`, '/version'));
+      } else if (gate.version === '0.5') {
+        if (fields.some((f) => f.path.startsWith('/analysis/'))) {
+          issues.push(error('editor.crack_version', `${version05Text(doc.version)}.`, '/version'));
+        }
+        if (fields.some((f) => f.path.startsWith('/reinforcements/'))) {
+          issues.push(error('editor.reinforcement_pressure_version', `${version05PressureText(doc.version)}.`, '/version'));
+        }
+      } else if (gate.version === '0.6') {
+        issues.push(error('editor.out_of_range', `${fields[0]!.field} requiere version "0.6"`, '/version'));
+      }
     }
   }
   validateMaterials(doc, issues);

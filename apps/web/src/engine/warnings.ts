@@ -109,6 +109,10 @@ export const ENGINE_WARNING_CODES = [
   'structural_checks_not_covered',
   'ito_matsui_spacing_range',
   'water_unit_weight_default', // E15m-6 (motor, R13): γw por defecto en un modelo imperial con agua; la web lo declara aquí y en E6 lo agrega M
+  'hoek_brown_not_converged',
+  'hoek_brown_low_confinement',
+  'shansep_nonpositive_stress',
+  'non_circular_large_change',
 ] as const;
 
 /**
@@ -256,6 +260,22 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'nota',
     text: WATER_UNIT_WEIGHT_DEFAULT_TEXT,
   },
+  hoek_brown_not_converged: {
+    severity: 'aviso',
+    text: 'El cálculo con Hoek-Brown no convergió: la resistencia de la roca no se estabilizó con el factor de seguridad.',
+  },
+  hoek_brown_low_confinement: {
+    severity: 'nota',
+    text: 'En parte de la base el esfuerzo normal es muy bajo o de tracción; la resistencia de Hoek-Brown se tomó con la regla de bajo confinamiento. Revise la presión de poros y las grietas.',
+  },
+  shansep_nonpositive_stress: {
+    severity: 'nota',
+    text: 'En parte de la base el esfuerzo vertical efectivo es nulo o negativo; ahí la resistencia SHANSEP se tomó como cero.',
+  },
+  non_circular_large_change: {
+    severity: 'nota',
+    text: 'La superficie no circular bajó el factor de seguridad más de un 15 % respecto del mejor círculo; revise la geometría de la superficie crítica.',
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -296,6 +316,10 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   interslice_shear_exceeds_strength: '/analysis/surface',
   janbu_correction_extrapolated: '/analysis/methods',
   non_positive_fos: '/analysis/methods',
+  hoek_brown_not_converged: '/materials',
+  hoek_brown_low_confinement: '/materials',
+  shansep_nonpositive_stress: '/materials',
+  non_circular_large_change: '/analysis/search',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */
