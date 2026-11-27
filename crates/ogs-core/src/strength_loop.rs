@@ -122,6 +122,7 @@ fn solve_rule(
         }
         if pass == max_passes {
             result.status = SolveStatus::NotConverged;
+            result.fos = f64::NAN;
             result.message = Some("hoek_brown_not_converged".to_owned());
             result.warnings.clear();
             return (result, report);
@@ -155,6 +156,7 @@ mod tests {
                 .unwrap();
         for result in output["results"].as_array().unwrap() {
             assert_eq!(result["status"], "not_converged");
+            assert!(result["fos"].is_null(), "{result}");
             assert!(
                 result["warnings"]
                     .as_array()
