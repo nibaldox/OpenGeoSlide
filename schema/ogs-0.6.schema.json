@@ -1824,12 +1824,15 @@
       }
     },
     "non_circular": {
-      "description": "Búsqueda no circular (solo version 0.6, F6.4): objeto opcional dentro de analysis.search, sin otros campos. seeds: entero en [1, 10], 3 por defecto; max_vertices: 9, 17 o 33, 33 por defecto. {} es válido.",
+      "description": "Búsqueda no circular (solo version 0.6, F6.4): objeto opcional dentro de analysis.search, sin otros campos. seeds: entero en [1, 10], 3 por defecto; max_vertices: 9, 17 o 33, 33 por defecto; null cuenta como ausente (E16z). {} es válido.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "seeds": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "maximum": 10,
           "default": 3
@@ -1838,7 +1841,8 @@
           "enum": [
             9,
             17,
-            33
+            33,
+            null
           ],
           "default": 33
         }
