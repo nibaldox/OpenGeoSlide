@@ -637,14 +637,6 @@ fn a_valid_hoek_brown_model_reaches_its_stub() {
 }
 
 #[test]
-fn a_valid_shansep_model_reaches_its_stub() {
-    let doc = shansep_doc();
-    let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))
-        .expect_err("un modelo SHANSEP válido llega al stub de B0");
-    assert!(panic_text(payload).contains("F3B-M-SH"));
-}
-
-#[test]
 fn a_valid_non_circular_model_reaches_its_stub() {
     let doc = non_circular_doc(json!({}));
     let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))

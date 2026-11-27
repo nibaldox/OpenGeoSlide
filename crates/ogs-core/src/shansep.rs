@@ -208,7 +208,7 @@ mod tests {
     fn apply_does_nothing_without_a_shansep_slice() {
         let pm = model(json!({"ratio": 0.25, "ocr": 1.5}), Value::Null);
         let mut slices = [slice(0, 100.0, 0.0, 0.0)];
-        let before = slices.clone();
+        let before = slices;
         let out = apply(&pm, 0.1, &mut slices);
         assert_eq!(out, ShansepOutcome::default());
         assert_eq!(slices[0].cohesion, before[0].cohesion);
