@@ -1282,7 +1282,8 @@ Por pilote y por unidad de profundidad, `p(z) = c·A1 + σ′v·A2`, con `S = sp
   (como lo hace el cortador para ese material), y suma el agua embalsada sobre el terreno. Sin `ru`, `σ′v = σv − u`, con
   `u = γw·max(0, piezométrica − y)`; en un material con `ru`, `σ′v = σv − ru·σ_suelo`, **sin** restar la `u` de la
   piezométrica, como el rebanado y el arrancamiento `interface`. Las **cargas de superficie no entran** en `σv`, como en
-  cSlope. <!-- R12: medir al integrar -->
+  cSlope. En la fila X22-S16 (`ru` = 0,2 y piezométrica), la diferencia con el oráculo es de 0,0185 % en Bishop y de 0,026 %
+  o menos en los cinco métodos, y la fuerza por metro difiere 0,041 %; antes de E15l-12, de −1,88 % a −1,97 % y −10,2 %.
 - **Fuerza por pilote.** `F = min(∫p dz, shear, moment/L_m)`, con `L_m = ∫(zf − z)·p dz / ∫p dz`, el brazo de la
   resultante sobre el cruce. Es un **mínimo**, no una elección. La fuerza que entra en el equilibrio es `F/spacing`
   por metro.
@@ -1315,7 +1316,8 @@ idéntica byte a byte:
 **Perfil no finito (E15l-11).** Las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1. Si un nodo del perfil (`p`, `F` o
 `Q`) no es finito, el análisis termina antes de resolver con `InvalidModel: reinforcements[i].lateral_pressure: la presión
 de Ito-Matsui no es finita con S/D = … y φ = …° (las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente
-spacing`. La salida nunca lleva `NaN` ni `∞`. <!-- R12: medir al integrar -->
+spacing`. La salida nunca lleva `NaN` ni `∞`. Con φ = 35°, S/D = 1,00125 y `capacity` (`docs/fase3/r12/repro/a02_fixed.json`) el
+mensaje sale con `S/D = 1.00125 y φ = 35°`; antes, Bishop daba `invalid` y los otros tres métodos `not_converged`.
 
 **Aviso `ito_matsui_spacing_range`.** Se emite si algún pilote con `lateral_pressure` tiene `S/D < 2` o `S/D > 8`, cruce o no la
 superficie: «Pilote Ito-Matsui con S/D = … fuera de 2 a 8: la fórmula pierde validez (sobrestima la fuerza con S/D
@@ -1327,9 +1329,9 @@ pequeño y la subestima con S/D grande; Ukritchon y Keawsawasvong 2017). Revise 
 El talud de V013c (10 m de altura, 1,5H:1V; suelo con c = 10 kPa, φ = 20°, γ = 20 kN/m³) con el círculo crítico de la
 búsqueda de Bishop fijado. El pilote de 0,8 m de diámetro está a 2,4 m de eje a eje (S/D = 3), con la cabeza en el
 terreno, en x = 17,5. Sin el pilote, el mismo círculo da Bishop 1,1691. La fuerza del suelo por metro en el cruce es
-117,92 kN/m, con un brazo de 1,2237 m.
+117,92 kN/m, con un brazo de 1,2238 m.
 
-<!-- ogs-ejemplo nombre=ito-matsui-centroide estado=converged fos=bishop:1.4373,spencer:1.4339,morgenstern_price:1.4339,janbu_simplified:1.3844,janbu_corrected:1.4452 fuerzas=applied avisos=structural_checks_not_covered cruce=soil_force:117.9241,governs:soil,arm:1.2237 -->
+<!-- ogs-ejemplo nombre=ito-matsui-centroide estado=converged fos=bishop:1.4373,spencer:1.4339,morgenstern_price:1.4339,janbu_simplified:1.3844,janbu_corrected:1.4452 fuerzas=applied avisos=structural_checks_not_covered cruce=soil_force:117.9241,governs:soil,arm:1.2238 -->
 ```json
 {
   "format": "opengeoslide",
@@ -1365,14 +1367,14 @@ La entrada del informe, con Bishop, trae los tres campos nuevos:
 ```json
 { "id": "P1", "crossing": 0, "x": 17.5, "y": 1.8572, "station": 3.1428, "available": 117.9241,
   "fx": 117.9241, "fy": 0.0, "application": "passive", "status": "applied",
-  "soil_force": 117.9241, "governs": "soil", "arm": 1.2237 }
+  "soil_force": 117.9241, "governs": "soil", "arm": 1.2238 }
 ```
 
-**Con `location: "slip_surface"`** la fuerza es la misma, pero actúa en el cruce y no a 1,2237 m sobre él, con el
+**Con `location: "slip_surface"`** la fuerza es la misma, pero actúa en el cruce y no a 1,2238 m sobre él, con el
 brazo más largo respecto del centro del círculo: el FS **sube** en Bishop, Spencer y Morgenstern-Price (1,4511, 1,4468 y
 1,4468) y **no cambia** en Janbu (1,3844 y 1,4452):
 
-<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.lateral_pressure.location esperado=ok esquema=acepta estado=converged fos=bishop:1.4511,spencer:1.4468,morgenstern_price:1.4468,janbu_simplified:1.3844,janbu_corrected:1.4452 cruce=soil_force:117.9241,governs:soil,arm:1.2237 -->
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.lateral_pressure.location esperado=ok esquema=acepta estado=converged fos=bishop:1.4511,spencer:1.4468,morgenstern_price:1.4468,janbu_simplified:1.3844,janbu_corrected:1.4452 cruce=soil_force:117.9241,governs:soil,arm:1.2238 -->
 ```json
 "slip_surface"
 ```
@@ -1381,15 +1383,15 @@ brazo más largo respecto del centro del círculo: el FS **sube** en Bishop, Spe
 150 kN por pilote, `available` vale 150/2,4 = 62,5 kN/m, `governs` es `"shear"` y el FS baja de 1,4373 a 1,3129 en
 Bishop. `soil_force` sigue siendo 117,92: es la fuerza antes del tope.
 
-<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3129,spencer:1.3102,morgenstern_price:1.3101,janbu_simplified:1.2666,janbu_corrected:1.3222 fuerzas=applied cruce=soil_force:117.9241,governs:shear,arm:1.2237 -->
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3129,spencer:1.3102,morgenstern_price:1.3101,janbu_simplified:1.2666,janbu_corrected:1.3222 fuerzas=applied cruce=soil_force:117.9241,governs:shear,arm:1.2238 -->
 ```json
 { "shear": 150.0 }
 ```
 
 **Con una `capacity` de momento.** Con 200 kN·m por pilote, la fuerza admisible por flexión es `moment/L_m` =
-200/1,2237 = 163,4 kN por pilote, o 68,10 kN/m, y `governs` es `"bending"` (Bishop 1,3256):
+200/1,2238 = 163,4 kN por pilote, o 68,10 kN/m, y `governs` es `"bending"` (Bishop 1,3256):
 
-<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3256,spencer:1.3228,morgenstern_price:1.3227,janbu_simplified:1.2786,janbu_corrected:1.3347 fuerzas=applied cruce=soil_force:117.9241,governs:bending,arm:1.2237 -->
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.capacity esperado=ok esquema=acepta estado=converged fos=bishop:1.3256,spencer:1.3228,morgenstern_price:1.3227,janbu_simplified:1.2786,janbu_corrected:1.3347 fuerzas=applied cruce=soil_force:117.9241,governs:bending,arm:1.2238 -->
 ```json
 { "moment": 200.0 }
 ```
@@ -1416,6 +1418,13 @@ Con un `spacing` que no supera el diámetro:
 <!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.spacing esperado=error:reinforcements[0].spacing~debe~ser~mayor~que~lateral_pressure.diameter~0.8,~no~0.8 esquema=acepta -->
 ```json
 0.8
+```
+
+Con un `spacing` apenas mayor que el diámetro (S/D = 1,000125), el perfil de presión no es finito (E15l-11):
+
+<!-- ogs-fragmento base=ito-matsui-centroide ruta=reinforcements.0.spacing esperado=error:la~presión~de~Ito-Matsui~no~es~finita esquema=acepta -->
+```json
+0.8001
 ```
 
 Con un pilote inclinado:
@@ -1478,7 +1487,9 @@ Las convenciones (E15c):
 - **γw** es `water.unit_weight`. Si falta, vale 9,81 kN/m³ en `SI` y, en `imperial`, el resultado de convertir 9,81 kN/m³
   con el mismo factor que usa la web (alrededor de 62,45 pcf) (E15l-6); rige para la piezométrica, el agua embalsada y el
   agua de la grieta. La web escribe `water.unit_weight` de forma explícita al convertir unidades
-  ([Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)). <!-- R12: medir al integrar -->
+  ([Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)). Medido con una grieta de 2 m con agua y sin
+  `water`: en `imperial`, Bishop da 1,69865, igual que en `SI`, y `Pw` = 1344,40 lbf/ft (γw = 62,449 pcf); antes daba 1,71248 y
+  211,19 lbf/ft.
 - **Profundidad bajo la tolerancia.** Una profundidad de agua menor o igual que `1e-9·escala` (la tolerancia del
   modelo) se toma como 0: una piezométrica que **toca** el terreno, como la freática que termina en el talud, no añade
   términos.
@@ -1580,11 +1591,15 @@ queda del lado de la cresta y deja una cara vertical sin resistencia.
   material hacen que la profundidad de Rankine salte. Si la bisección termina en un `x_c` donde la cara cortada,
   `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, el informe trae `depth = h_face` y el
   agua de la grieta usa `water_fill·h_face`; si `h_face` no pasa de la tolerancia, no hay grieta, no se trunca la masa y
-  `depth` vale 0. <!-- R12: medir al integrar -->
+  `depth` vale 0. Con una `udl` de 100 kN/m sobre la cresta (el ejemplo `grieta-udl-automatica`, más abajo), la grieta cae en
+  el borde de la carga con `depth` 1,7827 y `water_force` 15,5885 (Bishop 1,0953); antes, `depth` y `water_force` valían 0 y el
+  FS era 1,1022.
 - **No hay tope de profundidad** por la altura del talud (G8): una grieta más profunda que el talud es un dato suyo.
 - **Búsqueda (G9).** Un candidato que no alcanza la grieta **se descarta**, y si se descartan todos, `NoValidSurface`. Si
   al menos uno se descartó por esa causa, el mensaje termina en `({e} evaluadas, 0 válidas; {k} no alcanzan la grieta de
-  tracción, tension_crack_not_reached)` (E15l-7); con k = 0, el mensaje es el de siempre. <!-- R12: medir al integrar -->
+  tracción, tension_crack_not_reached)` (E15l-7); con k = 0, el mensaje es el de siempre. Con `depth` 40 y una búsqueda circular de
+  entrada y salida en el talud de `a01_ltr.json`, el mensaje termina en `(7400 evaluadas, 0 válidas; 7397 no alcanzan la
+  grieta de tracción, tension_crack_not_reached)`.
 - **Polilíneas.** El truncado se aplica después del ajuste de la polilínea al terreno. Bishop sigue sin ofrecerse en
   ellas.
 - **Refuerzos.** Un cruce que queda del lado de la cresta de `x_c` queda fuera de la masa: nota
@@ -1654,6 +1669,39 @@ grieta seca el FS **sube** (la masa que se quita empujaba), de 0,9851 a 1,0263 e
 ```json
 { "depth": "auto", "water_fill": 1.0 }
 ```
+
+**Grieta automática sobre una carga (E15l-2).** Una `udl` en la coronación hace saltar la profundidad de Rankine en su
+borde. Con `"auto"`, la grieta cae en ese borde (x = −66,5) y su profundidad es la cara que corta la superficie, 1,7827 m,
+y no la de Rankine; con agua llena, `Pw = ½·9,81·1,7827² = 15,5885`:
+
+<!-- ogs-ejemplo nombre=grieta-udl-automatica estado=converged fos=bishop:1.0953,spencer:1.0939 grieta=x:-66.5,depth:1.7827,water_force:15.5885 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.5",
+  "meta": { "id": "ejemplo-grieta-udl", "title": "Talud de 10 m con una udl en la coronación y una grieta automática llena" },
+  "units": "SI",
+  "materials": [
+    { "id": "s", "name": "Suelo", "model": "mohr_coulomb", "unit_weight": 18.0, "cohesion": 20.0, "friction_angle": 10.0 }
+  ],
+  "regions": [
+    { "material": "s", "polygon": [[-70, 20], [-70, 35], [-50, 35], [-30, 25], [-20, 25], [-20, 20]] }
+  ],
+  "loads": [
+    { "type": "udl", "id": "u1", "x1": -66.5, "x2": -55.0, "q": 100.0 }
+  ],
+  "slope": { "direction": "left_to_right" },
+  "analysis": {
+    "methods": ["bishop", "spencer"],
+    "slices": 50,
+    "tolerance": 1e-6,
+    "tension_crack": { "depth": "auto", "water_fill": 1.0 },
+    "surface": { "type": "circle", "xc": -42.421052631578945, "yc": 55.0, "r": 32.46971740678465 }
+  }
+}
+```
+
+Sin esta regla, el informe traía `depth` 0 y `water_force` 0, y Bishop daba 1,1022 en lugar de 1,0953.
 
 **Rechazos.** Cada uno cambia un campo del ejemplo `grieta-seca`. Sin `water_fill`, que es obligatorio:
 

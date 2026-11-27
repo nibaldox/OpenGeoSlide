@@ -571,11 +571,16 @@ crítica, los avisos y las dovelas son **idénticos**, y los demás métodos y v
   donde la cara cortada, `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, la profundidad
   que se informa y se usa es `h_face` (y la altura del agua es `water_fill·h_face`); si no, sigue siendo `d(x_c)`. Si
   `h_face` no pasa de la tolerancia, no hay grieta: el motor no trunca la masa e informa `depth = 0`. Antes, la masa se
-  truncaba y el informe traía `depth = 0` y `Pw = 0`, y el FS bajaba sin que la grieta lo explicara. <!-- R12: medir al integrar -->
+  truncaba y el informe traía `depth = 0` y `Pw = 0`, y el FS bajaba sin que la grieta lo explicara. Medido con una `udl` de 100 kN/m sobre la cresta
+  (`docs/fase3/r12/repro/a04_udl.json`, círculo fijo): `depth` 1,7827 m, `Pw` 15,5885 kN/m y Bishop 1,095348; antes, `depth` 0,
+  `Pw` 0 y Bishop 1,102248. Con la carga a 1e-10 m de la entrada del círculo, la cara es nula, `depth` vale 0 y el FS es el
+  de la superficie sin grieta (Bishop 1,063223).
 - **Una búsqueda que se queda sin superficies por la grieta lo dice (E15l-7, R12B-06).** Si todos los candidatos se
   descartan y al menos uno es por `tension_crack_not_reached`, el error termina en `({e} evaluadas, 0 válidas; {k} no
   alcanzan la grieta de tracción, tension_crack_not_reached)`: revise la profundidad de la grieta o los rangos de búsqueda.
-  Con k = 0 el mensaje es el de siempre. <!-- R12: medir al integrar -->
+  Con k = 0 el mensaje es el de siempre. Medido con `depth` 40 m y una búsqueda circular de entrada y salida en el talud de
+  `a01_ltr.json`: `(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta de tracción, tension_crack_not_reached)`; antes,
+  el mensaje terminaba en `(7400 evaluadas, 0 válidas)`.
 - **La masa del lado de la cresta se quita y no se conserva como carga**; la cara vertical no tiene resistencia.
 - **El FS no es monótono con la profundidad de una grieta seca**: el signo depende del bloque que se quita. Una grieta
   seca puede **subir** el FS (ejemplo del [formato](formato-ogs-json.md#ejemplos-grieta-seca-llena-y-automática): de
@@ -660,13 +665,14 @@ menos en los cinco métodos. **Esto no es el diseño de un pilote:** el límite 
   para ese material y suma el agua embalsada. Es una regla distinta de la del cuerpo de las dovelas, donde
   `u = ru·(W + V)/b` (E15c): en un modelo con `ru` y un pilote de Ito-Matsui, las dos cuentas coexisten y no se comparan
   entre sí. Antes de E15l-12, la presión restaba las dos (`σ′v = σv − u − ru·σ_suelo`) y, con `ru` y piezométrica, quedaba
-  por debajo de cSlope. <!-- R12: medir al integrar -->
+  por debajo de cSlope: en la fila X22-S16 (`ru` = 0,2 y piezométrica), de −1,88 % a −1,97 % en el FS y −10,2 % en la fuerza por
+  metro. Ahora, la diferencia es de 0,026 % o menos en el FS (0,0185 % en Bishop) y de 0,041 % en la fuerza.
 - **Un perfil de presión que desborda se rechaza (E15l-11, R12A-02).** Las ecuaciones 13 y 14 desbordan cuando S/D se
   acerca a 1 (más cuanto mayor es φ). Si un nodo del perfil (`p`, `F` o `Q`) no es finito, el análisis termina antes de
   resolver con `InvalidModel: reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = … y φ = …°
   (las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente spacing`. La salida nunca lleva `NaN` ni `∞`. Antes, con
-  φ = 35°, S/D = 1,001 y `capacity`, los cuatro métodos fallaban (Bishop `invalid` y los demás `not_converged`). El aviso
-  `ito_matsui_spacing_range` ya salía con S/D < 2. <!-- R12: medir al integrar -->
+  φ = 35°, S/D = 1,00125 y `capacity` (`docs/fase3/r12/repro/a02_fixed.json`), los cuatro métodos fallaban (Bishop `invalid` y
+  los demás `not_converged`). El aviso `ito_matsui_spacing_range` ya salía con S/D < 2.
 - **El agua actúa por las dos caras del pilote**: no empuja. Entra solo en `σ′v` (γ′ bajo la piezométrica) y el agua
   embalsada sobre el terreno suma su peso a `σv`.
 - **Es una estimación por capas.** Se integra con la regla del punto medio y un paso de 0,05 m en el material, `c` y φ de
@@ -701,8 +707,8 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   incluían ese peso ni ese empuje ([excepción a la identidad](#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
   Se emite también cuando la superficie analizada recibe términos de agua embalsada no nulos aunque ninguna dovela quede
   bajo una piezométrica sobre el terreno (peso del agua mayor que 0 o empuje distinto de 0, incluido el de un paramento
-  vertical de presa, E15l-5): sin esa regla, una presa con muro vertical cambiaba su FS en un 25 % sin la nota.
-  <!-- R12: medir al integrar -->
+  vertical de presa, E15l-5): sin esa regla, una presa con muro vertical cambiaba su FS en un 26 % sin la nota (la presa de B-03, con muro en x = 20 de
+  y = 2 a 14 y embalse a y = 10: Bishop 1,0010 con la v0.3.0 y 1,2629 ahora, ya con `water_above_ground`).
 - **Unidades imperiales con piezométrica:** el peso unitario del agua (γw) debe ser explícito y no menor que 20 pcf
   (se usa 62,4 pcf). Un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».
   El motor nunca convierte los números del modelo: los interpreta en las unidades declaradas. Al cambiar de sistema, la web
@@ -711,8 +717,8 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   el resultado de convertir 9,81 kN/m³ con el mismo factor que usa la web (alrededor de 62,45 pcf), en lugar de 9,81 sin
   mirar las unidades. Rige para la piezométrica, el agua embalsada y el agua de la grieta, y el conversor a cSlope sigue
   la misma regla. Antes, una grieta con agua y sin `water`, convertida de SI a imperial, daba una fuerza `Pw` 6,37 veces
-  menor y un FS +4,0 % mayor. En el corpus, ninguno de los 15 modelos imperiales usa agua sin `unit_weight`.
-  <!-- R12: medir al integrar -->
+  menor y un FS mayor (grieta de 2 m: `Pw` 211,19 en lugar de 1344,40 lbf/ft y Bishop 1,71248 en lugar de 1,69865, +0,81 %). En
+  el corpus, ninguno de los 15 modelos imperiales de `verification/cases/` usa agua (piezométrica o grieta con agua).
 - **Convenciones de signo:** `kh` positivo va en el sentido del deslizamiento y `kv` positivo hacia abajo; el ángulo de
   la carga lineal se mide desde la vertical, positivo hacia +x. Otros programas pueden usar el signo contrario para
   `kv`: compare con cuidado. El informe PDF repite las convenciones.
