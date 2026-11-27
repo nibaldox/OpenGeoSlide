@@ -49,6 +49,8 @@ import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
 import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
+import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
+import { buildRunStatusInput } from './app/shell/statusInput';
 import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
 import { ReportView } from './app/shell/ReportView';
@@ -659,20 +661,28 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const { insets: fitInsets, covered: coveredBoxes } = useHudInsets(canvasCardRef, doc, desktop);
   const localIssues = useLocalIssues(store);
   const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
-  const status = runStatus({
-    engineStatus,
-    busy: engine.busy,
-    run: engine.run,
-    current: engine.current,
-    pendingDrafts: pendingDrafts.length,
-    hasRegions: doc.regions.length > 0,
-    localErrors: localIssues.filter((i) => i.severity === 'error').length,
-    methodsRequested: doc.analysis.methods?.length ?? 1,
-    message: engine.message,
-    messageKind: engine.messageKind,
-  });
-  const contents = useMemo(() => reportContents(engine.run), [engine.run]);
+  // Un resultado con borradores sin aplicar no es el del modelo que se ve: nunca es «actual» (UA3 A-02, B-01).
   const resultCurrent = engine.current && !hasDrafts;
+  // UA-E3 §4: avisos locales y avisos del cálculo actual. Los del cálculo solo cuentan si es el del modelo que se ve.
+  const advisories = advisoryCounts(localIssues, resultCurrent && engine.run ? engine.run.report : null);
+  // A-03: un fallo del motor (`NoValidSurface`…) llega al chip aunque `engine.message` esté vacío.
+  const status = runStatus(
+    buildRunStatusInput({
+      engineStatus,
+      busy: engine.busy,
+      run: engine.run,
+      current: engine.current,
+      pendingDrafts: pendingDrafts.length,
+      regions: doc.regions.length,
+      localErrors: localIssues.filter((i) => i.severity === 'error').length,
+      methodsRequested: doc.analysis.methods?.length ?? 1,
+      message: engine.message,
+      messageKind: engine.messageKind,
+      engineErrorText,
+      advisories: advisories.total,
+    }),
+  );
+  const contents = useMemo(() => reportContents(engine.run), [engine.run]);
 
   // «Ver tabla de resultados» del HUD: abre «Resultados» y enfoca la tabla cuando el panel ya está a la vista.
   const [tableFocus, setTableFocus] = useState(0);
@@ -683,6 +693,15 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   useEffect(() => {
     if (tableFocus > 0) focusResultsTable();
   }, [tableFocus]);
+  // «Ver avisos» / «Ver diagnósticos» del HUD (UA-E3 §4, A-03): abre «Resultados» y enfoca Diagnósticos.
+  const [diagFocus, setDiagFocus] = useState(0);
+  const showAdvisories = useCallback((): void => {
+    onViewChange('results');
+    setDiagFocus((n) => n + 1);
+  }, [onViewChange]);
+  useEffect(() => {
+    if (diagFocus > 0) focusDiagnostics();
+  }, [diagFocus]);
 
   const checkProps = {
     label: checkState.label,
@@ -895,7 +914,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                 />
               </div>
               {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
-              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} />
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} />
               <Legend
                 scene={scene}
                 label="Leyenda de la sección"
