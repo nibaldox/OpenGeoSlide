@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId } from 'react';
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { applyCommands } from './dispatch';
@@ -17,6 +17,7 @@ import {
   polylineSetCommand,
   polylineToForm,
   removePolylinePoint,
+  setPendingDraft,
   sortPolylineRows,
   surfaceMode,
   surfaceModeCommands,
@@ -32,6 +33,16 @@ function samePoints(a: readonly Point[], b: readonly Point[]): boolean {
   return a.length === b.length && a.every((p, i) => p[0] === b[i]?.[0] && p[1] === b[i]?.[1]);
 }
 
+/** R16c: registro de los borradores de la superficie fija. */
+export const SURFACE_POLYLINE_DRAFT = { key: 'surface:polyline', label: 'Superficie fija: polilínea' } as const;
+export const SURFACE_CIRCLE_DRAFT = { key: 'surface:circle', label: 'Superficie fija: círculo' } as const;
+/** Tabla de la polilínea inválida que difiere del documento: borrador sin aplicar. */
+export const polylineDraftPending = (rows: ReturnType<typeof polylineToForm>, points: readonly Point[], xRange: readonly [number, number] | null): boolean =>
+  !polylineFromForm(rows, { xRange }).ok && JSON.stringify(rows) !== JSON.stringify(polylineToForm(points));
+/** Círculo fijo inválido que difiere del documento: borrador sin aplicar. */
+export const circleDraftPending = (form: ReturnType<typeof circleToForm>, surface: Parameters<typeof circleToForm>[0] | null): boolean =>
+  surface !== null && surface.type !== 'polyline' && !circleFromForm(form).ok && JSON.stringify(form) !== JSON.stringify(circleToForm(surface));
+
 /**
  * Tabla de los puntos de la polilínea fija (F3.3): x, y editables, agregar (un punto a medio camino del siguiente, así la forma no cambia),
  * quitar (mínimo 2) y «Ordenar por x». Se guarda solo cuando la tabla es válida (al menos 2 puntos, x estrictamente creciente).
@@ -46,6 +57,11 @@ function PolylineTable({ store }: { store: EditorStore }) {
   const [rows, setRows, resetRows] = useDraft(() => polylineToForm(points), [surface]);
   const table = polylineFromForm(rows, { xRange });
   const tableErrors = table.ok ? {} : table.errors;
+  const rowsPending = polylineDraftPending(rows, points, xRange);
+  useEffect(() => {
+    setPendingDraft(store, SURFACE_POLYLINE_DRAFT.key, rowsPending ? SURFACE_POLYLINE_DRAFT.label : null);
+    return () => setPendingDraft(store, SURFACE_POLYLINE_DRAFT.key, null);
+  }, [store, rowsPending]);
   const commitRows = (): void => {
     if (table.ok && !samePoints(points, table.value)) store.dispatch(polylineSetCommand(table.value));
   };
@@ -148,6 +164,11 @@ export function SurfacePanel({ store }: { store: EditorStore }) {
   const [form, setForm, reset] = useDraft(() => (surface ? circleToForm(surface) : { xc: '', yc: '', r: '' }), [surface]);
   const outcome = circleFromForm(form);
   const errors = surface && shape === 'circle' && !outcome.ok ? outcome.errors : {};
+  const circlePending = mode === 'fixed' && shape === 'circle' && circleDraftPending(form, surface);
+  useEffect(() => {
+    setPendingDraft(store, SURFACE_CIRCLE_DRAFT.key, circlePending ? SURFACE_CIRCLE_DRAFT.label : null);
+    return () => setPendingDraft(store, SURFACE_CIRCLE_DRAFT.key, null);
+  }, [store, circlePending]);
   const commit = (): void => {
     if (surface && shape === 'circle' && outcome.ok && !circlesEqual(outcome.value, surface)) store.dispatch(surfaceSetCommand(outcome.value));
   };

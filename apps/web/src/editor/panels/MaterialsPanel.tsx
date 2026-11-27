@@ -331,6 +331,11 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
 }
 
 export const NEW_MATERIAL_SCOPE = 'Nuevo material';
+/** R16c: registro del formulario de material nuevo. */
+export const NEW_MATERIAL_DRAFT = { key: 'material:new', label: 'Material nuevo' } as const;
+/** El formulario abierto con cambios respecto del valor con que se abrió: el material nuevo solo entra al modelo con «Agregar material». */
+export const newMaterialDraftPending = (form: MaterialForm | null, baseline: string | null): boolean =>
+  form !== null && baseline !== null && JSON.stringify(form) !== baseline;
 
 /**
  * Formulario de material nuevo (UX9-02): `fieldset` con la leyenda «Nuevo material», nombres accesibles únicos
@@ -345,6 +350,13 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
   const [form, setForm] = useState<MaterialForm | null>(() => (initiallyOpen ? newMaterialForm(ids, units) : null));
   const u = unitLabels(units);
   const open = form !== null;
+  // R16c: el formulario abierto con cambios sin agregar es un borrador pendiente (el material nuevo solo entra al modelo con «Agregar material»).
+  const baseline = useRef<string | null>(form === null ? null : JSON.stringify(form));
+  const pending = newMaterialDraftPending(form, baseline.current);
+  useEffect(() => {
+    setPendingDraft(store, NEW_MATERIAL_DRAFT.key, pending ? NEW_MATERIAL_DRAFT.label : null);
+    return () => setPendingDraft(store, NEW_MATERIAL_DRAFT.key, null);
+  }, [store, pending]);
   const fieldsetRef = useRef<HTMLFieldSetElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
@@ -357,7 +369,11 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
   if (form === null) {
     return (
       <div className="ep-actions">
-        <button ref={openerRef} type="button" onClick={() => setForm(newMaterialForm(ids, units))}>
+        <button ref={openerRef} type="button" onClick={() => {
+          const initial = newMaterialForm(ids, units);
+          baseline.current = JSON.stringify(initial);
+          setForm(initial);
+        }}>
           Nuevo material…
         </button>
       </div>

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId } from 'react';
 import type { Load } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
@@ -14,6 +14,7 @@ import {
   loadsEqual,
   modelXRange,
   rangeText,
+  setPendingDraft,
   terrainRanges,
   unitLabels,
   type LoadForm,
@@ -38,6 +39,14 @@ export function loadPlacementHint(form: LoadForm, ranges: TerrainRanges, unit: s
   return `La carga no queda sobre la corona (${rangeText(ranges.crown, unit)}): actúa sobre la cara del talud. Si no es lo que busca, use el botón de la corona.`;
 }
 
+/** R16c: registro del borrador de una carga. */
+export const loadDraftKey = (index: number): string => `load:${index}`;
+export const loadDraftLabel = (index: number): string => `Carga ${index + 1}`;
+/** Una carga con un valor inválido que difiere del documento es un borrador sin aplicar. */
+export function loadDraftPending(form: LoadForm, load: Load, ctx: Parameters<typeof loadFromForm>[1]): boolean {
+  return !loadFromForm(form, ctx).ok && JSON.stringify(form) !== JSON.stringify(loadToForm(load));
+}
+
 /** Una carga como tarjeta apilada con etiquetas visibles (R7-13): sin tabla de 9 columnas dentro del lateral. */
 function LoadCard({ store, load, index, loads, units }: {
   store: EditorStore;
@@ -55,6 +64,14 @@ function LoadCard({ store, load, index, loads, units }: {
   const ranges = terrainRanges({ regions });
   const crown = ranges?.crown ?? null;
   const baseId = useId();
+  // R16c: una carga con un valor inválido que difiere del documento es un borrador sin aplicar.
+  const pending = loadDraftPending(form, load, { xRange: modelXRange({ regions }), otherIds, index });
+  const scope = loadDraftLabel(index);
+  useEffect(() => {
+    const key = loadDraftKey(index);
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, index, pending, scope]);
 
   const commit = (): void => {
     if (outcome.ok && !loadsEqual(outcome.value, load)) store.dispatch(loadUpsertCommand(index, outcome.value));
