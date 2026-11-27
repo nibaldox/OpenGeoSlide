@@ -7,12 +7,12 @@ import { loadBuiltinCases } from '../cases';
 import { exampleLabel, exampleTitle, exampleTitles } from './exampleTitles';
 
 const dir = new URL('../../../../verification/cases/', import.meta.url);
-const files = readdirSync(dir).filter((f) => /^V.*\.json$/.test(f));
+const files = readdirSync(dir).filter((f) => /^[A-Z][\w-]*\.json$/.test(f));
 const load = (f: string): VerificationCase => JSON.parse(readFileSync(new URL(f, dir), 'utf8')) as VerificationCase;
 
 // El índice generado (verification/cases/INDEX.md) es la fuente del número de casos: nunca un literal.
 const index = readFileSync(new URL('INDEX.md', dir), 'utf8');
-const indexed = [...index.matchAll(/^\| (V[\w-]+) \| .*\| (0\.\d+) \|$/gm)].map((m) => m[1]!);
+const indexed = [...index.matchAll(/^\| ([A-Z][\w-]+) \| .*\| (0\.\d+) \|$/gm)].map((m) => m[1]!);
 const declared = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(index)?.[1]);
 
 describe('exampleTitles', () => {

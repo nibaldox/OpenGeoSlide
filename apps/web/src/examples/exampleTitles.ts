@@ -161,6 +161,24 @@ export const exampleTitles: Readonly<Record<string, ExampleTitle>> = {
   V101: { title: 'Talud homogéneo 1H:1V con ru = 0,2', source: 'Li y Lumb, 1987' },
   V102a: { title: 'Talud 3H:1V en su coeficiente sísmico crítico, seco', source: 'Loukidis et al., 2003' },
   V102b: { title: 'Talud 3H:1V en su coeficiente sísmico crítico, ru = 0,5', source: 'Loukidis et al., 2003' },
+  // Lote F3B (E16l): promovidos a verification/cases/ (formato v0.6). Los `-nc` son el check de búsqueda no circular de un
+  // problema que ya tiene su caso circular (como `V086b-auto`); V050b, V059a-c, V094 y V103 entran con su propio id.
+  'V001-nc': { title: 'Talud homogéneo de 20 m, 1,5H:1V, búsqueda no circular', source: 'Arai y Tagyo, 1985, ejemplo 1' },
+  'V026-nc': { title: 'Terraplén de arena sobre arcilla no drenada, fig. 7.12, búsqueda no circular', source: 'Duncan y Wright, fig. 7.12' },
+  'V033-nc': { title: 'Relleno sobre arena con nivel freático, búsqueda no circular', source: 'Duncan y Wright, fig. 14.20a' },
+  'V034a-nc': { title: 'Relleno granular sobre arcilla con Su = 200 + 15·profundidad, búsqueda no circular', source: 'Duncan y Wright, fig. 14.20b' },
+  'V034b-nc': { title: 'Relleno granular sobre arcilla con Su = 300 psf constante, búsqueda no circular', source: 'Duncan y Wright, fig. 14.20b' },
+  'V036a-nc': { title: 'Terraplén sobre cimentación no drenada, Su constante (cz = 0), búsqueda no circular', source: 'Duncan y Wright, fig. 15.9' },
+  'V093-nc': { title: 'Talud homogéneo 2H:1V de 5 m, búsqueda no circular', source: 'Yamagami y Ueta, 1988' },
+  'V102a-nc': { title: 'Talud 3H:1V en su coeficiente sísmico crítico, seco, búsqueda no circular', source: 'Loukidis et al., 2003' },
+  'V102b-nc': { title: 'Talud 3H:1V en su coeficiente sísmico crítico, ru = 0,5, búsqueda no circular', source: 'Loukidis et al., 2003' },
+  V050b: { title: 'ACADS 3(a): capa débil, búsqueda no circular', source: 'Giam y Donald, 1989 (ACADS)' },
+  V059a: { title: 'Talud de dos capas no drenadas, cu2/cu1 = 1,4, búsqueda no circular', source: 'Guo y Griffiths, 2020' },
+  V059b: { title: 'Talud de dos capas no drenadas, cu2/cu1 = 1,5, búsqueda no circular', source: 'Guo y Griffiths, 2020' },
+  V059c: { title: 'Talud de dos capas no drenadas, cu2/cu1 = 1,6, búsqueda no circular', source: 'Guo y Griffiths, 2020' },
+  V094: { title: 'Talud de cuatro estratos de Yamagami y Ueta, búsqueda no circular', source: 'Greco, 1996, ejemplo 4; Yamagami y Ueta, 1988' },
+  V103: { title: 'Talud de Spencer con ru = 0,5, superficie crítica no circular', source: 'Fredlund y Krahn, 1977; Baker, 1980; Spencer, 1969' },
+  HAM1: { title: 'Talud de roca con Hoek-Brown, ejemplo 1 de Hammah et al., geometría reconstruida', source: 'Hammah et al., 2005' },
   V104a: { title: 'Terraplén sobre arcilla sin exceso de presión de poros (tutorial de B-barra, paso 1)', source: 'tutorial de un programa comercial' },
 };
 
