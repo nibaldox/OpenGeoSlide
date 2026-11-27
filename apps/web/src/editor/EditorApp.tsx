@@ -940,7 +940,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         {/* Los cuatro paneles permanecen montados: al volver a «Lienzo» se conservan el modelo, el historial, el trazo y la vista. */}
         <div className="ua-panels">
           <div id="mode-edit-panel" className="ua-view ua-view-canvas" role="tabpanel" aria-labelledby="mode-edit" hidden={view !== 'canvas'}>
-            <section className="ua-canvas-card" aria-label="Sección del modelo" ref={canvasCardRef}>
+            <section className="ua-canvas-card" aria-label="Sección del modelo" ref={canvasCardRef} data-hud-compact={hudCompact ? 'true' : undefined}>
               <div className="ea-canvas ua-canvas" data-testid="editor-canvas">
                 <EditorCanvas
                   store={store}
