@@ -74,7 +74,7 @@ def _load(path: str) -> dict:
 
 
 def _case_models() -> dict[str, dict]:
-    return {c["id"]: c["model"] for c in map(_load, sorted(glob.glob(os.path.join(ROOT, "verification", "cases", "V*.json"))))}
+    return {c["id"]: c["model"] for c in map(_load, sorted(glob.glob(os.path.join(ROOT, "verification", "cases", "*.json"))))}   # V*.json and HAM1.json (F3B)
 
 
 def _battery_models() -> dict[str, dict]:
@@ -940,7 +940,7 @@ def test_every_case_the_battery_and_the_examples_validate_against_the_0_4_schema
         models[os.path.basename(path)] = _load(path)
     assert len(models) >= _index_case_count()
     for cid, model in models.items():
-        if model["version"] == "0.5":      # the F3G cases with a crack are validated by the 0.5 schema, below
+        if model["version"] in ("0.5", "0.6"):      # the F3G cases with a crack are validated by the 0.5 schema, the F3B ones by the 0.6
             continue
         assert _errors(model, SCHEMA_04) == [], cid
     # and the older versions are still rejected by the older schemas: 0.3 does not know 0.4
@@ -1100,6 +1100,8 @@ def test_every_case_the_battery_and_the_examples_validate_against_the_0_5_schema
         models[os.path.basename(path)] = _load(path)
     assert len(models) >= _index_case_count()
     for cid, model in models.items():
+        if model["version"] == "0.6":      # the F3B cases (non-circular search, Hoek-Brown) are validated by the 0.6 schema
+            continue
         assert _errors(model, SCHEMA_05) == [], cid
     # the older schemas do not know 0.5
     assert _errors(_base_v05(), SCHEMA_04)

@@ -187,12 +187,15 @@ def test_search_gates_order_extent_and_grid_size():
 
 
 def test_generated_cases_pass_the_schema_and_search_gates():
-    paths = sorted(glob.glob(os.path.join(CASES_DIR, "V*.json")))
+    paths = sorted(p for p in glob.glob(os.path.join(CASES_DIR, "*.json")))      # V*.json and HAM1.json (F3B)
     assert paths, "no verification cases found"
     for path in paths:
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
-        if case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
+        if case["model"]["version"] == "0.6":      # the promoted batch F3B (non-circular search and Hoek-Brown)
+            schema_06 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"), encoding="utf-8"))
+            errors = imp.gate_schema_f3r(case, schema_06)
+        elif case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
             errors = imp.gate_schema_f3r(case, F3R_SCHEMA)
         elif case["model"]["version"] == "0.5":      # the promoted batches F3G (tension crack) and F3I (Ito-Matsui piles)
             schema_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
@@ -480,13 +483,16 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # Not every case of verification/cases is v0.1 or v0.2 any more: the cases with M-P, Janbu, undrained strength or a
     # polyline are v0.3 (F3.1). So each case is checked against the version it declares, and the declared version must
     # be the minimal one (F3.9): 0.1 without loads, seismic or v0.3 fields; 0.2 with loads or seismic only; 0.3 otherwise.
-    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0, "0.5": 0}
-    for path in sorted(glob.glob(os.path.join(CASES_DIR, "V*.json"))):
+    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0, "0.5": 0, "0.6": 0}
+    for path in sorted(glob.glob(os.path.join(CASES_DIR, "*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
         model = case["model"]
         version = model["version"]
         counts[version] += 1
+        if version == "0.6":      # promoted batch F3B: the 0.6 schema and its own tests (test_f3b_...)
+            assert model["analysis"].get("search", {}).get("non_circular") or any(m.get("model") == "hoek_brown" for m in model["materials"]), path
+            continue
         if version == "0.4":      # promoted batches R1 to R4: their own schema and gates (test_the_promoted_...)
             assert model["reinforcements"], path
             continue
@@ -504,8 +510,9 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # the number comes from the index, never from a literal (contract F3.8)
     with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
         index = fh.read()
-    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*.*?v0\.5[^*]*\*\*(\d+)\*\*", index, re.S)
-    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"], counts["0.5"]) == tuple(int(g) for g in m.groups())
+    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*.*?v0\.5[^*]*\*\*(\d+)\*\*.*?v0\.6[^*]*\*\*(\d+)\*\*", index, re.S)
+    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"], counts["0.5"], counts["0.6"]) == tuple(
+        int(g) for g in m.groups())
 
 
 # ------------------------------------------------------------ batch 0 (F3.8): no cap, no selection
@@ -1054,6 +1061,8 @@ def test_gate_f3g_rejects_what_f5_2_rejects(mutate, match):
 def _is_f3g(case):
     """A promoted F3G case: it has a tension crack or ponded water (the earlier batches have neither)."""
     m = case["model"]
+    if m["version"] == "0.6":      # F3B (non-circular search, Hoek-Brown): its own batch
+        return False
     if m["analysis"].get("tension_crack"):
         return True
     piezo = (m.get("water") or {}).get("piezometric_line") or []
@@ -1339,50 +1348,89 @@ def test_promote_f3i_is_idempotent_on_the_promoted_tree_and_cases_hold_the_four_
     index = first["verification/cases/INDEX.md"].decode()
     assert "## Pilotes de Ito-Matsui (lote F3I, v0.5)" in index and "**4** casos con **4** checks" in index
     assert "| V013c | 3 | bishop | 1.43 |" in index
-    assert "Casos convertidos e incluidos: **151**" in index
+    assert "Casos convertidos e incluidos: **167**" in index
     assert "no son de v0.4" in first["verification/pending/F3R/INDEX.md"].decode()
     assert "pasaron a" in first["verification/pending/F3I/INDEX.md"].decode()
 
 
-# ---------------------------------------------------------------- batch F3B (F6.12): pending/F3B, v0.6
+# ---------------------------------------------------------------- batch F3B (F6.12): promoted to cases/, v0.6
 
 F3B_DIR = os.path.join(ROOT, "verification", "pending", "F3B")
+F3B_HELD = ("V002-nc", "V009c")      # V002-nc: E16u; V009c: E13k (the warning of the interslice shear)
+F3B_ALL = ("V001-nc", "V002-nc", "V026-nc", "V033-nc", "V034a-nc", "V034b-nc", "V036a-nc", "V093-nc", "V102a-nc", "V102b-nc",
+           "V009c", "V050b", "V059a", "V059b", "V059c", "V094", "V103", "HAM1")
 
 
-def _f3b_cases():
-    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8"))
-            for p in sorted(glob.glob(os.path.join(F3B_DIR, "*.json"))) if not p.endswith("HOLD.json")}
+def _f3b_cases(held=False):
+    """The F3B cases promoted to verification/cases (default) or the held one that stays in pending/F3B."""
+    if held:
+        paths = [p for p in sorted(glob.glob(os.path.join(F3B_DIR, "*.json"))) if not p.endswith("HOLD.json")]
+    else:
+        paths = [os.path.join(CASES_DIR, f"{cid}.json") for cid in F3B_ALL if cid not in F3B_HELD]
+    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8")) for p in paths}
 
 
-def test_pending_f3b_has_the_listed_cases_validated_against_the_06_schema():
-    cases = _f3b_cases()
-    expected = {"V001", "V002", "V026", "V033", "V034a", "V034b", "V036a", "V093", "V102a", "V102b",
-                "V009c", "V050b", "V059a", "V059b", "V059c", "V094", "V103", "HAM1"}
-    assert set(cases) == expected
-    assert sum(len(c["checks"]) for c in cases.values()) == 22
+def test_f3b_is_promoted_20_checks_and_two_held_all_validated_against_the_06_schema():
+    ready, held = _f3b_cases(), _f3b_cases(held=True)
+    assert sorted(held) == sorted(F3B_HELD) and sorted({**ready, **held}) == sorted(F3B_ALL)
+    assert sum(len(c["checks"]) for c in ready.values()) == 20 and len(ready) == 16
+    assert sum(len(c["checks"]) for c in held.values()) == 2
     validator = jsonschema.Draft202012Validator(json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"))))
-    for cid, case in cases.items():
+    for cid, case in {**ready, **held}.items():
         assert not list(validator.iter_errors(case["model"])), cid
-        assert case["model"]["version"] == "0.6" and case["model"]["meta"]["id"] == cid
+        assert case["id"] == cid and case["model"]["version"] == "0.6" and case["model"]["meta"]["id"] == cid
         if cid != "HAM1":
             search = case["model"]["analysis"]["search"]
             assert search["non_circular"] == {"seeds": 3, "max_vertices": 33}, cid
             assert all(ck["kind"] == "search" and ck["method"] != "bishop" for ck in case["checks"]), cid
+    # the ten ids that already had a case with other checks and another model carry the suffix and the old case is intact
+    for cid in imp.F3B_RENAMED:
+        assert f"{cid}-nc" in F3B_ALL and os.path.exists(os.path.join(CASES_DIR, f"{cid}.json")), cid
+        assert json.load(open(os.path.join(CASES_DIR, f"{cid}.json"), encoding="utf-8"))["model"]["version"] != "0.6"
+        assert any("ya está en `verification/cases`" in n for n in ready.get(f"{cid}-nc", held.get(f"{cid}-nc"))["source"]["notes"])
 
 
-def test_pending_f3b_never_promotes_and_keeps_v105a_in_hold_with_its_reason():
-    assert not os.path.exists(os.path.join(CASES_DIR, "HAM1.json"))       # B2 promotes it, not this block
+def test_f3b_rename_changes_only_the_id_and_the_title_of_a_listed_problem():
+    case = {"id": "V001", "title": "T", "model": {"meta": {"id": "V001", "title": "T"}, "version": "0.6"}, "checks": [],
+            "source": {"notes": ["n"]}}
+    out = imp.f3b_rename(case)
+    assert (out["id"], out["model"]["meta"]["id"]) == ("V001-nc", "V001-nc")
+    assert out["title"] == out["model"]["meta"]["title"] == "T, non-circular search" and out["model"]["version"] == "0.6"
+    assert case["id"] == "V001" and len(out["source"]["notes"]) == 2
+    other = {**case, "id": "V009c"}
+    assert imp.f3b_rename(other) is other
+
+
+def test_f3b_hold_has_v002_by_e16u_and_v105a_with_their_numbers_and_causes():
     hold = json.load(open(os.path.join(F3B_DIR, "HOLD.json"), encoding="utf-8"))
-    assert [(h["id"], h["method"], h["published"]) for h in hold] == [("V105a", "bishop", 1.285)]
-    assert "aboveWater" in hold[0]["diagnosis"]
+    assert [(h["id"], h["method"], h["published"]) for h in hold] == [("V002-nc", "spencer", 0.414), ("V009c", "spencer", 1.868), ("V105a", "bishop", 1.285)]
+    v002 = hold[0]
+    assert v002["ogs"] == pytest.approx(0.386433) and v002["cslope"] == pytest.approx(0.411036)
+    for text in ("E16u", "negative_lambda", "negative_effective_normal_major", "E12e", "v002_raices_coordinador.json", "6,66"):
+        assert text in v002["diagnosis"], text
+    for text in ("E13k", "interslice_shear_exceeds_strength", "INFORMATIVE_WARNINGS"):
+        assert text in hold[1]["diagnosis"], text
+    assert "aboveWater" in hold[2]["diagnosis"]
     index = open(os.path.join(F3B_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "**18** casos con **22** checks" in index
+    assert "**16** casos con **20** checks pasaron a" in index and "salvo **2** checks retenidos" in index
     assert "- V105a: material 'Sand with clay' con propiedad no soportada: aboveWater" in index
     assert "- V100 (3 checks): material 'Clay' con modelo 'shear-normal'" in index
     assert not os.path.exists(os.path.join(F3B_DIR, "V105a.json"))
+    # the promoted ones are in cases/ and not in pending/F3B
+    assert sorted(os.path.basename(p) for p in glob.glob(os.path.join(F3B_DIR, "*.json"))) == ["HOLD.json", "V002-nc.json", "V009c.json"]
 
 
-def test_pending_f3b_ham1_states_its_assumptions_source_and_tolerance():
+def test_f3b_cases_index_has_the_section_with_the_numbers_of_the_harness():
+    index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "## Hoek-Brown y búsqueda no circular (lote F3B, v0.6)" in index
+    assert "**16** casos con **20** checks, promovidos desde `verification/pending/F3B`" in index
+    assert "| V001-nc | 0.6 | no circular | spencer | 1.386 |" in index and "| HAM1 | 0.6 | círculo fijo | bishop | 1.153 |" in index
+    section = index.split("## Hoek-Brown y búsqueda no circular")[1]
+    assert "| V002-nc |" not in section and "| V009c |" not in section      # held, not promoted
+    assert "| V001 | Arai & Tagyo (1985) example 1 |" in index                              # the circular case stays
+
+
+def test_f3b_ham1_states_its_assumptions_source_and_tolerance():
     case = _f3b_cases()["HAM1"]
     assert [(c["method"], c["published"], c["tolerance"]) for c in case["checks"]] == [
         ("bishop", 1.153, 0.005), ("spencer", 1.152, 0.005)]

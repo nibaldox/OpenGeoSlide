@@ -491,7 +491,7 @@ fn analyze_method(
                 ))
             })?;
             if let Some(nc_spec) = &spec.non_circular {
-                // F6.6 hook 3: refine the critical circle into a polyline (B0: `todo!("F3B-M-NC")`).
+                // F6.6 hook 3: refine the critical circle into a polyline (`noncircular::refine`, M-NC; F6.4 and F6.10).
                 let (polyline, nc_stats) =
                     noncircular::refine(pm, method, spec, nc_spec, seeds, |surface| {
                         let polyline_opts = SolveOptions {

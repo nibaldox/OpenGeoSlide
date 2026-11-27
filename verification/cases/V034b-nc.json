@@ -1,12 +1,12 @@
 {
-  "id": "V034b",
-  "title": "Duncan & Wright fig. 14.20b, Su = 300 psf",
+  "id": "V034b-nc",
+  "title": "Duncan & Wright fig. 14.20b, Su = 300 psf, non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V034b",
-      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf",
+      "id": "V034b-nc",
+      "title": "Duncan & Wright fig. 14.20b, Su = 300 psf, non-circular search",
       "notes": "As V034a with a constant undrained strength of 300 psf."
     },
     "units": "imperial",
@@ -124,7 +124,8 @@
     "derived_from": "cSlope verification problem V034b (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Duncan, Wright & Brandon (2014, Table 14.1) give 1.328 at θs = 1° and 3° and 1.295–1.332 over all θs; until 2026-10-25 the check carried 1.312, the midpoint. commercial program A Spencer 1.330 (circle).",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V034b de cSlope. El caso lleva el sufijo `-nc` porque `V034b` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

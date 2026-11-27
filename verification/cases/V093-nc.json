@@ -1,12 +1,12 @@
 {
-  "id": "V093",
-  "title": "Yamagami & Ueta (1988)",
+  "id": "V093-nc",
+  "title": "Yamagami & Ueta (1988), non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V093",
-      "title": "Yamagami & Ueta (1988)",
+      "id": "V093-nc",
+      "title": "Yamagami & Ueta (1988), non-circular search",
       "notes": "Homogeneous 2:1 slope, 5 m high; critical-circle search."
     },
     "units": "SI",
@@ -107,7 +107,8 @@
     "derived_from": "cSlope verification problem V093 (MIT License), https://github.com/ZilanCiftci/cslope",
     "notes": [
       "Yamagami & Ueta: Bishop 1.348, Spencer 1.339 (non-circular); Greco 1.33.",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V093 de cSlope. El caso lleva el sufijo `-nc` porque `V093` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

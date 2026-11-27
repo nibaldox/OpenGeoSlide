@@ -1,12 +1,12 @@
 {
-  "id": "V001",
-  "title": "Arai & Tagyo (1985) example 1",
+  "id": "V001-nc",
+  "title": "Arai & Tagyo (1985) example 1, non-circular search",
   "model": {
     "format": "opengeoslide",
     "version": "0.6",
     "meta": {
-      "id": "V001",
-      "title": "Arai & Tagyo (1985) example 1",
+      "id": "V001-nc",
+      "title": "Arai & Tagyo (1985) example 1, non-circular search",
       "notes": "Homogeneous 1.5:1 slope, 20 m high; critical-circle search."
     },
     "units": "SI",
@@ -106,7 +106,8 @@
       "Search limited to x = 0–66, the model of the source (ours extends to −30 and 100).",
       "commercial program A Janbu corrected 1.407 (circle); non-circular: Janbu simplified 1.253, corrected 1.346. Arai & Tagyo: Bishop 1.451; Janbu simplified 1.265, corrected 1.357 (non-circular).",
       "commercial program A's table (auto-refine search) gives Bishop 1.409, Spencer 1.319 and GLE 1.414: the Spencer value lies 6 % below Bishop on a homogeneous circle, so its searches for the rigorous methods are not reliable, and its GLE lies above its own Bishop. On its printed Bishop circle (24.499, 50.278, R 35.906) cSlope gives Bishop 1.4075, Spencer 1.4052 and Morgenstern-Price 1.4045; commercial program B's M-P 1.414 lies 0.2 % below its Bishop 1.417, as cSlope's does.",
-      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V001 de cSlope. El caso lleva el sufijo `-nc` porque `V001` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
     ]
   }
 }

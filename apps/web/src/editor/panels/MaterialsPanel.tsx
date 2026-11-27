@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { hoekBrownParameters } from '../state/hoekBrown';
 import type { Material, MaterialModel } from '../../engine/types';
 import type { EditorStore, ModelDoc } from '../types';
-import { LabeledField, PanelSection } from './Fields';
+import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   MATERIAL_MODEL_OPTIONS,
@@ -77,6 +77,33 @@ function materialFields(u: UnitLabels, model: MaterialModel, variable: boolean):
   };
 }
 
+const SUPERSCRIPT: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+
+/** Cifras significativas con coma decimal («0,6410»); un valor que `toPrecision` escribe con exponente va en notación científica. */
+export function formatSignificant(value: number, digits = 4): string {
+  const text = value.toPrecision(digits);
+  return /e/i.test(text) ? formatScientific(value, digits) : text.replace('.', ',');
+}
+
+/** Notación científica con coma decimal y exponente en superíndice («7,128·10⁻⁴»). */
+export function formatScientific(value: number, digits = 4): string {
+  const [mantissa, exponent] = value.toExponential(digits - 1).split('e');
+  const power = String(Number(exponent)).split('').map((c) => SUPERSCRIPT[c] ?? c).join('');
+  return `${mantissa!.replace('.', ',')}·10${power}`;
+}
+
+/** mb, s y a como los muestra el panel (W1-UX-1): 4 cifras significativas y s en notación científica cuando es menor que 0,01. */
+export function formatHoekBrownParameters(p: { mb: number; s: number; a: number }): { mb: string; s: string; a: string } {
+  return { mb: formatSignificant(p.mb), s: p.s < 0.01 ? formatScientific(p.s) : formatSignificant(p.s), a: formatSignificant(p.a) };
+}
+
+/** Rangos de los materiales nuevos de la v0.6 (`crates/ogs-core/src/strength.rs`), para la nota del pie del panel. */
+export const MATERIAL_RANGES_NOTE =
+  'γsat y ru vacíos = no definidos. Rangos: γ mayor que 0, c ≥ 0 y φ en [0, 90) en Mohr-Coulomb, Su ≥ 0 en «No drenado (Su)», ru en [0, 1). ' +
+  'Hoek-Brown: σci mayor que 0, GSI en [0, 100], mi mayor que 0 y D en [0, 1]. ' +
+  'SHANSEP: S mayor que 0, exponente m en [0, 1] (vacío = 0,8), exactamente una fuente de OCR (OCR constante, POP o tabla por cota), OCR ≥ 1 y POP ≥ 0; ' +
+  'la tabla necesita al menos 2 filas con la cota estrictamente creciente.';
+
 function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form: MaterialForm; setForm: (f: MaterialForm) => void; scope: string; units: UnitLabels; errors: Record<string, string>; commit?: (f: MaterialForm) => void }) {
   const sourceId = useId();
   const update = (next: MaterialForm) => { setForm(next); commit?.(next); };
@@ -86,24 +113,59 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form:
     const p = values.every(Number.isFinite) && gsi >= 0 && gsi <= 100 && mi > 0 && d >= 0 && d <= 1 ? hoekBrownParameters(gsi, mi, d) : null;
     const ucs = Number((form.ucs ?? '').replace(',', '.'));
     const equivalent = units.stress === 'psf' ? ucs / 144000 : ucs / 1000;
-    return <div><p>σci equivalente: {form.ucs && Number.isFinite(ucs) ? formatNumber(equivalent) : '—'} {units.stress === 'psf' ? 'ksi' : 'MPa'}</p>
-      <p>mb = {p ? formatNumber(p.mb) : '—'}; s = {p ? formatNumber(p.s) : '—'}; a = {p ? formatNumber(p.a) : '—'}</p></div>;
+    const shown = p ? formatHoekBrownParameters(p) : null;
+    return <div style={{ gridColumn: '1 / -1' }}><p>σci equivalente: {form.ucs && Number.isFinite(ucs) ? formatNumber(Number(equivalent.toPrecision(4))) : '—'} {units.stress === 'psf' ? 'ksi' : 'MPa'}</p>
+      <p>mb = {shown?.mb ?? '—'}; s = {shown?.s ?? '—'}; a = {shown?.a ?? '—'}</p></div>;
   }
   if (form.model !== 'shansep') return null;
   const rows = form.ocrRows ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }];
-  return <fieldset className="field"><legend>Fuente de OCR</legend>
+  return <fieldset className="field" style={{ gridColumn: '1 / -1' }}><legend>Fuente de OCR</legend>
     <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select id={sourceId} value={form.ocrSource ?? 'ocr'} onChange={e => update({ ...form, ocrSource: e.target.value as 'ocr' | 'pop' | 'table', ocrRows: rows })}>
       <option value="ocr">OCR constante</option><option value="pop">POP</option><option value="table">Tabla por cota</option>
     </select></div>
     {(form.ocrSource ?? 'ocr') !== 'table' ? <LabeledField scope={scope} label={form.ocrSource === 'pop' ? 'POP' : 'OCR constante'} unit={form.ocrSource === 'pop' ? units.stress : undefined} value={form.ocrSource === 'pop' ? form.pop ?? '' : form.ocr ?? ''} error={errors[form.ocrSource === 'pop' ? 'pop' : 'ocr']} onChange={v => setForm({ ...form, [form.ocrSource === 'pop' ? 'pop' : 'ocr']: v })} onCommit={() => commit?.(form)} /> : <>
-      {rows.map((row, i) => <div className="ep-grid" key={i}>
-        {(['y', 'ocr'] as const).map(k => <LabeledField key={k} scope={`${scope}: fila ${i + 1}`} label={k === 'y' ? 'Cota' : 'OCR'} unit={k === 'y' ? units.length : undefined} value={row[k]} error={errors[`row${i}${k}`]} onChange={v => setForm({ ...form, ocrRows: rows.map((r, j) => i === j ? { ...r, [k]: v } : r) })} onCommit={() => commit?.(form)} />)}
-        <button type="button" disabled={rows.length <= 2} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar fila {i + 1}</button>
-      </div>)}
+      <div className="ep-table-wrap" role="region" aria-label={`${scope}: OCR por cota`} tabIndex={0}>
+        <table className="ep-table">
+          <thead>
+            <tr>
+              <th scope="col">Cota ({units.length})</th>
+              <th scope="col">OCR</th>
+              <th scope="col"><span className="visually-hidden">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => <tr key={i}>
+              {(['y', 'ocr'] as const).map(k => <td key={k}>
+                <TextInput value={row[k]} ariaLabel={`${scope}: fila ${i + 1}, ${k === 'y' ? 'Cota' : 'OCR'}`} invalid={`row${i}${k}` in errors}
+                  onChange={v => setForm({ ...form, ocrRows: rows.map((r, j) => i === j ? { ...r, [k]: v } : r) })} onCommit={() => commit?.(form)} />
+              </td>)}
+              <td><button type="button" disabled={rows.length <= 2} aria-label={`${scope}: quitar la fila ${i + 1}`} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar</button></td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+      <ErrorList errors={Object.fromEntries(Object.entries(errors).filter(([k]) => /^row\d+(y|ocr)$/.test(k)))} />
       <button type="button" onClick={() => update({ ...form, ocrRows: [...rows, { y: formatNumber(Number(rows[rows.length - 1].y.replace(',', '.')) + 1), ocr: rows[rows.length - 1].ocr }] })}>Agregar fila</button>
       {errors.ocrRows ? <p className="ep-error">{errors.ocrRows}</p> : null}
     </>}
   </fieldset>;
+}
+
+/**
+ * Cambio de modelo de un material que ya está en el documento. Hoek-Brown y SHANSEP no se pueden escribir de una vez: sin σci, GSI, mi
+ * y D (o sin S y la fuente de OCR) el material no es válido y el reducer rechaza el comando, así que el selector se quedaba en el modelo
+ * anterior (hallazgo de la regresión en Chrome, B2a). Para esos dos modelos el cambio es un borrador del formulario de la tarjeta, que se
+ * escribe en el modelo con el primer «confirmar» en que el material es válido; el resto de los cambios son un comando, como antes.
+ */
+export type ModelChange =
+  | { kind: 'command'; material: Material }
+  | { kind: 'draft'; form: MaterialForm }
+  | { kind: 'reset' };
+
+export function planModelChange(material: Material, form: MaterialForm, next: MaterialModel, units?: string): ModelChange {
+  if (next === material.model) return { kind: 'reset' };
+  if (next === 'hoek_brown' || next === 'shansep') return { kind: 'draft', form: { ...form, model: next } };
+  return { kind: 'command', material: switchMaterialModel(material, next, units) };
 }
 
 /** Selector del modelo constitutivo con el prefijo para lectores de pantalla («Material arcilla: Modelo»), como los demás campos. */
@@ -190,7 +252,12 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         Identificador: <code>{material.id}</code> (no se puede cambiar)
       </p>
       <div className="ep-grid">
-        <ModelSelect scope={scope} value={material.model} onChange={(m) => store.dispatch(materialUpsertCommand(switchMaterialModel(material, m, doc().units)))} />
+        <ModelSelect scope={scope} value={model} onChange={(m) => {
+          const change = planModelChange(material, form, m, doc().units);
+          if (change.kind === 'command') store.dispatch(materialUpsertCommand(change.material));
+          else if (change.kind === 'draft') setForm(change.form);
+          else reset();
+        }} />
         {fields.before.map(field)}
         {model === 'undrained' ? (
           <VariableCheckbox scope={scope} checked={form.variable === true} onChange={(on) => store.dispatch(materialUpsertCommand(setSuVariable(material, on, doc())))} />
@@ -343,7 +410,7 @@ export function MaterialsPanel({ store }: { store: EditorStore }) {
           />
         ))}
       </div>
-      <p className="muted small">γsat y ru vacíos = no definidos. Rangos: γ mayor que 0, c ≥ 0 y φ en [0, 90) en Mohr-Coulomb, Su ≥ 0 en «No drenado (Su)», ru en [0, 1).</p>
+      <p className="muted small">{MATERIAL_RANGES_NOTE}</p>
       <NewMaterial store={store} ids={ids} units={units} />
 
       <h3>Material por región</h3>

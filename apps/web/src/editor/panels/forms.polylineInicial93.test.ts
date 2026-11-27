@@ -18,10 +18,16 @@ import type { ModelDoc } from '../types';
 import { defaultSearch, fallbackPolyline, initialPolyline, surfaceModeCommands, surfaceShapeCommands } from './forms';
 
 const casesDir = new URL('../../../../../verification/cases/', import.meta.url);
-const IDS = readdirSync(casesDir)
-  .filter((f) => /^V.*\.json$/.test(f))
+const ALL_IDS = readdirSync(casesDir)
+  .filter((f) => /^[A-Z][\w-]*\.json$/.test(f))
   .map((f) => f.replace(/\.json$/, ''))
   .sort();
+// Los casos de F3B con búsqueda no circular (`-nc`, V009c...) ya traen su propia polilínea crítica y Bishop está deshabilitado con ella:
+// la ruta A de este barrido (círculo crítico de Bishop) no aplica. Se barren los demás, con HAM1 y los de Hoek-Brown de círculo fijo.
+const NON_CIRCULAR = new Set(
+  ALL_IDS.filter((id) => (JSON.parse(readFileSync(new URL(`${id}.json`, casesDir), 'utf8')) as VerificationCase).model.analysis.search?.non_circular),
+);
+const IDS = ALL_IDS.filter((id) => !NON_CIRCULAR.has(id));
 // El índice generado es la fuente del número de casos (aquí 116: 93 + los 23 v0.4 promovidos con refuerzos); nunca un literal.
 const NCASES = Number(/Casos convertidos e incluidos: \*\*(\d+)\*\*/.exec(readFileSync(new URL('INDEX.md', casesDir), 'utf8'))?.[1]);
 
@@ -90,7 +96,8 @@ function judge(id: string, route: string, doc: ModelDoc): Verdict {
 describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (todos los casos × 2 rutas, motor real)', () => {
   it('hay tantos casos publicados como declara el índice', () => {
     expect(Number.isInteger(NCASES)).toBe(true);
-    expect(IDS.length).toBe(NCASES);
+    expect(ALL_IDS.length).toBe(NCASES);
+    expect(IDS.length + NON_CIRCULAR.size).toBe(NCASES);
   });
   const verdicts: Verdict[] = [];
 
@@ -129,7 +136,7 @@ describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (todos los c
         if (v.bad) bad.push(v);
       }
     }
-    expect(n).toBe(NCASES * 5);
+    expect(n).toBe(IDS.length * 5);
     expect(bad, JSON.stringify(bad, null, 1)).toEqual([]);
   });
 
@@ -151,7 +158,7 @@ describe.skipIf(!haveEngine)('R10B-02: polilínea inicial admisible (todos los c
     const n = (route: string): number => verdicts.filter((v) => v.route === route && /spencer=converged/.test(v.statuses) && /morgenstern_price=converged/.test(v.statuses)).length;
     console.log(`R10B-02 barrido: ruta A ${n('A')}/${IDS.length} con ambos convergidos; ruta B ${n('B')}/${IDS.length}`);
     for (const v of verdicts.filter((q) => !/spencer=converged/.test(q.statuses) || !/morgenstern_price=converged/.test(q.statuses))) console.log(`  no converge: ${v.route} ${v.id} ${v.statuses} ${v.codes ?? ''}`);
-    expect(verdicts.length).toBe(NCASES * 2);
+    expect(verdicts.length).toBe(IDS.length * 2);
     // Medido con el motor integrado (f3a-integracion): A 89/93 y B 75/93; en ninguno hay `polyline_*` ni NoValidSurface.
     // No convergen, por la física del caso y no por admisibilidad: A: V027, V028, V032b (`no_lambda_root` en ambos), V056 (Spencer `no_lambda_root`;
     // M-P converge con avisos); B: V018, V078 (`no_lambda_root`) y 19 modelos simétricos (V026, V052a/b, V060a/b, V062a-i, V063, V077) cuyo círculo

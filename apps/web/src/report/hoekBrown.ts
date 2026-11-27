@@ -1,5 +1,8 @@
 // Parámetros derivados de Hoek-Brown generalizado (Hoek, Carranza-Torres y Corkum, 2002, ecs. 3 a 5; F6.2).
-// Nota para B2: escrito aquí en W2 porque `editor/state/hoekBrown.ts` pertenece a W1 en B1; unificar en la integración.
+// Una sola calculadora en la web: la de `editor/state/hoekBrown.ts` (W1). Este archivo solo adapta su firma al informe
+// (`mi`, `gsi`, `disturbance`) y no repite las fórmulas; la paridad está en `hoekBrown.f3b.test.ts`.
+
+import { hoekBrownParameters } from '../editor/state/hoekBrown';
 
 export interface HoekBrownDerived {
   mb: number;
@@ -9,10 +12,7 @@ export interface HoekBrownDerived {
 
 /** Calcula `mb`, `s` y `a` a partir de `mi`, `GSI` y el factor de perturbación `D` (`disturbance`). */
 export function deriveHoekBrown(mi: number, gsi: number, disturbance: number): HoekBrownDerived {
-  const mb = mi * Math.exp((gsi - 100) / (28 - 14 * disturbance));
-  const s = Math.exp((gsi - 100) / (9 - 3 * disturbance));
-  const a = 0.5 + (Math.exp(-gsi / 15) - Math.exp(-20 / 3)) / 6;
-  return { mb, s, a };
+  return hoekBrownParameters(gsi, mi, disturbance);
 }
 
 /** Devuelve `{ mb, s, a }` cuando `mi`, `gsi` y `disturbance` son números finitos; `null` si falta alguno. */
