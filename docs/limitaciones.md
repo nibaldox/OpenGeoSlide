@@ -191,7 +191,7 @@ La revisión adversarial R10 (Antigravity, dos lentes: [`R10_agy_A.md`](reviews/
 | E13l-2 | En polilíneas, la comprobación `no_driving` (E3) evalúa `Σ(W*·sen α + H·cos α)` en el sentido del deslizamiento, la misma `t` del equilibrio de fuerzas. Antes, una polilínea sobre terreno horizontal con `kh` o con una carga horizontal era `invalid` (`no_driving`) aunque cSlope converge. Los círculos no cambian | R10A-02 |
 | E13l-3 | La escala de los residuos de fuerza y de momento, y la clasificación E7d de la N′ negativa, usan una **escala motriz** que no se infla con cargas verticales inertes: `máx(D, mín(máx(ΣW, ΣW*), 3·D))`, con `D = máx(ΣW, Σ|t_i|, Σ|H_i|)`. Una sobrecarga vertical enorme sobre un tramo horizontal no drenado ya no oculta un desequilibrio (1,68263 con cualquier carga, antes 1,546 `converged` con 1e9 kPa); V068 con carga en el pie conserva `negative_effective_normal_major`; un suelo sin peso con carga horizontal pura converge como cSlope. Ninguno de los modelos del repositorio cambia (3350 corridas) | R10A-03, R10A-07 |
 | E13l-4 | En M-P con `data_points`, si el barrido de λ de siempre no converge, se repite con f normalizada por `f_máx` y con paso `0,05 / máx(f̄, f_máx/2)`; λ se informa en la escala del usuario. Las cinco funciones con nombre no cambian. Un `data_points` de pico angosto (D10 con el pico en `[0,8; 0,9; 1,0]`) converge como cSlope (1,047929 frente a 1,047543) | R10A-08 |
-| E13l-5 | Si el punto medio de la base está a menos de `tol` de un **contacto entre dos materiales**, se toma el **más débil**, por `c + máx(0, σ′)·tan φ` (o Su) con `σ′ = W·cos²α/b − u`. Antes se tomaba siempre el de arriba: una polilínea sobre el techo de un estrato débil daba 3,630 frente a 3,018 de cSlope (+20,3 %, no conservador) | R10A-04 |
+| E13l-5 | Si el punto medio de la base está a menos de `tol` de un **contacto entre dos materiales**, se toma el **más débil**, por `c + máx(0, σ′)·tan φ` (o Su) con `σ′ = σv·cos²α − u`; E16aa incluye embalse y cargas en σv. Antes se tomaba siempre el de arriba: una polilínea sobre el techo de un estrato débil daba 3,630 frente a 3,018 de cSlope (+20,3 %, no conservador) | R10A-04 |
 | E13l-6 | La prolongación y el recorte de los extremos de la polilínea usan la **distancia 2D** (un tramo casi vertical ya no se corta ni se deja bajo el terreno); los **vértices de la polilínea** tienen prioridad sobre las fronteras de las cargas y sobre la fusión por `tol`, así que la base de cada dovela sigue siendo recta; la cara vertical sobre un contacto vertical toma la resistencia del lado más débil | R10A-05, R10A-09 |
 | E13l-7 | Con la masa truncada (`truncated_driving_mass` o `truncated_mass`), `report.surface` de una polilínea se recorta al **rango analizado**, como el trazo de los círculos; la web dibuja y exporta ese rango | R10B-05 |
 | E13l-8 | El esquema `ogs-0.3.schema.json` exige `analysis.methods` en una polilínea fija (el valor por defecto `["bishop"]` la rechaza); `validateLocal` aplica ese valor por defecto | R10A-10, R10B-04 |
@@ -944,9 +944,11 @@ Cuando el punto medio de la base de una dovela cae sobre un contacto entre dos m
 (E13l-5, [formato](formato-ogs-json.md#polilínea-fija)). Hasta R15 la comparación usaba una resistencia que vale (0, 0)
 para `hoek_brown` y `shansep`, y en un contacto con uno de esos materiales ganaba siempre el material nuevo, aunque fuera el
 más resistente: una superficie que corre por el techo de una capa débil se analizaba en la roca fuerte, **del lado
-inseguro**. Ahora se compara la resistencia real, con los mismos σ y u que la rama lineal (`σ′n = máx(0, col·cos²α − u)`):
-con Hoek-Brown, `τ(σ′n)` de la envolvente completa; con SHANSEP, Su con el σ′v de la columna; con los materiales lineales,
-sin cambios (byte a byte). Con empate se conserva el material de arriba. Medido con Spencer y una polilínea por el contacto
+inseguro**. Se compara la resistencia real, con `σ′n = máx(0, σv·cos²α − u)`: con Hoek-Brown, `τ(σ′n)` de la envolvente
+completa; con SHANSEP, Su con el σ′v de la columna. Desde E16aa, `σv` incluye el suelo, el embalse y las cargas verticales,
+sin el sismo, para todas las leyes; es una corrección deliberada frente a la v0.4.0: en un contacto lineal bajo embalse,
+Spencer pasa de 1,0591 a 0,7356; en la versión integrada previa, con UDL y SHANSEP, de 1,4222 a 1,0615. Con empate se conserva el material de arriba.
+Medido con Spencer y una polilínea seca por el contacto
 horizontal (`crates/ogs-core/tests/data/f3b/r15/contact/`):
 
 | Contacto | Encima | Sobre el contacto, antes | Sobre el contacto, ahora | Debajo |
