@@ -6,24 +6,30 @@
 //! larger than that of its seed (F6.10).
 
 use crate::geometry::PreparedModel;
-use crate::model::{Circle, MethodKind, NonCircularSpec};
+use crate::model::{Circle, MethodKind, NonCircularSpec, SearchSpec};
 use crate::search::NonCircularStats;
 use crate::surface::Surface;
+
+/// Code of the informative note of F6.7: the reported FS is more than 15 % below `seed_fos` (F6.10, point 8).
+pub const NON_CIRCULAR_LARGE_CHANGE: &str = "non_circular_large_change";
 
 /// Refines the circular seeds into the critical polyline (F6.6 hook 3, F6.10).
 ///
 /// `seeds` are the best distinct circles with their FS; `eval` evaluates a candidate polyline (already fitted to the
 /// ground) with the same steps that `lib.rs` runs on a fixed surface, and returns `Some(FS)` only for a valid,
-/// converged surface. Returns the refined surface and the statistics of the refinement.
+/// converged surface. `search` carries the entry and exit windows: the moved end points stay inside them, or inside
+/// the x-extent of the model when a window is absent (E16s). Returns the refined surface (a circle when the seed
+/// circle wins, F6.10 point 8) and the statistics of the refinement.
 ///
 /// B0 stub: [`todo!("F3B-M-NC")`]. The writer of B1 replaces it; the signature cannot change without an amendment.
 pub(crate) fn refine(
     pm: &PreparedModel,
     method: MethodKind,
+    search: &SearchSpec,
     spec: &NonCircularSpec,
     seeds: Vec<(Circle, f64)>,
     mut eval: impl FnMut(&Surface) -> Option<f64>,
 ) -> (Surface, NonCircularStats) {
-    let _ = (&pm, method, spec, &seeds, &mut eval);
+    let _ = (&pm, method, search, spec, &seeds, &mut eval);
     todo!("F3B-M-NC")
 }

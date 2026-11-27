@@ -253,9 +253,9 @@ Se agregan a la lista E6 de `00_CONTRATOS.md` y a `apps/web/src/engine/warnings.
 - **`hoek_brown_low_confinement`** (F6.7): se emite si alguna dovela de base `hoek_brown` tiene `σ′n ≤ sn(0)` en la
   solución reportada. Es una nota por método.
 - **Caras de las dovelas** (F6.5): `τ(σ′v(z))` de la misma envolvente y con la misma regla de bajo confinamiento.
-- **Regla de compatibilidad, solo para los tests.** `hoek_brown` expone, con `#[doc(hidden)]` y fuera del formato, una
-  variante de la regla de bajo confinamiento igual a la de cSlope. La usan solo los tests que comparan el lazo con el
-  oráculo. El producto usa siempre la envolvente completa.
+- **Regla de compatibilidad, solo para los tests.** Una variante de la regla de bajo confinamiento igual a la de cSlope,
+  fuera del formato, activable **solo en las compilaciones de test** (`#[cfg(test)]`, estado local al hilo; E16t). La
+  usan solo los tests que comparan el lazo con el oráculo. El producto usa siempre la envolvente completa.
 - **Filas de aceptación**, en círculo fijo, en los cinco métodos:
   - **producto contra el prototipo:** la envolvente completa de X28 (`X28_proto/hb.py`, regla `cut`, convergencia total)
     a **≤ 0,1 %** en los cuatro modelos (columna «Envolvente completa»). Es una implementación independiente en Python;
@@ -351,8 +351,11 @@ y se cita; no se copia.
      - los extremos se mueven ±Δ en x, con su y sobre el terreno;
      - por vértice se ajusta la parábola `t = Δ·(F₋ − F₊)/(2·(F₊ + F₋ − 2F₀))`, acotada a ±Δ. Sin curvatura positiva
        se toma el mejor de los dos lados;
-     - el movimiento conjunto de todos los vértices se acepta si `F < F₀ − 1e-6`. Si no, se acepta el mejor movimiento
-       individual que mejore. Si ninguno mejora, la ronda no mejora;
+     - se evalúan el movimiento conjunto de todos los vértices y el mejor movimiento individual, y se toma **el de
+       menor F** de los dos. Se acepta si `F < F₀ − 1e-6`; si no, la ronda no mejora (E16s, como `X29_proto/nc.py:346-351`,
+       que dio las cifras de aceptación);
+     - los extremos se mueven dentro de las ventanas `entry` y `exit` de la búsqueda, o dentro de la extensión en x del
+       modelo cuando falta la ventana (E16s);
    - después de una ronda sin mejora, Δ se divide entre 2. El nivel termina cuando `Δ < 0,02·Δ₀` (6 pasos: Δ₀ a
      Δ₀/32).
 5. **Presupuesto:** 1500 evaluaciones admisibles por semilla, sumando todos los niveles. Los candidatos inadmisibles no
@@ -484,3 +487,18 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 
   Evidencia: el informe de M-SH (`$TMPDIR/agy-f3b/b1-msh/out.md`, §1 y §2) y el diff que propuso, integrado por el
   coordinador.
+- **E16s, selección de movimiento, ventanas y nota no circular (M-NC, 2026-11-27).**
+  - **Selección.** F6.10, punto 4, toma el menor de los dos movimientos, el conjunto y el mejor individual, como el
+    prototipo que dio las cifras. El texto anterior aceptaba el conjunto aunque el individual fuera mejor.
+  - **Extremos.** Quedan dentro de las ventanas de la búsqueda. Por eso `noncircular::refine` recibe
+    `search: &SearchSpec`.
+  - **Nota.** `lib.rs` emite `non_circular_large_change` (constante `noncircular::NON_CIRCULAR_LARGE_CHANGE`).
+
+  Evidencia: el informe de M-NC (`deleg_364c8c41`, tarea 2) y `X29_proto/nc.py:346-351`.
+- **E16t, regla de compatibilidad de Hoek-Brown solo en test (M-HB, 2026-11-27).** Se acepta la implementación de M-HB:
+  `#[cfg(test)]` con estado local al hilo, en lugar de una API `#[doc(hidden)]`, porque no deja nada fuera del producto.
+  - Las filas de compatibilidad quedan en 0,0018 % a 0,0716 % en las 33 filas con gate.
+  - Spencer y M-P en SB no tienen raíz de λ con la regla de cSlope; con la envolvente completa sí convergen.
+  - X25-RU03 Spencer y M-P quedan dentro de 0,1 % (−0,0021 %), así que pasan a gate.
+  - Costo medido de una búsqueda Bishop con Hoek-Brown: 51 veces el de Mohr-Coulomb en SA (0,86 s) y 48 veces en SB.
+    Se revisa en la integración.

@@ -493,7 +493,7 @@ fn analyze_method(
             if let Some(nc_spec) = &spec.non_circular {
                 // F6.6 hook 3: refine the critical circle into a polyline (B0: `todo!("F3B-M-NC")`).
                 let (polyline, nc_stats) =
-                    noncircular::refine(pm, method, nc_spec, seeds, |surface| {
+                    noncircular::refine(pm, method, spec, nc_spec, seeds, |surface| {
                         let polyline_opts = SolveOptions {
                             circular: false,
                             ..*opts
@@ -695,6 +695,17 @@ fn analyze_method(
             .collect(),
         None => Vec::new(),
     };
+    // F6.7 and F6.10 (point 8, E16s): the non-circular search lowered the FS more than 15 % below its seed circle.
+    let large_change = search
+        .as_ref()
+        .and_then(|s| s.non_circular)
+        .is_some_and(|nc| {
+            result.status == SolveStatus::Converged
+                && result.fos.is_finite()
+                && result.fos > 0.0
+                && nc.seed_fos > 0.0
+                && (nc.seed_fos - result.fos) / nc.seed_fos > 0.15
+        });
     for code in sliced
         .notes
         .into_iter()
@@ -706,6 +717,7 @@ fn analyze_method(
                 .nonpositive_stress
                 .then(|| shansep::SHANSEP_NONPOSITIVE_STRESS.to_string()),
         )
+        .chain(large_change.then(|| noncircular::NON_CIRCULAR_LARGE_CHANGE.to_string()))
     {
         if !warnings.contains(&code) {
             warnings.push(code);
