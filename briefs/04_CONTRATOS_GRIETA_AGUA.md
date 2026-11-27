@@ -695,3 +695,40 @@ con la masa truncada. No era un defecto de la física.
 - Las filas de `f3g_rows.rs` (55 + 3) no cambian, y su salida no lleva `face_height`, salvo que la fila tenga una
   discontinuidad; en ese caso se informa.
 - Identidad: 0 diferencias.
+
+## F5.14 Correcciones de la comprobación de cierre R14 (E15n)
+
+**Fuente:** `docs/reviews/R14_agy.md`, con veredicto «APTO CON CORRECCIONES». De R13 quedan 12 hallazgos cerrados y uno
+parcial, A-01, que se completa con E15n-2.
+
+**Reproducción del coordinador** con `6d7730c`:
+- el espejo RTL de `a03_escalon_auto.json`, guardado como `docs/fase3/r14/repro/a03_escalon_auto_rtl.json`, da Bishop
+  1,911188 con `depth 0` y `Pw 0`;
+- el original LTR da 1,862343 con `depth 2,616`;
+- cSlope da 1,862416 en los dos sentidos.
+
+Para la UDL y para la grieta fija, el espejo coincide.
+
+- **E15n-1 (R14-01): evaluación del lado de la masa.**
+  - En el `x_c` de la grieta, `d(x_c)`, el terreno y la cara (`face_height`, la guarda de cara nula y el corte) se
+    evalúan en un mismo punto: `x_c + s·tol`, donde `s` apunta hacia la masa deslizante, desde la grieta hacia el pie.
+  - No se mezcla una envolvente cerrada (`top_at`) con una columna semiabierta (`column`).
+  - **Criterios:**
+    - el espejo RTL de `a03_escalon_auto` da lo mismo que el LTR, a ≤ 1e-9, y queda a ≤ 0,1 % de cSlope;
+    - el escalón descendente de R14-01 (de 14 a 12 en x = 5, base 11,7) informa `face_height 0,30` y es simétrico en
+      espejo;
+    - en ese escalón, con el cambio lateral de material, LTR y RTL coinciden, y se informa la comparación con cSlope;
+    - `a04_udl`, `a03_escalon_fija`, las filas de `f3g_rows.rs` y el corpus no cambian.
+- **E15n-2 (R14-02):** el perfil comprueba también que `soil_per_pile / spacing` sea finito y, si no lo es, da el error
+  de E15l-11.
+  - **Criterio:** la reproducción de R14-02 (`spacing` 0,40091756815052138, `diameter` 0,4, `capacity`) da el error o
+    una salida finita, nunca `"soil_force": null`.
+- **E15n-3 (R14-04):** `water_unit_weight_default` también va en el retorno temprano de una polilínea inválida.
+  - El criterio es **declarativo** y se documenta así: el modelo usa agua (piezométrica o `water_fill > 0`), está en
+    imperial y no indica `water.unit_weight`.
+  - El aviso sale aunque el cálculo termine sin usar γw, por ejemplo con `depth 0` o con `ru`, porque avisa de un dato
+    que falta en el modelo.
+- **E15n-4 (R14-03 y el pendiente del coordinador):**
+  - El rótulo «Sin grieta» o «Corte de la masa…» del lienzo tiene un área de acierto en `info-hit`, con el mismo
+    criterio que E15m-10.
+  - La figura del PDF dibuja el mismo rótulo que el lienzo y Casos.
