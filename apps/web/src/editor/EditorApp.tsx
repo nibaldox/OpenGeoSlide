@@ -8,7 +8,7 @@ import type { MethodKind } from '../engine/types';
 import { loadDraftChain, type Draft } from '../io/draft';
 import { parseCsv } from '../io/csv';
 import { parseDxf, type DxfParseResult } from '../io/dxf';
-import { saveOgsJson, sha256Hex } from '../io/ogsJson';
+import { sha256Hex } from '../io/ogsJson';
 import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
@@ -27,6 +27,7 @@ import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
 import { createConfirmDiscard, createToolSwitch, runIfDiscarded } from './app/discard';
+import { saveDocument } from './app/saveDocument';
 import { visibleExportHint } from './app/exportHint';
 import { editMenuLabel } from './app/editMenuLabel';
 import { useNarrow } from './app/useNarrow';
@@ -53,7 +54,7 @@ import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
-import { PENDING_DRAFTS_TEXT } from './panels/forms';
+import { PENDING_DRAFTS_TEXT, getPendingDrafts, pendingDraftsNotice } from './panels/forms';
 import {
   AnalysisPanel,
   DiagnosticsPanel,
@@ -298,20 +299,19 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     () =>
       // Un doble clic (o Ctrl+S repetido) mientras se calcula el SHA-256 no descarga dos veces (R7-28).
       void saveFlight.current.run(async () => {
-        try {
-          const s = store.getState();
-          const text = saveOgsJson(s.doc);
-          const name = s.file.name ?? `${baseFileName(null, s.doc)}.ogs.json`;
-          const finalName = /\.ogs\.json$/i.test(name) ? name : `${baseFileName(name, s.doc)}.ogs.json`;
-          downloadText(text, finalName, 'application/json');
-          store.markSaved(finalName);
-          setIsExample(false);
-          clearOwnDraft(draftStorage.storage); // solo el de esta pestaña: el de otra pestaña abierta sigue a salvo (R9-01)
-          const sha = await sha256Hex(text);
-          notify('info', `Guardado «${finalName}». SHA-256: ${sha}`);
-        } catch (err) {
-          notify('error', `No se pudo guardar: ${err instanceof Error ? err.message : String(err)}`);
-        }
+        // R16B-01: con borradores de tarjeta sin aplicar no se descarga nada: avisa, igual que «Comprobar».
+        await saveDocument({
+          getState: () => store.getState(),
+          markSaved: (name) => store.markSaved(name),
+          getPendingDrafts: () => getPendingDrafts(store),
+          download: downloadText,
+          notify,
+          sha256: sha256Hex,
+          afterSave: () => {
+            setIsExample(false);
+            clearOwnDraft(draftStorage.storage); // solo el de esta pestaña: el de otra pestaña abierta sigue a salvo (R9-01)
+          },
+        });
       }),
     [store, draftStorage, notify],
   );
@@ -409,7 +409,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const onReport = async (): Promise<void> => {
     if (reportBusy) return;
     if (hasDrafts) {
-      notify('aviso', PENDING_DRAFTS_TEXT);
+      notify('aviso', pendingDraftsNotice(pendingDrafts));
       return;
     }
     if (!engine.run || !engine.current) {
@@ -433,13 +433,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const checkDisabled = checkState.disabled || hasDrafts;
   const onCheck = useCallback(async () => {
     if (hasDrafts) {
-      notify('aviso', PENDING_DRAFTS_TEXT);
+      notify('aviso', pendingDraftsNotice(pendingDrafts));
       return;
     }
     if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
     if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
-  }, [engine, engineStatus, hasDrafts, notify]);
+  }, [engine, engineStatus, hasDrafts, pendingDrafts, notify]);
 
   // ───────── Anuncios (regiones vivas persistentes) ─────────
 
@@ -635,7 +635,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
               Abrir
             </button>
-            <button type="button" onClick={onSave} title="Ctrl+S">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={hasDrafts}
+              title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+S'}
+              aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
+            >
               Guardar
             </button>
             <hr />
@@ -742,7 +748,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         )}
         {hasDrafts && (
           <p id="ea-pending-drafts" className="ea-export-hint ep-error small" role="status" data-testid="pending-drafts-hint">
-            {PENDING_DRAFTS_TEXT} ({pendingDrafts.join(', ')}).
+            {pendingDraftsNotice(pendingDrafts)}
           </p>
         )}
         {exportHint && (

@@ -649,7 +649,12 @@ export function evaluateMaterialCard(form: MaterialForm, material: Material, ctx
 // ── Registro de borradores sin aplicar por store (R15B-01) ──
 
 export const PENDING_DRAFTS_TEXT =
-  'Hay cambios en una tarjeta sin aplicar al modelo. Corrija los errores o descarte los cambios antes de comprobar o exportar.';
+  'Hay cambios en una tarjeta sin aplicar al modelo. Corrija los errores o descarte los cambios antes de comprobar, exportar o guardar.';
+
+/** Aviso completo de un bloqueo por borradores: el motivo y las tarjetas afectadas (R16B-01). */
+export function pendingDraftsNotice(drafts: readonly string[]): string {
+  return drafts.length === 0 ? PENDING_DRAFTS_TEXT : `${PENDING_DRAFTS_TEXT} (${drafts.join(', ')}).`;
+}
 
 interface PendingDraftChannel {
   entries: Map<string, string>;
