@@ -570,7 +570,7 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
 # Identidad del informe y del CSV de la web (necesita un worktree en 34d4ba0 con sus dependencias)
 cd apps/web && BASE_WORKTREE=$BASE_WEB OGS_BIN=$CARGO_TARGET_DIR/release/ogs node src/report/identity.f3b.mjs
 
-# Ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 (14 ejemplos y 102 fragmentos)
+# Ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 (14 ejemplos y 103 fragmentos)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
   python docs/tools/validar_ejemplos.py --ogs $CARGO_TARGET_DIR/release/ogs
 
