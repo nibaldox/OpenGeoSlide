@@ -21,22 +21,24 @@ export function ViewTabs({ view, onChange }: { view: ViewId; onChange: (v: ViewI
         const Icon = ICONS[v.id];
         const selected = view === v.id;
         return (
-          <button
-            key={v.id}
-            type="button"
-            role="tab"
-            id={v.tabId}
-            className={selected ? 'ua-view-tab ua-view-tab-active' : 'ua-view-tab'}
-            aria-selected={selected}
-            aria-controls={v.panelId}
-            onClick={() => onChange(v.id)}
-          >
-            <Icon size={16} />
-            <span className="ua-view-label">{v.label}</span>
+          <div key={v.id} className="ua-view-tab-wrap" role="presentation">
+            <button
+              type="button"
+              role="tab"
+              id={v.tabId}
+              className={selected ? 'ua-view-tab ua-view-tab-active' : 'ua-view-tab'}
+              aria-selected={selected}
+              aria-controls={v.panelId}
+              onClick={() => onChange(v.id)}
+            >
+              <Icon size={16} />
+              <span className="ua-view-label">{v.label}</span>
+            </button>
+            {/* El contador es un hermano decorativo: el texto visible del botón es su nombre (WCAG 2.5.3). */}
             <span className="ua-view-n" aria-hidden="true">
               {v.number}
             </span>
-          </button>
+          </div>
         );
       })}
     </div>

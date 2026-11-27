@@ -891,27 +891,24 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                   fitInsets={fitInsets}
                 />
               </div>
-              <div className="ua-hud">
-                <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} />
-              </div>
-              <div className="ua-legend">
-                <Legend
-                  scene={scene}
-                  label="Leyenda de la sección"
-                  options={{
-                    surface: Boolean(canvasResult),
-                    unconverged: Boolean(canvasResult) && !surfaceConverged,
-                    invalid: shown?.status === 'invalid',
-                    fixedCircle: Boolean(canvasResult) && Boolean(shown) && !shown?.search,
-                    slices: Boolean(canvasResult),
-                    bands: Boolean(doc.analysis.search),
-                    loads: (doc.loads?.length ?? 0) > 0,
-                    seismic: Boolean(doc.analysis.seismic),
-                    piezoExtrapolated: piezoExtension(doc) !== null,
-                    fixedPolyline: doc.analysis.surface?.type === 'polyline',
-                  }}
-                />
-              </div>
+              {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} />
+              <Legend
+                scene={scene}
+                label="Leyenda de la sección"
+                options={{
+                  surface: Boolean(canvasResult),
+                  unconverged: Boolean(canvasResult) && !surfaceConverged,
+                  invalid: shown?.status === 'invalid',
+                  fixedCircle: Boolean(canvasResult) && Boolean(shown) && !shown?.search,
+                  slices: Boolean(canvasResult),
+                  bands: Boolean(doc.analysis.search),
+                  loads: (doc.loads?.length ?? 0) > 0,
+                  seismic: Boolean(doc.analysis.seismic),
+                  piezoExtrapolated: piezoExtension(doc) !== null,
+                  fixedPolyline: doc.analysis.surface?.type === 'polyline',
+                }}
+              />
             </section>
             {(engine.run && !engine.current) || (canvasResult && shown) ? (
               <div className="ua-canvas-notes">

@@ -8,7 +8,6 @@
   --ua-header-h: 68px;
   --ua-status-h: 30px;
   --ua-side-w: 340px;
-  --ua-hud-w: 330px;
   --ua-ink-2: var(--ui-ink-2, var(--ui-ink));
   --ua-border-strong: var(--ui-border-strong, var(--ui-control-border));
   --ua-border-dashed: var(--ui-border-dashed, var(--ui-control-border));
@@ -215,6 +214,8 @@
 }
 
 .ua-steps {
+  /* Contenedor de los textos `.visually-hidden` (position: absolute) de los pasos: sin él, escapan del scroll y alargan la página. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -228,14 +229,19 @@
   display: contents;
 }
 
+/* Cada paso es un envoltorio (`role="presentation"`) con el botón de la pestaña, que cubre toda la fila y cuyo texto es solo el título, y un
+   hermano decorativo (`aria-hidden`, sin eventos de puntero) con la insignia, el resumen y el chevron (UA-E2, WCAG 2.5.3). */
+.ua-step-row {
+  --ua-step-title-h: 17.4px; /* 14,5 px × 1,2 */
+  --ua-step-sub-h: 16.9px; /* 12,5 px × 1,35 */
+  position: relative;
+  flex: none;
+}
 .ua-steps .ua-step {
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 18px;
-  align-items: center;
-  gap: 12px;
+  display: block;
   width: 100%;
   min-height: 0;
-  padding: 9px 8px;
+  padding: 9px 38px calc(9px + var(--ua-step-sub-h)) 50px;
   border: 0;
   border-radius: var(--ua-radius-md);
   background: transparent;
@@ -247,21 +253,34 @@
 }
 .ua-steps .ua-step.ea-tab-active {
   background: var(--ua-accent-bg);
-}
-.ua-steps .ua-step.ea-tab-active .ua-step-title {
   color: var(--ua-accent-bright);
 }
-
-.ua-step-text {
-  display: grid;
-  min-width: 0;
-}
 .ua-step-title {
+  display: block;
+  overflow: hidden;
   font-size: 14.5px;
   font-weight: 600;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ua-step-deco {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  pointer-events: none;
+}
+.ua-step-text {
+  align-self: stretch;
+  min-width: 0;
+  padding-top: var(--ua-step-title-h);
 }
 .ua-step-sub {
+  display: block;
   overflow: hidden;
   font-size: 12.5px;
   line-height: 1.35;
@@ -273,7 +292,7 @@
   display: inline-flex;
   color: var(--ui-ink-muted);
 }
-.ua-step[aria-selected='true'] .ua-step-chevron {
+.ua-step-row[data-active='true'] .ua-step-chevron {
   transform: rotate(180deg);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -314,6 +333,7 @@
 
 /* Panel abierto: en línea, justo debajo de su paso. */
 .ua-panel {
+  flex: none;
   min-width: 0;
   padding: 4px 4px 12px 12px;
 }
@@ -361,12 +381,24 @@
   width: 100%;
   min-height: 40px;
 }
-.ua-kbd {
-  margin-left: 4px;
+.ua-check-wrap {
+  position: relative;
+}
+/* La tecla es un hermano decorativo superpuesto al botón (UA-E2): el nombre del botón es solo «Comprobar». */
+.ua-check-wrap .ua-kbd {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--ui-ink-on-accent);
   font-family: var(--ua-font-mono);
   font-size: 11px;
   font-weight: 500;
-  opacity: 0.85;
+  opacity: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.ua-check-wrap .ua-check:disabled + .ua-kbd {
+  color: var(--ui-ink-muted);
 }
 .ua-check.ua-check-compact {
   width: auto;
@@ -409,8 +441,11 @@
   padding: 12px 24px 0;
   overflow: auto;
 }
+.ua-notices {
+  grid-row: 1;
+}
 .ua-notices:empty {
-  display: none;
+  padding: 0;
 }
 .ua-notices .banner,
 .ua-notices .ea-notice-bar {
@@ -418,6 +453,7 @@
 }
 
 .ua-main-head {
+  grid-row: 2;
   display: grid;
   gap: 10px;
   padding: 18px 24px 0;
@@ -433,6 +469,7 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
+  min-height: 32px;
 }
 .ua-title h2 {
   min-width: 0;
@@ -480,15 +517,19 @@
   border-bottom: 1px solid var(--ui-border);
   scrollbar-width: none;
 }
+/* El contador 1-4 es un hermano decorativo del botón (UA-E2): el texto visible del botón es su nombre. */
+.ua-view-tab-wrap {
+  position: relative;
+  flex: none;
+  margin-bottom: -1px;
+}
 .ua-main .ua-view-tab {
   display: inline-flex;
-  flex: none;
   align-items: center;
   gap: 8px;
   height: 40px;
   min-height: 40px;
-  margin-bottom: -1px;
-  padding: 0 14px;
+  padding: 0 44px 0 14px;
   border: 0;
   border-bottom: 2px solid transparent;
   border-radius: 0;
@@ -507,6 +548,9 @@
   color: var(--ua-accent-bright);
 }
 .ua-view-n {
+  position: absolute;
+  top: 50%;
+  right: 14px;
   display: inline-grid;
   place-items: center;
   min-width: 18px;
@@ -518,15 +562,19 @@
   font-family: var(--ua-font-mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .ua-panels {
+  grid-row: 3;
   display: grid;
   grid-template-rows: minmax(0, 1fr);
   min-height: 0;
   padding: 16px 24px 20px;
 }
 .ua-view {
+  position: relative;
   min-width: 0;
   min-height: 0;
 }
@@ -548,6 +596,7 @@
 }
 .ua-canvas-card {
   position: relative;
+  isolation: isolate; /* el pie sticky de móvil (z-index 5) queda siempre por encima del HUD y la paleta */
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--ui-border);
@@ -558,44 +607,6 @@
 .ua-canvas {
   position: absolute;
   inset: 0;
-}
-.ua-hud {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 3;
-  width: var(--ua-hud-w);
-  max-height: calc(100% - 32px);
-  overflow: auto;
-}
-.ua-hud .rs {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  min-height: 0;
-  padding: 14px 16px 12px;
-  border: 1px solid var(--ua-border-strong);
-  border-radius: var(--ua-radius-lg);
-  background: var(--ui-surface);
-  box-shadow: var(--ua-shadow-float);
-}
-.ua-legend {
-  position: absolute;
-  bottom: 14px;
-  left: 16px;
-  z-index: 2;
-  max-width: calc(100% - 108px);
-}
-.ua-legend .legend {
-  width: fit-content;
-  max-width: 100%;
-  margin: 0;
-  padding: 7px 10px;
-  gap: 6px 14px;
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ua-radius-md);
-  background: color-mix(in srgb, var(--ui-surface) 88%, transparent);
-  font-size: 12px;
 }
 .ua-canvas-notes p {
   margin: 0;
@@ -693,6 +704,9 @@
 .cases-view .panel {
   border-radius: var(--ua-radius-lg);
 }
+.cases-view select {
+  min-height: 32px;
+}
 
 /* ───────── Barra de estado ───────── */
 
@@ -742,18 +756,10 @@
   }
 }
 
-/* 1100-1279: HUD de 300. */
-@media (max-width: 1279px) {
-  .ua-app {
-    --ua-hud-w: 300px;
-  }
-}
-
 /* 761-1099: barra lateral de 300, HUD de 280, sin subtítulo; «Ayuda» e «Instalar» solo con ícono. */
 @media (max-width: 1099px) {
   .ua-app {
     --ua-side-w: 300px;
-    --ua-hud-w: 280px;
   }
   .app-sub {
     display: none;
@@ -770,6 +776,16 @@
   .ua-header :is(.help-button, .install-button) {
     width: 32px;
     padding: 0;
+  }
+  /* Las cuatro pestañas de vista caben en el ancho del área sin el ícono. */
+  .ua-main .ua-view-tab {
+    padding: 0 38px 0 12px;
+  }
+  .ua-view-n {
+    right: 10px;
+  }
+  .ua-main .ua-view-tab > svg {
+    display: none;
   }
   /* Casos: sin espacio para dos columnas. */
   .ua-scroll .layout {
@@ -815,6 +831,9 @@
     display: block;
     order: 1;
   }
+  .ua-main .ua-view-tab > svg {
+    display: inline-block;
+  }
   .ua-notices {
     max-height: none;
     padding: 10px 14px 0;
@@ -852,19 +871,11 @@
     flex: none;
     height: 360px;
   }
-  .ua-hud {
-    position: static;
-    width: auto;
-    max-height: none;
+  /* El HUD (`div.rs`) y la leyenda pasan a ser estáticos debajo del lienzo (sus hojas lo hacen); aquí solo su margen lateral. */
+  .ua-canvas-card > div.rs {
     margin: 10px 12px 0;
-    overflow: visible;
   }
-  .ua-hud .rs {
-    box-shadow: none;
-  }
-  .ua-legend {
-    position: static;
-    max-width: none;
+  .ua-canvas-card > ul.legend[aria-label] {
     margin: 10px 12px 12px;
   }
   .ua-canvas-notes {

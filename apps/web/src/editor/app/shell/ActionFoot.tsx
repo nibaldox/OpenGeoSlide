@@ -14,7 +14,7 @@ export interface CheckButtonProps {
 }
 
 export function CheckButton({ label, disabled, title, describedBy, onCheck, variant }: CheckButtonProps) {
-  return (
+  const button = (
     <button
       type="button"
       className={variant === 'foot' ? 'primary ea-primary gs-btn gs-btn-primary gs-btn-lg ua-check' : 'primary ea-primary gs-btn gs-btn-primary ua-check ua-check-compact'}
@@ -26,12 +26,17 @@ export function CheckButton({ label, disabled, title, describedBy, onCheck, vari
     >
       <IconPlay size={16} />
       <span>{label}</span>
-      {variant === 'foot' ? (
-        <kbd className="gs-kbd ua-kbd" aria-hidden="true">
-          Ctrl Intro
-        </kbd>
-      ) : null}
     </button>
+  );
+  if (variant !== 'foot') return button;
+  // La tecla es un hermano decorativo superpuesto: el nombre del botón es exactamente «Comprobar» (UA-E2, WCAG 2.5.3).
+  return (
+    <div className="ua-check-wrap">
+      {button}
+      <kbd className="gs-kbd ua-kbd" aria-hidden="true">
+        Ctrl Intro
+      </kbd>
+    </div>
   );
 }
 

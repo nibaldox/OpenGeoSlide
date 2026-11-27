@@ -32,23 +32,30 @@ describe('StepList (contrato §4.6)', () => {
     expect(html).toMatch(/<div id="ea-tabpanel" class="ua-panel" role="tabpanel" aria-labelledby="ea-tab-materials" style="order:3">/);
     expect(html).toContain('id="ea-tab-materials"');
     expect(html).toMatch(/id="ea-tab-materials"[^>]*aria-selected="true"/);
+    expect(html).toMatch(/<div class="ua-step-row" role="presentation" data-active="true" style="order:2">/);
     expect(html).toMatch(/id="ea-tab-geometry"[^>]*aria-selected="false"/);
     expect(html.match(/aria-controls="ea-tabpanel"/g)).toHaveLength(10);
   });
-  it('el nombre accesible es solo el título; el resumen y el estado van en aria-describedby', () => {
-    const geometry = html.slice(html.indexOf('id="ea-tab-geometry"'), html.indexOf('id="ea-tab-materials"'));
-    expect(geometry).toMatch(/aria-labelledby="[^"]+-geometry-t"/);
-    expect(geometry).toMatch(/aria-describedby="[^"]+-geometry-s [^"]+-geometry-b"/);
-    expect(geometry).toContain('>Geometría<');
-    expect(geometry).toContain('>Resumen 0<');
-    expect(geometry).toContain('>Completo<');
-    // La insignia y el chevron quedan fuera del árbol de accesibilidad.
-    expect(geometry).toMatch(/class="gs-badge ua-badge" data-status="done" aria-hidden="true"/);
-    expect(geometry).toMatch(/class="ua-step-chevron" aria-hidden="true"/);
+  it('UA-E2: el texto del botón es solo el título; insignia, resumen y chevron van en un hermano decorativo aria-hidden', () => {
+    const row = html.slice(html.indexOf('<div class="ua-step-row"'), html.indexOf('id="ea-tab-materials"'));
+    const button = row.slice(row.indexOf('<button'), row.indexOf('</button>') + 9);
+    expect(button.replace(/<[^>]+>/g, '')).toBe('Geometría');
+    expect(row).toMatch(/role="presentation"/);
+    const deco = row.slice(row.indexOf('<div class="ua-step-deco"'));
+    expect(deco).toMatch(/^<div class="ua-step-deco" aria-hidden="true">/);
+    expect(deco).toContain('>Resumen 0<');
+    expect(deco).toContain('>Completo<');
+    expect(deco).toMatch(/class="gs-badge ua-badge" data-status="done"/);
+    expect(deco).toContain('class="ua-step-chevron"');
+    // El resumen llega al lector por aria-describedby (el resumen primero, luego el estado).
+    const subId = /id="([^"]+-geometry-s)"/.exec(deco)?.[1];
+    const statusId = /id="([^"]+-geometry-b)"/.exec(deco)?.[1];
+    expect(subId).toBeTruthy();
+    expect(button).toContain(`aria-describedby="${subId} ${statusId}"`);
   });
   it('estados: ✓ en SVG, «!» en SVG, punto en SVG y número del paso en los opcionales', () => {
-    expect(html).toMatch(/data-status="error" aria-hidden="true"><svg[^>]*><path d="M12 6v7"/);
-    expect(html).toMatch(/data-status="optional" aria-hidden="true">4</);
+    expect(html).toMatch(/data-status="error"><svg[^>]*><path d="M12 6v7"/);
+    expect(html).toMatch(/data-status="optional">4</);
     expect(html).not.toMatch(/[✓✔⚠▾]/);
   });
 });
@@ -67,8 +74,10 @@ describe('ViewTabs (contrato §4.7)', () => {
     }
     expect(html).toMatch(/id="view-results"[^>]*aria-selected="true"/);
   });
-  it('el contador va fuera del nombre accesible (aria-hidden)', () => {
-    expect(html.match(/<span class="ua-view-n" aria-hidden="true">\d<\/span>/g)).toHaveLength(4);
+  it('UA-E2: el contador es un hermano decorativo del botón; el texto del botón es solo el nombre', () => {
+    expect(html.match(/<\/button><span class="ua-view-n" aria-hidden="true">\d<\/span>/g)).toHaveLength(4);
+    const buttons = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, ''));
+    expect(buttons).toEqual(['Lienzo', 'Resultados', 'Casos de verificación', 'Informe']);
   });
 });
 
@@ -108,7 +117,10 @@ describe('ActionFoot', () => {
   it('«Comprobar» con la tecla aria-hidden, «Informe PDF» y sin avisos de más', () => {
     const html = foot();
     expect(html).toContain('<span>Comprobar</span>');
-    expect(html).toMatch(/<kbd class="gs-kbd ua-kbd" aria-hidden="true">Ctrl Intro<\/kbd>/);
+    // UA-E2: la tecla es un hermano decorativo, fuera del botón.
+    const button = html.slice(html.indexOf('<button'), html.indexOf('</button>') + 9);
+    expect(button.replace(/<[^>]+>/g, '')).toBe('Comprobar');
+    expect(html).toMatch(/<\/button><kbd class="gs-kbd ua-kbd" aria-hidden="true">Ctrl Intro<\/kbd>/);
     expect(html).toContain('Informe PDF');
     expect(html).not.toContain('Cancelar cálculo');
     expect(html).not.toContain('Reiniciar el motor');
