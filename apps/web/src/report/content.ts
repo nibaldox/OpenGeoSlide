@@ -555,6 +555,14 @@ export const HOEK_BROWN_REPORT_NOTE =
   'Bajo confinamiento bajo o tracción (σ′n ≤ sn(0), donde sn(0) corresponde a σ′3 = 0), se aplica la regla de la envolvente completa hasta la resistencia a tracción σt = −s·σci/mb, y para σ′n ≤ σt la base no resiste (c = 0, tan φ = 0); no se extrapola la recta tangente de σ′3 = 0, diferencia conservadora de 0 % a −2,9 % frente a cSlope en los modelos de prueba. ' +
   'Advertencia de Hoek (1994, ISRM News Journal, citado en Hoek et al., 2002): la cohesión determinada ajustando una tangente a la envolvente curvilínea de Mohr es un valor de cota superior y puede dar resultados optimistas en cálculos de estabilidad.';
 
+/**
+ * Nota fija de todo informe con materiales SHANSEP (E16o, R15B-12): el sismo pseudoestático de las convenciones (W·(1 + kv)) no entra en σ′v.
+ * Sin ella, quien lee «W·(1 + kv)» puede suponer que kv reduce σ′v y, con él, Su.
+ */
+export const SHANSEP_REPORT_NOTE =
+  'Convención SHANSEP (Ladd y Foott, 1974): Su = S·σ′v·OCR^m, con σ′v el esfuerzo vertical efectivo estático de la base de cada dovela (peso del suelo, cargas y agua embalsada menos la presión de poros). ' +
+  'Esa σ′v no lleva término sísmico: ni kh ni kv la modifican, así que el sismo pseudoestático no cambia Su. Solo actúa sobre el peso del suelo en el equilibrio de la masa.';
+
 function shansepOcrCells(spec: ShansepSpec | null | undefined, stressUnit: string, lengthUnit: string): [string, string] {
   if (!spec) return [DASH, DASH];
   if (spec.ocr !== undefined && spec.ocr !== null) return ['OCR constante', `OCR = ${fmtParam(spec.ocr)}`];
@@ -613,6 +621,7 @@ function materialsSection(model: ModelDoc): ReportSection {
               return [m.id, fmtParam(s?.ratio), expText, source, detail];
             }),
           },
+          { kind: 'paragraph', text: SHANSEP_REPORT_NOTE },
         ];
   return {
     id: 'materials',
@@ -870,10 +879,12 @@ function warningsSection(input: ReportInput): ReportSection {
   };
   for (const w of input.warnings) push(w.method, w.severity, w.code, w.text);
   // R9-05c/d, R9-12a: avisos geotécnicos del modelo (los mismos de Diagnósticos), antes de los del motor.
+  // R15B-05: la clave es (código, ruta): dos materiales con el mismo problema (`editor.hoek_brown_ucs` en /materials/0 y /materials/1) son dos avisos.
   for (const a of geotechAdvisories(input.model)) {
-    if (seen.has(a.code)) continue;
-    seen.add(a.code);
-    items.push({ severity: 'aviso', label: 'Modelo', text: a.text, key: a.code });
+    const key = `${a.code}:${a.path ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push({ severity: 'aviso', label: 'Modelo', text: a.text, key });
   }
   for (const r of input.results) {
     const ctx = warningContext(r);

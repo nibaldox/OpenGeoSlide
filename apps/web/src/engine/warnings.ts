@@ -24,13 +24,61 @@ export interface WarningContext {
    * sugerir «considere una grieta de tracción», que ya está, sino revisar su profundidad.
    */
   tensionCrack?: boolean;
+  /**
+   * El resultado trae a la vez `negative_lambda` y `negative_effective_normal_major` (R15B-03, V002 / E16u): el FS puede venir de una
+   * rama de equilibrio con tracción y quedar bajo el real. Es un dato derivado de la interfaz; el motor no cambia.
+   */
+  tractionBranchRisk?: boolean;
+  /** El resultado sale de la búsqueda no circular (`search.non_circular`): el aviso combinado lo dice. */
+  nonCircular?: boolean;
+  /**
+   * El resultado es de un modelo con Hoek-Brown (trae `strength.passes` o un aviso `hoek_brown_*`): los textos de un método sin FS orientan
+   * hacia la presión de poros alta o la tracción, y no solo hacia los rangos de búsqueda (R15B-04).
+   */
+  hoekBrown?: boolean;
 }
 
+type WarningResultLike = Pick<MethodReport, 'method' | 'surface'> & {
+  tension_crack?: MethodReport['tension_crack'] | null;
+  warnings?: readonly string[];
+  search?: Pick<NonNullable<MethodReport['search']>, 'non_circular'> | null;
+  strength?: Pick<NonNullable<MethodReport['strength']>, 'passes' | 'slices'> | null;
+};
+
 /** Contexto de los avisos de un resultado: su método, el tipo de superficie que informó y si el análisis tiene grieta de tracción. */
-export function warningContext(r: Pick<MethodReport, 'method' | 'surface'> & { tension_crack?: MethodReport['tension_crack'] | null }): WarningContext {
+export function warningContext(r: WarningResultLike): WarningContext {
   const ctx: WarningContext = { method: r.method, surface: isPolylineReport(r.surface) ? 'polyline' : 'circle' };
   if (r.tension_crack && r.tension_crack.depth > 0) ctx.tensionCrack = true; // depth 0 = «sin grieta» (E15l-15)
+  const codes = r.warnings ?? [];
+  if (r.search?.non_circular) ctx.nonCircular = true;
+  if (codes.includes('negative_lambda') && codes.includes('negative_effective_normal_major')) ctx.tractionBranchRisk = true;
+  if (
+    typeof r.strength?.passes === 'number' ||
+    (r.strength?.slices ?? []).some((s) => s.law === 'hoek_brown') ||
+    codes.some((c) => c.startsWith('hoek_brown_'))
+  ) {
+    ctx.hoekBrown = true;
+  }
   return ctx;
+}
+
+/**
+ * Texto del aviso combinado de la rama de tracción (R15B-03, V002 / E16u): λ negativo con normal efectiva negativa en una parte importante
+ * de la base. En la búsqueda no circular el FS puede salir de una raíz de equilibrio con tracción (E12e) y quedar por debajo del real.
+ */
+export function tractionBranchRiskText(ctx: WarningContext = {}): string {
+  const where = ctx.nonCircular ? 'En la búsqueda no circular' : 'Con tracción en la base';
+  return (
+    `Aviso combinado: λ negativo y normal efectiva negativa en una parte importante de la base. ${where} el FS puede venir de una rama de equilibrio con tracción ` +
+    `y quedar por debajo del valor real; ${compareSuggestion(ctx)} y revise λ y la normal efectiva N′ (presión de poros y grieta de tracción) antes de aceptarlo.`
+  );
+}
+
+/** Orientación para un modelo Hoek-Brown sin FS (R15B-04): presión de poros alta o tracción, no solo los rangos de búsqueda. */
+export function hoekBrownNoFosHint(ctx: WarningContext = {}): string {
+  return ctx.hoekBrown
+    ? ' En un modelo Hoek-Brown suele deberse a una presión de poros alta (ru o piezométrica) o a tracción en la base: el esfuerzo normal efectivo cae bajo la resistencia a tracción σt de la roca y esa parte de la base deja de resistir. Revise la presión de poros, la grieta de tracción y σci, GSI, mi y D antes de mover los rangos de búsqueda.'
+    : '';
 }
 
 /**
@@ -68,7 +116,8 @@ export interface WarningInfo {
 }
 
 interface CatalogEntry {
-  severity: WarningSeverity;
+  /** Fija, o función del contexto cuando el aviso se eleva por una combinación (R15B-03). */
+  severity: WarningSeverity | ((ctx: WarningContext) => WarningSeverity);
   /** Texto fijo, o función del contexto cuando incluye una sugerencia que depende de la superficie. */
   text: string | ((ctx: WarningContext) => string);
 }
@@ -114,6 +163,12 @@ export const ENGINE_WARNING_CODES = [
   'shansep_nonpositive_stress',
   'non_circular_large_change',
 ] as const;
+
+/**
+ * Códigos que el motor ya tiene fijados pero que `briefs/00_CONTRATOS.md` (E6) aún no lista (E16x: `non_circular_not_refined`). Tienen texto y ruta
+ * como los de arriba; cuando E6 los incorpore se pasan a `ENGINE_WARNING_CODES`, que `warnings.test.ts` compara con esa lista.
+ */
+export const PENDING_E6_WARNING_CODES = ['non_circular_not_refined'] as const;
 
 /**
  * Texto de la nota de γw por defecto (E15m-6 adaptado a la web, E15m-9): el campo se llama «γw» y vive en la pestaña «Agua». Lo usan el
@@ -171,7 +226,8 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   m_alpha: {
     severity: 'aviso',
-    text: 'Algún m_α queda por debajo del m_α mínimo: la superficie no es admisible. Revise el sentido de deslizamiento y los rangos de entrada y salida, o evite tramos de base muy inclinados.',
+    text: (ctx) =>
+      `Algún m_α queda por debajo del m_α mínimo: la superficie no es admisible. Revise el sentido de deslizamiento y los rangos de entrada y salida, o evite tramos de base muy inclinados.${hoekBrownNoFosHint(ctx)}`,
   },
   pole: {
     severity: 'aviso',
@@ -194,12 +250,15 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   no_admissible_root: {
     severity: 'aviso',
     text: (ctx) =>
-      `El método halló soluciones de equilibrio, pero ninguna cumple los límites de admisibilidad (cierre de fuerzas, Φ/F y m_α): la superficie no es admisible. Revise el sentido de deslizamiento, la superficie o el m_α mínimo en «Análisis», o ${compareSuggestion(ctx)}.`,
+      `El método halló soluciones de equilibrio, pero ninguna cumple los límites de admisibilidad (cierre de fuerzas, Φ/F y m_α): la superficie no es admisible. Revise el sentido de deslizamiento, la superficie o el m_α mínimo en «Análisis», o ${compareSuggestion(ctx)}.${hoekBrownNoFosHint(ctx)}`,
   },
   negative_lambda: {
-    severity: 'nota',
+    // R15B-03: junto con `negative_effective_normal_major` deja de ser una nota genérica y pasa a ser el aviso combinado de la rama de tracción.
+    severity: (ctx) => (ctx.tractionBranchRisk ? 'aviso' : 'nota'),
     text: (ctx) =>
-      `El método seleccionó una raíz de equilibrio con λ negativo; revise el resultado o ${compareSuggestion(ctx)}.`,
+      ctx.tractionBranchRisk
+        ? tractionBranchRiskText(ctx)
+        : `El método seleccionó una raíz de equilibrio con λ negativo; revise el resultado o ${compareSuggestion(ctx)}.`,
   },
   multiple_admissible_roots: {
     severity: 'nota',
@@ -262,7 +321,8 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   hoek_brown_not_converged: {
     severity: 'aviso',
-    text: 'El cálculo con Hoek-Brown no convergió: la resistencia de la roca no se estabilizó con el factor de seguridad.',
+    text: (ctx) =>
+      `El cálculo con Hoek-Brown no convergió: la resistencia de la roca no se estabilizó con el factor de seguridad.${hoekBrownNoFosHint(ctx)}`,
   },
   hoek_brown_low_confinement: {
     severity: 'nota',
@@ -275,6 +335,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   non_circular_large_change: {
     severity: 'nota',
     text: 'La superficie no circular bajó el factor de seguridad más de un 15 % respecto del mejor círculo; revise la geometría de la superficie crítica.',
+  },
+  non_circular_not_refined: {
+    severity: 'nota',
+    text: 'La búsqueda no circular no encontró ninguna polilínea admisible: el resultado es el círculo de la búsqueda circular.',
   },
   mock_engine: {
     severity: 'aviso',
@@ -320,6 +384,7 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   hoek_brown_low_confinement: '/materials',
   shansep_nonpositive_stress: '/materials',
   non_circular_large_change: '/analysis/search',
+  non_circular_not_refined: '/analysis/search',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */
@@ -333,7 +398,11 @@ export function describeWarning(code: string, ctx: WarningContext = {}): Warning
   if (!entry) {
     return { code, severity: 'aviso', text: code };
   }
-  return { code, severity: entry.severity, text: typeof entry.text === 'function' ? entry.text(ctx) : entry.text };
+  return {
+    code,
+    severity: typeof entry.severity === 'function' ? entry.severity(ctx) : entry.severity,
+    text: typeof entry.text === 'function' ? entry.text(ctx) : entry.text,
+  };
 }
 
 /** Avisos sin repetir, en orden de aparición, con su descripción. */
@@ -342,6 +411,6 @@ export function describeWarnings(codes: readonly string[], ctx: WarningContext =
 }
 
 /** Avisos de un resultado, con el contexto de su método y su superficie. */
-export function describeResultWarnings(r: Pick<MethodReport, 'method' | 'surface' | 'warnings' | 'tension_crack'>): WarningInfo[] {
+export function describeResultWarnings(r: Pick<MethodReport, 'method' | 'surface' | 'warnings' | 'tension_crack'> & Partial<Pick<MethodReport, 'search' | 'strength'>>): WarningInfo[] {
   return describeWarnings(r.warnings, warningContext(r));
 }

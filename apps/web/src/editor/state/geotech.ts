@@ -28,6 +28,23 @@ function num(n: number): string {
   return String(Number(n.toPrecision(6))).replace('.', ',');
 }
 
+/** Intervalo habitual de σci (X25 §5.2), en kPa; el aviso `editor.hoek_brown_ucs` lo cita en la unidad activa (R15B-05). */
+const UCS_MIN_KPA = 1000;
+const UCS_MAX_KPA = 300000;
+
+/** Entero con espacios como separador de miles («6 265 630»). */
+function spaced(n: number): string {
+  const r = Math.round(n);
+  return r < 10000 ? String(r) : String(r).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+/** «1000 a 300 000 kPa (1 a 300 MPa)» en SI; «20 885 a 6 265 630 psf (145 a 43 511 psi)» en imperial. */
+function ucsRangeText(imperial: boolean): string {
+  if (!imperial) return `${spaced(UCS_MIN_KPA)} a ${spaced(UCS_MAX_KPA)} kPa (${UCS_MIN_KPA / 1000} a ${UCS_MAX_KPA / 1000} MPa)`;
+  const psf = (kpa: number): number => kpa * UNIT_FACTORS.stress;
+  return `${spaced(psf(UCS_MIN_KPA))} a ${spaced(psf(UCS_MAX_KPA))} psf (${spaced(psf(UCS_MIN_KPA) / 144)} a ${spaced(psf(UCS_MAX_KPA) / 144)} psi)`;
+}
+
 function materialName(m: Material): string {
   return `«${m.id}»`;
 }
@@ -81,10 +98,13 @@ export function geotechAdvisories(doc: ModelDoc): GeotechAdvisory[] {
   for (let i = 0; i < materials.length; i += 1) {
     const m = materials[i] as Material;
     if (m.model === 'hoek_brown' && isNum(m.ucs)) {
-      const kpa = isImperialUnits(doc.units) ? m.ucs / UNIT_FACTORS.stress : m.ucs;
-      if (kpa < 1000 || kpa > 300000) out.push({
+      const imperial = isImperialUnits(doc.units);
+      const kpa = imperial ? m.ucs / UNIT_FACTORS.stress : m.ucs;
+      if (kpa < UCS_MIN_KPA || kpa > UCS_MAX_KPA) out.push({
         code: 'editor.hoek_brown_ucs',
-        text: `Material ${materialName(m)}: σci está fuera del intervalo habitual de 1000 a 300 000 kPa; revise si escribió un valor en MPa en lugar de la unidad de esfuerzo del modelo. No bloquea el cálculo.`,
+        text:
+          `Material ${materialName(m)}: σci = ${num(m.ucs)} ${imperial ? 'psf' : 'kPa'} está fuera del intervalo habitual de ${ucsRangeText(imperial)}; ` +
+          'revise si escribió un valor en MPa en lugar de la unidad de esfuerzo del modelo. No bloquea el cálculo.',
         path: `/materials/${i}/ucs`,
       });
     }

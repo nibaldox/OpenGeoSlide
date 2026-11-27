@@ -1,6 +1,6 @@
 // Avisos nuevos del bloque F3B (F6.7, E16g): severidad, texto exacto y ruta JSON en `warnings.ts`.
 import { describe, expect, it } from 'vitest';
-import { ENGINE_WARNING_CODES, describeResultWarnings, describeWarning, warningPath } from './warnings';
+import { ENGINE_WARNING_CODES, describeResultWarnings, describeWarning, hoekBrownNoFosHint, warningPath } from './warnings';
 
 describe('avisos F6.7 (Hoek-Brown, SHANSEP y búsqueda no circular)', () => {
   const EXPECTED = [
@@ -36,7 +36,7 @@ describe('avisos F6.7 (Hoek-Brown, SHANSEP y búsqueda no circular)', () => {
     expect(warningPath(code)).toBe(path);
   });
 
-  it('describeResultWarnings conserva los textos exactos tanto en círculos como en polilíneas', () => {
+  it('describeResultWarnings conserva los textos exactos tanto en círculos como en polilíneas (con la orientación de Hoek-Brown sin FS, R15B-04)', () => {
     const codes = EXPECTED.map((e) => e.code);
     const circleOut = describeResultWarnings({ method: 'bishop', surface: { xc: 10, yc: 20, r: 15 }, warnings: codes });
     const polyOut = describeResultWarnings({
@@ -44,7 +44,9 @@ describe('avisos F6.7 (Hoek-Brown, SHANSEP y búsqueda no circular)', () => {
       surface: { points: [[0, 10], [5, 4], [12, 10]] },
       warnings: codes,
     });
-    expect(circleOut).toEqual(EXPECTED.map(({ code, severity, text }) => ({ code, severity, text })));
+    // R15B-04: con un aviso `hoek_brown_*` en el resultado, el texto de «no convergió» agrega la orientación hacia poros altos o tracción.
+    const hint = hoekBrownNoFosHint({ hoekBrown: true });
+    expect(circleOut).toEqual(EXPECTED.map(({ code, severity, text }) => ({ code, severity, text: code === 'hoek_brown_not_converged' ? text + hint : text })));
     expect(polyOut).toEqual(circleOut);
   });
 });

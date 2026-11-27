@@ -140,7 +140,7 @@ describe('PDF F3B: Hoek-Brown, SHANSEP y búsqueda no circular', () => {
     }
   });
 
-  it('identidad del PDF de un modelo v0.5: los flujos de página y glifos son idénticos byte a byte con o sin campos v0.6 nulos', async () => {
+  it('ausente y null dan el mismo PDF: un modelo v0.5 con los campos v0.6 ausentes o null produce los mismos bytes (la identidad contra v0.4.0 la comprueba identity.f3b.mjs)', async () => {
     const doc = loadCaseDoc('V047a');
     doc.version = '0.5';
     doc.analysis.tension_crack = { depth: 1.8, water_fill: 1 };

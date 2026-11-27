@@ -1,6 +1,6 @@
 // F3B-W2: secciones del informe (`report/content.ts` y `report/hoekBrown.ts`) para Hoek-Brown, SHANSEP, búsqueda no circular, avisos F6.7 e identidad v0.5.
 import { describe, expect, it } from 'vitest';
-import { describeWarning } from '../engine/warnings';
+import { describeWarning, warningContext } from '../engine/warnings';
 import {
   HOEK_BROWN_REPORT_NOTE,
   buildReportContent,
@@ -169,12 +169,13 @@ describe('Informe F3B: búsqueda no circular y los cuatro avisos nuevos', () => 
     const codes = ['hoek_brown_not_converged', 'hoek_brown_low_confinement', 'shansep_nonpositive_stress', 'non_circular_large_change'] as const;
     const { input } = hoekBrownNotConvergedFixture();
     input.results[0]!.warnings = [...codes];
+    const ctx = warningContext(input.results[0]!); // R15B-04: «no convergió» agrega la orientación de Hoek-Brown con su contexto
     const wBlock = sec(buildReportContent(input), 'warnings').blocks[0];
     expect(wBlock?.kind).toBe('list');
     if (wBlock?.kind === 'list') {
       expect(wBlock.items).toEqual(
         codes.map((c) => {
-          const info = describeWarning(c);
+          const info = describeWarning(c, ctx);
           return { severity: info.severity, label: 'Bishop simplificado', text: info.text };
         }),
       );
@@ -183,7 +184,7 @@ describe('Informe F3B: búsqueda no circular y los cuatro avisos nuevos', () => 
 });
 
 describe('Identidad del contenido del informe de un modelo v0.5', () => {
-  it('un modelo v0.5 con agua, grieta, refuerzo y material no drenado no agrega tablas, filas ni sufijos de v0.6', () => {
+  it('ausente y null dan el mismo PDF: el contenido de un modelo v0.5 con agua, grieta, refuerzo y material no drenado es igual con campos v0.6 ausentes o null y no agrega tablas, filas ni sufijos de v0.6', () => {
     const doc = loadCaseDoc('V047a');
     doc.version = '0.5';
     doc.materials.push({ id: 'arc', name: 'Arcilla blanda', model: 'undrained', unit_weight: 18, undrained_strength: 25 });
