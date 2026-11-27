@@ -80,9 +80,6 @@
         "seeds": 3,
         "max_vertices": 33
       }
-    },
-    "interslice": {
-      "function": "constant"
     }
   }
 }
