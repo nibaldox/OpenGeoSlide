@@ -52,13 +52,37 @@ Propuestas del coordinador. Se pueden cambiar sin costo hasta que se congele el 
   |---|---|---|
   | Exploración y prototipos, solo lectura | Haiku | `anthropic` / `claude-haiku-5-5` |
   | Código, tests y fixtures | Terra | `openai-codex` / `gpt-6.1-terra` |
+  | Código, tests y fixtures, en paralelo con Terra | Antigravity | `agy --print --mode accept-edits`, `gemini-4-carbon-high` |
   | Revisión adversarial | Antigravity | `agy --mode plan`, `gemini-4-neon-high` |
+  | Lente cruzada sobre el código que escribió Antigravity | Terra | `openai-codex` / `gpt-6.1-terra`, solo lectura |
   | Plan, contrato, arbitraje, gates e integración | coordinador | Claude Opus |
 
-  - Las tres rutas se comprobaron el 2026-11-27 con una respuesta real: Terra y `agy` respondieron «OK».
-  - Terra reemplaza a Sonnet como escritor en este bloque.
-  - Coordinador (Claude), escritores (GPT) y revisor (Gemini) quedan en tres familias distintas, así que la revisión
-    sigue siendo independiente.
+  - Las rutas se comprobaron el 2026-11-27 con una respuesta real. Terra y `agy` respondieron «OK». Como escritor,
+    `agy --print --mode accept-edits` creó y editó un archivo, corrió comandos y commiteó en un repositorio de
+    prueba.
+  - `--mode auto` no está disponible en esta cuenta. El sufijo del modelo ya fija el esfuerzo: `--effort` junto con
+    `gemini-4-carbon-high` da error, así que se omite.
+  - Terra reemplaza a Sonnet como escritor en este bloque. Antigravity escribe en paralelo, porque el usuario quiere
+    ver cómo se comporta como escritor.
+  - **Independencia de la revisión.** El revisor (Gemini 4 Neon) es de la misma familia que el escritor de Antigravity
+    (Gemini 4 Carbon). Por eso, en cada ronda, una lente de Terra, de solo lectura, revisa los archivos que escribió
+    Antigravity. El código de Terra lo revisa Gemini. Así cada parte queda revisada por una familia distinta de la que
+    la escribió.
+  - **Aislamiento de los escritores de Antigravity.** Cada uno trabaja en un clon local propio,
+    `~/archivos/opengeoslide-agy/<tarea>`, con `git remote set-url --push origin no_push`, de modo que ningún push
+    llegue a GitHub ni al checkout principal. El coordinador trae la rama del clon con `git fetch` y la integra como
+    cualquier otra.
+  - **Reparto propuesto** (se confirma con el mapa de dueños de X27):
+
+    | Ola | Terra | Antigravity |
+    |---|---|---|
+    | B0 | tipos, esquema 0.6, stubs y tests RED | — |
+    | B1 | M-HB, M-NC y W1 | M-SH, V y W2 |
+    | B2 | integración y gates | documentación con las cifras medidas |
+    | Correcciones | por dueño de archivo, alternando | por dueño de archivo, alternando |
+
+    Las tareas de Antigravity se miden igual que las de Terra: gates propios, diff dentro de lo asignado, iteraciones
+    y tiempo. Al cierre del bloque, el coordinador compara a los dos escritores en una tabla.
 - **D6, publicación.** Ningún push, tag ni Release sin el «sube» explícito del usuario para la v0.5.0.
 
 ## 2. Qué desbloquea
@@ -120,9 +144,9 @@ verifica con tres piezas:
 | **XP** | Prototipos contra el oráculo, sobre las dovelas del motor, con las filas de aceptación (entrada JSON y cifra del oráculo):<br>**X28**, Hoek-Brown;<br>**X29**, refinamiento no circular.<br>Corren en paralelo con B0. | 2 Haiku |
 | **Contrato** | `briefs/05_CONTRATOS_FASE3B.md` (E16). Las secciones de física quedan `[condicional X28/X29]` hasta que lleguen los prototipos. | coordinador |
 | **B0** | Tipos y esquema 0.6, regla de versión mínima, despacho de materiales con stubs (`todo!()` solo con el campo presente), stub de la búsqueda no circular y tests RED a partir de las filas de X28 y X29. Va a `f3b-integracion`, nunca a `main`. | 1 Terra |
-| **B1** | **M-HB:** `hoek_brown.rs` y la actualización de la resistencia por iteración en `methods/`.<br>**M-SH:** `shansep.rs` y σ′v en el slicer.<br>**M-NC:** el refinamiento no circular (módulo propio) y su enganche en `search.rs`.<br>**V:** el conversor, la importación a `pending/F3B`, el caso de Hammah y el bloque diferencial con Hoek-Brown.<br>**W1:** el panel de materiales (Hoek-Brown con la calculadora de mb, s y a; SHANSEP), las opciones de búsqueda, la entrada y salida, y la validación.<br>**W2:** el lienzo (la polilínea crítica y sus semillas), el informe PDF, el CSV, la Ayuda y los avisos. | 6 Terra |
-| **B2** | Integración: promoción de casos, identidad contra la v0.4.0, la documentación con las cifras medidas, el CHANGELOG consolidado por el coordinador, todos los gates y la regresión completa de Chrome. | 2 Terra |
-| **R15** | Revisión adversarial en dos lentes:<br>**A**, matemática, datos y contratos;<br>**B**, propagación de errores a la web, el PDF, el CSV y Python, más la lente de quien firma un informe de rajo con la herramienta.<br>Después, las olas de corrección y las revisiones de cierre R16 en adelante hasta el APTO. | 2 `agy` + Terra |
+| **B1** | **M-HB** (Terra): `hoek_brown.rs` y la actualización de la resistencia por iteración en `methods/`.<br>**M-SH** (Antigravity): `shansep.rs` y σ′v en el slicer.<br>**M-NC** (Terra): el refinamiento no circular (módulo propio) y su enganche en `search.rs`.<br>**V** (Antigravity): el conversor, la importación a `pending/F3B`, el caso de Hammah y el bloque diferencial con Hoek-Brown.<br>**W1** (Terra): el panel de materiales (Hoek-Brown con la calculadora de mb, s y a; SHANSEP), las opciones de búsqueda, la entrada y salida, y la validación.<br>**W2** (Antigravity): el lienzo (la polilínea crítica y sus semillas), el informe PDF, el CSV, la Ayuda y los avisos. | 3 Terra + 3 Antigravity |
+| **B2** | Integración: promoción de casos, identidad contra la v0.4.0, todos los gates y la regresión completa de Chrome (Terra). La documentación con las cifras medidas (Antigravity). El CHANGELOG lo consolida el coordinador. | 1 Terra + 1 Antigravity |
+| **R15** | Revisión adversarial en dos lentes de Antigravity:<br>**A**, matemática, datos y contratos;<br>**B**, propagación de errores a la web, el PDF, el CSV y Python, más la lente de quien firma un informe de rajo con la herramienta.<br>Más la lente cruzada de Terra sobre los archivos que escribió Antigravity. Después, las olas de corrección y las revisiones de cierre R16 en adelante hasta el APTO. | 2 `agy` + 1 Terra, y escritores de los dos |
 | **v0.5.0** | Commit de versión con todos los gates en verde. **Se espera el «sube»** antes de cualquier push. | 1 Terra + coordinador |
 
 Reglas de las olas (las de `delegated-codebase-orchestration` y `slope-stability-lem-engine`):
@@ -135,6 +159,15 @@ Reglas de las olas (las de `delegated-codebase-orchestration` y `slope-stability
 - un escritor que no logra un criterio se detiene y lo informa con cifras; no ajusta tolerancias ni cambia casos;
 - todo hallazgo CRITICAL o HIGH del revisor lo reproduce el coordinador con el binario y lo arbitra contra el oráculo
   antes de escribir la enmienda.
+- **Escritores de Antigravity:**
+  - el brief va en `briefs/F3B_<ola>_<tarea>.md`, commiteado antes de crear el clon;
+  - se lanzan en segundo plano desde su clon con
+    `agy --print "$(cat <brief>)" --mode accept-edits --model gemini-4-carbon-high --print-timeout 90m`, con un
+    `timeout` exterior algo mayor, y stdout y stderr en `$TMPDIR/agy-f3b/<tarea>/`;
+  - commitean en su rama local con la identidad noreply del repositorio y terminan con un informe: commits, archivos,
+    gates con su salida y líneas propuestas para el CHANGELOG;
+  - antes de integrar, el coordinador revisa stderr, el diff contra los archivos asignados y los gates, igual que con
+    Terra.
 
 ## 5. Gates
 
