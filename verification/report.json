@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-26T19:38:47-03:00",
+  "generated_at": "2026-11-26T21:31:58-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -2490,7 +2490,7 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.4374253245265294,
+        "fos": 1.4374244044000206,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
@@ -2499,7 +2499,7 @@
           "truncated_mass",
           "negative_effective_normal"
         ],
-        "err_pct": 0.5192534633936673,
+        "err_pct": 0.519189118882565,
         "verdict": "OK"
       },
       "cslope": {
@@ -2586,7 +2586,7 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.331715175847053,
+        "fos": 1.3317149708699219,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
@@ -2595,7 +2595,7 @@
           "truncated_mass",
           "negative_effective_normal"
         ],
-        "err_pct": 0.12896059000397217,
+        "err_pct": 0.1289451781896078,
         "verdict": "OK"
       },
       "cslope": {
@@ -2682,7 +2682,7 @@
         "slices": 40
       },
       "ogs": {
-        "fos": 1.2529860570936895,
+        "fos": 1.2529852931008574,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.3.0",
@@ -2691,7 +2691,7 @@
           "truncated_mass",
           "negative_effective_normal"
         ],
-        "err_pct": 0.23888456749515896,
+        "err_pct": 0.23882344806859024,
         "verdict": "OK"
       },
       "cslope": {
