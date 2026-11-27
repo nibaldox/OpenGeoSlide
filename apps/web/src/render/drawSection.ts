@@ -5,7 +5,7 @@ import { fitViewport, worldToScreen, type Viewport } from '../geometry/viewport'
 import { lengthUnitOf } from '../editor/canvas/layout';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
 import { forceShapes, placeReinforcementLabels, reinforcementShapes, type ShapePart } from '../editor/canvas/reinforcements';
-import { crackShape } from './crack';
+import { crackShape, noCrackLabel } from './crack';
 import { materialSlot, type Scene } from './scene';
 
 const MARGIN_PX = 56;
@@ -273,6 +273,25 @@ function drawCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, pa
   ctx.lineJoin = 'miter';
 }
 
+/**
+ * E15m-12 (R13B-06): rótulo «Sin grieta (z = 0)» cuando el motor informa la grieta con profundidad 0: sin línea, sin hueco de agua ni flecha, como el
+ * lienzo del editor (`noCrackLabel`, mismo texto, posición y color de la superficie).
+ */
+function drawNoCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette): void {
+  if (!scene.noCrack || !scene.surface) return;
+  const label = noCrackLabel(scene.noCrack, scene.surface.slices, vp);
+  if (!label) return;
+  ctx.font = AXIS_FONT;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = label.anchor === 'start' ? 'left' : 'right';
+  ctx.setLineDash([]);
+  ctx.lineWidth = HALO_TEXT_PX;
+  ctx.strokeStyle = palette.halo;
+  ctx.strokeText(label.text, label.x, label.y);
+  ctx.fillStyle = palette.surface;
+  ctx.fillText(label.text, label.x, label.y);
+}
+
 /** Dibuja la escena completa. `cssWidth`/`cssHeight` están en px CSS; el lienzo ya tiene `dpr` escalado. */
 export function drawSection(
   ctx: CanvasRenderingContext2D,
@@ -381,6 +400,7 @@ export function drawSection(
   }
 
   drawCrack(ctx, vp, scene, palette, units);
+  drawNoCrack(ctx, vp, scene, palette);
   drawReinforcements(ctx, vp, scene, palette, units);
 
   // R9-05d: el motor prolonga la piezométrica en horizontal hasta los bordes del modelo; ese tramo va punteado para que el agua no parezca terminar en el último punto.

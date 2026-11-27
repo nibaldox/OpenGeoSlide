@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { haveEngine, OGS_BIN } from '../editor/state/engineRun.testutil';
 import { buildReportInput, resultsCsv, surfaceCoordsCsv, type EngineRun } from '../editor/app/reportInput';
 import { issuesFromReport } from '../editor/app/diagnostics';
@@ -58,12 +58,21 @@ function analyze(doc: ModelDoc): { json: string; report: AnalysisReport } {
   }
 }
 
+// E15m-11 (R13B-03): `describe.skipIf` ejecuta igualmente el cuerpo del `describe` durante la recolección, así que el motor solo se llama
+// en `beforeAll`, que no corre cuando el bloque se omite (sin OGS_BIN `pnpm test` da 0 fallas).
 describe.skipIf(!haveEngine)('informe real: polilínea en V con M-P de data_points (motor real)', () => {
-  const doc = openOgsJson(JSON.stringify(MODEL)).doc as ModelDoc;
-  const { json, report } = analyze(doc);
-  const run: EngineRun = { revision: 1, doc, json, sha256: 'a'.repeat(64), report, elapsedMs: 5, checkedAt: '2026-11-26T12:00:00.000Z' };
-  const input = buildReportInput(run, new Date('2026-11-26T12:00:00.000Z'));
-  const content = buildReportContent(input);
+  let doc: ModelDoc;
+  let json: string;
+  let report: AnalysisReport;
+  let input: ReturnType<typeof buildReportInput>;
+  let content: ReturnType<typeof buildReportContent>;
+  beforeAll(() => {
+    doc = openOgsJson(JSON.stringify(MODEL)).doc as ModelDoc;
+    ({ json, report } = analyze(doc));
+    const run: EngineRun = { revision: 1, doc, json, sha256: 'a'.repeat(64), report, elapsedMs: 5, checkedAt: '2026-11-26T12:00:00.000Z' };
+    input = buildReportInput(run, new Date('2026-11-26T12:00:00.000Z'));
+    content = buildReportContent(input);
+  });
   const section = (id: string) => content.sections.find((s) => s.id === id)!;
   const tables = (id: string) => section(id).blocks.filter((b): b is Extract<ReportBlock, { kind: 'table' }> => b.kind === 'table');
 

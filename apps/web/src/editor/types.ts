@@ -45,6 +45,7 @@ export type EditorIssueCode =
   | 'editor.degenerate_region'
   | 'editor.no_surface'
   | 'editor.water_unit_weight'
+  | 'editor.water_unit_weight_default' // E15m-9: nota (no bloquea)
   // Refuerzos (v0.4, F4.2): uno por regla de validación.
   | 'editor.reinforcement_duplicate_id'
   | 'editor.reinforcement_empty_id'

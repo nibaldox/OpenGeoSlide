@@ -736,10 +736,10 @@ describe('γw según las unidades del modelo (R7-22)', () => {
     expect(DEFAULT_WATER_UNIT_WEIGHT).toBe(9.81);
   });
 
-  it('la ayuda avisa en imperial de que vacío usaría 9,81 (kN/m³)', () => {
+  it('la ayuda dice que vacío usa 62,4 pcf en imperial y 9,81 kN/m³ en SI (E15m-9)', () => {
     expect(waterUnitWeightHint('SI')).toBe('Vacío = se usa 9,81 kN/m³.');
     expect(waterUnitWeightHint('imperial')).toBe(
-      'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.',
+      'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 62,4 pcf; un valor como 9,81 es de kN/m³ y se rechaza.',
     );
   });
 

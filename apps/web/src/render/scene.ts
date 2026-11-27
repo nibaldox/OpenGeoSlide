@@ -2,7 +2,7 @@
 
 import { reportCircle } from '../engine/surface';
 import { analyzedPolyline } from '../report/methodInfo';
-import type { Circle, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
+import type { Circle, CrackReport, MethodReport, Model, Point, Reinforcement, ReinforcementForce, Slice } from '../engine/types';
 import type { Bounds } from '../geometry/viewport';
 import { piezoExtension, type PiezoExtension } from '../editor/canvas/piezoExtension';
 import { crackGeometry, type CrackGeometry } from './crack';
@@ -42,6 +42,8 @@ export interface Scene {
   pond?: Point[][];
   /** Grieta de tracción de la superficie dibujada (F5.4): `x_c`, profundidad y `Pw`; ausente sin grieta. */
   crack?: CrackGeometry;
+  /** E15m-12: el resultado trae la grieta con `depth = 0` (el motor no cortó nada, E15l-15): Casos dibuja «Sin grieta (z = 0)», como el editor. Excluyente con `crack`. */
+  noCrack?: CrackReport;
   /**
    * Superficie del informe: `circle` (círculo `{xc, yc, r}`) o `polyline` (la polilínea ajustada al terreno, F3.7); nunca las dos.
    * `converged: false` = última superficie evaluada de un método que no convergió: se dibuja discontinua (R9-12b).
@@ -120,6 +122,8 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
   const pond = pondPolygons(regions, piezo);
   // La grieta se dibuja solo con una superficie con dovelas; la fracción llena la da el modelo (`water_fill`).
   const crack = surface && method?.tension_crack ? crackGeometry(method.tension_crack, surface.slices, model.analysis?.tension_crack?.water_fill) : null;
+  // E15m-12: sin geometría (profundidad 0) pero con grieta informada, la escena lo recuerda para el rótulo.
+  const noCrack = surface && method?.tension_crack && !crack ? method.tension_crack : null;
   return {
     regions,
     materials,
@@ -127,6 +131,7 @@ export function buildScene(model: Model, method: MethodReport | null): Scene {
     piezoExtension: piezoExt,
     ...(pond.length > 0 ? { pond } : {}),
     ...(crack ? { crack } : {}),
+    ...(noCrack ? { noCrack } : {}),
     surface,
     ...(reinforcements.length > 0 ? { reinforcements, reinforcementForces } : {}),
     bounds: { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY },
