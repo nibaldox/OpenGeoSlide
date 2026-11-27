@@ -550,3 +550,284 @@ def test_e15l_2_a_crack_on_a_discontinuity_reports_the_face_it_cuts():
 def test_e15l_11_a_non_finite_ito_matsui_profile_is_an_invalid_model():
     with pytest.raises(ValueError, match=r"InvalidModel: reinforcements\[0\]\.lateral_pressure: la presión de Ito-Matsui no es finita"):
         run_repro("a02_fixed.json")
+
+
+# ------------------------------------- 7. R12 (E15l-5, -6 y -7) y R13 (E15m-1, -2, -6 y -7) a través del wheel
+
+
+def dam(depth: float = 14.0) -> dict:
+    """La presa de R12B-03: muro vertical en x = 20 (y = 2..14), embalse a y = 10 en x ≤ 20 y un círculo que sale por el muro."""
+    return {
+        "format": "opengeoslide", "version": "0.5", "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 10.0, "friction_angle": 25.0}],
+        "regions": [{"material": "s", "polygon": [[0, -depth], [0, 2], [20, 2], [20, 14], [40, 14], [40, -depth]]}],
+        "slope": {"direction": "right_to_left"},
+        "water": {"piezometric_line": [[0, 10], [40, 10]]},
+        "analysis": {"methods": ["bishop", "spencer"], "slices": 50, "tolerance": 1e-9,
+                     "surface": {"type": "circle", "xc": 19.0, "yc": 18.0, "r": 13.0}},
+    }
+
+
+def wall_a09() -> dict:
+    """R12A-09: muro en x = 10 (y = 0..10), agua a y = 8 en el lado bajo y toda la masa en el lado alto."""
+    return {
+        "format": "opengeoslide", "version": "0.5", "units": "SI",
+        "materials": [{"id": "s", "name": "s", "model": "mohr_coulomb", "unit_weight": 20.0, "cohesion": 10.0, "friction_angle": 25.0}],
+        "regions": [{"material": "s", "polygon": [[0, -5], [0, 0], [10, 0], [10, 10], [30, 10], [30, -5]]}],
+        "slope": {"direction": "right_to_left"},
+        "water": {"piezometric_line": [[0, 8], [30, 8]]},
+        "analysis": {"methods": ["bishop"], "slices": 50, "tolerance": 1e-9,
+                     "surface": {"type": "circle", "xc": 12.0, "yc": 14.0, "r": 11.0}},
+    }
+
+
+def sum_h_force(result: dict) -> float:
+    return sum(s["h_force"] for s in result["slices"])
+
+
+def test_e15l_5_a_dam_with_only_the_wall_thrust_warns_water_above_ground():
+    # R12B-03: el único término de agua es el empuje sobre el muro (la piezométrica queda bajo el terreno en cada dovela)
+    for result in opengeoslide.analyze(dam())["results"]:
+        assert abs(sum_h_force(result)) > 100.0, result["method"]
+        assert "water_above_ground" in result["warnings"], (result["method"], result["warnings"])
+
+
+def test_e15l_5_the_wall_of_a09_warns_water_above_ground():
+    (result,) = opengeoslide.analyze(wall_a09())["results"]
+    assert abs(sum_h_force(result)) > 100.0
+    assert "water_above_ground" in result["warnings"], result["warnings"]
+
+
+def test_e15l_5_without_water_or_with_the_line_under_the_ground_there_is_no_warning():
+    dry = dam()
+    del dry["water"]
+    under = dam()
+    under["water"] = {"piezometric_line": [[0, 1.0], [40, 1.0]]}
+    for model in (dry, under):
+        for result in opengeoslide.analyze(model)["results"]:
+            assert "water_above_ground" not in result["warnings"], result["warnings"]
+
+
+# E15l-6: el mismo modelo escrito en unidades imperiales, con los factores de `apps/web/src/editor/state/units.ts`
+FT_PER_M = 1 / 0.3048
+LBF_PER_KN = 1000 / 4.4482216152605
+
+
+def to_imperial(model: dict, label: str = "imperial") -> dict:
+    length, unit_weight, stress = FT_PER_M, LBF_PER_KN / FT_PER_M**3, LBF_PER_KN / FT_PER_M**2
+    out = copy.deepcopy(model)
+    out["units"] = label
+    for material in out["materials"]:
+        material["unit_weight"] *= unit_weight
+        material["cohesion"] *= stress
+    for region in out["regions"]:
+        region["polygon"] = [[x * length, y * length] for x, y in region["polygon"]]
+    surface = out["analysis"]["surface"]
+    for key in ("xc", "yc", "r"):
+        surface[key] *= length
+    crack = out["analysis"].get("tension_crack")
+    if crack and isinstance(crack["depth"], float):
+        crack["depth"] *= length
+    if "piezometric_line" in out.get("water", {}):
+        out["water"]["piezometric_line"] = [[x * length, y * length] for x, y in out["water"]["piezometric_line"]]
+    return out
+
+
+def b01_si(**analysis) -> dict:
+    """R12B-01: la grieta con agua de a01_ltr, sin bloque `water`."""
+    model = json.loads((R12_REPRO / "a01_ltr.json").read_text(encoding="utf-8"))
+    model["analysis"]["tolerance"] = 1e-12
+    model["analysis"]["max_iterations"] = 5000
+    model["analysis"]["tension_crack"] = {"depth": 2.0, "water_fill": 1.0}
+    model["analysis"].update(analysis)
+    return model
+
+
+def assert_same_fos_and_scaled_force(imperial: dict, si: dict, what: str) -> None:
+    a, b = by_method(opengeoslide.analyze(imperial)), by_method(opengeoslide.analyze(si))
+    for method in ("bishop", "spencer"):
+        assert a[method]["fos"] == pytest.approx(b[method]["fos"], rel=1e-9), (what, method)
+        pw_si, pw_imp = b[method]["tension_crack"]["water_force"], a[method]["tension_crack"]["water_force"]
+        assert pw_si > 0.0, what
+        assert pw_imp == pytest.approx(pw_si * LBF_PER_KN / FT_PER_M, rel=1e-9), (what, method)  # lbf/ft
+
+
+@pytest.mark.parametrize("label", ["imperial", "Imperial", " IMPERIAL "])
+def test_e15l_6_the_crack_water_without_a_water_block_is_unit_invariant(label):
+    si = b01_si()
+    assert "water" not in si
+    assert_same_fos_and_scaled_force(to_imperial(si, label), si, label)
+
+
+def test_e15l_6_the_piezometric_line_without_unit_weight_is_unit_invariant_and_an_explicit_value_wins():
+    si = b01_si()
+    si["water"] = {"piezometric_line": [[-70.0, 32.0], [-20.0, 24.0]]}
+    imperial = to_imperial(si)
+    assert_same_fos_and_scaled_force(imperial, si, "línea piezométrica")
+    explicit = copy.deepcopy(imperial)
+    explicit["water"]["unit_weight"] = 9.81 * LBF_PER_KN / FT_PER_M**3  # 62,4493 pcf
+    assert_same_fos_and_scaled_force(explicit, si, "γw explícito")
+    # un valor explícito manda también en imperial: con 62,4 pcf la fuerza es ½·γw·h²
+    explicit["water"]["unit_weight"] = 62.4
+    pw = by_method(opengeoslide.analyze(explicit))["bishop"]["tension_crack"]["water_force"]
+    assert pw == pytest.approx(0.5 * 62.4 * (2.0 * FT_PER_M) ** 2, rel=1e-9)
+
+
+def test_e15l_6_in_si_the_default_is_9_81_and_an_explicit_value_is_the_same_model():
+    si = b01_si()
+    explicit = copy.deepcopy(si)
+    explicit["water"] = {"unit_weight": 9.81}
+    assert dry_dumps(opengeoslide.analyze(si)) == dry_dumps(opengeoslide.analyze(explicit))
+    assert by_method(opengeoslide.analyze(si))["bishop"]["tension_crack"]["water_force"] == pytest.approx(0.5 * 9.81 * 2.0**2)
+
+
+def search_with_crack(depth: float) -> dict:
+    model = json.loads((R12_REPRO / "a01_ltr.json").read_text(encoding="utf-8"))
+    model["analysis"]["tension_crack"] = {"depth": depth, "water_fill": 1.0}
+    del model["analysis"]["surface"]
+    model["analysis"]["search"] = {"type": "circular_entry_exit"}
+    return model
+
+
+def test_e15l_7_a_search_without_surfaces_names_the_crack_with_its_count():
+    with pytest.raises(ValueError) as exc:
+        opengeoslide.analyze(search_with_crack(40.0))
+    message = str(exc.value)
+    prefix = "NoValidSurface: la búsqueda con bishop no encontró ninguna superficie convergida ("
+    assert message.startswith(prefix), message
+    match = re.fullmatch(r"(\d+) evaluadas, 0 válidas; (\d+) no alcanzan la grieta de tracción, tension_crack_not_reached\)", message[len(prefix):])
+    assert match, message
+    evaluated, discarded = int(match[1]), int(match[2])
+    assert 0 < discarded <= evaluated, message
+
+
+def test_e15l_7_without_candidates_discarded_by_the_crack_the_message_is_the_usual_one():
+    model = search_with_crack(40.0)
+    del model["analysis"]["tension_crack"]
+    model["analysis"]["search"] = {"type": "circular_entry_exit", "min_width": 1000.0, "n_entry": 4, "n_exit": 4, "n_radius": 4}
+    with pytest.raises(ValueError) as exc:
+        opengeoslide.analyze(model)
+    message = str(exc.value)
+    assert message.startswith("NoValidSurface: la búsqueda con bishop no encontró ninguna superficie convergida (")
+    assert message.endswith(" válidas)") and "grieta" not in message and "tension_crack" not in message, message
+
+
+# E15m-1: con `depth` numérica la profundidad es siempre la del usuario (enmienda de E15l-2)
+
+
+@pending_m("E15m-1")
+def test_e15m_1_a_fixed_crack_on_a_ground_step_keeps_the_depth_of_the_user():
+    # a03_escalon_fija.json: grieta fija de 2 m en x = 5, sobre un escalón del terreno
+    report = by_method(opengeoslide.analyze(json.loads((R13_REPRO / "a03_escalon_fija.json").read_text(encoding="utf-8"))))
+    for method in ("bishop", "spencer"):
+        crack = report[method]["tension_crack"]
+        assert crack["depth"] == 2.0, (method, crack)
+        assert crack["water_force"] == pytest.approx(0.5 * 9.81 * 2.0**2, rel=1e-9), (method, crack)  # Pw = 19,62
+    assert report["bishop"]["fos"] == pytest.approx(1.882066, abs=5.01e-7)  # E15m-1; el contrato fija 6 decimales
+
+
+def test_e15m_1_the_udl_example_does_not_change():
+    # a04_udl.json (E15l-2, `depth: "auto"` sobre una UDL): las cifras de R13 no se mueven con E15m-1
+    report = by_method(opengeoslide.analyze(json.loads((R12_REPRO / "a04_udl.json").read_text(encoding="utf-8"))))
+    assert report["bishop"]["fos"] == pytest.approx(1.095348, abs=5.01e-7)
+    assert report["spencer"]["fos"] == pytest.approx(1.093936, abs=5.01e-7)
+    for method in ("bishop", "spencer"):
+        crack = report[method]["tension_crack"]
+        assert crack["depth"] == pytest.approx(1.7827, abs=5.01e-5) and crack["water_force"] == pytest.approx(15.5885, abs=5.01e-5)
+
+
+# E15m-2: un vértice a 1e-12 del paramento no hace perder el empuje
+
+
+def paramento(dx: float) -> dict:
+    model = json.loads((R13_REPRO / "a02_paramento_dx0.json").read_text(encoding="utf-8"))
+    model["analysis"]["surface"]["points"][0][0] = 20.0 + dx
+    return model
+
+
+@pending_m("E15m-2")
+@pytest.mark.parametrize("dx", [1e-12, 1e-9])
+def test_e15m_2_a_vertex_next_to_the_wall_gives_the_same_fos_and_thrust(dx):
+    base, moved = by_method(opengeoslide.analyze(paramento(0.0))), by_method(opengeoslide.analyze(paramento(dx)))
+    for method in ("spencer", "janbu_simplified"):
+        assert abs(sum_h_force(base[method])) > 100.0, method  # el empuje del paramento actúa
+        assert moved[method]["fos"] == pytest.approx(base[method]["fos"], rel=1e-6), (method, dx)
+        assert sum_h_force(moved[method]) == pytest.approx(sum_h_force(base[method]), rel=1e-6), (method, dx)
+
+
+# E15m-6: aviso informativo `water_unit_weight_default` (γw por defecto en imperial) y excepción de identidad declarada
+
+
+def with_ponded_water(model: dict, **water) -> dict:
+    out = copy.deepcopy(model)
+    out["water"] = {"piezometric_line": [[-70.0, 32.0], [-20.0, 24.0]], **water}
+    return out
+
+
+def imperial_water_models() -> dict:
+    """Los usos del agua sin `water.unit_weight`: piezométrica, agua embalsada y agua en la grieta (R13B-01)."""
+    crack = b01_si()
+    ponded, under = with_pond(v05_model([]), 27.0), with_pond(v05_model([]), 22.0)
+    del ponded["water"]["unit_weight"], under["water"]["unit_weight"]
+    return {
+        "grieta con agua": to_imperial(crack),
+        "piezométrica": to_imperial(with_ponded_water(crack)),
+        "agua embalsada": to_imperial(ponded),
+        "piezométrica bajo el terreno": to_imperial(under),  # el caso de R13B-01: sin agua sobre el terreno ni grieta
+    }
+
+
+WATER_USES = list(imperial_water_models())
+
+
+@pending_m("E15m-6")
+@pytest.mark.parametrize("use", WATER_USES)
+def test_e15m_6_imperial_water_without_unit_weight_warns_once_per_analysis(use):
+    for result in opengeoslide.analyze(imperial_water_models()[use])["results"]:
+        assert result["warnings"].count("water_unit_weight_default") == 1, (use, result["method"], result["warnings"])
+
+
+@pytest.mark.parametrize("use", WATER_USES)
+def test_e15m_6_an_explicit_unit_weight_in_imperial_gives_no_warning(use):
+    model = imperial_water_models()[use]
+    model.setdefault("water", {})["unit_weight"] = 9.81 * LBF_PER_KN / FT_PER_M**3
+    for result in opengeoslide.analyze(model)["results"]:
+        assert "water_unit_weight_default" not in result["warnings"], (use, result["warnings"])
+
+
+def test_e15m_6_a_model_without_water_gives_no_warning_in_imperial():
+    model = to_imperial(b01_si())
+    del model["analysis"]["tension_crack"]
+    assert "water" not in model
+    for result in opengeoslide.analyze(model)["results"]:
+        assert "water_unit_weight_default" not in result["warnings"]
+
+
+def test_e15m_6_in_si_there_is_no_warning_and_the_report_is_the_same_as_with_the_explicit_value():
+    # E15m-6: en SI el valor no cambia y la salida es la de siempre, byte a byte
+    for si in (b01_si(), with_ponded_water(b01_si())):
+        explicit = copy.deepcopy(si)
+        explicit.setdefault("water", {})["unit_weight"] = 9.81
+        report = opengeoslide.analyze(si)
+        for result in report["results"]:
+            assert "water_unit_weight_default" not in result["warnings"]
+        assert dry_dumps(report) == dry_dumps(opengeoslide.analyze(explicit))
+
+
+# E15m-7: un brazo o una fuerza no finitos de Ito-Matsui son un error, nunca `null` ni `no_capacity`
+
+
+@pending_m("E15m-7")
+def test_e15m_7_a_pile_arm_that_overflows_is_an_error_or_a_finite_report():
+    model = json.loads((R13_REPRO / "a01_arm_null.json").read_text(encoding="utf-8"))
+    try:
+        report = opengeoslide.analyze(model)
+    except ValueError as error:
+        assert "InvalidModel: reinforcements[0].lateral_pressure" in str(error), str(error)
+        return
+    assert_finite(report)
+    for result in report["results"]:
+        for force in result["reinforcement_forces"]:
+            assert force["arm"] is not None and force["arm"] > 0.0, (result["method"], force)
+            assert force["status"] != "no_capacity", (result["method"], force)
+            assert force["governs"] in {"soil", "shear", "bending"}, (result["method"], force)
