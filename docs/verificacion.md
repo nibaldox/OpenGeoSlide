@@ -9,18 +9,23 @@ un recuento propio de una tabla de esos informes, se dice.
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (151 casos, 327 checks) | **327/327** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados (151 casos, 327 checks, el corpus anterior a F3B) | **327/327** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados de F3B (v0.6), promovidos de `verification/pending/F3B/` (22 checks) | **<!-- B2a: N -->/<!-- B2a: N -->**; V002 retenido (E16u), V105a retenido; véase [abajo](#casos-promovidos-de-verificationpendingf3b) | ídem |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
 | cSlope 0.1.0, Fase 3a (D01-D23: M-P, Janbu, no drenado, polilínea) | **71/71** (D03 con M-P cuenta como concordancia: ningún motor encuentra solución) tras E13l-2 y E13l-5; véase [abajo](#batería-diferencial-frente-a-cslope) | ídem |
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-agua-embalsada-y-pilotes-de-ito-matsui-v05-d28-a-d42)) | ídem |
+| cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B-HB-01 a F3B-NC-V034a) | **40/42** (2 explicados por E16t y §4.2, ninguna falla; véase [abajo](#batería-diferencial-f3b)) | ídem |
 | cSlope 0.1.0 como segundo oráculo de los 327 checks | **326/327** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Web y `ogs` (ida y vuelta, 389 modelos) | **389/389** | `verification/tools/test_web_roundtrip.py` |
+| Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (18 modelos v0.6, aparte) | `verification/tools/identity_vs_baseline.py` |
+| Web y `ogs` (ida y vuelta; 389 modelos antes de F3B) | **389/389**; el test calcula el número a partir del índice de casos, y los casos promovidos de F3B lo suben | `verification/tools/test_web_roundtrip.py` |
+| Pruebas automáticas (medidas con `df2dfd7`) | `ogs-core` **759** pasan y 2 ignoradas, igual con la característica `parallel`; `pytest` **1539** pasan y 1 omitida; web **3864** pasan con el motor real | ídem |
 
 ## Aceptación: casos publicados
 
-- **327 de 327 checks** publicados cumplen su tolerancia, en **151 casos** (`verification/cases/`). El informe
+- **327 de 327 checks** publicados cumplen su tolerancia, en **151 casos** (`verification/cases/`), el corpus anterior a F3B; los
+  casos promovidos de la v0.6 suman <!-- B2a: N --> checks más ([abajo](#casos-promovidos-de-verificationpendingf3b)). El informe
   [`verification/REPORT.md`](../verification/REPORT.md) da ogs 327 OK, 0 fallas, 0 sin dato, 0 no convergidos.
   Test: `cargo test -p ogs-core --test acceptance`. Todo aviso que no sea informativo hace fallar un check (E5).
 - **Por versión del formato** (de [`verification/cases/INDEX.md`](../verification/cases/INDEX.md)):
@@ -273,6 +278,199 @@ cargo build --release -p ogs-cli
 env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py target/release/ogs
 ```
 
+## Hoek-Brown, SHANSEP y búsqueda no circular (v0.6)
+
+El bloque F3B (formato v0.6, que saldrá con la 0.5.0) se verifica por módulo contra un prototipo independiente en Python y
+contra cSlope 0.1.0, con las mismas reglas de siempre: **no se relajó ninguna tolerancia** y un check que el motor no
+reproduce queda retenido con su causa. Cifras medidas con el binario de release de la rama de integración (`df2dfd7`) y
+con el de esta rama.
+
+| Módulo | Filas de aceptación | Diferencia medida | Prueba |
+|---|---|---|---|
+| **M-HB**, Hoek-Brown (F6.8), producto contra el prototipo de la envolvente completa | 20 (4 modelos × 5 métodos), círculo fijo | **≤ 0,001 %** | `f3b_hoek_brown.rs` |
+| **M-HB**, lazo con la regla de compatibilidad de cSlope (solo en tests) contra el oráculo | 33 con gate, de 35 | **de 0,0018 % a 0,0716 %** | `strength_loop::tests::compatibility_against_oracle` |
+| **M-SH**, SHANSEP (F6.9) contra cSlope | 13 escenarios × 5 métodos, círculo fijo | **≤ 0,0224 %** | `f3b_shansep.rs` |
+| **M-NC**, búsqueda no circular (F6.10) contra cSlope | 10 búsquedas + 10 evaluadores | de +0,010 % a +0,398 % (V002: −5,976 %, E16u); evaluador ≤ 0,0616 % | `f3b_noncircular.rs` |
+
+Las pruebas de F3B de `ogs-core` pasan: `f3b_format` 12, `f3b_hoek_brown` 5, `f3b_shansep` 14 y `f3b_noncircular` 3
+(`cargo test -p ogs-core --release --test f3b_format --test f3b_hoek_brown --test f3b_shansep --test f3b_noncircular`), y las
+63 de la biblioteca (1 ignorada).
+
+### Hoek-Brown (M-HB)
+
+- **Producto contra el prototipo.** Los modelos X25 (0 a 1 dovelas en bajo confinamiento), HAM1 (3 a 4), SA (2 a 4) y SB (10 a
+  12), con Bishop, Spencer, Morgenstern-Price y los dos Janbu, a **0,001 % o menos** del prototipo de la envolvente completa
+  de X28 (`X28_proto/hb.py`, regla `cut`, convergencia total de 1e-8), una implementación independiente en Python.
+- **Lazo contra el oráculo.** Con la regla de bajo confinamiento de cSlope, activable solo en las compilaciones de test
+  (`#[cfg(test)]`, E16t), el lazo reproduce a cSlope en 33 de 35 filas, a **0,0018 % a 0,0716 %**: los cuatro modelos y las
+  filas con agua y con `ru` (`X28-W-SB-LINEA16`, `X28-R-SB-RU03`, `X28-R-X25-RU03`). Las 2 filas sin gate son Spencer y
+  Morgenstern-Price en SB, que con la regla de cSlope no tienen raíz de λ.
+- **El producto frente a cSlope** (círculo fijo, los 20 valores de X28; la regla completa nunca da más resistencia):
+
+  | Modelo | Bishop | Spencer y M-P | Janbu simplificado | Janbu corregido |
+  |---|---:|---:|---:|---:|
+  | X25 | −0,005 % | −0,002 % | +0,005 % | +0,003 % |
+  | HAM1 | −0,138 % | −0,084 % | −0,260 % | −0,262 % |
+  | SA | −0,103 % | −0,054 % | −0,147 % | −0,148 % |
+  | SB | −1,112 % | −0,628 % | −2,878 % | −2,880 % |
+
+- **Identidades** (F6.11, `f3b_hoek_brown.rs` y `hoek_brown::tests`): el criterio original de Hoek y Brown (1980) con GSI 100
+  y D 0, el espejo (mismo FS), la monotonía (sube con GSI y con σci, baja con D), el equilibrio global con los (c, tan φ)
+  finales, un perfil con Mohr-Coulomb y Hoek-Brown a la vez, y el corte por tracción. La no convergencia en 50 pasadas se
+  prueba con `strength_loop::tests::pass_limit_reports_nonconvergence`.
+- **HAM1 (Hammah et al., 2005, ejemplo 1, ARMA 05-810).** Bishop **1,1502** frente a **1,153** publicado (−0,24 %) y Spencer
+  **1,1521** frente a **1,152** (+0,005 %), con una **tolerancia de 0,5 %**. La **geometría está reconstruida** (X23 §3.2: del
+  tutorial de XSLOPE, con la cimentación de 5 m y γ = 25 kN/m³ como supuestos escritos en el caso), así que no se compara con
+  la última cifra publicada y la fila es un check de fidelidad del criterio, no una prueba de la geometría. El publicado es
+  el resultado de una búsqueda de la fuente, no del círculo fijo del caso.
+- **Costo.** La búsqueda Bishop con Hoek-Brown cuesta unas 50 veces la de Mohr-Coulomb (51 veces en SA, 0,86 s, y 48 en SB;
+  E16t). En la batería F3B, con la búsqueda por defecto, F3B-HB-01 tarda 8,14 s en ogs frente a 0,53 s de la búsqueda de
+  cSlope.
+
+### SHANSEP (M-SH)
+
+13 escenarios × 5 métodos, en círculo fijo, a **0,0224 % o menos** de cSlope (medido; el criterio es 0,1 %). Son los de X30 sobre V047a
+(S 0,25, m 0,8):
+
+| Escenario | Filas | Diferencia máxima con cSlope |
+|---|---:|---:|
+| V047a seco con OCR 1, OCR 1,5, POP 10 kPa y OCR por cota | 4 × 5 | 0,0027 % a 0,0051 % |
+| V047a húmedo (piezométrica sobre el terreno), los mismos cuatro | 4 × 5 | 0,0190 % a 0,0224 % |
+| carga `udl` y carga `line` | 2 × 5 | 0,0060 % y 0,0035 % |
+| sismo `kh` 0,1 y `kv` 0,1 | 2 × 5 | 0,0036 % y 0,0032 % |
+| círculo muy ancho y poco profundo (r ≈ 257 m, OCR 1) | 1 × 5 | 0,0008 % |
+
+- **Identidades** (`f3b_shansep.rs`): con OCR 1, Su = ratio·σ′v; las cargas entran en σ′v; **el sismo no cambia Su**; POP 0 es
+  igual a OCR 1; con exponente 0, el OCR no importa; el espejo; el FS sube con `ratio` y con el OCR; una capa de Mohr-Coulomb y
+  una de SHANSEP; la nota `shansep_nonpositive_stress` una vez por método y solo con σ′v ≤ 0; y el equilibrio global con las
+  resistencias finales.
+- **V105a retenido.** Sin `aboveWater` (fuera del formato v0.6), el motor da Bishop 1,2524 frente a 1,285 publicado (−2,54 %),
+  fuera de la tolerancia del caso; cSlope con `aboveWater` da 1,2851. Está en `verification/pending/F3B/HOLD.json`.
+
+### Búsqueda no circular (M-NC)
+
+Las 10 búsquedas de X29 (Morgenstern-Price de f constante, que es igual a Spencer) y los 10 evaluadores (la polilínea
+final de cSlope como superficie fija en el motor), con las cifras del motor de esta rama. Las diferencias con cSlope son de un solo lado
+(A2: `FS_ogs ≤ 1,01·FS_cSlope`; un FS menor se acepta porque es una búsqueda de mínimo); el publicado se compara con su
+tolerancia **relativa** (A3, E16u):
+
+| Caso | ogs | círculo (semilla) | cSlope | Δ cSlope | publicado | Δ publicado | tolerancia | evaluador Δ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| V001 | 1,3839 | 1,4021 | 1,3837 | +0,011 % | 1,386 | −0,15 % | 2,04 % | −0,0012 % |
+| V002 | 0,3864 | 0,4020 | 0,4110 | −5,976 % | 0,414 | −6,66 % | 2,12 % | +0,0043 % |
+| V026 | 1,1731 | 1,1965 | 1,1702 | +0,254 % | 1,190 | −1,42 % | 2,42 % | +0,0023 % |
+| V033 | 1,5236 | 1,5336 | 1,5221 | +0,099 % | 1,534 | −0,67 % | 2,03 % | +0,0024 % |
+| V034a | 1,2650 | 1,2768 | 1,2600 | +0,398 % | 1,262 | +0,24 % | 2,04 % | +0,0126 % |
+| V034b | 1,1705 | 1,3286 | 1,1686 | +0,169 % | 1,182 | −0,97 % | 2,04 % | +0,0616 % |
+| V036a | 0,7366 | 0,7564 | 0,7360 | +0,080 % | 0,740 | −0,46 % | 2,68 % | +0,0182 % |
+| V093 | 1,3253 | 1,3413 | 1,3224 | +0,217 % | 1,325 | +0,02 % | 2,04 % | +0,0013 % |
+| V102a | 0,9980 | 1,0010 | 0,9978 | +0,025 % | 0,999 | −0,10 % | 2,05 % | +0,0060 % |
+| V102b | 0,9966 | 1,0007 | 0,9965 | +0,010 % | 0,997 | −0,04 % | 2,05 % | −0,0031 % |
+
+- **A1:** el FS reportado nunca supera el del círculo de la búsqueda circular (la columna «círculo»), por construcción: el
+  resultado es el mínimo entre ese círculo y la polilínea.
+- **A2:** de **+0,010 % a +0,398 %** frente a cSlope en 9 filas, dentro de 1 %; V002 queda 5,976 % por debajo (abajo).
+- **A3:** el publicado, dentro de su tolerancia, en 9 filas. **V002** queda a −6,66 % frente a una tolerancia de 2,12 %.
+- **V002 y E16u.** El motor da 0,3864 con las notas `negative_lambda` y `negative_effective_normal_major`. Su círculo (0,4020,
+  λ = −0,499) ya cae bajo la banda [0,40522; 0,42278]. En las **mismas** superficies, cSlope da 0,4322 (el círculo del
+  motor) y **0,4152 (la polilínea del motor)**: la polilínea del motor, evaluada por cSlope, cae dentro de la banda publicada y
+  a +1,03 % de la óptima de cSlope (0,4110). La diferencia de 7 % es la selección de raíz E12e, la limitación conocida de
+  R5-05, no el algoritmo no circular; se mantiene E12e por conservadora. En V002 el criterio A3 es de un solo lado
+  (`FS ≤ publicado·(1 + tol)`) y el test exige la nota `negative_effective_normal_major`. El caso queda retenido.
+- **Evaluador:** las 10 filas, a **0,0616 % o menos** (el criterio es 0,1 %).
+- **A4, A6:** los vértices no superan `max_vertices` (33) y el resultado es el mismo en dos corridas y con o sin `parallel`
+  (`deterministic_and_janbu`).
+- **Costo.** Las evaluaciones de la etapa no circular son 4500 (3 semillas × 1500) en nueve de las diez filas y 3614 en V002.
+  M-NC midió **de 2,4 a 2,9 veces** el costo de la búsqueda circular; en esta máquina, V001, V034a y V036a dan 2,37, 2,63
+  y 3,27 veces (mejor de 7 corridas de `ogs analyze`, sin y con `non_circular`). La meta de A7 (≤ 4 veces) no es un gate.
+
+### Batería diferencial F3B
+
+Doce modelos v0.6 en `verification/differential/cases_f3b/`, con **42 checks**: búsqueda (Bishop y Spencer; solo Spencer en
+los dos no circulares) y círculo fijo en los diez que lo tienen. Resultado con el motor integrado:
+**40 OK, 2 explicados, 0 fallas, 0 sin dato** (22 de búsqueda y 20 de superficie fija). Seis de los 40 OK son «OK (F6.8:
+envolvente completa)»: cSlope difiere más de 0,5 % por su regla de bajo confinamiento y ogs coincide con el prototipo de la
+envolvente completa a ≤ 0,001 %.
+
+| Modelo | Qué es | Checks | OK | Explicados | Búsqueda: Δ con cSlope | Fija: Δ con cSlope |
+|---|---|---:|---:|---:|---|---|
+| F3B-HB-01 | SA, σci 12000, GSI 25, mi 8, D 0,7, seco | 4 | 4 | 0 | −0,001 % a +0,001 % | −0,103 % a −0,054 % |
+| F3B-HB-02 | SB, σci 15000, GSI 40, mi 10, D 0,5, con piezométrica | 4 | 3 | 1 | −0,405 % a −0,148 % | −1,111 % a −0,627 % |
+| F3B-HB-03 | SA, σci 8000, GSI 20, mi 6, D 1, seco | 4 | 4 | 0 | −0,002 % a +0,015 % | −0,020 % a −0,013 % |
+| F3B-HB-04 | SA, σci 20000, GSI 35, mi 10, D 0, con agua | 4 | 4 | 0 | −0,238 % a −0,207 % | −2,569 % a −1,806 % |
+| F3B-HB-05 | SA, σci 18000, GSI 30, mi 9, D 0,3, seco | 4 | 4 | 0 | −0,040 % a −0,033 % | −0,745 % a −0,395 % |
+| F3B-HB-06 | SB, σci 10000, GSI 30, mi 8, D 0,8, con agua | 4 | 3 | 1 | −2,011 % a +1,785 % | −0,275 % a −0,195 % |
+| F3B-HB-07 | SB, σci 18000, GSI 38, mi 10, D 0, seco | 4 | 4 | 0 | −0,464 % a −0,330 % | −0,459 % a −0,317 % |
+| F3B-HB-08 | SB, σci 25000, GSI 45, mi 10, D 1, con agua | 4 | 4 | 0 | −1,086 % a −0,713 % | −0,775 % a −0,585 % |
+| F3B-SH-OCR1 | V047a, SHANSEP S 0,25, m 0,8, OCR 1 | 4 | 4 | 0 | −0,004 % a −0,003 % | −0,003 % |
+| F3B-SH-POP | V047a, SHANSEP S 0,25, m 0,8, POP 10 kPa | 4 | 4 | 0 | +0,001 % | +0,001 % |
+| F3B-NC-V001 | V001, no circular | 1 | 1 | 0 | +0,011 % | — |
+| F3B-NC-V034a | V034a, no circular | 1 | 1 | 0 | +0,004 % | — |
+
+- **Los 2 explicados**, que no cuentan como OK ni como falla y **no relajan la tolerancia**:
+  - **F3B-HB-02, Spencer, círculo fijo (E16t):** con la regla de cSlope no hay raíz de λ (`not_converged`, minFOS 2,1079 que
+    no es una raíz), así que cSlope no es referencia. El motor da 2,094659 y el prototipo de la envolvente completa, 2,094657
+    (+0,000 %, sin gate).
+  - **F3B-HB-06, Bishop, búsqueda (§4.2: m_α):** ogs 0,5373 frente a cSlope 0,5279 (+1,78 %, sobre `1,01·cSlope`). El círculo
+    crítico de cSlope (centro −9,277; 10,717; r 14,175) entra a 87° por el banco de 70°; ogs lo declara inválido por
+    `m_alpha` (`min_m_alpha` 0,2) y cSlope lo acepta con `steep-entry-tension`. El veredicto se calcula solo, cuando se dan
+    las dos señales; cualquier otra búsqueda por encima de `1,01·cSlope` cuenta como falla.
+- **El bloque no corre por defecto**: se activa con `--include-f3b` (o `OGS_DIFFERENTIAL_F3B=1`), y `--require-f3b` sale con
+  código 6 si algún check no pasa. Los criterios están en
+  [`verification/differential/README.md`](../verification/differential/README.md).
+- **Sin F3B** (la batería anterior, sobre el mismo binario): D01-D14, 28/28 en búsqueda y 28/28 en superficie fija; la Fase 3a,
+  71/71; v0.4, 12/12 y v0.5, 58 OK y 2 explicados de 60.
+
+### Identidad con la 0.4.0
+
+Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0 con la versión del motor normalizada
+(`verification/tools/identity_vs_baseline.py --normalize-version --include-reinforced` contra el binario de la 0.4.0):
+**0 diferencias en 180 modelos** sin agua sobre el terreno, **sin agregar ninguna entrada** a
+`verification/tools/identity_exceptions.json` (el archivo no cambia desde la 0.4.0). Con `--include-reinforced` y
+`--include-v05` se comparan también los modelos con refuerzos, grieta y Ito-Matsui (0 saltados); lo único que se salta son
+**18 modelos con campos v0.6**, porque el binario base no lee esa versión. Los 23 modelos con agua sobre el terreno se
+comparan aparte (idénticos). La identidad del informe y del CSV de la web: **el CSV y el PDF de dos modelos v0.5 son idénticos byte a byte** frente al
+código base `34d4ba0`, con el reloj y el azar fijos (`apps/web/src/report/identity.f3b.mjs`).
+
+### Casos promovidos de `verification/pending/F3B/`
+
+`verification/pending/F3B/` trae **18 casos con 22 checks** de la búsqueda no circular (los 16 casos de X23 más V036a) y HAM1
+(F6.12). Contra el motor integrado, **21 de los 22 checks** quedan dentro de su tolerancia (la sonda del coordinador, con el
+binario de `df2dfd7`; `pending_f3b_probe.txt`) y el de V002 queda fuera.
+
+- **Promovidos:** <!-- B2a: N --> checks, a `verification/cases/` (versión v0.6). Se promueve solo lo que cumple la aceptación,
+  que rechaza todo aviso no informativo (E5).
+- **Retenidos, en `HOLD.json`, con su causa:**
+  - **V002** (Spencer, 0,3864 frente a 0,414): la selección de raíz E12e en una rama con tracción, con las notas
+    `negative_lambda` y `negative_effective_normal_major` (E16u, arriba). No se relaja la tolerancia.
+  - **V105a** (Bishop): `aboveWater`, fuera de v0.6.
+
+### Reproducir F3B
+
+```sh
+export TMPDIR="$(mktemp -d)"; export CARGO_TARGET_DIR="$TMPDIR/target"
+cargo build --release -p ogs-cli
+
+# Pruebas de F3B del motor
+cargo test -p ogs-core --release --test f3b_format --test f3b_hoek_brown --test f3b_shansep --test f3b_noncircular
+cargo test -p ogs-core --release --lib
+
+# Batería diferencial con el bloque F3B (42 checks)
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely python \
+  verification/differential/run.py --ogs $CARGO_TARGET_DIR/release/ogs --out $TMPDIR/f3b-diff --require-f3b
+
+# Identidad con la 0.4.0 (el binario base se compila desde el tag v0.4.0)
+env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py --base $BASE_V040/ogs \
+  --new $CARGO_TARGET_DIR/release/ogs --normalize-version --include-reinforced --include-v05
+
+# Identidad del informe y del CSV de la web (necesita un worktree en 34d4ba0 con sus dependencias)
+cd apps/web && BASE_WORKTREE=$BASE_WEB OGS_BIN=$CARGO_TARGET_DIR/release/ogs node src/report/identity.f3b.mjs
+
+# Ejemplos de docs/formato-ogs-json.md contra el esquema 0.6
+env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
+  python docs/tools/validar_ejemplos.py --ogs $CARGO_TARGET_DIR/release/ogs
+```
+
 ## Refuerzos (v0.4): qué se verifica y con qué
 
 - **Identidad sin refuerzos** (gate de cada ola): `verification/tools/identity_vs_baseline.py --base <binario v0.2.0>
@@ -334,7 +532,10 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
   E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan), y con el bloque de refuerzos compara
   también [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) (que acepta 0.1 a 0.4 y rechaza lo mismo que el
   motor). Con la v0.5 compara [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) (que acepta 0.1 a 0.5, agrega
-  `analysis.tension_crack`, `lateral_pressure` y `capacity`, y rechaza lo mismo que el motor). Con `test_cli_usage.py`, 489 pruebas (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
+  `analysis.tension_crack`, `lateral_pressure` y `capacity`, y rechaza lo mismo que el motor). Con la v0.6 compara [`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json) (que acepta 0.1 a 0.6, agrega los materiales
+`hoek_brown` y `shansep` y `analysis.search.non_circular`, y rechaza lo mismo que el motor salvo lo que JSON Schema no puede
+expresar, E16n: el orden de `ocr_by_elevation` y las reglas de F6.5 que relacionan dos partes del documento). Con `test_cli_usage.py`,
+590 pruebas (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
 
 ## Rendimiento (bench)
 
@@ -373,16 +574,20 @@ uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with 
 # Tests de Python del binding (wheel de crates/ogs-py, véase su README)
 $TMPDIR/ogs-py-venv/bin/python -m pytest crates/ogs-py/tests -v
 
-# Ejemplos de docs/formato-ogs-json.md
+# Ejemplos de docs/formato-ogs-json.md (contra schema/ogs-0.6.schema.json)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
+
+# Bloque F3B (batería con --require-f3b, identidad con la 0.4.0 y pruebas de F3B): véase
+# «Reproducir F3B», en la sección «Hoek-Brown, SHANSEP y búsqueda no circular (v0.6)»
 ```
 
 ## Informes
 
 - [`verification/REPORT.md`](../verification/REPORT.md): aceptación y harness frente a cSlope.
 - [`verification/differential/REPORT.md`](../verification/differential/REPORT.md): batería diferencial, incluida la
-  Fase 3a, los modelos D18 a D23 de R10 y el bloque v0.5 (D28 a D42).
-- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los 151 casos, con sus checks por método y versión.
+  Fase 3a, los modelos D18 a D23 de R10, el bloque v0.5 (D28 a D42) y el bloque F3B (F3B-HB-01 a F3B-NC-V034a).
+- [`verification/cases/INDEX.md`](../verification/cases/INDEX.md): los casos, con sus checks por método y versión (151 antes de
+  F3B, más los promovidos de la v0.6).
 - [`verification/pending/`](../verification/pending/INDEX.md): checks retenidos y problemas que el importador no
   convierte, con el motivo de cada uno.
 - [`bench/RESULTS.md`](../bench/RESULTS.md): rendimiento.
