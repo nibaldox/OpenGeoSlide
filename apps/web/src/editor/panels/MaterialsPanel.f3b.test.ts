@@ -5,8 +5,10 @@ import { describe, expect, it } from 'vitest';
 import type { Material } from '../../engine/types';
 import type { ModelDoc } from '../types';
 import { hoekBrownParameters } from '../state/hoekBrown';
+import { applyCommand } from '../state/reducer';
 import { createFakeStore } from './fakeStore';
-import { formatHoekBrownParameters, formatScientific, formatSignificant, MATERIAL_RANGES_NOTE, MaterialsPanel } from './MaterialsPanel';
+import { materialFromForm, materialToForm, materialUpsertCommand, switchMaterialModel } from './forms';
+import { formatHoekBrownParameters, formatScientific, formatSignificant, MATERIAL_RANGES_NOTE, MaterialsPanel, planModelChange } from './MaterialsPanel';
 
 const rock: Material = { id: 'rock', name: 'Roca', model: 'hoek_brown', unit_weight: 25, ucs: 30000, gsi: 25, mi: 10, disturbance: 0.7 };
 const clay: Material = {
@@ -14,9 +16,9 @@ const clay: Material = {
   shansep: { ratio: 0.25, exponent: 0.8, ocr_by_elevation: [[-12, 3], [0, 2], [10, 1]] },
 };
 
-function html(materials: Material[]): string {
+function html(materials: Material[], units = 'SI'): string {
   const doc = {
-    format: 'opengeoslide', version: '0.6', meta: {}, units: 'SI', materials,
+    format: 'opengeoslide', version: '0.6', meta: {}, units, materials,
     regions: [{ material: materials[0]!.id, polygon: [[0, 0], [0, 10], [20, 10], [40, 0]] }],
     water: null, slope: { direction: 'auto' }, analysis: { methods: ['spencer'], slices: 50, surface: { type: 'circle', xc: 20, yc: 25, r: 20 } },
   } as unknown as ModelDoc;
@@ -45,6 +47,11 @@ describe('W1-UX-1: mb, s y a con 4 cifras significativas', () => {
     expect(out).toContain(`mb = ${shown.mb}; s = ${shown.s}; a = ${shown.a}`);
     expect(out).toMatch(/s = \d,\d{3}·10⁻[⁰-⁹]+;/);
     expect(out).not.toMatch(/\d,\d{6,}/);
+  });
+
+  it('σci equivalente también va con 4 cifras (en MPa y en ksi)', () => {
+    expect(html([rock])).toContain('σci equivalente: 30 MPa');
+    expect(html([{ ...rock, ucs: 626547 }], 'imperial')).toContain('σci equivalente: 4,351 ksi');
   });
 });
 
@@ -83,5 +90,50 @@ describe('W1-UX-3: tabla de OCR por cota', () => {
     expect(table).toContain('value="-12"');
     expect(table).toContain('value="3"');
     expect(table).toContain('value="10"');
+  });
+});
+
+describe('cambio de modelo de un material existente a Hoek-Brown o SHANSEP (hallazgo de Chrome, B2a)', () => {
+  const soil: Material = { id: 'soil', name: 'Suelo', model: 'mohr_coulomb', unit_weight: 20, unit_weight_sat: null, cohesion: 3, friction_angle: 19.6, ru: null };
+  const doc = (m: Material): ModelDoc => ({
+    format: 'opengeoslide', version: '0.3', meta: {}, units: 'SI', materials: [m], regions: [{ material: m.id, polygon: [[0, 0], [0, 10], [20, 10], [40, 0]] }],
+    water: null, slope: { direction: 'auto' }, analysis: { methods: ['spencer'], slices: 50, surface: { type: 'circle', xc: 20, yc: 25, r: 20 } },
+  }) as unknown as ModelDoc;
+
+  it('el reducer rechaza el material a medias: por eso el cambio es un borrador y no un comando', () => {
+    for (const next of ['hoek_brown', 'shansep'] as const) {
+      expect(applyCommand(doc(soil), materialUpsertCommand(switchMaterialModel(soil, next, 'SI')))).toBeNull();
+      const change = planModelChange(soil, materialToForm(soil), next, 'SI');
+      expect(change.kind).toBe('draft');
+      expect(change.kind === 'draft' && change.form.model).toBe(next);
+    }
+  });
+
+  it('el borrador de Hoek-Brown se escribe en el modelo cuando está completo', () => {
+    const change = planModelChange(soil, materialToForm(soil), 'hoek_brown', 'SI');
+    if (change.kind !== 'draft') throw new Error('se esperaba un borrador');
+    const incomplete = materialFromForm(change.form, { otherIds: [], editing: soil });
+    expect(incomplete.ok).toBe(false);
+    const complete = materialFromForm({ ...change.form, ucs: '30000', gsi: '50', mi: '10', disturbance: '0,7' }, { otherIds: [], editing: soil });
+    expect(complete.ok).toBe(true);
+    if (!complete.ok) return;
+    expect(complete.value).toMatchObject({ id: 'soil', model: 'hoek_brown', ucs: 30000, gsi: 50, mi: 10, disturbance: 0.7 });
+    expect(applyCommand(doc(soil), materialUpsertCommand(complete.value))?.materials[0]?.model).toBe('hoek_brown');
+  });
+
+  it('el borrador de SHANSEP se escribe en el modelo cuando tiene S y una fuente de OCR', () => {
+    const change = planModelChange(soil, materialToForm(soil), 'shansep', 'SI');
+    if (change.kind !== 'draft') throw new Error('se esperaba un borrador');
+    expect(materialFromForm(change.form, { otherIds: [], editing: soil }).ok).toBe(false);
+    const complete = materialFromForm({ ...change.form, ratio: '0,25', ocrSource: 'pop', pop: '40' }, { otherIds: [], editing: soil });
+    expect(complete.ok).toBe(true);
+    if (complete.ok) expect(applyCommand(doc(soil), materialUpsertCommand(complete.value))?.materials[0]?.shansep).toMatchObject({ ratio: 0.25, pop: 40 });
+  });
+
+  it('Mohr-Coulomb y no drenado siguen siendo un comando, y volver al modelo guardado descarta el borrador', () => {
+    const toUndrained = planModelChange(soil, materialToForm(soil), 'undrained', 'SI');
+    expect(toUndrained.kind).toBe('command');
+    if (toUndrained.kind === 'command') expect(applyCommand(doc(soil), materialUpsertCommand(toUndrained.material))?.materials[0]?.model).toBe('undrained');
+    expect(planModelChange(soil, { ...materialToForm(soil), model: 'hoek_brown' }, 'mohr_coulomb', 'SI').kind).toBe('reset');
   });
 });

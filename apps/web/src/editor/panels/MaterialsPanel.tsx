@@ -114,12 +114,12 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form:
     const ucs = Number((form.ucs ?? '').replace(',', '.'));
     const equivalent = units.stress === 'psf' ? ucs / 144000 : ucs / 1000;
     const shown = p ? formatHoekBrownParameters(p) : null;
-    return <div><p>σci equivalente: {form.ucs && Number.isFinite(ucs) ? formatNumber(equivalent) : '—'} {units.stress === 'psf' ? 'ksi' : 'MPa'}</p>
+    return <div style={{ gridColumn: '1 / -1' }}><p>σci equivalente: {form.ucs && Number.isFinite(ucs) ? formatNumber(Number(equivalent.toPrecision(4))) : '—'} {units.stress === 'psf' ? 'ksi' : 'MPa'}</p>
       <p>mb = {shown?.mb ?? '—'}; s = {shown?.s ?? '—'}; a = {shown?.a ?? '—'}</p></div>;
   }
   if (form.model !== 'shansep') return null;
   const rows = form.ocrRows ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }];
-  return <fieldset className="field"><legend>Fuente de OCR</legend>
+  return <fieldset className="field" style={{ gridColumn: '1 / -1' }}><legend>Fuente de OCR</legend>
     <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select id={sourceId} value={form.ocrSource ?? 'ocr'} onChange={e => update({ ...form, ocrSource: e.target.value as 'ocr' | 'pop' | 'table', ocrRows: rows })}>
       <option value="ocr">OCR constante</option><option value="pop">POP</option><option value="table">Tabla por cota</option>
     </select></div>
@@ -149,6 +149,23 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form:
       {errors.ocrRows ? <p className="ep-error">{errors.ocrRows}</p> : null}
     </>}
   </fieldset>;
+}
+
+/**
+ * Cambio de modelo de un material que ya está en el documento. Hoek-Brown y SHANSEP no se pueden escribir de una vez: sin σci, GSI, mi
+ * y D (o sin S y la fuente de OCR) el material no es válido y el reducer rechaza el comando, así que el selector se quedaba en el modelo
+ * anterior (hallazgo de la regresión en Chrome, B2a). Para esos dos modelos el cambio es un borrador del formulario de la tarjeta, que se
+ * escribe en el modelo con el primer «confirmar» en que el material es válido; el resto de los cambios son un comando, como antes.
+ */
+export type ModelChange =
+  | { kind: 'command'; material: Material }
+  | { kind: 'draft'; form: MaterialForm }
+  | { kind: 'reset' };
+
+export function planModelChange(material: Material, form: MaterialForm, next: MaterialModel, units?: string): ModelChange {
+  if (next === material.model) return { kind: 'reset' };
+  if (next === 'hoek_brown' || next === 'shansep') return { kind: 'draft', form: { ...form, model: next } };
+  return { kind: 'command', material: switchMaterialModel(material, next, units) };
 }
 
 /** Selector del modelo constitutivo con el prefijo para lectores de pantalla («Material arcilla: Modelo»), como los demás campos. */
@@ -235,7 +252,12 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         Identificador: <code>{material.id}</code> (no se puede cambiar)
       </p>
       <div className="ep-grid">
-        <ModelSelect scope={scope} value={material.model} onChange={(m) => store.dispatch(materialUpsertCommand(switchMaterialModel(material, m, doc().units)))} />
+        <ModelSelect scope={scope} value={model} onChange={(m) => {
+          const change = planModelChange(material, form, m, doc().units);
+          if (change.kind === 'command') store.dispatch(materialUpsertCommand(change.material));
+          else if (change.kind === 'draft') setForm(change.form);
+          else reset();
+        }} />
         {fields.before.map(field)}
         {model === 'undrained' ? (
           <VariableCheckbox scope={scope} checked={form.variable === true} onChange={(on) => store.dispatch(materialUpsertCommand(setSuVariable(material, on, doc())))} />
