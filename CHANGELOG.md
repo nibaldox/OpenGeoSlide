@@ -82,8 +82,8 @@ E16z, contra `92fa882`) está en «Fixed».
     `parallel`; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2 omitidas; web
     4043 de 4043 con el motor real y 3723 pasan con 320 omitidas sin él.
 - **Documentación.** `docs/formato-ogs-json.md` con las secciones de Hoek-Brown, SHANSEP, búsqueda no circular y
-  combinaciones no admitidas (5 ejemplos y 103 fragmentos validados con `docs/tools/validar_ejemplos.py` contra el esquema
-  0.6, que gana `pasadas=`, `ley=`, `sv=`, `nc=` y `superficie=`); `docs/limitaciones.md` con los límites de las tres
+  combinaciones no admitidas (5 ejemplos nuevos; en total, 14 ejemplos y 103 fragmentos validados con
+  `docs/tools/validar_ejemplos.py` contra el esquema 0.6, que gana `pasadas=`, `ley=`, `sv=`, `nc=` y `superficie=`); `docs/limitaciones.md` con los límites de las tres
   capacidades; `docs/verificacion.md` con las filas y los costos medidos; el README con las capacidades y las limitaciones.
 
 ### Changed
