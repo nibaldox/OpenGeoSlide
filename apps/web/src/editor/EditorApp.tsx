@@ -720,6 +720,10 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   );
   const contents = useMemo(() => reportContents(engine.run), [engine.run]);
 
+  // UA-E4: el HUD muestra el error del motor (A-03) con «Ver diagnósticos». La prop `engineError` la declara `ResultSummary` en la rama de C2;
+  // va como objeto para compilar también contra la firma anterior.
+  const hudEngineError = { engineError: engineErrorText };
+
   // «Ver tabla de resultados» del HUD: abre «Resultados» y enfoca la tabla cuando el panel ya está a la vista.
   const [tableFocus, setTableFocus] = useState(0);
   const showTable = useCallback((): void => {
@@ -952,7 +956,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                 />
               </div>
               {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
-              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} compact={hudCompact} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} />
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} compact={hudCompact} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} {...hudEngineError} />
               <Legend
                 scene={scene}
                 label="Leyenda de la sección"

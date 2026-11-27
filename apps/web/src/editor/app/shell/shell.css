@@ -321,6 +321,7 @@
   background: var(--ui-err-ink);
   color: var(--ui-surface);
 }
+.ua-badge[data-status='warn'],
 .ua-badge[data-status='draft'] {
   background: var(--ui-warn-ink);
   color: var(--ui-surface);

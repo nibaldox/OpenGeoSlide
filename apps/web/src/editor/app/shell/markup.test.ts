@@ -191,6 +191,18 @@ describe('ReportView', () => {
   });
 });
 
+describe('StepList con avisos (UA-E3 §4)', () => {
+  it('el paso con status warn muestra la insignia con el ícono de aviso y dice «Con avisos»', () => {
+    const st = states();
+    st.materials = { summary: 'Con avisos · 1 material', status: 'warn', errorCount: 0 };
+    const html = renderToStaticMarkup(createElement(StepList, { order: STEP_ORDER, states: st, active: 'geometry', onSelect: noop, children: null }));
+    const badge = html.match(/<span class="gs-badge ua-badge" data-status="warn">(.*?)<\/span>/)?.[1] ?? '';
+    expect(badge).toContain('<svg');
+    expect(badge).not.toMatch(/>\d+</);
+    expect(html).toContain('Con avisos');
+  });
+});
+
 describe('ResultsView sin cálculo (UA-E3 §1, B-13d)', () => {
   const html = renderToStaticMarkup(createElement(ResultsView, { run: null, current: false, hasDrafts: false, shownMethod: null, onShowMethod: noop, diagnostics: null }));
   it('no repite «Comprobar» como botón: queda el del pie o el de la cabecera', () => {
