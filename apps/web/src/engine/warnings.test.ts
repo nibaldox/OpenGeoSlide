@@ -76,11 +76,8 @@ describe('describeWarning', () => {
     const fromContract = [...block![1].matchAll(/`([a-z_]+)`/g)].map((m) => m[1]);
     expect(fromContract.length).toBeGreaterThan(0);
     // G3 (E15i-8): `ito_matsui_spacing_range` ya está en la lista de E6 (integrado en F3G): la coincidencia es exacta.
-    // R13 (E15m-6): `water_unit_weight_default` lo agrega M a E6 en su rama; hasta la integración la web lo declara antes. Con el contrato
-    // integrado la coincidencia vuelve a ser exacta (la lista de pendientes no filtra nada).
-    const PENDING_IN_CONTRACT = ['water_unit_weight_default'];
-    const declared = [...ENGINE_WARNING_CODES].filter((c) => fromContract.includes(c) || !PENDING_IN_CONTRACT.includes(c));
-    expect(declared.sort()).toEqual([...fromContract].sort());
+    // R13 (E15m-6): `water_unit_weight_default` ya está en E6 (integrado): la coincidencia es exacta.
+    expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
     expect(ENGINE_WARNING_CODES).toContain('water_unit_weight_default');
   });
 

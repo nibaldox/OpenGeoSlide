@@ -5,7 +5,8 @@
 # y, desde F3G (I-W), el panel de la grieta y su axe (docs/fase3/g1w1/e2e/g1w1_*.mjs) y el lienzo con el motor real, sin datos simulados
 # (docs/fase3/g1w2/e2e/g1w2_*.mjs; necesita OGS_BIN y axe-core en $TMPDIR/x8-ux o w2-e2e)
 # y, desde F3G (I-G), la tarjeta del pilote de Ito-Matsui con su axe en claro y oscuro (docs/fase3/g3w/e2e/g3w_*.mjs)
-# y, desde R12 (I-G2), el recorrido del pilote de Ito-Matsui en el lienzo (docs/fase3/r12/e2e/r12_*.mjs).
+# y, desde R12 (I-G2), el recorrido del pilote de Ito-Matsui en el lienzo (docs/fase3/r12/e2e/r12_*.mjs);
+# desde R13, γw por defecto en imperial y «Sin grieta» en Casos (docs/fase3/r13/e2e/r13_*.mjs).
 # Los guiones salen con código 0 aunque fallen: se cuentan las líneas ^FAIL de cada registro y se marcan los que no tienen ^OK.
 # Uso: TMPDIR=<scratch> OGS_REPO=<repo> bash docs/fase3/iw/e2e/run_regression.sh <carpeta de registros>
 set -u
@@ -21,7 +22,7 @@ for port in 5186 5187; do
 done
 env -u PYTHONPATH -u PYTHONHOME python3 docs/fase2/ux/u6g-e2e/make_fixtures.py "$OGS_FX" > /dev/null
 {
-for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs; do
+for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs docs/fase3/r13/e2e/r13_*.mjs; do
   case "$f" in */lib.mjs|*explore*|*dbg*) continue;; esac
   n=$(basename "$f" .mjs)
   url=$OGS_URL; [ "$n" = w1f_canvas ] && url=http://127.0.0.1:5187/

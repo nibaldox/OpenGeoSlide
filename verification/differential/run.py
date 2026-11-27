@@ -106,6 +106,7 @@ OGS_INFORMATIVE_WARNINGS = (
     "reinforcement_active_compression",
     "structural_checks_not_covered",
     "water_above_ground",   # F5.3: a note, the ponded water is included
+    "water_unit_weight_default",   # E15m-6: imperial, water in use and no water.unit_weight
 )
 
 
