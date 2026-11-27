@@ -26,8 +26,32 @@ pub const FORMAT_VERSION_V04: &str = "0.4";
 /// Version that admits `analysis.tension_crack` (amendment E15a).
 pub const FORMAT_VERSION_V05: &str = "0.5";
 
-fn default_water_unit_weight() -> f64 {
-    9.81
+/// `γw` by default in kN/m³ (SI), contract §1.
+pub const DEFAULT_WATER_UNIT_WEIGHT_SI: f64 = 9.81;
+
+/// Feet per metre, with the same constant as `apps/web/src/editor/state/units.ts` (`FT_PER_M = 1 / 0.3048`).
+const FT_PER_M: f64 = 1.0 / 0.3048;
+/// Pounds-force per kN, as `LBF_PER_KN = 1000 / N_PER_LBF` of `units.ts` (`N_PER_LBF = 4.4482216152605`).
+const LBF_PER_KN: f64 = 1000.0 / 4.4482216152605;
+
+/// Whether the `units` label of the model is imperial. The same detection as the web application
+/// (`isImperialUnits`): case and leading spaces do not matter, and it accepts the abbreviation `imp…`.
+pub fn is_imperial_units(units: Option<&str>) -> bool {
+    units.is_some_and(|u| {
+        u.trim_start()
+            .get(..3)
+            .is_some_and(|p| p.eq_ignore_ascii_case("imp"))
+    })
+}
+
+/// `γw` when `water.unit_weight` is absent (E15l-6): 9.81 kN/m³ in `SI`, and in imperial units the same 9.81 kN/m³
+/// converted with the factor of `units.ts` (`UNIT_FACTORS.unitWeight = LBF_PER_KN / FT_PER_M³`, ≈ 62.45 pcf).
+pub fn default_water_unit_weight(units: Option<&str>) -> f64 {
+    if is_imperial_units(units) {
+        DEFAULT_WATER_UNIT_WEIGHT_SI * (LBF_PER_KN / FT_PER_M.powi(3))
+    } else {
+        DEFAULT_WATER_UNIT_WEIGHT_SI
+    }
 }
 
 /// Complete model document.
@@ -122,12 +146,13 @@ pub struct Region {
     pub polygon: Vec<Point>,
 }
 
-/// Water data. `unit_weight` defaults to 9.81.
+/// Water data. `unit_weight` absent means the default of the units of the model: 9.81 kN/m³ in `SI`, the equivalent
+/// (≈ 62.45 pcf) in imperial (see [`default_water_unit_weight`], E15l-6).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Water {
-    #[serde(default = "default_water_unit_weight")]
-    pub unit_weight: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_weight: Option<f64>,
     #[serde(default)]
     pub piezometric_line: Option<Vec<Point>>,
 }
@@ -766,10 +791,17 @@ mod tests {
     }
 
     #[test]
-    fn water_unit_weight_defaults_to_9_81() {
+    fn water_unit_weight_defaults_by_units() {
         let w: Water =
             serde_json::from_str(r#"{"piezometric_line": [[0, 12.0], [55, 6.0]]}"#).unwrap();
-        assert_eq!(w.unit_weight, 9.81);
+        assert_eq!(w.unit_weight, None);
+        assert_eq!(default_water_unit_weight(None), 9.81);
+        assert_eq!(default_water_unit_weight(Some("SI")), 9.81);
+        for label in ["imperial", "Imperial", " IMPERIAL ", "imp"] {
+            let g = default_water_unit_weight(Some(label));
+            assert!((g - 62.4493).abs() < 1e-3, "{label}: {g}");
+        }
+        assert_eq!(default_water_unit_weight(Some("metric")), 9.81);
         assert_eq!(w.piezometric_line.as_ref().map(Vec::len), Some(2));
     }
 

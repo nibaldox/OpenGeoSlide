@@ -1147,6 +1147,27 @@ def test_crack_with_water_has_the_same_water_weight_rule_as_the_piezometric_line
     assert any("9.807" in n for n in si.notes)
 
 
+def test_default_water_weight_follows_the_units_e15l6():
+    from to_cslope import default_water_unit_weight
+    assert default_water_unit_weight({"units": "SI"}) == 9.81
+    assert default_water_unit_weight({}) == 9.81
+    for label in ("imperial", "Imperial", " IMPERIAL ", "imp"):
+        assert abs(default_water_unit_weight({"units": label}) - 62.4493) < 1e-3
+
+
+def test_imperial_without_unit_weight_uses_62_45_and_is_refused_e15l6():
+    # Absent water.unit_weight in imperial is 62.45 pcf, as the engine: cSlope (9.807) cannot be faithful.
+    crack = v05({"depth": 2.0, "water_fill": 1.0}, units="imperial")
+    with pytest.raises(UnsupportedModel, match="62.4"):
+        ogs_to_cslope(crack, _check("fixed"))
+    piezo = stacked_model(units="Imperial", water={"piezometric_line": [[0, 5.0], [40, 5.0]]})
+    with pytest.raises(UnsupportedModel, match="waterUnitWeight"):
+        ogs_to_cslope(piezo, _check("fixed"))
+    # In SI the default (9.81) converts, as always.
+    si = stacked_model(water={"piezometric_line": [[0, 5.0], [40, 5.0]]})
+    assert any("9.807" in n for n in ogs_to_cslope(si, _check("fixed")).notes)
+
+
 def test_piezometric_line_is_always_free_water_not_clipped():
     for version in ("0.1", "0.3", "0.5"):
         model = stacked_model(water={"unit_weight": 9.807, "piezometric_line": [[0, 5.0], [40, 5.0]]})

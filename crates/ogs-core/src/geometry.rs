@@ -4,13 +4,10 @@
 //! resolved in `PreparedModel::new` with the rule of amendment E1.
 
 use crate::OgsError;
-use crate::model::{Circle, Direction, Model, Point, SurfaceSpec};
+use crate::model::{Circle, Direction, Model, Point, SurfaceSpec, default_water_unit_weight};
 use crate::slicer::sliding_span;
 use crate::strength::{ResolvedMaterial, resolve_materials};
 use crate::surface::Surface;
-
-/// Default water unit weight when the `water` block is absent (contract §1).
-const DEFAULT_WATER_UNIT_WEIGHT: f64 = 9.81;
 
 /// A region polygon is degenerate when its area is at most this fraction of `scale²` (R1-11).
 const DEGENERATE_AREA_FRACTION: f64 = 1e-12;
@@ -70,14 +67,17 @@ fn invalid(msg: impl Into<String>) -> OgsError {
 }
 
 fn resolve_water(model: &Model) -> Result<(f64, Option<Vec<Point>>), OgsError> {
+    // E15l-6: without `water.unit_weight` (or without `water`), 9.81 kN/m³ in SI and its equivalent in imperial units.
+    let default = default_water_unit_weight(model.units.as_deref());
     let Some(water) = &model.water else {
-        return Ok((DEFAULT_WATER_UNIT_WEIGHT, None));
+        return Ok((default, None));
     };
-    if !(water.unit_weight.is_finite() && water.unit_weight > 0.0) {
+    let gamma_w = water.unit_weight.unwrap_or(default);
+    if !(gamma_w.is_finite() && gamma_w > 0.0) {
         return Err(invalid("water.unit_weight debe ser > 0"));
     }
     let Some(line) = &water.piezometric_line else {
-        return Ok((water.unit_weight, None));
+        return Ok((gamma_w, None));
     };
     if line.len() < 2 {
         return Err(invalid("la piezométrica necesita al menos 2 puntos"));
@@ -90,7 +90,7 @@ fn resolve_water(model: &Model) -> Result<(f64, Option<Vec<Point>>), OgsError> {
             "la piezométrica debe tener x estrictamente creciente",
         ));
     }
-    Ok((water.unit_weight, Some(line.clone())))
+    Ok((gamma_w, Some(line.clone())))
 }
 
 /// True if the polygon's area is at most `DEGENERATE_AREA_FRACTION · scale²` (or NaN).

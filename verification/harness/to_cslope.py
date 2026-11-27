@@ -384,9 +384,29 @@ def fitted_polyline_ends(points: list, outline: Polygon) -> tuple[tuple[float, f
 
 
 
+def is_imperial(model: dict) -> bool:
+    """Same detection as the engine and the web (`isImperialUnits`): case and leading spaces do not matter, `imp…`."""
+    units = model.get("units")
+    return isinstance(units, str) and units.lstrip()[:3].lower() == "imp"
+
+
 def unit_label(model: dict) -> str:
     """Unit name for notes: 'pcf' for imperial models, 'kN/m3' otherwise."""
-    return "pcf" if model.get("units") == "imperial" else "kN/m3"
+    return "pcf" if is_imperial(model) else "kN/m3"
+
+
+# E15l-6: water.unit_weight absent means 9.81 kN/m3, and in imperial units the same value converted with the factor of
+# `apps/web/src/editor/state/units.ts` (LBF_PER_KN / FT_PER_M**3, about 62.45 pcf).
+DEFAULT_WATER_UNIT_WEIGHT_SI = 9.81
+_FT_PER_M = 1 / 0.3048
+_LBF_PER_KN = 1000 / 4.4482216152605
+
+
+def default_water_unit_weight(model: dict) -> float:
+    """gamma_w of the model when `water.unit_weight` is absent (same rule as the engine, E15l-6)."""
+    if is_imperial(model):
+        return DEFAULT_WATER_UNIT_WEIGHT_SI * (_LBF_PER_KN / _FT_PER_M**3)
+    return DEFAULT_WATER_UNIT_WEIGHT_SI
 
 
 def _linestrings(geom: Any) -> list[LineString]:
@@ -974,7 +994,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
 
     water = model.get("water") or {}
     piezo = water.get("piezometric_line") or None
-    gamma_w = float(water.get("unit_weight", 9.81))
+    gamma_w = float(water.get("unit_weight", default_water_unit_weight(model)))
     crack_options = tension_crack_options(model)
     # the crack weighs gamma_w too when it holds water (F5.2): cSlope only knows 9.807
     uses_water = bool(piezo) or float(crack_options.get("tensionCrackWater", 0.0)) > 0.0

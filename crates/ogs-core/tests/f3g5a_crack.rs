@@ -199,3 +199,108 @@ fn e15l2_no_face_means_no_crack_and_no_cut() {
         assert!((a - b).abs() <= 1e-9 * b, "method {i}: {a} vs {b}");
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15l-6 (B-01)
+
+const FT_PER_M: f64 = 1.0 / 0.3048;
+const LBF_PER_KN: f64 = 1000.0 / 4.4482216152605;
+
+/// The same factors as `apps/web/src/editor/state/units.ts`, applied to a v0.5 document of this file.
+fn to_imperial(doc: &Value, label: &str) -> Value {
+    let (len, unit_weight, stress) = (
+        FT_PER_M,
+        LBF_PER_KN / FT_PER_M.powi(3),
+        LBF_PER_KN / FT_PER_M.powi(2),
+    );
+    let scale = |v: &Value, k: f64| json!(v.as_f64().unwrap() * k);
+    let mut d = doc.clone();
+    d["units"] = json!(label);
+    for m in d["materials"].as_array_mut().unwrap() {
+        m["unit_weight"] = scale(&m["unit_weight"], unit_weight);
+        m["cohesion"] = scale(&m["cohesion"], stress);
+    }
+    for r in d["regions"].as_array_mut().unwrap() {
+        for p in r["polygon"].as_array_mut().unwrap() {
+            *p = json!([scale(&p[0], len), scale(&p[1], len)]);
+        }
+    }
+    for k in ["xc", "yc", "r"] {
+        d["analysis"]["surface"][k] = scale(&d["analysis"]["surface"][k], len);
+    }
+    if let Some(t) = d["analysis"]["tension_crack"]["depth"].as_f64() {
+        d["analysis"]["tension_crack"]["depth"] = json!(t * len);
+    }
+    if let Some(line) = d["water"]["piezometric_line"].as_array_mut() {
+        for p in line {
+            *p = json!([scale(&p[0], len), scale(&p[1], len)]);
+        }
+    }
+    d
+}
+
+fn b01_si() -> Value {
+    let mut doc = tight(data("a01_ltr"));
+    doc["analysis"]["tension_crack"] = json!({"depth": 2.0, "water_fill": 1.0});
+    doc
+}
+
+fn assert_same_fos(a: &Value, b: &Value, what: &str) {
+    let (ra, rb) = (run(a), run(b));
+    for i in 0..2 {
+        let (fa, fb) = (ra.results[i].fos.unwrap(), rb.results[i].fos.unwrap());
+        assert!(
+            (fa - fb).abs() <= 1e-9 * fb,
+            "{what}, method {i}: {fa} vs {fb}"
+        );
+        let (ca, cb) = (crack_of(&ra, i), crack_of(&rb, i));
+        assert!(cb.2 > 0.0, "{what}: the crack holds water");
+        // Pw is a force per metre: it scales with γw·h², in the units of the model (lbf/ft here).
+        let k = LBF_PER_KN / FT_PER_M;
+        assert!(
+            (ca.2 - cb.2 * k).abs() <= 1e-9 * cb.2 * k,
+            "{what}: Pw {} vs {}",
+            ca.2,
+            cb.2 * k
+        );
+    }
+}
+
+/// B-01: a crack with water and no `water` block in imperial units uses γw in pcf (62.45), not 9.81 «pcf».
+#[test]
+fn e15l6_crack_water_without_water_block_is_unit_invariant() {
+    let si = b01_si();
+    for label in ["imperial", "Imperial", " IMPERIAL "] {
+        assert_same_fos(&to_imperial(&si, label), &si, label);
+    }
+}
+
+/// The same rule for a `water` block without `unit_weight` (a piezometric line over the ground: ponded water, the
+/// pore pressure and the crack all use γw).
+#[test]
+fn e15l6_piezometric_line_without_unit_weight_is_unit_invariant() {
+    let mut si = b01_si();
+    si["water"] = json!({"piezometric_line": [[-70.0, 32.0], [-20.0, 24.0]]});
+    let imp = to_imperial(&si, "imperial");
+    assert_same_fos(&imp, &si, "piezometric line");
+    // Explicit γw is never touched: the model written with 62.4493 pcf is the same model.
+    let mut explicit = imp.clone();
+    explicit["water"]["unit_weight"] = json!(9.81 * LBF_PER_KN / FT_PER_M.powi(3));
+    assert_same_fos(&explicit, &si, "explicit");
+}
+
+/// In SI the default stays 9.81, and an explicit value always wins (also in imperial).
+#[test]
+fn e15l6_si_default_and_explicit_value() {
+    let si = b01_si();
+    let mut explicit = si.clone();
+    explicit["water"] = json!({"unit_weight": 9.81});
+    assert_eq!(
+        run(&si).results[0].tension_crack.unwrap().water_force,
+        run(&explicit).results[0].tension_crack.unwrap().water_force
+    );
+    let mut ten = to_imperial(&si, "imperial");
+    ten["water"] = json!({"unit_weight": 62.4});
+    let pw = run(&ten).results[0].tension_crack.unwrap().water_force;
+    let h = 2.0 * FT_PER_M;
+    assert!((pw - 0.5 * 62.4 * h * h).abs() <= 1e-9 * pw, "{pw}");
+}

@@ -517,7 +517,8 @@
         "unit_weight": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "default": 9.81
+          "default": 9.81,
+          "description": "Unit weight of the water, in the units of the model. If it is absent: 9.81 kN/m3 with units \"SI\", and with units \"imperial\" the same 9.81 kN/m3 converted (about 62.45 pcf). It applies to the piezometric line, the ponded water and the water in the tension crack. The \"default\" is the SI one."
         },
         "piezometric_line": {
           "anyOf": [
