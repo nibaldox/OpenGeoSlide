@@ -90,3 +90,12 @@ Informes completos: `docs/reviews/RUA_agy_A.md` (lente A, estado e interacción:
 `ResultSummary` suma la prop opcional `engineError?: string | null`, con el texto del error del motor. Sin ella, el
 HUD no puede mostrar A-03, porque las props que se congelaron en UA-E3 no traían el texto. C1 la cablea con
 `engineErrorText`.
+
+## UA-E5 (tras la regresión e2e de UA2-E)
+
+Hasta 760 px de ancho:
+- el pie de acción va en una sola fila de 57 px: «Comprobar» flexible e «Informe PDF», o «Cancelar cálculo» /
+  «Reiniciar el motor», con el aviso y la pista encima;
+- `html` lleva `scroll-padding-bottom` del alto del pie;
+- el lienzo mide `clamp(260px, calc(100dvh - 530px), 360px)` (era 360 fijo, §2), para que la paleta quede sobre el pie
+  al cargar.
