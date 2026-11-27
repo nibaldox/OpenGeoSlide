@@ -196,11 +196,12 @@ function searchSummary(doc: ModelDoc, u: { length: string }): Summary {
   const exit = range(s.exit);
   if (entry === null && exit === null) return { summary: 'Entrada y salida automáticas', base: 'done' };
   const l = u.length;
+  // B-09: cada rango definido lleva su unidad en todas las formas; «auto.» no es un número y no la necesita.
   return {
     summary: fit(
       `${entry ? `Entrada ${entry} ${l}` : 'Entrada automática'} · ${exit ? `salida ${exit} ${l}` : 'salida automática'}`,
-      `${entry ? `Ent. ${entry}` : 'Ent. auto.'} · ${exit ? `sal. ${exit}` : 'sal. auto.'}${entry && exit ? ` ${l}` : ''}`,
-      `${entry ?? 'auto.'} · ${exit ?? 'auto.'}${entry && exit ? ` ${l}` : ''}`,
+      `${entry ? `Ent. ${entry} ${l}` : 'Ent. auto.'} · ${exit ? `sal. ${exit} ${l}` : 'sal. auto.'}`,
+      `${entry ? `${entry} ${l}` : 'auto.'} · ${exit ? `${exit} ${l}` : 'auto.'}`,
     ),
     base: 'done',
   };

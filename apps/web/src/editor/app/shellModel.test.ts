@@ -193,9 +193,31 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit' } }), 'search')).toBe('Entrada y salida automáticas');
     expect(summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10, 25] } }), 'search')).toBe('Entrada 10–25 m · salida automática');
     const medium = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [100.5, 125.5], exit: [140.5, 160.5] } }), 'search');
-    expect(medium).toBe('Ent. 100,5–125,5 · sal. 140,5–160,5 m');
+    expect(medium).toBe('Ent. 100,5–125,5 m · sal. 140,5–160,5 m');
     const long = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry: [100.25, 125.75], exit: [140.25, 160.75] } }), 'search');
-    expect(long).toBe('100,25–125,75 · 140,25–160,75 m');
+    expect(long).toBe('100,25–125,75 m · 140,25–160,75 m');
+  });
+
+  it('search (B-09): con un solo rango definido, la forma corta conserva la unidad (m y ft)', () => {
+    const entryOnly = miniAnalysis({ search: { type: 'circular_entry_exit', entry: [10.25, 25.55], exit: null } });
+    expect(summaryOf(entryOnly, 'search')).toBe('Ent. 10,25–25,55 m · sal. auto.');
+    const exitOnly = miniAnalysis({ search: { type: 'circular_entry_exit', exit: [10.25, 25.55] } });
+    expect(summaryOf(exitOnly, 'search')).toBe('Ent. auto. · sal. 10,25–25,55 m');
+    const imperial = mini({ units: 'imperial', analysis: { methods: ['bishop'], slices: 50, search: { type: 'circular_entry_exit', entry: [110.25, 125.55] } } });
+    expect(summaryOf(imperial, 'search')).toBe('Ent. 110,25–125,55 ft · sal. auto.');
+    const veryLong = miniAnalysis({ search: { type: 'circular_entry_exit', entry: [1100.25, 1125.55] } });
+    expect(summaryOf(veryLong, 'search')).toBe('Ent. 1.100,25–1.125,55 m · sal. auto.');
+  });
+
+  it('search (B-09): ninguna forma deja un número sin unidad, con cualquier combinación de rangos', () => {
+    const ranges = [undefined, null, [1, 2], [10.5, 25.25], [100.25, 125.75], [1100.5, 1125.5]] as const;
+    for (const entry of ranges) {
+      for (const exit of ranges) {
+        const text = summaryOf(miniAnalysis({ search: { type: 'circular_entry_exit', entry, exit } }), 'search');
+        const numbers = text.match(/\d[\d.,]*–\d[\d.,]*/g) ?? [];
+        for (const n of numbers) expect([text, n, new RegExp(`${n.replace(/[.,–]/g, (c) => `\\${c}`)} (m|ft)`).test(text)]).toEqual([text, n, true]);
+      }
+    }
   });
 
   it('analysis: nombres cortos de los métodos en el orden de la UI y dovelas; la forma corta si no cabe', () => {
