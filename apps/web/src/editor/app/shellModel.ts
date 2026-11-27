@@ -11,7 +11,7 @@ import { reinforcementsOf } from '../../report/reinforcementReport';
 import { formatFs } from '../../ui/formatFs';
 import { METHOD_ORDER, METHOD_SHORT_LABELS } from '../panels/forms';
 import { REINFORCEMENT_TYPES, REINFORCEMENT_TYPE_LABELS } from '../panels/reinforcementForm';
-import { isImperialUnits } from '../state/units';
+import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../state/units';
 import type { Issue, ModelDoc } from '../types';
 import { issueTargetFor, type PanelTabId } from './issueNav';
 import type { EngineRun } from './reportInput';
@@ -161,10 +161,22 @@ function materialsSummary(doc: ModelDoc): Summary {
   };
 }
 
+/**
+ * B-06: el agua no es solo la piezométrica. Sin línea, la grieta de tracción con agua (`water_fill > 0`) usa γw (el mismo criterio que
+ * `waterUnitWeightText` del informe) y una `ru > 0` en algún material pesa en el cálculo sin piezométrica: ninguna de las dos es «sin agua».
+ */
 function waterSummary(doc: ModelDoc): Summary {
   const points = doc.water?.piezometric_line?.length ?? 0;
-  if (points === 0) return { summary: 'Sin piezométrica', base: 'optional' };
-  return { summary: `Piezométrica · ${count(points, 'punto', 'puntos')}`, base: 'done' };
+  if (points > 0) return { summary: `Piezométrica · ${count(points, 'punto', 'puntos')}`, base: 'done' };
+  const fill = doc.analysis?.tension_crack?.water_fill;
+  if (typeof fill === 'number' && fill > 0) {
+    const explicit = doc.water?.unit_weight;
+    const gamma = typeof explicit === 'number' && Number.isFinite(explicit) ? explicit : isImperialUnits(doc.units) ? Number((WATER_UNIT_WEIGHT_SI * UNIT_FACTORS.unitWeight).toFixed(2)) : WATER_UNIT_WEIGHT_SI;
+    return { summary: `Agua en grieta · γw ${num(gamma, 0, 3)}`, base: 'done' };
+  }
+  const withRu = (doc.materials ?? []).filter((m) => typeof m.ru === 'number' && m.ru > 0).length;
+  if (withRu > 0) return { summary: `Sin piezométrica · ru en ${num(withRu)} mat.`, base: 'done' };
+  return { summary: 'Sin piezométrica', base: 'optional' };
 }
 
 function surfaceSummary(doc: ModelDoc): Summary {

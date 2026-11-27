@@ -133,6 +133,33 @@ describe('stepStates: resumen de cada paso (tabla de §4.1)', () => {
     expect(statusOf(none, 'water')).toBe('optional');
   });
 
+  it('water (B-06): grieta con agua → «Agua en grieta · γw 9,81» (done); γw explícito o por defecto, también en imperial', () => {
+    const crack = (fill: number, extra: Record<string, unknown> = {}): ModelDoc =>
+      mini({ analysis: { methods: ['bishop'], slices: 50, surface: { type: 'circle', xc: 5, yc: 8, r: 8 }, tension_crack: { depth: 'auto', water_fill: fill } }, ...extra });
+    expect(summaryOf(crack(1), 'water')).toBe('Agua en grieta · γw 9,81');
+    expect(statusOf(crack(0.5), 'water')).toBe('done');
+    expect(summaryOf(crack(1, { water: { unit_weight: 9.807 } }), 'water')).toBe('Agua en grieta · γw 9,807');
+    expect(summaryOf(crack(1, { units: 'imperial' }), 'water')).toBe('Agua en grieta · γw 62,45');
+    // grieta seca: no hay agua
+    expect(summaryOf(crack(0), 'water')).toBe('Sin piezométrica');
+    expect(statusOf(crack(0), 'water')).toBe('optional');
+    // con piezométrica, manda la piezométrica
+    expect(summaryOf(crack(1, { water: { piezometric_line: [[0, 1], [10, 2]] } }), 'water')).toBe('Piezométrica · 2 puntos');
+  });
+
+  it('water (B-06): ru > 0 en algún material → «Sin piezométrica · ru en N mat.» (done); ru = 0 o nulo no cuenta', () => {
+    const m = (id: string, ru: number | null | undefined) => ({ id, name: id, model: 'mohr_coulomb', unit_weight: 20, cohesion: 5, friction_angle: 30, ru });
+    expect(summaryOf(mini({ materials: [m('a', 0.2), m('b', 0), m('c', null), m('d', 0.1)] }), 'water')).toBe('Sin piezométrica · ru en 2 mat.');
+    expect(summaryOf(mini({ materials: [m('a', 0.2)] }), 'water')).toBe('Sin piezométrica · ru en 1 mat.');
+    expect(statusOf(mini({ materials: [m('a', 0.2)] }), 'water')).toBe('done');
+    expect(summaryOf(mini({ materials: [m('a', 0), m('b', undefined)] }), 'water')).toBe('Sin piezométrica');
+  });
+
+  it('water (B-06): los casos publicados con grieta llena (V048, V086b, V086d) y con ru (V044b, V101, V103) ya no dicen «Sin piezométrica» a secas', () => {
+    for (const id of ['V048', 'V086b', 'V086d']) expect([id, summaryOf(fromCase(id), 'water'), statusOf(fromCase(id), 'water')]).toEqual([id, 'Agua en grieta · γw 9,807', 'done']);
+    for (const id of ['V044b', 'V101', 'V103']) expect([id, summaryOf(fromCase(id), 'water'), statusOf(fromCase(id), 'water')]).toEqual([id, 'Sin piezométrica · ru en 1 mat.', 'done']);
+  });
+
   it('surface: las cuatro formas y el vacío', () => {
     expect(summaryOf(mini(), 'surface')).toBe('Circular fija');
     const poly = miniAnalysis({ surface: { type: 'polyline', points: [[0, 5], [2, 3], [4, 2], [6, 2], [8, 3], [10, 5]] } });
