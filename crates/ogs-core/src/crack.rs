@@ -34,6 +34,12 @@
 //! taken from `water.rs`. An automatic depth of 0 at the entry cuts nothing: `x_c` is the entry and the report has
 //! `depth = 0`.
 //!
+//! E15n-1: `x_c` can sit on a discontinuity (a vertical step of the ground, an edge of a `udl`, a change of material).
+//! The ground, `d(x)` (material, `udl`), the face and the cut are then evaluated on **one side**, the one of the mass
+//! (`x_c + s·0⁺`, `s` from the crack toward the toe; `PreparedModel::top_toward` and `column_toward`), so that the result
+//! is the same in a model and in its mirror image and `face_height` is the face that the mass meets, not the crest that
+//! the crack discards.
+//!
 //! # Force of the water (G3, G4, E7)
 //!
 //! `Pw = ½·γw·hw²`, `hw = d·water_fill`, horizontal and **in the sliding direction**: in the model frame
@@ -102,8 +108,19 @@ pub struct CrackPlan {
     pub gamma_w: f64,
 }
 
+/// Sense from the crack toward the sliding mass (the toe): `+1` for `LeftToRight`, `-1` for `RightToLeft` (E15n-1).
+fn mass_side(pm: &PreparedModel) -> f64 {
+    match pm.sliding {
+        Sliding::LeftToRight => 1.0,
+        Sliding::RightToLeft => -1.0,
+    }
+}
+
 /// Depth of the crack at `x` (G6 for `Auto`), with the buffers of the column reused between calls.
 struct DepthAt<'a> {
+    /// Side of the mass (E15n-1): `+1` toward `+x`, `-1` toward `-x`. The ground, the material and the loads of `d(x)` are
+    /// those of that side of `x`.
+    side: f64,
     spec: &'a TensionCrack,
     pm: &'a PreparedModel,
     loads: &'a LoadCase,
@@ -131,11 +148,14 @@ impl DepthAt<'_> {
         } else {
             x
         };
-        let Some(ground) = pm.top_at(x) else {
+        // E15n-1: the ground, the column and the `udl` of the side of the mass, never a mix of the closed envelope with
+        // the half-open column (which differ at a vertical step, and are not mirror images of each other).
+        let side = self.side;
+        let Some(ground) = pm.top_toward(x, side) else {
             return 0.0;
         };
         let y = ground - PROBE_FRACTION * pm.scale;
-        pm.column(x, &mut self.column, &mut self.scratch);
+        pm.column_toward(x, side, &mut self.column, &mut self.scratch);
         let Some(&(_, _, mat)) = self.column.iter().find(|&&(lo, hi, _)| lo <= y && y < hi) else {
             return 0.0;
         };
@@ -150,7 +170,13 @@ impl DepthAt<'_> {
             .loads
             .udls
             .iter()
-            .filter(|u| u.x1 <= x && x <= u.x2)
+            .filter(|u| {
+                if side >= 0.0 {
+                    u.x1 <= x && x < u.x2
+                } else {
+                    u.x1 < x && x <= u.x2
+                }
+            })
             .map(|u| u.q)
             .sum();
         // E15l-8: the water counts over the ground only beyond the tolerance of the model (E15j-4), as in `water.rs`.
@@ -226,7 +252,12 @@ pub fn locate(
         Sliding::RightToLeft => (tramo.q, tramo.p),
         Sliding::LeftToRight => (tramo.p, tramo.q),
     };
+    // E15n-1: the side of the mass, from the crack toward the toe. The ground, `d(x)`, the face and the cut are all
+    // evaluated on that side of `x_c`, so that a vertical step (or an edge of a `udl`, or a change of material) at
+    // `x_c` gives the same in a model and in its mirror image.
+    let inward = mass_side(pm);
     let mut depth = DepthAt {
+        side: inward,
         spec,
         pm,
         loads,
@@ -247,12 +278,11 @@ pub fn locate(
     // An automatic depth of 0 at the entry (no cohesion, or a surcharge that cancels it): nothing to cut.
     // E15m-5: evaluated at `x_entry + s·tol`, with `s` the sense toward the mass, so that a `udl` that only touches the
     // entry from outside (its closed end at `x_entry`) does not cancel the crack.
-    let inward = if x_exit >= x_entry { 1.0 } else { -1.0 };
     if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry + inward * pm.tol()) <= 0.0 {
         return Ok(finish(x_entry, 0.0, false));
     }
     let below = |depth: &mut DepthAt, x: f64| -> f64 {
-        match pm.top_at(x) {
+        match pm.top_toward(x, inward) {
             Some(ground) => ground - surface.y_at(pm, x) - depth.at(x),
             None => f64::NEG_INFINITY,
         }
@@ -280,7 +310,9 @@ pub fn locate(
             // The mass ends at `x_c` with a depth of 0 too, when the discontinuity leaves a face over the base (the cut
             // of cSlope, and of the versions before R12: `a04_udl`, 1.102248). If that face is not larger than the
             // tolerance (a `udl` that starts 1e-10 inside the entry) nothing is cut (E15l-2, which stays).
-            let face = pm.top_at(hi).map_or(0.0, |g| g - surface.y_at(pm, hi));
+            let face = pm
+                .top_toward(hi, inward)
+                .map_or(0.0, |g| g - surface.y_at(pm, hi));
             return Ok(finish(hi, d, d > 0.0 || face > pm.tol()));
         }
         prev = x;
@@ -329,10 +361,10 @@ pub fn truncate(
             face.driving_extra += water_force * (yc - y_g) / r;
         }
     }
-    // E15m-15: the face that the crack cuts, `ground(x_c) − base(x_c)` (`top_at` at `x_c` is on the side of the mass, where
-    // the bisection ends); reported only when it is not the depth.
+    // E15m-15, E15n-1: the face that the crack cuts, `ground(x_c) − base(x_c)` with the ground on the side of the mass
+    // (`x_c + s·0⁺`, `s` toward the toe, the one that `locate` used); reported only when it is not the depth.
     let face_height = pm
-        .top_at(plan.x_c)
+        .top_toward(plan.x_c, mass_side(pm))
         .map(|g| g - surface.y_at(pm, plan.x_c))
         .filter(|face| face.is_finite() && (face - plan.depth).abs() > tol);
     CrackReport {
