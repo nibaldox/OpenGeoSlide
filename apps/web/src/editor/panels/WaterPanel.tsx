@@ -26,6 +26,8 @@ export function WaterPanel({ store }: { store: EditorStore }) {
   const unitWeight = useStoreSelector(store, (s) => s.doc.water?.unit_weight);
   const points = useStoreSelector(store, (s) => s.doc.water?.piezometric_line ?? null);
   const units = useStoreSelector(store, (s) => s.doc.units);
+  // E15l-18: el agua de la grieta (`water_fill > 0`) también usa γw.
+  const crackFill = useStoreSelector(store, (s) => s.doc.analysis.tension_crack?.water_fill ?? 0);
   const selection = useStoreSelector(store, (s) => s.ui.selection);
   const u = unitLabels(units);
 
@@ -60,7 +62,7 @@ export function WaterPanel({ store }: { store: EditorStore }) {
     <PanelSection title="Agua">
       <p className="muted small">
         Si la línea piezométrica queda sobre el terreno, el agua embalsada se carga automáticamente, con su peso y su empuje horizontal
-        (sin sismo). No hay nada que activar: se calcula con el peso unitario γw de este panel.
+        (sin sismo). No hay nada que activar: se calcula con el peso unitario γw de este panel, el mismo que usa el agua de la grieta de tracción.
       </p>
       <LabeledField
         label="Peso unitario del agua γw"
@@ -78,7 +80,14 @@ export function WaterPanel({ store }: { store: EditorStore }) {
       <h3>Línea piezométrica</h3>
       {points === null ? (
         <>
-          <p className="muted">Sin piezométrica: el análisis es seco (salvo ru).</p>
+          {crackFill > 0 ? (
+            <p className="muted">
+              Sin piezométrica no hay presión de poros por agua (salvo ru), pero el agua de la grieta de tracción sí pesa: su empuje usa el peso
+              unitario γw de este panel.
+            </p>
+          ) : (
+            <p className="muted">Sin piezométrica: el análisis es seco (salvo ru).</p>
+          )}
           <div className="ep-actions">
             <button type="button" disabled={created === null} onClick={() => created && createPiezo(created)}>
               Crear piezométrica
