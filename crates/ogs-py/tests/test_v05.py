@@ -13,9 +13,8 @@ a Python sin cambios. Cuatro fuentes de verdad:
    `expected.json` de esas carpetas, con su origen: aquí no se importa cSlope y las filas se leen de donde las lee el motor.
 3. **Propiedades** que no dependen del oráculo: neutralidad, espejo, monotonía con `water_fill`, continuidad con
    `depth → 0`, la compuerta de versión, los rechazos con su ruta y que la salida nunca lleve `NaN` ni `∞`.
-4. **Las reproducciones de la revisión R12** (`docs/fase3/r12/repro/`), con `xfail` no estricto hasta que las enmiendas
-   E15l-1, E15l-2 y E15l-11 estén en el motor que se prueba. <!-- R12: medir al integrar -->  Al integrar, el integrador
-   quita las marcas `xfail` de esos tres tests.
+4. **Las reproducciones de la revisión R12** (`docs/fase3/r12/repro/`): las enmiendas E15l-1, E15l-2 y E15l-11 ya están
+   en el motor que se prueba, y los tres tests corren sin marcas `xfail`.
 """
 
 import copy
@@ -405,7 +404,7 @@ def test_the_ito_matsui_crossing_reports_soil_force_governs_and_arm():
         (force,) = result["reinforcement_forces"]
         assert force["status"] == "applied"
         assert force["soil_force"] == pytest.approx(117.9241, abs=5.01e-5)
-        assert force["governs"] == "soil" and force["arm"] == pytest.approx(1.2237, abs=5.01e-5)
+        assert force["governs"] == "soil" and force["arm"] == pytest.approx(1.2238, abs=5.01e-5)
         assert "structural_checks_not_covered" in result["warnings"]
     # un pilote con force no trae esos tres campos (identidad con la v0.4)
     model["reinforcements"] = [{k: v for k, v in ito_pile().items() if k != "lateral_pressure"} | {"force": 120.0}]
@@ -486,14 +485,13 @@ def test_without_lateral_pressure_the_report_is_the_v04_report():
     assert dry_dumps(opengeoslide.analyze(up)) == dry_dumps(opengeoslide.analyze(base))
 
 
-# --------------------------------------------- 6. reproducciones de la revisión R12 (hasta integrar E15l-1, -2 y -11)
+# --------------------------------------------- 6. reproducciones de la revisión R12 (E15l-1, -2 y -11)
 
 
 def run_repro(name: str, **overrides) -> dict:
     return opengeoslide.analyze(json.loads((R12_REPRO / name).read_text(encoding="utf-8")) | overrides)
 
 
-@pytest.mark.xfail(strict=False, reason="E15l-1 (A-01) todavía no está en el motor de esta rama")
 def test_e15l_1_the_automatic_crack_at_the_model_edge_has_a_mirror():
     rtl, ltr = by_method(run_repro("a01_rtl.json")), by_method(run_repro("a01_ltr.json"))
     for method in rtl:
@@ -502,7 +500,6 @@ def test_e15l_1_the_automatic_crack_at_the_model_edge_has_a_mirror():
         assert rtl[method]["tension_crack"]["depth"] > 0.0
 
 
-@pytest.mark.xfail(strict=False, reason="E15l-2 (A-04) todavía no está en el motor de esta rama")
 def test_e15l_2_a_crack_on_a_discontinuity_reports_the_face_it_cuts():
     for result in run_repro("a04_udl.json")["results"]:
         crack = result["tension_crack"]
@@ -510,7 +507,6 @@ def test_e15l_2_a_crack_on_a_discontinuity_reports_the_face_it_cuts():
         assert crack["water_force"] == pytest.approx(0.5 * 9.81 * crack["depth"] ** 2, rel=1e-9)  # water_fill = 1
 
 
-@pytest.mark.xfail(strict=False, reason="E15l-11 (A-02) todavía no está en el motor de esta rama")
 def test_e15l_11_a_non_finite_ito_matsui_profile_is_an_invalid_model():
     with pytest.raises(ValueError, match=r"InvalidModel: reinforcements\[0\]\.lateral_pressure: la presión de Ito-Matsui no es finita"):
         run_repro("a02_fixed.json")

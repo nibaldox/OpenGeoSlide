@@ -80,9 +80,12 @@ grieta **seca** puede subir el FS (la masa que se quita empujaba); con agua, el 
 
 Si la profundidad automática salta por una carga ``udl`` o por un cambio lateral de material, el motor informa y usa la
 profundidad de la cara realmente cortada, ``terreno(x) − base(x)``, y no la de Rankine; si esa cara no pasa de la
-tolerancia, no hay grieta (``depth`` 0). <!-- R12: medir al integrar --> Una búsqueda en la que todos los candidatos
-fallan por la grieta termina en ``ValueError("NoValidSurface: ... (E evaluadas, 0 válidas; K no alcanzan la grieta de
-tracción, tension_crack_not_reached)")``. <!-- R12: medir al integrar -->
+tolerancia, no hay grieta (``depth`` 0). Medido con una ``udl`` de 100 kN/m sobre la cresta (talud de 10 m, c = 20,
+φ = 10°, círculo fijo, ``docs/fase3/r12/repro/a04_udl.json``), Bishop da ``depth`` 1,7827 m y ``water_force`` 15,5885 kN/m,
+con FS 1,095348; antes de esta regla, ``depth`` y ``water_force`` valían 0 y el FS era 1,102248. Una búsqueda en la que
+todos los candidatos fallan por la grieta termina en ``ValueError("NoValidSurface: ... (E evaluadas, 0 válidas; K no
+alcanzan la grieta de tracción, tension_crack_not_reached)")``; por ejemplo, con ``depth`` 40 m en el talud de
+``a01_ltr.json``: ``(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta de tracción, tension_crack_not_reached)``.
 
 **Agua embalsada** (todas las versiones, sin campo). Si la piezométrica (``water.piezometric_line``) pasa **sobre el
 terreno**, el agua libre entre la piezométrica y el terreno carga las dovelas con su peso (vertical) y su empuje
@@ -95,7 +98,9 @@ marcaba con ``water_above_ground``, da otro FS a propósito (V047a con 2 m de ag
 sin agua sobre el terreno y sin ``tension_crack`` da la misma salida, byte a byte, que la v0.3.0. ``water_above_ground``
 queda como **nota informativa**. El peso unitario del agua es ``water.unit_weight``; si falta, vale 9,81 kN/m³ en SI y,
 en imperial, el resultado de convertir ese valor (alrededor de 62,45 pcf), y rige para la piezométrica, el agua embalsada
-y el agua de la grieta. <!-- R12: medir al integrar -->
+y el agua de la grieta. Medido: una grieta de 2 m con agua y sin bloque ``water``, convertida de SI a imperial, da con
+Bishop el mismo FS que en SI (1,69865) y ``Pw`` = 1344,40 lbf/ft (γw = 62,449 pcf); antes daba 1,71248 y 211,19 lbf/ft, con
+γw = 9,81 «pcf».
 
 **Pilote de Ito-Matsui** (``reinforcements[i].lateral_pressure``, en un ``pile``). En lugar de una ``force`` dada, el motor
 calcula la fuerza que el suelo **entre pilotes** ejerce sobre una fila de pilotes **rígidos y verticales**, según Ito y
@@ -110,7 +115,11 @@ aviso ``ito_matsui_spacing_range`` sale con S/D < 2 o S/D > 8, donde la fórmula
 es finito (S/D cerca de 1 con φ alto), el motor rechaza el modelo con ``ValueError("InvalidModel:
 reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita ...")`` y nunca devuelve ``NaN`` ni ``∞``. En un
 material con ``ru``, la tensión efectiva vertical es ``σ′v = σv − ru·σ_suelo``, sin restar la ``u`` de la piezométrica.
-<!-- R12: medir al integrar -->
+Medido: con φ = 35°, S/D = 1,00125 y ``capacity``, el modelo de ``a02_fixed.json`` da ``InvalidModel: ... la presión de
+Ito-Matsui no es finita con S/D = 1.00125 y φ = 35° ...`` (antes, Bishop daba ``invalid`` y los otros tres métodos
+``not_converged``); la fila X22-S16, con ``ru`` y piezométrica, queda a 0,026 % o menos de cSlope en los cinco métodos (antes,
+de −1,88 % a −1,97 %); y con la cabeza a 0,0124 m sobre el cruce, ``arm`` vale 0,006182 m y gobierna ``bending`` (antes, 0 y
+``soil``).
 
 **Límite estructural.** Con un ``pile`` o una ``sheet_pile`` con ``force``, OpenGeoSlide calcula la estabilidad **global**
 con el elemento incluido como una fuerza dada y **no** calcula el empuje sobre él. Con ``lateral_pressure`` el motor estima
