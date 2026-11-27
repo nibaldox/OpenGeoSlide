@@ -614,10 +614,55 @@ impl PreparedModel {
         best
     }
 
+    /// Upper envelope (terrain) at `x` **seen from the side** `side` (E15n-1): the limit of the ground when the abscissa
+    /// approaches `x` from `x + side·0⁺` (`side > 0`: from the right; `side < 0`: from the left). On a vertical step of
+    /// the ground it is the ground of that side, never the closed envelope of [`PreparedModel::top_at`] (which takes the
+    /// highest of both). Away from a step it is `top_at(x)`. At the end of the model on the side of the limit (nothing
+    /// beyond), it falls back to `top_at(x)`.
+    pub(crate) fn top_toward(&self, x: f64, side: f64) -> Option<f64> {
+        if x.is_nan() {
+            return None;
+        }
+        let mut best = None;
+        for [a, b] in &self.edges {
+            if a[0] == b[0] {
+                continue;
+            }
+            let (x0, x1) = if a[0] <= b[0] {
+                (a[0], b[0])
+            } else {
+                (b[0], a[0])
+            };
+            let covers = if side >= 0.0 {
+                x0 <= x && x < x1
+            } else {
+                x0 < x && x <= x1
+            };
+            if covers {
+                let y = a[1] + (x - a[0]) * (b[1] - a[1]) / (b[0] - a[0]);
+                best = pick(best, y, true);
+            }
+        }
+        best.or_else(|| self.top_at(x))
+    }
+
     /// Soil intervals `(lo, hi, material)` on the vertical line at `x`, per region.
     /// `x` must not coincide with a vertex abscissa; slice midpoints never do.
     /// Buffers are reused between calls to avoid allocation.
     pub(crate) fn column(&self, x: f64, out: &mut Vec<(f64, f64, usize)>, scratch: &mut Vec<f64>) {
+        self.column_toward(x, 1.0, out, scratch);
+    }
+
+    /// [`PreparedModel::column`] seen from the side `side` (E15n-1): the regions that cover `x + side·0⁺`. With
+    /// `side > 0` the rule is the half-open `[x0, x1)` of `column`; with `side < 0` it is `(x0, x1]`, so that at a
+    /// vertical step or a vertical boundary between materials the column is that of the chosen side.
+    pub(crate) fn column_toward(
+        &self,
+        x: f64,
+        side: f64,
+        out: &mut Vec<(f64, f64, usize)>,
+        scratch: &mut Vec<f64>,
+    ) {
         out.clear();
         for region in &self.regions {
             scratch.clear();
@@ -631,7 +676,12 @@ impl PreparedModel {
                 } else {
                     (b[0], a[0])
                 };
-                if x < x0 || x >= x1 {
+                let outside = if side >= 0.0 {
+                    x < x0 || x >= x1
+                } else {
+                    x <= x0 || x > x1
+                };
+                if outside {
                     continue;
                 }
                 scratch.push(a[1] + (x - a[0]) * (b[1] - a[1]) / (b[0] - a[0]));

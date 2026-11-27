@@ -1579,15 +1579,17 @@ fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfi
         capacity: pile.capacity,
         non_finite_phi,
     };
-    // E15m-7: a profile whose nodes are finite can still give a force, an arm or an `available` that are not finite at
-    // a crossing (the force per pile divided by `spacing`, the arm of the resultant). The force of a crossing is
+    // E15m-7, E15n-2: a profile whose nodes are finite can still give a force, an arm or an `available` that are not
+    // finite at a crossing (the force per pile divided by `spacing`, the soil force per pile divided by `spacing`, which
+    // is the `soil_force` that is serialized, the arm of the resultant). The force of a crossing is
     // bounded by its values at the nodes, so they are tried here and the error of E15l-11 is raised before solving.
     if profile.non_finite_phi.is_none() {
         let tried = (1..profile.z.len()).find(|&k| {
             let force = profile.force_at_depth(profile.z[k]);
             !(force.soil_per_pile.is_finite()
                 && force.arm.is_finite()
-                && (force.per_pile / spacing).is_finite())
+                && (force.per_pile / spacing).is_finite()
+                && (force.soil_per_pile / spacing).is_finite())
         });
         if let Some(k) = tried {
             profile.non_finite_phi = Some(phi_at_node(

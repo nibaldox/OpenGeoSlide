@@ -496,6 +496,11 @@ fn analyze_method(
                 slices: Vec::new(),
                 search,
                 warnings: std::iter::once(reason.to_string())
+                    // E15n-3: the note of the model (declarative, as in the main path) is not lost on the early return.
+                    .chain(
+                        uses_default_water_unit_weight(model)
+                            .then(|| model::WATER_UNIT_WEIGHT_DEFAULT.to_string()),
+                    )
                     .chain(
                         model
                             .reinforcements
