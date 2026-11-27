@@ -1226,9 +1226,10 @@ pub const ITO_MATSUI_SD_RANGE: (f64, f64) = (2.0, 8.0);
 const PRESSURE_STEP_M: f64 = 0.05;
 
 /// The step of the grid of the profile of pressure in the length unit of the model (`units`): 0.05 m, or 0.05 m in
-/// feet (`0.164 ft`) with `"imperial"` (E15i-3).
+/// feet (`0.164 ft`) in an imperial model (E15i-3, E15m-8).
 pub fn pressure_step(units: Option<&str>) -> f64 {
-    if units.is_some_and(|u| u.eq_ignore_ascii_case("imperial")) {
+    // E15m-8: the same detection as the default `γw` (`is_imperial_units`: `"imp"`, case and leading spaces).
+    if crate::model::is_imperial_units(units) {
         PRESSURE_STEP_M / 0.3048
     } else {
         PRESSURE_STEP_M

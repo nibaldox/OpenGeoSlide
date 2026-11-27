@@ -396,3 +396,39 @@ fn e15m4_a_piezometric_peak_between_two_steps_is_swept() {
         assert!((fa - fb).abs() < 5e-3 * fa, "FS {fa} vs {fb}");
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-8 (A-07)
+
+/// A pile of Ito-Matsui in a model whose `units` is the given label (the numbers are the same).
+fn ito_units(label: &str) -> Value {
+    let mut doc = data("a01_arm_null");
+    doc["units"] = json!(label);
+    doc["reinforcements"][0]["spacing"] = json!(3.0);
+    doc["reinforcements"][0]["y2"] = json!(0.0);
+    doc["reinforcements"][0]["capacity"] = json!({"shear": 400.0, "moment": 900.0});
+    doc
+}
+
+/// `"imp"` and `" IMPERIAL "` are imperial for the grid of the pressure too: the result is that of `"imperial"` (before:
+/// the grid was 0.05 for them and 0.16404 for `"imperial"`, 8e-4 apart in Bishop).
+#[test]
+fn e15m8_imperial_labels_use_the_same_pressure_grid() {
+    let reference = run(&ito_units("imperial"));
+    for label in ["imp", " IMPERIAL ", "Imp."] {
+        let report = run(&ito_units(label));
+        for i in 0..reference.results.len() {
+            let (a, b) = (
+                report.results[i].fos.unwrap(),
+                reference.results[i].fos.unwrap(),
+            );
+            assert!((a - b).abs() <= 1e-12, "{label}, method {i}: {a} vs {b}");
+            for (f, g) in report.results[i]
+                .reinforcement_forces
+                .iter()
+                .zip(&reference.results[i].reinforcement_forces)
+            {
+                assert!((f.available - g.available).abs() <= 1e-12 * g.available.abs().max(1.0));
+            }
+        }
+    }
+}
