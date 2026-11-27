@@ -5,6 +5,7 @@ import { forceUnit } from '../editor/canvas/reinforcements';
 import type { ModelDoc } from '../editor/types';
 import type { CrackReport, MethodKind, MethodReport, TensionCrack } from '../engine/types';
 import { lengthUnitOf } from '../editor/canvas/layout';
+import { POND_CHANGED_TEXT } from '../io/ogsJson';
 import { pondMaxDepth, pondPolygons } from '../render/pond';
 
 /** Nota del agua embalsada (F5.3), igual a la del código `water_above_ground` del motor: el informe y la Ayuda dicen lo mismo. */
@@ -15,6 +16,7 @@ export const POND_CONVENTIONS: readonly string[] = [
   'Agua embalsada: es la región entre la piezométrica y el terreno donde la piezométrica queda sobre el terreno, en todo el modelo. Se carga sola, sin ningún campo: pesa sobre la dovela y empuja con la presión horizontal sobre el paramento.',
   'El sismo pseudoestático no actúa sobre el agua: ni kh ni kv se aplican al agua embalsada ni al agua de la grieta.',
   'Un material con ru reemplaza a la piezométrica en la presión de poros, con u = ru·(W + V)/b: W es el peso del suelo de la dovela y V el del agua embalsada que tiene encima, sin cargas externas ni sismo. Es la regla de Slide2 y la conservadora (de 1 a 4,5 % menos de FS que contar solo el suelo). No se pudo comparar con un oráculo externo.',
+  POND_CHANGED_TEXT, // E15l-19: la misma frase que la nota al abrir el modelo
 ];
 
 /** Fuerza del agua en la grieta (F5.4, G3): la nota breve de la tabla de resultados. */
@@ -31,6 +33,14 @@ export const CRACK_CONVENTIONS: readonly string[] = [
 ];
 
 const DASH = '—';
+
+/** Texto de una grieta que el motor informa con `depth = 0` (E15j-3, E15l-15): no se cortó ninguna grieta. */
+export const NO_CRACK_TEXT = 'Sin grieta (z = 0)';
+
+/** ¿El motor informó «sin grieta»? Profundidad no positiva (o no finita): la superficie no tiene grieta aunque el modelo la pida. */
+export function isNoCrack(c: { depth: number } | null | undefined): boolean {
+  return !!c && !(c.depth > 0);
+}
 
 /** Número con coma decimal y hasta `digits` decimales, sin ceros de relleno: «2,4». */
 function num(n: number | null | undefined, digits = 3): string {
@@ -90,7 +100,12 @@ export function crackTable(records: readonly CrackRecord[], units: string | null
   const u = crackUnits(units);
   return {
     header: ['Método', `x_c (${u.length})`, `Profundidad (${u.length})`, 'Agua en la grieta', `Pw (${u.line})`],
-    rows: records.map((r) => [METHOD_NAME[r.method], num(r.x), num(r.depth), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)]),
+    // E15l-15: con `depth ≤ 0` no hay grieta: ni x_c, ni porcentaje de agua, ni Pw.
+    rows: records.map((r) =>
+      isNoCrack(r)
+        ? [METHOD_NAME[r.method], DASH, NO_CRACK_TEXT, DASH, DASH]
+        : [METHOD_NAME[r.method], num(r.x), num(r.depth), waterFill === null || waterFill === undefined ? DASH : waterFillText(waterFill), num(r.force)],
+    ),
   };
 }
 

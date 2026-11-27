@@ -30,13 +30,13 @@ describe('R9-03c: γw del informe', () => {
       expect(JSON.stringify(c)).not.toContain('9,81 pcf');
     }
   });
-  it('con piezométrica: el valor o, si falta, el por defecto en SI y «no indicado» en imperial', () => {
+  it('con piezométrica: el valor o, si falta, el por defecto de cada sistema (E15l-6: 62,45 pcf en imperial)', () => {
     const doc = loadCaseDoc('V047a');
     doc.water = { unit_weight: 62.4, piezometric_line: [[0, 5], [80, 6]] };
     expect(waterUnitWeightText({ ...doc, units: 'imperial' }, 'pcf')).toBe('62,4 pcf');
     doc.water = { piezometric_line: [[0, 5], [80, 6]] };
     expect(waterUnitWeightText({ ...doc, units: 'SI' }, 'kN/m³')).toBe('9,81 kN/m³ (por defecto)');
-    expect(waterUnitWeightText({ ...doc, units: 'Imperial' }, 'pcf')).toContain('no indicado');
+    expect(waterUnitWeightText({ ...doc, units: 'Imperial' }, 'pcf')).toBe('62,45 pcf (por defecto)'); // antes «no indicado»; E15l-6/E15l-14
     expect(waterUnitWeightText({ ...doc, units: 'Imperial' }, 'pcf')).not.toContain('9,81 pcf');
   });
 });

@@ -1,5 +1,5 @@
 import type { AnalysisReport, TensionCrack } from '../engine/types';
-import { CRACK_PW_NOTE, crackRecords, crackTable, crackUnits, waterFillText } from '../report/crackReport';
+import { CRACK_PW_NOTE, NO_CRACK_TEXT, crackRecords, crackTable, crackUnits, isNoCrack, waterFillText } from '../report/crackReport';
 import { METHOD_LABELS } from './methodLabels';
 
 const fmt = (v: number, digits = 2): string => new Intl.NumberFormat('es', { minimumFractionDigits: 0, maximumFractionDigits: digits }).format(v);
@@ -58,8 +58,15 @@ export function CrackSummary({ report, tensionCrack, units }: { report: Analysis
       <ul className="small">
         {records.map((r) => (
           <li key={r.method}>
-            <span className="muted">{METHOD_LABELS[r.method]}:</span> x_c = {fmt(r.x)} {u.length}, profundidad = {fmt(r.depth)} {u.length}, Pw = {fmt(r.force)} {u.line}
-            {tensionCrack ? ` (agua en la grieta: ${waterFillText(tensionCrack.water_fill)})` : ''}
+            <span className="muted">{METHOD_LABELS[r.method]}:</span>{' '}
+            {isNoCrack(r) ? (
+              NO_CRACK_TEXT
+            ) : (
+              <>
+                x_c = {fmt(r.x)} {u.length}, profundidad = {fmt(r.depth)} {u.length}, Pw = {fmt(r.force)} {u.line}
+                {tensionCrack ? ` (agua en la grieta: ${waterFillText(tensionCrack.water_fill)})` : ''}
+              </>
+            )}
           </li>
         ))}
       </ul>

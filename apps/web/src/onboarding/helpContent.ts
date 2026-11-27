@@ -3,6 +3,7 @@
 // entrada contra el código que realmente atiende la tecla (`shortcutFor` y `keyActions`), de modo que si un atajo cambia, la prueba falla.
 
 import type { ShortcutAction } from '../editor/app/shortcuts';
+import { POND_CHANGED_TEXT } from '../io/ogsJson';
 import { CRACK_PW_NOTE, POND_NOTE } from '../report/crackReport';
 import { ITO_MATSUI_STRUCTURAL_LIMIT_TEXT, STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
@@ -136,7 +137,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'ru',
     term: 'ru (coeficiente de presión de poros)',
     definition:
-      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1). Si un material tiene ru y el modelo también tiene línea piezométrica, en ese material manda ru y la piezométrica no se usa. Con agua embalsada sobre el terreno, la presión de poros es u = ru · (W + V)/b, con W el peso del suelo de la dovela y V el peso del agua embalsada que tiene encima (sin cargas externas ni sismo): es la regla de Slide2 y la conservadora, y da entre 1 % y 4,5 % menos de FS que contar solo el suelo.',
+      'Relación entre la presión de poros en la base de una dovela y el esfuerzo vertical total sobre ella: u = ru · γ · h. Es una forma sencilla de incluir el agua en un material sin dibujar la línea piezométrica. Va entre 0 y 1 (sin incluir 1). Si un material tiene ru y el modelo también tiene línea piezométrica, en ese material manda ru en la presión de poros (no la de la piezométrica), pero la piezométrica sigue definiendo dónde rige γsat y aporta el agua embalsada sobre el terreno, con su peso y su empuje. Con agua embalsada sobre el terreno, la presión de poros es u = ru · (W + V)/b, con W el peso del suelo de la dovela y V el peso del agua embalsada que tiene encima (sin cargas externas ni sismo): es la regla de Slide2 y la conservadora, y da entre 1 % y 4,5 % menos de FS que contar solo el suelo.',
   },
   {
     id: 'piezometric',
@@ -148,7 +149,7 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     id: 'ponded-water',
     term: 'Agua embalsada',
     definition:
-      `Agua libre sobre el terreno (un embalse al pie del talud o contra una cara de presa): es la región entre la línea piezométrica y el terreno donde la piezométrica queda sobre el terreno. No tiene campo propio: se carga sola, en todo el modelo, con la línea piezométrica y en todas las versiones del formato. Pesa sobre las dovelas que cubre y empuja con su presión horizontal (en una cara vertical, el empuje hidrostático sobre ella). ${POND_NOTE} El sismo pseudoestático no actúa sobre el agua embalsada: ni kh ni kv. Con un material con ru, el agua embalsada entra en u = ru · (W + V)/b (ver «ru»). El lienzo la dibuja como un relleno azul bajo la línea piezométrica.`,
+      `Agua libre sobre el terreno (un embalse al pie del talud o contra una cara de presa): es la región entre la línea piezométrica y el terreno donde la piezométrica queda sobre el terreno. No tiene campo propio: se carga sola, en todo el modelo, con la línea piezométrica y en todas las versiones del formato. Pesa sobre las dovelas que cubre y empuja con su presión horizontal (en una cara vertical, el empuje hidrostático sobre ella). ${POND_NOTE} El sismo pseudoestático no actúa sobre el agua embalsada: ni kh ni kv. Con un material con ru, el agua embalsada entra en u = ru · (W + V)/b (ver «ru»). El lienzo la dibuja como un relleno azul bajo la línea piezométrica. ${POND_CHANGED_TEXT}`,
   },
   {
     id: 'tension-crack',
@@ -247,7 +248,7 @@ export const LIMITATIONS: readonly string[] = [
   'Cambiar el sistema de unidades (SI o imperial) ofrece convertir los valores del modelo (el factor de seguridad no cambia) o cambiar solo la etiqueta. El motor nunca convierte: interpreta los números en las unidades declaradas, y con piezométrica en imperial el peso del agua debe ser explícito (62,4 pcf).',
   'Una carga puntual o lineal puede generar círculos diminutos con FS muy bajo bajo ella; fije un «ancho mínimo» de búsqueda y revise aparte la capacidad de soporte local.',
   'El peso unitario saturado bajo la piezométrica se verifica con cuatro casos publicados (V082a, V082b, V088 y V089); un γsat menor que γ lleva una nota en Diagnósticos.',
-  'Si un material tiene ru y el modelo tiene línea piezométrica, el cálculo usa ru en ese material y no la piezométrica (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
+  'Si un material tiene ru y el modelo tiene línea piezométrica, en ese material la presión de poros sale de ru y no de la piezométrica, que sigue definiendo dónde rige γsat y el agua embalsada con su peso y su empuje (aviso en Diagnósticos). Una piezométrica que no cubre todo el ancho del modelo se prolonga en horizontal hasta los bordes (aviso).',
   'Agua embalsada: se incluye siempre que la línea piezométrica pase sobre el terreno (nota water_above_ground), con su peso y su empuje horizontal; no hay interruptor. El sismo pseudoestático no actúa sobre ella ni sobre el agua de la grieta. Con un material con ru, la presión de poros es u = ru·(W + V)/b, que da entre 1 % y 4,5 % menos de FS que contar solo el suelo; esa regla no se pudo contrastar con otro programa.',
   'Grieta de tracción: la profundidad «Automática» no tiene tope por la altura del talud, y con la fracción de agua 1 (la que propone la interfaz) el resultado es el conservador. La monotonía con la profundidad de una grieta seca no está garantizada, porque el bloque que se quita cambia con ella. Con una búsqueda, los círculos que no alcanzan la grieta se descartan; los refuerzos que cruzan la superficie del lado de la cresta de x_c quedan fuera de la masa (nota reinforcement_outside_mass).',
   'Convenciones de signo: kh positivo va en el sentido del deslizamiento y kv positivo hacia abajo, ambos solo sobre el peso del suelo; el ángulo de la carga lineal se mide desde la vertical, positivo hacia +x. El informe PDF las repite.',

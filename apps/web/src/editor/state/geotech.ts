@@ -113,8 +113,9 @@ export function geotechAdvisories(doc: ModelDoc): GeotechAdvisory[] {
         code: 'editor.ru_over_piezo',
         text:
           `El modelo tiene línea piezométrica y, a la vez, ru en ${withRu.length === 1 ? 'el material' : 'los materiales'} ${names}. ` +
-          `En ${withRu.length === 1 ? 'ese material' : 'esos materiales'} el cálculo usa ru y no usa la piezométrica: ru tiene precedencia. ` +
-          'Quite ru para que actúe la piezométrica.',
+          `En ${withRu.length === 1 ? 'ese material' : 'esos materiales'} la presión de poros sale de ru y no de la piezométrica: ru tiene precedencia. ` +
+          'La piezométrica sigue actuando: con γsat, define dónde rige γsat (en el peso y en σv, bajo la línea) y, si queda sobre el terreno, ' +
+          'aporta el agua embalsada con su peso y su empuje. Quite ru si quiere que la piezométrica fije también la presión de poros.',
         path: `/materials/${(withRu[0] as { i: number }).i}/ru`,
       });
     }

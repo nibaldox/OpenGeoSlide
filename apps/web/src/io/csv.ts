@@ -7,7 +7,7 @@
 import { parse, unparse } from 'papaparse';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { analyzedPolyline, methodDetails } from '../report/methodInfo';
-import { crackCsvHeader } from '../report/crackReport';
+import { NO_CRACK_TEXT, crackCsvHeader, isNoCrack } from '../report/crackReport';
 import { csvRowNote, hasItoMatsui, mobilizedForce, type ForceRecord } from '../report/reinforcementReport';
 import type { MethodReport, Point } from '../engine/types';
 import { isImperialUnits } from '../editor/state/units';
@@ -272,6 +272,13 @@ function intersliceCell(r: MethodReport, comma: boolean): string | null {
   return spec.points.map(([xi, f]) => `${formatNumber(xi, comma)}:${formatNumber(f, comma)}`).join(INTERSLICE_PAIR_SEPARATOR);
 }
 
+/** Celdas de la grieta: `x_c`, profundidad y Pw; con `depth ≤ 0` («sin grieta», E15l-15) solo el texto en la profundidad. */
+function crackCsvCells(r: MethodReport): CsvCell[] {
+  const c = r.tension_crack;
+  if (c && isNoCrack(c)) return [null, NO_CRACK_TEXT, null];
+  return [c?.x ?? null, c?.depth ?? null, c?.water_force ?? null];
+}
+
 /**
  * Tabla de FS por método. El FS y `lambda` solo se escriben si el método convergió; `avisos` lleva los códigos del
  * motor separados por `|` (el texto pasa por `toCsv`, que protege contra fórmulas). Las columnas con dimensión llevan
@@ -308,7 +315,7 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       ...(withFunction ? [r.interslice?.function ?? null] : []),
       ...(withPoints ? [intersliceCell(r, decimalComma)] : []),
       ...(withF0 ? [methodDetails(r).f0 ?? null] : []),
-      ...(withCrack ? [r.tension_crack?.x ?? null, r.tension_crack?.depth ?? null, r.tension_crack?.water_force ?? null] : []),
+      ...(withCrack ? crackCsvCells(r) : []),
     ];
   });
   const header = [

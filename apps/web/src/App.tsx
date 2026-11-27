@@ -42,14 +42,17 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function describeAnalysis(model: Model): string {
+export function describeAnalysis(model: Model): string {
   const parts: string[] = [];
   if (model.analysis.search) parts.push('búsqueda de superficie crítica');
   else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
   parts.push(`${model.materials.length} material(es)`);
   parts.push(`${model.regions.length} región(es)`);
+  // E15l-18: el agua de la grieta (`water_fill > 0`) también es agua.
+  const crackWater = (model.analysis.tension_crack?.water_fill ?? 0) > 0;
   if (model.water?.piezometric_line?.length) parts.push('con piezométrica');
-  else parts.push('sin agua');
+  if (crackWater) parts.push('con agua en la grieta');
+  if (!model.water?.piezometric_line?.length && !crackWater) parts.push('sin agua');
   return parts.join(' · ');
 }
 

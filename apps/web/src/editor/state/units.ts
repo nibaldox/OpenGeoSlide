@@ -10,8 +10,8 @@
 // Resultan 1 m = 3,280840 ft · 1 kN/m³ = 6,365880 pcf · 1 kPa = 20,885434 psf · 1 kN/m = 68,521766 lbf/ft · 1 kN = 224,808943 lbf.
 //
 // γw: el agua es 9,81 kN/m³ en SI y, convertida con estos factores, 62,4493 pcf (se muestra 62,45). No se redondea a 62,4 al
-// convertir: ese redondeo cambia el FS en la 6.ª cifra. Con piezométrica, el γw (explícito o el 9,81 por defecto) se escribe
-// siempre explícito al pasar a imperial, porque el motor usaría 9,81 «pcf» si faltara.
+// convertir: ese redondeo cambia el FS en la 6.ª cifra. Siempre que el modelo usa el agua (piezométrica o grieta con `water_fill > 0`,
+// E15l-14), el γw (explícito o el 9,81 por defecto) se escribe explícito al pasar a imperial, aunque no exista `water`.
 
 import type { Load, Material, PileCapacity, PileReinforcement, Point, Pullout, Reinforcement, SearchSpec, SurfaceSpec, Water } from '../../engine/types';
 import type { ModelDoc } from '../types';
@@ -41,7 +41,7 @@ export const UNIT_FACTORS = {
 } as const;
 
 /** γw por defecto del motor, en kN/m³. */
-const WATER_UNIT_WEIGHT_SI = 9.81;
+export const WATER_UNIT_WEIGHT_SI = 9.81;
 
 /**
  * ¿La etiqueta `units` del modelo es imperial? Única detección de la aplicación (R9-03b): no distingue mayúsculas ni espacios
@@ -104,15 +104,21 @@ export function convertDocUnits(doc: ModelDoc, to: UnitSystem): ModelDoc {
     return out;
   });
 
+  // E15l-14 (R12 B-01): el agua se usa con una piezométrica o con una grieta con `water_fill > 0`. En ese caso, al pasar a imperial el γw
+  // se escribe siempre (aunque falte `water`), porque el motor usaría 9,81 «pcf» (6,37 veces menor) si faltara.
+  const crackFill = doc.analysis.tension_crack?.water_fill;
+  const usesCrackWater = typeof crackFill === 'number' && crackFill > 0;
   let water: Water | null | undefined = doc.water;
   if (doc.water) {
     const w: Water = { ...doc.water };
     const hasPiezo = Array.isArray(w.piezometric_line) && w.piezometric_line.length >= 2;
     if (Array.isArray(w.piezometric_line)) w.piezometric_line = w.piezometric_line.map(pt);
     if (typeof w.unit_weight === 'number') w.unit_weight = k.unitWeight(w.unit_weight);
-    else if (to === 'imperial' && hasPiezo) w.unit_weight = k.unitWeight(WATER_UNIT_WEIGHT_SI); // 62,45 pcf, explícito
+    else if (to === 'imperial' && (hasPiezo || usesCrackWater)) w.unit_weight = k.unitWeight(WATER_UNIT_WEIGHT_SI); // 62,45 pcf, explícito
     // De imperial a SI sin γw explícito: el motor usa 9,81, que en SI es lo correcto.
     water = w;
+  } else if (to === 'imperial' && usesCrackWater) {
+    water = { unit_weight: k.unitWeight(WATER_UNIT_WEIGHT_SI) };
   }
 
   const loads = doc.loads?.map((l): Load => (l.type === 'udl' ? { ...l, x1: k.length(l.x1), x2: k.length(l.x2), q: k.stress(l.q) } : { ...l, x: k.length(l.x), p: k.lineForce(l.p) }));

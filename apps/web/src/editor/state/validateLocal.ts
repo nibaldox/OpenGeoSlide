@@ -275,6 +275,20 @@ function warning(code: Code, text: string, path: string | null): Issue {
   return { source: 'local', severity: 'aviso', code, text, path };
 }
 
+/** Texto de la nota de una grieta de profundidad fija con búsqueda (E15l-20, R12 A-13): la convención G9 descarta las superficies más someras. */
+export const CRACK_FIXED_SEARCH_TEXT = 'Una grieta de profundidad fija descarta las superficies más someras que su profundidad; compare con un análisis sin grieta.';
+
+/**
+ * Nota informativa `editor.crack_fixed_search` (E15l-20): grieta de profundidad fija (un número mayor que 0) y búsqueda de la superficie crítica.
+ * Solo se agrega si no existe ya una equivalente. No bloquea nada.
+ */
+function crackFixedSearchNote(doc: ModelDoc, existing: readonly Issue[]): Issue | null {
+  const crack = doc.analysis?.tension_crack;
+  if (!crack || !isNum(crack.depth) || !(crack.depth > 0) || !doc.analysis?.search) return null;
+  if (existing.some((i) => i.code === 'editor.crack_fixed_search' || i.text === CRACK_FIXED_SEARCH_TEXT)) return null;
+  return { source: 'local', severity: 'nota', code: 'editor.crack_fixed_search', text: CRACK_FIXED_SEARCH_TEXT, path: '/analysis/tension_crack/depth' };
+}
+
 function isNum(v: unknown): v is number {
   return isFiniteNumber(v);
 }
@@ -491,6 +505,20 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
     issues.push(error('editor.out_of_range', withValue(RULE_TEXT.waterUnitWeight, water.unit_weight), '/water/unit_weight'));
   }
   const line = water.piezometric_line;
+  // E15l-14: el agua de la grieta también usa γw. Sin piezométrica, un γw en kN/m³ en un modelo imperial es el mismo error de unidades.
+  const crackFill = doc.analysis.tension_crack?.water_fill;
+  const gwCrack = water.unit_weight;
+  if (
+    isImperialUnits(doc.units) &&
+    typeof crackFill === 'number' &&
+    crackFill > 0 &&
+    !(Array.isArray(line) && line.length >= 2) &&
+    isNum(gwCrack) &&
+    gwCrack > 0 &&
+    gwCrack < MIN_IMPERIAL_GAMMA_W
+  ) {
+    issues.push(error('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
+  }
   if (line === undefined || line === null) return;
   const base = '/water/piezometric_line';
   if (line.length < 2) {
@@ -1015,6 +1043,8 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   validateReinforcements(doc, tol, issues);
   validateAnalysis(doc, extent, tol, issues);
   for (const a of geotechAdvisories(doc)) issues.push(warning(a.code, a.text, a.path));
+  const crackNote = crackFixedSearchNote(doc, issues);
+  if (crackNote) issues.push(crackNote);
   return issues;
 }
 
