@@ -1,6 +1,6 @@
 // Entradas del informe y exportaciones CSV a partir del último cálculo. Lógica pura (sin React ni DOM).
 
-import { polylineSurfaceRows, reinforcementForcesToCsv, resultsToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
+import { polylineSurfaceRows, reinforcementForcesToCsv, resultsToCsv, slicesToCsv, surfaceToCsv, type CsvCell } from '../../io/csv';
 import { forceRecords } from '../../report/reinforcementReport';
 import { baseSurfacePoints, professionalDisclaimer } from '../../report/content';
 import type { ReportInput } from '../../report/types';
@@ -48,6 +48,10 @@ export function buildReportInput(run: EngineRun, now: Date = new Date()): Report
  */
 export function resultsCsv(report: AnalysisReport, units?: string | null): string {
   return resultsToCsv(report.results, { units });
+}
+
+export function slicesCsv(run: Pick<EngineRun, 'report' | 'doc'>): string {
+  return slicesToCsv(run.report.results, { units: run.doc.units, materials: run.doc.materials });
 }
 
 /**
