@@ -113,6 +113,20 @@ def test_f3b_verdicts():
     assert run.f3b_evaluate(case, 'bishop', 'fixed', _ogs(2.1), _cslope(2.0), None)[0] == 'FALLA'
 
 
+
+def test_f3b_malpha_explains_only_an_inadmissible_steep_circle():
+    steep = ['steep-entry-tension: The surface enters the slope at 87°']
+    invalid = {'fos': None, 'status': 'invalid', 'error': None, 'warnings': ['truncated_mass', 'm_alpha']}
+    assert run.f3b_malpha_explains(invalid, steep)
+    # cSlope without its own warning, ogs converging on the circle, another invalid reason or an ogs error: no
+    assert not run.f3b_malpha_explains(invalid, ['negative-effective-normal: 3 slices'])
+    assert not run.f3b_malpha_explains({**invalid, 'status': 'converged', 'fos': 0.5}, steep)
+    assert not run.f3b_malpha_explains({**invalid, 'warnings': ['no_driving']}, steep)
+    assert not run.f3b_malpha_explains({**invalid, 'error': 'exit 101'}, steep)
+    assert run.VERDICT_MALPHA in run.PASS_VERDICTS_F3B
+    rows = [{'verdict': run.VERDICT_MALPHA, 'kind': 'search'}, {'verdict': run.VERDICT_E16T, 'kind': 'fixed'}]
+    assert run.summarize_f3b(rows)['explicado'] == 2
+
 def test_f3b_block_is_skipped_without_the_option(monkeypatch):
     """The engine of B1 has no v0.6 physics: F3B runs only on request (B2 activates it)."""
     enabled = lambda *argv: run.f3b_enabled(run.parse_args(list(argv)))

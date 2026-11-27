@@ -866,7 +866,13 @@ F3B_DIR = os.path.join(HERE, "cases_f3b")
 HB_PRODUCT_MAX_REL = 0.001    # F6.8: producto contra el prototipo de la envolvente completa, ≤ 0,1 %
 VERDICT_F68 = "OK (F6.8: envolvente completa)"
 VERDICT_E16T = "explicado (E16t)"
-PASS_VERDICTS_F3B = PASS_VERDICTS + (VERDICT_F68, VERDICT_E16T)
+# Search where cSlope's critical circle is inadmissible for ogs (contract §4.2): some m_α < min_m_alpha gives `Invalid`
+# ("m_alpha"), while cSlope keeps it with its own `steep-entry-tension` warning (an unreliable FS, by cSlope's account).
+# ogs' minimum is then over a smaller admissible set and may be above cSlope's. Explained with the measured circle, not
+# relaxed: any other search above cSlope·1,01 stays a failure.
+VERDICT_MALPHA = "explicado (§4.2: m_α)"
+PASS_VERDICTS_F3B = PASS_VERDICTS + (VERDICT_F68, VERDICT_E16T, VERDICT_MALPHA)
+F3B_EXPLAINED_VERDICTS = (VERDICT_E16T, VERDICT_MALPHA)
 
 
 def f3b_reference(name: str) -> dict:
@@ -910,11 +916,47 @@ def f3b_evaluate(case: dict, method: str, kind: str, ogs: dict, cs: dict, proto:
                          f"{proto['product']:.6f} ({gap * 100:+.3f} %)")
 
 
+def f3b_malpha_explains(ogs_on_cslope_circle: dict, cslope_warnings: list[str]) -> bool:
+    """`True` when ogs declares cSlope's critical circle inadmissible by m_α (§4.2) and cSlope itself flags it with
+    `steep-entry-tension`: the search difference is the admissibility rule, not the physics (VERDICT_MALPHA)."""
+    return (ogs_on_cslope_circle.get("error") is None
+            and ogs_on_cslope_circle.get("status") == "invalid"
+            and "m_alpha" in (ogs_on_cslope_circle.get("warnings") or [])
+            and any(str(w).startswith("steep-entry-tension") for w in cslope_warnings or []))
+
+
+def f3b_search_explanation(cs_module, exe: str, case: dict, method: str) -> dict | None:
+    """For a failed F3B search: cSlope's critical circle, and ogs on that circle as a fixed surface."""
+    try:
+        conv = ogs_to_cslope(case["model"], {"method": method, "kind": "search"})
+        crit = (cs_module.analyse(conv.document) or {}).get("criticalSurface") or {}
+    except Exception as exc:  # the explanation is optional; the failure stands without it
+        return {"error": f"{type(exc).__name__}: {exc}"}
+    if crit.get("cx") is None or crit.get("radius") is None:
+        return None
+    circle = {"type": "circle", "xc": crit["cx"], "yc": crit["cy"], "r": crit["radius"]}
+    model = copy.deepcopy(case["model"])
+    model.setdefault("analysis", {})["surface"] = circle
+    ogs_fixed = run_ogs(exe, model, {"method": method, "kind": "fixed"}, OGS_TIMEOUT_S)
+    return {"cslope_circle": circle, "ogs_on_cslope_circle": {k: ogs_fixed[k] for k in ("fos", "status", "error",
+                                                                                       "warnings")}}
+
+
 def f3b_check(cs_module, exe: str, case: dict, method: str, kind: str, prototypes: dict) -> dict:
-    """Run one F3B differential check and re-judge it with `f3b_evaluate`."""
+    """Run one F3B differential check and re-judge it with `f3b_evaluate` (and `f3b_malpha_explains` on searches)."""
     row = run_check(cs_module, exe, case, method, kind)
     proto = prototypes.get((case["id"], method, kind))
     row["verdict"], row["reason"] = f3b_evaluate(case, method, kind, row["ogs"], row["cslope"], proto)
+    if kind == "search" and row["verdict"] == "FALLA" and row["ogs"]["fos"] is not None:
+        explanation = f3b_search_explanation(cs_module, exe, case, method)
+        if explanation:
+            row["explanation"] = explanation
+            if f3b_malpha_explains(explanation.get("ogs_on_cslope_circle") or {}, row["cslope"]["warnings"]):
+                c = explanation["cslope_circle"]
+                row["verdict"] = VERDICT_MALPHA
+                row["reason"] = (f"{row['reason']}; el círculo crítico de cSlope (xc {c['xc']:.4f}, yc {c['yc']:.4f}, "
+                                 f"r {c['r']:.4f}) es inadmisible en ogs por m_α < min_m_alpha (§4.2) y cSlope lo marca "
+                                 f"con steep-entry-tension; no se relaja el criterio")
     if proto and proto.get("product") is not None:
         row["prototype"] = {"fos": proto["product"], "compat": proto.get("compat"),
                             "source": "F6.8, X28_proto (regla cut), cases_f3b/prototype.json"}
@@ -924,7 +966,7 @@ def f3b_check(cs_module, exe: str, case: dict, method: str, kind: str, prototype
 def summarize_f3b(rows: list[dict]) -> dict:
     """OK counts the plain matches and the F6.8 ones; E16t rows are explained, not matched against cSlope."""
     out = {"OK": sum(1 for r in rows if r["verdict"] in PASS_VERDICTS + (VERDICT_F68,)),
-           "explicado": sum(1 for r in rows if r["verdict"] == VERDICT_E16T),
+           "explicado": sum(1 for r in rows if r["verdict"] in F3B_EXPLAINED_VERDICTS),
            "FALLA": sum(1 for r in rows if r["verdict"] == "FALLA"),
            "sin dato": sum(1 for r in rows if r["verdict"] == "sin dato"), "N": len(rows)}
     for kind in KINDS:
@@ -1120,9 +1162,9 @@ def main(argv: list[str] | None = None) -> int:
     if f3b_cases:
         with open(os.path.join(args.out, "REPORT.md"), "a", encoding="utf-8") as fh:
             fh.write("\n## F3B: Hoek-Brown, SHANSEP y búsqueda no circular\n\n")
-            summary = summarize_f3b(f3b_rows)
-            fh.write(f"**OK {summary['OK']}/{summary['N']}** · explicado {summary['explicado']} · "
-                     f"FALLA {summary['FALLA']} · sin dato {summary['sin dato']}\n\n")
+            f3b_summary = summarize_f3b(f3b_rows)
+            fh.write(f"**OK {f3b_summary['OK']}/{f3b_summary['N']}** · explicado {f3b_summary['explicado']} · "
+                     f"FALLA {f3b_summary['FALLA']} · sin dato {f3b_summary['sin dato']}\n\n")
             fh.write("| Caso | Método | Tipo | OGS | cSlope | Prototipo F6.8 | Veredicto | Motivo |\n"
                      "|---|---|---|---:|---:|---:|---|---|\n")
             for row in f3b_rows:

@@ -129,6 +129,11 @@ oráculo y los veredictos.
 - **SB con Spencer en su círculo fijo (E16t).** Con la regla de cSlope no hay raíz de λ (`not_converged`, minFOS 2,1079 que no es una
   raíz): `oracle.json` lo guarda en `no_solution` y el check de HB-02 es `explicado (E16t)`: se informa la cifra de ogs frente al
   prototipo de la envolvente completa (2,094657) sin gate, como pide F6.8. No es referencia.
+- **Búsqueda con el círculo de cSlope inadmisible por m_α (§4.2).** Si una búsqueda de ogs queda sobre `cSlope·1,01`, `run.py`
+  vuelve a evaluar el círculo crítico de cSlope en ogs como superficie fija. Si ogs lo declara `invalid` con `m_alpha`
+  (`min_m_alpha`, §4.2 de `00_CONTRATOS.md`) y cSlope lo marca con `steep-entry-tension`, el veredicto es
+  `explicado (§4.2: m_α)`. El círculo queda en `explanation`. En cualquier otro caso sigue siendo `FALLA`.
+  - Caso medido: HB-06 con Bishop. ogs da 0,5373 y cSlope 0,5279. El círculo de cSlope entra a 87° por el banco de 70°.
 - **Hoek-Brown en círculo fijo (F6.8).** cSlope toma la tangente de σ3 = 0 para todo σ′n ≤ sn(0); el producto usa la envolvente completa.
   Donde hay dovelas en bajo confinamiento la diferencia es conservadora y llega a −2,6 % (HB-04 Bishop). `cases_f3b/prototype.json`
   guarda, para cada check fijo, el FS del prototipo independiente de X28 con la envolvente completa (`product`, regla `cut`) y con la
