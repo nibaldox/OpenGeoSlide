@@ -421,6 +421,11 @@ export interface CrackReport {
   x: number;
   depth: number;
   water_force: number;
+  /**
+   * Altura de la cara cortada `ground(x_c) − base(x_c)`, en la unidad de longitud del modelo (E15m-15). Opcional: el motor la omite cuando
+   * coincide con `depth`. Con `depth = 0` y `face_height > 0` la masa se cortó sin grieta de tracción (p. ej., bajo una sobrecarga).
+   */
+  face_height?: number;
 }
 
 export interface MethodReport {
