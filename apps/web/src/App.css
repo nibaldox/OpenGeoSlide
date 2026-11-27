@@ -207,8 +207,11 @@ button.primary:disabled {
 }
 
 .link-button.active {
-  background: var(--ui-err-bg);
-  border-color: var(--ui-err-border);
+  /* Seleccionado (aria-pressed), no error: el rojo solo comunica falla (UA-D5). */
+  background: var(--ui-accent-bg);
+  border-color: var(--ui-accent-bright);
+  color: var(--ui-accent-bright);
+  font-weight: 600;
 }
 
 .perf-controls {
@@ -362,6 +365,16 @@ td.num,
   font-variant-numeric: tabular-nums;
 }
 
+/* UA2-F5: la unidad no se separa de su cifra («1293,4 ms») y los nombres de método no se cortan con guion («Morgenstern-Price»). */
+.results td.num,
+.results tfoot td,
+.results tbody td:first-child {
+  white-space: nowrap;
+}
+.results tbody td:first-child .small {
+  white-space: normal;
+}
+
 .row-warn td {
   background: var(--ui-row-warn);
 }
@@ -448,6 +461,12 @@ td.num,
   border-color: var(--ui-accent);
 }
 
+/* La flecha de los disparadores es un ícono SVG (UA2-F2), no un glifo de texto. */
+.dd-trigger > svg {
+  flex: none;
+  vertical-align: -2px;
+}
+
 .dd-menu {
   margin: 0;
   padding: 6px;
@@ -505,6 +524,7 @@ td.num,
 .dd-field select {
   width: 100%;
   max-width: 100%;
+  min-height: 28px; /* UA2-F3: objetivo de clic ≥ 24 */
 }
 
 /* Franja de resultados: el FS de cada método sobre el lienzo, sin desplazarse (UX-03). */

@@ -111,6 +111,12 @@ function axisSpan(size: number, before: number, after: number): [number, number]
   return [a, side - b];
 }
 
+/** ¿Los márgenes caben tal cual en los dos ejes (cada par suma como mucho el 60 % del lado)? Si no, `fitToDocInsets` los reduce. */
+export function insetsFeasible(width: number, height: number, insets: Insets): boolean {
+  const ok = (size: number, a: number, b: number): boolean => Math.max(a, 0) + Math.max(b, 0) <= Math.max(size, 1) * (1 - FIT_MIN_AVAILABLE) + 1e-9;
+  return ok(width, insets.left, insets.right) && ok(height, insets.top, insets.bottom);
+}
+
 /**
  * Encuadre del modelo (con el mismo espacio de dibujo que `fitToDoc`) dentro del rectángulo que dejan libre los
  * márgenes `insets`: el modelo se centra en ese rectángulo, no en el lienzo entero. Si los márgenes de un eje suman

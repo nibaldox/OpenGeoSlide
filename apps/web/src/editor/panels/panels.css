@@ -104,6 +104,16 @@
   font-size: 13px;
 }
 
+/* UA2-F3: el objetivo de clic es la etiqueta que envuelve el control (≥ 24 de alto), sin agrandar el control nativo (16 px). */
+.ep-panel .checkbox,
+.ep-panel .checkbox > label,
+.ep-panel .ep-radios label {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 24px;
+}
+
 /* Leyendas de `fieldset` como eyebrow (11/600, +0,08 em). La parte entre paréntesis (unidades) conserva su caja. */
 .ep-panel fieldset legend,
 .ep-panel fieldset.field legend {

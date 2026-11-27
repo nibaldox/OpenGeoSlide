@@ -254,9 +254,10 @@
   line-height: 1.4;
   white-space: nowrap;
   opacity: 0;
+  visibility: hidden; /* UA-E2 punto 4: oculto de verdad (el texto no entra en el árbol ni en el nombre accesible) */
   pointer-events: none;
   transform: translateY(-50%);
-  transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease, visibility 0.12s;
 }
 
 .gs-tip .gs-kbd {
@@ -268,6 +269,7 @@
 .gs-btn:hover > .gs-tip,
 .gs-btn:focus-visible > .gs-tip {
   opacity: 1;
+  visibility: visible;
 }
 
 /* ── Insignia de paso (28) ────────────────────────────── */
