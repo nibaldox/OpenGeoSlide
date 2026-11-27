@@ -20,32 +20,33 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: 'open',
     title: 'Abra un ejemplo o empiece un modelo',
-    body: 'En «Archivo» puede abrir un ejemplo publicado (por ejemplo, V047a), abrir un archivo guardado, importar un DXF o un CSV, o empezar un modelo vacío o un talud simple. Un modelo vacío se dibuja en el lienzo con la herramienta «Dibujar región» (tecla R).',
+    body: 'En «Archivo», en la cabecera, puede abrir un ejemplo publicado (por ejemplo, V047a), abrir un archivo guardado, importar un DXF o un CSV, o empezar un modelo vacío o un talud simple. Un modelo vacío se dibuja en el lienzo con la herramienta «Dibujar región» (tecla R), en la paleta flotante.',
     target: { selector: '.dd-trigger', text: '^Archivo' },
   },
   {
     id: 'materials',
     title: 'Defina geometría, materiales y agua',
-    body: 'En estas pestañas se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades).',
-    target: { selector: '[role="tablist"][aria-label="Paneles del modelo"]' },
+    body: 'En la barra lateral «Modelo», cada paso se abre en línea y muestra un resumen de su estado. Se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades).',
+    // El tablist es `display: contents` (sin caja): se señala el contenedor de los pasos.
+    target: { selector: '.ua-steps' },
   },
   {
     id: 'check',
     title: 'Pulse «Comprobar»',
-    body: '«Comprobar» valida el modelo y calcula el factor de seguridad (FS) con Bishop simplificado y Spencer. También funciona con Ctrl+Intro.',
+    body: '«Comprobar», al pie de la barra lateral, valida el modelo y calcula el factor de seguridad (FS) con los métodos elegidos en «Análisis». También funciona con Ctrl+Intro.',
     target: { selector: 'button.ea-primary' },
   },
   {
     id: 'results',
     title: 'Lea el FS y los avisos',
-    body: 'Aquí aparece el FS de cada método y si convergió. Revise también los avisos y las notas: el detalle está en «Resultados» y en «Diagnósticos», bajo el lienzo.',
+    body: 'Este resumen sobre el lienzo muestra el FS mínimo y el de cada método, y si convergió. Revise también los avisos y las notas: el detalle está en la vista «Resultados», junto con «Diagnósticos».',
     target: { selector: '[data-testid="result-summary"]' },
   },
   {
     id: 'report',
     title: 'Exporte el informe',
-    body: 'Con un cálculo vigente, «Informe PDF» genera el informe con el modelo, la superficie crítica y los resultados. Los CSV están en «Exportar». Los resultados deben ser revisados por un profesional competente.',
-    target: { selector: '.ea-group-main button', text: '^(Informe PDF|Generando)' },
+    body: 'Con un cálculo vigente, «Informe PDF» genera el informe con el modelo, la superficie crítica y los resultados; la vista «Informe» lista su contenido. Los CSV están en «Exportar». Los resultados deben ser revisados por un profesional competente.',
+    target: { selector: '.ua-actions button', text: '^(Informe PDF|Generando)' },
   },
 ];
 
@@ -114,7 +115,7 @@ export function markTourSeen(storage: StorageLike | null): void {
   }
 }
 
-/** Primera visita en modo Editar: abre la guía y la deja marcada como vista (recargar a mitad no la repite). */
+/** Primera visita en una vista del editor (no en «Casos de verificación»): abre la guía y la deja marcada como vista (recargar a mitad no la repite). */
 export function autoOpenTour(storage: StorageLike | null, ctx: { editing: boolean }): boolean {
   if (!ctx.editing || hasSeenTour(storage)) return false;
   markTourSeen(storage);

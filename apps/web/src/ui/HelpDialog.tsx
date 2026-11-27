@@ -185,7 +185,7 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
           <h3 id="help-shortcuts" tabIndex={-1}>
             Atajos de teclado
           </h3>
-          <ShortcutTable id={shortcutsCap} caption="Atajos de la aplicación (modo Editar, fuera de los campos de texto)" rows={global} />
+          <ShortcutTable id={shortcutsCap} caption="Atajos de la aplicación (vistas Lienzo, Resultados e Informe, fuera de los campos de texto; las teclas de herramienta, solo en Lienzo)" rows={global} />
           <ShortcutTable id={canvasCap} caption="Con el foco en el lienzo" rows={canvas} />
           <h4>Ratón y táctil</h4>
           <ul>
