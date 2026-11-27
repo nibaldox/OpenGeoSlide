@@ -629,14 +629,6 @@ fn hoek_brown_parameters_match_the_published_values() {
 // --------------------------------------------------------------------------------------------------- the B0 stubs
 
 #[test]
-fn a_valid_hoek_brown_model_reaches_its_stub() {
-    let doc = hoek_brown_doc();
-    let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))
-        .expect_err("un modelo Hoek-Brown válido llega al stub de B0");
-    assert!(panic_text(payload).contains("F3B-M-HB"));
-}
-
-#[test]
 fn a_valid_shansep_model_reaches_its_stub() {
     let doc = shansep_doc();
     let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))

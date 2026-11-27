@@ -1,0 +1,114 @@
+{
+  "id": "X28-F-X25",
+  "descripcion": "Talud 20 m 1H:1V, roca simple (X25 \u00a74.1), c\u00edrculo fijo",
+  "grupo": "fijo",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "units": "SI",
+    "meta": {
+      "id": "X28-F-X25",
+      "title": "X25 \u00a74.1 (talud 20 m, 1H:1V, roca simple)"
+    },
+    "materials": [
+      {
+        "id": "roca",
+        "name": "roca",
+        "model": "hoek_brown",
+        "unit_weight": 25.0,
+        "ucs": 5000.0,
+        "gsi": 20.0,
+        "mi": 8.0,
+        "disturbance": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "roca",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            25.0
+          ],
+          [
+            15.0,
+            25.0
+          ],
+          [
+            35.0,
+            5.0
+          ],
+          [
+            50.0,
+            5.0
+          ],
+          [
+            50.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "left_to_right"
+    },
+    "analysis": {
+      "methods": [
+        "bishop",
+        "spencer",
+        "morgenstern_price",
+        "janbu_simplified",
+        "janbu_corrected"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 1000,
+      "min_m_alpha": 0.2,
+      "surface": {
+        "type": "circle",
+        "xc": 45.069233527553195,
+        "yc": 40.50013129624809,
+        "r": 36.89913503366865
+      },
+      "interslice": {
+        "function": "constant"
+      }
+    }
+  },
+  "oracle": {
+    "bishop": 1.46604,
+    "spencer": 1.468185,
+    "morgenstern_price": 1.468185,
+    "janbu_simplified": 1.392073,
+    "janbu_corrected": 1.456504,
+    "config": "cslope 0.1.0, to_cslope.ogs_to_cslope o cslope_direct (X28_proto/models.py), c\u00edrculo fijo, slices 40, tolerance 1e-5, maxIterations 1000, m\u00e9todo Bishop/Morgenstern-Price constant/Janbu (janbuCorrection false/true)"
+  },
+  "proto": {
+    "bishop": 1.466093,
+    "spencer": 1.468267,
+    "morgenstern_price": 1.468267,
+    "janbu_simplified": 1.392277,
+    "janbu_corrected": 1.456682
+  },
+  "tolerancia": 0.001,
+  "nota": "",
+  "proto_passes": {
+    "bishop": 5,
+    "spencer": 4,
+    "morgenstern_price": 4,
+    "janbu_simplified": 5,
+    "janbu_corrected": 5
+  },
+  "proto_status": {
+    "bishop": "converged",
+    "spencer": "converged",
+    "morgenstern_price": "converged",
+    "janbu_simplified": "converged",
+    "janbu_corrected": "converged"
+  }
+}
