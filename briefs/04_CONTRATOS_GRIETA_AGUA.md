@@ -649,3 +649,49 @@ la enmienda que lo dice, con los números antes y después.
 
 - Ninguno. Las versiones 0.4.0 de los manifiestos y el WASM recompilado (B-05, punto 5) van en el commit de la
   publicación.
+
+### E15m-15: profundidad y agua de la grieta en una discontinuidad (revisa E15l-2)
+
+**Evidencia.** El coordinador comparó contra el oráculo, con `to_cslope` y en superficie fija, dos modelos en los que la
+grieta cae sobre una discontinuidad. El de `a04_udl.json` es una discontinuidad de `d(x)` por una UDL; el de
+`a03_escalon_auto.json`, un escalón del terreno con `auto`.
+
+| Modelo | Antes de R12 (`d(x_c)`) | Con E15l-2 (cara real) | cSlope |
+|---|---|---|---|
+| `a04_udl` Bishop | 1,102248 (depth 0, Pw 0) | 1,095348 (depth 1,7827, Pw 15,59), −0,63 % | **1,102311** |
+| `a03_escalon_auto` Bishop | 1,86234 (depth 2,616) | 1,751144 (depth 4,9707, Pw 121,19), −6,0 % | **1,862416** |
+
+E15l-2 se adoptó en R12 sin compararlo con el oráculo y lo contradice. Los dos casos quedan del lado conservador, pero se
+apartan más del 0,1 % que pide la verificación. Lo que señaló R12 A-04 era un defecto del **informe**: decía `depth 0`
+con la masa truncada. No era un defecto de la física.
+
+**Regla:**
+1. **Física:** se vuelve a la convención de cSlope, que es la de antes de R12. La profundidad y el agua salen de `d(x_c)`
+   en el `x_c` de la bisección: `water_height = water_fill · d(x_c)`. Vale para `auto` y para la profundidad fija, en
+   cuyo caso es la del usuario.
+2. **Sin cara:** si la cara real es `≤ tol`, no se trunca (E15l-2). Se mantiene solo si cSlope coincide en el caso
+   «UDL a 1e-10 de la entrada»; si no coincide, M lo informa con números y sigue a cSlope.
+3. **Informe veraz:** `CrackReport` agrega `face_height`, la altura de la cara cortada `ground(x_c) − base(x_c)` medida
+   desde el terreno del lado de la masa. Es opcional: **se omite** cuando `|face_height − depth| ≤ tol`, así que la
+   salida de las grietas normales no cambia.
+   - En `a04_udl` se informa `depth 0`, `water_force 0` y `face_height 1,7827`.
+   - En el escalón se informa `depth 2,616` y `face_height 4,9707`.
+
+**Esquema:** la salida no tiene esquema. El tipo de `types.ts` y `validate.ts` aceptan `face_height` opcional, finito y
+≥ 0.
+
+**Web y documentación:**
+- La tabla, el PDF, el CSV, el resumen y el lienzo muestran la cara cuando viene informada.
+- Con `depth 0` y `face_height > 0` **no** dicen «Sin grieta». Dicen:
+
+  ```
+  Corte de la masa en x = … (cara de … m) sin grieta de tracción: la profundidad de Rankine es 0 en ese punto (p. ej., bajo una sobrecarga)
+  ```
+
+**Criterios:**
+- `a04_udl`: Bishop 1,102248 ± 1e-6, a ≤ 0,1 % de cSlope, con `face_height` informado.
+- `a03_escalon_auto`: Bishop 1,86234, a ≤ 0,1 % de cSlope.
+- `a03_escalon_fija` no cambia: 1,882066.
+- Las filas de `f3g_rows.rs` (55 + 3) no cambian, y su salida no lleva `face_height`, salvo que la fila tenga una
+  discontinuidad; en ese caso se informa.
+- Identidad: 0 diferencias.
