@@ -3,6 +3,7 @@
 import { fitViewport, screenToWorld, type Bounds, type Viewport } from '../../geometry/viewport';
 import type { ModelDoc } from '../types';
 import { piezoPoints } from './geom';
+import { formatNumber, lengthUnitOf } from './layout';
 
 export const MIN_SCALE = 0.01;
 export const MAX_SCALE = 1e5;
@@ -78,6 +79,73 @@ export function paddedBounds(b: Bounds): Bounds {
 /** Encuadre del modelo con margen de dibujo: deja sitio bajo la base y a los lados para agregar estratos y regiones. */
 export function fitToDoc(doc: ModelDoc, width: number, height: number, margin = 24): Viewport {
   return fitViewport(paddedBounds(docBounds(doc)), width, height, margin);
+}
+
+/** Márgenes en px de pantalla que el encuadre deja libres (la misma forma que `FitInsets` de `EditorCanvas`). */
+export interface Insets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/** Fracción mínima del lado que el encuadre conserva para el modelo cuando los márgenes no caben. */
+export const FIT_MIN_AVAILABLE = 0.4;
+
+/**
+ * Márgenes de un eje saneados: sin negativos ni no finitos, y, si su suma deja menos de `FIT_MIN_AVAILABLE` del lado
+ * (o ninguno), reducidos en proporción para que quede al menos esa fracción. Devuelve el borde inicial y el final
+ * del rectángulo libre.
+ */
+function axisSpan(size: number, before: number, after: number): [number, number] {
+  const side = Math.max(Number.isFinite(size) ? size : 0, 1);
+  let a = Number.isFinite(before) && before > 0 ? before : 0;
+  let b = Number.isFinite(after) && after > 0 ? after : 0;
+  const sum = a + b;
+  const room = side * (1 - FIT_MIN_AVAILABLE);
+  if (sum > room) {
+    const k = room / sum;
+    a *= k;
+    b *= k;
+  }
+  return [a, side - b];
+}
+
+/**
+ * Encuadre del modelo (con el mismo espacio de dibujo que `fitToDoc`) dentro del rectángulo que dejan libre los
+ * márgenes `insets`: el modelo se centra en ese rectángulo, no en el lienzo entero. Si los márgenes de un eje suman
+ * más de lo que cabe (60 % del lado), se reducen en proporción.
+ */
+export function fitToDocInsets(doc: ModelDoc, width: number, height: number, insets: Insets): Viewport {
+  const [x0, x1] = axisSpan(width, insets.left, insets.right);
+  const [y0, y1] = axisSpan(height, insets.top, insets.bottom);
+  const b = paddedBounds(docBounds(doc));
+  const spanX = Math.max(b.maxX - b.minX, 1e-9);
+  const spanY = Math.max(b.maxY - b.minY, 1e-9);
+  const scale = Math.min((x1 - x0) / spanX, (y1 - y0) / spanY);
+  const cx = (b.minX + b.maxX) / 2;
+  const cy = (b.minY + b.maxY) / 2;
+  return { scale, tx: (x0 + x1) / 2 - scale * cx, ty: (y0 + y1) / 2 + scale * cy, width, height };
+}
+
+/** Un paso de rejilla cada cuántos se marca una línea mayor. */
+export const GRID_MAJOR_EVERY = 5;
+
+/**
+ * ¿La línea de la rejilla en la posición de pantalla `px` es mayor (múltiplo de 5 pasos)? `axis` 'x' mide la coordenada
+ * horizontal del mundo y 'y' la vertical; `step` es el paso de `gridLines`.
+ */
+export function isMajorGridLine(vp: Viewport, axis: 'x' | 'y', px: number, step: number): boolean {
+  if (!(step > 0) || !(vp.scale > 0)) return false;
+  const world = axis === 'x' ? (px - vp.tx) / vp.scale : (vp.ty - px) / vp.scale;
+  const n = Math.round(world / step);
+  return n % GRID_MAJOR_EVERY === 0;
+}
+
+/** Texto de la píldora de coordenadas: «x 41,32 m · y 29,76 m» (dos decimales, coma, unidades del documento). */
+export function coordinateReadout(p: readonly [number, number], units?: string | null): string {
+  const u = lengthUnitOf(units);
+  return `x ${formatNumber(p[0], 2, 2)} ${u} · y ${formatNumber(p[1], 2, 2)} ${u}`;
 }
 
 /** Factor de un paso de zoom con los botones o las teclas + y −. */
