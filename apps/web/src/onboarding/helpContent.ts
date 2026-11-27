@@ -72,11 +72,32 @@ export const POINTER_HINTS: readonly string[] = [
 /** Inicio rápido: los mismos 5 pasos de la guía, sin duplicar el texto. */
 export const QUICK_START: readonly TourStep[] = TOUR_STEPS;
 
+export interface GlossaryTable {
+  caption: string;
+  header: readonly string[];
+  rows: readonly (readonly string[])[];
+}
+
 export interface GlossaryEntry {
   id: string;
   term: string;
   definition: string;
+  /** Tabla auxiliar opcional que acompaña la definición en el diálogo de Ayuda (p. ej., Tabla 1 de Hoek et al., 2002). */
+  table?: GlossaryTable;
 }
+
+/** Tabla 1 de Hoek, Carranza-Torres y Corkum (2002): guía orientativa del factor de perturbación D en excavaciones y taludes. */
+export const HOEK_BROWN_D_TABLE: GlossaryTable = {
+  caption: 'Tabla 1 (Hoek, Carranza-Torres y Corkum, 2002): guía orientativa del factor de perturbación D',
+  header: ['D sugerido', 'Condición de excavación o voladura'],
+  rows: [
+    ['0', 'Voladura controlada de excelente calidad, tuneladora (TBM) o excavación mecánica en roca débil sin voladura (daño mínimo al macizo confinado).'],
+    ['0,5', 'Túnel con roca expansiva (squeezing) y levantamiento importante de la solera, sin contrabóveda (invert) de contención.'],
+    ['0,7', 'Voladura controlada de buena calidad en taludes de ingeniería civil, o excavación mecánica (ripping) en taludes de grandes minas a cielo abierto.'],
+    ['0,8', 'Túnel en roca dura con voladura muy deficiente (daño local severo de 2 a 3 m en la roca circundante).'],
+    ['1,0', 'Voladura deficiente en taludes de ingeniería civil, o voladura de producción en taludes de minas a cielo abierto muy grandes (alivio tensional importante y daño intenso al macizo).'],
+  ],
+};
 
 export const GLOSSARY: readonly GlossaryEntry[] = [
   {
@@ -120,6 +141,38 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
     term: 'Su (resistencia no drenada)',
     definition:
       'Resistencia al corte de un suelo fino saturado cargado sin drenaje (φ = 0): vale lo mismo en cualquier punto de la base de la dovela, sin depender de la tensión normal. Se elige el modelo «No drenado (Su)» en el material. Con «Su variable con la cota», Su = Su de referencia + (cota de referencia − y) · gradiente, con y la cota del punto medio de la base de la dovela; el gradiente es positivo si Su crece hacia abajo y puede llevar un límite (máximo si el gradiente es positivo, mínimo si es negativo). Su nunca es negativa. La cota de referencia es una cota (la y del modelo), no una profundidad. Las unidades del gradiente son kPa/m o psf/ft; ru no cambia la resistencia porque φ = 0.',
+  },
+  {
+    id: 'hoek-brown',
+    term: 'Hoek-Brown',
+    definition:
+      'Criterio no lineal de rotura para macizos rocosos fracturados e isótropos (Hoek, Carranza-Torres y Corkum, 2002; formato 0.6). ' +
+      'Usted ingresa cuatro propiedades: σci (campo ucs, resistencia a compresión simple de la roca intacta en la unidad de esfuerzo del modelo: kPa en SI o psf en imperial, no en MPa; Diagnósticos avisa bajo 1000 kPa o sobre 300 000 kPa para prevenir errores de 1000×), GSI (índice de resistencia geológica en [0, 100]), mi (constante de la roca intacta, > 0) y D (factor de perturbación del macizo en [0, 1], sin valor por defecto porque D = 0 resulta demasiado optimista en taludes excavados: véase la Tabla 1 abajo). ' +
+      'El programa calcula mb = mi·exp((GSI − 100)/(28 − 14·D)), s = exp((GSI − 100)/(9 − 3·D)) y a = 1/2 + (exp(−GSI/15) − exp(−20/3))/6, obtiene en cada dovela la tangente instantánea (cᵢ, φᵢ) en el esfuerzo normal efectivo σ′n de la base y resuelve un lazo exterior (promedio w = 0,5, tolerancia 1e-6, hasta 50 pasadas; si no se estabiliza emite hoek_brown_not_converged). ' +
+      'Regla de bajo confinamiento (envolvente completa): cuando σ′n ≤ sn(0) (el esfuerzo normal correspondiente a σ′3 = 0), se evalúa la tangente sobre la misma envolvente cóncava hasta la resistencia a tracción σt = −s·σci/mb, y para σ′n ≤ σt la resistencia es nula (c = 0, tan φ = 0), emitiendo la nota hoek_brown_low_confinement. Otros programas como cSlope extrapolan la recta tangente de σ′3 = 0, que asigna resistencia positiva incluso en tracción; la envolvente completa nunca sobreestima la resistencia y produce una diferencia conservadora de 0 % a −2,9 % frente a cSlope en los modelos de prueba. ' +
+      'Advertencia de Hoek (1994, ISRM News Journal, citado en Hoek et al., 2002): la cohesión obtenida ajustando una tangente a la envolvente curvilínea de Mohr es un valor de cota superior y puede dar resultados optimistas en cálculos de estabilidad.',
+    table: HOEK_BROWN_D_TABLE,
+  },
+  {
+    id: 'shansep',
+    term: 'SHANSEP',
+    definition:
+      'Modelo de resistencia no drenada normalizada por la historia de esfuerzos para arcillas y limos (Ladd y Foott, 1974; Ladd, 1991; formato 0.6): Su = S · σ′v · OCR^m en el punto medio de la base de cada dovela (φ = 0), donde S es el cociente de resistencia normalmente consolidada (ratio > 0) y m el exponente de sobreconsolidación (exponent en [0, 1], 0,8 por defecto). ' +
+      'σ′v = (W + Q + V)/b − u incluye el peso estático del suelo, las cargas estáticas y el agua embalsada menos la presión de poros, sin coeficientes sísmicos kh ni kv; como Su no depende de F, se evalúa en una sola pasada sin iteración extra. Si σ′v ≤ 0, se toma Su = 0 y se emite la nota shansep_nonpositive_stress. ' +
+      'Hay tres fuentes excluyentes para la historia de esfuerzos (OCR): (1) ocr constante (≥ 1); (2) pop, presión de sobreconsolidación previa en kPa o psf (≥ 0), con OCR = (σ′v + POP)/σ′v; y (3) ocr_by_elevation, una tabla [[y, OCR], …] con al menos 2 cotas estrictamente crecientes y OCR ≥ 1, interpolada linealmente y constante fuera de los extremos. ' +
+      'No hay OCR por defecto: otros programas asumen OCR = 1 en silencio cuando falta el dato, lo que puede ocultar una omisión en suelos sobreconsolidados; aquí el modelo exige elegir explícitamente una de las tres fuentes. ' +
+      'Círculo muy ancho: con OCR 1 en un perfil normalmente consolidado, el mínimo de una búsqueda amplia es un círculo muy ancho y poco profundo (por ejemplo, r ≈ 257 m en un talud de 15 m en V047a, y el oráculo cSlope da el mismo). Es una propiedad del perfil y no un fallo numérico, y el programa no agrega un aviso por ello; conviene acotar los rangos de búsqueda o revisar la historia de esfuerzos (OCR) del estrato.',
+  },
+  {
+    id: 'non-circular-search',
+    term: 'Búsqueda no circular',
+    definition:
+      'Refinamiento opcional sobre la búsqueda circular por entrada y salida (analysis.search.non_circular; formato 0.6) mediante la variación alterna de Celestino y Duncan. ' +
+      'Semillas: parte de hasta N semillas circulares (seeds en [1, 10], 3 por defecto); la semilla 1 es el círculo crítico refinado del mismo método y las restantes son los mejores círculos de la malla separados entre sí en más del 5 % del tramo de búsqueda en la entrada o en la salida. ' +
+      'Niveles de vértices: cada semilla se convierte en una polilínea de 9 vértices sobre el arco inferior con extremos ajustados al terreno y se optimiza por niveles sucesivos de 9 → 17 → 33 vértices insertando puntos medios hasta max_vertices (9, 17 o 33; 33 por defecto), con un presupuesto de 1500 evaluaciones admisibles por semilla y restricción de concavidad (giro hacia abajo ≤ 1° entre tramos). ' +
+      'Por qué no se ofrece Bishop: Bishop simplificado plantea el equilibrio de momentos respecto del centro de una superficie circular, y la superficie refinada es una polilínea sin centro ni radio; el panel deshabilita Bishop y el motor lo rechaza (use Spencer, Morgenstern-Price o Janbu). ' +
+      'Regla del mínimo entre círculo y polilínea: en cada método se informa el menor FS entre el mejor círculo (semilla 1, seed_fos) y la mejor polilínea refinada (polyline_fos), ganando el círculo en caso de empate; así el FS reportado nunca supera al de la búsqueda circular. ' +
+      'Aviso del 15 %: cuando la polilínea reduce el FS más de un 15 % respecto del mejor círculo ((seed_fos − FS)/seed_fos > 0,15, criterio de SLOPE/W), el motor emite la nota non_circular_large_change para que revise la geometría de la superficie crítica.',
   },
   {
     id: 'polyline',
@@ -240,9 +293,9 @@ export function glossaryTerms(): string[] {
 
 /** Limitaciones principales; el detalle completo está en el README (`HELP_LINKS.limitations`). */
 export const LIMITATIONS: readonly string[] = [
-  'Es un análisis de equilibrio límite en 2D con material Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción) o no drenado (Su constante o variable con la cota). No calcula deformaciones ni análisis en tres dimensiones.',
-  'La búsqueda de la superficie crítica solo encuentra círculos (rangos de entrada y salida). Una superficie fija puede ser un círculo o una polilínea, que se analiza tal como se define: no se optimiza.',
-  'Bishop no se ofrece en superficies no circulares: con una polilínea fija su resultado dependería del eje de momentos. Use Spencer, Morgenstern-Price o Janbu; el editor deshabilita Bishop y el cálculo lo rechaza.',
+  'Es un análisis de equilibrio límite en 2D con material Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción), no drenado (Su constante o variable con la cota), Hoek-Brown generalizado o SHANSEP. No calcula deformaciones ni análisis en tres dimensiones.',
+  'La búsqueda de la superficie crítica explora círculos (rangos de entrada y salida) y, opcionalmente, refina las mejores semillas como polilínea no circular de hasta 33 vértices. Una superficie fija puede ser un círculo o una polilínea, que se analiza tal como se define: no se optimiza.',
+  'Bishop no se ofrece en superficies no circulares: con una polilínea fija o con la búsqueda no circular su resultado dependería del eje de momentos. Use Spencer, Morgenstern-Price o Janbu; el editor deshabilita Bishop y el cálculo lo rechaza.',
   'En Morgenstern-Price la función de interfaz es una elección del usuario y el FS puede cambiar de una a otra: indique cuál se usó al informar el resultado. Janbu corregido aplica una corrección empírica (f₀) y puede diferir de Spencer y Morgenstern-Price; f₀ se muestra junto al FS.',
   'Spencer barre λ con un paso fijo de 0,05: puede no hallar solución (aviso «no_lambda_root») aunque exista. Con tracción en la base, su FS puede quedar por debajo de Bishop; revise los avisos.',
   'Cambiar el sistema de unidades (SI o imperial) ofrece convertir los valores del modelo (el factor de seguridad no cambia) o cambiar solo la etiqueta. El motor nunca convierte: interpreta los números en las unidades declaradas, y en imperial el peso del agua vacío es 62,4 pcf (con un valor explícito, que sea de pcf).',
@@ -258,6 +311,9 @@ export const LIMITATIONS: readonly string[] = [
   'Un cruce con capacidad cero (por ejemplo, el tramo libre de un tirante con adherencia en el bulbo y sin capacidad en la placa de cabeza) no aplica fuerza y queda con el estado no_capacity, sin nota: compruebe la tabla de fuerzas. Un activo comprimido se aplica con su fuerza completa y un pasivo comprimido se descarta; el oráculo instalado de cSlope descarta ambos, así que en un activo comprimido los resultados difieren de él.',
   'Con la búsqueda de la superficie crítica y refuerzos, el FS es discontinuo: un círculo candidato puede ganar o perder un cruce, y cada cruce suma una fuerza completa. La búsqueda también puede esquivar el refuerzo: si el resultado trae la nota reinforcement_outside_mass, el FS mínimo es el de una superficie que el refuerzo no cruza. Mueva el refuerzo o acote los rangos de entrada y salida, y contraste el resultado con superficies fijas cercanas a la crítica.',
   'Con unidades imperiales y agua, γw vacío es 62,4 pcf y el programa lo indica con una nota; las versiones anteriores a la v0.4.0 tomaban 9,81 también en pcf, así que indique el valor para fijarlo. Un γw explícito menor que 20 pcf (un valor como 9,81 es de kN/m³) bloquea el cálculo, tanto en el editor como en «Casos».',
+  'Hoek-Brown (formato 0.6): σci se ingresa en kPa (o psf), nunca en MPa, y D es obligatorio sin valor por defecto. En bajo confinamiento (σ′n ≤ sn(0)) se usa la envolvente completa hasta σt = −s·σci/mb (0 % a −2,9 % respecto de cSlope en los modelos de prueba; nota hoek_brown_low_confinement), y según Hoek (1994) la cohesión tangente es una cota superior que puede ser optimista. No se admite junto con grieta de profundidad automática ni con pilotes de Ito-Matsui.',
+  'SHANSEP (formato 0.6): exige elegir explícitamente ocr, pop u ocr_by_elevation (sin OCR = 1 silencioso por defecto) y deja fuera su_min, anisotropía, above_water y b_bar; el sismo no entra en σ′v. Con OCR = 1 constante la búsqueda tiende a círculos muy anchos y profundos. No se admite junto con grieta automática ni con pilotes de Ito-Matsui.',
+  'Búsqueda no circular (formato 0.6): usa variación alterna (9 → 17 → 33 vértices, hasta 1500 evaluaciones admisibles por semilla, sin etapa de pulido adicional), no admite Bishop, devuelve el mínimo entre el mejor círculo y la mejor polilínea refinada y emite non_circular_large_change si la polilínea reduce el FS más de un 15 %.',
 ];
 
 export const PROFESSIONAL_WARNING =
