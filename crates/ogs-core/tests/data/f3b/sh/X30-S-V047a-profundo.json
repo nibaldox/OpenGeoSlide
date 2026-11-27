@@ -1,0 +1,88 @@
+{
+ "id": "X30-S-V047a-profundo",
+ "descripcion": "V047a seco OCR 1, búsqueda circular del oráculo (r ≈ 257 m en 15 m de talud) evaluada por el prototipo como superficie fija",
+ "grupo": "busqueda",
+ "model": {
+  "format": "opengeoslide",
+  "version": "0.6",
+  "units": "SI",
+  "materials": [
+   {
+    "id": "soil",
+    "name": "Soil",
+    "model": "shansep",
+    "unit_weight": 20.0,
+    "unit_weight_sat": 20.0,
+    "shansep": {
+     "ratio": 0.25,
+     "exponent": 0.8,
+     "ocr": 1.0
+    }
+   }
+  ],
+  "regions": [
+   {
+    "material": "soil",
+    "polygon": [
+     [
+      20.0,
+      20.0
+     ],
+     [
+      20.0,
+      25.0
+     ],
+     [
+      30.0,
+      25.0
+     ],
+     [
+      50.0,
+      35.0
+     ],
+     [
+      70.0,
+      35.0
+     ],
+     [
+      70.0,
+      20.0
+     ]
+    ]
+   }
+  ],
+  "slope": {
+   "direction": "right_to_left"
+  },
+  "analysis": {
+   "methods": [
+    "bishop",
+    "spencer",
+    "morgenstern_price",
+    "janbu_simplified",
+    "janbu_corrected"
+   ],
+   "slices": 50,
+   "tolerance": 1e-05,
+   "max_iterations": 500,
+   "min_m_alpha": 0.2,
+   "surface": {
+    "type": "circle",
+    "xc": -69.378458131625,
+    "yc": 262.8210199766176,
+    "r": 257.17040116694534
+   }
+  }
+ },
+ "oracle": {
+  "bishop": 0.625026,
+  "config": "cSlope 0.1.0 búsqueda circular (entrada/salida 20×20), Bishop, MINIMO 0.625026 en (cx -69.378, cy 262.821, r 257.170) | Los cuatro métodos restantes recalculados con X30_proto/x30_oracle.py y cSlope 0.1.0, converged=true.",
+  "spencer": 0.6250212039438209,
+  "morgenstern_price": 0.6250212039438209,
+  "janbu_simplified": 0.6250169160760276,
+  "janbu_corrected": 0.6261139680434306
+ },
+ "tolerancia": {
+  "relativa": 0.001
+ }
+}

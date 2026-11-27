@@ -626,16 +626,6 @@ fn hoek_brown_parameters_match_the_published_values() {
     assert!((a - 0.61921).abs() < 1e-5, "{a}");
 }
 
-// --------------------------------------------------------------------------------------------------- the B0 stubs
-
-#[test]
-fn a_valid_shansep_model_reaches_its_stub() {
-    let doc = shansep_doc();
-    let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))
-        .expect_err("un modelo SHANSEP válido llega al stub de B0");
-    assert!(panic_text(payload).contains("F3B-M-SH"));
-}
-
 // --------------------------------------------------------------------------------------------------- identity v0.5 → v0.6
 
 #[test]
