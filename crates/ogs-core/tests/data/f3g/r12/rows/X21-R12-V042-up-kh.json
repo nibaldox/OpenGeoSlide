@@ -1,0 +1,180 @@
+{
+ "format": "opengeoslide",
+ "version": "0.5",
+ "meta": {
+  "id": "X21-R12-V042-up-kh",
+  "title": "\u00eddem con kh = 0,1 (el agua embalsada no recibe fuerza s\u00edsmica, E7)"
+ },
+ "units": "SI",
+ "materials": [
+  {
+   "id": "shell",
+   "name": "Shell",
+   "unit_weight": 21.99224,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 38
+  },
+  {
+   "id": "core",
+   "name": "Core",
+   "unit_weight": 18.8505,
+   "unit_weight_sat": null,
+   "ru": null,
+   "model": "mohr_coulomb",
+   "cohesion": 0,
+   "friction_angle": 20
+  }
+ ],
+ "regions": [
+  {
+   "material": "shell",
+   "polygon": [
+    [
+     0.0,
+     38.7096
+    ],
+    [
+     89.535,
+     71.26778
+    ],
+    [
+     176.8602,
+     103.0224
+    ],
+    [
+     181.4322,
+     103.0224
+    ],
+    [
+     196.6722,
+     103.0224
+    ],
+    [
+     201.2442,
+     103.0224
+    ],
+    [
+     288.5694,
+     71.26778
+    ],
+    [
+     378.1044,
+     38.7096
+    ],
+    [
+     288.5694,
+     38.7096
+    ],
+    [
+     196.6722,
+     99.9744
+    ],
+    [
+     181.4322,
+     99.9744
+    ],
+    [
+     89.535,
+     38.7096
+    ]
+   ]
+  },
+  {
+   "material": "core",
+   "polygon": [
+    [
+     288.5694,
+     38.7096
+    ],
+    [
+     89.535,
+     38.7096
+    ],
+    [
+     181.4322,
+     99.9744
+    ],
+    [
+     196.6722,
+     99.9744
+    ]
+   ]
+  }
+ ],
+ "water": {
+  "unit_weight": 9.807,
+  "piezometric_line": [
+   [
+    0,
+    96.012
+   ],
+   [
+    157.5816,
+    96.012
+   ],
+   [
+    174.3456,
+    95.21952
+   ],
+   [
+    178.308,
+    92.59824
+   ],
+   [
+    254.508,
+    56.0832
+   ],
+   [
+    270.0528,
+    49.53
+   ],
+   [
+    273.7104,
+    48.64608
+   ],
+   [
+    352.3488,
+    46.23816
+   ],
+   [
+    360.36504,
+    45.1104
+   ],
+   [
+    378.1044,
+    38.7096
+   ]
+  ]
+ },
+ "slope": {
+  "direction": "auto"
+ },
+ "analysis": {
+  "methods": [
+   "bishop",
+   "spencer",
+   "morgenstern_price",
+   "janbu_simplified",
+   "janbu_corrected"
+  ],
+  "slices": 50,
+  "tolerance": 1e-05,
+  "max_iterations": 500,
+  "min_m_alpha": 0.2,
+  "surface": {
+   "type": "circle",
+   "xc": 110.0,
+   "yc": 190.0,
+   "r": 125.0
+  },
+  "interslice": {
+   "function": "constant"
+  },
+  "seismic": {
+   "kh": 0.1
+  }
+ }
+}
