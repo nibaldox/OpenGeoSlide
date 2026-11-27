@@ -1,8 +1,9 @@
 // «Comprobar» en React: envuelve el controlador de `engineCheck.ts` (token de solicitud, reinicio y cancelación) y
 // mantiene el diagnóstico del store (incidencias locales + las del motor).
 
-import { useMemo, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useEffect, useSyncExternalStore } from 'react';
 import type { EngineClient } from '../../engine/client';
+import { clearPendingDrafts, getPendingDrafts, hasPendingDrafts, subscribePendingDrafts } from '../panels/forms';
 import { useEditorStore, useLocalIssues } from '../state';
 import type { EditorStore } from '../types';
 import { composeDiagnostics, hasErrors } from './diagnostics';
@@ -18,6 +19,8 @@ export interface EngineCheck {
   run: EngineRun | null;
   /** `true` si `run` corresponde a la revisión actual del documento. */
   current: boolean;
+  /** Tarjetas con borradores sin aplicar al documento (R15B-01): bloquean «Comprobar» y exportaciones. */
+  pendingDrafts: readonly string[];
   /** Mensaje de la última pulsación (errores locales que impidieron calcular, cálculo cancelado). */
   message: string | null;
   messageKind: EngineCheckState['messageKind'];
@@ -31,7 +34,12 @@ export interface EngineCheck {
 
 export function useEngineCheck(store: EditorStore, client: EngineClient): EngineCheck {
   const controller = useMemo(() => createEngineCheck(store, client), [store, client]);
-  const state = useSyncExternalStore(controller.subscribe, controller.getState);
+  const state = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
+  const pendingDrafts = useSyncExternalStore(
+    useCallback((listener: () => void) => subscribePendingDrafts(store, listener), [store]),
+    useCallback(() => getPendingDrafts(store), [store]),
+    useCallback(() => getPendingDrafts(store), [store]),
+  );
   const localIssues = useLocalIssues(store);
   const revision = useEditorStore(store, (s) => s.revision);
 
@@ -46,14 +54,26 @@ export function useEngineCheck(store: EditorStore, client: EngineClient): Engine
     controller.syncLocal(localHasErrors);
   }, [controller, localHasErrors]);
 
+  // R15B-01: nunca calcular sobre el material o refuerzo anterior mientras una tarjeta muestra un borrador sin aplicar.
+  const check = useCallback(async (): Promise<EngineRun | null> => {
+    if (hasPendingDrafts(store)) return null;
+    return controller.check();
+  }, [store, controller]);
+
+  const reset = useCallback((): void => {
+    clearPendingDrafts(store);
+    controller.reset();
+  }, [store, controller]);
+
   return {
     busy: state.busy,
     run: state.run,
     current: isRunCurrent(state.run, revision),
+    pendingDrafts,
     message: state.message,
     messageKind: state.messageKind,
-    check: controller.check,
-    reset: controller.reset,
+    check,
+    reset,
     cancel: controller.cancel,
   };
 }

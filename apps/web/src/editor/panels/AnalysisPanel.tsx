@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useEffect, useId } from 'react';
 import type { Direction, IntersliceFunction, MethodKind, Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { crackEditCommands } from './crackWater';
@@ -27,6 +27,7 @@ import {
   intersliceFunctionOf,
   methodDisabledReason,
   removeDataPoint,
+  setPendingDraft,
   toggleMethod,
   unitLabels,
   type AnalysisForm,
@@ -51,6 +52,11 @@ function IntersliceSection({ store }: { store: EditorStore }) {
   const [rows, setRows, resetRows] = useDraft(() => dataPointsToForm(points), [interslice]);
   const table = dataPointsFromForm(rows);
   const tableErrors = table.ok ? {} : table.errors;
+  const rowsPending = fn === 'data_points' && !table.ok && JSON.stringify(rows) !== JSON.stringify(dataPointsToForm(points));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis:interslice', rowsPending ? 'Función entre dovelas' : null);
+    return () => setPendingDraft(store, 'analysis:interslice', null);
+  }, [store, rowsPending]);
   const commitRows = (): void => {
     if (table.ok && !samePoints(points, table.value)) store.dispatch(dataPointsCommand(table.value));
   };
@@ -160,6 +166,11 @@ function CrackSection({ store }: { store: EditorStore }) {
   const [form, setForm, reset] = useDraft(() => crackToForm(store.getState().doc), [crack]);
   const outcome = crackFromForm(form);
   const errors = outcome.ok ? {} : outcome.errors;
+  const crackPending = !outcome.ok && JSON.stringify(form) !== JSON.stringify(crackToForm(store.getState().doc));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis:crack', crackPending ? 'Grieta de tracción' : null);
+    return () => setPendingDraft(store, 'analysis:crack', null);
+  }, [store, crackPending]);
   const commitWith = (next: CrackForm): void => {
     const r = crackFromForm(next);
     if (r.ok) applyCommands(store, 'Editar la grieta de tracción', crackEditCommands(store.getState().doc, r.value));
@@ -249,6 +260,11 @@ export function AnalysisPanel({ store }: { store: EditorStore }) {
   const [form, setForm, reset] = useDraft(() => analysisToForm(store.getState().doc), [analysis, slope]);
   const outcome = analysisFromForm(form);
   const errors = outcome.ok ? {} : outcome.errors;
+  const analysisPending = !outcome.ok && JSON.stringify(form) !== JSON.stringify(analysisToForm(store.getState().doc));
+  useEffect(() => {
+    setPendingDraft(store, 'analysis', analysisPending ? 'Análisis' : null);
+    return () => setPendingDraft(store, 'analysis', null);
+  }, [store, analysisPending]);
 
   const commitWith = (next: AnalysisForm): void => {
     const r = analysisFromForm(next);

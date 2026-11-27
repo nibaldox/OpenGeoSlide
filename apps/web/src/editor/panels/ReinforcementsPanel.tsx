@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react';
+import { useEffect, useId, useMemo } from 'react';
 import type { Reinforcement } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { createToolSwitch } from '../app/discard';
@@ -7,7 +7,7 @@ import { structuralLimitText } from '../../report/reinforcementReport';
 import type { EditorStore } from '../types';
 import { REINFORCEMENT_LABEL } from '../state/validateLocal';
 import { LabeledField, PanelSection } from './Fields';
-import { formatNumber, modelBounds } from './forms';
+import { formatNumber, modelBounds, setPendingDraft } from './forms';
 import {
   APPLICATION_OPTIONS,
   LOCATION_OPTIONS,
@@ -89,6 +89,11 @@ function ReinforcementCard({ store, reinforcement, index, list, docUnits, units 
   const ctx = { otherIds, index, units: docUnits, inclined };
   const { errors, pending, valid } = evaluateCard(form, reinforcement, ctx);
   const scope = `Refuerzo ${index + 1}`;
+  useEffect(() => {
+    const key = `reinforcement:${index}`;
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, index, pending, scope]);
   const tension = isTensionType(form.type);
   const sheet = form.type === 'sheet_pile';
   // E15i-1: un pilote con la presión del suelo de Ito-Matsui es vertical y no lleva `force`, sino diámetro, ubicación y capacidad.

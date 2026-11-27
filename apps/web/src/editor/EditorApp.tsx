@@ -53,6 +53,7 @@ import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
+import { PENDING_DRAFTS_TEXT } from './panels/forms';
 import {
   AnalysisPanel,
   DiagnosticsPanel,
@@ -349,34 +350,47 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   };
 
   // Solo se exporta el resultado de la revisión actual: tras editar, hay que volver a pulsar «Comprobar» (E12i).
-  const { canExport, canExportSurface, blockedTitle: exportBlockedTitle, surfaceTitle: exportSurfaceTitle, hint: exportHintText } = exportAvailability(engine.run, engine.current);
+  // R15B-01: tampoco se permite comprobar ni exportar mientras exista un borrador sin aplicar en cualquier tarjeta.
+  const pendingDrafts = engine.pendingDrafts;
+  const hasDrafts = pendingDrafts.length > 0;
+  const rawExport = exportAvailability(engine.run, engine.current);
+  const canExport = rawExport.canExport && !hasDrafts;
+  const canExportSurface = rawExport.canExportSurface && !hasDrafts;
+  const exportBlockedTitle = hasDrafts ? PENDING_DRAFTS_TEXT : rawExport.blockedTitle;
+  const exportSurfaceTitle = hasDrafts ? PENDING_DRAFTS_TEXT : rawExport.surfaceTitle;
+  const exportHintText = rawExport.hint;
   // La pista se ve con un resultado obsoleto o tras intentar exportar; en el estado inicial el resumen ya dice «Pulse «Comprobar»» (B-06).
   const [exportAttempted, setExportAttempted] = useState(false);
   useEffect(() => {
     if (engine.current) setExportAttempted(false);
   }, [engine.current]);
-  const exportHint = visibleExportHint({ hint: exportHintText, hasRun: engine.run !== null, current: engine.current, attempted: exportAttempted });
+  const exportHint = hasDrafts ? undefined : visibleExportHint({ hint: exportHintText, hasRun: engine.run !== null, current: engine.current, attempted: exportAttempted });
+  const exportDescribedBy = hasDrafts ? 'ea-pending-drafts' : exportHint ? 'ea-export-hint' : undefined;
 
   const exportResults = (): void => {
-    if (!engine.run || !engine.current) return;
+    if (hasDrafts || !engine.run || !engine.current) return;
     downloadText(resultsCsv(engine.run.report, engine.run.doc.units), `${baseFileName(fileName, doc)}-resultados.csv`, 'text/csv;charset=utf-8');
   };
   const exportSlices = (): void => {
-    if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
+    if (hasDrafts || !engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
     downloadText(slicesCsv(engine.run), `${baseFileName(fileName, engine.run.doc)}-dovelas.csv`, 'text/csv;charset=utf-8');
   };
   const exportSurface = (): void => {
-    if (!engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
+    if (hasDrafts || !engine.run || !engine.current || !hasExportableSurface(engine.run.report.results)) return;
     downloadText(surfaceCoordsCsv(engine.run.report.results, engine.run.doc.units), `${baseFileName(fileName, doc)}-superficie.csv`, 'text/csv;charset=utf-8');
   };
 
   const exportForces = (): void => {
-    if (!engine.run || !engine.current || !hasReinforcementForces(engine.run.report.results)) return;
+    if (hasDrafts || !engine.run || !engine.current || !hasReinforcementForces(engine.run.report.results)) return;
     downloadText(reinforcementForcesCsv(engine.run), `${baseFileName(fileName, doc)}-fuerzas-refuerzos.csv`, 'text/csv;charset=utf-8');
   };
 
   const onReport = async (): Promise<void> => {
     if (reportBusy) return;
+    if (hasDrafts) {
+      notify('aviso', PENDING_DRAFTS_TEXT);
+      return;
+    }
     if (!engine.run || !engine.current) {
       setExportAttempted(true);
       notify('aviso', 'El informe necesita un cálculo del modelo actual. Pulse «Comprobar» y después «Informe PDF».');
@@ -395,11 +409,16 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   };
 
   const checkState = checkButtonState({ busy: engine.busy, engineStatus });
+  const checkDisabled = checkState.disabled || hasDrafts;
   const onCheck = useCallback(async () => {
+    if (hasDrafts) {
+      notify('aviso', PENDING_DRAFTS_TEXT);
+      return;
+    }
     if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
     if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
-  }, [engine, engineStatus]);
+  }, [engine, engineStatus, hasDrafts, notify]);
 
   // ───────── Anuncios (regiones vivas persistentes) ─────────
 
@@ -619,17 +638,17 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             </label>
           </DropdownMenu>
           <DropdownMenu label="Exportar">
-            <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+            <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
               Exportar resultados (CSV)
             </button>
-            <button type="button" onClick={exportSlices} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+            <button type="button" onClick={exportSlices} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
               Exportar dovelas (CSV)
             </button>
-            <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+            <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
               Exportar superficie (CSV)
             </button>
             {engine.run && hasReinforcementForces(engine.run.report.results) ? (
-              <button type="button" onClick={exportForces} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportHint ? 'ea-export-hint' : undefined}>
+              <button type="button" onClick={exportForces} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
                 Exportar fuerzas de refuerzos (CSV)
               </button>
             ) : null}
@@ -655,7 +674,14 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
           </>
         )}
         <div className="ea-group ea-group-main" role="group" aria-label="Cálculo">
-          <button type="button" className="primary ea-primary" onClick={() => void onCheck()} disabled={checkState.disabled} title="Ctrl+Intro">
+          <button
+            type="button"
+            className="primary ea-primary"
+            onClick={() => void onCheck()}
+            disabled={checkDisabled}
+            title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+Intro'}
+            aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
+          >
             {checkState.label}
           </button>
           {engine.busy && (
@@ -673,7 +699,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
             onClick={() => void onReport()}
             disabled={reportBusy || engine.busy || !canExport}
             title={exportBlockedTitle}
-            aria-describedby={exportHint ? 'ea-export-hint' : undefined}
+            aria-describedby={exportDescribedBy}
           >
             {reportBusy ? 'Generando…' : 'Informe PDF'}
           </button>
@@ -692,6 +718,11 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         {checkState.status && (
           <p className="ea-engine-status small" data-testid="engine-status">
             {checkState.status}
+          </p>
+        )}
+        {hasDrafts && (
+          <p id="ea-pending-drafts" className="ea-export-hint ep-error small" role="status" data-testid="pending-drafts-hint">
+            {PENDING_DRAFTS_TEXT} ({pendingDrafts.join(', ')}).
           </p>
         )}
         {exportHint && (

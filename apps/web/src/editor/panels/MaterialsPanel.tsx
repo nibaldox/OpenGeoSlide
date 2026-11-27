@@ -7,6 +7,7 @@ import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   MATERIAL_MODEL_OPTIONS,
   defaultStrengthGradient,
+  evaluateMaterialCard,
   formatNumber,
   materialFromForm,
   materialRemoveCommand,
@@ -14,9 +15,9 @@ import {
   materialTopElevation,
   materialUpsertCommand,
   materialUsage,
-  materialsEqual,
   newMaterialForm,
   regionMaterialCommand,
+  setPendingDraft,
   setSuVariable,
   switchMaterialModel,
   unitLabels,
@@ -210,19 +211,22 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
 }) {
   const [form, setForm, reset] = useDraft(() => materialToForm(material), [material]);
   const selected = useStoreSelector(store, (s) => s.ui.selection.kind === 'material' && s.ui.selection.materialId === material.id);
-  const outcome = materialFromForm(form, { otherIds, editing: material });
-  const errors = outcome.ok ? {} : outcome.errors;
+  const { errors, pending } = evaluateMaterialCard(form, material, { otherIds, editing: material });
 
   const commitWith = (next: MaterialForm): void => {
-    const result = materialFromForm(next, { otherIds, editing: material });
-    if (!result.ok || materialsEqual(result.value, material)) return;
-    store.dispatch(materialUpsertCommand(result.value));
+    const { commit: value } = evaluateMaterialCard(next, material, { otherIds, editing: material });
+    if (value) store.dispatch(materialUpsertCommand(value));
   };
   const commit = (): void => commitWith(form);
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'material', materialId: material.id } });
   const remove = materialRemoveCommand(store.getState().doc, material.id);
 
   const scope = `Material ${material.id}`;
+  useEffect(() => {
+    const key = `material:${material.id}`;
+    setPendingDraft(store, key, pending ? scope : null);
+    return () => setPendingDraft(store, key, null);
+  }, [store, material.id, pending, scope]);
   const model: MaterialModel = form.model ?? 'mohr_coulomb';
   const fields = materialFields(units, model, form.variable === true);
   const field = ({ key, label, unit, mode, hint }: FieldSpec) => (
@@ -266,6 +270,14 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         {fields.after.map(field)}
         <MaterialExtras form={form} setForm={setForm} scope={scope} units={units} errors={errors} commit={commitWith} />
       </div>
+      {pending ? (
+        <p className="ep-note small" role="status" data-testid="material-pending">
+          Hay cambios de esta tarjeta sin aplicar al modelo: corrija los errores para guardarlos.{' '}
+          <button type="button" className="link-button" aria-label={`Descartar cambios del material ${material.id}`} onClick={reset}>
+            Descartar cambios
+          </button>
+        </p>
+      ) : null}
       <div className="ep-actions">
         <button
           type="button"

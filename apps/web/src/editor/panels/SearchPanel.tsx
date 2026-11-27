@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
@@ -12,6 +13,7 @@ import {
   searchSetCommand,
   searchToForm,
   searchesEqual,
+  setPendingDraft,
   unitLabels,
   type SearchForm,
 } from './forms';
@@ -22,8 +24,15 @@ export function SearchPanel({ store }: { store: EditorStore }) {
   const units = useStoreSelector(store, (s) => s.doc.units);
   const u = unitLabels(units);
   const [form, setForm, reset] = useDraft(() => (search ? searchToForm(search) : null), [search]);
+  const xRange = modelXRange({ regions });
+  const outcome = form ? searchFromForm(form, { xRange }) : null;
+  const pending = Boolean(search && form && outcome && !outcome.ok && JSON.stringify(form) !== JSON.stringify(searchToForm(search)));
+  useEffect(() => {
+    setPendingDraft(store, 'search', pending ? 'Búsqueda' : null);
+    return () => setPendingDraft(store, 'search', null);
+  }, [store, pending]);
 
-  if (search === null || form === null) {
+  if (search === null || form === null || outcome === null) {
     return (
       <PanelSection title="Búsqueda">
         <p className="muted">La búsqueda no está activa. Elija «Búsqueda» en el panel de superficie para editarla.</p>
@@ -31,8 +40,6 @@ export function SearchPanel({ store }: { store: EditorStore }) {
     );
   }
 
-  const xRange = modelXRange({ regions });
-  const outcome = searchFromForm(form, { xRange });
   const errors = outcome.ok ? {} : outcome.errors;
   const commitWith = (next: SearchForm): void => {
     const r = searchFromForm(next, { xRange: modelXRange(store.getState().doc) });
@@ -149,6 +156,11 @@ export function SearchPanel({ store }: { store: EditorStore }) {
           </select>
         </label>
       </div> : null}
+      {pending ? (
+        <p className="ep-note small" role="status" data-testid="search-pending">
+          Hay cambios de esta tarjeta sin aplicar al modelo: corrija los errores para guardarlos.
+        </p>
+      ) : null}
       <p className="muted small">
         Rejilla: {outcome.ok ? formatCount(searchCandidates(outcome.value)) : '—'} candidatos
         (máximo {formatCount(MAX_GRID_CANDIDATES)}).
