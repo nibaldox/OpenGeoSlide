@@ -15,7 +15,7 @@ use crate::OgsError;
 use crate::geometry::PreparedModel;
 use crate::model::{Circle, Point, SurfaceSpec};
 use crate::report::SurfaceOut;
-use crate::slicer::{SurfaceError, Tramo, sliding_span};
+use crate::slicer::{SurfaceError, Tramo, slice_surface, sliding_span};
 
 /// Status reason (`Invalid`, E13c): the extension of the polyline leaves the model without cutting the ground.
 pub const POLYLINE_NO_GROUND_CROSSING: &str = "polyline_no_ground_crossing";
@@ -221,10 +221,30 @@ impl Surface {
     }
 }
 
-/// Convert a circle's ground crossings to nine lower-arc vertices (F6.10).
+/// Slices used to find the stretch of a circle that the slicer analyses (E16x). The extent of the analysed block comes
+/// from the breakpoints of the arc, not from this number, so any value that gives at least `MIN_SOIL_SLICES` works.
+const SEED_SLICES: usize = 40;
+
+/// Convert a circle into nine lower-arc vertices (F6.10, E16x).
+///
+/// The ends are those of the stretch that the slicer analyses for that circle (the sliding mass: the main soil block,
+/// without the lenses under the toe that §4.1 discards), not the outermost crossings of `sliding_span`. In a circle of
+/// the grid they are its entry and its exit. A circle that the slicer rejects gives `None`.
 pub(crate) fn search_circle_polyline(pm: &PreparedModel, circle: &Circle) -> Option<Vec<Point>> {
-    let span = sliding_span(pm, circle).ok()?;
-    let (a, b) = (span.p, span.q);
+    let sliced = slice_surface(pm, circle, SEED_SLICES).ok()?;
+    let a = sliced
+        .slices
+        .iter()
+        .map(|s| s.x_left)
+        .fold(f64::INFINITY, f64::min);
+    let b = sliced
+        .slices
+        .iter()
+        .map(|s| s.x_right)
+        .fold(f64::NEG_INFINITY, f64::max);
+    if !(a.is_finite() && b.is_finite() && a < b) {
+        return None;
+    }
     let mut points = Vec::with_capacity(9);
     for i in 0..=8 {
         let x = a + (b - a) * i as f64 / 8.0;
@@ -264,7 +284,7 @@ pub(crate) fn search_polyline_admissible(pm: &PreparedModel, points: &[Point]) -
         }
     }
     for p in &points[1..points.len() - 1] {
-        if pm.top_at(p[0]).is_none_or(|g| p[1] >= g - 1e-6) || p[1] <= pm.y_min {
+        if pm.top_at(p[0]).is_none_or(|g| p[1] >= g - pm.tol()) || p[1] <= pm.y_min {
             return false;
         }
     }

@@ -340,7 +340,8 @@ where
         let span = (entry[1] - exit[0])
             .abs()
             .max((exit[1] - entry[0]).abs())
-            .max(1.0);
+            // E16x: a floor in the scale of the model (`pm.tol()` = 1e-9·scale), not 1.0, so a small model keeps its seeds.
+            .max(1e-9 * width);
         let mut chosen = vec![ends];
         nc_seeds.push(first);
         for (_, _, candidate) in nc_grid {
