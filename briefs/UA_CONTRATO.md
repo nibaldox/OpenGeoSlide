@@ -429,3 +429,18 @@ Además (UA2):
 ## Enmiendas
 
 (ninguna)
+
+### UA-E1 (27-nov, tras UA1-T)
+
+- `src/render/drawSection.test.ts` pasa a UA1-T, solo para que siga el fondo claro v1.1 del lienzo (`#f6f7f9`).
+- `--ui-accent` no se usa como color de texto: en oscuro da menos de 4,5. El texto y los trazos de acento usan
+  `--ui-accent-bright`. `--ui-accent` queda para fondos (botón primario, herramienta activa).
+- Ajustes de UA1-T sobre los valores de la suite, porque fallaban `tokens.contrast`:
+  - `--ui-ink-muted` claro `#58626f`;
+  - `--ui-err-border` claro `#c0494b`;
+  - `--canvas-axis` `#55606c` / `#99a3b0`;
+  - `--canvas-surface` oscuro `#ff9ca8`;
+  - `--canvas-slice-edge` con alfa 0,62 / 0,55;
+  - `--canvas-handle-sel` oscuro `#b45309`.
+
+  Quedan como valores propios de OpenGeoSlide, anotados en la cabecera de `tokens.css`.
