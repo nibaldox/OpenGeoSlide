@@ -1,12 +1,13 @@
 // Lienzo SVG del editor: regiones, vértices, piezométrica, círculo fijo, rangos de búsqueda, cargas y sismo.
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec, isPolylineReport } from '../../engine/surface';
 import type { CrackReport, MethodReport, Point, ReinforcementForce, ReportSurface, Slice } from '../../engine/types';
 import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
+import { nextPaletteMode, type PaletteMode } from './paletteMode';
 import type { EditorStore, ModelDoc } from '../types';
 import {
   IDLE,
@@ -321,7 +322,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const readoutRef = useRef<HTMLParagraphElement>(null);
   // Paleta flotante: si el lienzo es más bajo que ella, hace scroll en vez de recortarse (el tooltip solo se corta entonces).
   const paletteRef = useRef<HTMLElement>(null);
-  const [paletteScroll, setPaletteScroll] = useState(false);
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>('full');
   // Márgenes del encuadre: se leen al encuadrar, sin volver a encuadrar cuando el padre pasa otro objeto igual.
   const fitInsetsRef = useRef(fitInsets);
   fitInsetsRef.current = fitInsets;
@@ -406,12 +407,18 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambian los valores de los márgenes
   }, [insetsKey]);
 
-  // ¿La paleta es más alta que el lienzo? Con `overflow` visible, `scrollHeight` mide el contenido completo.
-  useEffect(() => {
+  // B-10c: si la paleta no cabe en el lienzo, primero se compacta (botones de 36, sin rótulos) y, si aun así no cabe, hace scroll con la barra visible.
+  // Al cambiar el alto del lienzo (o el contenido de la paleta) se vuelve a `full` y se mide de nuevo, todo antes de pintar.
+  const hasPaletteTools = paletteTools != null;
+  useLayoutEffect(() => {
+    setPaletteMode('full');
+  }, [size.h, hasPaletteTools]);
+  useLayoutEffect(() => {
     const el = paletteRef.current;
     if (!el) return;
-    const needs = el.scrollHeight > el.clientHeight + 1;
-    setPaletteScroll((prev) => (prev === needs ? prev : needs));
+    // Con `overflow` visible (full y compact), `scrollHeight` mide el contenido completo.
+    const next = nextPaletteMode(paletteMode, paletteMode !== 'scroll' && el.scrollHeight > el.clientHeight + 1);
+    if (next !== paletteMode) setPaletteMode(next);
   });
 
   // Rueda: zoom alrededor del cursor. Listener nativo no pasivo para poder llamar a preventDefault.
@@ -1422,7 +1429,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </g>
       </svg>
 
-      <nav ref={paletteRef} className="ec-palette" aria-label="Herramientas del lienzo" data-scroll={paletteScroll ? 'true' : undefined}>
+      <nav ref={paletteRef} className="ec-palette" aria-label="Herramientas del lienzo" data-compact={paletteMode !== 'full' ? 'true' : undefined} data-scroll={paletteMode === 'scroll' ? 'true' : undefined}>
         {paletteTools != null && (
           <>
             <span className="ec-palette-label" aria-hidden="true">Herram.</span>
