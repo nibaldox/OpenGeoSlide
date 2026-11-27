@@ -1234,18 +1234,6 @@ fn face_side(
         let m = &pm.materials[mat];
         let length = hi - lo;
         soil += length;
-        if m.profile.is_some() {
-            let step = length / FACE_STRENGTH_SAMPLES as f64;
-            for i in 0..FACE_STRENGTH_SAMPLES {
-                let y = lo + (i as f64 + 0.5) * step;
-                let (c, t) = crate::strength::resolve(m, y);
-                cohesion_force += c * step;
-                tan_sum += t * step;
-            }
-        } else {
-            cohesion_force += m.cohesion * length;
-            tan_sum += m.tan_phi * length;
-        }
         // Pieces of constant unit weight, top first: above and below the piezometric level when `unit_weight_sat`
         // applies (as in the weight of the slice), the whole interval otherwise.
         let pieces: [(f64, f64, f64); 2] = match (m.unit_weight_sat, piezo) {
@@ -1255,6 +1243,48 @@ fn face_side(
             }
             _ => [(lo, hi, m.unit_weight), (lo, lo, 0.0)],
         };
+        // Strength of the interval (F6.6). For `Linear` the closed form of today, byte for byte; for `hoek_brown` and
+        // `shansep` the envelope integrated at the effective vertical stress of each point (K = 1) with
+        // `FACE_STRENGTH_SAMPLES` midpoints, like the undrained profile (F6.5). `face_tau` is `todo!()` in B0.
+        match &m.law {
+            crate::strength::StrengthLaw::Linear => {
+                if m.profile.is_some() {
+                    let step = length / FACE_STRENGTH_SAMPLES as f64;
+                    for i in 0..FACE_STRENGTH_SAMPLES {
+                        let y = lo + (i as f64 + 0.5) * step;
+                        let (c, t) = crate::strength::resolve(m, y);
+                        cohesion_force += c * step;
+                        tan_sum += t * step;
+                    }
+                } else {
+                    cohesion_force += m.cohesion * length;
+                    tan_sum += m.tan_phi * length;
+                }
+            }
+            crate::strength::StrengthLaw::HoekBrown(_)
+            | crate::strength::StrengthLaw::Shansep(_) => {
+                let step = length / FACE_STRENGTH_SAMPLES as f64;
+                for i in 0..FACE_STRENGTH_SAMPLES {
+                    let y = lo + (i as f64 + 0.5) * step;
+                    // Total vertical stress at `y`: the overburden above the interval plus the pieces above `y`.
+                    let mut sigma_v_y = sigma_v;
+                    for &(p_lo, p_hi, gamma) in &pieces {
+                        let above = p_hi - p_lo.max(y);
+                        if above > 0.0 {
+                            sigma_v_y += gamma * above;
+                        }
+                    }
+                    let u = if let Some(ru) = m.ru {
+                        ru * sigma_v_y
+                    } else if let Some(z) = piezo {
+                        pm.gamma_w * (z - y).max(0.0)
+                    } else {
+                        0.0
+                    };
+                    cohesion_force += crate::strength::face_tau(m, sigma_v_y - u, y) * step;
+                }
+            }
+        }
         for (p_lo, p_hi, gamma) in pieces {
             let len = p_hi - p_lo;
             if len <= 0.0 {

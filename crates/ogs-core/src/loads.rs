@@ -12,7 +12,7 @@
 use crate::OgsError;
 use crate::model::{
     CrackDepth, FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, FORMAT_VERSION_V04,
-    FORMAT_VERSION_V05, Load, MaterialModel, MethodKind, Model, SurfaceSpec,
+    FORMAT_VERSION_V05, FORMAT_VERSION_V06, Load, MaterialModel, MethodKind, Model, SurfaceSpec,
 };
 use crate::slicer::Slice;
 
@@ -234,14 +234,113 @@ fn validate_tension_crack(model: &Model) -> Result<(), OgsError> {
     Ok(())
 }
 
+/// The first field of the document that needs version `"0.6"` (F6.1), named as in the JSON, or `None`: per material,
+/// in the order of the list, `model = "hoek_brown"` or `model = "shansep"`, then the fields `ucs`, `gsi`, `mi`,
+/// `disturbance` and `shansep` (in that order, present in any material), and last `analysis.search.non_circular`.
+fn first_v06_field(model: &Model) -> Option<String> {
+    for (i, m) in model.materials.iter().enumerate() {
+        if m.model == MaterialModel::HoekBrown {
+            return Some(format!("materials[{i}].model = \"hoek_brown\""));
+        }
+        if m.model == MaterialModel::Shansep {
+            return Some(format!("materials[{i}].model = \"shansep\""));
+        }
+        for (name, present) in [
+            ("ucs", m.ucs.is_some()),
+            ("gsi", m.gsi.is_some()),
+            ("mi", m.mi.is_some()),
+            ("disturbance", m.disturbance.is_some()),
+            ("shansep", m.shansep.is_some()),
+        ] {
+            if present {
+                return Some(format!("materials[{i}].{name}"));
+            }
+        }
+    }
+    if model
+        .analysis
+        .search
+        .as_ref()
+        .is_some_and(|s| s.non_circular.is_some())
+    {
+        return Some("analysis.search.non_circular".to_string());
+    }
+    None
+}
+
+/// True when some material of the model is `hoek_brown` or `shansep` (F6.5).
+fn has_new_material(model: &Model) -> bool {
+    model
+        .materials
+        .iter()
+        .any(|m| matches!(m.model, MaterialModel::HoekBrown | MaterialModel::Shansep))
+}
+
+/// The interactions and rejections of F6.4 and F6.5: Bishop with `non_circular`, a crack with automatic depth and
+/// Ito-Matsui with a `hoek_brown` or `shansep` material, and the ranges of `non_circular`.
+fn validate_v06(model: &Model) -> Result<(), OgsError> {
+    let nc = model
+        .analysis
+        .search
+        .as_ref()
+        .and_then(|s| s.non_circular.as_ref());
+    if let Some(nc) = nc {
+        if let Some(seeds) = nc.seeds
+            && !(1..=10).contains(&seeds)
+        {
+            return Err(invalid(format!(
+                "analysis.search.non_circular.seeds debe estar en [1, 10], no {seeds}"
+            )));
+        }
+        if let Some(max_vertices) = nc.max_vertices
+            && !matches!(max_vertices, 9 | 17 | 33)
+        {
+            return Err(invalid(format!(
+                "analysis.search.non_circular.max_vertices debe ser 9, 17 o 33, no {max_vertices}"
+            )));
+        }
+        if model.analysis.methods.contains(&MethodKind::Bishop) {
+            return Err(invalid(
+                "el método bishop no se admite con analysis.search.non_circular \
+                 (la superficie crítica es una polilínea)",
+            ));
+        }
+    }
+    if has_new_material(model)
+        && model
+            .analysis
+            .tension_crack
+            .as_ref()
+            .is_some_and(|tc| tc.depth == CrackDepth::Auto)
+    {
+        return Err(invalid(
+            "analysis.tension_crack.depth \"auto\" no se admite con materiales hoek_brown o shansep; \
+             use una profundidad fija",
+        ));
+    }
+    if has_new_material(model)
+        && model.reinforcements.iter().any(|r| {
+            matches!(
+                r,
+                crate::model::Reinforcement::Pile(p) if p.lateral_pressure.is_some()
+            )
+        })
+    {
+        return Err(invalid(
+            "lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep",
+        ));
+    }
+    Ok(())
+}
+
 /// `version`, finiteness, ranges and ids of the v0.2 fields (E12a), the version gate of the v0.3 fields (E13a), of
-/// the v0.4 fields (E14a) and of the v0.5 fields (E15a), the rules of `reinforcements` (E14b) and of
-/// `analysis.tension_crack` (E15b). It does not need the geometry.
+/// the v0.4 fields (E14a), of the v0.5 fields (E15a) and of the v0.6 fields (F6.1), the rules of `reinforcements`
+/// (E14b), of `analysis.tension_crack` (E15b) and the interactions of F6.4 and F6.5. It does not need the geometry.
 ///
 /// Version `"0.1"` admits no `loads` and no `analysis.seismic`; an empty `loads` list counts as absent. Versions
 /// `"0.1"` and `"0.2"` admit no v0.3 field: the error names the first one, `<campo> requiere version "0.3"`. A
 /// version below `"0.4"` admits no `reinforcements`: `reinforcements requiere version "0.4"` (the v0.3 gate goes
-/// first).
+/// first). A version below `"0.6"` admits no v0.6 field (F6.1).
 pub fn validate_document(model: &Model) -> Result<(), OgsError> {
     let has_loads = !model.loads.is_empty();
     let has_seismic = model.analysis.seismic.is_some();
@@ -251,11 +350,12 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
         FORMAT_VERSION_V03,
         FORMAT_VERSION_V04,
         FORMAT_VERSION_V05,
+        FORMAT_VERSION_V06,
     ]
     .contains(&model.version.as_str())
     {
         return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\", \"{FORMAT_VERSION_V04}\" o \"{FORMAT_VERSION_V05}\", no \"{}\"",
+            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\", \"{FORMAT_VERSION_V04}\", \"{FORMAT_VERSION_V05}\" o \"{FORMAT_VERSION_V06}\", no \"{}\"",
             model.version
         )));
     }
@@ -264,28 +364,42 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             "los campos 'loads' y 'analysis.seismic' requieren version \"{FORMAT_VERSION_V02}\""
         )));
     }
-    if ![FORMAT_VERSION_V03, FORMAT_VERSION_V04, FORMAT_VERSION_V05]
-        .contains(&model.version.as_str())
+    if ![
+        FORMAT_VERSION_V03,
+        FORMAT_VERSION_V04,
+        FORMAT_VERSION_V05,
+        FORMAT_VERSION_V06,
+    ]
+    .contains(&model.version.as_str())
         && let Some(field) = first_v03_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V03}\""
         )));
     }
-    if ![FORMAT_VERSION_V04, FORMAT_VERSION_V05].contains(&model.version.as_str())
+    if ![FORMAT_VERSION_V04, FORMAT_VERSION_V05, FORMAT_VERSION_V06]
+        .contains(&model.version.as_str())
         && let Some(field) = first_v04_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V04}\""
         )));
     }
-    if model.version != FORMAT_VERSION_V05
+    if ![FORMAT_VERSION_V05, FORMAT_VERSION_V06].contains(&model.version.as_str())
         && let Some(field) = first_v05_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V05}\""
         )));
     }
+    if model.version != FORMAT_VERSION_V06
+        && let Some(field) = first_v06_field(model)
+    {
+        return Err(invalid(format!(
+            "{field} requiere version \"{FORMAT_VERSION_V06}\""
+        )));
+    }
+    validate_v06(model)?;
     if let Some(s) = &model.analysis.seismic {
         if !(s.kh.is_finite() && (0.0..1.0).contains(&s.kh)) {
             return Err(invalid("analysis.seismic.kh debe estar en [0, 1)"));

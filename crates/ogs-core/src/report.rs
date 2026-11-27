@@ -94,6 +94,40 @@ pub struct CrackReport {
     pub face_height: Option<f64>,
 }
 
+/// Strength of one base slice in `MethodReport.strength` (F6.6). Tagged by `law`; lists only the base slices of
+/// `hoek_brown` or `shansep`, with the `index` of `MethodReport.slices`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "law", rename_all = "snake_case")]
+pub enum SliceStrength {
+    /// A `hoek_brown` base slice: the effective normal stress `σ′n` of the last pass of the loop.
+    HoekBrown { index: usize, normal_stress: f64 },
+    /// A `shansep` base slice: the effective vertical stress `σ′v` and the OCR used.
+    Shansep {
+        index: usize,
+        vertical_stress: f64,
+        ocr: f64,
+    },
+}
+
+/// Strength report of one method (F6.6): the passes of the Hoek-Brown loop and the strength of the `hoek_brown` and
+/// `shansep` base slices. Omitted (`MethodReport.strength`) when the method has none of them.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct StrengthReport {
+    /// Number of passes of the Hoek-Brown loop of that method; omitted without Hoek-Brown.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub passes: Option<usize>,
+    /// The `hoek_brown` and `shansep` base slices; empty when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub slices: Vec<SliceStrength>,
+}
+
+impl StrengthReport {
+    /// True when there is nothing to report (no Hoek-Brown passes and no `hoek_brown`/`shansep` slice).
+    pub fn is_empty(&self) -> bool {
+        self.passes.is_none() && self.slices.is_empty()
+    }
+}
+
 /// Result of one method.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MethodReport {
@@ -121,6 +155,9 @@ pub struct MethodReport {
     /// The tension crack that truncated the surface (v0.5, E15b); omitted when the model has none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tension_crack: Option<CrackReport>,
+    /// Strength of the Hoek-Brown / SHANSEP base slices (F6.6); omitted when the method has none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strength: Option<StrengthReport>,
 }
 
 /// Full report: one entry per method, in the order of `analysis.methods`.

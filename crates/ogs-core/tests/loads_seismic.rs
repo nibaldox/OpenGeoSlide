@@ -282,13 +282,13 @@ fn f11_version_gates_the_new_fields() {
     with_seismic["version"] = json!("0.1");
     with_seismic["analysis"]["seismic"] = json!({"kh": 0.1});
     expect_invalid(&with_seismic, needle);
-    // An empty list is the same as absent, and an unknown future version (`"0.6"`; `"0.3"` is valid since E13a, `"0.4"` since E14a and `"0.5"` since E15a) is still rejected.
+    // An empty list is the same as absent, and an unknown future version (`"0.7"`; `"0.3"` is valid since E13a, `"0.4"` since E14a, `"0.5"` since E15a and `"0.6"` since F6.1) is still rejected.
     let mut empty = v02_doc();
     empty["version"] = json!("0.1");
     empty["loads"] = json!([]);
     analyze_json(&empty.to_string()).expect("empty loads in v0.1");
     let mut future = v02_doc();
-    future["version"] = json!("0.6");
+    future["version"] = json!("0.7");
     expect_invalid(&future, "version debe ser");
 }
 

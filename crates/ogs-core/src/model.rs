@@ -25,6 +25,8 @@ pub const FORMAT_VERSION_V03: &str = "0.3";
 pub const FORMAT_VERSION_V04: &str = "0.4";
 /// Version that admits `analysis.tension_crack` (amendment E15a).
 pub const FORMAT_VERSION_V05: &str = "0.5";
+/// Version that admits the Hoek-Brown and SHANSEP materials and `analysis.search.non_circular` (F6.1).
+pub const FORMAT_VERSION_V06: &str = "0.6";
 
 /// `γw` by default in kN/m³ (SI), contract §1.
 pub const DEFAULT_WATER_UNIT_WEIGHT_SI: f64 = 9.81;
@@ -103,6 +105,50 @@ pub enum MaterialModel {
     MohrCoulomb,
     /// φ = 0 with undrained strength `Su` (constant, or linear with the elevation; E13b).
     Undrained,
+    /// Generalized Hoek-Brown rock mass (F6.2).
+    HoekBrown,
+    /// Stress-history normalized undrained strength (F6.3).
+    Shansep,
+}
+
+/// SHANSEP parameters and the source of OCR (F6.3).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ShansepSpec {
+    pub ratio: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exponent: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ocr: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pop: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ocr_by_elevation: Option<Vec<[f64; 2]>>,
+}
+
+impl ShansepSpec {
+    pub fn exponent(&self) -> f64 {
+        self.exponent.unwrap_or(0.8)
+    }
+}
+
+/// Non-circular search refinement parameters (F6.4).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NonCircularSpec {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seeds: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_vertices: Option<usize>,
+}
+
+impl NonCircularSpec {
+    pub fn seeds(&self) -> usize {
+        self.seeds.unwrap_or(3)
+    }
+    pub fn max_vertices(&self) -> usize {
+        self.max_vertices.unwrap_or(33)
+    }
 }
 
 /// Soil material. `friction_angle` in degrees; for φ = 0 use `friction_angle: 0` and `cohesion = Su`, or the
@@ -140,6 +186,21 @@ pub struct Material {
     /// Cap of `Su` (a maximum for a gradient ≥ 0, a minimum for a gradient < 0). v0.3, `undrained` only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub strength_limit: Option<f64>,
+    /// Uniaxial compressive strength σci of the intact rock, in the stress unit of the model (F6.2, `hoek_brown` only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ucs: Option<f64>,
+    /// Geological Strength Index, in [0, 100] (F6.2, `hoek_brown` only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gsi: Option<f64>,
+    /// Hoek-Brown material constant `mi` (F6.2, `hoek_brown` only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mi: Option<f64>,
+    /// Disturbance factor D, in [0, 1], with no default (F6.2, `hoek_brown` only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disturbance: Option<f64>,
+    /// SHANSEP parameters and the source of OCR (F6.3, `shansep` only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shansep: Option<ShansepSpec>,
 }
 
 /// Simple polygon assigned to a material. Closed implicitly; the first vertex is not repeated.
@@ -556,6 +617,8 @@ pub struct SearchSpec {
     pub max_radius_factor: f64,
     pub min_width: Option<f64>,
     pub refine: bool,
+    /// Non-circular refinement of the critical circle (F6.4). `None` keeps the circular search of v0.5.
+    pub non_circular: Option<NonCircularSpec>,
 }
 
 /// Wire format of [`SearchSpec`]: carries the `type` tag, which has no field in the public struct.
@@ -575,6 +638,8 @@ struct SearchSpecWire {
     max_radius_factor: f64,
     min_width: Option<f64>,
     refine: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    non_circular: Option<NonCircularSpec>,
 }
 
 impl Default for SearchSpecWire {
@@ -589,6 +654,7 @@ impl Default for SearchSpecWire {
             max_radius_factor: 5.0,
             min_width: None,
             refine: true,
+            non_circular: None,
         }
     }
 }
@@ -611,6 +677,7 @@ impl From<SearchSpecWire> for SearchSpec {
             max_radius_factor: w.max_radius_factor,
             min_width: w.min_width,
             refine: w.refine,
+            non_circular: w.non_circular,
         }
     }
 }
@@ -627,6 +694,7 @@ impl From<SearchSpec> for SearchSpecWire {
             max_radius_factor: s.max_radius_factor,
             min_width: s.min_width,
             refine: s.refine,
+            non_circular: s.non_circular,
         }
     }
 }
