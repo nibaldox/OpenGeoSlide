@@ -1226,9 +1226,10 @@ pub const ITO_MATSUI_SD_RANGE: (f64, f64) = (2.0, 8.0);
 const PRESSURE_STEP_M: f64 = 0.05;
 
 /// The step of the grid of the profile of pressure in the length unit of the model (`units`): 0.05 m, or 0.05 m in
-/// feet (`0.164 ft`) with `"imperial"` (E15i-3).
+/// feet (`0.164 ft`) in an imperial model (E15i-3, E15m-8).
 pub fn pressure_step(units: Option<&str>) -> f64 {
-    if units.is_some_and(|u| u.eq_ignore_ascii_case("imperial")) {
+    // E15m-8: the same detection as the default `γw` (`is_imperial_units`: `"imp"`, case and leading spaces).
+    if crate::model::is_imperial_units(units) {
         PRESSURE_STEP_M / 0.3048
     } else {
         PRESSURE_STEP_M
@@ -1325,7 +1326,11 @@ pub struct PileProfile {
 impl PileProfile {
     /// The force at the crossing at height `y_c` (E15i-3, E15i-4).
     fn force_at(&self, y_c: f64) -> PileForce {
-        let zf = self.ground - y_c;
+        self.force_at_depth(self.ground - y_c)
+    }
+
+    /// [`PileProfile::force_at`] at the depth `zf` under the ground.
+    fn force_at_depth(&self, zf: f64) -> PileForce {
         let none = PileForce {
             soil_per_pile: 0.0,
             per_pile: 0.0,
@@ -1356,7 +1361,8 @@ impl PileProfile {
         // force `F(zf) − F[k−1]` acts at the midpoint of `[z[k−1], zf]`. So `0 < L_m ≤ zf − z_top` whenever
         // `zf > z_top`, and the moment capacity applies whenever there is a force.
         let q = self.q[k - 1] + (soil - self.f[k - 1]) * 0.5 * (self.z[k - 1] + zf);
-        let arm = ((zf * soil - q) / soil).max(0.0);
+        // E15m-7: `(zf·F − Q)/F` written as `zf − Q/F`: `zf·F` overflowed to `∞` with a finite `F` near `f64::MAX`.
+        let arm = (zf - q / soil).max(0.0);
         let (mut per_pile, mut governs) = (soil, Governs::Soil);
         if let Some(cap) = &self.capacity {
             if let Some(shear) = cap.shear
@@ -1564,7 +1570,7 @@ fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfi
             non_finite_phi = Some(phi);
         }
     }
-    Some(PileProfile {
+    let mut profile = PileProfile {
         z,
         f,
         q,
@@ -1572,5 +1578,41 @@ fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfi
         spacing,
         capacity: pile.capacity,
         non_finite_phi,
-    })
+    };
+    // E15m-7: a profile whose nodes are finite can still give a force, an arm or an `available` that are not finite at
+    // a crossing (the force per pile divided by `spacing`, the arm of the resultant). The force of a crossing is
+    // bounded by its values at the nodes, so they are tried here and the error of E15l-11 is raised before solving.
+    if profile.non_finite_phi.is_none() {
+        let tried = (1..profile.z.len()).find(|&k| {
+            let force = profile.force_at_depth(profile.z[k]);
+            !(force.soil_per_pile.is_finite()
+                && force.arm.is_finite()
+                && (force.per_pile / spacing).is_finite())
+        });
+        if let Some(k) = tried {
+            profile.non_finite_phi = Some(phi_at_node(
+                pm,
+                x,
+                ground - profile.z[k],
+                spacing,
+                d,
+                &mut column,
+                &mut scratch,
+            ));
+        }
+    }
+    Some(profile)
+}
+
+/// `φ` (degrees) of the soil at `(x, y)`, for the message of E15l-11 (`0` if there is no soil there).
+fn phi_at_node(
+    pm: &PreparedModel,
+    x: f64,
+    y: f64,
+    spacing: f64,
+    diameter: f64,
+    column: &mut Vec<(f64, f64, usize)>,
+    scratch: &mut Vec<f64>,
+) -> f64 {
+    pressure_at(pm, x, y, spacing, diameter, column, scratch).map_or(0.0, |(_, phi)| phi)
 }

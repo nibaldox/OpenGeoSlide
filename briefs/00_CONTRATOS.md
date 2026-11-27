@@ -570,11 +570,15 @@ Eᵢ Φᵢ = Ψᵢ₋₁ Eᵢ₋₁ Φᵢ₋₁ + F Tᵢ − Rᵢ
   `polyline_no_ground_crossing`, `polyline_outside_ground`, `bishop_non_circular`,
   `interslice_shear_exceeds_strength`, `janbu_correction_extrapolated`, `non_positive_fos`,
   `reinforcement_outside_mass`, `reinforcement_compression_ignored`, `reinforcement_active_compression`,
-  `structural_checks_not_covered`, `ito_matsui_spacing_range`) son
+  `structural_checks_not_covered`, `ito_matsui_spacing_range`, `water_unit_weight_default`) son
   identificadores estables en inglés (E11g: `m_alpha_pole`, `lambda_undefined` y `fos_nonpositive` quedan retirados
   porque ya no se emiten); agregar uno nuevo exige
   actualizar esta lista y `apps/web/src/engine/warnings.ts`. Los textos al usuario los traduce
   cada interfaz.
+- **(E15m-6.)** `water_unit_weight_default` es una **nota informativa**, una vez por análisis: el modelo es imperial,
+  usa agua (piezométrica, agua embalsada o agua en la grieta) y no indica `water.unit_weight`. Texto: «El modelo usa
+  agua y no indica `water.unit_weight`: se toma γw = 62,4 pcf (9,81 kN/m³). Las versiones anteriores a la v0.4.0
+  tomaban 9,81 también en unidades imperiales; indique el valor para fijarlo.». En SI no se emite.
 - `slice_circle` acepta círculos cuyo cruce externo coincide con `x_min` o `x_max` (|arco − terreno| ≤ tol en el borde).
   Solo es `OutsideModel` si el arco sale **bajo** el terreno por un borde lateral.
 

@@ -25,7 +25,8 @@
 //! # Position and depth (G1, G6)
 //!
 //! A sweep of 200 steps from the entry (the crest end of the sliding range), plus the vertices of a polyline surface, of
-//! the ground and of the regions and the edges of the `udl` inside that range (E15l-3), looks for the first `x` with
+//! the ground and of the regions, the edges of the `udl` and the vertices of the piezometric line inside that range
+//! (E15l-3, E15m-4), looks for the first `x` with
 //! `ground(x) − base(x) ≥ d(x)`, and a bisection of 60 steps refines it. A depth that is only reached at the exit end
 //! is not reached. The automatic `d(x)` is `max(0, 2c/(γ·tan(45° − φ/2)) − q/γ)` with `c`, `φ` and `γ` of the material
 //! at `2e-5·scale` under the ground at `x` (1e-3 model units in the models of the rows, as the oracle), recomputed at
@@ -87,9 +88,10 @@ pub struct CrackPlan {
     /// steps and a bisection down to the tolerance `tol` of the model. When the automatic depth is 0 at the entry
     /// (nothing to cut), `x_c` is the entry itself and nothing is truncated.
     pub x_c: f64,
-    /// Depth that applies: the fixed one, or the automatic one at `x_c` (G6, G7). Where the bisection ends on a jump
-    /// of `d(x)` (a `udl` edge, a change of material) it is the real face `ground(x_c) − base(x_c)` (E15l-2); `0` if
-    /// that face is not larger than the tolerance (no crack, nothing is cut).
+    /// Depth that applies: the fixed one, **always** (E15m-1), or the automatic one at `x_c` (G6, G7). With `auto`,
+    /// where the bisection ends on a jump of `d(x)` (a `udl` edge, a change of material) it is the real face
+    /// `ground(x_c) − base(x_c)` (E15l-2); `0` if that face is not larger than the tolerance (no crack, nothing is
+    /// cut).
     pub depth: f64,
     /// Extra nodes of the cut: a node at `x_c` (pass them to `LoadCase::with_extra_breaks`). The slicer of the
     /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut.
@@ -164,8 +166,8 @@ impl DepthAt<'_> {
 
 /// The abscissae of the sweep of G1, from the entry (excluded) to the exit (included), in that order: the uniform grid
 /// of [`SWEEP_STEPS`] steps plus (E15l-3) the abscissae inside the sliding range where `ground − base − d` can have a
-/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground)
-/// and the edges of the `udl`.
+/// narrow peak that the grid steps over: the vertices of a polyline surface, the vertices of the regions (the ground),
+/// the edges of the `udl` and (E15m-4) the vertices of the piezometric line.
 fn sweep_abscissae(
     pm: &PreparedModel,
     surface: &Surface,
@@ -181,6 +183,10 @@ fn sweep_abscissae(
     }
     extra.extend(pm.vertex_xs.iter().copied());
     extra.extend(loads.udls.iter().flat_map(|u| [u.x1, u.x2]));
+    // E15m-4: the vertices of the piezometric line, where the ponded water (and so `d(x)`) has a corner.
+    if let Some(line) = &pm.piezometric {
+        extra.extend(line.iter().map(|p| p[0]));
+    }
     extra.retain(|&x| x > lo + tol && x < hi - tol);
     // Distance from the entry, the order of the sweep.
     let mut all: Vec<f64> = (1..=SWEEP_STEPS)
@@ -237,7 +243,10 @@ pub fn locate(
         }
     };
     // An automatic depth of 0 at the entry (no cohesion, or a surcharge that cancels it): nothing to cut.
-    if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry) <= 0.0 {
+    // E15m-5: evaluated at `x_entry + s·tol`, with `s` the sense toward the mass, so that a `udl` that only touches the
+    // entry from outside (its closed end at `x_entry`) does not cancel the crack.
+    let inward = if x_exit >= x_entry { 1.0 } else { -1.0 };
+    if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry + inward * pm.tol()) <= 0.0 {
         return Ok(finish(x_entry, 0.0));
     }
     let below = |depth: &mut DepthAt, x: f64| -> f64 {
@@ -263,6 +272,10 @@ pub fn locate(
                 return Err(CrackError::NotReached);
             }
             let d = depth.at(hi);
+            // E15m-1: a fixed depth is the one of the user, always (as before R12 and as cSlope).
+            if matches!(spec.depth, CrackDepth::Fixed(_)) {
+                return Ok(finish(hi, d));
+            }
             // E15l-2: across a discontinuity of `d(x)` (a `udl` edge, a lateral change of material) the bisection ends
             // where the depth jumps and the real face is the ground over the base at `x_c`, not `d`.
             let face = pm.top_at(hi).map_or(d, |g| g - surface.y_at(pm, hi));

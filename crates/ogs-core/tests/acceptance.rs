@@ -28,7 +28,8 @@ const INFORMATIVE_WARNINGS: &[&str] = &[
     "reinforcement_compression_ignored",
     "reinforcement_active_compression",
     "structural_checks_not_covered",
-    "water_above_ground", // F5.3: a note, the ponded water is included
+    "water_above_ground",        // F5.3: a note, the ponded water is included
+    "water_unit_weight_default", // E15m-6: imperial model with water and without water.unit_weight
 ];
 
 #[derive(Deserialize)]

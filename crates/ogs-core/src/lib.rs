@@ -615,6 +615,10 @@ fn analyze_method(
     if ponded || water_over_ground(pm, &slices) {
         warnings.push("water_above_ground".to_string());
     }
+    // E15m-6: imperial units, water in use (a piezometric line, or water in the crack) and no `water.unit_weight`.
+    if uses_default_water_unit_weight(model) {
+        warnings.push(model::WATER_UNIT_WEIGHT_DEFAULT.to_string());
+    }
     // E12b: a declared load that acts on no soil slice of the reported surface (informative note).
     if load_case.unused(&slices, pm.x_max - pm.x_min) {
         warnings.push(LOAD_OUTSIDE_MASS.to_string());
@@ -669,6 +673,23 @@ fn analyze_method(
         reinforcement_forces,
         tension_crack: crack_report,
     })
+}
+
+/// E15m-6: the model is imperial, uses water and takes the default `γw` (no `water.unit_weight`). The water is in use
+/// with a piezometric line (under the ground or over it) or with `tension_crack.water_fill > 0`.
+fn uses_default_water_unit_weight(model: &Model) -> bool {
+    if !model::is_imperial_units(model.units.as_deref()) {
+        return false;
+    }
+    let water = model.water.as_ref();
+    if water.is_some_and(|w| w.unit_weight.is_some()) {
+        return false;
+    }
+    water.is_some_and(|w| w.piezometric_line.is_some())
+        || model
+            .analysis
+            .tension_crack
+            .is_some_and(|tc| tc.water_fill > 0.0)
 }
 
 /// `r_v` of E13k (see `methods::interslice_shear_ratio`) of a converged Spencer or Morgenstern-Price result; `None` for

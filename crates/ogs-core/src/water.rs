@@ -284,26 +284,33 @@ pub fn ponded_terms(
         first.x_left.min(last.x_left),
         first.x_right.max(last.x_right),
     );
-    let (pieces, walls) = ground_pieces(pm, x_lo, x_hi);
+    // E15m-2: the pieces are asked for with the span widened by `wall_tol` on each side, only to find the vertical
+    // faces (E4): a face that is `wall_tol` or less from the first or the last slice (a polyline that starts 1e-12
+    // inside it) is not lost. The pieces of the weight terms stay those of the span `[x_lo, x_hi]` (E15m-2).
+    let wall_tol = 1e-7 * pm.scale;
+    let (wide, walls) = ground_pieces(pm, x_lo - wall_tol, x_hi + wall_tol);
+    let pieces: Vec<Piece> = wide
+        .iter()
+        .copied()
+        .filter(|p| !(p.xb < x_lo || p.xa > x_hi))
+        .collect();
     // Fast path: nothing to do if the line is under the ground at every abscissa where it can reach above it, that is
     // at the vertices of the ground and of the line (both are piecewise linear).
     let above = |x: f64| {
         let w = pm.piezometric_y(x).unwrap_or(f64::NEG_INFINITY);
-        pieces
-            .iter()
+        wide.iter()
             .any(|p| x >= p.xa && x <= p.xb && w - p.at(x) > pm.tol())
     };
     let reaches =
-        pieces.iter().any(|p| above(p.xa) || above(p.xb)) || line.iter().any(|p| above(p[0]));
+        wide.iter().any(|p| above(p.xa) || above(p.xb)) || line.iter().any(|p| above(p[0]));
     if !reaches {
         return out;
     }
     let (yc, radius) = surface.moment_arm().unwrap_or((0.0, 0.0));
     let gw = pm.gamma_w;
     let tol = pm.tol();
-    let wall_tol = 1e-7 * pm.scale;
-    // E15l-4: each vertical face goes to ONE slice, the soil slice whose edge on the high side is the nearest to
-    // `wall.x` within `wall_tol` (the first one, toe first, on a tie). Two edges within `wall_tol` of the same face (a
+    // E15l-4: each vertical face goes to ONE slice, the soil slice (centre on the high side, E15m-3) whose edge on the
+    // high side is the nearest to `wall.x` within `wall_tol` (the first one, toe first, on a tie). Two edges within `wall_tol` of the same face (a
     // node of a load or of a reinforcement beside it) must not apply the thrust twice.
     let owner: Vec<Option<usize>> = walls
         .iter()
@@ -311,6 +318,11 @@ pub fn ponded_terms(
             let mut best: Option<(usize, f64)> = None;
             for (i, slice) in slices.iter().enumerate() {
                 if slice.y_top_mid - 0.5 * (slice.y_base_left + slice.y_base_right) <= tol {
+                    continue;
+                }
+                // E15m-3: the thrust goes only to a slice whose centre is on the high side of the face, so a mass on the
+                // low side whose edge is within `wall_tol` of the face takes none of it.
+                if (0.5 * (slice.x_left + slice.x_right) - wall.x) * wall.high_side <= 0.0 {
                     continue;
                 }
                 let edge = if wall.high_side > 0.0 {

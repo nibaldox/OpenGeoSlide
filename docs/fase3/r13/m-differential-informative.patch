@@ -1,0 +1,26 @@
+diff --git a/verification/differential/run.py b/verification/differential/run.py
+index ba5f744..de07864 100644
+--- a/verification/differential/run.py
++++ b/verification/differential/run.py
+@@ -106,6 +106,7 @@ OGS_INFORMATIVE_WARNINGS = (
+     "reinforcement_active_compression",
+     "structural_checks_not_covered",
+     "water_above_ground",   # F5.3: a note, the ponded water is included
++    "water_unit_weight_default",   # E15m-6: imperial, water in use and no water.unit_weight
+ )
+ 
+ 
+diff --git a/verification/differential/test_differential.py b/verification/differential/test_differential.py
+index 1cd516f..0b07ffc 100644
+--- a/verification/differential/test_differential.py
++++ b/verification/differential/test_differential.py
+@@ -244,7 +244,8 @@ def test_informative_ogs_warnings_are_the_notes_of_the_contract():
+     assert set(run.OGS_INFORMATIVE_WARNINGS) == {
+         "negative_effective_normal", "truncated_mass", "negative_lambda", "load_outside_mass",
+         "multiple_admissible_roots", "reinforcement_outside_mass", "reinforcement_compression_ignored",
+-        "reinforcement_active_compression", "structural_checks_not_covered", "water_above_ground"}
++        "reinforcement_active_compression", "structural_checks_not_covered", "water_above_ground",
++        "water_unit_weight_default"}
+ 
+ 
+ def test_non_informative_warnings_keep_driving_and_major_codes():
