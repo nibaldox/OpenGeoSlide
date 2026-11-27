@@ -1,0 +1,103 @@
+{
+ "format": "opengeoslide",
+ "version": "0.3",
+ "units": "SI",
+ "materials": [
+  {
+   "id": "s",
+   "name": "s",
+   "model": "mohr_coulomb",
+   "unit_weight": 20.0,
+   "cohesion": 10.0,
+   "friction_angle": 30.0
+  }
+ ],
+ "regions": [
+  {
+   "material": "s",
+   "polygon": [
+    [
+     0,
+     -5
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     20,
+     2
+    ],
+    [
+     20,
+     14
+    ],
+    [
+     26,
+     14
+    ],
+    [
+     44,
+     2.8
+    ],
+    [
+     60,
+     2.8
+    ],
+    [
+     60,
+     -5
+    ]
+   ]
+  }
+ ],
+ "slope": {
+  "direction": "left_to_right"
+ },
+ "water": {
+  "unit_weight": 9.81,
+  "piezometric_line": [
+   [
+    0,
+    12
+   ],
+   [
+    20,
+    12
+   ],
+   [
+    20.0000001,
+    5
+   ],
+   [
+    60,
+    2.5
+   ]
+  ]
+ },
+ "analysis": {
+  "methods": [
+   "spencer",
+   "janbu_simplified"
+  ],
+  "slices": 50,
+  "tolerance": 1e-06,
+  "surface": {
+   "type": "polyline",
+   "points": [
+    [
+     20.000000000001,
+     6
+    ],
+    [
+     30,
+     3
+    ],
+    [
+     44,
+     2.8
+    ]
+   ]
+  }
+ }
+}
