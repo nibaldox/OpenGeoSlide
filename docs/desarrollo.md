@@ -145,7 +145,7 @@ versión que fija el crate.
 
 Los tests de `crates/ogs-py/tests` (incluidos `test_v04.py`, con las filas de refuerzos de X17, y `test_v05.py`, con los
 ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md), las filas de X21 y X22 de `crates/ogs-core/tests/data/f3g*/` y
-las reproducciones de `docs/fase3/r12/repro/`; por eso se corren desde la raíz del repositorio) corren contra el **wheel
+las reproducciones de `docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`; por eso se corren desde la raíz del repositorio) corren contra el **wheel
 instalado**, no contra el código fuente. Con `uv`, un wheel de producción y un venv en `$TMPDIR`:
 
 ```sh
@@ -158,8 +158,10 @@ cd ../..
 OGS_PY_TEST_HOOKS=0 "$TMPDIR/ogs-py-venv/bin/python" -m pytest crates/ogs-py/tests -q
 ```
 
-Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tres tests de
-R12 de `test_v05.py` (E15l-1, E15l-2 y E15l-11) corren sin marcas `xfail`: si uno falla, el motor perdió esa enmienda. Los tests de pánico
+Tras cambiar el motor o el docstring hay que recompilar el wheel y reinstalarlo (`--reinstall`). Los tests de
+R12 de `test_v05.py` (E15l-1, E15l-2, E15l-5, E15l-6, E15l-7 y E15l-11) corren sin marcas: si uno falla, el motor perdió
+esa enmienda. Los de R13 de E15m-1, E15m-2, E15m-6 y E15m-7 llevan `xfail(strict=False)` hasta que el motor integrado
+traiga su corrección; entonces se quitan las marcas. Los tests de pánico
 necesitan un segundo wheel con `--features test-hooks` ([`crates/ogs-py/README.md`](../crates/ogs-py/README.md)).
 
 ## Compilar la web en local

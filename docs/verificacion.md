@@ -188,7 +188,7 @@ Bishop y Spencer y los criterios de E9b: 60 checks.
 Antes de correr, una sonda comprueba que el motor tiene el agua embalsada, la grieta (V047a, Bishop a 0,1 %) y
 `lateral_pressure` (X22-V013c, a 0,1 %); el check que necesita una capacidad ausente queda pendiente y no falla.
 Resultado, medido con `verification/differential/run.py --ogs target/release/ogs --require-f3r --require-f3g` y el
-binario de la rama `f3g4d`: **58 OK de 60**, 2 explicados, 0 fallas, 0 sin dato, 0 pendientes (D30 fija pasó de falla
+binario de release de este árbol (`cargo build --release`): **58 OK de 60**, 2 explicados, 0 fallas, 0 sin dato, 0 pendientes (D30 fija pasó de falla
 a OK con E15j-8; D40 a D42 estaban pendientes mientras el motor no tenía E15i).
 
 - **Búsqueda:** 30/30 OK. **Superficie fija:** 28/30 OK (la mayor diferencia entre los OK es +0,13 %, en D30), 2 explicados y 0 fallas.
@@ -213,8 +213,8 @@ Que la piezométrica de un modelo pase sobre el terreno **no** quiere decir que 
 el empuje del agua embalsada: un círculo que no toca la parte inundada no los recibe, y un caso así no verifica nada sobre
 el agua embalsada. De los 151 casos de `verification/cases/`, **14** tienen la piezométrica sobre el terreno (la misma
 prueba que usa `verification/tools/identity_vs_baseline.py` para separar los modelos con agua embalsada). La tabla mide,
-para cada uno, qué reciben las dovelas de la superficie **de sus checks**, con el binario de la rama `f3g5p` (motor de
-`ae5ee73`) y con `docs/fase3/r12/p-medir_agua_embalsada.py`:
+para cada uno, qué reciben las dovelas de la superficie **de sus checks**, con el binario de release de este árbol y con
+`docs/fase3/r12/p-medir_agua_embalsada.py`:
 
 1. Corre cada check como `acceptance.rs` (un método, `fixed` o `search`, con `options.slices`) y toma la superficie
    final. En una búsqueda es la superficie crítica de **ese** método.
@@ -316,11 +316,14 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
   contra el oráculo, los cinco tipos, los tres modelos de `pullout`, los estados de `reinforcement_forces`, las notas de
   refuerzos, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON.
 - **`ogs-py` v0.5:** `crates/ogs-py/tests/test_v05.py` cubre la grieta de tracción, el agua embalsada y los pilotes de
-  Ito-Matsui a través del wheel: los tres ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) (grieta seca, embalse al
-  pie y Ito-Matsui) con sus fragmentos, las 55 filas de X21 y las 28 de X22 contra el oráculo a 0,1 %, la neutralidad, el
-  espejo, la monotonía con `water_fill`, la compuerta de versión, los rechazos con su ruta y la salida siempre finita; y las
-  tres reproducciones de R12 (E15l-1, -2 y -11), que el motor integrado pasa sin marcas `xfail` (136 pruebas en
-  `test_v05.py`; 225 con las 2 omitidas de pánico en `crates/ogs-py/tests`).
+  Ito-Matsui a través del wheel: los cuatro ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) (grieta seca, embalse al
+  pie, Ito-Matsui y grieta con UDL y profundidad automática) con sus fragmentos; las filas contra el oráculo a 0,1 %
+  (55 de X21, 3 de R12 con agua embalsada activa, 28 de X22 y la de `ru` con piezométrica); la neutralidad entre v0.3 y
+  v0.5, el espejo, la monotonía con `water_fill`, la compuerta de versión, los rechazos con su ruta y la salida siempre
+  finita; y las reproducciones de las revisiones R12 y R13: E15l-1, -2, -5, -6, -7 y -11 sin marcas, y E15m-1, -2, -6 y
+  -7 con `xfail(strict=False)` mientras el motor de la rama no traiga la corrección (quitar las marcas al integrar). Son
+  170 pruebas en `test_v05.py` y 261 en `crates/ogs-py/tests` con las 2 omitidas de pánico; hasta la integración, 8 de
+  ellas son `xfail`. <!-- R13: medir al integrar -->
 - **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`, y
   `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4 y que el uso lista `tension_crack`,
   `lateral_pressure`, `capacity` y `soil_force` (E15l-25).

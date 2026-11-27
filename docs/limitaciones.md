@@ -511,9 +511,10 @@ embalsada** (la piezométrica sobre el terreno, en todas las versiones). Ambas e
 ### Excepción a la identidad con la v0.3.0: agua sobre el terreno
 
 Un modelo sin `tension_crack` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0 (salvo el número
-de versión del motor), con **dos excepciones documentadas**: esta (F5.1) y
+de versión del motor), con **tres excepciones documentadas**: esta (F5.1),
 [el contacto de aire capilar de V019](#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)
-(E15j-8). **La primera** (F5.1, D1) son los modelos cuya piezométrica pasa sobre el terreno,
+(E15j-8) y [el γw por defecto de un modelo imperial sin `water.unit_weight`](#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)
+(E15l-6, E15m-6). **La primera** (F5.1, D1) son los modelos cuya piezométrica pasa sobre el terreno,
 los que la v0.3.0 marcaba con `water_above_ground`: **cambian de resultado a propósito**, porque ahora incluyen el agua
 embalsada con su peso y su empuje. Es una corrección de física, del mismo tipo que la de V065: la v0.3.0 contaba la
 presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el FS salía muy bajo.
@@ -552,6 +553,36 @@ crítica, los avisos y las dovelas son **idénticos**, y los demás métodos y v
   otro stderr sigue contando como diferencia. El resultado de la compuerta es **0 diferencias, 2 excepciones** (V019 en
   `search` y en `search@0.4`) y los 18 modelos con agua sobre el terreno, listados aparte.
 - **Límite.** El umbral es discontinuo: un arco entre unos 7e-7 y 3e-6 sobre un vértice todavía puede diferir de cSlope.
+
+### Tercera excepción a la identidad con la v0.3.0: γw por defecto en imperial (E15l-6, E15m-6)
+
+La v0.3.0 tomaba 9,81 como γw por defecto **sin mirar las unidades**: en un modelo `imperial` sin `water.unit_weight`
+eso eran 9,81 «pcf», unas 6,4 veces menos que el agua real. Desde R12 (E15l-6) el valor por defecto en imperial es
+9,81 kN/m³ convertido con el factor de la web, alrededor de **62,45 pcf**. Por eso **cambia a propósito el FS de un
+archivo imperial que usa agua (piezométrica, agua embalsada o agua en la grieta) y no indica `water.unit_weight`**, aunque
+la piezométrica quede bajo el terreno y no haya grieta. Es la tercera clase de excepción a la identidad, después del agua
+embalsada y de V019. Los archivos en SI no cambian: la salida es la de siempre, byte a byte, y no llevan el aviso.
+
+Ejemplo medido, ACADS 1(a) en pies, sin `water.unit_weight` y con una piezométrica que queda bajo el terreno
+(vértices (20; 24), (30; 24,9), (50; 34) y (70; 34,9) m, convertidos a pies), superficie fija del círculo de V047a y sin grieta:
+
+| Método | v0.3.0 (γw = 9,81 «pcf») | ahora (γw ≈ 62,45 pcf) |
+|---|---:|---:|
+| Bishop simplificado | 0,9300 | 0,6339 |
+| Spencer | 0,9294 | 0,6359 |
+
+El FS de ahora es el del mismo modelo en SI. Si la piezométrica no toca la superficie analizada, o si `water.unit_weight` está escrito, no hay
+diferencia.
+
+- **El aviso (E15m-6).** En ese caso el motor emite una vez por análisis el aviso informativo `water_unit_weight_default`:
+  «El modelo usa agua y no indica `water.unit_weight`: se toma γw = 62,4 pcf (9,81 kN/m³). Las versiones anteriores a la
+  v0.4.0 tomaban 9,81 también en unidades imperiales; indique el valor para fijarlo.». Es informativo, como
+  `water_above_ground`, y no se emite en SI ni cuando el valor está escrito. <!-- R13: medir al integrar -->
+- **Qué hacer.** Escriba `water.unit_weight` (62,4 pcf en imperial) para fijar el valor, y vuelva a calcular los
+  resultados guardados de un archivo imperial con agua y sin ese campo: los de la v0.3.0 usaban un γw varias veces menor.
+- **En el corpus no hay ningún modelo así:** de los 15 modelos imperiales de `verification/cases/`, ninguno usa agua
+  (piezométrica o grieta con agua), de modo que la compuerta de identidad con la v0.3.0 sigue en **0 diferencias** y no
+  necesita una entrada nueva en `identity_exceptions.json`.
 
 ### La grieta: solo vertical, una por superficie (F5.2, F5.4)
 
@@ -696,12 +727,16 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   `unit_weight_sat` distinto de `unit_weight` bajo la piezométrica. Cumplen sus checks y cSlope los reproduce
   ([índice de casos](../verification/cases/INDEX.md)). La aplicación ya **no** emite el aviso «γsat sin verificar»; sigue
   la nota de que γsat sea menor que γ. Sin línea piezométrica, γsat no interviene en el cálculo, y la verificación no
-  cubre otras combinaciones (por ejemplo, γsat con `ru`).
+  cubre otras combinaciones: γsat con `ru` actúa (la piezométrica define dónde pesa `γsat`, véase la precedencia de `ru`
+  más abajo), pero ningún caso con oráculo lo comprueba.
 - **La piezométrica se prolonga en horizontal hasta los bordes del modelo** cuando no cubre todo su ancho, con el nivel
   de su extremo más cercano. Se dibuja punteada y la leyenda dice «Piezométrica (extrapolada)».
-- **`ru` tiene precedencia sobre la piezométrica:** si un material tiene `ru` y el modelo también tiene línea
-  piezométrica, ese material usa `ru` y la piezométrica no se aplica. El agua embalsada, en cambio, sigue cargando la
-  dovela con su peso y su empuje, y `u = ru·(W + V)/b` ([más arriba](#agua-embalsada-con-ru-sin-oráculo)).
+- **`ru` tiene precedencia sobre la piezométrica en la presión de poros:** si un material tiene `ru` y el modelo también
+  tiene línea piezométrica, ese material usa `ru` para `u` y la piezométrica no resta presión de poros. **`γsat` sí usa la
+  piezométrica:** el suelo bajo la línea pesa `unit_weight_sat` aunque el material tenga `ru` (ACADS 1(a) con círculo fijo, `ru = 0,2` y
+  una piezométrica bajo el terreno que corta la masa: con `γsat = 22` la suma de pesos de las dovelas pasa de 928,3 a
+  997,5 kN/m y Bishop de 0,7924 a 0,7827). El agua embalsada, en
+  cambio, sigue cargando la dovela con su peso y su empuje, y `u = ru·(W + V)/b` ([más arriba](#agua-embalsada-con-ru-sin-oráculo)).
 - **Agua sobre el terreno (nota `water_above_ground`).** Es informativa: «La piezométrica queda sobre el terreno: el agua
   embalsada se incluye con su peso y su empuje horizontal (sin sismo).» Los resultados guardados con la v0.3.0 no
   incluían ese peso ni ese empuje ([excepción a la identidad](#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
@@ -709,13 +744,15 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
   bajo una piezométrica sobre el terreno (peso del agua mayor que 0 o empuje distinto de 0, incluido el de un paramento
   vertical de presa, E15l-5): sin esa regla, una presa con muro vertical cambiaba su FS en un 26 % sin la nota (la presa de B-03, con muro en x = 20 de
   y = 2 a 14 y embalse a y = 10: Bishop 1,0010 con la v0.3.0 y 1,2629 ahora, ya con `water_above_ground`).
-- **Unidades imperiales con piezométrica:** el peso unitario del agua (γw) debe ser explícito y no menor que 20 pcf
-  (se usa 62,4 pcf). Un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».
+- **Unidades imperiales con agua:** el peso unitario del agua (γw) debería ser explícito (se usa 62,4 pcf). Si falta, el
+  motor toma 62,45 pcf y emite el aviso `water_unit_weight_default` (E15m-6), y la web lo informa como nota sin bloquear
+  el cálculo (E15m-9). Un valor explícito menor que 20 pcf, como 9,81, es de kN/m³ y sí bloquea el cálculo, tanto en el
+  editor como en «Casos».
   El motor nunca convierte los números del modelo: los interpreta en las unidades declaradas. Al cambiar de sistema, la web
   ofrece convertir los valores del modelo (el FS no cambia) o cambiar solo la etiqueta.
 - **γw por defecto del motor (E15l-6, R12B-01):** si falta `water.unit_weight`, vale 9,81 kN/m³ en `SI` y, en `imperial`,
   el resultado de convertir 9,81 kN/m³ con el mismo factor que usa la web (alrededor de 62,45 pcf), en lugar de 9,81 sin
-  mirar las unidades. Rige para la piezométrica, el agua embalsada y el agua de la grieta, y el conversor a cSlope sigue
+  mirar las unidades ([tercera excepción a la identidad](#tercera-excepción-a-la-identidad-con-la-v030-γw-por-defecto-en-imperial-e15l-6-e15m-6)). Rige para la piezométrica, el agua embalsada y el agua de la grieta, y el conversor a cSlope sigue
   la misma regla. Antes, una grieta con agua y sin `water`, convertida de SI a imperial, daba una fuerza `Pw` 6,37 veces
   menor y un FS mayor (grieta de 2 m: `Pw` 211,19 en lugar de 1344,40 lbf/ft y Bishop 1,71248 en lugar de 1,69865, +0,81 %). En
   el corpus, ninguno de los 15 modelos imperiales de `verification/cases/` usa agua (piezométrica o grieta con agua).

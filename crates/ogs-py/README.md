@@ -310,12 +310,15 @@ OGS_PY_TEST_HOOKS=1 $TMPDIR/ogs-py-venv-hooks/bin/python -m pytest tests -v
 dirección inclinada y nueve de capacidad) contra el oráculo, con los cinco tipos y los tres modelos de `pullout`, los
 estados de `reinforcement_forces` (`applied`, `outside_mass`, `compression_ignored` y `no_capacity`), las tres notas
 nuevas, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON. `tests/test_v05.py`
-cubre el formato v0.5: los tres ejemplos de [`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md) (grieta seca, embalse
-al pie y pilote de Ito-Matsui) con sus fragmentos, leídos del propio documento; las 55 filas de grieta y agua embalsada
-de X21 y las 28 de Ito-Matsui de X22 contra cSlope 0.1.0 a 0,1 % (se leen de `crates/ogs-core/tests/data/f3g*/`); las
-propiedades (neutralidad, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua, la
-compuerta de versión, los rechazos con su ruta y la salida siempre finita); y tres reproducciones de R12
-(`docs/fase3/r12/repro/`: E15l-1, E15l-2 y E15l-11), que el motor integrado pasa sin marcas `xfail`. Los tests usan el wheel instalado, no el código fuente.
+cubre el formato v0.5: los cuatro ejemplos de [`docs/formato-ogs-json.md`](../../docs/formato-ogs-json.md) (grieta seca, embalse
+al pie, pilote de Ito-Matsui y grieta con UDL y profundidad automática) con sus fragmentos, leídos del propio documento;
+las filas contra cSlope 0.1.0 a 0,1 % (55 de grieta y agua embalsada de X21, 3 de R12 con agua embalsada activa, 28 de
+Ito-Matsui de X22 y la de `ru` con piezométrica; se leen de `crates/ogs-core/tests/data/f3g*/`); las propiedades
+(neutralidad entre v0.3 y v0.5, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua,
+la compuerta de versión, los rechazos con su ruta y la salida siempre finita); y las reproducciones de las revisiones R12
+y R13 (`docs/fase3/r12/repro/` y `docs/fase3/r13/repro/`): E15l-1, -2, -5, -6, -7 y -11 corren sin marcas, y E15m-1, -2,
+-6 y -7 llevan `xfail(strict=False)` mientras el motor no traiga la corrección. Los tests usan el wheel instalado, no el
+código fuente.
 `OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
