@@ -88,13 +88,14 @@ pub struct CrackPlan {
     /// steps and a bisection down to the tolerance `tol` of the model. When the automatic depth is 0 at the entry
     /// (nothing to cut), `x_c` is the entry itself and nothing is truncated.
     pub x_c: f64,
-    /// Depth that applies: the fixed one, **always** (E15m-1), or the automatic one at `x_c` (G6, G7). With `auto`,
-    /// where the bisection ends on a jump of `d(x)` (a `udl` edge, a change of material) it is the real face
-    /// `ground(x_c) − base(x_c)` (E15l-2); `0` if that face is not larger than the tolerance (no crack, nothing is
-    /// cut).
+    /// Depth that applies: the fixed one, **always** (E15m-1), or the automatic one `d(x_c)` at `x_c` (G6, G7). E15m-15:
+    /// also where the bisection ends on a jump of `d(x)` (a `udl` edge, a step of the ground, a change of material),
+    /// which is the convention of cSlope; the face that the crack cuts there goes to `CrackReport::face_height`. With
+    /// `0` the mass is cut at `x_c` only if there is a face over the base there (see `breaks`).
     pub depth: f64,
     /// Extra nodes of the cut: a node at `x_c` (pass them to `LoadCase::with_extra_breaks`). The slicer of the
-    /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut.
+    /// cracked mass ends its span at `x_c`, so the node is the face itself; empty when nothing is cut: `x_c` is the
+    /// entry, or the depth is 0 and the face over the base is not larger than `tol` (E15m-15).
     pub breaks: Vec<f64>,
     /// Water in the crack, `hw = depth·water_fill`, and `γw` of the model; `truncate` uses them for `Pw`.
     pub water_height: f64,
@@ -232,12 +233,13 @@ pub fn locate(
         column: Vec::with_capacity(8),
         scratch: Vec::with_capacity(8),
     };
-    let finish = |x_c: f64, d: f64| {
+    // `cut`: whether the mass ends at `x_c`. A crack with depth cuts; a depth of 0 cuts only if there is a face (E15m-15).
+    let finish = |x_c: f64, d: f64, cut: bool| {
         let water_height = d * spec.water_fill;
         CrackPlan {
             x_c,
             depth: d,
-            breaks: if d > 0.0 { vec![x_c] } else { Vec::new() },
+            breaks: if cut { vec![x_c] } else { Vec::new() },
             water_height,
             gamma_w: pm.gamma_w,
         }
@@ -247,7 +249,7 @@ pub fn locate(
     // entry from outside (its closed end at `x_entry`) does not cancel the crack.
     let inward = if x_exit >= x_entry { 1.0 } else { -1.0 };
     if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry + inward * pm.tol()) <= 0.0 {
-        return Ok(finish(x_entry, 0.0));
+        return Ok(finish(x_entry, 0.0, false));
     }
     let below = |depth: &mut DepthAt, x: f64| -> f64 {
         match pm.top_at(x) {
@@ -271,18 +273,15 @@ pub fn locate(
             if (hi - x_exit).abs() <= pm.tol() {
                 return Err(CrackError::NotReached);
             }
+            // E15m-15 (revises E15l-2): the depth and the water are `d(x_c)` at the `x_c` of the bisection, for `auto` and
+            // for a fixed depth (the one of the user, E15m-1), as cSlope does. Across a discontinuity of `d(x)` the face
+            // that the crack cuts is not `d`; `truncate` says it in `face_height`.
             let d = depth.at(hi);
-            // E15m-1: a fixed depth is the one of the user, always (as before R12 and as cSlope).
-            if matches!(spec.depth, CrackDepth::Fixed(_)) {
-                return Ok(finish(hi, d));
-            }
-            // E15l-2: across a discontinuity of `d(x)` (a `udl` edge, a lateral change of material) the bisection ends
-            // where the depth jumps and the real face is the ground over the base at `x_c`, not `d`.
-            let face = pm.top_at(hi).map_or(d, |g| g - surface.y_at(pm, hi));
-            if (face - d).abs() > pm.tol() {
-                return Ok(finish(hi, if face > pm.tol() { face } else { 0.0 }));
-            }
-            return Ok(finish(hi, d));
+            // The mass ends at `x_c` with a depth of 0 too, when the discontinuity leaves a face over the base (the cut
+            // of cSlope, and of the versions before R12: `a04_udl`, 1.102248). If that face is not larger than the
+            // tolerance (a `udl` that starts 1e-10 inside the entry) nothing is cut (E15l-2, which stays).
+            let face = pm.top_at(hi).map_or(0.0, |g| g - surface.y_at(pm, hi));
+            return Ok(finish(hi, d, d > 0.0 || face > pm.tol()));
         }
         prev = x;
     }
@@ -308,7 +307,7 @@ pub fn truncate(
 ) -> CrackReport {
     let tol = pm.tol();
     // G2: nothing on the crest side of the face stays, and its weight is not kept as a load.
-    if plan.depth > 0.0 {
+    if !plan.breaks.is_empty() {
         match pm.sliding {
             Sliding::RightToLeft => slices.retain(|s| s.x_right <= plan.x_c + tol),
             Sliding::LeftToRight => slices.retain(|s| s.x_left >= plan.x_c - tol),
@@ -330,9 +329,16 @@ pub fn truncate(
             face.driving_extra += water_force * (yc - y_g) / r;
         }
     }
+    // E15m-15: the face that the crack cuts, `ground(x_c) − base(x_c)` (`top_at` at `x_c` is on the side of the mass, where
+    // the bisection ends); reported only when it is not the depth.
+    let face_height = pm
+        .top_at(plan.x_c)
+        .map(|g| g - surface.y_at(pm, plan.x_c))
+        .filter(|face| face.is_finite() && (face - plan.depth).abs() > tol);
     CrackReport {
         x: plan.x_c,
         depth: plan.depth,
         water_force,
+        face_height,
     }
 }

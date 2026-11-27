@@ -87,6 +87,11 @@ pub struct CrackReport {
     pub x: f64,
     pub depth: f64,
     pub water_force: f64,
+    /// Height of the face that the crack cuts, `ground(x_c) − base(x_c)` with the ground on the side of the mass (E15m-15).
+    /// Omitted when `|face_height − depth| ≤ tol` (a normal crack). Where the depth is that of `d(x_c)` over a
+    /// discontinuity (a `udl` edge, a step of the ground) it is not the depth, and the report says so.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub face_height: Option<f64>,
 }
 
 /// Result of one method.

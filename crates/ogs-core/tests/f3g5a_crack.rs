@@ -140,8 +140,8 @@ fn a04_base(x: f64) -> f64 {
     yc - (r * r - (x - xc) * (x - xc)).sqrt()
 }
 
-/// A `udl` on the crest cancels `d(x)` at its edge: the crack that cuts the mass is the real face
-/// `ground(x_c) − base(x_c)`, and its water is `water_fill` times that face (before: `depth 0`, `Pw 0`).
+/// A `udl` on the crest cancels `d(x)` at its edge. E15m-15 (revises E15l-2): the crack is `d(x_c)` = 0 there, `Pw 0`,
+/// as cSlope and the versions before R12; the mass is cut at the edge and the report gives the face (`face_height`).
 #[test]
 fn e15l2_discontinuity_reports_the_real_face() {
     let doc = tight(data("a04_udl"));
@@ -153,20 +153,22 @@ fn e15l2_discontinuity_reports_the_real_face() {
         (x + 66.5).abs() < 1e-9,
         "the face is at the edge of the udl: {x}"
     );
+    assert_eq!((depth, force), (0.0, 0.0), "d(x_c) = 0 under the udl");
+    let face = report.results[0].tension_crack.unwrap().face_height;
     assert!(
-        (depth - h_face).abs() <= 1e-9,
-        "depth {depth} vs face {h_face}"
+        (face.unwrap() - h_face).abs() <= 1e-9,
+        "face_height {face:?} vs face {h_face}"
     );
-    let pw = 0.5 * 9.81 * h_face * h_face;
-    assert!((force - pw).abs() <= 1e-9 * pw, "Pw {force} vs {pw}");
-    // The force acts on the slice of the face and is the whole horizontal thrust of the model.
+    // The mass is cut at the face: the first slice (crest side) ends at x_c, and there is no thrust of water.
+    let last = report.results[0].slices.last().unwrap();
+    assert!((last.x_left + 66.5).abs() < 1e-9, "{}", last.x_left);
     let sum_h: f64 = report.results[0].slices.iter().map(|s| s.h_force).sum();
-    assert!((sum_h - pw).abs() <= 1e-9 * pw, "{sum_h}");
-    // Half the water: the thrust follows the water, quadratically.
+    assert_eq!(sum_h, 0.0);
+    // The water fill changes nothing: there is no water over a depth of 0.
     let mut half = doc.clone();
     half["analysis"]["tension_crack"]["water_fill"] = json!(0.5);
     let (_, d2, f2) = crack_of(&run(&half), 0);
-    assert!((d2 - h_face).abs() <= 1e-9 && (f2 - 0.25 * pw).abs() <= 1e-9 * pw);
+    assert_eq!((d2, f2), (0.0, 0.0));
 }
 
 /// If the face that the discontinuity leaves is nothing (`h_face ≤ tol`), there is no crack: depth 0, no cut and the
@@ -428,7 +430,7 @@ fn e15l3_terrain_vertex_between_grid_steps_reaches_the_crack() {
 }
 
 /// The edge of a `udl` is in the sweep: with an automatic crack, a strip of surcharge 0.2 m wide that cancels `d(x)` is
-/// not stepped over, and the crack is the real face at its edge (E15l-2).
+/// not stepped over: the crack is at its edge, with `d(x_c)` = 0 and the face in `face_height` (E15m-15).
 #[test]
 fn e15l3_udl_edge_is_swept() {
     let mut doc = flat(
@@ -442,7 +444,9 @@ fn e15l3_udl_edge_is_swept() {
     let (x, depth, _) = crack_of(&report, 0);
     let base = 308.0 - (300.0_f64 * 300.0 - 20.0 * 20.0).sqrt();
     assert!((x - 30.0).abs() <= 1e-9, "{x}");
-    assert!((depth - (10.0 - base)).abs() <= 1e-9, "{depth}");
+    assert_eq!(depth, 0.0);
+    let face = report.results[0].tension_crack.unwrap().face_height;
+    assert!((face.unwrap() - (10.0 - base)).abs() <= 1e-9, "{face:?}");
 }
 
 // ------------------------------------------------------------------------------------------------------- E15l-8 (A-13)
