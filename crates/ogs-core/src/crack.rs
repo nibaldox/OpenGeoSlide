@@ -238,7 +238,10 @@ pub fn locate(
         }
     };
     // An automatic depth of 0 at the entry (no cohesion, or a surcharge that cancels it): nothing to cut.
-    if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry) <= 0.0 {
+    // E15m-5: evaluated at `x_entry + s·tol`, with `s` the sense toward the mass, so that a `udl` that only touches the
+    // entry from outside (its closed end at `x_entry`) does not cancel the crack.
+    let inward = if x_exit >= x_entry { 1.0 } else { -1.0 };
+    if matches!(spec.depth, CrackDepth::Auto) && depth.at(x_entry + inward * pm.tol()) <= 0.0 {
         return Ok(finish(x_entry, 0.0));
     }
     let below = |depth: &mut DepthAt, x: f64| -> f64 {

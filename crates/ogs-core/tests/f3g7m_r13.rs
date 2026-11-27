@@ -285,3 +285,66 @@ fn e15m3_the_thrust_of_the_face_never_goes_to_a_slice_on_the_low_side() {
         );
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-5 (A-06)
+
+/// The circle of `a04_udl` (entry at `x = −68`) with a `udl` that ends at `x_entry − δ`, entirely outside the mass.
+fn udl_outside(delta: f64) -> Value {
+    let mut doc = data("a04_udl");
+    doc["loads"] =
+        json!([{"type": "udl", "id": "u1", "x1": -70.0, "x2": -68.0 - delta, "q": 100.0}]);
+    doc
+}
+
+/// A `udl` that only touches the entry from outside does not cancel the automatic crack: `δ = 0` is `δ = 1e-6` (before:
+/// `depth 0`, `Pw 0` and Bishop 1.609392, +2.84 % over cSlope 1.564943).
+#[test]
+fn e15m5_a_udl_that_only_touches_the_entry_from_outside_keeps_the_crack() {
+    let (touching, apart) = (run(&udl_outside(0.0)), run(&udl_outside(1e-6)));
+    for i in 0..2 {
+        let ((_, d0, p0), (_, d1, p1)) = (crack_of(&touching, i), crack_of(&apart, i));
+        assert!(d1 > 2.0, "the crack of δ = 1e-6: {d1}");
+        assert!((d0 - d1).abs() <= 1e-6, "depth {d0} vs {d1}");
+        assert!((p0 - p1).abs() <= 1e-6 * p1, "Pw {p0} vs {p1}");
+        let (a, b) = (
+            touching.results[i].fos.unwrap(),
+            apart.results[i].fos.unwrap(),
+        );
+        assert!((a - b).abs() <= 1e-6 * b, "method {i}: {a} vs {b}");
+    }
+    // cSlope 0.1.0, Bishop and Spencer of the same document (the oracle is the same for both δ).
+    for (i, oracle) in [(0, 1.5649432546866269), (1, 1.563680718758391)] {
+        let a = touching.results[i].fos.unwrap();
+        assert!(
+            (a - oracle).abs() <= 1e-3 * oracle,
+            "{a} vs cSlope {oracle}"
+        );
+    }
+}
+
+/// A `udl` that does cover the entry from inside still cancels the crack there (the shortcut keeps its meaning).
+#[test]
+fn e15m5_a_udl_over_the_entry_still_cancels_the_automatic_depth() {
+    let mut doc = data("a04_udl");
+    doc["loads"] = json!([{"type": "udl", "id": "u1", "x1": -70.0, "x2": -60.0, "q": 100.0}]);
+    let report = run(&doc);
+    let (_, depth, force) = crack_of(&report, 0);
+    assert!(depth < 2.0, "{depth}");
+    assert!(force <= 0.5 * 9.81 * depth * depth + 1e-12);
+}
+
+/// The same case in its mirror image (right_to_left): the shortcut looks inward at the other edge too.
+#[test]
+fn e15m5_mirror_image_gives_the_same_crack() {
+    let doc = udl_outside(0.0);
+    let mut mirrored = f3_common::mirror(&doc);
+    mirrored["loads"] = json!([{"type": "udl", "id": "u1", "x1": 68.0, "x2": 70.0, "q": 100.0}]);
+    let (a, b) = (run(&doc), run(&mirrored));
+    for i in 0..2 {
+        let ((_, da, pa), (_, db, pb)) = (crack_of(&a, i), crack_of(&b, i));
+        assert!(da > 2.0 && (da - db).abs() <= 1e-9, "{da} vs {db}");
+        assert!((pa - pb).abs() <= 1e-9 * pb);
+        let (fa, fb) = (a.results[i].fos.unwrap(), b.results[i].fos.unwrap());
+        assert!((fa - fb).abs() <= 1e-9 * fa, "{fa} vs {fb}");
+    }
+}
