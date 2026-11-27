@@ -12,6 +12,16 @@ export interface RovingOptions {
   activateOnFocus?: boolean;
 }
 
+/**
+ * Índice del elemento que se recuerda como parada de tabulación (UA3 A-11). Con el foco dentro del grupo manda el último
+ * elemento enfocado. Con el foco fuera (un cambio programático de paso o de vista) manda el elemento con `aria-selected="true"`,
+ * si está habilitado; si no, el recordado.
+ */
+export function rememberedIndex({ focusInside, remembered, selected, enabled }: { focusInside: boolean; remembered: number; selected: number; enabled: readonly boolean[] }): number {
+  if (!focusInside && selected >= 0 && enabled[selected]) return selected;
+  return remembered;
+}
+
 function isEnabled(el: HTMLElement): boolean {
   return !(el instanceof HTMLButtonElement && el.disabled) && el.getAttribute('aria-disabled') !== 'true';
 }
@@ -30,7 +40,15 @@ export function useRovingTabIndex(ref: RefObject<HTMLElement | null>, options: R
     if (!container) return;
     const items = itemsOf(container, selector);
     const enabled = items.map(isEnabled);
-    const stop = tabStopIndex(enabled, remembered.current ? items.indexOf(remembered.current) : -1);
+    const focusInside = container.contains(document.activeElement);
+    const idx = rememberedIndex({
+      focusInside,
+      remembered: remembered.current ? items.indexOf(remembered.current) : -1,
+      selected: items.findIndex((el) => el.getAttribute('aria-selected') === 'true'),
+      enabled,
+    });
+    if (!focusInside && idx >= 0 && items[idx]) remembered.current = items[idx];
+    const stop = tabStopIndex(enabled, idx);
     items.forEach((el, i) => {
       const want = i === stop ? '0' : '-1';
       if (el.getAttribute('tabindex') !== want) el.setAttribute('tabindex', want);
@@ -43,7 +61,7 @@ export function useRovingTabIndex(ref: RefObject<HTMLElement | null>, options: R
     const container = ref.current;
     if (!container) return;
     const observer = new MutationObserver(sync);
-    observer.observe(container, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled'] });
+    observer.observe(container, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled', 'aria-selected'] });
     const onFocusIn = (e: FocusEvent): void => {
       const t = e.target instanceof HTMLElement ? e.target : null;
       if (t && itemsOf(container, selector).includes(t)) {
