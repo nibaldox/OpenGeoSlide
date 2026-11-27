@@ -73,7 +73,10 @@ export interface EngineDiagState {
 export function composeDiagnostics(local: readonly Issue[], engine: EngineDiagState | null, revision: number): Diagnostics {
   if (engine === null) return { status: 'idle', issues: [...local], revision };
   if (engine.revision !== revision) return { status: 'stale', issues: [...local], revision };
-  return { status: engine.status, issues: [...local, ...engine.issues], revision };
+  // E15m-9: la nota local de γw por defecto anticipa el aviso `water_unit_weight_default` del motor; con el del motor presente no se repite.
+  const engineSaysIt = engine.issues.some((i) => i.code === 'water_unit_weight_default');
+  const kept = engineSaysIt ? local.filter((i) => i.code !== 'editor.water_unit_weight_default') : local;
+  return { status: engine.status, issues: [...kept, ...engine.issues], revision };
 }
 
 export function hasErrors(issues: readonly Issue[]): boolean {

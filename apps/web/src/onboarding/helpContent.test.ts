@@ -147,6 +147,7 @@ describe('R9-05b: la ayuda declara las convenciones de signo del motor', () => {
   it('limitaciones: γsat, ru con piezométrica, extrapolación y γw imperial', () => {
     expect(all).toContain('manda ru');
     expect(all).toContain('se prolonga en horizontal');
-    expect(all).toContain('no menor que 20 pcf');
+    expect(all).toContain('explícito menor que 20 pcf'); // E15m-9: solo el valor explícito bloquea; vacío es 62,4 pcf
+    expect(all).toContain('62,4 pcf');
   });
 });

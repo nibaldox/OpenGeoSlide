@@ -565,18 +565,19 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
     ]);
   });
 
-  it('γw en modelos imperiales: con piezométrica y sin γw (o con 9,81) es un ERROR que bloquea, con la acción para corregirlo (R8)', () => {
+  it('γw en modelos imperiales: un γw explícito de 9,81 es un ERROR que bloquea; sin γw es una nota (E15m-9)', () => {
     const water: ModelDoc['water'] = { piezometric_line: [[0, 5], [20, 5]] };
+    // Sin γw (E15m-9): el motor usa 62,4 pcf (E15l-6); ningún error, una nota.
     const imperial = validateLocal({ ...baseDoc(), units: 'imperial', water });
     expect(imperial).toHaveLength(1);
-    expect(imperial[0]).toMatchObject({ source: 'local', severity: 'error', code: 'editor.water_unit_weight', path: '/water/unit_weight' });
-    expect(imperial[0]!.text).toContain('Escriba 62,4 pcf');
-    expect(imperial[0]!.text).toContain('pestaña «Agua»');
-    expect(imperial[0]!.text).toMatch(/menor que 20 pcf/);
-    // Con 9,81 explícito en pcf tampoco es creíble.
+    expect(imperial[0]).toMatchObject({ source: 'local', severity: 'nota', code: 'editor.water_unit_weight_default', path: '/water/unit_weight' });
+    // Con 9,81 explícito en pcf no es creíble: error, con la acción para corregirlo.
     const explicit = validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 9.81 } });
     expect(codes(explicit)).toEqual(['editor.water_unit_weight']);
-    expect(explicit[0]!.severity).toBe('error');
+    expect(explicit[0]).toMatchObject({ source: 'local', severity: 'error', path: '/water/unit_weight' });
+    expect(explicit[0]!.text).toContain('Escriba 62,4 pcf');
+    expect(explicit[0]!.text).toContain('pestaña «Agua»');
+    expect(explicit[0]!.text).toMatch(/menor que 20 pcf/);
     // Con 62,4 (o el 62,45 de la conversión) o en SI no hay incidencia.
     expect(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 62.4 } })).toEqual([]);
     expect(validateLocal({ ...baseDoc(), units: 'imperial', water: { ...water, unit_weight: 62.4501 } })).toEqual([]);
@@ -585,10 +586,13 @@ describe('validateLocal: mensajes en lenguaje geotécnico (R7-19, UX-13)', () =>
     expect(validateLocal({ ...baseDoc(), units: 'imperial', water: {} })).toEqual([]);
   });
 
-  it('la incidencia de γw lleva a la pestaña «Agua» y al campo γw (botón «ir a Agua» de Diagnósticos)', () => {
-    const doc: ModelDoc = { ...baseDoc(), units: 'imperial', water: { piezometric_line: [[0, 5], [20, 5]] } };
+  it('la incidencia de γw (error explícito y nota) lleva a la pestaña «Agua» y al campo γw (botón «ir a Agua» de Diagnósticos)', () => {
+    const doc: ModelDoc = { ...baseDoc(), units: 'imperial', water: { piezometric_line: [[0, 5], [20, 5]], unit_weight: 9.81 } };
     const issue = validateLocal(doc).find((i) => i.code === 'editor.water_unit_weight')!;
     expect(issueTarget(issue.path, doc)).toMatchObject({ tab: 'water', fieldPath: '/water/unit_weight' });
+    const doc2: ModelDoc = { ...doc, water: { piezometric_line: [[0, 5], [20, 5]] } };
+    const note = validateLocal(doc2).find((i) => i.code === 'editor.water_unit_weight_default')!;
+    expect(issueTarget(note.path, doc2)).toMatchObject({ tab: 'water', fieldPath: '/water/unit_weight' });
   });
 
   it('ningún mensaje local contiene nombres internos del JSON o del motor', () => {
@@ -613,14 +617,15 @@ describe('R9-03b: γw imperial por debajo de 20 pcf y detección de unidades sin
   });
   const gwErrors = (doc: ModelDoc): Issue[] => validateLocal(doc).filter((i) => i.code === 'editor.water_unit_weight');
 
-  it.each([9.8, 9.80665, 9.81, 10, 19.99])('γw = %s pcf bloquea', (gw) => {
+  it.each([9.8, 9.80665, 9.81, 10, 19.99])('γw explícito = %s pcf bloquea', (gw) => {
     const issues = gwErrors(imp('imperial', gw));
     expect(issues).toHaveLength(1);
     expect(issues[0]).toMatchObject({ severity: 'error', path: '/water/unit_weight' });
   });
   it.each(['Imperial', 'IMPERIAL', ' imperial ', 'imp'])('units %j se trata como imperial', (units) => {
     expect(gwErrors(imp(units, 9.8))).toHaveLength(1);
-    expect(gwErrors(imp(units, undefined))).toHaveLength(1);
+    expect(gwErrors(imp(units, undefined))).toEqual([]); // E15m-9: sin γw no bloquea
+    expect(validateLocal(imp(units, undefined)).filter((i) => i.code === 'editor.water_unit_weight_default')).toHaveLength(1);
   });
   it.each([20, 62.4, 62.45, 64.0])('γw = %s pcf pasa', (gw) => {
     expect(gwErrors(imp('imperial', gw))).toEqual([]);

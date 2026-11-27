@@ -108,7 +108,15 @@ export const ENGINE_WARNING_CODES = [
   'reinforcement_active_compression',
   'structural_checks_not_covered',
   'ito_matsui_spacing_range',
+  'water_unit_weight_default', // E15m-6 (motor, R13): γw por defecto en un modelo imperial con agua; la web lo declara aquí y en E6 lo agrega M
 ] as const;
+
+/**
+ * Texto de la nota de γw por defecto (E15m-6 adaptado a la web, E15m-9): el campo se llama «γw» y vive en la pestaña «Agua». Lo usan el
+ * catálogo de avisos del motor y la nota local `editor.water_unit_weight_default`, de modo que dicen lo mismo.
+ */
+export const WATER_UNIT_WEIGHT_DEFAULT_TEXT =
+  'El modelo usa agua y no indica γw: se toma γw = 62,4 pcf (9,81 kN/m³). Las versiones anteriores a la v0.4.0 tomaban 9,81 también en unidades imperiales; escriba el valor en la pestaña «Agua» para fijarlo.';
 
 const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   negative_effective_normal: {
@@ -244,6 +252,10 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'aviso',
     text: () => itoMatsuiRangeText(),
   },
+  water_unit_weight_default: {
+    severity: 'nota',
+    text: WATER_UNIT_WEIGHT_DEFAULT_TEXT,
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -267,6 +279,7 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   reinforcement_active_compression: '/reinforcements',
   structural_checks_not_covered: '/reinforcements',
   ito_matsui_spacing_range: '/reinforcements',
+  water_unit_weight_default: '/water/unit_weight',
   max_iterations: '/analysis/max_iterations',
   m_alpha: '/analysis/search',
   pole: '/analysis/search',

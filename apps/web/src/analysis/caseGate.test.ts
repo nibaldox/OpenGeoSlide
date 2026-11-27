@@ -16,17 +16,18 @@ const imperial = (units: string, unit_weight?: number): Model =>
   }) as unknown as Model;
 
 describe('R9-03a: «Comprobar caso» ejecuta la validación local', () => {
-  it('JSON imperial con piezométrica y sin γw: bloquea con el mismo mensaje del editor', () => {
-    const texts = caseBlockers(imperial('imperial'));
+  it('E15m-9: JSON imperial con piezométrica y sin γw ya no bloquea (lleva una nota); el 9,8 explícito bloquea con el mensaje del editor', () => {
+    expect(caseBlockers(imperial('imperial'))).toEqual([]);
+    const texts = caseBlockers(imperial('imperial', 9.8));
     expect(texts).toHaveLength(1);
     expect(texts[0]).toContain('Escriba 62,4 pcf');
     expect(texts[0]).toContain('menor que 20 pcf');
   });
-  it('9,8 · 9,80665 · units «Imperial»: también bloquean; 62,4 y 64,0 pasan', () => {
+  it('9,8 · 9,80665 · units «Imperial» explícitos bloquean; sin γw, 62,4 y 64,0 pasan', () => {
     expect(caseBlockers(imperial('imperial', 9.8))).toHaveLength(1);
     expect(caseBlockers(imperial('imperial', 9.80665))).toHaveLength(1);
     expect(caseBlockers(imperial('Imperial', 9.81))).toHaveLength(1);
-    expect(caseBlockers(imperial('Imperial'))).toHaveLength(1);
+    expect(caseBlockers(imperial('Imperial'))).toEqual([]);
     expect(caseBlockers(imperial('imperial', 62.4))).toEqual([]);
     expect(caseBlockers(imperial('Imperial', 64))).toEqual([]);
   });

@@ -10,7 +10,8 @@ import type { AnalysisSettings, Material, Model, Point, Reinforcement } from '..
 import type { Issue, ModelDoc } from '../types';
 import { v03Fields, v04Fields, v05Fields } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
-import { geotechAdvisories } from './geotech';
+import { WATER_UNIT_WEIGHT_DEFAULT_TEXT } from '../../engine/warnings';
+import { geotechAdvisories, validPiezo } from './geotech';
 import { checkPolylineAgainstModel } from './polylineGround';
 import { isImperialUnits } from './units';
 import { boundsOf, dedupeConsecutive, findSelfIntersection, isDegenerateRegion, polygonsOverlap } from './polygonChecks';
@@ -86,9 +87,10 @@ export const RULE_TEXT = {
   intersliceOrder: 'Función de fuerzas entre dovelas: ξ debe ser estrictamente creciente de un punto al siguiente',
   intersliceNegative: 'Función de fuerzas entre dovelas: f debe ser igual o mayor que 0 en todos los puntos',
   intersliceAllZero: 'Función de fuerzas entre dovelas: la tabla debe tener algún f > 0',
+  // E15m-9: solo un γw EXPLÍCITO menor que 20 pcf es un error; un γw omitido es la nota `editor.water_unit_weight_default` (el motor usa 62,4 pcf).
   waterUnitWeightImperial:
-    'Peso unitario del agua γw: el modelo está en unidades imperiales y γw no se indica o es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
-    'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua»',
+    'Peso unitario del agua γw: el modelo está en unidades imperiales y γw es menor que 20 pcf (un valor como 9,81 es de kN/m³), así que el cálculo usaría un peso del agua ' +
+    'varias veces menor que el real (62,4 pcf), las presiones de poros saldrían muy bajas y el factor de seguridad quedaría del lado inseguro. Escriba 62,4 pcf en la pestaña «Agua» o deje el campo vacío',
 } as const;
 
 /** Etiquetas de los campos de un refuerzo (v0.4); las usan los mensajes de aquí y los del panel «Refuerzos». */
@@ -269,6 +271,10 @@ type Code = Issue['code'];
 
 function error(code: Code, text: string, path: string | null): Issue {
   return { source: 'local', severity: 'error', code, text, path };
+}
+
+function note(code: Code, text: string, path: string | null): Issue {
+  return { source: 'local', severity: 'nota', code, text, path };
 }
 
 function warning(code: Code, text: string, path: string | null): Issue {
@@ -551,15 +557,27 @@ function validateWater(doc: ModelDoc, issues: Issue[]): void {
       );
     }
   }
-  // El motor no convierte unidades: sin γw explícito usa 9,81 aunque el modelo esté en pcf (R7-22). Con piezométrica es un ERROR que
-  // bloquea «Comprobar» (R8): con 9,81 pcf las presiones de poros salen 6,4 veces menores y el FS queda del lado inseguro.
-  // R9-03b: no se compara con 9,81 exacto. En pcf el agua pesa ≈ 62,4; cualquier γw menor que 20 pcf (9,8; 9,80665; 10…) es un valor en
-  // kN/m³ o un error de captura, y `units` se detecta sin distinguir mayúsculas (`isImperialUnits`).
+  // R9-03b: no se compara con 9,81 exacto. En pcf el agua pesa ≈ 62,4; cualquier γw explícito menor que 20 pcf (9,8; 9,80665; 10…) es un valor en
+  // kN/m³ o un error de captura y bloquea «Comprobar» (el FS quedaría del lado inseguro); `units` se detecta sin distinguir mayúsculas.
+  // E15m-9: un γw omitido ya no bloquea. Desde E15l-6 el motor toma 62,4 pcf en imperial, y la nota local lo dice (`waterUnitWeightDefaultNote`).
   const gw = water.unit_weight;
-  const gwMissing = gw === undefined || gw === null;
-  if (isImperialUnits(doc.units) && line.length >= 2 && (gwMissing || (isNum(gw) && gw > 0 && gw < MIN_IMPERIAL_GAMMA_W))) {
+  if (isImperialUnits(doc.units) && line.length >= 2 && isNum(gw) && gw > 0 && gw < MIN_IMPERIAL_GAMMA_W) {
     issues.push(error('editor.water_unit_weight', `${RULE_TEXT.waterUnitWeightImperial}.`, '/water/unit_weight'));
   }
+}
+
+/**
+ * E15m-9 (R13B-01): nota de que, sin `water.unit_weight` en un modelo imperial que usa agua (piezométrica, agua embalsada o agua en la grieta),
+ * el motor toma 62,4 pcf. Es la misma información que el aviso `water_unit_weight_default` del motor, antes de calcular. No bloquea.
+ */
+function waterUnitWeightDefaultNote(doc: ModelDoc): Issue | null {
+  if (!isImperialUnits(doc.units)) return null;
+  const gw = doc.water?.unit_weight;
+  if (gw !== undefined && gw !== null) return null;
+  const crackFill = doc.analysis.tension_crack?.water_fill;
+  const usesWater = validPiezo(doc) !== null || (typeof crackFill === 'number' && crackFill > 0);
+  if (!usesWater) return null;
+  return note('editor.water_unit_weight_default', WATER_UNIT_WEIGHT_DEFAULT_TEXT, '/water/unit_weight');
 }
 
 function validateRange(
@@ -1039,6 +1057,8 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   validateMaterials(doc, issues);
   validateRegions(doc, scale, tol, issues);
   validateWater(doc, issues);
+  const gwNote = waterUnitWeightDefaultNote(doc);
+  if (gwNote) issues.push(gwNote);
   validateLoads(doc, extent, tol, issues);
   validateReinforcements(doc, tol, issues);
   validateAnalysis(doc, extent, tol, issues);

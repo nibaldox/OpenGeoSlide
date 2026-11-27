@@ -559,7 +559,7 @@ export function regionMaterialCommand(regionIndex: number, materialId: string): 
 
 // ───────────────────────── Agua ─────────────────────────
 
-/** Valor por defecto del motor para γw (kN/m³). El motor **no** lo convierte: en un modelo imperial hay que escribir γw. */
+/** Valor por defecto del motor para γw en SI (kN/m³); en imperial el motor toma 62,4 pcf (E15l-6, E15m-9). El motor no convierte los valores explícitos. */
 export const DEFAULT_WATER_UNIT_WEIGHT = 9.81;
 /** γw del agua dulce en pcf, el valor que corresponde escribir en un modelo imperial. */
 export const DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL = 62.4;
@@ -569,14 +569,14 @@ export function defaultWaterUnitWeight(units: string | undefined): number {
   return isImperialUnits(units) ? DEFAULT_WATER_UNIT_WEIGHT_IMPERIAL : DEFAULT_WATER_UNIT_WEIGHT;
 }
 
-/** Ayuda del campo γw: en imperial avisa de que dejarlo vacío usaría 9,81 (kN/m³), que no es el valor correcto en pcf. */
+/** Ayuda del campo γw (E15m-9): vacío = el valor del sistema, 9,81 kN/m³ en SI y 62,4 pcf en imperial (E15l-6); un valor como 9,81 en pcf se rechaza. */
 export function waterUnitWeightHint(units: string | undefined): string {
   return isImperialUnits(units)
-    ? 'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 9,81 (valor en kN/m³), que no corresponde a pcf.'
+    ? 'Escriba 62,4 pcf para agua dulce. Si lo deja vacío, el cálculo usa 62,4 pcf; un valor como 9,81 es de kN/m³ y se rechaza.'
     : 'Vacío = se usa 9,81 kN/m³.';
 }
 
-/** γw del agua: vacío = omitir (el motor usa 9,81, sin convertir unidades); si no, > 0. */
+/** γw del agua: vacío = omitir (el motor usa el valor de su sistema: 9,81 kN/m³ o 62,4 pcf); si no, > 0. */
 export function waterUnitWeightFromForm(text: string): FormOutcome<number | undefined> {
   const errors: FieldErrors = {};
   const v = take(errors, 'unit_weight', text, {
@@ -591,8 +591,8 @@ export function waterUnitWeightFromForm(text: string): FormOutcome<number | unde
 
 /**
  * Comandos que fijan una piezométrica nueva o importada (R9-09): `piezo/set` y, en un modelo imperial sin γw, `water/setUnitWeight` con
- * 62,4 pcf. El motor usaría 9,81 «pcf» si γw faltara y «Comprobar» se bloquea (R8), así que el valor que el campo muestra como marcador
- * se escribe de verdad. Un γw ya indicado no se toca. Despáchelos dentro de un solo gesto para que Deshacer los quite juntos.
+ * 62,4 pcf. Desde E15m-9 un γw omitido ya no bloquea (nota informativa), pero el valor que el campo muestra como marcador se escribe de verdad
+ * para que el proyecto no dependa del valor por defecto. Un γw ya indicado no se toca. Despáchelos dentro de un solo gesto para que Deshacer los quite juntos.
  */
 export function piezoCreateCommands(doc: ModelDoc, points: Point[]): EditorCommand[] {
   const cmds: EditorCommand[] = [piezoSetCommand(points)];
