@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { LIGHT_SECTION_PALETTE } from '../theme/lightPalette';
 import { defaultSectionPalette, type SectionPalette } from '../theme/sectionPalette';
 import { drawSection } from './drawSection';
 import { buildScene, materialColor, materialSlot } from './scene';
@@ -77,7 +78,8 @@ describe('drawSection con SectionPalette', () => {
     drawSection(r.ctx, 600, 400, 1, scene);
     const light = defaultSectionPalette();
     expect(r.fills[0]).toBe(light.bg);
-    expect(light.bg).toBe('#ffffff');
+    // El fondo claro sale de lightPalette.ts (atado a tokens.css por lightPalette.test.ts): no se repite el literal aquí.
+    expect(light.bg).toBe(LIGHT_SECTION_PALETTE.bg);
     expect(light.materials).toHaveLength(7);
     expect(r.fills).toContain(light.materials[0]);
   });
