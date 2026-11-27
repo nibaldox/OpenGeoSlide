@@ -275,11 +275,12 @@ function drawCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, pa
 
 /**
  * E15m-12 (R13B-06): rótulo «Sin grieta (z = 0)» cuando el motor informa la grieta con profundidad 0: sin línea, sin hueco de agua ni flecha, como el
- * lienzo del editor (`noCrackLabel`, mismo texto, posición y color de la superficie).
+ * lienzo del editor (`noCrackLabel`, mismo texto, posición y color de la superficie). E15m-15: con `face_height` > 0 el rótulo es el del corte de la masa
+ * sin grieta de tracción (con la cara en la unidad del modelo).
  */
-function drawNoCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette): void {
+function drawNoCrack(ctx: CanvasRenderingContext2D, vp: Viewport, scene: Scene, palette: SectionPalette, units?: string | null): void {
   if (!scene.noCrack || !scene.surface) return;
-  const label = noCrackLabel(scene.noCrack, scene.surface.slices, vp);
+  const label = noCrackLabel(scene.noCrack, scene.surface.slices, vp, units ?? scene.units);
   if (!label) return;
   ctx.font = AXIS_FONT;
   ctx.textBaseline = 'middle';
@@ -400,7 +401,7 @@ export function drawSection(
   }
 
   drawCrack(ctx, vp, scene, palette, units);
-  drawNoCrack(ctx, vp, scene, palette);
+  drawNoCrack(ctx, vp, scene, palette, units);
   drawReinforcements(ctx, vp, scene, palette, units);
 
   // R9-05d: el motor prolonga la piezométrica en horizontal hasta los bordes del modelo; ese tramo va punteado para que el agua no parezca terminar en el último punto.
