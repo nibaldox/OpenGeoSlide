@@ -83,7 +83,9 @@ En D40 a D42 el círculo fijo es el crítico de la búsqueda Bishop de cSlope **
   «sin dato» o un círculo más lejos del fondo sigue siendo lo que era. D30 fija ya no falla con el motor de E15j-8: +0,13 % (Bishop) y +0,12 % (Spencer), OK.
 - **`--require-f3g`** sale con código 5 si algún check del bloque queda pendiente, con fallo o sin dato (los explicados no cuentan como fallo): úsese al integrar.
 - `report.json` gana la clave `f3g` (capacidades, resumen y checks; `report_version` 5); `REPORT.md` gana la sección «v0.5».
-- **Estado con el binario del árbol principal** (`f3g-integracion`, ogs 0.3.0, sin `lateral_pressure`): **46 de 60 OK, 2 explicados
+- **Estado con el motor 0.4.0** (`ogs --version`: ogs 0.4.0, con `lateral_pressure`): **58 de 60 OK, 2 explicados (D39 fija ×2) y 0 FALLA**;
+  `--require-f3g` sale con 0. Lo que sigue es el estado histórico con un binario anterior.
+- **Estado histórico con el binario del árbol principal** (`f3g-integracion`, ogs 0.3.0, sin `lateral_pressure`): **46 de 60 OK, 2 explicados
   (D39 fija ×2) y 12 pendientes** (D40 a D42: la sonda `lateral_pressure` no pasa); cSlope resuelve los 60 (convergidos). El resto de la
   batería **no cambia**: con el mismo binario, la base de esta rama (`f556a9d`) y esta dan idénticas las 135 filas de D01 a D39
   (veredicto, FS de ogs, FS de cSlope y Δ %, sin una diferencia). Antes de E15i el informe daba 44 OK, 2 explicados y 2 FALLA de 48 con un

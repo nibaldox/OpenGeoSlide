@@ -61,7 +61,7 @@ final, una entrada por cruce con ``id``, ``crossing``, ``x``, ``y``, ``station``
 cruce, por ejemplo el tramo libre de un tirante sin ``end1_capacity``; no emite nota). Notas informativas nuevas en
 ``warnings``: ``reinforcement_outside_mass``, ``reinforcement_compression_ignored`` y ``structural_checks_not_covered``.
 
-Formato v0.5 (``"version": "0.5"``), en desarrollo y sin publicar: la grieta de tracción y la presión de suelo de
+Formato v0.5 (``"version": "0.5"``), publicado en la 0.4.0: la grieta de tracción y la presión de suelo de
 Ito-Matsui en un pilote. El **agua embalsada** no es un campo y vale en todas las versiones (véase más abajo). Un campo de
 0.5 con una versión menor es ``InvalidModel`` (``tension_crack requiere version "0.5"`` o ``lateral_pressure requiere
 version "0.5"``).

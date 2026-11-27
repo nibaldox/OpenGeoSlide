@@ -8,13 +8,14 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
-Bloque de grieta de tracción, agua embalsada y pilotes de Ito-Matsui (F3G): formato v0.5, **en desarrollo y sin
-publicar**. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15k); la evidencia,
+## [0.4.0] - 2026-11-27
+
+Bloque de grieta de tracción, agua embalsada y pilotes de Ito-Matsui (F3G): formato v0.5. El contrato es `briefs/04_CONTRATOS_GRIETA_AGUA.md` (enmiendas E15a a E15n, con las correcciones de las revisiones R12 a R14); la evidencia,
 `docs/fase3/exploracion/X18.md` a `X22.md` y `docs/fase3/PLAN_GRIETA_AGUA.md`. **Un modelo sin `tension_crack`, sin
 `lateral_pressure` y sin agua sobre el terreno da la misma salida, byte a byte, que la v0.3.0** (salvo el número de versión del motor), con tres excepciones documentadas: los modelos cuya
 piezométrica pasa sobre el terreno cambian de resultado a propósito, V019 con búsqueda, donde solo cambian dos
 contadores (E15j-8), y los archivos imperiales con agua y sin `water.unit_weight` (E15l-6, E15m-6); véase «Changed». Las
-correcciones de las revisiones R12 (E15l-1 a E15l-27) y R13 (E15m-1 a E15m-15) están en «Fixed», y lo que cambian frente
+correcciones de las revisiones R12 (E15l-1 a E15l-27), R13 (E15m-1 a E15m-15) y R14 (E15n-1 a E15n-4) están en «Fixed», y lo que cambian frente
 al binario anterior, en «Changed».
 
 ### Added
@@ -294,6 +295,25 @@ iguales, byte a byte.
   identidad en el README, el formato, `docs/limitaciones.md` y `ogs-py`; y la regla de E15m-15 y `face_height` en
   `docs/formato-ogs-json.md` (el ejemplo `grieta-udl-automatica` da Bishop 1,1022 y Spencer 1,1009), `docs/limitaciones.md`,
   `docs/verificacion.md` y `ogs-py`.
+
+Correcciones de la revisión R14 (enmiendas E15n-1 a E15n-4 del contrato, §F5.14 de `briefs/04_CONTRATOS_GRIETA_AGUA.md`).
+Medidas con `target/release/ogs`; los modelos sin grieta, sin `lateral_pressure` y sin agua sobre el terreno siguen
+iguales, byte a byte.
+
+**Motor**
+- **Grieta automática en un escalón del terreno (E15n-1).** El terreno, `d(x_c)`, la cara y el corte se
+  evalúan del lado de la masa. El espejo de derecha a izquierda de `a03_escalon_auto` da lo mismo que el de izquierda a
+  derecha: Bishop 1,862343 y `depth` 2,616; antes daba 1,911188 con `depth` 0 (cSlope 1,862416). En un escalón
+  descendente, `face_height` es la cara real (0,30 m en lugar de 2,30 m), y el escalón descendente puro de izquierda a
+  derecha pasa de 2,531715 a 2,460159 (cSlope 2,460248).
+- **Ito-Matsui: un `soil_force` no finito da el error de E15l-11 (E15n-2).** Con `spacing` < 1 y `capacity`, el informe
+  ya no sale con `"soil_force": null`: el análisis termina con `InvalidModel`.
+- **`water_unit_weight_default` también con una polilínea inválida (E15n-3),** con criterio declarativo: archivo
+  imperial, con agua y sin `water.unit_weight`.
+
+**Web**
+- **Área de acierto del rótulo de la grieta (E15n-4).** El rótulo «Sin grieta (z = 0)» o «Corte de la masa (cara de …)
+  sin grieta de tracción» tiene un área de acierto con su título completo, y la figura del PDF dibuja el mismo rótulo.
 
 ### Known issues
 - **La grieta es solo vertical, una por superficie, sin zona ni ángulo**, y no tiene tope de profundidad por la altura
@@ -736,7 +756,8 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.1.0

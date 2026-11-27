@@ -14,8 +14,8 @@ los leen. El motor acepta cinco versiones:
 [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) acepta las cinco versiones. El ejemplo mínimo es
 [`examples/acads1a.ogs.json`](../examples/acads1a.ogs.json).
 
-> **La v0.5 está en desarrollo y todavía no se publica** (véase el [registro de cambios](../CHANGELOG.md#unreleased)).
-> La versión publicada, la 0.3.0, llega hasta el formato v0.4 y no incluye la grieta de tracción ni el agua embalsada.
+> **La v0.5 se publicó con la 0.4.0** (véase el [registro de cambios](../CHANGELOG.md#040---2026-11-27)). La 0.3.0,
+> la versión anterior, llega hasta el formato v0.4 y no incluye la grieta de tracción ni el agua embalsada.
 
 - **Un modelo sin campos nuevos da el mismo resultado en las cinco versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
@@ -1466,7 +1466,7 @@ Con `version` `"0.4"`:
 Cuando la línea piezométrica pasa **sobre el terreno** (un embalse al pie del talud, un río, una presa), el motor
 incluye el agua libre **sin ningún campo nuevo y en todas las versiones del formato**, como hacen Slide2, SLOPE/W y
 cSlope: el agua entre la piezométrica y el terreno carga las dovelas con su peso y con su empuje. Antes de la v0.5
-(sin publicar), el motor contaba la presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el
+(hasta la 0.3.0), el motor contaba la presión de poros con la carga completa, pero ni el peso ni el empuje del agua, y el
 FS salía muy bajo.
 
 Las convenciones (E15c):

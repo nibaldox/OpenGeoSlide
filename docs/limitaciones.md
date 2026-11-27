@@ -3,7 +3,7 @@
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
 con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
-v0.5, en desarrollo y sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+v0.5, publicado con la 0.4.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
@@ -23,11 +23,11 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
   una tablestaca o un pilote, el empotramiento, el momento flector ni la deflexión
   ([el límite estructural](#pilotes-y-tablestacas-el-límite-estructural-f48)). Lo que se pospone está
   [más abajo](#refuerzos-formato-v04-qué-hace-y-qué-no).
-- **Pilotes de Ito-Matsui con límites** (formato v0.5, en desarrollo): la fuerza que el suelo entre pilotes ejerce sobre
+- **Pilotes de Ito-Matsui con límites** (formato v0.5): la fuerza que el suelo entre pilotes ejerce sobre
   una fila de pilotes **rígidos y verticales**, en deformación plana, con S/D de 2 a 8 como rango de validez de la
   fórmula. Es una estimación de la presión del suelo, no el diseño del pilote. Los detalles están
   [más abajo](#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no).
-- **Grieta de tracción con límites** (formato v0.5, en desarrollo): solo vertical, una por superficie, sin zona ni
+- **Grieta de tracción con límites** (formato v0.5): solo vertical, una por superficie, sin zona ni
   ángulo, sin tope de profundidad y con la regla de que descarta los candidatos que no la alcanzan. El **agua embalsada**
   (agua sobre el terreno) se incluye ahora en todas las versiones, con límites: sin desembalse rápido, sin sismo sobre el
   agua y con una regla de `ru` que no se puede comparar con el oráculo. Los detalles están
@@ -505,7 +505,7 @@ Para un diseño, contraste el resultado de la búsqueda con superficies fijas (c
 ## Grieta de tracción y agua embalsada (formato v0.5): qué hace y qué no
 
 El motor calcula la **grieta de tracción** (`analysis.tension_crack`, que exige la versión `"0.5"`) y el **agua
-embalsada** (la piezométrica sobre el terreno, en todas las versiones). Ambas están en desarrollo y **sin publicar**
+embalsada** (la piezométrica sobre el terreno, en todas las versiones). Ambas se publicaron con la 0.4.0
 ([formato](formato-ogs-json.md#agua-embalsada-todas-las-versiones)). Lo que sigue son sus límites.
 
 ### Excepción a la identidad con la v0.3.0: agua sobre el terreno

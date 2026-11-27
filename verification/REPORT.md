@@ -1,10 +1,10 @@
 # Verificación cruzada: publicado vs. ogs vs. cSlope
 
-Generado: 2026-11-26T21:31:58-03:00 · harness v1 · casos: `verification/cases` (151 casos, 327 checks)
+Generado: 2026-11-27T00:24:00-03:00 · harness v1 · casos: `verification/cases` (151 casos, 327 checks)
 
 ## Motores
 
-- **ogs**: binario `target/release/ogs` · versión: ogs-core 0.3.0
+- **ogs**: binario `target/release/ogs` · versión: ogs-core 0.4.0
 - **cSlope**: cslope 0.1.0 · motor 0.1.0+a80f9a024954 · esquema 0.1.0 · Python 3.13.14
 
 ## Resumen

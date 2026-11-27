@@ -28,15 +28,16 @@ analiza la polilínea que usted fija, y entrega el FS, las dovelas, los avisos d
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión publicada es la **0.3.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
-con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.4 con **refuerzos**
-(anclajes, clavos de suelo, geosintéticos, pilotes y tablestacas, activos y pasivos, con su fuerza en cada cruce con la
-superficie de falla), la CLI, el editor web (PWA), el paquete de Python y las pruebas de aceptación.
+La versión publicada es la **0.4.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
+con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.5 con **grieta de
+tracción**, **agua embalsada** y pilotes de **Ito-Matsui**, el formato v0.4 con **refuerzos** (anclajes, clavos de
+suelo, geosintéticos, pilotes y tablestacas, activos y pasivos, con su fuerza en cada cruce con la superficie de falla),
+la CLI, el editor web (PWA), el paquete de Python y las pruebas de aceptación.
 
 Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** con el elemento incluido, no su diseño
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
 
-El código en desarrollo, **todavía sin publicar** (véase el [registro de cambios](CHANGELOG.md#unreleased)), agrega el
+La v0.4.0 (véase el [registro de cambios](CHANGELOG.md#040---2026-11-27)) agrega el
 formato v0.5 con la **grieta de tracción** (`analysis.tension_crack`: profundidad fija o automática, seca o con agua), el
 **agua embalsada** (cuando la línea piezométrica pasa sobre el terreno, el agua libre carga la superficie de falla con
 su peso y su empuje, en todas las versiones del formato) y la **fuerza de un pilote por la presión del suelo de
@@ -79,12 +80,12 @@ oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desar
 ### Python
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
-[Release v0.3.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.3.0). El wheel es `abi3` y sirve para
+[Release v0.4.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.4.0). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.3.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.3.0/$WHL"
+WHL=opengeoslide-0.4.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.4.0/$WHL"
 ```
 
 Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
@@ -93,7 +94,7 @@ su plataforma, que figura en la página del release. También sirve descargarlo 
 ```python
 # desde la raíz del repositorio, donde está examples/
 import json, opengeoslide
-print(opengeoslide.version())                    # 0.3.0, la versión de ogs-core
+print(opengeoslide.version())                    # 0.4.0, la versión de ogs-core
 report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
 for r in report["results"]:
     print(r["method"], round(r["fos"], 4), r["status"])
@@ -101,7 +102,7 @@ for r in report["results"]:
 # spencer 0.9841 converged
 ```
 
-El paquete en desarrollo (formato v0.5, sin publicar) también lee `analysis.tension_crack` y los pilotes de Ito-Matsui, y
+El paquete (formato v0.5) también lee `analysis.tension_crack` y los pilotes de Ito-Matsui, y
 suma el agua embalsada cuando la piezométrica pasa sobre el terreno, lo que **cambia el FS** de esos modelos respecto de la
 v0.3.0. Más detalle y ejemplos en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
 
@@ -117,7 +118,7 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.5, la v0.5 aún sin publicar), con
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.5), con
 sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
@@ -175,7 +176,7 @@ Esta batería no cubre todo: véanse las limitaciones.
   comprimido se aplica con su fuerza completa y **no siempre es conservador**: con φ > 0 su componente normal confina la
   base y puede subir el FS, y el motor lo avisa con una nota; el oráculo instalado de cSlope lo descarta. Un `spacing`
   omitido vale 1 m en SI y 1 ft en imperial. El VP 58 de Slide2 sigue pendiente.
-- **Grieta de tracción y agua embalsada (formato v0.5, aún sin publicar).** La grieta es solo vertical, una por
+- **Grieta de tracción y agua embalsada (formato v0.5).** La grieta es solo vertical, una por
   superficie, sin zona ni ángulo y sin tope de profundidad por la altura del talud; una superficie que no la alcanza se
   descarta, y una grieta seca puede subir el FS. El agua embalsada no tiene desembalse rápido, el sismo pseudoestático no
   actúa sobre ella ni sobre el agua de la grieta, y su regla con `ru` (`u = ru·(W + V)/b`, la de Slide2) no se puede
@@ -184,7 +185,7 @@ Esta batería no cubre todo: véanse las limitaciones.
   retenido es la fila diferencial D39 fija, marcada «explicado» (E15j-7). **Un modelo con agua sobre el terreno cambia de resultado respecto de la v0.3.0**, a
   propósito: por ejemplo, V047a con 2 m de agua al pie da, en Bishop, 0,848 → 0,939 con superficie fija y 0,132 → 0,924 en búsqueda
   ([detalle](docs/limitaciones.md#grieta-de-tracción-y-agua-embalsada-formato-v05-qué-hace-y-qué-no)).
-- **Pilotes de Ito-Matsui (formato v0.5, aún sin publicar).** La fórmula es para pilotes **rígidos y verticales**, en
+- **Pilotes de Ito-Matsui (formato v0.5).** La fórmula es para pilotes **rígidos y verticales**, en
   deformación plana, y solo vale con S/D de 2 a 8 (el motor avisa fuera de ese rango; Ukritchon y Keawsawasvong, 2017:
   sobrestima con S/D pequeño y subestima con S/D grande). El piso de φ = 0 no viene del artículo, sino de cSlope y
   XSLOPE, y las cargas de superficie no entran en la sobrecarga del pilote. La `capacity` es un tope, no una
@@ -232,7 +233,7 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
 Morgenstern-Price and Janbu; circular search plus fixed polyline surfaces; Mohr-Coulomb and undrained strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
-geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
+geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
 28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With a pile or sheet pile that carries a given force it checks the
