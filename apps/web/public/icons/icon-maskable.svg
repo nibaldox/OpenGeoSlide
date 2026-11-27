@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OpenGeoSlide">
+  <!-- Variante «maskable» de icon.svg: fondo a sangre y la marca dentro de la zona segura (80 %). Mismos colores. -->
+  <rect width="512" height="512" fill="#161e27"/>
+  <g transform="translate(256 256) scale(12) translate(-16 -17.5)" fill="none" stroke="#6db3f2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 23h6.5l9-11H27" stroke-width="2"/>
+    <path d="M10.5 23Q21 23.5 23.5 12" stroke-width="1.8" stroke-dasharray="2.2 2.4"/>
+  </g>
+</svg>
