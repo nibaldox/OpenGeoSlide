@@ -16,7 +16,7 @@ export function engineIndicator(info: EngineInfo | null, error: string | null): 
   return { kind: 'ok', text: `Motor: ogs-core ${info.version} (WASM)` };
 }
 
-/** Indicador compacto del motor. Conserva `data-testid="engine-banner"` y el texto «Motor: ogs-core …» del recorrido e2e. */
+/** Indicador de la barra de estado: «ogs-core 0.5.0 · WASM». Conserva `data-testid="engine-banner"` y el texto «ogs-core» del recorrido e2e. */
 export function EngineIndicator({ info, error }: { info: EngineInfo | null; error: string | null }) {
   const s = engineIndicator(info, error);
   return (
@@ -24,9 +24,8 @@ export function EngineIndicator({ info, error }: { info: EngineInfo | null; erro
       <span className="engine-dot" aria-hidden="true" />
       {s.kind === 'ok' ? (
         <>
-          <span className="engine-extra">Motor: </span>
           {s.text.replace(/^Motor: /, '').replace(/ \(WASM\)$/, '')}
-          <span className="engine-extra"> (WASM)</span>
+          <span className="engine-extra"> · WASM</span>
         </>
       ) : (
         s.text

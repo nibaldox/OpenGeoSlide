@@ -1,7 +1,9 @@
-// Aplicación del editor: lienzo, paneles, diagnósticos y barra de acciones (abrir, guardar, importar, calcular, informe).
+// Aplicación del editor en el armazón A «Flujo de trabajo»: barra lateral «Modelo» con los diez pasos y el pie de acción, vistas
+// (lienzo, resultados, casos, informe), cabecera (menús y chip por portal) y barra de estado (abrir, guardar, importar, calcular, informe).
 // Parte del documento y llega al informe PDF. Toda la lógica no visual vive en `app/` (con pruebas en Node).
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ComponentType } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type ComponentType, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { loadBuiltinCases } from '../cases';
 import type { EngineClient } from '../engine/client';
 import type { MethodKind } from '../engine/types';
@@ -18,11 +20,9 @@ import { CrackSummary } from '../ui/CrackResults';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { DropdownMenu } from '../ui/DropdownMenu';
 import { Legend } from '../ui/Legend';
-import { ResultsTable } from '../ui/ResultsTable';
-import { useRovingTabIndex } from '../ui/useRovingTabIndex';
+import { IconCollapse, IconRedo, IconUndo } from '../ui/icons';
 import { EditorCanvas } from './canvas/EditorCanvas';
 import { piezoExtension } from './canvas/piezoExtension';
-import { lengthUnitOf } from './canvas/layout';
 import { isImperialUnits } from './state/units';
 import { applyPiezoImport, applyRegionImport } from './app/applyImport';
 import { downloadBlob, downloadText } from './app/download';
@@ -44,9 +44,21 @@ import { LiveRegions } from './app/LiveRegions';
 import { NoticeList } from './app/NoticeList';
 import { addNotice, noticeLifetimeMs, type Notice } from './app/notices';
 import { ResultSummary } from './app/ResultSummary';
-import { calcAnnouncement } from './app/resultSummary';
+import { calcAnnouncement, focusResultsTable } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
+import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
+import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
+import { FIT_INSETS_DESKTOP, FIT_INSETS_MOBILE } from './app/shell/layout';
+import { PaletteTools } from './app/shell/PaletteTools';
+import { ReportView } from './app/shell/ReportView';
+import { ResultsView } from './app/shell/ResultsView';
+import { browserSideStorage, readSideCollapsed, writeSideCollapsed } from './app/shell/sideState';
+import { StepList } from './app/shell/StepList';
+import { toolDef, toolStatusText } from './app/shell/tools';
+import { useIsDesktop } from './app/shell/useMedia';
+import { ViewTabs } from './app/shell/ViewTabs';
+import { shortcutActsIn, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
@@ -68,40 +80,24 @@ import {
   SurfacePanel,
   WaterPanel,
 } from './panels';
-import { createEditorStore, useEditorStore, type EditorStoreWithSave } from './state';
-import type { EditorStore, ModelDoc, Tool } from './types';
+import { createEditorStore, useEditorStore, useLocalIssues, type EditorStoreWithSave } from './state';
+import type { EditorStore, ModelDoc } from './types';
 
-/** Pestañas del panel lateral (`PanelTabId` incluye «Refuerzos», v0.4). */
+/** Pasos de la barra lateral (`PanelTabId` incluye «Refuerzos», v0.4). El orden y los rótulos viven en `app/shell/steps.ts`. */
 type TabId = PanelTabId;
 
-interface TabDef {
-  id: TabId;
-  label: string;
-  Panel: ComponentType<{ store: EditorStore }>;
-}
-
-const TABS: TabDef[] = [
-  { id: 'geometry', label: 'Geometría', Panel: GeometryPanel },
-  { id: 'materials', label: 'Materiales', Panel: MaterialsPanel },
-  { id: 'water', label: 'Agua', Panel: WaterPanel },
-  { id: 'surface', label: 'Superficie', Panel: SurfacePanel },
-  { id: 'search', label: 'Búsqueda', Panel: SearchPanel },
-  { id: 'analysis', label: 'Análisis', Panel: AnalysisPanel },
-  { id: 'loads', label: 'Cargas', Panel: LoadsPanel },
-  { id: 'reinforcements', label: 'Refuerzos', Panel: ReinforcementsPanel },
-  { id: 'seismic', label: 'Sismo', Panel: SeismicPanel },
-  { id: 'project', label: 'Proyecto', Panel: ProjectPanel },
-];
-
-/** `key`: la letra del atajo, o `null` si la herramienta no tiene atajo de teclado. */
-const TOOLS: { tool: Tool; label: string; key: string | null }[] = [
-  { tool: 'select', label: 'Seleccionar', key: 'V' },
-  { tool: 'add_vertex', label: 'Agregar vértice', key: 'A' },
-  { tool: 'draw_region', label: 'Dibujar región', key: 'R' },
-  { tool: 'split_region', label: 'Dividir región', key: 'D' },
-  { tool: 'draw_reinforcement', label: 'Dibujar refuerzo', key: null },
-  { tool: 'pan', label: 'Mover vista', key: 'H' },
-];
+const PANELS: Record<TabId, ComponentType<{ store: EditorStore }>> = {
+  geometry: GeometryPanel,
+  materials: MaterialsPanel,
+  water: WaterPanel,
+  surface: SurfacePanel,
+  search: SearchPanel,
+  analysis: AnalysisPanel,
+  loads: LoadsPanel,
+  reinforcements: ReinforcementsPanel,
+  seismic: SeismicPanel,
+  project: ProjectPanel,
+};
 
 /** Modelo de partida: ACADS 1(a) (V047a) si está entre los casos publicados; si no, el primero. */
 function initialDoc(): { doc: ModelDoc; name: string } {
@@ -137,11 +133,32 @@ export function fileStatusText({
   return `· ${parts.join(' · ')}`;
 }
 
+/** Nodos de la cabecera (los crea `App`) donde el editor muestra el chip de estado y los menús «Archivo» y «Exportar». */
+export interface HeaderSlots {
+  chip: HTMLElement | null;
+  menus: HTMLElement | null;
+}
+
+export interface EditorAppProps {
+  client: EngineClient;
+  /** Vista activa (la lleva `App`: la guía y la cabecera dependen de ella). Todas quedan montadas; las ocultas llevan `hidden`. */
+  view: ViewId;
+  onViewChange: (view: ViewId) => void;
+  /** Cabecera de la aplicación: si un nodo aún no existe, el control se muestra en línea. */
+  headerSlots?: HeaderSlots;
+  /** `EngineIndicator` para la barra de estado. */
+  engineSlot?: ReactNode;
+  /** Avisos de sesión de `App` (motor simulado, error del motor), sobre las vistas. */
+  sessionBanners?: ReactNode;
+  /** Vista «Casos de verificación» (`CasesView`), que vive en `App`. */
+  casesView?: ReactNode;
+}
+
 /**
- * `active`: el editor está a la vista. Permanece montado al cambiar a «Casos de verificación» (conserva modelo, historial
- * y resultados), pero entonces sus atajos de teclado no deben actuar (R7-07).
+ * Con la vista «Casos de verificación» el editor sigue montado pero oculto (conserva modelo, historial y resultados) y sus
+ * atajos de teclado no actúan (R7-07): `shortcutActsIn(view, action)`.
  */
-export function EditorApp({ client, active = true }: { client: EngineClient; active?: boolean }) {
+export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot, sessionBanners, casesView }: EditorAppProps) {
   const [store] = useState<EditorStoreWithSave>(() => createEditorStore(initialDoc().doc, null));
   const cases = useMemo(() => loadBuiltinCases(), []);
   const draftStorage = useMemo(() => resolveTabDraftStorage(), []);
@@ -165,10 +182,21 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const { announce, announceError } = live;
   const [tab, setTabState] = useState<TabId>('geometry');
   const [pendingFocus, setPendingFocus] = useState<{ n: number; target: IssueTarget } | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const tablistRef = useRef<HTMLDivElement>(null);
-  const toolbarKeys = useRovingTabIndex(toolbarRef, { selector: 'button', orientation: 'horizontal' });
-  const tabKeys = useRovingTabIndex(tablistRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
+  const [sideCollapsed, setSideCollapsedState] = useState(() => readSideCollapsed(browserSideStorage()));
+  const sideToggled = useRef(false);
+  const showSideRef = useRef<HTMLButtonElement>(null);
+  const hideSideRef = useRef<HTMLButtonElement>(null);
+  const setSideCollapsed = useCallback((collapsed: boolean): void => {
+    sideToggled.current = true;
+    setSideCollapsedState(collapsed);
+    writeSideCollapsed(browserSideStorage(), collapsed);
+  }, []);
+  // Al plegar o desplegar, el foco pasa al botón contrario (el que acaba de aparecer): nunca cae en <body>.
+  useEffect(() => {
+    if (!sideToggled.current) return;
+    sideToggled.current = false;
+    (sideCollapsed ? showSideRef.current : hideSideRef.current)?.focus();
+  }, [sideCollapsed]);
   const [dxf, setDxf] = useState<{ fileName: string; result: DxfParseResult } | null>(null);
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
   const [slopeOpen, setSlopeOpen] = useState(false);
@@ -251,6 +279,8 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     },
     [confirmTabSwitch],
   );
+  /** Pasos de la barra lateral y «Editar título» del informe: el paso se abre con la barra a la vista. */
+  const selectStep = useCallback((id: TabId): void => void setTab(id), [setTab]);
   // Cambiar de herramienta con un trazo de 3 o más puntos pide confirmación (A-04); con menos, el lienzo lo descarta y lo anuncia.
   const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
@@ -514,10 +544,13 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     (_issue: unknown, target: IssueTarget): void => {
       void (async () => {
         if (target.tab && !(await setTab(target.tab))) return;
+        // Un paso se abre en la barra lateral (si estaba plegada, se despliega); un destino en el lienzo vuelve a «Lienzo».
+        if (target.tab) setSideCollapsedState(false);
+        else onViewChange('canvas');
         setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
       })();
     },
-    [setTab],
+    [setTab, onViewChange],
   );
   // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
   useEffect(() => {
@@ -577,7 +610,6 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     'tool:pan': () => void switchTool('pan'),
   };
   useEffect(() => {
-    if (!active) return; // en «Casos de verificación» el editor sigue montado pero oculto: sus atajos no actúan (R7-07)
     const onKey = (e: KeyboardEvent): void => {
       if (dxf || csv || slopeOpen) return;
       const t = e.target instanceof HTMLElement ? e.target : null;
@@ -592,13 +624,14 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
         defaultPrevented: e.defaultPrevented,
         inField: isEditableTag(t?.tagName, t?.isContentEditable ?? false),
       });
-      if (!action) return;
+      // En «Casos de verificación» el editor sigue montado pero oculto: ningún atajo actúa (R7-07); las herramientas solo en «Lienzo».
+      if (!action || !shortcutActsIn(view, action)) return;
       e.preventDefault();
       actions.current[action]();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [dxf, csv, slopeOpen, active]);
+  }, [dxf, csv, slopeOpen, view]);
 
   // ───────── Presentación ─────────
 
@@ -607,7 +640,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
   const canvasResult = engine.current && shown && shown.slices.length > 0 ? { surface: shown.surface, slices: shown.slices, reinforcementForces: shown.reinforcement_forces, tensionCrack: shown.tension_crack } : undefined;
   // El método mostrado puede no haber convergido: su superficie es solo la última evaluada (R7-01).
   const surfaceConverged = shown?.status === 'converged';
-  const ActivePanel = (TABS.find((t) => t.id === tab) ?? TABS[0]!).Panel;
+  const ActivePanel = PANELS[tab];
   const scene = useMemo(() => buildScene(doc, canvasResult && shown ? shown : null), [doc, canvasResult, shown]);
   // Contrato con el lienzo (U2-C): superficie no convergida discontinua, unidades de las etiquetas y anuncios del teclado.
   const canvasContract = {
@@ -617,8 +650,48 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
     emptyState: <EmptyCanvasState onDraw={() => void switchTool('draw_region')} onExample={openExamples} />,
   };
 
+  // ───────── Armazón A ─────────
+
   const narrow = useNarrow();
-  const undoRedoButtons = (
+  const desktop = useIsDesktop();
+  const fitInsets = desktop ? FIT_INSETS_DESKTOP : FIT_INSETS_MOBILE;
+  const localIssues = useLocalIssues(store);
+  const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
+  const status = runStatus({
+    engineStatus,
+    busy: engine.busy,
+    run: engine.run,
+    current: engine.current,
+    pendingDrafts: pendingDrafts.length,
+    hasRegions: doc.regions.length > 0,
+    localErrors: localIssues.filter((i) => i.severity === 'error').length,
+    methodsRequested: doc.analysis.methods?.length ?? 1,
+    message: engine.message,
+    messageKind: engine.messageKind,
+  });
+  const contents = useMemo(() => reportContents(engine.run), [engine.run]);
+  const resultCurrent = engine.current && !hasDrafts;
+
+  // «Ver tabla de resultados» del HUD: abre «Resultados» y enfoca la tabla cuando el panel ya está a la vista.
+  const [tableFocus, setTableFocus] = useState(0);
+  const showTable = useCallback((): void => {
+    onViewChange('results');
+    setTableFocus((n) => n + 1);
+  }, [onViewChange]);
+  useEffect(() => {
+    if (tableFocus > 0) focusResultsTable();
+  }, [tableFocus]);
+
+  const checkProps = {
+    label: checkState.label,
+    disabled: checkDisabled,
+    title: hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+Intro',
+    describedBy: hasDrafts ? 'ea-pending-drafts' : undefined,
+    onCheck: () => void onCheck(),
+  };
+  const reportDisabled = reportBusy || engine.busy || !canExport;
+
+  const undoRedoMenu = (
     <>
       <button type="button" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z">
         Deshacer
@@ -628,261 +701,297 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       </button>
     </>
   );
-  const toolButtons = TOOLS.map((t) => (
-    <button
-      key={t.tool}
-      type="button"
-      aria-pressed={tool === t.tool}
-      className={tool === t.tool ? 'ea-tool ea-tool-active' : 'ea-tool'}
-      onClick={() => void switchTool(t.tool)}
-      title={t.key === null ? t.label : `Tecla ${t.key}`}
+
+  const chipEl = (
+    <span className="gs-chip ua-chip" data-tone={status.tone} title={status.title} data-testid="run-status">
+      <span className="ua-chip-text">{status.text}</span>
+    </span>
+  );
+  const menusEl = (
+    <div
+      className="ua-menus"
+      role="group"
+      aria-label="Menús"
+      onClickCapture={(e) => {
+        // Abrir «Exportar» sin resultado vigente es un intento de exportar: se muestra la pista.
+        const trigger = e.target instanceof Element ? e.target.closest('button.dd-trigger') : null;
+        if (trigger?.textContent?.trim().startsWith('Exportar') && !canExport) setExportAttempted(true);
+      }}
     >
-      {t.label}
-    </button>
-  ));
+      <DropdownMenu label="Archivo">
+        <button type="button" onClick={onNew} aria-describedby="ea-new-hint">
+          Nuevo
+        </button>
+        <span id="ea-new-hint" className="dd-note">
+          Modelo vacío: sin regiones, para dibujarlas.
+        </span>
+        <button type="button" onClick={() => setSlopeOpen(true)}>
+          Talud simple…
+        </button>
+        <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
+          Abrir
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={hasDrafts}
+          title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+S'}
+          aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
+        >
+          Guardar
+        </button>
+        <hr />
+        <button type="button" onClick={() => dxfRef.current?.click()}>
+          Importar DXF
+        </button>
+        <button type="button" onClick={() => csvRef.current?.click()}>
+          Importar CSV
+        </button>
+        <hr />
+        <label className="dd-field">
+          <span>Ejemplos</span>
+          <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => void onCase(e.target.value)}>
+            <option value="">Elegir un ejemplo…</option>
+            {cases.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </DropdownMenu>
+      <DropdownMenu label="Exportar">
+        <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
+          Exportar resultados (CSV)
+        </button>
+        <button type="button" onClick={exportSlices} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
+          Exportar dovelas (CSV)
+        </button>
+        <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
+          Exportar superficie (CSV)
+        </button>
+        {engine.run && hasReinforcementForces(engine.run.report.results) ? (
+          <button type="button" onClick={exportForces} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
+            Exportar fuerzas de refuerzos (CSV)
+          </button>
+        ) : null}
+      </DropdownMenu>
+    </div>
+  );
 
   return (
-    <div className="editor-app" lang="es" data-testid="editor-app">
+    <div className="editor-app ua-editor" lang="es" data-testid="editor-app" data-view={view}>
       <LiveRegions polite={live.polite} alert={live.alert} />
-      <div className="ea-toolbar panel" role="toolbar" aria-label="Acciones del modelo" ref={toolbarRef} onKeyDown={toolbarKeys.onKeyDown}>
-        <div
-          className="ea-group"
-          role="group"
-          aria-label="Menús"
-          onClickCapture={(e) => {
-            // Abrir «Exportar» sin resultado vigente es un intento de exportar: se muestra la pista.
-            const trigger = e.target instanceof Element ? e.target.closest('button.dd-trigger') : null;
-            if (trigger?.textContent?.trim().startsWith('Exportar') && !canExport) setExportAttempted(true);
-          }}
-        >
-          <DropdownMenu label="Archivo">
-            <button type="button" onClick={onNew} aria-describedby="ea-new-hint">
-              Nuevo
-            </button>
-            <span id="ea-new-hint" className="dd-note">
-              Modelo vacío: sin regiones, para dibujarlas.
-            </span>
-            <button type="button" onClick={() => setSlopeOpen(true)}>
-              Talud simple…
-            </button>
-            <button type="button" onClick={() => openRef.current?.click()} title="Ctrl+O">
-              Abrir
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={hasDrafts}
-              title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+S'}
-              aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
-            >
-              Guardar
-            </button>
-            <hr />
-            <button type="button" onClick={() => dxfRef.current?.click()}>
-              Importar DXF
-            </button>
-            <button type="button" onClick={() => csvRef.current?.click()}>
-              Importar CSV
-            </button>
-            <hr />
-            <label className="dd-field">
-              <span>Ejemplos</span>
-              <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => void onCase(e.target.value)}>
-                <option value="">Elegir un ejemplo…</option>
-                {cases.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </DropdownMenu>
-          <DropdownMenu label="Exportar">
-            <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
-              Exportar resultados (CSV)
-            </button>
-            <button type="button" onClick={exportSlices} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
-              Exportar dovelas (CSV)
-            </button>
-            <button type="button" onClick={exportSurface} disabled={!canExportSurface} title={exportSurfaceTitle} aria-describedby={exportDescribedBy}>
-              Exportar superficie (CSV)
-            </button>
-            {engine.run && hasReinforcementForces(engine.run.report.results) ? (
-              <button type="button" onClick={exportForces} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
-                Exportar fuerzas de refuerzos (CSV)
+      {headerSlots?.chip ? createPortal(chipEl, headerSlots.chip) : null}
+      {headerSlots?.menus ? createPortal(menusEl, headerSlots.menus) : null}
+
+      {/* Barra lateral «Modelo»: pasos, panel en línea y pie de acción. En el orden de foco va antes que el área principal. */}
+      <aside id="ua-side" className="ua-side" aria-label="Modelo" hidden={sideCollapsed}>
+        <div className="ua-side-head">
+          <h2>Modelo</h2>
+          <button type="button" ref={hideSideRef} className="gs-icon-btn" aria-label="Contraer panel" aria-expanded="true" aria-controls="ua-side" onClick={() => setSideCollapsed(true)}>
+            <IconCollapse size={18} />
+          </button>
+        </div>
+        <StepList order={STEP_ORDER} states={steps} active={tab} onSelect={selectStep}>
+          <ActivePanel store={store} />
+        </StepList>
+      </aside>
+      <ActionFoot
+        check={{ ...checkProps, variant: 'foot' }}
+        stale={engine.run !== null && !resultCurrent}
+        busy={engine.busy}
+        onCancel={engine.cancel}
+        engineFailed={engineStatus === 'failed'}
+        onRestartEngine={() => client.cancel()}
+        reportBusy={reportBusy}
+        reportDisabled={reportDisabled}
+        reportTitle={exportBlockedTitle}
+        reportDescribedBy={exportDescribedBy}
+        onReport={() => void onReport()}
+        exportHint={exportHint}
+        hidden={sideCollapsed}
+      />
+
+      <main id="main-content" className="ua-main" tabIndex={-1} data-side={sideCollapsed ? 'collapsed' : 'open'}>
+        <div className="ua-notices">
+          {sessionBanners}
+          {draft && (
+            <div className="banner ea-draft" data-testid="draft-banner">
+              <span>
+                Hay un borrador guardado el {formatWhen(draft.savedAt)} ({draft.fileName ?? 'sin nombre'}).
+                {draftOpenElsewhere && (
+                  <>
+                    {' '}
+                    <strong data-testid="draft-open-elsewhere">{OPEN_ELSEWHERE_TEXT}</strong>
+                  </>
+                )}
+              </span>
+              <button type="button" onClick={() => void recoverDraft()}>
+                Recuperar
+              </button>
+              <button type="button" onClick={discardDraft}>
+                Descartar
+              </button>
+            </div>
+          )}
+          {draftFailure && <div className="banner banner-sim">{draftFailure}</div>}
+          {engine.message && <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'}>{engine.message}</div>}
+          <NoticeList notices={notices} onDismiss={dismiss} onDismissAll={() => setNotices([])} onPausedChange={setNoticesPaused} />
+        </div>
+
+        <div className="ua-main-head">
+          {!headerSlots?.chip || !headerSlots?.menus ? (
+            <div className="ua-inline-header">
+              {headerSlots?.chip ? null : chipEl}
+              {headerSlots?.menus ? null : menusEl}
+            </div>
+          ) : null}
+          <div className="ua-title">
+            {sideCollapsed ? (
+              <button type="button" ref={showSideRef} className="gs-btn ua-show-side" aria-expanded="false" aria-controls="ua-side" onClick={() => setSideCollapsed(false)}>
+                <span className="ua-flip" aria-hidden="true">
+                  <IconCollapse size={16} />
+                </span>
+                <span>Mostrar panel</span>
               </button>
             ) : null}
-          </DropdownMenu>
-        </div>
-        {narrow ? (
-          // Con 480 px o menos, Deshacer, Rehacer y las herramientas van en un menú «Editar» (B-09). Los botones conservan sus nombres.
-          <div className="ea-group" role="group" aria-label="Edición y herramientas">
-            <DropdownMenu label={editMenuLabel(tool, TOOLS.find((t) => t.tool === tool)?.label)}>
-              {undoRedoButtons}
-              <hr />
-              {toolButtons}
-            </DropdownMenu>
+            <h2>{viewTitle(view)}</h2>
+            <span className="ua-spacer" />
+            {sideCollapsed ? <CheckButton {...checkProps} variant="compact" /> : null}
+            {view === 'cases' ? null : narrow ? (
+              // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.
+              <div className="ua-edit" role="group" aria-label="Edición">
+                <DropdownMenu label={editMenuLabel(tool, toolDef(tool)?.label)}>{undoRedoMenu}</DropdownMenu>
+              </div>
+            ) : (
+              <div className="ua-edit" role="group" aria-label="Edición">
+                <button type="button" className="gs-icon-btn" onClick={() => store.undo()} disabled={!canUndo} title="Ctrl+Z" aria-label="Deshacer" aria-keyshortcuts="Control+Z">
+                  <IconUndo size={18} />
+                </button>
+                <button type="button" className="gs-icon-btn" onClick={() => store.redo()} disabled={!canRedo} title="Ctrl+Mayús+Z o Ctrl+Y" aria-label="Rehacer" aria-keyshortcuts="Control+Y">
+                  <IconRedo size={18} />
+                </button>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            <div className="ea-group" role="group" aria-label="Edición">
-              {undoRedoButtons}
-            </div>
-            <div className="ea-group" role="group" aria-label="Herramienta del lienzo">
-              {toolButtons}
-            </div>
-          </>
-        )}
-        <div className="ea-group ea-group-main" role="group" aria-label="Cálculo">
-          <button
-            type="button"
-            className="primary ea-primary"
-            onClick={() => void onCheck()}
-            disabled={checkDisabled}
-            title={hasDrafts ? PENDING_DRAFTS_TEXT : 'Ctrl+Intro'}
-            aria-describedby={hasDrafts ? 'ea-pending-drafts' : undefined}
-          >
-            {checkState.label}
-          </button>
-          {engine.busy && (
-            <button type="button" onClick={engine.cancel} title="Termina el cálculo y reinicia el motor">
-              Cancelar cálculo
-            </button>
-          )}
-          {engineStatus === 'failed' && (
-            <button type="button" onClick={() => client.cancel()}>
-              Reiniciar el motor
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void onReport()}
-            disabled={reportBusy || engine.busy || !canExport}
-            title={exportBlockedTitle}
-            aria-describedby={exportDescribedBy}
-          >
-            {reportBusy ? 'Generando…' : 'Informe PDF'}
-          </button>
+          <ViewTabs view={view} onChange={onViewChange} />
         </div>
-        <input ref={openRef} type="file" accept=".json,.ogs.json,application/json" hidden data-testid="file-open" onChange={(e) => void onOpenFile(e)} />
-        <input ref={dxfRef} type="file" accept=".dxf" hidden data-testid="file-dxf" onChange={(e) => void onDxfFile(e)} />
-        <input ref={csvRef} type="file" accept=".csv,text/csv" hidden data-testid="file-csv" onChange={(e) => void onCsvFile(e)} />
-      </div>
 
-      <div className="ea-statusbar">
-        <p className="ea-status small" data-testid="file-status">
+        {/* Los cuatro paneles permanecen montados: al volver a «Lienzo» se conservan el modelo, el historial, el trazo y la vista. */}
+        <div className="ua-panels">
+          <div id="mode-edit-panel" className="ua-view ua-view-canvas" role="tabpanel" aria-labelledby="mode-edit" hidden={view !== 'canvas'}>
+            <section className="ua-canvas-card" aria-label="Sección del modelo">
+              <div className="ea-canvas ua-canvas" data-testid="editor-canvas">
+                <EditorCanvas
+                  store={store}
+                  result={canvasResult}
+                  {...canvasContract}
+                  paletteTools={<PaletteTools tool={tool} onSelect={(t) => void switchTool(t)} />}
+                  fitInsets={fitInsets}
+                />
+              </div>
+              {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} />
+              <Legend
+                scene={scene}
+                label="Leyenda de la sección"
+                options={{
+                  surface: Boolean(canvasResult),
+                  unconverged: Boolean(canvasResult) && !surfaceConverged,
+                  invalid: shown?.status === 'invalid',
+                  fixedCircle: Boolean(canvasResult) && Boolean(shown) && !shown?.search,
+                  slices: Boolean(canvasResult),
+                  bands: Boolean(doc.analysis.search),
+                  loads: (doc.loads?.length ?? 0) > 0,
+                  seismic: Boolean(doc.analysis.seismic),
+                  piezoExtrapolated: piezoExtension(doc) !== null,
+                  fixedPolyline: doc.analysis.surface?.type === 'polyline',
+                }}
+              />
+            </section>
+            {(engine.run && !engine.current) || (canvasResult && shown) ? (
+              <div className="ua-canvas-notes">
+                {engine.run && !engine.current && (
+                  <p className="small ea-stale" data-testid="stale-result">
+                    El resultado mostrado es de una versión anterior del modelo. Pulse «Comprobar» para actualizarlo.
+                  </p>
+                )}
+                {canvasResult && shown && (
+                  <p className={surfaceConverged ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
+                    {resultCaption(shown.method, shown.status, !shown.search)}
+                  </p>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          <div id="view-results-panel" className="ua-view" role="tabpanel" aria-labelledby="view-results" hidden={view !== 'results'}>
+            <ResultsView
+              run={engine.run}
+              current={engine.current}
+              hasDrafts={hasDrafts}
+              shownMethod={shownMethod ?? shown?.method ?? null}
+              onShowMethod={setShownMethod}
+              check={{ ...checkProps, variant: 'compact' }}
+              diagnostics={
+                <DiagnosticsPanel
+                  store={store}
+                  onNavigate={navigateIssue}
+                  resultInfo={engine.run ? <CrackSummary report={engine.run.report} tensionCrack={engine.run.doc.analysis.tension_crack} units={engine.run.doc.units} /> : undefined}
+                />
+              }
+            />
+          </div>
+
+          <div id="mode-cases-panel" className="ua-view" role="tabpanel" aria-labelledby="mode-cases" hidden={view !== 'cases'}>
+            <div className="ua-scroll">{casesView}</div>
+          </div>
+
+          <div id="view-report-panel" className="ua-view" role="tabpanel" aria-labelledby="view-report" hidden={view !== 'report'}>
+            <ReportView
+              title={doc.meta.title ?? ''}
+              contents={contents}
+              hasRun={engine.run !== null}
+              reportBusy={reportBusy}
+              reportDisabled={reportDisabled}
+              reportTitle={exportBlockedTitle}
+              reportDescribedBy={exportDescribedBy}
+              onReport={() => void onReport()}
+              csvDisabled={!canExport}
+              onCsv={exportResults}
+              onEditTitle={() => {
+                setSideCollapsedState(false);
+                selectStep('project');
+              }}
+            />
+          </div>
+        </div>
+      </main>
+
+      <footer className="ua-status">
+        <p className="ea-status ua-status-file" data-testid="file-status">
           <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
           {fileStatusText({ dirty, pendingDraftCount: pendingDrafts.length, busy: engine.busy })}
         </p>
         {checkState.status && (
-          <p className="ea-engine-status small" data-testid="engine-status">
+          <p className="ea-engine-status ua-status-item" data-testid="engine-status">
             {checkState.status}
           </p>
         )}
         {hasDrafts && (
-          <p id="ea-pending-drafts" className="ea-export-hint ep-error small" role="status" data-testid="pending-drafts-hint">
+          <p id="ea-pending-drafts" className="ea-export-hint ep-error ua-status-item" role="status" data-testid="pending-drafts-hint">
             {pendingDraftsNotice(pendingDrafts)}
           </p>
         )}
-        {exportHint && (
-          <p id="ea-export-hint" className="ea-export-hint small" data-testid="export-hint">
-            {exportHint}
-          </p>
-        )}
-      </div>
+        <p className="ua-status-item ua-status-tool">{toolStatusText(tool)}</p>
+        <span className="ua-spacer" />
+        {engineSlot}
+      </footer>
 
-      {draft && (
-        <div className="banner ea-draft" data-testid="draft-banner">
-          <span>
-            Hay un borrador guardado el {formatWhen(draft.savedAt)} ({draft.fileName ?? 'sin nombre'}).
-            {draftOpenElsewhere && (
-              <>
-                {' '}
-                <strong data-testid="draft-open-elsewhere">{OPEN_ELSEWHERE_TEXT}</strong>
-              </>
-            )}
-          </span>
-          <button type="button" onClick={() => void recoverDraft()}>
-            Recuperar
-          </button>
-          <button type="button" onClick={discardDraft}>
-            Descartar
-          </button>
-        </div>
-      )}
-      {draftFailure && <div className="banner banner-sim">{draftFailure}</div>}
-      {engine.message && <div className={engine.messageKind === 'error' ? 'banner banner-error' : 'banner'}>{engine.message}</div>}
-      <NoticeList notices={notices} onDismiss={dismiss} onDismissAll={() => setNotices([])} onPausedChange={setNoticesPaused} />
-
-      <div className="ea-layout">
-        <div className="ea-main">
-          <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
-          <section className="panel ea-canvas-panel" aria-label="Sección del modelo">
-            <div className="ea-canvas" data-testid="editor-canvas">
-              <EditorCanvas store={store} result={canvasResult} {...canvasContract} />
-            </div>
-            <Legend
-              scene={scene}
-              label="Leyenda de la sección"
-              options={{
-                surface: Boolean(canvasResult),
-                unconverged: Boolean(canvasResult) && !surfaceConverged,
-                invalid: shown?.status === 'invalid',
-                fixedCircle: Boolean(canvasResult) && Boolean(shown) && !shown?.search,
-                slices: Boolean(canvasResult),
-                bands: Boolean(doc.analysis.search),
-                loads: (doc.loads?.length ?? 0) > 0,
-                seismic: Boolean(doc.analysis.seismic),
-                piezoExtrapolated: piezoExtension(doc) !== null,
-                fixedPolyline: doc.analysis.surface?.type === 'polyline',
-              }}
-            />
-            {engine.run && !engine.current && (
-              <p className="small ea-stale" data-testid="stale-result">
-                El resultado mostrado es de una versión anterior del modelo. Pulse «Comprobar» para actualizarlo.
-              </p>
-            )}
-            {canvasResult && shown && (
-              <p className={surfaceConverged ? 'small muted' : 'small ea-caption-unconverged'} data-testid="result-caption">
-                {resultCaption(shown.method, shown.status, !shown.search)}
-              </p>
-            )}
-          </section>
-
-          {engine.run && (
-            <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
-              <h2 id="ea-results-title">Resultados{engine.current && !hasDrafts ? '' : ' (desactualizados)'}</h2>
-              <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} tensionCrack={engine.run.doc.analysis.tension_crack} />
-              <p className="small muted">
-                Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
-              </p>
-            </section>
-          )}
-          <DiagnosticsPanel store={store} onNavigate={navigateIssue} resultInfo={engine.run ? <CrackSummary report={engine.run.report} tensionCrack={engine.run.doc.analysis.tension_crack} units={engine.run.doc.units} /> : undefined} />
-        </div>
-
-        <aside className="ea-side" aria-label="Propiedades del modelo">
-          <div className="ea-tabs" role="tablist" aria-label="Paneles del modelo" ref={tablistRef} onKeyDown={tabKeys.onKeyDown}>
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                id={`ea-tab-${t.id}`}
-                aria-selected={tab === t.id}
-                aria-controls="ea-tabpanel"
-                className={tab === t.id ? 'ea-tab ea-tab-active' : 'ea-tab'}
-                onClick={() => void setTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div id="ea-tabpanel" role="tabpanel" aria-labelledby={`ea-tab-${tab}`}>
-            <ActivePanel store={store} />
-          </div>
-        </aside>
-      </div>
+      <input ref={openRef} type="file" accept=".json,.ogs.json,application/json" hidden data-testid="file-open" onChange={(e) => void onOpenFile(e)} />
+      <input ref={dxfRef} type="file" accept=".dxf" hidden data-testid="file-dxf" onChange={(e) => void onDxfFile(e)} />
+      <input ref={csvRef} type="file" accept=".csv,text/csv" hidden data-testid="file-csv" onChange={(e) => void onCsvFile(e)} />
 
       {slopeOpen && <NewSlopeDialog initialUnits={isImperialUnits(doc.units) ? 'imperial' : 'SI'} onCancel={() => setSlopeOpen(false)} onCreate={onCreateSlope} />}
       {dxf && (

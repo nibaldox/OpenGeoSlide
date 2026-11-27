@@ -1,0 +1,920 @@
+/* Armazón A «Flujo de trabajo» (UA1-A, contrato UA §2 y §4.6-§4.8): cabecera, barra lateral «Modelo» con los pasos y el panel en
+   línea, pie de acción, área principal con las cuatro vistas, tarjeta del lienzo (HUD y leyenda) y barra de estado.
+   Solo consume tokens (`var(--ui-*)`, `var(--canvas-*)`): ningún color literal. Desde 761 px la página no hace scroll; hasta
+   760 px todo se apila y la página sí lo hace. */
+
+/* Los tokens nuevos de la suite (UA1-T) con respaldo en los de siempre: mientras no existan, el armazón se ve igual. */
+.ua-app {
+  --ua-header-h: 68px;
+  --ua-status-h: 30px;
+  --ua-side-w: 340px;
+  --ua-ink-2: var(--ui-ink-2, var(--ui-ink));
+  --ua-border-strong: var(--ui-border-strong, var(--ui-control-border));
+  --ua-border-dashed: var(--ui-border-dashed, var(--ui-control-border));
+  --ua-accent-bright: var(--ui-accent-bright, var(--ui-focus));
+  --ua-accent-bg: var(--ui-accent-bg, var(--ui-surface-active));
+  --ua-sunken: var(--ui-surface-sunken, var(--ui-surface-subtle));
+  --ua-shadow-float: var(--ui-shadow-float, 0 12px 32px var(--ui-backdrop));
+  --ua-radius-md: var(--ui-radius-md, 8px);
+  --ua-radius-lg: var(--ui-radius-lg, 12px);
+  --ua-font-mono: var(--ui-font-mono, ui-monospace, 'SFMono-Regular', Menlo, monospace);
+
+  display: grid;
+  grid-template-columns: var(--ua-side-w) minmax(0, 1fr);
+  grid-template-rows: var(--ua-header-h) minmax(0, 1fr) auto var(--ua-status-h);
+  min-height: 100vh;
+  background: var(--ui-bg);
+  color: var(--ui-ink);
+}
+
+/* La página de pruebas de rendimiento (`?bench=1`) sigue usando `.app` y `.app-header` sin el armazón. */
+.app:not(.ua-app) {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 12px 16px 16px;
+}
+.app:not(.ua-app) .app-header {
+  margin-bottom: 8px;
+  border-bottom: 2px solid var(--ui-border);
+}
+
+/* `EditorApp` no añade caja: sus hijos son las celdas de la rejilla de `.ua-app`. */
+.ua-editor {
+  display: contents;
+}
+
+/* ───────── Cabecera ───────── */
+
+.ua-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 20px 0 22px;
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.ua-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+}
+.brand-mark .frame {
+  fill: var(--ua-accent-bg);
+  stroke: var(--ui-accent);
+  stroke-width: 1.5;
+}
+.brand-mark .g1 {
+  fill: none;
+  stroke: var(--ua-accent-bright);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ua-brand-text {
+  min-width: 0;
+}
+.ua-brand h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  white-space: nowrap;
+  color: var(--ui-ink);
+}
+.app-sub {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--ui-ink-muted);
+}
+
+.ua-chip-slot {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.ua-chip {
+  max-width: 100%;
+  height: 24px;
+  min-height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ua-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ua-header-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 8px;
+  margin-left: auto;
+}
+.ua-menu-slot,
+.ua-menus {
+  display: contents;
+}
+
+/* Botones de la cabecera (32 de alto, radio 8, 13/500). */
+.ua-header :is(.help-button, .install-button, .dd-trigger) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ua-border-strong);
+  border-radius: var(--ua-radius-md);
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  width: auto;
+}
+.ua-header :is(.help-button, .install-button, .dd-trigger):hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+}
+.ua-header .install-button {
+  color: var(--ua-accent-bright);
+}
+.ua-header .dd-trigger[aria-expanded='true'] {
+  background: var(--ua-accent-bg);
+  border-color: var(--ui-accent);
+}
+
+/* Indicador del motor (barra de estado). */
+.engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ui-ink-muted);
+  white-space: nowrap;
+}
+.engine-badge-ok {
+  color: var(--ui-ok-ink);
+}
+.engine-badge-simulated {
+  color: var(--ui-warn-ink);
+}
+.engine-badge-error {
+  color: var(--ui-err-ink);
+}
+.engine-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+/* ───────── Barra lateral «Modelo» ───────── */
+
+.ua-side {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+
+.ua-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 10px;
+}
+.ua-side-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ua-steps {
+  /* Contenedor de los textos `.visually-hidden` (position: absolute) de los pasos: sin él, escapan del scroll y alargan la página. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  padding: 4px 10px 12px;
+  overflow: auto;
+}
+
+/* El tablist solo agrupa las diez pestañas; el panel es su hermano y se coloca debajo de la activa con `order`. */
+.ua-tablist {
+  display: contents;
+}
+
+/* Cada paso es un envoltorio (`role="presentation"`) con el botón de la pestaña, que cubre toda la fila y cuyo texto es solo el título, y un
+   hermano decorativo (`aria-hidden`, sin eventos de puntero) con la insignia, el resumen y el chevron (UA-E2, WCAG 2.5.3). */
+.ua-step-row {
+  --ua-step-title-h: 17.4px; /* 14,5 px × 1,2 */
+  --ua-step-sub-h: 16.9px; /* 12,5 px × 1,35 */
+  position: relative;
+  flex: none;
+}
+.ua-steps .ua-step {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 9px 38px calc(9px + var(--ua-step-sub-h)) 50px;
+  border: 0;
+  border-radius: var(--ua-radius-md);
+  background: transparent;
+  color: var(--ui-ink);
+  text-align: left;
+}
+.ua-steps .ua-step:hover:not(.ea-tab-active) {
+  background: var(--ui-surface-hover);
+}
+.ua-steps .ua-step.ea-tab-active {
+  background: var(--ua-accent-bg);
+  color: var(--ua-accent-bright);
+}
+.ua-step-title {
+  display: block;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ua-step-deco {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 8px;
+  pointer-events: none;
+}
+.ua-step-text {
+  align-self: stretch;
+  min-width: 0;
+  padding-top: var(--ua-step-title-h);
+}
+.ua-step-sub {
+  display: block;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ui-ink-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ua-step-chevron {
+  display: inline-flex;
+  color: var(--ui-ink-muted);
+}
+.ua-step-row[data-active='true'] .ua-step-chevron {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ua-step-chevron {
+    transition: transform 0.15s;
+  }
+}
+
+/* Insignia de 28: hecho (círculo con ✓), error (círculo de falla con «!»), borrador (círculo de aviso), opcional y vacío (borde discontinuo con el número). */
+.ua-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: var(--ua-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ua-badge[data-status='done'] {
+  background: var(--ui-ok-ink);
+  color: var(--ui-surface);
+}
+.ua-badge[data-status='error'] {
+  background: var(--ui-err-ink);
+  color: var(--ui-surface);
+}
+.ua-badge[data-status='draft'] {
+  background: var(--ui-warn-ink);
+  color: var(--ui-surface);
+}
+.ua-badge[data-status='optional'],
+.ua-badge[data-status='empty'] {
+  border: 1.5px dashed var(--ua-border-dashed);
+  color: var(--ui-ink-muted);
+}
+
+/* Panel abierto: en línea, justo debajo de su paso. */
+.ua-panel {
+  flex: none;
+  min-width: 0;
+  padding: 4px 4px 12px 12px;
+}
+.ua-panel .ep-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* El título del paso ya está en su pestaña: el h2 del panel queda para los lectores de pantalla. */
+.ua-panel .ep-panel > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ───────── Pie de acción ───────── */
+
+.ua-actions {
+  grid-column: 1;
+  grid-row: 3;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+}
+.ua-actions .ua-stale-chip {
+  justify-self: start;
+  max-width: 100%;
+  margin: 0;
+}
+.ua-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+}
+.ua-check-wrap {
+  position: relative;
+}
+/* La tecla es un hermano decorativo superpuesto al botón (UA-E2): el nombre del botón es solo «Comprobar». */
+.ua-check-wrap .ua-kbd {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  color: var(--ui-ink-on-accent);
+  font-family: var(--ua-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.ua-check-wrap .ua-check:disabled + .ua-kbd {
+  color: var(--ui-ink-muted);
+}
+.ua-check.ua-check-compact {
+  width: auto;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 14px;
+}
+.ua-actions .gs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+}
+.ua-actions .ea-export-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ui-ink-muted);
+}
+
+/* ───────── Área principal ───────── */
+
+.ua-main {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  background: var(--ui-bg);
+}
+.ua-main[data-side='collapsed'] {
+  grid-column: 1 / -1;
+}
+
+/* Avisos de sesión: reducen el alto del lienzo (la tarjeta ocupa el resto), sin empujarlo fuera de la pantalla. */
+.ua-notices {
+  max-height: 30vh;
+  padding: 12px 24px 0;
+  overflow: auto;
+}
+.ua-notices {
+  grid-row: 1;
+}
+.ua-notices:empty {
+  padding: 0;
+}
+.ua-notices .banner,
+.ua-notices .ea-notice-bar {
+  margin: 0 0 8px;
+}
+
+.ua-main-head {
+  grid-row: 2;
+  display: grid;
+  gap: 10px;
+  padding: 18px 24px 0;
+}
+.ua-inline-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ua-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 32px;
+}
+.ua-title h2 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ua-spacer {
+  flex: 1 1 0;
+}
+.ua-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ua-edit .gs-icon-btn,
+.ua-side-head .gs-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+}
+.ua-show-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+}
+.ua-flip {
+  display: inline-flex;
+  transform: scaleX(-1);
+}
+
+/* Pestañas numeradas de las vistas. */
+.ua-view-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ui-border);
+  scrollbar-width: none;
+}
+/* El contador 1-4 es un hermano decorativo del botón (UA-E2): el texto visible del botón es su nombre. */
+.ua-view-tab-wrap {
+  position: relative;
+  flex: none;
+  margin-bottom: -1px;
+}
+.ua-main .ua-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 44px 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ua-ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ua-main .ua-view-tab:hover:not(.ua-view-tab-active) {
+  background: transparent;
+  color: var(--ui-ink);
+}
+.ua-main .ua-view-tab.ua-view-tab-active {
+  border-bottom-color: var(--ua-accent-bright);
+  color: var(--ua-accent-bright);
+}
+.ua-view-n {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-muted);
+  font-family: var(--ua-font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.ua-panels {
+  grid-row: 3;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  padding: 16px 24px 20px;
+}
+.ua-view {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.ua-view:not(.ua-view-canvas) {
+  overflow: auto;
+}
+.ua-scroll {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+/* ───────── Tarjeta del lienzo ───────── */
+
+.ua-view-canvas {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.ua-canvas-card {
+  position: relative;
+  isolation: isolate; /* el pie sticky de móvil (z-index 5) queda siempre por encima del HUD y la paleta */
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ua-radius-lg);
+  background: var(--canvas-bg);
+}
+/* Única fuente de la altura del lienzo: la tarjeta lo es todo (el alto restante del área); `.ec-root` la rellena. */
+.ua-canvas {
+  position: absolute;
+  inset: 0;
+}
+.ua-canvas-notes p {
+  margin: 0;
+}
+
+/* ───────── Resultados, informe y casos ───────── */
+
+.ua-card {
+  padding: 16px 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ua-radius-lg);
+  background: var(--ui-surface);
+}
+.ua-card > h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.ua-engine-line {
+  margin: 10px 0 0;
+}
+.ua-results .ep-panel {
+  border-radius: var(--ua-radius-lg);
+}
+.ua-empty p {
+  margin: 0 0 12px;
+}
+.ua-empty-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ua-report-card {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+}
+.ua-report-card > h2 {
+  margin: 0;
+}
+.ua-report-doc {
+  display: grid;
+  gap: 6px;
+}
+.ua-report-doc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.ua-report-doc-title {
+  flex: 1 1 14rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.ua-report-list {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ua-ink-2);
+}
+.ua-report-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ua-report-list li[data-included='false'] {
+  color: var(--ui-ink-muted);
+}
+.ua-report-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--ui-ok-ink);
+}
+.ua-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ua-report-actions .gs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* «Casos de verificación» (CasesView): la rejilla de 300 px + contenido pasa a una columna con el ancho del área. */
+.cases-view .panel {
+  border-radius: var(--ua-radius-lg);
+}
+.cases-view select {
+  min-height: 32px;
+}
+
+/* ───────── Barra de estado ───────── */
+
+.ua-status {
+  grid-column: 1 / -1;
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 16px;
+  overflow: hidden;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface);
+  color: var(--ui-ink-muted);
+  font-size: 12px;
+}
+.ua-status p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ua-status strong {
+  color: var(--ua-ink-2);
+  font-weight: 500;
+}
+.ua-status .ea-export-hint {
+  color: var(--ui-err-ink);
+}
+.ua-status .engine-badge {
+  flex: none;
+}
+
+/* ───────── Escritorio (≥ 761 px): la página no hace scroll ───────── */
+
+@media (min-width: 761px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+  .ua-app {
+    height: 100dvh;
+    min-height: 0;
+  }
+}
+
+/* 761-1099: barra lateral de 300, HUD de 280, sin subtítulo; «Ayuda» e «Instalar» solo con ícono. */
+@media (max-width: 1099px) {
+  .ua-app {
+    --ua-side-w: 300px;
+  }
+  .app-sub {
+    display: none;
+  }
+  .ua-header .ua-btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ua-header :is(.help-button, .install-button) {
+    width: 32px;
+    padding: 0;
+  }
+  /* Las cuatro pestañas de vista caben en el ancho del área sin el ícono. */
+  .ua-main .ua-view-tab {
+    padding: 0 38px 0 12px;
+  }
+  .ua-view-n {
+    right: 10px;
+  }
+  .ua-main .ua-view-tab > svg {
+    display: none;
+  }
+  /* Casos: sin espacio para dos columnas. */
+  .ua-scroll .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ───────── Móvil (≤ 760 px): todo apilado, pie de acción fijo abajo ───────── */
+
+@media (max-width: 760px) {
+  .ua-app {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+  }
+  .ua-header {
+    flex-wrap: wrap;
+    order: 0;
+    gap: 8px 10px;
+    padding: 10px 14px;
+  }
+  .ua-brand {
+    flex: 1 1 auto;
+  }
+  .ua-chip-slot {
+    max-width: 100%;
+  }
+  .ua-header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: 0;
+  }
+  .ua-header :is(.help-button, .install-button, .dd-trigger) {
+    min-height: 40px;
+    height: 40px;
+  }
+  .ua-header :is(.help-button, .install-button) {
+    width: 40px;
+  }
+
+  .ua-main {
+    display: block;
+    order: 1;
+  }
+  .ua-main .ua-view-tab > svg {
+    display: inline-block;
+  }
+  .ua-notices {
+    max-height: none;
+    padding: 10px 14px 0;
+    overflow: visible;
+  }
+  .ua-main-head {
+    padding: 14px 14px 0;
+  }
+  .ua-title h2 {
+    font-size: 20px;
+  }
+  .ua-edit .gs-icon-btn,
+  .ua-side-head .gs-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .ua-show-side,
+  .ua-check.ua-check-compact {
+    min-height: 40px;
+  }
+  .ua-panels {
+    display: block;
+    padding: 12px 14px;
+  }
+  .ua-view-canvas {
+    display: block;
+  }
+  .ua-canvas-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .ua-canvas {
+    position: relative;
+    inset: auto;
+    flex: none;
+    height: 360px;
+  }
+  /* El HUD (`div.rs`) y la leyenda pasan a ser estáticos debajo del lienzo (sus hojas lo hacen); aquí solo su margen lateral. */
+  .ua-canvas-card > div.rs {
+    margin: 10px 12px 0;
+  }
+  .ua-canvas-card > ul.legend[aria-label] {
+    margin: 10px 12px 12px;
+  }
+  .ua-canvas-notes {
+    margin-top: 8px;
+  }
+
+  .ua-side {
+    display: block;
+    order: 2;
+    border-top: 1px solid var(--ui-border);
+    border-right: 0;
+  }
+  .ua-steps {
+    overflow: visible;
+  }
+  .ua-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    order: 3;
+    padding: 10px 14px 12px;
+  }
+  .ua-actions .gs-btn {
+    min-height: 40px;
+  }
+  .ua-status {
+    order: 4;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    padding: 8px 14px;
+    overflow: visible;
+  }
+  .ua-status p {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 760px) {
+  .ua-main[data-side='collapsed'] {
+    grid-column: auto;
+  }
+}

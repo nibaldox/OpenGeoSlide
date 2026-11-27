@@ -1,7 +1,6 @@
 @import './styles/tokens.css';
 
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--ui-ink);
   background: var(--ui-bg);
 }
@@ -12,18 +11,6 @@
 
 body {
   margin: 0;
-}
-
-.app {
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 12px 16px 16px;
-}
-
-@media (max-width: 640px) {
-  .app {
-    padding: 8px;
-  }
 }
 
 .skip-link {
@@ -44,88 +31,6 @@ body {
 
 main:focus {
   outline: none;
-}
-
-/* Cabecera compacta: marca, modos, indicador del motor y tema en una sola fila (se envuelve en pantallas estrechas). */
-.app-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 4px 20px;
-  margin-bottom: 8px;
-  border-bottom: 2px solid var(--ui-border);
-}
-
-.app-brand {
-  min-width: 0;
-  padding-bottom: 4px;
-}
-
-.app-brand h1 {
-  margin: 0;
-  font-size: 1.35rem;
-  color: var(--ui-accent);
-}
-
-.app-brand p {
-  margin: 0;
-  font-size: 0.85rem;
-}
-
-.app-header-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin-left: auto;
-  padding-bottom: 6px;
-}
-
-/* Selector de tema (Sistema / Claro / Oscuro). */
-.theme-select {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-}
-
-.theme-select select {
-  min-height: 28px;
-}
-
-/* Indicador compacto del motor (sustituye a la fila completa «Motor: ogs-core …»). */
-.engine-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  background: var(--ui-note-bg);
-  color: var(--ui-note-ink);
-}
-
-.engine-badge-ok {
-  background: var(--ui-ok-bg);
-  color: var(--ui-ok-ink);
-}
-
-.engine-badge-simulated {
-  background: var(--ui-warn-bg);
-  color: var(--ui-warn-ink);
-}
-
-.engine-badge-error {
-  background: var(--ui-err-bg);
-  color: var(--ui-err-ink);
-}
-
-.engine-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
 }
 
 .muted {
@@ -533,83 +438,6 @@ td.num,
   display: none !important;
 }
 
-/* ───────── Modos ───────── */
-
-.mode-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: -2px;
-}
-
-.mode-tab {
-  border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 6px 6px 0 0;
-  background: transparent;
-  padding: 8px 16px;
-  font-weight: 600;
-  color: var(--ui-ink-muted);
-}
-
-.mode-tab-active {
-  color: var(--ui-accent);
-  border-bottom-color: var(--ui-accent);
-  background: var(--ui-surface);
-}
-
-/* ───────── Editor ───────── */
-
-.ea-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  align-items: center;
-  padding: 6px 10px;
-  margin-bottom: 6px;
-}
-
-.ea-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.ea-group-main {
-  margin-left: auto;
-}
-
-.ea-toolbar select {
-  font: inherit;
-  padding: 5px 6px;
-  border: 1px solid var(--ui-control-border);
-  border-radius: 6px;
-  max-width: 100%;
-}
-
-.ea-tool-active {
-  background: var(--ui-surface-active);
-  border-color: var(--ui-accent);
-  font-weight: 600;
-}
-
-button.ea-primary {
-  width: auto;
-  min-width: 120px;
-}
-
-.ea-statusbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 16px;
-  margin: 0 0 8px;
-}
-
-.ea-status {
-  margin: 0;
-}
-
 /* Menús desplegables de la barra (Archivo, Importar, Exportar): popover anclado al botón. */
 .dd {
   position: relative;
@@ -800,56 +628,9 @@ button.ea-primary {
   color: var(--ui-err-ink);
 }
 
-.ea-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 16px;
-  align-items: start;
-}
-
-@media (max-width: 1000px) {
-  .ea-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.ea-main,
-.ea-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-}
-
-.ea-canvas {
-  /* Móvil y escritorio: 320 px como mínimo y hasta 55 % de la altura útil (R7-10, brief U2). */
-  height: clamp(320px, 55dvh, 640px);
-  border: 1px solid var(--ui-border);
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--canvas-bg);
-}
-
 .ea-stale {
   color: var(--ui-warn-ink);
   margin: 8px 0 0;
-}
-
-.ea-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.ea-tab {
-  padding: 5px 10px;
-}
-
-.ea-tab-active {
-  background: var(--ui-accent);
-  border-color: var(--ui-accent);
-  color: var(--ui-ink-on-accent);
-  font-weight: 600;
 }
 
 /* Diálogos de importación: <dialog> nativo (editor/app/editor-app.css). */
@@ -933,92 +714,9 @@ button.ea-primary {
   padding: 4px 12px;
 }
 
-/* ───────── Móvil (≤ 640 px): barra compacta y lienzo en la primera pantalla ───────── */
+/* ───────── Móvil (≤ 640 px): el resumen del cálculo, más compacto ───────── */
 
 @media (max-width: 640px) {
-  .app-header {
-    gap: 2px 8px;
-    align-items: center;
-  }
-
-  .app-brand {
-    flex: 1 1 auto;
-    padding-bottom: 0;
-  }
-
-  .app-brand h1 {
-    font-size: 1.2rem;
-  }
-
-  .app-brand p {
-    display: none;
-  }
-
-  /* Los hijos del bloque de herramientas (indicador y tema) se reparten en la fila de la marca. */
-  .app-header-tools {
-    display: contents;
-  }
-
-  .engine-badge {
-    font-size: 0.75rem;
-    padding: 2px 8px;
-  }
-
-  .engine-badge .engine-extra {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .theme-select span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .mode-tabs {
-    order: 5;
-    width: 100%;
-  }
-
-  .mode-tab {
-    padding: 6px 10px;
-  }
-
-  .ea-toolbar {
-    gap: 4px 8px;
-    padding: 6px;
-  }
-
-  .ea-toolbar button {
-    padding: 4px 6px;
-    font-size: 0.9rem;
-  }
-
-  .ea-group {
-    gap: 4px;
-  }
-
-  .ea-group-main {
-    margin-left: 0;
-  }
-
-  .ea-statusbar {
-    margin-bottom: 6px;
-  }
-
-  .ea-status {
-    font-size: 0.8rem;
-  }
-
   .rs {
     min-height: 0;
     padding: 4px 10px;
@@ -1043,33 +741,9 @@ button.ea-primary {
     clip-path: inset(50%);
     white-space: nowrap;
   }
-
-  .ea-layout,
-  .ea-main {
-    gap: 8px;
-  }
-
-  /* El lienzo cabe en la primera pantalla junto a la barra compacta; el resto de paneles queda debajo. */
-  .ea-canvas {
-    height: clamp(320px, 48dvh, 640px);
-  }
 }
 
 /* ───────── U3-O: guía de primera visita, ayuda, confirmación, instalar app ───────── */
-
-.help-button,
-.install-button {
-  min-height: 28px;
-  padding: 2px 12px;
-  font-size: 0.9rem;
-  width: auto;
-}
-
-.install-button {
-  border-color: var(--ui-accent);
-  color: var(--ui-accent);
-  font-weight: 600;
-}
 
 /* Diálogo de confirmación (useConfirm / ConfirmHost) */
 dialog.ea-dialog.ogs-confirm {

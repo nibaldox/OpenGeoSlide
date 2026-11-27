@@ -38,7 +38,8 @@ export function shortcutFor(e: KeyLike): ShortcutAction | null {
   if (key === 'a') return 'tool:add_vertex';
   if (key === 'r') return 'tool:draw_region';
   if (key === 'd') return 'tool:split_region';
-  if (key === 'e') return 'tool:draw_reinforcement';
+  // «F» es la tecla que anuncia el tooltip de la paleta (maqueta); «E» sigue activa y está en la ayuda.
+  if (key === 'e' || key === 'f') return 'tool:draw_reinforcement';
   if (key === 'h') return 'tool:pan';
   return null;
 }

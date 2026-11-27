@@ -98,8 +98,12 @@ describe('EditorApp: todo cambio de pestaña pasa por la confirmación', () => {
     expect(src.match(/setTabState\(/g)).toHaveLength(1);
     expect(src).toContain('if (!(await confirmTabSwitch(tabRef.current, next))) return false;');
   });
-  it('los botones del tablist (y con ellos las flechas, que activan al enfocar) y Diagnósticos usan `setTab`', () => {
-    expect(src).toContain('onClick={() => void setTab(t.id)}');
+  it('los botones del tablist (y con ellos las flechas, que activan al enfocar), «Editar título» del informe y Diagnósticos usan `setTab`', () => {
+    // UA1-A: el tablist vive en `shell/StepList.tsx`; `EditorApp` le pasa `selectStep`, que es el único envoltorio de `setTab`.
+    const list = readFileSync(new URL('./shell/StepList.tsx', import.meta.url), 'utf8');
+    expect(list).toContain('onClick={() => onSelect(id)}');
+    expect(src).toContain('const selectStep = useCallback((id: TabId): void => void setTab(id), [setTab]);');
+    expect(src).toContain('onSelect={selectStep}');
     expect(src).toContain('if (target.tab && !(await setTab(target.tab))) return;');
   });
   it('no queda ningún `setTab(` fuera de esos usos', () => {
