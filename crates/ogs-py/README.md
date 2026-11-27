@@ -194,7 +194,10 @@ for r0, r1 in zip(base["results"], cracked["results"]):
   salta por una carga `udl` o por un cambio lateral de material, `depth` es la cara realmente cortada,
   `terreno(x) − base(x)`, y `water_force` se calcula con ella (sin cara, no hay grieta y `depth` vale 0); y una búsqueda en la
   que todos los candidatos fallan por la grieta termina en `NoValidSurface: ... (E evaluadas, 0 válidas; K no alcanzan la
-  grieta de tracción, tension_crack_not_reached)`. <!-- R12: medir al integrar -->
+  grieta de tracción, tension_crack_not_reached)`. Medido con `docs/fase3/r12/repro/a04_udl.json`, Bishop da `depth`
+  1,7827 m, `water_force` 15,5885 kN/m y FS 1,095348 (antes, `depth` y `water_force` valían 0 y el FS era 1,102248); y una
+  búsqueda con `depth` 40 m en el talud de `a01_ltr.json` termina en `(7400 evaluadas, 0 válidas; 7397 no alcanzan la grieta
+  de tracción, tension_crack_not_reached)`.
 
 **El agua embalsada cambia el resultado frente a la v0.3.0.** Si la piezométrica pasa **sobre el terreno**, el motor suma
 el agua libre (su peso y su empuje horizontal) en **todas** las versiones del formato, sin ningún campo: la v0.3.0 solo
@@ -221,7 +224,8 @@ Con la v0.3.0, Bishop daba 0,848 en ese mismo modelo (sin el peso ni el empuje d
 - **Convenciones.** El sismo pseudoestático no actúa sobre el agua embalsada ni sobre `Pw`. En un material con `ru`,
   `u = ru·(W + V)/b` (con `V` el peso del agua embalsada): es la regla de Slide2 y no se puede comparar con el oráculo.
   Sin `water.unit_weight`, γw vale 9,81 kN/m³ en SI y, en imperial, el resultado de convertir ese valor (alrededor de
-  62,45 pcf) (E15l-6). <!-- R12: medir al integrar -->
+  62,45 pcf) (E15l-6). Medido: una grieta de 2 m con agua y sin `water`, en imperial, da con Bishop 1,69865, igual que en SI
+  (antes, 1,71248), y `Pw` = 1344,40 lbf/ft con γw = 62,449 pcf (antes, 211,19).
 
 ### Ejemplo con un pilote de Ito-Matsui (esquema v0.5)
 
@@ -258,8 +262,8 @@ for r in opengeoslide.analyze(model)["results"]:
     f = r["reinforcement_forces"][0]
     print(r["method"], round(r["fos"], 4), f["status"], "soil_force", round(f["soil_force"], 2),
           "available", round(f["available"], 2), f["governs"], "arm", round(f["arm"], 4))
-# bishop 1.3129 applied soil_force 117.92 available 62.5 shear arm 1.2237
-# spencer 1.3102 applied soil_force 117.92 available 62.5 shear arm 1.2237
+# bishop 1.3129 applied soil_force 117.92 available 62.5 shear arm 1.2238
+# spencer 1.3102 applied soil_force 117.92 available 62.5 shear arm 1.2238
 ```
 
 - **La salida.** Cada cruce de un pilote con `lateral_pressure` agrega a su entrada de `reinforcement_forces`
@@ -281,7 +285,10 @@ for r in opengeoslide.analyze(model)["results"]:
   finito (S/D cerca de 1 con φ alto) se rechaza antes de resolver con `ValueError("InvalidModel:
   reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = ... y φ = ...° ...; aumente spacing")`,
   y la salida nunca lleva `NaN` ni `∞`; y en un material con `ru`, `σ′v = σv − ru·σ_suelo`, sin restar la `u` de la
-  piezométrica, como el resto del motor. <!-- R12: medir al integrar -->
+  piezométrica, como el resto del motor. Medido: `docs/fase3/r12/repro/a02_fixed.json` (φ = 35°, S/D = 1,00125) da
+  `InvalidModel: reinforcements[0].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = 1.00125 y φ = 35° ...`
+  (antes, Bishop `invalid` y los otros tres `not_converged`); la fila X22-S16, con `ru` y piezométrica, queda a 0,026 % o
+  menos del oráculo en los cinco métodos (antes, de −1,88 % a −1,97 %).
 
 ## Pánicos
 
@@ -308,8 +315,8 @@ al pie y pilote de Ito-Matsui) con sus fragmentos, leídos del propio documento;
 de X21 y las 28 de Ito-Matsui de X22 contra cSlope 0.1.0 a 0,1 % (se leen de `crates/ogs-core/tests/data/f3g*/`); las
 propiedades (neutralidad, espejo, monotonía con `water_fill`, continuidad con `depth → 0`, sin sismo sobre el agua, la
 compuerta de versión, los rechazos con su ruta y la salida siempre finita); y tres reproducciones de R12
-(`docs/fase3/r12/repro/`) con `xfail` hasta que el motor integre E15l-1, E15l-2 y E15l-11
-<!-- R12: medir al integrar -->. Los tests usan el wheel instalado, no el código fuente. `OGS_PY_TEST_HOOKS` fija qué build se espera:
+(`docs/fase3/r12/repro/`: E15l-1, E15l-2 y E15l-11), que el motor integrado pasa sin marcas `xfail`. Los tests usan el wheel instalado, no el código fuente.
+`OGS_PY_TEST_HOOKS` fija qué build se espera:
 `1` exige el hook, `0` exige que no exista; sin definir, los tests de pánico se omiten si el hook no está.
 
 ## Licencia

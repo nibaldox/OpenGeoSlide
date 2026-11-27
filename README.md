@@ -191,7 +191,8 @@ Esta batería no cubre todo: véanse las limitaciones.
   seguro: cSlope tampoco la resuelve, y el mismo talud con `γ′ = γ − γw` sí converge. El informe puede traer un hueco
   de hasta 1e-6 veces el ancho del modelo entre dos dovelas vecinas. Si falta `water.unit_weight`, el motor usa 9,81 kN/m³ en SI
   y su equivalente (alrededor de 62,45 pcf) en imperial, también en el agua de la grieta
-  ([detalle](docs/limitaciones.md#limitaciones-numéricas-conocidas-del-motor)). <!-- R12: medir al integrar -->
+  ([detalle](docs/limitaciones.md#limitaciones-numéricas-conocidas-del-motor)). Medido: una grieta de 2 m con agua y sin
+  `water`, en imperial, da Bishop 1,69865, igual que en SI (γw = 62,449 pcf), en lugar de 1,71248.
 - **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
   piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
   y sin línea piezométrica γsat no interviene en el cálculo.

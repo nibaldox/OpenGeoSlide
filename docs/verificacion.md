@@ -256,7 +256,10 @@ superficie (`marginal` si son no nulos pero menores):
   superficie y el check no distingue el cálculo con y sin ella.
 - **En `crates/ogs-core/tests/f3g_rows.rs`**, las filas `X21-CP-V042` y `X21-CP-V061` se quedan con el comentario «sin
   términos embalsados en la superficie», y las filas nuevas con términos de agua embalsada no nulos sobre la superficie
-  analizada, con su valor del oráculo, son las de M-A (E15l-10). <!-- R12: medir al integrar -->
+  analizada, con su valor del oráculo, son las de M-A (E15l-10): `X21-R12-V042-up`, `X21-R12-V042-up-kh` y `X21-R12-V061-der`, en
+  `crates/ogs-core/tests/data/f3g/r12/`. Sobre su superficie, `Σ|weight_extra|` vale 10345,59 y 10345,59 kN/m y 364,45 kN/m, y
+  `Σ|h_force|`, 3762,03, 4086,80 y 8,04 kN/m. Contra cSlope 0.1.0, la peor diferencia de sus 14 cifras es de 0,081 % (Janbu
+  simplificado de `X21-R12-V042-up`), con tolerancia de 0,1 %.
 - Los casos con **agua solo en la grieta** (sin piezométrica sobre el terreno) no están en la tabla: la fuerza `Pw` de la
   grieta no es agua embalsada, y se mide con `tension_crack.water_force` (véase
   [Limitaciones](limitaciones.md#la-grieta-solo-vertical-una-por-superficie-f52-f54)).
@@ -316,7 +319,8 @@ env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py
   Ito-Matsui a través del wheel: los tres ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) (grieta seca, embalse al
   pie y Ito-Matsui) con sus fragmentos, las 55 filas de X21 y las 28 de X22 contra el oráculo a 0,1 %, la neutralidad, el
   espejo, la monotonía con `water_fill`, la compuerta de versión, los rechazos con su ruta y la salida siempre finita; y las
-  tres reproducciones de R12 (E15l-1, -2 y -11) con `xfail` hasta integrar esas enmiendas. {M}
+  tres reproducciones de R12 (E15l-1, -2 y -11), que el motor integrado pasa sin marcas `xfail` (136 pruebas en
+  `test_v05.py`; 225 con las 2 omitidas de pánico en `crates/ogs-py/tests`).
 - **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`, y
   `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4 y que el uso lista `tension_crack`,
   `lateral_pressure`, `capacity` y `soil_force` (E15l-25).
