@@ -637,5 +637,50 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   - **Nombres de tests.** `pdf.f3b.test.ts` y `content.f3b.test.ts` dicen «ausente y null dan el mismo PDF», no
     «identidad». La identidad contra la v0.4.0 es `identity.f3b.mjs`.
 
-  Evidencia de E16v a E16z: `$TMPDIR/r15-A/R15_A.md`, `$TMPDIR/r15-C/R15_C.md` y el arbitraje del coordinador
+- **E16aa, el contacto con todas las cargas verticales (R16A-01, 2026-11-27).** Corrige un hueco de E16v que dejó el
+  coordinador, y también un defecto latente de E13l-5 que ya estaba en la v0.4.0.
+  - **Defecto.** `weaker_at_contact` compara las resistencias con `col` = Σ γ_k h_k, que es solo el suelo. Pero el
+    `u` que resta sí incluye la columna de agua sobre el terreno. La resistencia real de la base usa
+    σv = (W + Q + V)/b (`shansep::apply`, y el N del método en Mohr-Coulomb y Hoek-Brown), con Q el agua embalsada y V
+    las cargas.
+  - **Consecuencia.** Bajo embalse o con sobrecarga, la comparación ve σ′ ≈ 0 y elige el material más fuerte, del
+    lado inseguro.
+  - **Medido** con Spencer, en FS sobre el contacto frente a los dos lados:
+    - MC sobre HB con embalse: 1,7824 frente a 1,4675 y 2,6705 (+21,5 %).
+    - MC sobre SHANSEP con `udl` = 500 kPa: 1,4222 frente a 1,0613 y 2,6216 (+34,0 %).
+    - **Lineal sobre lineal** con embalse: (c 10, φ 0) sobre (c 2, φ 35) da 1,0591 frente a 0,7356 y 2,1461 (+44 %).
+      El binario de la v0.4.0 da lo mismo: el defecto viene de E13l-5.
+  - **Regla.** La comparación usa, para cada material candidato, el **mismo σv total que usaría su base**:
+    - suelo, más agua embalsada, más la componente vertical de `udl` y de las cargas lineales según el reparto de E12f
+      en esa dovela, sin el término sísmico (E16o);
+    - el `u` de la base con ese material, igual al `pore_pressure` final de la dovela si se eligiera ese material.
+      Con `ru`, es ru·(suelo) + ru·V_embalse/b, como suman `slicer.rs:792` y `water.rs:413`. Sin `ru`, es
+      γw·(z − y_base).
+  - **Expresiones de la comparación,** que no cambian:
+    - lineal: c + (σv·cos²α − u)⁺·tan φ;
+    - Hoek-Brown: τ(σv·cos²α − u)⁺;
+    - SHANSEP: Su(σv − u).
+  - **Implementación libre,** con dos opciones:
+    - diferir la elección hasta después de aplicar el embalse y las cargas, y recalcular cohesión, tan φ y `u` del
+      material elegido;
+    - o sumar esos términos en el slicer.
+  - **Invariante con test:** para una dovela de contacto, el σ′v de la comparación del material elegido es igual, a
+    1e-12 relativo, al que reporta `strength.slices[].vertical_stress` (SHANSEP).
+  - **Identidad.** Aplica a **todas** las ramas, también lineal con lineal. Es una corrección de seguridad deliberada
+    frente a la v0.4.0, con el precedente del cambio deliberado del PDF de W-R15b.
+    - Un modelo sin contacto en la base, sin embalse y sin cargas no cambia.
+    - `identity_vs_baseline.py` tiene que dar 0 diferencias **salvo** en los modelos donde cambia la elección de
+      material de alguna dovela de contacto. Cada uno se lista con sus dovelas y su FS antes y después, y entra al
+      CHANGELOG en «Corregido».
+  - **Prueba:**
+    - los cuatro contactos medidos más uno con carga lineal: el FS sobre el contacto queda ≤ min(encima, debajo)
+      + 0,5 %;
+    - el modelo seco de E16v no cambia;
+    - con y sin `parallel`.
+- **E16ab, la finitud del OCR (R16A-02, 2026-11-27).** `shansep::apply` también rechaza un `ocr` que no sea finito,
+  aunque Su sí lo sea (`pop` extremo con σ′v pequeña), con el mismo `InvalidModel` de E16y. Es el caso de
+  `{ratio 0,25, pop 1e308, exponent 0}`, que hoy sale con código 0 y `"ocr": null`. Si el OCR se reporta en otra parte,
+  ahí también.
+
+  Evidencia de E16v a E16z (y de E16aa y E16ab: `$TMPDIR/r16-A/R16_A.md`, con el arbitraje R16): `$TMPDIR/r15-A/R15_A.md`, `$TMPDIR/r15-C/R15_C.md` y el arbitraje del coordinador
   (`$TMPDIR/f3b-coord/r15/arbitraje.md`), con las reproducciones citadas en cada enmienda.
