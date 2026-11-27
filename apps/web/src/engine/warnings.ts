@@ -162,13 +162,14 @@ export const ENGINE_WARNING_CODES = [
   'hoek_brown_low_confinement',
   'shansep_nonpositive_stress',
   'non_circular_large_change',
+  'non_circular_not_refined', // E16x: búsqueda no circular sin ninguna polilínea admisible (nota)
 ] as const;
 
 /**
- * Códigos que el motor ya tiene fijados pero que `briefs/00_CONTRATOS.md` (E6) aún no lista (E16x: `non_circular_not_refined`). Tienen texto y ruta
- * como los de arriba; cuando E6 los incorpore se pasan a `ENGINE_WARNING_CODES`, que `warnings.test.ts` compara con esa lista.
+ * Códigos que el motor ya tiene fijados pero que `briefs/00_CONTRATOS.md` (E6) aún no lista. Vacía desde que E6 incorporó
+ * `non_circular_not_refined` (E16x); se conserva para el próximo código nuevo.
  */
-export const PENDING_E6_WARNING_CODES = ['non_circular_not_refined'] as const;
+export const PENDING_E6_WARNING_CODES = [] as const;
 
 /**
  * Texto de la nota de γw por defecto (E15m-6 adaptado a la web, E15m-9): el campo se llama «γw» y vive en la pestaña «Agua». Lo usan el

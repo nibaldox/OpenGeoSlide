@@ -102,9 +102,9 @@ describe('E16x: non_circular_not_refined', () => {
     expect(describeWarning('non_circular_not_refined').text).not.toMatch(VOSEO);
   });
 
-  it('está declarada como pendiente de E6 y no duplicada en la lista de E6', () => {
-    expect(PENDING_E6_WARNING_CODES).toContain('non_circular_not_refined');
-    expect(ENGINE_WARNING_CODES as readonly string[]).not.toContain('non_circular_not_refined');
+  it('está en la lista de E6 y ya no figura como pendiente', () => {
+    expect(ENGINE_WARNING_CODES as readonly string[]).toContain('non_circular_not_refined');
+    expect(PENDING_E6_WARNING_CODES as readonly string[]).not.toContain('non_circular_not_refined');
   });
 
   it('no cuenta como aviso en la franja de resultados', () => {
