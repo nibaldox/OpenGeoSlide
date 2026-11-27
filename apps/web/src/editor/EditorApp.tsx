@@ -116,6 +116,27 @@ function formatWhen(iso: string): string {
 }
 
 /**
+ * Estado del archivo y de los borradores en la cabecera del editor (W-R15c): distingue el estado guardado del
+ * documento del de los borradores de tarjetas sin aplicar, evitando decir «sin cambios pendientes» junto a un
+ * borrador abierto.
+ */
+export function fileStatusText({
+  dirty,
+  pendingDraftCount = 0,
+  busy = false,
+}: {
+  dirty: boolean;
+  pendingDraftCount?: number;
+  busy?: boolean;
+}): string {
+  const parts = [dirty ? 'archivo con cambios sin guardar' : 'archivo sin cambios'];
+  if (pendingDraftCount === 1) parts.push('borrador sin aplicar');
+  else if (pendingDraftCount > 1) parts.push(`${pendingDraftCount} borradores sin aplicar`);
+  if (busy) parts.push('calculando…');
+  return `· ${parts.join(' · ')}`;
+}
+
+/**
  * `active`: el editor está a la vista. Permanece montado al cambiar a «Casos de verificación» (conserva modelo, historial
  * y resultados), pero entonces sus atajos de teclado no deben actuar (R7-07).
  */
@@ -712,8 +733,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
       <div className="ea-statusbar">
         <p className="ea-status small" data-testid="file-status">
           <strong>{documentTitle({ fileName, title: doc.meta.title, example: isExample })}</strong>{' '}
-          {dirty ? '· con cambios sin guardar' : '· sin cambios pendientes'}
-          {engine.busy ? ' · calculando…' : ''}
+          {fileStatusText({ dirty, pendingDraftCount: pendingDrafts.length, busy: engine.busy })}
         </p>
         {checkState.status && (
           <p className="ea-engine-status small" data-testid="engine-status">
