@@ -138,16 +138,24 @@ fn invalid(msg: impl Into<String>) -> OgsError {
 
 /// E16y: records a non-finite SHANSEP strength found while evaluating a candidate. It keeps the lowest material index, so
 /// the reported error does not depend on the order in which parallel evaluations finish (F6.10, point 7).
-fn record_shansep_error(slot: &Mutex<Option<usize>>, material: usize) {
+fn record_shansep_error(
+    slot: &Mutex<Option<shansep::ShansepError>>,
+    material: shansep::ShansepError,
+) {
     let mut guard = slot.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     *guard = Some(guard.map_or(material, |m| m.min(material)));
 }
 
-fn shansep_invalid(model: &Model, material: usize) -> OgsError {
-    invalid(format!(
-        "la resistencia SHANSEP del material '{}' no es finita (revise shansep.ocr, pop u ocr_by_elevation)",
-        model.materials[material].id
-    ))
+fn shansep_invalid(model: &Model, error: shansep::ShansepError) -> OgsError {
+    let id = &model.materials[error.material].id;
+    match error.kind {
+        shansep::ShansepErrorKind::VerticalStress => invalid(format!(
+            "la tensión vertical efectiva en la base del material SHANSEP '{id}' no es finita (revise los pesos unitarios, el agua y las cargas)"
+        )),
+        shansep::ShansepErrorKind::Strength => invalid(format!(
+            "la resistencia SHANSEP del material '{id}' no es finita (revise shansep.ocr, pop u ocr_by_elevation)"
+        )),
+    }
 }
 
 /// Name of a method, as written in the JSON.
@@ -796,7 +804,7 @@ fn evaluate_surface(
     load_case: &LoadCase,
     pile_profiles: &reinforcement::PileProfiles,
     method: MethodKind,
-    (opts, shansep_error): (&SolveOptions, &Mutex<Option<usize>>),
+    (opts, shansep_error): (&SolveOptions, &Mutex<Option<shansep::ShansepError>>),
     surface: &Surface,
 ) -> Option<f64> {
     let analysis = &model.analysis;
