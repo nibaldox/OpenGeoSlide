@@ -207,6 +207,69 @@ a OK con E15j-8; D40 a D42 estaban pendientes mientras el motor no tenía E15i).
   un arco entre unos 7e-7 y 3e-6 sobre un vértice todavía puede diferir de cSlope. En D30, la búsqueda de ogs halla
   círculos más críticos que la de cSlope (0,8248 frente a 1,5143), coherentes con la altura crítica del corte (E15j-9).
 
+### Qué casos ejercitan de verdad el agua embalsada (E15l-10, R12A-11)
+
+Que la piezométrica de un modelo pase sobre el terreno **no** quiere decir que la superficie de un check reciba el peso o
+el empuje del agua embalsada: un círculo que no toca la parte inundada no los recibe, y un caso así no verifica nada sobre
+el agua embalsada. De los 151 casos de `verification/cases/`, **14** tienen la piezométrica sobre el terreno (la misma
+prueba que usa `verification/tools/identity_vs_baseline.py` para separar los modelos con agua embalsada). La tabla mide,
+para cada uno, qué reciben las dovelas de la superficie **de sus checks**, con el binario de la rama `f3g5p` (motor de
+`ae5ee73`) y con `docs/fase3/r12/p-medir_agua_embalsada.py`:
+
+1. Corre cada check como `acceptance.rs` (un método, `fixed` o `search`, con `options.slices`) y toma la superficie
+   final. En una búsqueda es la superficie crítica de **ese** método.
+2. Repite la corrida con esa superficie fija, **sin** `loads`, sin sismo, sin refuerzos y con `water_fill = 0` en la
+   grieta (la grieta sigue truncando la masa). Lo que queda de `weight_extra` y de `h_force` es solo agua embalsada.
+3. Suma `Σ|weight_extra|` (el peso del agua) y `Σ|h_force|` (su empuje, con el de una cara de presa) sobre las dovelas.
+   Con la superficie de cada check, la corrida de control coincide con la corrida normal en los 14 casos (ninguno tiene
+   cargas ni sismo), así que las dos sumas son las que mide la revisión.
+
+Ejercita el agua embalsada si, solo con ella, `Σ|weight_extra|` o `Σ|h_force|` llegan al 0,1 % del peso del suelo de la
+superficie (`marginal` si son no nulos pero menores):
+
+| Caso | Checks (método, tipo) | Σ\|weight_extra\| | Σ\|h_force\| | Σ\|weight_extra\| / Σ peso | Ejercita el agua embalsada |
+|---|---|---:|---:|---:|---|
+| V023 | spencer fixed | 7296 | 6529 | 6.52e-01 | sí |
+| V024 | bishop fixed, spencer fixed | 0.05138 | 0.002857 | 2.75e-06 | marginal |
+| V038 | bishop search, spencer search | 0 | 0 | 0.00e+00 | no |
+| V038b | spencer search | 0 | 0 | 0.00e+00 | no |
+| V041a | bishop search, spencer search | 3283 a 3286 | 1230 | 2.01e+00 | sí |
+| V041b | bishop search, spencer search | 5540 a 5547 | 2050 | 3.39e+00 | sí |
+| V042 | bishop fixed, spencer fixed | 0 | 0 | 0.00e+00 | no |
+| V058 | spencer search | 0 | 0 | 0.00e+00 | no |
+| V061 | morgenstern_price fixed, spencer fixed | 0 | 0 | 0.00e+00 | no |
+| V070 | bishop search, spencer search | 110.7 | 36.89 | 1.40e-02 | sí |
+| V087 | janbu_corrected fixed | 256.2 | 61.88 | 5.05e-02 | sí |
+| V089 | bishop fixed, janbu_corrected fixed, morgenstern_price fixed, spencer fixed | 361.5 | 87.93 | 3.90e-02 | sí |
+| V091 | bishop fixed, janbu_corrected fixed, morgenstern_price fixed, spencer fixed | 192 | 29.16 | 8.53e-02 | sí |
+| V092 | bishop fixed, janbu_corrected fixed, morgenstern_price fixed, spencer fixed | 629.5 | 226.2 | 1.35e-02 | sí |
+
+- **Ejercitan el agua embalsada: 8 casos** (V023, V041a, V041b, V070, V087, V089, V091 y V092), con cifras de entre 1,4 % y
+  339 % del peso del suelo. En V041a y V041b el peso del agua supera el del suelo de la masa.
+- **No lo ejercitan: 5 casos** (V038, V038b, V042, V058 y V061): `Σ|weight_extra| = 0` y `Σ|h_force| = 0`, de modo que su
+  check es idéntico al que daría sin la parte de agua sobre el terreno. V042 lo confirma con la identidad: su salida es
+  idéntica byte a byte a la de la v0.3.0 (`identity_vs_baseline.py`); en V038, V038b y V058 (búsqueda) y V061 (superficie
+  fija) el FS, la superficie y los avisos de cada check son idénticos a los de la v0.3.0, y solo cambia el contador
+  `search.valid` (otros candidatos de la búsqueda sí reciben el agua embalsada y pasan a ser válidos). Son casos válidos de verificación del resto del modelo
+  (la piezométrica por debajo del terreno, los materiales), pero **no** prueban el agua embalsada.
+- **Marginal: V024**, con 0,05 kN/m de peso extra y 0,003 de empuje, 3e-6 del peso del suelo: el agua apenas toca la
+  superficie y el check no distingue el cálculo con y sin ella.
+- **En `crates/ogs-core/tests/f3g_rows.rs`**, las filas `X21-CP-V042` y `X21-CP-V061` se quedan con el comentario «sin
+  términos embalsados en la superficie», y las filas nuevas con términos de agua embalsada no nulos sobre la superficie
+  analizada, con su valor del oráculo, son las de M-A (E15l-10). <!-- R12: medir al integrar -->
+- Los casos con **agua solo en la grieta** (sin piezométrica sobre el terreno) no están en la tabla: la fuerza `Pw` de la
+  grieta no es agua embalsada, y se mide con `tension_crack.water_force` (véase
+  [Limitaciones](limitaciones.md#la-grieta-solo-vertical-una-por-superficie-f52-f54)).
+- La batería diferencial D28 a D39 (cSlope, véase arriba) sí ejercita el agua embalsada: cada modelo con embalse está
+  construido para que la superficie la reciba.
+
+Reproducción:
+
+```sh
+cargo build --release -p ogs-cli
+env -u PYTHONPATH -u PYTHONHOME python3 docs/fase3/r12/p-medir_agua_embalsada.py target/release/ogs
+```
+
 ## Refuerzos (v0.4): qué se verifica y con qué
 
 - **Identidad sin refuerzos** (gate de cada ola): `verification/tools/identity_vs_baseline.py --base <binario v0.2.0>
@@ -249,12 +312,19 @@ a OK con E15j-8; D40 a D42 estaban pendientes mientras el motor no tenía E15i).
 - **`ogs-py` v0.4:** `crates/ogs-py/tests/test_v04.py` cubre los refuerzos a través del wheel: las 32 filas de X17
   contra el oráculo, los cinco tipos, los tres modelos de `pullout`, los estados de `reinforcement_forces`, las notas de
   refuerzos, las identidades de la tablestaca, la compuerta de versión y los rechazos con su ruta JSON.
+- **`ogs-py` v0.5:** `crates/ogs-py/tests/test_v05.py` cubre la grieta de tracción, el agua embalsada y los pilotes de
+  Ito-Matsui a través del wheel: los tres ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) (grieta seca, embalse al
+  pie y Ito-Matsui) con sus fragmentos, las 55 filas de X21 y las 28 de X22 contra el oráculo a 0,1 %, la neutralidad, el
+  espejo, la monotonía con `water_fill`, la compuerta de versión, los rechazos con su ruta y la salida siempre finita; y las
+  tres reproducciones de R12 (E15l-1, -2 y -11) con `xfail` hasta integrar esas enmiendas. {M}
 - **`ogs`**: `verification/tools/test_cli_usage.py` fija que el mensaje de uso lista los cinco métodos de `ogs bench`, y
-  `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4.
+  `crates/ogs-cli` prueba que `ogs bench` no baja la versión de un modelo 0.4 y que el uso lista `tension_crack`,
+  `lateral_pressure`, `capacity` y `soil_force` (E15l-25).
 - **Esquema:** `verification/tools/test_schema.py` compara el esquema con el binario en una tabla de documentos; con
   E13l-8 incluye la polilínea sin `methods` (el esquema y el motor la rechazan), y con el bloque de refuerzos compara
   también [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) (que acepta 0.1 a 0.4 y rechaza lo mismo que el
-  motor). Con `test_cli_usage.py`, 489 pruebas (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
+  motor). Con la v0.5 compara [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) (que acepta 0.1 a 0.5, agrega
+  `analysis.tension_crack`, `lateral_pressure` y `capacity`, y rechaza lo mismo que el motor). Con `test_cli_usage.py`, 489 pruebas (medido con `OGS_BIN=$PWD/target/release/ogs pytest verification/tools/test_schema.py verification/tools/test_cli_usage.py`).
 
 ## Rendimiento (bench)
 

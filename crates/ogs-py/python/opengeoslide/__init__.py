@@ -43,12 +43,16 @@ Estados y avisos de la Fase 3a, en ``results[i]["status"]`` y ``results[i]["warn
 Formato v0.4 (``"version": "0.4"``): ``reinforcements``, una lista al nivel raíz, después de ``loads``. Tipos
 (``type``): ``anchor``, ``nail`` y ``geosynthetic`` (tracción: ``tensile_capacity``, ``end1_capacity``, ``end2_capacity``,
 ``spacing``, ``direction`` en ``axial``, ``tangent`` o ``bisector`` y ``pullout`` con ``model`` ``bond``, ``interface`` o
-``development``), ``pile`` (``force`` por pilote, ``spacing``, ``direction`` en ``angle``, ``tangent`` o ``perpendicular``
-y ``angle`` solo con ``angle``) y ``sheet_pile`` (``force`` por metro de muro, vertical: ``x1 = x2``). Todos llevan ``id``
-único, ``x1, y1`` (cabeza), ``x2, y2`` (punta) y ``application`` (``active`` o ``passive``, obligatorio). ``reinforcements``
-no vacío con ``version`` menor que ``"0.4"`` es ``InvalidModel`` (``reinforcements requiere version "0.4"``); con la lista
-ausente o vacía el resultado es idéntico al de la v0.2.0. Los errores de campo llevan su ruta JSON
-(``reinforcements[0].pullout.coverage debe estar en (0, 1], no 1.5``); ``pile`` y ``sheet_pile`` no admiten ``location``.
+``development``), ``pile`` (``force`` por pilote, o ``lateral_pressure`` desde la v0.5; ``spacing``, ``direction`` en
+``angle``, ``tangent`` o ``perpendicular`` y ``angle`` solo con ``angle``) y ``sheet_pile`` (``force`` por metro de muro,
+vertical: ``x1 = x2``). Todos llevan ``id`` único, ``x1, y1`` (cabeza), ``x2, y2`` (punta) y ``application`` (``active`` o
+``passive``, obligatorio). ``reinforcements`` no vacío con ``version`` menor que ``"0.4"`` es ``InvalidModel``
+(``reinforcements requiere version "0.4"``). Con la lista ausente o vacía el resultado es idéntico al de la v0.2.0, con
+dos excepciones documentadas: V065 (un círculo con la tangente vertical sobre el terreno, que la v0.2.0 rechazaba por
+redondeo) y, desde la v0.5, el agua embalsada (véase más abajo). Los errores de campo llevan su ruta JSON
+(``reinforcements[0].pullout.coverage debe estar en (0, 1], no 1.5``). Un ``pile`` o una ``sheet_pile`` con ``force`` no
+admite ``location``: con una fuerza dada no cambia ningún número; en el pilote con ``lateral_pressure``, ``location`` va
+dentro de ese objeto.
 
 Informe con refuerzos: ``results[i]["reinforcement_forces"]`` (se omite si no hay refuerzos) trae, solo en la superficie
 final, una entrada por cruce con ``id``, ``crossing``, ``x``, ``y``, ``station``, ``available`` (por metro), ``fx`` y ``fy``
@@ -57,9 +61,63 @@ final, una entrada por cruce con ``id``, ``crossing``, ``x``, ``y``, ``station``
 cruce, por ejemplo el tramo libre de un tirante sin ``end1_capacity``; no emite nota). Notas informativas nuevas en
 ``warnings``: ``reinforcement_outside_mass``, ``reinforcement_compression_ignored`` y ``structural_checks_not_covered``.
 
-**Límite estructural (F4.8).** Con un ``pile`` o una ``sheet_pile``, OpenGeoSlide calcula la estabilidad **global** con el
-elemento incluido como una fuerza dada. **No** calcula el empuje sobre el elemento, el empotramiento, el momento flector, la
-deflexión ni las comprobaciones internas o externas de un muro (nota ``structural_checks_not_covered``). Véanse
+Formato v0.5 (``"version": "0.5"``), en desarrollo y sin publicar: la grieta de tracción y la presión de suelo de
+Ito-Matsui en un pilote. El **agua embalsada** no es un campo y vale en todas las versiones (véase más abajo). Un campo de
+0.5 con una versión menor es ``InvalidModel`` (``tension_crack requiere version "0.5"`` o ``lateral_pressure requiere
+version "0.5"``).
+
+**Grieta de tracción** (``analysis.tension_crack``). Es un objeto con ``depth`` (un número finito > 0 en la unidad de
+longitud del modelo, o la cadena ``"auto"``, la profundidad de Rankine) y ``water_fill`` (fracción llena de agua, de 0 a
+1; obligatorio y sin valor por defecto). Es vertical, una por superficie y sin campo de posición: su ``x`` sale de la
+superficie y de la profundidad. La grieta **trunca cada superficie**: quita la masa del lado de la cresta, que no se
+conserva como carga, y deja una cara vertical sin resistencia. Con agua, ``Pw = ½·γw·(water_fill·depth)²`` es una fuerza
+horizontal en el sentido del deslizamiento, que no pesa ni cambia la presión de poros de la base. Cada resultado cuya
+superficie se truncó trae ``results[i]["tension_crack"] = {"x", "depth", "water_force"}`` (se omite sin grieta; con
+``"auto"`` y profundidad nula, ``depth`` y ``water_force`` valen 0 y el FS es el de la superficie sin grieta). Una
+superficie que no alcanza la profundidad se descarta en una búsqueda y, si es fija, es
+``ValueError("NoValidSurface: tension_crack_not_reached: ...")``; no hay tope de profundidad por la altura del talud. Una
+grieta **seca** puede subir el FS (la masa que se quita empujaba); con agua, el FS baja con ``water_fill``.
+
+Si la profundidad automática salta por una carga ``udl`` o por un cambio lateral de material, el motor informa y usa la
+profundidad de la cara realmente cortada, ``terreno(x) − base(x)``, y no la de Rankine; si esa cara no pasa de la
+tolerancia, no hay grieta (``depth`` 0). <!-- R12: medir al integrar --> Una búsqueda en la que todos los candidatos
+fallan por la grieta termina en ``ValueError("NoValidSurface: ... (E evaluadas, 0 válidas; K no alcanzan la grieta de
+tracción, tension_crack_not_reached)")``. <!-- R12: medir al integrar -->
+
+**Agua embalsada** (todas las versiones, sin campo). Si la piezométrica (``water.piezometric_line``) pasa **sobre el
+terreno**, el agua libre entre la piezométrica y el terreno carga las dovelas con su peso (vertical) y su empuje
+horizontal, además de la presión de poros de siempre; en una cara vertical (presa) entra el empuje hidrostático del
+paramento. El sismo pseudoestático no actúa sobre esa agua ni sobre ``Pw``. En un material con ``ru``, la presión de poros
+es ``u = ru·(W + V)/b`` (``V`` es el peso del agua embalsada), la regla de Slide2, que no se puede comparar con el
+oráculo. **Cambia el resultado frente a la v0.3.0:** un modelo cuya piezométrica pasa sobre el terreno, que la v0.3.0
+marcaba con ``water_above_ground``, da otro FS a propósito (V047a con 2 m de agua al pie, Bishop con superficie fija:
+0,848 con la v0.3.0 y 0,939 ahora, el valor de cSlope); si guardó resultados de ese tipo, vuelva a calcularlos. Un modelo
+sin agua sobre el terreno y sin ``tension_crack`` da la misma salida, byte a byte, que la v0.3.0. ``water_above_ground``
+queda como **nota informativa**. El peso unitario del agua es ``water.unit_weight``; si falta, vale 9,81 kN/m³ en SI y,
+en imperial, el resultado de convertir ese valor (alrededor de 62,45 pcf), y rige para la piezométrica, el agua embalsada
+y el agua de la grieta. <!-- R12: medir al integrar -->
+
+**Pilote de Ito-Matsui** (``reinforcements[i].lateral_pressure``, en un ``pile``). En lugar de una ``force`` dada, el motor
+calcula la fuerza que el suelo **entre pilotes** ejerce sobre una fila de pilotes **rígidos y verticales**, según Ito y
+Matsui (1975), en deformación plana. ``force`` y ``lateral_pressure`` se excluyen: tiene que haber exactamente uno.
+``lateral_pressure = {"model": "ito_matsui", "diameter": D, "location": "centroid" | "slip_surface"}``, con ``location``
+obligatorio; ``spacing`` (de eje a eje) debe ser mayor que ``diameter`` y el pilote es vertical (``x1 = x2``).
+``capacity`` (opcional, solo con ``lateral_pressure``) lleva ``shear`` (fuerza de corte por pilote), ``moment`` (momento
+por pilote) o ambos, y es un **tope**, no una comprobación del perfil. Cada cruce agrega a su entrada de
+``reinforcement_forces`` los campos ``soil_force`` (fuerza del suelo por metro, antes del tope), ``governs`` (``soil``,
+``shear`` o ``bending``) y ``arm`` (el brazo de la resultante sobre el cruce); un pilote con ``force`` no los trae. El
+aviso ``ito_matsui_spacing_range`` sale con S/D < 2 o S/D > 8, donde la fórmula pierde validez. Si el perfil de presión no
+es finito (S/D cerca de 1 con φ alto), el motor rechaza el modelo con ``ValueError("InvalidModel:
+reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita ...")`` y nunca devuelve ``NaN`` ni ``∞``. En un
+material con ``ru``, la tensión efectiva vertical es ``σ′v = σv − ru·σ_suelo``, sin restar la ``u`` de la piezométrica.
+<!-- R12: medir al integrar -->
+
+**Límite estructural.** Con un ``pile`` o una ``sheet_pile`` con ``force``, OpenGeoSlide calcula la estabilidad **global**
+con el elemento incluido como una fuerza dada y **no** calcula el empuje sobre él. Con ``lateral_pressure`` el motor estima
+la fuerza del suelo entre pilotes (``soil_force``) y la acota con ``capacity``, pero eso **no es el diseño del pilote**:
+supone un pilote rígido, no calcula el empotramiento, el momento flector, la deflexión ni las comprobaciones internas o
+externas de un muro, y no comprueba que el perfil resista ``shear`` o ``moment``. La nota
+``structural_checks_not_covered`` sale siempre que hay un ``pile`` o una ``sheet_pile``. Véanse
 ``docs/formato-ogs-json.md`` y ``docs/limitaciones.md``.
 """
 

@@ -99,7 +99,9 @@ for r in report["results"]:
 # spencer 0.9841 converged
 ```
 
-Más detalle en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
+El paquete en desarrollo (formato v0.5, sin publicar) también lee `analysis.tension_crack` y los pilotes de Ito-Matsui, y
+suma el agua embalsada cuando la piezométrica pasa sobre el terreno, lo que **cambia el FS** de esos modelos respecto de la
+v0.3.0. Más detalle y ejemplos en [`crates/ogs-py/README.md`](crates/ogs-py/README.md).
 
 ### CLI (`ogs`)
 
@@ -144,6 +146,9 @@ sismo, cargas, refuerzos y grieta de tracción, está en [`docs/formato-ogs-json
   en búsqueda y en superficie fija, con Bishop y Spencer: 58 de 60 checks, con 2 explicados (D39 fija, E15f) y ninguna
   falla abierta.
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
+- **Agua embalsada:** de los 14 casos publicados con la piezométrica sobre el terreno, 8 reciben su peso y su empuje en la
+  superficie de sus checks, 1 apenas (V024) y 5 no (V038, V038b, V042, V058 y V061); la tabla medida está en
+  [`docs/verificacion.md`](docs/verificacion.md#qué-casos-ejercitan-de-verdad-el-agua-embalsada-e15l-10-r12a-11).
 
 Reproducción y detalle (paridad del editor, rendimiento nativo y WASM) en [`docs/verificacion.md`](docs/verificacion.md).
 Esta batería no cubre todo: véanse las limitaciones.
@@ -182,6 +187,11 @@ Esta batería no cubre todo: véanse las limitaciones.
   sobrestima con S/D pequeño y subestima con S/D grande). El piso de φ = 0 no viene del artículo, sino de cSlope y
   XSLOPE, y las cargas de superficie no entran en la sobrecarga del pilote. La `capacity` es un tope, no una
   comprobación del perfil ([detalle](docs/limitaciones.md#pilotes-de-ito-matsui-e15i-qué-hace-y-qué-no)).
+- **Una polilínea totalmente sumergida se rechaza** (`no_driving`) en Spencer, Morgenstern-Price y los dos Janbu, del lado
+  seguro: cSlope tampoco la resuelve, y el mismo talud con `γ′ = γ − γw` sí converge. El informe puede traer un hueco
+  de hasta 1e-6 veces el ancho del modelo entre dos dovelas vecinas. Si falta `water.unit_weight`, el motor usa 9,81 kN/m³ en SI
+  y su equivalente (alrededor de 62,45 pcf) en imperial, también en el agua de la grieta
+  ([detalle](docs/limitaciones.md#limitaciones-numéricas-conocidas-del-motor)). <!-- R12: medir al integrar -->
 - **El peso unitario saturado (γsat) está verificado solo en cuatro casos** (V082a, V082b, V088 y V089, con la
   piezométrica activa): cumplen sus checks y cSlope los reproduce. Fuera de esos casos no hay otra verificación de γsat,
   y sin línea piezométrica γsat no interviene en el cálculo.
@@ -219,9 +229,10 @@ pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format
 geosynthetics, piles and sheet piles; the unreleased v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0, and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 327/327 published values (151 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With piles or sheet piles it checks the global stability
-with the element included as a given force; it does not compute earth pressure on the element, embedment, bending
-moment, deflection or the internal and external checks of a wall, so it is not a tool for designing MSE walls or
-retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks and 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures). The search is circular only. With a pile or sheet pile that carries a given force it checks the
+global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of
+the v0.5 format only estimates the soil force between rigid vertical piles (S/D 2 to 8). Neither computes embedment,
+bending moment, deflection or the internal and external checks of a wall, so OpenGeoSlide is not a tool for designing
+piles, MSE walls or retaining structures. Try it at <https://nibaldox.github.io/OpenGeoSlide/>, get the wheel
 from the [Releases](https://github.com/nibaldox/OpenGeoSlide/releases), and cite it with [`CITATION.cff`](CITATION.cff).
 It is not a certified tool: a qualified professional must validate every result.

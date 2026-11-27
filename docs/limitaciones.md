@@ -5,7 +5,7 @@ versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies 
 con el bloque de refuerzos: formato v0.4, y con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
 v0.5, en desarrollo y sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
-(enmiendas E14o). El resumen está en el
+(enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
 
 ## Alcance: lo que la versión actual no hace
@@ -202,8 +202,6 @@ polilínea en terreno horizontal con `kh` o con carga horizontal (D22 y D23, E13
   intervalo `[máx(lo, near/100), mín(3·near, 1e3)]` y esas evaluaciones **no cuentan** en el presupuesto
   `max_iterations`, que se comprueba antes de llamarla. Es un límite acotado, no un lazo abierto; se documenta y no se
   cambia.
-- **`unit_weight_sat` sin cobertura frente a otro programa** (R10A-11, 4): véase la última entrada de
-  [Limitaciones numéricas](#limitaciones-numéricas-conocidas-del-motor).
 
 ## Checks retenidos y casos especiales
 
@@ -568,6 +566,16 @@ crítica, los avisos y las dovelas son **idénticos**, y los demás métodos y v
   hay ninguna, `NoValidSurface`. Con una superficie fija que no la alcanza, el modelo es válido pero el análisis da
   `NoValidSurface: tension_crack_not_reached`. Una grieta profunda deja pocas superficies válidas: no es un resultado
   sobre «el talud con una grieta», sino sobre las superficies que la cruzan.
+- **Profundidad informada sobre una discontinuidad de `d(x)` (E15l-2, R12A-04).** Con la profundidad automática, una
+  carga `udl` en la coronación o un cambio lateral de material hacen que `d(x)` salte. Si la bisección termina en un `x_c`
+  donde la cara cortada, `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, la profundidad
+  que se informa y se usa es `h_face` (y la altura del agua es `water_fill·h_face`); si no, sigue siendo `d(x_c)`. Si
+  `h_face` no pasa de la tolerancia, no hay grieta: el motor no trunca la masa e informa `depth = 0`. Antes, la masa se
+  truncaba y el informe traía `depth = 0` y `Pw = 0`, y el FS bajaba sin que la grieta lo explicara. <!-- R12: medir al integrar -->
+- **Una búsqueda que se queda sin superficies por la grieta lo dice (E15l-7, R12B-06).** Si todos los candidatos se
+  descartan y al menos uno es por `tension_crack_not_reached`, el error termina en `({e} evaluadas, 0 válidas; {k} no
+  alcanzan la grieta de tracción, tension_crack_not_reached)`: revise la profundidad de la grieta o los rangos de búsqueda.
+  Con k = 0 el mensaje es el de siempre. <!-- R12: medir al integrar -->
 - **La masa del lado de la cresta se quita y no se conserva como carga**; la cara vertical no tiene resistencia.
 - **El FS no es monótono con la profundidad de una grieta seca**: el signo depende del bloque que se quita. Una grieta
   seca puede **subir** el FS (ejemplo del [formato](formato-ogs-json.md#ejemplos-grieta-seca-llena-y-automática): de
@@ -646,9 +654,19 @@ menos en los cinco métodos. **Esto no es el diseño de un pilote:** el límite 
   drenados son de tensión total. Con Mohr-Coulomb de φ < 0,01° pasa lo mismo.
 - **Las cargas de superficie no entran en `σv`.** Ni `udl` ni `line` suman a la sobrecarga del pilote, como en cSlope. Una
   sobrecarga en la corona **no** aumenta la presión que calcula la fórmula, aunque sí carga la masa que desliza.
-- **`ru` se aplica como `σ′v = σv − u − ru·σ_suelo`** en la integración de la presión (la regla de cSlope). Es una regla
-  distinta de la del cuerpo de las dovelas, donde `u = ru·(W + V)/b` (E15c): en un modelo con `ru` y un pilote de
-  Ito-Matsui, las dos cuentas coexisten y no se comparan entre sí.
+- **`ru` tiene precedencia sobre la piezométrica en `σ′v` (E15l-12, R12A-06).** En un material con `ru`,
+  `σ′v = σv − ru·σ_suelo`, **sin** restar la `u` de la piezométrica; sin `ru`, `σ′v = σv − u`. Es la misma precedencia
+  del rebanado, del arrancamiento `interface` y del conversor a cSlope. `σv` toma `γ` o `γsat` como lo hace el cortador
+  para ese material y suma el agua embalsada. Es una regla distinta de la del cuerpo de las dovelas, donde
+  `u = ru·(W + V)/b` (E15c): en un modelo con `ru` y un pilote de Ito-Matsui, las dos cuentas coexisten y no se comparan
+  entre sí. Antes de E15l-12, la presión restaba las dos (`σ′v = σv − u − ru·σ_suelo`) y, con `ru` y piezométrica, quedaba
+  por debajo de cSlope. <!-- R12: medir al integrar -->
+- **Un perfil de presión que desborda se rechaza (E15l-11, R12A-02).** Las ecuaciones 13 y 14 desbordan cuando S/D se
+  acerca a 1 (más cuanto mayor es φ). Si un nodo del perfil (`p`, `F` o `Q`) no es finito, el análisis termina antes de
+  resolver con `InvalidModel: reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = … y φ = …°
+  (las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente spacing`. La salida nunca lleva `NaN` ni `∞`. Antes, con
+  φ = 35°, S/D = 1,001 y `capacity`, los cuatro métodos fallaban (Bishop `invalid` y los demás `not_converged`). El aviso
+  `ito_matsui_spacing_range` ya salía con S/D < 2. <!-- R12: medir al integrar -->
 - **El agua actúa por las dos caras del pilote**: no empuja. Entra solo en `σ′v` (γ′ bajo la piezométrica) y el agua
   embalsada sobre el terreno suma su peso a `σv`.
 - **Es una estimación por capas.** Se integra con la regla del punto medio y un paso de 0,05 m en el material, `c` y φ de
@@ -681,10 +699,20 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 - **Agua sobre el terreno (nota `water_above_ground`).** Es informativa: «La piezométrica queda sobre el terreno: el agua
   embalsada se incluye con su peso y su empuje horizontal (sin sismo).» Los resultados guardados con la v0.3.0 no
   incluían ese peso ni ese empuje ([excepción a la identidad](#excepción-a-la-identidad-con-la-v030-agua-sobre-el-terreno)).
+  Se emite también cuando la superficie analizada recibe términos de agua embalsada no nulos aunque ninguna dovela quede
+  bajo una piezométrica sobre el terreno (peso del agua mayor que 0 o empuje distinto de 0, incluido el de un paramento
+  vertical de presa, E15l-5): sin esa regla, una presa con muro vertical cambiaba su FS en un 25 % sin la nota.
+  <!-- R12: medir al integrar -->
 - **Unidades imperiales con piezométrica:** el peso unitario del agua (γw) debe ser explícito y no menor que 20 pcf
   (se usa 62,4 pcf). Un valor como 9,81 es de kN/m³ y bloquea el cálculo, tanto en el editor como en «Casos».
-  El motor nunca convierte unidades: interpreta los números en las unidades declaradas. Al cambiar de sistema, la web
+  El motor nunca convierte los números del modelo: los interpreta en las unidades declaradas. Al cambiar de sistema, la web
   ofrece convertir los valores del modelo (el FS no cambia) o cambiar solo la etiqueta.
+- **γw por defecto del motor (E15l-6, R12B-01):** si falta `water.unit_weight`, vale 9,81 kN/m³ en `SI` y, en `imperial`,
+  el resultado de convertir 9,81 kN/m³ con el mismo factor que usa la web (alrededor de 62,45 pcf), en lugar de 9,81 sin
+  mirar las unidades. Rige para la piezométrica, el agua embalsada y el agua de la grieta, y el conversor a cSlope sigue
+  la misma regla. Antes, una grieta con agua y sin `water`, convertida de SI a imperial, daba una fuerza `Pw` 6,37 veces
+  menor y un FS +4,0 % mayor. En el corpus, ninguno de los 15 modelos imperiales usa agua sin `unit_weight`.
+  <!-- R12: medir al integrar -->
 - **Convenciones de signo:** `kh` positivo va en el sentido del deslizamiento y `kv` positivo hacia abajo; el ángulo de
   la carga lineal se mide desde la vertical, positivo hacia +x. Otros programas pueden usar el signo contrario para
   `kv`: compare con cuidado. El informe PDF repite las convenciones.
@@ -702,9 +730,9 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 ## Limitaciones numéricas conocidas del motor
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
-verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (323/323
-checks en 147 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
-con Bishop y Spencer; M-P, Janbu corregido, D15-D23 y el bloque v0.5 D28-D39 en
+verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (327/327
+checks en 151 casos, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
+con Bishop y Spencer; M-P, Janbu corregido, D15-D23 y el bloque v0.5 D28-D42, con 58 OK, 2 explicados y 0 fallas, en
 [`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en
 [`verificacion.md`](verificacion.md)). Las limitaciones de Spencer
 (R4-01, R4-02, R5-05) valen también para Morgenstern-Price, que comparte su solver y sus guardas.
@@ -749,5 +777,21 @@ con Bishop y Spencer; M-P, Janbu corregido, D15-D23 y el bloque v0.5 D28-D39 en
   fuerzas que mueven la masa. Sin cargas y con kv ≤ 0 la salida es idéntica; en 1206 corridas solo cambian V018, V077 y
   V078. Con cargas verticales grandes la escala puede ocultar un desequilibrio: véase
   [lo que sigue abierto](#lo-que-sigue-abierto) (R10A-03).
-- **`unit_weight_sat` sin cobertura:** ninguno de los 147 casos de verificación usa `unit_weight_sat`. La ruta de peso
-  saturado bajo la piezométrica no está verificada frente a cSlope. Aviso: ninguno.
+- **Polilínea totalmente sumergida (E15l-27, R12A-05):** Spencer, Morgenstern-Price y los dos Janbu rechazan con
+  `invalid` y el aviso `no_driving` una polilínea fija que queda completamente bajo el agua embalsada (por ejemplo, la
+  piezométrica en `y = 35 m` sobre una cresta en 20 m). La comprobación de la fuerza motriz de las polilíneas suma
+  `W*·sen α + H·cos α` sin el término de poros de la base, y el empuje del embalse sobre la cara inclinada, que
+  estabiliza, vuelve negativa la fuerza motriz neta. **El motor no cambia**: rechazar es del lado seguro, y cSlope
+  tampoco resuelve ese caso (X21 §5 no probó una polilínea con embalse y sin grieta). Un talud sumergido tiene un
+  equilibrio físico bien definido: el mismo talud en seco con `γ′ = γ − γw` converge (Spencer 3,748, Morgenstern-Price
+  3,747, Janbu simplificado 1,559 y corregido 1,678 en el caso de R12A-05). Si necesita su FS, calcúlelo así, o con un
+  círculo: un círculo totalmente sumergido sí converge (la revisión R12 lo verificó contra la flotación de Arquímedes).
+  Aviso: `no_driving`.
+- **Hueco entre dovelas vecinas (E15l-9, R12A-12):** tras el contacto de aire capilar
+  ([E15j-8](#segunda-excepción-a-la-identidad-con-la-v030-contacto-de-aire-capilar-v019-e15j-8)), el borde derecho de una
+  dovela puede quedar a **menos de 1e-6 veces el ancho del modelo** del borde izquierdo de la siguiente
+  (`slices[k−1].x_right < slices[k].x_left`): es el tramo de aire que se descartó, de 0,8 µm en un modelo de 100 m. No
+  cambia el cálculo; un consumidor del informe que suponga bordes continuos debe tolerar esa holgura. La misma regla une
+  dos masas separadas por una muesca en V real de ese orden: con una muesca de 8e-5 m de ancho y 8e-7 m de profundidad en
+  un modelo de 100 m, el FS pasó de 1,500 a 3,026 (la masa se une) sin aviso; con 2e-4 m de ancho o 2e-6 m de profundidad,
+  las separa y el FS es 1,500. No ocurre en un terreno que no tenga una muesca real tan fina. Aviso: ninguno.
