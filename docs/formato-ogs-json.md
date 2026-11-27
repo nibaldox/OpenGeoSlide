@@ -1278,9 +1278,11 @@ Por pilote y por unidad de profundidad, `p(z) = c·A1 + σ′v·A2`, con `S = sp
 - **Integración.** Sobre la vertical del pilote, desde `z_top = max(0, terreno − y_cabeza)` hasta el cruce
   `zf = terreno − y_cruce`, con la regla del punto medio y un paso de 0,05 m (o su equivalente en pies). En cada punto
   se toman el material, `c` y `φ` de ese punto. El perfil se calcula una vez por análisis. Si `zf ≤ z_top`, la fuerza vale 0.
-- **`σ′v = σv − u − ru·σ_suelo`.** `σv` se integra desde el terreno con `γ`, o con `γsat` bajo la piezométrica, y suma el
-  agua embalsada sobre el terreno; `u = γw·max(0, piezométrica − y)`. Las **cargas de superficie no entran** en `σv`,
-  como en cSlope.
+- **`σ′v` y la precedencia de `ru` (E15l-12).** `σv` se integra desde el terreno con `γ`, o con `γsat` bajo la piezométrica
+  (como lo hace el cortador para ese material), y suma el agua embalsada sobre el terreno. Sin `ru`, `σ′v = σv − u`, con
+  `u = γw·max(0, piezométrica − y)`; en un material con `ru`, `σ′v = σv − ru·σ_suelo`, **sin** restar la `u` de la
+  piezométrica, como el rebanado y el arrancamiento `interface`. Las **cargas de superficie no entran** en `σv`, como en
+  cSlope. <!-- R12: medir al integrar -->
 - **Fuerza por pilote.** `F = min(∫p dz, shear, moment/L_m)`, con `L_m = ∫(zf − z)·p dz / ∫p dz`, el brazo de la
   resultante sobre el cruce. Es un **mínimo**, no una elección. La fuerza que entra en el equilibrio es `F/spacing`
   por metro.
@@ -1309,6 +1311,11 @@ idéntica byte a byte:
 | `arm` | `L_m`, el brazo de la resultante sobre el cruce, en la unidad de longitud |
 
 `available` y `fx` son la fuerza ya acotada, por metro.
+
+**Perfil no finito (E15l-11).** Las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1. Si un nodo del perfil (`p`, `F` o
+`Q`) no es finito, el análisis termina antes de resolver con `InvalidModel: reinforcements[i].lateral_pressure: la presión
+de Ito-Matsui no es finita con S/D = … y φ = …° (las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente
+spacing`. La salida nunca lleva `NaN` ni `∞`. <!-- R12: medir al integrar -->
 
 **Aviso `ito_matsui_spacing_range`.** Se emite si algún pilote con `lateral_pressure` tiene `S/D < 2` o `S/D > 8`, cruce o no la
 superficie: «Pilote Ito-Matsui con S/D = … fuera de 2 a 8: la fórmula pierde validez (sobrestima la fuerza con S/D
@@ -1468,8 +1475,10 @@ Las convenciones (E15c):
   cargando la dovela con su peso y su empuje. Esta regla es la de Slide2 y no se puede comparar con el oráculo
   ([Limitaciones](limitaciones.md#agua-embalsada-con-ru-sin-oráculo)). El `σ′v` del arrancamiento `interface` de un
   material con `ru` **no** cuenta el agua libre (E14o-4), de modo que con refuerzos no hay doble conteo.
-- **γw** es `water.unit_weight` (9,81 por defecto; en unidades imperiales debe ser explícito,
-  [Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)).
+- **γw** es `water.unit_weight`. Si falta, vale 9,81 kN/m³ en `SI` y, en `imperial`, el resultado de convertir 9,81 kN/m³
+  con el mismo factor que usa la web (alrededor de 62,45 pcf) (E15l-6); rige para la piezométrica, el agua embalsada y el
+  agua de la grieta. La web escribe `water.unit_weight` de forma explícita al convertir unidades
+  ([Limitaciones](limitaciones.md#avisos-geotécnicos-de-la-aplicación)). <!-- R12: medir al integrar -->
 - **Profundidad bajo la tolerancia.** Una profundidad de agua menor o igual que `1e-9·escala` (la tolerancia del
   modelo) se toma como 0: una piezométrica que **toca** el terreno, como la freática que termina en el talud, no añade
   términos.
@@ -1567,8 +1576,15 @@ queda del lado de la cresta y deja una cara vertical sin resistencia.
   - `q` suma las sobrecargas `udl` que cubren `x` y la columna de agua embalsada en `x`, `γw·(piezo − terreno)`.
   - Si `z` vale 0 en la entrada (por ejemplo, `c = 0`), no se corta nada: el informe trae la grieta con
     `depth = 0` y `water_force = 0`, y el FS es el de la superficie sin grieta.
+- **Profundidad sobre una discontinuidad de `d(x)` (E15l-2).** Con `"auto"`, una carga `udl` o un cambio lateral de
+  material hacen que la profundidad de Rankine salte. Si la bisección termina en un `x_c` donde la cara cortada,
+  `h_face = terreno(x_c) − base(x_c)`, difiere de `d(x_c)` más que la tolerancia, el informe trae `depth = h_face` y el
+  agua de la grieta usa `water_fill·h_face`; si `h_face` no pasa de la tolerancia, no hay grieta, no se trunca la masa y
+  `depth` vale 0. <!-- R12: medir al integrar -->
 - **No hay tope de profundidad** por la altura del talud (G8): una grieta más profunda que el talud es un dato suyo.
-- **Búsqueda (G9).** Un candidato que no alcanza la grieta **se descarta**, y si se descartan todos, `NoValidSurface`.
+- **Búsqueda (G9).** Un candidato que no alcanza la grieta **se descarta**, y si se descartan todos, `NoValidSurface`. Si
+  al menos uno se descartó por esa causa, el mensaje termina en `({e} evaluadas, 0 válidas; {k} no alcanzan la grieta de
+  tracción, tension_crack_not_reached)` (E15l-7); con k = 0, el mensaje es el de siempre. <!-- R12: medir al integrar -->
 - **Polilíneas.** El truncado se aplica después del ajuste de la polilínea al terreno. Bishop sigue sin ofrecerse en
   ellas.
 - **Refuerzos.** Un cruce que queda del lado de la cresta de `x_c` queda fuera de la masa: nota
