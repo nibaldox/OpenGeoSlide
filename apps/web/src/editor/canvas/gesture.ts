@@ -12,7 +12,7 @@ import { coincidentVertices, piezoPoints, roundForScale, type VertexRef } from '
 import { handleHitRadius, hitTest, type Hit } from './hitTest';
 import { insertPiezoPoint, movePiezoPoint, removePiezoPoint } from './edits';
 import { insertPolylineVertex, modelWidth, movePolylineVertex, polylineMinGap, removePolylineVertex } from './polyline';
-import { moveBody, moveEnd, refEnd } from './reinforcements';
+import { isVerticalReinforcement, moveBody, moveEnd, refEnd } from './reinforcements';
 import { snapPoint, type SnapResult } from './snap';
 import { panBy } from './viewportOps';
 
@@ -126,7 +126,10 @@ function computePreview(target: DragTarget, ctx: GestureContext, input: PointerI
       const r = doc.reinforcements?.[target.index];
       if (!r) return null;
       const other = refEnd(r, target.end === 1 ? 2 : 1);
-      const snap = snapPoint(raw, { doc, vp, snap: ui.snap, neighbors: [other] });
+      // E15l-21: un refuerzo vertical (tablestaca o pilote Ito-Matsui) conserva su x; el ajuste y la vista previa trabajan sobre su vertical.
+      const own = refEnd(r, target.end);
+      const aim: Point = isVerticalReinforcement(r) ? [own[0], raw[1]] : raw;
+      const snap = snapPoint(aim, { doc, vp, snap: ui.snap, neighbors: [other] });
       const moved = moveEnd(r, target.end, snap.point);
       return { kind: 'reinforcement', index: target.index, reinforcement: moved ?? r, clamped: moved === null, snap };
     }

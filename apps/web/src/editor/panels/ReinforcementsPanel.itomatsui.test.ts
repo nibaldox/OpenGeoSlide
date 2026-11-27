@@ -125,6 +125,14 @@ describe('S/D y aviso de rango (E15i-8)', () => {
     expect(text(html(doc([itoPile({ spacing: 6.4 })])))).not.toContain('fuera de 2 a 8');
   });
 
+  // E15l-23 (B-12c): el aviso de S/D fuera de rango se anuncia a los lectores de pantalla (`role="status"`).
+  it('el aviso de S/D fuera de rango lleva role="status"; la relación y el caso dentro de rango no lo llevan', () => {
+    const out = html(doc([itoPile({ spacing: 1.2 })]));
+    expect(out).toMatch(/<p[^>]*role="status"[^>]*data-testid="ito-matsui-range"|<p[^>]*data-testid="ito-matsui-range"[^>]*role="status"/);
+    expect((out.match(/data-testid="ito-matsui-range"/g) ?? []).length).toBe(1);
+    expect(html(doc([itoPile()]))).not.toContain('ito-matsui-range');
+  });
+
   it('un pilote con fuerza dada no muestra S/D', () => {
     expect(text(html(doc([pile()])))).not.toContain('S/D');
   });

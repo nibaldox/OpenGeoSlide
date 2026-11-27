@@ -25,7 +25,8 @@ import {
 import {
   REINFORCEMENT_TYPE_LABEL,
   REINFORCEMENT_ZERO_LENGTH,
-  SHEET_PILE_FIXED_X,
+  isVerticalReinforcement,
+  verticalFixedXMessage,
   moveBody,
   moveEnd,
   refCenter,
@@ -331,8 +332,8 @@ export function keyActions(ctx: GestureContext, k: KeyInput, gestureActive = fal
   if (sel.kind === 'reinforcement_end') {
     const r = doc.reinforcements?.[sel.index];
     if (!r) return NOT_HANDLED;
-    // La tablestaca es vertical: su x es fija, solo se mueve en y.
-    if (r.type === 'sheet_pile' && dx !== 0) return { handled: true, actions: [], announce: SHEET_PILE_FIXED_X };
+    // La tablestaca y el pilote Ito-Matsui son verticales (E15l-21): su x es fija, solo se mueven en y.
+    if (isVerticalReinforcement(r) && dx !== 0) return { handled: true, actions: [], announce: verticalFixedXMessage(r) };
     const moved = moveEnd(r, sel.end, shift(refEnd(r, sel.end)));
     if (!moved) return { handled: true, actions: [], announce: REINFORCEMENT_ZERO_LENGTH };
     return withReveal(

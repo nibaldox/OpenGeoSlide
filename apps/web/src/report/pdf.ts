@@ -495,7 +495,7 @@ class Writer {
       doc.setLineJoin('miter');
       // Flechas y marcas de las fuerzas; los rótulos (de las fuerzas y de los símbolos) se colocan después, sin solaparse.
       const labels: { text: string; x: number; y: number; color: Rgb }[] = [];
-      for (const fs of forceShapes(d.forces, vpPx, d.units)) {
+      for (const fs of forceShapes(d.forces, vpPx, d.units, d.reinforcements)) {
         const [ax, ay] = mm(fs.at);
         const color: Rgb = fs.applied ? [...P.reinforcement] : [...P.inkMuted];
         if (fs.tip) {
