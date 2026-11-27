@@ -489,8 +489,10 @@ fn every_verification_case_stays_valid() {
     let files: Vec<PathBuf> = json_files("verification/cases", ".json")
         .into_iter()
         .filter(|p| {
-            p.file_name()
-                .is_some_and(|n| n.to_string_lossy().starts_with('V'))
+            p.file_name().is_some_and(|n| {
+                n.to_string_lossy()
+                    .starts_with(|c: char| c.is_ascii_uppercase())
+            })
         })
         .collect();
     // The index is the source of truth; it lists at least the 21 cases of v0.1 and v0.2.
