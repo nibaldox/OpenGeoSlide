@@ -50,6 +50,7 @@ import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
 import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
 import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
+import { pickShownMethod } from './app/shell/shownMethod';
 import { buildRunStatusInput } from './app/shell/statusInput';
 import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
@@ -203,6 +204,12 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
   const [slopeOpen, setSlopeOpen] = useState(false);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
+  // `true` si el usuario eligió el método mostrado (en Resultados): un nuevo cálculo lo respeta. Si no, se muestra el del FS mínimo (B-05).
+  const methodChosen = useRef(false);
+  const chooseMethod = useCallback((m: MethodKind): void => {
+    methodChosen.current = true;
+    setShownMethod(m);
+  }, []);
   const [reportBusy, setReportBusy] = useState(false);
   // El modelo de partida y los de «Ejemplos» son ejemplos hasta que se guardan con nombre propio (UX-11).
   const [isExample, setIsExample] = useState(true);
@@ -298,6 +305,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       store.dispatch({ type: 'ui/viewport', viewport: null });
       resetEngine();
       setShownMethod(null);
+      methodChosen.current = false;
       setIsExample(opts.example);
     },
     [store, resetEngine],
@@ -493,7 +501,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     }
     if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
-    if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
+    if (run) setShownMethod((m) => pickShownMethod(run.report, methodChosen.current ? m : null));
   }, [engine, engineStatus, hasDrafts, pendingDrafts, notify]);
 
   // ───────── Anuncios (regiones vivas persistentes) ─────────
@@ -954,7 +962,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               current={engine.current}
               hasDrafts={hasDrafts}
               shownMethod={shownMethod ?? shown?.method ?? null}
-              onShowMethod={setShownMethod}
+              onShowMethod={chooseMethod}
               check={{ ...checkProps, variant: 'compact' }}
               diagnostics={
                 <DiagnosticsPanel
