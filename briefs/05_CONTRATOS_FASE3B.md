@@ -297,4 +297,14 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 
 ## F6.14 Enmiendas
 
-(Ninguna todavía. Las de cierre de los prototipos irán aquí como E16n en adelante.)
+- **E16n, alcance del esquema 0.6 (B0M, 2026-11-27).** «El esquema rechaza lo mismo que el motor» (F6.1) se entiende
+  como en las versiones anteriores: el esquema expresa las reglas que JSON Schema puede expresar (tipos, campos
+  requeridos y prohibidos, rangos de un valor, enumeraciones, «exactamente uno de» con `oneOf`, la puerta de versión),
+  y las comparaciones entre valores quedan solo en el motor. Es la misma convención que ya prueba
+  `verification/tools/test_schema.py:297-308` (`x1 >= x2`, ids duplicados). En el bloque F3B son del motor solo:
+  - `ocr_by_elevation` con `y` estrictamente creciente;
+  - las reglas de F6.5 que relacionan dos partes del documento (grieta `auto` o Ito-Matsui con materiales nuevos, y
+    Bishop con `non_circular`).
+
+  `test_schema.py` agrega estos casos a su lista de diferencias conocidas entre esquema y motor, con la cita de esta
+  enmienda. Evidencia: informe de B0M (`deleg_c3d4ada0`).
