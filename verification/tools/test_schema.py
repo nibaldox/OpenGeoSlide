@@ -1412,6 +1412,11 @@ V06_TABLE = [
     ("non_circular max_vertices 9", _noncirc(max_vertices=9), True),
     ("non_circular max_vertices 17", _noncirc(max_vertices=17), True),
     ("non_circular null", _search(non_circular=None), True),
+    # E16z (R15A-11): an optional field set to null is the same as absent, as everywhere else in the schema and in the engine
+    ("non_circular seeds null", _noncirc(seeds=None), True),
+    ("non_circular max_vertices null", _noncirc(max_vertices=None), True),
+    ("non_circular seeds null and max_vertices null", _noncirc(seeds=None, max_vertices=None), True),
+    ("non_circular seeds null in 0.5", _both(_version("0.5"), _noncirc(seeds=None)), False),
     ("non_circular seeds 0", _noncirc(seeds=0), False),
     ("non_circular seeds 11", _noncirc(seeds=11), False),
     ("non_circular seeds 2.5", _noncirc(seeds=2.5), False),

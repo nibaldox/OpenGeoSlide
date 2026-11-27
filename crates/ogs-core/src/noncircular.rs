@@ -6,6 +6,9 @@ use crate::surface::{Polyline, Surface, search_circle_polyline, search_polyline_
 
 /// Informative note emitted by the caller when FS falls more than 15%.
 pub const NON_CIRCULAR_LARGE_CHANGE: &str = "non_circular_large_change";
+/// Informative note (E16x): the non-circular search was asked for and no polyline was admissible (`evaluated = 0`), so
+/// the result is the circle of the circular search.
+pub const NON_CIRCULAR_NOT_REFINED: &str = "non_circular_not_refined";
 const BUDGET: usize = 1500;
 
 struct Optimizer<'a, E> {
@@ -16,8 +19,15 @@ struct Optimizer<'a, E> {
 }
 
 impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
+    /// Margin of the windows (E16x): `max(pm.tol(), 1e-6·width)`, the scale of the minimum `dx` of F6.10, point 6. A circle
+    /// that leaves grazing the toe crosses the ground almost tangent, and the error of its crossing is of the order of
+    /// the square root of the tolerance (9,5e-6 measured in a berm with the exit in `[10, 20]`).
+    fn window_margin(&self) -> f64 {
+        self.pm.tol().max(1e-6 * (self.pm.x_max - self.pm.x_min))
+    }
     fn evaluate(&mut self, p: &[Point]) -> Option<f64> {
-        let inside = |x: f64, [a, b]: [f64; 2]| x >= a.min(b) && x <= a.max(b);
+        let tol = self.window_margin();
+        let inside = |x: f64, [a, b]: [f64; 2]| x >= a.min(b) - tol && x <= a.max(b) + tol;
         if self.used >= BUDGET
             || p.len() < 2
             || !inside(p[0][0], self.windows[0])
@@ -35,7 +45,8 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
         if k == 0 || k + 1 == points.len() {
             let x = p[0] + t;
             let [a, b] = self.windows[usize::from(k != 0)];
-            if x < a.min(b) || x > a.max(b) {
+            let tol = self.window_margin();
+            if x < a.min(b) - tol || x > a.max(b) + tol {
                 return None;
             }
             Some([x, self.pm.top_at(x)?])
@@ -239,6 +250,30 @@ mod tests {
         assert!(!search_polyline_admissible(&pm, &points));
         let surface = Surface::Polyline(Polyline { points });
         assert!(surface.fit_to_ground(&pm).is_ok());
+    }
+
+    /// E16x, point 2: an end within `max(pm.tol(), 1e-6·width)` of the edge of its window is inside; one beyond it is not.
+    #[test]
+    fn window_has_a_margin_of_1e6_width() {
+        let (_, _, pm) = fixture("V001-k4.json");
+        let tol = pm.tol().max(1e-6 * (pm.x_max - pm.x_min));
+        let (x0, x1) = (10.0, 20.0);
+        let mut calls = 0;
+        let mut eval = |_: &Surface| {
+            calls += 1;
+            Some(1.0)
+        };
+        let mut opt = Optimizer {
+            pm: &pm,
+            windows: [[x0, x1], [x0, x1]],
+            eval: &mut eval,
+            used: 0,
+        };
+        let y = |x: f64| pm.top_at(x).unwrap();
+        let ok = |a: f64, b: f64| vec![[a, y(a)], [15.0, 5.0], [b, y(b)]];
+        assert!(opt.evaluate(&ok(x0 - 0.5 * tol, x1 + 0.5 * tol)).is_some());
+        assert!(opt.evaluate(&ok(x0 - 100.0 * tol, 15.0 + 1.0)).is_none());
+        assert!(opt.evaluate(&ok(11.0, x1 + 100.0 * tol)).is_none());
     }
 
     #[test]

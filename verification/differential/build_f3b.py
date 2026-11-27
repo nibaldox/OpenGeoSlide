@@ -71,6 +71,9 @@ def models() -> list[dict]:
         model = read_model(f'docs/fase3/exploracion/X29_filas/{cid}-k{idx}.json')
         model['meta'] = {'id': f'F3B-NC-{cid}', 'title': f'{cid}, búsqueda no circular'}
         model['analysis']['methods'] = ['spencer']
+        # E16z: `analysis.interslice` requires morgenstern_price in the methods; the CLI refuses it with only Spencer
+        # (cSlope's Spencer is its constant function anyway, see to_cslope.py). The row carried it from the X29 model.
+        model['analysis'].pop('interslice', None)
         rows.append(model)
     return rows
 

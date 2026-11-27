@@ -94,7 +94,8 @@ VERDICT_EXPLAINED = "explicado (E15f, E15j-7)"
 EXPLAINED_VERDICTS = (VERDICT_EXPLAINED,)
 TANGENT_BASE_MAX = 1e-6    # E15f: the limit of cSlope's search; a circle farther under the bottom is a real failure
 # Informative ogs warnings (contract §4.5 / E5, E7d, E10a, E11a′): notes, not warnings. Any other code is a warning
-# that the report lists. The list must match INFORMATIVE_WARNINGS in crates/ogs-core/tests/acceptance.rs.
+# that the report lists. One source (E16z): test_f3b.py compares this list with INFORMATIVE_WARNINGS in
+# crates/ogs-core/tests/acceptance.rs.
 OGS_INFORMATIVE_WARNINGS = (
     "negative_effective_normal",
     "truncated_mass",
@@ -107,6 +108,10 @@ OGS_INFORMATIVE_WARNINGS = (
     "structural_checks_not_covered",
     "water_above_ground",   # F5.3: a note, the ponded water is included
     "water_unit_weight_default",   # E15m-6: imperial, water in use and no water.unit_weight
+    "hoek_brown_low_confinement",   # F6.7
+    "shansep_nonpositive_stress",   # F6.7
+    "non_circular_large_change",   # F6.7
+    "non_circular_not_refined",   # E16x
 )
 
 
@@ -871,6 +876,9 @@ VERDICT_E16T = "explicado (E16t)"
 # ogs' minimum is then over a smaller admissible set and may be above cSlope's. Explained with the measured circle, not
 # relaxed: any other search above cSlope·1,01 stays a failure.
 VERDICT_MALPHA = "explicado (§4.2: m_α)"
+# E16z (R15A-09): the m_α explanation holds only while the search stays near cSlope; above this factor it is a FALLA,
+# so a regression of the search on a steep bank cannot hide under "explicado". The measured case is +1,785 %.
+MALPHA_MAX_FACTOR = 1.05
 PASS_VERDICTS_F3B = PASS_VERDICTS + (VERDICT_F68, VERDICT_E16T, VERDICT_MALPHA)
 F3B_EXPLAINED_VERDICTS = (VERDICT_E16T, VERDICT_MALPHA)
 
@@ -951,7 +959,9 @@ def f3b_check(cs_module, exe: str, case: dict, method: str, kind: str, prototype
         explanation = f3b_search_explanation(cs_module, exe, case, method)
         if explanation:
             row["explanation"] = explanation
-            if f3b_malpha_explains(explanation.get("ogs_on_cslope_circle") or {}, row["cslope"]["warnings"]):
+            cs_fos = row["cslope"]["fos"]
+            within = cs_fos is not None and row["ogs"]["fos"] <= MALPHA_MAX_FACTOR * cs_fos     # E16z
+            if within and f3b_malpha_explains(explanation.get("ogs_on_cslope_circle") or {}, row["cslope"]["warnings"]):
                 c = explanation["cslope_circle"]
                 row["verdict"] = VERDICT_MALPHA
                 row["reason"] = (f"{row['reason']}; el círculo crítico de cSlope (xc {c['xc']:.4f}, yc {c['yc']:.4f}, "

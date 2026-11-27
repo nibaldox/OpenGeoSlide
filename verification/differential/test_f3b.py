@@ -147,3 +147,51 @@ def test_f3b_cases_convert_and_validate_without_running_ogs():
         converted = ogs_to_cslope(case['model'], {'method': method, 'kind': kind}).document
         errors = [issue for issue in cslope.validate(converted) if issue.get('severity') == 'error']
         assert not errors, (case['id'], method, kind, errors)
+
+
+def test_malpha_verdict_has_an_upper_bound(monkeypatch):
+    """E16z (R15A-09): `explicado (§4.2: m_α)` needs FS_ogs <= 1,05·FS_cSlope; above that it is a FALLA."""
+    assert run.MALPHA_MAX_FACTOR == 1.05
+    case = {'id': 'F3B-HB-06', 'model': {}}
+    steep = ['steep-entry-tension: The surface enters the slope at 87°']
+    circle = {'type': 'circle', 'xc': 1.0, 'yc': 2.0, 'r': 3.0}
+    invalid = {'fos': None, 'status': 'invalid', 'error': None, 'warnings': ['m_alpha']}
+
+    def verdict(ogs_fos):
+        monkeypatch.setattr(run, 'run_check', lambda *a: {
+            'ogs': {'fos': ogs_fos, 'status': 'converged', 'error': None, 'warnings': []},
+            'cslope': {'fos': 1.0, 'status': 'converged', 'error': None, 'warnings': steep}})
+        monkeypatch.setattr(run, 'f3b_evaluate', lambda *a: ('FALLA', 'search above cSlope'))
+        monkeypatch.setattr(run, 'f3b_search_explanation', lambda *a: {
+            'cslope_circle': circle, 'ogs_on_cslope_circle': invalid})
+        return run.f3b_check(None, 'ogs', case, 'bishop', 'search', {})['verdict']
+
+    assert verdict(1.0178) == run.VERDICT_MALPHA        # the measured F3B-HB-06 case, +1,785 %
+    assert verdict(1.05) == run.VERDICT_MALPHA          # the bound itself
+    assert verdict(1.0501) == 'FALLA'
+    assert verdict(2.0) == 'FALLA'                      # a regression of the search no longer hides
+
+
+def test_informative_notes_are_one_list():
+    """E16z: the informative notes of run.py are the ones of acceptance.rs (one source, compared)."""
+    import re
+    text = (ROOT / 'crates/ogs-core/tests/acceptance.rs').read_text(encoding='utf-8')
+    block = re.search(r'const INFORMATIVE_WARNINGS: &\[&str\] = &\[(.*?)\];', text, re.S).group(1)
+    codes = re.findall(r'"([a-z_]+)"', block)
+    assert len(codes) == len(set(codes)) >= 15
+    assert set(run.OGS_INFORMATIVE_WARNINGS) == set(codes)
+    assert len(run.OGS_INFORMATIVE_WARNINGS) == len(set(run.OGS_INFORMATIVE_WARNINGS))
+    for code in ('non_circular_not_refined', 'non_circular_large_change', 'hoek_brown_low_confinement',
+                 'shansep_nonpositive_stress'):
+        assert code in codes
+
+
+def test_f3b_nc_inputs_have_no_interslice_without_morgenstern_price():
+    """E16z (R15A-05): `analysis.interslice` needs morgenstern_price in the methods, and the CLI refuses it otherwise."""
+    for model in build_f3b.models():
+        analysis = model['analysis']
+        if 'interslice' in analysis:
+            assert 'morgenstern_price' in analysis['methods'], model['meta']['id']
+    for cid in ('F3B-NC-V001', 'F3B-NC-V034a'):
+        path = HERE / 'cases_f3b' / (cid + '.ogs.json')
+        assert 'interslice' not in json.loads(path.read_text(encoding='utf-8'))['analysis']
