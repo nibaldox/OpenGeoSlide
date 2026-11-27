@@ -948,6 +948,11 @@ inseguro**. Se compara la resistencia real, con `σ′n = máx(0, σv·cos²α �
 completa; con SHANSEP, Su con el σ′v de la columna. Desde E16aa, `σv` incluye el suelo, el embalse y las cargas verticales,
 sin el sismo, para todas las leyes; es una corrección deliberada frente a la v0.4.0: en un contacto lineal bajo embalse,
 Spencer pasa de 1,0591 a 0,7356; en la versión integrada previa, con UDL y SHANSEP, de 1,4222 a 1,0615. Con empate se conserva el material de arriba.
+**Limitación de la comparación estática (E16ac).** La elección del material usa σv sin el coeficiente sísmico
+vertical `kv` y antes de aplicar los refuerzos. Con `kv = +0,5` y `−0,5` se midieron, respectivamente, FS 1,78 % y
+0,66 % mayores que en el lado débil; con un anclaje activo casi vertical de 3000 kN/m, 20,88 % mayor. Para evitar esta
+limitación, desplace la polilínea 1 mm hacia el lado débil; no se modifica el motor en la versión 0.5.0.
+
 Medido con Spencer y una polilínea seca por el contacto
 horizontal (`crates/ogs-core/tests/data/f3b/r15/contact/`):
 
