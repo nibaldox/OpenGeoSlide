@@ -519,9 +519,8 @@ fn analyze_method(
                             load_case,
                             &pile_profiles,
                             method,
-                            &polyline_opts,
+                            (&polyline_opts, &shansep_error),
                             surface,
-                            &shansep_error,
                         )
                     });
                 if let Some(material) = *shansep_error.lock().unwrap() {
@@ -784,9 +783,8 @@ fn evaluate_surface(
     load_case: &LoadCase,
     pile_profiles: &reinforcement::PileProfiles,
     method: MethodKind,
-    opts: &SolveOptions,
+    (opts, shansep_error): (&SolveOptions, &Mutex<Option<usize>>),
     surface: &Surface,
-    shansep_error: &Mutex<Option<usize>>,
 ) -> Option<f64> {
     let analysis = &model.analysis;
     let n = analysis.slices;
