@@ -1,0 +1,21 @@
+{
+ "source": "cSlope 0.1.0 through verification/harness/to_cslope.py (fixed circle, 50 slices), generate_r12.py",
+ "tolerance_pct": 0.1,
+ "rows": {
+  "X22-S16-ru-piezo": {
+   "note": "ru = 0,2 y l\u00ednea piezom\u00e9trica en el mismo modelo (c = 10, \u03c6 = 20, \u03b3 = 20): \u03c3'v = \u03c3v \u2212 ru\u00b7\u03c3_suelo, sin restar la u de la piezom\u00e9trica (E15l-12)",
+   "oracle": {
+    "bishop": 1.2282889404984698,
+    "spencer": 1.2254425164790568,
+    "morgenstern_price": 1.2254425164790568,
+    "janbu_simplified": 1.1811891211618863,
+    "janbu_corrected": 1.2330823032936784
+   },
+   "force_per_metre": {
+    "estado": "applied",
+    "oracle": 102.20590530365875,
+    "gobierna": "soil"
+   }
+  }
+ }
+}
