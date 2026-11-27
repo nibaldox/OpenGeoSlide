@@ -6,8 +6,8 @@
 - `docs/fase3/PLAN_FASE3B.md`, con las decisiones D1 a D6;
 - la exploración `docs/fase3/exploracion/X23.md` a `X27.md`;
 - los prototipos X28 (Hoek-Brown), X29 (búsqueda no circular) y X30 (SHANSEP), en curso. Las secciones marcadas
-  **[condicional X28]**, **[condicional X29]** o **[condicional X30]** se cierran con una enmienda cuando llegue su
-  prototipo, antes de despachar al escritor que las implementa. Los tipos, el formato, la validación y los ganchos
+  **[condicional X28]**, **[condicional X29]** o **[condicional X30]** quedaron cerradas por las enmiendas E16o, E16p y
+  E16q (F6.14), antes de despachar a los escritores que las implementan. Los tipos, el formato, la validación y los ganchos
   (F6.1 a F6.7) **no** dependen de los prototipos y quedan congelados ya.
 
 **Sigue vigente** todo lo de `00_CONTRATOS.md` a `04_CONTRATOS_GRIETA_AGUA.md`, salvo lo que este archivo cambie de
@@ -211,19 +211,87 @@ Se agregan a la lista E6 de `00_CONTRATOS.md` y a `apps/web/src/engine/warnings.
   - `non_circular_large_change`: «La superficie no circular bajó el factor de seguridad más de un 15 % respecto del
     mejor círculo; revise la geometría de la superficie crítica.»
 
-## F6.8 Física de Hoek-Brown (E16h) [condicional X28]
+## F6.8 Física de Hoek-Brown (E16h, cerrada por E16q)
 
-Queda congelado ya:
-- la envolvente de las ecs. 2 y 8 a 10 de Hoek et al. (2002) y la tangente instantánea en `σ′n`:
-  `sen φᵢ = (k − 1)/(k + 1)` y `cᵢ = τ − σ′n·tan φᵢ`, con `cᵢ ≥ 0` y `φᵢ ≤ 89,9°` (X25 §2.1);
-- `σ′n = N′/l`, con el N′ del método en la pasada anterior (X27 §1.4);
-- un punto fijo en F, por método.
+- **Envolvente** (Hoek, Carranza-Torres y Corkum 2002, ecs. 2 y 8 a 10; X25 §1.1). La tangente instantánea en `σ′n`
+  es `sen φᵢ = (k − 1)/(k + 1)`, donde `k = dσ1/dσ3` en el punto de la envolvente con `σn = σ′n`, y
+  `cᵢ = τ − σ′n·tan φᵢ`, con `cᵢ ≥ 0` y `φᵢ ≤ 89,9°` (X25 §2.1). El σ3 de ese punto se busca por bisección hasta
+  `|Δσ3| ≤ 1e-12·ucs`.
+- **Regla de bajo confinamiento: la envolvente completa** (decisión del coordinador, E16q). Con
+  `σt = −s·ucs/mb` y `sn(0)` el σn del punto con σ3 = 0:
+  - si `σ′n > sn(0)`: la tangente en el punto con σ3 ≥ 0, igual que cSlope;
+  - si `σt < σ′n ≤ sn(0)`: la tangente en el punto de la **misma envolvente** con σ3 ∈ (σt, 0];
+  - si `σ′n ≤ σt`: `c = 0` y `tan φ = 0`; la base no resiste.
 
-Lo cierra X28, con cifras:
-- el estado inicial, la tolerancia, el máximo de pasadas y el amortiguamiento (cSlope: σ′n₀ = γ·(y_terreno −
-  y_base)·cos²α, 30 pasadas, 1e-4 y el promedio de c y tanφ);
-- la regla de bajo confinamiento (σ′n ≤ σn(σ3 = 0)) y cuándo emite `hoek_brown_low_confinement`;
-- las filas de aceptación (`docs/fase3/exploracion/X28_filas/`).
+  cSlope usa en cambio la tangente de σ3 = 0 para todo `σ′n ≤ sn(0)`. Esa recta queda sobre la envolvente cóncava y
+  da resistencia incluso en tracción (X25 §3.4: 9,5 kPa a tracción con `σ′n = −0,88 kPa`). La envolvente completa
+  es el criterio tal como lo define la fuente, nunca sobreestima la resistencia y su diferencia con el oráculo queda
+  declarada en la tabla de abajo.
+- **Iteración**, por método y por superficie:
+  1. **estado inicial:** `σ′n₀ = (W/b)·cos²α − u` en cada dovela de base `hoek_brown`. X28 §2 midió que el arranque
+     no cambia el F convergido;
+  2. **pasada:** se resuelve el método con los (c, tan φ) actuales. Con el N′ de esa solución, `σ′n = N′/l`, se
+     calcula la tangente (cT, tT) y se promedia: `c ← (c + cT)/2` y `tan φ ← (tan φ + tT)/2` (w = 0,5, como cSlope);
+  3. **convergencia:** `|F_k − F_{k−1}| ≤ 1e-6·|F_k|`, con un máximo de **50 pasadas**. Sin convergencia, el estado es
+     `NotConverged` con `hoek_brown_not_converged`. En la búsqueda, ese candidato se descarta, como en cSlope;
+  4. si el método no tiene solución en alguna pasada (por ejemplo, sin raíz de λ), el resultado es el estado de esa
+     pasada y el lazo se detiene.
+
+  **Medido** (`X28_filas/reglas_coordinador.json`): sin promedio (w = 1), el lazo cicla en SB con Bishop y Janbu (no
+  converge en 200 pasadas). Con w = 0,5 y 1e-6 converge en 10 a 12 pasadas en los cuatro modelos. Por eso se fija el
+  promedio.
+- **N′ de cada método** (X28 §4):
+  - Bishop: el de su ecuación, con su F;
+  - Spencer y M-P: el de (F, λ);
+  - Janbu simplificado y corregido: el de F₀. En Janbu corregido, el lazo converge sobre F₀ y la corrección se aplica
+    al final, con los (c, tan φ) finales, como hoy.
+- **Lo que se reporta:** el F de la última solución, y en `slices` los (c, tan φ) **con los que se calculó**, no los
+  promediados después. Así el equilibrio global independiente (F6.11, criterio 2) se comprueba con las fuerzas reales de
+  esa solución. En `strength.passes` va el número de pasadas, y en `strength.slices[].normal_stress` la σ′n de cada
+  dovela de roca en esa solución.
+- **`hoek_brown_low_confinement`** (F6.7): se emite si alguna dovela de base `hoek_brown` tiene `σ′n ≤ sn(0)` en la
+  solución reportada. Es una nota por método.
+- **Caras de las dovelas** (F6.5): `τ(σ′v(z))` de la misma envolvente y con la misma regla de bajo confinamiento.
+- **Regla de compatibilidad, solo para los tests.** `hoek_brown` expone, con `#[doc(hidden)]` y fuera del formato, una
+  variante de la regla de bajo confinamiento igual a la de cSlope. La usan solo los tests que comparan el lazo con el
+  oráculo. El producto usa siempre la envolvente completa.
+- **Filas de aceptación**, en círculo fijo, en los cinco métodos:
+  - **producto contra el prototipo:** la envolvente completa de X28 (`X28_proto/hb.py`, regla `cut`, convergencia total)
+    a **≤ 0,1 %** en los cuatro modelos (columna «Envolvente completa»). Es una implementación independiente en Python;
+  - **lazo contra el oráculo:** la regla de compatibilidad a **≤ 0,1 %** de cSlope en los cuatro modelos y en las
+    filas de agua (`X28-W-SB-LINEA16`, `X28-R-SB-RU03`, `X28-R-X25-RU03`). **Excepción de diagnóstico:** Spencer y M-P
+    en SB (−0,369 % en el prototipo, X28 §11) y Spencer y M-P en `X28-R-X25-RU03` (sin solución en el prototipo). En
+    esas filas se reporta la cifra del motor y la diferencia, sin gate. Si el motor queda dentro de 0,1 %, pasan a gate;
+  - **identidades** de F6.11: Hoek-Brown original, espejo, monotonía y equilibrio.
+
+  Las cifras de referencia, medidas por el coordinador con el prototipo de X28 a convergencia total (1e-8):
+
+| Modelo | Método | Oráculo (cSlope) | Envolvente completa (producto) | dif. | Regla de cSlope | dif. |
+|---|---|---:|---:|---:|---:|---:|
+| X25 | bishop | 1,466040 | 1,465960 | -0,005 % | 1,465961 | -0,005 % |
+| X25 | spencer | 1,468185 | 1,468158 | -0,002 % | 1,468158 | -0,002 % |
+| X25 | morgenstern_price | 1,468185 | 1,468158 | -0,002 % | 1,468158 | -0,002 % |
+| X25 | janbu_simplified | 1,392073 | 1,392149 | +0,005 % | 1,392154 | +0,006 % |
+| X25 | janbu_corrected | 1,456504 | 1,456549 | +0,003 % | 1,456554 | +0,003 % |
+| HAM1 | bishop | 1,151807 | 1,150215 | -0,138 % | 1,151889 | +0,007 % |
+| HAM1 | spencer | 1,153019 | 1,152052 | -0,084 % | 1,153064 | +0,004 % |
+| HAM1 | morgenstern_price | 1,153019 | 1,152052 | -0,084 % | 1,153064 | +0,004 % |
+| HAM1 | janbu_simplified | 1,091534 | 1,088701 | -0,260 % | 1,091691 | +0,014 % |
+| HAM1 | janbu_corrected | 1,151583 | 1,148563 | -0,262 % | 1,151718 | +0,012 % |
+| SA | bishop | 1,181632 | 1,180419 | -0,103 % | 1,181577 | -0,005 % |
+| SA | spencer | 1,188055 | 1,187409 | -0,054 % | 1,187994 | -0,005 % |
+| SA | morgenstern_price | 1,188055 | 1,187409 | -0,054 % | 1,187994 | -0,005 % |
+| SA | janbu_simplified | 1,136758 | 1,135088 | -0,147 % | 1,136839 | +0,007 % |
+| SA | janbu_corrected | 1,179406 | 1,177655 | -0,148 % | 1,179472 | +0,006 % |
+| SB | bishop | 2,090902 | 2,067647 | -1,112 % | 2,091343 | +0,021 % |
+| SB | spencer | 2,107886 | 2,094657 | -0,628 % | 2,100106 | -0,369 % |
+| SB | morgenstern_price | 2,107886 | 2,094657 | -0,628 % | 2,100106 | -0,369 % |
+| SB | janbu_simplified | 2,105636 | 2,045031 | -2,878 % | 2,106343 | +0,034 % |
+| SB | janbu_corrected | 2,202191 | 2,138775 | -2,880 % | 2,202897 | +0,032 % |
+
+  La diferencia con cSlope crece con las dovelas en bajo confinamiento: 0 % en X25 (1 dovela), de −0,05 % a −0,26 % en
+  HAM1 y SA (2 a 4 dovelas) y de −0,6 % a −2,9 % en SB (10 a 12 dovelas). Siempre es conservadora. `docs/limitaciones.md`
+  y la Ayuda la explican.
 
 ## F6.9 Física de SHANSEP (E16i, cerrada por E16o)
 
@@ -394,3 +462,10 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
 
   F6.6 agrega `polyline_fos` a `stats.non_circular`, y F6.4 remite a F6.10. Evidencia: `docs/fase3/exploracion/X29.md`
   §4 a §9.
+- **E16q, cierre de Hoek-Brown (X28 y medición del coordinador, 2026-11-27).** F6.8 queda cerrada:
+  - la regla de bajo confinamiento es la envolvente completa, no la tangente de σ3 = 0 de cSlope;
+  - la iteración usa w = 0,5, 1e-6 y 50 pasadas;
+  - una regla de compatibilidad, solo para los tests, verifica el lazo contra el oráculo.
+
+  Evidencia: `docs/fase3/exploracion/X28.md` §1 a §9 y `X28_filas/reglas_coordinador.json`
+  (`X28_proto/coord_reglas.py`). Con w = 1, el lazo no converge en SB.
