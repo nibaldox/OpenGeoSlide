@@ -11,12 +11,14 @@ API pueden cambiar entre versiones menores.
 ## [0.5.0] - sin publicar
 
 Bloque de Hoek-Brown, SHANSEP y búsqueda no circular (F3B): formato v0.6. El contrato es
-`briefs/05_CONTRATOS_FASE3B.md` (F6.1 a F6.14 y las enmiendas E16a a E16z, con las correcciones de la revisión R15); la
+`briefs/05_CONTRATOS_FASE3B.md` (F6.1 a F6.14 y las enmiendas E16a a E16ab, con las correcciones de las revisiones R15 y R16); la
 evidencia, `docs/fase3/exploracion/X23*.md` a `X30*` y los prototipos de `docs/fase3/exploracion/X28_proto/`. **Un modelo
 sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0** (con la versión del motor normalizada): 0 diferencias en 180
 modelos, con 17 modelos v0.6 saltados aparte (el binario base no lee esa versión) y 23 con agua sobre el terreno idénticos.
-La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versión. Lo que corrigió la revisión R15 (enmiendas E16v a
-E16z, contra `92fa882`) está en «Fixed».
+La única excepción deliberada es E16aa (R16): en un contacto entre dos materiales bajo agua embalsada o con cargas, la
+elección del material más débil cambia respecto de la 0.4.0, que podía elegir el más resistente; ningún modelo del corpus
+cambia. La entrada aún no tiene fecha ni etiqueta: no se subió ninguna versión. Lo que corrigieron las revisiones R15
+(enmiendas E16v a E16z, contra `92fa882`) y R16 (E16aa y E16ab, contra `9c5a881`) está en «Fixed».
 
 ### Added
 - **Formato `.ogs.json` v0.6 (F6.1).** El motor acepta 0.1 a 0.6. Exigen `"version": "0.6"`, y el error nombra el
@@ -78,9 +80,9 @@ E16z, contra `92fa882`) está en «Fixed».
     y superficie fija 28/28 cada una.
   - **Identidad con la 0.4.0** (`identity_vs_baseline.py`): 0 diferencias en 180 modelos, sin agregar excepciones a
     `identity_exceptions.json`; los modelos v0.6 se cuentan aparte.
-  - **Pruebas medidas con el binario sha256 `248c9efe…` de `22c8977`:** `ogs-core` 778 pasan y 2 ignoradas, igual con
-    `parallel`; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2 omitidas; web
-    4043 de 4043 con el motor real y 3723 pasan con 320 omitidas sin él.
+  - **Pruebas medidas con el binario sha256 `038c9255…` de `5f1575b` (tras R16):** `ogs-core` 782 pasan y 2 ignoradas,
+    igual con `parallel`; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel de `ogs-py` 370 pasan y 2
+    omitidas; web 4085 de 4085 con el motor real y 3765 pasan con 320 omitidas sin él.
 - **Documentación.** `docs/formato-ogs-json.md` con las secciones de Hoek-Brown, SHANSEP, búsqueda no circular y
   combinaciones no admitidas (5 ejemplos nuevos; en total, 14 ejemplos y 103 fragmentos validados con
   `docs/tools/validar_ejemplos.py` contra el esquema 0.6, que gana `pasadas=`, `ley=`, `sv=`, `nc=` y `superficie=`); `docs/limitaciones.md` con los límites de las tres
@@ -107,6 +109,25 @@ E16z, contra `92fa882`) está en «Fixed».
   `--method bishop` explícito sigue dando el error del motor.
 
 ### Fixed
+- **Revisión de cierre R16 (dos lentes, contra `9c5a881`; enmiendas E16aa y E16ab).**
+  - **E16aa, contacto entre materiales bajo agua embalsada o con cargas (R16A-01, alta).** La comparación del material
+    más débil en un contacto usaba solo el peso del suelo, pero restaba la presión de agua completa: bajo embalse o con una
+    sobrecarga veía una tensión efectiva casi nula y podía elegir el material más resistente, del lado inseguro. El
+    defecto venía de E13l-5 y estaba también en la 0.4.0 entre dos materiales lineales. Ahora la elección se hace después
+    del embalse y las cargas, con el mismo σv de la base (suelo, embalse y cargas verticales, sin el sismo) y el `u` de
+    cada candidato. Con Spencer, FS sobre el contacto: MC sobre Hoek-Brown con embalse, de 1,7824 a 1,4675; MC sobre
+    SHANSEP con carga distribuida, de 1,4222 a 1,0615; cohesivo sobre friccional con embalse (igual en la 0.4.0), de
+    1,0591 a 0,7356; MC sobre SHANSEP con carga lineal, de 4,2448 a 2,9985. Los contactos secos de E16v no cambian y
+    ningún modelo del corpus de identidad cambia.
+  - **E16ab, OCR no finito (R16A-02).** Con un POP extremo y una dovela de σ′v pequeña, Su era finita pero el OCR
+    desbordaba y salía `"ocr": null` con código 0; ahora es `InvalidModel`, como E16y.
+  - **Web (R16B-01, alta; R16B-02).** Guardar, Ctrl+S y la paleta se bloquean con borradores de tarjeta sin aplicar
+    (antes descargaban el material anterior). Cambiar de pestaña y descartar el documento (Nuevo, Abrir, Ejemplos, Talud
+    simple, Recuperar) piden confirmación aunque el archivo esté guardado (antes el borrador se perdía sin aviso).
+    Ctrl+S confirma el campo con foco antes de guardar. El botón principal deshabilitado tiene estilo propio en claro y
+    oscuro.
+  - **Documentación (R16A-03).** La identidad web se documenta contra el tag `v0.4.0` (seis modelos, `git archive`) y el
+    índice de `pending/F3B` cuenta los 3 retenidos de `HOLD.json`.
 - **Revisión R15 (tres lentes, contra `92fa882`; enmiendas E16v a E16z).**
   - **E16v, contacto entre materiales con Hoek-Brown o SHANSEP (R15A-01, crítica).** `weaker_at_contact` comparaba con una
     resistencia que vale (0, 0) para esos materiales y ganaba siempre el material nuevo, aunque fuera el más resistente:
