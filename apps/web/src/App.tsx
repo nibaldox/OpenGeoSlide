@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
 import './App.css';
 import './ui/targets.css';
 import { blockedMessage, caseBlockers } from './analysis/caseGate';
 import { checkModel, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
-import { getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
+import { EngineCancelledError, getEngineClient, type AnalyzeResult, type EngineClient } from './engine/client';
 import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
@@ -48,6 +48,12 @@ export function effectiveCaseMethods(model: Model, selection: Readonly<Record<Me
   return ALL_METHODS.filter((m) => selection[m] && !(m === 'bishop' && bishopBlocked));
 }
 
+/** Texto de avance durante un cálculo largo en Casos de verificación (R15B-11). */
+export function formatCasesProgress(elapsedSeconds: number, activeMethod?: MethodKind | null): string {
+  const secs = Math.max(0, Math.floor(elapsedSeconds));
+  return activeMethod ? `Comprobando ${METHOD_LABELS[activeMethod]}… (${secs} s)` : `Comprobando… (${secs} s)`;
+}
+
 interface RunResult {
   report: AnalysisReport;
   elapsedMs: number;
@@ -79,15 +85,41 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   const [caseKey, setCaseKey] = useState<string>('');
   const [methods, setMethods] = useState<Record<MethodKind, boolean>>(() => ({ ...DEFAULT_CASE_METHODS }));
   const [busy, setBusy] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [activeMethod, setActiveMethod] = useState<MethodKind | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [run, setRun] = useState<RunResult | null>(null);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
   const [checks, setChecks] = useState<CheckRow[]>([]);
   const [perfRuns, setPerfRuns] = useState(10);
   const [perf, setPerf] = useState<TimeSummary | null>(null);
+  const engineStatus = useSyncExternalStore(
+    useCallback((listener: () => void) => client.subscribe(listener), [client]),
+    () => client.getStatus(),
+    () => client.getStatus(),
+  );
 
-  // Token de solicitud: solo la última ejecución puede escribir resultados; una respuesta tardía del caso anterior se descarta (R7-09).
+  // Token de solicitud y AbortController: descarta respuestas tardías y permite cancelar cálculos largos (R7-09, R15B-11).
   const guard = useRef(createRunGuard()).current;
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!busy) {
+      setElapsedSec(0);
+      return;
+    }
+    const start = Date.now();
+    setElapsedSec(0);
+    const timer = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - start) / 1000));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [busy]);
+
+  useEffect(() => () => {
+    abortRef.current?.abort();
+  }, []);
 
   const current: CaseEntry = cases.find((c) => c.key === caseKey) ?? cases[0];
   // F3.6 / F6.4: con una polilínea fija o búsqueda no circular, Bishop no se ofrece ni se pide aunque haya quedado marcado.
@@ -103,12 +135,27 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   );
 
   function resetOutputs() {
+    abortRef.current?.abort();
+    abortRef.current = null;
     guard.invalidate();
     setBusy(false);
+    setActiveMethod(null);
+    setNotice(null);
     setRun(null);
     setChecks([]);
     setPerf(null);
     setShownMethod(null);
+  }
+
+  function cancelar() {
+    if (!busy) return;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    guard.invalidate();
+    client.cancel();
+    setBusy(false);
+    setActiveMethod(null);
+    setNotice('Cálculo cancelado.');
   }
 
   function selectCase(key: string) {
@@ -117,17 +164,20 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     setError(null);
   }
 
-  async function runCheck(model: Model, check: VerificationCheck): Promise<CheckRow> {
+  async function runCheck(model: Model, check: VerificationCheck, signal: AbortSignal): Promise<CheckRow | null> {
+    if (signal.aborted) return null;
     try {
       const { report } = await client.analyze(JSON.stringify(engineModel(checkModel(model, check))));
+      if (signal.aborted) return null;
       return checkRowFromResult(check, report.results[0]);
     } catch (err) {
+      if (signal.aborted || err instanceof EngineCancelledError) return null;
       return { check, fos: null, errorRel: null, ok: false, message: userMessage(err) };
     }
   }
 
   async function calcular() {
-    if (!current) return;
+    if (!current || engineStatus !== 'ready') return;
     if (selectedMethods.length === 0) {
       setError('Seleccione al menos un método.');
       return;
@@ -142,36 +192,47 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
       setError(blockedMessage(blockers));
       return;
     }
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     const id = guard.next();
     setBusy(true);
+    setActiveMethod(selectedMethods.length === 1 ? selectedMethods[0]! : null);
+    setNotice(null);
     setError(null);
     setPerf(null);
     setChecks([]);
     try {
       const model = current.caseData.model;
       const result: AnalyzeResult = await client.analyze(JSON.stringify(engineModel(runModel(model, selectedMethods))));
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id)) return;
       setRun({ report: result.report, elapsedMs: result.elapsed_ms });
       setShownMethod(result.report.results[0]?.method ?? null);
 
       const rows: CheckRow[] = [];
       for (const check of current.caseData.checks ?? []) {
-        const row = await runCheck(model, check);
-        if (!guard.isCurrent(id)) return;
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
+        setActiveMethod(check.method);
+        const row = await runCheck(model, check, ac.signal);
+        if (row === null || ac.signal.aborted || !guard.isCurrent(id)) return;
         rows.push(row);
       }
       setChecks(rows);
     } catch (err) {
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id) || err instanceof EngineCancelledError) return;
       setRun(null);
       setError(userMessage(err));
     } finally {
-      if (guard.isCurrent(id)) setBusy(false);
+      if (abortRef.current === ac) abortRef.current = null;
+      if (guard.isCurrent(id)) {
+        setBusy(false);
+        setActiveMethod(null);
+      }
     }
   }
 
   async function medir() {
-    if (!current) return;
+    if (!current || engineStatus !== 'ready') return;
     if (selectedMethods.length === 0) {
       setError('Seleccione al menos un método.');
       return;
@@ -183,22 +244,32 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
     }
     const n = Math.min(MAX_PERF_RUNS, Math.max(1, Math.round(perfRuns) || 1));
     const json = JSON.stringify(engineModel(runModel(current.caseData.model, selectedMethods)));
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     const id = guard.next();
     setBusy(true);
+    setActiveMethod(selectedMethods.length === 1 ? selectedMethods[0]! : null);
+    setNotice(null);
     setError(null);
     try {
       const times: number[] = [];
       for (let i = 0; i < n; i++) {
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
         const result = await client.analyze(json);
-        if (!guard.isCurrent(id)) return;
+        if (ac.signal.aborted || !guard.isCurrent(id)) return;
         times.push(result.elapsed_ms);
       }
       setPerf(summarizeTimes(times));
     } catch (err) {
-      if (!guard.isCurrent(id)) return;
+      if (ac.signal.aborted || !guard.isCurrent(id) || err instanceof EngineCancelledError) return;
       setError(userMessage(err));
     } finally {
-      if (guard.isCurrent(id)) setBusy(false);
+      if (abortRef.current === ac) abortRef.current = null;
+      if (guard.isCurrent(id)) {
+        setBusy(false);
+        setActiveMethod(null);
+      }
     }
   }
 
@@ -261,21 +332,38 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
               )}
             </fieldset>
 
-            <button type="button" className="primary" onClick={calcular} disabled={busy || !info}>
-              {busy ? 'Comprobando…' : 'Comprobar caso'}
-            </button>
+            <div className="ep-actions">
+              <button type="button" className="primary" onClick={calcular} disabled={busy || !info || engineStatus !== 'ready'}>
+                {busy ? 'Comprobando…' : 'Comprobar caso'}
+              </button>
+              {busy && (
+                <button type="button" onClick={cancelar} title="Termina el cálculo y reinicia el motor" data-testid="cases-cancel">
+                  Cancelar
+                </button>
+              )}
+            </div>
+            {busy && (
+              <p className="muted small" role="status" data-testid="cases-progress">
+                {formatCasesProgress(elapsedSec, activeMethod)}
+              </p>
+            )}
           </section>
 
           <PerformancePanel
             summary={perf}
             runs={perfRuns}
-            busy={busy || !info}
+            busy={busy || !info || engineStatus !== 'ready'}
             onRunsChange={setPerfRuns}
             onMeasure={medir}
           />
         </aside>
 
         <div className="content">
+          {notice && (
+            <div className="banner" role="status" data-testid="cases-notice">
+              {notice}
+            </div>
+          )}
           {error && (
             <div className="banner banner-error" role="alert">
               {error}
