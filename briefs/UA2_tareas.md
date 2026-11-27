@@ -134,4 +134,20 @@ archivo.
 
 ## Línea base v0.5.0 (la completa el coordinador)
 
-(pendiente: se agrega antes de despachar UA2-E)
+La regresión completa sobre `v0.5.0` (worktree detached `opengeoslide-wt/ua-base`, binario `ogs 0.5.0`) dio
+**50 guiones, OK=1223, FAIL=3, no_ok=0**. Logs en `$TMPDIR/ua2/reg-base/`.
+
+Las fallas ya presentes en la base, que no hay que arreglar en este bloque, aunque la migración no debe empeorarlas:
+- `u3o_onboarding` FAIL 6: «Ayuda» abre un `<dialog>` modal con índice, glosario, atajos y enlaces.
+- `u4p_polish` FAIL 4d: «x1 fuera del terreno», mensaje con el rango (aparece el de tarjeta sin aplicar).
+- `u6d_drafts` FAIL R9-11a: «sin trazo y sin cambios, vuelve a sin cambios pendientes».
+- Terminan con `exit=1` por esperar una descarga, `page.waitForEvent('download')` con timeout de 30 s:
+  - `w1e_polilinea`, en la línea 62, tras OK=9;
+  - `r2i2_tablestaca_inclinada`, en la línea 42, tras OK=8.
+
+Meta de UA2-E:
+- con la UI nueva, OK ≥ 1223 menos los pasos que se eliminen por diseño, cada uno justificado;
+- FAIL ≤ 3, y solo los mismos de arriba;
+- las mismas dos salidas con `exit=1` o menos.
+
+Si una de las fallas de la base desaparece o cambia, repórtalo.
