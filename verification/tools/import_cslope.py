@@ -2362,8 +2362,10 @@ def build_f3b_promoted_index(f3b: dict) -> str:
         "",
         f"**{len(ok)}** casos con **{n_ok}** checks pasaron a [`../../cases/`](../../cases/INDEX.md) (sección «Hoek-Brown y "
         "búsqueda no circular», con la tabla del publicado, ogs y cSlope por check)"
-        + (f", salvo **{n_held}** checks retenidos aquí (`HOLD.json`); la tabla de abajo los lista con sus números y la causa "
-           "medida." if held else ". No queda ninguno retenido."),
+        + (f", salvo **{len(hold)}** checks retenidos aquí (`HOLD.json`: {n_held} de casos con archivo"
+           + (f" y {len(hold) - n_held} de {'un caso' if len(hold) - n_held == 1 else 'casos'} que no se "
+              f"{'escribe' if len(hold) - n_held == 1 else 'escriben'}" if len(hold) > n_held else "")
+           + "); la tabla de abajo los lista con sus números y la causa medida." if hold else ". No queda ninguno retenido."),
         "",
         "Los casos de cSlope son los checks con `nonCircularOptimization` (F6.12). Los diez problemas que ya tenían un caso en "
         f"`verification/cases` con otros checks y otro modelo se llaman `<id>{F3B_SUFFIX}` ({', '.join(F3B_RENAMED)}): es el "

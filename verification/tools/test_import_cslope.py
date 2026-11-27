@@ -1412,7 +1412,7 @@ def test_f3b_hold_has_v002_by_e16u_and_v105a_with_their_numbers_and_causes():
         assert text in hold[1]["diagnosis"], text
     assert "aboveWater" in hold[2]["diagnosis"]
     index = open(os.path.join(F3B_DIR, "INDEX.md"), encoding="utf-8").read()
-    assert "**16** casos con **20** checks pasaron a" in index and "salvo **2** checks retenidos" in index
+    assert "**16** casos con **20** checks pasaron a" in index and "salvo **3** checks retenidos aquí (`HOLD.json`: 2 de casos con archivo y 1 de un caso que no se escribe)" in index
     assert "- V105a: material 'Sand with clay' con propiedad no soportada: aboveWater" in index
     assert "- V100 (3 checks): material 'Clay' con modelo 'shear-normal'" in index
     assert not os.path.exists(os.path.join(F3B_DIR, "V105a.json"))

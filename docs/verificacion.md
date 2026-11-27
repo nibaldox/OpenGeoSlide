@@ -490,8 +490,9 @@ Un modelo sin campos v0.6 da la misma salida, byte a byte, que la 0.4.0 con la v
 `verification/tools/identity_exceptions.json` (el archivo no cambia desde la 0.4.0). Con `--include-reinforced` y
 `--include-v05` se comparan también los modelos con refuerzos, grieta y Ito-Matsui (0 saltados); lo único que se salta son
 **17 modelos con campos v0.6**, porque el binario base no lee esa versión. Los 23 modelos con agua sobre el terreno se
-comparan aparte (idénticos). La identidad del informe y del CSV de la web: **el CSV y el PDF de dos modelos v0.5 son idénticos byte a byte** frente al
-código base `34d4ba0`, con el reloj y el azar fijos (`apps/web/src/report/identity.f3b.mjs`).
+comparan aparte (idénticos). La identidad del informe y del CSV de la web: **la carga, los avisos, el informe, los CSV y el PDF de seis modelos v0.5 o
+anteriores son idénticos byte a byte** frente al tag `v0.4.0` (extraído con `git archive`), con el reloj y el azar fijos
+(`apps/web/src/report/identity.f3b.mjs`).
 
 ### Casos promovidos de `verification/pending/F3B/`
 
@@ -567,8 +568,8 @@ env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with cslo
 env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py --base $BASE_V040/ogs \
   --new $CARGO_TARGET_DIR/release/ogs --normalize-version --include-reinforced --include-v05
 
-# Identidad del informe y del CSV de la web (necesita un worktree en 34d4ba0 con sus dependencias)
-cd apps/web && BASE_WORKTREE=$BASE_WEB OGS_BIN=$CARGO_TARGET_DIR/release/ogs node src/report/identity.f3b.mjs
+# Identidad del informe y del CSV de la web contra el tag v0.4.0 (lo extrae con git archive; BASE_REF cambia la referencia)
+cd apps/web && OGS_BIN=$CARGO_TARGET_DIR/release/ogs node src/report/identity.f3b.mjs
 
 # Ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 (14 ejemplos y 103 fragmentos)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
