@@ -37,7 +37,9 @@
 //! the bending capacity (`min(F, shear, moment/L_m)`), at the arm `L_m` over the crossing with `centroid` and at the
 //! crossing with `slip_surface`. The report adds `soil_force`, `governs` and `arm` to those crossings only, and the
 //! note `ito_matsui_spacing_range` goes with `S/D` outside 2 to 8. Without such a pile the code is the one of v0.4
-//! (identity byte for byte).
+//! (identity byte for byte). R12 (E15l-11 to E15l-13): a profile with a node that is not finite is the `InvalidModel`
+//! error of [`PileProfiles::try_with_step`]; in a material with `ru`, `σ′v = σv − ru·σ_soil` (no `u` of the
+//! piezometric line, like the slicer); `Q(zf)` takes the fraction of `F(zf)`, so `0 < L_m ≤ zf − z_top`.
 //!
 //! Capacity (E14c, E14m-2): `bond` and `interface` integrate `r` **exactly** along the element (piecewise linear
 //! between the cuts at the ground, the contacts and the water, and where `σ′v` changes sign); `development` is the
@@ -1273,7 +1275,9 @@ pub fn ito_matsui_coefficients(spacing: f64, d: f64, phi_deg: f64) -> (f64, f64)
         return (a1, a2);
     }
     let (b1, b2) = ito_matsui_paper(spacing, d, 0.0);
-    (a1.max(b1), a2.max(b2))
+    // `f64::max` ignores a `NaN`: a coefficient that is not finite goes out as it is, so E15l-11 can see it.
+    let floor = |a: f64, b: f64| if a.is_finite() { a.max(b) } else { a };
+    (floor(a1, b1), floor(a2, b2))
 }
 
 /// `S/D` outside 2 to 8 of some pile with `lateral_pressure` (E15i-8): the model gets the note
@@ -1305,7 +1309,7 @@ struct PileForce {
 /// tip, integrated **once per analysis** (the pressure does not depend on the surface, E15i-3): the depth `z` under
 /// the ground, `F(z) = ∫p dz` and `Q(z) = ∫p·z dz` at the nodes of the grid, with the rule of the midpoint and a step
 /// of at most 0.05 m. The force at a crossing is `F(zf)` by linear interpolation between nodes, and the arm of the
-/// resultant above it `L_m = (zf·F − Q)/F`.
+/// resultant above it `L_m = (zf·F − Q)/F`, with `Q(zf) = Q[k−1] + (F(zf) − F[k−1])·(z[k−1] + zf)/2` (E15l-13).
 #[derive(Debug, Clone)]
 pub struct PileProfile {
     z: Vec<f64>,
@@ -1314,6 +1318,8 @@ pub struct PileProfile {
     ground: f64,
     spacing: f64,
     capacity: Option<PileCapacity>,
+    /// `φ` (degrees) at the first node whose `p`, `F` or `Q` is not finite (E15l-11); `None` if the profile is finite.
+    non_finite_phi: Option<f64>,
 }
 
 impl PileProfile {
@@ -1346,8 +1352,11 @@ impl PileProfile {
         if soil <= 0.0 {
             return none;
         }
-        let moment = zf * soil - (self.q[k - 1] + t * (self.q[k] - self.q[k - 1]));
-        let arm = (moment / soil).max(0.0);
+        // E15l-13: `F` is linear between nodes (as in cSlope) and `Q` takes the same fraction: the increment of the
+        // force `F(zf) − F[k−1]` acts at the midpoint of `[z[k−1], zf]`. So `0 < L_m ≤ zf − z_top` whenever
+        // `zf > z_top`, and the moment capacity applies whenever there is a force.
+        let q = self.q[k - 1] + (soil - self.f[k - 1]) * 0.5 * (self.z[k - 1] + zf);
+        let arm = ((zf * soil - q) / soil).max(0.0);
         let (mut per_pile, mut governs) = (soil, Governs::Soil);
         if let Some(cap) = &self.capacity {
             if let Some(shear) = cap.shear
@@ -1401,13 +1410,58 @@ impl PileProfiles {
         PileProfiles { by_reinforcement }
     }
 
+    /// [`PileProfiles::with_step`] that refuses a profile that is not finite (E15l-11): if a node of `p`, `F` or `Q`
+    /// of a pile is `NaN` or `±∞` (the equations 13 and 14 overflow when `S/D` gets close to 1 or `φ` is high), the
+    /// analysis ends with the `InvalidModel` error below, before any solver runs:
+    ///
+    /// ```text
+    /// reinforcements[i].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = {S/D} y φ = {φ}° (las
+    /// ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente spacing
+    /// ```
+    ///
+    /// `lib.rs` builds the profiles of an analysis with this function.
+    pub fn try_with_step(
+        reinforcements: &[Reinforcement],
+        pm: &PreparedModel,
+        step: f64,
+    ) -> Result<Self, OgsError> {
+        let profiles = Self::with_step(reinforcements, pm, step);
+        for (i, (r, profile)) in reinforcements
+            .iter()
+            .zip(&profiles.by_reinforcement)
+            .enumerate()
+        {
+            let (Reinforcement::Pile(p), Some(profile)) = (r, profile) else {
+                continue;
+            };
+            let (Some(phi), Some(lp)) = (profile.non_finite_phi, p.lateral_pressure) else {
+                continue;
+            };
+            let ratio = p.spacing.unwrap_or(1.0) / lp.diameter;
+            return Err(OgsError::InvalidModel(format!(
+                "reinforcements[{i}].lateral_pressure: la presión de Ito-Matsui no es finita con S/D = {} y φ = {}° \
+(las ecuaciones 13 y 14 desbordan cuando S/D se acerca a 1); aumente spacing",
+                short(ratio),
+                short(phi)
+            )));
+        }
+        Ok(profiles)
+    }
+
     fn get(&self, i: usize) -> Option<&PileProfile> {
         self.by_reinforcement.get(i).and_then(Option::as_ref)
     }
 }
 
-/// The material, its strength and the vertical stress on the column `x` at a height `y`: `p(y)` of E15i-2 and E15i-3,
-/// or `None` if there is no soil at that point.
+/// A number for a message: up to 6 decimals, without trailing zeros (`1.00125`, `35`).
+fn short(x: f64) -> String {
+    let text = format!("{x:.6}");
+    text.trim_end_matches('0').trim_end_matches('.').to_string()
+}
+
+/// The material, its strength and the vertical stress on the column `x` at a height `y`: `p(y)` of E15i-2 and E15i-3
+/// and the `φ` (degrees) of that point, or `None` if there is no soil at that point. `p` is **not** checked: it can be
+/// `NaN` or `∞` (E15l-11 is checked by [`build_profile`]).
 fn pressure_at(
     pm: &PreparedModel,
     x: f64,
@@ -1416,7 +1470,7 @@ fn pressure_at(
     diameter: f64,
     column: &mut Vec<(f64, f64, usize)>,
     scratch: &mut Vec<f64>,
-) -> Option<f64> {
+) -> Option<(f64, f64)> {
     pm.column(x, column, scratch);
     let top = pm.top_at(x)?;
     let tol = pm.tol();
@@ -1445,15 +1499,18 @@ fn pressure_at(
     let (c, tan_phi) = crate::strength::resolve(material, y);
     let phi_deg = tan_phi.atan().to_degrees();
     let (a1, a2) = ito_matsui_coefficients(spacing, diameter, phi_deg);
-    // φ < 0.01° (or undrained): the equation 23 with the **total** stress; otherwise `σ′v = σv − u − ru·σ_soil`.
+    // φ < 0.01° (or undrained): the equation 23 with the **total** stress. Otherwise the effective stress, with the
+    // precedence of the slicer (E15l-12, E14o-4): a material with `ru` has `u = ru·σ_soil` and takes **no** `u` from
+    // the piezometric line, `σ′v = σv − ru·σ_soil`; the others take `σ′v = σv − u`.
     let sigma = if phi_deg < PHI_ZERO_DEG {
         sigma_total
+    } else if let Some(ru) = material.ru {
+        (sigma_total - ru * sigma_soil).max(0.0)
     } else {
         let u = piezo.map_or(0.0, |z| pm.gamma_w * (z - y).max(0.0));
-        let ru = material.ru.unwrap_or(0.0);
-        (sigma_total - u - ru * sigma_soil).max(0.0)
+        (sigma_total - u).max(0.0)
     };
-    Some(c * a1 + sigma * a2)
+    Some((c * a1 + sigma * a2, phi_deg))
 }
 
 /// The profile of a pile with `lateral_pressure` (E15i-3). `None` if the pile is outside the ground of the model.
@@ -1477,17 +1534,35 @@ fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfi
     let mut column = Vec::with_capacity(8);
     let mut scratch = Vec::with_capacity(8);
     let (mut z, mut f, mut q) = (vec![z_top], vec![0.0], vec![0.0]);
+    let mut non_finite_phi = None;
     for k in 0..n {
         let zm = z_top + (k as f64 + 0.5) * dz;
         let y = ground - zm;
-        let p = xs
-            .iter()
-            .filter_map(|&xe| pressure_at(pm, xe, y, spacing, d, &mut column, &mut scratch))
-            .reduce(f64::min)
-            .unwrap_or(0.0);
+        // The smaller pressure of the sides (the conservative one); a pressure that is not finite is kept as it is
+        // (`f64::min` would drop a `NaN`, E15l-11). No soil on either side: no pressure.
+        let mut best: Option<(f64, f64)> = None;
+        for &xe in &xs {
+            let Some((pe, phi_e)) = pressure_at(pm, xe, y, spacing, d, &mut column, &mut scratch)
+            else {
+                continue;
+            };
+            if !pe.is_finite() {
+                best = Some((pe, phi_e));
+                break;
+            }
+            if best.is_none_or(|(p, _)| pe < p) {
+                best = Some((pe, phi_e));
+            }
+        }
+        let (p, phi) = best.unwrap_or((0.0, 0.0));
         z.push(z_top + (k as f64 + 1.0) * dz);
         f.push(f[k] + p * dz);
         q.push(q[k] + p * zm * dz);
+        if non_finite_phi.is_none()
+            && !(p.is_finite() && f[k + 1].is_finite() && q[k + 1].is_finite())
+        {
+            non_finite_phi = Some(phi);
+        }
     }
     Some(PileProfile {
         z,
@@ -1496,5 +1571,6 @@ fn build_profile(pm: &PreparedModel, pile: &Pile, step: f64) -> Option<PileProfi
         ground,
         spacing,
         capacity: pile.capacity,
+        non_finite_phi,
     })
 }
