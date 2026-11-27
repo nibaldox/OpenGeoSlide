@@ -205,7 +205,12 @@ describe('v0.6: apertura, puerta de versión y orden de F6.1', () => {
     const r = open(full);
     expect(r.issues).toEqual([]);
     expect(r.doc?.version).toBe('0.6');
-    expect(validateLocal(r.doc as ModelDoc).filter((i) => i.severity === 'error')).toEqual([]);
+    // F6.5 (E16e): Ito-Matsui with hoek_brown or shansep materials is rejected; the file still opens without loss.
+    expect(validateLocal(r.doc as ModelDoc).filter((i) => i.severity === 'error')).toContainEqual(
+      expect.objectContaining({
+        text: 'lateral_pressure (Ito-Matsui) no se admite con materiales hoek_brown o shansep',
+      }),
+    );
   });
 
   it.each(['0.1', '0.2', '0.3', '0.4', '0.5'])('un archivo "%s" con un campo v0.6 da el error de la puerta con el mensaje exacto', (v) => {
