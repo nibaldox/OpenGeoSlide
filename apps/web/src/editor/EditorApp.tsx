@@ -757,7 +757,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
       <div className="ea-layout">
         <div className="ea-main">
-          <ResultSummary run={engine.run} current={engine.current} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
+          <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} />
           <section className="panel ea-canvas-panel" aria-label="Sección del modelo">
             <div className="ea-canvas" data-testid="editor-canvas">
               <EditorCanvas store={store} result={canvasResult} {...canvasContract} />
@@ -792,7 +792,7 @@ export function EditorApp({ client, active = true }: { client: EngineClient; act
 
           {engine.run && (
             <section className="panel" aria-labelledby="ea-results-title" data-testid="results-panel">
-              <h2 id="ea-results-title">Resultados{engine.current ? '' : ' (desactualizados)'}</h2>
+              <h2 id="ea-results-title">Resultados{engine.current && !hasDrafts ? '' : ' (desactualizados)'}</h2>
               <ResultsTable report={engine.run.report} elapsedMs={engine.run.elapsedMs} shownMethod={shownMethod ?? shown?.method ?? null} onShowMethod={setShownMethod} lengthUnit={lengthUnitOf(engine.run.doc.units)} reinforcements={engine.run.doc.reinforcements} tensionCrack={engine.run.doc.analysis.tension_crack} />
               <p className="small muted">
                 Motor: {engine.run.report.engine} · SHA-256 del modelo calculado: <code>{engine.run.sha256.slice(0, 16)}…</code>
