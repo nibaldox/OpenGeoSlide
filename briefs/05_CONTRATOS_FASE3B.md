@@ -409,7 +409,10 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   motor los reproduce:
   - los casos que entran solo con búsqueda no circular (X23: 16 casos, 19 checks);
   - V105a con SHANSEP, si X30 confirma que entra con el agua embalsada del motor;
-  - Hammah et al. (2005), ejemplo 1 (ARMA 05-810), con sus supuestos escritos en el caso (cimentación y terreno seco).
+  - Hammah et al. (2005), ejemplo 1 (ARMA 05-810), con sus supuestos escritos en el caso (cimentación, terreno seco y
+    γ). La geometría está reconstruida (X23 §3.2), así que la tolerancia es de **0,5 %** sobre Bishop 1,153 y Spencer
+    1,152. El prototipo da 1,150215 y 1,152052 con la envolvente completa en el círculo del oráculo (F6.8): −0,24 % y
+    +0,005 %.
 - **No se relaja ninguna tolerancia.** Un check que no se reproduce va a `HOLD.json` con su causa.
 - **Batería diferencial:** un bloque `F3B` con modelos de rajo con Hoek-Brown (los sintéticos SA y SB de X23 §4 y otros
   de 2 a 4 bancos, con y sin piezométrica), en búsqueda y en superficie fija frente a cSlope.

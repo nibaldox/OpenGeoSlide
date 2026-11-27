@@ -153,6 +153,10 @@ def split_ponded(models: dict[str, str]) -> tuple[dict[str, str], dict[str, str]
 
 _VERSION_RE = re.compile(rb"(ogs(?:-core|-cli|-wasm|-py)?[ /@-])v?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?")
 NORMALIZE = False
+# F3B (E16a): the baseline is v0.4.0, which reads version 0.5. `--include-v05` runs the models with a tension crack or
+# an Ito-Matsui pile too, and `--with-v06` adds the variants `search@0.6` and `fixed@0.6` (the same documents with
+# `version: "0.6"`, run by the new binary only and compared with the baseline output of `search` and `fixed`).
+WITH_V06 = False
 
 
 def normalize_version(data: bytes) -> bytes:
@@ -330,9 +334,15 @@ def check(name: str, path: str, base: str, new: str, tmp: str, exceptions: list[
         searched["analysis"]["search"] = dict(DEFAULT_SEARCH)
     base_search = run(base, searched, stem + ".search.base.json")
     compare("search", base_search, run(new, searched, stem + ".search.new.json"))
-    as_v04 = copy.deepcopy(searched)
-    as_v04["version"] = "0.4"
-    compare("search@0.4", base_search, run(new, as_v04, stem + ".search04.new.json"))
+    v05_only = has_tension_crack(model) or has_lateral_pressure(model)
+    if not v05_only:  # a crack or an Ito-Matsui pile cannot be written as version 0.4
+        as_v04 = copy.deepcopy(searched)
+        as_v04["version"] = "0.4"
+        compare("search@0.4", base_search, run(new, as_v04, stem + ".search04.new.json"))
+    if WITH_V06:
+        as_v06 = copy.deepcopy(searched)
+        as_v06["version"] = "0.6"
+        compare("search@0.6", base_search, run(new, as_v06, stem + ".search06.new.json"))
 
     # fixed
     fixed = copy.deepcopy(searched)
@@ -347,9 +357,14 @@ def check(name: str, path: str, base: str, new: str, tmp: str, exceptions: list[
         fixed["analysis"]["search"] = None
         base_fixed = run(base, fixed, stem + ".fixed.base.json")
         compare("fixed", base_fixed, run(new, fixed, stem + ".fixed.new.json"))
-        fixed04 = copy.deepcopy(fixed)
-        fixed04["version"] = "0.4"
-        compare("fixed@0.4", base_fixed, run(new, fixed04, stem + ".fixed04.new.json"))
+        if not v05_only:
+            fixed04 = copy.deepcopy(fixed)
+            fixed04["version"] = "0.4"
+            compare("fixed@0.4", base_fixed, run(new, fixed04, stem + ".fixed04.new.json"))
+        if WITH_V06:
+            fixed06 = copy.deepcopy(fixed)
+            fixed06["version"] = "0.6"
+            compare("fixed@0.6", base_fixed, run(new, fixed06, stem + ".fixed06.new.json"))
     return diffs
 
 
@@ -365,9 +380,14 @@ def main() -> int:
                     help="replace the engine version in stdout and stderr before comparing")
     ap.add_argument("--include-reinforced", action="store_true",
                     help="also run the models with reinforcements (the baseline must read version 0.4)")
+    ap.add_argument("--include-v05", action="store_true",
+                    help="also run the models with tension_crack or lateral_pressure (the baseline must read version 0.5)")
+    ap.add_argument("--with-v06", action="store_true",
+                    help="add the variants search@0.6 and fixed@0.6, run by the new binary only (F3B, E16a)")
     args = ap.parse_args()
-    global NORMALIZE
+    global NORMALIZE, WITH_V06
     NORMALIZE = args.normalize_version
+    WITH_V06 = args.with_v06
     for exe in (args.base, args.new):
         if not os.path.isfile(exe):
             print(f"error: binario no encontrado: {exe}", file=sys.stderr)
@@ -379,8 +399,11 @@ def main() -> int:
         return 2
     os.makedirs(args.out, exist_ok=True)
     models, skipped = split_models(model_paths(), args.include_reinforced)
-    models, cracked = split_cracked(models)
-    models, ito = split_ito_matsui(models)
+    if args.include_v05:
+        cracked, ito = {}, {}
+    else:
+        models, cracked = split_cracked(models)
+        models, ito = split_ito_matsui(models)
     models, ponded = split_ponded(models)
     print(f"{len(models)} modelos sin agua sobre el terreno; variantes own, search, fixed, search@0.4 y fixed@0.4"
           + (" (versión del motor normalizada)" if NORMALIZE else ""))
