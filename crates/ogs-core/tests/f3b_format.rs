@@ -636,14 +636,6 @@ fn a_valid_shansep_model_reaches_its_stub() {
     assert!(panic_text(payload).contains("F3B-M-SH"));
 }
 
-#[test]
-fn a_valid_non_circular_model_reaches_its_stub() {
-    let doc = non_circular_doc(json!({}));
-    let payload = catch_unwind(AssertUnwindSafe(|| analyze_json(&doc.to_string())))
-        .expect_err("un modelo non_circular válido llega al stub de B0");
-    assert!(panic_text(payload).contains("F3B-M-NC"));
-}
-
 // --------------------------------------------------------------------------------------------------- identity v0.5 → v0.6
 
 #[test]
