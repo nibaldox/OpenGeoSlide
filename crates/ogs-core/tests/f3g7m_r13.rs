@@ -160,3 +160,79 @@ fn e15m7_a_huge_finite_profile_never_gives_a_null_arm() {
         }
     }
 }
+
+// ------------------------------------------------------------------------------------------------------- E15m-6 (B-01)
+
+const DEFAULT_GAMMA_W: &str = "water_unit_weight_default";
+
+fn count(report: &AnalysisReport, i: usize, code: &str) -> usize {
+    report.results[i]
+        .warnings
+        .iter()
+        .filter(|w| w.as_str() == code)
+        .count()
+}
+
+/// The model of `a03` with a piezometric line under the ground and no `water.unit_weight`, in the given units.
+fn piezo_doc(units: &str) -> Value {
+    let mut doc = data("a03_escalon_fija");
+    doc["units"] = json!(units);
+    doc["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tension_crack");
+    doc["water"] = json!({"piezometric_line": [[-10, 0], [45, 0]]});
+    doc
+}
+
+/// Imperial units, water in use and no `water.unit_weight`: the note, once per method (before: no note).
+#[test]
+fn e15m6_imperial_piezometric_line_without_unit_weight_emits_the_note() {
+    for label in ["imperial", "imp", " IMPERIAL "] {
+        let report = run(&piezo_doc(label));
+        for i in 0..2 {
+            assert_eq!(count(&report, i, DEFAULT_GAMMA_W), 1, "{label}, method {i}");
+        }
+    }
+}
+
+/// Water in the crack only (no `water` block) is also use of the water.
+#[test]
+fn e15m6_imperial_crack_water_without_water_block_emits_the_note() {
+    let mut doc = data("a03_escalon_fija");
+    doc["units"] = json!("imperial");
+    let report = run(&doc);
+    assert_eq!(count(&report, 0, DEFAULT_GAMMA_W), 1);
+    // A dry crack does not use the water.
+    doc["analysis"]["tension_crack"]["water_fill"] = json!(0.0);
+    assert_eq!(count(&run(&doc), 0, DEFAULT_GAMMA_W), 0);
+}
+
+/// With `water.unit_weight` declared, in SI, or without any use of the water there is no note.
+#[test]
+fn e15m6_no_note_when_gamma_is_declared_or_si_or_no_water() {
+    let mut declared = piezo_doc("imperial");
+    declared["water"]["unit_weight"] = json!(62.4);
+    assert_eq!(count(&run(&declared), 0, DEFAULT_GAMMA_W), 0);
+    assert_eq!(count(&run(&piezo_doc("SI")), 0, DEFAULT_GAMMA_W), 0);
+    let mut dry = data("a03_escalon_fija");
+    dry["units"] = json!("imperial");
+    dry["analysis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("tension_crack");
+    assert_eq!(count(&run(&dry), 0, DEFAULT_GAMMA_W), 0);
+}
+
+/// In SI the output is the one of always: the same warnings as the document with `unit_weight 9.81` declared.
+#[test]
+fn e15m6_si_output_is_unchanged() {
+    let plain = run(&piezo_doc("SI"));
+    let mut declared = piezo_doc("SI");
+    declared["water"]["unit_weight"] = json!(9.81);
+    let declared = run(&declared);
+    for i in 0..2 {
+        assert_eq!(plain.results[i].warnings, declared.results[i].warnings);
+        assert_eq!(plain.results[i].fos, declared.results[i].fos);
+    }
+}

@@ -54,6 +54,10 @@ pub fn default_water_unit_weight(units: Option<&str>) -> f64 {
     }
 }
 
+/// Informative note (E15m-6): the model is imperial, uses water and does not declare `water.unit_weight`, so the engine
+/// takes `γw = 62.4 pcf` (9.81 kN/m³). Before the v0.4.0 it took 9.81 in imperial units too.
+pub const WATER_UNIT_WEIGHT_DEFAULT: &str = "water_unit_weight_default";
+
 /// Complete model document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
