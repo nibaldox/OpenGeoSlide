@@ -524,3 +524,128 @@ la enmienda que lo dice, con los números antes y después.
   E15l-20.
 - **B-12d:** las versiones `0.4.0` de `Cargo.toml`, `package.json` y `CITATION.cff` las cambia el coordinador en el
   commit de la publicación.
+
+## F5.13 Correcciones de la revisión de cierre R13 (E15m)
+
+**Fuentes.** `docs/reviews/R13_agy_A.md` (lente A, motor) y `R13_agy_B.md` (lente B, salidas). Las dos lentes dieron
+«APTO CON CORRECCIONES».
+- **Lente A:** de los 13 hallazgos de R12 cierra 9 (A-01, A-03, A-04, A-06, A-07, A-09, A-10, A-11, A-13); deja 2
+  parciales (A-02, A-08) y 2 no adoptados con justificación (A-05, A-12).
+- **Lente B:** cierra 11 de los 13 renglones de R12 (B-01 a B-10, más B-12a/b/c); B-11 queda parcial y B-12d queda
+  no adoptado, porque el contrato lo difiere a la publicación.
+
+**Reproducciones del coordinador** con el binario `32b1fa7`, en `docs/fase3/r13/repro/`:
+- **A-03:** el escalón vertical con una grieta fija de 2 m da en el binario actual `depth 4,9707`, `Pw 121,19` y Bishop
+  1,751144. Antes de R12 daba `depth 2`, `Pw 19,62` y 1,882066.
+- **A-02:** una polilínea que nace 1e-12 dentro del paramento lleva Spencer de 2,66591 a 3,49275, un 31 % del lado
+  inseguro. El defecto ya existía antes de R12.
+- **A-01:** el pilote da `arm: null` y `no_capacity`.
+- **B-01:** se confirmó que cambia el FS de un archivo imperial v0.3 que tiene piezométrica y no tiene
+  `water.unit_weight`.
+
+**Regla común.** Las de §F5.12 siguen vigentes:
+- identidad con 0 diferencias en 150 modelos;
+- 327 checks y 0 fallas;
+- todo cambio en los modelos con grieta, agua embalsada o Ito-Matsui se explica por su enmienda, con los números antes y
+  después.
+
+### Motor: grieta y agua (dueño M)
+
+- **E15m-1 (A-03): la grieta fija no se reescribe. Enmienda E15l-2.**
+  - Con `depth` numérica, la profundidad informada y aplicada es **siempre** la del usuario, igual que antes de R12 y
+    que cSlope.
+  - La regla de la cara real de E15l-2 rige solo con `depth: "auto"`.
+  - **En un escalón vertical del terreno con `auto`,** la cara se mide desde el terreno del **lado de la entrada** de
+    `x_c`, es decir, desde el límite lateral por el que llega el barrido.
+  - **Antes de fijar la regla de `auto`,** M compara contra el oráculo, con `to_cslope`, el escalón de
+    `a03_escalon_fija.json` con `auto` y con fija. Si cSlope no coincide con ninguna de las dos variantes, M informa con
+    números y no implementa esa variante.
+  - **Criterios:**
+    - `a03_escalon_fija.json` da `depth 2`, `Pw 19,62` y Bishop 1,882066 (≤ 1e-9), y queda a ≤ 0,1 % de cSlope;
+    - `a04_udl.json` no cambia;
+    - las 55 filas de `f3g_rows.rs` y las 3 de `r12` no cambian.
+- **E15m-2 (A-02): el paramento no se pierde por redondeo.**
+  - `ground_pieces` se consulta con el tramo ampliado en `wall_tol` a cada lado, solo para detectar los paramentos (E4).
+    Los términos de peso de los tramos no cambian.
+  - **Criterio:** `a02_paramento_dx1e-12.json` da el mismo FS y el mismo `Σh_force` que `a02_paramento_dx0.json`, a
+    ≤ 1e-6 relativo. Se agrega también el caso con dx = 1e-9.
+- **E15m-3 (A-05): el empuje del paramento va al lado alto.** E15l-4 asigna el paramento solo a una dovela cuyo centro
+  esté del lado alto: `(x_m − wall.x)·high_side > 0`.
+  - **Criterio:** la reproducción de A-05 (muro esbelto, carga lineal en x = 5,999995 y polilínea solo del lado bajo)
+    da `Σh_force` igual al caso sin carga lineal.
+- **E15m-4 (A-04): el barrido de la grieta incluye los vértices de la piezométrica.** Se agregan a E15l-3.
+  - **Criterio:** la reproducción de A-04 (pico piezométrico entre dos pasos) da la misma grieta que cuando el pico
+    coincide con un paso.
+- **E15m-5 (A-06): el atajo de la entrada se evalúa hacia dentro.** El atajo `depth.at(x_entry) <= 0` se evalúa en
+  `x_entry + s·tol`, donde `s` es el sentido hacia la masa. Así, una UDL que solo toca la entrada desde fuera no anula
+  la grieta.
+  - **Criterio:** con δ = 0 y con δ = +1e-6 la reproducción de A-06 da lo mismo, a ≤ 1e-6, y queda a ≤ 0,1 % de
+    cSlope (1,564943).
+- **E15m-6 (B-01): aviso de γw por defecto. Excepción de identidad declarada.**
+  - **La excepción:** E15l-6 corrigió el γw por defecto en imperial, que pasó de 9,81 «pcf» a 62,45 pcf. Esto cambia
+    **a propósito** el FS de un archivo imperial que **usa agua** (piezométrica, agua embalsada o agua en la grieta) y
+    **no tiene** `water.unit_weight`. Es la tercera clase de excepción a la identidad, después del agua embalsada y de
+    V019.
+  - **El aviso:** en ese caso el motor emite el aviso informativo nuevo `water_unit_weight_default`, una vez por
+    análisis, con el texto: «El modelo usa agua y no indica `water.unit_weight`: se toma γw = 62,4 pcf (9,81 kN/m³).
+    Las versiones anteriores a la v0.4.0 tomaban 9,81 también en unidades imperiales; indique el valor para fijarlo.».
+  - **En SI** no se emite el aviso: el valor no cambia y la salida es la de siempre, byte a byte.
+  - El código va a E6 y entra en `INFORMATIVE_WARNINGS`.
+  - **Criterios:**
+    - la reproducción de B-01 en imperial emite el aviso;
+    - el mismo modelo en SI no lo emite y su salida es idéntica a la v0.3.0.
+
+### Motor: Ito-Matsui (dueño M)
+
+- **E15m-7 (A-01): un brazo o una fuerza no finitos son un error.**
+  - El brazo se calcula sin el producto intermedio, como `(zf − q/soil).max(0)`.
+  - Tras calcular cada cruce, si `soil_force`, `arm` o `available` no son finitos, el análisis termina con el
+    `InvalidModel` de E15l-11, con S/D y φ.
+  - **Criterio:** `a01_arm_null.json` da ese error o una salida finita con `arm > 0` y `governs` coherente. Nunca da
+    `null` ni `no_capacity` por desborde.
+- **E15m-8 (A-07):** `pressure_step` usa `model::is_imperial_units`.
+  - **Criterio:** con `units: "imp"` el resultado es igual al de `"imperial"`, a ≤ 1e-12.
+
+### Web (dueño W)
+
+- **E15m-9 (B-01, web):**
+  - `validateLocal` y `caseGate` dejan de **bloquear** un modelo imperial sin `water.unit_weight`. En su lugar emiten
+    la nota informativa `editor.water_unit_weight_default`, con el texto de E15m-6 adaptado a la web.
+  - Se mantiene el **error** cuando γw está en unidades incorrectas, por ejemplo 9,81 en imperial.
+  - Se corrigen `waterUnitWeightHint` (`forms.ts`) y la Ayuda (`helpContent.ts`): si se deja vacío, el cálculo usa
+    9,81 kN/m³ o 62,4 pcf, según las unidades.
+  - `warnings.ts` agrega `water_unit_weight_default`.
+- **E15m-10 (B-02): información emergente alcanzable.**
+  - Las flechas de fuerza de Ito-Matsui y la línea de la grieta tienen un área de acierto, con `pointer-events:
+    visibleStroke` o un trazo transparente más ancho.
+  - Esa área muestra el `<title>` al pasar el puntero y no intercepta el arrastre de los tiradores ni las herramientas
+    activas.
+  - Si no es posible sin romper la edición, la misma información se ofrece en la tabla y en el panel, y la promesa de
+    E15l-22 sobre la información emergente se retira de la documentación. W decide e informa.
+  - El recorrido `r12_ito_lienzo.mjs` lo comprueba con `elementFromPoint`.
+- **E15m-11 (B-03):** `pdf.engine.test.ts` no llama al motor durante la recolección, de modo que `pnpm test` sin
+  `OGS_BIN` da 0 fallas.
+- **E15m-12 (B-06):** Casos (`scene.ts` y `drawSection.ts`) dibuja «Sin grieta (z = 0)», como el editor.
+
+### Python y documentación (dueño P)
+
+- **E15m-13 (B-04), `test_v05.py`:**
+  - La prueba de neutralidad compara `"0.3"` contra `"0.5"`.
+  - Se agregan:
+    - `grieta-udl-automatica` a `V05_BASES`;
+    - las filas `f3g/r12` y `f3g3/expected_r12.json`;
+    - pruebas de E15l-5, E15l-6 (más E15m-6) y E15l-7.
+  - Las pruebas de E15m-1, -2, -6 y -7 se marcan `xfail(strict=False)` hasta la integración, como en R12.
+- **E15m-14 (B-05 y B-01), documentación:**
+  - Limpiar las referencias a ramas y commits efímeros en `docs/verificacion.md` (`f3g4d`, `f3g5p`, «motor de
+    ae5ee73»).
+  - `docs/limitaciones.md`: con `ru`, γsat sí usa la piezométrica.
+  - Actualizar el resumen de `CITATION.cff` y el ejemplo `version()` de `crates/ogs-py/README.md`.
+  - Declarar la excepción de E15m-6 donde se enumeran las excepciones de identidad: CHANGELOG, README, `limitaciones.md`
+    y ogs-py.
+  - Las cifras nuevas del motor se marcan con `<!-- R13: medir al integrar -->`.
+
+### No adoptado
+
+- Ninguno. Las versiones 0.4.0 de los manifiestos y el WASM recompilado (B-05, punto 5) van en el commit de la
+  publicación.
