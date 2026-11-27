@@ -10,3 +10,13 @@
 - sha256: `7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954` (Sans),
   `e6476c1b80502924294eed40894c5b18e06c181444ca953e5334262df9c27724` (Bold).
 - Solo se descargan al pulsar «Informe» (no forman parte del bundle inicial).
+
+## Fuentes de la interfaz (Outfit y JetBrains Mono)
+
+No están en esta carpeta: entran por `src/styles/fonts.css`, para que Vite las emita en `dist/assets/` y la PWA las precachee.
+
+- Paquetes npm `@fontsource-variable/outfit` y `@fontsource-variable/jetbrains-mono`, versión exacta 5.3.0, variables (`wght`).
+- Subconjuntos: `latin` y `latin-ext` de ambas, y `greek` de JetBrains Mono (γ, λ, φ). Outfit no tiene griego en 5.3.0.
+- Licencia SIL Open Font License 1.1, sin modificar: `public/licenses/OFL-Outfit.txt` (Outfit Project Authors) y
+  `public/licenses/OFL-JetBrainsMono.txt` (The JetBrains Mono Project Authors). Se publican junto con la aplicación.
+- Familias CSS: `'Outfit Variable'` y `'JetBrains Mono Variable'` (los nombres que declaran los paquetes `-variable`).

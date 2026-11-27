@@ -1,19 +1,3 @@
-import { THEME_PREFS, optionLabel, parsePref } from '../theme/theme';
-import { useTheme } from '../theme/useTheme';
-
-/** Selector de tema de 3 estados (Sistema / Claro / Oscuro). «Sistema» muestra el tema resuelto. */
-export function ThemeSelect() {
-  const { pref, systemDark, setPref } = useTheme();
-  return (
-    <label className="theme-select">
-      <span>Tema</span>
-      <select value={pref} onChange={(e) => setPref(parsePref(e.target.value))}>
-        {THEME_PREFS.map((p) => (
-          <option key={p} value={p}>
-            {optionLabel(p, systemDark)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+// Alias de transición: App.tsx (UA1-A) todavía importa `ThemeSelect`. El selector de tres estados desapareció (UA-D4); este
+// archivo se puede borrar cuando App.tsx importe `ThemeToggle`.
+export { ThemeToggle as ThemeSelect } from './ThemeToggle';

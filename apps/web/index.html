@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="OpenGeoSlide: análisis de estabilidad de taludes 2D (Bishop y Spencer)" />
-    <meta name="theme-color" content="#f3f4f6" data-scheme="light" data-color="#f3f4f6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b111b" data-scheme="dark" data-color="#0b111b" media="(prefers-color-scheme: dark)" />
-    <meta name="color-scheme" content="light dark" />
-    <!-- Arranque sin destello: aplica la elección guardada (ogs.theme.v1) antes del primer pintado. Sin type=module ni defer. -->
+    <meta name="theme-color" content="#eceef1" data-scheme="light" data-color="#eceef1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0b" data-scheme="dark" data-color="#0a0a0b" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="dark" />
+    <!-- Arranque sin destello: oscuro por defecto; solo la elección guardada «light» lo cambia (ogs.theme.v1). Sin type=module ni defer. -->
     <script>
       (function () {
+        var d = document, p = 'dark';
         try {
-          var d = document, p = localStorage.getItem('ogs.theme.v1');
-          if (p !== 'light' && p !== 'dark') return;
-          d.documentElement.setAttribute('data-theme', p);
-          var s = d.querySelector('meta[name="color-scheme"]');
-          if (s) s.setAttribute('content', p);
-          var m = d.querySelectorAll('meta[name="theme-color"]'), c = '', i;
-          for (i = 0; i < m.length; i++) if (m[i].getAttribute('data-scheme') === p) c = m[i].getAttribute('data-color');
-          if (c) for (i = 0; i < m.length; i++) m[i].setAttribute('content', c);
+          if (localStorage.getItem('ogs.theme.v1') === 'light') p = 'light';
         } catch (e) {}
+        d.documentElement.setAttribute('data-theme', p);
+        var s = d.querySelector('meta[name="color-scheme"]');
+        if (s) s.setAttribute('content', p);
+        var m = d.querySelectorAll('meta[name="theme-color"]'), c = '', i;
+        for (i = 0; i < m.length; i++) if (m[i].getAttribute('data-scheme') === p) c = m[i].getAttribute('data-color');
+        if (c) for (i = 0; i < m.length; i++) m[i].setAttribute('content', c);
       })();
     </script>
     <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />

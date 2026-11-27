@@ -4,13 +4,12 @@ import {
   THEME_STORAGE_KEY,
   applyTheme,
   createThemeController,
-  optionLabel,
+  nextTheme,
   parsePref,
   readPref,
-  resolveTheme,
   storePref,
+  toggleLabel,
   type DocLike,
-  type MediaLike,
   type StorageLike,
   type WinLike,
 } from './theme';
@@ -66,27 +65,6 @@ function makeDoc(): { doc: DocLike; root: FakeMeta; scheme: FakeMeta; light: Fak
   return { doc, root, scheme, light, dark };
 }
 
-class FakeMedia implements MediaLike {
-  matches: boolean;
-  private listeners: (() => void)[] = [];
-  constructor(matches: boolean) {
-    this.matches = matches;
-  }
-  addEventListener(_t: 'change', l: () => void): void {
-    this.listeners.push(l);
-  }
-  removeEventListener(_t: 'change', l: () => void): void {
-    this.listeners = this.listeners.filter((x) => x !== l);
-  }
-  set(matches: boolean): void {
-    this.matches = matches;
-    this.listeners.forEach((l) => l());
-  }
-  get count(): number {
-    return this.listeners.length;
-  }
-}
-
 class FakeWin implements WinLike {
   private listeners: ((e: { key: string | null }) => void)[] = [];
   addEventListener(_t: 'storage', l: (e: { key: string | null }) => void): void {
@@ -103,58 +81,51 @@ class FakeWin implements WinLike {
   }
 }
 
-function setup(opts: { stored?: string; systemDark?: boolean } = {}) {
+function setup(opts: { stored?: string } = {}) {
   const storage = new FakeStorage();
   if (opts.stored) storage.data.set(THEME_STORAGE_KEY, opts.stored);
   const d = makeDoc();
-  const media = new FakeMedia(opts.systemDark ?? false);
   const win = new FakeWin();
-  const controller = createThemeController({ storage, doc: d.doc, media, win });
-  return { storage, media, win, controller, ...d };
+  const controller = createThemeController({ storage, doc: d.doc, win });
+  return { storage, win, controller, ...d };
 }
 
-// ───────── Modelo de 3 estados ─────────
+// ───────── Modelo de 2 estados (UA-D4) ─────────
 
-describe('modelo de tema de 3 estados', () => {
-  it('parsePref: solo «light» y «dark» son valores explícitos; lo demás es «system»', () => {
+describe('modelo de tema de 2 estados: oscuro por defecto', () => {
+  it('parsePref: solo «light» es claro; cualquier otra cosa, incluida la ausencia, es oscuro', () => {
     expect(parsePref('light')).toBe('light');
     expect(parsePref('dark')).toBe('dark');
-    expect(parsePref('system')).toBe('system');
-    for (const raw of [null, undefined, '', 'Dark', 'auto', '{"a":1}']) expect(parsePref(raw)).toBe('system');
+    for (const raw of [null, undefined, '', 'system', 'Light', 'auto', '{"a":1}']) expect(parsePref(raw), String(raw)).toBe('dark');
   });
 
-  it('resolveTheme: «system» sigue al sistema; los explícitos lo ignoran', () => {
-    expect(resolveTheme('system', true)).toBe('dark');
-    expect(resolveTheme('system', false)).toBe('light');
-    expect(resolveTheme('light', true)).toBe('light');
-    expect(resolveTheme('dark', false)).toBe('dark');
+  it('nextTheme y toggleLabel: el botón dice a qué tema cambia', () => {
+    expect(nextTheme('dark')).toBe('light');
+    expect(nextTheme('light')).toBe('dark');
+    expect(toggleLabel('dark')).toBe('Cambiar a tema claro');
+    expect(toggleLabel('light')).toBe('Cambiar a tema oscuro');
   });
 
-  it('optionLabel: «Sistema» indica el tema resuelto', () => {
-    expect(optionLabel('system', true)).toBe('Sistema (oscuro)');
-    expect(optionLabel('system', false)).toBe('Sistema (claro)');
-    expect(optionLabel('light', true)).toBe('Claro');
-    expect(optionLabel('dark', false)).toBe('Oscuro');
-  });
-
-  it('readPref/storePref: «system» borra la clave; claro y oscuro la guardan; un almacenamiento bloqueado no lanza', () => {
+  it('readPref/storePref: ambos valores se guardan; un almacenamiento bloqueado no lanza y rige oscuro', () => {
     const s = new FakeStorage();
-    expect(readPref(s)).toBe('system');
+    expect(readPref(s)).toBe('dark');
+    expect(storePref(s, 'light')).toBe(true);
+    expect(s.data.get(THEME_STORAGE_KEY)).toBe('light');
+    expect(readPref(s)).toBe('light');
     expect(storePref(s, 'dark')).toBe(true);
     expect(s.data.get(THEME_STORAGE_KEY)).toBe('dark');
+    s.data.set(THEME_STORAGE_KEY, 'system'); // valor de la versión de tres estados
     expect(readPref(s)).toBe('dark');
-    expect(storePref(s, 'system')).toBe(true);
-    expect(s.data.has(THEME_STORAGE_KEY)).toBe(false);
     s.throws = true;
-    expect(readPref(s)).toBe('system');
+    expect(readPref(s)).toBe('dark');
     expect(storePref(s, 'light')).toBe(false);
-    expect(readPref(null)).toBe('system');
+    expect(readPref(null)).toBe('dark');
     expect(storePref(null, 'dark')).toBe(false);
   });
 });
 
 describe('applyTheme: atributo, <meta color-scheme> y theme-color', () => {
-  it('explícito: data-theme, color-scheme y ambos theme-color con el color del tema elegido', () => {
+  it('data-theme, color-scheme y ambos theme-color con el color del tema elegido', () => {
     const { doc, root, scheme, light, dark } = makeDoc();
     applyTheme('dark', doc);
     expect(root.getAttribute('data-theme')).toBe('dark');
@@ -167,103 +138,92 @@ describe('applyTheme: atributo, <meta color-scheme> y theme-color', () => {
     expect(light.content).toBe('#aaaaaa');
     expect(dark.content).toBe('#aaaaaa');
   });
-
-  it('«system»: sin data-theme, «light dark» y cada theme-color vuelve a su color', () => {
-    const { doc, root, scheme, light, dark } = makeDoc();
-    applyTheme('dark', doc);
-    applyTheme('system', doc);
-    expect(root.getAttribute('data-theme')).toBeNull();
-    expect(scheme.content).toBe('light dark');
-    expect(light.content).toBe('#aaaaaa');
-    expect(dark.content).toBe('#111111');
-  });
 });
 
 describe('controlador de tema', () => {
-  it('arranca con lo guardado y aplica el tema al DOM', () => {
-    const { controller, root } = setup({ stored: 'dark', systemDark: false });
-    expect(controller.getState()).toEqual({ pref: 'dark', systemDark: false, resolved: 'dark' });
+  it('sin valor guardado arranca en oscuro y lo aplica al DOM', () => {
+    const { controller, root } = setup();
+    expect(controller.getState()).toEqual({ pref: 'dark', resolved: 'dark' });
     controller.start();
     expect(root.getAttribute('data-theme')).toBe('dark');
   });
 
-  it('sin valor guardado sigue al sistema y refleja sus cambios (matchMedia change)', () => {
-    const { controller, media, root } = setup({ systemDark: false });
+  it('arranca con «light» guardado', () => {
+    const { controller, root } = setup({ stored: 'light' });
+    expect(controller.getState()).toEqual({ pref: 'light', resolved: 'light' });
     controller.start();
-    const seen: string[] = [];
-    controller.subscribe(() => seen.push(controller.getState().resolved));
-    expect(controller.getState().resolved).toBe('light');
-    media.set(true);
-    expect(controller.getState()).toEqual({ pref: 'system', systemDark: true, resolved: 'dark' });
-    expect(seen).toEqual(['dark']);
-    expect(root.getAttribute('data-theme')).toBeNull();
+    expect(root.getAttribute('data-theme')).toBe('light');
   });
 
-  it('setPref persiste, aplica y notifica; «system» borra la clave', () => {
-    const { controller, storage, root } = setup({ systemDark: false });
+  it('la preferencia del sistema no cuenta: no hay matchMedia en el controlador', () => {
+    const { controller } = setup();
+    controller.start();
+    expect(controller.getState().resolved).toBe('dark');
+  });
+
+  it('setPref persiste, aplica y notifica; no notifica si no cambia', () => {
+    const { controller, storage, root } = setup();
     controller.start();
     const listener = vi.fn();
     controller.subscribe(listener);
+    controller.setPref('light');
+    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
+    expect(controller.getState().resolved).toBe('light');
+    expect(listener).toHaveBeenCalledTimes(1);
+    controller.setPref('light');
+    expect(listener).toHaveBeenCalledTimes(1);
     controller.setPref('dark');
     expect(storage.data.get(THEME_STORAGE_KEY)).toBe('dark');
-    expect(root.getAttribute('data-theme')).toBe('dark');
-    expect(listener).toHaveBeenCalledTimes(1);
-    controller.setPref('system');
-    expect(storage.data.has(THEME_STORAGE_KEY)).toBe(false);
-    expect(root.getAttribute('data-theme')).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
-  it('NO borra el valor guardado cuando el sistema llega a coincidir con él (guía dark-mode-toggle)', () => {
-    const { controller, storage, media } = setup({ systemDark: false });
+  it('toggle pasa de un tema al otro y vuelve', () => {
+    const { controller, root } = setup();
     controller.start();
-    controller.setPref('dark'); // el sistema está en claro: se guarda «dark»
-    media.set(true); // el sistema pasa a oscuro y coincide
-    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('dark');
+    controller.toggle();
+    expect(controller.getState().pref).toBe('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
+    controller.toggle();
     expect(controller.getState().pref).toBe('dark');
-    media.set(false); // vuelve a claro: la elección sigue vigente
-    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('dark');
-    expect(controller.getState().resolved).toBe('dark');
-    // El caso simétrico: guardar «dark» cuando el sistema YA es oscuro también se conserva.
-    media.set(true);
-    controller.setPref('dark');
-    expect(storage.data.get(THEME_STORAGE_KEY)).toBe('dark');
+    expect(root.getAttribute('data-theme')).toBe('dark');
   });
 
   it('el evento storage de otra pestaña actualiza la preferencia; claves ajenas se ignoran', () => {
-    const { controller, storage, win, root } = setup({ systemDark: false });
+    const { controller, storage, win, root } = setup();
     controller.start();
     const listener = vi.fn();
     controller.subscribe(listener);
-    storage.data.set(THEME_STORAGE_KEY, 'dark');
+    storage.data.set(THEME_STORAGE_KEY, 'light');
     win.fire('otra-clave');
     expect(listener).not.toHaveBeenCalled();
     win.fire(THEME_STORAGE_KEY);
-    expect(controller.getState().pref).toBe('dark');
-    expect(root.getAttribute('data-theme')).toBe('dark');
+    expect(controller.getState().pref).toBe('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
     expect(listener).toHaveBeenCalledTimes(1);
     storage.data.delete(THEME_STORAGE_KEY);
-    win.fire(null); // localStorage.clear() en otra pestaña
-    expect(controller.getState().pref).toBe('system');
-    expect(root.getAttribute('data-theme')).toBeNull();
+    win.fire(null); // localStorage.clear() en otra pestaña: vuelve el valor por defecto
+    expect(controller.getState().pref).toBe('dark');
+    expect(root.getAttribute('data-theme')).toBe('dark');
   });
 
   it('con almacenamiento bloqueado el tema se aplica igualmente en esta sesión', () => {
     const { controller, storage, root } = setup();
     controller.start();
     storage.throws = true;
-    controller.setPref('dark');
-    expect(controller.getState().pref).toBe('dark');
-    expect(root.getAttribute('data-theme')).toBe('dark');
+    controller.setPref('light');
+    expect(controller.getState().pref).toBe('light');
+    expect(root.getAttribute('data-theme')).toBe('light');
   });
 
-  it('getState es estable entre cambios (useSyncExternalStore) y stop() retira los oyentes', () => {
-    const { controller, media, win } = setup();
+  it('getState es estable entre cambios (useSyncExternalStore) y stop() retira el oyente', () => {
+    const { controller, win } = setup();
     controller.start();
     expect(controller.getState()).toBe(controller.getState());
-    expect(media.count).toBe(1);
+    expect(win.count).toBe(1);
+    controller.start(); // idempotente
     expect(win.count).toBe(1);
     controller.stop();
-    expect(media.count).toBe(0);
     expect(win.count).toBe(0);
   });
 });
@@ -273,8 +233,8 @@ describe('controlador de tema', () => {
 describe('index.html: arranque sin destello', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
 
-  it('declara color-scheme y el script en línea va justo después, sin type=module ni defer', () => {
-    const iScheme = html.indexOf('<meta name="color-scheme" content="light dark"');
+  it('declara color-scheme «dark» y el script en línea va justo después, sin type=module ni defer', () => {
+    const iScheme = html.indexOf('<meta name="color-scheme" content="dark"');
     expect(iScheme).toBeGreaterThan(-1);
     const afterScheme = html.slice(iScheme);
     const script = /<script(?<attrs>[^>]*)>(?<body>[\s\S]*?)<\/script>/.exec(afterScheme);
@@ -286,27 +246,35 @@ describe('index.html: arranque sin destello', () => {
     expect(script!.groups!.body).toMatch(/try\s*\{/);
   });
 
-  it('ejecutado con «dark» guardado, fija data-theme y los metas ANTES de pintar; sin valor no toca nada', () => {
+  it('<html> sale ya con data-theme="dark": el primer fotograma es oscuro aunque el script no llegue a correr (UA-D4)', () => {
+    expect(html).toMatch(/<html[^>]*\sdata-theme="dark"/);
+  });
+
+  it('el script SIEMPRE pone data-theme y decide igual que parsePref: «light» es claro y todo lo demás, oscuro', () => {
     const body = /<script>([\s\S]*?)<\/script>/.exec(html)![1];
     const run = (stored: string | null) => {
       const d = makeDoc();
       const storage = new FakeStorage();
-      if (stored) storage.data.set(THEME_STORAGE_KEY, stored);
+      if (stored !== null) storage.data.set(THEME_STORAGE_KEY, stored);
       new Function('document', 'localStorage', body)(d.doc, storage);
       return d;
     };
-    const dark = run('dark');
-    expect(dark.root.getAttribute('data-theme')).toBe('dark');
-    expect(dark.scheme.content).toBe('dark');
-    expect(dark.light.content).toBe('#111111');
-    const none = run(null);
-    expect(none.root.getAttribute('data-theme')).toBeNull();
-    expect(none.scheme.content).toBe('light dark');
-    // Almacenamiento bloqueado: sin excepción.
+    for (const stored of ['light', 'dark', 'system', '', 'Light', 'otra cosa', null]) {
+      const expected = parsePref(stored);
+      const d = run(stored);
+      expect(d.root.getAttribute('data-theme'), `data-theme con ${String(stored)}`).toBe(expected);
+      expect(d.scheme.content, `color-scheme con ${String(stored)}`).toBe(expected);
+      const color = expected === 'light' ? '#aaaaaa' : '#111111';
+      expect(d.light.content).toBe(color);
+      expect(d.dark.content).toBe(color);
+    }
+    // Almacenamiento bloqueado: sin excepción y oscuro.
     const d = makeDoc();
     const bad = new FakeStorage();
     bad.throws = true;
     expect(() => new Function('document', 'localStorage', body)(d.doc, bad)).not.toThrow();
+    expect(d.root.getAttribute('data-theme')).toBe('dark');
+    expect(d.dark.content).toBe('#111111');
   });
 
   it('theme-color con media para claro y oscuro, con el mismo fondo que --ui-bg de tokens.css', () => {
