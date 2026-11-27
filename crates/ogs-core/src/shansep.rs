@@ -50,7 +50,7 @@ pub(crate) fn apply(
             outcome.nonpositive_stress = true;
             (0.0, 1.0)
         };
-        if !su.is_finite() {
+        if !su.is_finite() || !ocr.is_finite() {
             return Err(slice.material);
         }
         slice.cohesion = su;
