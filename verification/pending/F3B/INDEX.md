@@ -3,7 +3,7 @@
 Generado por `verification/tools/import_cslope.py`. No editar a mano (`HOLD.json` sí: lo lee el generador).
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope, y Hammah et al. (2005) para HAM1.
 
-**16** casos con **20** checks pasaron a [`../../cases/`](../../cases/INDEX.md) (sección «Hoek-Brown y búsqueda no circular», con la tabla del publicado, ogs y cSlope por check), salvo **2** checks retenidos aquí (`HOLD.json`); la tabla de abajo los lista con sus números y la causa medida.
+**16** casos con **20** checks pasaron a [`../../cases/`](../../cases/INDEX.md) (sección «Hoek-Brown y búsqueda no circular», con la tabla del publicado, ogs y cSlope por check), salvo **3** checks retenidos (`HOLD.json`): **2** de casos que sí están en esta carpeta (V002-nc y V009c) y **1** de un caso que el importador no escribe (V105a, `aboveWater`, fuera de v0.6); la tabla de abajo los lista con sus números y la causa medida. Con los de las demás carpetas de `verification/pending/`, son 18 checks en 12 casos.
 
 Los casos de cSlope son los checks con `nonCircularOptimization` (F6.12). Los diez problemas que ya tenían un caso en `verification/cases` con otros checks y otro modelo se llaman `<id>-nc` (V001, V002, V026, V033, V034a, V034b, V036a, V093, V102a, V102b): es el mismo modelo y los mismos checks de la fuente, con otro nombre. Ninguna tolerancia, valor publicado ni modelo cambió al promover.
 
