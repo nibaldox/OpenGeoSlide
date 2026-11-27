@@ -1,12 +1,11 @@
 // Vista «Resultados» (contrato UA §4.7): la tabla completa con su encabezado, la línea del motor, Diagnósticos y, sin cálculo,
-// un estado vacío con «Comprobar».
+// un estado vacío que remite a «Comprobar» (sin repetir el botón).
 
 import type { ReactNode } from 'react';
 import type { MethodKind } from '../../../engine/types';
 import { ResultsTable } from '../../../ui/ResultsTable';
 import { lengthUnitOf } from '../../canvas/layout';
 import type { EngineRun } from '../reportInput';
-import { CheckButton, type CheckButtonProps } from './ActionFoot';
 
 export function ResultsView({
   run,
@@ -14,7 +13,6 @@ export function ResultsView({
   hasDrafts,
   shownMethod,
   onShowMethod,
-  check,
   diagnostics,
 }: {
   run: EngineRun | null;
@@ -22,7 +20,6 @@ export function ResultsView({
   hasDrafts: boolean;
   shownMethod: MethodKind | null;
   onShowMethod: (m: MethodKind) => void;
-  check: CheckButtonProps;
   /** `DiagnosticsPanel` ya armado por el editor. */
   diagnostics: ReactNode;
 }) {
@@ -47,10 +44,8 @@ export function ResultsView({
       ) : (
         <section className="gs-card ua-card ua-empty" aria-labelledby="ua-results-empty-title" data-testid="results-empty">
           <h2 id="ua-results-empty-title">Sin resultados</h2>
-          <p className="muted">Calcule el factor de seguridad del modelo para ver aquí la tabla por método.</p>
-          <div className="ua-empty-actions">
-            <CheckButton {...check} variant="compact" />
-          </div>
+          {/* UA-E3 §1 (B-13d): el botón «Comprobar» es uno solo, el del pie o el de la cabecera del área; aquí no se repite. */}
+          <p className="muted">Calcule el factor de seguridad del modelo con «Comprobar» para ver aquí la tabla por método.</p>
         </section>
       )}
       {diagnostics}

@@ -104,10 +104,12 @@ describe('EditorApp: todo cambio de pestaña pasa por la confirmación', () => {
     expect(list).toContain('onClick={() => onSelect(id)}');
     expect(src).toContain('const selectStep = useCallback((id: TabId): void => void setTab(id), [setTab]);');
     expect(src).toContain('onSelect={selectStep}');
-    expect(src).toContain('if (target.tab && !(await setTab(target.tab))) return;');
+    // UA3 A-09/A-10: Diagnósticos (`issueNavPlan`) y «Editar título» esperan la confirmación de `setTab` antes de tocar la barra o el foco.
+    expect(src).toContain('if (plan.step && !(await setTab(plan.step))) return;');
+    expect(src).toContain("if (!(await setTab('project'))) return;");
   });
   it('no queda ningún `setTab(` fuera de esos usos', () => {
     const calls = src.match(/\bsetTab\(/g) ?? [];
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3); // `selectStep`, Diagnósticos y «Editar título»
   });
 });

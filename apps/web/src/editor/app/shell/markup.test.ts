@@ -3,9 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { STEP_ORDER, type StepState } from '../shellModel';
 import type { PanelTabId } from '../issueNav';
-import { ActionFoot, type ActionFootProps } from './ActionFoot';
+import { ActionFoot, CollapsedActions, ExportHint, type ActionFootProps } from './ActionFoot';
 import { PaletteTools } from './PaletteTools';
 import { ReportView } from './ReportView';
+import { ResultsView } from './ResultsView';
 import { StepList } from './StepList';
 import { ViewTabs } from './ViewTabs';
 
@@ -171,9 +172,71 @@ describe('ReportView', () => {
     expect(html).toContain('Refuerzos y fuerzas (no aplica a este modelo)');
   });
   it('sin cálculo, la lista vacía lo explica; sin título, «Sin título»', () => {
-    expect(view({ contents: [], hasRun: false, title: '  ' })).toMatch(/Calcule el modelo[\s\S]*Sin título|Sin título[\s\S]*Calcule el modelo/);
+    expect(view({ contents: [], hasRun: false, title: 'Sin título' })).toMatch(/Calcule el modelo[\s\S]*Sin título|Sin título[\s\S]*Calcule el modelo/);
+  });
+  it('B-11: el título va en <dl><dt><dd> y ningún <p> lleva aria-labelledby', () => {
+    const html = view();
+    expect(html).toMatch(/<dl class="ua-report-doc"><dt[^>]*>Título del documento<\/dt><dd[^>]*>.*data-testid="report-title"/);
+    expect(html).not.toMatch(/<p[^>]*aria-labelledby/);
+  });
+  it('B-07: el aviso de desactualizado es de la tarjeta y los botones lo referencian', () => {
+    expect(view()).not.toContain('report-notice');
+    expect(view().match(/aria-describedby/g)).toBeNull();
+    const html = view({ notice: 'El modelo cambió desde el último cálculo.', reportDisabled: true, csvDisabled: true });
+    expect(html).toMatch(/id="ua-report-notice"[^>]*data-testid="report-notice"[^>]*>El modelo cambió/);
+    expect(html.match(/aria-describedby="ua-report-notice"/g)).toHaveLength(2);
   });
   it('los botones bloqueados llevan disabled', () => {
     expect(view({ reportDisabled: true, csvDisabled: true }).match(/disabled/g)).toHaveLength(2);
+  });
+});
+
+describe('StepList con avisos (UA-E3 §4)', () => {
+  it('el paso con status warn muestra la insignia con el ícono de aviso y dice «Con avisos»', () => {
+    const st = states();
+    st.materials = { summary: 'Con avisos · 1 material', status: 'warn', errorCount: 0 };
+    const html = renderToStaticMarkup(createElement(StepList, { order: STEP_ORDER, states: st, active: 'geometry', onSelect: noop, children: null }));
+    const badge = html.match(/<span class="gs-badge ua-badge" data-status="warn">(.*?)<\/span>/)?.[1] ?? '';
+    expect(badge).toContain('<svg');
+    expect(badge).not.toMatch(/>\d+</);
+    expect(html).toContain('Con avisos');
+  });
+});
+
+describe('ResultsView sin cálculo (UA-E3 §1, B-13d)', () => {
+  const html = renderToStaticMarkup(createElement(ResultsView, { run: null, current: false, hasDrafts: false, shownMethod: null, onShowMethod: noop, diagnostics: null }));
+  it('no repite «Comprobar» como botón: queda el del pie o el de la cabecera', () => {
+    expect(html).toContain('data-testid="results-empty"');
+    expect(html).not.toContain('<button');
+    expect(html).toContain('«Comprobar»');
+  });
+});
+
+describe('barra plegada: acciones en la cabecera del área (UA-E3 §2, A-06)', () => {
+  const actions = (over: Record<string, unknown> = {}): string =>
+    renderToStaticMarkup(
+      createElement(CollapsedActions, {
+        check: { label: 'Comprobar', disabled: false, title: 'Ctrl+Intro', onCheck: noop },
+        busy: false,
+        onCancel: noop,
+        engineFailed: false,
+        onRestartEngine: noop,
+        ...over,
+      }),
+    );
+  it('«Comprobar» siempre; «Cancelar cálculo» y «Reiniciar el motor» solo cuando corresponden', () => {
+    const idle = actions();
+    expect(idle).toContain('<span>Comprobar</span>');
+    expect(idle).not.toContain('Cancelar cálculo');
+    expect(idle).not.toContain('Reiniciar el motor');
+    expect(actions({ busy: true })).toContain('Cancelar cálculo');
+    expect(actions({ engineFailed: true })).toContain('Reiniciar el motor');
+  });
+  it('el botón compacto no lleva la tecla decorativa del pie', () => {
+    expect(actions()).not.toContain('Ctrl Intro');
+  });
+  it('la pista de bloqueo es un nodo propio con el mismo id y data-testid que en el pie', () => {
+    const html = renderToStaticMarkup(createElement(ExportHint, { text: 'Pulse «Comprobar»' }));
+    expect(html).toMatch(/id="ea-export-hint"[^>]*data-testid="export-hint"/);
   });
 });

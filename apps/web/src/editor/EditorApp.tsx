@@ -48,17 +48,22 @@ import { calcAnnouncement, focusResultsTable } from './app/resultSummary';
 import { useAnnouncer } from './app/useAnnouncer';
 import { checkButtonState } from './app/engineCheck';
 import { reportContents, runStatus, stepStates, STEP_ORDER } from './app/shellModel';
-import { ActionFoot, CheckButton } from './app/shell/ActionFoot';
+import { ActionFoot, CollapsedActions, ExportHint } from './app/shell/ActionFoot';
+import { advisoryCounts, focusDiagnostics } from './app/shell/advisories';
+import { issueNavPlan } from './app/shell/issueNavPlan';
+import { reportDocTitle, reportNotice } from './app/shell/reportTitle';
+import { pickShownMethod } from './app/shell/shownMethod';
+import { buildRunStatusInput } from './app/shell/statusInput';
 import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
 import { ReportView } from './app/shell/ReportView';
 import { ResultsView } from './app/shell/ResultsView';
-import { browserSideStorage, readSideCollapsed, writeSideCollapsed } from './app/shell/sideState';
+import { browserSideStorage, readSideCollapsed, sideLayout, writeSideCollapsed } from './app/shell/sideState';
 import { StepList } from './app/shell/StepList';
-import { toolDef, toolStatusText } from './app/shell/tools';
+import { toolStatusText } from './app/shell/tools';
 import { useIsDesktop } from './app/shell/useMedia';
 import { ViewTabs } from './app/shell/ViewTabs';
-import { shortcutActsIn, viewTitle, type ViewId } from './app/shell/views';
+import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
@@ -191,6 +196,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     setSideCollapsedState(collapsed);
     writeSideCollapsed(browserSideStorage(), collapsed);
   }, []);
+  /** Despliega la barra desde un flujo programático (Diagnósticos, «Editar título»): se guarda y el foco lo lleva el destino, no el botón «Contraer» (A-09). */
+  const expandSide = useCallback((): void => {
+    setSideCollapsedState(false);
+    writeSideCollapsed(browserSideStorage(), false);
+  }, []);
   // Al plegar o desplegar, el foco pasa al botón contrario (el que acaba de aparecer): nunca cae en <body>.
   useEffect(() => {
     if (!sideToggled.current) return;
@@ -201,6 +211,12 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const [csv, setCsv] = useState<{ fileName: string; result: CsvImportResult } | null>(null);
   const [slopeOpen, setSlopeOpen] = useState(false);
   const [shownMethod, setShownMethod] = useState<MethodKind | null>(null);
+  // `true` si el usuario eligió el método mostrado (en Resultados): un nuevo cálculo lo respeta. Si no, se muestra el del FS mínimo (B-05).
+  const methodChosen = useRef(false);
+  const chooseMethod = useCallback((m: MethodKind): void => {
+    methodChosen.current = true;
+    setShownMethod(m);
+  }, []);
   const [reportBusy, setReportBusy] = useState(false);
   // El modelo de partida y los de «Ejemplos» son ejemplos hasta que se guardan con nombre propio (UX-11).
   const [isExample, setIsExample] = useState(true);
@@ -285,6 +301,10 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const switchTool = useMemo(() => createToolSwitch(store, confirm), [store, confirm]);
 
   const resetEngine = engine.reset;
+  /** UA-E3 §1: lo que carga o crea un modelo (y lo importado) se ve en Lienzo, no detrás de otra vista. */
+  const backToCanvas = useCallback((): void => {
+    if (view !== 'canvas') onViewChange('canvas');
+  }, [view, onViewChange]);
   /**
    * Carga otro documento (Nuevo, Abrir, Ejemplos, Recuperar): reinicia el historial (`doc/load`) y descarta el resultado,
    * el diagnóstico y las respuestas pendientes del modelo anterior (R7-05, R7-08). `saved` marca el documento como guardado.
@@ -296,9 +316,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       store.dispatch({ type: 'ui/viewport', viewport: null });
       resetEngine();
       setShownMethod(null);
+      methodChosen.current = false;
       setIsExample(opts.example);
+      backToCanvas();
     },
-    [store, resetEngine],
+    [store, resetEngine, backToCanvas],
   );
 
   // «Nuevo» = «Modelo vacío»: sin regiones y con un material por defecto; el lienzo invita a «Dibujar región» (UX-01).
@@ -417,6 +439,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     applyRegionImport(store, plan, mode);
     setDxf(null);
     setCsv(null);
+    backToCanvas();
     notify(
       'info',
       `${source}: ${plan.regions.length} región(es) importada(s) (${mode === 'add' ? 'agregadas' : 'reemplazan a las anteriores'}). Se deshace con Ctrl+Z.`,
@@ -491,7 +514,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     }
     if (engineStatus !== 'ready') return; // el botón ya está deshabilitado; esto cubre Ctrl+Intro
     const run = await engine.check();
-    if (run) setShownMethod((m) => (m && run.report.results.some((r) => r.method === m) ? m : (run.report.results[0]?.method ?? null)));
+    if (run) setShownMethod((m) => pickShownMethod(run.report, methodChosen.current ? m : null));
   }, [engine, engineStatus, hasDrafts, pendingDrafts, notify]);
 
   // ───────── Anuncios (regiones vivas persistentes) ─────────
@@ -543,15 +566,25 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const navigateIssue = useCallback(
     (_issue: unknown, target: IssueTarget): void => {
       void (async () => {
-        if (target.tab && !(await setTab(target.tab))) return;
-        // Un paso se abre en la barra lateral (si estaba plegada, se despliega); un destino en el lienzo vuelve a «Lienzo».
-        if (target.tab) setSideCollapsedState(false);
-        else onViewChange('canvas');
+        const plan = issueNavPlan(target);
+        if (plan.step && !(await setTab(plan.step))) return;
+        // Un campo de un paso se abre en la barra lateral (si estaba plegada, se despliega y se guarda); un destino en el lienzo o en su
+        // paleta vuelve a «Lienzo» (A-10).
+        if (plan.expandSide) expandSide();
+        if (plan.toCanvas) onViewChange('canvas');
         setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target }));
       })();
     },
-    [setTab, onViewChange],
+    [setTab, onViewChange, expandSide],
   );
+  /** «Editar título» del informe: confirma el cambio de paso (borradores), despliega la barra y enfoca el título (A-09). */
+  const editTitle = useCallback((): void => {
+    void (async () => {
+      if (!(await setTab('project'))) return;
+      expandSide();
+      setPendingFocus((p) => ({ n: (p?.n ?? 0) + 1, target: { tab: 'project', selection: { kind: 'none' }, fieldPath: '/meta/title' } }));
+    })();
+  }, [setTab, expandSide]);
   // Tras abrir la pestaña (el panel ya está en el DOM), el foco va al campo; si no existe, al primer control del panel.
   useEffect(() => {
     if (!pendingFocus) return;
@@ -625,9 +658,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         inField: isEditableTag(t?.tagName, t?.isContentEditable ?? false),
       });
       // En «Casos de verificación» el editor sigue montado pero oculto: ningún atajo actúa (R7-07); las herramientas solo en «Lienzo».
-      if (!action || !shortcutActsIn(view, action)) return;
+      // Fuera de un campo de Casos, un atajo de documento se traga (UA-E3 §1): el navegador no aplica su Ctrl+Z a un campo del editor.
+      const disposition = action ? shortcutDisposition(view, action, isEditableTag(t?.tagName, t?.isContentEditable ?? false)) : 'ignore';
+      if (!action || disposition === 'ignore') return;
       e.preventDefault();
-      actions.current[action]();
+      if (disposition === 'run') actions.current[action]();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -654,25 +689,40 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
   const narrow = useNarrow();
   const desktop = useIsDesktop();
+  // Qué se ve de la barra lateral: plegada solo desde 761 px, y oculta en Casos (UA-E3 §1 y §2).
+  const side = sideLayout({ view, preference: sideCollapsed, desktop });
   // UA2-F1: el encuadre deja libre el HUD (se mide en la tarjeta del lienzo).
   const canvasCardRef = useRef<HTMLElement>(null);
-  const { insets: fitInsets, covered: coveredBoxes } = useHudInsets(canvasCardRef, doc, desktop);
+  const docEpoch = useEditorStore(store, (s) => s.docEpoch);
+  const { insets: fitInsets, covered: coveredBoxes, compact: hudCompact } = useHudInsets(canvasCardRef, doc, desktop, docEpoch);
   const localIssues = useLocalIssues(store);
   const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
-  const status = runStatus({
-    engineStatus,
-    busy: engine.busy,
-    run: engine.run,
-    current: engine.current,
-    pendingDrafts: pendingDrafts.length,
-    hasRegions: doc.regions.length > 0,
-    localErrors: localIssues.filter((i) => i.severity === 'error').length,
-    methodsRequested: doc.analysis.methods?.length ?? 1,
-    message: engine.message,
-    messageKind: engine.messageKind,
-  });
-  const contents = useMemo(() => reportContents(engine.run), [engine.run]);
+  // Un resultado con borradores sin aplicar no es el del modelo que se ve: nunca es «actual» (UA3 A-02, B-01).
   const resultCurrent = engine.current && !hasDrafts;
+  // UA-E3 §4: avisos locales y avisos del cálculo actual. Los del cálculo solo cuentan si es el del modelo que se ve.
+  const advisories = advisoryCounts(localIssues, resultCurrent && engine.run ? engine.run.report : null);
+  // A-03: un fallo del motor (`NoValidSurface`…) llega al chip aunque `engine.message` esté vacío.
+  const status = runStatus(
+    buildRunStatusInput({
+      engineStatus,
+      busy: engine.busy,
+      run: engine.run,
+      current: engine.current,
+      pendingDrafts: pendingDrafts.length,
+      regions: doc.regions.length,
+      localErrors: localIssues.filter((i) => i.severity === 'error').length,
+      methodsRequested: doc.analysis.methods?.length ?? 1,
+      message: engine.message,
+      messageKind: engine.messageKind,
+      engineErrorText,
+      advisories: advisories.total,
+    }),
+  );
+  const contents = useMemo(() => reportContents(engine.run), [engine.run]);
+
+  // UA-E4: el HUD muestra el error del motor (A-03) con «Ver diagnósticos». La prop `engineError` la declara `ResultSummary` en la rama de C2;
+  // va como objeto para compilar también contra la firma anterior.
+  const hudEngineError = { engineError: engineErrorText };
 
   // «Ver tabla de resultados» del HUD: abre «Resultados» y enfoca la tabla cuando el panel ya está a la vista.
   const [tableFocus, setTableFocus] = useState(0);
@@ -683,6 +733,15 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   useEffect(() => {
     if (tableFocus > 0) focusResultsTable();
   }, [tableFocus]);
+  // «Ver avisos» / «Ver diagnósticos» del HUD (UA-E3 §4, A-03): abre «Resultados» y enfoca Diagnósticos.
+  const [diagFocus, setDiagFocus] = useState(0);
+  const showAdvisories = useCallback((): void => {
+    onViewChange('results');
+    setDiagFocus((n) => n + 1);
+  }, [onViewChange]);
+  useEffect(() => {
+    if (diagFocus > 0) focusDiagnostics();
+  }, [diagFocus]);
 
   const checkProps = {
     label: checkState.label,
@@ -788,7 +847,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       {headerSlots?.menus ? createPortal(menusEl, headerSlots.menus) : null}
 
       {/* Barra lateral «Modelo»: pasos, panel en línea y pie de acción. En el orden de foco va antes que el área principal. */}
-      <aside id="ua-side" className="ua-side" aria-label="Modelo" hidden={sideCollapsed}>
+      <aside id="ua-side" className="ua-side" aria-label="Modelo" hidden={side.hidden}>
         <div className="ua-side-head">
           <h2>Modelo</h2>
           <button type="button" ref={hideSideRef} className="gs-icon-btn" aria-label="Contraer panel" aria-expanded="true" aria-controls="ua-side" onClick={() => setSideCollapsed(true)}>
@@ -811,11 +870,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
         reportTitle={exportBlockedTitle}
         reportDescribedBy={exportDescribedBy}
         onReport={() => void onReport()}
-        exportHint={exportHint}
-        hidden={sideCollapsed}
+        exportHint={side.hidden ? undefined : exportHint}
+        hidden={side.hidden}
       />
 
-      <main id="main-content" className="ua-main" tabIndex={-1} data-side={sideCollapsed ? 'collapsed' : 'open'}>
+      <main id="main-content" className="ua-main" tabIndex={-1} data-side={side.hidden ? 'collapsed' : 'open'}>
         <div className="ua-notices">
           {sessionBanners}
           {draft && (
@@ -850,7 +909,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             </div>
           ) : null}
           <div className="ua-title">
-            {sideCollapsed ? (
+            {side.collapsed ? (
               <button type="button" ref={showSideRef} className="gs-btn ua-show-side" aria-expanded="false" aria-controls="ua-side" onClick={() => setSideCollapsed(false)}>
                 <span className="ua-flip" aria-hidden="true">
                   <IconCollapse size={16} />
@@ -860,11 +919,11 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
             ) : null}
             <h2>{viewTitle(view)}</h2>
             <span className="ua-spacer" />
-            {sideCollapsed ? <CheckButton {...checkProps} variant="compact" /> : null}
+            {side.collapsed ? <CollapsedActions check={checkProps} busy={engine.busy} onCancel={engine.cancel} engineFailed={engineStatus === 'failed'} onRestartEngine={() => client.cancel()} /> : null}
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.
               <div className="ua-edit" role="group" aria-label="Edición">
-                <DropdownMenu label={editMenuLabel(tool, toolDef(tool)?.label)}>{undoRedoMenu}</DropdownMenu>
+                <DropdownMenu label={editMenuLabel()}>{undoRedoMenu}</DropdownMenu>
               </div>
             ) : (
               <div className="ua-edit" role="group" aria-label="Edición">
@@ -877,13 +936,15 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               </div>
             )}
           </div>
+          {/* Con la barra plegada el pie no se ve: la pista de bloqueo vive aquí (UA-E3 §2). En Casos no hay pista: el pie y el aviso son del editor. */}
+          {side.collapsed && exportHint ? <ExportHint text={exportHint} /> : null}
           <ViewTabs view={view} onChange={onViewChange} />
         </div>
 
         {/* Los cuatro paneles permanecen montados: al volver a «Lienzo» se conservan el modelo, el historial, el trazo y la vista. */}
         <div className="ua-panels">
           <div id="mode-edit-panel" className="ua-view ua-view-canvas" role="tabpanel" aria-labelledby="mode-edit" hidden={view !== 'canvas'}>
-            <section className="ua-canvas-card" aria-label="Sección del modelo" ref={canvasCardRef}>
+            <section className="ua-canvas-card" aria-label="Sección del modelo" ref={canvasCardRef} data-hud-compact={hudCompact ? 'true' : undefined}>
               <div className="ea-canvas ua-canvas" data-testid="editor-canvas">
                 <EditorCanvas
                   store={store}
@@ -895,7 +956,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
                 />
               </div>
               {/* El HUD y la leyenda se colocan solos sobre la tarjeta (posicionada): `resultSummary.css` y `legend.css`. */}
-              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} />
+              <ResultSummary run={engine.run} current={engine.current} hasPendingDrafts={hasDrafts} busy={engine.busy} shownMethod={shownMethod ?? shown?.method ?? null} onShowTable={showTable} compact={hudCompact} localAdvisories={advisories.local} onShowAdvisories={showAdvisories} {...hudEngineError} />
               <Legend
                 scene={scene}
                 label="Leyenda de la sección"
@@ -935,8 +996,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               current={engine.current}
               hasDrafts={hasDrafts}
               shownMethod={shownMethod ?? shown?.method ?? null}
-              onShowMethod={setShownMethod}
-              check={{ ...checkProps, variant: 'compact' }}
+              onShowMethod={chooseMethod}
               diagnostics={
                 <DiagnosticsPanel
                   store={store}
@@ -953,20 +1013,17 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
           <div id="view-report-panel" className="ua-view" role="tabpanel" aria-labelledby="view-report" hidden={view !== 'report'}>
             <ReportView
-              title={doc.meta.title ?? ''}
+              title={reportDocTitle(doc.meta.title, doc.meta.id)}
+              notice={reportNotice({ hasRun: engine.run !== null, current: engine.current, hasDrafts, draftsText: PENDING_DRAFTS_TEXT, staleText: exportHintText })}
               contents={contents}
               hasRun={engine.run !== null}
               reportBusy={reportBusy}
               reportDisabled={reportDisabled}
               reportTitle={exportBlockedTitle}
-              reportDescribedBy={exportDescribedBy}
               onReport={() => void onReport()}
               csvDisabled={!canExport}
               onCsv={exportResults}
-              onEditTitle={() => {
-                setSideCollapsedState(false);
-                selectStep('project');
-              }}
+              onEditTitle={editTitle}
             />
           </div>
         </div>
@@ -1017,6 +1074,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           onApplyRegions={(plan, mode) => applyRegions(plan, mode, csv.fileName)}
           onApplyPiezo={(points) => {
             applyPiezoImport(store, points);
+            backToCanvas();
             notify('info', `${csv.fileName}: piezométrica importada (${points.length} puntos). Se deshace con Ctrl+Z.`);
             setCsv(null);
           }}
