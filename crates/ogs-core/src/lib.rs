@@ -380,11 +380,11 @@ fn analyze_method(
 
     // E15i-3: the profile of pressure of each pile with `lateral_pressure`, once per analysis (it does not depend on
     // the surface); empty, and free, without such a pile.
-    let pile_profiles = reinforcement::PileProfiles::with_step(
+    let pile_profiles = reinforcement::PileProfiles::try_with_step(
         &model.reinforcements,
         pm,
         reinforcement::pressure_step(model.units.as_deref()),
-    );
+    )?;
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {

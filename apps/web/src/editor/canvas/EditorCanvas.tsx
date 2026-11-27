@@ -44,7 +44,7 @@ import { REINFORCE_INSTRUCTIONS, constrainReinforceDraft, reinforceClick, reinfo
 import { DRAW_INSTRUCTIONS, EMPTY_DRAFT, drawClick, drawHover, drawKey, type DrawDraft, type DrawStep } from './draw';
 import { piezoPoints } from './geom';
 import { piezoExtension } from './piezoExtension';
-import { crackGeometry, crackShape } from '../../render/crack';
+import { crackGeometry, crackShape, noCrackLabel } from '../../render/crack';
 import { pondPolygons } from '../../render/pond';
 import { polylineCrossingMessage } from './polyline';
 import { hitTest, handleHitRadius, radiusHandlePoint, searchRange, type Hit } from './hitTest';
@@ -746,6 +746,8 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   // F5.4: la grieta de la superficie del resultado; la fracción de agua es la del modelo.
   const crack = result && result.slices.length > 0 ? crackGeometry(result.tensionCrack, result.slices, shown.analysis.tension_crack?.water_fill) : null;
   const crackPx = crack ? crackShape(crack, vp, unitsEff) : null;
+  // E15l-15: una grieta con `depth = 0` es «sin grieta»: no se dibuja y se rotula.
+  const noCrack = result && result.slices.length > 0 ? noCrackLabel(result.tensionCrack, result.slices, vp) : null;
   const circle = circleSpec(shown.analysis.surface);
   const polyline = shown.analysis.surface && shown.analysis.surface.type === 'polyline' ? shown.analysis.surface.points : null;
   const loads = loadShapes(shown, vp);
@@ -931,6 +933,12 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
             {crackPx.forceLabel && (
               <text data-crack-label="force" x={crackPx.forceLabel.x} y={crackPx.forceLabel.y} dy="0.35em" fontSize={12} fill={COLOR_PIEZO} {...HALO_LABEL} textAnchor={crackPx.forceLabel.anchor}>{crackPx.forceLabel.text}</text>
             )}
+          </g>
+        )}
+
+        {noCrack && (
+          <g data-layer="tension-crack-none" aria-hidden="true" pointerEvents="none">
+            <text data-crack-label="none" x={noCrack.x} y={noCrack.y} dy="0.35em" fontSize={12} fill={COLOR_SURFACE} {...HALO_LABEL} textAnchor={noCrack.anchor}>{noCrack.text}</text>
           </g>
         )}
 
