@@ -30,6 +30,29 @@ CASES_DIR = os.path.join(ROOT, "verification", "cases")
 
 # ------------------------------------------------------------ water over ground
 
+
+def test_f3b_materials_preserve_inputs_and_reject_unsupported():
+    hb = {"name": "Rock", "model": {"kind": "hoek-brown", "unitWeight": 25,
+          "ucs": 30000, "gsi": 5, "mi": 2}}
+    converted = imp.convert_f3b_material(hb, "rock")
+    assert converted["disturbance"] == 0 and converted["ucs"] == 30000
+    for key, value in (("ocr", 1.5), ("pop", 20), ("ocrByElevation", [[0, 1], [10, 2]])):
+        source = {"name": "Clay", "model": {"kind": "shansep", "unitWeight": 18, "ratio": 0.25, key: value}}
+        out = imp.convert_f3b_material(source, "clay")
+        assert out["shansep"]["ocr_by_elevation" if key == "ocrByElevation" else key] == value
+    source["model"].pop(key)
+    with pytest.raises(imp.Omit, match="fuente OCR"):
+        imp.convert_f3b_material(source, "clay")
+    source["model"]["aboveWater"] = {}
+    with pytest.raises(imp.Omit, match="aboveWater"):
+        imp.convert_f3b_material(source, "clay")
+
+
+def test_f3b_non_circular_option_does_not_change_legacy():
+    options = {"nonCircularOptimization": True}
+    assert imp.option_reason("Morgenstern-Price", options, f3=True) is not None
+    assert imp.option_reason("Morgenstern-Price", options, f3=True, f3b=True) is None
+
 # Bump: top at y = 10, a lower terrace (y = 4) between x = 10 and x = 15, and y = 10 again beyond.
 # Water at y = 6 is above the terrace inside (10, 15) but below the ground at both ends and at x = 15.
 BUMP = Polygon([(0, 0), (0, 10), (10, 10), (10, 4), (15, 4), (15, 10), (25, 10), (25, 0)])
@@ -1122,8 +1145,9 @@ def test_the_importer_is_idempotent_and_reproduces_the_promoted_f3g(tmp_path):
     """Run on a copy of the tree: the F3G files are the ones in the repo and a second run writes nothing of F3G."""
     import shutil
     root = tmp_path / "repo"
-    for sub in ("verification", "schema", "NOTICE"):
+    for sub in ("verification", "schema", "NOTICE", os.path.join("docs", "fase3", "exploracion", "X28_filas")):
         src = os.path.join(ROOT, sub)
+        (root / sub).parent.mkdir(parents=True, exist_ok=True)    # HAM1 (F3B) reads its geometry from X28_filas
         (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
     argv = ["import_cslope.py", "--src", _clone(), "--root", str(root)]
     import sys
@@ -1277,8 +1301,9 @@ def _tree(root):
 def test_the_importer_is_idempotent_with_f3i_pending_and_leaves_cases_untouched(tmp_path):
     import shutil
     root = tmp_path / "repo"
-    for sub in ("verification", "schema", "NOTICE"):
+    for sub in ("verification", "schema", "NOTICE", os.path.join("docs", "fase3", "exploracion", "X28_filas")):
         src = os.path.join(ROOT, sub)
+        (root / sub).parent.mkdir(parents=True, exist_ok=True)    # HAM1 (F3B) reads its geometry from X28_filas
         (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
     before = _tree(root)
     _run_importer(root)
@@ -1297,8 +1322,9 @@ def test_promote_f3i_is_idempotent_on_the_promoted_tree_and_cases_hold_the_four_
     # that still had them in pending/F3I; now the tree is already promoted, so `--promote-f3i` must change nothing.
     import shutil
     root = tmp_path / "repo"
-    for sub in ("verification", "schema", "NOTICE"):
+    for sub in ("verification", "schema", "NOTICE", os.path.join("docs", "fase3", "exploracion", "X28_filas")):
         src = os.path.join(ROOT, sub)
+        (root / sub).parent.mkdir(parents=True, exist_ok=True)    # HAM1 (F3B) reads its geometry from X28_filas
         (shutil.copytree if os.path.isdir(src) else shutil.copy)(src, root / sub)
     promoted = _tree(root)
     _run_importer(root, "--promote-f3i")
@@ -1316,3 +1342,62 @@ def test_promote_f3i_is_idempotent_on_the_promoted_tree_and_cases_hold_the_four_
     assert "Casos convertidos e incluidos: **151**" in index
     assert "no son de v0.4" in first["verification/pending/F3R/INDEX.md"].decode()
     assert "pasaron a" in first["verification/pending/F3I/INDEX.md"].decode()
+
+
+# ---------------------------------------------------------------- batch F3B (F6.12): pending/F3B, v0.6
+
+F3B_DIR = os.path.join(ROOT, "verification", "pending", "F3B")
+
+
+def _f3b_cases():
+    return {os.path.basename(p)[:-5]: json.load(open(p, encoding="utf-8"))
+            for p in sorted(glob.glob(os.path.join(F3B_DIR, "*.json"))) if not p.endswith("HOLD.json")}
+
+
+def test_pending_f3b_has_the_listed_cases_validated_against_the_06_schema():
+    cases = _f3b_cases()
+    expected = {"V001", "V002", "V026", "V033", "V034a", "V034b", "V036a", "V093", "V102a", "V102b",
+                "V009c", "V050b", "V059a", "V059b", "V059c", "V094", "V103", "HAM1"}
+    assert set(cases) == expected
+    assert sum(len(c["checks"]) for c in cases.values()) == 22
+    validator = jsonschema.Draft202012Validator(json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"))))
+    for cid, case in cases.items():
+        assert not list(validator.iter_errors(case["model"])), cid
+        assert case["model"]["version"] == "0.6" and case["model"]["meta"]["id"] == cid
+        if cid != "HAM1":
+            search = case["model"]["analysis"]["search"]
+            assert search["non_circular"] == {"seeds": 3, "max_vertices": 33}, cid
+            assert all(ck["kind"] == "search" and ck["method"] != "bishop" for ck in case["checks"]), cid
+
+
+def test_pending_f3b_never_promotes_and_keeps_v105a_in_hold_with_its_reason():
+    assert not os.path.exists(os.path.join(CASES_DIR, "HAM1.json"))       # B2 promotes it, not this block
+    hold = json.load(open(os.path.join(F3B_DIR, "HOLD.json"), encoding="utf-8"))
+    assert [(h["id"], h["method"], h["published"]) for h in hold] == [("V105a", "bishop", 1.285)]
+    assert "aboveWater" in hold[0]["diagnosis"]
+    index = open(os.path.join(F3B_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "**18** casos con **22** checks" in index
+    assert "- V105a: material 'Sand with clay' con propiedad no soportada: aboveWater" in index
+    assert "- V100 (3 checks): material 'Clay' con modelo 'shear-normal'" in index
+    assert not os.path.exists(os.path.join(F3B_DIR, "V105a.json"))
+
+
+def test_pending_f3b_ham1_states_its_assumptions_source_and_tolerance():
+    case = _f3b_cases()["HAM1"]
+    assert [(c["method"], c["published"], c["tolerance"]) for c in case["checks"]] == [
+        ("bishop", 1.153, 0.005), ("spencer", 1.152, 0.005)]
+    material = case["model"]["materials"][0]
+    assert material["model"] == "hoek_brown" and "water" not in case["model"]
+    assert case["model"]["analysis"]["surface"]["type"] == "circle"
+    assert "05-810" in case["source"]["reference"] and case["source"]["derived_from"] == imp.HAM1_URL
+    notes = " ".join(case["source"]["notes"])
+    for text in ("cimentación", "terreno seco", "γ = 25", "0,5 %", "1,150215", "1,152052", "F6.8"):
+        assert text in notes, text
+
+
+def test_f3b_importer_uses_the_new_options_only_in_f3b_mode():
+    nco = {"nonCircularOptimization": True}
+    assert imp.option_reason("Morgenstern-Price", nco) is not None
+    assert imp.option_reason("Morgenstern-Price", nco, v02=True, f3=True, f3g=True) is not None
+    assert imp.option_reason("Morgenstern-Price", nco, v02=True, f3=True, f3g=True, f3b=True) is None
+    assert imp.option_reason("Morgenstern-Price", {"compositeBase": True}, f3b=True) is not None

@@ -1,0 +1,130 @@
+{
+  "id": "V059c",
+  "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.6",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V059c",
+      "title": "Guo & Griffiths two-layer undrained slope, cu2/cu1 = 1.6",
+      "notes": "18 m embankment at 1V:2H (Su = 60 kPa) on an 18 m undrained foundation (Su = 96 kPa), γ = 20, firm base; optimized non-circular search. The shallow mechanism governs."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "embankment",
+        "name": "Embankment",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 60.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "foundation",
+        "name": "Foundation",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 96.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "embankment",
+        "polygon": [
+          [
+            0.0,
+            18.0
+          ],
+          [
+            0.0,
+            36.0
+          ],
+          [
+            36.0,
+            36.0
+          ],
+          [
+            72.0,
+            18.0
+          ]
+        ]
+      },
+      {
+        "material": "foundation",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            18.0
+          ],
+          [
+            72.0,
+            18.0
+          ],
+          [
+            90.0,
+            18.0
+          ],
+          [
+            90.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.315,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.02038022813688213,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Guo & Griffiths (2020), Can. Geotech. J. 57.",
+    "derived_from": "cSlope verification problem V059c (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

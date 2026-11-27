@@ -94,6 +94,17 @@ F3G_DIR = Path("verification") / "pending" / "F3G"
 F3G_SCHEMA = Path("schema") / "ogs-0.5.schema.json"
 HOLD_F3G_FILE = F3G_DIR / "HOLD.json"
 CRACK_OPTION_KEYS = ("tensionCrackDepth", "tensionCrackAuto", "tensionCrackWater")
+# Batch F3B (F6.12, X23 §1, X29 §8): Hoek-Brown, SHANSEP and the non-circular search, v0.6, in pending/F3B. Nothing is
+# promoted here: B2 promotes what the engine reproduces.
+F6_VERSION = "0.6"
+F3B_DIR = Path("verification") / "pending" / "F3B"
+F3B_SCHEMA = Path("schema") / "ogs-0.6.schema.json"
+HOLD_F3B_FILE = F3B_DIR / "HOLD.json"
+# cSlope 0.1.0 has no document fields for the seeds or the vertices of the non-circular search (its engine fixes 3 seeds and up
+# to 33 vertices in `optimize.rs`, X24 §1), so the case writes those values: they are the ones the oracle runs with.
+NC_DEFAULTS = {"seeds": 3, "max_vertices": 33}
+HAM1_URL = ("https://www.rocscience.com/assets/resources/learning/papers/"
+            "The-Shear-Strength-Reduction-Method-for-the-Generalized-Hoek-Brown-Criterion.pdf")
 F3R_DIR = Path("verification") / "pending" / "F3R"
 F3R_SCHEMA = Path("schema") / "ogs-0.4.schema.json"
 TENSION_KEYS = {"x1", "y1", "x2", "y2", "tensileCapacity", "spacing", "end1Capacity", "end2Capacity", "direction",
@@ -131,6 +142,10 @@ ALLOWED_MODEL_KEYS = {"kind", "unitWeight", "cohesion", "frictionAngle", "unitWe
 ALLOWED_UNDRAINED_KEYS = {"kind", "unitWeight", "undrainedShearStrength", "suRefDepth", "suRateOfChange", "suMax",
                           "unitWeightSat", "ru"}
 ALLOWED_SFD_KEYS = {"kind", "unitWeight", "suRef", "yRef", "rate", "suMax", "unitWeightSat", "ru"}
+# Batch F3B (F6.2, F6.3): the cSlope names of `hoek-brown` and `shansep`. `mb`, `s` and `a` are derived by ogs (F6.2) and the other
+# keys of cSlope's SHANSEP (suMin, yieldStress, suByStress, anisotropy, yieldFromEarlierStage, aboveWater, bBar) are outside v0.6.
+ALLOWED_HB_KEYS = {"kind", "unitWeight", "ucs", "gsi", "mi", "disturbance", "unitWeightSat", "ru"}
+ALLOWED_SHANSEP_KEYS = {"kind", "unitWeight", "ratio", "exponent", "ocr", "pop", "ocrByElevation", "unitWeightSat", "ru"}
 ALLOWED_WATER_KEYS = {"mode", "value", "followBoundary"}
 ALLOWED_LIMIT_KEYS = {"entryLeftX", "entryRightX", "exitLeftX", "exitRightX"}
 NEUTRAL_OPTION_KEYS = {"method", "slices", "iterations", "refinedIterations", "tolerance"}
@@ -521,18 +536,21 @@ def water_above_ground(outer: Polygon, piezo: list[list[float]]) -> bool:
     return False
 
 
-def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False, f3g: bool = False) -> str | None:
+def option_reason(method: str, opts: dict, v02: bool = False, f3: bool = False, f3g: bool = False,
+                  f3b: bool = False) -> str | None:
     """Return why a check cannot be used with our engine, or None if its options are neutral.
 
     With ``v02`` the seismic coefficients are not an obstacle: they go to ``analysis.seismic``. With ``f3``
     the interslice function, its data points and the Janbu correction are not an obstacle either: they
     become the method (``janbu_simplified`` / ``janbu_corrected``) and ``analysis.interslice``.
     """
-    if opts.get("nonCircularOptimization"):
+    if opts.get("nonCircularOptimization") and not f3b:
         return "superficie no circular (nonCircularOptimization)"
     for key, value in opts.items():
         if key in NEUTRAL_OPTION_KEYS:
             continue
+        if f3b and key == "nonCircularOptimization":
+            continue    # it is a field of the model in v0.6 (`analysis.search.non_circular`, F6.4)
         if (v02 or f3) and key in SEISMIC_OPTION_KEYS:
             continue
         if f3g and key in CRACK_OPTION_KEYS:
@@ -692,6 +710,37 @@ def convert_strength_material(m: dict, mid: str) -> dict:
     return out
 
 
+def convert_f3b_material(m: dict, mid: str) -> dict:
+    """Convert only explicitly representable HB/SHANSEP parameters (F6.2-3)."""
+    src = m["model"]
+    kind = src["kind"]
+    allowed = ALLOWED_HB_KEYS if kind == "hoek-brown" else ALLOWED_SHANSEP_KEYS
+    extra = sorted(set(src) - allowed)
+    if extra:
+        raise Omit(f"material '{m['name']}' con propiedad no soportada: " + ", ".join(extra))
+    out = {"id": mid, "name": m["name"], "model": kind.replace("-", "_"),
+           "unit_weight": num(src["unitWeight"])}
+    for source, target in (("unitWeightSat", "unit_weight_sat"), ("ru", "ru")):
+        if src.get(source) is not None:
+            out[target] = num(src[source])
+    if kind == "hoek-brown":
+        for key in ("ucs", "gsi", "mi"):
+            out[key] = num(src[key])
+        out["disturbance"] = num(src.get("disturbance", 0))
+    else:
+        sources = [k for k in ("ocr", "pop", "ocrByElevation") if src.get(k) is not None]
+        if len(sources) != 1:
+            raise Omit(f"material '{m['name']}': SHANSEP requiere exactamente una fuente OCR (F6.3)")
+        spec = {"ratio": num(src["ratio"])}
+        if src.get("exponent") is not None:
+            spec["exponent"] = num(src["exponent"])
+        key = sources[0]
+        spec["ocr_by_elevation" if key == "ocrByElevation" else key] = (
+            [[num(y), num(ocr)] for y, ocr in src[key]] if key == "ocrByElevation" else num(src[key]))
+        out["shansep"] = spec
+    return out
+
+
 def convert(raw: dict, prob: dict | None, v02: bool = False) -> tuple[dict, list[str]]:
     """Convert one cSlope case for batch 0. Returns (case, discarded_checks). Raises Omit.
 
@@ -723,7 +772,8 @@ def crack_signature(opts: dict) -> tuple | None:
     return None
 
 
-def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = False) -> tuple[dict, list[str], list[int]]:
+def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = False,
+             f3b: bool = False) -> tuple[dict, list[str], list[int]]:
     cid = raw["id"]
     if prob is None:
         raise Omit("sin entrada en problems.ts")
@@ -757,6 +807,12 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = Fals
         model = m["model"]
         kind = model.get("kind")
         mid = snake(m["name"])
+        if kind in ("hoek-brown", "shansep") and f3b:
+            if not mid or mid in name2id.values():
+                raise Omit(f"id de material vacío o repetido: '{m['name']}'")
+            name2id[m["name"]] = mid
+            materials.append(convert_f3b_material(m, mid))
+            continue
         if kind in ("undrained", "s-f-datum") and f3:
             if not mid or mid in name2id.values():
                 raise Omit(f"id de material vacío o repetido: '{m['name']}'")
@@ -915,7 +971,9 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = Fals
         else:
             discarded.append(f"{label}: método no soportado")
             continue
-        reason = option_reason(ck["method"], opts, v02, f3, f3g)
+        reason = option_reason(ck["method"], opts, v02, f3, f3g, f3b)
+        if f3b and opts.get("nonCircularOptimization") and method == "bishop":
+            reason = "Bishop no admite búsqueda no circular (F6.4)"
         if reason:
             discarded.append(f"{label}: {reason}")
             continue
@@ -994,7 +1052,15 @@ def _convert(raw: dict, prob: dict | None, v02: bool, f3: bool, f3g: bool = Fals
             if sig[1] > 0 and water is None:
                 # no piezometric line: the crack uses water.unit_weight (E12e); the oracle uses 9.807
                 water = {"unit_weight": GAMMA_W[units]}
-    if f3 and f3g and not crack:
+    if f3b:
+        version = F6_VERSION
+        if any(ck.get("options", {}).get("nonCircularOptimization") for ck in kept_raw):
+            if any(not ck.get("options", {}).get("nonCircularOptimization") for ck in kept_raw):
+                raise Omit("checks circulares y no circulares mezclados en un mismo modelo")
+            if surface_kind != "search":
+                raise Omit("nonCircularOptimization requiere búsqueda")
+            analysis_block["search"]["non_circular"] = dict(NC_DEFAULTS)
+    elif f3 and f3g and not crack:
         # F3G without a crack: the minimum version of its fields (F3.9, F5.1); ponded water has no field and needs none
         needs_03 = (any(mat.get("model") == "undrained" for mat in materials) or "interslice" in analysis_block
                     or analysis_block.get("surface", {}).get("type") == "polyline"
@@ -2097,6 +2163,150 @@ def build_f3_index(converted: list[dict], promoted: dict[str, dict], promoted_ba
     return "\n".join(lines) + "\n"
 
 
+F3B_IDS = ("V001", "V002", "V026", "V033", "V034a", "V034b", "V036a", "V093",
+           "V102a", "V102b", "V009c", "V050b", "V059a", "V059b", "V059c", "V094", "V103", "V105a")
+# F6.12: the cases that enter with the non-circular search alone are the 16 of X23 §1 plus V036a (X29 §8). The other cases of the
+# corpus with a non-circular check convert too, but X23 §1.4 marks them as needing `porePressureHead` and X29 §1 measured only
+# V036a, so they stay out of the list until B2 measures them; they are listed in INDEX.md with this reason.
+F3B_NOT_LISTED = "fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo"
+HAM1_NOTES = (
+    "Geometría reconstruida (X23 §3.2, inferida del tutorial de XSLOPE): pie en (20, 5), corona en (30, 15), terreno llano de "
+    "x = 0 a 20 en y = 5 y de x = 30 a 50 en y = 15, base en y = 0. La cimentación de 5 m (de y = 0 a 5) es un supuesto: la "
+    "fuente no la da.",
+    "Supuestos escritos en el caso: terreno seco (la fuente no da el nivel freático), γ = 25 kN/m³ (supuesto de X28), roca "
+    "única con σci = 30 000 kPa, GSI = 5, mi = 2 y D = 0 (tabla 1 de la fuente).",
+    "Círculo fijo: el que encuentra la búsqueda de cSlope con entrada [−20, 40] y salida [10, 60] (centro (17,81; 20,77), "
+    "r = 15,92; X23 §3.2). Los publicados son resultados de búsqueda de la fuente, no de este círculo: el oráculo da Bishop "
+    "1,151807 (−0,11 %) y Spencer 1,153019 (+0,08 %).",
+    "Tolerancia de 0,5 % (F6.12): la geometría está reconstruida, así que no se compara con la última cifra publicada.",
+    "F6.8: el producto usa la envolvente completa en bajo confinamiento, no la tangente de σ3 = 0 de cSlope. El prototipo da "
+    "Bishop 1,150215 (−0,24 %) y Spencer 1,152052 (+0,005 %) con ella, dentro de 0,5 %.")
+
+
+def ham1_case(root: Path) -> dict:
+    ham = json.loads((root / "docs/fase3/exploracion/X28_filas/X28-F-HAM1.json").read_text(encoding="utf-8"))["model"]
+    ham["meta"]["id"] = "HAM1"
+    ham["analysis"]["methods"] = ["bishop", "spencer"]
+    return {"id": "HAM1", "title": "Hammah et al. (2005), ejemplo 1", "model": ham,
+            "checks": [{"method": method, "kind": "fixed", "published": value,
+                        "published_by": "Hammah et al. (2005), tabla 2", "tolerance": 0.005, "options": {"slices": 40}}
+                       for method, value in (("bishop", 1.153), ("spencer", 1.152))],
+            "source": {"reference": "Hammah et al. (2005), ARMA/USRMS 05-810", "derived_from": HAM1_URL,
+                       "notes": list(HAM1_NOTES)}}
+
+
+def generate_f3b(root: Path, raw_by_id: dict, problems: dict, order: list[str]) -> int:
+    """Write pending/F3B (cases, INDEX.md) and read its HOLD.json. Nothing is promoted: B2 promotes what the engine reproduces."""
+    directory = root / F3B_DIR
+    schema = json.loads((root / F3B_SCHEMA).read_text(encoding="utf-8"))
+    cases, omitted, discarded = [], [], {}
+    for cid in F3B_IDS:
+        raw = raw_by_id[cid]
+        checks = [ck for ck in raw["checks"] if ck.get("options", {}).get("nonCircularOptimization")] or raw["checks"]
+        try:
+            case, disc, _ = _convert({**raw, "checks": checks}, problems.get(cid), v02=True, f3=True, f3g=True, f3b=True)
+            errors = gate_schema_f3r(case, schema) + gate_search(case) + gate_geometry(case, raw)
+            if errors:
+                raise Omit("; ".join(errors))
+            if any((ck.get("options") or {}).get("porePressureHead") == "phreatic-correction" for ck in checks):
+                case["source"]["notes"].append(
+                    "La fuente pide porePressureHead=phreatic-correction; ogs usa altura vertical. "
+                    "X29 §1 comprobó que en V036a el FS del oráculo no cambia al quitar esta opción.")
+            cases.append(case)
+            discarded[cid] = disc
+        except (Omit, KeyError, ValueError) as exc:
+            omitted.append((cid, str(exc)))
+    cases.append(ham1_case(root))
+    errors = gate_schema_f3r(cases[-1], schema)
+    if errors:
+        raise ValueError(f"HAM1: {errors}")
+    # the corpus cases with a non-circular check that are not in the list of F6.12
+    not_listed = []
+    for cid in order:
+        if cid in F3B_IDS:
+            continue
+        raw = raw_by_id[cid]
+        nco = [ck for ck in raw["checks"] if ck.get("options", {}).get("nonCircularOptimization")]
+        if not nco:
+            continue
+        try:
+            _convert({**raw, "checks": nco}, problems.get(cid), v02=True, f3=True, f3g=True, f3b=True)
+            not_listed.append((cid, len(nco), F3B_NOT_LISTED))
+        except (Omit, KeyError, ValueError) as exc:
+            not_listed.append((cid, len(nco), str(exc)))
+    hold_path = directory / "HOLD.json"
+    hold = load_hold(hold_path)
+    known = {check_key(c["id"], k) for c in cases for k in c["checks"]}
+    unknown = sorted(key for key in hold if key not in known and key[0] not in {cid for cid, _ in omitted})
+    if unknown:
+        print(f"ERROR: pending/F3B/HOLD.json con checks que no existen en F3B: {unknown}", file=sys.stderr)
+        return 1
+    directory.mkdir(parents=True, exist_ok=True)
+    for case in cases:
+        write_if_changed(directory / f"{case['id']}.json", json.dumps(case, indent=2, ensure_ascii=False) + "\n")
+    if not hold_path.exists():
+        write_if_changed(hold_path, "[]\n")
+    write_if_changed(directory / "INDEX.md", build_f3b_index(cases, hold, omitted, not_listed, discarded))
+    print(f"F3B: {len(cases)} casos, {sum(len(c['checks']) for c in cases)} checks; omitidos: {omitted}")
+    return 0
+
+
+def build_f3b_index(cases: list[dict], hold: dict[tuple, dict], omitted: list[tuple[str, str]],
+                    not_listed: list[tuple[str, int, str]], discarded: dict[str, list[str]]) -> str:
+    n_checks = sum(len(c["checks"]) for c in cases)
+    lines = [
+        "# Hoek-Brown, SHANSEP y búsqueda no circular (F3B, formato v0.6): casos pendientes",
+        "",
+        "Generado por `verification/tools/import_cslope.py --src $TMPDIR/cslope-src --f3b-only`. No editar a mano "
+        "(`HOLD.json` sí: lo lee el generador).",
+        "Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope, y Hammah et al. "
+        "(2005) para HAM1.",
+        "",
+        f"**{len(cases)}** casos con **{n_checks}** checks. Ninguno está promovido: el motor de este bloque no tiene aún la "
+        "física v0.6, y B2 los pasa a [`../../cases/`](../../cases/INDEX.md) cuando el motor los reproduce, quitando de "
+        "`HOLD.json` lo que corresponda y sin relajar ninguna tolerancia.",
+        "",
+        "Los casos de cSlope son los checks con `nonCircularOptimization` (F6.12: los 16 casos de X23 §1 más V036a, X29 §8). "
+        "Se escriben en la versión `0.6` con `analysis.search.non_circular` en sus valores por defecto (`seeds` 3, "
+        "`max_vertices` 33): cSlope 0.1.0 no tiene esos parámetros en el documento y su motor usa 3 semillas y hasta 33 "
+        "vértices (X24 §1), así que son los valores con los que corre el oráculo. HAM1 es el ejemplo 1 de Hammah et al. con "
+        "su geometría reconstruida, círculo fijo y tolerancia de 0,5 % (F6.12).",
+        "",
+        "## Casos y checks",
+        "",
+        "| caso | método | superficie | publicado | por | tol % |",
+        "|---|---|---|---:|---|---:|",
+    ]
+    for case in cases:
+        for c in case["checks"]:
+            lines.append(f"| {case['id']} | {c['method']} | {c['kind']} | {c['published']} | {md_cell(c['published_by'])} "
+                         f"| {100 * c['tolerance']:.2f} |")
+    lines += ["", "## Checks retenidos", ""]
+    if hold:
+        lines += ["Cada check retenido es uno que el motor o el oráculo no reproducen, con su causa. No se promueve hasta "
+                  "que se reproduzca.", "",
+                  "| caso | método | publicado | por | ogs | cSlope | motivo y diagnóstico |", "|---|---|---:|---|---:|---:|---|"]
+
+        def f(v):
+            return "—" if v is None else f"{v:.4f}"
+        for key, e in sorted(hold.items()):
+            lines.append(f"| {e['id']} | {e['method']} | {e['published']} | {md_cell(e['published_by'])} | {f(e.get('ogs'))} "
+                         f"| {f(e.get('cslope'))} | {md_cell(e.get('diagnosis', ''))} |")
+    else:
+        lines.append("Ninguno.")
+    lines += ["", "## Casos de la lista que no se escriben", ""]
+    lines += [f"- {cid}: {md_cell(r)}" for cid, r in omitted] or ["- ninguno"]
+    lines += ["", "## Otros casos con búsqueda no circular", "",
+              "El corpus de cSlope tiene más checks con `nonCircularOptimization`. No entran en F3B por el motivo de cada uno:", ""]
+    lines += [f"- {cid} ({n} {'check' if n == 1 else 'checks'}): {md_cell(r)}" for cid, n, r in not_listed] or ["- ninguno"]
+    dropped = {k: v for k, v in discarded.items() if v}
+    if dropped:
+        lines += ["", "## Checks descartados dentro de los casos", ""]
+        lines += [f"- {cid}: {md_cell(x)}" for cid, v in sorted(dropped.items()) for x in v]
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--src", required=True, help="path to the read-only cSlope clone")
@@ -2104,6 +2314,7 @@ def main() -> int:
     ap.add_argument("--promote-f3i", action="store_true",
                     help="write the Ito-Matsui cases V013b to V013e (batch F3I, v0.5) to verification/cases instead of "
                          "verification/pending/F3I (the integrator's promotion, see pending/F3I/INDEX.md)")
+    ap.add_argument("--f3b-only", action="store_true", help="generate only pending/F3B")
     args = ap.parse_args()
 
     src = Path(args.src).expanduser().resolve()
@@ -2126,6 +2337,8 @@ def main() -> int:
     raw_by_id = {c["id"]: c for c in data["cases"]}
     order = [c["id"] for c in data["cases"]]
     problems = parse_problems(problems_path)
+    if args.f3b_only:
+        return generate_f3b(root, raw_by_id, problems, order)
     hold = load_hold(root / HOLD_FILE)
 
     # ---- batch 0: every problem that converts today (v0.1, and v0.2 with seismic coefficients or loads).
@@ -2521,7 +2734,7 @@ def main() -> int:
         print(f"  {cid}: {reason}")
     print(f"Archivos escritos/modificados en esta ejecución: {changed}")
     print("GATES OK: schema, geometría, v0.3")
-    return 0
+    return generate_f3b(root, raw_by_id, problems, order)    # batch F3B (v0.6): pending/F3B only, nothing promoted
 
 
 if __name__ == "__main__":

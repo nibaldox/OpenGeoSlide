@@ -1,0 +1,108 @@
+{
+  "id": "V102b",
+  "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V102b",
+      "title": "Loukidis et al. (2003) slope at its critical seismic coefficient, rᵤ = 0.5",
+      "notes": "As V102a with a pore pressure ratio rᵤ = 0.5 and kh = 0.132, Loukidis, Bandini & Salgado's critical value for it; critical-surface searches."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "clay",
+        "name": "Clay",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 25.0,
+        "friction_angle": 30.0,
+        "ru": 0.5
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay",
+        "polygon": [
+          [
+            -50.0,
+            -25.0
+          ],
+          [
+            -50.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            75.0,
+            25.0
+          ],
+          [
+            150.0,
+            25.0
+          ],
+          [
+            150.0,
+            -25.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "seismic": {
+        "kh": 0.132,
+        "kv": 0.0
+      },
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.997,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020501504513540623,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Loukidis, D., Bandini, P. & Salgado, R. (2003). Stability of seismically loaded slopes using limit analysis. Géotechnique 53(5), 463–479.",
+    "derived_from": "cSlope verification problem V102b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The critical seismic coefficients (dry 0.432, rᵤ = 0.5 0.132) are Loukidis, Bandini & Salgado's, quoted identically by commercial program A (verification problem 62) and commercial program B (§2.38); the paper itself (paywalled) was not consulted. They are defined as the horizontal coefficient at which F = 1, from a log-spiral mechanism; both manuals give 'Loukidis factor of safety (Spencer) = 1.000'.",
+      "Geometry and soil from both manuals' figures and tables and a third program's example script of the same problem: 25 m high 3:1 slope from the toe (0, 0) to the crest (75, 25), ground from x = −50 to 150, base at −25; c′ = 25 kPa, φ′ = 30°, γ = 20 kN/m³. Both manuals restrict the circles to the toe; cSlope's unrestricted search ends at the toe as well.",
+      "Commercial program B's text lists 'Ru of 0.05' but its table and results are for rᵤ = 0.5, as commercial program A's. Commercial program A's non-circular values: Spencer 0.997, Bishop 0.966.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

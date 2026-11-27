@@ -1,0 +1,114 @@
+{
+  "id": "V103",
+  "title": "Spencer's slope, rᵤ = 0.5, non-circular critical surface",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V103",
+      "title": "Spencer's slope, rᵤ = 0.5, non-circular critical surface",
+      "notes": "30 m high 2:1 (26.5°) homogeneous slope with c′/γH = 0.02 (c′ = 10.8 kPa, γ = 18 kN/m³), φ′ = 40° and rᵤ = 0.5; non-circular Spencer search. The crest and the ground beyond the toe are 10 m long and the base is 10 m below the toe, as in a program manual's model."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil",
+        "name": "Soil",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.0,
+        "unit_weight_sat": null,
+        "cohesion": 10.8,
+        "friction_angle": 40.0,
+        "ru": 0.5
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            10.0,
+            40.0
+          ],
+          [
+            70.0,
+            10.0
+          ],
+          [
+            80.0,
+            10.0
+          ],
+          [
+            80.0,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.02,
+      "published_by": "Baker (non-circular)",
+      "tolerance": 0.024901960784313726,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.01,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.024950495049504952,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Fredlund, D.G. & Krahn, J. (1977), Can. Geotech. J. 14(3), Figs. 3 and 7; Baker, R. (1980). Determination of the critical slip surface in slope stability computations. Int. J. Numer. Anal. Meth. Geomech. 4, 333–359; Spencer (1969).",
+    "derived_from": "cSlope verification problem V103 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Soil and slope as in Fredlund & Krahn (1977), Figs. 3 and 7: c′/γh = 0.02, φ′ = 40°, ru = 0.5, slope 26.5°, height 100 ft (30 m); their Spencer analysis of one circle on this slope gives F ≈ 1.065–1.070 where Fm = Ff (θ ≈ 22.5°, Fig. 3) and M-P ≈ 1.058 (constant) and 1.061 (half-sine) (Fig. 7), read from the charts.",
+      "Baker (1980) 1.02 (non-circular critical surface) and Spencer (1969) 1.08 are quoted from commercial program A's verification problem 18, which attributes the problem to Baker (1980) and originally Spencer (1969), and models it with H = 30 m, c′ = 10.8 kPa, γ = 18 kN/m³ (c′/γH = 0.02) and the 10 m extents used here; neither paper was consulted. Commercial program A: Spencer 1.010 (random search with Monte Carlo optimization).",
+      "cSlope: Spencer non-circular 1.008, circular 1.015 (also with a base 20 m below the toe); Bishop circular 1.000; M-P (half-sine) non-circular 0.992.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

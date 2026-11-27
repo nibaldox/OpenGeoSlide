@@ -1,0 +1,11 @@
+[
+  {
+    "id": "V105a",
+    "method": "bishop",
+    "published": 1.285,
+    "published_by": "Commercial program J",
+    "ogs": 1.252417,
+    "cslope": 1.2851,
+    "diagnosis": "La fuente usa aboveWater en Sand with clay, fuera de v0.6 (F6.3). M-SH informó Bishop 1.252417 sin aboveWater frente al publicado 1.285: no reproduce el caso. No se descarta ni se sustituye aboveWater en un caso convertible; retener hasta poder representarlo y verificarlo."
+  }
+]
