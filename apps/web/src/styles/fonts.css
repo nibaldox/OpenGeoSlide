@@ -60,7 +60,8 @@
   unicode-range: U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF;
 }
 
-/* Tipografía base. La mono con cifras tabulares va en las cifras, coordenadas, ids, celdas y campos numéricos (§3.3). */
+/* Tipografía base. La mono con cifras tabulares va en las cifras, coordenadas, ids, celdas y campos numéricos (§3.3).
+   `html:root` sube la especificidad de los campos: los paneles ponen `font: inherit` con `.ep-table input[type='text']`. */
 body {
   font-family: var(--ui-font-sans);
 }
@@ -80,8 +81,8 @@ pre,
 .num,
 .rs-fs,
 .perf-stats dd,
-html input[inputmode='decimal'],
-html input[type='number'] {
+html:root input[inputmode='decimal'],
+html:root input[type='number'] {
   font-family: var(--ui-font-mono);
   font-variant-numeric: tabular-nums;
 }
