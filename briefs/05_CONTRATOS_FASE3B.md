@@ -548,8 +548,10 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
     y los cinco métodos fallan en la primera pasada.
   - **Medición de A** con arranque en 0: Bishop converge en 0,886911 y Janbu en 0,727964, con `m_α` mínimo de 2,3.
   - **Regla nueva, F6.8, punto 1:** `σ′n₀ = max(0, (W/b)·cos²α − u)`. El resto del lazo no cambia.
-    - Donde el arranque viejo convergía, el F convergido no puede moverse más que la tolerancia del lazo. Se comprueba
-      con las 20 filas del producto (≤ 0,001 % frente al prototipo), las 33 de compatibilidad y HAM1.
+    - Donde el arranque viejo convergía, el F convergido no puede moverse más que la tolerancia del lazo (1e-6
+      relativo) frente a su valor anterior. Se comprueba con las 20 filas del producto, las 33 de compatibilidad y HAM1.
+      La fila SB/Bishop del producto ya estaba en +0,001024 % frente al prototipo desde M-HB (`939277a`); su gate es
+      «sin cambio», no «≤ 0,001 %», que era un redondeo.
     - Si una fila sale de su gate, se detiene y se informa.
   - **Sin convergencia** (`hoek_brown_not_converged`), `fos` es `null`, como en los demás `NotConverged`. Hoy queda el
     F de la última pasada.
