@@ -12,11 +12,11 @@
 import type { Material, Point } from '../../engine/types';
 import type { ModelDoc } from '../types';
 import { isFiniteNumber } from './docUtils';
-import { isImperialUnits } from './units';
+import { isImperialUnits, UNIT_FACTORS } from './units';
 
 export interface GeotechAdvisory {
   /** Código estable (`editor.*`). */
-  code: 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated' | 'editor.undrained_ru';
+  code: 'editor.gamma_sat_lt_gamma' | 'editor.ru_over_piezo' | 'editor.piezo_extrapolated' | 'editor.undrained_ru' | 'editor.hoek_brown_ucs';
   text: string;
   /** Puntero JSON al dato que lo causa. */
   path: string | null;
@@ -80,6 +80,14 @@ export function geotechAdvisories(doc: ModelDoc): GeotechAdvisory[] {
 
   for (let i = 0; i < materials.length; i += 1) {
     const m = materials[i] as Material;
+    if (m.model === 'hoek_brown' && isNum(m.ucs)) {
+      const kpa = isImperialUnits(doc.units) ? m.ucs / UNIT_FACTORS.stress : m.ucs;
+      if (kpa < 1000 || kpa > 300000) out.push({
+        code: 'editor.hoek_brown_ucs',
+        text: `Material ${materialName(m)}: σci está fuera del intervalo habitual de 1000 a 300 000 kPa; revise si escribió un valor en MPa en lugar de la unidad de esfuerzo del modelo. No bloquea el cálculo.`,
+        path: `/materials/${i}/ucs`,
+      });
+    }
     if (isNum(m.unit_weight_sat) && isNum(m.unit_weight) && m.unit_weight > 0 && m.unit_weight_sat < m.unit_weight) {
       out.push({
         code: 'editor.gamma_sat_lt_gamma',

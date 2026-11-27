@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { hoekBrownParameters } from '../state/hoekBrown';
 import type { Material, MaterialModel } from '../../engine/types';
 import type { EditorStore, ModelDoc } from '../types';
 import { LabeledField, PanelSection } from './Fields';
@@ -23,7 +24,7 @@ import {
   type UnitLabels,
 } from './forms';
 
-type FieldKey = Exclude<keyof MaterialForm, 'id' | 'model' | 'variable'>;
+type FieldKey = Exclude<keyof MaterialForm, 'id' | 'model' | 'variable' | 'ocrSource' | 'ocrRows'>;
 
 interface FieldSpec {
   key: FieldKey;
@@ -44,6 +45,13 @@ function materialFields(u: UnitLabels, model: MaterialModel, variable: boolean):
     { key: 'unit_weight_sat', label: 'Peso unitario saturado γsat', unit: u.unitWeight, mode: 'decimal', hint: 'Vacío = no definido' },
   ];
   const ru: FieldSpec = { key: 'ru', label: 'Coeficiente de presión de poros ru', mode: 'decimal', hint: 'Vacío = no definido' };
+  if (model === 'hoek_brown') return { before: [...common,
+    { key: 'ucs', label: 'Resistencia σci', unit: u.stress, mode: 'decimal' },
+    { key: 'gsi', label: 'GSI', mode: 'decimal' }, { key: 'mi', label: 'mi', mode: 'decimal' },
+    { key: 'disturbance', label: 'Factor de perturbación D', mode: 'decimal', hint: 'Elija D entre 0 y 1. Guía: 0 para TBM o voladura controlada; 0,5 para desprendimiento sin contrafuerte; 0,8 para voladura muy mala; 0,7 para taludes con voladura controlada o excavación mecánica en mina; 1 para voladura de producción a cielo abierto. Aplique con criterio (Hoek et al., 2002, tabla 1).' }, ru], variable: [], after: [] };
+  if (model === 'shansep') return { before: [...common,
+    { key: 'ratio', label: 'Relación S', mode: 'decimal' },
+    { key: 'exponent', label: 'Exponente m', mode: 'decimal', hint: 'Vacío = 0,8' }, ru], variable: [], after: [] };
   if (model === 'undrained') {
     return {
       before: [...common, { key: 'undrained_strength', label: 'Su', unit: u.stress, mode: 'decimal', hint: 'Resistencia al corte no drenada (φ = 0)' }],
@@ -69,6 +77,35 @@ function materialFields(u: UnitLabels, model: MaterialModel, variable: boolean):
   };
 }
 
+function MaterialExtras({ form, setForm, scope, units, errors, commit }: { form: MaterialForm; setForm: (f: MaterialForm) => void; scope: string; units: UnitLabels; errors: Record<string, string>; commit?: (f: MaterialForm) => void }) {
+  const sourceId = useId();
+  const update = (next: MaterialForm) => { setForm(next); commit?.(next); };
+  if (form.model === 'hoek_brown') {
+    const values = [form.gsi, form.mi, form.disturbance].map(v => v == null || v.trim() === '' ? NaN : Number(v.replace(',', '.')));
+    const [gsi, mi, d] = values;
+    const p = values.every(Number.isFinite) && gsi >= 0 && gsi <= 100 && mi > 0 && d >= 0 && d <= 1 ? hoekBrownParameters(gsi, mi, d) : null;
+    const ucs = Number((form.ucs ?? '').replace(',', '.'));
+    const equivalent = units.stress === 'psf' ? ucs / 144000 : ucs / 1000;
+    return <div><p>σci equivalente: {form.ucs && Number.isFinite(ucs) ? formatNumber(equivalent) : '—'} {units.stress === 'psf' ? 'ksi' : 'MPa'}</p>
+      <p>mb = {p ? formatNumber(p.mb) : '—'}; s = {p ? formatNumber(p.s) : '—'}; a = {p ? formatNumber(p.a) : '—'}</p></div>;
+  }
+  if (form.model !== 'shansep') return null;
+  const rows = form.ocrRows ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }];
+  return <fieldset className="field"><legend>Fuente de OCR</legend>
+    <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select id={sourceId} value={form.ocrSource ?? 'ocr'} onChange={e => update({ ...form, ocrSource: e.target.value as 'ocr' | 'pop' | 'table', ocrRows: rows })}>
+      <option value="ocr">OCR constante</option><option value="pop">POP</option><option value="table">Tabla por cota</option>
+    </select></div>
+    {(form.ocrSource ?? 'ocr') !== 'table' ? <LabeledField scope={scope} label={form.ocrSource === 'pop' ? 'POP' : 'OCR constante'} unit={form.ocrSource === 'pop' ? units.stress : undefined} value={form.ocrSource === 'pop' ? form.pop ?? '' : form.ocr ?? ''} error={errors[form.ocrSource === 'pop' ? 'pop' : 'ocr']} onChange={v => setForm({ ...form, [form.ocrSource === 'pop' ? 'pop' : 'ocr']: v })} onCommit={() => commit?.(form)} /> : <>
+      {rows.map((row, i) => <div className="ep-grid" key={i}>
+        {(['y', 'ocr'] as const).map(k => <LabeledField key={k} scope={`${scope}: fila ${i + 1}`} label={k === 'y' ? 'Cota' : 'OCR'} unit={k === 'y' ? units.length : undefined} value={row[k]} error={errors[`row${i}${k}`]} onChange={v => setForm({ ...form, ocrRows: rows.map((r, j) => i === j ? { ...r, [k]: v } : r) })} onCommit={() => commit?.(form)} />)}
+        <button type="button" disabled={rows.length <= 2} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar fila {i + 1}</button>
+      </div>)}
+      <button type="button" onClick={() => update({ ...form, ocrRows: [...rows, { y: formatNumber(Number(rows[rows.length - 1].y.replace(',', '.')) + 1), ocr: rows[rows.length - 1].ocr }] })}>Agregar fila</button>
+      {errors.ocrRows ? <p className="ep-error">{errors.ocrRows}</p> : null}
+    </>}
+  </fieldset>;
+}
+
 /** Selector del modelo constitutivo con el prefijo para lectores de pantalla («Material arcilla: Modelo»), como los demás campos. */
 function ModelSelect({ scope, value, onChange }: { scope: string; value: MaterialModel; onChange: (model: MaterialModel) => void }) {
   const id = useId();
@@ -83,6 +120,8 @@ function ModelSelect({ scope, value, onChange }: { scope: string; value: Materia
             {o.label}
           </option>
         ))}
+        <option value="hoek_brown">Hoek-Brown</option>
+        <option value="shansep">SHANSEP</option>
       </select>
     </div>
   );
@@ -112,10 +151,12 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
   const outcome = materialFromForm(form, { otherIds, editing: material });
   const errors = outcome.ok ? {} : outcome.errors;
 
-  const commit = (): void => {
-    if (!outcome.ok || materialsEqual(outcome.value, material)) return;
-    store.dispatch(materialUpsertCommand(outcome.value));
+  const commitWith = (next: MaterialForm): void => {
+    const result = materialFromForm(next, { otherIds, editing: material });
+    if (!result.ok || materialsEqual(result.value, material)) return;
+    store.dispatch(materialUpsertCommand(result.value));
   };
+  const commit = (): void => commitWith(form);
   const select = (): void => store.dispatch({ type: 'ui/select', selection: { kind: 'material', materialId: material.id } });
   const remove = materialRemoveCommand(store.getState().doc, material.id);
 
@@ -156,6 +197,7 @@ function MaterialCard({ store, material, index, otherIds, usedBy, units }: {
         ) : null}
         {fields.variable.map(field)}
         {fields.after.map(field)}
+        <MaterialExtras form={form} setForm={setForm} scope={scope} units={units} errors={errors} commit={commitWith} />
       </div>
       <div className="ep-actions">
         <button
@@ -255,6 +297,7 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
         {model === 'undrained' ? <VariableCheckbox scope={NEW_MATERIAL_SCOPE} checked={form.variable === true} onChange={setVariable} /> : null}
         {fields.variable.map(field)}
         {fields.after.map(field)}
+        <MaterialExtras form={form} setForm={setForm} scope={NEW_MATERIAL_SCOPE} units={u} errors={errors} />
       </div>
       <div className="ep-actions">
         <button

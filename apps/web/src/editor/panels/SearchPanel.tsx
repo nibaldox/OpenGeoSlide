@@ -134,6 +134,21 @@ export function SearchPanel({ store }: { store: EditorStore }) {
         />
         Refinar el mínimo por patrones
       </label>
+      <label className="checkbox">
+        <input type="checkbox" checked={form.non_circular ?? false} onChange={e => {
+          const next = { ...form, non_circular: e.target.checked };
+          setForm(next); commitWith(next);
+        }} />
+        Superficie no circular
+      </label>
+      {form.non_circular ? <div className="ep-grid">
+        <LabeledField label="Semillas" value={form.seeds ?? ''} hint="Entero de 1 a 10; vacío = 3" error={err('seeds')} onChange={v => setForm({ ...form, seeds: v })} onCommit={commit} onReset={reset} />
+        <label className="field ep-field"><span>Máximo de vértices</span>
+          <select value={form.max_vertices || '33'} onChange={e => { const next = { ...form, max_vertices: e.target.value }; setForm(next); commitWith(next); }}>
+            <option value="9">9</option><option value="17">17</option><option value="33">33</option>
+          </select>
+        </label>
+      </div> : null}
       <p className="muted small">
         Rejilla: {outcome.ok ? formatCount(searchCandidates(outcome.value)) : '—'} candidatos
         (máximo {formatCount(MAX_GRID_CANDIDATES)}).

@@ -310,6 +310,16 @@ export interface MaterialForm {
   strength_datum?: string;
   strength_gradient?: string;
   strength_limit?: string;
+  ucs?: string;
+  gsi?: string;
+  mi?: string;
+  disturbance?: string;
+  ratio?: string;
+  exponent?: string;
+  ocrSource?: 'ocr' | 'pop' | 'table';
+  ocr?: string;
+  pop?: string;
+  ocrRows?: { y: string; ocr: string }[];
 }
 
 /** Opciones del selector de modelo constitutivo, con las etiquetas de F3.9. */
@@ -334,6 +344,13 @@ export function materialToForm(m: Material): MaterialForm {
     strength_datum: formatNumber(m.strength_datum),
     strength_gradient: formatNumber(m.strength_gradient),
     strength_limit: formatNumber(m.strength_limit),
+    ...(m.model === 'hoek_brown' || m.model === 'shansep' ? {
+      ucs: formatNumber(m.ucs), gsi: formatNumber(m.gsi), mi: formatNumber(m.mi), disturbance: formatNumber(m.disturbance),
+      ratio: formatNumber(m.shansep?.ratio), exponent: formatNumber(m.shansep?.exponent),
+      ocrSource: (m.shansep?.ocr_by_elevation != null ? 'table' : m.shansep?.pop != null ? 'pop' : 'ocr') as 'table' | 'pop' | 'ocr',
+      ocr: formatNumber(m.shansep?.ocr), pop: formatNumber(m.shansep?.pop),
+      ocrRows: m.shansep?.ocr_by_elevation?.map(([y, ocr]) => ({ y: formatNumber(y), ocr: formatNumber(ocr) })) ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }],
+    } : {}),
   };
 }
 
@@ -443,7 +460,7 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
         range: RULE_TEXT.strengthLimit,
       });
     }
-  } else {
+  } else if (model === 'mohr_coulomb') {
     cohesion = take(errors, 'cohesion', form.cohesion, {
       required: true,
       missing: RULE_TEXT.cohesion,
@@ -464,8 +481,31 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
     range: RULE_TEXT.ru,
   });
 
+  const readNew = (key: 'ucs' | 'gsi' | 'mi' | 'disturbance' | 'ratio' | 'exponent' | 'ocr' | 'pop', required: boolean, accept: (n: number) => boolean) =>
+    take(errors, key, form[key] ?? '', { required, missing: `El campo ${key} es obligatorio`, accept: n => finite(n) && accept(n), range: `Valor no válido para ${key}` });
+  let ucs: number | null = null, gsi: number | null = null, mi: number | null = null, disturbance: number | null = null;
+  let ratio: number | null = null, exponent: number | null = null, ocr: number | null = null, pop: number | null = null;
+  let rows: Point[] = [];
+  if (model === 'hoek_brown') {
+    ucs = readNew('ucs', true, n => n > 0); gsi = readNew('gsi', true, n => n >= 0 && n <= 100);
+    mi = readNew('mi', true, n => n > 0); disturbance = readNew('disturbance', true, n => n >= 0 && n <= 1);
+  } else if (model === 'shansep') {
+    ratio = readNew('ratio', true, n => n > 0); exponent = readNew('exponent', false, n => n >= 0 && n <= 1);
+    if ((form.ocrSource ?? 'ocr') === 'ocr') ocr = readNew('ocr', true, n => n >= 1);
+    else if (form.ocrSource === 'pop') pop = readNew('pop', true, n => n >= 0);
+    else {
+      rows = (form.ocrRows ?? []).map((row, i) => {
+        const y = take(errors, `row${i}y`, row.y, { required: true, missing: 'Indique la cota', accept: finite, range: 'Indique una cota finita' });
+        const o = take(errors, `row${i}ocr`, row.ocr, { required: true, missing: 'Indique OCR', accept: n => finite(n) && n >= 1, range: 'OCR debe ser ≥ 1' });
+        return [y ?? 0, o ?? 0];
+      });
+      if (rows.length < 2 || rows.some((r, i) => i > 0 && r[0] <= rows[i - 1][0])) errors.ocrRows = 'La tabla requiere al menos 2 filas con cota estrictamente creciente';
+    }
+  }
   return done(errors, () => {
     const base = { id, name: form.name.trim() === '' ? id : form.name.trim(), model, unit_weight: unitWeight ?? 0, unit_weight_sat: unitWeightSat };
+    if (model === 'hoek_brown') return { ...base, ru, ucs, gsi, mi, disturbance };
+    if (model === 'shansep') return { ...base, ru, shansep: { ratio: ratio ?? 0, ...(exponent !== null ? { exponent } : {}), ...(form.ocrSource === 'pop' ? { pop } : form.ocrSource === 'table' ? { ocr_by_elevation: rows } : { ocr }) } };
     if (model === 'undrained') {
       const out: Material = { ...base, ru, undrained_strength: su ?? 0 };
       if (form.variable === true) {
@@ -487,6 +527,7 @@ export function materialFromForm(form: MaterialForm, ctx: MaterialFormContext): 
 export function switchMaterialModel(material: Material, model: MaterialModel, units?: string): Material {
   if (material.model === model) return material;
   const common = { id: material.id, name: material.name, model, unit_weight: material.unit_weight, unit_weight_sat: material.unit_weight_sat ?? null, ru: material.ru ?? null };
+  if (model === 'hoek_brown' || model === 'shansep') return common;
   if (model === 'undrained') {
     const c = material.cohesion;
     return { ...common, undrained_strength: typeof c === 'number' && c > 0 ? c : defaultUndrainedStrength(units) };
@@ -532,7 +573,9 @@ export function materialsEqual(a: Material, b: Material): boolean {
     (a.undrained_strength ?? null) === (b.undrained_strength ?? null) &&
     (a.strength_datum ?? null) === (b.strength_datum ?? null) &&
     (a.strength_gradient ?? null) === (b.strength_gradient ?? null) &&
-    (a.strength_limit ?? null) === (b.strength_limit ?? null)
+    (a.strength_limit ?? null) === (b.strength_limit ?? null) &&
+    (a.ucs ?? null) === (b.ucs ?? null) && (a.gsi ?? null) === (b.gsi ?? null) && (a.mi ?? null) === (b.mi ?? null) &&
+    (a.disturbance ?? null) === (b.disturbance ?? null) && JSON.stringify(a.shansep ?? null) === JSON.stringify(b.shansep ?? null)
   );
 }
 
@@ -1157,6 +1200,9 @@ export interface SearchForm {
   max_radius_factor: string;
   min_width: string;
   refine: boolean;
+  non_circular?: boolean;
+  seeds?: string;
+  max_vertices?: string;
 }
 
 function rangeToForm(range: readonly [number, number] | null | undefined): RangeForm {
@@ -1173,6 +1219,7 @@ export function searchToForm(spec: SearchSpec): SearchForm {
     max_radius_factor: formatNumber(spec.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor),
     min_width: formatNumber(spec.min_width),
     refine: spec.refine ?? SEARCH_DEFAULTS.refine,
+    ...(spec.non_circular != null ? { non_circular: true, seeds: formatNumber(spec.non_circular.seeds), max_vertices: formatNumber(spec.non_circular.max_vertices) } : {}),
   };
 }
 
@@ -1239,6 +1286,8 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
     accept: (v) => finite(v) && v >= 0,
     range: RULE_TEXT.minWidth,
   });
+  const seeds = form.non_circular ? take(errors, 'seeds', form.seeds ?? '', { required: false, missing: '', accept: v => Number.isInteger(v) && v >= 1 && v <= 10, range: 'Semillas: use un entero entre 1 y 10' }) : null;
+  const vertices = form.non_circular ? take(errors, 'max_vertices', form.max_vertices ?? '', { required: false, missing: '', accept: v => [9, 17, 33].includes(v), range: 'Vértices: use 9, 17 o 33' }) : null;
   return done(errors, () => ({
     type: 'circular_entry_exit',
     entry,
@@ -1249,6 +1298,7 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
     max_radius_factor: factor ?? SEARCH_DEFAULTS.max_radius_factor,
     min_width: minWidth,
     refine: form.refine,
+    ...(form.non_circular ? { non_circular: { ...(seeds !== null ? { seeds } : {}), ...(vertices !== null ? { max_vertices: vertices } : {}) } } : {}),
   }));
 }
 
@@ -1268,6 +1318,7 @@ export function searchesEqual(a: SearchSpec, b: SearchSpec): boolean {
     (a.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor) ===
       (b.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor) &&
     (a.min_width ?? null) === (b.min_width ?? null) &&
+    JSON.stringify(a.non_circular ?? null) === JSON.stringify(b.non_circular ?? null) &&
     (a.refine ?? SEARCH_DEFAULTS.refine) === (b.refine ?? SEARCH_DEFAULTS.refine)
   );
 }
@@ -1311,6 +1362,7 @@ export const BISHOP_POLYLINE_NOTE =
 
 /** Motivo por el que un método no se puede marcar con el documento actual, o `null` si se puede. */
 export function methodDisabledReason(method: MethodKind, analysis: Pick<AnalysisSettings, 'surface' | 'search'>): string | null {
+  if (method === 'bishop' && analysis.search?.non_circular) return 'el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)';
   return method === 'bishop' && isFixedPolyline(analysis) ? BISHOP_POLYLINE_NOTE : null;
 }
 
