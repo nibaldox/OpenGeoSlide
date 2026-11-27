@@ -595,14 +595,25 @@ Estos criterios son gates de cada ola (`slope-stability-lem-engine` §3):
   - **Caras** (E16r). En las caras de `hoek_brown` y `shansep`, σv(y) suma el peso del agua embalsada
     `γw·max(0, piezo − top)`, porque u(y) ya cuenta esa columna de agua. Se aplica solo a esa rama; la rama lineal no
     cambia (F6.1).
-    - **Prueba de Arquímedes:** una capa seca con γ′ y la misma capa sumergida con γ, γw y el embalse dan el mismo FS
-      con tolerancia 1e-6. Las caras sumergidas no emiten `interslice_shear_exceeds_strength`.
+    - **Prueba de Arquímedes, sobre la cara:** una capa seca con γ′ y la misma capa sumergida con γ, γw y el embalse
+      dan la misma capacidad de cara (`∫ τ dz`) con tolerancia 1e-9 relativa, cara por cara.
+    - **Sin exigencia sobre el FS.** El FS de equilibrio límite no es invariante: la formulación en tensiones totales
+      reparte distinto las fuerzas entre dovelas. Lo midió el coordinador con un material no drenado de Mohr-Coulomb
+      (c = 15 kPa, φ = 0): seco 1,765726 y sumergido 1,768293 con Spencer, el mismo +0,15 % que con SHANSEP
+      (1,281109 frente a 1,282972).
+    - **El aviso `interslice_shear_exceeds_strength`** puede seguir saliendo en el caso sumergido. Si la capacidad de
+      cara es igual, la diferencia viene de X = λ·f·E, con E total, y se documenta con las cifras de X y de la capacidad
+      en las caras que lo emiten.
   - **POP.** `Su = ratio·σ′v^(1−m)·(σ′v + pop)^m`, que es la misma expresión de F6.9 sin el cociente, para σ′v > 0.
     σ′v ≤ 0 sigue dando Su = 0 y la nota `shansep_nonpositive_stress`.
   - **Finitud.** Si Su (en la base o en una cara) o la cohesión equivalente no son finitas, el modelo es inválido:
     `InvalidModel` con el texto «la resistencia SHANSEP del material '<id>' no es finita (revise shansep.ocr, pop u
     ocr_by_elevation)».
-  - **Prueba:** `ocr` = 1e308 da código 2, con ese mensaje.
+  - **Propagación.** En la búsqueda, el evaluador guarda el primer error de finitud, en el orden de evaluación, y el
+    análisis termina con ese `InvalidModel`, en lugar de descartar el candidato en silencio. Se permite tocar `lib.rs`
+    solo en ese camino.
+  - **Prueba:** `ocr` = 1e308 con superficie fija da código 2 con ese mensaje. Lo mismo con una búsqueda con
+    `ratio` = 10, `pop` = 1e308 y `exponent` = 1, que da Su = ∞.
 
 - **E16z, la verificación y el esquema (R15A-05, R15A-09, R15A-11, R15C-02, R15C-03, 2026-11-27).**
   - **Archivos de la batería.** `cases_f3b/F3B-NC-V001` y `F3B-NC-V034a` quitan `analysis.interslice`, que la CLI
