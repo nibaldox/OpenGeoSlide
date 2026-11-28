@@ -7,8 +7,8 @@ v0.5, publicado con la 0.4.0, con el bloque F3B de Hoek-Brown, SHANSEP y búsque
 0.5.0, y con la búsqueda global no circular del bloque CM: formato v0.7, aún sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l), más lo que corrigió la revisión R15 del bloque F3B
-(enmiendas E16v a E16z), más lo que cierra el bloque CM (contrato `briefs/06_CONTRATOS_CM.md`, enmiendas E17a a E17d;
-[`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)). El resumen está en el
+(enmiendas E16v a E16z), más lo que cierra el bloque CM (contrato `briefs/06_CONTRATOS_CM.md`, enmiendas E17a a E17f, con la
+revisión adversarial RCM; [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
 
 ## Alcance: lo que la versión actual no hace
@@ -26,7 +26,7 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
   cambia con la semilla) y **no se ofrece con Bishop**. El bloque sobre capas débiles necesita contactos entre regiones, y si
   no los hay recurre al recocido. **La guarda de tracción puede dejar sin tomar un FS menor** (y lo avisa con
   `non_circular_global_tension_rejected`). Tres de los 24 taludes homogéneos del barrido no tienen círculo semilla elegible
-  y quedan sin etapa global. El costo llega a unas 4 veces el circular (mediana 1,55; máximo 3,81 medido). Los detalles están
+  y quedan sin etapa global. El costo llega a unas 4 veces el circular (mediana 1,56; máximo 3,81 medido). Los detalles están
   [más abajo](#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no).
 - **Cuatro modelos de resistencia:** Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción, con `unit_weight_sat`
   y `ru` opcionales), **no drenado** (φ = 0, Su constante o lineal con la cota), **Hoek-Brown** (roca fracturada; v0.6) y
@@ -310,8 +310,9 @@ global no circular, con un pulido final
   `su_by_stress`, `anisotropy`, `yield_from_earlier_stage`, `above_water` y `b_bar`.
 - **V105a** (SHANSEP con `aboveWater`), **V002** (búsqueda no circular con la rama de tracción de E12e) y **V009c** (el
   aviso `interslice_shear_exceeds_strength`, como V009a y V009b): retenidos en `verification/pending/F3B/HOLD.json`, con
-  su causa. Con los de las demás carpetas de `verification/pending/`, son **18 checks en 12 casos** antes del bloque CM
-  (⟨RETENIDOS⟩ después; véase `verification/pending/INDEX.md`).
+  su causa. Con los de las demás carpetas de `verification/pending/`, son **18 checks en 12 casos**, los mismos antes y
+  después del bloque CM: el lote CM promovió sus 9 checks y no retiene ninguno (`verification/pending/CM/HOLD.json` está
+  vacío; véase `verification/pending/INDEX.md`).
 - **El ejemplo 2 de Hammah et al. (2005)**, que no se reprodujo (X23 §3.2). El ejemplo 1 (HAM1) sí, con su geometría reconstruida.
 - **Un pulido sin generador.** El pulido de la v0.7 solo corre si gana la etapa global. El refinamiento de la v0.6 sigue sin
   pulido final (cSlope lo usa y cuesta 3,6 veces más, X29 §5).
@@ -1002,18 +1003,21 @@ Las cifras de abajo son las de [`verification/global/REPORT.md`](../verification
 
 - **No es una búsqueda exhaustiva ni halla «el» mínimo global.** Evalúa 500 candidatos admisibles por defecto (de 50 a 2000) y
   refina uno. El resultado depende de la semilla: en V053, con las semillas 0 a 47, el FS va de 1,0029 a 1,0239 (mediana
-  1,0077), y en S2, de 0,7416 a 0,8051 (mediana 0,7588). Las 48 caen dentro de la banda publicada de V053 (≤ 1,0453), y la
+  1,0077), y en S2, de 0,7416 a 0,8051 (mediana 0,7611). Las 48 caen dentro de la banda publicada de V053 (≤ 1,0453), y la
   búsqueda de cSlope da 1,0061 y 0,7156. Con la misma semilla, el resultado es el mismo. **Más candidatos no garantizan un FS
   menor:** con 100 candidatos, V053 da 1,0079.
 - **El resultado nunca empeora.** El refinamiento de la v0.6 se calcula siempre, sin cambios, y la etapa global solo lo
-  reemplaza si da un FS estrictamente menor y su superficie es elegible. En 52 resultados de la batería, ninguno quedó sobre su
-  FS sin `global`, y `global` ganó en 19. Con el recocido, en los 24 taludes homogéneos, la mejora es pequeña (hasta 0,14 %).
+  reemplaza si da un FS estrictamente menor y su superficie es elegible. En 57 resultados de la batería, ninguno quedó sobre su
+  FS sin `global`, y `global` ganó en 21. Con el recocido, en los 24 taludes homogéneos, la mejora es pequeña (hasta 0,14 %).
 - **No se ofrece con Bishop.** Igual que con `non_circular`: el FS de Bishop en una superficie no circular depende de un eje de
   momentos sin significado físico. Con `global` y Bishop, el motor da error y la web deshabilita Bishop.
-- **El bloque necesita contactos entre regiones.** Con `algorithm: "auto"`, el motor elige `block` solo si el modelo tiene
-  aristas de contacto entre regiones. Si no las tiene (un talud homogéneo), o si el bloque no da ningún candidato admisible,
-  recurre al `annealing`. Un `block` explícito sin contactos usa las «bases» del modelo y **no** recurre al recocido: si no hay
+- **El bloque necesita contactos entre regiones.** Con `algorithm: "auto"`, el motor elige `block` solo si la capa elegida
+  tiene aristas de contacto entre regiones. Si no las tiene (un talud homogéneo), o si el bloque no da ningún candidato
+  admisible, recurre al `annealing`. Un `block` explícito sin contactos usa las «bases» del modelo y **no** recurre al recocido: si no hay
   candidatos, sale la nota `non_circular_global_no_candidates`.
+- **La capa débil se elige con la resistencia efectiva en σ′v = γ·z·(1 − ru).** Compiten Mohr-Coulomb, `undrained`,
+  Hoek-Brown y SHANSEP, y `auto` decide por las aristas de la capa elegida. La resistencia se evalúa en una sola profundidad por
+  región, la del centroide: el motor no recorre el perfil de la región.
 - **Los taludes sin círculo semilla elegible quedan sin etapa global efectiva.** El recocido parte de la polilínea del círculo
   semilla 1, y la guarda debe aceptarla. De los 24 taludes homogéneos del barrido hay tres: TAL-H30-b60-f35-c5
   (`evaluated` = 0, y ya en la v0.6 el refinamiento sale con `non_circular_not_refined`), TAL-H30-b60-f20-c30 y
@@ -1023,16 +1027,18 @@ Las cifras de abajo son las de [`verification/global/REPORT.md`](../verification
   `negative_effective_normal_major` no es elegible. Es una guarda conservadora frente a un FS falso y bajo: en V051, sin ella,
   el generador toma una superficie con 0,630, y cSlope la evalúa en 1,048. Con la guarda, V051 queda en 0,7071 (el publicado
   es 0,707). La contrapartida es que puede rechazar una superficie válida: en el prototipo X37, S2 con el bloque daba λ < 0 aunque
-  cSlope la confirmaba a 0,2 %, y la guarda la deja fuera. Cuando la guarda rechaza una superficie con un FS menor que el reportado, el motor emite
-  `non_circular_global_tension_rejected`: existe un FS menor en la rama con tracción y no se tomó. **Qué hacer:** compare con
-  la búsqueda circular de Bishop y revise N′ por dovela.
+  cSlope la confirmaba a 0,2 %, y la guarda la deja fuera. Cuando la guarda rechaza una superficie con un FS menor que el reportado, en cualquier parte de la
+  etapa global (generación, refinamiento o pulido), el motor emite `non_circular_global_tension_rejected`: existe un FS menor
+  en la rama con tracción y no se tomó. **El contador `tension_rejected` cuenta solo la generación,** así que la nota puede
+  salir con el contador en 0. **Qué hacer:** compare con la búsqueda circular de Bishop y revise N′ por dovela.
 - **El refinamiento de la v0.6 conserva su comportamiento con λ < 0** (V002 y E16u, [arriba](#búsqueda-no-circular-v06)). La
   guarda vale solo para las superficies del generador.
-- **El costo.** El tiempo con `global` y 500 candidatos fue, frente al circular, de **1,55 veces** (mediana) a **3,81 veces**
-  (máximo, V026-nc) en 50 modelos (nativo, mediana de 3 corridas por modelo). En WebAssembly sobre V8 de Node, la razón fue de
-  2,87 en V053 y de 1,97 en S2, y el FS coincidió con el nativo a 7e-16. **No se midió en Chrome** (el coordinador lo mide al
-  integrar). El motor no promete la igualdad bit a bit entre el nativo y WASM. Con los valores por defecto, la etapa global evalúa
-  a lo sumo 5690 candidatos (el máximo medido fue 4064).
+- **El costo.** El tiempo con `global` y 500 candidatos fue, frente al circular, de **1,56 veces** (mediana) a **3,81 veces**
+  (máximo, V026-nc, a 0,19 del tope de 4) en 55 modelos (nativo, mediana de 3 corridas por modelo). En Chrome real
+  (HeadlessChrome 158, el WASM de la web), la razón fue de **2,83 en V053** (0,373 s a 1,057 s) y de **1,94 en S2** (0,351 s a
+  0,680 s), y el FS coincidió con el del nativo a 1,8e-14 o menos. El motor no promete la igualdad bit a bit entre el nativo y
+  WASM. Con los valores por defecto, la etapa global evalúa a lo sumo 5690 candidatos (unos 5700; el máximo medido fue 4064).
+  El tope de 4 veces se midió en esos 55 modelos; no es una garantía para otro.
 - **No hay *path search* ni PSO.** El contrato descartó el recorrido de rutas porque no mejoró ningún caso válido y es el más
   caro. Tampoco hay enjambre de partículas.
 - **El pulido solo corre si gana la etapa global.** El refinamiento de la v0.6, que se calcula siempre, sigue sin pulido final.
@@ -1042,9 +1048,16 @@ Las cifras de abajo son las de [`verification/global/REPORT.md`](../verification
   semillas pasaban la banda; con la final, pasan las 48.
 - **Con varios métodos, cada uno corre su propia etapa global.** El costo se suma por método.
 
+- **Los enteros, los arreglos y los enums.** Un entero escrito como `50.0` es inválido en el motor (el esquema lo acepta), como
+  ya pasa con `slices` y `seeds`. `global` y `non_circular` solo admiten un objeto: un arreglo es `InvalidModel`. Un enum con
+  el tipo equivocado (`algorithm: 123`) da `Json: el texto no es un JSON válido` y no `InvalidModel`, igual que los enums de
+  la v0.6; está abierto como mensaje impreciso ([formato](formato-ogs-json.md#campos)).
+- **`max_vertices` acota la etapa global,** también con `global`: en V053, con `max_vertices: 9`, la polilínea ganadora tiene 9
+  vértices y el FS es 1,0194 (1,0103 con 33).
+
 **Casos publicados.** Los 9 checks no circulares de F7.6 (V036c, V036d, V039 ×2, V041a, V041b, V051 y V098 con
-`non_circular`, y V053 con `global: {}`) pasan a `verification/cases`. Si alguno no pasa la banda con el motor final, queda en
-`verification/pending/CM/HOLD.json`, con su causa; el recuento está en
+`non_circular`, y V053 con `global: {}`) pasan a `verification/cases`: **9 de 9 promovidos y ninguno retenido**
+(`verification/pending/CM/HOLD.json` está vacío). El recuento está en
 [Verificación](verificacion.md#búsqueda-global-no-circular-v07).
 
 ## Web: lo que se corrigió en el bloque CM y lo que sigue abierto
@@ -1063,9 +1076,40 @@ próxima versión):
 - **Guiones e2e (0.5.1):** `u3o_onboarding`, `u6d_drafts`, `w1e_polilinea` y `r2i2_tablestaca_inclinada` pasan. La regresión
   tiene 51 guiones, con OK = 1302 y FAIL = 0 (en la base de la 0.5.1: OK = 1226 y FAIL = 2, y dos guiones cortados).
 
-Lo que sigue abierto está en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md): en particular, **la compuerta de los 5 minutos no se
-cierra sin el protocolo humano**, que mide el usuario. Las limitaciones del motor de la 0.5.0 (V002, Hoek-Brown en bajo
-confinamiento, la curvatura convexa acumulada y las demás de arriba) siguen vigentes.
+Después de la revisión adversarial RCM (lente B), la web corrigió además:
+
+- **Informe PDF:** la semilla global sale entera (`9007199254740991`, no `9007200000000000`); la figura dibuja la superficie del
+  método que rige (la del lienzo y el recuadro), no la del primero que convergió; los rótulos de carga quedan dentro del
+  recuadro; y la tabla «Búsqueda global» no parte «Morgenstern-Price». Con varios métodos y el mínimo en otro que el primero,
+  **el PDF cambia frente a la v0.4.0** (cinco modelos de los guiones de identidad): es una excepción declarada
+  (E17f §2), no un cambio oculto.
+- **Salidas:** el recuadro del FS lleva una línea «Búsqueda global: ganó (bloque)», «…(recocido)», «no mejoró el refinamiento» o
+  «sin candidatos», con una marca de aviso si salió `non_circular_global_tension_rejected`; el chip de convergencia parcial
+  lleva el FS mínimo; la tabla del refinamiento dice «Polilínea (global)» cuando la polilínea viene de la búsqueda global; la
+  Ayuda describe el descarte sucesivo y la nota de tracción, y la leyenda de atajos dice que Ctrl+Intro, Ctrl+S y Ctrl+O
+  también actúan dentro de un campo de texto.
+- **Editor:** un `algorithm` de `global` fuera de `auto`, `block` y `annealing` se rechaza al abrir el archivo (antes se
+  mostraba como «Automático» y una edición no relacionada lo borraba); los 7 ejemplos destacados tienen como nombre accesible
+  su texto visible (WCAG 2.5.3) y el filtro tiene su etiqueta; «Nuevo material» se reinicia con cada documento; la tabla de OCR
+  por cota de SHANSEP bloquea «Agregar fila» y «Quitar» con una fila pendiente y no inserta filas vacías; y deshacer la
+  importación sobre el modelo de arranque restaura el rótulo «Ejemplo» y el estado limpio.
+
+**Lo que sigue abierto** en la web:
+
+- **Rótulos de carga apilados en el lienzo.** En V051, con varias sobrecargas cercanas, los rótulos `q = …` del lienzo se
+  apilan unos sobre otros y se leen mal. El informe PDF ya no tiene el defecto.
+- **La versión en memoria es un piso, no la mínima.** `doc.version` sube cuando un campo la exige y nunca baja; al desmarcar
+  «Búsqueda global», el documento en memoria queda en 0.7 y el archivo que se guarda, en 0.6 (el archivo y el motor reciben
+  siempre la versión mínima de los campos). Es una decisión, no un defecto del archivo, pero la versión que se ve en memoria
+  puede no coincidir con la que se guarda (RCM-B-14; [formato](formato-ogs-json.md#versión-mínima-07)).
+- **Mensajes de enum con el tipo equivocado.** Un `algorithm` numérico, o un método o una función entre dovelas con un número,
+  da `Json: el texto no es un JSON válido` y no `InvalidModel` (RCM-A-09). El motor da ese mensaje impreciso; el documento sí
+  se rechaza.
+- **La compuerta de los 5 minutos no se cierra sin el protocolo humano**, que mide el usuario
+  ([`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)).
+
+Las limitaciones del motor de la 0.5.0 (V002, Hoek-Brown en bajo confinamiento, la curvatura convexa acumulada y las demás de
+arriba) siguen vigentes.
 
 ## Avisos geotécnicos de la aplicación
 
