@@ -9,6 +9,7 @@ import { UNIT_FACTORS, WATER_UNIT_WEIGHT_SI, isImperialUnits } from '../editor/s
 import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
+import { GLOBAL_DEFAULTS, globalAlgorithmLabel, globalWinnerLabel } from '../engine/globalSearch';
 import type { CrackReport, Load, MaterialModel, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, ShansepSpec, Slice } from '../engine/types';
 import { describeWarning, warningContext } from '../engine/warnings';
 import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
@@ -498,6 +499,17 @@ function modelSection(model: ModelDoc): ReportSection {
         ['Semillas no circulares', dflt(nc.seeds, fmtParam(nc.seeds ?? 3))],
         ['Vértices máximos (polilínea)', dflt(nc.max_vertices, fmtParam(nc.max_vertices ?? 33))],
       );
+      // F7.5: la búsqueda global (v0.7). Los valores por defecto salen de la constante compartida.
+      if (nc.global) {
+        const g = nc.global;
+        rows.push(
+          ['Búsqueda global', 'Sí (bloque sobre capas débiles o recocido, con refinamiento y pulido)'],
+          ['Algoritmo global', dflt(g.algorithm, globalAlgorithmLabel(g.algorithm ?? GLOBAL_DEFAULTS.algorithm))],
+          ['Candidatos globales', dflt(g.generated, fmtParam(g.generated ?? GLOBAL_DEFAULTS.generated))],
+          ['Semilla global', dflt(g.seed, fmtParam(g.seed ?? GLOBAL_DEFAULTS.seed))],
+          ['Pulido global', dflt(g.polish, (g.polish ?? GLOBAL_DEFAULTS.polish) ? 'Sí' : 'No')],
+        );
+      }
     }
   } else if (a.surface && a.surface.type === 'polyline') {
     rows.push(['Superficies', 'Polilínea fija'], ['Puntos de la polilínea', String(a.surface.points.length)]);
@@ -686,6 +698,30 @@ function nonCircularStatsTable(results: MethodReport[]): ReportBlock | null {
   };
 }
 
+/** Tabla de estadísticas de la búsqueda global por método (F7.2, F7.5); no existe si ningún método la trae. */
+function globalStatsTable(results: MethodReport[]): ReportBlock | null {
+  const withGlobal = results.filter((r) => r.search?.non_circular?.global !== undefined);
+  if (withGlobal.length === 0) return null;
+  return {
+    kind: 'table',
+    title: 'Búsqueda global',
+    header: ['Método', 'Algoritmo', 'Generados', 'Elegibles', 'Rechazados por tracción', 'Evaluaciones', 'FS global', 'Superficie ganadora'],
+    rows: withGlobal.map((r) => {
+      const g = r.search!.non_circular!.global!;
+      return [
+        METHOD_LABEL[r.method],
+        globalAlgorithmLabel(g.algorithm),
+        String(g.generated),
+        String(g.eligible),
+        String(g.tension_rejected),
+        String(g.evaluated),
+        g.global_fos == null ? 'Sin superficie elegible' : fmt(g.global_fos, 3),
+        globalWinnerLabel(g.winner),
+      ];
+    }),
+  };
+}
+
 /** Las dos polilíneas son la misma salvo ruido de coma flotante (1e-9 de la mayor coordenada). */
 function samePolyline(a: readonly Point[], b: readonly Point[]): boolean {
   if (a.length !== b.length) return false;
@@ -758,6 +794,8 @@ function resultsSection(results: MethodReport[], model: ModelDoc): ReportSection
   ];
   const ncTable = nonCircularStatsTable(results);
   if (ncTable) blocks.push(ncTable);
+  const globalTable = globalStatsTable(results);
+  if (globalTable) blocks.push(globalTable);
   const fitted = fittedPolylineTables(results, model);
   blocks.push(...fitted);
   const params = methodParameterRows(results);

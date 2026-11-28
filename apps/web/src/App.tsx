@@ -69,7 +69,8 @@ function errorMessage(error: unknown): string {
 export function describeAnalysis(model: Model): string {
   const parts: string[] = [];
   if (model.analysis.search) {
-    parts.push(model.analysis.search.non_circular ? 'búsqueda de superficie crítica (no circular)' : 'búsqueda de superficie crítica');
+    const nc = model.analysis.search.non_circular;
+    parts.push(nc ? (nc.global ? 'búsqueda de superficie crítica (no circular, global)' : 'búsqueda de superficie crítica (no circular)') : 'búsqueda de superficie crítica');
   } else if (model.analysis.surface) parts.push(model.analysis.surface.type === 'polyline' ? 'superficie fija (polilínea)' : 'superficie fija');
   parts.push(`${model.materials.length} material(es)`);
   parts.push(`${model.regions.length} región(es)`);
