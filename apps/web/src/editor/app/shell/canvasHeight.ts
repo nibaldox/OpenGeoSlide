@@ -1,6 +1,8 @@
 // UA-E6: alto del lienzo móvil medido con JS. Hasta 760 px la página se apila y el pie de acción es fijo abajo: el alto del
 // lienzo se calcula para que la paleta (que va justo debajo del SVG) termine encima del pie a scroll 0. Un alto fijo en CSS no
-// puede contar el alto variable de los avisos, del HUD ni del pie. Este archivo no importa React: la fórmula es pura y
+// puede contar el alto variable de los avisos, del HUD ni del pie. Cuando no cabe (alto disponible bajo el mínimo por más que el
+// margen), la paleta se baja entera bajo el borde del pie, para alcanzarla con scroll: nunca queda a medias bajo el pie (CM-WB).
+// Este archivo no importa React: la fórmula es pura y
 // `attachCanvasHeight` solo habla con las interfaces mínimas del DOM que usa, de modo que se prueba en Node con dobles.
 
 import { MOBILE_MAX_PX } from './layout';
@@ -23,6 +25,8 @@ export interface CanvasHeightInput {
   svgTop: number;
   /** Alto de la paleta más sus márgenes verticales. */
   paletteH: number;
+  /** Solo el margen superior de la paleta (ya contado en `paletteH`): lo que separa el SVG del borde de la paleta. 0 si no se mide. */
+  paletteTopMargin?: number;
   margin?: number;
   min?: number;
 }
@@ -34,9 +38,24 @@ export function canvasHeightRaw(i: CanvasHeightInput): number {
   return finite(i.viewportH) - finite(i.footH) - (i.margin ?? CANVAS_MARGIN_PX) - finite(i.svgTop) - finite(i.paletteH);
 }
 
-/** `alto = max(MIN, innerHeight − alto del pie − margen − top del SVG en el documento − alto de la paleta y sus márgenes)`. */
+/**
+ * Alto del SVG para que, a scroll 0, la paleta no cruce el borde superior del pie.
+ *
+ * - Cabe (`alto disponible ≥ MIN − margen`): `max(MIN, alto disponible)`. Con hasta `margen` px de déficit la paleta aún
+ *   termina encima del pie (el margen es justo el aire que se le deja).
+ * - No cabe: la paleta se baja **entera** bajo el borde del pie, `max(MIN, innerHeight − pie − top del SVG − margen superior de
+ *   la paleta)`. Queda oculta a scroll 0 y se alcanza con scroll; nunca a medias.
+ */
 export function canvasHeightPx(i: CanvasHeightInput): number {
-  return Math.max(i.min ?? CANVAS_MIN_PX, Math.floor(canvasHeightRaw(i)));
+  const min = i.min ?? CANVAS_MIN_PX;
+  const raw = Math.floor(canvasHeightRaw(i));
+  if (raw >= min - (i.margin ?? CANVAS_MARGIN_PX)) return Math.max(min, raw);
+  return Math.max(min, canvasHeightPush(i));
+}
+
+/** Alto con el que la paleta empieza justo en el borde superior del pie (o más abajo): queda entera bajo el pie. */
+export function canvasHeightPush(i: CanvasHeightInput): number {
+  return Math.ceil(finite(i.viewportH) - finite(i.footH) - finite(i.svgTop) - finite(i.paletteTopMargin ?? 0));
 }
 
 /** Píxeles que faltan para llegar a `min` (0 si cabe): con ese déficit la paleta cruza el pie a scroll 0. */
@@ -89,7 +108,7 @@ export interface CanvasMetrics extends CanvasHeightInput {
   laidOut: boolean;
 }
 
-/** Lee del DOM las cuatro medidas de la fórmula. */
+/** Lee del DOM las medidas de la fórmula. */
 export function readCanvasMetrics(card: CardLike, win: WinLike): CanvasMetrics {
   const cardRect = card.getBoundingClientRect();
   const svg = card.querySelector(SVG_SELECTOR);
@@ -98,11 +117,13 @@ export function readCanvasMetrics(card: CardLike, win: WinLike): CanvasMetrics {
   // Sin SVG (estado de carga) el borde de la tarjeta es el del lienzo: `.ec-empty` y el SVG nacen en su esquina superior.
   const top = (svg ? svg.getBoundingClientRect().top : cardRect.top) + win.scrollY;
   let paletteH = 0;
+  let paletteTopMargin = 0;
   if (palette) {
     const cs = win.getComputedStyle(palette as never);
-    paletteH = palette.getBoundingClientRect().height + px(cs.marginTop) + px(cs.marginBottom);
+    paletteTopMargin = px(cs.marginTop);
+    paletteH = palette.getBoundingClientRect().height + paletteTopMargin + px(cs.marginBottom);
   }
-  return { viewportH: win.innerHeight, footH: foot ? foot.getBoundingClientRect().height : 0, svgTop: top, paletteH, laidOut: cardRect.height > 0 };
+  return { viewportH: win.innerHeight, footH: foot ? foot.getBoundingClientRect().height : 0, svgTop: top, paletteH, paletteTopMargin, laidOut: cardRect.height > 0 };
 }
 
 /**

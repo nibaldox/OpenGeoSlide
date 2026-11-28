@@ -2,7 +2,7 @@
 // elige los márgenes de `fitInsets` que dan la mayor escala sin tapar el modelo, y reencuadra solo si el usuario no movió la vista.
 
 import type { FitInsets } from '../../canvas/EditorCanvas';
-import { fitToDocInsets, insetsFeasible } from '../../canvas/viewportOps';
+import { docBounds, fitToDocInsets, insetsFeasible } from '../../canvas/viewportOps';
 import type { ModelDoc } from '../../types';
 import type { Viewport } from '../../../geometry/viewport';
 
@@ -96,6 +96,17 @@ export function sameViewport(a: Viewport, b: Viewport): boolean {
  */
 export function isLastAutoFit(current: Viewport | null, lastAuto: Viewport | null): boolean {
   return current !== null && lastAuto !== null && sameViewport(current, lastAuto);
+}
+
+/**
+ * Clave de la caja del modelo que usa el encuadre (regiones y piezométrica, `docBounds`): cambia solo cuando una edición mueve un
+ * extremo de esa caja. Mover un vértice interior no la cambia y no pide reencuadrar (CM-WB, X34 §3). `''` si no hay regiones: sin
+ * modelo no hay nada que encuadrar.
+ */
+export function modelBoundsKey(doc: ModelDoc): string {
+  if (doc.regions.length === 0) return '';
+  const b = docBounds(doc);
+  return `${b.minX}|${b.maxX}|${b.minY}|${b.maxY}`;
 }
 
 /** Caja de un rectángulo de pantalla relativa a un origen (la esquina interior de la tarjeta del lienzo). */

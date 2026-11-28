@@ -1042,3 +1042,124 @@
     grid-column: auto;
   }
 }
+
+/* ───────── Pantallas estrechas (≤ 360 px): cabecera y avisos compactos (CM-WB) ─────────
+   A 320 × 568 la cabecera de la app (185 px), la del lienzo (108 px) y los avisos (64-79 px) dejaban al lienzo en su mínimo con la
+   paleta cruzando el pie fijo (X34 §2). Aquí la cabecera pasa a dos filas (marca + chip, y los cuatro botones en una fila), la
+   cabecera del lienzo a título + pestañas sin aire de más, y cada aviso a una línea con elipsis. Solo cambia el CSS: el markup, los
+   nombres accesibles y los objetivos de 40 px son los de siempre. */
+@media (max-width: 360px) {
+  .ua-header {
+    gap: 6px 8px;
+    padding: 6px 10px;
+  }
+  /* Fila 1: la marca no se encoge y el chip toma el resto del ancho (con elipsis; el `title` lleva el texto completo). */
+  .ua-brand {
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+  }
+  .ua-brand h1 {
+    font-size: 17px;
+  }
+  .ua-chip-slot {
+    flex: 1 1 0;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  /* Fila 2: Ayuda, tema, Archivo y Exportar (más «Instalar» si el navegador lo ofrece) en una sola fila de 40 px. */
+  .ua-header-actions {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .ua-header :is(.help-button, .install-button, .dd-trigger) {
+    flex: none;
+    gap: 4px;
+    padding: 0 8px;
+  }
+  .ua-header :is(.help-button, .install-button) {
+    padding: 0;
+  }
+
+  /* Cabecera del lienzo: título y pestañas, sin el aire de la versión ancha. */
+  .ua-main-head {
+    gap: 2px;
+    padding: 6px 14px 0;
+  }
+  .ua-title {
+    min-height: 40px;
+  }
+  .ua-title h2 {
+    font-size: 18px;
+  }
+  .ua-panels {
+    padding-top: 8px;
+  }
+  .ua-canvas-card .ec-palette {
+    margin-top: 6px;
+  }
+
+  /* Avisos: una línea por aviso, con elipsis. El texto completo sigue en el DOM (nombre accesible del aviso) y los avisos con botones
+     («Cerrar», «Recuperar») lo despliegan con el foco de teclado (`:focus-visible`: un toque no lo agranda a media pulsación). */
+  .ua-notices {
+    padding: 6px 10px 0;
+  }
+  .ua-notices .ea-notice-bar {
+    margin: 0 0 6px;
+  }
+  .ua-notices .ea-notice-bar .ea-notices {
+    margin: 0;
+  }
+  .ua-notices .ea-notice-bar .ea-notice + .ea-notice {
+    margin-top: 4px;
+  }
+  .ua-notices .ea-notice-bar .ea-notice,
+  .ua-notices .banner.ea-draft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 0 0 6px;
+    padding-block: 0;
+    padding-inline: 12px 0;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .ua-notices .ea-notice-bar .ea-notice {
+    margin: 0;
+  }
+  .ua-notices .ea-notice-bar .ea-notice > span,
+  .ua-notices .banner.ea-draft > span {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ua-notices .ea-notice-bar .ea-notice > button,
+  .ua-notices .banner.ea-draft > button {
+    flex: none;
+  }
+  .ua-notices .ea-notice-bar .ea-notice:has(:focus-visible),
+  .ua-notices .banner.ea-draft:has(:focus-visible) {
+    padding-block: 4px;
+  }
+  .ua-notices .ea-notice-bar .ea-notice:has(:focus-visible) > span,
+  .ua-notices .banner.ea-draft:has(:focus-visible) > span {
+    overflow: visible;
+    white-space: normal;
+  }
+  /* Avisos de sesión sueltos (motor simulado, errores de carga): sin botones, una línea con elipsis. */
+  .ua-notices .banner:not(.ea-draft) {
+    margin: 0 0 6px;
+    padding: 8px 12px;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
