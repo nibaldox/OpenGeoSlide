@@ -89,6 +89,7 @@ import {
   WaterPanel,
 } from './panels';
 import { DocEpochContext } from './panels/useStoreSelector';
+import { isStartDocument, startRestoration } from './app/startDocument';
 import { createEditorStore, useEditorStore, useLocalIssues, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc } from './types';
 
@@ -249,11 +250,21 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const doc = useEditorStore(store, (s) => s.doc);
   const fileName = useEditorStore(store, (s) => s.file.name);
   const docDirty = useEditorStore(store, (s) => s.revision !== s.file.savedRevision);
+  // RCM-B-09: el documento de arranque, por identidad. Al deshacer hasta él (p. ej. la primera importación) vuelve el rótulo de ejemplo,
+  // el estado limpio y «Reemplazar» por defecto, sin comparar documentos enteros en cada render.
+  const [startDoc] = useState(() => store.getState().doc);
+  const atStart = useEditorStore(store, (s) => isStartDocument(s, startDoc));
+  useEffect(() => {
+    const restore = startRestoration(store.getState(), startDoc);
+    if (restore === null) return;
+    setIsExample(true);
+    if (restore.markClean) store.markSaved(null);
+  }, [store, startDoc, atStart, docDirty]);
   // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
   // CM-WC: el modelo de arranque sin cambios (ningún documento cargado ni edición desde que se abrió la página) es el único para el que
   // «Reemplazar» es el destino por defecto al importar; el diálogo también lo usa para nombrar a qué modelo se agrega.
-  const pristineStart = useEditorStore(store, (s) => s.docEpoch === 0 && s.revision === 0);
+  const pristineStart = useEditorStore(store, (s) => isStartDocument(s, startDoc));
   const dirty = docDirty || tracePoints > 0;
   const docLabel = docLabelText({ fileName, title: doc.meta.title, example: isExample, dirty });
   const tool = useEditorStore(store, (s) => s.ui.tool);
