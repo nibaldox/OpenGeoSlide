@@ -18,6 +18,9 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-agua-embalsada-y-pilotes-de-ito-matsui-v05-d28-a-d42)) | ídem |
 | cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B-HB-01 a F3B-NC-V034a) | **41/42** (1 explicado por E16t, ninguna falla; véase [abajo](#batería-diferencial-f3b)) | ídem |
 | cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados, búsqueda no circular del bloque CM (9 checks de F7.6: V036c, V036d, V039 ×2, V041a, V041b, V051, V098 y V053 con `global`) | **⟨PROMOVIDOS⟩/9** promovidos; los que no pasan la banda quedan en `verification/pending/CM/HOLD.json`; véase [abajo](#búsqueda-global-no-circular-v07) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Búsqueda global no circular v0.7 (compuertas A1 a A10 y A2b de F7.7) | **todas pasan**: V053 1,0103 (banda ≤ 1,0453) con 48 de 48 semillas en la banda; 0 diferencias de identidad en 196 modelos; costo ≤ 3,81 × el circular | [`verification/global/REPORT.md`](../verification/global/REPORT.md) |
+| xslope 1.1.0, columna informativa (no es un juez) | **80/80** concordancias en superficie fija (máximo 0,116 %); la búsqueda va como diagnóstico; véase [abajo](#xslope-110-como-columna-informativa) | [`verification/xslope/REPORT.md`](../verification/xslope/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
 | Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
 | Pruebas automáticas (medidas en el commit de la release 0.5.1; véase «Reproducir» abajo) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4653 de 4653** con el motor real (`OGS_BIN`) y **4333** pasan con 320 omitidas sin él (4653 en total) | ídem |
@@ -574,9 +577,9 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
 # Identidad del informe y del CSV de la web contra el tag v0.4.0 (lo extrae con git archive; BASE_REF cambia la referencia)
 cd apps/web && OGS_BIN=$CARGO_TARGET_DIR/release/ogs node src/report/identity.f3b.mjs
 
-# Ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 (14 ejemplos y 103 fragmentos)
+# Ejemplos de docs/formato-ogs-json.md contra el esquema 0.7 (15 ejemplos y 116 fragmentos)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
-  python docs/tools/validar_ejemplos.py --ogs $CARGO_TARGET_DIR/release/ogs
+  python docs/tools/validar_ejemplos.py --ogs $CARGO_TARGET_DIR/release/ogs --schema schema/ogs-0.7.schema.json
 
 # Wheel de ogs-py (370 pasan y 2 omitidas) y pruebas de verificación (1549 pasan y 1 omitida)
 (cd crates/ogs-py && env -u PYTHONPATH -u PYTHONHOME uv run --python 3.13 --no-project --with maturin maturin build --release --out "$TMPDIR/ogs-py-dist")
@@ -584,6 +587,167 @@ env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
 $TMPDIR/ogs-py-venv/bin/python -m pytest crates/ogs-py/tests -q
 OGS_BIN=$CARGO_TARGET_DIR/release/ogs env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project \
   --with cslope==0.1.0 --with shapely --with jsonschema --with pytest python -m pytest -q verification
+```
+
+## Búsqueda global no circular (v0.7)
+
+El bloque CM (formato v0.7, aún sin publicar) agrega `analysis.search.non_circular.global`
+([formato](formato-ogs-json.md#v07-búsqueda-global-no-circular), [límites](limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)).
+Se verifica con las compuertas A1 a A10 y A2b del contrato (`briefs/06_CONTRATOS_CM.md`, F7.7, con las enmiendas E17a a E17d).
+La vara principal son los checks no circulares del corpus de cSlope que nunca se habían medido (V036c, V036d, V039, V041a,
+V041b, V051, V053 y V098) y los 15 checks no circulares de la batería. Las cifras salen de
+[`verification/global/REPORT.md`](../verification/global/REPORT.md) (datos completos en `REPORT.json`), con semilla 0 y 500
+candidatos, los valores por defecto, salvo en A2b. Se midieron 50 modelos: los 40 de X37 (9 casos publicados, 5 `-nc` promovidos, 2
+sintéticos y 24 taludes homogéneos) y 10 casos más con búsqueda no circular. No hay errores.
+
+| Compuerta | Qué mide | Resultado |
+|---|---|---|
+| A1 | Identidad: sin `global`, la salida es la de la 0.5.1 | **0 diferencias en 196 modelos** (variantes `own`, `search`, `fixed`, @0.4 y @0.6; 0 excepciones); los 24 modelos con agua sobre el terreno, idénticos |
+| A2 | V053 con `global: {}` en la banda publicada (1,01 ± 3,50 %) y cSlope sobre la polilínea ganadora, ±1 % | **1,0103** (banda ≤ 1,0453); cSlope evalúa esa polilínea en 1,0101 (0,02 %) |
+| A2b | Robustez frente a la semilla: V053 en la banda con la semilla 0 y con al menos 44 de las semillas 0 a 47 | **48 de 48** (mín. 1,0029, mediana 1,0077, máx. 1,0239; semilla 0: 1,0103); S2: mediana 0,7588 |
+| A3 | Los 15 checks no circulares con `global: {}`: criterio de un lado, y ninguno sobre su FS sin `global` | **15 de 15**; ninguno sobre su FS sin `global` |
+| A4 | Guarda de tracción: ninguna ganadora con `negative_lambda` ni `negative_effective_normal_major`; V051 ≥ 0,69; cSlope ±2 % | **14 ganadoras del generador**, sin notas de tracción; V051 = 0,7071; cSlope a ≤ 0,10 % en las 14 |
+| A5 | Monotonía: FS con `global` ≤ FS sin `global` | **52 de 52**; `global` gana en 19 |
+| A6 | Determinismo: dos corridas iguales y la misma salida con `parallel` | **50 de 50** deterministas; **50 de 50** idénticos con `parallel` |
+| A7 | Costo: tiempo con `global` ≤ 4 × el circular (mediana de 3 corridas); WASM informado | Razón: **mediana 1,55, máximo 3,81**. WASM (V8 de Node): V053 2,87 y S2 1,97; FS igual al nativo a 7e-16 |
+| A8 | Barrido de 24 taludes: `global` no empeora ninguno, `evaluated` > 0 en al menos 23, sin avisos nuevos fuera de F7.2 | **24 taludes**; `evaluated` = 0 en 1 (TAL-H30-b60-f35-c5) |
+| A9 | Paridad del generador con el prototipo X37 (mejor candidato antes de refinar, a 1e-6) | Recocido: **31 de 40** iguales con el prototipo original; **40 de 40** con el alineado a las reglas del contrato. El bloque cambió en E17c y no tiene paridad |
+| A10 | Puertas del repositorio | Todo en verde: véase [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md) |
+
+Lo que dicen las compuertas con más detalle:
+
+- **V053 (A2 y A2b).** Sin `global`, el refinamiento de la v0.6 da 1,0847 (+7,4 % sobre el publicado, fuera de la banda). Con
+  `global: {}` baja a 1,0103. El generador halla la cuenca del bloque, y el descarte sucesivo la conserva. Las 48 semillas ganan
+  con `global`. La búsqueda de cSlope da 1,0061 y el mínimo de las 48 semillas (1,0029) queda 0,3 % por debajo.
+- **La guarda (A4).** V051 con la guarda da 0,7071 y la nota `non_circular_global_tension_rejected` (32 candidatos rechazados).
+  Sin la guarda, X37 midió 0,630, y cSlope evalúa esa superficie en 1,048.
+- **El barrido de taludes (A8).** En los 24 taludes homogéneos, `auto` corre el recocido (no hay contactos), y `global` gana en
+  10, con mejoras de hasta 0,14 %. Tres taludes no tienen etapa global efectiva (E17d, punto 5: TAL-H30-b60-f35-c5 con
+  `evaluated` = 0, y TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30 con `evaluated` = 1). Los tres llevan la nota
+  `non_circular_global_no_candidates`.
+- **La paridad (A9).** Las 9 diferencias del recocido contra el prototipo original son candidatos que la guarda rechaza o que
+  no convergen: el prototipo no los cuenta como generados.
+- **El costo (A7).** El tiempo se mide con corridas secuenciales (no en paralelo). La columna «Refinamiento» del informe es la
+  razón del refinamiento de la v0.6 sin `global` (de 1,00 a 2,90), para ver cuánto agrega la etapa global. **La medición en Chrome la hace el coordinador al integrar:** la de V8 de Node
+  usa el mismo motor WASM, pero no es el navegador.
+
+### La robustez frente a la semilla (A2b, E17b y E17c)
+
+Con la semilla 0, la primera versión del generador daba 1,0847 en V053: no pasaba. El 1,0395 del prototipo salía con la semilla
+37, y elegir esa semilla como valor por defecto se descartó, porque sería ajustar el resultado a un solo caso. El barrido de
+semillas mostró que el generador encontraba la cuenca del bloque, pero rara vez la conservaba:
+
+| `generated` | Semillas que pasan la banda (≤ 1,04535) | Mínimo | Mediana | Semillas sin mejora (1,0847) |
+|---|---:|---:|---:|---:|
+| 500 | 10 de 48 | 1,0137 | 1,0674 | 18 de 48 |
+| 2000 | 7 de 16 | 1,0200 | 1,0466 | 2 de 16 |
+
+Una variante con una secuencia de Halton daba 48 de 48, pero la semilla solo desplazaba el índice: las 48 semillas generaban
+casi el mismo conjunto de puntos, y A2b no medía nada. Con una **rotación de Cranley-Patterson** de la semilla, la robustez
+seguía sin resolverse. Las variantes que se midieron con 48 semillas rotadas (V053 y S2, Spencer):
+
+| Variante | V053, semillas que pasan | V053, mín. / mediana / máx. | V053, semilla 0 | S2, mediana | Razón de costo, mediana / máx. |
+|---|---:|---|---:|---:|---|
+| Halton, descarte sucesivo 4 → 3 → 1, rotada | 16 | 1,0047 / 1,0589 / 1,0847 | 1,0289 | 0,7822 | 2,86 / 3,68 |
+| + base a la mitad de la capa | 20 | 1,0055 / 1,0504 / 1,0847 | 1,0847 | 0,8145 | 2,87 / 3,76 |
+| + base a la mitad y proyecciones de 15° a 75° | 48 | 1,0029 / 1,0063 / 1,0264 | 1,0106 | 0,7731 | 2,97 / 3,27 |
+| **Proyecciones de 15° a 75°, base en el contacto (la elegida)** | **48** | **1,0029 / 1,0077 / 1,0239** | **1,0103** | **0,7588** | **3,01 / 3,75** |
+
+Lo que hizo la diferencia fue la inclinación de las proyecciones: las proyecciones de 45° a 90° daban cuñas pasivas, y 472 de
+500 candidatos no convergían (en los primeros 40 de V053: 30 `not_converged`, 9 `invalid` por `m_alpha` y 1 convergido). Con 15°
+a 75°, convergen 202 de 500. El detalle de las variantes que no dejaron descripción está en
+[`verification/global/robustez.md`](../verification/global/robustez.md).
+
+### Casos promovidos de la búsqueda global
+
+Los 9 checks de F7.6 (V036c, V036d, V039 ×2, V041a, V041b, V051 y V098 con `non_circular` de la v0.6, y V053 con
+`global: {}` de la v0.7) pasan a `verification/cases`, con su fuente y su tolerancia tal como vienen del corpus de cSlope. Los
+problemas que ya tenían un caso con otros checks se llaman `<id>-nc`. Con el criterio de un lado
+(`FS_ogs ≤ publicado · (1 + tol)`), los 9 pasan en A3. El recuento de casos y de checks está en la tabla de arriba y en
+[`verification/cases/INDEX.md`](../verification/cases/INDEX.md).
+
+### Reproducir
+
+```sh
+export TMPDIR="$(mktemp -d)"; export CARGO_TARGET_DIR="$TMPDIR/target"
+cargo build --release -p ogs-cli && cp $CARGO_TARGET_DIR/release/ogs $TMPDIR/ogs
+cargo build --release -p ogs-cli --features parallel && cp $CARGO_TARGET_DIR/release/ogs $TMPDIR/ogs-parallel
+
+# Las compuertas A2 a A9 (el Python del oráculo lleva cslope==0.1.0 y shapely; los datos intermedios van a --work)
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely python \
+  verification/global/run.py --bin $TMPDIR/ogs --parallel-bin $TMPDIR/ogs-parallel --work $TMPDIR/global-work
+
+# A1: identidad contra la 0.5.1 (el binario base se compila desde el tag v0.5.1)
+env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.py --base $BASE_V051/ogs \
+  --new $TMPDIR/ogs --normalize-version --include-reinforced --include-v05 --include-v06 --with-v06
+
+# Las pruebas del motor (los tests de la etapa global) y la aceptación
+cargo test -p ogs-core --release
+```
+
+`run.py` tiene los pasos `measure`, `robust` (A2b), `a9`, `wasm` y `report` (`--steps`); `report` regenera `REPORT.md` y
+`REPORT.json` sin volver a medir. El paso `a9` necesita un Python con el wheel 0.5.1 y el prototipo
+(`--proto-python`, `docs/cm/exploracion/X37_proto/`), y el paso `wasm`, `wasm-bindgen` y Node. `verification/global/robustez.py` repite el barrido de A2b sobre un binario compilado.
+
+## xslope 1.1.0 como columna informativa
+
+El harness tiene una tercera columna: [xslope](https://github.com/njones61/xslope) 1.1.0 (Apache-2.0) corre los mismos
+checks que el valor publicado y ogs. **No es un juez.** Los criterios de aceptación siguen siendo el publicado y ogs. xslope
+es una segunda opinión independiente, en otro motor y con otro rebanado. El código está en `verification/harness/to_xslope.py`
+(el conversor) y `verification/xslope/` (`run.py`, el informe `REPORT.md` y `REPORT.json`, y sus pruebas).
+
+**Qué se convierte.** Solo `bishop` y `spencer`, con superficie fija (círculo o polilínea) o búsqueda circular con ventanas,
+materiales `mohr_coulomb` y `undrained`, agua piezométrica, `ru` y `unit_weight_sat`. Lo demás (Morgenstern-Price, Janbu,
+búsqueda no circular, Hoek-Brown, `strength_limit`, cargas, sismo, grieta y refuerzos) no se corre: se cuenta en el informe por
+rasgo, como `Unsupported(<rasgo>)`. Por eso **la búsqueda global no circular tampoco se compara con xslope**: sus checks son
+`Unsupported: búsqueda no circular`.
+
+**Resultado** (informe `v1`, xslope 1.1.0, Python 3.13.14, contra los casos de `verification/cases`):
+
+| Clase | Checks |
+|---|---:|
+| Convertidos, superficie fija | 80 |
+| Convertidos, búsqueda | 102 |
+| No convertidos (`Unsupported`, por rasgo en `REPORT.md`) | el resto |
+
+| Superficie | Filas con dato | Mediana \|xs − ogs\| | Máximo \|xs − ogs\| | Veredicto |
+|---|---:|---:|---|---|
+| Fija | 80 | **0,029 %** | 0,116 % (V091, Bishop) | **80 concordancias, 0 discrepancias** (criterio: ≤ 0,5 %) |
+| Búsqueda (diagnóstico) | 100 de 102 | 0,098 % | 25,79 % (V060a, Bishop) | solo «diagnóstico» |
+
+- **En superficie fija, los 80 checks concuerdan** dentro de 0,5 %: el mismo círculo o la misma polilínea da el mismo FS en dos
+  motores independientes. Es la evidencia de que la fórmula y la conversión coinciden.
+- **En búsqueda, cada motor halla su superficie,** y la fila es solo un diagnóstico. 22 filas difieren más de 0,5 %. En cada
+  una se evalúa cada motor, como superficie fija, sobre el círculo crítico del otro. En 21 de las 22, xslope sobre la
+  superficie de ogs da el FS de ogs (dentro de 0,5 %): lo que difiere es la superficie que halla cada búsqueda. **V020** es el
+  caso típico: ogs da 1,3330 con un círculo en (18,29; 24,17) de radio 9,74; xslope halla otro, con 1,4381, y sobre el círculo
+  de ogs da 1,3327 (−0,03 %). La búsqueda de xslope no llegó a la superficie de ogs. La excepción es **V104a** (Bishop): xslope
+  sobre el círculo de ogs, de 4,29 de radio, da 2,3239 (+0,78 % frente a ogs).
+- **Dos filas sin dato:** V005 con Bishop y con Spencer, porque la rejilla semilla de xslope no dio ningún círculo dentro de las
+  ventanas.
+
+**Reglas de la conversión que no son evidentes:**
+
+- **Agua embalsada.** Con una piezométrica se fija `water_loads = 'auto'`: solo así xslope carga el terreno con el peso y el
+  empuje del agua donde la línea queda sobre él. Con `'manual'` la ignora (de −7 % a −18 % en V089, V091 y V092).
+- **`undrained` con gradiente.** ogs usa `Su = max(0, Su0 + (datum − y)·g)`, y xslope (`cp`), `Su = c + max(0, r_elev − y)·cp`.
+  Coinciden solo con `y ≤ datum` y `g ≥ 0`, así que se convierte únicamente si ninguna base puede quedar sobre el datum. Si no,
+  es `Unsupported`.
+- **`undrained` con Su = 0.** xslope rechaza `cp` sin resistencia en su preflight, y se escribe como `mc` con `c = φ = 0`.
+- **Parche del preflight.** La búsqueda circular de xslope exige un círculo de partida aunque se pida la semilla de rejilla.
+  `surface_supplied_preflight()` marca la superficie como suministrada solo durante la búsqueda. Depende de un nombre interno de
+  xslope: **hay que volver a probarlo con cada versión**, y el script exige `xslope==1.1.0` exacto.
+
+`REPORT.json` es determinista: dos corridas dan el mismo archivo, salvo `generated_at`.
+
+```sh
+# informe (xslope==1.1.0 exacto; con otra versión sale con un error)
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with xslope==1.1.0 \
+  python verification/xslope/run.py --ogs target/release/ogs
+
+# pruebas (un test por regla de conversión, uno de Unsupported y uno de punta a punta con V044)
+env -u PYTHONPATH -u PYTHONHOME uv run -q --python 3.13 --no-project --with xslope==1.1.0 --with pytest \
+  python -m pytest -q verification/xslope
 ```
 
 ## Refuerzos (v0.4): qué se verifica y con qué
@@ -700,16 +864,23 @@ uv run -q --python 3.13 --no-project --with cslope==0.1.0 --with shapely --with 
 # Tests de Python del binding (wheel de crates/ogs-py, véase su README)
 $TMPDIR/ogs-py-venv/bin/python -m pytest crates/ogs-py/tests -v
 
-# Ejemplos de docs/formato-ogs-json.md (contra schema/ogs-0.6.schema.json)
-env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
+# Ejemplos de docs/formato-ogs-json.md (contra schema/ogs-0.7.schema.json)
+env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py \
+  --schema schema/ogs-0.7.schema.json
 
 # Bloque F3B (batería con --require-f3b, identidad con la 0.4.0 y pruebas de F3B): véase
 # «Reproducir F3B», en la sección «Hoek-Brown, SHANSEP y búsqueda no circular (v0.6)»
+
+# Búsqueda global no circular (v0.7) y xslope: véanse «Reproducir» en la sección «Búsqueda global no circular (v0.7)»
+# y los comandos de «xslope 1.1.0 como columna informativa»
 ```
 
 ## Informes
 
 - [`verification/REPORT.md`](../verification/REPORT.md): aceptación y harness frente a cSlope.
+- [`verification/global/REPORT.md`](../verification/global/REPORT.md) (y `REPORT.json`, `robustez.md`): las compuertas de la
+  búsqueda global no circular v0.7.
+- [`verification/xslope/REPORT.md`](../verification/xslope/REPORT.md) (y `REPORT.json`): la columna informativa de xslope.
 - [`verification/differential/REPORT.md`](../verification/differential/REPORT.md): batería diferencial, incluida la
   Fase 3a, los modelos D18 a D23 de R10, el bloque v0.5 (D28 a D42) y el bloque F3B (F3B-HB-01 a F3B-NC-V034a), regenerado
   con el motor de R15.
