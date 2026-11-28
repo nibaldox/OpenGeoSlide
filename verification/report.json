@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-27T22:07:35-03:00",
+  "generated_at": "2026-11-28T02:14:28-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -397,10 +397,22 @@
       "n_checks": 3
     },
     {
+      "id": "V036c-nc",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft, non-circular search",
+      "path": "verification/cases/V036c-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V036c",
       "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
       "path": "verification/cases/V036c.json",
       "n_checks": 3
+    },
+    {
+      "id": "V036d-nc",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft, non-circular search",
+      "path": "verification/cases/V036d-nc.json",
+      "n_checks": 1
     },
     {
       "id": "V036d",
@@ -427,9 +439,21 @@
       "n_checks": 1
     },
     {
+      "id": "V039",
+      "title": "James Bay dyke (Duncan & Wright fig. 7.16)",
+      "path": "verification/cases/V039.json",
+      "n_checks": 2
+    },
+    {
       "id": "V040",
       "title": "James Bay dyke, reference model (deterministic)",
       "path": "verification/cases/V040.json",
+      "n_checks": 1
+    },
+    {
+      "id": "V041a-nc",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27), non-circular search",
+      "path": "verification/cases/V041a-nc.json",
       "n_checks": 1
     },
     {
@@ -437,6 +461,12 @@
       "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
       "path": "verification/cases/V041a.json",
       "n_checks": 3
+    },
+    {
+      "id": "V041b-nc",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27), non-circular search",
+      "path": "verification/cases/V041b-nc.json",
+      "n_checks": 1
     },
     {
       "id": "V041b",
@@ -523,6 +553,12 @@
       "n_checks": 1
     },
     {
+      "id": "V051",
+      "title": "ACADS 4, weak layer, water table and surcharges",
+      "path": "verification/cases/V051.json",
+      "n_checks": 1
+    },
+    {
       "id": "V052a",
       "title": "Talbingo Dam, end of construction",
       "path": "verification/cases/V052a.json",
@@ -533,6 +569,12 @@
       "title": "Talbingo Dam, specified circle",
       "path": "verification/cases/V052b.json",
       "n_checks": 4
+    },
+    {
+      "id": "V053",
+      "title": "Greco (1996) ex. 5 / Chen & Shao weak-layer slope, reference geometry",
+      "path": "verification/cases/V053.json",
+      "n_checks": 1
     },
     {
       "id": "V054",
@@ -973,6 +1015,12 @@
       "n_checks": 1
     },
     {
+      "id": "V098-nc",
+      "title": "Example slope without seismic load, non-circular search",
+      "path": "verification/cases/V098-nc.json",
+      "n_checks": 1
+    },
+    {
       "id": "V098",
       "title": "Example slope without seismic load",
       "path": "verification/cases/V098.json",
@@ -1022,22 +1070,22 @@
     }
   ],
   "summary": {
-    "checks": 347,
+    "checks": 356,
     "ogs": {
-      "OK": 347,
+      "OK": 356,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 0
     },
     "cslope": {
-      "OK": 346,
+      "OK": 355,
       "FALLA": 0,
       "sin dato": 0,
       "no convergido": 1
     },
     "cslope_reproduces": {
-      "n": 346,
-      "N": 347
+      "n": 355,
+      "N": 356
     }
   },
   "checks": [
@@ -7535,6 +7583,41 @@
       "estado": "OK"
     },
     {
+      "case_id": "V036c-nc",
+      "title": "Embankment on an undrained foundation, cz = 10 psf/ft, non-circular search",
+      "source_path": "verification/cases/V036c-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.018,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020491159135559923,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.015570970178944,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [],
+        "err_pct": -0.23860803743183528,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0165998932212328,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.1375350470301797,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V036c",
       "title": "Embankment on an undrained foundation, cz = 10 psf/ft",
       "source_path": "verification/cases/V036c.json",
@@ -7631,6 +7714,41 @@
         "verdict": "OK",
         "warnings": [],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V036d-nc",
+      "title": "Embankment on an undrained foundation, cz = 15 psf/ft, non-circular search",
+      "source_path": "verification/cases/V036d-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.116,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020448028673835127,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.1199736700559704,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [],
+        "err_pct": 0.3560636250869416,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1172576334748017,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.11269117157720135,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -8320,6 +8438,80 @@
       "estado": "OK"
     },
     {
+      "case_id": "V039",
+      "title": "James Bay dyke (Duncan & Wright fig. 7.16)",
+      "source_path": "verification/cases/V039.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.167,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020428449014567265,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1595856786763863,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [
+          "non_circular_large_change"
+        ],
+        "err_pct": -0.6353317329574764,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1617507684330248,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.4498056184211834,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V039",
+      "title": "James Bay dyke (Duncan & Wright fig. 7.16)",
+      "source_path": "verification/cases/V039.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.16,
+      "published_by": "Duncan & Wright (reference), non-circular",
+      "tolerance": 0.02431034482758621,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.1595856786763863,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [
+          "non_circular_large_change"
+        ],
+        "err_pct": -0.035717355483933726,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.1617507684330248,
+        "status": "converged",
+        "error": null,
+        "err_pct": 0.1509283131918024,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V040",
       "title": "James Bay dyke, reference model (deterministic)",
       "source_path": "verification/cases/V040.json",
@@ -8348,6 +8540,47 @@
         "verdict": "OK",
         "warnings": [],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041a-nc",
+      "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27), non-circular search",
+      "source_path": "verification/cases/V041a-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.592,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020314070351758796,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.590085223669053,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.12027489515999085,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5915034266470809,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.031191793525075,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -8466,6 +8699,47 @@
           "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
         ],
         "notes": [
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V041b-nc",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27), non-circular search",
+      "source_path": "verification/cases/V041b-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.59,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023144654088050314,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.5891869146220496,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [
+          "water_above_ground",
+          "negative_effective_normal"
+        ],
+        "err_pct": -0.05113744515411571,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.5898291076388684,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.01074794724098479,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"material_1\" lies partly below its water line but has no unitWeightSat: its unit weight 20.107 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 1 slice of the critical surface has negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
           "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
@@ -10003,6 +10277,49 @@
       "estado": "OK"
     },
     {
+      "case_id": "V051",
+      "title": "ACADS 4, weak layer, water table and surcharges",
+      "source_path": "verification/cases/V051.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.707,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.020707213578500708,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 0.7071264745680724,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [
+          "load_outside_mass",
+          "negative_effective_normal",
+          "non_circular_large_change"
+        ],
+        "err_pct": 0.017888906375171924,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 0.695296044186825,
+        "status": "converged",
+        "error": null,
+        "err_pct": -1.6554392946499237,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"soil_1\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"weak_layer\" lies partly below its water line but has no unitWeightSat: its unit weight 18.84 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "negative-effective-normal: 4 slices of the critical surface have negative effective normal force (N′ < 0) at the base."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
       "case_id": "V052a",
       "title": "Talbingo Dam, end of construction",
       "source_path": "verification/cases/V052a.json",
@@ -10280,6 +10597,46 @@
         ],
         "notes": [
           "Morgenstern-Price con la función interslice half-sine (kebab-case de cSlope)."
+        ]
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V053",
+      "title": "Greco (1996) ex. 5 / Chen & Shao weak-layer slope, reference geometry",
+      "source_path": "verification/cases/V053.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.01,
+      "published_by": "Commercial program A (block search)",
+      "tolerance": 0.034950495049504954,
+      "options": {
+        "slices": 50
+      },
+      "ogs": {
+        "fos": 1.010300223400116,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [],
+        "err_pct": 0.029725089120388987,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.0060674971349797,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.3893567193089443,
+        "verdict": "OK",
+        "warnings": [
+          "missing-unit-weight-sat: Material \"layer_2\" lies partly below its water line but has no unitWeightSat: its unit weight 19 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_3\" lies partly below its water line but has no unitWeightSat: its unit weight 21.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant).",
+          "missing-unit-weight-sat: Material \"layer_4\" lies partly below its water line but has no unitWeightSat: its unit weight 21.5 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
+        ],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "búsqueda global (F7.1): analysis.search.non_circular.global no tiene equivalente en cSlope 0.1.0; se omite y cSlope corre su propia optimización no circular.",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
         ]
       },
       "estado": "OK"
@@ -19057,6 +19414,41 @@
           "missing-unit-weight-sat: Material \"clay\" lies partly below its water line but has no unitWeightSat: its unit weight 20 kN/m³ is used below the water too. Give unitWeightSat (equal to unitWeight if that is meant)."
         ],
         "notes": []
+      },
+      "estado": "OK"
+    },
+    {
+      "case_id": "V098-nc",
+      "title": "Example slope without seismic load, non-circular search",
+      "source_path": "verification/cases/V098-nc.json",
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.36,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023676470588235295,
+      "options": {
+        "slices": 40
+      },
+      "ogs": {
+        "fos": 1.3570629121523097,
+        "status": "converged",
+        "error": null,
+        "engine": "ogs-core 0.5.1",
+        "warnings": [],
+        "err_pct": -0.21596234174194284,
+        "verdict": "OK"
+      },
+      "cslope": {
+        "fos": 1.356734810987557,
+        "status": "converged",
+        "error": null,
+        "err_pct": -0.2400874273855223,
+        "verdict": "OK",
+        "warnings": [],
+        "notes": [
+          "búsqueda no circular (F6.4): nonCircularOptimization=true; ogs pide seeds=3, max_vertices=33, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos por defecto (3 semillas, hasta 33 vértices).",
+          "search: cSlope's own search (not ogs' grid); iterations taken from the ogs grid size (8000); minFailureDist = min_width (cSlope measures entry-exit distance)."
+        ]
       },
       "estado": "OK"
     },
