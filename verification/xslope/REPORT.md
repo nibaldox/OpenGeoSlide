@@ -1,13 +1,13 @@
 # Verificación cruzada: publicado vs. ogs vs. xslope (columna informativa)
 
-Generado: 2026-11-28T02:18:09-03:00 · informe v1 · casos: `verification/cases` (175 casos, 356 checks)
+Generado: 2026-11-28T05:21:10-03:00 · informe v1 · casos: `verification/cases` (175 casos, 356 checks)
 
 xslope **no es un juez**: los criterios de aceptación siguen siendo el publicado y ogs. En superficie fija el veredicto es la concordancia de xslope con ogs (|xslope − ogs| / ogs ≤ 0.5 %); en búsqueda cada motor halla su superficie y la fila es solo un diagnóstico.
 
 ## Motores
 
 - **xslope**: `xslope==1.1.0` (versión fijada) · Python 3.13.14
-- **ogs**: `ogs-core 0.5.1`
+- **ogs**: `ogs-core 0.6.0`
 
 ## Resumen
 

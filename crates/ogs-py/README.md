@@ -3,19 +3,19 @@
 Paquete Python del motor de estabilidad de taludes 2D [OpenGeoSlide](../../README.md), construido con
 [PyO3](https://pyo3.rs) 0.30 y [maturin](https://www.maturin.rs). Envuelve `ogs-core`; no reimplementa el cálculo.
 
-## Instalación (Release v0.5.1)
+## Instalación (Release v0.6.0)
 
 OpenGeoSlide aún no está en PyPI: el wheel se instala desde los assets del
-[Release v0.5.1](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.5.1). El wheel es `abi3` y sirve para
+[Release v0.6.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.6.0). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.5.1-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.5.1/$WHL"
+WHL=opengeoslide-0.6.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.6.0/$WHL"
 ```
 
 Para macOS y Windows, cambie `WHL` por el nombre del `.whl` de su plataforma, que figura en la página del release. Con
-`opengeoslide.version()` debe dar `0.5.1`.
+`opengeoslide.version()` debe dar `0.6.0`.
 
 ## Instalación (desarrollo)
 
@@ -46,7 +46,7 @@ VIRTUAL_ENV="$TMPDIR/ogs-py-venv-hooks" uv pip install "$TMPDIR"/ogs-py-dist-hoo
 ```python
 import opengeoslide
 
-opengeoslide.version()                  # "0.5.1" en este release: versión de ogs-core (la de su Cargo.toml)
+opengeoslide.version()                  # "0.6.0" en este release: versión de ogs-core (la de su Cargo.toml)
 report_json = opengeoslide.analyze_json(model_json)   # str en, str (JSON del informe) fuera
 report = opengeoslide.analyze(model)    # dict en, dict fuera (envoltorio sobre analyze_json)
 ```

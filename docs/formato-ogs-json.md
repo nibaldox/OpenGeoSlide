@@ -22,8 +22,9 @@ los leen. El motor acepta siete versiones:
 > **La v0.6 se publicó con la 0.5.0** (véase el [registro de cambios](../CHANGELOG.md#050---2026-11-27)). La 0.4.0 no lee
 > los materiales `hoek_brown` y `shansep` ni `analysis.search.non_circular`.
 >
-> **La v0.7 aún no se publica.** La 0.5.1, la última versión publicada, llega hasta el formato v0.6 y no lee
-> `analysis.search.non_circular.global` ([v0.7: búsqueda global no circular](#v07-búsqueda-global-no-circular)).
+> **La v0.7 se publicó con la 0.6.0** (véase el [registro de cambios](../CHANGELOG.md#060---2026-11-28)). La 0.5.1 llega
+> hasta el formato v0.6 y no lee `analysis.search.non_circular.global`
+> ([v0.7: búsqueda global no circular](#v07-búsqueda-global-no-circular)).
 
 - **Un modelo sin campos nuevos da el mismo resultado en las siete versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
@@ -2659,7 +2660,7 @@ propias y las refina, además del refinamiento desde los círculos de la v0.6. E
 que la 0.5.1** (con la versión del motor normalizada). **El resultado nunca empeora:** el refinamiento de la v0.6 se calcula
 siempre, sin cambios, y la etapa global solo lo reemplaza si da un FS estrictamente menor y su superficie es elegible.
 
-La v0.7 aún no está publicada. La última versión publicada, la 0.5.1, llega hasta el formato v0.6.
+La v0.7 se publicó con la 0.6.0. La 0.5.1 llega hasta el formato v0.6.
 
 ### Versión mínima 0.7
 

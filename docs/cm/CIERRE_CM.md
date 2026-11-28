@@ -98,7 +98,7 @@ están en un solo lugar:
 - **La medición de A7 en Chrome real** (HeadlessChrome 158, `verification/global/a7_chrome.json`): V053 **2,83 veces** el
   circular (0,373 s a 1,057 s) y S2 **1,94 veces** (0,351 s a 0,680 s), con el FS igual al nativo a **1,8e-14 o menos** (a
   1,3e-15 o menos en el resultado con `global`). Está por debajo del tope de 4 veces, y casi igual a la medición en V8 de Node
-  (2,83 y 1,96).
+  (2,86 y 1,96).
 - **El resultado de la revisión adversarial (RCM):** las dos lentes, «apto con correcciones». Los 5 hallazgos ALTA del motor y
   los 7 de la web, corregidos ([abajo](#la-revisión-adversarial-rcm)).
 - `cargo test -p ogs-core --release` y la aceptación finales, en `b0044ce`: **827 pasan y 0 fallan, con y sin `parallel`** (3
@@ -257,18 +257,16 @@ menos de 60 s. **Lo decide el usuario.**
 En orden de prioridad:
 
 1. **El protocolo humano de los 5 minutos** (arriba). Sin él, la compuerta no está cerrada.
-2. **Las cifras de los tests «medidas en el commit de versión»** del CHANGELOG, que se toman al hacer ese commit. Las puertas
-   finales de la integración ya están arriba.
-3. **La versión:** las versiones de los crates y del wheel, `CITATION.cff` y el «sube» del usuario. El `CHANGELOG.md` ya tiene
-   la sección `[Unreleased]`. Tras el commit de versión, la barra de estado de las capturas del README dice `ogs-core 0.5.1`
-   (la versión de los crates cuando se capturaron): conviene regenerarlas con `assets/readme/src/capture-app.mjs`.
-4. **Lo abierto de la revisión:** los rótulos `q = …` apilados en el lienzo con V051; la versión en memoria de la web (piso);
+2. **La versión:** el bloque se publicó como la **0.6.0** el 2026-11-28 (véase el
+   [registro de cambios](../../CHANGELOG.md#060---2026-11-28)), con las pruebas medidas en el commit de versión y las
+   capturas del README regeneradas con la 0.6.0.
+3. **Lo abierto de la revisión:** los rótulos `q = …` apilados en el lienzo con V051; la versión en memoria de la web (piso);
    y los mensajes de enum con el tipo equivocado (`Json` en vez de `InvalidModel`).
-5. **Lo que el contrato dejó fuera:** el *path search* y el PSO; un pulido sin generador (el refinamiento de la v0.6 sigue sin
+4. **Lo que el contrato dejó fuera:** el *path search* y el PSO; un pulido sin generador (el refinamiento de la v0.6 sigue sin
    pulido); los campos de cSlope que el formato no tiene (Hoek-Brown `mb`, `s` y `a`; SHANSEP `su_min`, `yield_stress`,
    `su_by_stress`, `anisotropy`, `yield_from_earlier_stage`, `above_water` y `b_bar`); Bishop con superficies no circulares.
-6. **Los retenidos de siempre:** V002 (E16u), V009c (E13k) y V105a (`aboveWater`), más los de las demás carpetas de
+5. **Los retenidos de siempre:** V002 (E16u), V009c (E13k) y V105a (`aboveWater`), más los de las demás carpetas de
    `verification/pending/` (18 checks en 12 casos; el lote CM no retiene ninguno); y los tres taludes sin etapa global efectiva
    (TAL-H30-b60-f35-c5, TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30), que llevan la nota `non_circular_global_no_candidates`.
-7. **La paridad del bloque con el prototipo X37 no existe** (cambió en E17c); solo el recocido la tiene (40 de 40). La igualdad
+6. **La paridad del bloque con el prototipo X37 no existe** (cambió en E17c); solo el recocido la tiene (40 de 40). La igualdad
    entre el motor nativo y WASM no se promete (en Chrome, el FS coincide a 1,8e-14 o menos).

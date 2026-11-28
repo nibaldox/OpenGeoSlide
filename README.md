@@ -16,7 +16,7 @@
   </picture>
 </p>
 
-<p align="center"><sub>La aplicación web calculando un talud de dos estratos con piezométrica: Bishop y Spencer dan FS 1,377. Capturas de la web de la próxima versión, en tema claro y oscuro.</sub></p>
+<p align="center"><sub>La aplicación web calculando un talud de dos estratos con piezométrica: Bishop y Spencer dan FS 1,377. Capturas de la versión publicada, en tema claro y oscuro.</sub></p>
 
 ## Qué es
 
@@ -30,18 +30,19 @@ fija, y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión publicada es la **0.5.1**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
-con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.6 con los materiales
+La versión publicada es la **0.6.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
+con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.7 con la **búsqueda
+global no circular**, el formato v0.6 con los materiales
 **Hoek-Brown** y **SHANSEP** y la **búsqueda no circular**, el formato v0.5 con **grieta de tracción**, **agua embalsada**
 y pilotes de **Ito-Matsui**, el formato v0.4 con **refuerzos** (anclajes, clavos de suelo, geosintéticos, pilotes y
 tablestacas, activos y pasivos, con su fuerza en cada cruce con la superficie de falla), la CLI, el editor web (PWA), el
 paquete de Python y las pruebas de aceptación.
 
-La 0.5.1 (véase el [registro de cambios](CHANGELOG.md#051---2026-11-27)) **rediseña el editor web** con la identidad
+La 0.5.1 (véase el [registro de cambios](CHANGELOG.md#051---2026-11-27)) **rediseñó el editor web** con la identidad
 común de la suite: tema oscuro por defecto (con el claro a un clic), los diez pasos del modelo en una barra lateral con
 su resumen y su estado, las vistas Lienzo, Resultados, Casos de verificación e Informe, y un recuadro sobre el lienzo con
-el FS mínimo y los métodos. El motor, el formato `.ogs.json` y los resultados no cambian: dan la misma salida que la
-0.5.0.
+el FS mínimo y los métodos. El motor, el formato `.ogs.json` y los resultados no cambiaron: daban la misma salida
+que la 0.5.0.
 
 Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** con el elemento incluido, no su diseño
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
@@ -69,13 +70,13 @@ la única excepción deliberada a la identidad con la 0.4.0, y ningún modelo de
 Hoek-Brown y la búsqueda no circular, que no refinaba 14 de 16 taludes homogéneos
 ([registro de cambios](CHANGELOG.md#050---2026-11-27)).
 
-El formato **v0.7**, del bloque CM y **aún sin publicar** (la 0.5.1 llega hasta el formato v0.6), agrega la **búsqueda global
-no circular** (`analysis.search.non_circular.global`): un bloque automático sobre capas débiles, con recocido simulado como
+El formato **v0.7**, publicado con la **0.6.0** (véase el [registro de cambios](CHANGELOG.md#060---2026-11-28)), agrega la
+**búsqueda global no circular** (`analysis.search.non_circular.global`): un bloque automático sobre capas débiles, con recocido simulado como
 respaldo, que genera superficies propias, las refina y las pule, con una **guarda de tracción** que descarta los FS bajos que
 no existen. El resultado nunca empeora al del refinamiento de la v0.6, y un modelo sin `global` da la misma salida, byte a
 byte, que la 0.5.1. Con ella, V053 (1,01 publicado) baja de 1,0847 a **1,0103**. No es una búsqueda exhaustiva y no se ofrece
 con Bishop ([límites](docs/limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no); formato en
-[`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#v07-búsqueda-global-no-circular)). El mismo bloque corrige la web: los
+[`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#v07-búsqueda-global-no-circular)). La 0.6.0 también corrige la web: los
 borradores del editor, las pantallas bajas, el recuadro del FS a unos 800 × 600, un selector de ejemplos con destacados y
 filtro, una guía de primera visita que parte del modelo abierto, y un recuadro que nombra el método que rige el FS mínimo.
 Una revisión adversarial con dos lentes (el motor y la web) dio «apto con correcciones» en las dos, y sus hallazgos altos están
@@ -88,7 +89,7 @@ corregidos ([cierre del bloque](docs/cm/CIERRE_CM.md)).
   Fase 3a (más 12 de 12 de los refuerzos v0.4 y 58 de 60 del bloque v0.5 de grieta, agua embalsada y pilotes de
   Ito-Matsui, con 2 explicados y ninguna falla abierta). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
-- **Busca más allá de los círculos** (v0.7, sin publicar). La búsqueda global no circular genera superficies de bloque sobre
+- **Busca más allá de los círculos** (v0.7). La búsqueda global no circular genera superficies de bloque sobre
   capas débiles y las pule, sin empeorar el resultado ni aceptar un FS de la rama con tracción
   ([detalle](docs/verificacion.md#búsqueda-global-no-circular-v07)).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
@@ -118,12 +119,12 @@ oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desar
 ### Python
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
-[Release v0.5.1](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.5.1). El wheel es `abi3` y sirve para
+[Release v0.6.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.6.0). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.5.1-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.5.1/$WHL"
+WHL=opengeoslide-0.6.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.6.0/$WHL"
 ```
 
 Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
@@ -132,7 +133,7 @@ su plataforma, que figura en la página del release. También sirve descargarlo 
 ```python
 # desde la raíz del repositorio, donde está examples/
 import json, opengeoslide
-print(opengeoslide.version())                    # 0.5.1, la versión de ogs-core
+print(opengeoslide.version())                    # 0.6.0, la versión de ogs-core
 report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
 for r in report["results"]:
     print(r["method"], round(r["fos"], 4), r["status"])
@@ -195,7 +196,7 @@ sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP, búsqueda no
   superficie fija: 41 de 42 checks, con 1 explicado (el lazo de Hoek-Brown sin raíz de λ en cSlope, E16t) y ninguna falla;
   F3B-HB-06 con Bishop, que hasta R15 era «explicado» por `m_α`, da 0,5244 frente a 0,5279 de cSlope y pasa a OK. En círculo fijo, el producto da hasta −2,9 % frente a cSlope en Hoek-Brown, siempre del
   lado seguro ([detalle](docs/verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
-- **Búsqueda global no circular (v0.7, sin publicar):** las compuertas del contrato A1 a A10 y A2b pasan, medidas en 55
+- **Búsqueda global no circular (v0.7):** las compuertas del contrato A1 a A10 y A2b pasan, medidas en 55
   modelos con la semilla 0 y 500 candidatos, después de las correcciones de la revisión adversarial. V053 da 1,0103 con la
   búsqueda global (1,0847 sin ella; publicado 1,01 ± 3,5 %), y cSlope evalúa esa polilínea en 1,0101. Con las 48 semillas,
   V053 queda en la banda (de 1,0029 a 1,0239). Ninguno de los 57 resultados de la batería queda sobre su FS sin búsqueda
@@ -217,7 +218,7 @@ Esta batería no cubre todo: véanse las limitaciones.
 
 ## Limitaciones conocidas
 
-- **La búsqueda es circular, con dos etapas no circulares opcionales** (formato v0.6 y, sin publicar, v0.7). La **búsqueda
+- **La búsqueda es circular, con dos etapas no circulares opcionales** (formatos v0.6 y v0.7). La **búsqueda
   global** de la v0.7 genera superficies propias, pero **no es exhaustiva** (el resultado cambia con la semilla) y **no se ofrece con Bishop**. Su bloque necesita
   contactos entre regiones, y si no los hay recurre al recocido. **La guarda de tracción puede dejar sin tomar un FS menor** (y
   lo avisa con `non_circular_global_tension_rejected`). Tres de los 24 taludes homogéneos del barrido quedan sin etapa global,
@@ -307,7 +308,7 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 ## In English
 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
-Morgenstern-Price and Janbu; circular search with an optional non-circular refinement and, in the unreleased v0.7 format, an optional global non-circular search, plus fixed polyline surfaces; Mohr-Coulomb, undrained, Hoek-Brown and SHANSEP strength;
+Morgenstern-Price and Janbu; circular search with an optional non-circular refinement and, in the v0.7 format released with 0.6.0, an optional global non-circular search, plus fixed polyline surfaces; Mohr-Coulomb, undrained, Hoek-Brown and SHANSEP strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that

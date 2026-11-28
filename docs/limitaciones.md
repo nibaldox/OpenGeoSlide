@@ -4,7 +4,7 @@ OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
 con el bloque de refuerzos: formato v0.4; con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
 v0.5, publicado con la 0.4.0, con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, publicado con la
-0.5.0, y con la búsqueda global no circular del bloque CM: formato v0.7, aún sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+0.5.0, y con la búsqueda global no circular del bloque CM: formato v0.7, publicado con la 0.6.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l), más lo que corrigió la revisión R15 del bloque F3B
 (enmiendas E16v a E16z), más lo que cierra el bloque CM (contrato `briefs/06_CONTRATOS_CM.md`, enmiendas E17a a E17f, con la
@@ -21,7 +21,7 @@ revisión adversarial RCM; [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)). El resume
   Es un mínimo local, **sin Bishop**, que puede quedar bajo el publicado en materiales con capa débil y tracción (V002) y
   que cuesta de 2,3 a 3,1 veces la búsqueda circular. Las superficies no circulares también se pueden **fijar a mano**
   como polilínea. Los detalles están [más abajo](#búsqueda-no-circular-v06).
-- **Búsqueda global no circular, con límites** (formato v0.7, `analysis.search.non_circular.global`, aún sin publicar):
+- **Búsqueda global no circular, con límites** (formato v0.7, `analysis.search.non_circular.global`, publicado con la 0.6.0):
   genera superficies no circulares propias y las refina. **No es exhaustiva** (500 candidatos por defecto, y el resultado
   cambia con la semilla) y **no se ofrece con Bishop**. El bloque sobre capas débiles necesita contactos entre regiones, y si
   no los hay recurre al recocido. **La guarda de tracción puede dejar sin tomar un FS menor** (y lo avisa con
@@ -1062,8 +1062,8 @@ Las cifras de abajo son las de [`verification/global/REPORT.md`](../verification
 
 ## Web: lo que se corrigió en el bloque CM y lo que sigue abierto
 
-Los *Known issues* de la web de la 0.5.0 y de la 0.5.1 quedaron corregidos en el bloque CM (la web se publica con la
-próxima versión):
+Los *Known issues* de la web de la 0.5.0 y de la 0.5.1 quedaron corregidos en el bloque CM, publicado con la
+0.6.0:
 
 - **Borradores del editor (0.5.0):** tras «Nuevo» o «Abrir», todo borrador se reinicia desde el documento nuevo (`useDraft`
   depende de `docEpoch`); en una fila de vértice, confirmar `x` no toca el borrador de `y`; «Agregar punto», «Quitar» y

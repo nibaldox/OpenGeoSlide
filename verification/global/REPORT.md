@@ -1,6 +1,6 @@
 # Búsqueda global no circular v0.7: medición de las compuertas de F7.7
 
-Binario: `ogs 0.5.1`; commit base: `a66a1ba`; semilla 0 y `generated` 500 (los valores por defecto), salvo en A2b.
+Binario: `ogs 0.6.0`; commit base: `8a5a387`; semilla 0 y `generated` 500 (los valores por defecto), salvo en A2b.
 Modelos medidos: 55 (40 de X37 y 15 casos más con búsqueda no circular); errores: 0.
 Generado por `verification/global/run.py`; los datos completos están en `REPORT.json`.
 
@@ -13,7 +13,7 @@ Generado por `verification/global/run.py`; los datos completos están en `REPORT
 | A4 | **PASA** | 38 ganadores del generador; sin notas de tracción; V051 = 0.7071; cSlope ≤ 0.10 % en 38 |
 | A5 | **PASA** | 57/57 resultados ≤ sin `global`; `global` gana en 21 |
 | A6 | **PASA** | 55/55 deterministas; 55/55 idénticos con `parallel` |
-| A7 | **PASA** | razón de tiempo: mediana 1.56, máximo 3.81 (CPU: 1.56 / 3.81); WASM: razón máxima 2.83, FS igual al nativo a 1e-15 |
+| A7 | **PASA** | razón de tiempo: mediana 1.56, máximo 3.81 (CPU: 1.56 / 3.81); WASM: razón máxima 2.86, FS igual al nativo a 1e-15 |
 | A8 | **PASA** | 24 taludes; `evaluated` = 0 en 1: TAL-H30-b60-f35-c5; `eligible` = 0 en 3 |
 | A9 | **PASA** | recocido: 31/40 iguales al prototipo original a 1e-6; 40/40 con el alineado a las reglas del contrato |
 | A10 | **PASA** | todo en verde (CM-M2: 827 tests de ogs-core, 356/356 checks del harness, tsc y vitest 4922) |
@@ -200,55 +200,55 @@ Razón global/circular por modelo: mediana 1.56, máximo 3.81 (tiempo de CPU: me
 
 | Modelo | Circular (s) | Global (s) | Razón | Razón CPU | Refinamiento |
 |---|---|---|---|---|---|
-| V036c | 0.204 | 0.703 | 3.44 | 3.45 | 2.63 |
-| V036d | 0.226 | 0.702 | 3.10 | 3.10 | 2.42 |
-| V039 | 0.417 | 1.229 | 2.95 | 2.95 | 2.29 |
-| V041a | 0.497 | 1.359 | 2.73 | 2.73 | 2.01 |
-| V041b | 0.546 | 0.965 | 1.77 | 1.77 | 1.32 |
-| V051 | 0.327 | 1.087 | 3.33 | 3.33 | 2.45 |
-| V053 | 0.349 | 0.989 | 2.84 | 2.84 | 1.91 |
-| V098 | 0.214 | 0.568 | 2.65 | 2.65 | 2.15 |
-| V002-nc | 0.312 | 0.685 | 2.20 | 2.20 | 1.74 |
-| V001-nc | 0.185 | 0.543 | 2.93 | 2.93 | 2.31 |
-| V026-nc | 0.187 | 0.714 | 3.81 | 3.81 | 2.91 |
-| V033-nc | 0.280 | 0.796 | 2.84 | 2.84 | 2.17 |
-| V034a-nc | 0.246 | 0.772 | 3.13 | 3.14 | 2.50 |
-| V034b-nc | 0.241 | 0.857 | 3.56 | 3.56 | 2.88 |
-| S1 | 0.319 | 0.681 | 2.14 | 2.14 | 1.75 |
-| S2 | 0.316 | 0.616 | 1.95 | 1.95 | 1.61 |
-| TAL-H10-b30-f20-c5 | 0.321 | 0.438 | 1.37 | 1.37 | 1.16 |
-| TAL-H10-b30-f20-c30 | 0.331 | 0.886 | 2.67 | 2.68 | 1.84 |
-| TAL-H10-b30-f35-c5 | 0.321 | 0.477 | 1.49 | 1.49 | 1.14 |
-| TAL-H10-b30-f35-c30 | 0.322 | 0.629 | 1.96 | 1.96 | 1.70 |
-| TAL-H10-b45-f20-c5 | 0.326 | 0.439 | 1.35 | 1.35 | 1.15 |
-| TAL-H10-b45-f20-c30 | 0.315 | 0.495 | 1.57 | 1.57 | 1.35 |
-| TAL-H10-b45-f35-c5 | 0.329 | 0.442 | 1.34 | 1.34 | 1.14 |
-| TAL-H10-b45-f35-c30 | 0.315 | 0.485 | 1.54 | 1.54 | 1.34 |
-| TAL-H10-b60-f20-c5 | 0.319 | 0.439 | 1.38 | 1.38 | 1.15 |
-| TAL-H10-b60-f20-c30 | 0.321 | 0.471 | 1.47 | 1.47 | 1.31 |
-| TAL-H10-b60-f35-c5 | 0.322 | 0.440 | 1.37 | 1.37 | 1.15 |
-| TAL-H10-b60-f35-c30 | 0.315 | 0.423 | 1.34 | 1.34 | 1.34 |
-| TAL-H30-b30-f20-c5 | 0.328 | 0.444 | 1.36 | 1.36 | 1.14 |
-| TAL-H30-b30-f20-c30 | 0.318 | 0.570 | 1.79 | 1.79 | 1.35 |
-| TAL-H30-b30-f35-c5 | 0.326 | 0.479 | 1.47 | 1.47 | 1.15 |
-| TAL-H30-b30-f35-c30 | 0.318 | 0.429 | 1.35 | 1.35 | 1.15 |
-| TAL-H30-b45-f20-c5 | 0.337 | 0.458 | 1.36 | 1.36 | 1.15 |
-| TAL-H30-b45-f20-c30 | 0.315 | 0.431 | 1.37 | 1.37 | 1.16 |
-| TAL-H30-b45-f35-c5 | 0.332 | 0.449 | 1.35 | 1.35 | 1.14 |
-| TAL-H30-b45-f35-c30 | 0.321 | 0.434 | 1.35 | 1.35 | 1.15 |
-| TAL-H30-b60-f20-c5 | 0.320 | 0.439 | 1.37 | 1.37 | 1.16 |
-| TAL-H30-b60-f20-c30 | 0.319 | 0.429 | 1.34 | 1.34 | 1.35 |
-| TAL-H30-b60-f35-c5 | 0.324 | 0.324 | 1.00 | 1.00 | 1.00 |
-| TAL-H30-b60-f35-c30 | 0.323 | 0.438 | 1.35 | 1.35 | 1.15 |
+| V036c | 0.203 | 0.696 | 3.43 | 3.43 | 2.64 |
+| V036d | 0.225 | 0.701 | 3.12 | 3.12 | 2.42 |
+| V039 | 0.417 | 1.229 | 2.95 | 2.95 | 2.28 |
+| V041a | 0.497 | 1.352 | 2.72 | 2.72 | 2.01 |
+| V041b | 0.545 | 0.957 | 1.75 | 1.76 | 1.31 |
+| V051 | 0.324 | 1.086 | 3.35 | 3.36 | 2.45 |
+| V053 | 0.349 | 0.990 | 2.84 | 2.84 | 1.91 |
+| V098 | 0.215 | 0.571 | 2.65 | 2.66 | 2.15 |
+| V002-nc | 0.313 | 0.686 | 2.19 | 2.19 | 1.73 |
+| V001-nc | 0.187 | 0.545 | 2.91 | 2.91 | 2.30 |
+| V026-nc | 0.188 | 0.715 | 3.81 | 3.81 | 2.91 |
+| V033-nc | 0.282 | 0.796 | 2.83 | 2.83 | 2.15 |
+| V034a-nc | 0.247 | 0.774 | 3.13 | 3.13 | 2.50 |
+| V034b-nc | 0.242 | 0.859 | 3.55 | 3.55 | 2.87 |
+| S1 | 0.321 | 0.682 | 2.13 | 2.13 | 1.74 |
+| S2 | 0.317 | 0.617 | 1.95 | 1.95 | 1.62 |
+| TAL-H10-b30-f20-c5 | 0.322 | 0.441 | 1.37 | 1.37 | 1.16 |
+| TAL-H10-b30-f20-c30 | 0.331 | 0.887 | 2.68 | 2.68 | 1.84 |
+| TAL-H10-b30-f35-c5 | 0.321 | 0.479 | 1.49 | 1.49 | 1.14 |
+| TAL-H10-b30-f35-c30 | 0.322 | 0.633 | 1.97 | 1.97 | 1.70 |
+| TAL-H10-b45-f20-c5 | 0.326 | 0.440 | 1.35 | 1.35 | 1.16 |
+| TAL-H10-b45-f20-c30 | 0.316 | 0.498 | 1.58 | 1.58 | 1.35 |
+| TAL-H10-b45-f35-c5 | 0.330 | 0.443 | 1.34 | 1.34 | 1.14 |
+| TAL-H10-b45-f35-c30 | 0.316 | 0.486 | 1.54 | 1.54 | 1.34 |
+| TAL-H10-b60-f20-c5 | 0.321 | 0.434 | 1.35 | 1.35 | 1.15 |
+| TAL-H10-b60-f20-c30 | 0.321 | 0.472 | 1.47 | 1.47 | 1.30 |
+| TAL-H10-b60-f35-c5 | 0.322 | 0.440 | 1.37 | 1.37 | 1.16 |
+| TAL-H10-b60-f35-c30 | 0.316 | 0.423 | 1.34 | 1.34 | 1.34 |
+| TAL-H30-b30-f20-c5 | 0.329 | 0.445 | 1.35 | 1.35 | 1.15 |
+| TAL-H30-b30-f20-c30 | 0.318 | 0.571 | 1.79 | 1.79 | 1.35 |
+| TAL-H30-b30-f35-c5 | 0.327 | 0.479 | 1.46 | 1.46 | 1.14 |
+| TAL-H30-b30-f35-c30 | 0.318 | 0.430 | 1.35 | 1.35 | 1.16 |
+| TAL-H30-b45-f20-c5 | 0.338 | 0.458 | 1.36 | 1.36 | 1.15 |
+| TAL-H30-b45-f20-c30 | 0.315 | 0.429 | 1.36 | 1.36 | 1.16 |
+| TAL-H30-b45-f35-c5 | 0.329 | 0.450 | 1.37 | 1.37 | 1.15 |
+| TAL-H30-b45-f35-c30 | 0.321 | 0.435 | 1.35 | 1.35 | 1.15 |
+| TAL-H30-b60-f20-c5 | 0.320 | 0.441 | 1.38 | 1.38 | 1.16 |
+| TAL-H30-b60-f20-c30 | 0.320 | 0.429 | 1.34 | 1.34 | 1.34 |
+| TAL-H30-b60-f35-c5 | 0.327 | 0.326 | 0.99 | 1.00 | 0.99 |
+| TAL-H30-b60-f35-c30 | 0.325 | 0.441 | 1.36 | 1.36 | 1.15 |
 
-Peor caso: V026-nc con 3.81×; margen frente al tope de 4×: 0.19 (4.8 % del tope).
+Peor caso: V026-nc con 3.81×; margen frente al tope de 4×: 0.19 (4.7 % del tope).
 
 WASM (el motor compilado a `wasm32-unknown-unknown`, corrido en V8 de Node; no es Chrome): tiempo de V053 y S2 con y sin `global` y FS contra el nativo.
 
 | Modelo | WASM circular (s) | WASM global (s) | Razón WASM | Nativo circular (s) | Nativo global (s) | FS nativo | FS WASM | Dif. | Salida idéntica |
 |---|---|---|---|---|---|---|---|---|---|
-| V053 | 0.422 | 1.196 | 2.83 | 0.349 | 0.989 | 1.010300223400 | 1.010300223400 | 1.3e-15 | no |
-| S2 | 0.385 | 0.754 | 1.96 | 0.316 | 0.616 | 0.750512538651 | 0.750512538651 | 4.4e-16 | no |
+| V053 | 0.420 | 1.203 | 2.86 | 0.349 | 0.990 | 1.010300223400 | 1.010300223400 | 1.3e-15 | no |
+| S2 | 0.384 | 0.754 | 1.96 | 0.317 | 0.617 | 0.750512538651 | 0.750512538651 | 4.4e-16 | no |
 
 Veredicto nativo: **PASA**.
 
@@ -365,11 +365,11 @@ Veredicto: **PASA**.
 |---|---|---|---|
 | 01_project_hang | > 60 s (sin terminar) | FS 1.2705; block; 33 vért.; tension_rejected 8; 0.35 s | sí |
 | 02_max_vertices_9 | FS 1.0103; block; 33 vért.; tension_rejected 0; 0.80 s | FS 1.0194; block; 9 vért.; tension_rejected 0; 0.60 s | sí |
-| 03_all_hb_auto_bases | FS 7.0198; block; 33 vért.; tension_rejected 0; 6.31 s | FS 7.0198; block; 33 vért.; tension_rejected 20; 4.91 s; non_circular_global_tension_rejected | sí |
-| 04_tension_note_zero_count | FS 0.7071; annealing; 33 vért.; tension_rejected 0; 0.98 s; non_circular_global_tension_rejected | FS 0.7071; annealing; 33 vért.; tension_rejected 0; 0.97 s; non_circular_global_tension_rejected | sí |
+| 03_all_hb_auto_bases | FS 7.0198; block; 33 vért.; tension_rejected 0; 6.30 s | FS 7.0198; block; 33 vért.; tension_rejected 20; 4.91 s; non_circular_global_tension_rejected | sí |
+| 04_tension_note_zero_count | FS 0.7071; annealing; 33 vért.; tension_rejected 0; 0.98 s; non_circular_global_tension_rejected | FS 0.7071; annealing; 33 vért.; tension_rejected 0; 0.98 s; non_circular_global_tension_rejected | sí |
 | 05_global_array | FS 1.3839; block; 33 vért.; tension_rejected 0; 0.43 s; non_circular_global_no_candidates | error: ogs: InvalidModel: el documento no coincide con el esquema:  | sí |
-| 06_v053_shansep_layer4 | FS 1.0844; annealing; 33 vért.; tension_rejected 0; 0.99 s | FS 0.7563; block; 33 vért.; tension_rejected 7; 1.07 s | sí |
-| 06_v053_hoek_brown_layer4 | FS 1.0844; annealing; 33 vért.; tension_rejected 0; 0.86 s | FS 0.7724; block; 33 vért.; tension_rejected 2; 2.03 s | sí |
+| 06_v053_shansep_layer4 | FS 1.0844; annealing; 33 vért.; tension_rejected 0; 1.00 s | FS 0.7563; block; 33 vért.; tension_rejected 7; 1.07 s | sí |
+| 06_v053_hoek_brown_layer4 | FS 1.0844; annealing; 33 vért.; tension_rejected 0; 0.87 s | FS 0.7724; block; 33 vért.; tension_rejected 2; 2.03 s | sí |
 
 El reproductor 01 sin `global` (v0.6) tarda 0.17 s.
 
@@ -388,8 +388,8 @@ El reproductor 01 sin `global` (v0.6) tarda 0.17 s.
 | máxima diferencia con cSlope | 0.0010 | 0.0010 |
 | resultados con global ≤ sin global | 52 | 57 |
 | gana `global` | 19 | 21 |
-| razón máxima de costo | 3.8102 | 3.8074 |
-| razón mediana de costo | 1.5517 | 1.5552 |
+| razón máxima de costo | 3.8102 | 3.8106 |
+| razón mediana de costo | 1.5517 | 1.5576 |
 | taludes con `evaluated` = 0 | 1 | 1 |
 
 ## A1

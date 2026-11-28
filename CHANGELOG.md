@@ -8,6 +8,8 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-28
+
 Bloque CM, «Cierre del MVP»: búsqueda global no circular (formato v0.7), correcciones de la web y cuatro verificaciones nuevas.
 **Sin `global`, la salida es la de la 0.5.1 byte a byte:** 0 diferencias en 202 modelos, con la versión del motor normalizada
 (`verification/tools/identity_vs_baseline.py`), y 26 modelos con agua sobre el terreno idénticos. El contrato es
@@ -95,7 +97,11 @@ minutos sigue pendiente de la prueba humana (en «Known issues»).
   `docs/tools/validar_ejemplos.py` contra el esquema 0.7: 15 ejemplos, antes 14 y 103); `docs/limitaciones.md`,
   `docs/verificacion.md`, `docs/desarrollo.md` y `docs/cm/CIERRE_CM.md`; y el README con las capturas del editor regeneradas
   (rótulo del documento y recuadro del FS que nombra los métodos).
-- **Pruebas medidas en el commit de versión:** ⟨…⟩.
+- **Pruebas medidas en el commit de versión:** `ogs-core` **827** pasan y 3 ignoradas, igual con la característica
+  `parallel`; aceptación **356 checks** y 0 fallas; `ogs-cli` **8**; `pytest verification` **1609** pasan y 1 omitida; wheel
+  `ogs-py` **373** pasan y 2 omitidas; web **4974 de 4974** con el motor real (`OGS_BIN` y `OGS_V07_ENGINE=1`) y **4642**
+  pasan con 332 omitidas sin él (4974 en total); identidad con la 0.5.1, 0 diferencias en 202 modelos; regresión e2e en
+  Chrome, 53 guiones con OK = 1440 y FAIL = 0.
 
 ### Changed
 - **Importar sobre el modelo de arranque cambia el FS de la ruta de T3** de 1,567 (Janbu corregido) a 1,568 (Spencer): crea un
@@ -1167,7 +1173,8 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...v0.4.0

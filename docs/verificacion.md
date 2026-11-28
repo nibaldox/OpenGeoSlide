@@ -23,7 +23,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | xslope 1.1.0, columna informativa (no es un juez) | **80/80** concordancias en superficie fija (máximo 0,116 %); la búsqueda va como diagnóstico; véase [abajo](#xslope-110-como-columna-informativa) | [`verification/xslope/REPORT.md`](../verification/xslope/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
 | Web y `ogs` (ida y vuelta; 418 modelos: 356 checks, 56 diferenciales y 6 de frontera) | **418/418**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas en el commit de la release 0.5.1; véase «Reproducir» abajo; las del bloque CM, en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4653 de 4653** con el motor real (`OGS_BIN`) y **4333** pasan con 320 omitidas sin él (4653 en total) | ídem |
+| Pruebas automáticas (medidas en el commit de la release 0.6.0; véase «Reproducir» abajo; las del bloque CM, en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)) | `ogs-core` **827** pasan y 3 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1609** pasan y 1 omitida; wheel `ogs-py` **373** pasan y 2 omitidas; web **4974 de 4974** con el motor real (`OGS_BIN` y `OGS_V07_ENGINE=1`) y **4642** pasan con 332 omitidas sin él (4974 en total); regresión e2e en Chrome, 53 guiones con OK = 1440 y FAIL = 0 | ídem |
 
 ## Aceptación: casos publicados
 
@@ -597,7 +597,7 @@ OGS_BIN=$CARGO_TARGET_DIR/release/ogs env -u PYTHONPATH -u PYTHONHOME uv run -q 
 
 ## Búsqueda global no circular (v0.7)
 
-El bloque CM (formato v0.7, aún sin publicar) agrega `analysis.search.non_circular.global`
+El bloque CM (formato v0.7, publicado con la 0.6.0) agrega `analysis.search.non_circular.global`
 ([formato](formato-ogs-json.md#v07-búsqueda-global-no-circular), [límites](limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)).
 Se verifica con las compuertas A1 a A10 y A2b del contrato (`briefs/06_CONTRATOS_CM.md`, F7.7, con las enmiendas E17a a E17f).
 La vara principal son los checks no circulares del corpus de cSlope que nunca se habían medido (V036c, V036d, V039, V041a,
@@ -646,7 +646,7 @@ Lo que dicen las compuertas con más detalle:
 
 Se midió con `verification/global/a7_chrome.mjs` (resultado en `verification/global/a7_chrome.json`): el WASM de la web
 (`wasm-bindgen --target web`) en HeadlessChrome 158, con la mediana de 3 corridas de `analyze_json` en la misma página. Antes se
-había medido solo en V8 de Node (V053 2,83 y S2 1,96); el navegador da cifras casi iguales.
+había medido solo en V8 de Node (V053 2,86 y S2 1,96 en el informe actual); el navegador da cifras casi iguales.
 
 | Modelo | Circular (s) | Con `global` (s) | Razón | FS con `global` frente al nativo |
 |---|---:|---:|---:|---|
