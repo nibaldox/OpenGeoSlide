@@ -15,6 +15,7 @@ import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
 import './app/newModel.css';
+import './app/docLabel.css';
 import { buildScene } from '../render/scene';
 import { CrackSummary } from '../ui/CrackResults';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -68,7 +69,8 @@ import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
-import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
+import { ExamplePicker } from './app/ExamplePicker';
+import { isEditableTag, runCheckShortcut, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
@@ -86,6 +88,7 @@ import {
   SurfacePanel,
   WaterPanel,
 } from './panels';
+import { DocEpochContext } from './panels/useStoreSelector';
 import { createEditorStore, useEditorStore, useLocalIssues, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc } from './types';
 
@@ -137,6 +140,15 @@ export function fileStatusText({
   else if (pendingDraftCount > 1) parts.push(`${pendingDraftCount} borradores sin aplicar`);
   if (busy) parts.push('calculando…');
   return `· ${parts.join(' · ')}`;
+}
+
+/**
+ * Rótulo del documento abierto en la cabecera del área (X35 §3, punto 8): el mismo título que la barra de estado
+ * (`documentTitle`: «Ejemplo: …» mientras es un ejemplo sin archivo propio) y, tras un punto medio, si tiene cambios sin guardar.
+ * Una sola línea: el estilo la recorta con puntos suspensivos, y el texto completo queda en el DOM y en el `title`.
+ */
+export function docLabelText(input: { fileName: string | null; title: string | null | undefined; example: boolean; dirty: boolean }): string {
+  return `${documentTitle(input)} · ${input.dirty ? 'con cambios sin guardar' : 'sin cambios'}`;
 }
 
 /** Nodos de la cabecera (los crea `App`) donde el editor muestra el chip de estado y los menús «Archivo» y «Exportar». */
@@ -240,6 +252,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
   const dirty = docDirty || tracePoints > 0;
+  const docLabel = docLabelText({ fileName, title: doc.meta.title, example: isExample, dirty });
   const tool = useEditorStore(store, (s) => s.ui.tool);
   useUnloadGuard(shouldWarnBeforeUnload({ dirty: docDirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure, tracePoints, pendingDrafts: engine.pendingDrafts.length }));
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
@@ -625,6 +638,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
   // ───────── Atajos globales ─────────
 
+  const onCheckRef = useRef(onCheck);
+  onCheckRef.current = onCheck;
   const actions = useRef<Record<ShortcutAction, () => void>>({} as Record<ShortcutAction, () => void>);
   actions.current = {
     undo: () => store.undo(),
@@ -635,7 +650,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       onSave();
     },
     open: () => openRef.current?.click(),
-    check: () => void onCheck(),
+    // Ctrl+Intro con el foco en un campo: se confirma el campo y se comprueba con el estado ya repintado (`runCheckShortcut`).
+    // `onCheckRef` apunta al `onCheck` del último render, porque la confirmación del campo cambia los borradores pendientes.
+    check: () => runCheckShortcut({ commitFocused: () => commitFocusedField(document.activeElement), check: () => void onCheckRef.current() }),
     'tool:select': () => void switchTool('select'),
     'tool:add_vertex': () => void switchTool('add_vertex'),
     'tool:draw_region': () => void switchTool('draw_region'),
@@ -811,17 +828,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           Importar CSV
         </button>
         <hr />
-        <label className="dd-field">
-          <span>Ejemplos</span>
-          <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => void onCase(e.target.value)}>
-            <option value="">Elegir un ejemplo…</option>
-            {cases.map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExamplePicker cases={cases} onOpen={(key) => void onCase(key)} />
       </DropdownMenu>
       <DropdownMenu label="Exportar">
         <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
@@ -857,7 +864,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           </button>
         </div>
         <StepList order={STEP_ORDER} states={steps} active={tab} onSelect={selectStep}>
-          <ActivePanel store={store} />
+          <DocEpochContext.Provider value={docEpoch}>
+            <ActivePanel store={store} />
+          </DocEpochContext.Provider>
         </StepList>
       </aside>
       <ActionFoot
@@ -920,7 +929,14 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               </button>
             ) : null}
             <h2>{viewTitle(view)}</h2>
-            <span className="ua-spacer" />
+            {view === 'cases' ? (
+              <span className="ua-spacer" />
+            ) : (
+              // El rótulo ocupa el lugar del espaciador: ni agrega alto ni empuja nada (con 320 px se recorta con puntos suspensivos).
+              <span className="ua-spacer ua-doc-label" data-testid="doc-label" title={docLabel}>
+                {docLabel}
+              </span>
+            )}
             {side.collapsed ? <CollapsedActions check={checkProps} busy={engine.busy} onCancel={engine.cancel} engineFailed={engineStatus === 'failed'} onRestartEngine={() => client.cancel()} /> : null}
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.

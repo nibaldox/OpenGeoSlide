@@ -13,6 +13,14 @@ const redo = () => page.getByRole('button', { name: 'Rehacer', exact: true }).cl
 const pt = (i, a) => page.getByLabel(`Polilínea, punto ${i}: ${a}`, { exact: true });
 const bishopBox = () => page.getByRole('checkbox', { name: 'Bishop simplificado', exact: true });
 const rowsOf = () => page.locator('[aria-label="Puntos de la polilínea de falla"] tbody tr').count();
+// CM-WA: desde R16B-01 «Guardar» se bloquea mientras haya un borrador sin aplicar (valor inválido en una tarjeta): con el borrador abierto se
+// comprueba el bloqueo y el modelo guardado se lee después de descartarlo con Esc (la tabla inválida nunca llega al archivo).
+const guardarBloqueado = async () => {
+  await openMenu(page, 'Archivo');
+  const off = await page.getByRole('button', { name: 'Guardar', exact: true }).isDisabled();
+  await page.keyboard.press('Escape');
+  return off;
+};
 const points = async () => JSON.parse((await saveText(page, 'w1e-p.ogs.json')).text).analysis.surface;
 
 // 1. Superficie fija con círculo; luego polilínea: tabla de 5 puntos propuesta
@@ -59,10 +67,12 @@ await pt(3, 'x').fill(await pt(2, 'x').inputValue());
 const inv = await pt(3, 'x').getAttribute('aria-invalid');
 const errTxt = await page.locator('[aria-label="Puntos de la polilínea de falla"]').locator('xpath=following-sibling::div[@role="alert"]').textContent();
 await pt(3, 'x').press('Enter');
-surf = await points();
-step('4 x no creciente: error de la tabla visible y la tabla no se guarda', inv === 'true' && /ordene los puntos de izquierda a derecha/.test(errTxt) && surf.points[2][0] === Number(xOld.replace(',', '.')), { errTxt });
+const bloq4 = await guardarBloqueado();
+step('4 x no creciente: error de la tabla visible y «Guardar» bloqueado por el borrador', inv === 'true' && /ordene los puntos de izquierda a derecha/.test(errTxt) && bloq4, { errTxt, bloq4 });
 await pt(3, 'x').press('Escape');
 step('4b Esc descarta el borrador', (await pt(3, 'x').inputValue()) === xOld);
+surf = await points();
+step('4c la tabla guardada no cambió (la x inválida no se guardó)', surf.points[2][0] === Number(xOld.replace(',', '.')), { x3: surf.points[2][0] });
 
 // 5. Ordenar por x
 const x2 = await pt(2, 'x').inputValue();
@@ -114,9 +124,11 @@ await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).fi
 const dInv = await page.getByLabel('Función entre dovelas, punto 3: ξ', { exact: true }).getAttribute('aria-invalid');
 const dErr = await page.locator('[aria-label="Puntos de la función entre dovelas"]').locator('xpath=following-sibling::div[@role="alert"]').textContent();
 await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).press('Enter');
-saved = JSON.parse((await saveText(page, 'w1e-p3.ogs.json')).text);
-step('8e ξ fuera de orden: error visible y no se guarda', dInv === 'true' && /ξ debe ser estrictamente creciente|terminar en ξ = 1/.test(dErr) && saved.analysis.interslice.points[1][0] === 0.5, { dErr });
+const bloq8 = await guardarBloqueado();
+step('8e ξ fuera de orden: error visible y «Guardar» bloqueado por el borrador', dInv === 'true' && /ξ debe ser estrictamente creciente|terminar en ξ = 1/.test(dErr) && bloq8, { dErr, bloq8 });
 await page.getByLabel('Función entre dovelas, punto 2: ξ', { exact: true }).press('Escape');
+saved = JSON.parse((await saveText(page, 'w1e-p3.ogs.json')).text);
+step('8e2 la tabla guardada no cambió (la ξ inválida no se guardó)', saved.analysis.interslice.points[1][0] === 0.5, { points: saved.analysis.interslice.points });
 await page.getByLabel('Función entre dovelas, punto 2: f', { exact: true }).fill('2');
 await page.getByLabel('Función entre dovelas, punto 2: f', { exact: true }).press('Enter');
 await page.getByRole('button', { name: 'Agregar un punto después del punto 1 de la función entre dovelas', exact: true }).click();

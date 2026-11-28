@@ -2,7 +2,7 @@ import { useEffect, useId } from 'react';
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { applyCommands } from './dispatch';
-import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
+import { ErrorList, LabeledField, PanelSection, RowsPendingNote, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   circleFromForm,
@@ -17,6 +17,7 @@ import {
   polylineSetCommand,
   polylineToForm,
   removePolylinePoint,
+  ROWS_PENDING_REASON,
   setPendingDraft,
   sortPolylineRows,
   surfaceMode,
@@ -58,6 +59,10 @@ function PolylineTable({ store }: { store: EditorStore }) {
   const table = polylineFromForm(rows, { xRange });
   const tableErrors = table.ok ? {} : table.errors;
   const rowsPending = polylineDraftPending(rows, points, xRange);
+  const pendingNoteId = useId();
+  // Agregar o quitar puntos reemplaza las filas con las del documento: con un borrador sin aplicar se pierde, así que se deshabilita.
+  const rowsReason = rowsPending ? ROWS_PENDING_REASON : undefined;
+  const rowsDescribedBy = rowsPending ? pendingNoteId : undefined;
   useEffect(() => {
     setPendingDraft(store, SURFACE_POLYLINE_DRAFT.key, rowsPending ? SURFACE_POLYLINE_DRAFT.label : null);
     return () => setPendingDraft(store, SURFACE_POLYLINE_DRAFT.key, null);
@@ -109,12 +114,14 @@ function PolylineTable({ store }: { store: EditorStore }) {
                   <td>
                     <button
                       type="button"
-                      disabled={!table.ok || i >= points.length || !canInsertPolylinePoint(points, i, xRange)}
+                      disabled={rowsPending || !table.ok || i >= points.length || !canInsertPolylinePoint(points, i, xRange)}
                       title={
-                        table.ok && i < points.length && !canInsertPolylinePoint(points, i, xRange)
+                        rowsReason ??
+                        (table.ok && i < points.length && !canInsertPolylinePoint(points, i, xRange)
                           ? 'No cabe un punto entre estos dos: la x debe seguir creciendo con la separación mínima'
-                          : 'Agregar un punto a medio camino del siguiente (o a la derecha del último)'
+                          : 'Agregar un punto a medio camino del siguiente (o a la derecha del último)')
                       }
+                      aria-describedby={rowsDescribedBy}
                       aria-label={`Agregar un punto después del punto ${i + 1} de la polilínea`}
                       onClick={() => store.dispatch(polylineSetCommand(insertPolylinePoint(points, i, xRange)))}
                     >
@@ -122,8 +129,9 @@ function PolylineTable({ store }: { store: EditorStore }) {
                     </button>{' '}
                     <button
                       type="button"
-                      disabled={remaining === null}
-                      title={remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto'}
+                      disabled={remaining === null || rowsPending}
+                      title={rowsReason ?? (remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto')}
+                      aria-describedby={rowsDescribedBy}
                       aria-label={`Quitar el punto ${i + 1} de la polilínea`}
                       onClick={() => remaining && store.dispatch(polylineSetCommand(remaining))}
                     >
@@ -137,6 +145,7 @@ function PolylineTable({ store }: { store: EditorStore }) {
         </table>
       </div>
       <ErrorList errors={tableErrors} />
+      <RowsPendingNote id={pendingNoteId} pending={rowsPending} />
       <p className="muted small">
         Al menos 2 puntos, con x estrictamente creciente. Los extremos se prolongan o se recortan hasta el terreno; los puntos intermedios deben
         quedar bajo el terreno y dentro del modelo (lo comprueba el cálculo).
