@@ -12,7 +12,7 @@ Se corre con el Python del oráculo (`$TMPDIR/oracle-venv/bin/python`, cslope 0.
 
 Pasos (`--steps`, todos por defecto): `measure` (los 40 modelos y los casos no circulares extra: circular, refinamiento,
 global, repeticiones, binario paralelo, reevaluación de la polilínea ganadora y cSlope), `robust` (A2b, 48 semillas),
-`a9` (el generador de Rust contra el prototipo) y `report` (REPORT.md y REPORT.json). Cada paso guarda su resultado en
+`a9` (el generador de Rust contra el prototipo), `wasm` (A7 en WebAssembly sobre V8 de Node) y `report` (REPORT.md y REPORT.json). Cada paso guarda su resultado en
 `--work` (por defecto `$TMPDIR/cm-m/global-work`), de modo que `report` se repite sin volver a medir. Las compuertas A1
 y A10 (las del repositorio) las llena `gates_repo.json`, si existe.
 
@@ -196,6 +196,26 @@ def step_a9(a, work):
     print("a9", len(out), flush=True)
 
 
+# ------------------------------------------------------------------ paso 3b: wasm (A7)
+
+def step_wasm(a, work):
+    """V053 y S2 con y sin `global` en el motor WASM (V8 de Node, con wasm-bindgen `--target nodejs`)."""
+    target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
+    subprocess.run(["cargo", "build", "-p", "ogs-wasm", "--target", "wasm32-unknown-unknown", "--release", "-q"], cwd=ROOT, check=True)
+    out = work / "wasm"
+    subprocess.run(["wasm-bindgen", "--target", "nodejs", "--out-dir", str(out), str(target / "wasm32-unknown-unknown/release/ogs_wasm.wasm")], check=True)
+    models = {e["id"]: e["model"] for e in E.entries() if e["id"] in ("V053", "S2")}
+    files = []
+    for name, model in models.items():
+        for label in ("circular", "refinement", "global"):
+            path = work / f"wasm_{name}_{label}.json"
+            path.write_text(json.dumps(E.variant(model, label)))
+            files.append(str(path))
+    p = subprocess.run(["node", str(HERE / "wasm_a7.mjs"), str(out)] + files, capture_output=True, text=True, check=True)
+    (work / "wasm.json").write_text(json.dumps([json.loads(x) for x in p.stdout.splitlines() if x.startswith("{")], indent=1))
+    print("wasm", len(files), flush=True)
+
+
 # ------------------------------------------------------------------ paso 4: report
 
 def load_jsonl(path):
@@ -310,7 +330,22 @@ def gates(a, work):
                    criterion="tiempo con `global` (N = 500) ≤ 4 × el circular, mediana de 3 corridas por modelo (nativo)",
                    median=statistics.median(x["wall"] for x in ratios), maximum=max(x["wall"] for x in ratios),
                    cpu_median=statistics.median(x["cpu"] for x in ratios), cpu_maximum=max(x["cpu"] for x in ratios),
-                   rows=ratios, wasm="no medido: ver «Pendientes»")
+                   rows=ratios, wasm=None)
+    if (work / "wasm.json").exists():
+        wasm = {x["input"]: x for x in json.loads((work / "wasm.json").read_text())}
+        native = {r["id"]: r for r in forty}
+        w = []
+        for name in ("V053", "S2"):
+            nat = first(native[name], "global")["fos"]
+            nat_ref = first(native[name], "refinement")["fos"]
+            w.append(dict(id=name, circular=statistics.median(wasm[f"wasm_{name}_circular"]["seconds"]),
+                          refinement=statistics.median(wasm[f"wasm_{name}_refinement"]["seconds"]),
+                          global_s=statistics.median(wasm[f"wasm_{name}_global"]["seconds"]),
+                          native_fos=nat, wasm_fos=wasm[f"wasm_{name}_global"]["fos"],
+                          diff=abs(wasm[f"wasm_{name}_global"]["fos"] - nat), refinement_diff=abs(wasm[f"wasm_{name}_refinement"]["fos"] - nat_ref),
+                          identical_bytes=wasm[f"wasm_{name}_global"]["sha256"] == native[name]["global"]["sha256"],
+                          native_circular=statistics.median(native[name]["circular"]["wall"]), native_global=statistics.median(native[name]["global"]["wall"])))
+        G["A7"]["wasm"] = w
     # --- A8
     slopes = [r for r in forty if r["group"] == "talud"]
     srows = []
@@ -378,7 +413,7 @@ def step_report(a, work):
     line("A4", lambda g: f"{g['winners']} ganadores del generador; sin notas de tracción; V051 = {g['v051']:.4f}; cSlope ≤ {(g['max_cslope_diff'] or 0) * 100:.2f} % en {g['with_cslope']}")
     line("A5", lambda g: f"{sum(m['ok'] for m in g['rows'])}/{len(g['rows'])} resultados ≤ sin `global`; `global` gana en {g['global_wins']}")
     line("A6", lambda g: f"{g['deterministic']}/{g['models']} deterministas; {g['parallel_identical']}/{g['models']} idénticos con `parallel`")
-    line("A7", lambda g: f"razón de tiempo: mediana {g['median']:.2f}, máximo {g['maximum']:.2f} (CPU: {g['cpu_median']:.2f} / {g['cpu_maximum']:.2f}); WASM pendiente")
+    line("A7", lambda g: f"razón de tiempo: mediana {g['median']:.2f}, máximo {g['maximum']:.2f} (CPU: {g['cpu_median']:.2f} / {g['cpu_maximum']:.2f})" + (f"; WASM: razón máxima {max(x['global_s'] / x['circular'] for x in g['wasm']):.2f}, FS igual al nativo a {max(x['diff'] for x in g['wasm']):.0e}" if g["wasm"] else "; WASM sin medir"))
     line("A8", lambda g: f"24 taludes; `evaluated` = 0 en {len(g['evaluated_zero'])}: {', '.join(g['evaluated_zero']) or '—'}")
     line("A9", lambda g: f"recocido: {g['exact']}/{len(g['annealing'])} iguales al prototipo original a 1e-6; {sum(x['annealing_aligned_diff'] is not None and x['annealing_aligned_diff'] <= 1e-6 for x in g['annealing'])}/{len(g['annealing'])} con el alineado a las reglas del contrato")
     line("A10", lambda g: g.get("figure", ""))
@@ -432,7 +467,14 @@ def step_report(a, work):
               "La columna «Refinamiento» es la razón del refinamiento de v0.6 sin `global`, para ver cuánto agrega la etapa global.", ""]
         L += table(["Modelo", "Circular (s)", "Global (s)", "Razón", "Razón CPU", "Refinamiento"],
                    [[x["id"], fmt(x["circular"], 3), fmt(x["global_s"], 3), f"{x['wall']:.2f}", f"{x['cpu']:.2f}", f"{x['refinement']:.2f}"] for x in g["rows"]])
-        L += ["", f"WASM en Chrome: {g['wasm']}. Veredicto nativo: {verdict(g['ok'])}.", ""]
+        if g["wasm"]:
+            L += ["", "WASM (el motor compilado a `wasm32-unknown-unknown`, corrido en V8 de Node; no es Chrome): tiempo de V053 y S2 con y sin `global` y FS contra el nativo.", ""]
+            L += table(["Modelo", "WASM circular (s)", "WASM global (s)", "Razón WASM", "Nativo circular (s)", "Nativo global (s)", "FS nativo", "FS WASM", "Dif.", "Salida idéntica"],
+                       [[x["id"], fmt(x["circular"], 3), fmt(x["global_s"], 3), f"{x['global_s'] / x['circular']:.2f}", fmt(x["native_circular"], 3), fmt(x["native_global"], 3),
+                         fmt(x["native_fos"], 12), fmt(x["wasm_fos"], 12), f"{x['diff']:.1e}", "sí" if x["identical_bytes"] else "no"] for x in g["wasm"]])
+        else:
+            L += ["", "WASM: no medido (paso `wasm`)."]
+        L += ["", f"Veredicto nativo: {verdict(g['ok'])}.", ""]
     if "A8" in G:
         g = G["A8"]
         L += ["## A8 · barrido de 24 taludes", "", g["criterion"] + ".", ""]
@@ -472,11 +514,11 @@ def main():
     ap.add_argument("--parallel-bin", type=Path)
     ap.add_argument("--proto-python", type=Path, default=TMP / "cm-x37/venv/bin/python")
     ap.add_argument("--work", type=Path, default=TMP / "cm-m/global-work")
-    ap.add_argument("--steps", default="measure,robust,a9,report")
+    ap.add_argument("--steps", default="measure,robust,a9,wasm,report")
     ap.add_argument("--jobs", type=int, default=2)
     a = ap.parse_args()
     a.work.mkdir(parents=True, exist_ok=True)
-    steps = {"measure": step_measure, "robust": step_robust, "a9": step_a9}
+    steps = {"measure": step_measure, "robust": step_robust, "a9": step_a9, "wasm": step_wasm}
     rc = 0
     for name in a.steps.split(","):
         if name == "report":
