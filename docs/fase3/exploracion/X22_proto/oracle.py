@@ -10,7 +10,9 @@ Los pilotes con `force` pasan por el conversor como siempre (location "slip-surf
 from __future__ import annotations
 import copy, json, os, sys
 
-HARNESS = os.environ.get("OGS_HARNESS", "/home/xodla/archivos/opengeoslide-wt/f3g3x/verification/harness")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+HARNESS = os.environ.get("OGS_HARNESS", str(ROOT / "verification/harness"))
 sys.path.insert(0, HARNESS)
 import cslope as cs                      # noqa: E402
 from to_cslope import ogs_to_cslope      # noqa: E402

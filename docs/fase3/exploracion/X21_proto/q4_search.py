@@ -3,7 +3,9 @@
   env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python q4_search.py"""
 import json, math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, "/home/xodla/archivos/opengeoslide/verification/harness")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "verification/harness"))
 import cslope as cs
 import from_cslope as fc
 import geometry

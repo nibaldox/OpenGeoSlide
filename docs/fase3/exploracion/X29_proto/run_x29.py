@@ -17,7 +17,8 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/xodla/archivos/opengeoslide"
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[4])
 TMP = os.environ["TMPDIR"]
 sys.path.insert(0, HERE)
 import nc  # noqa: E402

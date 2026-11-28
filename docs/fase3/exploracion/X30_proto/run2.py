@@ -1,7 +1,7 @@
 """X30 corrida 2: sismo, cargas, avisos del motor (E13k), búsqueda SHANSEP del oráculo y proto en su círculo.
 Salida: $TMPDIR/f3b-x30/run2.json. Uso: env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python run2.py"""
 import copy, json, os, sys, time
-sys.path.insert(0, '/home/xodla/archivos/opengeoslide/docs/fase3/exploracion/X30_proto')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import x30, x30_oracle as xo, engine
 import cslope as cs
 from to_cslope import ogs_to_cslope

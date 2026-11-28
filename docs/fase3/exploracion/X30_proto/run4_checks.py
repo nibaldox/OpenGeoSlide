@@ -1,6 +1,6 @@
 """X30 corrida 4: identidades, monotonía, espejo y σ′v ≤ 0. Salida: $TMPDIR/f3b-x30/run4.json"""
 import copy, json, os, sys
-sys.path.insert(0, '/home/xodla/archivos/opengeoslide/docs/fase3/exploracion/X30_proto')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import x30, x30_oracle as xo, cslope as cs
 OUT = os.path.join(os.environ['TMPDIR'], 'f3b-x30', 'run4.json')
 res = {}

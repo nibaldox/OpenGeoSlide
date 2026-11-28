@@ -3,11 +3,11 @@
 Solo lo que usan las filas: contorno con materialBoundaries y regionAssignments, materiales mohr-coulomb y undrained,
 línea de agua `custom`, superficie fija (círculo o polilínea) y las opciones de grieta de un check."""
 from __future__ import annotations
-import json, re, sys
+import json, os, re, sys
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import polygonize, unary_union
 
-GOLDEN = "/home/xodla/.hermes/profiles/open-geoslide/cache/scratch/cslope-src/packages/engine-rs/golden/verification.json"
+GOLDEN = os.path.join(os.environ.get("TMPDIR", "/tmp"), "cslope-src/packages/engine-rs/golden/verification.json")
 
 
 def slug(name):

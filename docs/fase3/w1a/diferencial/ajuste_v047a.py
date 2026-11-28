@@ -1,9 +1,11 @@
 import sys, json, copy, random, subprocess, os, math
-sys.path.insert(0, "/home/xodla/archivos/opengeoslide/verification/harness")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "verification/harness"))
 import cslope
 from to_cslope import ogs_to_cslope
-OGS="/home/xodla/archivos/opengeoslide-wt/f3w1a/target/release/ogs"
-V = json.load(open("/home/xodla/archivos/opengeoslide/verification/cases/V047a.json"))["model"]
+OGS=str(ROOT / "target/release/ogs")
+V = json.load(open(ROOT / "verification/cases/V047a.json"))["model"]
 V["analysis"]["surface"] = dict(type="circle", xc=29.54334963719809, yc=53.63784815923435, r=28.641487934160704)
 D = ogs_to_cslope(V, {"method": "bishop", "kind": "fixed", "options": {"slices": 50}}).document["definition"]
 OPT = dict(slices=200, tolerance=1e-6, maxIterations=500, searchMethod="circular", compositeSurfaces=False,

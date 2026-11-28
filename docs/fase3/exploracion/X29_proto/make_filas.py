@@ -12,7 +12,8 @@ import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = "/home/xodla/archivos/opengeoslide"
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[4])
 TMP = os.environ["TMPDIR"]
 PRO = os.path.join(TMP, "f3b-x29/proto")
 ORC = os.path.join(TMP, "f3b-x29/oracle")

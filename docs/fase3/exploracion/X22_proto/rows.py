@@ -9,7 +9,8 @@ import copy, json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "X22_filas")
-ROOT = "/home/xodla/archivos/opengeoslide-wt/f3g3x"
+from pathlib import Path
+ROOT = str(Path(__file__).resolve().parents[4])
 BASE = json.load(open(f"{ROOT}/verification/cases/V013a.json"))["model"]
 CIRC = json.load(open(os.path.join(HERE, "circles.json")))
 GW = 9.807     # cSlope 0.1.0 usa siempre 9,807: las filas con agua lo declaran

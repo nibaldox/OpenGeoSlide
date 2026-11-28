@@ -1,5 +1,6 @@
 import json,subprocess,copy,os,time
-ROOT='/home/xodla/archivos/opengeoslide-wt/f3r11c'
+from pathlib import Path
+ROOT = str(Path(__file__).resolve().parents[4])
 def load(n):
     return json.load(open(f'{ROOT}/verification/cases/{n}.json'))['model']
 def run(model, ogs=None, t=False):

@@ -1,7 +1,9 @@
 """Círculos críticos del oráculo (búsqueda Bishop de cSlope, V013b-e, con location centroid y slip-surface) -> circles.json.
   env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python circles.py"""
 import json, os, sys, copy
-sys.path.insert(0, "/home/xodla/archivos/opengeoslide-wt/f3g3x/verification/harness")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "verification/harness"))
 import cslope as cs
 G = json.load(open(os.path.join(os.environ["TMPDIR"], "cslope-src/packages/engine-rs/golden/verification.json")))
 out = {}

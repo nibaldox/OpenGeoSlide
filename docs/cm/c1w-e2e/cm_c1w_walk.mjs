@@ -5,7 +5,7 @@ import { chromium } from 'playwright-core';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 const TMP = process.env.TMPDIR;
-const REPO = process.env.OGS_REPO ?? '/home/xodla/archivos/opengeoslide-wt/cm-c1w';
+const REPO = process.env.OGS_REPO ?? new URL('../../../', import.meta.url).pathname;
 const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5183/';
 const SHOTS = `${TMP}/cm-c1w/shots`;
 const AXE = `${TMP}/x8-ux/node_modules/axe-core/axe.min.js`;

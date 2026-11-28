@@ -1,7 +1,9 @@
 import json, copy, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import engine, proto
-BASE=json.load(open("/home/xodla/archivos/opengeoslide-wt/f3g3x/verification/cases/V013a.json"))["model"]
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+BASE=json.load(open(ROOT / "verification/cases/V013a.json"))["model"]
 def row(circle, piles):
     m=copy.deepcopy(BASE); m["version"]="0.4"; m["analysis"].pop("search")
     m["analysis"]["surface"]={"type":"circle","xc":circle[0],"yc":circle[1],"r":circle[2]}

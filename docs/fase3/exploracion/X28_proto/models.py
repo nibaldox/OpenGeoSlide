@@ -8,7 +8,8 @@
 from __future__ import annotations
 import copy, json, os, sys
 
-ROOT = "/home/xodla/archivos/opengeoslide"
+from pathlib import Path
+ROOT = str(Path(__file__).resolve().parents[4])
 HARNESS = os.path.join(ROOT, "verification", "harness")
 GW = 9.807                    # peso específico del agua de cSlope 0.1.0 (to_cslope.CSLOPE_WATER_UNIT_WEIGHT)
 METHODS = ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]

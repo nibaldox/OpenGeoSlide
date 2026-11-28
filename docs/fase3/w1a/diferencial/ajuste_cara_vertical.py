@@ -1,9 +1,11 @@
 import sys, json, copy, random, subprocess, os
-sys.path.insert(0, "/home/xodla/archivos/opengeoslide/verification/harness")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "verification/harness"))
 import cslope
 from to_cslope import ogs_to_cslope
 from collections import Counter
-OGS="/home/xodla/archivos/opengeoslide-wt/f3w1a/target/release/ogs"
+OGS=str(ROOT / "target/release/ogs")
 POLY=[[0,0],[0,30],[20,30],[20,20],[30,20],[40,26],[50,26],[50,0]]   # vertical face 20: 30->20, then a bench and a ramp up
 def ground(x, side="left"):
     if x<20: return 30.0

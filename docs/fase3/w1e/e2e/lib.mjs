@@ -7,7 +7,7 @@ import path from 'node:path';
 export const SHOTS = path.join(process.env.TMPDIR, 'w1e-shots');
 mkdirSync(SHOTS, { recursive: true });
 export const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
-export const OGS_BIN = process.env.OGS_BIN ?? '/home/xodla/archivos/opengeoslide-wt/f3w1e/target/release/ogs';
+export const OGS_BIN = process.env.OGS_BIN ?? new URL('../../../../target/release/ogs', import.meta.url).pathname;
 export const errors = [];
 export const dialogs = [];
 let failed = 0;

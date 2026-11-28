@@ -24,7 +24,8 @@ sys.path.insert(0, HERE)
 import engine  # noqa: E402
 import solvers  # noqa: E402
 
-REPO = "/home/xodla/archivos/opengeoslide"
+from pathlib import Path
+REPO = str(Path(__file__).resolve().parents[4])
 PLACE_SU = 1.0
 METHODS = ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]
 

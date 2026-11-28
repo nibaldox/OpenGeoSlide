@@ -2,7 +2,9 @@
 from __future__ import annotations
 import copy, json, os, subprocess, tempfile
 
-OGS = os.environ.get("OGS_BIN", "/home/xodla/archivos/opengeoslide/target/release/ogs")
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[4]
+OGS = os.environ.get("OGS_BIN", str(ROOT / "target/release/ogs"))
 METHODS = ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_corrected"]
 X21_KEYS = ("tension_crack", "free_water", "x21")
 

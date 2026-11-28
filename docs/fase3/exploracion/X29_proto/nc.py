@@ -21,10 +21,11 @@ from __future__ import annotations
 
 import copy
 import math
+import os
 import sys
 import time
 
-sys.path.insert(0, "/home/xodla/.hermes/profiles/open-geoslide/cache/scratch/f3b-x29/venv/lib/python3.13/site-packages")
+sys.path.insert(0, os.path.join(os.environ.get("TMPDIR", "/tmp"), "f3b-x29/venv/lib/python3.13/site-packages"))
 import opengeoslide as og  # noqa: E402  (wheel 0.4.0)
 
 METHOD_MP = "morgenstern_price"

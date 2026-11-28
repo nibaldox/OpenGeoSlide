@@ -2,7 +2,8 @@
 from __future__ import annotations
 import copy, json, math, os, sys
 
-ROOT = "/home/xodla/archivos/opengeoslide"
+from pathlib import Path
+ROOT = str(Path(__file__).resolve().parents[4])
 BASE = json.load(open(f"{ROOT}/verification/cases/V047a.json"))["model"]
 CIRCLE = {"type": "circle", "xc": 29.54334963719809, "yc": 53.63784815923435, "r": 28.641487934160704}
 GW = 9.807     # cSlope 0.1.0 usa siempre 9,807 (to_cslope.py): las filas lo declaran para comparar sin ruido

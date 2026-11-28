@@ -7,7 +7,7 @@ import path from 'node:path';
 const SHOTS = path.join(process.env.TMPDIR, 'u3x-walk');
 mkdirSync(SHOTS, { recursive: true });
 const URL_ = process.env.OGS_URL ?? 'http://127.0.0.1:5186/';
-const FIX = (process.env.OGS_REPO ?? '/home/xodla/archivos/opengeoslide-wt/u5i') + '/apps/web/src/io/dxf/fixtures/';
+const FIX = (process.env.OGS_REPO ?? new URL('../../../../', import.meta.url).pathname) + '/apps/web/src/io/dxf/fixtures/';
 const out = { steps: [], consoleErrors: [] };
 const step = (name, ok, data = {}) => { out.steps.push({ name, ok, ...data }); console.log(ok ? 'OK ' : 'FAIL', name, JSON.stringify(data)); };
 const num = (t) => Number(String(t).replace(/\s/g, '').replace(',', '.'));

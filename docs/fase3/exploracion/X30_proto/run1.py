@@ -1,6 +1,6 @@
 """X30: corrida principal. Escribe $TMPDIR/f3b-x30/run1.json. Uso: env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python run1.py"""
 import copy, json, os, sys, time
-sys.path.insert(0, '/home/xodla/archivos/opengeoslide/docs/fase3/exploracion/X30_proto')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import x30, x30_oracle as xo
 OUT = os.path.join(os.environ['TMPDIR'], 'f3b-x30', 'run1.json')
 M = x30.METHODS

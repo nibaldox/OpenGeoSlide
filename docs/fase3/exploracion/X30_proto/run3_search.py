@@ -1,7 +1,7 @@
 """X30 corrida 3: búsqueda circular SHANSEP del oráculo (V047a seco, OCR 1) y el prototipo en su círculo crítico.
 Salida: $TMPDIR/f3b-x30/run3.json"""
 import json, os, sys, time
-sys.path.insert(0, '/home/xodla/archivos/opengeoslide/docs/fase3/exploracion/X30_proto')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import x30, x30_oracle as xo, cslope as cs
 from to_cslope import ogs_to_cslope
 OUT = os.path.join(os.environ['TMPDIR'], 'f3b-x30', 'run3.json')
