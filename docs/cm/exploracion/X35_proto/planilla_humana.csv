@@ -1,0 +1,4 @@
+participante;perfil;orden_tareas;tarea;condicion_inicio;hora_inicio_nav;hora_FS_visible;tiempo_s;FS_mostrado;metodo_mostrado;clics;teclas;campos_escritos;ayuda_o_guia_abierta;guia_recorrida_pasos;bloqueos;desvios_descripcion;FS_en_rango_esperado;comentario
+P01;experiencia_taludes_si/no_y_software_si/no;T1-T2-T3;T1_ejemplo_V001;ventana_privada_nueva;;;;;;;;;;;;;;
+P01;experiencia_taludes_si/no_y_software_si/no;T1-T2-T3;T2_talud_simple;ventana_privada_nueva;;;;;;;;;;;;;;
+P01;experiencia_taludes_si/no_y_software_si/no;T1-T2-T3;T3_dxf_terraplen;ventana_privada_nueva;;;;;;;;;;;;;;
