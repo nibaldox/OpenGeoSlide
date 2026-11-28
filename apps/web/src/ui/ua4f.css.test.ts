@@ -70,7 +70,8 @@ describe('UA4-F: pie de acción móvil en una sola fila', () => {
 describe('UA4-F: lienzo móvil', () => {
   const shell = read('../editor/app/shell/shell.css');
   const mobile = media(shell, 'max-width: 760px');
-  it('su alto es clamp(260px, …, 360px) (nunca menos de 260) y lo comparten el SVG y el estado vacío', () => {
+  // UA-E6: el alto real lo escribe `useCanvasHeight` en línea; el `clamp` de UA4-F queda como respaldo del primer pintado.
+  it('el respaldo en CSS es clamp(260px, …, 360px) y lo comparten el SVG y el estado vacío', () => {
     expect(rule(mobile, '.ua-canvas-card')).toMatch(/--ua-canvas-h:\s*clamp\(260px,[^;]+,\s*360px\)/);
     expect(rule(mobile, '.ua-canvas-card .ec-root > .ec-svg')).toMatch(/height:\s*var\(--ua-canvas-h\)/);
     expect(rule(mobile, '.ua-canvas-card .ec-empty')).toMatch(/height:\s*var\(--ua-canvas-h\)/);
@@ -80,5 +81,21 @@ describe('UA4-F: lienzo móvil', () => {
 describe('UA4-F: casillas del panel de Geometría ≥ 24 px', () => {
   it('.gp-check tiene min-height: 24px', () => {
     expect(rule(read('../editor/panels/geometry.css'), '.gp-check')).toMatch(/min-height:\s*24px/);
+  });
+});
+
+describe('UA-E6: orden del lienzo móvil', () => {
+  const mobile = media(read('../editor/app/shell/shell.css'), 'max-width: 760px');
+  const order = (selector: string): number => Number(/order:\s*(-?\d+)/.exec(rule(mobile, selector))?.[1]);
+  it('lienzo → paleta → leyenda → HUD', () => {
+    expect(rule(mobile, '.ua-canvas-card .ec-root > .ec-svg')).toMatch(/order:\s*0/);
+    const palette = order('.ua-canvas-card .ec-palette');
+    const legend = order('.ua-canvas-card > ul.legend[aria-label]');
+    const hud = order('.ua-canvas-card > div.rs');
+    expect(0 < palette && palette < legend && legend < hud).toBe(true);
+  });
+  it('conserva scroll-padding-bottom del pie y el alto del lienzo sale de --ua-canvas-h', () => {
+    expect(rule(mobile, 'html')).toMatch(/scroll-padding-bottom:\s*57px/);
+    expect(rule(mobile, '.ua-canvas-card .ec-root > .ec-svg')).toMatch(/height:\s*var\(--ua-canvas-h\)\s*!important/);
   });
 });

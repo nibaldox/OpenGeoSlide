@@ -54,6 +54,7 @@ import { issueNavPlan } from './app/shell/issueNavPlan';
 import { reportDocTitle, reportNotice } from './app/shell/reportTitle';
 import { pickShownMethod } from './app/shell/shownMethod';
 import { buildRunStatusInput } from './app/shell/statusInput';
+import { useCanvasHeight } from './app/shell/useCanvasHeight';
 import { useHudInsets } from './app/shell/useHudInsets';
 import { PaletteTools } from './app/shell/PaletteTools';
 import { ReportView } from './app/shell/ReportView';
@@ -695,6 +696,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const canvasCardRef = useRef<HTMLElement>(null);
   const docEpoch = useEditorStore(store, (s) => s.docEpoch);
   const { insets: fitInsets, covered: coveredBoxes, compact: hudCompact } = useHudInsets(canvasCardRef, doc, desktop, docEpoch);
+  // UA-E6: hasta 760 px el alto del lienzo se mide para que la paleta termine encima del pie fijo.
+  useCanvasHeight(canvasCardRef, view === 'canvas');
   const localIssues = useLocalIssues(store);
   const steps = useMemo(() => stepStates(doc, localIssues, pendingDrafts), [doc, localIssues, pendingDrafts]);
   // Un resultado con borradores sin aplicar no es el del modelo que se ve: nunca es «actual» (UA3 A-02, B-01).
