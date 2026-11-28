@@ -225,3 +225,34 @@ export function suggestBaseText(open: readonly { points: readonly Point[] }[], u
   );
   return v === null ? '' : String(v).replace('.', ',');
 }
+
+// ───────── Destino de la importación (CM-WC) ─────────
+
+/** Lo que el diálogo necesita saber del modelo abierto para proponer un destino y nombrarlo. */
+export interface ImportBase {
+  /** Regiones que tiene hoy el modelo. */
+  regionCount: number;
+  /** Título del modelo abierto (el del ejemplo, si es uno); `null` si no tiene. */
+  title: string | null;
+  /** `true` si es el modelo de arranque, sin ningún cambio ni otro documento cargado desde entonces (`docEpoch` y `revision` en 0). */
+  pristineStart: boolean;
+}
+
+/**
+ * Destino por defecto de un DXF o CSV de regiones: «Reemplazar» si el modelo abierto es el de arranque sin cambios o no tiene
+ * regiones (agregar a un ejemplo que nadie eligió da un modelo con regiones superpuestas y bloquea «Comprobar»); «Agregar» en
+ * cualquier otro caso, y también si el diálogo no sabe cuál es el modelo (`base` ausente).
+ */
+export function defaultImportMode(base: ImportBase | undefined): 'add' | 'replace' {
+  return base !== undefined && (base.pristineStart || base.regionCount === 0) ? 'replace' : 'add';
+}
+
+/** Rótulo de «Agregar», con el modelo al que se agrega: «Agregar a las 2 regiones de ACADS 1(a)». */
+export function addModeLabel(base: ImportBase | undefined): string {
+  if (base === undefined) return 'Agregar a las regiones actuales';
+  const named = base.title !== null && base.title.trim() !== '';
+  const of = named ? `de ${base.title!.trim()}` : 'del modelo actual';
+  if (base.regionCount === 0) return named ? `Agregar a ${base.title!.trim()} (no tiene regiones)` : 'Agregar al modelo actual (no tiene regiones)';
+  if (base.regionCount === 1) return `Agregar a la región ${of}`;
+  return `Agregar a las ${base.regionCount} regiones ${of}`;
+}

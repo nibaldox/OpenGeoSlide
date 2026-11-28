@@ -5,7 +5,8 @@ import { EngineError } from '../../engine/engine';
 import type { AnalysisReport } from '../../engine/types';
 import { createEditorStore } from '../state/store';
 import { newDoc } from './docTemplates';
-import { checkButtonState, createEngineCheck, LOCAL_ERRORS_TEXT } from './engineCheck';
+import type { Issue } from '../types';
+import { checkButtonState, createEngineCheck, LOCAL_ERRORS_TEXT, localErrorsText } from './engineCheck';
 import { isRunCurrent } from './reportInput';
 
 const report = (engine = 'ogs-core test'): AnalysisReport => ({ engine, results: [] });
@@ -37,6 +38,17 @@ async function until(predicate: () => boolean): Promise<void> {
   for (let i = 0; i < 200 && !predicate(); i += 1) await new Promise((r) => setTimeout(r, 0));
   expect(predicate()).toBe(true);
 }
+
+/** Un modelo con un vértice no numérico (como el de un campo que se dejó con texto): el reductor no lo admite, se arma el documento entero. */
+const setupBadVertex = () => {
+  const base = newDoc();
+  const region = base.regions[0]!;
+  const polygon = region.polygon.map((p) => [...p]) as typeof region.polygon;
+  polygon[2] = [polygon[2]![0], Number.NaN];
+  const store = createEditorStore({ ...base, regions: [{ ...region, polygon }, ...base.regions.slice(1)] }, null);
+  const client = fakeClient();
+  return { store, client, ctl: createEngineCheck(store, client) };
+};
 
 describe('createEngineCheck', () => {
   it('guarda el resultado de la revisión calculada', async () => {
@@ -117,11 +129,36 @@ describe('createEngineCheck', () => {
     const { store, ctl } = setup();
     store.dispatch({ type: 'analysis/patch', patch: { slices: -3 } });
     expect(await ctl.check()).toBeNull();
-    expect(ctl.getState().message).toBe(LOCAL_ERRORS_TEXT);
+    const text = ctl.getState().message;
+    expect(text).toMatch(/^No se puede calcular: /);
     ctl.syncLocal(true);
-    expect(ctl.getState().message).toBe(LOCAL_ERRORS_TEXT);
+    expect(ctl.getState().message).toBe(text);
     ctl.syncLocal(false);
     expect(ctl.getState().message).toBeNull();
+  });
+
+  it('CM-WC: el aviso de bloqueo nombra el primer error del documento, con su lugar', async () => {
+    const { ctl } = setupBadVertex();
+    expect(await ctl.check()).toBeNull();
+    const msg = ctl.getState().message ?? '';
+    expect(msg).toMatch(/^No se puede calcular: Región 1, vértice 3: las coordenadas x e y deben ser números/);
+    expect(msg).toMatch(/\(ver Diagnósticos\)\.$/);
+    expect(msg).not.toContain('y 1 error más');
+    expect(ctl.getState().messageKind).toBe('error');
+  });
+
+  it('CM-WC: syncLocal pone al día el primer error si corrigen el primero y queda otro', async () => {
+    const { store, ctl } = setupBadVertex();
+    store.dispatch({ type: 'analysis/patch', patch: { slices: -3 } });
+    await ctl.check();
+    const before = ctl.getState().message ?? '';
+    expect(before).toContain('error más');
+    store.dispatch({ type: 'analysis/patch', patch: { slices: 30 } });
+    ctl.syncLocal(true);
+    const after = ctl.getState().message ?? '';
+    expect(after).not.toBe(before);
+    expect(after).not.toContain('error más');
+    expect(after).toContain('vértice 3');
   });
 
   it('syncLocal no borra otros mensajes', async () => {
@@ -228,5 +265,39 @@ describe('checkButtonState', () => {
   it('habilitado con el motor listo; en cálculo muestra «Calculando…» y sigue bloqueado', () => {
     expect(checkButtonState({ busy: false, engineStatus: 'ready' })).toEqual({ label: 'Comprobar', disabled: false, status: null });
     expect(checkButtonState({ busy: true, engineStatus: 'ready' })).toEqual({ label: 'Calculando…', disabled: true, status: null });
+  });
+});
+
+describe('localErrorsText (CM-WC: el aviso de bloqueo nombra el error)', () => {
+  const err = (text: string, path: string | null = null): Issue => ({ source: 'local', severity: 'error', code: 'editor.out_of_range', text, path });
+  const aviso: Issue = { source: 'local', severity: 'aviso', code: 'editor.x', text: 'Un aviso que no bloquea.', path: null };
+
+  it('con un error: lo nombra con su texto y su lugar, sin conteo', () => {
+    expect(localErrorsText([err('Región 3, vértice 2: la coordenada y debe ser un número.')])).toBe(
+      'No se puede calcular: Región 3, vértice 2: la coordenada y debe ser un número (ver Diagnósticos).',
+    );
+  });
+
+  it('con dos errores: el primero y «y 1 error más» (singular)', () => {
+    expect(localErrorsText([err('Región 3, vértice 2: la coordenada y debe ser un número.'), err('Análisis: los cortes deben ser positivos.')])).toBe(
+      'No se puede calcular: Región 3, vértice 2: la coordenada y debe ser un número (y 1 error más; ver Diagnósticos).',
+    );
+  });
+
+  it('con diez errores: el primero y «y 9 errores más» (plural)', () => {
+    const issues = Array.from({ length: 10 }, (_, k) => err(`Región ${k + 1}: no encierra superficie.`));
+    expect(localErrorsText(issues)).toBe('No se puede calcular: Región 1: no encierra superficie (y 9 errores más; ver Diagnósticos).');
+  });
+
+  it('los avisos y notas no cuentan, aunque vayan antes; el orden es el de los diagnósticos', () => {
+    expect(localErrorsText([aviso, err('Sismo: kh fuera de rango.'), aviso, err('Otra cosa.')])).toBe('No se puede calcular: Sismo: kh fuera de rango (y 1 error más; ver Diagnósticos).');
+  });
+
+  it('colapsa espacios y quita el punto final del texto antes del paréntesis', () => {
+    expect(localErrorsText([err('Región 1:   no  encierra\nsuperficie.  ')])).toBe('No se puede calcular: Región 1: no encierra superficie (ver Diagnósticos).');
+  });
+
+  it('sin errores (no debería ocurrir) cae al texto genérico', () => {
+    expect(localErrorsText([aviso])).toBe(LOCAL_ERRORS_TEXT);
   });
 });

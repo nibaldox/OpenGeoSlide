@@ -45,17 +45,37 @@ describe('TOUR_STEPS', () => {
       expect(s.target.selector.length).toBeGreaterThan(0);
     }
   });
-  it('siguen el flujo del brief: ejemplo, materiales y agua, Comprobar, FS y avisos, informe', () => {
-    expect(TOUR_STEPS.map((s) => s.id)).toEqual(['open', 'materials', 'check', 'results', 'report']);
+  it('CM-WC: siguen el flujo de la primera visita: Comprobar, editar, abrir otro ejemplo, importar, Ayuda', () => {
+    expect(TOUR_STEPS.map((s) => s.id)).toEqual(['check', 'materials', 'open', 'import', 'help']);
+  });
+  it('CM-WC: el paso 1 parte del ejemplo abierto, nombra «Comprobar» y lo señala', () => {
+    const first = TOUR_STEPS[0]!;
+    expect(first.title).toContain('Comprobar');
+    expect(first.body).toContain('ACADS 1(a)');
+    expect(first.body).toContain('factor de seguridad');
+    expect(first.body).toContain('Ctrl+Intro');
+    expect(first.target).toEqual({ selector: 'button.ea-primary' });
+  });
+  it('CM-WC: el paso «import» explica el destino y los archivos de ejemplo; «help» señala el botón Ayuda', () => {
+    const imp = TOUR_STEPS.find((s) => s.id === 'import')!;
+    expect(imp.body).toContain('Importar DXF');
+    expect(imp.body).toContain('Importar CSV');
+    expect(imp.body).toContain('reemplaza');
+    expect(imp.body).toMatch(/ejemplo/);
+    expect(TOUR_STEPS.find((s) => s.id === 'help')!.target.selector).toBe('button.help-button');
   });
   it('la guía conoce la herramienta «Dibujar región» (tecla R) y las pestañas Geometría y Proyecto', () => {
     const open = TOUR_STEPS.find((s) => s.id === 'open')!;
     const tabs = TOUR_STEPS.find((s) => s.id === 'materials')!;
     expect(open.body).toContain('Dibujar región');
     expect(open.body).toContain('tecla R');
+    expect(open.body).toContain('V001');
     expect(tabs.title.toLowerCase()).toContain('geometría');
     expect(tabs.body.toLowerCase()).toContain('geometría');
     expect(tabs.body.toLowerCase()).toContain('proyecto');
+  });
+  it('cada paso es corto (cabe en un cuadro pequeño a 320 px)', () => {
+    for (const s of TOUR_STEPS) expect(s.body.length, s.id).toBeLessThan(460);
   });
   it('el texto no usa voseo', () => {
     const text = TOUR_STEPS.map((s) => `${s.title} ${s.body}`).join(' ');

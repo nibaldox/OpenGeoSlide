@@ -10,11 +10,12 @@
 import { EngineCancelledError, type EngineClient, type EngineStatus } from '../../engine/client';
 import { saveOgsJson, sha256Hex } from '../../io/ogsJson';
 import { validateLocal } from '../state/validateLocal';
-import type { EditorStore } from '../types';
+import type { EditorStore, Issue } from '../types';
 import { hasErrors, issueFromEngineError, issuesFromReport, type EngineDiagState } from './diagnostics';
 import type { EngineRun } from './reportInput';
 import { createRunGuard } from './runGuard';
 
+/** Texto genérico: solo si no hay un error local del que tomar el texto (no ocurre con `hasErrors`, pero el tipo lo permite). */
 export const LOCAL_ERRORS_TEXT = 'El modelo tiene errores: corríjalos (ver Diagnósticos) antes de calcular.';
 export const CANCELLED_TEXT = 'Cálculo cancelado.';
 
@@ -42,6 +43,21 @@ export interface EngineCheckController {
   syncLocal(localHasErrors: boolean): void;
 }
 
+/**
+ * Aviso de bloqueo que nombra el primer error local, con su texto y su lugar (el texto ya empieza por «Región 3, vértice 2:»…),
+ * y cuántos más hay. Sale de los mismos diagnósticos locales que ve el panel «Diagnósticos»: no hay otro canal.
+ * Ej.: «No se puede calcular: Región 3, vértice 2: … (y 1 error más; ver Diagnósticos).»
+ */
+export function localErrorsText(issues: readonly Issue[]): string {
+  const errors = issues.filter((i) => i.severity === 'error');
+  const first = errors[0];
+  if (!first) return LOCAL_ERRORS_TEXT;
+  const more = errors.length - 1;
+  const head = first.text.replace(/\s+/g, ' ').trim().replace(/[.\s]+$/, '');
+  const tail = more === 0 ? 'ver Diagnósticos' : `y ${more} ${more === 1 ? 'error más' : 'errores más'}; ver Diagnósticos`;
+  return `No se puede calcular: ${head} (${tail}).`;
+}
+
 const EMPTY: EngineCheckState = { busy: false, run: null, engine: null, message: null, messageKind: 'error' };
 
 export function createEngineCheck(store: EditorStore, client: Pick<EngineClient, 'analyze' | 'cancel'>): EngineCheckController {
@@ -50,6 +66,8 @@ export function createEngineCheck(store: EditorStore, client: Pick<EngineClient,
   let state: EngineCheckState = EMPTY;
   /** Diagnóstico anterior al cálculo en curso: es el que vuelve si se cancela. */
   let previousEngine: EngineDiagState | null = null;
+  /** Último aviso de bloqueo por errores locales (para retirarlo o actualizarlo cuando esos errores cambian). */
+  let localMessage: string | null = null;
 
   const set = (patch: Partial<EngineCheckState>): void => {
     state = { ...state, ...patch };
@@ -59,10 +77,13 @@ export function createEngineCheck(store: EditorStore, client: Pick<EngineClient,
   async function check(): Promise<EngineRun | null> {
     if (state.busy) return null;
     const { doc, revision } = store.getState();
-    if (hasErrors(validateLocal(doc))) {
-      set({ message: LOCAL_ERRORS_TEXT, messageKind: 'error' });
+    const local = validateLocal(doc);
+    if (hasErrors(local)) {
+      localMessage = localErrorsText(local);
+      set({ message: localMessage, messageKind: 'error' });
       return null;
     }
+    localMessage = null;
     const id = guard.next();
     previousEngine = state.engine;
     set({ busy: true, message: null, engine: { status: 'checking', issues: [], revision } });
@@ -101,6 +122,7 @@ export function createEngineCheck(store: EditorStore, client: Pick<EngineClient,
     reset() {
       guard.invalidate();
       previousEngine = null;
+      localMessage = null;
       set({ ...EMPTY });
     },
     cancel() {
@@ -110,7 +132,19 @@ export function createEngineCheck(store: EditorStore, client: Pick<EngineClient,
       set({ busy: false, engine: previousEngine, message: CANCELLED_TEXT, messageKind: 'info' });
     },
     syncLocal(localHasErrors) {
-      if (!localHasErrors && state.message === LOCAL_ERRORS_TEXT) set({ message: null });
+      if (localMessage === null || state.message !== localMessage) return;
+      if (!localHasErrors) {
+        localMessage = null;
+        set({ message: null });
+        return;
+      }
+      // Siguen los errores, pero quizá ya no es el mismo el primero: el aviso nombra el de ahora.
+      const local = validateLocal(store.getState().doc);
+      if (!hasErrors(local)) return;
+      const next = localErrorsText(local);
+      if (next === localMessage) return;
+      localMessage = next;
+      set({ message: next });
     },
   };
 }

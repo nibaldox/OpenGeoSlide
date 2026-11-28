@@ -8,6 +8,8 @@ import { CRACK_PW_NOTE, POND_NOTE } from '../report/crackReport';
 import { ITO_MATSUI_STRUCTURAL_LIMIT_TEXT, STRUCTURAL_LIMIT_TEXT } from '../report/reinforcementReport';
 import { TOUR_STEPS, type TourStep } from './tour';
 
+export { EXAMPLE_FILES, exampleFileUrl, type ExampleFile } from './exampleFiles';
+
 export interface KeyProbe {
   key: string;
   ctrl?: boolean;
