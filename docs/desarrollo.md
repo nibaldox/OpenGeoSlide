@@ -25,6 +25,13 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
     `capacity` (`min(F, shear, moment/L_m)`, con `governs` en `soil`, `shear` o `bending`). Los coeficientes de la
     fórmula, con el piso de φ = 0, están en `ito_matsui_coefficients`, y el aviso `ito_matsui_spacing_range` en
     `ito_matsui_out_of_range`.
+  - `src/hoek_brown.rs`, `src/shansep.rs` y `src/strength_loop.rs` son los materiales **Hoek-Brown** y **SHANSEP** (formato v0.6) y
+    el lazo por dovela que los resuelve; `src/noncircular.rs`, el **refinamiento no circular** (v0.6), con los niveles de 9, 17 y
+    33 vértices y su `Optimizer`.
+  - `src/global.rs` es la **búsqueda global** (formato v0.7): el bloque sobre capas débiles (secuencia de Halton con rotación
+    de Cranley-Patterson), el recocido, el descarte sucesivo 4 → 3 → 1, el pulido y el evaluador guardado que aplica la guarda
+    de tracción. El PRNG es SplitMix64, escrito en el crate, sin dependencias nuevas. Corre dentro del brazo `non_circular` de
+    `lib.rs`, solo si existe `global`; sin él, el código y la salida son los de la 0.5.1.
 - `crates/ogs-cli/`: binario `ogs`.
 - `crates/ogs-wasm/`: wrapper WebAssembly (`wasm-bindgen`).
 - `schema/ogs-0.1.schema.json`: JSON Schema del formato `.ogs.json` v0.1.
@@ -34,16 +41,20 @@ Guía para compilar, probar y orientarse en el repositorio. Para contribuir al c
 - `schema/ogs-0.4.schema.json`: JSON Schema del formato `.ogs.json` v0.4 (agrega `reinforcements`: anclajes, clavos,
   geosintéticos, pilotes y tablestacas; acepta también v0.1 a v0.3). Lo reemplaza el 0.5, que acepta todas las versiones.
 - `schema/ogs-0.5.schema.json`: JSON Schema del formato `.ogs.json` v0.5 (agrega `analysis.tension_crack` y, en un `pile`,
-  `lateral_pressure` y `capacity`; acepta también v0.1 a v0.4). Es el vigente: lo valida `docs/tools/validar_ejemplos.py`
-  y lo compara con el motor `verification/tools/test_schema.py`.
+  `lateral_pressure` y `capacity`; acepta también v0.1 a v0.4).
+- `schema/ogs-0.6.schema.json`: JSON Schema del formato `.ogs.json` v0.6 (agrega los materiales `hoek_brown` y `shansep` y
+  `analysis.search.non_circular`; acepta también v0.1 a v0.5).
+- `schema/ogs-0.7.schema.json`: JSON Schema del formato `.ogs.json` v0.7 (agrega `analysis.search.non_circular.global`; acepta
+  también v0.1 a v0.6). Es el vigente: lo valida `docs/tools/validar_ejemplos.py` y lo compara con el motor
+  `verification/tools/test_schema.py`.
 - `apps/web/`: aplicación web (React y Vite): editor gráfico, importación DXF/CSV, informe PDF y PWA; ver [`apps/web/README.md`](../apps/web/README.md).
 - `verification/`: casos publicados (`cases/`), checks retenidos (`pending/`), harness y batería diferencial frente a
   cSlope, importador (`tools/import_cslope.py`) y pruebas en Python.
 - `docs/tools/validar_ejemplos.py`: valida los ejemplos de [`formato-ogs-json.md`](formato-ogs-json.md) contra el
-  esquema 0.5 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces`, avisos, el objeto `tension_crack` y
-  los campos `soil_force`, `governs` y `arm` del pilote de Ito-Matsui).
+  esquema 0.7 y contra `ogs analyze` (estado, FS, `status` de `reinforcement_forces`, avisos, el objeto `tension_crack` y
+  los campos `soil_force`, `governs` y `arm` del pilote de Ito-Matsui, y lo de la v0.6 y la v0.7).
 - `bench/`: medición de rendimiento (`bench/RESULTS.md`).
-- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`, `04_CONTRATOS_GRIETA_AGUA.md`).
+- `briefs/`: contratos normativos de cada fase (`00_CONTRATOS.md`, `01_CONTRATOS_FASE1.md`, `02_CONTRATOS_FASE3.md`, `03_CONTRATOS_REFUERZOS.md`, `04_CONTRATOS_GRIETA_AGUA.md`, `05_CONTRATOS_FASE3B.md`, `06_CONTRATOS_CM.md`).
 - `examples/acads1a.ogs.json`: caso ACADS 1(a), talud homogéneo seco.
 
 ## Compilar y probar
@@ -53,7 +64,7 @@ cargo build --workspace
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test -p ogs-core --lib                                # tests unitarios (modelo)
-cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 327/327 checks publicados (151 casos)
+cargo test -p ogs-core --test acceptance -- --nocapture     # aceptación: 356/356 checks publicados (175 casos)
 cargo test -p ogs-core --release --no-fail-fast             # todas las pruebas del motor
 cargo run -p ogs-cli -- --version
 cargo build -p ogs-wasm --target wasm32-unknown-unknown --release
@@ -72,7 +83,7 @@ target/release/ogs analyze examples/acads1a.ogs.json        # informe JSON; sale
 # Usa la mayor versión entre la del caso y la que el método necesita: un caso 0.4 con refuerzos se mide tal cual.
 target/release/ogs bench verification/cases/V037.json --reps 5 --method bishop
 
-# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.5.schema.json y contra ogs analyze
+# Ejemplos de docs/formato-ogs-json.md contra schema/ogs-0.7.schema.json y contra ogs analyze
 # (cada ejemplo y fragmento lleva una marca <!-- ogs-ejemplo ... --> u <!-- ogs-fragmento ... -->; véase el docstring del script)
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema python docs/tools/validar_ejemplos.py
 
@@ -141,6 +152,22 @@ S/D). El importador promueve V013b a V013e desde `verification/pending/F3I/` a `
 Qué casos de `verification/cases/` reciben de verdad el peso y el empuje del agua embalsada en la superficie de su check
 (y cuáles no, E15l-10) lo mide `docs/fase3/r12/p-medir_agua_embalsada.py target/release/ogs`; la tabla está en
 [`verificacion.md`](verificacion.md#qué-casos-ejercitan-de-verdad-el-agua-embalsada-e15l-10-r12a-11).
+
+## Regenerar las capturas del README
+
+`assets/readme/app-editor-{light,dark}.png` (1280 × 930) las genera `assets/readme/src/capture-app.mjs` sobre un build de la web.
+Node resuelve `playwright-core` desde la carpeta del script, así que se copia junto a un `node_modules` que lo tenga. Con el
+build servido en un puerto local:
+
+```sh
+cd apps/web && pnpm build
+python3 -m http.server 5183 --bind 127.0.0.1 -d dist &      # o una copia de dist; se mata por su PID al terminar
+cp assets/readme/src/capture-app.mjs "$TMPDIR/cap/" && cd "$TMPDIR/cap"     # con node_modules/playwright-core al lado
+for t in light dark; do OGS_URL=http://127.0.0.1:5183/ OGS_TAB=Análisis node capture-app.mjs $t app-editor-$t.png; done
+```
+
+Requiere Chrome en `/usr/bin/google-chrome-stable`. El script crea el talud de ejemplo con «Talud simple…», calcula y deja el
+recuadro del FS desplegado.
 
 Para generar el paquete JS a partir del `.wasm` hace falta `wasm-bindgen-cli` 0.2.130, la misma
 versión que fija el crate.
