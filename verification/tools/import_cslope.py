@@ -1799,7 +1799,7 @@ def build_f3i_index(cases: list[dict], report: dict | None, promoted: bool) -> s
         "raíz del worktree:",
         "",
         "```",
-        "export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch",
+        "export TMPDIR=<directorio temporal>",
         "cargo build --release -p ogs-cli",
         "env -u PYTHONPATH -u PYTHONHOME " + F3I_PROMOTE_COMMAND,
         "env -u PYTHONPATH -u PYTHONHOME " + F3I_REPORT_COMMAND,

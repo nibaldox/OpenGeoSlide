@@ -3,7 +3,7 @@
 
 Se corre con el Python del oráculo (`$TMPDIR/oracle-venv/bin/python`, cslope 0.1.0 y shapely):
 
-    export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch
+    export TMPDIR=<directorio temporal>
     export CARGO_TARGET_DIR=$TMPDIR/cm-m/target
     cargo build --release -p ogs-cli && cp $CARGO_TARGET_DIR/release/ogs $TMPDIR/cm-m/ogs
     cargo build --release -p ogs-cli --features parallel && cp $CARGO_TARGET_DIR/release/ogs $TMPDIR/cm-m/ogs-parallel
