@@ -75,10 +75,26 @@ FIVE = ["bishop", "spencer", "morgenstern_price", "janbu_simplified", "janbu_cor
 DEFAULT_SEARCH = {"type": "circular_entry_exit", "n_entry": 10, "n_exit": 10, "n_radius": 10}
 
 
+def without_global(model: dict) -> dict:
+    """A version 0.7 document as the baseline can read it: without `global` and as version 0.6.
+
+    The baseline (v0.5.1) does not know the version 0.7. Without `global` a 0.7 document gives the output of 0.6
+    (F7.0, gate A1), so what the identity compares for it is that: the same model without the global search.
+    """
+    if not isinstance(model, dict) or model.get("version") != "0.7":
+        return model
+    out = copy.deepcopy(model)
+    out["version"] = "0.6"
+    nc = ((out.get("analysis") or {}).get("search") or {}).get("non_circular")
+    if isinstance(nc, dict):
+        nc.pop("global", None)
+    return out
+
+
 def _load(path: str) -> dict:
     with open(path, encoding="utf-8") as fh:
         doc = json.load(fh)
-    return doc["model"] if "model" in doc and "materials" not in doc else doc
+    return without_global(doc["model"] if "model" in doc and "materials" not in doc else doc)
 
 
 def model_paths() -> dict[str, str]:

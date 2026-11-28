@@ -255,3 +255,17 @@ def test_a_model_with_v06_fields_has_no_variants_at_0_4_when_it_is_included(tmp_
     variants = {variant for variant, _ in ivb.STATS}
     assert {"own", "search", "fixed"} <= variants
     assert not any(v.endswith("@0.4") for v in variants)
+
+
+def test_a_version_07_model_is_compared_without_global_and_as_version_06(tmp_path):
+    """The baseline v0.5.1 does not read the version 0.7: the identity compares the model without `global`."""
+    doc = {"format": "opengeoslide", "version": "0.7", "materials": [],
+           "analysis": {"search": {"non_circular": {"seeds": 3, "global": {}}}}}
+    path = tmp_path / "v07.json"
+    path.write_text(json.dumps({"model": doc}))
+    loaded = ivb._load(str(path))
+    assert loaded["version"] == "0.6"
+    assert loaded["analysis"]["search"]["non_circular"] == {"seeds": 3}
+    assert doc["version"] == "0.7" and "global" in doc["analysis"]["search"]["non_circular"], "the input is not modified"
+    other = {"version": "0.6", "materials": []}
+    assert ivb.without_global(other) is other

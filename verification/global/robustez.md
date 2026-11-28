@@ -11,14 +11,18 @@ semillas 0 a 47, con los valores por defecto (`generated` 500).
   `<variante>.jsonl` y `<variante>-summary.json` (se usó para escoger la variante de E17c). Los tiempos de ese script son contra el
   circular de V053 y S2 y se miden con 2 trabajos en paralelo: son informativos; la compuerta A7 la mide `run.py` con corridas secuenciales.
 
-## Resultado con el motor final
+## Resultado con el motor final (E17e), antes → después
+
+Antes: `1399813` (CM-M). Después: la corrida de CM-M2 (`run.py`, paso `robust`).
 
 | Modelo | Semillas en la banda | Mínimo | Mediana | Máximo | Semilla 0 | Gana `global` |
 |---|---:|---:|---:|---:|---:|---:|
-| V053 | 48/48 | 1.0029 | 1.0077 | 1.0239 | 1.0103 | 48/48 |
-| S2 | — | 0.7416 | 0.7588 | 0.8051 | 0.7505 | 48/48 |
+| V053, antes | 48/48 | 1.0029 | 1.0077 | 1.0239 | 1.0103 | 48/48 |
+| V053, después | 48/48 | 1.0029 | 1.0077 | 1.0239 | 1.0103 | 48/48 |
+| S2, antes | — | 0.7416 | 0.7588 | 0.8051 | 0.7505 | 48/48 |
+| S2, después | — | 0.7416 | 0.7611 | 0.8051 | 0.7505 | 48/48 |
 
-La búsqueda de cSlope da 1,0061 en V053 y 0,7156 en S2. El mínimo de V053 (1,0029) queda 0,3 % por debajo del de cSlope; la polilínea ganadora de la semilla 0 evaluada en cSlope difiere 0,02 % del FS de Rust (A2).
+S2 cambia solo en la mediana (0,7588 → 0,7611; mínimo, máximo y semilla 0 iguales): las causas posibles son el mejor par entre niveles (E17e §4) y la proyección exacta (§1), y no se aisló cuál; V053 no cambia en el resumen (48/48; mínimo, mediana, máximo y semilla 0 iguales). La búsqueda de cSlope da 1,0061 en V053 y 0,7156 en S2. El mínimo de V053 (1,0029) queda 0,3 % por debajo del de cSlope; la polilínea ganadora de la semilla 0 evaluada en cSlope difiere 0,02 % del FS de Rust (A2).
 
 ## Variantes que se midieron
 

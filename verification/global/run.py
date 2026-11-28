@@ -568,7 +568,7 @@ def step_report(a, work):
               "«FS reeval.» es la polilínea ganadora evaluada como superficie fija en `ogs`; sus notas se miran contra "
               "`negative_lambda` y `negative_effective_normal_major`. Solo hay polilínea del generador en los modelos donde gana `global`.", ""]
         L += table(["Modelo", "FS global", "FS reeval.", "cSlope", "Dif.", "Notas de tracción"],
-                   [[x["id"], fmt(x["fos"], 4), fmt(x["fixed_fos"], 4), fmt(x["cslope"], 4) if x["cslope"] else f"({x['cslope_error']})",
+                   [[x["id"] + ("" if x["method"] == "spencer" else f" · {x['method']}"), fmt(x["fos"], 4), fmt(x["fixed_fos"], 4), fmt(x["cslope"], 4) if x["cslope"] else f"({x['cslope_error']})",
                      f"{x['cslope_diff'] * 100:.2f} %" if x["cslope_diff"] is not None else "—", ", ".join(x["tension_notes"]) or "ninguna"] for x in g["rows"]])
         L += ["", f"V051 con `global`: {g['v051']:.4f} (mínimo 0,69). Métodos recorridos: {', '.join(g['methods'])}. "
               f"Janbu y Morgenstern-Price: {g['method_runs']} corridas, {g['method_winners']} con ganador del generador.", ""]
