@@ -101,14 +101,16 @@ están en un solo lugar:
   (2,83 y 1,96).
 - **El resultado de la revisión adversarial (RCM):** las dos lentes, «apto con correcciones». Los 5 hallazgos ALTA del motor y
   los 7 de la web, corregidos ([abajo](#la-revisión-adversarial-rcm)).
-- `cargo test -p ogs-core --release` y la aceptación finales: ⟨CARGO⟩. (CM-M2 midió 827 tests de `ogs-core` con y sin
-  `parallel`, 3 ignorados, y 3 de aceptación con 356 checks y 0 fallas.)
-- `pytest -q verification` final: ⟨PYTEST⟩. (CM-M2 midió 767 pasan y 1 omitido en `verification/tools`, y 798 en el harness y
-  la batería diferencial; el wheel, 373 pasan y 2 omitidos.)
-- Vitest, `tsc` y build finales de `apps/web`: ⟨VITEST⟩. (CM-W3A midió 291 archivos y 4956 tests; CM-W3B, 292 archivos y 4943,
-  cada una en su rama.)
-- Regresión e2e de la web sobre la integración final (con el selector de ejemplos y los guiones de CM-C2V): ⟨E2E⟩. (CM-W3A: 17
-  guiones con OK = 463 y FAIL = 0; CM-W3B: 20 guiones con FAIL = 0, también en sus ramas.)
+- `cargo test -p ogs-core --release` y la aceptación finales, en `b0044ce`: **827 pasan y 0 fallan, con y sin `parallel`** (3
+  ignorados); aceptación **356 checks, 0 fallas**; `fmt` y `clippy` limpios; los 8 tests de la CLI pasan.
+- `pytest -q verification` final, en `b0044ce`: **1609 pasan y 1 omitido**. Harness: 356/356 OK y cSlope 355/356. Batería
+  diferencial: búsqueda 28/28, fija 28/28, fase 3a 71/71, v0.4 12/12, v0.5 58/60 (2 explicados) y F3B 41/42 (1 explicado), sin
+  fallas. Identidad: 0 diferencias en 202 modelos frente a la 0.5.1. El wheel: 373 pasan y 2 omitidos.
+- Vitest, `tsc` y build finales de `apps/web`, en `b0044ce` y con el motor v0.7 (`OGS_V07_ENGINE=1`): **294 archivos y 4974
+  tests, todos pasan**; `tsc` limpio; build con 25 archivos en el precache. Identidad del informe: igual contra v0.4.0 y contra
+  `b75f38a`, salvo las 15 diferencias declaradas del PDF que dibuja el método que rige (E17f §2).
+- Regresión e2e de la web sobre la integración final, en `b0044ce` y con el WASM v0.7: **53 guiones, OK = 1440, FAIL = 0**, y
+  ninguno se corta antes de terminar (la base de la 0.5.1: OK = 1226, FAIL = 2 y dos guiones cortados por un `TimeoutError`).
 
 ## La revisión adversarial (RCM)
 
@@ -176,7 +178,7 @@ Las dos están en `briefs/06_CONTRATOS_CM.md`.
 | **CM-W3B** (`3d56643`, `94e2636`, `c1ecb50`, `6005e79`, `bb276b7`, `730b2ab`) | El editor: `algorithm` inválido rechazado, destacados y filtro accesibles, «Nuevo material» con `docEpoch`, tabla OCR de SHANSEP, deshacer la importación sobre el arranque (RCM-B-02, 03, 04, 05, 09 y 11) | typecheck, vitest (292 archivos, 4943 tests) y build en verde; 20 guiones e2e con FAIL = 0 |
 
 Las dos olas de la web se midieron cada una en su rama. La integración final de las tres, con las puertas completas, la mide el
-coordinador (⟨CARGO⟩, ⟨PYTEST⟩, ⟨VITEST⟩ y ⟨E2E⟩, arriba).
+coordinador (arriba).
 
 ## La compuerta de los 5 minutos
 
@@ -255,8 +257,8 @@ menos de 60 s. **Lo decide el usuario.**
 En orden de prioridad:
 
 1. **El protocolo humano de los 5 minutos** (arriba). Sin él, la compuerta no está cerrada.
-2. **Las puertas finales de la integración** (⟨CARGO⟩, ⟨PYTEST⟩, ⟨VITEST⟩ y ⟨E2E⟩, arriba) y las cifras de los tests «medidas en
-   el commit de versión» del CHANGELOG. Las llena el coordinador.
+2. **Las cifras de los tests «medidas en el commit de versión»** del CHANGELOG, que se toman al hacer ese commit. Las puertas
+   finales de la integración ya están arriba.
 3. **La versión:** las versiones de los crates y del wheel, `CITATION.cff` y el «sube» del usuario. El `CHANGELOG.md` ya tiene
    la sección `[Unreleased]`. Tras el commit de versión, la barra de estado de las capturas del README dice `ogs-core 0.5.1`
    (la versión de los crates cuando se capturaron): conviene regenerarlas con `assets/readme/src/capture-app.mjs`.
