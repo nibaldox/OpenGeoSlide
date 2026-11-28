@@ -68,6 +68,7 @@ import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
+import { ExamplePicker } from './app/ExamplePicker';
 import { isEditableTag, runCheckShortcut, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
@@ -816,17 +817,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           Importar CSV
         </button>
         <hr />
-        <label className="dd-field">
-          <span>Ejemplos</span>
-          <select aria-label="Abrir un caso publicado como modelo" value="" onChange={(e) => void onCase(e.target.value)}>
-            <option value="">Elegir un ejemplo…</option>
-            {cases.map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ExamplePicker cases={cases} onOpen={(key) => void onCase(key)} />
       </DropdownMenu>
       <DropdownMenu label="Exportar">
         <button type="button" onClick={exportResults} disabled={!canExport} title={exportBlockedTitle} aria-describedby={exportDescribedBy}>
