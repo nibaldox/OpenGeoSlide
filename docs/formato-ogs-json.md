@@ -2672,6 +2672,10 @@ InvalidModel: analysis.search.non_circular.global requiere version "0.7"
 Un `global: null` cuenta como ausente y no exige nada. Con `"0.7"` quedan abiertas todas las puertas anteriores: un modelo
 0.7 admite Hoek-Brown, SHANSEP, refuerzos, grieta y lo demás. **La web** guarda `"0.7"` solo si el modelo tiene `global`.
 
+**La versión en memoria de la web es un piso.** Sube cuando un campo la exige y nunca baja. Lo que va al motor y al archivo es
+siempre la versión mínima de los campos del modelo (`minimalVersion`). Por eso, al desmarcar «Búsqueda global», el archivo
+guardado vuelve a `"0.6"` aunque el documento en memoria siga en `"0.7"` hasta que se guarde o se deshaga.
+
 ### Campos
 
 `global` es un objeto opcional dentro de `analysis.search.non_circular`. Todos sus campos son opcionales, no admite otros
@@ -2685,6 +2689,16 @@ campos y `{}` es válido: toma todos los valores por defecto.
 | `polish` | booleano | `true` | — | Pulido final; solo corre si gana la etapa global |
 
 - Un `null` en cualquiera de los cuatro campos equivale a omitirlo.
+- **`global` solo admite un objeto.** Un arreglo (`[]`, `["block", 60, 0, false]`) es `InvalidModel`, igual que un `non_circular`
+  escrito como arreglo. Antes de la corrección de la revisión adversarial, el motor aceptaba un arreglo y lo leía por posición.
+- **Los enteros no llevan punto decimal.** `generated: 50.0` y `seed: 0.0` son inválidos en el motor
+  (`invalid type: floating point 50.0, expected usize`), como ya pasa con `slices` y `seeds`. El esquema, que sigue JSON Schema
+  2020-12, sí acepta `50.0` como un entero: es una diferencia conocida entre los dos.
+- **El tipo equivocado en un enum da `Json`.** `algorithm: 123` devuelve `Json: el texto no es un JSON válido` y no
+  `InvalidModel`, que sería lo preciso. Es la misma clasificación que ya tienen los enums de la v0.6 (`analysis.methods` o
+  `interslice.function` con un número). Un texto que no es una variante (`"path"`) sí es `InvalidModel`.
+- **Los mensajes de rango** son iguales en el motor y en la web, letra por letra: `analysis.search.non_circular.global.generated
+  debe estar en [50, 2000], no 49` y, para la semilla, `[0, 9007199254740991]`.
 - **Bishop no se admite**, igual que con `non_circular` a secas: el error es el de la v0.6 y cubre `global`.
 - `global` solo existe dentro de `non_circular`. El objeto `non_circular` puede ser `{ "global": {} }`: `seeds` y
   `max_vertices` toman sus valores por defecto (3 y 33).
@@ -2697,40 +2711,58 @@ La etapa corre por método de cálculo, después de la búsqueda circular de ese
 1. **El refinamiento de la v0.6, sin cambios.** Da el FS de referencia F₀ y su superficie.
 2. **La generación,** según `algorithm`. Cada candidato admisible se evalúa con la guarda de tracción de más abajo.
    - **`block`** (bloque sobre una capa débil). La **capa** es el conjunto de aristas de contacto de la región de menor
-     resistencia relativa, ρ = c / (γ · z) + tan φ, con z la profundidad bajo el terreno del centroide de la región. En
-     `undrained`, ρ = Su(z) / (γ · z). Los materiales Hoek-Brown y SHANSEP no compiten en la elección de la capa, pero sus
-     aristas sí cuentan como contactos. El generador traza 2 o 3 segmentos sobre la capa y los une al terreno con dos
-     proyecciones inclinadas entre 15° y 75° sobre la horizontal. Muestrea con una secuencia de Halton, y la semilla es una
+     resistencia relativa ρ = τ / (γ · z), con z la profundidad bajo el terreno del centroide de la región y τ la
+     resistencia que el motor calcula en el esfuerzo vertical efectivo σ′v = γ · z · (1 − ru). **Los cuatro modelos de
+     resistencia compiten**, cada uno con su función:
+
+     | Material | ρ |
+     |---|---|
+     | Mohr-Coulomb | c / (γ · z) + (1 − ru) · tan φ |
+     | `undrained` | Su(z) / (γ · z) |
+     | Hoek-Brown | τ(σ′n = σ′v) / (γ · z), con la envolvente del motor |
+     | SHANSEP | Su(σ′v) / (γ · z), con la función del motor |
+
+     La primera versión del bloque dejaba fuera a Hoek-Brown y SHANSEP. Con una capa débil de roca fracturada o de arcilla
+     blanda SHANSEP, el resultado era el del recocido, de 26 % a 29 % sobre el FS del bloque real (V053 con `layer_4`
+     modificada: 1,0844, frente a 0,7724 con Hoek-Brown y 0,7563 con SHANSEP después de la corrección). Ya no pasa. El generador traza 2 o 3 segmentos sobre la capa y los une al
+     terreno con dos proyecciones inclinadas entre 15° y 75° sobre la horizontal; cada proyección se calcula por la
+     intersección exacta del rayo con el terreno, no por pasos. Muestrea con una secuencia de Halton, y la semilla es una
      **rotación de Cranley-Patterson** de esa secuencia (la semilla 0 no rota). Con `block` explícito y sin contactos, usa
      las «bases» (aristas no verticales cuyo lado exterior queda fuera de todas las regiones) y no recurre al recocido.
    - **`annealing`** (recocido simulado). Parte de la polilínea de 9 vértices del círculo semilla 1 y perturba las
      profundidades de sus 7 vértices interiores, con enfriamiento geométrico y criterio de Metropolis sobre el FS elegible.
      El círculo de partida se evalúa, pero no cuenta como candidato.
-   - **`auto`** elige `block` solo si hay aristas de contacto entre regiones. Si el bloque agota sus intentos
-     (20·`generated`) sin ningún candidato admisible, `auto` corre `annealing` con el mismo `generated`, e informa
-     `"annealing"`. Un talud homogéneo no tiene contactos: corre `annealing`.
+   - **`auto`** elige `block` solo si la capa elegida tiene al menos una arista de contacto. Las «bases» nunca cuentan para
+     esta elección. Si el bloque agota sus intentos (20·`generated`) sin ningún candidato admisible, `auto` corre
+     `annealing` con el mismo `generated`, e informa `"annealing"`. Un talud homogéneo no tiene contactos: corre
+     `annealing`. La altura H del recocido es el relieve del terreno; si el relieve es menor que 10⁻³ del alto del modelo, es
+     el alto del modelo.
 3. **La selección y el descarte sucesivo.** Se toman los 4 mejores candidatos elegibles, con entradas y salidas distintas
    (la regla del 5 % del rango de la búsqueda). Cada uno recibe un refinamiento corto de 60 evaluaciones y quedan 3; luego,
    uno de 150 y queda 1. Ese uno recibe el refinamiento completo de la v0.6 (niveles de 9, 17 y 33 vértices y 1500
-   evaluaciones).
+   evaluaciones). **`max_vertices` también acota la etapa global:** los niveles se cortan en ese tope, igual que en el
+   refinamiento de la v0.6, y con `max_vertices: 9` la polilínea ganadora tiene 9 vértices. En cada nivel y ronda, el
+   refinamiento guarda el mejor par (puntos, FS) y nunca devuelve un FS mayor que el de su entrada.
 4. **La comparación.** Si el FS del candidato refinado es menor que F₀ − 1e-6, gana `global`. Si `polish` es `true`, la
    superficie se pule: hasta 4 ciclos, mientras la ganancia del ciclo supere 0,001, con un presupuesto de 3000 evaluaciones.
    Si no, gana `refinement` y no se pule.
 5. **El reporte** (véase abajo).
 
 **Presupuesto.** Con los valores por defecto, la etapa global evalúa a lo sumo 500 + 4·60 + 3·150 + 1500 + 3000 = **5690**
-candidatos (más el círculo de partida del recocido). En los 53 modelos medidos, el máximo fue 4064. La búsqueda circular y el
+candidatos (unos 5700, más el círculo de partida del recocido), y no los 8000 del contrato original, que refinaba tres
+polilíneas con 1500 evaluaciones cada una. En los 55 modelos medidos, el máximo fue 4064. La búsqueda circular y el
 refinamiento de la v0.6 se suman aparte.
 
 **La guarda de tracción.** Una búsqueda global puede hallar superficies en la rama con tracción (la raíz de λ de E12e),
 con un FS bajo que no existe. Por eso un candidato solo es elegible si la solución converge **y** sus notas no incluyen
-`negative_lambda` ni `negative_effective_normal_major`. No compite, el optimizador lo trata como inválido y cuenta en
-`tension_rejected`. Las notas `negative_effective_normal` y `multiple_admissible_roots` no excluyen. El refinamiento de la
+`negative_lambda` ni `negative_effective_normal_major`. No compite y el optimizador lo trata como inválido; si es un
+candidato de la generación, cuenta en `tension_rejected`. Las notas `negative_effective_normal` y `multiple_admissible_roots` no excluyen. El refinamiento de la
 v0.6 no se toca: su comportamiento con λ < 0 sigue siendo el de la v0.6 y se sigue informando.
 
 **Determinismo.** El generador es SplitMix64, sin dependencias nuevas. El resultado es el mismo en dos corridas y con o sin la
-característica `parallel` del motor, byte a byte. La igualdad entre el motor nativo y WASM no se promete: en V053 y S2 el FS
-coincidió a 7e-16.
+característica `parallel` del motor, byte a byte. La igualdad entre el motor nativo y WASM no se promete: en Chrome real
+(HeadlessChrome 158), el FS de V053 y de S2 coincidió con el nativo a 1,8e-14 o menos (a 1,3e-15 o menos en el resultado con
+`global`).
 
 ### La salida de la búsqueda global
 
@@ -2741,15 +2773,17 @@ coincidió a 7e-16.
 | `algorithm` | cadena | El algoritmo que corrió: `"block"` o `"annealing"`. Nunca `"auto"` |
 | `generated` | entero | Candidatos admisibles generados y evaluados (≤ `generated` de la entrada) |
 | `attempts` | entero | Intentos geométricos, incluidos los no admisibles (≤ 40·`generated`) |
-| `converged` | entero | Candidatos con solución convergida |
+| `converged` | entero | Candidatos de la generación con solución convergida |
 | `eligible` | entero | Convergidos que pasan la guarda de tracción |
-| `tension_rejected` | entero | Convergidos que rechazó la guarda: `converged = eligible + tension_rejected` |
-| `refined` | entero | Polilíneas del generador que recibieron el refinamiento completo (hoy, 1 si hubo candidatos) |
+| `tension_rejected` | entero | Convergidos de la **generación** que rechazó la guarda: `converged = eligible + tension_rejected` |
+| `refined` | entero | Polilíneas que llegaron al refinamiento completo de 1500 evaluaciones: 0 o 1 |
 | `evaluated` | entero | Evaluaciones del motor en toda la etapa global: generación, refinamiento y pulido |
 | `polish_evaluated` | entero | Evaluaciones del pulido (0 si no corrió) |
 | `global_fos` | número o `null` | El mejor FS elegible de la etapa global, después de refinar y pulir; `null` si no hubo ninguno |
 | `winner` | cadena | `"global"` o `"refinement"` |
 
+- **`tension_rejected` cuenta solo la generación,** no el refinamiento ni el pulido. Las rondas cortas del descarte sucesivo
+  suman a `evaluated`, pero no a `refined`.
 - `seeds`, `evaluated`, `seed_fos` y `polyline_fos`, del nivel de `search.non_circular`, siguen significando lo mismo que en
   la v0.6: describen el refinamiento. El `evaluated` de `global` es aparte.
 - **La superficie crítica es la del ganador:** una polilínea (`{ "points": [...] }`). Si gana `"refinement"`, es la misma que
@@ -2761,9 +2795,10 @@ coincidió a 7e-16.
 
 - **`non_circular_global_no_candidates`:** `eligible = 0`. El generador no dio ninguna superficie elegible y el resultado es el
   del refinamiento. Pasa, por ejemplo, en un talud sin círculo semilla elegible para el recocido.
-- **`non_circular_global_tension_rejected`:** la guarda rechazó al menos una superficie con un FS menor que el reportado. Hay
-  un FS menor en la rama con tracción, y no se tomó. No es un error: compare con la búsqueda circular y revise N′ por
-  dovela.
+- **`non_circular_global_tension_rejected`:** la guarda rechazó al menos una superficie con un FS menor que el reportado, en
+  **cualquier parte de la etapa global** (generación, refinamiento o pulido). Hay un FS menor en la rama con tracción, y no se
+  tomó. No es un error: compare con la búsqueda circular y revise N′ por dovela. Como `tension_rejected` cuenta solo la
+  generación, la nota puede salir con `tension_rejected = 0`: lo rechazado estaba en el refinamiento o en el pulido.
 
 #### Ejemplo: V053, un talud con una capa débil
 
@@ -2862,10 +2897,10 @@ de (29,15; 20,0) a (164,37; 70,0)):
 ```json
 {
   "method": "spencer",
-  "fos": 1.010300223400116,
+  "fos": 1.0103002234001155,
   "status": "converged",
   "iterations": 43,
-  "lambda": 0.24921243035715315,
+  "lambda": 0.24921243035717122,
   "search": {
     "evaluated": 10561,
     "valid": 8207,
@@ -2877,14 +2912,14 @@ de (29,15; 20,0) a (164,37; 70,0)):
       "global": {
         "algorithm": "block",
         "generated": 500,
-        "attempts": 3259,
-        "converged": 202,
-        "eligible": 202,
+        "attempts": 3252,
+        "converged": 203,
+        "eligible": 203,
         "tension_rejected": 0,
         "refined": 1,
         "evaluated": 3349,
         "polish_evaluated": 659,
-        "global_fos": 1.010300223400116,
+        "global_fos": 1.0103002234001155,
         "winner": "global"
       }
     }
@@ -2893,7 +2928,7 @@ de (29,15; 20,0) a (164,37; 70,0)):
 }
 ```
 
-Se lee así: de 500 candidatos admisibles (3259 intentos), 202 convergieron y los 202 pasaron la guarda. Uno se refinó, y el
+Se lee así: de 500 candidatos admisibles (3252 intentos), 203 convergieron y los 203 pasaron la guarda. Uno se refinó, y el
 pulido gastó 659 evaluaciones. `global_fos` (1,0103) es menor que `polyline_fos` (1,0847), así que gana `global`.
 
 #### Valores y variantes
@@ -2947,9 +2982,10 @@ null
 
 #### Ejemplo de la nota `non_circular_global_tension_rejected`: V051
 
-V051 con `global: {}` (`verification/global/models/V051.json`, con la versión cambiada a `"0.7"`). Gana `refinement` con
-0,7071 (el publicado es 0,707). El generador halló 306 candidatos convergidos, de los cuales la guarda rechazó 32 por tracción,
-y el mejor elegible dio 0,7285: no mejora al refinamiento. Las notas del método:
+V051 con `global: {}` (`verification/global/models/V051.json`, con la versión cambiada a `"0.7"` y `"global": {}` agregado).
+Gana `refinement` con 0,7071 (el publicado es 0,707). El generador halló 305 candidatos convergidos, de los cuales la guarda
+rechazó 30 por tracción (`tension_rejected = 30`), y el mejor elegible dio 0,7285: no mejora al refinamiento. Las notas del
+método:
 
 ```
 load_outside_mass, negative_effective_normal, non_circular_large_change, non_circular_global_tension_rejected
@@ -2994,6 +3030,21 @@ Con un campo desconocido:
 { "foo": 1 }
 ```
 
+Con un entero escrito con punto decimal. **El esquema lo acepta y el motor lo rechaza** (la diferencia está en
+[Campos](#campos)):
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:invalid~type:~floating~point~`50.0`,~expected~usize esquema=acepta -->
+```json
+{ "generated": 50.0 }
+```
+
+Con un arreglo en lugar de un objeto:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:invalid~type:~sequence,~expected~un~objeto esquema=rechaza -->
+```json
+["block", 60, 0, false]
+```
+
 Con `version` `"0.6"`:
 
 <!-- ogs-fragmento base=global-v053 ruta=version esperado=error:analysis.search.non_circular.global~requiere~version~"0.7" esquema=rechaza -->
@@ -3033,8 +3084,9 @@ expresar y que valida solo el motor:
   ([Combinaciones no admitidas](#combinaciones-no-admitidas-v06)): Bishop con `non_circular`, la grieta de profundidad
   `"auto"` con un material `hoek_brown` o `shansep`, y un pilote de Ito-Matsui con esos materiales (E16n).
 - **Búsqueda global (v0.7):** el esquema valida los rangos de `generated` (entero en [50, 2000]) y de `seed` (entero en
-  [0, 2^53 − 1]), la enumeración de `algorithm`, el tipo de `polish`, los campos desconocidos y la puerta de versión. **Solo el
-  motor** valida Bishop con `non_circular` (que cubre `global`).
+  [0, 2^53 − 1]), la enumeración de `algorithm`, el tipo de `polish`, los campos desconocidos, que `global` sea un objeto y la
+  puerta de versión. **Solo el motor** valida Bishop con `non_circular` (que cubre `global`) y rechaza un entero escrito como
+  `50.0` (el esquema lo acepta, como `slices` y `seeds`).
 
 ## Cómo se validan los ejemplos
 
