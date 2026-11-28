@@ -9,7 +9,7 @@ un recuento propio de una tabla de esos informes, se dice.
 
 | Se compara con | Resultado | Informe |
 |---|---|---|
-| Valores publicados (167 casos, 347 checks; 20 de ellos promovidos de F3B) | **347/347** | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados (175 casos, 356 checks; 29 de ellos promovidos: 20 de F3B y 9 del bloque CM) | **356/356** | [`verification/REPORT.md`](../verification/REPORT.md) |
 | Valores publicados de F3B (v0.6), de `verification/pending/F3B/` (22 checks en 18 casos) | **20/22** promovidos; V002 (E16u) y V009c (E13k) retenidos, y V105a (`aboveWater`, sin archivo de caso) también en `HOLD.json`; véase [abajo](#casos-promovidos-de-verificationpendingf3b) | ídem |
 | cSlope 0.1.0, búsqueda (14 modelos, Bishop y Spencer) | **28/28** | [`verification/differential/REPORT.md`](../verification/differential/REPORT.md) |
 | cSlope 0.1.0, superficie fija (los mismos) | **28/28** | ídem |
@@ -17,20 +17,21 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0, refuerzos v0.4 (D24-D27) | **12/12** | ídem |
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados por E15f y E15j-7, ninguna falla abierta; D30 fija se corrigió con E15j-8; véase [abajo](#grieta-de-tracción-agua-embalsada-y-pilotes-de-ito-matsui-v05-d28-a-d42)) | ídem |
 | cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B-HB-01 a F3B-NC-V034a) | **41/42** (1 explicado por E16t, ninguna falla; véase [abajo](#batería-diferencial-f3b)) | ídem |
-| cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Valores publicados, búsqueda no circular del bloque CM (9 checks de F7.6: V036c, V036d, V039 ×2, V041a, V041b, V051, V098 y V053 con `global`) | **⟨PROMOVIDOS⟩/9** promovidos; los que no pasan la banda quedan en `verification/pending/CM/HOLD.json`; véase [abajo](#búsqueda-global-no-circular-v07) | [`verification/REPORT.md`](../verification/REPORT.md) |
-| Búsqueda global no circular v0.7 (compuertas A1 a A10 y A2b de F7.7) | **todas pasan**: V053 1,0103 (banda ≤ 1,0453) con 48 de 48 semillas en la banda; 0 diferencias de identidad en 196 modelos; costo ≤ 3,81 × el circular | [`verification/global/REPORT.md`](../verification/global/REPORT.md) |
+| cSlope 0.1.0 como segundo oráculo de los 356 checks | **355/356** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Valores publicados, búsqueda no circular del bloque CM (9 checks de F7.6: V036c, V036d, V039 ×2, V041a, V041b, V051, V098 y V053 con `global`) | **9/9** promovidos y ninguno retenido (`verification/pending/CM/HOLD.json` está vacío); véase [abajo](#búsqueda-global-no-circular-v07) | [`verification/REPORT.md`](../verification/REPORT.md) |
+| Búsqueda global no circular v0.7 (compuertas A1 a A10 y A2b de F7.7) | **todas pasan**: V053 1,0103 (banda ≤ 1,0453) con 48 de 48 semillas en la banda; 0 diferencias de identidad en 202 modelos; costo ≤ 3,81 × el circular (en Chrome, 2,83 × en V053 y 1,94 × en S2) | [`verification/global/REPORT.md`](../verification/global/REPORT.md) |
 | xslope 1.1.0, columna informativa (no es un juez) | **80/80** concordancias en superficie fija (máximo 0,116 %); la búsqueda va como diagnóstico; véase [abajo](#xslope-110-como-columna-informativa) | [`verification/xslope/REPORT.md`](../verification/xslope/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
-| Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas en el commit de la release 0.5.1; véase «Reproducir» abajo) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4653 de 4653** con el motor real (`OGS_BIN`) y **4333** pasan con 320 omitidas sin él (4653 en total) | ídem |
+| Web y `ogs` (ida y vuelta; 418 modelos: 356 checks, 56 diferenciales y 6 de frontera) | **418/418**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
+| Pruebas automáticas (medidas en el commit de la release 0.5.1; véase «Reproducir» abajo; las del bloque CM, en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4653 de 4653** con el motor real (`OGS_BIN`) y **4333** pasan con 320 omitidas sin él (4653 en total) | ídem |
 
 ## Aceptación: casos publicados
 
-- **347 de 347 checks** publicados cumplen su tolerancia, en **167 casos** (`verification/cases/`): los 327 checks de los
-  151 casos anteriores a F3B y los 20 checks de los 16 casos v0.6 promovidos de F3B
-  ([abajo](#casos-promovidos-de-verificationpendingf3b)). El informe
-  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 347 OK, 0 fallas, 0 sin dato, 0 no convergidos.
+- **356 de 356 checks** publicados cumplen su tolerancia, en **175 casos** (`verification/cases/`): los 327 checks de los
+  151 casos anteriores a F3B, los 20 checks de los 16 casos v0.6 promovidos de F3B
+  ([abajo](#casos-promovidos-de-verificationpendingf3b)) y los 9 checks de los 8 casos del bloque CM
+  ([abajo](#casos-promovidos-de-la-búsqueda-global)). El informe
+  [`verification/REPORT.md`](../verification/REPORT.md) da ogs 356 OK, 0 fallas, 0 sin dato, 0 no convergidos.
   Test: `cargo test -p ogs-core --test acceptance`. Todo aviso que no sea informativo hace fallar un check (E5).
 - **Por versión del formato** (de [`verification/cases/INDEX.md`](../verification/cases/INDEX.md)):
 
@@ -41,8 +42,9 @@ un recuento propio de una tabla de esos informes, se dice.
   | v0.3 (no drenado, polilínea, M-P, Janbu) | 53 | 139 |
   | v0.4 (refuerzos, lotes R1 a R4) | 23 | 30 |
   | v0.5 (grieta de tracción, lote F3G; pilotes de Ito-Matsui, lote F3I) | 21 | 46 |
-  | v0.6 (Hoek-Brown y búsqueda no circular, lote F3B) | 16 | 20 |
-  | **Total** | **167** | **347** |
+  | v0.6 (Hoek-Brown y búsqueda no circular, lotes F3B y CM) | 23 | 28 |
+  | v0.7 (búsqueda global, lote CM) | 1 | 1 |
+  | **Total** | **175** | **356** |
 
   El lote F3G (31 casos, 80 checks) usa la versión mínima de los campos de cada caso: los 17 casos con grieta van en
   v0.5; los 14 con solo agua embalsada, en v0.1 (8 casos, 21 checks) o v0.3 (6 casos, 17 checks). Por eso v0.1 y v0.3
@@ -54,14 +56,15 @@ un recuento propio de una tabla de esos informes, se dice.
   | Método | Checks |
   |---|---:|
   | Bishop simplificado | 137 |
-  | Spencer | 130 |
+  | Spencer | 139 |
   | Morgenstern-Price | 44 |
   | Janbu simplificado | 11 |
   | Janbu corregido | 25 |
-  | **Total** | **347** |
+  | **Total** | **356** |
 
-  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 173 de búsqueda y 174 de superficie fija. Los
-  20 checks de F3B son 18 de búsqueda no circular y los 2 de HAM1, con círculo fijo.
+  Por tipo de superficie, según el recuento de las filas de `REPORT.md`: 182 de búsqueda y 174 de superficie fija. Los
+  20 checks de F3B son 18 de búsqueda no circular y los 2 de HAM1, con círculo fijo; los 9 del bloque CM son de búsqueda no
+  circular (los 8 casos nuevos suman 9 checks porque V039 tiene 2).
 - De los **53 casos v0.3**, 47 vienen de los lotes 1 y 2 de la importación desde cSlope (`undrained` y `s-f-datum`; polilíneas
   fijas, M-P y Janbu), promovidos desde `verification/pending/F3/` cuando el motor reproduce sus checks. El lote 0
   (todo lo convertible con v0.1 o v0.2) no tiene tope ni selección. El índice declara 122 checks para esos 47 casos, de
@@ -82,9 +85,9 @@ un recuento propio de una tabla de esos informes, se dice.
   es **relativa**, `|Δ|/publicado ≤ tolerancia`, la misma de los demás casos (E15j-5): X18 la había leído como absoluta y
   había dado por fuera V009b, V087 y V092; con la convención del repositorio V087 y V092 se reproducen y se promueven.
   No se relajó ninguna tolerancia ni se tocó ningún dato.
-- **Retenidos:** el motor no reproduce **18 checks en 12 casos**, que no cuentan en los 347 y se documentan con su
-  diagnóstico (sin relajar ninguna tolerancia). El recuento sale de las 18 entradas de los cinco `HOLD.json` de
-  `verification/pending/` (lote 0: 5, F3: 1, F3R: 3, F3G: 6 y F3B: 3) y de sus 12 casos distintos (V027, V028, V032a, V068,
+- **Retenidos:** el motor no reproduce **18 checks en 12 casos**, que no cuentan en los 356 y se documentan con su
+  diagnóstico (sin relajar ninguna tolerancia). El recuento sale de las 18 entradas de los `HOLD.json` de
+  `verification/pending/` (lote 0: 5, F3: 1, F3R: 3, F3G: 6, F3B: 3 y CM: 0; el del lote CM está vacío) y de sus 12 casos distintos (V027, V028, V032a, V068,
   V035b, V083, V009a, V009b, V085, V002-nc, V009c y V105a):
   - V027 y V028 (Bishop, 1 check cada uno) y V068 (Bishop, 1 check): el FS cae dentro de la tolerancia, pero el motor
     emite `negative_effective_normal_major` y la aceptación rechaza ese aviso;
@@ -116,7 +119,7 @@ un recuento propio de una tabla de esos informes, se dice.
   Detalle en [`docs/limitaciones.md`](limitaciones.md#checks-retenidos-y-casos-especiales),
   [`pending/lote0/INDEX.md`](../verification/pending/lote0/INDEX.md) y
   [`pending/F3/INDEX.md`](../verification/pending/F3/INDEX.md).
-- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **346 de 347** de esos checks; el restante es V027, donde cSlope
+- **Harness frente a cSlope:** cSlope 0.1.0 reproduce **355 de 356** de esos checks; el restante es V027, donde cSlope
   no converge (`REPORT.md`).
 
 ## Criterios de la Fase 3a (F3.8)
@@ -141,7 +144,7 @@ Los valores de referencia del oráculo para V047a están en `briefs/02_CONTRATOS
 - **Paridad** (E12j): el editor web y `ogs-core` aceptan y rechazan los mismos documentos. La prueba
   `apps/web/src/editor/state/parity.test.ts` ejecuta 51 pruebas (25 contra el binario `ogs` real, con `OGS_BIN`; sin él
   se omiten) y corre en CI sin casos omitidos.
-- **Ida y vuelta de la web** (E12g): para **409 modelos** (347 checks de los 167 casos, 56 de la batería diferencial y 6
+- **Ida y vuelta de la web** (E12g): para **418 modelos** (356 checks de los 175 casos, 56 de la batería diferencial y 6
   de frontera), `openOgsJson` + `saveOgsJson` y luego `ogs analyze` dan el mismo código de salida y la misma salida, bit
   a bit, que el modelo original. Test: `verification/tools/test_web_roundtrip.py` (necesita Node 22 y el binario
   compilado). El número de modelos lo calcula el test a partir del índice de casos.
@@ -231,7 +234,7 @@ a OK con E15j-8; D40 a D42 estaban pendientes mientras el motor no tenía E15i).
 
 Que la piezométrica de un modelo pase sobre el terreno **no** quiere decir que la superficie de un check reciba el peso o
 el empuje del agua embalsada: un círculo que no toca la parte inundada no los recibe, y un caso así no verifica nada sobre
-el agua embalsada. De los 167 casos de `verification/cases/`, **14** tienen la piezométrica sobre el terreno (ninguno de los 16 casos v0.6 la tiene; la misma
+el agua embalsada. De los 175 casos de `verification/cases/`, **16** tienen la piezométrica sobre el terreno (ninguno de los 16 casos v0.6 de F3B la tiene; sí V041a-nc y V041b-nc, del lote CM; la misma
 prueba que usa `verification/tools/identity_vs_baseline.py` para separar los modelos con agua embalsada). La tabla mide,
 para cada uno, qué reciben las dovelas de la superficie **de sus checks**, con el binario de release de este árbol y con
 `docs/fase3/r12/p-medir_agua_embalsada.py`:
@@ -241,7 +244,7 @@ para cada uno, qué reciben las dovelas de la superficie **de sus checks**, con 
 2. Repite la corrida con esa superficie fija, **sin** `loads`, sin sismo, sin refuerzos y con `water_fill = 0` en la
    grieta (la grieta sigue truncando la masa). Lo que queda de `weight_extra` y de `h_force` es solo agua embalsada.
 3. Suma `Σ|weight_extra|` (el peso del agua) y `Σ|h_force|` (su empuje, con el de una cara de presa) sobre las dovelas.
-   Con la superficie de cada check, la corrida de control coincide con la corrida normal en los 14 casos (ninguno tiene
+   Con la superficie de cada check, la corrida de control coincide con la corrida normal en los 16 casos (ninguno tiene
    cargas ni sismo), así que las dos sumas son las que mide la revisión.
 
 Ejercita el agua embalsada si, solo con ella, `Σ|weight_extra|` o `Σ|h_force|` llegan al 0,1 % del peso del suelo de la
@@ -253,7 +256,9 @@ superficie (`marginal` si son no nulos pero menores):
 | V024 | bishop fixed, spencer fixed | 0.05138 | 0.002857 | 2.75e-06 | marginal |
 | V038 | bishop search, spencer search | 0 | 0 | 0.00e+00 | no |
 | V038b | spencer search | 0 | 0 | 0.00e+00 | no |
+| V041a-nc | spencer search | 3327 | 1230 | 1.98e+00 | sí |
 | V041a | bishop search, spencer search | 3283 a 3286 | 1230 | 2.01e+00 | sí |
+| V041b-nc | spencer search | 5662 | 2050 | 3.32e+00 | sí |
 | V041b | bishop search, spencer search | 5540 a 5547 | 2050 | 3.39e+00 | sí |
 | V042 | bishop fixed, spencer fixed | 0 | 0 | 0.00e+00 | no |
 | V058 | spencer search | 0 | 0 | 0.00e+00 | no |
@@ -264,8 +269,9 @@ superficie (`marginal` si son no nulos pero menores):
 | V091 | bishop fixed, janbu_corrected fixed, morgenstern_price fixed, spencer fixed | 192 | 29.16 | 8.53e-02 | sí |
 | V092 | bishop fixed, janbu_corrected fixed, morgenstern_price fixed, spencer fixed | 629.5 | 226.2 | 1.35e-02 | sí |
 
-- **Ejercitan el agua embalsada: 8 casos** (V023, V041a, V041b, V070, V087, V089, V091 y V092), con cifras de entre 1,4 % y
-  339 % del peso del suelo. En V041a y V041b el peso del agua supera el del suelo de la masa.
+- **Ejercitan el agua embalsada: 10 casos** (V023, V041a, V041a-nc, V041b, V041b-nc, V070, V087, V089, V091 y V092), con
+  cifras de entre 1,4 % y 339 % del peso del suelo. En V041a y V041b, y en sus dos casos `-nc`, el peso del agua supera el del
+  suelo de la masa.
 - **No lo ejercitan: 5 casos** (V038, V038b, V042, V058 y V061): `Σ|weight_extra| = 0` y `Σ|h_force| = 0`, de modo que su
   check es idéntico al que daría sin la parte de agua sobre el terreno. V042 lo confirma con la identidad: su salida es
   idéntica byte a byte a la de la v0.3.0 (`identity_vs_baseline.py`); en V038, V038b y V058 (búsqueda) y V061 (superficie
@@ -593,43 +599,91 @@ OGS_BIN=$CARGO_TARGET_DIR/release/ogs env -u PYTHONPATH -u PYTHONHOME uv run -q 
 
 El bloque CM (formato v0.7, aún sin publicar) agrega `analysis.search.non_circular.global`
 ([formato](formato-ogs-json.md#v07-búsqueda-global-no-circular), [límites](limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)).
-Se verifica con las compuertas A1 a A10 y A2b del contrato (`briefs/06_CONTRATOS_CM.md`, F7.7, con las enmiendas E17a a E17d).
+Se verifica con las compuertas A1 a A10 y A2b del contrato (`briefs/06_CONTRATOS_CM.md`, F7.7, con las enmiendas E17a a E17f).
 La vara principal son los checks no circulares del corpus de cSlope que nunca se habían medido (V036c, V036d, V039, V041a,
 V041b, V051, V053 y V098) y los 15 checks no circulares de la batería. Las cifras salen de
-[`verification/global/REPORT.md`](../verification/global/REPORT.md) (datos completos en `REPORT.json`), con semilla 0 y 500
-candidatos, los valores por defecto, salvo en A2b. Se midieron 50 modelos: los 40 de X37 (9 casos publicados, 5 `-nc` promovidos, 2
-sintéticos y 24 taludes homogéneos) y 10 casos más con búsqueda no circular. No hay errores.
+[`verification/global/REPORT.md`](../verification/global/REPORT.md) (datos completos en `REPORT.json`), que CM-M2 regeneró con
+las correcciones de la revisión adversarial (E17e), con semilla 0 y 500 candidatos, los valores por defecto, salvo en A2b. Se
+midieron 55 modelos: los 40 de X37 (9 casos publicados, 5 `-nc` promovidos, 2 sintéticos y 24 taludes homogéneos) y 15 casos
+más con búsqueda no circular. No hay errores.
 
 | Compuerta | Qué mide | Resultado |
 |---|---|---|
-| A1 | Identidad: sin `global`, la salida es la de la 0.5.1 | **0 diferencias en 196 modelos** (variantes `own`, `search`, `fixed`, @0.4 y @0.6; 0 excepciones); los 24 modelos con agua sobre el terreno, idénticos |
+| A1 | Identidad: sin `global`, la salida es la de la 0.5.1 | **0 diferencias en 202 modelos** (variantes `own`, `search`, `fixed`, @0.4 y @0.6; 0 excepciones); los 26 modelos con agua sobre el terreno, idénticos |
 | A2 | V053 con `global: {}` en la banda publicada (1,01 ± 3,50 %) y cSlope sobre la polilínea ganadora, ±1 % | **1,0103** (banda ≤ 1,0453); cSlope evalúa esa polilínea en 1,0101 (0,02 %) |
-| A2b | Robustez frente a la semilla: V053 en la banda con la semilla 0 y con al menos 44 de las semillas 0 a 47 | **48 de 48** (mín. 1,0029, mediana 1,0077, máx. 1,0239; semilla 0: 1,0103); S2: mediana 0,7588 |
+| A2b | Robustez frente a la semilla: V053 en la banda con la semilla 0 y con al menos 44 de las semillas 0 a 47 | **48 de 48** (mín. 1,0029, mediana 1,0077, máx. 1,0239; semilla 0: 1,0103); S2: mediana 0,7611 |
 | A3 | Los 15 checks no circulares con `global: {}`: criterio de un lado, y ninguno sobre su FS sin `global` | **15 de 15**; ninguno sobre su FS sin `global` |
-| A4 | Guarda de tracción: ninguna ganadora con `negative_lambda` ni `negative_effective_normal_major`; V051 ≥ 0,69; cSlope ±2 % | **14 ganadoras del generador**, sin notas de tracción; V051 = 0,7071; cSlope a ≤ 0,10 % en las 14 |
-| A5 | Monotonía: FS con `global` ≤ FS sin `global` | **52 de 52**; `global` gana en 19 |
-| A6 | Determinismo: dos corridas iguales y la misma salida con `parallel` | **50 de 50** deterministas; **50 de 50** idénticos con `parallel` |
-| A7 | Costo: tiempo con `global` ≤ 4 × el circular (mediana de 3 corridas); WASM informado | Razón: **mediana 1,55, máximo 3,81**. WASM (V8 de Node): V053 2,87 y S2 1,97; FS igual al nativo a 7e-16 |
-| A8 | Barrido de 24 taludes: `global` no empeora ninguno, `evaluated` > 0 en al menos 23, sin avisos nuevos fuera de F7.2 | **24 taludes**; `evaluated` = 0 en 1 (TAL-H30-b60-f35-c5) |
+| A4 | Guarda de tracción: ninguna ganadora con `negative_lambda` ni `negative_effective_normal_major`; V051 ≥ 0,69; cSlope ±2 % | **38 ganadores del generador**, sin notas de tracción; V051 = 0,7071; cSlope a ≤ 0,10 % en los 38 (sin ninguna advertencia de cSlope) |
+| A5 | Monotonía: FS con `global` ≤ FS sin `global` | **57 de 57**; `global` gana en 21 |
+| A6 | Determinismo: tres corridas iguales y la misma salida con `parallel` | **55 de 55** deterministas; **55 de 55** idénticos con `parallel` |
+| A7 | Costo: tiempo con `global` ≤ 4 × el circular (mediana de 3 corridas); WASM informado | Razón: **mediana 1,56, máximo 3,81** (V026-nc; margen de 0,19 frente al tope, el 4,8 % del tope). **WASM en Chrome: V053 2,83 y S2 1,94**; FS igual al nativo a ≤ 1,8e-14 |
+| A8 | Barrido de 24 taludes: `global` no empeora ninguno, `evaluated` > 0 en al menos 23, sin avisos nuevos fuera de F7.2 | **24 taludes**; `evaluated` = 0 en 1 (TAL-H30-b60-f35-c5); `eligible` = 0 en 3 |
 | A9 | Paridad del generador con el prototipo X37 (mejor candidato antes de refinar, a 1e-6) | Recocido: **31 de 40** iguales con el prototipo original; **40 de 40** con el alineado a las reglas del contrato. El bloque cambió en E17c y no tiene paridad |
-| A10 | Puertas del repositorio | Todo en verde: véase [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md) |
+| A10 | Puertas del repositorio | Todo en verde en CM-M2: 827 tests de `ogs-core` (con y sin `parallel`) y 356 checks de aceptación, `tsc` y vitest 4922. Las puertas finales de la integración están en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md) |
 
 Lo que dicen las compuertas con más detalle:
 
 - **V053 (A2 y A2b).** Sin `global`, el refinamiento de la v0.6 da 1,0847 (+7,4 % sobre el publicado, fuera de la banda). Con
   `global: {}` baja a 1,0103. El generador halla la cuenca del bloque, y el descarte sucesivo la conserva. Las 48 semillas ganan
   con `global`. La búsqueda de cSlope da 1,0061 y el mínimo de las 48 semillas (1,0029) queda 0,3 % por debajo.
-- **La guarda (A4).** V051 con la guarda da 0,7071 y la nota `non_circular_global_tension_rejected` (32 candidatos rechazados).
-  Sin la guarda, X37 midió 0,630, y cSlope evalúa esa superficie en 1,048.
+- **La guarda (A4).** V051 con la guarda da 0,7071 y la nota `non_circular_global_tension_rejected` (30 de 305 candidatos
+  convergidos rechazados en la generación). Sin la guarda, X37 midió 0,630, y cSlope evalúa esa superficie en 1,048. A4 recorre
+  también los ganadores de los demás casos y un subconjunto con `janbu_simplified`, `janbu_corrected` y `morgenstern_price`
+  (`half_sine`, `trapezoidal` y `data_points`): 20 corridas de Janbu y Morgenstern-Price, 17 con ganador del generador. La
+  primera versión solo recorría los 40 modelos con Spencer, y un error de cSlope excluía el caso en silencio (RCM-A-08); ahora
+  sería una advertencia explícita, y no hubo ninguna.
 - **El barrido de taludes (A8).** En los 24 taludes homogéneos, `auto` corre el recocido (no hay contactos), y `global` gana en
-  10, con mejoras de hasta 0,14 %. Tres taludes no tienen etapa global efectiva (E17d, punto 5: TAL-H30-b60-f35-c5 con
-  `evaluated` = 0, y TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30 con `evaluated` = 1). Los tres llevan la nota
-  `non_circular_global_no_candidates`.
+  10, con mejoras de hasta 0,14 %. Tres taludes no tienen etapa global efectiva (TAL-H30-b60-f35-c5 con `evaluated` = 0, y
+  TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30 con `evaluated` = 1, que no tienen candidato elegible). Los tres llevan la nota
+  `non_circular_global_no_candidates`. El informe los separa: `eligible` = 0 en 3, aunque `evaluated` sume 1.
 - **La paridad (A9).** Las 9 diferencias del recocido contra el prototipo original son candidatos que la guarda rechaza o que
   no convergen: el prototipo no los cuenta como generados.
 - **El costo (A7).** El tiempo se mide con corridas secuenciales (no en paralelo). La columna «Refinamiento» del informe es la
-  razón del refinamiento de la v0.6 sin `global` (de 1,00 a 2,90), para ver cuánto agrega la etapa global. **La medición en Chrome la hace el coordinador al integrar:** la de V8 de Node
-  usa el mismo motor WASM, pero no es el navegador.
+  razón del refinamiento de la v0.6 sin `global` (de 1,00 a 2,91), para ver cuánto agrega la etapa global. El peor caso nativo,
+  V026-nc con 3,81, deja un margen de 0,19.
+
+### A7 en Chrome real
+
+Se midió con `verification/global/a7_chrome.mjs` (resultado en `verification/global/a7_chrome.json`): el WASM de la web
+(`wasm-bindgen --target web`) en HeadlessChrome 158, con la mediana de 3 corridas de `analyze_json` en la misma página. Antes se
+había medido solo en V8 de Node (V053 2,83 y S2 1,96); el navegador da cifras casi iguales.
+
+| Modelo | Circular (s) | Con `global` (s) | Razón | FS con `global` frente al nativo |
+|---|---:|---:|---:|---|
+| V053 | 0,373 | 1,057 | **2,83** | 1,3e-15 |
+| S2 | 0,351 | 0,680 | **1,94** | 4,4e-16 |
+
+El FS coincide con el nativo a **1,8e-14 o menos** en las seis salidas medidas (circular, refinamiento y `global` de los dos
+modelos; la mayor diferencia es la del refinamiento de S2, 1,8e-14). El motor no promete la salida idéntica byte a byte entre
+el nativo y WASM. Es el criterio de A7 (el FS igual al nativo a 1e-9).
+
+### Los reproductores de la revisión adversarial (RCM-A)
+
+La lente A de la revisión dejó seis reproductores en `verification/global/repro/`. CM-M2 los corrigió con E17e y los midió antes
+(el binario de CM-M, tope de 60 s) y después (el binario final, tope de 120 s):
+
+| Reproductor | Antes | Después |
+|---|---|---|
+| `01_project_hang` (RCM-A-01: terreno casi plano con una capa profunda) | más de 60 s, sin terminar | FS 1,2705, 0,35 s (sin `global`, 0,17 s) |
+| `02_max_vertices_9` (RCM-A-04) | 33 vértices con `max_vertices: 9` (FS 1,0103) | 9 vértices, FS 1,0194 |
+| `03_all_hb_auto_bases` (RCM-A-02: todo Hoek-Brown, `auto`) | `block` sobre las bases del fondo del modelo (6,31 s) | mismo FS (7,0198), 4,91 s y la nota de tracción (20 rechazados); Hoek-Brown compite en la capa y las bases no cuentan para `auto` |
+| `04_tension_note_zero_count` (RCM-A-03) | `tension_rejected` en 0 con la nota, sin explicación | mismo FS (0,7071); el contrato y la documentación dicen que el contador cuenta solo la generación y la nota, toda la etapa |
+| `05_global_array` (RCM-A-05: `global` como arreglo) | exit 0 y `generated` = 0 | `InvalidModel`, exit 2 |
+| `06_v053_shansep_layer4` (RCM-A-06) | `annealing`, FS 1,0844 (el bloque real: 0,8373) | `block`, FS 0,7563 |
+| `06_v053_hoek_brown_layer4` (RCM-A-06) | `annealing`, FS 1,0844 (el bloque real: 0,8579) | `block`, FS 0,7724 |
+
+Las cifras de las compuertas cambiaron poco con E17e:
+
+| Cifra | Antes (CM-M) | Después (CM-M2) |
+|---|---|---|
+| V053 con `global: {}` | 1,0103 | 1,0103 |
+| V053, semillas en la banda (de 48) | 48 | 48 |
+| S2, mediana de 48 semillas | 0,7588 | 0,7611 |
+| Polilíneas ganadoras evaluadas en cSlope (A4) | 14 | 38 |
+| Resultados con `global` ≤ sin `global` (A5) | 52 | 57 |
+| Gana `global` | 19 | 21 |
+| Razón de costo, máxima | 3,81 | 3,81 |
+| Tests de `ogs-core` | 809 | 827 |
 
 ### La robustez frente a la semilla (A2b, E17b y E17c)
 
@@ -663,8 +717,11 @@ a 75°, convergen 202 de 500. El detalle de las variantes que no dejaron descrip
 Los 9 checks de F7.6 (V036c, V036d, V039 ×2, V041a, V041b, V051 y V098 con `non_circular` de la v0.6, y V053 con
 `global: {}` de la v0.7) pasan a `verification/cases`, con su fuente y su tolerancia tal como vienen del corpus de cSlope. Los
 problemas que ya tenían un caso con otros checks se llaman `<id>-nc`. Con el criterio de un lado
-(`FS_ogs ≤ publicado · (1 + tol)`), los 9 pasan en A3. El recuento de casos y de checks está en la tabla de arriba y en
-[`verification/cases/INDEX.md`](../verification/cases/INDEX.md).
+(`FS_ogs ≤ publicado · (1 + tol)`), los 9 pasan en A3 y en la aceptación: **9 de 9 promovidos, ninguno retenido**
+(`verification/pending/CM/HOLD.json` está vacío, y `verification/pending/INDEX.md` suma 0 retenidos del lote CM). Son 8 casos
+nuevos (V036c-nc, V036d-nc, V039, V041a-nc, V041b-nc, V051, V053 y V098-nc), de los cuales V053 es el único de la v0.7. El
+conversor del oráculo acepta la versión 0.7 y omite `global` (cSlope corre su propia búsqueda). El recuento de casos y de
+checks está en la tabla de arriba y en [`verification/cases/INDEX.md`](../verification/cases/INDEX.md).
 
 ### Reproducir
 
@@ -683,6 +740,13 @@ env -u PYTHONPATH -u PYTHONHOME python3 verification/tools/identity_vs_baseline.
 
 # Las pruebas del motor (los tests de la etapa global) y la aceptación
 cargo test -p ogs-core --release
+```
+
+A7 en Chrome (el WASM de `apps/web/src/wasm` servido desde una carpeta que tenga `a7_chrome.mjs`, `wasm/` y `models/`, con
+`OGS_PLAYWRIGHT` apuntando a `playwright-core`; escribe `chrome.json` en esa carpeta, que es el `a7_chrome.json` del repositorio):
+
+```sh
+OGS_PLAYWRIGHT=<ruta a playwright-core> node verification/global/a7_chrome.mjs <puerto>
 ```
 
 `run.py` tiene los pasos `measure`, `robust` (A2b), `a9`, `wasm` y `report` (`--steps`); `report` regenera `REPORT.md` y
