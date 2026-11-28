@@ -13,6 +13,8 @@ import './ExamplePicker.css';
 
 /** Nombre accesible del control que elige el caso (lo usan los guiones e2e: no cambiarlo). */
 export const EXAMPLE_SELECT_LABEL = 'Abrir un caso publicado como modelo';
+/** Etiqueta del campo de filtro (RCM-B-11). */
+export const FILTER_LABEL = 'Filtrar ejemplos por id o título';
 
 // ───────────────────────── Destacados ─────────────────────────
 
@@ -137,6 +139,7 @@ export function enterAction(results: readonly CaseEntry[]): { kind: 'open'; key:
 export function ExamplePicker({ cases, onOpen }: { cases: readonly CaseEntry[]; onOpen: (key: string) => void }) {
   const base = useId();
   const featuredId = `${base}-featured`;
+  const allId = `${base}-all`;
   const filterId = `${base}-filter`;
   const countId = `${base}-count`;
   const hintId = `${base}-hint`;
@@ -209,18 +212,25 @@ export function ExamplePicker({ cases, onOpen }: { cases: readonly CaseEntry[]; 
             Ejemplos destacados
           </span>
           {featured.map(({ entry, tag, title }) => (
-            <button key={entry.key} type="button" className="ex-feat" aria-label={`${tag}: ${entry.caseData.id}, ${title}`} onClick={() => open(entry.key)}>
-              <span className="ex-feat-tag">{tag}</span>
-              <span className="ex-feat-title" aria-hidden="true">
+            // RCM-B-02 (WCAG 2.5.3): sin `aria-label`. El nombre accesible sale del contenido visible, así que lo contiene entero
+            // (etiqueta, id y título); el espacio entre los dos <span> separa las palabras en el nombre calculado.
+            <button key={entry.key} type="button" className="ex-feat" onClick={() => open(entry.key)}>
+              <span className="ex-feat-tag">{tag}</span>{' '}
+              <span className="ex-feat-title">
                 {entry.caseData.id} · {title}
               </span>
             </button>
           ))}
         </div>
       ) : null}
-      <div className="ex-all">
-        <label htmlFor={filterId} className="ex-heading">
+      <div role="group" aria-labelledby={allId} className="ex-all">
+        {/* RCM-B-11: «Todos los ejemplos, por tipo» es el encabezado del bloque; el filtro tiene su propia etiqueta (oculta: el
+            marcador de posición ya la dice a la vista y el menú no gana altura). */}
+        <span id={allId} className="ex-heading">
           Todos los ejemplos, por tipo
+        </span>
+        <label htmlFor={filterId} className="visually-hidden">
+          {FILTER_LABEL}
         </label>
         <input
           ref={filterRef}

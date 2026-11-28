@@ -11,6 +11,7 @@ import {
   EXAMPLE_KINDS,
   EXAMPLE_SELECT_LABEL,
   ExamplePicker,
+  FILTER_LABEL,
   FEATURED_EXAMPLES,
   enterAction,
   exampleKind,
@@ -22,6 +23,8 @@ import {
 } from './ExamplePicker';
 
 const cases = loadBuiltinCases();
+const textOf = (n: HostNode | string): string => (typeof n === 'string' ? n : n.children.map(textOf).join(''));
+const featuredButtons = (m: ReturnType<typeof mount>): HostNode[] => m.nodes.filter((n) => n.type === 'button' && n.props.className === 'ex-feat');
 const byId = (id: string) => cases.find((c) => c.caseData.id === id)!;
 
 describe('catálogo y tipos', () => {
@@ -139,12 +142,39 @@ describe('componente', () => {
     const input = filter(m);
     const label = m.nodes.find((n) => n.type === 'label')!;
     expect(label.props.htmlFor).toBe(input.props.id);
+    // RCM-B-11: el filtro tiene su propia etiqueta; «Todos los ejemplos, por tipo» queda como encabezado del bloque, no como etiqueta.
+    expect(FILTER_LABEL).toBe('Filtrar ejemplos por id o título');
+    expect(textOf(label)).toBe(FILTER_LABEL);
+    const heading = m.nodes.find((n) => n.props.className === 'ex-heading' && textOf(n).includes('Todos los ejemplos, por tipo'))!;
+    expect(heading.type).not.toBe('label');
+    const all = m.nodes.find((n) => n.props.className === 'ex-all')!;
+    expect(all.props['aria-labelledby']).toBe(heading.props.id);
+    expect(m.nodes.filter((n) => n.type === 'label')).toHaveLength(1);
     expect(input.props.role).toBe('searchbox');
     expect(input.props['aria-controls']).toBe(select(m).props.id);
     const count = m.nodes.find((n) => n.props['data-testid'] === 'example-count')!;
     expect(count.props.role).toBe('status');
     expect(count.props['aria-live']).toBe('polite');
     expect(input.props['aria-describedby']).toContain(count.props.id);
+  });
+
+  // RCM-B-02 (WCAG 2.5.3, «Etiqueta en el nombre»): el nombre accesible de un botón destacado es su texto visible. Sin `aria-label`
+  // ni contenido oculto, el nombre calculado del navegador (el contenido del botón) contiene lo que se ve.
+  it('los botones destacados no sobrescriben su nombre: el texto visible es el nombre accesible', () => {
+    const m = mount(() => createElement(ExamplePicker as never, { cases, onOpen: () => undefined }));
+    const buttons = featuredButtons(m);
+    expect(buttons).toHaveLength(FEATURED_EXAMPLES.length);
+    const featured = featuredEntries(cases);
+    for (const [i, b] of buttons.entries()) {
+      const f = featured[i]!;
+      expect(b.props['aria-label'], f.entry.caseData.id).toBeUndefined();
+      expect(b.props['aria-labelledby'], f.entry.caseData.id).toBeUndefined();
+      const spans = b.children.filter((c): c is HostNode => typeof c !== 'string');
+      expect(spans.some((sp) => sp.props['aria-hidden'] !== undefined), f.entry.caseData.id).toBe(false);
+      // El nombre calculado: el contenido, con una sola separación entre etiqueta y título.
+      const name = b.children.map(textOf).join('').replace(/\s+/g, ' ').trim();
+      expect(name).toBe(`${f.tag} ${f.entry.caseData.id} · ${f.title}`);
+    }
   });
 
   it('al escribir, filtra la lista, actualiza el conteo y oculta los destacados', () => {
@@ -162,7 +192,7 @@ describe('componente', () => {
   it('un botón destacado y la lista llaman a onOpen con la clave del caso y borran el filtro', () => {
     const opened: string[] = [];
     const m = mount(() => createElement(ExamplePicker as never, { cases, onOpen: (k: string) => void opened.push(k) }));
-    m.act(() => m.byLabel(`Con agua: V003, ${featuredEntries(cases).find((f) => f.entry.caseData.id === 'V003')!.title}`).props.onClick());
+    m.act(() => featuredButtons(m).find((b) => textOf(b).includes('V003'))!.props.onClick());
     expect(opened).toEqual([byId('V003').key]);
     m.act(() => filter(m).props.onChange(changeEvent('V002')));
     m.act(() => select(m).props.onChange(changeEvent(byId('V002').key)));
