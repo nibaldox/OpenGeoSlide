@@ -8,6 +8,177 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+Bloque CM, «Cierre del MVP»: búsqueda global no circular (formato v0.7), correcciones de la web y cuatro verificaciones nuevas.
+**Sin `global`, la salida es la de la 0.5.1 byte a byte:** 0 diferencias en 202 modelos, con la versión del motor normalizada
+(`verification/tools/identity_vs_baseline.py`), y 26 modelos con agua sobre el terreno idénticos. El contrato es
+`briefs/06_CONTRATOS_CM.md` (F7.0 a F7.7 y las enmiendas E17a a E17f); el cierre, `docs/cm/CIERRE_CM.md`; y la evidencia,
+`docs/cm/exploracion/X31.md` a `X37.md` y `verification/global/`. Una revisión adversarial con dos lentes (el motor y la web)
+dio «apto con correcciones» en las dos, y sus hallazgos están corregidos (E17e y E17f, en «Fixed»). La compuerta de los 5
+minutos sigue pendiente de la prueba humana (en «Known issues»).
+
+### Added
+- **Formato `.ogs.json` v0.7 y búsqueda global no circular (F7.1 a F7.4).** `analysis.search.non_circular.global` es un objeto
+  opcional con `algorithm` (`auto`, `block` o `annealing`), `generated` (50 a 2000, 500 por defecto), `seed` (0 a 2^53 − 1) y
+  `polish` (verdadero por defecto); `{}` es válido. Exige `"version": "0.7"` (`InvalidModel: analysis.search.non_circular.global
+  requiere version "0.7"`), y con 0.7 quedan abiertas todas las puertas anteriores. Esquema: `schema/ogs-0.7.schema.json`.
+  - **Qué hace.** Genera superficies no circulares propias, las refina y las pule, además del refinamiento de la v0.6, que se
+    calcula siempre y sin cambios. **El resultado nunca empeora:** la etapa global solo lo reemplaza si da un FS
+    estrictamente menor y su superficie es elegible.
+  - **Generadores.** *Bloque* sobre la capa débil (la región de menor resistencia relativa con contactos entre regiones):
+    2 o 3 segmentos sobre el contacto, con proyecciones de 15° a 75° hasta el terreno y una secuencia de Halton cuya semilla es una
+    rotación de Cranley-Patterson. *Recocido simulado*, desde la polilínea del círculo semilla 1. `auto` elige el bloque solo si
+    hay contactos y recurre al recocido si el bloque no da ningún candidato.
+  - **Descarte sucesivo 4 → 3 → 1** (60, 150 y 1500 evaluaciones), y un pulido final de hasta 4 ciclos y 3000 evaluaciones que
+    solo corre si gana la etapa global. Con los valores por defecto, la etapa evalúa a lo sumo 5690 candidatos (unos 5700).
+  - **Guarda de tracción.** Una superficie del generador solo es elegible si converge y su solución no trae
+    `negative_lambda` ni `negative_effective_normal_major`: un generador halla superficies en la rama con tracción de E12e,
+    con un FS bajo que no existe (V051: 0,630 sin la guarda, que cSlope evalúa en 1,048; con ella, 0,7071).
+  - **Salida `search.non_circular.global`** con `algorithm`, `generated`, `attempts`, `converged`, `eligible`,
+    `tension_rejected`, `refined`, `evaluated`, `polish_evaluated`, `global_fos` y `winner` (`global` o `refinement`), y dos
+    notas: `non_circular_global_no_candidates` y `non_circular_global_tension_rejected`.
+  - **Determinismo.** PRNG SplitMix64 escrito en el crate, sin dependencias nuevas: la misma salida en dos corridas y con o
+    sin `--features parallel`, byte a byte. La igualdad entre el motor nativo y WASM no se promete.
+  - **Resultados.** V053 (1,01 publicado) baja de 1,0847 a **1,0103** y queda dentro de la banda, con 48 de 48 semillas de 0 a
+    47 (de 1,0029 a 1,0239); cSlope evalúa la polilínea ganadora en 1,0101. El costo, frente a la búsqueda circular, es de
+    1,56 veces (mediana) a 3,81 (máximo) en nativo, y en Chrome real de 2,83 en V053 y de 1,94 en S2, con el FS igual al nativo a
+    1,8e-14 o menos. Límites: [`docs/limitaciones.md`](docs/limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no).
+- **Verificación de la búsqueda global (`verification/global/`).** Las compuertas A1 a A10 y A2b, medidas en 55 modelos con la
+  semilla 0 y 500 candidatos (`REPORT.md` y `REPORT.json`): identidad con la 0.5.1 (202 modelos), V053 en la banda, robustez
+  frente a la semilla (48 de 48), los 15 checks no circulares, la guarda (38 ganadores del generador, con Spencer, Janbu y
+  Morgenstern-Price, evaluados en cSlope a 0,10 % o menos), monotonía (57 de 57 resultados con `global` ≤ sin `global`;
+  `global` gana en 21), determinismo (55 de 55), costo, el barrido de 24 taludes y la paridad del recocido con el prototipo X37
+  (40 de 40, a ~1e-15, con el prototipo alineado a las reglas del contrato). Incluye `a7_chrome.mjs` y `a7_chrome.json` (A7 en
+  HeadlessChrome 158) y los seis reproductores de la revisión (`repro/`).
+- **9 checks no circulares promovidos a `verification/cases` (F7.6).** V036c, V036d, V039 (2), V041a, V041b, V051 y V098 con
+  búsqueda no circular de la v0.6, y V053 con `global: {}` de la v0.7: 8 casos nuevos, **9 de 9 dentro de su tolerancia y
+  ninguno retenido**. Total: **175 casos y 356 checks; aceptación 356/356 y cSlope 355/356** (V027 no converge). Los retenidos
+  de todo `verification/pending/` siguen siendo 18 checks en 12 casos. `to_cslope.py` acepta la versión 0.7 y omite `global`
+  (cSlope corre su propia búsqueda).
+- **xslope 1.1.0 como tercera columna informativa del harness** (`verification/harness/to_xslope.py`, `verification/xslope/`).
+  Corre `bishop` y `spencer` en superficie fija o búsqueda circular y cuenta lo demás como `Unsupported(<rasgo>)`. **No es un
+  juez:** en superficie fija, los 80 checks convertidos concuerdan con ogs dentro de 0,5 % (mediana 0,029 %, máximo 0,116 %);
+  la búsqueda va como diagnóstico. Exige `xslope==1.1.0`; con pruebas por regla de conversión.
+- **Web de la búsqueda global.** La versión 0.7 entra a la tabla de versiones (se guarda solo si hay `global`), con su puerta
+  y su rama en `validateLocal.ts`; el motor simulado la rechaza con un mensaje, sin inventar un FS. El sub-bloque «Búsqueda
+  global» de «Búsqueda» (casilla, algoritmo, candidatos, semilla y pulido, con borradores y rutas de error, a ancho completo en
+  pantallas angostas). La tabla de resultados, el CSV y el informe PDF muestran el ganador, el algoritmo y los contadores, y el
+  recuadro del FS lleva una línea («Búsqueda global: ganó (bloque)», «…(recocido)», «no mejoró el refinamiento» o «sin
+  candidatos», con una marca si salió la nota de tracción). Las notas nuevas entran al catálogo y a los avisos, y la Ayuda
+  explica cuándo usar la búsqueda, su costo y la guarda. Sin `global`, la web produce los mismos documentos que la 0.5.1
+  (`apps/web/src/report/identity.v07.mjs`).
+- **Web: editor y primera visita (CM-W1).**
+  - **Borradores.** Tras «Nuevo» o «Abrir», todo borrador se reinicia desde el documento nuevo (`useDraft` depende de
+    `docEpoch`); en una fila de vértice, confirmar `x` no toca el borrador de `y`; «Agregar punto», «Quitar» y «Quitar
+    piezométrica» se deshabilitan con una fila pendiente y lo explican; Ctrl+Intro calcula con el foco en un campo de texto.
+  - **Selector de ejemplos** con 7 destacados (un talud homogéneo, con agua, con capa débil, con refuerzo, con Hoek-Brown y uno
+    no circular), un filtro por id o título accesible (etiqueta, conteo en una región viva y teclado) y los casos agrupados por
+    tipo. **Rótulo del documento** en la cabecera del lienzo («Ejemplo: …» en el modelo de arranque).
+  - **Pantallas bajas.** A scroll 0, ningún control queda bajo el pie fijo en 8 viewports (320 × 568 a 760 × 1024) y 7
+    estados; la paleta queda entera bajo el pie cuando el lienzo no cabe, y la cabecera y los avisos se compactan a 360 px o
+    menos. **Recuadro del FS a ~800 × 600:** el lienzo se reencuadra al cambiar la caja del modelo (solo si la vista sigue en el
+    último encuadre automático).
+  - **Primera visita.** Importar un DXF o un CSV sobre el modelo de arranque sin cambios reemplaza por defecto, y el diálogo
+    nombra el modelo; la guía parte del ejemplo abierto y señala «Comprobar»; el aviso de bloqueo nombra el primer error (texto,
+    lugar y conteo); hay un DXF y un CSV de ejemplo descargables, y el precache de la PWA pasa a 25 archivos.
+- **Web: lo que encontró la prueba a ciegas (CM-W2).** El recuadro del FS y el chip de la cabecera nombran el método que rige
+  («FS mín. 1,401 · Morgenstern-Price»; en un empate, los dos); importar con «Reemplazar» sobre el modelo de arranque crea un
+  modelo nuevo (título del archivo, solo sus materiales, sin agua, con la búsqueda y el análisis de «Nuevo»); el diálogo explica
+  de dónde sale la cota de cierre de una polilínea abierta y el área de la región; y «Omitir» deja la guía cerrada de verdad, sin
+  el cuadro oculto con «Paso 1 de 5» en el DOM.
+- **Regresión de la web.** El corredor (`docs/fase3/iw/e2e/run_regression.sh`) recorre también `u2c`, `aceptacion_ua`, los
+  guiones `docs/cm/e2e/cm_*.mjs` y el de `docs/cm/c1w-e2e/`. Guiones nuevos: `cm_w2_primera_visita` y `cm_c1w_walk` (el
+  recorrido de la búsqueda global en Chrome, que distingue el WASM v0.5.1, que rechaza `global`, del v0.7, que calcula). Los
+  guiones `u6d_drafts` (R9-11a), `w1e_polilinea`, `r2i2_tablestaca_inclinada` y `u3o_onboarding` pasan.
+- **Exploración y plan.** `docs/cm/PLAN_CM.md` y `docs/cm/exploracion/X31.md` a `X37.md` (algoritmos globales, los 10 checks no
+  medidos, el formato y la web, la web, la primera visita con su protocolo, xslope y el prototipo de la búsqueda global).
+- **Documentación.** `docs/formato-ogs-json.md` con la sección de la v0.7 (el ejemplo V053 y sus 118 fragmentos validados con
+  `docs/tools/validar_ejemplos.py` contra el esquema 0.7: 15 ejemplos, antes 14 y 103); `docs/limitaciones.md`,
+  `docs/verificacion.md`, `docs/desarrollo.md` y `docs/cm/CIERRE_CM.md`; y el README con las capturas del editor regeneradas
+  (rótulo del documento y recuadro del FS que nombra los métodos).
+- **Pruebas medidas en el commit de versión:** ⟨…⟩.
+
+### Changed
+- **Importar sobre el modelo de arranque cambia el FS de la ruta de T3** de 1,567 (Janbu corregido) a 1,568 (Spencer): crea un
+  modelo nuevo y ya no arrastra el título, el material sobrante ni la búsqueda del ejemplo (CM-W2).
+- **El informe PDF dibuja la superficie del método que rige** (el de menor FS, el del lienzo y el recuadro), no la del primero
+  que convergió. **Cambio deliberado frente a la v0.4.0:** con varios métodos y el mínimo en otro que el primero, cambian la
+  figura y el PDF de 5 modelos de los guiones de identidad (`identity.f3b.mjs` e `identity.v07.mjs`); está declarado en los guiones,
+  no en `identity_exceptions.json` (E17f §2).
+- **El motor acepta la versión 0.7** (de 0.1 a 0.7). La versión desconocida de los tests y de `test_schema.py` pasa de 0.7 a 0.8.
+- **Los cuatro materiales compiten en la elección de la capa débil** con la resistencia efectiva en σ′v = γ·z·(1 − ru):
+  Mohr-Coulomb c/(γz) + (1 − ru)·tan φ, `undrained` Su(z)/(γz), Hoek-Brown τ(σ′n = σ′v)/(γz) y SHANSEP Su(σ′v)/(γz) (E17e §2).
+  En el contrato original, Hoek-Brown y SHANSEP quedaban fuera de la elección.
+- **`validar_ejemplos.py` usa el esquema 0.7 por defecto.**
+- **Las cifras de verificación pasan a 175 casos y 356 checks** (antes, 167 y 347): v0.6, 23 casos y 28 checks; v0.7, 1 y 1. La
+  ida y vuelta de la web, a 418 modelos (356 checks, 56 diferenciales y 6 de frontera). De los 16 casos con la piezométrica sobre
+  el terreno, 10 ejercitan el agua embalsada (antes, 8 de 14).
+- **El presupuesto de la búsqueda global baja de 8000 a unas 5700 evaluaciones** con los valores por defecto (descarte
+  sucesivo en lugar de refinar tres polilíneas con 1500 cada una; E17b y E17c).
+
+### Fixed
+- **Revisión adversarial RCM, lente A, el motor (11 hallazgos; E17e; CM-M2).**
+  - **RCM-A-01, alta.** `project()` avanzaba a paso fijo según el relieve del terreno: un terreno casi plano con una capa
+    profunda colgaba el motor (más de 60 s en un modelo de 100 m con 0,1 mm de relieve, y el hilo del navegador en WASM). Ahora la
+    proyección es la intersección exacta del rayo con el terreno y la altura del recocido tiene un piso: el mismo modelo
+    termina en 0,35 s.
+  - **RCM-A-02, alta, y RCM-A-06 y A-11.** Con todas las regiones Hoek-Brown o SHANSEP, `auto` muestreaba las «bases» del fondo; y con una
+    capa débil de roca fracturada o de arcilla SHANSEP, el resultado era el del recocido, de 26 % a 29 % sobre el del bloque real
+    (V053 con `layer_4` modificada: 1,0844, frente a 0,7724 con Hoek-Brown y 0,7563 con SHANSEP ahora). La capa se elige con la
+    resistencia efectiva (arriba) y `auto` decide por las aristas de la capa elegida.
+  - **RCM-A-03, alta.** `non_circular_global_tension_rejected` salía con `tension_rejected = 0`. Ahora el contador cuenta
+    solo la generación (`converged = eligible + tension_rejected`) y la nota cubre toda la etapa global; el texto de la web no
+    sugiere otra cosa.
+  - **RCM-A-04, alta.** La etapa global ignoraba `non_circular.max_vertices` (33 vértices con `max_vertices: 9`). Ahora lo
+    respeta (V053 con 9 vértices: 1,0194).
+  - **RCM-A-05, alta.** El motor aceptaba `global` como arreglo (`[]`, `["block", 60, 0, false]`) y lo leía por posición,
+    mientras el esquema y la web lo rechazaban. Ahora es `InvalidModel`, y lo mismo para `non_circular`.
+  - **RCM-A-07 a A-11** (A-10, el conversor del oráculo, está en «Added»). El refinamiento guarda el mejor par (puntos, FS) entre niveles y nunca devuelve un FS mayor que el de su
+    entrada; `refined` cuenta solo las polilíneas que llegan al refinamiento completo (0 o 1); los mensajes de rango de `global`
+    del motor y de la web son iguales letra por letra (`… debe estar en [0, 9007199254740991], no v`); la descripción del esquema
+    0.7 nombra la 0.7 y `global`; A4 recorre los ganadores de los demás casos y de Janbu y Morgenstern-Price, un error de cSlope es
+    una advertencia y A8 informa aparte los taludes sin elegibles.
+- **Revisión adversarial RCM, lente B, la web (15 hallazgos; E17f; CM-W3A y CM-W3B).**
+  - **Informe PDF.** La semilla global sale entera (`9007199254740991`; salía `9007200000000000`, que el motor rechaza); la
+    figura dibuja la superficie del método que rige; los rótulos de carga quedan dentro del recuadro; la tabla «Búsqueda global»
+    no parte «Morgenstern-Price» (RCM-B-01, 06 y 12).
+  - **Salidas.** El recuadro del FS muestra una línea de búsqueda global (RCM-B-07); el chip de convergencia parcial lleva el FS
+    mínimo (B-10); la tabla del refinamiento dice «Polilínea (global)» cuando la polilínea viene de `global` (B-13); la Ayuda
+    describe el descarte sucesivo y la nota de tracción (B-08); y la leyenda de atajos aclara que Ctrl+Intro, Ctrl+S y Ctrl+O
+    también actúan dentro de un campo de texto (B-15).
+  - **Editor.** Un `algorithm` de `global` fuera de `auto`, `block` y `annealing` se rechaza al abrir con `io.shape` (antes se
+    mostraba «Automático» y una edición no relacionada lo borraba; B-03); los 7 destacados del selector tienen como nombre accesible
+    su texto visible (violación `serious` de axe, WCAG 2.5.3; B-02) y el filtro, su etiqueta (B-11); «Nuevo material» se reinicia con
+    el documento (B-04); la tabla de OCR por cota de SHANSEP bloquea «Agregar fila» y «Quitar» con una fila pendiente y no inserta
+    filas vacías (B-05); y deshacer la importación sobre el arranque restaura el rótulo «Ejemplo» y el estado limpio (B-09).
+- **Known issues de la 0.5.0 y de la 0.5.1 en la web (CM-W1).** Los cuatro defectos de borradores de la 0.5.0; las pantallas de
+  640 px de alto o menos y las ventanas de unos 800 × 600 de la 0.5.1; y los guiones `u3o_onboarding`, `u6d_drafts`,
+  `w1e_polilinea` y `r2i2_tablestaca_inclinada`, que fallaban o se cortaban con un `TimeoutError`. La regresión de 51 guiones
+  da OK = 1302 y FAIL = 0 (la base de la 0.5.1: OK = 1226 y FAIL = 2).
+- **`verification/global/run.py` y la identidad.** La comparación con la 0.5.1 incluye los modelos con campos v0.6
+  (`--include-v06`: 0 diferencias en 196, y 202 con CM-M2) y compara un documento 0.7 sin `global` como 0.6.
+
+### Known issues
+- **La compuerta de los 5 minutos no está cerrada.** D4 de `docs/cm/PLAN_CM.md` («primer FS de un usuario nuevo en menos de 5
+  minutos») se midió con la ruta mínima guionada (KLM: 8,80 s, 19,22 s y 15,92 s en T1, T2 y T3) y con tres agentes sin acceso
+  al repositorio, que resolvieron sus tareas. **Falta el protocolo humano** (de 6 a 10 personas nuevas, en ventana privada, con
+  el criterio de `docs/cm/CIERRE_CM.md`), que mide el usuario.
+- **Rótulos de carga apilados en el lienzo.** En V051, con varias sobrecargas cercanas, los rótulos `q = …` del lienzo se
+  apilan unos sobre otros. El informe PDF ya no tiene el defecto.
+- **La versión en memoria de la web es un piso (RCM-B-14).** Al desmarcar «Búsqueda global», el documento en memoria sigue en
+  0.7, y el archivo que se guarda y lo que recibe el motor, en 0.6. Es una decisión (E17f §4), documentada en
+  [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#versión-mínima-07).
+- **Mensajes de enum con el tipo equivocado (RCM-A-09).** `algorithm: 123` da `Json: el texto no es un JSON válido`, no
+  `InvalidModel`, igual que los enums de la v0.6; y un entero escrito como `50.0` es inválido en el motor y válido en el esquema,
+  como `slices` y `seeds`.
+- **La búsqueda global tiene límites** ([detalle](docs/limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)):
+  no es exhaustiva y el resultado cambia con la semilla; no se ofrece con Bishop; la guarda de tracción puede dejar sin tomar un
+  FS menor (y lo avisa); tres de los 24 taludes homogéneos del barrido no tienen etapa global efectiva
+  (`non_circular_global_no_candidates`); el bloque no tiene paridad con el prototipo X37 (solo el recocido); la salida del motor
+  nativo y la de WASM coinciden en el FS a 1,8e-14, no byte a byte; y no hay *path search* ni PSO.
+- **Siguen retenidos** V002 (E16u), V009c (E13k) y V105a (`aboveWater`), y los demás de `verification/pending/`: 18 checks en 12
+  casos.
+- Siguen vigentes los problemas conocidos del motor de la [0.5.0](#050---2026-11-27).
+
 ## [0.5.1] - 2026-11-27
 
 Rediseño del editor web con la identidad común de la suite (bloque UA, armazón «A · Flujo de trabajo»). **El motor,
