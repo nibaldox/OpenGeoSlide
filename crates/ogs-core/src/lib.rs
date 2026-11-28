@@ -30,6 +30,7 @@
 
 pub mod crack;
 pub mod geometry;
+mod global;
 pub mod hoek_brown;
 pub mod loads;
 pub mod methods;
@@ -413,6 +414,7 @@ fn analyze_method(
         reinforcement::pressure_step(model.units.as_deref()),
     )?;
     // 1. Choose the surface: search (if present) takes precedence over a fixed surface.
+    let mut global_tension_note = false;
     let (surface, search) = match (&analysis.search, &analysis.surface) {
         (Some(spec), _) => {
             // E14o-7: with reinforcements the search also tries circles through their heads and tips.
@@ -522,8 +524,8 @@ fn analyze_method(
             })?;
             if let Some(nc_spec) = &spec.non_circular {
                 // F6.6 hook 3: refine the critical circle into a polyline (`noncircular::refine`, M-NC; F6.4 and F6.10).
-                let (polyline, nc_stats) =
-                    noncircular::refine(pm, method, spec, nc_spec, seeds, |surface| {
+                let (mut polyline, mut nc_stats) =
+                    noncircular::refine(pm, method, spec, nc_spec, seeds.clone(), |surface| {
                         let polyline_opts = SolveOptions {
                             circular: false,
                             ..*opts
@@ -538,6 +540,37 @@ fn analyze_method(
                             surface,
                         )
                     });
+                if let Some(global_spec) = &nc_spec.global {
+                    let baseline = match &polyline {
+                        Surface::Circle(_) => nc_stats.seed_fos,
+                        Surface::Polyline(_) => nc_stats.polyline_fos.unwrap_or(nc_stats.seed_fos),
+                    };
+                    let polyline_opts = SolveOptions {
+                        circular: false,
+                        ..*opts
+                    };
+                    let (winner, global_stats, tension) =
+                        global::run(model, pm, spec, global_spec, &seeds, baseline, |surface| {
+                            let result = evaluate_surface_result(
+                                model,
+                                pm,
+                                load_case,
+                                &pile_profiles,
+                                method,
+                                (&polyline_opts, &shansep_error),
+                                surface,
+                            )?;
+                            let tension = result.warnings.iter().any(|w| {
+                                w == "negative_lambda" || w == "negative_effective_normal_major"
+                            });
+                            Some((result.fos, tension))
+                        });
+                    if let Some(winner) = winner {
+                        polyline = winner;
+                    }
+                    nc_stats.global = Some(global_stats);
+                    global_tension_note = tension;
+                }
                 if let Some(material) = *shansep_error.lock().unwrap() {
                     return Err(shansep_invalid(model, material));
                 }
@@ -758,6 +791,15 @@ fn analyze_method(
         )
         .chain(large_change.then(|| noncircular::NON_CIRCULAR_LARGE_CHANGE.to_string()))
         .chain(not_refined.then(|| noncircular::NON_CIRCULAR_NOT_REFINED.to_string()))
+        .chain(
+            search
+                .as_ref()
+                .and_then(|s| s.non_circular)
+                .and_then(|s| s.global)
+                .is_some_and(|g| g.eligible == 0)
+                .then(|| "non_circular_global_no_candidates".to_string()),
+        )
+        .chain(global_tension_note.then(|| "non_circular_global_tension_rejected".to_string()))
     {
         if !warnings.contains(&code) {
             warnings.push(code);
@@ -807,6 +849,27 @@ fn evaluate_surface(
     (opts, shansep_error): (&SolveOptions, &Mutex<Option<shansep::ShansepError>>),
     surface: &Surface,
 ) -> Option<f64> {
+    evaluate_surface_result(
+        model,
+        pm,
+        load_case,
+        pile_profiles,
+        method,
+        (opts, shansep_error),
+        surface,
+    )
+    .map(|result| result.fos)
+}
+
+fn evaluate_surface_result(
+    model: &Model,
+    pm: &PreparedModel,
+    load_case: &LoadCase,
+    pile_profiles: &reinforcement::PileProfiles,
+    method: MethodKind,
+    (opts, shansep_error): (&SolveOptions, &Mutex<Option<shansep::ShansepError>>),
+    surface: &Surface,
+) -> Option<methods::MethodResult> {
     let analysis = &model.analysis;
     let n = analysis.slices;
     let plan = match &analysis.tension_crack {
@@ -858,8 +921,7 @@ fn evaluate_surface(
     }
     let (res, _strength) =
         strength_loop::solve(pm, &mut slices, method, opts, analysis.interslice.as_ref());
-    (res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0)
-        .then_some(res.fos)
+    (res.status == SolveStatus::Converged && res.fos.is_finite() && res.fos > 0.0).then_some(res)
 }
 
 /// E15m-6: the model is imperial, uses water and takes the default `γw` (no `water.unit_weight`). The water is in use
