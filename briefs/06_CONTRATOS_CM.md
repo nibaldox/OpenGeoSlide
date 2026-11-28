@@ -265,3 +265,47 @@ Lo que elija va en este archivo, con sus cifras, como E17c.
 
 Todas las demás compuertas (A3 a A9) se miden con la variante final y la semilla 0. A9, la paridad con el prototipo, se
 aplica al generador antes del descarte; la parte nueva no tiene prototipo y no se le exige.
+
+### E17c: qué cuenta como semilla en el bloque, y dónde va la base (coordinador, 2026-11-28)
+
+**Hallazgo.** La variante 10 de CM-M (Halton, descarte sucesivo 4 → 3 → 1) daba 48 de 48 en A2b con V053 = 1,0289. Pero
+la semilla solo desplazaba el índice de Halton (`index = seed + attempts`): las 48 semillas generaban casi el mismo
+conjunto de puntos, y A2b no medía nada.
+
+El coordinador repitió la medición con una **rotación de Cranley-Patterson** por dimensión, derivada de la semilla
+(`$TMPDIR/cm-coord/rot/`, `verification/global/variante10-rotada-summary.json`):
+
+| Medida | Valor |
+|---|---|
+| V053, semillas que pasan | 16 de 48 |
+| V053, mínimo | 1,0047 |
+| V053, mediana | 1,0589 |
+| S2, mediana | 0,7822 |
+| Razón de costo | 2,86 (mediana), 3,68 (máximo) |
+
+La robustez sigue sin resolverse.
+
+**Lo que se fija** (medido por el coordinador con el port de Rust, `$TMPDIR/cm-coord/rob/*-summary.json`, 48 semillas
+rotadas, V053 y S2, Spencer):
+
+| Variante | V053, semillas que pasan | V053, mínimo / mediana / máximo | V053, semilla 0 | S2, mediana | Convergidos de 500 (semilla 0) | Razón de costo, mediana / máximo |
+|---|---:|---|---:|---:|---:|---|
+| CM-M variante 10, rotada | 16 | 1,0047 / 1,0589 / 1,0847 | 1,0289 | 0,7822 | 28 | 2,86 / 3,68 |
+| + base a la mitad de la capa | 20 | 1,0055 / 1,0504 / 1,0847 | 1,0847 | 0,8145 | 23 | 2,87 / 3,76 |
+| + base a la mitad y proyecciones a 15°-75° | 48 | 1,0029 / 1,0063 / 1,0264 | 1,0106 | 0,7731 | 201 | 2,97 / 3,27 |
+| **Proyecciones a 15°-75°, base en el contacto (elegida)** | **48** | **1,0029 / 1,0077 / 1,0239** | **1,0103** | **0,7588** | **202** | **3,01 / 3,75** |
+
+1. **La semilla del bloque es una rotación de Cranley-Patterson** de la secuencia de Halton: cada dimensión se desplaza,
+   módulo 1, por un valor uniforme que sale de SplitMix64 con la semilla. La semilla 0 no rota. El índice de Halton es
+   el número de intento. A2b se mide así.
+2. **Las proyecciones del bloque se inclinan entre 15° y 75° sobre la horizontal, a ambos lados.** Esto reemplaza el
+   U(90°, 135°) y el U(45°, 90°) de F7.3.2, que daban cuñas pasivas de 45° a 90° y hacían que 472 de 500 candidatos
+   no convergieran, por `m_alpha` o por falta de raíz de λ (diagnóstico de los 40 primeros candidatos de V053: 30
+   `not_converged`, 9 `invalid` por `m_alpha` y 1 convergido).
+3. **La base sigue sobre las aristas de contacto.** Bajarla a la mitad de la capa no mejora: 48 frente a 48 en V053, y
+   S2 empeora de 0,7588 a 0,7731.
+4. **El descarte sucesivo** queda como lo dejó CM-M: 4 elegibles; luego 60 evaluaciones y quedan 3; luego 150 y queda
+   1; ese uno recibe el refinamiento completo de 1500 y el pulido.
+
+**Estado de A2b:** pasa, con 48 de 48 semillas y la semilla 0 en 1,0103 (banda de 1,01 ± 3,5 %; cSlope 1,0061).
+**Estado de A7 en V053 y S2:** la razón máxima es 3,75 < 4. Las demás compuertas se miden con esta variante.
