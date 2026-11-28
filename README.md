@@ -23,8 +23,9 @@
 OpenGeoSlide calcula el **factor de seguridad (FS) de un talud en 2D** por equilibrio límite, con **Bishop simplificado**,
 **Spencer**, **Morgenstern-Price** y **Janbu**. Usted dibuja o importa la sección (estratos Mohr-Coulomb, no drenados,
 Hoek-Brown o SHANSEP, línea piezométrica, sismo pseudoestático y cargas), el programa busca la superficie de falla circular
-con el menor FS (y, desde el formato v0.6, puede refinarla a una polilínea no circular) o analiza la polilínea que usted fija,
-y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
+con el menor FS (y, desde el formato v0.6, puede refinarla a una polilínea no circular; con el formato v0.7, todavía sin
+publicar, también **genera superficies no circulares propias**, con una búsqueda global) o analiza la polilínea que usted
+fija, y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
@@ -68,6 +69,17 @@ la única excepción deliberada a la identidad con la 0.4.0, y ningún modelo de
 Hoek-Brown y la búsqueda no circular, que no refinaba 14 de 16 taludes homogéneos
 ([registro de cambios](CHANGELOG.md#050---2026-11-27)).
 
+El formato **v0.7**, del bloque CM y **aún sin publicar** (la 0.5.1 llega hasta el formato v0.6), agrega la **búsqueda global
+no circular** (`analysis.search.non_circular.global`): un bloque automático sobre capas débiles, con recocido simulado como
+respaldo, que genera superficies propias, las refina y las pule, con una **guarda de tracción** que descarta los FS bajos que
+no existen. El resultado nunca empeora al del refinamiento de la v0.6, y un modelo sin `global` da la misma salida, byte a
+byte, que la 0.5.1. Con ella, V053 (1,01 publicado) baja de 1,0847 a **1,0103**. No es una búsqueda exhaustiva y no se ofrece
+con Bishop ([límites](docs/limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no); formato en
+[`docs/formato-ogs-json.md`](docs/formato-ogs-json.md#v07-búsqueda-global-no-circular)). El mismo bloque corrige la web: los
+borradores del editor, las pantallas bajas, el recuadro del FS a unos 800 × 600, un selector de ejemplos con destacados y
+filtro, una guía de primera visita que parte del modelo abierto, y un recuadro que nombra el método que rige el FS mínimo
+([cierre del bloque](docs/cm/CIERRE_CM.md)).
+
 ## Por qué es distinto
 
 - **Está verificado y se puede reproducir.** El motor cumple 347 de 347 checks contra valores publicados (167 casos) y
@@ -75,6 +87,9 @@ Hoek-Brown y la búsqueda no circular, que no refinaba 14 de 16 taludes homogén
   Fase 3a (más 12 de 12 de los refuerzos v0.4 y 58 de 60 del bloque v0.5 de grieta, agua embalsada y pilotes de
   Ito-Matsui, con 2 explicados y ninguna falla abierta). Es la batería real
   de [`verification/`](verification/), no una muestra. Véase [Verificación](#verificación).
+- **Busca más allá de los círculos** (v0.7, sin publicar). La búsqueda global no circular genera superficies de bloque sobre
+  capas débiles y las pule, sin empeorar el resultado ni aceptar un FS de la rama con tracción
+  ([detalle](docs/verificacion.md#búsqueda-global-no-circular-v07)).
 - **Un solo motor.** `ogs-core`, escrito en Rust, se compila a WebAssembly para la web, a un wheel de Python y a la CLI
   `ogs`. Las tres leen el mismo formato `.ogs.json`.
 - **Funciona sin conexión.** El cálculo corre en el navegador (WASM), no en un servidor; la web se instala como PWA y,
@@ -140,8 +155,8 @@ ogs --version
 ogs analyze examples/acads1a.ogs.json            # informe JSON: FS, círculo crítico y dovelas
 ```
 
-Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.6), con
-sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP y búsqueda no circular, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
+Sin instalar: `cargo build --release -p ogs-cli` deja el binario en `target/release/ogs`. El formato del modelo (v0.1 a v0.7), con
+sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP, búsqueda no circular y búsqueda global, está en [`docs/formato-ogs-json.md`](docs/formato-ogs-json.md).
 
 ## Verificación
 
@@ -155,6 +170,9 @@ sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP y búsqueda n
 | cSlope 0.1.0, grieta, agua embalsada y pilotes de Ito-Matsui v0.5 (D28-D42) | **58/60** (2 explicados, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0, Hoek-Brown, SHANSEP y búsqueda no circular v0.6 (F3B) | **41/42** (1 explicado, 0 fallas) | [diferencial](verification/differential/REPORT.md) |
 | cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** | [REPORT](verification/REPORT.md) |
+| Valores publicados, búsqueda no circular del bloque CM (9 checks: V036c, V036d, V039 ×2, V041a, V041b, V051, V098 y V053 con búsqueda global) | **⟨PROMOVIDOS⟩/9** | [REPORT](verification/REPORT.md) |
+| Búsqueda global no circular v0.7 (compuertas A1 a A10 y A2b) | **todas pasan**: V053 1,0103 (banda ≤ 1,0453), 48/48 semillas en la banda | [global](verification/global/REPORT.md) |
+| xslope 1.1.0, columna informativa (no es un juez) | **80/80** concordancias en superficie fija | [xslope](verification/xslope/REPORT.md) |
 | Web y `ogs` (409 modelos) | **409/409** | [detalle](docs/verificacion.md) |
 
 - **Valores publicados:** 347 checks de 167 casos de la bibliografía (49 en el esquema v0.1, 5 con sismo o cargas en
@@ -176,6 +194,17 @@ sismo, cargas, refuerzos, grieta de tracción, Hoek-Brown, SHANSEP y búsqueda n
   superficie fija: 41 de 42 checks, con 1 explicado (el lazo de Hoek-Brown sin raíz de λ en cSlope, E16t) y ninguna falla;
   F3B-HB-06 con Bishop, que hasta R15 era «explicado» por `m_α`, da 0,5244 frente a 0,5279 de cSlope y pasa a OK. En círculo fijo, el producto da hasta −2,9 % frente a cSlope en Hoek-Brown, siempre del
   lado seguro ([detalle](docs/verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
+- **Búsqueda global no circular (v0.7, sin publicar):** las compuertas del contrato A1 a A10 y A2b pasan, medidas en 50
+  modelos con la semilla 0 y 500 candidatos. V053 da 1,0103 con la búsqueda global (1,0847 sin ella; publicado 1,01 ± 3,5 %), y
+  cSlope evalúa esa polilínea en 1,0101. Con las 48 semillas, V053 queda en la banda (de 1,0029 a 1,0239). Ninguno de los 52
+  resultados de la batería queda sobre su FS sin búsqueda global. Sin `global`, la salida es la de la 0.5.1 byte a byte
+  (0 diferencias en 196 modelos), y el costo llega a 3,81 veces el circular
+  ([detalle](docs/verificacion.md#búsqueda-global-no-circular-v07)).
+- **xslope 1.1.0, columna informativa:** el harness corre bishop y spencer, con superficie fija o búsqueda circular, también
+  en [xslope](https://github.com/njones61/xslope), un motor independiente. En superficie fija, los 80 checks convertidos
+  concuerdan con ogs dentro de 0,5 % (mediana 0,029 %, máximo 0,116 %). En búsqueda, cada motor halla su superficie y la fila
+  es solo un diagnóstico. **No es un juez:** los criterios de aceptación siguen siendo el publicado y ogs
+  ([detalle](docs/verificacion.md#xslope-110-como-columna-informativa)).
 - **Web y `ogs`:** abrir y guardar un modelo en la web y luego `ogs analyze` da la misma salida, bit a bit.
 - **Agua embalsada:** de los 14 casos publicados con la piezométrica sobre el terreno, 8 reciben su peso y su empuje en la
   superficie de sus checks, 1 apenas (V024) y 5 no (V038, V038b, V042, V058 y V061); la tabla medida está en
@@ -186,7 +215,13 @@ Esta batería no cubre todo: véanse las limitaciones.
 
 ## Limitaciones conocidas
 
-- **La búsqueda es circular, con un refinamiento no circular opcional** (formato v0.6). Es un mínimo local desde 3 círculos,
+- **La búsqueda es circular, con dos etapas no circulares opcionales** (formato v0.6 y, sin publicar, v0.7). La **búsqueda
+  global** de la v0.7 genera superficies propias, pero **no es exhaustiva** (el resultado cambia con la semilla) y **no se ofrece con Bishop**. Su bloque necesita
+  contactos entre regiones, y si no los hay recurre al recocido. **La guarda de tracción puede dejar sin tomar un FS menor** (y
+  lo avisa con `non_circular_global_tension_rejected`). Tres de los 24 taludes homogéneos del barrido quedan sin etapa global,
+  y el costo llega a unas 4 veces el circular
+  ([detalle](docs/limitaciones.md#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)).
+- **El refinamiento de la v0.6** (formato v0.6) es un mínimo local desde 3 círculos,
   con hasta 33 vértices, que cuesta de 2,3 a 3,1 veces la búsqueda circular y que, en materiales con una capa débil, puede
   llevar a una rama con tracción donde el FS de Spencer o Morgenstern-Price queda bajo el publicado (V002: 0,3864 frente a
   0,414; revise las notas `negative_lambda` y `negative_effective_normal_major` y compare con Bishop circular). **Bishop
@@ -270,12 +305,12 @@ El detalle completo, con los avisos y los casos numéricos conocidos del motor, 
 ## In English
 
 OpenGeoSlide is free software (Apache-2.0) for 2D limit-equilibrium slope stability (simplified Bishop, Spencer,
-Morgenstern-Price and Janbu; circular search with an optional non-circular refinement, plus fixed polyline surfaces; Mohr-Coulomb, undrained, Hoek-Brown and SHANSEP strength;
+Morgenstern-Price and Janbu; circular search with an optional non-circular refinement and, in the unreleased v0.7 format, an optional global non-circular search, plus fixed polyline surfaces; Mohr-Coulomb, undrained, Hoek-Brown and SHANSEP strength;
 pseudo-static seismic loads and surface loads; reinforcements in the v0.4 format: anchors, soil nails,
 geosynthetics, piles and sheet piles; the v0.5 format adds the tension crack and ponded water, which changes
 the result of models with water above the ground compared with v0.3.0 (as does an imperial model with water and no `water.unit_weight`, which now takes γw of 62.45 pcf instead of 9.81), and the soil-pressure force of a pile after Ito and Matsui, rigid vertical piles only, S/D 2 to 8). One Rust engine powers a web app that
 runs in your browser and works offline, a Python package and a CLI. It matches 347/347 published values (167 cases) and cSlope in
-28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 41/42 checks of the v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 1 explained, no open failures). The v0.6 format, released with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). With a pile or sheet pile that carries a given force it checks the
+28/28 searches, 28/28 fixed surfaces, 71/71 Phase 3a checks, 12/12 reinforcement checks, 58/60 tension-crack, ponded-water and Ito-Matsui pile checks (2 explained, no open failures) and 41/42 checks of the v0.6 format (Hoek-Brown, SHANSEP and the non-circular search; 1 explained, no open failures). The v0.6 format, released with 0.5.0, adds the Hoek-Brown material (full envelope at low confinement, not cSlope's tangent: up to 2.9 % lower in fixed-circle runs, always on the safe side), the SHANSEP material and a non-circular refinement of the search (no Bishop; a local minimum that can fall below the published value in weak-layer models with tension, as V002 does). The v0.7 format, **not yet released** (0.5.1 stops at v0.6), adds a global non-circular search: an automatic block over weak layers, with simulated annealing as a fallback, that generates its own surfaces, refines and polishes the best one, and rejects surfaces from the tension branch, whose low FS is not real. It never returns more than the v0.6 refinement, and a model without `global` gives byte-identical output to 0.5.1. It brings V053 from 1.0847 to 1.0103 (published 1.01 ± 3.5 %); it is not exhaustive (the result changes with the seed), it is not offered with Bishop, its tension guard can leave a lower FS untaken (and says so), and it costs up to about 4 times the circular search. xslope 1.1.0 runs as an informational third column of the harness (80/80 fixed-surface checks agree with ogs within 0.5 %); it is not a judge. With a pile or sheet pile that carries a given force it checks the
 global stability with that force included and does not compute the earth pressure on the element; the Ito-Matsui pile of
 the v0.5 format only estimates the soil force between rigid vertical piles (S/D 2 to 8). Neither computes embedment,
 bending moment, deflection or the internal and external checks of a wall, so OpenGeoSlide is not a tool for designing
