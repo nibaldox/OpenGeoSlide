@@ -1,8 +1,9 @@
 # Cierre del bloque CM: búsqueda global no circular y cierre del MVP (28-nov-2026)
 
 Rama `cm-integracion`, sobre v0.5.1 (`main` `1d1d097`). Plan: `docs/cm/PLAN_CM.md`. Contrato: `briefs/06_CONTRATOS_CM.md`,
-con F7.0 a F7.7 y las enmiendas E17a a E17d. La versión del formato es la **v0.7** (la versión de los crates la decide el
-usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está publicado.**
+con F7.0 a F7.7 y las enmiendas E17a a E17f (las dos últimas, de la revisión adversarial). La versión del formato es la
+**v0.7** (la versión de los crates la decide el usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está
+publicado.**
 
 ## Olas
 
@@ -13,11 +14,13 @@ usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está publ
 | X37 | Prototipo de la búsqueda global sobre las dovelas del motor, con las filas de aceptación: el bloque (G2) cierra V053; *path* (G1) no mejora ningún caso válido y queda fuera | Haiku |
 | C0 | Contrato (F7.0 a F7.7), tipos del formato v0.7, esquema `ogs-0.7.schema.json`, ganchos y tests en rojo | coordinador y Terra |
 | C1 | Motor: búsqueda global (bloque, recocido, descarte sucesivo, pulido y guarda de tracción), con A1 a A10 (CM-M); web de la búsqueda global: panel, salidas, avisos y Ayuda (CM-C1W) | Terra y Sonnet |
-| E17a a E17d | Enmiendas del contrato que mide el motor: `auto` y el respaldo al recocido (E17a); descarte sucesivo y robustez frente a la semilla (E17b); Halton rotado y proyecciones de 15° a 75° (E17c); capas con HB, SHANSEP y no drenado, y los tres taludes sin etapa global (E17d) | coordinador y CM-M |
+| E17a a E17d | Enmiendas del contrato que mide el motor: `auto` y el respaldo al recocido (E17a); descarte sucesivo y robustez frente a la semilla (E17b); Halton rotado y proyecciones de 15° a 75° (E17c); capas con HB, SHANSEP y no drenado, y los tres taludes sin etapa global (E17d, cuyo punto 1 reemplazó E17e) | coordinador y CM-M |
 | W2 | Lo que encontró la prueba a ciegas de los 5 minutos: el HUD nombra el método, importar sobre el arranque crea un modelo nuevo, la base de la polilínea abierta se explica y «Omitir» sin restos | Sonnet |
 | C2 | Cierre: casos promovidos (CM-C2V) y documentación (CM-C2D, este documento) | 2 × Sonnet |
-| RCM | Revisión adversarial con dos lentes en un clon congelado, olas correctivas y revisión de cierre | **pendiente** |
-| Medición | La compuerta de los 5 minutos sobre el candidato a versión | las dos primeras mediciones hechas; la humana, **pendiente del usuario** |
+| RCM | Revisión adversarial con dos lentes en un clon congelado (`72abec6`): la lente A (motor, guarda y compuertas) y la lente B (web). Las dos dan «apto con correcciones»; los arbitrajes son E17e y E17f ([abajo](#la-revisión-adversarial-rcm)) | 2 lentes |
+| CM-M2 | Correcciones del motor por la lente A (E17e) y las compuertas regeneradas | Sonnet |
+| CM-W3A y CM-W3B | Correcciones de la web por la lente B (E17f): salidas (PDF, recuadro, Ayuda, chip) y editor (algoritmo inválido, accesibilidad, borradores) | 2 × Sonnet |
+| Medición | La compuerta de los 5 minutos sobre el candidato a versión, y A7 en Chrome | las dos primeras mediciones de los 5 minutos y A7 en Chrome, hechas; la humana, **pendiente del usuario** |
 | Versión | Commit de versión, gates y la espera del «sube» del usuario | **pendiente** |
 
 ## Qué cambia
@@ -33,8 +36,9 @@ usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está publ
 - V053 pasa de 1,0847 (+7,4 %) a **1,0103**, dentro de la banda publicada (1,01 ± 3,5 %), con 48 de 48 semillas en la banda.
 - **Decisiones medidas:** `auto` elige `block` solo con contactos entre regiones y recurre al recocido (E17a); la semilla es
   una rotación de Cranley-Patterson de la secuencia de Halton, y las proyecciones del bloque se inclinan de 15° a 75°, porque
-  con 45° a 90° 472 de 500 candidatos no convergían (E17c); los materiales Hoek-Brown y SHANSEP no compiten en la elección de
-  la capa (E17d).
+  con 45° a 90° 472 de 500 candidatos no convergían (E17c); la capa débil se elige con la resistencia efectiva en
+  σ′v = γ·z·(1 − ru), y compiten Mohr-Coulomb, `undrained`, Hoek-Brown y SHANSEP (E17e, que reemplazó la exclusión de HB y
+  SHANSEP de E17d).
 
 **La web** (W1, C1W y W2):
 
@@ -49,7 +53,8 @@ usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está publ
   la cota de cierre de una polilínea abierta.
 - El recuadro del FS y el chip nombran el método que rige («FS mín. 1,401 · Morgenstern-Price»).
 - El panel «Búsqueda global»: la casilla, el algoritmo, los candidatos, la semilla y el pulido; la tabla de resultados, el
-  CSV, el informe y el HUD muestran el ganador, el algoritmo y los contadores; la Ayuda explica cuándo usarla y la guarda.
+  CSV y el informe muestran el ganador, el algoritmo y los contadores, y el HUD, una sola línea con el ganador; la Ayuda
+  explica cuándo usarla y la guarda.
 
 **La verificación:** xslope 1.1.0 como tercera columna informativa del harness
 ([detalle](../verificacion.md#xslope-110-como-columna-informativa)); 9 checks no circulares pasan a `verification/cases`
@@ -57,7 +62,7 @@ usuario al publicar; el plan propone la 0.6.0). **Nada de este bloque está publ
 
 ## Puertas
 
-Medidas por el coordinador en `3ca0f31` (`$TMPDIR/cm-coord/gates-int.log`), salvo donde se indica.
+Medidas por el coordinador en `3ca0f31` (`$TMPDIR/cm-coord/gates-int.log`), **antes de la revisión RCM y de sus correcciones**, salvo donde se indica. Las cifras de después, en el bloque de abajo.
 
 | Puerta | Resultado |
 |---|---|
@@ -78,18 +83,100 @@ Medidas por el coordinador en `3ca0f31` (`$TMPDIR/cm-coord/gates-int.log`), salv
 
 Las cifras de V053 y de A1 a A10 se midieron con el binario `ogs 0.5.1`: la versión de los crates no cambió.
 
-### Cifras que completa el coordinador tras CM-C2V
+### Cifras después de CM-C2V y de la revisión RCM
 
-Estas cifras dependen de los casos promovidos o de la integración final. En este documento están en un solo lugar:
+Estas cifras dependen de los casos promovidos, de las correcciones de la revisión o de la integración final. En este documento
+están en un solo lugar:
 
-- Casos y checks de aceptación tras promover los 9 checks de F7.6: ⟨CASOS⟩ casos y ⟨CHECKS⟩ checks, con ⟨PROMOVIDOS⟩ de 9
-  promovidos (y los retenidos de `verification/pending/CM/HOLD.json`, si hay).
-- `cargo test -p ogs-core --release` y la aceptación finales: ⟨CARGO⟩.
-- `pytest -q verification` final: ⟨PYTEST⟩.
-- Vitest, `tsc` y build finales de `apps/web`: ⟨VITEST⟩.
-- Regresión e2e de la web sobre la integración final (con el selector de ejemplos y los guiones de CM-C2V): ⟨E2E⟩.
-- La medición de A7 en WASM sobre Chrome, que hace el coordinador al integrar: ⟨A7-CHROME⟩.
-- El resultado de la revisión adversarial (RCM): ⟨RCM⟩.
+- **Casos y checks de aceptación tras promover los 9 checks de F7.6: 175 casos y 356 checks**, con **9 de 9** promovidos y
+  ninguno retenido (`verification/pending/CM/HOLD.json` vacío). ogs reproduce 356 de 356; cSlope, 355 de 356 (V027 no
+  converge). Los retenidos de todo `verification/pending/` siguen siendo 18 checks en 12 casos. En la web, la ida y vuelta es
+  de 418 modelos (356 checks, 56 diferenciales y 6 de frontera) y pasa.
+- **Identidad con la 0.5.1 tras CM-M2:** 0 diferencias en **202 modelos** (variantes `own`, `search`, `fixed`, @0.4 y @0.6), y
+  los 26 modelos con agua sobre el terreno, idénticos. V053 ya está en `verification/cases` como v0.7, y la identidad lo
+  compara sin `global` y como 0.6.
+- **La medición de A7 en Chrome real** (HeadlessChrome 158, `verification/global/a7_chrome.json`): V053 **2,83 veces** el
+  circular (0,373 s a 1,057 s) y S2 **1,94 veces** (0,351 s a 0,680 s), con el FS igual al nativo a **1,8e-14 o menos** (a
+  1,3e-15 o menos en el resultado con `global`). Está por debajo del tope de 4 veces, y casi igual a la medición en V8 de Node
+  (2,83 y 1,96).
+- **El resultado de la revisión adversarial (RCM):** las dos lentes, «apto con correcciones». Los 5 hallazgos ALTA del motor y
+  los 7 de la web, corregidos ([abajo](#la-revisión-adversarial-rcm)).
+- `cargo test -p ogs-core --release` y la aceptación finales: ⟨CARGO⟩. (CM-M2 midió 827 tests de `ogs-core` con y sin
+  `parallel`, 3 ignorados, y 3 de aceptación con 356 checks y 0 fallas.)
+- `pytest -q verification` final: ⟨PYTEST⟩. (CM-M2 midió 767 pasan y 1 omitido en `verification/tools`, y 798 en el harness y
+  la batería diferencial; el wheel, 373 pasan y 2 omitidos.)
+- Vitest, `tsc` y build finales de `apps/web`: ⟨VITEST⟩. (CM-W3A midió 291 archivos y 4956 tests; CM-W3B, 292 archivos y 4943,
+  cada una en su rama.)
+- Regresión e2e de la web sobre la integración final (con el selector de ejemplos y los guiones de CM-C2V): ⟨E2E⟩. (CM-W3A: 17
+  guiones con OK = 463 y FAIL = 0; CM-W3B: 20 guiones con FAIL = 0, también en sus ramas.)
+
+## La revisión adversarial (RCM)
+
+Dos revisores independientes, cada uno con su lente, sobre un clon congelado de `cm-integracion` (`72abec6`, comparado con la
+0.5.1). Cada uno ejecutó lo que afirma, y sus reproductores y modelos están en
+`~/.hermes/profiles/open-geoslide/cache/scratch/rcm-A/` y `rcm-B/`:
+
+| Lente | Qué revisó | Informe | Hallazgos | Veredicto |
+|---|---|---|---|---|
+| **A** | El motor: `global.rs`, `noncircular.rs`, el formato, la guarda, el determinismo y las compuertas (más de 110 corridas adversariales contra cSlope) | `rcm-A/RCM_A.md` | 11: 5 ALTA, 5 MEDIA y 1 BAJA | **apto con correcciones** |
+| **B** | La web, en Chrome con el WASM v0.7: propagación de la versión, salidas (tabla, CSV, PDF, recuadro), borradores, primera visita, pantallas bajas y accesibilidad con axe | `rcm-B/RCM_B.md` | 15: 7 ALTA, 5 MEDIA y 3 BAJA | **apto con correcciones** |
+
+**Lo que comprobaron y quedó bien.** La lente A: 0 diferencias de identidad en 196 modelos más 24 con agua (y en 10 modelos
+v0.7 sin `global`), 0 violaciones de monotonía, 0 fugas de la guarda, todos los ganadores globales evaluados en cSlope a 0,05 % o
+menos, 0 diferencias entre el binario serial y el `parallel` en 9 modelos, y 48 de 48 semillas distintas (la rotación de
+Cranley-Patterson es real). La lente B: la propagación de la versión 0.7 (activar, editar, guardar, reabrir, desmarcar,
+deshacer), una matriz de 21 casos borde contra el motor, el motor simulado sin inventar FS, los borradores y la primera visita
+a 320 × 568 y 1440 × 900 sin solape con «Comprobar», y 0 violaciones de axe en el panel de búsqueda global y en los diálogos.
+
+### Hallazgos altos y qué se hizo
+
+| Hallazgo | Problema | Corrección |
+|---|---|---|
+| **RCM-A-01** | `project()` marchaba a paso fijo según el relieve del terreno: un terreno casi plano con una capa profunda colgaba el motor (más de 60 s) | Intersección exacta del rayo con el terreno; la altura del recocido tiene un piso (E17e §1). Con el reproductor: 0,35 s |
+| **RCM-A-02** | `auto` elegía `block` sobre las «bases» del fondo cuando todas las regiones eran Hoek-Brown o SHANSEP | `auto` decide por las aristas de la capa elegida; las bases nunca cuentan (E17e §2) |
+| **RCM-A-03** | La nota `non_circular_global_tension_rejected` salía con `tension_rejected = 0` | Se documenta: el contador cuenta la generación y la nota cubre toda la etapa; el texto de la web ya no sugiere otra cosa (E17e §6) |
+| **RCM-A-04** | `max_vertices` se ignoraba con `global`: 33 vértices con `max_vertices: 9` | La etapa global respeta el tope; con 9, la polilínea tiene 9 vértices y V053 da 1,0194 (E17e §3) |
+| **RCM-A-05** | El motor aceptaba `global` como arreglo (exit 0) y el esquema y la web lo rechazaban | `global` y `non_circular` solo admiten un objeto: `InvalidModel` (E17e §5) |
+| **RCM-B-01** | El PDF escribía la semilla `9007199254740991` como `9007200000000000` | La semilla sale entera, con un test (CM-W3A) |
+| **RCM-B-02** | 7 botones de «Ejemplos destacados» con una violación `serious` de axe (WCAG 2.5.3) | El texto visible es el nombre accesible (CM-W3B) |
+| **RCM-B-03** | La web aceptaba un `algorithm` inexistente, lo mostraba como «Automático» y una edición lo borraba | `openOgsJson` lo rechaza con `io.shape` (E17f §3, CM-W3B) |
+| **RCM-B-04** | «Nuevo material» no se reiniciaba con `docEpoch` | Reinicio con el documento (CM-W3B) |
+| **RCM-B-05** | La tabla de OCR por cota de SHANSEP no bloqueaba filas pendientes e insertaba una fila vacía desde `NaN` | Bloqueo como en las demás tablas, sin `NaN` (CM-W3B) |
+| **RCM-B-06** | El PDF dibujaba la superficie del primer método que convergió, no la del que rige | La del método que rige, como el lienzo y el HUD (E17f §2, CM-W3A); cambia la identidad del PDF en 5 modelos, declarada |
+| **RCM-B-07** | El HUD no mostraba nada de la búsqueda global | Una línea: «ganó (bloque)» o «(recocido)», «no mejoró el refinamiento» o «sin candidatos» (E17f §1, CM-W3A) |
+
+También se corrigieron los hallazgos MEDIA y BAJA: la elección de la capa con la resistencia efectiva de Hoek-Brown y SHANSEP
+(RCM-A-06 y A-11, con `ru` incluido), el mejor par entre niveles del refinamiento (A-07), la medición de A4, A8 y A7 (A-08), los
+mensajes de rango y la descripción del esquema (A-09 y A-11), la Ayuda al día con el descarte sucesivo (B-08), la importación
+sobre el arranque y deshacer (B-09), el chip parcial (B-10), la etiqueta del filtro (B-11), los rótulos de carga del PDF y la
+tabla global sin cortar (B-12), la tabla del refinamiento (B-13) y la leyenda de atajos (B-15). **RCM-A-10** (`to_cslope.py`
+acepta la versión 0.7) ya lo había hecho CM-C2V.
+
+**Lo que no se cambió, a propósito.** E17f §4 deja la versión en memoria de la web como un piso: lo que va al motor y al
+archivo es la versión mínima de los campos (RCM-B-14). E17e §8 deja sin cambio los enteros escritos como `50.0` (inválidos en
+el motor, aceptados por el esquema) y la clasificación `Json` de un enum con el tipo equivocado (RCM-A-09), que es la de los
+enums de la v0.6: queda como limitación.
+
+### Las enmiendas
+
+- **E17e** (lente A; reemplaza E17d §1): `project()` exacto, la capa con la resistencia efectiva de los cuatro modelos,
+  `max_vertices` en la etapa global, el mejor par entre niveles, `GlobalSpec` solo objeto, `tension_rejected` y su nota, `refined`
+  (0 o 1), los mensajes y la medición (A4 sobre `extra`, Janbu y Morgenstern-Price; A8 con los elegibles; A7 con el margen).
+- **E17f** (lente B): la línea de búsqueda global en el HUD, el PDF con el método que rige, `algorithm` inválido rechazado al
+  abrir, y la versión en memoria como piso.
+
+Las dos están en `briefs/06_CONTRATOS_CM.md`.
+
+### Las olas correctivas
+
+| Ola | Qué hizo | Cifras |
+|---|---|---|
+| **CM-M2** (`5d8da66`, `a66a1ba`, `83a15fb`) | E17e §1 a §8 en el motor, con un test por punto, y las compuertas regeneradas: A4 sobre 38 ganadores (con Janbu y Morgenstern-Price), A8 con los elegibles, A7 con el margen, los seis reproductores antes y después, V053 en v0.7 | 827 tests de `ogs-core` (809 antes), con y sin `parallel`; A1 a A10 y A2b pasan; identidad en 202 modelos; costo mediana 1,56 y máximo 3,81 (margen 0,19); A5 57 de 57; V053 1,0103 con 48 de 48 semillas |
+| **CM-W3A** (`bdeeaad`, `005dd12`, `257026e`, `9a86740`) | Las salidas de la web: PDF (semilla, método que rige, rótulos de carga, tabla global, ganador del refinamiento), línea «Búsqueda global» del HUD, Ayuda y nota de tracción, chip parcial y leyenda de atajos (RCM-B-01, 06, 07, 08, 10, 12, 13 y 15) | typecheck, vitest (291 archivos, 4956 tests) y build en verde; 17 guiones e2e con OK = 463 y FAIL = 0; la identidad del PDF cambia en 5 modelos (RCM-B-06), declarada en los guiones |
+| **CM-W3B** (`3d56643`, `94e2636`, `c1ecb50`, `6005e79`, `bb276b7`, `730b2ab`) | El editor: `algorithm` inválido rechazado, destacados y filtro accesibles, «Nuevo material» con `docEpoch`, tabla OCR de SHANSEP, deshacer la importación sobre el arranque (RCM-B-02, 03, 04, 05, 09 y 11) | typecheck, vitest (292 archivos, 4943 tests) y build en verde; 20 guiones e2e con FAIL = 0 |
+
+Las dos olas de la web se midieron cada una en su rama. La integración final de las tres, con las puertas completas, la mide el
+coordinador (⟨CARGO⟩, ⟨PYTEST⟩, ⟨VITEST⟩ y ⟨E2E⟩, arriba).
 
 ## La compuerta de los 5 minutos
 
@@ -168,20 +255,18 @@ menos de 60 s. **Lo decide el usuario.**
 En orden de prioridad:
 
 1. **El protocolo humano de los 5 minutos** (arriba). Sin él, la compuerta no está cerrada.
-2. **La revisión adversarial (RCM)** del bloque, con dos lentes sobre un clon congelado, y sus olas correctivas.
-3. **El diff de `docs/tools/validar_ejemplos.py`**: apunta por defecto al esquema 0.6, y el ejemplo de la v0.7 solo pasa con
-   `--schema schema/ogs-0.7.schema.json`. Con la ruta por defecto fallan 8 comprobaciones. El diff está en el informe de CM-C2D.
-   `gates_cm.sh` del coordinador llama al validador sin `--schema`.
-4. **Las cifras de CM-C2V** en el README, en `docs/verificacion.md` y en `docs/limitaciones.md`: buscar `⟨`. También cambian
-   las cifras fijas «347 checks» y «167 casos» (README, `docs/verificacion.md`, `docs/limitaciones.md`).
-5. **La medición de A7 en Chrome** (V053 y S2, con y sin `global`): se midió en V8 de Node, no en el navegador.
-6. **La versión:** `CHANGELOG.md`, `CITATION.cff`, las versiones de los crates y del wheel, y el «sube» del usuario.
-7. **Las capturas del README** (`assets/readme/`): son de la 0.5.1; la web cambió (selector, rótulo, HUD con el método).
-8. **Lo que el contrato dejó fuera:** el *path search* y el PSO; un pulido sin generador (el refinamiento de la v0.6 sigue sin
+2. **Las puertas finales de la integración** (⟨CARGO⟩, ⟨PYTEST⟩, ⟨VITEST⟩ y ⟨E2E⟩, arriba) y las cifras de los tests «medidas en
+   el commit de versión» del CHANGELOG. Las llena el coordinador.
+3. **La versión:** las versiones de los crates y del wheel, `CITATION.cff` y el «sube» del usuario. El `CHANGELOG.md` ya tiene
+   la sección `[Unreleased]`. Tras el commit de versión, la barra de estado de las capturas del README dice `ogs-core 0.5.1`
+   (la versión de los crates cuando se capturaron): conviene regenerarlas con `assets/readme/src/capture-app.mjs`.
+4. **Lo abierto de la revisión:** los rótulos `q = …` apilados en el lienzo con V051; la versión en memoria de la web (piso);
+   y los mensajes de enum con el tipo equivocado (`Json` en vez de `InvalidModel`).
+5. **Lo que el contrato dejó fuera:** el *path search* y el PSO; un pulido sin generador (el refinamiento de la v0.6 sigue sin
    pulido); los campos de cSlope que el formato no tiene (Hoek-Brown `mb`, `s` y `a`; SHANSEP `su_min`, `yield_stress`,
    `su_by_stress`, `anisotropy`, `yield_from_earlier_stage`, `above_water` y `b_bar`); Bishop con superficies no circulares.
-9. **Los retenidos de siempre:** V002 (E16u), V009c (E13k) y V105a (`aboveWater`), más los de las demás carpetas de
-   `verification/pending/`; y los tres taludes sin etapa global efectiva (TAL-H30-b60-f35-c5, TAL-H30-b60-f20-c30 y
-   TAL-H10-b60-f35-c30), que llevan la nota `non_circular_global_no_candidates`.
-10. **La paridad del bloque con el prototipo X37 no existe** (cambió en E17c); solo el recocido la tiene (40 de 40). La
-    igualdad entre el motor nativo y WASM no se promete.
+6. **Los retenidos de siempre:** V002 (E16u), V009c (E13k) y V105a (`aboveWater`), más los de las demás carpetas de
+   `verification/pending/` (18 checks en 12 casos; el lote CM no retiene ninguno); y los tres taludes sin etapa global efectiva
+   (TAL-H30-b60-f35-c5, TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30), que llevan la nota `non_circular_global_no_candidates`.
+7. **La paridad del bloque con el prototipo X37 no existe** (cambió en E17c); solo el recocido la tiene (40 de 40). La igualdad
+   entre el motor nativo y WASM no se promete (en Chrome, el FS coincide a 1,8e-14 o menos).
