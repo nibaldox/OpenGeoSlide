@@ -174,7 +174,7 @@ const menu = async (p, name, item) => { await p.getByRole('button', { name, exac
   await p.keyboard.press('Escape');
   await p.waitForTimeout(300);
   const after = await p.locator('[data-testid="file-status"]').innerText();
-  step('R9-11a sin trazo y sin cambios, vuelve a «sin cambios pendientes»', /sin cambios pendientes/.test(after) && !(await unloadWarns(p)), { after: after.replace(/\s+/g, ' ') });
+  step('R9-11a sin trazo y sin cambios, vuelve a «archivo sin cambios»', /archivo sin cambios/.test(after) && !(await unloadWarns(p)), { after: after.replace(/\s+/g, ' ') });
   await ctx.close();
 }
 

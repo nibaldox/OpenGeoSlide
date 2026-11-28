@@ -32,6 +32,9 @@ for (const scheme of ['light', 'dark']) {
   await axe(page, `panel con la tablestaca inclinada (${tag})`);
 
   // 2. Cambios de lista desplegable con errores en la tarjeta.
+  // CM-WA: desde R16B-01 «Guardar» se bloquea con un borrador sin aplicar, así que el modelo guardado se lee ANTES de crear el borrador;
+  // con el borrador abierto se comprueba que no hubo cambio en el documento (Deshacer deshabilitado y archivo sin cambios).
+  const saved0 = await card(page);
   await select(page, 'Dirección de la fuerza').selectOption('angle');
   await page.waitForTimeout(250);
   step(`(${tag}) 2a «Dirección de la fuerza» muestra la elección (Ángulo) y aparece su campo`, (await select(page, 'Dirección de la fuerza').inputValue()) === 'angle' && (await fieldOf(page, 1, 'Ángulo').count()) === 1);
@@ -39,8 +42,9 @@ for (const scheme of ['light', 'dark']) {
   await select(page, 'Aplicación').selectOption('active');
   await page.waitForTimeout(250);
   step(`(${tag}) 2c una segunda lista (Aplicación = Activa) también se conserva`, (await select(page, 'Aplicación').inputValue()) === 'active' && (await select(page, 'Dirección de la fuerza').inputValue()) === 'angle');
-  const before = await card(page);
-  step(`(${tag}) 2d el modelo guardado no cambió: x2 = 42, pasiva, tangente`, before.x2 === 42 && before.application === 'passive' && before.direction === 'tangent' && !('angle' in before), { before });
+  const undoOff = await page.getByRole('button', { name: 'Deshacer', exact: true }).isDisabled();
+  const fileState = (await page.locator('[data-testid="file-status"]').innerText()).trim();
+  step(`(${tag}) 2d el modelo guardado no cambió: x2 = 42, pasiva, tangente, sin pasos de historial`, saved0.x2 === 42 && saved0.application === 'passive' && saved0.direction === 'tangent' && !('angle' in saved0) && undoOff && /archivo sin cambios/.test(fileState), { saved0, undoOff, fileState });
   // «Validar»: pulsar «Comprobar» (con el error el cálculo se rechaza o no corre) no debe tocar el borrador.
   const check = page.getByRole('button', { name: 'Comprobar', exact: true }).first();
   if (await check.isEnabled()) await check.click();
