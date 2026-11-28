@@ -334,3 +334,55 @@ rotadas, V053 y S2, Spencer):
    es igual al nativo a 7e-16. El coordinador mide además en Chrome al integrar.
 
 Las cifras de todas las compuertas están en `verification/global/REPORT.md` y en `REPORT.json`.
+
+### E17e: arbitraje de la revisión adversarial, lente A (RCM-A; el coordinador, 2026-11-28)
+
+El informe está en `$TMPDIR/rcm-A/RCM_A.md`; sus reproductores, en la misma carpeta. El coordinador reprodujo A-01 a
+A-06 con el binario de `72abec6`. Esta enmienda **reemplaza E17d §1** y manda sobre F7.2, F7.3 y F7.3.3 donde se
+contradigan.
+
+1. **`project()` (RCM-A-01, ALTA).** La proyección hasta el terreno se calcula por intersección exacta del rayo con
+   los tramos del terreno, sin marchar a paso fijo. Si queda algún paso, su mínimo depende del tamaño del modelo y no del
+   relieve. La altura H de F7.3.3 (σ del recocido) es el relieve del terreno; si el relieve es menor que
+   10⁻³ · (y_max − y_min), H = y_max − y_min. Un modelo de terreno casi plano con una capa profunda, como
+   `repro_01_project_hang`, debe terminar en el mismo orden de tiempo que sin `global`. Hay un test con tope de tiempo.
+2. **Elección de la capa (RCM-A-02, ALTA; RCM-A-06; RCM-A-11 §2).** ρ_r se calcula con la resistencia efectiva en
+   σ′v = γ_r · z_r · (1 − ru_r):
+   - Mohr-Coulomb: ρ = c/(γz) + (1 − ru) · tan φ;
+   - `undrained`: ρ = Su(z)/(γz);
+   - Hoek-Brown: ρ = τ(σ′n = σ′v)/(γz), con la función del motor;
+   - SHANSEP: ρ = Su(σ′v)/(γz), con la función del motor.
+
+   Todas compiten en la elección. `auto` decide con «hay al menos una arista en la capa elegida», no con una bandera
+   puesta antes de filtrar. Las bases nunca cuentan para `auto`. Con V053, HB o SHANSEP débil en `layer_4` (los
+   reproductores de A-06), `block` debe recorrer `layer_4` y bajar del FS del recocido.
+3. **`max_vertices` (RCM-A-04, ALTA).** La etapa global respeta `non_circular.max_vertices`: los niveles 9 → 17 → 33 se
+   cortan en el tope, igual que el refinamiento de F6.10.
+4. **El mejor par entre niveles (RCM-A-07).** `refine_generated` guarda el mejor par (puntos, FS) de todos los niveles y
+   rondas, y nunca devuelve un FS mayor que el de su entrada.
+5. **`GlobalSpec` solo admite un objeto (RCM-A-05, ALTA).** Un arreglo es `InvalidModel`, como ya pasa en
+   `TensionCrack`. Si `NonCircularSpec` admite arreglos y el esquema los rechaza, se corrige igual, con su test; es una
+   corrección, no un cambio de identidad, porque el documento ya era inválido según el esquema.
+6. **`tension_rejected` y la nota (RCM-A-03).** `tension_rejected` cuenta los candidatos de la generación, y se
+   mantiene `converged = eligible + tension_rejected`. La nota `non_circular_global_tension_rejected` cubre toda la
+   etapa global: generación, refinamiento y pulido. Las dos cosas quedan escritas en F7.2, en
+   `docs/formato-ogs-json.md` y en el texto de la nota de la web, que ya no puede sugerir que el contador cuenta lo mismo.
+7. **`refined` (RCM-A-11 §3).** Cuenta las polilíneas que llegan al refinamiento completo de 1500 evaluaciones (0 o 1).
+   Las rondas cortas del descarte sucesivo suman a `evaluated`, pero no a `refined`.
+8. **Mensajes y esquema (RCM-A-09 y RCM-A-11 §1).**
+   - Los mensajes de rango de `global` del motor y de la web son iguales letra por letra: «… debe estar en [a, b], no v»,
+     con 9007199254740991 escrito así en los dos.
+   - La descripción de `schema/ogs-0.7.schema.json` nombra la 0.7 y `global`.
+   - Los enteros escritos como `50.0` siguen siendo inválidos en el motor, como `slices` y `seeds`. Se documenta, sin
+     cambio.
+   - La clasificación `Json` frente a `InvalidModel` de un enum con el tipo equivocado se deja como está si es la misma
+     que ya tienen los enums de v0.6. Se anota como limitación.
+9. **Medición (RCM-A-08).**
+   - A4 también recorre los ganadores de `extra` y un subconjunto con `janbu_simplified`, `janbu_corrected` y
+     `morgenstern_price` (`half_sine`, `trapezoidal` y `data_points`).
+   - Un error de cSlope en A4 es una advertencia explícita, no una exclusión silenciosa.
+   - A8 informa aparte los taludes con `eligible = 0`.
+   - A7 informa el margen del peor caso frente al tope.
+
+Después de estos cambios se vuelven a correr todas las compuertas: A1 a A10, A2b y la paridad A9, con el prototipo
+alineado a estas reglas. Si A2 deja de pasar, se informa antes de seguir.
