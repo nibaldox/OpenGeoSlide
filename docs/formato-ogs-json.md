@@ -1,7 +1,7 @@
-# Formato `.ogs.json` (v0.1 a v0.6)
+# Formato `.ogs.json` (v0.1 a v0.7)
 
 Los modelos de OpenGeoSlide se guardan como `.ogs.json`. La web los abre y los guarda, la CLI y el paquete de Python
-los leen. El motor acepta seis versiones:
+los leen. El motor acepta siete versiones:
 
 | Versión | Agrega | Esquema |
 |---|---|---|
@@ -11,8 +11,9 @@ los leen. El motor acepta seis versiones:
 | `"0.4"` | **refuerzos** (`reinforcements`): anclajes, clavos, geosintéticos, pilotes y tablestacas, activos y pasivos | [`schema/ogs-0.4.schema.json`](../schema/ogs-0.4.schema.json) |
 | `"0.5"` | **grieta de tracción** (`analysis.tension_crack`) y **presión de suelo de Ito-Matsui** en pilotes (`lateral_pressure`, `capacity`) | [`schema/ogs-0.5.schema.json`](../schema/ogs-0.5.schema.json) |
 | `"0.6"` | materiales **Hoek-Brown** y **SHANSEP**, y **búsqueda no circular** (`analysis.search.non_circular`) | [`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json) |
+| `"0.7"` | **búsqueda global no circular** (`analysis.search.non_circular.global`) | [`schema/ogs-0.7.schema.json`](../schema/ogs-0.7.schema.json) |
 
-[`schema/ogs-0.6.schema.json`](../schema/ogs-0.6.schema.json) acepta las seis versiones. El ejemplo mínimo es
+[`schema/ogs-0.7.schema.json`](../schema/ogs-0.7.schema.json) acepta las siete versiones. El ejemplo mínimo es
 [`examples/acads1a.ogs.json`](../examples/acads1a.ogs.json).
 
 > **La v0.5 se publicó con la 0.4.0** (véase el [registro de cambios](../CHANGELOG.md#040---2026-11-27)). La 0.3.0,
@@ -20,8 +21,11 @@ los leen. El motor acepta seis versiones:
 >
 > **La v0.6 se publicó con la 0.5.0** (véase el [registro de cambios](../CHANGELOG.md#050---2026-11-27)). La 0.4.0 no lee
 > los materiales `hoek_brown` y `shansep` ni `analysis.search.non_circular`.
+>
+> **La v0.7 aún no se publica.** La 0.5.1, la última versión publicada, llega hasta el formato v0.6 y no lee
+> `analysis.search.non_circular.global` ([v0.7: búsqueda global no circular](#v07-búsqueda-global-no-circular)).
 
-- **Un modelo sin campos nuevos da el mismo resultado en las seis versiones**, bit a bit: `fos`, `status`,
+- **Un modelo sin campos nuevos da el mismo resultado en las siete versiones**, bit a bit: `fos`, `status`,
   `iterations`, `lambda`, `warnings` y superficie. Un modelo con `reinforcements` ausente o vacío es idéntico byte a byte
   a la salida de la v0.2.0, con **una sola excepción documentada**: un círculo cuyo arco termina con la tangente vertical
   sobre el terreno, que la v0.2.0 rechazaba por redondeo (V065), ahora se analiza ([Limitaciones](limitaciones.md#excepción-a-la-identidad-con-la-v020-círculos-con-la-tangente-vertical-v065)).
@@ -41,16 +45,19 @@ los leen. El motor acepta seis versiones:
   diferencias en 180 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-reinforced` contra el
   binario de la 0.4.0); los 17 modelos con campos v0.6 se saltan, porque el binario base no lee esa versión
   ([Verificación](verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
+- **Un modelo sin `global` da la misma salida, byte a byte, que la 0.5.1**, con la versión del motor normalizada: 0
+  diferencias en 196 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-v06`, con los 17
+  modelos que traen campos v0.6) ([Verificación](verificacion.md#búsqueda-global-no-circular-v07)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, `analysis.tension_crack` y
   el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`, y los materiales `hoek_brown` y `shansep` y
-  `analysis.search.non_circular` exigen `"0.6"`** (véase [la compuerta de versión](#compuerta-de-versión)).
+  `analysis.search.non_circular` exigen `"0.6"`, y `analysis.search.non_circular.global` exige `"0.7"`** (véase [la compuerta de versión](#compuerta-de-versión)).
 - **Los ángulos van en grados.** Las unidades no se convierten: deben ser coherentes entre sí.
 - Todos los objetos rechazan campos desconocidos. Un `null` cuenta como campo ausente.
 
 Los ejemplos de esta página se validan con el esquema y con `ogs analyze`
 ([cómo reproducirlo](#cómo-se-validan-los-ejemplos)).
 
-## Estructura de un modelo v0.6
+## Estructura de un modelo v0.7
 
 ```
 format, version, meta?, units?, materials[], regions[], water?, loads?, reinforcements?, slope?, analysis
@@ -69,6 +76,9 @@ embalsada no tiene campo: sale de `water.piezometric_line` y del terreno.
 La v0.6 agrega, en `materials[]`, los modelos `hoek_brown` (con `ucs`, `gsi`, `mi` y `disturbance`) y `shansep` (con el
 objeto `shansep`), y `search.non_circular` dentro de `analysis.search`
 ([Hoek-Brown, SHANSEP y búsqueda no circular](#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
+
+La v0.7 agrega `search.non_circular.global` ([v0.7: búsqueda global no circular](#v07-búsqueda-global-no-circular)). La
+estructura del documento no cambia.
 
 ## Material no drenado (`model: "undrained"`)
 
@@ -494,7 +504,9 @@ Con `"0.1"` o `"0.2"`, cada uso de un campo o variante de la 0.3 da
 ([Ito-Matsui](#pilotes-con-presión-de-suelo-de-ito-matsui-v05)). Los materiales `hoek_brown` y `shansep`, sus campos (`ucs`, `gsi`,
 `mi`, `disturbance` y `shansep`) y `analysis.search.non_circular` exigen `"0.6"`: con una versión menor, el error es
 `InvalidModel: <campo> requiere version "0.6"`, con el **primer** campo en ese orden
-([Versión mínima 0.6](#versión-mínima-06)). El agua embalsada **no** tiene compuerta: se aplica en todas las
+([Versión mínima 0.6](#versión-mínima-06)). `analysis.search.non_circular.global` exige `"0.7"`: con una versión menor, el error
+es `InvalidModel: analysis.search.non_circular.global requiere version "0.7"`
+([Versión mínima 0.7](#versión-mínima-07)). El agua embalsada **no** tiene compuerta: se aplica en todas las
 versiones.
 
 Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arriba:
@@ -512,7 +524,8 @@ Los fragmentos siguientes cambian `version` a `"0.2"` en los dos ejemplos de arr
 El esquema `ogs-0.3.schema.json` aplica la misma regla con un `if/then` por versión. **La web** guarda la versión
 mínima: `"0.2"` si el modelo no usa ningún campo de 0.3, `"0.3"` si usa alguno, `"0.4"` si hay refuerzos y `"0.5"` solo
 si existe `analysis.tension_crack` o algún pilote lleva `lateral_pressure`, y `"0.6"` solo si hay un material `hoek_brown` o
-`shansep`, alguno de sus campos o `analysis.search.non_circular`; abre las seis versiones.
+`shansep`, alguno de sus campos o `analysis.search.non_circular`, y `"0.7"` solo si hay `analysis.search.non_circular.global`;
+abre las siete versiones.
 
 ## Sismo y cargas (v0.2)
 
@@ -2380,7 +2393,7 @@ Se aplica por método, después de la búsqueda circular de ese mismo método:
    menor F** de los dos. Una ronda mejora si F baja más de 1e-6; hasta 6 rondas por paso, y después de una sin mejora
    el paso se divide entre 2. El nivel termina cuando el paso baja a 1/50 del inicial.
 5. **Presupuesto.** 1500 evaluaciones admisibles por semilla, sumando todos los niveles. Los candidatos inadmisibles no
-   cuentan. **No hay pulido final.**
+   cuentan. **No hay pulido final** (la v0.7 lo agrega en la etapa global, [más abajo](#v07-búsqueda-global-no-circular)).
 6. **Admisibilidad** de cada candidato, además de las reglas de una [polilínea fija](#polilínea-fija): `x` estrictamente
    creciente, vértices y segmentos bajo el terreno, y **concavidad**: cada tramo puede inclinarse a lo sumo 1° más que
    el anterior (`α_{i+1} ≤ α_i + 1°`, con `α_i = atan2(y_i − y_{i+1}, x_{i+1} − x_i)`). **La concavidad vale solo para los candidatos de la
@@ -2638,6 +2651,363 @@ Con un pilote de Ito-Matsui:
     "direction": "angle", "angle": 0, "lateral_pressure": { "model": "ito_matsui", "diameter": 0.8, "location": "centroid" } } ]
 ```
 
+## v0.7: búsqueda global no circular
+
+La versión `"0.7"` agrega `analysis.search.non_circular.global`: una etapa que **genera** superficies no circulares
+propias y las refina, además del refinamiento desde los círculos de la v0.6. El esquema es
+[`schema/ogs-0.7.schema.json`](../schema/ogs-0.7.schema.json). **Un modelo sin `global` da la misma salida, byte a byte,
+que la 0.5.1** (con la versión del motor normalizada). **El resultado nunca empeora:** el refinamiento de la v0.6 se calcula
+siempre, sin cambios, y la etapa global solo lo reemplaza si da un FS estrictamente menor y su superficie es elegible.
+
+La v0.7 aún no está publicada. La última versión publicada, la 0.5.1, llega hasta el formato v0.6.
+
+### Versión mínima 0.7
+
+`analysis.search.non_circular.global` exige `"0.7"`. Con una versión menor, el error es
+
+```
+InvalidModel: analysis.search.non_circular.global requiere version "0.7"
+```
+
+Un `global: null` cuenta como ausente y no exige nada. Con `"0.7"` quedan abiertas todas las puertas anteriores: un modelo
+0.7 admite Hoek-Brown, SHANSEP, refuerzos, grieta y lo demás. **La web** guarda `"0.7"` solo si el modelo tiene `global`.
+
+### Campos
+
+`global` es un objeto opcional dentro de `analysis.search.non_circular`. Todos sus campos son opcionales, no admite otros
+campos y `{}` es válido: toma todos los valores por defecto.
+
+| Campo | Tipo | Por defecto | Rango | Significado |
+|---|---|---|---|---|
+| `algorithm` | cadena | `"auto"` | `"auto"`, `"block"` o `"annealing"` | Con `auto`, corre `block` si el modelo tiene contactos entre regiones y `annealing` si no |
+| `generated` | entero | `500` | [50, 2000] | Candidatos admisibles que se generan y evalúan |
+| `seed` | entero | `0` | [0, 2^53 − 1] | Semilla del generador pseudoaleatorio |
+| `polish` | booleano | `true` | — | Pulido final; solo corre si gana la etapa global |
+
+- Un `null` en cualquiera de los cuatro campos equivale a omitirlo.
+- **Bishop no se admite**, igual que con `non_circular` a secas: el error es el de la v0.6 y cubre `global`.
+- `global` solo existe dentro de `non_circular`. El objeto `non_circular` puede ser `{ "global": {} }`: `seeds` y
+  `max_vertices` toman sus valores por defecto (3 y 33).
+- No hay reglas nuevas que crucen partes del documento.
+
+### Cómo funciona
+
+La etapa corre por método de cálculo, después de la búsqueda circular de ese método:
+
+1. **El refinamiento de la v0.6, sin cambios.** Da el FS de referencia F₀ y su superficie.
+2. **La generación,** según `algorithm`. Cada candidato admisible se evalúa con la guarda de tracción de más abajo.
+   - **`block`** (bloque sobre una capa débil). La **capa** es el conjunto de aristas de contacto de la región de menor
+     resistencia relativa, ρ = c / (γ · z) + tan φ, con z la profundidad bajo el terreno del centroide de la región. En
+     `undrained`, ρ = Su(z) / (γ · z). Los materiales Hoek-Brown y SHANSEP no compiten en la elección de la capa, pero sus
+     aristas sí cuentan como contactos. El generador traza 2 o 3 segmentos sobre la capa y los une al terreno con dos
+     proyecciones inclinadas entre 15° y 75° sobre la horizontal. Muestrea con una secuencia de Halton, y la semilla es una
+     **rotación de Cranley-Patterson** de esa secuencia (la semilla 0 no rota). Con `block` explícito y sin contactos, usa
+     las «bases» (aristas no verticales cuyo lado exterior queda fuera de todas las regiones) y no recurre al recocido.
+   - **`annealing`** (recocido simulado). Parte de la polilínea de 9 vértices del círculo semilla 1 y perturba las
+     profundidades de sus 7 vértices interiores, con enfriamiento geométrico y criterio de Metropolis sobre el FS elegible.
+     El círculo de partida se evalúa, pero no cuenta como candidato.
+   - **`auto`** elige `block` solo si hay aristas de contacto entre regiones. Si el bloque agota sus intentos
+     (20·`generated`) sin ningún candidato admisible, `auto` corre `annealing` con el mismo `generated`, e informa
+     `"annealing"`. Un talud homogéneo no tiene contactos: corre `annealing`.
+3. **La selección y el descarte sucesivo.** Se toman los 4 mejores candidatos elegibles, con entradas y salidas distintas
+   (la regla del 5 % del rango de la búsqueda). Cada uno recibe un refinamiento corto de 60 evaluaciones y quedan 3; luego,
+   uno de 150 y queda 1. Ese uno recibe el refinamiento completo de la v0.6 (niveles de 9, 17 y 33 vértices y 1500
+   evaluaciones).
+4. **La comparación.** Si el FS del candidato refinado es menor que F₀ − 1e-6, gana `global`. Si `polish` es `true`, la
+   superficie se pule: hasta 4 ciclos, mientras la ganancia del ciclo supere 0,001, con un presupuesto de 3000 evaluaciones.
+   Si no, gana `refinement` y no se pule.
+5. **El reporte** (véase abajo).
+
+**Presupuesto.** Con los valores por defecto, la etapa global evalúa a lo sumo 500 + 4·60 + 3·150 + 1500 + 3000 = **5690**
+candidatos (más el círculo de partida del recocido). En los 53 modelos medidos, el máximo fue 4064. La búsqueda circular y el
+refinamiento de la v0.6 se suman aparte.
+
+**La guarda de tracción.** Una búsqueda global puede hallar superficies en la rama con tracción (la raíz de λ de E12e),
+con un FS bajo que no existe. Por eso un candidato solo es elegible si la solución converge **y** sus notas no incluyen
+`negative_lambda` ni `negative_effective_normal_major`. No compite, el optimizador lo trata como inválido y cuenta en
+`tension_rejected`. Las notas `negative_effective_normal` y `multiple_admissible_roots` no excluyen. El refinamiento de la
+v0.6 no se toca: su comportamiento con λ < 0 sigue siendo el de la v0.6 y se sigue informando.
+
+**Determinismo.** El generador es SplitMix64, sin dependencias nuevas. El resultado es el mismo en dos corridas y con o sin la
+característica `parallel` del motor, byte a byte. La igualdad entre el motor nativo y WASM no se promete: en V053 y S2 el FS
+coincidió a 7e-16.
+
+### La salida de la búsqueda global
+
+`search.non_circular.global` solo aparece si hay `global` en la entrada. Sus 11 campos:
+
+| Campo | Tipo | Significado |
+|---|---|---|
+| `algorithm` | cadena | El algoritmo que corrió: `"block"` o `"annealing"`. Nunca `"auto"` |
+| `generated` | entero | Candidatos admisibles generados y evaluados (≤ `generated` de la entrada) |
+| `attempts` | entero | Intentos geométricos, incluidos los no admisibles (≤ 40·`generated`) |
+| `converged` | entero | Candidatos con solución convergida |
+| `eligible` | entero | Convergidos que pasan la guarda de tracción |
+| `tension_rejected` | entero | Convergidos que rechazó la guarda: `converged = eligible + tension_rejected` |
+| `refined` | entero | Polilíneas del generador que recibieron el refinamiento completo (hoy, 1 si hubo candidatos) |
+| `evaluated` | entero | Evaluaciones del motor en toda la etapa global: generación, refinamiento y pulido |
+| `polish_evaluated` | entero | Evaluaciones del pulido (0 si no corrió) |
+| `global_fos` | número o `null` | El mejor FS elegible de la etapa global, después de refinar y pulir; `null` si no hubo ninguno |
+| `winner` | cadena | `"global"` o `"refinement"` |
+
+- `seeds`, `evaluated`, `seed_fos` y `polyline_fos`, del nivel de `search.non_circular`, siguen significando lo mismo que en
+  la v0.6: describen el refinamiento. El `evaluated` de `global` es aparte.
+- **La superficie crítica es la del ganador:** una polilínea (`{ "points": [...] }`). Si gana `"refinement"`, es la misma que
+  en la v0.6.
+- Con `winner = "refinement"`, `global_fos` es el mejor FS elegible del generador, sin pulir, y puede ser mayor que el `fos`
+  del resultado.
+
+**Dos notas nuevas,** en el lugar de las notas del método (`warnings`):
+
+- **`non_circular_global_no_candidates`:** `eligible = 0`. El generador no dio ninguna superficie elegible y el resultado es el
+  del refinamiento. Pasa, por ejemplo, en un talud sin círculo semilla elegible para el recocido.
+- **`non_circular_global_tension_rejected`:** la guarda rechazó al menos una superficie con un FS menor que el reportado. Hay
+  un FS menor en la rama con tracción, y no se tomó. No es un error: compare con la búsqueda circular y revise N′ por
+  dovela.
+
+#### Ejemplo: V053, un talud con una capa débil
+
+V053 (Greco, 1996, ejemplo 5): el programa A comercial publica 1,01 con una búsqueda no circular. El mejor círculo da Spencer
+1,0917 y el refinamiento de la v0.6, 1,0847 (+7,4 % sobre el publicado). Con `global: {}`, el bloque halla el mecanismo de la
+capa débil y Spencer da **1,0103** (+0,02 % frente a cSlope, que evalúa esa misma polilínea en 1,0101):
+
+<!-- ogs-ejemplo nombre=global-v053 estado=converged fos=spencer:1.0103 nc=spencer:seeds:3,spencer:evaluated:4500,spencer:seed_fos:1.0917,spencer:polyline_fos:1.0847 superficie=polilinea:33 -->
+```json
+{
+  "format": "opengeoslide",
+  "version": "0.7",
+  "meta": {
+    "id": "ejemplo-busqueda-global",
+    "title": "V053 (Greco, 1996, ejemplo 5): talud con una capa débil y búsqueda global"
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "layer_1",
+      "name": "Layer 1",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "cohesion": 9.8,
+      "friction_angle": 35.0
+    },
+    {
+      "id": "layer_2",
+      "name": "Layer 2",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "cohesion": 58.8,
+      "friction_angle": 25.0
+    },
+    {
+      "id": "layer_3",
+      "name": "Layer 3",
+      "model": "mohr_coulomb",
+      "unit_weight": 21.5,
+      "cohesion": 19.8,
+      "friction_angle": 30.0
+    },
+    {
+      "id": "layer_4",
+      "name": "Layer 4",
+      "model": "mohr_coulomb",
+      "unit_weight": 21.5,
+      "cohesion": 9.8,
+      "friction_angle": 16.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "layer_1",
+      "polygon": [[100.0, 40.0], [145.0, 70.0], [240.0, 70.0], [240.0, 55.0], [190.0, 55.0]]
+    },
+    {
+      "material": "layer_2",
+      "polygon": [[75.0, 30.0], [95.0, 40.0], [100.0, 40.0], [190.0, 55.0], [240.0, 55.0], [240.0, 30.0]]
+    },
+    {
+      "material": "layer_3",
+      "polygon": [[0.0, 0.5], [0.0, 20.0], [55.0, 20.0], [75.0, 30.0], [240.0, 30.0], [240.0, 15.5], [150.0, 15.5]]
+    },
+    {
+      "material": "layer_4",
+      "polygon": [[0.0, 0.0], [0.0, 0.5], [150.0, 15.5], [240.0, 15.5], [240.0, 15.0], [150.0, 15.0]]
+    }
+  ],
+  "water": { "unit_weight": 9.807, "piezometric_line": [[0.0, 20.0], [55.0, 20.0], [75.0, 30.0], [95.0, 40.0], [100.0, 40.0], [190.0, 55.0], [240.0, 55.0]] },
+  "slope": { "direction": "right_to_left" },
+  "analysis": {
+    "methods": ["spencer"],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "entry": [145.0, 240.0],
+      "exit": [0.0, 55.0],
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "refine": true,
+      "non_circular": { "seeds": 3, "max_vertices": 33, "global": {} }
+    }
+  }
+}
+```
+
+El informe de `ogs analyze` para ese modelo (aquí sin `surface` ni `slices`; la superficie es una polilínea de 33 vértices,
+de (29,15; 20,0) a (164,37; 70,0)):
+
+```json
+{
+  "method": "spencer",
+  "fos": 1.010300223400116,
+  "status": "converged",
+  "iterations": 43,
+  "lambda": 0.24921243035715315,
+  "search": {
+    "evaluated": 10561,
+    "valid": 8207,
+    "non_circular": {
+      "seeds": 3,
+      "evaluated": 4500,
+      "seed_fos": 1.0916705168536467,
+      "polyline_fos": 1.0847376214469184,
+      "global": {
+        "algorithm": "block",
+        "generated": 500,
+        "attempts": 3259,
+        "converged": 202,
+        "eligible": 202,
+        "tension_rejected": 0,
+        "refined": 1,
+        "evaluated": 3349,
+        "polish_evaluated": 659,
+        "global_fos": 1.010300223400116,
+        "winner": "global"
+      }
+    }
+  },
+  "warnings": []
+}
+```
+
+Se lee así: de 500 candidatos admisibles (3259 intentos), 202 convergieron y los 202 pasaron la guarda. Uno se refinó, y el
+pulido gastó 659 evaluaciones. `global_fos` (1,0103) es menor que `polyline_fos` (1,0847), así que gana `global`.
+
+#### Valores y variantes
+
+`{}` equivale a `auto`, 500 candidatos, semilla 0 y pulido. Los campos `null` también:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0103 nc=spencer:seeds:3,spencer:evaluated:4500 superficie=polilinea:33 -->
+```json
+{ "algorithm": null, "generated": null, "seed": null, "polish": null }
+```
+
+**Recocido.** El recocido no usa el contacto con la capa débil. En V053, Spencer da 1,0844, casi el del refinamiento:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0844 superficie=polilinea:33 -->
+```json
+{ "algorithm": "annealing" }
+```
+
+**Menos candidatos.** Con 100, la etapa global cuesta menos (2699 evaluaciones) y en V053 da 1,0079. **No es una regla:** más
+candidatos no garantizan un FS menor, porque el orden de los candidatos crudos predice mal el FS refinado.
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0079 superficie=polilinea:33 -->
+```json
+{ "generated": 100 }
+```
+
+**Otra semilla.** El resultado cambia con la semilla, y es el mismo con la misma semilla. Con 48 semillas (de 0 a 47), V053
+dio de 1,0029 a 1,0239, todas dentro de la banda publicada (véase [Verificación](verificacion.md#búsqueda-global-no-circular-v07)):
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0068 superficie=polilinea:33 -->
+```json
+{ "seed": 12345 }
+```
+
+**Sin pulido.** En V053 el pulido cuesta 659 evaluaciones y baja el FS en 0,0001 (1,0104 sin pulir):
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0104 superficie=polilinea:33 -->
+```json
+{ "polish": false }
+```
+
+**`global: null`** cuenta como ausente: el resultado es el del refinamiento de la v0.6 (1,0847) y no hay objeto `global` en
+la salida:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=ok esquema=acepta estado=converged fos=spencer:1.0847 superficie=polilinea:33 -->
+```json
+null
+```
+
+**Con otros métodos.** Spencer, Morgenstern-Price y los dos Janbu admiten `global`; Bishop no.
+
+#### Ejemplo de la nota `non_circular_global_tension_rejected`: V051
+
+V051 con `global: {}` (`verification/global/models/V051.json`, con la versión cambiada a `"0.7"`). Gana `refinement` con
+0,7071 (el publicado es 0,707). El generador halló 306 candidatos convergidos, de los cuales la guarda rechazó 32 por tracción,
+y el mejor elegible dio 0,7285: no mejora al refinamiento. Las notas del método:
+
+```
+load_outside_mass, negative_effective_normal, non_circular_large_change, non_circular_global_tension_rejected
+```
+
+Sin la guarda, el generador habría tomado una superficie con un FS de 0,630, que cSlope evalúa en 1,048 (X37 §4.2).
+
+#### Rechazos
+
+Con 49 candidatos, el mínimo es 50:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:analysis.search.non_circular.global.generated~debe~estar~en~[50,~2000] esquema=rechaza -->
+```json
+{ "generated": 49 }
+```
+
+Con 2001 candidatos:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:analysis.search.non_circular.global.generated~debe~estar~en~[50,~2000] esquema=rechaza -->
+```json
+{ "generated": 2001 }
+```
+
+Con una semilla fuera de [0, 2^53 − 1]:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:analysis.search.non_circular.global.seed~debe~estar~en~[0,~9007199254740991] esquema=rechaza -->
+```json
+{ "seed": 9007199254740992 }
+```
+
+Con un algoritmo que no existe (el recorrido de rutas, *path search*, no está en la v0.7):
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:unknown~variant~`path` esquema=rechaza -->
+```json
+{ "algorithm": "path" }
+```
+
+Con un campo desconocido:
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.search.non_circular.global esperado=error:unknown~field~`foo` esquema=rechaza -->
+```json
+{ "foo": 1 }
+```
+
+Con `version` `"0.6"`:
+
+<!-- ogs-fragmento base=global-v053 ruta=version esperado=error:analysis.search.non_circular.global~requiere~version~"0.7" esquema=rechaza -->
+```json
+"0.6"
+```
+
+Con Bishop. **Este rechazo es solo del motor:**
+
+<!-- ogs-fragmento base=global-v053 ruta=analysis.methods esperado=error:el~método~bishop~no~se~admite~con~analysis.search.non_circular esquema=acepta -->
+```json
+["bishop", "spencer"]
+```
+
 ## Qué valida el esquema y qué solo el motor
 
 El esquema y el binario `ogs` aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede
@@ -2662,17 +3032,20 @@ expresar y que valida solo el motor:
   33), y la puerta de versión. **Solo el motor** valida las reglas que relacionan dos partes del documento
   ([Combinaciones no admitidas](#combinaciones-no-admitidas-v06)): Bishop con `non_circular`, la grieta de profundidad
   `"auto"` con un material `hoek_brown` o `shansep`, y un pilote de Ito-Matsui con esos materiales (E16n).
+- **Búsqueda global (v0.7):** el esquema valida los rangos de `generated` (entero en [50, 2000]) y de `seed` (entero en
+  [0, 2^53 − 1]), la enumeración de `algorithm`, el tipo de `polish`, los campos desconocidos y la puerta de versión. **Solo el
+  motor** valida Bishop con `non_circular` (que cubre `global`).
 
 ## Cómo se validan los ejemplos
 
 Cada bloque `json` de esta página precedido por un comentario `ogs-ejemplo` u `ogs-fragmento` se prueba con
 [`docs/tools/validar_ejemplos.py`](tools/validar_ejemplos.py): los ejemplos completos contra
-`schema/ogs-0.6.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
-`status` de `reinforcement_forces`, los avisos, el objeto `tension_crack` del informe, los campos `soil_force`, `governs` y `arm` del cruce de un pilote de Ito-Matsui, y, en la v0.6, `strength.passes`, la `law` y los `vertical_stress` y `ocr` de `strength.slices`, el objeto `search.non_circular` y que la superficie crítica sea una polilínea de a lo sumo `max_vertices` vértices); los fragmentos, sustituidos en su ejemplo base, con el resultado
+`schema/ogs-0.7.schema.json` y con `ogs analyze` (estado de cada método y, donde se cita, el FS a 4 decimales, los
+`status` de `reinforcement_forces`, los avisos, el objeto `tension_crack` del informe, los campos `soil_force`, `governs` y `arm` del cruce de un pilote de Ito-Matsui, y, en la v0.6, `strength.passes`, la `law` y los `vertical_stress` y `ocr` de `strength.slices`, el objeto `search.non_circular` y que la superficie crítica sea una polilínea de a lo sumo `max_vertices` vértices; en la v0.7, el ejemplo de la búsqueda global); los fragmentos, sustituidos en su ejemplo base, con el resultado
 esperado del motor y del esquema.
 
 ```sh
 cargo build --release -p ogs-cli
 env -u PYTHONPATH -u PYTHONHOME uv run -q --no-project --with jsonschema \
-  python docs/tools/validar_ejemplos.py
+  python docs/tools/validar_ejemplos.py --schema schema/ogs-0.7.schema.json
 ```
