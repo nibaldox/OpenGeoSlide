@@ -3,8 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { AnalysisReport, MethodReport } from '../../engine/types';
 import { ResultSummary } from './ResultSummary';
+import { fsMinimum } from './shellModel';
 import type { EngineRun } from './reportInput';
-import { calcAnnouncement, nextAnnouncement, summaryItems, warningCounts, warningCountsText } from './resultSummary';
+import { calcAnnouncement, governingMethodText, nextAnnouncement, summaryItems, warningCounts, warningCountsText } from './resultSummary';
 
 function result(method: 'bishop' | 'spencer', fos: number | null, warnings: string[] = []): MethodReport {
   return {
@@ -110,5 +111,44 @@ describe('R10B-09: «Con aviso» junto al FS de cada método con avisos de sever
 
   it('el anuncio para el lector de pantalla dice «con aviso» junto al FS afectado', () => {
     expect(calcAnnouncement(r)).toBe('Cálculo completado: Bishop FS 1,200; Spencer FS 130,578 con aviso; 1 aviso y 2 notas');
+  });
+});
+
+// CM-W2: el HUD nombra el método que rige el FS mínimo (en la prueba a ciegas, los tres agentes tuvieron que leer otro texto para saberlo).
+describe('governingMethodText', () => {
+  it('con un solo método, su nombre completo', () => {
+    expect(governingMethodText(['morgenstern_price'])).toBe('Morgenstern-Price');
+    expect(governingMethodText(['janbu_corrected'])).toBe('Janbu corregido');
+    expect(governingMethodText(['bishop'])).toBe('Bishop simplificado');
+  });
+  it('con un empate, los dos con la abreviatura de la tabla de resultados', () => {
+    expect(governingMethodText(['spencer', 'morgenstern_price'])).toBe('Spencer · M-P');
+    expect(governingMethodText(['bishop', 'janbu_corrected'])).toBe('Bishop · Janbu corr.');
+  });
+  it('`form` fuerza el nombre completo o la abreviatura', () => {
+    expect(governingMethodText(['morgenstern_price'], 'short')).toBe('M-P');
+    expect(governingMethodText(['spencer', 'morgenstern_price'], 'full')).toBe('Spencer · Morgenstern-Price');
+    expect(governingMethodText([])).toBe('');
+  });
+  it('lo que da fsMinimum: sin empate un método; con empate a tres decimales, los dos', () => {
+    const solo = report(result('bishop', 1.404), result('spencer', 1.401));
+    expect(governingMethodText(fsMinimum(solo).methods)).toBe('Spencer');
+    const empate = report(result('bishop', 1.9), result('spencer', 1.5684), result('morgenstern_price' as never, 1.5679));
+    expect(fsMinimum(empate).methods).toEqual(['spencer', 'morgenstern_price']);
+    expect(governingMethodText(fsMinimum(empate).methods)).toBe('Spencer · M-P');
+  });
+});
+
+describe('HUD: el método junto a la cifra', () => {
+  const run = (...results: MethodReport[]): never => ({ revision: 1, doc: {}, json: '', sha256: 'a'.repeat(64), report: report(...results), elapsedMs: 5, checkedAt: '' }) as never;
+  const html = (r: never, extra: Record<string, unknown> = {}): string => renderToStaticMarkup(createElement(ResultSummary, { current: true, busy: false, shownMethod: null, run: r, ...extra } as never));
+  it('desplegado: la cifra va con el nombre completo del método', () => {
+    const out = html(run(result('bishop', 1.404), result('spencer', 1.401)));
+    expect(out).toMatch(/data-testid="fs-min-method">Spencer</);
+  });
+  it('plegado: la píldora dice «FS mín. 1,401 · Spencer» y su nombre accesible lo repite', () => {
+    const out = html(run(result('bishop', 1.404), result('spencer', 1.401)), { compact: true });
+    expect(out).toContain('aria-label="Mostrar resultado, FS mín. 1,401 · Spencer"');
+    expect(out).toMatch(/data-testid="rs-pill-method">· Spencer</);
   });
 });

@@ -35,24 +35,25 @@ const pillOf = (html: string): string => /<button[^>]*class="rs-pill"[\s\S]*?<\/
 const visibleText = (html: string): string => html.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
 describe('B-03: la píldora plegada lleva todo su texto visible en el nombre accesible (UA-E2, WCAG 2.5.3)', () => {
-  it('con FS < 1: «FS mín. 0,984» y «FS < 1,0» están en la píldora y en su aria-label', () => {
+  // CM-W2: la píldora nombra el método que rige el FS mínimo. En `below1` empatan Spencer y M-P al mostrar tres decimales.
+  it('con FS < 1: «FS mín. 0,984 · Spencer · M-P» y «FS < 1,0» están en la píldora y en su aria-label', () => {
     const pill = pillOf(render({ run: below1, compact: true }));
-    expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 0,984 FS &lt; 1,0"');
-    expect(visibleText(pill)).toBe('FS mín. 0,984 FS &lt; 1,0');
+    expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 0,984 · Spencer · M-P FS &lt; 1,0"');
+    expect(visibleText(pill)).toBe('FS mín. 0,984 · Spencer · M-P FS &lt; 1,0');
     expect(pill).toContain('aria-expanded="false"');
   });
 
-  it('con FS ≥ 1 no hay chip y el nombre es «Mostrar resultado, FS mín. 1,356»', () => {
+  it('con FS ≥ 1 no hay chip y el nombre es «Mostrar resultado, FS mín. 1,356 · Janbu corregido»', () => {
     const pill = pillOf(render({ run: above1, compact: true }));
-    expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 1,356"');
+    expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 1,356 · Janbu corregido"');
     expect(pill).not.toContain('rs-pill-chip');
   });
 
   it('desactualizado (por modelo o por borradores): «Desactualizado» sigue en el texto y en el nombre; no se afirma «FS < 1,0»', () => {
     for (const patch of [{ current: false }, { hasPendingDrafts: true }]) {
       const pill = pillOf(render({ run: below1, compact: true, ...patch }));
-      expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 0,984 Desactualizado"');
-      expect(visibleText(pill)).toBe('FS mín. 0,984 Desactualizado');
+      expect(pill).toContain('aria-label="Mostrar resultado, FS mín. 0,984 · Spencer · M-P Desactualizado"');
+      expect(visibleText(pill)).toBe('FS mín. 0,984 · Spencer · M-P Desactualizado');
       expect(pill).not.toContain('FS &lt; 1,0');
     }
   });
@@ -73,6 +74,10 @@ describe('B-03: la píldora plegada lleva todo su texto visible en el nombre acc
     expect(pillParts('0,984', true, false)).toEqual({ figure: 'FS mín. 0,984', status: 'Desactualizado' });
     expect(pillParts('1,356', false, true).status).toBeNull();
     expect(pillLabel(pillParts('1,356', false, true))).toBe('Mostrar resultado, FS mín. 1,356');
+    // CM-W2: con el método, va entre la cifra y el estado, en el mismo orden que el texto visible.
+    expect(pillParts('1,401', false, true, 'Morgenstern-Price')).toEqual({ figure: 'FS mín. 1,401', method: 'Morgenstern-Price', status: null });
+    expect(pillLabel(pillParts('1,401', false, true, 'Morgenstern-Price'))).toBe('Mostrar resultado, FS mín. 1,401 · Morgenstern-Price');
+    expect(pillLabel(pillParts('0,984', true, true, 'Spencer · M-P'))).toBe('Mostrar resultado, FS mín. 0,984 · Spencer · M-P FS < 1,0');
   });
 });
 

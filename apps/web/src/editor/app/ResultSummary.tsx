@@ -7,7 +7,7 @@ import type { MethodKind } from '../../engine/types';
 import { IconCheck, IconChevronDown, IconWarning } from '../../ui/icons';
 import { METHOD_LABELS } from '../../ui/methodLabels';
 import { fsMinimum, fsText } from './shellModel';
-import { focusResultsTable, summaryItems, warningCounts, warningCountsText } from './resultSummary';
+import { focusResultsTable, governingMethodText, summaryItems, warningCounts, warningCountsText } from './resultSummary';
 import type { EngineRun } from './reportInput';
 import './resultSummary.css';
 
@@ -16,15 +16,6 @@ export const STALE_DRAFTS_TEXT = 'Desactualizado: calculado antes de los cambios
 
 /** Nota visible cuando el modelo en memoria cambió tras el último cálculo. */
 export const STALE_MODEL_TEXT = 'Desactualizado: el modelo cambió. Pulse «Comprobar».';
-
-/** Nombres cortos para la línea «Spencer · M-P» bajo la cifra (los mismos de `resultSummary.ts`). */
-const SHORT_METHOD: Record<MethodKind, string> = {
-  bishop: 'Bishop',
-  spencer: 'Spencer',
-  morgenstern_price: 'M-P',
-  janbu_simplified: 'Janbu',
-  janbu_corrected: 'Janbu corr.',
-};
 
 /** Texto de avance en cálculos largos (R15B-11): contador de segundos y, si se informa, el método en curso. */
 export function formatBusyText(elapsedSeconds: number, activeMethod?: MethodKind | null): string {
@@ -54,15 +45,17 @@ export function toggleHudFold(compact: boolean, fold: HudFold): HudFold {
 export const resetCompactChoice = (fold: HudFold): HudFold => (fold.expandedInCompact ? { ...fold, expandedInCompact: false } : fold);
 
 /**
- * Texto visible de la píldora plegada (B-03): la cifra y, si procede, el estado («FS < 1,0» con el resultado vigente,
- * «Desactualizado» si no lo es). El nombre accesible del botón lo contiene entero (WCAG 2.5.3).
+ * Texto visible de la píldora plegada (B-03): la cifra, el método que rige el FS mínimo (CM-W2: «FS mín. 1,401 · Morgenstern-Price»)
+ * y, si procede, el estado («FS < 1,0» con el resultado vigente, «Desactualizado» si no lo es). El nombre accesible del botón lo
+ * contiene entero (WCAG 2.5.3). Sin `method` (HUD sin método que nombrar), solo la cifra.
  */
-export function pillParts(fsMinText: string, below1: boolean, current: boolean): { figure: string; status: string | null } {
-  return { figure: `FS mín. ${fsMinText}`, status: !current ? 'Desactualizado' : below1 ? 'FS < 1,0' : null };
+export function pillParts(fsMinText: string, below1: boolean, current: boolean, method?: string | null): { figure: string; method?: string; status: string | null } {
+  return { figure: `FS mín. ${fsMinText}`, ...(method ? { method } : {}), status: !current ? 'Desactualizado' : below1 ? 'FS < 1,0' : null };
 }
 
-/** Nombre accesible de la píldora: «Mostrar resultado, FS mín. 0,984 FS < 1,0» (lleva todo el texto visible, en su orden). */
-export const pillLabel = (parts: { figure: string; status: string | null }): string => `Mostrar resultado, ${parts.figure}${parts.status ? ` ${parts.status}` : ''}`;
+/** Nombre accesible de la píldora: «Mostrar resultado, FS mín. 0,984 · Spencer · M-P FS < 1,0» (lleva todo el texto visible, en su orden). */
+export const pillLabel = (parts: { figure: string; method?: string; status: string | null }): string =>
+  `Mostrar resultado, ${parts.figure}${parts.method ? ` · ${parts.method}` : ''}${parts.status ? ` ${parts.status}` : ''}`;
 
 /** «1 aviso del modelo» / «3 avisos del modelo». */
 export const advisoriesText = (n: number): string => `${n} ${n === 1 ? 'aviso' : 'avisos'} del modelo`;
@@ -179,7 +172,8 @@ export function ResultSummary({
         ) : null}
       </p>
     ) : null;
-  const pill = min ? pillParts(min.text, min.below1, effectiveCurrent) : null;
+  const methodText = min ? governingMethodText(min.methods) : '';
+  const pill = min ? pillParts(min.text, min.below1, effectiveCurrent, methodText) : null;
 
   return (
     <div
@@ -213,7 +207,17 @@ export function ResultSummary({
               aria-label={pillLabel(pill)}
               onClick={toggleFold}
             >
-              <span className="rs-pill-text gs-mono">{pill.figure}</span>
+              <span className="rs-pill-main">
+                <span className="rs-pill-text gs-mono">{pill.figure}</span>
+                {pill.method ? (
+                  <>
+                    {' '}
+                    <span className="rs-pill-method" data-testid="rs-pill-method">
+                      · {pill.method}
+                    </span>
+                  </>
+                ) : null}
+              </span>
               {pill.status ? (
                 <>
                   {' '}
@@ -246,7 +250,11 @@ export function ResultSummary({
               <span className="rs-fs-min gs-mono" data-testid="fs-min" data-tone={effectiveCurrent && min.below1 ? 'nok' : undefined}>
                 {min.text}
               </span>
-              {min.methods.length > 0 ? <span className="rs-fs-methods">{min.methods.map((m) => SHORT_METHOD[m]).join(' · ')}</span> : null}
+              {min.methods.length > 0 ? (
+                <span className="rs-fs-methods" data-testid="fs-min-method">
+                  {methodText}
+                </span>
+              ) : null}
               {effectiveCurrent && min.below1 ? (
                 <span className="gs-chip rs-chip" data-tone="nok">
                   FS &lt; 1,0

@@ -81,7 +81,6 @@ div.rs[data-collapsed='true'] {
   gap: 8px;
   box-sizing: border-box;
   min-height: 32px;
-  height: 32px;
   padding: 0 10px 0 14px;
   border: 0;
   border-radius: 999px;
@@ -90,6 +89,24 @@ div.rs[data-collapsed='true'] {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  text-align: left;
+}
+
+/* CM-W2: «FS mín. 1,401 · Morgenstern-Price». Si el método no cabe junto a la cifra, pasa a la línea de abajo de la píldora. */
+.rs .rs-pill .rs-pill-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5em;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.rs .rs-pill .rs-pill-method {
+  color: var(--ui-ink-muted);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .rs .rs-pill:hover:not(:disabled) {
@@ -420,7 +437,7 @@ div.rs[data-collapsed='true'] {
   }
 
   .rs .rs-pill {
-    height: 40px;
+    height: auto;
   }
 
   .rs .rs-table-link,

@@ -69,6 +69,16 @@ export function warningCounts(report: AnalysisReport): WarningCounts {
   return { avisos, notas };
 }
 
+/**
+ * Método (o métodos) que rige el FS mínimo del HUD, para nombrarlo junto a la cifra (CM-W2): con uno solo, su nombre completo
+ * («Morgenstern-Price»); si dos o más empatan al mostrar tres decimales, todos, con la abreviatura de la tabla de resultados
+ * («Spencer · M-P»), que es lo que cabe en la píldora. `form` fuerza una de las dos (`short` es la salida cuando no cabe).
+ */
+export function governingMethodText(methods: readonly MethodKind[], form: 'auto' | 'full' | 'short' = 'auto'): string {
+  const full = form === 'full' || (form === 'auto' && methods.length === 1);
+  return methods.map((m) => (full ? FULL_NAME[m] : SHORT_NAME[m])).join(' · ');
+}
+
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** «1 aviso y 2 notas», «2 notas», o `null` si no hay ninguna. */
