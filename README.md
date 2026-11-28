@@ -12,7 +12,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/readme/app-editor-dark.png">
-    <img src="./assets/readme/app-editor-light.png" width="100%" alt="Editor web de OpenGeoSlide con un talud de 15 m (1,5H:1V) de arcilla sobre roca, con la línea piezométrica punteada en el pie, la superficie crítica en rojo con sus dovelas, y Bishop y Spencer con FS 1,377.">
+    <img src="./assets/readme/app-editor-light.png" width="100%" alt="Editor web de OpenGeoSlide en la vista Lienzo, con un talud de 15 m (1,5H:1V) de arcilla sobre roca, la línea piezométrica punteada hasta el pie y la superficie crítica en rojo con sus dovelas. A la izquierda, los pasos del modelo con el paso Análisis abierto; en el lienzo, la paleta de herramientas y el panel de resultados, con Bishop simplificado y Spencer en FS 1,377.">
   </picture>
 </p>
 
