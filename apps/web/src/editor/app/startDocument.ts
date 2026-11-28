@@ -24,3 +24,13 @@ export function startRestoration(state: Pick<EditorState, 'doc' | 'file' | 'revi
   if (!isStartDocument(state, start)) return null;
   return { example: true, markClean: state.revision !== state.file.savedRevision };
 }
+
+/**
+ * El rótulo de ejemplo que corresponde al documento actual cuando el historial cambia de documento: `true` si es el de arranque, `false` si
+ * es uno de los modelos nuevos creados por una importación «Reemplazar» sobre el arranque (`freshDocs`: Ctrl+Z y Ctrl+Shift+Z cruzan esa
+ * frontera), `null` si el documento no cambia el rótulo (una edición conserva el que tenía).
+ */
+export function exampleLabelFor(state: Pick<EditorState, 'doc' | 'file'>, start: ModelDoc, freshDocs: { has(doc: ModelDoc): boolean }): boolean | null {
+  if (isStartDocument(state, start)) return true;
+  return freshDocs.has(state.doc) ? false : null;
+}

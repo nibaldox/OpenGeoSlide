@@ -89,7 +89,7 @@ import {
   WaterPanel,
 } from './panels';
 import { DocEpochContext } from './panels/useStoreSelector';
-import { isStartDocument, startRestoration } from './app/startDocument';
+import { exampleLabelFor, isStartDocument, startRestoration } from './app/startDocument';
 import { createEditorStore, useEditorStore, useLocalIssues, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc } from './types';
 
@@ -254,12 +254,15 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   // el estado limpio y «Reemplazar» por defecto, sin comparar documentos enteros en cada render.
   const [startDoc] = useState(() => store.getState().doc);
   const atStart = useEditorStore(store, (s) => isStartDocument(s, startDoc));
+  // Los modelos nuevos que crea «Reemplazar» sobre el arranque: Deshacer y Rehacer cruzan esa frontera y el rótulo la sigue.
+  const [freshDocs] = useState(() => new WeakSet<ModelDoc>());
   useEffect(() => {
-    const restore = startRestoration(store.getState(), startDoc);
-    if (restore === null) return;
-    setIsExample(true);
-    if (restore.markClean) store.markSaved(null);
-  }, [store, startDoc, atStart, docDirty]);
+    const state = store.getState();
+    const example = exampleLabelFor(state, startDoc, freshDocs);
+    if (example !== null) setIsExample(example);
+    const restore = startRestoration(state, startDoc);
+    if (restore?.markClean) store.markSaved(null);
+  }, [store, startDoc, freshDocs, doc, atStart, docDirty]);
   // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
   // CM-WC: el modelo de arranque sin cambios (ningún documento cargado ni edición desde que se abrió la página) es el único para el que
@@ -466,6 +469,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const applyRegions = (plan: RegionImportPlan, mode: 'add' | 'replace', source: string, fresh: boolean): void => {
     applyRegionImport(store, plan, mode, fresh ? { fileName: source } : undefined);
     if (fresh) {
+      freshDocs.add(store.getState().doc);
       // CM-W2: es otro modelo (el de «Nuevo» con lo importado): el resultado y el método elegido del ejemplo de arranque ya no le corresponden, y
       // deja de ser un «ejemplo» en el rótulo.
       resetEngine();

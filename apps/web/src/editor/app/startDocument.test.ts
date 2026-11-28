@@ -7,7 +7,7 @@ import type { EditorStoreWithSave } from '../state';
 import type { ModelDoc } from '../types';
 import { applyRegionImport } from './applyImport';
 import { isFreshImport, type RegionImportPlan } from './importPlan';
-import { isStartDocument, startRestoration } from './startDocument';
+import { exampleLabelFor, isStartDocument, startRestoration } from './startDocument';
 
 const plan = (): RegionImportPlan => ({
   regions: [{ material: 'suelo', vertices: [[0, 0], [10, 0], [10, 5], [0, 5]] } as never],
@@ -22,11 +22,11 @@ function boot(): { store: EditorStoreWithSave; start: ModelDoc } {
 }
 
 /** Lo que `EditorApp` hace tras cada cambio del almacén (el efecto de RCM-B-09). */
+const freshDocs = new WeakSet<ModelDoc>();
 function settle(store: EditorStoreWithSave, start: ModelDoc, flags: { example: boolean }): void {
-  const r = startRestoration(store.getState(), start);
-  if (r === null) return;
-  flags.example = r.example;
-  if (r.markClean) store.markSaved(null);
+  const example = exampleLabelFor(store.getState(), start, freshDocs);
+  if (example !== null) flags.example = example;
+  if (startRestoration(store.getState(), start)?.markClean) store.markSaved(null);
 }
 const dirty = (store: EditorStoreWithSave): boolean => store.getState().revision !== store.getState().file.savedRevision;
 
@@ -48,7 +48,8 @@ describe('RCM-B-09: volver al documento de arranque con el historial', () => {
     expect(isFreshImport('replace', base())).toBe(true);
 
     applyRegionImport(store, plan(), 'replace', { fileName: 'terraplen.dxf' });
-    flags.example = false; // lo que hace `applyRegions` en EditorApp
+    freshDocs.add(store.getState().doc); // lo que hace `applyRegions` en EditorApp
+    flags.example = false;
     settle(store, start, flags);
     expect(isStartDocument(store.getState(), start)).toBe(false);
     expect(flags.example).toBe(false);
@@ -63,9 +64,18 @@ describe('RCM-B-09: volver al documento de arranque con el historial', () => {
     expect(dirty(store)).toBe(false);
     expect(isFreshImport('replace', base())).toBe(true); // «Reemplazar» otra vez
 
-    store.redo(); // rehacer vuelve a la importación: ya no es el de arranque y sí hay cambios
+    store.redo(); // rehacer vuelve a la importación: ya no es el de arranque, no es un ejemplo y sí hay cambios
     settle(store, start, flags);
     expect(isStartDocument(store.getState(), start)).toBe(false);
+    expect(flags.example).toBe(false);
+    expect(dirty(store)).toBe(true);
+
+    // Deshacer otra vez y editar el arranque: sigue siendo el ejemplo (con cambios), como antes de importar.
+    store.undo();
+    settle(store, start, flags);
+    store.dispatch({ type: 'meta/patch', patch: { title: 'Mi ajuste' } });
+    settle(store, start, flags);
+    expect(flags.example).toBe(true);
     expect(dirty(store)).toBe(true);
   });
 
