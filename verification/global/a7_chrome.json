@@ -1,0 +1,96 @@
+{
+ "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+ "version": "0.5.1",
+ "out": [
+  {
+   "input": "wasm_S2_circular",
+   "fos": 0.9690034142300259,
+   "seconds": [
+    0.3545999999940395,
+    0.34940000000596044,
+    0.3505
+   ],
+   "sha256": "050fc8abbb852fce28a5066b3ed28f00d860203d7c42f615820d9d63d3e53936",
+   "stats": null
+  },
+  {
+   "input": "wasm_S2_global",
+   "fos": 0.7505125386511424,
+   "seconds": [
+    0.6865,
+    0.6733000000119209,
+    0.6800999999940396
+   ],
+   "sha256": "8d4ccf7c53a7e8b5975f2b002ef8351143d893b8db7f99fc50931fc03c69204d",
+   "stats": {
+    "algorithm": "block",
+    "generated": 500,
+    "attempts": 1597,
+    "converged": 249,
+    "eligible": 241,
+    "tension_rejected": 8,
+    "refined": 1,
+    "evaluated": 2078,
+    "polish_evaluated": 215,
+    "global_fos": 0.7505125386511424,
+    "winner": "global"
+   }
+  },
+  {
+   "input": "wasm_S2_refinement",
+   "fos": 0.8498681680881354,
+   "seconds": [
+    0.5597000000178813,
+    0.5544000000059605,
+    0.5565
+   ],
+   "sha256": "c785785dd0b60b8e3532d7eeded41479a24511fff181781ba345fa89af1ba2a7",
+   "stats": null
+  },
+  {
+   "input": "wasm_V053_circular",
+   "fos": 1.0916705168536467,
+   "seconds": [
+    0.39280000001192095,
+    0.37340000000596046,
+    0.372
+   ],
+   "sha256": "2dc44e31fa44de99133736eed07efffa411a41937351b57cadd4e564ecc681f0",
+   "stats": null
+  },
+  {
+   "input": "wasm_V053_global",
+   "fos": 1.0103002234001168,
+   "seconds": [
+    1.0709000000059605,
+    1.0541999999880791,
+    1.0572000000178814
+   ],
+   "sha256": "d1c5052bfddcb192f49770bcc4d87c0513682352dc662ff6e964515a15b9cac8",
+   "stats": {
+    "algorithm": "block",
+    "generated": 500,
+    "attempts": 3252,
+    "converged": 203,
+    "eligible": 203,
+    "tension_rejected": 0,
+    "refined": 1,
+    "evaluated": 3349,
+    "polish_evaluated": 659,
+    "global_fos": 1.0103002234001168,
+    "winner": "global"
+   }
+  },
+  {
+   "input": "wasm_V053_refinement",
+   "fos": 1.0847376214469178,
+   "seconds": [
+    0.729300000011921,
+    0.7245,
+    0.7105999999940396
+   ],
+   "sha256": "52da85650f7792b9f81c6230baf69e226f3e7037cc73002dba36a561bc084403",
+   "stats": null
+  }
+ ]
+}
