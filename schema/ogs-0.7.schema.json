@@ -1,0 +1,2007 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ogs-0.7.schema.json",
+  "title": "OpenGeoSlide model (.ogs.json) v0.7",
+  "description": "Formato de modelo v0.6 (briefs/00_CONTRATOS.md §1, briefs/01_CONTRATOS_FASE1.md F1.1, briefs/02_CONTRATOS_FASE3.md F3.1, briefs/03_CONTRATOS_REFUERZOS.md F4.1 y F4.2, briefs/04_CONTRATOS_GRIETA_AGUA.md F5.1 y F5.2 y briefs/05_CONTRATOS_FASE3B.md F6.1 a F6.4). Admite version 0.1, 0.2, 0.3, 0.4, 0.5 y 0.6. Con version 0.1, loads solo puede ser [] y analysis.seismic solo null o ausente (igual que ogs-core); el resto de usos de loads y seismic exigen version 0.2 o posterior. Cada campo o variante nueva de la Fase 3a exige version 0.3: model \"undrained\", los campos undrained_strength, strength_datum, strength_gradient y strength_limit, surface.type \"polyline\", los métodos morgenstern_price, janbu_simplified y janbu_corrected, y analysis.interslice (un valor null cuenta como ausente, igual que en ogs-core). La lista reinforcements (anchor, nail, geosynthetic, pile y sheet_pile) exige version 0.4: con una versión menor solo puede ser [] (null no se admite, igual que loads). analysis.tension_crack (depth: número finito mayor que 0 o la cadena \\\"auto\\\"; water_fill: número en [0, 1], obligatorio y sin valor por defecto; sin otros campos) exige version 0.5: con una versión menor solo puede ser null o estar ausente (igual que en ogs-core). Los materiales hoek_brown (ucs > 0, gsi en [0, 100], mi > 0 y disturbance en [0, 1], los cuatro obligatorios; prohíbe cohesion, friction_angle, undrained_strength, strength_datum, strength_gradient, strength_limit y shansep) y shansep (el objeto shansep con ratio > 0, exponent opcional en [0, 1] con 0,8 por defecto y exactamente uno de ocr, pop u ocr_by_elevation; prohíbe cohesion, friction_angle, los cuatro no drenados y ucs, gsi, mi y disturbance) exigen version 0.6, igual que analysis.search.non_circular (seeds entero en [1, 10] y max_vertices en {9, 17, 33}, ambos opcionales y sin otros campos). Con una versión menor, esos campos solo pueden ser null o estar ausentes (igual que en ogs-core). El agua embalsada (la piezométrica sobre el terreno) no tiene campo y se aplica en todas las versiones (D1). Las cotas son las de briefs/00_CONTRATOS.md §4.5 y las del motor: el esquema y el binario ogs aceptan y rechazan los mismos documentos, salvo las reglas que JSON Schema no puede expresar y valida solo el motor: material de cada región existente, ids de material y de carga únicos, x1 < x2 en cada udl, x de cada carga dentro del rango del modelo, polígonos simples sin solapes ni áreas degeneradas, piezométrica con x estrictamente creciente, rangos entry/exit con lo ≤ hi y dentro del modelo, n_entry·n_exit·n_radius ≤ 2 000 000, x estrictamente creciente (con separación de al menos 1e-9 por el ancho del modelo) en analysis.surface de tipo polyline, los puntos de interslice.data_points (ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0), y, en reinforcements, los ids únicos, la longitud mayor que 0, x1 = x2 en sheet_pile y pullout.bonded_length ≤ longitud del elemento, ocr_by_elevation con y estrictamente creciente, y las reglas de F6.5 que relacionan dos partes del documento (analysis.tension_crack.depth \"auto\" o lateral_pressure con materiales hoek_brown/shansep, y el método bishop con analysis.search.non_circular; E16n). Las unidades no se convierten: deben ser coherentes entre sí. Los ángulos van en grados. En un pile (E15i-1, solo version 0.5): force pasa a ser opcional y aparecen lateral_pressure (model ito_matsui, diameter > 0, location centroid o slip_surface, obligatorio) y capacity (shear y/o moment > 0); exactamente uno de force y lateral_pressure; capacity solo con lateral_pressure; con una versión menor ambos solo pueden ser null o estar ausentes (igual que en ogs-core).",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "materials",
+    "regions",
+    "analysis"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "version": {
+            "const": "0.1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "loads": {
+            "type": "array",
+            "maxItems": 0
+          },
+          "analysis": {
+            "properties": {
+              "seismic": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 y 0.2: ningún campo de la Fase 3a (un null cuenta como ausente).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "materials": {
+            "items": {
+              "properties": {
+                "model": {
+                  "const": "mohr_coulomb"
+                },
+                "undrained_strength": {
+                  "type": "null"
+                },
+                "strength_datum": {
+                  "type": "null"
+                },
+                "strength_gradient": {
+                  "type": "null"
+                },
+                "strength_limit": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "analysis": {
+            "properties": {
+              "methods": {
+                "items": {
+                  "enum": [
+                    "bishop",
+                    "spencer"
+                  ]
+                }
+              },
+              "interslice": {
+                "type": "null"
+              },
+              "surface": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "properties": {
+                      "type": {
+                        "const": "circle"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1, 0.2 y 0.3: reinforcements solo puede ser [] (E14a).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reinforcements": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 a 0.4: analysis.tension_crack solo puede ser null o estar ausente (E15a).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3",
+              "0.4"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "analysis": {
+            "properties": {
+              "tension_crack": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 a 0.4: lateral_pressure y capacity de un pile solo pueden ser null o estar ausentes (E15i-1).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3",
+              "0.4"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reinforcements": {
+            "items": {
+              "properties": {
+                "lateral_pressure": {
+                  "type": "null"
+                },
+                "capacity": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 a 0.5: ningún campo de la Fase 3B (un null cuenta como ausente).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3",
+              "0.4",
+              "0.5"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "materials": {
+            "items": {
+              "properties": {
+                "model": {
+                  "enum": [
+                    "mohr_coulomb",
+                    "undrained"
+                  ]
+                },
+                "ucs": {
+                  "type": "null"
+                },
+                "gsi": {
+                  "type": "null"
+                },
+                "mi": {
+                  "type": "null"
+                },
+                "disturbance": {
+                  "type": "null"
+                },
+                "shansep": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "analysis": {
+            "properties": {
+              "search": {
+                "properties": {
+                  "non_circular": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Versiones 0.1 a 0.6: global solo puede ser null o estar ausente (F7.1).",
+      "if": {
+        "properties": {
+          "version": {
+            "enum": [
+              "0.1",
+              "0.2",
+              "0.3",
+              "0.4",
+              "0.5",
+              "0.6"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "analysis": {
+            "properties": {
+              "search": {
+                "properties": {
+                  "non_circular": {
+                    "properties": {
+                      "global": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "format": {
+      "const": "opengeoslide"
+    },
+    "version": {
+      "enum": [
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7"
+      ]
+    },
+    "meta": {
+      "$ref": "#/$defs/meta"
+    },
+    "units": {
+      "description": "Convencionalmente \"SI\" o \"imperial\". ogs-core acepta cualquier cadena (o null) y no convierte unidades.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "examples": [
+        "SI",
+        "imperial"
+      ]
+    },
+    "materials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/material"
+      }
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/region"
+      }
+    },
+    "water": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/water"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "loads": {
+      "$ref": "#/$defs/loads"
+    },
+    "reinforcements": {
+      "$ref": "#/$defs/reinforcements"
+    },
+    "slope": {
+      "$ref": "#/$defs/slope"
+    },
+    "analysis": {
+      "$ref": "#/$defs/analysis"
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "range": {
+      "description": "Rango [min, max] en x.",
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polyline": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/point"
+      }
+    },
+    "polygon": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "$ref": "#/$defs/point"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "material": {
+      "description": "Los campos que exige o prohíbe cada model (F3.2 y F6.2/F6.3): mohr_coulomb exige cohesion y friction_angle y prohíbe los cuatro campos no drenados y ucs, gsi, mi, disturbance y shansep; undrained exige undrained_strength y prohíbe cohesion, friction_angle y ucs, gsi, mi, disturbance y shansep; hoek_brown exige ucs, gsi, mi y disturbance y prohíbe cohesion, friction_angle, los cuatro no drenados y shansep; shansep exige el objeto shansep y prohíbe cohesion, friction_angle, los cuatro no drenados y ucs, gsi, mi y disturbance. strength_datum (una cota, no una profundidad) y strength_gradient van juntos o no van; strength_limit solo se admite con strength_gradient. Un null cuenta como campo ausente (igual que en ogs-core). El modelo undrained exige version 0.3; hoek_brown y shansep exigen version 0.6.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "model",
+        "unit_weight"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "enum": [
+            "mohr_coulomb",
+            "undrained",
+            "hoek_brown",
+            "shansep"
+          ]
+        },
+        "unit_weight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit_weight_sat": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "cohesion": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "friction_angle": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "exclusiveMaximum": 90
+        },
+        "ru": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "undrained_strength": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "strength_datum": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "strength_gradient": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "strength_limit": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ucs": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "gsi": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "mi": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "disturbance": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shansep": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/shansep_spec"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "model": {
+                "const": "mohr_coulomb"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "cohesion",
+              "friction_angle"
+            ],
+            "properties": {
+              "cohesion": {
+                "type": "number"
+              },
+              "friction_angle": {
+                "type": "number"
+              },
+              "undrained_strength": {
+                "type": "null"
+              },
+              "strength_datum": {
+                "type": "null"
+              },
+              "strength_gradient": {
+                "type": "null"
+              },
+              "strength_limit": {
+                "type": "null"
+              },
+              "ucs": {
+                "type": "null"
+              },
+              "gsi": {
+                "type": "null"
+              },
+              "mi": {
+                "type": "null"
+              },
+              "disturbance": {
+                "type": "null"
+              },
+              "shansep": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "model": {
+                "const": "undrained"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "undrained_strength"
+            ],
+            "properties": {
+              "undrained_strength": {
+                "type": "number"
+              },
+              "cohesion": {
+                "type": "null"
+              },
+              "friction_angle": {
+                "type": "null"
+              },
+              "ucs": {
+                "type": "null"
+              },
+              "gsi": {
+                "type": "null"
+              },
+              "mi": {
+                "type": "null"
+              },
+              "disturbance": {
+                "type": "null"
+              },
+              "shansep": {
+                "type": "null"
+              }
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "strength_datum",
+                  "strength_gradient"
+                ],
+                "properties": {
+                  "strength_datum": {
+                    "type": "number"
+                  },
+                  "strength_gradient": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "strength_datum": {
+                    "type": "null"
+                  },
+                  "strength_gradient": {
+                    "type": "null"
+                  },
+                  "strength_limit": {
+                    "type": "null"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "model": {
+                "const": "hoek_brown"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ucs",
+              "gsi",
+              "mi",
+              "disturbance"
+            ],
+            "properties": {
+              "ucs": {
+                "type": "number"
+              },
+              "gsi": {
+                "type": "number"
+              },
+              "mi": {
+                "type": "number"
+              },
+              "disturbance": {
+                "type": "number"
+              },
+              "cohesion": {
+                "type": "null"
+              },
+              "friction_angle": {
+                "type": "null"
+              },
+              "undrained_strength": {
+                "type": "null"
+              },
+              "strength_datum": {
+                "type": "null"
+              },
+              "strength_gradient": {
+                "type": "null"
+              },
+              "strength_limit": {
+                "type": "null"
+              },
+              "shansep": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "model": {
+                "const": "shansep"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "shansep"
+            ],
+            "properties": {
+              "shansep": {
+                "$ref": "#/$defs/shansep_spec"
+              },
+              "cohesion": {
+                "type": "null"
+              },
+              "friction_angle": {
+                "type": "null"
+              },
+              "undrained_strength": {
+                "type": "null"
+              },
+              "strength_datum": {
+                "type": "null"
+              },
+              "strength_gradient": {
+                "type": "null"
+              },
+              "strength_limit": {
+                "type": "null"
+              },
+              "ucs": {
+                "type": "null"
+              },
+              "gsi": {
+                "type": "null"
+              },
+              "mi": {
+                "type": "null"
+              },
+              "disturbance": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "shansep_spec": {
+      "description": "Parámetros SHANSEP (solo version 0.6, F6.3). ratio (S) finito > 0; exponent (m) opcional, finito en [0, 1] con 0,8 por defecto; exactamente uno de ocr (≥ 1), pop (≥ 0) u ocr_by_elevation (tabla [[y, OCR], …] con al menos 2 filas y OCR finito ≥ 1; la y estrictamente creciente la valida solo el motor, E16n).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ratio"
+      ],
+      "properties": {
+        "ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "exponent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8
+        },
+        "ocr": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "pop": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ocr_by_elevation": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/ocr_by_elevation"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "ocr"
+          ],
+          "properties": {
+            "ocr": {
+              "type": "number"
+            },
+            "pop": {
+              "type": "null"
+            },
+            "ocr_by_elevation": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "pop"
+          ],
+          "properties": {
+            "ocr": {
+              "type": "null"
+            },
+            "pop": {
+              "type": "number"
+            },
+            "ocr_by_elevation": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "required": [
+            "ocr_by_elevation"
+          ],
+          "properties": {
+            "ocr": {
+              "type": "null"
+            },
+            "pop": {
+              "type": "null"
+            },
+            "ocr_by_elevation": {
+              "type": "array"
+            }
+          }
+        }
+      ]
+    },
+    "ocr_by_elevation": {
+      "description": "Tabla de OCR por cota [[y, OCR], …] (solo version 0.6, F6.3): al menos 2 filas [y, OCR] con OCR finito ≥ 1; la y estrictamente creciente la valida solo el motor (E16n).",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number",
+            "minimum": 1
+          }
+        ],
+        "items": false,
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material",
+        "polygon"
+      ],
+      "properties": {
+        "material": {
+          "type": "string",
+          "minLength": 1
+        },
+        "polygon": {
+          "$ref": "#/$defs/polygon"
+        }
+      }
+    },
+    "water": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unit_weight": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 9.81,
+          "description": "Unit weight of the water, in the units of the model. If it is absent: 9.81 kN/m3 with units \"SI\", and with units \"imperial\" the same 9.81 kN/m3 converted (about 62.45 pcf). It applies to the piezometric line, the ponded water and the water in the tension crack. The \"default\" is the SI one."
+        },
+        "piezometric_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/polyline"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "loads": {
+      "description": "Cargas superficiales (solo version 0.2). Por defecto, lista vacía.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/udl"
+          },
+          {
+            "$ref": "#/$defs/line_load"
+          }
+        ]
+      },
+      "default": []
+    },
+    "udl": {
+      "description": "Carga distribuida vertical q (kPa; psf en unidades imperiales) sobre el terreno entre x1 y x2 (x1 < x2, ambos dentro del rango x del modelo).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "x1",
+        "x2",
+        "q"
+      ],
+      "properties": {
+        "type": {
+          "const": "udl"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "x1": {
+          "type": "number"
+        },
+        "x2": {
+          "type": "number"
+        },
+        "q": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "line_load": {
+      "description": "Carga lineal p (kN/m; lbf/ft en unidades imperiales) aplicada en (x, y_top(x)). angle en grados desde la vertical hacia abajo; el positivo inclina la carga hacia +x del modelo.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "x",
+        "p"
+      ],
+      "properties": {
+        "type": {
+          "const": "line"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "x": {
+          "type": "number"
+        },
+        "p": {
+          "type": "number",
+          "minimum": 0
+        },
+        "angle": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "default": 0
+        }
+      }
+    },
+    "reinforcements": {
+      "description": "Refuerzos (solo version 0.4). Por defecto, lista vacía; ids únicos (solo el motor lo valida).",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/tension_element"
+          },
+          {
+            "$ref": "#/$defs/pile"
+          },
+          {
+            "$ref": "#/$defs/sheet_pile"
+          }
+        ]
+      },
+      "default": []
+    },
+    "tension_element": {
+      "description": "anchor, nail o geosynthetic (F4.2): segmento de la cabeza (x1, y1) a la punta (x2, y2), de longitud mayor que 0. Las capacidades van por elemento; spacing (por defecto 1) las pasa a fuerza por metro de talud. application y direction son obligatorios. Un null cuenta como campo ausente.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "application",
+        "tensile_capacity",
+        "direction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "anchor",
+            "nail",
+            "geosynthetic"
+          ]
+        },
+        "x1": {
+          "type": "number"
+        },
+        "y1": {
+          "type": "number"
+        },
+        "x2": {
+          "type": "number"
+        },
+        "y2": {
+          "type": "number"
+        },
+        "application": {
+          "enum": [
+            "active",
+            "passive"
+          ]
+        },
+        "tensile_capacity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end1_capacity": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "end2_capacity": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "spacing": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "direction": {
+          "enum": [
+            "axial",
+            "tangent",
+            "bisector"
+          ]
+        },
+        "pullout": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pullout"
+            }
+          ]
+        }
+      }
+    },
+    "pile": {
+      "description": "pile (F4.2, E15i-1): pilote o micropilote. La cabeza (x1, y1) es el extremo superior; longitud mayor que 0. Con force (≥ 0, fuerza de corte constante por pilote) o, solo con version 0.5, con lateral_pressure (fuerza por la presión del suelo, Ito y Matsui 1975): exactamente uno de los dos (null cuenta como ausente). capacity (shear, moment, al menos uno, > 0) solo se admite junto con lateral_pressure. spacing por defecto 1; con lateral_pressure el pilote es vertical (|x2 − x1| ≤ 1e-9·L) y spacing > diameter (solo el motor lo valida). direction angle exige angle en (−90, 90), medido sobre la horizontal (0 es horizontal); con tangent y perpendicular angle está prohibido. La fuerza actúa en el cruce con la superficie de deslizamiento (E14m-3: no hay campo location en el pilote; el de lateral_pressure es otro y se rechaza aquí como campo desconocido).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "application",
+        "direction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "pile"
+        },
+        "x1": {
+          "type": "number"
+        },
+        "y1": {
+          "type": "number"
+        },
+        "x2": {
+          "type": "number"
+        },
+        "y2": {
+          "type": "number"
+        },
+        "application": {
+          "enum": [
+            "active",
+            "passive"
+          ]
+        },
+        "force": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "spacing": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "direction": {
+          "enum": [
+            "angle",
+            "tangent",
+            "perpendicular"
+          ]
+        },
+        "angle": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": -90,
+          "exclusiveMaximum": 90
+        },
+        "lateral_pressure": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/lateral_pressure"
+            }
+          ]
+        },
+        "capacity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pile_capacity"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "direction": {
+                "const": "angle"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "angle"
+            ],
+            "properties": {
+              "angle": {
+                "type": "number"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "angle": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "description": "force o lateral_pressure, exactamente uno (E15i-1); capacity solo con lateral_pressure.",
+          "if": {
+            "required": [
+              "lateral_pressure"
+            ],
+            "properties": {
+              "lateral_pressure": {
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "force": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "force"
+            ],
+            "properties": {
+              "force": {
+                "type": "number"
+              },
+              "capacity": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sheet_pile": {
+      "description": "sheet_pile (F4.2): tablestaca, una fila continua de pilotes; force es la fuerza de corte por metro de muro, sin spacing. Es vertical: x1 = x2 (solo lo valida el motor). direction y angle como en pile.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "application",
+        "force",
+        "direction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "const": "sheet_pile"
+        },
+        "x1": {
+          "type": "number"
+        },
+        "y1": {
+          "type": "number"
+        },
+        "x2": {
+          "type": "number"
+        },
+        "y2": {
+          "type": "number"
+        },
+        "application": {
+          "enum": [
+            "active",
+            "passive"
+          ]
+        },
+        "force": {
+          "type": "number",
+          "minimum": 0
+        },
+        "direction": {
+          "enum": [
+            "angle",
+            "tangent",
+            "perpendicular"
+          ]
+        },
+        "angle": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": -90,
+          "exclusiveMaximum": 90
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "direction": {
+                "const": "angle"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "angle"
+            ],
+            "properties": {
+              "angle": {
+                "type": "number"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "angle": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pullout": {
+      "description": "Modelo de arrancamiento (F4.2), etiquetado por model. bond: strength (fuerza por metro de elemento, ≥ 0) y bonded_length opcional (> 0 y ≤ longitud, esto último solo lo valida el motor; la adherencia solo actúa en los últimos metros hacia la punta). interface: adhesion ≥ 0, friction_angle en [0, 90), coverage en (0, 1]. development: length1 y length2 ≥ 0. Sin pullout, el elemento está totalmente anclado en ambos extremos.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "strength"
+          ],
+          "properties": {
+            "model": {
+              "const": "bond"
+            },
+            "strength": {
+              "type": "number",
+              "minimum": 0
+            },
+            "bonded_length": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "adhesion",
+            "friction_angle",
+            "coverage"
+          ],
+          "properties": {
+            "model": {
+              "const": "interface"
+            },
+            "adhesion": {
+              "type": "number",
+              "minimum": 0
+            },
+            "friction_angle": {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMaximum": 90
+            },
+            "coverage": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model",
+            "length1",
+            "length2"
+          ],
+          "properties": {
+            "model": {
+              "const": "development"
+            },
+            "length1": {
+              "type": "number",
+              "minimum": 0
+            },
+            "length2": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "seismic": {
+      "description": "Coeficientes pseudoestáticos (solo version 0.2). kh·W actúa en el sentido del deslizamiento; con kv > 0, kv·W actúa hacia abajo. Se aplican solo al peso del suelo, nunca a las cargas.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kh": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1,
+          "default": 0
+        },
+        "kv": {
+          "type": "number",
+          "exclusiveMinimum": -1,
+          "exclusiveMaximum": 1,
+          "default": 0
+        }
+      }
+    },
+    "slope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "left_to_right",
+            "right_to_left"
+          ],
+          "default": "auto"
+        }
+      }
+    },
+    "analysis": {
+      "description": "Debe haber superficie fija o búsqueda (no nulas): sin ellas el motor responde NoSurface.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "surface"
+          ],
+          "properties": {
+            "surface": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "required": [
+            "search"
+          ],
+          "properties": {
+            "search": {
+              "type": "object"
+            }
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "description": "interslice solo con morgenstern_price en methods (F3.4).",
+          "if": {
+            "required": [
+              "interslice"
+            ],
+            "properties": {
+              "interslice": {
+                "type": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "methods": {
+                "contains": {
+                  "const": "morgenstern_price"
+                }
+              }
+            },
+            "required": [
+              "methods"
+            ]
+          }
+        },
+        {
+          "description": "Bishop no admite una polilínea (F3.6), y sin methods el valor por defecto es [\"bishop\"]: una polilínea fija exige methods (E13l-8). Con analysis.search, la superficie fija se ignora y la regla no aplica.",
+          "if": {
+            "required": [
+              "surface"
+            ],
+            "properties": {
+              "surface": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "polyline"
+                  }
+                }
+              },
+              "search": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "methods": {
+                "items": {
+                  "not": {
+                    "const": "bishop"
+                  }
+                }
+              }
+            },
+            "required": [
+              "methods"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "methods": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "bishop",
+              "spencer",
+              "morgenstern_price",
+              "janbu_simplified",
+              "janbu_corrected"
+            ]
+          },
+          "default": [
+            "bishop"
+          ]
+        },
+        "slices": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 2000,
+          "default": 50
+        },
+        "tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.01,
+          "default": 1e-05
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000,
+          "default": 500
+        },
+        "min_m_alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "default": 0.2
+        },
+        "seismic": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/seismic"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interslice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/interslice"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tension_crack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/tension_crack"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "surface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/surface"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "search": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/search"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "surface": {
+      "description": "Superficie fija. Se ignora si existe analysis.search. El círculo es de toda versión; la polilínea exige version 0.3.",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surface_circle"
+        },
+        {
+          "$ref": "#/$defs/surface_polyline"
+        }
+      ]
+    },
+    "surface_circle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "xc",
+        "yc",
+        "r"
+      ],
+      "properties": {
+        "type": {
+          "const": "circle"
+        },
+        "xc": {
+          "type": "number"
+        },
+        "yc": {
+          "type": "number"
+        },
+        "r": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "surface_polyline": {
+      "description": "Polilínea fija (version 0.3): al menos 2 puntos con x estrictamente creciente (el motor lo valida). Se ajusta al terreno prolongando o recortando sus extremos.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "points"
+      ],
+      "properties": {
+        "type": {
+          "const": "polyline"
+        },
+        "points": {
+          "$ref": "#/$defs/polyline"
+        }
+      }
+    },
+    "interslice": {
+      "description": "Función de las fuerzas entre dovelas de morgenstern_price (version 0.3, F3.4). points [[ξ, f], …] solo con data_points, y es obligatorio con ella; el motor valida ξ estrictamente creciente de 0 a 1, f ≥ 0 y algún f > 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "function"
+      ],
+      "properties": {
+        "function": {
+          "enum": [
+            "constant",
+            "half_sine",
+            "clipped_sine",
+            "trapezoidal",
+            "data_points"
+          ]
+        },
+        "points": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/polyline"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "function": {
+                "const": "data_points"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "points"
+            ],
+            "properties": {
+              "points": {
+                "type": "array"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "points": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "tension_crack": {
+      "description": "Grieta de tracción (solo version 0.5, E15b). depth: número finito > 0 en la unidad de longitud del modelo, o \"auto\" (G6). water_fill: fracción de la grieta llena de agua en [0, 1]; obligatoria, sin valor por defecto (0 seca, 1 llena). No hay campo de posición: x_c sale de la superficie y de la profundidad (G1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "depth",
+        "water_fill"
+      ],
+      "properties": {
+        "depth": {
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "const": "auto"
+            }
+          ]
+        },
+        "water_fill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "search": {
+      "description": "Búsqueda circular entrada-salida. Si existe, reemplaza a analysis.surface.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "circular_entry_exit"
+        },
+        "entry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/range"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/range"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "n_entry": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        },
+        "n_exit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        },
+        "n_radius": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        },
+        "max_radius_factor": {
+          "type": "number",
+          "exclusiveMinimum": 0.51,
+          "default": 5.0
+        },
+        "min_width": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "refine": {
+          "type": "boolean",
+          "default": true
+        },
+        "non_circular": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/non_circular"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "non_circular": {
+      "description": "Búsqueda no circular (solo version 0.6, F6.4): objeto opcional dentro de analysis.search, sin otros campos. seeds: entero en [1, 10], 3 por defecto; max_vertices: 9, 17 o 33, 33 por defecto; null cuenta como ausente (E16z). {} es válido.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seeds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        "max_vertices": {
+          "enum": [
+            9,
+            17,
+            33,
+            null
+          ],
+          "default": 33
+        },
+        "global": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/non_circular_global"
+            }
+          ]
+        }
+      }
+    },
+    "lateral_pressure": {
+      "description": "Presión lateral del suelo sobre un pilote (solo version 0.5, E15i-1). model: ito_matsui (Ito y Matsui 1975, ecs. 13, 14 y 23). diameter: número finito > 0 en la unidad de longitud del modelo. location: obligatorio, sin valor por defecto; centroid (la fuerza actúa sobre el eje del pilote a L_m sobre el cruce, Cai y Ugai 2000) o slip_surface (en el cruce).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "diameter",
+        "location"
+      ],
+      "properties": {
+        "model": {
+          "const": "ito_matsui"
+        },
+        "diameter": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "location": {
+          "enum": [
+            "centroid",
+            "slip_surface"
+          ]
+        }
+      }
+    },
+    "pile_capacity": {
+      "description": "Topes de la fuerza del suelo de un pilote con lateral_pressure (solo version 0.5, E15i-1): shear (fuerza por pilote) y moment (momento por pilote, fuerza por longitud), cada uno finito y > 0; al menos uno de los dos (null cuenta como ausente).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shear": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "moment": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "shear"
+          ],
+          "properties": {
+            "shear": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "required": [
+            "moment"
+          ],
+          "properties": {
+            "moment": {
+              "type": "number"
+            }
+          }
+        }
+      ]
+    },
+    "non_circular_global": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "auto",
+            "block",
+            "annealing",
+            null
+          ],
+          "default": "auto"
+        },
+        "generated": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 50,
+          "maximum": 2000,
+          "default": 500
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "default": 0
+        },
+        "polish": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true
+        }
+      }
+    }
+  }
+}

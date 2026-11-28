@@ -100,6 +100,25 @@ pub struct NonCircularStats {
     /// FS of the best admissible refined polyline, if any (E16p).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub polyline_fos: Option<f64>,
+    /// Global-search statistics, omitted when not requested.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub global: Option<GlobalStats>,
+}
+
+/// Counters and result of the global stage (F7.2).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct GlobalStats {
+    pub algorithm: &'static str,
+    pub generated: usize,
+    pub attempts: usize,
+    pub converged: usize,
+    pub eligible: usize,
+    pub tension_rejected: usize,
+    pub refined: usize,
+    pub evaluated: usize,
+    pub polish_evaluated: usize,
+    pub global_fos: Option<f64>,
+    pub winner: &'static str,
 }
 
 /// Best surface found and its statistics.

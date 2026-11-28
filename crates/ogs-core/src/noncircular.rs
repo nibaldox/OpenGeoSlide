@@ -175,6 +175,7 @@ pub(crate) fn refine(
         evaluated: 0,
         seed_fos,
         polyline_fos: None,
+        global: None,
     };
     let mut best_surface = Surface::Circle(circle);
     for (circle, _) in seeds.into_iter().take(spec.seeds()) {

@@ -42,6 +42,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_07 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.7.schema.json"), encoding="utf-8"))
 SCHEMA_06 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"), encoding="utf-8"))
 SCHEMA_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
 SCHEMA_04 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
@@ -1507,3 +1508,24 @@ def test_the_engine_gate_names_the_v0_6_fields_and_the_schema_rejects_the_same_d
             path.write_text(json.dumps(model), encoding="utf-8")
             proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
             assert proc.returncode != 0 and 'requiere version "0.6"' in proc.stderr and token in proc.stderr, proc.stderr
+
+
+@pytest.mark.parametrize("spec,valid", [
+    ({}, True),
+    ({"algorithm": "block", "generated": 50, "seed": 0, "polish": False}, True),
+    ({"algorithm": "annealing", "generated": 2000, "seed": 9007199254740991}, True),
+    ({"algorithm": "path"}, False), ({"generated": 49}, False),
+    ({"generated": 2001}, False), ({"seed": -1}, False),
+    ({"seed": 9007199254740992}, False), ({"typo": 1}, False),
+])
+def test_v07_global_schema(spec, valid):
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_07)
+    model = copy.deepcopy(_case_models()["V001-nc"])
+    model["version"] = "0.7"
+    model["analysis"]["search"]["non_circular"]["global"] = spec
+    assert (not _errors(model, SCHEMA_07)) == valid
+    if valid:
+        model["version"] = "0.6"
+        assert _errors(model, SCHEMA_07)
+        model["analysis"]["search"]["non_circular"]["global"] = None
+        assert not _errors(model, SCHEMA_07)
