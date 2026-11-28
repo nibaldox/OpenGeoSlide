@@ -8,6 +8,29 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+### Changed
+- **Rediseño de la web con la identidad de la suite (bloque UA, armazón «A · Flujo de trabajo»).** Contrato:
+  `briefs/UA_CONTRATO.md`, con las enmiendas UA-E1 a UA-E6 (`briefs/ARBITRAJE_RUA.md`); cierre en
+  `docs/suite-a/CIERRE_UA.md`. El motor, el formato `.ogs.json` y los resultados no cambian.
+  - **Identidad:** tokens v1.1 de la suite, con el azul acero como único acento; **tema oscuro por defecto**, con un
+    botón claro/oscuro en la cabecera; fuentes Outfit y JetBrains Mono empaquetadas, que funcionan sin conexión; marca e
+    ícono nuevos.
+  - **Armazón:** barra lateral «Modelo» con los 10 pasos, cada uno con un resumen de una línea y su estado (completo,
+    con error, con avisos u opcional), y su panel debajo del paso activo. Cuatro vistas: Lienzo, Resultados, Casos de
+    verificación e Informe. En escritorio la página no hace scroll.
+  - **Lienzo:** recuadro (HUD) con el FS mínimo y los métodos, paleta de herramientas flotante y leyenda. «Encuadrar»
+    deja libre el espacio del recuadro. El método dibujado es el del FS mínimo.
+  - **Chip de estado** en la cabecera: «FS < 1,0», «Parcial», «N avisos», «Cambios sin aplicar» o «Error: …». Nunca
+    se pone verde, porque la app no juzga si el talud es seguro.
+  - **Móvil:** todo se apila en el orden lienzo, paleta, leyenda y recuadro; la barra con «Comprobar» queda fija abajo.
+    El alto del lienzo se mide para que la paleta quede entera sobre esa barra.
+  - **Accesibilidad:** objetivos de clic de 24 px o más, chevrons y menús como SVG, tooltips con foco, nombres
+    accesibles que coinciden con el texto visible (WCAG 2.5.3) y contraste verificado en ambos temas.
+- **Pruebas.** Aceptación del diseño A01-A17 (`docs/suite-a/e2e/aceptacion_ua.mjs`): 17/17 (v0.5.0: 5/17). Los
+  guiones e2e se migraron al armazón nuevo: 50 guiones con OK=1226 y FAIL=2, ambos ya presentes en v0.5.0. La suite
+  de la web pasa de 3816 a 4333 tests.
+- **README.** Capturas nuevas en tema claro y oscuro; `assets/readme/src/capture-app.mjs` sigue el armazón A.
+
 ## [0.5.0] - 2026-11-27
 
 Bloque de Hoek-Brown, SHANSEP y búsqueda no circular (F3B): formato v0.6. El contrato es
