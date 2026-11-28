@@ -1,0 +1,140 @@
+{
+  "format": "opengeoslide",
+  "version": "0.7",
+  "materials": [
+    {
+      "id": "upper",
+      "name": "HB Strong",
+      "model": "hoek_brown",
+      "unit_weight": 24.0,
+      "ucs": 30000.0,
+      "gsi": 65.0,
+      "mi": 15.0,
+      "disturbance": 0.0
+    },
+    {
+      "id": "weak",
+      "name": "HB Weak",
+      "model": "hoek_brown",
+      "unit_weight": 20.0,
+      "ucs": 1500.0,
+      "gsi": 20.0,
+      "mi": 6.0,
+      "disturbance": 0.7
+    },
+    {
+      "id": "lower",
+      "name": "HB Lower",
+      "model": "hoek_brown",
+      "unit_weight": 25.0,
+      "ucs": 50000.0,
+      "gsi": 75.0,
+      "mi": 18.0,
+      "disturbance": 0.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "upper",
+      "polygon": [
+        [
+          0,
+          8
+        ],
+        [
+          60,
+          8
+        ],
+        [
+          60,
+          22
+        ],
+        [
+          35,
+          22
+        ],
+        [
+          15,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ]
+    },
+    {
+      "material": "weak",
+      "polygon": [
+        [
+          0,
+          6
+        ],
+        [
+          60,
+          6
+        ],
+        [
+          60,
+          8
+        ],
+        [
+          0,
+          8
+        ]
+      ]
+    },
+    {
+      "material": "lower",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          60,
+          4
+        ],
+        [
+          60,
+          6
+        ],
+        [
+          0,
+          6
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 50,
+    "search": {
+      "type": "circular_entry_exit",
+      "entry": [
+        32,
+        58
+      ],
+      "exit": [
+        2,
+        20
+      ],
+      "n_entry": 10,
+      "n_exit": 10,
+      "n_radius": 10,
+      "non_circular": {
+        "seeds": 3,
+        "max_vertices": 33,
+        "global": {
+          "algorithm": "auto",
+          "generated": 100
+        }
+      }
+    }
+  }
+}

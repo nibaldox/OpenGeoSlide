@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-28T02:14:28-03:00",
+  "generated_at": "2026-11-28T03:08:49-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
@@ -10614,12 +10614,12 @@
         "slices": 50
       },
       "ogs": {
-        "fos": 1.010300223400116,
+        "fos": 1.0103002234001155,
         "status": "converged",
         "error": null,
         "engine": "ogs-core 0.5.1",
         "warnings": [],
-        "err_pct": 0.029725089120388987,
+        "err_pct": 0.029725089120345015,
         "verdict": "OK"
       },
       "cslope": {

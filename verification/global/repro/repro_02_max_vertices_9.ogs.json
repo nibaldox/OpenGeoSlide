@@ -1,0 +1,237 @@
+{
+  "format": "opengeoslide",
+  "version": "0.7",
+  "meta": {
+    "id": "V053",
+    "title": "Greco (1996) ex. 5 / Chen & Shao weak-layer slope, reference geometry",
+    "notes": "Greco's weak-seam slope (V054) with a commercial program's geometry and water table; circular search with non-circular optimization, vertical pore-pressure head."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "layer_1",
+      "name": "Layer 1",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 9.8,
+      "friction_angle": 35.0,
+      "ru": null
+    },
+    {
+      "id": "layer_2",
+      "name": "Layer 2",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "unit_weight_sat": null,
+      "cohesion": 58.8,
+      "friction_angle": 25.0,
+      "ru": null
+    },
+    {
+      "id": "layer_3",
+      "name": "Layer 3",
+      "model": "mohr_coulomb",
+      "unit_weight": 21.5,
+      "unit_weight_sat": null,
+      "cohesion": 19.8,
+      "friction_angle": 30.0,
+      "ru": null
+    },
+    {
+      "id": "layer_4",
+      "name": "Layer 4",
+      "model": "mohr_coulomb",
+      "unit_weight": 21.5,
+      "unit_weight_sat": null,
+      "cohesion": 9.8,
+      "friction_angle": 16.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "layer_1",
+      "polygon": [
+        [
+          100.0,
+          40.0
+        ],
+        [
+          145.0,
+          70.0
+        ],
+        [
+          240.0,
+          70.0
+        ],
+        [
+          240.0,
+          55.0
+        ],
+        [
+          190.0,
+          55.0
+        ]
+      ]
+    },
+    {
+      "material": "layer_2",
+      "polygon": [
+        [
+          75.0,
+          30.0
+        ],
+        [
+          95.0,
+          40.0
+        ],
+        [
+          100.0,
+          40.0
+        ],
+        [
+          190.0,
+          55.0
+        ],
+        [
+          240.0,
+          55.0
+        ],
+        [
+          240.0,
+          30.0
+        ]
+      ]
+    },
+    {
+      "material": "layer_3",
+      "polygon": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.0,
+          20.0
+        ],
+        [
+          55.0,
+          20.0
+        ],
+        [
+          75.0,
+          30.0
+        ],
+        [
+          240.0,
+          30.0
+        ],
+        [
+          240.0,
+          15.5
+        ],
+        [
+          150.0,
+          15.5
+        ]
+      ]
+    },
+    {
+      "material": "layer_4",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.5
+        ],
+        [
+          150.0,
+          15.5
+        ],
+        [
+          240.0,
+          15.5
+        ],
+        [
+          240.0,
+          15.0
+        ],
+        [
+          150.0,
+          15.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        20.0
+      ],
+      [
+        55.0,
+        20.0
+      ],
+      [
+        75.0,
+        30.0
+      ],
+      [
+        95.0,
+        40.0
+      ],
+      [
+        100.0,
+        40.0
+      ],
+      [
+        190.0,
+        55.0
+      ],
+      [
+        240.0,
+        55.0
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "entry": [
+        145.0,
+        240.0
+      ],
+      "exit": [
+        0.0,
+        55.0
+      ],
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "non_circular": {
+        "seeds": 3,
+        "max_vertices": 9,
+        "global": {}
+      }
+    }
+  }
+}

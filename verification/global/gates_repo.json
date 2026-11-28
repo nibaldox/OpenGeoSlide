@@ -2,33 +2,36 @@
  "A1": {
   "ok": true,
   "criterion": "sin `global`: 0 diferencias frente a la v0.5.1 en todos los casos (`identity_vs_baseline.py --normalize-version --include-reinforced --include-v05 --include-v06 --with-v06`, base `$TMPDIR/cm-base/ogs`)",
-  "figure": "0 diferencias en 196 modelos (variantes own, search, fixed, @0.4 y @0.6; 0 excepciones) y los 24 modelos con agua sobre el terreno, idénticos",
+  "figure": "0 diferencias en 202 modelos (variantes own, search, fixed, @0.4 y @0.6; 0 excepciones) y los 26 modelos con agua sobre el terreno, idénticos",
   "detail": [
-   "Se agregó la bandera `--include-v06` a `verification/tools/identity_vs_baseline.py`: el binario base v0.5.1 lee la versión 0.6, así que los 17 modelos con campos v0.6 (no circular, Hoek-Brown, SHANSEP) entran; sin la bandera quedaban «saltados aparte» y A1 no tocaba justo el camino que cambió (`noncircular.rs`). Sus variantes @0.4 se omiten (la 0.4 no puede escribir esos campos).",
-   "Sin la bandera (el comando literal del brief): 0 diferencias en 180 modelos, 17 saltados; con ella, 0 diferencias en 196 (20 comparaciones `search` con error en ambos binarios y mismo mensaje)."
+   "- `--include-v06` (CM-M): el binario base v0.5.1 lee la versión 0.6, así que los modelos con campos v0.6 entran a la comparación.",
+   "- `without_global` (CM-M2): `verification/cases` trae ahora V053 en versión 0.7 y con `global`, que el binario base no lee. La identidad compara cada documento 0.7 sin `global` y como 0.6 (F7.0: sin `global`, la salida es la de 0.6). Sin ese cambio daba 3 diferencias en V053 (`own`, `search` y `search@0.6`: el base rechaza la versión 0.7).",
+   "- Con el comando literal del brief (sin `--include-v06`) quedan saltados aparte los modelos con campos v0.6."
   ]
  },
  "A10": {
   "ok": true,
-  "criterion": "fmt, clippy `-D warnings`, `cargo test` con y sin `parallel`, aceptación, CLI, wheel, `verification` con pytest, harness y batería diferencial: todo en verde y sin fallas nuevas",
-  "figure": "todo en verde; falta vitest y el build de `apps/web` (de otro escritor, no se corrieron aquí)",
+  "criterion": "fmt, clippy `-D warnings`, `cargo test` con y sin `parallel`, aceptación, CLI, wheel, `verification` con pytest, harness y batería diferencial, `tsc` y vitest: todo en verde y sin fallas nuevas",
+  "figure": "todo en verde (CM-M2: 827 tests de ogs-core, 356/356 checks del harness, tsc y vitest 4922)",
   "detail": [
    "| Puerta | Resultado |",
    "|---|---|",
    "| `cargo fmt --all --check` | sin diferencias |",
    "| `cargo clippy --workspace --exclude ogs-py --all-targets -- -D warnings` | sin avisos |",
-   "| `cargo test -p ogs-core --release` | 809 pasan, 0 fallan, 3 ignorados |",
-   "| `cargo test -p ogs-core --release --features parallel` | 809 pasan, 0 fallan, 3 ignorados |",
-   "| aceptación (`--test acceptance`) | 3 pasan; 347 checks, 0 fallas |",
+   "| `cargo test -p ogs-core --release` | 827 pasan, 0 fallan, 3 ignorados |",
+   "| `cargo test -p ogs-core --release --features parallel` | 827 pasan, 0 fallan, 3 ignorados |",
+   "| aceptación (`--test acceptance`) | 3 pasan; 356 checks, 0 fallas |",
    "| `cargo test -p ogs-cli --release` | 8 pasan |",
-   "| `pytest verification/tools` (con `OGS_BIN`) | 763 pasan, 1 omitido |",
-   "| harness (`verification/harness/run.py`) | 347/347 OK, cSlope reproduce 346/347 (igual que la base) |",
-   "| batería diferencial (`--include-f3b`) | búsqueda 28/28, fija 28/28, F3B 41 OK + 1 explicado (igual que la base) |",
-   "| `pytest verification/harness verification/differential` | 796 pasan |",
-   "| wheel (`maturin build --release`, instalación, `pytest tests`) | 371 pasan, 2 omitidos |",
-   "| vitest y build de la web | no corridos (`apps/web` no es de CM-M) |",
+   "| `pytest verification/tools` (con `OGS_BIN`) | 767 pasan, 1 omitido |",
+   "| harness (`verification/harness/run.py`, 175 casos) | 356/356 OK; cSlope reproduce 355/356 (igual que antes) |",
+   "| batería diferencial (`--include-f3b`) | búsqueda 28/28, fija 28/28, F3B 41 OK + 1 explicado (igual que antes) |",
+   "| `pytest verification/harness verification/differential` | 798 pasan |",
+   "| wheel (`maturin build --release`, instalación, `pytest tests`) | 373 pasan, 2 omitidos |",
+   "| `tsc --noEmit` (`apps/web`) | sin errores |",
+   "| vitest (`apps/web`) | 289 archivos, 4922 pasan, 3 omitidos |",
    "",
-   "Los tests existentes que fallaban por aceptar la 0.7 (`f3g_types`, `f3r_types`, `loads_seismic`, `v03_format`, 4 de `test_schema.py` y `test_v06.py` del wheel) usaban la 0.7 como «versión desconocida»: ahora usan la 0.8. Ninguno se borró; uno cambió de nombre (`..._and_0_7_is_unknown` → `..._and_0_8_is_unknown`). Los comandos del brief para `pytest verification/tools` no traen `shapely` ni `OGS_BIN`: sin ellos fallan por el entorno, no por el código (el mismo error en la base)."
+   "Antes (CM-M, `1399813`): 809 tests de ogs-core, 347 checks, 763 en `verification/tools`, 796 en harness y diferencial, 371 en el wheel.",
+   "Los tests que cambian por E17e: los mensajes de rango de `global` (`ogsJson.v07.test.ts`, `validateLocal.v07.test.ts`), que ahora dicen `[0, 9007199254740991]` en vez de `[0, 2^53 - 1]`."
   ]
  }
 }

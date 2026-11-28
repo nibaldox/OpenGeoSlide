@@ -1,9 +1,13 @@
 //! Global non-circular candidates (F7.3, E17a).
 use crate::geometry::PreparedModel;
-use crate::model::{Circle, GlobalAlgorithm, GlobalSpec, MaterialModel, Model, Point, SearchSpec};
+use crate::model::{
+    Circle, GlobalAlgorithm, GlobalSpec, Model, NonCircularSpec, Point, SearchSpec,
+};
 use crate::noncircular;
 use crate::search::GlobalStats;
+use crate::strength::{self, StrengthLaw};
 use crate::surface::{Polyline, Surface, search_circle_polyline, search_polyline_admissible};
+use crate::{hoek_brown, shansep};
 
 struct SplitMix64(u64);
 impl SplitMix64 {
@@ -45,18 +49,21 @@ fn inside(p: Point, poly: &[Point]) -> bool {
     }
     yes
 }
-/// The weak layer of F7.3.1 and its fallbacks.
+/// The weak layer of F7.3.1 and its fallbacks (E17e §2).
 struct Layers {
-    /// Contact edges of the region with the lowest ρ (HB and SHANSEP regions do not compete; E17d).
+    /// Contact edges of the region with the lowest ρ.
     contact: Vec<[Point; 2]>,
     /// Non-vertical edges whose outer side lies outside every region.
     bases: Vec<[Point; 2]>,
-    /// There is at least one contact edge between regions (any material): the `auto` rule of E17a.
-    has_contact: bool,
 }
 
 impl Layers {
-    /// Edges the block samples: the layer, or the bases when nothing is in contact.
+    /// The `auto` rule of E17a: there is at least one edge in the chosen layer (the bases never count).
+    fn has_layer(&self) -> bool {
+        !self.contact.is_empty()
+    }
+
+    /// Edges the block samples: the layer, or the bases when nothing is in contact (explicit `block` only).
     fn block_edges(&self) -> &[[Point; 2]] {
         if self.contact.is_empty() {
             &self.bases
@@ -66,10 +73,28 @@ impl Layers {
     }
 }
 
+/// Strength ratio ρ = τ / (γ·z) of a region at its centroid, with the effective vertical stress
+/// σ′v = γ·z·(1 − ru) (E17e §2). `None` when the region has no depth to rank.
+fn rho(pm: &PreparedModel, region: usize, depth: f64, y: f64) -> f64 {
+    let m = &pm.materials[pm.regions[region].material];
+    if !(depth > 0.0 && m.unit_weight > 0.0) {
+        return f64::INFINITY;
+    }
+    let sigma_v = m.unit_weight * depth * (1.0 - m.ru.unwrap_or(0.0));
+    let tau = match &m.law {
+        StrengthLaw::Linear => {
+            let (c, tan_phi) = strength::resolve(m, y);
+            c + sigma_v * tan_phi
+        }
+        StrengthLaw::HoekBrown(p) => hoek_brown::tau_at_normal(p, sigma_v),
+        StrengthLaw::Shansep(p) => shansep::su_at(p, sigma_v, y),
+    };
+    tau / (m.unit_weight * depth)
+}
+
 fn layers(model: &Model, pm: &PreparedModel) -> Layers {
     let eps = 1e-4 * (pm.y_max - pm.y_min);
     let width = pm.x_max - pm.x_min;
-    let mut has_contact = false;
     let mut contacts: Vec<(usize, f64, Vec<[Point; 2]>)> = Vec::new();
     let mut bases = Vec::new();
     for (i, r) in model.regions.iter().enumerate() {
@@ -112,79 +137,129 @@ fn layers(model: &Model, pm: &PreparedModel) -> Layers {
         if edges.is_empty() {
             continue;
         }
-        has_contact = true;
-        let Some(m) = model.materials.iter().find(|m| m.id == r.material) else {
-            continue;
-        };
-        // E17d: Hoek-Brown and SHANSEP regions have no c and φ to rank; they do not take part in the choice.
-        if matches!(m.model, MaterialModel::HoekBrown | MaterialModel::Shansep) {
-            continue;
-        }
         let n = poly.len() as f64;
         let xc = poly.iter().map(|p| p[0]).sum::<f64>() / n;
         let yc = poly.iter().map(|p| p[1]).sum::<f64>() / n;
         let depth = pm.top_at(xc).unwrap_or(yc) - yc;
-        let (strength, tan_phi) = match m.model {
-            MaterialModel::Undrained => {
-                let mut su = m.undrained_strength.unwrap_or(0.0);
-                if let (Some(d), Some(g)) = (m.strength_datum, m.strength_gradient) {
-                    su = (su + (d - yc) * g).max(0.0);
-                    if let Some(l) = m.strength_limit {
-                        su = if g >= 0.0 { su.min(l) } else { su.max(l) };
-                    }
-                }
-                (su, 0.0)
-            }
-            _ => (
-                m.cohesion.unwrap_or(0.0),
-                m.friction_angle.unwrap_or(0.0).to_radians().tan(),
-            ),
-        };
-        let rho = if depth > 0.0 && m.unit_weight > 0.0 {
-            strength / (m.unit_weight * depth) + tan_phi
-        } else {
-            f64::INFINITY
-        };
-        contacts.push((i, rho, edges));
+        contacts.push((i, rho(pm, i, depth, yc), edges));
     }
     contacts.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
     Layers {
         contact: contacts.into_iter().next().map(|c| c.2).unwrap_or_default(),
         bases,
-        has_contact,
     }
 }
-fn project(pm: &PreparedModel, p: Point, theta: f64, h: f64) -> Option<Point> {
-    if h <= 0.0 {
-        return None;
+
+/// The upper envelope of the ground as a polyline, with its two one-sided limits at every vertex abscissa (E17e §1).
+struct Terrain {
+    xs: Vec<f64>,
+    /// Ground just to the left and just to the right of each `xs[k]`.
+    left: Vec<f64>,
+    right: Vec<f64>,
+}
+
+impl Terrain {
+    fn new(pm: &PreparedModel) -> Terrain {
+        let xs = pm.vertex_xs.clone();
+        let left = xs
+            .iter()
+            .map(|x| {
+                pm.top_toward(*x, -1.0)
+                    .or_else(|| pm.top_at(*x))
+                    .unwrap_or(f64::NAN)
+            })
+            .collect();
+        let right = xs
+            .iter()
+            .map(|x| {
+                pm.top_toward(*x, 1.0)
+                    .or_else(|| pm.top_at(*x))
+                    .unwrap_or(f64::NAN)
+            })
+            .collect();
+        Terrain { xs, left, right }
     }
-    let (dx, dy) = (theta.cos(), theta.sin());
-    let step = 0.01 * h;
-    let max = 3.0 * (pm.x_max - pm.x_min + h);
-    let (mut s, mut prev) = (0.0, 0.0);
-    loop {
-        s += step;
-        if s > max {
+
+    /// First point where the ray from `p` at angle `theta` (0 < θ < π, so it rises) reaches the ground, by exact
+    /// intersection with each piece of the terrain: no step, no dependence on the size of the model.
+    fn hit(&self, pm: &PreparedModel, p: Point, theta: f64) -> Option<Point> {
+        let (dx, dy) = (theta.cos(), theta.sin());
+        let n = self.xs.len();
+        if !(dx.abs() > 1e-12 && dy > 0.0) || n < 2 {
             return None;
         }
-        let x = p[0] + s * dx;
-        if p[1] + s * dy >= pm.top_at(x)? {
-            break;
-        }
-        prev = s;
-    }
-    for _ in 0..60 {
-        let m = 0.5 * (prev + s);
-        let x = p[0] + m * dx;
-        if pm.top_at(x).is_none_or(|g| p[1] + m * dy >= g) {
-            s = m;
+        let slope = dy / dx;
+        let ray = |x: f64| p[1] + (x - p[0]) * slope;
+        // One piece of the terrain, travelled from (xa, ga) to (xb, gb); `start` is where the ray enters it.
+        let piece = |start: f64, xa: f64, ga: f64, xb: f64, gb: f64| -> Option<Option<f64>> {
+            let ga = if start == xa {
+                ga
+            } else {
+                ga + (gb - ga) * (start - xa) / (xb - xa)
+            };
+            let (da, db) = (ga - ray(start), gb - ray(xb));
+            if !(da.is_finite() && db.is_finite()) {
+                return Some(None);
+            }
+            if da <= 0.0 {
+                Some(Some(start))
+            } else if db <= 0.0 {
+                Some(Some(start + (xb - start) * da / (da - db)))
+            } else {
+                None
+            }
+        };
+        let mut hit = None;
+        if dx > 0.0 {
+            let first = self.xs.partition_point(|x| *x <= p[0]);
+            if first == 0 || first >= n {
+                return None;
+            }
+            for k in first - 1..n - 1 {
+                let start = p[0].max(self.xs[k]);
+                if let Some(h) = piece(
+                    start,
+                    self.xs[k],
+                    self.right[k],
+                    self.xs[k + 1],
+                    self.left[k + 1],
+                ) {
+                    hit = Some(h?);
+                    break;
+                }
+            }
         } else {
-            prev = m;
+            let first = self.xs.partition_point(|x| *x < p[0]);
+            if first == 0 || first >= n {
+                return None;
+            }
+            for k in (1..=first).rev() {
+                let start = p[0].min(self.xs[k]);
+                if let Some(h) = piece(
+                    start,
+                    self.xs[k],
+                    self.left[k],
+                    self.xs[k - 1],
+                    self.right[k - 1],
+                ) {
+                    hit = Some(h?);
+                    break;
+                }
+            }
         }
+        let mut x = hit?;
+        // A hit on the foot of a vertical step: take the ground of the side the ray travels on.
+        let tol = pm.tol();
+        if pm
+            .top_at(x)
+            .is_some_and(|y| (y - ray(x)).abs() > 10.0 * tol)
+        {
+            x += if dx > 0.0 { 2.0 * tol } else { -2.0 * tol };
+        }
+        Some([x, pm.top_at(x)?])
     }
-    let x = p[0] + s * dx;
-    Some([x, pm.top_at(x)?])
 }
+
 fn admissible(pm: &PreparedModel, win: [[f64; 2]; 2], p: &[Point]) -> bool {
     let tol = pm.tol().max(1e-6 * (pm.x_max - pm.x_min));
     let ok = |x: f64, w: [f64; 2]| x >= w[0].min(w[1]) - tol && x <= w[0].max(w[1]) + tol;
@@ -193,6 +268,7 @@ fn admissible(pm: &PreparedModel, win: [[f64; 2]; 2], p: &[Point]) -> bool {
         && ok(p[p.len() - 1][0], win[1])
         && search_polyline_admissible(pm, p)
 }
+/// H of F7.3.3: the relief of the ground; a ground that is almost flat uses the depth of the model (E17e §1).
 fn height(pm: &PreparedModel) -> f64 {
     let mut lo = f64::INFINITY;
     let mut hi = f64::NEG_INFINITY;
@@ -202,7 +278,12 @@ fn height(pm: &PreparedModel) -> f64 {
             hi = hi.max(y);
         }
     }
-    hi - lo
+    let depth = pm.y_max - pm.y_min;
+    if hi - lo < 1e-3 * depth {
+        depth
+    } else {
+        hi - lo
+    }
 }
 type Candidate = (f64, usize, Vec<Point>);
 
@@ -247,8 +328,13 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
 ) -> (Option<Surface>, GlobalStats, bool) {
     let layer = layers(model, pm);
     let edges = layer.block_edges();
+    let terrain = Terrain::new(pm);
+    let max_vertices = search
+        .non_circular
+        .as_ref()
+        .map_or(33, NonCircularSpec::max_vertices);
     let mut algorithm = match spec.algorithm() {
-        GlobalAlgorithm::Auto if layer.has_contact => "block",
+        GlobalAlgorithm::Auto if layer.has_layer() => "block",
         GlobalAlgorithm::Auto => "annealing",
         GlobalAlgorithm::Block => "block",
         GlobalAlgorithm::Annealing => "annealing",
@@ -328,8 +414,8 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
             let tl = (105.0 + 60.0 * hs(index, 19)).to_radians();
             let tr = (15.0 + 60.0 * hs(index, 17)).to_radians();
             let (Some(l), Some(r)) = (
-                project(pm, points[0], tl, h),
-                project(pm, *points.last().unwrap(), tr, h),
+                terrain.hit(pm, points[0], tl),
+                terrain.hit(pm, *points.last().unwrap(), tr),
             ) else {
                 continue;
             };
@@ -427,8 +513,14 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
         let keep = (picks.len() * 3).div_ceil(4).min(cap);
         let mut next = Vec::new();
         for (f, idx, p) in picks {
-            let (q, value, used, _) =
-                noncircular::refine_generated(pm, search, p.clone(), f, budget, &mut guarded);
+            let (q, value, used, _) = noncircular::refine_generated(
+                pm,
+                search,
+                p.clone(),
+                f,
+                (budget, max_vertices),
+                &mut guarded,
+            );
             stats.evaluated += used;
             if value < f {
                 next.push((value, idx, q));
@@ -444,7 +536,7 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     for (f, _, p) in picks {
         stats.refined += 1;
         let (p, f, used, gain) =
-            noncircular::refine_generated(pm, search, p, f, 1500, &mut guarded);
+            noncircular::refine_generated(pm, search, p, f, (1500, max_vertices), &mut guarded);
         stats.evaluated += used;
         if best.as_ref().is_none_or(|b| f < b.1) {
             best = Some((p, f, gain));
@@ -574,7 +666,7 @@ mod tests {
         let m = v053();
         let pm = PreparedModel::new(&m).unwrap();
         let l = layers(&m, &pm);
-        assert!(l.has_contact && !l.contact.is_empty());
+        assert!(l.has_layer());
         assert_eq!(l.block_edges(), l.contact.as_slice());
         assert!(owners(&m, &l.contact).contains(&"layer_4".to_string()));
         let width = pm.x_max - pm.x_min;
@@ -592,53 +684,96 @@ mod tests {
         let m = homogeneous();
         let pm = PreparedModel::new(&m).unwrap();
         let l = layers(&m, &pm);
-        assert!(!l.has_contact && l.contact.is_empty());
+        assert!(!l.has_layer() && l.contact.is_empty());
         assert!(!l.bases.is_empty());
         assert_eq!(l.block_edges(), l.bases.as_slice());
     }
 
+    fn set_layer_4(m: &mut Model, patch: serde_json::Value) {
+        let mut v = serde_json::to_value(&*m).unwrap();
+        for mat in v["materials"].as_array_mut().unwrap() {
+            if mat["id"] == "layer_4" {
+                for k in ["cohesion", "friction_angle", "ru"] {
+                    mat.as_object_mut().unwrap().remove(k);
+                }
+                for (k, x) in patch.as_object().unwrap() {
+                    mat[k] = x.clone();
+                }
+            }
+        }
+        *m = serde_json::from_value(v).unwrap();
+    }
+
     #[test]
-    fn hoek_brown_and_shansep_regions_do_not_compete_for_the_layer() {
-        // E17d: with `layer_4` turned into Hoek-Brown (or SHANSEP) it has no c and φ to rank: the layer moves.
+    fn every_material_competes_for_the_layer_with_its_effective_strength() {
+        // E17e §2: with a weak `layer_4` of any model, the layer stays `layer_4` (A-06); a strong one moves it.
         let m = v053();
         let pm = PreparedModel::new(&m).unwrap();
         let original = layers(&m, &pm);
-        for kind in [MaterialModel::HoekBrown, MaterialModel::Shansep] {
+        for weak in [
+            serde_json::json!({"model": "hoek_brown", "ucs": 2000.0, "gsi": 15.0, "mi": 5.0, "disturbance": 0.8}),
+            serde_json::json!({"model": "shansep", "shansep": {"ratio": 0.12, "exponent": 0.8, "ocr": 1.0}}),
+            serde_json::json!({"model": "undrained", "undrained_strength": 5.0}),
+            serde_json::json!({"model": "mohr_coulomb", "cohesion": 25.0, "friction_angle": 25.0, "ru": 0.75}),
+        ] {
             let mut other = m.clone();
-            other
-                .materials
-                .iter_mut()
-                .find(|x| x.id == "layer_4")
-                .unwrap()
-                .model = kind;
-            let moved = layers(&other, &pm);
+            set_layer_4(&mut other, weak.clone());
+            let pm = PreparedModel::new(&other).unwrap();
+            let l = layers(&other, &pm);
+            assert!(l.has_layer(), "{weak}");
+            assert_eq!(l.contact, original.contact, "{weak}");
+        }
+        for strong in [
+            serde_json::json!({"model": "hoek_brown", "ucs": 60000.0, "gsi": 80.0, "mi": 20.0, "disturbance": 0.0}),
+            serde_json::json!({"model": "shansep", "shansep": {"ratio": 5.0, "exponent": 0.8, "ocr": 1.0}}),
+            serde_json::json!({"model": "undrained", "undrained_strength": 1.0e6}),
+        ] {
+            let mut other = m.clone();
+            set_layer_4(&mut other, strong.clone());
+            let pm = PreparedModel::new(&other).unwrap();
+            let l = layers(&other, &pm);
+            assert!(l.has_layer(), "{strong}");
+            assert_ne!(l.contact, original.contact, "{strong}");
             assert!(
-                moved.has_contact,
-                "the contact edges between regions still exist"
-            );
-            assert_ne!(moved.contact, original.contact);
-            assert!(
-                owners(&other, &moved.contact)
-                    .iter()
-                    .any(|id| id != "layer_4"),
-                "{:?}",
-                owners(&other, &moved.contact)
+                owners(&other, &l.contact).iter().any(|id| id != "layer_4"),
+                "{strong}"
             );
         }
-        // Undrained: ρ = Su/(γ·z) with tan φ = 0, so a very strong Su leaves the weakest region where it is.
-        let mut su = m.clone();
-        let mat = su.materials.iter_mut().find(|x| x.id == "layer_4").unwrap();
-        mat.model = MaterialModel::Undrained;
-        mat.undrained_strength = Some(1.0);
-        mat.cohesion = None;
-        mat.friction_angle = None;
-        assert_eq!(layers(&su, &pm).contact, original.contact);
-        su.materials
-            .iter_mut()
-            .find(|x| x.id == "layer_4")
-            .unwrap()
-            .undrained_strength = Some(1.0e6);
-        assert_ne!(layers(&su, &pm).contact, original.contact);
+    }
+
+    #[test]
+    fn ru_lowers_the_strength_ratio_of_a_mohr_coulomb_layer() {
+        // ρ = c/(γz) + (1 − ru)·tan φ: the same c and φ with a large ru is the weakest region of V053.
+        let m = v053();
+        let mut other = m.clone();
+        set_layer_4(
+            &mut other,
+            serde_json::json!({"model": "mohr_coulomb", "cohesion": 60.0, "friction_angle": 30.0}),
+        );
+        let pm = PreparedModel::new(&other).unwrap();
+        let dry = layers(&other, &pm);
+        set_layer_4(
+            &mut other,
+            serde_json::json!({"model": "mohr_coulomb", "cohesion": 60.0, "friction_angle": 30.0, "ru": 0.95}),
+        );
+        let pm = PreparedModel::new(&other).unwrap();
+        let wet = layers(&other, &pm);
+        assert_ne!(dry.contact, wet.contact, "ru changes the choice");
+        assert!(owners(&other, &wet.contact).contains(&"layer_4".to_string()));
+    }
+
+    #[test]
+    fn a_model_of_hoek_brown_regions_in_contact_has_a_layer_and_never_runs_the_bases() {
+        // RCM-A-02 (`repro_03`): with `auto` the bases do not count; the layer of the weakest rock mass is chosen.
+        let m: Model = serde_json::from_str(include_str!(
+            "../../../verification/global/repro/repro_03_all_hb_auto_bases.ogs.json"
+        ))
+        .unwrap();
+        let pm = PreparedModel::new(&m).unwrap();
+        let l = layers(&m, &pm);
+        assert!(l.has_layer() && !l.bases.is_empty());
+        assert_eq!(l.block_edges(), l.contact.as_slice());
+        assert!(owners(&m, &l.contact).contains(&"weak".to_string()));
     }
 
     #[test]
@@ -676,21 +811,123 @@ mod tests {
         assert!(!admissible(&pm, win, &good[..1]));
     }
 
+    /// A model with a ground at `y = depth + 10 + relief·x/100` over a layer `depth` metres thick.
+    fn nearly_flat(relief: f64, depth: f64) -> Model {
+        serde_json::from_value(serde_json::json!({
+            "format": "opengeoslide", "version": "0.7", "units": "SI", "slope": {"direction": "right_to_left"},
+            "materials": [
+                {"id": "top", "name": "top", "model": "mohr_coulomb", "unit_weight": 19.0, "cohesion": 15.0, "friction_angle": 25.0},
+                {"id": "weak", "name": "weak", "model": "mohr_coulomb", "unit_weight": 18.0, "cohesion": 2.0, "friction_angle": 8.0}
+            ],
+            "regions": [
+                {"material": "top", "polygon": [[0, depth], [100, depth], [100, depth + 10.0 + relief], [0, depth + 10.0]]},
+                {"material": "weak", "polygon": [[0, 0], [100, 0], [100, depth], [0, depth]]}
+            ],
+            "analysis": {"methods": ["spencer"], "search": {"type": "circular_entry_exit"}}
+        }))
+        .unwrap()
+    }
+
     #[test]
-    fn project_lands_on_the_ground_or_fails() {
-        let m = v053();
-        let pm = PreparedModel::new(&m).unwrap();
-        let h = height(&pm);
-        assert!(h > 0.0);
-        let x = pm.x_min + 0.5 * (pm.x_max - pm.x_min);
-        let deep = [x, pm.top_at(x).unwrap() - 0.5 * h];
-        for deg in [30.0_f64, 60.0, 120.0, 150.0] {
-            if let Some(q) = project(&pm, deep, deg.to_radians(), h) {
-                assert!((q[1] - pm.top_at(q[0]).unwrap()).abs() < 1e-9);
-                assert_eq!(q[0] > deep[0], deg < 90.0);
+    fn the_ray_meets_the_ground_exactly_whatever_the_relief_and_the_depth() {
+        // E17e §1: no step, so a nearly flat ground over a deep model costs the same as any other.
+        for (relief, depth) in [
+            (10.0, 10.0),
+            (0.001, 10.0),
+            (0.0001, 10.0),
+            (0.0, 10.0),
+            (1e-6, 5000.0),
+        ] {
+            let m = nearly_flat(relief, depth);
+            let pm = PreparedModel::new(&m).unwrap();
+            let terrain = Terrain::new(&pm);
+            for (x, deg) in [
+                (30.0, 60.0),
+                (30.0, 15.0),
+                (70.0, 120.0),
+                (70.0, 165.0),
+                (50.0, 90.0 - 1e-3),
+            ] {
+                let p = [x, depth + 5.0];
+                let q = terrain
+                    .hit(&pm, p, f64::to_radians(deg))
+                    .unwrap_or_else(|| panic!("{relief} {depth} {x} {deg}"));
+                assert!(
+                    (q[1] - pm.top_at(q[0]).unwrap()).abs() < 1e-9,
+                    "on the ground"
+                );
+                // On the ray, to rounding.
+                let (dx, dy) = (f64::to_radians(deg).cos(), f64::to_radians(deg).sin());
+                assert!(
+                    ((q[0] - p[0]) * dy - (q[1] - p[1]) * dx).abs() < 1e-7 * depth.max(1.0),
+                    "{q:?}"
+                );
+                assert_eq!(q[0] > p[0], deg < 90.0);
             }
         }
-        assert!(project(&pm, deep, 0.5, 0.0).is_none());
+    }
+
+    #[test]
+    fn the_ray_on_a_sloped_ground_has_the_closed_form_intersection() {
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let terrain = Terrain::new(&pm);
+        // Ground between x = 55 and 75: y = 20 + 0.5·(x − 55) (55 → 20, 75 → 30). Ray from (60, 8) at 45°: y = 8 + (x − 60).
+        let q = terrain
+            .hit(&pm, [60.0, 8.0], std::f64::consts::FRAC_PI_4)
+            .unwrap();
+        let x = (8.0 - 60.0 - 20.0 + 0.5 * 55.0) / (0.5 - 1.0);
+        assert!(
+            (q[0] - x).abs() < 1e-9 && (q[1] - (20.0 + 0.5 * (x - 55.0))).abs() < 1e-9,
+            "{q:?}"
+        );
+        // Leaving the model before reaching the ground, or from outside it: no point.
+        assert!(
+            terrain
+                .hit(&pm, [1.0, 0.1], 165.0_f64.to_radians())
+                .is_none()
+        );
+        assert!(
+            terrain
+                .hit(&pm, [-5.0, 0.0], 60.0_f64.to_radians())
+                .is_none()
+        );
+        // A vertical or downward direction is not a ray that rises.
+        assert!(
+            terrain
+                .hit(&pm, [60.0, 8.0], std::f64::consts::FRAC_PI_2)
+                .is_none()
+        );
+        assert!(terrain.hit(&pm, [60.0, 8.0], -0.5).is_none());
+    }
+
+    #[test]
+    fn the_height_of_an_almost_flat_ground_is_the_depth_of_the_model() {
+        let m = nearly_flat(0.0001, 10.0);
+        let pm = PreparedModel::new(&m).unwrap();
+        assert!((height(&pm) - (pm.y_max - pm.y_min)).abs() < 1e-12);
+        let m = nearly_flat(10.0, 10.0);
+        let pm = PreparedModel::new(&m).unwrap();
+        assert!(
+            (height(&pm) - 10.0).abs() < 1e-9,
+            "the relief when it is not small"
+        );
+    }
+
+    #[test]
+    fn a_nearly_flat_ground_over_a_deep_layer_finishes_with_attempts_bounded() {
+        let m = nearly_flat(0.0001, 10.0);
+        let pm = PreparedModel::new(&m).unwrap();
+        let search = m.analysis.search.clone().unwrap_or_else(|| {
+            serde_json::from_value(serde_json::json!({"type": "circular_entry_exit"})).unwrap()
+        });
+        let g = spec(serde_json::json!({"generated": 200}));
+        let t = std::time::Instant::now();
+        let (_, stats, _) = run(&m, &pm, &search, &g, &[], 5.0, |s| {
+            Some((depth_fos(&pm, s), false))
+        });
+        assert!(t.elapsed().as_secs_f64() < 5.0, "{:?}", t.elapsed());
+        assert!(stats.attempts <= 40 * 200 && stats.generated > 0);
     }
 
     #[test]
@@ -729,7 +966,7 @@ mod tests {
         assert!(stats.polish_evaluated <= 3000);
         assert!(stats.generated <= 80 && stats.attempts <= 20 * 80);
         assert_eq!(stats.converged, stats.eligible + stats.tension_rejected);
-        assert!(stats.refined >= 1 && stats.refined <= 3);
+        assert_eq!(stats.refined, 1);
         assert_eq!(
             stats.evaluated,
             calls.get(),
@@ -859,6 +1096,103 @@ mod tests {
             "an explicit block never recurs to the annealing"
         );
         assert_eq!(stats.attempts, 20 * 50);
+    }
+
+    fn good_polyline(pm: &PreparedModel) -> Vec<Point> {
+        let y = |x: f64| pm.top_at(x).unwrap();
+        vec![
+            [30.0, y(30.0)],
+            [60.0, 5.0],
+            [120.0, 2.0],
+            [200.0, y(200.0)],
+        ]
+    }
+
+    #[test]
+    fn refine_generated_never_returns_a_factor_above_its_input() {
+        // E17e §4: an FS that grows with the number of vertices, so every level is worse than the input.
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let search = m.analysis.search.as_ref().unwrap();
+        let start = good_polyline(&pm);
+        let f0 = 1.0 + 0.01 * start.len() as f64;
+        let mut eval = |s: &Surface| Some(1.0 + 0.01 * points(s).len() as f64);
+        let (p, f, used, _) =
+            noncircular::refine_generated(&pm, search, start.clone(), f0, (1500, 33), &mut eval);
+        assert!(used > 0, "the levels were tried");
+        assert_eq!((p, f), (start, f0));
+    }
+
+    #[test]
+    fn refine_generated_stops_at_max_vertices() {
+        // E17e §3: 9 → 17 → 33, cut at the cap, like the refinement of F6.10.
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let search = m.analysis.search.as_ref().unwrap();
+        for cap in [9, 17, 33] {
+            let start = good_polyline(&pm);
+            let f0 = 1.0 + 1.0 / start.len() as f64;
+            // The FS falls with the vertices: every level improves, so the cap is what stops it.
+            let mut eval = |s: &Surface| Some(1.0 + 1.0 / points(s).len() as f64);
+            let (p, f, _, _) =
+                noncircular::refine_generated(&pm, search, start, f0, (1500, cap), &mut eval);
+            assert_eq!(p.len(), cap, "cap {cap}");
+            assert!(f < f0);
+        }
+    }
+
+    #[test]
+    fn the_global_stage_respects_max_vertices() {
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let g = spec(serde_json::json!({"generated": 60}));
+        for cap in [9, 17] {
+            let mut search = m.analysis.search.clone().unwrap();
+            search.non_circular.as_mut().unwrap().max_vertices = Some(cap);
+            let (winner, _, _) = run(&m, &pm, &search, &g, &[], 5.0, |s| {
+                Some((depth_fos(&pm, s), false))
+            });
+            let w = winner.expect("the generator beats 5.0");
+            assert!(points(&w).len() <= cap, "{} > {cap}", points(&w).len());
+        }
+    }
+
+    #[test]
+    fn the_tension_note_covers_the_whole_stage_and_the_count_only_the_generation() {
+        // E17e §6: the candidates are the polylines of the generation (≤ 6 vertices); the refinement and the polish
+        // add vertices, and what the guard rejects there raises the note without adding to `tension_rejected`.
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let search = m.analysis.search.as_ref().unwrap();
+        let g = spec(serde_json::json!({"generated": 60}));
+        let (winner, stats, flag) = run(&m, &pm, search, &g, &[], 5.0, |s| {
+            let f = depth_fos(&pm, s);
+            if points(s).len() >= 9 {
+                Some((f - 0.5, true))
+            } else {
+                Some((f, false))
+            }
+        });
+        assert!(winner.is_some());
+        assert_eq!(stats.tension_rejected, 0);
+        assert_eq!(stats.converged, stats.eligible + stats.tension_rejected);
+        assert!(flag, "a rejected FS below the reported one");
+    }
+
+    #[test]
+    fn refined_counts_the_polylines_of_the_full_refinement_only() {
+        // E17e §7: the short rounds of the successive halving add to `evaluated`, not to `refined`.
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let search = m.analysis.search.as_ref().unwrap();
+        let g = spec(serde_json::json!({"generated": 80}));
+        let (_, stats, _) = run(&m, &pm, search, &g, &[], 5.0, |s| {
+            Some((depth_fos(&pm, s), false))
+        });
+        assert_eq!(stats.refined, 1);
+        assert!(stats.evaluated > stats.generated + 1500);
+        let (_, stats, _) = run(&m, &pm, search, &g, &[], 5.0, |_| None);
+        assert_eq!((stats.refined, stats.eligible), (0, 0));
     }
 
     /// Diagnostic of A9, not a test: `OGS_A9_MODEL=<model.json (v0.7, with global)> cargo test --release --lib

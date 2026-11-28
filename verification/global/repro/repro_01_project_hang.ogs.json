@@ -1,0 +1,95 @@
+{
+  "format": "opengeoslide",
+  "version": "0.7",
+  "materials": [
+    {
+      "id": "top",
+      "name": "Top",
+      "model": "mohr_coulomb",
+      "unit_weight": 19.0,
+      "cohesion": 15.0,
+      "friction_angle": 25.0
+    },
+    {
+      "id": "weak",
+      "name": "Weak",
+      "model": "mohr_coulomb",
+      "unit_weight": 18.0,
+      "cohesion": 2.0,
+      "friction_angle": 8.0
+    }
+  ],
+  "regions": [
+    {
+      "material": "top",
+      "polygon": [
+        [
+          0,
+          10
+        ],
+        [
+          100,
+          10
+        ],
+        [
+          100,
+          20.0001
+        ],
+        [
+          0,
+          20.0
+        ]
+      ]
+    },
+    {
+      "material": "weak",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          100,
+          0
+        ],
+        [
+          100,
+          10
+        ],
+        [
+          0,
+          10
+        ]
+      ]
+    }
+  ],
+  "loads": [
+    {
+      "type": "udl",
+      "id": "q1",
+      "x1": 60.0,
+      "x2": 95.0,
+      "q": 120.0
+    }
+  ],
+  "slope": {
+    "direction": "right_to_left"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 30,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 6,
+      "n_exit": 6,
+      "n_radius": 6,
+      "non_circular": {
+        "seeds": 1,
+        "max_vertices": 33,
+        "global": {}
+      }
+    }
+  }
+}

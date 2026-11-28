@@ -288,14 +288,16 @@ fn validate_v07(model: &Model) -> Result<(), OgsError> {
         .and_then(|n| n.global.as_ref())
     {
         if !(50..=2000).contains(&g.generated()) {
-            return Err(invalid(
-                "analysis.search.non_circular.global.generated debe estar en [50, 2000]",
-            ));
+            return Err(invalid(format!(
+                "analysis.search.non_circular.global.generated debe estar en [50, 2000], no {}",
+                g.generated()
+            )));
         }
         if g.seed() > MAX_GLOBAL_SEED {
-            return Err(invalid(
-                "analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991]",
-            ));
+            return Err(invalid(format!(
+                "analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no {}",
+                g.seed()
+            )));
         }
     }
     Ok(())

@@ -1,0 +1,251 @@
+{
+ "commit": "1399813",
+ "gates": {
+  "A2": {
+   "fos": 1.010300223400116
+  },
+  "A2b": {
+   "V053": {
+    "n": 48,
+    "min": 1.0028876088889156,
+    "median": 1.007710011085478,
+    "max": 1.0239192460555568,
+    "seed0": 1.010300223400116,
+    "passed": 48,
+    "global_wins": 48
+   },
+   "S2": {
+    "n": 48,
+    "min": 0.7416431587198169,
+    "median": 0.7588491972159481,
+    "max": 0.8050750958507051,
+    "seed0": 0.7505125386511429,
+    "passed": null,
+    "global_wins": 48
+   }
+  },
+  "A3": {
+   "checks": [
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    },
+    {
+     "passed": true
+    }
+   ]
+  },
+  "A4": {
+   "winners": 14,
+   "max_cslope_diff": 0.0009871859425882867
+  },
+  "A5": {
+   "rows": [
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    },
+    {
+     "ok": true
+    }
+   ],
+   "global_wins": 19
+  },
+  "A7": {
+   "maximum": 3.8101603949777405,
+   "median": 1.5516546112392011
+  },
+  "A8": {
+   "evaluated_zero": [
+    "TAL-H30-b60-f35-c5"
+   ]
+  }
+ }
+}

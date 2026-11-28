@@ -229,3 +229,118 @@ fn no_global_no_stats_and_the_same_output_as_v06() {
     assert!(r["search"]["non_circular"].get("global").is_none());
     assert!(!text.contains("non_circular_global"));
 }
+
+fn repro(text: &str) -> Value {
+    serde_json::from_str(text).unwrap()
+}
+fn repro_01() -> Value {
+    repro(include_str!(
+        "../../../verification/global/repro/repro_01_project_hang.ogs.json"
+    ))
+}
+fn repro_02() -> Value {
+    repro(include_str!(
+        "../../../verification/global/repro/repro_02_max_vertices_9.ogs.json"
+    ))
+}
+fn repro_03() -> Value {
+    repro(include_str!(
+        "../../../verification/global/repro/repro_03_all_hb_auto_bases.ogs.json"
+    ))
+}
+fn repro_04() -> Value {
+    repro(include_str!(
+        "../../../verification/global/repro/repro_04_tension_note_zero_count.ogs.json"
+    ))
+}
+fn repro_06() -> Value {
+    repro(include_str!(
+        "../../../verification/global/repro/repro_06_v053_shansep_layer4.ogs.json"
+    ))
+}
+
+#[test]
+fn rcm_a_01_a_nearly_flat_ground_over_a_deep_layer_ends_in_bounded_time() {
+    // The marching of `project` took more than 30 s here (0.2 s without `global`). E17e §1.
+    let started = std::time::Instant::now();
+    let (_, r) = analyze(&repro_01());
+    let elapsed = started.elapsed().as_secs_f64();
+    assert!(elapsed < 15.0, "{elapsed} s");
+    assert_eq!(stats(&r)["generated"], 500);
+    let mut plain = repro_01();
+    plain["version"] = json!("0.6");
+    plain["analysis"]["search"]["non_circular"]
+        .as_object_mut()
+        .unwrap()
+        .remove("global");
+    let (_, base) = analyze(&plain);
+    assert!(r["fos"].as_f64().unwrap() <= base["fos"].as_f64().unwrap());
+}
+
+#[test]
+fn rcm_a_03_auto_with_only_hoek_brown_regions_runs_the_block_on_a_layer_not_on_the_bases() {
+    let (_, r) = analyze(&repro_03());
+    let g = stats(&r);
+    assert_eq!(g["algorithm"], "block");
+    assert!(g["generated"].as_u64().unwrap() > 0);
+    // The bases of this model are inclined: a block on them would have been the 1236-attempt run of the review.
+    assert!(g["attempts"].as_u64().unwrap() < 1236, "{g}");
+}
+
+#[test]
+fn rcm_a_04_max_vertices_bounds_the_global_stage() {
+    for cap in [9usize, 17] {
+        let mut m = repro_02();
+        m["analysis"]["search"]["non_circular"]["max_vertices"] = json!(cap);
+        let (_, r) = analyze(&m);
+        let points = r["surface"]["points"].as_array().unwrap().len();
+        assert!(points <= cap, "{points} > {cap}");
+        assert!(r["fos"].as_f64().unwrap() <= 1.0453);
+    }
+    let (_, r) = analyze(&repro_02());
+    assert!(r["surface"]["points"].as_array().unwrap().len() <= 9);
+}
+
+#[test]
+fn rcm_a_03_the_note_can_come_with_a_zero_count() {
+    // The guard rejected the polylines of the refinement or the polish, not the ones of the generation.
+    let (_, r) = analyze(&repro_04());
+    let g = stats(&r);
+    assert_eq!(g["tension_rejected"], 0);
+    assert_eq!(g["converged"], g["eligible"]);
+    assert!(warnings(&r).contains(&"non_circular_global_tension_rejected".to_string()));
+}
+
+#[test]
+fn rcm_a_06_a_weak_shansep_or_hoek_brown_layer_4_is_followed_by_the_block() {
+    let (_, r) = analyze(&repro_06());
+    let g = stats(&r);
+    assert_eq!(g["algorithm"], "block");
+    assert!(
+        r["fos"].as_f64().unwrap() < 0.9,
+        "annealing gave 1.0844: {}",
+        r["fos"]
+    );
+    let mut m = repro_06();
+    for mat in m["materials"].as_array_mut().unwrap() {
+        if mat["id"] == "layer_4" {
+            mat.as_object_mut().unwrap().remove("shansep");
+            for (k, v) in json!({"model": "hoek_brown", "ucs": 2000.0, "gsi": 15.0, "mi": 5.0, "disturbance": 0.8})
+                .as_object()
+                .unwrap()
+            {
+                mat[k] = v.clone();
+            }
+        }
+    }
+    let (_, r) = analyze(&m);
+    assert_eq!(stats(&r)["algorithm"], "block");
+    assert!(r["fos"].as_f64().unwrap() < 0.9, "{}", r["fos"]);
+}
+
+#[test]
+fn rcm_a_05_a_global_array_is_invalid() {
+    let text = include_str!("../../../verification/global/repro/repro_05_global_array.ogs.json");
+    let err = ogs_core::analyze_json(text).unwrap_err();
+    assert!(err.starts_with("InvalidModel: "), "{err}");
+}

@@ -11,6 +11,8 @@ Se corre con el Python del entorno del wheel (`$TMPDIR/cm-x37/venv`). Salida: un
 - `block`: `gen_block` del prototipo (ángulos U(90°, 135°) y U(45°, 90°), F7.3.2 original). El bloque cambió en E17c y
   no tiene prototipo: esta cifra solo se informa.
 
+Alineado a E17e: H es el relieve del terreno, o la profundidad del modelo si el relieve es menor que 1e-3 de ella.
+
 El punto de partida del recocido es la polilínea que eligió Rust (`--starts`, un JSON {id: polilínea|null}); sin él,
 el círculo crítico del motor. Así la comparación aísla el generador de la elección de la semilla.
 
@@ -86,6 +88,9 @@ def run(entry, seed, n, starts):
     site = G.site_of(m)
     wl, wr, _ = G.sliding_windows(m, site)
     height = G.model_height(site)
+    depth = site.ymax - site.ymin
+    if height < 1e-3 * depth:          # E17e §1: an almost flat ground uses the depth of the model
+        height = depth
     plain, guarded = X.Eng(m, X.METHOD_SP), Guarded(m, X.METHOD_SP)
     out = []
     if starts is not None:

@@ -11,7 +11,8 @@ Se corre con el Python del oráculo (`$TMPDIR/oracle-venv/bin/python`, cslope 0.
         --bin $TMPDIR/cm-m/ogs --parallel-bin $TMPDIR/cm-m/ogs-parallel
 
 Pasos (`--steps`, todos por defecto): `measure` (los 40 modelos y los casos no circulares extra: circular, refinamiento,
-global, repeticiones, binario paralelo, reevaluación de la polilínea ganadora y cSlope), `robust` (A2b, 48 semillas),
+global, repeticiones, binario paralelo, reevaluación de la polilínea ganadora y cSlope), `methods` (Janbu y
+Morgenstern-Price con `global`, E17e §9), `repro` (los reproductores de la revisión RCM-A, antes y después), `robust` (A2b, 48 semillas),
 `a9` (el generador de Rust contra el prototipo), `wasm` (A7 en WebAssembly sobre V8 de Node) y `report` (REPORT.md y REPORT.json). Cada paso guarda su resultado en
 `--work` (por defecto `$TMPDIR/cm-m/global-work`), de modo que `report` se repite sin volver a medir. Las compuertas A1
 y A10 (las del repositorio) las llena `gates_repo.json`, si existe.
@@ -73,7 +74,8 @@ def summary(run):
 
 
 def fixed_polyline(model, points):
-    m = E.variant(model, "circular")
+    """The model as a fixed polyline, in version 0.7 (`to_cslope.py` reads it since CM-C2V; no manual downgrade)."""
+    m = E.variant(model, "global")
     m["analysis"].pop("search", None)
     m["analysis"]["surface"] = {"type": "polyline", "points": points}
     return m
@@ -137,6 +139,98 @@ def step_measure(a, work):
             f.write(json.dumps(rec) + "\n")
             f.flush()
             print("measure", e["id"], rec.get("error", "ok"), flush=True)
+
+
+# ------------------------------------------------------------------ paso 1b: methods (A4, RCM-A-08)
+
+METHOD_MODELS = ("V053", "S2", "V001-nc", "V041a")
+METHOD_CONFIGS = (
+    ("janbu_simplified", None),
+    ("janbu_corrected", None),
+    ("morgenstern_price", {"function": "half_sine"}),
+    ("morgenstern_price", {"function": "trapezoidal"}),
+    ("morgenstern_price", {"function": "data_points", "points": [[0.0, 0.0], [0.3, 0.8], [0.7, 1.0], [1.0, 0.0]]}),
+)
+
+
+def step_methods(a, work):
+    """`global: {}` con Janbu y Morgenstern-Price (half_sine, trapezoidal y data_points): la polilínea ganadora a cSlope."""
+    es = {e["id"]: e for e in E.entries()}
+    rows = []
+    for name in METHOD_MODELS:
+        for method, interslice in METHOD_CONFIGS:
+            model = json.loads(json.dumps(es[name]["model"]))
+            model["analysis"]["methods"] = [method]
+            if interslice:
+                model["analysis"]["interslice"] = interslice
+            label = method + (f"/{interslice['function']}" if interslice else "")
+            row = dict(id=name, config=label)
+            try:
+                ref = results(call(a.bin, E.variant(model, "refinement"))["text"])[method]
+                glo = results(call(a.bin, E.variant(model, "global"))["text"])[method]
+                row.update(refinement=ref["fos"], global_fos=glo["fos"], warnings=glo["warnings"],
+                           winner=(glo["search"]["non_circular"]["global"] or {}).get("winner"))
+                if row["winner"] == "global":
+                    points = glo["surface"]["points"]
+                    fixed = fixed_polyline(model, points)
+                    again = results(call(a.bin, fixed)["text"])[method]
+                    row.update(fixed_fos=again["fos"], fixed_warnings=again["warnings"], oracle=oracle(model, method, points))
+            except Exception as ex:  # noqa: BLE001 - se informa
+                row["error"] = str(ex)[:200]
+            rows.append(row)
+            print("methods", name, label, row.get("winner"), row.get("error", "ok"), flush=True)
+    (work / "methods.json").write_text(json.dumps(rows, indent=1))
+
+
+# ------------------------------------------------------------------ paso 1c: repro (reproductores de la revisión RCM-A)
+
+REPROS = ("01_project_hang", "02_max_vertices_9", "03_all_hb_auto_bases", "04_tension_note_zero_count", "05_global_array", "06_v053_shansep_layer4", "06_v053_hoek_brown_layer4")
+
+
+def repro_model(name):
+    if name.startswith("06_v053_hoek_brown"):
+        m = _json(HERE / "repro/repro_06_v053_shansep_layer4.ogs.json")
+        for mat in m["materials"]:
+            if mat["id"] == "layer_4":
+                mat.pop("shansep")
+                mat.update(model="hoek_brown", ucs=2000.0, gsi=15.0, mi=5.0, disturbance=0.8)
+        return m
+    return _json(HERE / f"repro/repro_{name}.ogs.json")
+
+
+def _json(path):
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def try_run(binary, model, timeout):
+    t = time.perf_counter()
+    try:
+        p = subprocess.run([str(binary), "analyze", "/dev/stdin"], input=json.dumps(model), text=True, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return dict(timeout=timeout)
+    wall = time.perf_counter() - t
+    if p.returncode:
+        return dict(error=p.stderr.strip()[:160], wall=wall)
+    r = json.loads(p.stdout)["results"][0]
+    g = ((r.get("search") or {}).get("non_circular") or {}).get("global") or {}
+    return dict(fos=r["fos"], wall=wall, vertices=len((r.get("surface") or {}).get("points") or []), stats=g, warnings=r["warnings"])
+
+
+def step_repro(a, work):
+    rows = []
+    for name in REPROS:
+        model = repro_model(name)
+        row = dict(id=name, after=try_run(a.bin, model, 120))
+        if a.before_bin:
+            row["before"] = try_run(a.before_bin, model, 60)
+        if name.startswith("01"):
+            plain = json.loads(json.dumps(model))
+            plain["version"] = "0.6"
+            plain["analysis"]["search"]["non_circular"].pop("global")
+            row["plain"] = try_run(a.bin, plain, 60)
+        rows.append(row)
+        print("repro", name, flush=True)
+    (work / "repro.json").write_text(json.dumps(rows, indent=1))
 
 
 # ------------------------------------------------------------------ paso 2: robust (A2b)
@@ -285,22 +379,35 @@ def gates(a, work):
     G["A3"] = dict(ok=len(checks) == 15 and all(c["passed"] and c["not_above"] for c in checks),
                    criterion="los 15 checks no circulares con `global: {}`: criterio de un lado y ninguno por encima de su FS sin `global`",
                    checks=checks)
-    # --- A4
-    rows, v051 = [], None
-    for r in forty:
+    # --- A4 (E17e §9: los 40, los demás casos y Janbu / Morgenstern-Price; un error de cSlope es una advertencia)
+    rows = []
+
+    def add_row(name, method, gfos, warnings, w, label=None):
+        o = w["oracle"]
+        d_ = abs(o["fos"] / gfos - 1) if o.get("fos") else None
+        tension = sorted((set(w["fixed_warnings"]) | set(warnings)) & TENSION)
+        rows.append(dict(id=name, method=label or method, fos=gfos, fixed_fos=w["fixed_fos"], cslope=o.get("fos"),
+                         cslope_diff=d_, cslope_error=o.get("error"), tension_notes=tension))
+
+    for r in forty + extra:
         for method, w in r["winner"].items():
-            gfos = r["global"]["by_method"][method]["fos"]
-            o = w["oracle"]
-            d_ = abs(o["fos"] / gfos - 1) if o.get("fos") else None
-            tension = sorted((set(w["fixed_warnings"]) | set(r["global"]["by_method"][method]["warnings"])) & TENSION)
-            rows.append(dict(id=r["id"], method=method, fos=gfos, fixed_fos=w["fixed_fos"], cslope=o.get("fos"),
-                             cslope_diff=d_, cslope_error=o.get("error"), tension_notes=tension))
+            g_ = r["global"]["by_method"][method]
+            add_row(r["id"] + ("" if r["group"] != "otro caso" else " (otro caso)"), method, g_["fos"], g_["warnings"], w)
+    mrows = json.loads((work / "methods.json").read_text()) if (work / "methods.json").exists() else []
+    for m_ in mrows:
+        if m_.get("winner") == "global" and "oracle" in m_:
+            add_row(m_["id"], m_["config"].split("/")[0], m_["global_fos"], m_["warnings"],
+                    dict(oracle=m_["oracle"], fixed_fos=m_["fixed_fos"], fixed_warnings=m_["fixed_warnings"]), label=m_["config"])
     v051 = first(next(r for r in forty if r["id"] == "V051"), "global")["fos"]
     with_fos = [x for x in rows if x["cslope_diff"] is not None]
+    cslope_warnings = [f"{x['id']} {x['method']}: {x['cslope_error'] or 'cSlope no dio FS'}" for x in rows if x["cslope_diff"] is None]
+    methods_seen = sorted({x["method"] for x in rows})
     G["A4"] = dict(ok=not any(x["tension_notes"] for x in rows) and v051 >= 0.69 and all(x["cslope_diff"] <= 0.02 for x in with_fos)
-                   and all(abs(x["fixed_fos"] / x["fos"] - 1) < 1e-9 for x in rows),
+                   and all(abs(x["fixed_fos"] / x["fos"] - 1) < 1e-9 for x in rows) and not any(m_.get("error") for m_ in mrows),
                    criterion="ninguna polilínea ganadora del generador con negative_lambda ni negative_effective_normal_major; V051 ≥ 0,69; cSlope a ±2 %",
-                   winners=len(rows), with_cslope=len(with_fos), v051=v051, rows=rows,
+                   winners=len(rows), with_cslope=len(with_fos), v051=v051, rows=rows, methods=methods_seen,
+                   cslope_warnings=cslope_warnings, method_errors=[m_ for m_ in mrows if m_.get("error")],
+                   method_runs=len(mrows), method_winners=sum(m_.get("winner") == "global" for m_ in mrows),
                    max_cslope_diff=max((x["cslope_diff"] for x in with_fos), default=None))
     # --- A5
     mono = []
@@ -330,7 +437,7 @@ def gates(a, work):
                    criterion="tiempo con `global` (N = 500) ≤ 4 × el circular, mediana de 3 corridas por modelo (nativo)",
                    median=statistics.median(x["wall"] for x in ratios), maximum=max(x["wall"] for x in ratios),
                    cpu_median=statistics.median(x["cpu"] for x in ratios), cpu_maximum=max(x["cpu"] for x in ratios),
-                   rows=ratios, wasm=None)
+                   rows=ratios, wasm=None, worst=max(ratios, key=lambda x: x["wall"])["id"], margin=4.0 - max(x["wall"] for x in ratios))
     if (work / "wasm.json").exists():
         wasm = {x["input"]: x for x in json.loads((work / "wasm.json").read_text())}
         native = {r["id"]: r for r in forty}
@@ -353,13 +460,29 @@ def gates(a, work):
         gm, rm = first(r, "global"), first(r, "refinement")
         stats = gm["stats"]
         new = sorted(set(gm["warnings"]) - set(rm["warnings"]) - NEW_NOTES)
-        srows.append(dict(id=r["id"], refinement=rm["fos"], global_fos=gm["fos"], algorithm=stats["algorithm"], evaluated=stats["evaluated"],
+        srows.append(dict(id=r["id"], refinement=rm["fos"], global_fos=gm["fos"], algorithm=stats["algorithm"], evaluated=stats["evaluated"], eligible=stats["eligible"],
                           winner=stats["winner"], new_warnings=new, notes=sorted(set(gm["warnings"]) & NEW_NOTES)))
     zero = [x["id"] for x in srows if x["evaluated"] == 0]
     G["A8"] = dict(ok=len(slopes) == 24 and all(x["global_fos"] <= x["refinement"] for x in srows) and len(zero) <= 1
                    and all(not x["new_warnings"] for x in srows) and all("non_circular_global_no_candidates" in x["notes"] for x in srows if x["evaluated"] == 0),
                    criterion="en los 24 taludes `global` no empeora ninguno, `evaluated` > 0 en al menos 23 y no hay avisos nuevos fuera de F7.2 (E17a)",
-                   slopes=len(slopes), evaluated_zero=zero, rows=srows)
+                   slopes=len(slopes), evaluated_zero=zero, eligible_zero=[x["id"] for x in srows if x["eligible"] == 0], rows=srows)
+    repro_path = work / "repro.json"
+    if repro_path.exists():
+        rr = json.loads(repro_path.read_text())
+        by = {x["id"]: x["after"] for x in rr}
+        checks = {
+            "01_project_hang": lambda r: "fos" in r and r["wall"] < 15.0,
+            "02_max_vertices_9": lambda r: "fos" in r and r["vertices"] <= 9,
+            "03_all_hb_auto_bases": lambda r: "fos" in r and r["stats"]["algorithm"] == "block" and r["stats"]["attempts"] < 1236,
+            "04_tension_note_zero_count": lambda r: "fos" in r and r["stats"]["tension_rejected"] == 0 and "non_circular_global_tension_rejected" in r["warnings"],
+            "05_global_array": lambda r: "error" in r and r["error"].startswith("ogs: InvalidModel"),
+            "06_v053_shansep_layer4": lambda r: "fos" in r and r["fos"] < 1.084,
+            "06_v053_hoek_brown_layer4": lambda r: "fos" in r and r["fos"] < 1.084,
+        }
+        for x in rr:
+            x["ok"] = bool(checks[x["id"]](x["after"]))
+        G["REPRO"] = dict(ok=all(x["ok"] for x in rr), rows=rr)
     # --- A9
     if (work / "a9.json").exists():
         a9 = json.loads((work / "a9.json").read_text())
@@ -414,7 +537,7 @@ def step_report(a, work):
     line("A5", lambda g: f"{sum(m['ok'] for m in g['rows'])}/{len(g['rows'])} resultados ≤ sin `global`; `global` gana en {g['global_wins']}")
     line("A6", lambda g: f"{g['deterministic']}/{g['models']} deterministas; {g['parallel_identical']}/{g['models']} idénticos con `parallel`")
     line("A7", lambda g: f"razón de tiempo: mediana {g['median']:.2f}, máximo {g['maximum']:.2f} (CPU: {g['cpu_median']:.2f} / {g['cpu_maximum']:.2f})" + (f"; WASM: razón máxima {max(x['global_s'] / x['circular'] for x in g['wasm']):.2f}, FS igual al nativo a {max(x['diff'] for x in g['wasm']):.0e}" if g["wasm"] else "; WASM sin medir"))
-    line("A8", lambda g: f"24 taludes; `evaluated` = 0 en {len(g['evaluated_zero'])}: {', '.join(g['evaluated_zero']) or '—'}")
+    line("A8", lambda g: f"24 taludes; `evaluated` = 0 en {len(g['evaluated_zero'])}: {', '.join(g['evaluated_zero']) or '—'}; `eligible` = 0 en {len(g['eligible_zero'])}")
     line("A9", lambda g: f"recocido: {g['exact']}/{len(g['annealing'])} iguales al prototipo original a 1e-6; {sum(x['annealing_aligned_diff'] is not None and x['annealing_aligned_diff'] <= 1e-6 for x in g['annealing'])}/{len(g['annealing'])} con el alineado a las reglas del contrato")
     line("A10", lambda g: g.get("figure", ""))
     L.append("")
@@ -445,9 +568,15 @@ def step_report(a, work):
               "«FS reeval.» es la polilínea ganadora evaluada como superficie fija en `ogs`; sus notas se miran contra "
               "`negative_lambda` y `negative_effective_normal_major`. Solo hay polilínea del generador en los modelos donde gana `global`.", ""]
         L += table(["Modelo", "FS global", "FS reeval.", "cSlope", "Dif.", "Notas de tracción"],
-                   [[x["id"], fmt(x["fos"], 4), fmt(x["fixed_fos"], 4), fmt(x["cslope"], 4) if x["cslope"] else f"({x['cslope_error']})",
+                   [[x["id"] + ("" if x["method"] == "spencer" else f" · {x['method']}"), fmt(x["fos"], 4), fmt(x["fixed_fos"], 4), fmt(x["cslope"], 4) if x["cslope"] else f"({x['cslope_error']})",
                      f"{x['cslope_diff'] * 100:.2f} %" if x["cslope_diff"] is not None else "—", ", ".join(x["tension_notes"]) or "ninguna"] for x in g["rows"]])
-        L += ["", f"V051 con `global`: {g['v051']:.4f} (mínimo 0,69). Veredicto: {verdict(g['ok'])}.", ""]
+        L += ["", f"V051 con `global`: {g['v051']:.4f} (mínimo 0,69). Métodos recorridos: {', '.join(g['methods'])}. "
+              f"Janbu y Morgenstern-Price: {g['method_runs']} corridas, {g['method_winners']} con ganador del generador.", ""]
+        if g["cslope_warnings"]:
+            L += ["**Advertencias (cSlope no dio FS; no se excluyen en silencio):**", ""] + [f"- {w}" for w in g["cslope_warnings"]] + [""]
+        else:
+            L += ["Advertencias de cSlope: ninguna (las {} polilíneas ganadoras tienen FS de cSlope).".format(g["winners"]), ""]
+        L += [f"Veredicto: {verdict(g['ok'])}.", ""]
     if "A5" in G:
         g = G["A5"]
         L += ["## A5 · monotonía", "", g["criterion"] + ".", ""]
@@ -467,6 +596,7 @@ def step_report(a, work):
               "La columna «Refinamiento» es la razón del refinamiento de v0.6 sin `global`, para ver cuánto agrega la etapa global.", ""]
         L += table(["Modelo", "Circular (s)", "Global (s)", "Razón", "Razón CPU", "Refinamiento"],
                    [[x["id"], fmt(x["circular"], 3), fmt(x["global_s"], 3), f"{x['wall']:.2f}", f"{x['cpu']:.2f}", f"{x['refinement']:.2f}"] for x in g["rows"]])
+        L += ["", f"Peor caso: {g['worst']} con {g['maximum']:.2f}×; margen frente al tope de 4×: {g['margin']:.2f} ({g['margin'] / 4.0 * 100:.1f} % del tope)."]
         if g["wasm"]:
             L += ["", "WASM (el motor compilado a `wasm32-unknown-unknown`, corrido en V8 de Node; no es Chrome): tiempo de V053 y S2 con y sin `global` y FS contra el nativo.", ""]
             L += table(["Modelo", "WASM circular (s)", "WASM global (s)", "Razón WASM", "Nativo circular (s)", "Nativo global (s)", "FS nativo", "FS WASM", "Dif.", "Salida idéntica"],
@@ -478,10 +608,12 @@ def step_report(a, work):
     if "A8" in G:
         g = G["A8"]
         L += ["## A8 · barrido de 24 taludes", "", g["criterion"] + ".", ""]
-        L += table(["Talud", "Sin `global`", "Con `global`", "Algoritmo", "Evaluaciones", "Ganador", "Avisos nuevos", "Notas F7.2"],
-                   [[x["id"], fmt(x["refinement"], 5), fmt(x["global_fos"], 5), x["algorithm"], x["evaluated"], x["winner"],
+        L += table(["Talud", "Sin `global`", "Con `global`", "Algoritmo", "Evaluaciones", "Elegibles", "Ganador", "Avisos nuevos", "Notas F7.2"],
+                   [[x["id"], fmt(x["refinement"], 5), fmt(x["global_fos"], 5), x["algorithm"], x["evaluated"], x["eligible"], x["winner"],
                      ", ".join(x["new_warnings"]) or "—", ", ".join(x["notes"]) or "—"] for x in g["rows"]])
-        L += ["", f"`evaluated` = 0 en: {', '.join(g['evaluated_zero']) or 'ninguno'}. Veredicto: {verdict(g['ok'])}.", ""]
+        L += ["", f"`evaluated` = 0 en: {', '.join(g['evaluated_zero']) or 'ninguno'}. `eligible` = 0 en: {', '.join(g['eligible_zero']) or 'ninguno'} "
+              "(sin candidato elegible no hay etapa global efectiva, aunque haya evaluaciones). "
+              f"Veredicto: {verdict(g['ok'])}.", ""]
     if "A9" in G:
         g = G["A9"]
         L += ["## A9 · paridad con el prototipo", "", g["criterion"] + ".", "",
@@ -499,6 +631,51 @@ def step_report(a, work):
         L += ["", "Bloque (informativo, sin exigencia): el mejor de 500 del prototipo original (F7.3.2 sin E17c) contra el de Rust (E17c).", ""]
         L += table(["Modelo", "Prototipo original", "Rust (E17c)"], [[x["id"], fmt(x["proto_original"], 6), fmt(x["rust"], 6)] for x in g["block"]])
         L += ["", f"Veredicto: {verdict(g['ok'])}.", ""]
+    if "REPRO" in G:
+        L += ["## Reproductores de la revisión adversarial (RCM-A), antes → después", "",
+              "«Antes» es el binario de CM-M (`1399813`, tope de 60 s); «después» es el binario de esta corrida (tope de 120 s). Los modelos están en `verification/global/repro/`.", ""]
+
+        def cell(r):
+            if r is None:
+                return "—"
+            if "timeout" in r:
+                return f"> {r['timeout']} s (sin terminar)"
+            if "error" in r:
+                return "error: " + r["error"][:60]
+            g_ = r["stats"]
+            return (f"FS {r['fos']:.4f}; {g_.get('algorithm', '—')}; {r['vertices']} vért.; tension_rejected {g_.get('tension_rejected', '—')}; "
+                    f"{r['wall']:.2f} s" + ("; " + ", ".join(w for w in r['warnings'] if 'global' in w) if any('global' in w for w in r['warnings']) else ""))
+        L += table(["Reproductor", "Antes", "Después", "Pasa"], [[x["id"], cell(x.get("before")), cell(x["after"]), "sí" if x["ok"] else "NO"] for x in G["REPRO"]["rows"]])
+        plain = next((x.get("plain") for x in G["REPRO"]["rows"] if x["id"].startswith("01")), None)
+        if plain and "wall" in plain:
+            L += ["", f"El reproductor 01 sin `global` (v0.6) tarda {plain['wall']:.2f} s."]
+        L += [""]
+    before = HERE / "before.json"
+    if before.exists():
+        b = json.loads(before.read_text())
+        L += ["## Antes → después (cifras de las compuertas)", "", f"«Antes»: `{b['commit']}` (CM-M, relevo de Sonnet).", ""]
+        rows_ = []
+        for key, name, fn in [
+            ("A2", "V053 con `global: {}`", lambda g: g["fos"]),
+            ("A2b", "V053 semillas en la banda (de 48)", lambda g: g["V053"]["passed"]),
+            ("A2b", "V053 mediana de 48 semillas", lambda g: g["V053"]["median"]),
+            ("A2b", "S2 mediana de 48 semillas", lambda g: g["S2"]["median"]),
+            ("A3", "checks que pasan (de 15)", lambda g: sum(c["passed"] for c in g["checks"])),
+            ("A4", "polilíneas ganadoras evaluadas en cSlope", lambda g: g["winners"]),
+            ("A4", "máxima diferencia con cSlope", lambda g: g["max_cslope_diff"]),
+            ("A5", "resultados con global ≤ sin global", lambda g: sum(m["ok"] for m in g["rows"])),
+            ("A5", "gana `global`", lambda g: g["global_wins"]),
+            ("A7", "razón máxima de costo", lambda g: g["maximum"]),
+            ("A7", "razón mediana de costo", lambda g: g["median"]),
+            ("A8", "taludes con `evaluated` = 0", lambda g: len(g["evaluated_zero"])),
+        ]:
+            if key in G and key in b["gates"]:
+                try:
+                    rows_.append([name, fmt(fn(b["gates"][key]), 4) if isinstance(fn(b["gates"][key]), float) else fn(b["gates"][key]),
+                                  fmt(fn(G[key]), 4) if isinstance(fn(G[key]), float) else fn(G[key])])
+                except (KeyError, TypeError):
+                    pass
+        L += table(["Cifra", "Antes", "Después"], rows_) + [""]
     for name in ("A1", "A10"):
         if name in G and G[name].get("detail"):
             L += [f"## {name}", ""] + G[name]["detail"] + [""]
@@ -514,11 +691,12 @@ def main():
     ap.add_argument("--parallel-bin", type=Path)
     ap.add_argument("--proto-python", type=Path, default=TMP / "cm-x37/venv/bin/python")
     ap.add_argument("--work", type=Path, default=TMP / "cm-m/global-work")
-    ap.add_argument("--steps", default="measure,robust,a9,wasm,report")
+    ap.add_argument("--steps", default="measure,methods,repro,robust,a9,wasm,report")
+    ap.add_argument("--before-bin", type=Path, help="binario de la ola anterior (CM-M), para la tabla antes → después de los reproductores")
     ap.add_argument("--jobs", type=int, default=2)
     a = ap.parse_args()
     a.work.mkdir(parents=True, exist_ok=True)
-    steps = {"measure": step_measure, "robust": step_robust, "a9": step_a9, "wasm": step_wasm}
+    steps = {"measure": step_measure, "methods": step_methods, "repro": step_repro, "robust": step_robust, "a9": step_a9, "wasm": step_wasm}
     rc = 0
     for name in a.steps.split(","):
         if name == "report":

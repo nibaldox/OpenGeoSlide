@@ -227,13 +227,15 @@ pub(crate) fn refine(
     (best_surface, stats)
 }
 
-/// Refine a generated polyline under the same geometric and evaluation budget as F6.10.
+/// Refine a generated polyline under the same geometric and evaluation budget as F6.10, up to `max_vertices`
+/// (E17e §3). It keeps the best `(points, FS)` pair of every level and round, so the result is never above the FS
+/// of its input (E17e §4). `gain` is what the last optimization gained.
 pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
     pm: &PreparedModel,
     search: &SearchSpec,
     mut points: Vec<Point>,
     mut fos: f64,
-    budget: usize,
+    (budget, max_vertices): (usize, usize),
     eval: &mut E,
 ) -> (Vec<Point>, f64, usize, f64) {
     let mut opt = Optimizer {
@@ -243,8 +245,12 @@ pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
         used: 0,
         budget,
     };
+    let mut best = (points.clone(), fos);
     let mut gain = 0.0;
     for level in [9, 17, 33] {
+        if level > max_vertices {
+            break;
+        }
         if points.len() > level {
             continue;
         }
@@ -283,8 +289,11 @@ pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
         let prior = fos;
         (points, fos) = opt.optimize(points, fos);
         gain = prior - fos;
+        if fos < best.1 {
+            best = (points.clone(), fos);
+        }
     }
-    (points, fos, opt.used, gain)
+    (best.0, best.1, opt.used, gain)
 }
 
 pub(crate) fn polish_generated<E: FnMut(&Surface) -> Option<f64>>(
