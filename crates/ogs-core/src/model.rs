@@ -27,6 +27,8 @@ pub const FORMAT_VERSION_V04: &str = "0.4";
 pub const FORMAT_VERSION_V05: &str = "0.5";
 /// Version that admits the Hoek-Brown and SHANSEP materials and `analysis.search.non_circular` (F6.1).
 pub const FORMAT_VERSION_V06: &str = "0.6";
+/// Version that admits global non-circular search (F7.1).
+pub const FORMAT_VERSION_V07: &str = "0.7";
 
 /// `γw` by default in kN/m³ (SI), contract §1.
 pub const DEFAULT_WATER_UNIT_WEIGHT_SI: f64 = 9.81;
@@ -132,6 +134,50 @@ impl ShansepSpec {
     }
 }
 
+/// Global generator, chosen automatically unless explicitly specified (F7.1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum GlobalAlgorithm {
+    #[default]
+    Auto,
+    Block,
+    Annealing,
+}
+
+/// Default number of generated candidates (F7.1).
+pub const DEFAULT_GLOBAL_GENERATED: usize = 500;
+/// Maximum JSON-safe seed.
+pub const MAX_GLOBAL_SEED: u64 = 9_007_199_254_740_991;
+
+/// Global search settings. Absent fields are preserved in round trips.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GlobalSpec {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<GlobalAlgorithm>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generated: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub polish: Option<bool>,
+}
+
+impl GlobalSpec {
+    pub fn algorithm(&self) -> GlobalAlgorithm {
+        self.algorithm.unwrap_or_default()
+    }
+    pub fn generated(&self) -> usize {
+        self.generated.unwrap_or(DEFAULT_GLOBAL_GENERATED)
+    }
+    pub fn seed(&self) -> u64 {
+        self.seed.unwrap_or(0)
+    }
+    pub fn polish(&self) -> bool {
+        self.polish.unwrap_or(true)
+    }
+}
+
 /// Non-circular search refinement parameters (F6.4).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -140,6 +186,8 @@ pub struct NonCircularSpec {
     pub seeds: Option<usize>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_vertices: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub global: Option<GlobalSpec>,
 }
 
 impl NonCircularSpec {

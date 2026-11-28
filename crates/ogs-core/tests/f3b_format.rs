@@ -655,6 +655,7 @@ fn e16p_polyline_fos_is_omitted_only_when_absent() {
         evaluated: 7,
         seed_fos: 1.2,
         polyline_fos: None,
+        global: None,
     };
     assert_eq!(
         serde_json::to_value(stats).unwrap(),

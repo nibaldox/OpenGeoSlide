@@ -140,9 +140,9 @@ def test_non_circular_requires_version_06(version):
 
 def test_unknown_version_names_supported_versions():
     model = hb_model('X28-F-HAM1', ['bishop'], constant=False)
-    model['version'] = '0.7'
+    model['version'] = '0.8'
     message = error_of(model)
-    for version in ('0.1', '0.2', '0.3', '0.4', '0.5', '0.6'):
+    for version in ('0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7'):
         assert version in message
 
 

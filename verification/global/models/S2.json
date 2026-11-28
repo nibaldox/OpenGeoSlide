@@ -1,0 +1,140 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "SYN2",
+    "title": "Sintético 2: rajo, capa débil con buzamiento 10° (1 m), cara 1H:1V",
+    "notes": "Modelo sintético de X32 (no es un caso publicado). Capa débil c=2 kPa, φ=10°, de 1 m, buzamiento 10°, aflora en la cara 1H:1V; base fuerte."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "base",
+      "name": "Base",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 200.0,
+      "friction_angle": 40.0,
+      "ru": null
+    },
+    {
+      "id": "upper",
+      "name": "Superior",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 20.0,
+      "friction_angle": 35.0,
+      "ru": null
+    },
+    {
+      "id": "weak",
+      "name": "Capa débil",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.0,
+      "unit_weight_sat": null,
+      "cohesion": 2.0,
+      "friction_angle": 10.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "base",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          100.0,
+          0.0
+        ],
+        [
+          100.0,
+          5.0
+        ],
+        [
+          45.0,
+          5.0
+        ],
+        [
+          44.42814800674211,
+          5.571851993257887
+        ],
+        [
+          0.0,
+          13.40573318975553
+        ]
+      ]
+    },
+    {
+      "material": "weak",
+      "polygon": [
+        [
+          0.0,
+          13.40573318975553
+        ],
+        [
+          44.42814800674211,
+          5.571851993257887
+        ],
+        [
+          43.21407400337105,
+          6.785925996628947
+        ],
+        [
+          0.0,
+          14.40573318975553
+        ]
+      ]
+    },
+    {
+      "material": "upper",
+      "polygon": [
+        [
+          0.0,
+          14.40573318975553
+        ],
+        [
+          43.21407400337105,
+          6.785925996628947
+        ],
+        [
+          25.0,
+          25.0
+        ],
+        [
+          0.0,
+          25.0
+        ]
+      ]
+    }
+  ],
+  "slope": {
+    "direction": "auto"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 50,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "non_circular": {
+        "seeds": 3,
+        "max_vertices": 33
+      }
+    }
+  }
+}

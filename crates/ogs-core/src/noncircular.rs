@@ -16,6 +16,7 @@ struct Optimizer<'a, E> {
     windows: [[f64; 2]; 2],
     eval: &'a mut E,
     used: usize,
+    budget: usize,
 }
 
 impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
@@ -28,7 +29,7 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
     fn evaluate(&mut self, p: &[Point]) -> Option<f64> {
         let tol = self.window_margin();
         let inside = |x: f64, [a, b]: [f64; 2]| x >= a.min(b) - tol && x <= a.max(b) + tol;
-        if self.used >= BUDGET
+        if self.used >= self.budget
             || p.len() < 2
             || !inside(p[0][0], self.windows[0])
             || !inside(p[p.len() - 1][0], self.windows[1])
@@ -63,9 +64,9 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
             return (p, f);
         }
         let mut delta = delta0;
-        while delta >= 0.02 * delta0 && self.used < BUDGET {
+        while delta >= 0.02 * delta0 && self.used < self.budget {
             for _ in 0..6 {
-                if self.used >= BUDGET {
+                if self.used >= self.budget {
                     break;
                 }
                 let n = p.len();
@@ -88,7 +89,7 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
                 for k in 0..n {
                     let mut sides = [None, None];
                     for (j, t) in [delta, -delta].into_iter().enumerate() {
-                        if self.used >= BUDGET {
+                        if self.used >= self.budget {
                             break;
                         }
                         let Some(pt) = self.moved(&p, k, t, &dirs) else {
@@ -119,7 +120,7 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
                         _ => 0.0,
                     };
                 }
-                if self.used < BUDGET && shifts.iter().any(|s| *s != 0.0) {
+                if self.used < self.budget && shifts.iter().any(|s| *s != 0.0) {
                     let mut q = p.clone();
                     let mut ok = true;
                     for k in 0..n {
@@ -153,6 +154,16 @@ impl<E: FnMut(&Surface) -> Option<f64>> Optimizer<'_, E> {
     }
 }
 
+pub(crate) fn windows(pm: &PreparedModel, search: &SearchSpec) -> [[f64; 2]; 2] {
+    let full = [pm.x_min, pm.x_max];
+    let entry = search.entry.unwrap_or(full);
+    let exit = search.exit.unwrap_or(full);
+    match pm.sliding {
+        Sliding::LeftToRight => [entry, exit],
+        Sliding::RightToLeft => [exit, entry],
+    }
+}
+
 /// Refine each seed, keeping the circle on ties (F6.10 and E16s).
 pub(crate) fn refine(
     pm: &PreparedModel,
@@ -163,18 +174,13 @@ pub(crate) fn refine(
     mut eval: impl FnMut(&Surface) -> Option<f64>,
 ) -> (Surface, NonCircularStats) {
     let (circle, seed_fos) = seeds[0];
-    let full = [pm.x_min, pm.x_max];
-    let entry = search.entry.unwrap_or(full);
-    let exit = search.exit.unwrap_or(full);
-    let windows = match pm.sliding {
-        Sliding::LeftToRight => [entry, exit],
-        Sliding::RightToLeft => [exit, entry],
-    };
+    let windows = windows(pm, search);
     let mut stats = NonCircularStats {
         seeds: 0,
         evaluated: 0,
         seed_fos,
         polyline_fos: None,
+        global: None,
     };
     let mut best_surface = Surface::Circle(circle);
     for (circle, _) in seeds.into_iter().take(spec.seeds()) {
@@ -184,6 +190,7 @@ pub(crate) fn refine(
             windows,
             eval: &mut eval,
             used: 0,
+            budget: BUDGET,
         };
         if let Some(mut p) = search_circle_polyline(pm, &circle)
             && let Some(mut f) = opt.evaluate(&p)
@@ -218,6 +225,92 @@ pub(crate) fn refine(
         stats.evaluated += opt.used;
     }
     (best_surface, stats)
+}
+
+/// Refine a generated polyline under the same geometric and evaluation budget as F6.10.
+pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
+    pm: &PreparedModel,
+    search: &SearchSpec,
+    mut points: Vec<Point>,
+    mut fos: f64,
+    budget: usize,
+    eval: &mut E,
+) -> (Vec<Point>, f64, usize, f64) {
+    let mut opt = Optimizer {
+        pm,
+        windows: windows(pm, search),
+        eval,
+        used: 0,
+        budget,
+    };
+    let mut gain = 0.0;
+    for level in [9, 17, 33] {
+        if points.len() > level {
+            continue;
+        }
+        if points.len() < level {
+            let mut next = points.clone();
+            if level == 2 * next.len() - 1 {
+                let mut q = Vec::with_capacity(level);
+                for w in next.windows(2) {
+                    q.push(w[0]);
+                    q.push([(w[0][0] + w[1][0]) * 0.5, (w[0][1] + w[1][1]) * 0.5]);
+                }
+                q.push(*next.last().unwrap());
+                next = q;
+            } else {
+                while next.len() < level {
+                    let i = next
+                        .windows(2)
+                        .enumerate()
+                        .max_by(|(ia, a), (ib, b)| {
+                            (a[1][0] - a[0][0])
+                                .hypot(a[1][1] - a[0][1])
+                                .total_cmp(&(b[1][0] - b[0][0]).hypot(b[1][1] - b[0][1]))
+                                .then_with(|| ib.cmp(ia))
+                        })
+                        .unwrap()
+                        .0;
+                    let a = next[i];
+                    let b = next[i + 1];
+                    next.insert(i + 1, [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5]);
+                }
+            }
+            let Some(f) = opt.evaluate(&next) else { break };
+            points = next;
+            fos = f;
+        }
+        let prior = fos;
+        (points, fos) = opt.optimize(points, fos);
+        gain = prior - fos;
+    }
+    (points, fos, opt.used, gain)
+}
+
+pub(crate) fn polish_generated<E: FnMut(&Surface) -> Option<f64>>(
+    pm: &PreparedModel,
+    search: &SearchSpec,
+    mut points: Vec<Point>,
+    mut fos: f64,
+    mut gain: f64,
+    eval: &mut E,
+) -> (Vec<Point>, f64, usize) {
+    let mut opt = Optimizer {
+        pm,
+        windows: windows(pm, search),
+        eval,
+        used: 0,
+        budget: 3000,
+    };
+    for _ in 0..4 {
+        if gain <= 0.001 || opt.used >= opt.budget {
+            break;
+        }
+        let prior = fos;
+        (points, fos) = opt.optimize(points, fos);
+        gain = prior - fos;
+    }
+    (points, fos, opt.used)
 }
 
 #[cfg(test)]
@@ -268,6 +361,7 @@ mod tests {
             windows: [[x0, x1], [x0, x1]],
             eval: &mut eval,
             used: 0,
+            budget: BUDGET,
         };
         let y = |x: f64| pm.top_at(x).unwrap();
         let ok = |a: f64, b: f64| vec![[a, y(a)], [15.0, 5.0], [b, y(b)]];

@@ -12,7 +12,8 @@
 use crate::OgsError;
 use crate::model::{
     CrackDepth, FORMAT_VERSION, FORMAT_VERSION_V02, FORMAT_VERSION_V03, FORMAT_VERSION_V04,
-    FORMAT_VERSION_V05, FORMAT_VERSION_V06, Load, MaterialModel, MethodKind, Model, SurfaceSpec,
+    FORMAT_VERSION_V05, FORMAT_VERSION_V06, FORMAT_VERSION_V07, Load, MAX_GLOBAL_SEED,
+    MaterialModel, MethodKind, Model, SurfaceSpec,
 };
 use crate::slicer::Slice;
 
@@ -268,6 +269,38 @@ fn first_v06_field(model: &Model) -> Option<String> {
     None
 }
 
+fn first_v07_field(model: &Model) -> Option<&'static str> {
+    model
+        .analysis
+        .search
+        .as_ref()
+        .and_then(|s| s.non_circular.as_ref())
+        .and_then(|n| n.global.as_ref())
+        .map(|_| "analysis.search.non_circular.global")
+}
+
+fn validate_v07(model: &Model) -> Result<(), OgsError> {
+    if let Some(g) = model
+        .analysis
+        .search
+        .as_ref()
+        .and_then(|s| s.non_circular.as_ref())
+        .and_then(|n| n.global.as_ref())
+    {
+        if !(50..=2000).contains(&g.generated()) {
+            return Err(invalid(
+                "analysis.search.non_circular.global.generated debe estar en [50, 2000]",
+            ));
+        }
+        if g.seed() > MAX_GLOBAL_SEED {
+            return Err(invalid(
+                "analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991]",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// True when some material of the model is `hoek_brown` or `shansep` (F6.5).
 fn has_new_material(model: &Model) -> bool {
     model
@@ -351,11 +384,12 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
         FORMAT_VERSION_V04,
         FORMAT_VERSION_V05,
         FORMAT_VERSION_V06,
+        FORMAT_VERSION_V07,
     ]
     .contains(&model.version.as_str())
     {
         return Err(invalid(format!(
-            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\", \"{FORMAT_VERSION_V04}\", \"{FORMAT_VERSION_V05}\" o \"{FORMAT_VERSION_V06}\", no \"{}\"",
+            "version debe ser \"{FORMAT_VERSION}\", \"{FORMAT_VERSION_V02}\", \"{FORMAT_VERSION_V03}\", \"{FORMAT_VERSION_V04}\", \"{FORMAT_VERSION_V05}\", \"{FORMAT_VERSION_V06}\" o \"{FORMAT_VERSION_V07}\", no \"{}\"",
             model.version
         )));
     }
@@ -369,6 +403,7 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
         FORMAT_VERSION_V04,
         FORMAT_VERSION_V05,
         FORMAT_VERSION_V06,
+        FORMAT_VERSION_V07,
     ]
     .contains(&model.version.as_str())
         && let Some(field) = first_v03_field(model)
@@ -377,29 +412,43 @@ pub fn validate_document(model: &Model) -> Result<(), OgsError> {
             "{field} requiere version \"{FORMAT_VERSION_V03}\""
         )));
     }
-    if ![FORMAT_VERSION_V04, FORMAT_VERSION_V05, FORMAT_VERSION_V06]
-        .contains(&model.version.as_str())
+    if ![
+        FORMAT_VERSION_V04,
+        FORMAT_VERSION_V05,
+        FORMAT_VERSION_V06,
+        FORMAT_VERSION_V07,
+    ]
+    .contains(&model.version.as_str())
         && let Some(field) = first_v04_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V04}\""
         )));
     }
-    if ![FORMAT_VERSION_V05, FORMAT_VERSION_V06].contains(&model.version.as_str())
+    if ![FORMAT_VERSION_V05, FORMAT_VERSION_V06, FORMAT_VERSION_V07]
+        .contains(&model.version.as_str())
         && let Some(field) = first_v05_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V05}\""
         )));
     }
-    if model.version != FORMAT_VERSION_V06
+    if ![FORMAT_VERSION_V06, FORMAT_VERSION_V07].contains(&model.version.as_str())
         && let Some(field) = first_v06_field(model)
     {
         return Err(invalid(format!(
             "{field} requiere version \"{FORMAT_VERSION_V06}\""
         )));
     }
+    if model.version != FORMAT_VERSION_V07
+        && let Some(field) = first_v07_field(model)
+    {
+        return Err(invalid(format!(
+            "{field} requiere version \"{FORMAT_VERSION_V07}\""
+        )));
+    }
     validate_v06(model)?;
+    validate_v07(model)?;
     if let Some(s) = &model.analysis.seismic {
         if !(s.kh.is_finite() && (0.0..1.0).contains(&s.kh)) {
             return Err(invalid("analysis.seismic.kh debe estar en [0, 1)"));

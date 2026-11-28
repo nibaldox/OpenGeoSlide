@@ -42,6 +42,7 @@ import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+SCHEMA_07 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.7.schema.json"), encoding="utf-8"))
 SCHEMA_06 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"), encoding="utf-8"))
 SCHEMA_05 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.5.schema.json"), encoding="utf-8"))
 SCHEMA_04 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.4.schema.json"), encoding="utf-8"))
@@ -294,7 +295,7 @@ def test_engine_accepts_every_v0_2_case_and_the_complete_model(tmp_path):
     lambda m: m["analysis"]["seismic"].update(kv=-1.0),
     lambda m: m["analysis"]["seismic"].update(kz=0.1),
     lambda m: m.update(version="0.1"),
-    lambda m: m.update(version="0.7"),
+    lambda m: m.update(version="0.8"),
 ])
 def test_schema_and_engine_both_reject_the_same_malformed_documents(mutate, tmp_path):
     model = _base_v02()
@@ -504,7 +505,7 @@ BOUNDARY_TABLE = [
     ("v0.1, loads=null", _both(_set("version", "0.1"), _set("loads", None), _set("analysis.seismic", None)), False),
     ("v0.2, loads=[] and seismic=null", _both(_set("loads", []), _set("analysis.seismic", None)), True),
     ("version='0.3' without fields of 0.3", _set("version", "0.3"), True),
-    ("version='0.7'", _set("version", "0.7"), False),
+    ("version='0.8'", _set("version", "0.8"), False),
     ("version=0.2 (number)", _set("version", 0.2), False),
 ]
 
@@ -850,7 +851,7 @@ V04_TABLE = [
     ("reinforcements=null", _set("reinforcements", None), False),
     ("reinforcements=null in version 0.3", _both(_set("version", "0.3"), _set("reinforcements", None)), False),
     ("reinforcements that is not a list", _set("reinforcements", {"type": "anchor"}), False),
-    ("version 0.7", _both(_set("version", "0.7"), _reinf(_anchor())), False),
+    ("version 0.8", _both(_set("version", "0.8"), _reinf(_anchor())), False),
     # the tag, the fields and the enums
     ("unknown type", _reinf(_anchor(type="strut")), False),
     ("without type", _reinf(_anchor(type=_DEL)), False),
@@ -1052,7 +1053,7 @@ V05_TABLE = [
     ("crack in 0.3", _both(_version("0.3"), _crack()), False),
     ("crack in 0.2", _both(_version("0.2"), _crack()), False),
     ("crack in 0.1", _both(_version("0.1"), _crack()), False),
-    ("crack in 0.7", _both(_version("0.7"), _crack()), False),
+    ("crack in 0.8", _both(_version("0.8"), _crack()), False),
     # depth
     ("depth 0", _crack(0.0), False),
     ("depth -2", _crack(-2.0), False),
@@ -1507,3 +1508,24 @@ def test_the_engine_gate_names_the_v0_6_fields_and_the_schema_rejects_the_same_d
             path.write_text(json.dumps(model), encoding="utf-8")
             proc = subprocess.run([_ogs(), "analyze", str(path)], capture_output=True, text=True, timeout=120)
             assert proc.returncode != 0 and 'requiere version "0.6"' in proc.stderr and token in proc.stderr, proc.stderr
+
+
+@pytest.mark.parametrize("spec,valid", [
+    ({}, True),
+    ({"algorithm": "block", "generated": 50, "seed": 0, "polish": False}, True),
+    ({"algorithm": "annealing", "generated": 2000, "seed": 9007199254740991}, True),
+    ({"algorithm": "path"}, False), ({"generated": 49}, False),
+    ({"generated": 2001}, False), ({"seed": -1}, False),
+    ({"seed": 9007199254740992}, False), ({"typo": 1}, False),
+])
+def test_v07_global_schema(spec, valid):
+    jsonschema.Draft202012Validator.check_schema(SCHEMA_07)
+    model = copy.deepcopy(_case_models()["V001-nc"])
+    model["version"] = "0.7"
+    model["analysis"]["search"]["non_circular"]["global"] = spec
+    assert (not _errors(model, SCHEMA_07)) == valid
+    if valid:
+        model["version"] = "0.6"
+        assert _errors(model, SCHEMA_07)
+        model["analysis"]["search"]["non_circular"]["global"] = None
+        assert not _errors(model, SCHEMA_07)

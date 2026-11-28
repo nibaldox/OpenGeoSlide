@@ -9,7 +9,8 @@ use std::process::ExitCode;
 const USAGE: &str = "uso: ogs --version | ogs analyze <archivo.ogs.json> | \
 ogs bench <caso.json> [--reps N] \
 [--method bishop|spencer|morgenstern_price|janbu_simplified|janbu_corrected|all] (all = los cinco métodos)\n\
-el modelo es un .ogs.json v0.1 a v0.6; con refuerzos (anchor, nail, geosynthetic, pile y sheet_pile) pide \"version\": \"0.4\" \
+el modelo es un .ogs.json v0.1 a v0.6 y v0.7; analysis.search.non_circular.global pide \"version\": \"0.7\" \
+(algorithm, generated, seed, polish); con refuerzos (anchor, nail, geosynthetic, pile y sheet_pile) pide \"version\": \"0.4\" \
 y cada método del informe trae reinforcement_forces; \
 con analysis.tension_crack (grieta de tracción: depth, un número o \"auto\", y water_fill de 0 a 1), con lateral_pressure \
 (presión de suelo de Ito-Matsui en un pile, en lugar de force; agrega soil_force, governs y arm a cada cruce) o con capacity \
