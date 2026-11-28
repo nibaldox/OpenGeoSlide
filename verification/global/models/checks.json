@@ -1,0 +1,108 @@
+{
+  "V036c": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.018,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020491159135559923,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "V036d": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.116,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020448028673835127,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "V039": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.167,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020428449014567265,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.16,
+      "published_by": "Duncan & Wright (reference), non-circular",
+      "tolerance": 0.02431034482758621,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "V041a": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.592,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020314070351758796,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "V041b": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.59,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023144654088050314,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "V051": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.707,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.020707213578500708,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "V053": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.01,
+      "published_by": "Commercial program A (block search)",
+      "tolerance": 0.034950495049504954,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "V098": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.36,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023676470588235295,
+      "options": {
+        "slices": 40
+      }
+    }
+  ]
+}

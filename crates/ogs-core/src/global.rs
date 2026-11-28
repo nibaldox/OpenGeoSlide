@@ -21,6 +21,17 @@ impl SplitMix64 {
         a + (b - a) * ((self.next() >> 11) as f64 / 9007199254740992.0)
     }
 }
+fn halton(mut index: u64, base: u64) -> f64 {
+    let mut place = 1.0 / base as f64;
+    let mut value = 0.0;
+    while index > 0 {
+        value += (index % base) as f64 * place;
+        index /= base;
+        place /= base as f64;
+    }
+    value
+}
+
 fn inside(p: Point, poly: &[Point]) -> bool {
     let mut yes = false;
     for i in 0..poly.len() {
@@ -37,6 +48,26 @@ fn inside(p: Point, poly: &[Point]) -> bool {
 fn layers(model: &Model, pm: &PreparedModel) -> (Vec<[Point; 2]>, bool) {
     let eps = 1e-4 * (pm.y_max - pm.y_min);
     let width = pm.x_max - pm.x_min;
+    let has_contact_any = model.regions.iter().enumerate().any(|(i, r)| {
+        r.polygon
+            .iter()
+            .zip(r.polygon.iter().cycle().skip(1))
+            .any(|(a, b)| {
+                let dx = b[0] - a[0];
+                let dy = b[1] - a[1];
+                let len = dx.hypot(dy);
+                if dx.abs() <= 1e-9 * width || len <= 0.0 {
+                    return false;
+                }
+                let mid = [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5];
+                let n = [-dy / len, dx / len];
+                let p = [mid[0] + eps * n[0], mid[1] + eps * n[1]];
+                let q = [mid[0] - eps * n[0], mid[1] - eps * n[1]];
+                model.regions.iter().enumerate().any(|(j, other)| {
+                    j != i && (inside(p, &other.polygon) || inside(q, &other.polygon))
+                })
+            })
+    });
     let mut contacts: Vec<(usize, f64, Vec<[Point; 2]>)> = Vec::new();
     let mut bases = Vec::new();
     for (i, r) in model.regions.iter().enumerate() {
@@ -111,6 +142,8 @@ fn layers(model: &Model, pm: &PreparedModel) -> (Vec<[Point; 2]>, bool) {
     contacts.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
     if let Some((_, _, edges)) = contacts.into_iter().next() {
         (edges, true)
+    } else if has_contact_any {
+        (Vec::new(), true)
     } else {
         (bases, false)
     }
@@ -228,17 +261,23 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     if algorithm == "block" {
         while stats.generated < n && stats.attempts < 20 * n && !edges.is_empty() {
             stats.attempts += 1;
-            let [a, b] = edges[rng.below(edges.len())];
-            let k = 2 + rng.below(2);
-            let mut ts: Vec<f64> = (0..=k).map(|_| rng.uniform(0.0, 1.0)).collect();
+            let index = spec.seed() + stats.attempts as u64;
+            let [a, b] =
+                edges[((halton(index, 3) * edges.len() as f64) as usize).min(edges.len() - 1)];
+            let k = 2 + usize::from(halton(index, 2) >= 0.5);
+            let mut ts: Vec<f64> = [5, 7, 11, 13]
+                .into_iter()
+                .take(k + 1)
+                .map(|base| halton(index, base))
+                .collect();
             ts.sort_by(f64::total_cmp);
             let mut points: Vec<Point> = ts
                 .iter()
                 .map(|t| [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])])
                 .collect();
             points.sort_by(|a, b| a[0].total_cmp(&b[0]));
-            let tl = rng.uniform(90.0, 135.0).to_radians();
-            let tr = rng.uniform(45.0, 90.0).to_radians();
+            let tl = (90.0 + 45.0 * halton(index, 19)).to_radians();
+            let tr = (45.0 + 45.0 * halton(index, 17)).to_radians();
             let (Some(l), Some(r)) = (
                 project(pm, points[0], tl, h),
                 project(pm, *points.last().unwrap(), tr, h),
@@ -266,6 +305,7 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
         }
     }
     if algorithm == "annealing" {
+        let begin = stats.attempts;
         let mut start = None;
         for (c, _) in seeds {
             let Some(p) = search_circle_polyline(pm, c) else {
@@ -274,9 +314,12 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
             if !admissible(pm, win, &p) {
                 continue;
             }
+            stats.attempts += 1;
+            let idx = stats.generated;
             stats.generated += 1;
             stats.evaluated += 1;
             if let Some(f) = guarded(&Surface::Polyline(Polyline { points: p.clone() })) {
+                candidates.push((f, idx, p.clone()));
                 start = Some((p, f));
                 break;
             }
@@ -285,7 +328,6 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
             }
         }
         if let Some((mut current, mut current_f)) = start {
-            let begin = stats.attempts;
             while stats.generated < n && stats.attempts - begin < 20 * n {
                 stats.attempts += 1;
                 let k = stats.generated;
@@ -324,15 +366,34 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
                 || (q.2[q.2.len() - 1][0] - c.2[c.2.len() - 1][0]).abs() > 0.05 * span
         }) {
             picks.push(c);
-            if picks.len() == 3 {
+            if picks.len() == 4 {
                 break;
             }
         }
     }
+    // E17b successive halving: rank on short refinements before committing full budgets.
+    for (budget, cap) in [(60, 3), (150, 1)] {
+        let keep = (picks.len() * 3).div_ceil(4).min(cap);
+        let mut next = Vec::new();
+        for (f, idx, p) in picks {
+            let (q, value, used, _) =
+                noncircular::refine_generated(pm, search, p.clone(), f, budget, &mut guarded);
+            stats.evaluated += used;
+            if value < f {
+                next.push((value, idx, q));
+            } else {
+                next.push((f, idx, p));
+            }
+        }
+        next.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+        next.truncate(keep);
+        picks = next;
+    }
     let mut best: Option<(Vec<Point>, f64, f64)> = None;
     for (f, _, p) in picks {
         stats.refined += 1;
-        let (p, f, used, gain) = noncircular::refine_generated(pm, search, p, f, &mut guarded);
+        let (p, f, used, gain) =
+            noncircular::refine_generated(pm, search, p, f, 1500, &mut guarded);
         stats.evaluated += used;
         if best.as_ref().is_none_or(|b| f < b.1) {
             best = Some((p, f, gain));
@@ -368,6 +429,23 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn contact_layers_and_homogeneous_fallback() {
+        let m: Model = serde_json::from_str(include_str!(
+            "../../../verification/global/models/V053.json"
+        ))
+        .unwrap();
+        let pm = PreparedModel::new(&m).unwrap();
+        let (edges, contact) = layers(&m, &pm);
+        assert!(contact && !edges.is_empty());
+        let row: serde_json::Value =
+            serde_json::from_str(include_str!("../../../verification/cases/V001-nc.json")).unwrap();
+        let m: Model = serde_json::from_value(row["model"].clone()).unwrap();
+        let pm = PreparedModel::new(&m).unwrap();
+        let (_, contact) = layers(&m, &pm);
+        assert!(!contact);
+    }
+
     #[test]
     fn splitmix64_zero_matches_reference() {
         let mut rng = SplitMix64(0);

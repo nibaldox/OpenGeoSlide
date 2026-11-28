@@ -1,0 +1,91 @@
+{
+  "format": "opengeoslide",
+  "version": "0.6",
+  "meta": {
+    "id": "V041a",
+    "title": "Submerged slope, pool 30 ft above the crest (D&W fig. 6.27)",
+    "notes": "Fully submerged homogeneous slope (c = 100 psf, φ = 20°, γ = 128 pcf) with the pool 30 ft above the crest: the extra water weight and pore pressure cancel. Converted to SI."
+  },
+  "units": "SI",
+  "materials": [
+    {
+      "id": "material_1",
+      "name": "Material 1",
+      "model": "mohr_coulomb",
+      "unit_weight": 20.10719,
+      "unit_weight_sat": null,
+      "cohesion": 4.78803,
+      "friction_angle": 20.0,
+      "ru": null
+    }
+  ],
+  "regions": [
+    {
+      "material": "material_1",
+      "polygon": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          4.572
+        ],
+        [
+          9.144,
+          4.572
+        ],
+        [
+          32.004,
+          13.716
+        ],
+        [
+          42.672,
+          13.716
+        ],
+        [
+          42.672,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "water": {
+    "unit_weight": 9.807,
+    "piezometric_line": [
+      [
+        0.0,
+        22.86
+      ],
+      [
+        42.672,
+        22.86
+      ]
+    ]
+  },
+  "slope": {
+    "direction": "auto"
+  },
+  "analysis": {
+    "methods": [
+      "spencer"
+    ],
+    "slices": 40,
+    "tolerance": 1e-05,
+    "max_iterations": 500,
+    "min_m_alpha": 0.2,
+    "search": {
+      "type": "circular_entry_exit",
+      "n_entry": 20,
+      "n_exit": 20,
+      "n_radius": 20,
+      "max_radius_factor": 5.0,
+      "min_width": null,
+      "refine": true,
+      "non_circular": {
+        "seeds": 3,
+        "max_vertices": 33
+      }
+    }
+  }
+}

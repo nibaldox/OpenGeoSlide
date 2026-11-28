@@ -396,6 +396,12 @@ fn reinforcement_ends(reinforcements: &[model::Reinforcement]) -> Vec<ElementEnd
     ends
 }
 
+fn is_global_tension(warnings: &[String]) -> bool {
+    warnings
+        .iter()
+        .any(|w| w == "negative_lambda" || w == "negative_effective_normal_major")
+}
+
 fn analyze_method(
     model: &Model,
     pm: &PreparedModel,
@@ -560,9 +566,7 @@ fn analyze_method(
                                 (&polyline_opts, &shansep_error),
                                 surface,
                             )?;
-                            let tension = result.warnings.iter().any(|w| {
-                                w == "negative_lambda" || w == "negative_effective_normal_major"
-                            });
+                            let tension = is_global_tension(&result.warnings);
                             Some((result.fos, tension))
                         });
                     if let Some(winner) = winner {
@@ -1055,5 +1059,28 @@ fn json_error(e: &serde_json::Error) -> OgsError {
             invalid(format!("el documento no coincide con el esquema: {e}"))
         }
         _ => OgsError::Json(e.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod global_guard_tests {
+    use super::*;
+
+    #[test]
+    fn v051_negative_lambda_is_rejected_without_rejecting_minor_notes() {
+        let model = include_str!("../../../verification/global/models/V051-negative-lambda.json");
+        let output: serde_json::Value =
+            serde_json::from_str(&analyze_json(model).unwrap()).unwrap();
+        let warnings: Vec<String> =
+            serde_json::from_value(output["results"][0]["warnings"].clone()).unwrap();
+        assert!(warnings.iter().any(|w| w == "negative_lambda"));
+        assert!(is_global_tension(&warnings));
+        assert!(is_global_tension(&[
+            "negative_effective_normal_major".into()
+        ]));
+        assert!(!is_global_tension(&[
+            "negative_effective_normal".into(),
+            "multiple_admissible_roots".into()
+        ]));
     }
 }

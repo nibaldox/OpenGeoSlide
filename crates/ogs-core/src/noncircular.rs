@@ -233,6 +233,7 @@ pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
     search: &SearchSpec,
     mut points: Vec<Point>,
     mut fos: f64,
+    budget: usize,
     eval: &mut E,
 ) -> (Vec<Point>, f64, usize, f64) {
     let mut opt = Optimizer {
@@ -240,10 +241,13 @@ pub(crate) fn refine_generated<E: FnMut(&Surface) -> Option<f64>>(
         windows: windows(pm, search),
         eval,
         used: 0,
-        budget: BUDGET,
+        budget,
     };
     let mut gain = 0.0;
     for level in [9, 17, 33] {
+        if points.len() > level {
+            continue;
+        }
         if points.len() < level {
             let mut next = points.clone();
             if level == 2 * next.len() - 1 {
