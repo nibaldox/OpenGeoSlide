@@ -251,6 +251,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   const docDirty = useEditorStore(store, (s) => s.revision !== s.file.savedRevision);
   // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
+  // CM-WC: el modelo de arranque sin cambios (ningún documento cargado ni edición desde que se abrió la página) es el único para el que
+  // «Reemplazar» es el destino por defecto al importar; el diálogo también lo usa para nombrar a qué modelo se agrega.
+  const pristineStart = useEditorStore(store, (s) => s.docEpoch === 0 && s.revision === 0);
   const dirty = docDirty || tracePoints > 0;
   const docLabel = docLabelText({ fileName, title: doc.meta.title, example: isExample, dirty });
   const tool = useEditorStore(store, (s) => s.ui.tool);
@@ -1078,6 +1081,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           result={dxf.result}
           materials={doc.materials}
           units={doc.units}
+          base={{ regionCount: doc.regions.length, title: doc.meta?.title ?? null, pristineStart }}
           onCancel={() => setDxf(null)}
           onApply={(plan, mode) => applyRegions(plan, mode, dxf.fileName)}
         />
@@ -1088,6 +1092,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           result={csv.result}
           materials={doc.materials}
           units={doc.units}
+          base={{ regionCount: doc.regions.length, title: doc.meta?.title ?? null, pristineStart }}
           onCancel={() => setCsv(null)}
           onApplyRegions={(plan, mode) => applyRegions(plan, mode, csv.fileName)}
           onApplyPiezo={(points) => {

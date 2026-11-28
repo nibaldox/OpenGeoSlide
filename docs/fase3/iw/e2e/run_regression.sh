@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regresión completa de I-W: todos los guiones de docs/fase2/ux/{u2c,u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/ y docs/fase3/{w1e,w1f}/e2e/
+# Regresión completa de I-W: todos los guiones de docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/ y docs/fase3/{w1e,w1f}/e2e/
 # (sin lib.mjs, *explore* ni dbg) contra `vite preview` (5186; w1f_canvas, en 5187 con el gancho de build_hook.sh) más los de docs/fase3/iw/e2e/
 # y, desde R2-I2, los recorridos de refuerzos v0.4 de docs/fase3/r2i2/e2e/ (tablestaca anclada, muro TEM, clavos, ida y vuelta 0.4)
 # y, desde F3G (I-W), el panel de la grieta y su axe (docs/fase3/g1w1/e2e/g1w1_*.mjs) y el lienzo con el motor real, sin datos simulados
@@ -8,7 +8,8 @@
 # y, desde R12 (I-G2), el recorrido del pilote de Ito-Matsui en el lienzo (docs/fase3/r12/e2e/r12_*.mjs);
 # desde R13, γw por defecto en imperial y «Sin grieta» en Casos y, desde R13 (I-G3), el rótulo del corte de la masa sin grieta de tracción (E15m-15) en el
 # lienzo, Casos y el PDF (docs/fase3/r13/e2e/r13_*.mjs);
-# y, desde CM-WB, el lienzo con teclado, táctil y axe de U2-C (docs/fase2/ux/u2c-e2e/, en 5186: no necesitan el gancho, aunque su guía diga 5187)
+# (docs/fase2/ux/u2c-e2e/ queda fuera desde CM: sus guiones son anteriores al menú Archivo y fallan igual en la v0.5.1; los cubren
+# sus sucesores u3i_u2c_keyboard y u3i_u2c_touch)
 # y la aceptación del bloque UA, 17 comprobaciones (docs/suite-a/e2e/aceptacion_ua.mjs; necesita playwright-core y axe-core en OGS_Q, por defecto
 # $TMPDIR/ua1/Q, y deja su json y sus capturas en <registros>/aceptacion_ua.out/).
 # Los puertos son 5186 y 5187 salvo que se fijen OGS_PORT_PREVIEW y OGS_PORT_HOOK (para correrla en otro lado sin pisar la regresión del coordinador).
@@ -29,7 +30,7 @@ for port in "$port_preview" "$port_hook"; do
 done
 env -u PYTHONPATH -u PYTHONHOME python3 docs/fase2/ux/u6g-e2e/make_fixtures.py "$OGS_FX" > /dev/null
 {
-for f in docs/fase2/ux/{u2c,u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs docs/fase3/r13/e2e/r13_*.mjs docs/suite-a/e2e/aceptacion_ua.mjs; do
+for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs docs/fase3/r13/e2e/r13_*.mjs docs/suite-a/e2e/aceptacion_ua.mjs; do
   case "$f" in */lib.mjs|*explore*|*dbg*) continue;; esac
   n=$(basename "$f" .mjs)
   url=$OGS_URL; [ "$n" = w1f_canvas ] && url="http://127.0.0.1:$port_hook/"

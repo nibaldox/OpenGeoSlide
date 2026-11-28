@@ -13,6 +13,8 @@ import {
   SHORTCUTS,
   type GlossaryTable,
   type Shortcut,
+  EXAMPLE_FILES,
+  exampleFileUrl,
 } from '../onboarding/helpContent';
 import { restoreFocus } from './focusReturn';
 
@@ -156,6 +158,17 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
               </li>
             ))}
           </ol>
+          <h4>Archivos de ejemplo para importar</h4>
+          <ul data-testid="help-example-files">
+            {Object.values(EXAMPLE_FILES).map((f) => (
+              <li key={f.path}>
+                <a href={exampleFileUrl(f)} download={f.fileName}>
+                  {f.label}
+                </a>{' '}
+                <span className="muted small">{f.description}</span>
+              </li>
+            ))}
+          </ul>
           <p>
             <button type="button" className="primary" onClick={onStartTour} data-testid="help-start-tour">
               Recorrido guiado
