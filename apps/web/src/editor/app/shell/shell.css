@@ -918,14 +918,15 @@
   .ua-canvas-card {
     display: flex;
     flex-direction: column;
-    /* UA4-F: 360 de alto como máximo; con 844 de alto de ventana baja a 314 (sin bajar de 260) para que la paleta de dos filas
-       quede entera por encima del pie fijo a scroll 0. */
+    /* UA-E6: `useCanvasHeight` escribe `--ua-canvas-h` en línea (alto medido: la paleta termina justo encima del pie fijo, mínimo 200, sin
+       máximo). Este `clamp` de UA4-F es solo el respaldo del primer pintado y de cuando no hay JS. */
     --ua-canvas-h: clamp(260px, calc(100dvh - 530px), 360px);
   }
-  /* Orden del contrato §2 (UA3 B-13a): lienzo de 360 de alto, HUD estático debajo y después la paleta en fila, luego la leyenda. La
-     paleta vive dentro de `.ec-root`: `.ua-canvas` y `.ec-root` no generan caja y el SVG, el HUD, la paleta y la leyenda son los
-     hijos de la tarjeta, que los ordena con `order`. Lo que se ancla arriba (lectura de coordenadas, avisos de dibujo) sigue
-     anclado a la tarjeta, cuyo borde superior es el del SVG. */
+  /* Orden de UA-E6 (reemplaza al de §2 y de UA3 B-13a): lienzo → paleta en fila → leyenda → HUD. Las herramientas quedan junto al
+     lienzo sobre el que actúan y el FS mínimo sigue a la vista en el chip de la cabecera. La paleta vive dentro de `.ec-root`:
+     `.ua-canvas` y `.ec-root` no generan caja y el SVG, la paleta, la leyenda y el HUD son los hijos de la tarjeta, que los ordena
+     con `order`. Lo que se ancla arriba (lectura de coordenadas, avisos de dibujo) sigue anclado a la tarjeta, cuyo borde superior
+     es el del SVG. */
   .ua-canvas,
   .ua-canvas > .ec-root {
     display: contents;
@@ -940,16 +941,19 @@
     inset: 0 0 auto 0;
     height: var(--ua-canvas-h);
   }
-  /* El HUD (`div.rs`) y la leyenda pasan a ser estáticos debajo del lienzo (sus hojas lo hacen); aquí solo su margen lateral. */
-  .ua-canvas-card > div.rs {
-    order: 1;
-    margin: 10px 12px 0;
-  }
+  /* El HUD (`div.rs`) y la leyenda pasan a ser estáticos debajo de la paleta (sus hojas lo hacen); aquí solo su margen lateral. */
   .ua-canvas-card .ec-palette {
-    order: 2;
+    order: 1;
     margin-top: 10px;
   }
   .ua-canvas-card > ul.legend[aria-label] {
+    order: 2;
+    margin: 10px 12px 0;
+  }
+  .ua-canvas-card > ul.legend[aria-label]:last-child {
+    margin-bottom: 12px;
+  }
+  .ua-canvas-card > div.rs {
     order: 3;
     margin: 10px 12px 12px;
   }
