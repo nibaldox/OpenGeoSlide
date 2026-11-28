@@ -1,9 +1,9 @@
-import { isPolylineReport, reportCircle } from '../engine/surface';
+import { reportCircle } from '../engine/surface';
 import { globalAlgorithmLabel, globalWinnerLabel } from '../engine/globalSearch';
 import type { AnalysisReport, MethodKind, Reinforcement, SolveStatus, TensionCrack } from '../engine/types';
 import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
-import { correctionFactorText, methodDetails, resultSurfaceSummary } from '../report/methodInfo';
+import { correctionFactorText, methodDetails, refinementWinnerText, resultSurfaceSummary } from '../report/methodInfo';
 import { formatFs } from './formatFs';
 import { METHOD_LABELS } from './methodLabels';
 import { CrackTable } from './CrackResults';
@@ -170,7 +170,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
             <tbody>
               {nonCircularResults.map((r) => {
                 const nc = r.search!.non_circular!;
-                const winner = r.status !== 'converged' ? '—' : isPolylineReport(r.surface) ? 'Polilínea' : 'Círculo';
+                const winner = r.status !== 'converged' ? '—' : refinementWinnerText(r);
                 return (
                   <tr key={r.method}>
                     <td>{METHOD_LABELS[r.method]}</td>
