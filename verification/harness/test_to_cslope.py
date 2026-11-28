@@ -1534,12 +1534,25 @@ def test_every_v06_field_needs_version_0_6_in_contract_order():
         ogs_to_cslope(m_order, _check("search", "spencer"))
 
 
-def test_unknown_version_lists_all_six_versions():
-    for bad in ("0.0", "0.7", "1.0", "v0.6"):
+def test_unknown_version_lists_all_seven_versions():
+    for bad in ("0.0", "0.8", "1.0", "v0.6"):
         m = v06_model()
         m["version"] = bad
-        with pytest.raises(UnsupportedModel, match='"0.1", "0.2", "0.3", "0.4", "0.5" o "0.6"'):
+        with pytest.raises(UnsupportedModel, match='"0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7"'):
             _mapped(m)
+
+
+def test_version_0_7_drops_global_and_keeps_the_non_circular_search():
+    m = v06_model(methods=["spencer"])
+    m["version"] = "0.7"
+    m["analysis"].pop("surface", None)
+    m["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": {"seeds": 3, "max_vertices": 33, "global": {}}}
+    conv = ogs_to_cslope(m, _check("search", "spencer"))
+    assert conv.document["options"]["nonCircularOptimization"] is True
+    assert any("búsqueda global (F7.1)" in n for n in conv.notes)
+    m["version"] = "0.6"
+    with pytest.raises(UnsupportedModel, match=r'non_circular\.global requiere version "0\.7"'):
+        ogs_to_cslope(m, _check("search", "spencer"))
 
 
 def test_previous_version_gates_accept_version_0_6():
