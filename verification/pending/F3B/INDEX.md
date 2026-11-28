@@ -23,14 +23,14 @@ Cada check retenido es uno que el motor o el oráculo no reproducen, con su caus
 
 ## Otros casos con búsqueda no circular
 
-El corpus de cSlope tiene más checks con `nonCircularOptimization`. No entran en F3B por el motivo de cada uno:
+El corpus de cSlope tiene más checks con `nonCircularOptimization`. No entran en F3B; los de la lista de F7.6 pasaron a `verification/cases` en CM (lote «Búsqueda no circular y global»), y el resto queda fuera por el motivo de cada uno:
 
-- V036c (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V036d (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V039 (2 checks): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V041a (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V041b (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V051 (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
-- V053 (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
+- V036c (1 check): promovido en CM (F7.6) como `V036c-nc` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V036d (1 check): promovido en CM (F7.6) como `V036d-nc` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V039 (2 checks): promovido en CM (F7.6) como `V039` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V041a (1 check): promovido en CM (F7.6) como `V041a-nc` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V041b (1 check): promovido en CM (F7.6) como `V041b-nc` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V051 (1 check): promovido en CM (F7.6) como `V051` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
+- V053 (1 check): promovido en CM (F7.6) como `V053` (v0.7 con `analysis.search.non_circular.global: {}`): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»
 - V100 (3 checks): material 'Clay' con modelo 'shear-normal'
-- V098 (1 check): fuera de la lista de F6.12 (X23 §1.4 y X29 §8): el conversor lo escribe, pero no se midió con el motor ni con el oráculo
+- V098 (1 check): promovido en CM (F7.6) como `V098-nc` (v0.6): está en [`../../cases/`](../../cases/INDEX.md), sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»

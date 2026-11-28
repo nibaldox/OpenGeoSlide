@@ -192,8 +192,8 @@ def test_generated_cases_pass_the_schema_and_search_gates():
     for path in paths:
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
-        if case["model"]["version"] == "0.6":      # the promoted batch F3B (non-circular search and Hoek-Brown)
-            schema_06 = json.load(open(os.path.join(ROOT, "schema", "ogs-0.6.schema.json"), encoding="utf-8"))
+        if case["model"]["version"] in ("0.6", "0.7"):      # the promoted batches F3B and CM (non-circular search, Hoek-Brown, `global`)
+            schema_06 = json.load(open(os.path.join(ROOT, "schema", f"ogs-{case['model']['version']}.schema.json"), encoding="utf-8"))
             errors = imp.gate_schema_f3r(case, schema_06)
         elif case["model"]["version"] == "0.4":      # the promoted batches R1 to R4 (reinforcements)
             errors = imp.gate_schema_f3r(case, F3R_SCHEMA)
@@ -483,7 +483,7 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # Not every case of verification/cases is v0.1 or v0.2 any more: the cases with M-P, Janbu, undrained strength or a
     # polyline are v0.3 (F3.1). So each case is checked against the version it declares, and the declared version must
     # be the minimal one (F3.9): 0.1 without loads, seismic or v0.3 fields; 0.2 with loads or seismic only; 0.3 otherwise.
-    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0, "0.5": 0, "0.6": 0}
+    counts = {"0.1": 0, "0.2": 0, "0.3": 0, "0.4": 0, "0.5": 0, "0.6": 0, "0.7": 0}
     for path in sorted(glob.glob(os.path.join(CASES_DIR, "*.json"))):
         with open(path, encoding="utf-8") as fh:
             case = json.load(fh)
@@ -492,6 +492,9 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
         counts[version] += 1
         if version == "0.6":      # promoted batch F3B: the 0.6 schema and its own tests (test_f3b_...)
             assert model["analysis"].get("search", {}).get("non_circular") or any(m.get("model") == "hoek_brown" for m in model["materials"]), path
+            continue
+        if version == "0.7":      # promoted batch CM (F7.6): V053 with `non_circular.global`
+            assert model["analysis"]["search"]["non_circular"].get("global") is not None, path
             continue
         if version == "0.4":      # promoted batches R1 to R4: their own schema and gates (test_the_promoted_...)
             assert model["reinforcements"], path
@@ -510,8 +513,8 @@ def test_v0_1_cases_are_untouched_by_the_v0_2_schema():
     # the number comes from the index, never from a literal (contract F3.8)
     with open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8") as fh:
         index = fh.read()
-    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*.*?v0\.5[^*]*\*\*(\d+)\*\*.*?v0\.6[^*]*\*\*(\d+)\*\*", index, re.S)
-    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"], counts["0.5"], counts["0.6"]) == tuple(
+    m = re.search(r"v0\.1: \*\*(\d+)\*\*.*?v0\.2[^*]*\*\*(\d+)\*\*.*?v0\.3: \*\*(\d+)\*\*.*?v0\.4[^*]*\*\*(\d+)\*\*.*?v0\.5[^*]*\*\*(\d+)\*\*.*?v0\.6[^*]*\*\*(\d+)\*\*.*?v0\.7[^*]*\*\*(\d+)\*\*", index, re.S)
+    assert m and (counts["0.1"], counts["0.2"], counts["0.3"], counts["0.4"], counts["0.5"], counts["0.6"], counts["0.7"]) == tuple(
         int(g) for g in m.groups())
 
 
@@ -1348,7 +1351,8 @@ def test_promote_f3i_is_idempotent_on_the_promoted_tree_and_cases_hold_the_four_
     index = first["verification/cases/INDEX.md"].decode()
     assert "## Pilotes de Ito-Matsui (lote F3I, v0.5)" in index and "**4** casos con **4** checks" in index
     assert "| V013c | 3 | bishop | 1.43 |" in index
-    assert "Casos convertidos e incluidos: **167**" in index
+    # the number is the one that the promoted tree declares, never a literal: the run changed nothing (`first == promoted`)
+    assert re.search(r"Casos convertidos e incluidos: \*\*\d+\*\*", index) and index.encode() == promoted["verification/cases/INDEX.md"]
     assert "no son de v0.4" in first["verification/pending/F3R/INDEX.md"].decode()
     assert "pasaron a" in first["verification/pending/F3I/INDEX.md"].decode()
 
@@ -1441,6 +1445,60 @@ def test_f3b_ham1_states_its_assumptions_source_and_tolerance():
     notes = " ".join(case["source"]["notes"])
     for text in ("cimentación", "terreno seco", "γ = 25", "0,5 %", "1,150215", "1,152052", "F6.8"):
         assert text in notes, text
+
+
+# ---------------------------------------------------------------- batch CM (F7.6): promoted to cases/, v0.6 and v0.7
+
+CM_DIR = os.path.join(ROOT, "verification", "pending", "CM")
+CM_PROMOTED = {"V036c-nc": "V036c", "V036d-nc": "V036d", "V039": "V039", "V041a-nc": "V041a", "V041b-nc": "V041b",
+               "V051": "V051", "V053": "V053", "V098-nc": "V098"}
+
+
+def test_cm_promotes_the_nine_checks_of_f7_6_with_the_published_value_and_tolerance_of_the_corpus():
+    corpus = json.load(open(os.path.join(ROOT, "verification", "global", "models", "checks.json"), encoding="utf-8"))
+    assert sorted(imp.CM_IDS) == sorted(CM_PROMOTED.values()) and sorted(imp.CM_RENAMED) == ["V036c", "V036d", "V041a", "V041b", "V098"]
+    n_checks = 0
+    for cid, source in CM_PROMOTED.items():
+        case = json.load(open(os.path.join(CASES_DIR, f"{cid}.json"), encoding="utf-8"))
+        assert case["id"] == cid == case["model"]["meta"]["id"]
+        version = "0.7" if source in imp.CM_GLOBAL else "0.6"
+        assert case["model"]["version"] == version, cid
+        nc = case["model"]["analysis"]["search"]["non_circular"]
+        assert nc == ({"seeds": 3, "max_vertices": 33, "global": {}} if version == "0.7" else {"seeds": 3, "max_vertices": 33}), cid
+        schema = json.load(open(os.path.join(ROOT, "schema", f"ogs-{version}.schema.json"), encoding="utf-8"))
+        assert not list(jsonschema.Draft202012Validator(schema).iter_errors(case["model"])), cid
+        assert [(c["method"], c["kind"], c["published"], c["published_by"], c["tolerance"], c["options"]["slices"]) for c in case["checks"]] == [
+            (c["method"], c["kind"], c["published"], c["published_by"], c["tolerance"], c["options"]["slices"]) for c in corpus[source]], cid
+        n_checks += len(case["checks"])
+        if source in imp.CM_RENAMED:      # the circular case of the same problem stays as it was
+            old = json.load(open(os.path.join(CASES_DIR, f"{source}.json"), encoding="utf-8"))
+            assert old["model"]["version"] != "0.6" or "non_circular" not in old["model"]["analysis"]["search"], source
+    assert n_checks == 9
+
+
+def test_cm_has_nothing_held_and_the_indexes_say_where_the_checks_went():
+    assert json.load(open(os.path.join(CM_DIR, "HOLD.json"), encoding="utf-8")) == []
+    assert sorted(os.path.basename(p) for p in glob.glob(os.path.join(CM_DIR, "*.json"))) == ["HOLD.json"]
+    index = open(os.path.join(CASES_DIR, "INDEX.md"), encoding="utf-8").read()
+    assert "## Búsqueda no circular y global (lote CM, v0.6 y v0.7)" in index
+    assert "**8** casos con **9** checks, promovidos desde `verification/pending/F3B`" in index
+    section = index.split("## Búsqueda no circular y global")[1]
+    assert "| V053 | 0.7 | no circular + global | spencer | 1.01 |" in section and "| V039 | 0.6 | no circular | spencer | 1.16 |" in section
+    f3b = open(os.path.join(F3B_DIR, "INDEX.md"), encoding="utf-8").read()
+    for cid, source in CM_PROMOTED.items():
+        assert f"- {source} (" in f3b and f"promovido en CM (F7.6) como `{cid}`" in f3b, cid
+    pending = open(os.path.join(ROOT, "verification", "pending", "INDEX.md"), encoding="utf-8").read()
+    assert "V051 pasó a `verification/cases` en CM" in pending and "## Checks retenidos en total" in pending
+
+
+def test_cm_rename_uses_the_cm_list_and_the_global_note_is_only_in_v053():
+    case = {"id": "V098", "title": "T", "model": {"meta": {"id": "V098", "title": "T"}, "version": "0.6"}, "checks": [],
+            "source": {"notes": ["n"]}}
+    assert imp.f3b_rename(case, imp.CM_RENAMED)["id"] == "V098-nc"
+    assert imp.f3b_rename(case)["id"] == "V098"
+    notes = {cid: " ".join(json.load(open(os.path.join(CASES_DIR, f"{cid}.json"), encoding="utf-8"))["source"]["notes"]) for cid in CM_PROMOTED}
+    assert "búsqueda global (bloque con Halton rotado y recocido" in notes["V053"] and "1,0847" in notes["V053"]
+    assert not any("búsqueda global" in n for cid, n in notes.items() if cid != "V053")
 
 
 def test_f3b_importer_uses_the_new_options_only_in_f3b_mode():
