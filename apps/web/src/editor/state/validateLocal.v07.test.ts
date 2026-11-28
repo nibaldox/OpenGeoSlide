@@ -26,9 +26,9 @@ describe('validateLocal: rangos de global (F7.1)', () => {
     [{ generated: 49 }, '/generated', 'analysis.search.non_circular.global.generated debe estar en [50, 2000], no 49'],
     [{ generated: 2001 }, '/generated', 'analysis.search.non_circular.global.generated debe estar en [50, 2000], no 2001'],
     [{ generated: 100.5 }, '/generated', 'analysis.search.non_circular.global.generated debe estar en [50, 2000], no 100.5'],
-    [{ seed: -1 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 2^53 - 1], no -1'],
-    [{ seed: 9007199254740992 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 2^53 - 1], no 9007199254740992'],
-    [{ seed: 1.5 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 2^53 - 1], no 1.5'],
+    [{ seed: -1 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no -1'],
+    [{ seed: 9007199254740992 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no 9007199254740992'],
+    [{ seed: 1.5 }, '/seed', 'analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no 1.5'],
     [{ algorithm: 'path' }, '/algorithm', 'analysis.search.non_circular.global.algorithm debe ser "auto", "block" o "annealing", no "path"'],
   ])('%j → error con su ruta', (g, field, text) => {
     const errs = globalErrors(docWith(g));

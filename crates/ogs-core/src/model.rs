@@ -149,9 +149,28 @@ pub const DEFAULT_GLOBAL_GENERATED: usize = 500;
 /// Maximum JSON-safe seed.
 pub const MAX_GLOBAL_SEED: u64 = 9_007_199_254_740_991;
 
+/// Deserializes `T` only from a JSON object: serde would also take an array as the fields in order, and the schema
+/// does not (E17e §5).
+fn only_object<'de, D, T>(deserializer: D, expecting: &'static str) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    struct OnlyMap<T>(&'static str, std::marker::PhantomData<T>);
+    impl<'de, T: Deserialize<'de>> serde::de::Visitor<'de> for OnlyMap<T> {
+        type Value = T;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str(self.0)
+        }
+        fn visit_map<A: serde::de::MapAccess<'de>>(self, map: A) -> Result<T, A::Error> {
+            T::deserialize(serde::de::value::MapAccessDeserializer::new(map))
+        }
+    }
+    deserializer.deserialize_map(OnlyMap(expecting, std::marker::PhantomData))
+}
+
 /// Global search settings. Absent fields are preserved in round trips.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct GlobalSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub algorithm: Option<GlobalAlgorithm>,
@@ -161,6 +180,33 @@ pub struct GlobalSpec {
     pub seed: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub polish: Option<bool>,
+}
+
+impl<'de> Deserialize<'de> for GlobalSpec {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            #[serde(default)]
+            algorithm: Option<GlobalAlgorithm>,
+            #[serde(default)]
+            generated: Option<usize>,
+            #[serde(default)]
+            seed: Option<u64>,
+            #[serde(default)]
+            polish: Option<bool>,
+        }
+        let raw: Raw = only_object(
+            deserializer,
+            "un objeto analysis.search.non_circular.global con algorithm, generated, seed y polish",
+        )?;
+        Ok(GlobalSpec {
+            algorithm: raw.algorithm,
+            generated: raw.generated,
+            seed: raw.seed,
+            polish: raw.polish,
+        })
+    }
 }
 
 impl GlobalSpec {
@@ -179,8 +225,7 @@ impl GlobalSpec {
 }
 
 /// Non-circular search refinement parameters (F6.4).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct NonCircularSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seeds: Option<usize>,
@@ -188,6 +233,30 @@ pub struct NonCircularSpec {
     pub max_vertices: Option<usize>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub global: Option<GlobalSpec>,
+}
+
+impl<'de> Deserialize<'de> for NonCircularSpec {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            #[serde(default)]
+            seeds: Option<usize>,
+            #[serde(default)]
+            max_vertices: Option<usize>,
+            #[serde(default)]
+            global: Option<GlobalSpec>,
+        }
+        let raw: Raw = only_object(
+            deserializer,
+            "un objeto analysis.search.non_circular con seeds, max_vertices y global",
+        )?;
+        Ok(NonCircularSpec {
+            seeds: raw.seeds,
+            max_vertices: raw.max_vertices,
+            global: raw.global,
+        })
+    }
 }
 
 impl NonCircularSpec {

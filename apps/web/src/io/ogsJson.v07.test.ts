@@ -203,7 +203,7 @@ describe('v0.7: rechazos de forma con su ruta (F7.1)', () => {
     expect(doc).not.toBeNull();
     const msgs = validateLocal(doc).filter((i) => i.severity === 'error').map((i) => i.text);
     expect(msgs).toContain('analysis.search.non_circular.global.generated debe estar en [50, 2000], no 10');
-    expect(msgs).toContain('analysis.search.non_circular.global.seed debe estar en [0, 2^53 - 1], no -1');
+    expect(msgs).toContain('analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no -1');
     expect(msgs).toContain('analysis.search.non_circular.global.algorithm debe ser "auto", "block" o "annealing", no "path"');
   });
 });

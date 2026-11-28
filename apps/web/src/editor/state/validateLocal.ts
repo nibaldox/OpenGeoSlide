@@ -1134,7 +1134,7 @@ function validateGlobal(g: GlobalSpec | null | undefined, issues: Issue[]): void
     issues.push(error('editor.out_of_range', `${name}.generated debe estar en [${GLOBAL_GENERATED_MIN}, ${GLOBAL_GENERATED_MAX}], no ${g.generated}`, `${base}/generated`));
   }
   if (g.seed != null && !(Number.isInteger(g.seed) && g.seed >= GLOBAL_SEED_MIN && g.seed <= GLOBAL_SEED_MAX)) {
-    issues.push(error('editor.out_of_range', `${name}.seed debe estar en [0, 2^53 - 1], no ${g.seed}`, `${base}/seed`));
+    issues.push(error('editor.out_of_range', `${name}.seed debe estar en [0, 9007199254740991], no ${g.seed}`, `${base}/seed`));
   }
 }
 

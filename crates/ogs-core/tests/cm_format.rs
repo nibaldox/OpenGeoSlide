@@ -77,3 +77,50 @@ fn v07_shape_versions_and_ranges() {
     );
     assert!(ogs_core::analyze_json(&input("0.6", Value::Null).to_string()).is_ok());
 }
+
+#[test]
+fn range_messages_name_the_value_as_the_web_does() {
+    // E17e §8: the same text, letter by letter, as `validateLocal.ts`.
+    for (g, msg) in [
+        (
+            json!({"generated": 49}),
+            "analysis.search.non_circular.global.generated debe estar en [50, 2000], no 49",
+        ),
+        (
+            json!({"generated": 2001}),
+            "analysis.search.non_circular.global.generated debe estar en [50, 2000], no 2001",
+        ),
+        (
+            json!({"seed": 9007199254740992u64}),
+            "analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no 9007199254740992",
+        ),
+    ] {
+        let err = ogs_core::analyze_json(&input("0.7", g).to_string()).unwrap_err();
+        assert!(
+            err.starts_with("InvalidModel: ") && err.ends_with(msg),
+            "{err}"
+        );
+    }
+}
+
+#[test]
+fn global_and_non_circular_are_objects_only() {
+    // E17e §5 (RCM-A-05): an array is the fields in order for serde, and the schema rejects it.
+    for g in [
+        json!([]),
+        json!(["block", 60, 0, false]),
+        json!("block"),
+        json!(7),
+    ] {
+        let err = ogs_core::analyze_json(&input("0.7", g.clone()).to_string()).unwrap_err();
+        assert!(err.starts_with("InvalidModel: "), "{g}: {err}");
+    }
+    for nc in [json!([]), json!([3, 33]), json!([3, 33, null])] {
+        let mut m = model();
+        m["analysis"]["search"]["non_circular"] = nc.clone();
+        let err = ogs_core::analyze_json(&m.to_string()).unwrap_err();
+        assert!(err.starts_with("InvalidModel: "), "{nc}: {err}");
+    }
+    // The documents that were valid stay valid, and `null` is still absent.
+    assert!(ogs_core::analyze_json(&input("0.7", Value::Null).to_string()).is_ok());
+}
