@@ -110,3 +110,17 @@ export function resultSurfaceSummary(r: Pick<MethodReport, 'surface' | 'slices'>
   const pts = analyzedPolyline(r);
   return pts ? polylineSummary(pts.length) : null;
 }
+
+/**
+ * «Superficie ganadora» de la tabla del refinamiento de semillas (RCM-B-13). Nombra al ganador del **refinamiento**: la polilínea si su FS
+ * es menor que el del círculo de la semilla (`polyline_fos` frente a `seed_fos`, la regla del motor), si no el círculo. Si la búsqueda global
+ * ganó (`global.winner`), la superficie crítica es otra y la columna lo dice: «Polilínea (global)». Antes se miraba la superficie crítica, y
+ * con la global ganando la fila mostraba «Polilínea» junto a 1,092 y 1,093, como si una polilínea de 1,093 hubiera vencido a un círculo de 1,092.
+ * Sin `polyline_fos` (el refinamiento no halló polilínea admisible) gana el círculo.
+ */
+export function refinementWinnerText(r: Pick<MethodReport, 'surface' | 'search'>): 'Círculo' | 'Polilínea' | 'Polilínea (global)' {
+  const nc = r.search?.non_circular;
+  if (nc?.global?.winner === 'global') return 'Polilínea (global)';
+  if (nc && typeof nc.polyline_fos === 'number') return nc.polyline_fos < nc.seed_fos ? 'Polilínea' : 'Círculo';
+  return isPolylineReport(r.surface) ? 'Polilínea' : 'Círculo';
+}

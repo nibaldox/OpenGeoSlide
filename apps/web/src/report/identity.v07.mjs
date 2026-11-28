@@ -113,9 +113,22 @@ async function pipeline(m, { jsonText, report, caseChecks }) {
 }
 
 let failures = 0;
+let excepted = 0;
+// CM-W3A · E17f §2 (RCM-B-06): el informe dibuja la superficie del método que rige (el primero de `fsMinimum(report).methods` con dovelas), como el
+// lienzo y el HUD, y no la del primer método convergido del arreglo. Con varios métodos y el mínimo en otro que el primero, cambian `structured` (el
+// dibujo y su leyenda) y el PDF frente a v0.4.0 / b75f38a: es una excepción declarada, y solo vale donde la causa existe (el primero convergido no es el
+// que rige). Comprobado: con la regla anterior de `primaryResult` los dos guiones dan 0 diferencias, así que no hay otra causa.
+let figureCause = null;
+const figureException = (now, report) => {
+  const first = report.results.find((r) => r.status === 'converged' && r.slices.length > 0);
+  const governing = now.content.primaryResult(report.results);
+  return first && governing && first.method !== governing.method ? `la figura dibuja ${governing.method} (FS ${governing.fos}), el método que rige, y no ${first.method} (FS ${first.fos}), el primer convergido` : null;
+};
 const line = (name, key, equal, a, b, extra = '') => {
-  console.log(`${name} ${key}: ${equal ? 'IGUAL' : 'DIFERENTE'} sha256=${sha(a).slice(0, 16)}/${sha(b).slice(0, 16)}${extra}`);
-  if (!equal) failures += 1;
+  const excepcion = !equal && figureCause && (key === 'structured' || key.startsWith('PDF'));
+  console.log(`${name} ${key}: ${equal ? 'IGUAL' : excepcion ? 'EXCEPCIÓN E17f §2 (RCM-B-06: ' + figureCause + ')' : 'DIFERENTE'} sha256=${sha(a).slice(0, 16)}/${sha(b).slice(0, 16)}${extra}`);
+  if (excepcion) excepted += 1;
+  else if (!equal) failures += 1;
 };
 
 try {
@@ -140,6 +153,7 @@ try {
     }
     const a = await pipeline(old, { jsonText, report, caseChecks });
     const b = await pipeline(now, { jsonText, report, caseChecks });
+    figureCause = figureException(now, report);
     console.log(`== ${name}: ${report.results.length} métodos, ${withWarnings} con avisos, ${caseChecks.length} comprobaciones, versión ${model.version}`);
     for (const k of ['opened', 'saved', 'input', 'diagnostics', 'structured', 'csv', 'modelCsv', 'exportable', 'surface', 'forces']) line(name, k, a[k] === b[k], a[k], b[k]);
     for (const k of ['pdf', 'pdfZ']) {
@@ -149,6 +163,7 @@ try {
     }
   }
 
+  figureCause = null; // la excepción de la figura solo vale para los `SAMPLES` de arriba
   // F7.1: ida y vuelta con `global`, sin motor.
   const base = JSON.parse(await readFile(resolve(repo, 'verification/cases/V001-nc.json'), 'utf8')).model;
   const withGlobal = (g) => ({ ...base, version: '0.7', analysis: { ...base.analysis, search: { ...base.analysis.search, non_circular: { ...base.analysis.search.non_circular, global: g } } } });
@@ -200,5 +215,5 @@ if (failures > 0) {
   console.log(`RESULTADO: ${failures} diferencias contra ${baseRef}`);
   process.exitCode = 1;
 } else {
-  console.log(`RESULTADO: todo IGUAL contra ${baseRef} (${baseSha.slice(0, 7)})`);
+  console.log(`RESULTADO: todo IGUAL contra ${baseRef} (${baseSha.slice(0, 7)})${excepted > 0 ? `, salvo ${excepted} excepciones declaradas (E17f §2, RCM-B-06)` : ''}`);
 }

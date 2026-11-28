@@ -355,6 +355,28 @@ div.rs[data-collapsed='true'] {
   outline-offset: 2px;
 }
 
+/* Búsqueda global (E17f §1): una línea bajo la lista de métodos; con la nota de tracción lleva el ícono de aviso. Se parte en renglones, nunca se corta. */
+.rs .rs-global {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--ui-ink-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rs .rs-global[data-flagged='true'] {
+  color: var(--ui-warn-ink);
+  font-weight: 600;
+}
+
+.rs .rs-global svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* ── Pie ──────────────────────────────────────────────── */
 .rs .rs-counts {
   margin: 8px 0 0;

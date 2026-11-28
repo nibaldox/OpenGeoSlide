@@ -694,8 +694,8 @@ describe('runStatus: resultado actual', () => {
 
   it('parcial → «Parcial · 3 de 4 métodos» (warn) y el título nombra los que no convergieron', () => {
     const s = cur(report(result('bishop', 1.1), result('spencer', 1.2), result('morgenstern_price', 1.3), result('janbu_simplified', 0.9, 'not_converged')));
-    expect(s).toMatchObject({ tone: 'warn', text: 'Parcial · 3 de 4 métodos' });
-    expect(s.title).toBe('Parcial · 3 de 4 métodos. No convergieron: Janbu.');
+    expect(s).toMatchObject({ tone: 'warn', text: 'Parcial · 3 de 4 métodos · FS mín. 1,100' });
+    expect(s.title).toBe('Parcial · 3 de 4 métodos · FS mín. 1,100. FS mínimo 1,100 (Bishop). No convergieron: Janbu.');
   });
 
   it('parcial con FS mínimo < 1 → «Parcial · c de t · FS < 1,0» (nok, B-04b)', () => {
@@ -704,13 +704,29 @@ describe('runStatus: resultado actual', () => {
     expect(s.title).toBe('Parcial · 1 de 3 · FS < 1,0. FS mínimo 0,985 (Bishop). No convergieron: Spencer, M-P.');
   });
 
-  it('parcial con FS mínimo ≥ 1 → «Parcial · c de t métodos» (warn)', () => {
-    expect(cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged')))).toMatchObject({ tone: 'warn', text: 'Parcial · 1 de 2 métodos' });
+  it('parcial con FS mínimo ≥ 1 → «Parcial · c de t métodos · FS mín. x» (warn, RCM-B-10)', () => {
+    const s = cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged')));
+    expect(s).toMatchObject({ tone: 'warn', text: 'Parcial · 1 de 2 métodos · FS mín. 1,300' });
+    // El título lleva siempre el mínimo y el método que rige, como con FS < 1,0.
+    expect(s.title).toBe('Parcial · 1 de 2 métodos · FS mín. 1,300. FS mínimo 1,300 (Bishop). No convergieron: Spencer.');
+  });
+
+  it('RCM-B-10: con FS ≥ 1,0 la cifra va en el chip solo si cabe en 40 caracteres; el título siempre lleva el mínimo', () => {
+    // «Parcial · 11 de 12 métodos · FS mín. 1,301» = 43: sin «métodos» cabe.
+    const many = (n: number) => report(...Array.from({ length: n }, (_, i) => result(['bishop', 'spencer', 'morgenstern_price', 'janbu_simplified', 'janbu_corrected'][i % 5] as MethodKind, 1.301 + i * 0.01, i < n - 1 ? 'converged' : 'not_converged')));
+    const s = cur(many(12));
+    expect(s.text).toBe('Parcial · 11 de 12 · FS mín. 1,301');
+    expect(s.text.length).toBeLessThanOrEqual(40);
+    expect(s.title).toContain('FS mínimo 1,301 (Bishop)');
+    // Con avisos, el conteo tiene prioridad sobre la cifra.
+    const withAdv = cur(report(result('bishop', 1.3), result('spencer', 0.8, 'not_converged'), result('janbu_simplified', 0.8, 'not_converged')), { advisories: 2 });
+    expect(withAdv.text).toBe('Parcial · 1 de 3 métodos · 2 avisos');
+    expect(withAdv.title).toContain('FS mínimo 1,300 (Bishop)');
   });
 
   it('el título no duplica el punto de «Janbu corr.»', () => {
     const s = cur(report(result('bishop', 1.2), result('janbu_corrected', 0.9, 'not_converged')));
-    expect(s.title).toBe('Parcial · 1 de 2 métodos. No convergieron: Janbu corr.');
+    expect(s.title).toBe('Parcial · 1 de 2 métodos · FS mín. 1,200. FS mínimo 1,200 (Bishop). No convergieron: Janbu corr.');
     expect(s.title).not.toContain('..');
     expect(cur(report(result('janbu_corrected', 0.9, 'not_converged'))).title).toBe('Sin convergencia. No convergieron: Janbu corr.');
   });
@@ -770,7 +786,7 @@ describe('runStatus: resultado actual', () => {
   });
 
   it('un FS finito de un método que no convergió no cuenta', () => {
-    expect(cur(report(result('bishop', 0.5, 'not_converged'), result('spencer', 1.4))).text).toBe('Parcial · 1 de 2 métodos');
+    expect(cur(report(result('bishop', 0.5, 'not_converged'), result('spencer', 1.4))).text).toBe('Parcial · 1 de 2 métodos · FS mín. 1,400');
   });
 
   it('un informe sin resultados es «Sin convergencia»', () => {

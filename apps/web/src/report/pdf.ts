@@ -135,13 +135,13 @@ export function allocateColumnWidths(weights: number[], mins: number[], total: n
  * Anchos de las columnas de una tabla, medidos con la fuente activa (DejaVu Sans). Cada columna es al menos tan ancha como
  * la palabra más larga de su cabecera (en negrita) y de los textos cortos de sus celdas, para no partir palabras.
  */
-export function tableColumnWidths(doc: jsPDF, header: string[], rows: string[][], size: number, total: number = CONTENT_W): number[] {
+export function tableColumnWidths(doc: jsPDF, header: string[], rows: string[][], size: number, total: number = CONTENT_W, keepWholeChars: number = KEEP_WHOLE_MAX_CHARS): number[] {
   const weights = header.map((h, c) => Math.max(h.length * 0.9, ...rows.map((r) => (r[c] ?? '').length), 4));
   doc.setFontSize(size);
   const widest = (texts: string[], style: 'normal' | 'bold', onlyShort: boolean): number => {
     doc.setFont(FONT, style);
     let w = 0;
-    for (const t of texts) for (const word of String(t).split(/\s+/)) if (word !== '' && (!onlyShort || word.length <= KEEP_WHOLE_MAX_CHARS)) w = Math.max(w, doc.getTextWidth(word));
+    for (const t of texts) for (const word of String(t).split(/\s+/)) if (word !== '' && (!onlyShort || word.length <= keepWholeChars)) w = Math.max(w, doc.getTextWidth(word));
     return w;
   };
   const mins = header.map((h, c) => Math.max(widest([h], 'bold', false), widest(rows.map((r) => r[c] ?? ''), 'normal', true)) + CELL_PAD);
@@ -154,6 +154,55 @@ interface LabelBox {
   x2: number;
   y1: number;
   y2: number;
+}
+
+/** Filas de rótulos de carga que la figura reserva como máximo sobre el terreno (RCM-B-12); las demás se reparten en horizontal. */
+export const MAX_LOAD_LABEL_ROWS = 4;
+
+export interface LoadLabelSlot {
+  /** Centro del rótulo en mm de página (puede diferir del ancla si el sitio natural estaba ocupado en todas las filas). */
+  cx: number;
+  /** 0 = la fila de las flechas; cada fila más sube `LABEL_ROW`. */
+  row: number;
+}
+
+/**
+ * Reparte los rótulos de las cargas de superficie en filas, en el orden dado (RCM-B-12). Cada rótulo va en su ancla (`cx`) y en la primera fila
+ * donde no pisa a otro; es lo que se hacía siempre. Con `maxRows` filas ocupadas en ese punto, el rótulo busca el sitio libre más cercano
+ * (fila baja y poco desplazamiento) dentro de las `maxRows` filas y del ancho del dibujo, para que la pila no suba más allá de la franja
+ * reservada y salga del recuadro. Si no hay ningún sitio libre, queda en la última fila, encimado, antes que fuera del recuadro.
+ * `x0` y `drawW` acotan el centro: el rótulo nunca sale por los lados.
+ */
+export function layoutLoadLabels(anchors: { cx: number; half: number }[], x0: number, drawW: number, maxRows: number = MAX_LOAD_LABEL_ROWS): LoadLabelSlot[] {
+  const taken: { x1: number; x2: number; row: number }[] = [];
+  const free = (cx: number, half: number, row: number): boolean => !taken.some((b) => b.row === row && cx - half < b.x2 + 1 && cx + half > b.x1 - 1);
+  return anchors.map(({ cx, half }) => {
+    const lo = x0 + half + 1;
+    const hi = x0 + drawW - half - 1;
+    const natural = Math.min(Math.max(cx, lo), hi);
+    let slot: LoadLabelSlot | null = null;
+    for (let row = 0; row < maxRows && !slot; row += 1) if (free(natural, half, row)) slot = { cx: natural, row };
+    if (!slot) {
+      // Todas las filas ocupadas en su sitio: el sitio libre de menor costo (filas altas cuestan más, y cada mm de desplazamiento también).
+      let best = Infinity;
+      for (let row = 0; row < maxRows; row += 1) {
+        for (let k = 1; natural - k * 1.5 >= lo || natural + k * 1.5 <= hi; k += 1) {
+          for (const sign of [1, -1]) {
+            const c = natural + sign * k * 1.5;
+            if (c < lo || c > hi || !free(c, half, row)) continue;
+            const cost = row * 3.6 + k * 1.5 * 0.5;
+            if (cost < best) {
+              best = cost;
+              slot = { cx: c, row };
+            }
+          }
+        }
+      }
+    }
+    const at = slot ?? { cx: natural, row: maxRows - 1 };
+    taken.push({ x1: at.cx - half, x2: at.cx + half, row: at.row });
+    return at;
+  });
 }
 
 class Writer {
@@ -250,12 +299,12 @@ class Writer {
     this.y += 2;
   }
 
-  table(header: string[], rows: string[][], title?: string): void {
+  table(header: string[], rows: string[][], title?: string, keepWholeChars?: number): void {
     // Una tabla de 11 columnas o más (la de fuerzas con Ito-Matsui, E15i-7) baja la letra para que ninguna palabra se parta.
     const size = header.length >= 11 ? 7 : 8.5;
     const lh = this.lineHeight(size);
     // Ancho de columna proporcional al contenido, pero nunca menor que la palabra más larga de la cabecera (B-07).
-    const widths = tableColumnWidths(this.doc, header, rows, size);
+    const widths = tableColumnWidths(this.doc, header, rows, size, CONTENT_W, keepWholeChars);
     // El título, la cabecera y la primera fila van juntos: una cabecera sola al pie de la página, con sus filas en la siguiente, no se lee.
     const rowHeight = (cells: string[], bold: boolean): number => {
       this.font(bold ? 'bold' : 'normal', size);
@@ -365,15 +414,39 @@ class Writer {
 
     // Franja libre sobre el terreno para cargas y sismo (R9-05a): arriba el indicador sísmico, debajo las cargas.
     const seismicHead = d.seismic ? 8 : 0;
-    const loadHead = d.loads.length > 0 ? ARROW_LINE + 6 + (d.loads.length > 1 ? LABEL_ROW : 0) : 0;
-    const head = seismicHead + loadHead;
-
-    const scale = Math.min((CONTENT_W - gutter) / w, (maxH - head) / h);
-    const drawW = w * scale;
+    // Los rótulos de carga se apilan en filas (`layoutLoadLabels`); la franja crece con las filas que hacen falta (hasta MAX_LOAD_LABEL_ROWS), y la
+    // escala baja con ella, así que se itera hasta que el reparto cabe (RCM-B-12: antes el rótulo `q = … kPa` de una pila de cargas salía del recuadro).
+    // Con una o dos filas, la franja es la de siempre.
+    this.font('normal', 7.5);
+    const loadAnchors = (scale: number, x0: number): { cx: number; half: number }[] =>
+      d.loads.map((load) => ({
+        half: doc.getTextWidth(load.label) / 2,
+        cx:
+          load.kind === 'udl'
+            ? (x0 + (load.x1 - xmin) * scale + x0 + (load.x2 - xmin) * scale) / 2
+            : x0 + (load.x - xmin) * scale - Math.sin((load.angle * Math.PI) / 180) * ARROW_LINE,
+      }));
+    let extraRows = d.loads.length > 1 ? 1 : 0;
+    let head = 0;
+    let scale = 0;
+    let drawW = 0;
+    let x0 = 0;
+    let labelSlots: LoadLabelSlot[] = [];
+    for (let pass = 0; pass < MAX_LOAD_LABEL_ROWS + 2; pass += 1) {
+      const loadHead = d.loads.length > 0 ? ARROW_LINE + 6 + extraRows * LABEL_ROW : 0;
+      head = seismicHead + loadHead;
+      scale = Math.min((CONTENT_W - gutter) / w, (maxH - head) / h);
+      drawW = w * scale;
+      x0 = MARGIN + gutter + (CONTENT_W - gutter - drawW) / 2;
+      labelSlots = layoutLoadLabels(loadAnchors(scale, x0), x0, drawW);
+      const needed = Math.max(d.loads.length > 1 ? 1 : 0, ...labelSlots.map((l) => l.row));
+      if (needed <= extraRows) break;
+      extraRows = needed;
+    }
     const drawH = h * scale + head;
     const legendH = d.legend.length * 5 + 4;
     this.ensure(drawH + legendH + 12);
-    const x0 = MARGIN + gutter + (CONTENT_W - gutter - drawW) / 2;
+    // `ensure` puede pasar a la página siguiente, pero `x0` no depende de la altura.
     const y0 = this.y + 2;
     const sx = (x: number): number => x0 + (x - xmin) * scale;
     const sy = (y: number): number => y0 + head + (ymax - y) * scale;
@@ -548,17 +621,14 @@ class Writer {
       doc.setTextColor(...P.ink);
     }
 
-    // Cargas de superficie: flechas sobre el terreno y rótulo con su unidad. Los rótulos se reparten en dos filas si chocan.
+    // Cargas de superficie: flechas sobre el terreno y rótulo con su unidad. Los rótulos se reparten en filas (`layoutLoadLabels`, ya calculado arriba).
     this.font('normal', 7.5);
-    const labelBoxes: { x1: number; x2: number; row: number }[] = [];
     // Los rótulos se dibujan al final: el halo tapa la flecha de otra carga que los cruce (la flecha de `p` cruzaba el rótulo de `q`).
     const pendingLabels: (() => void)[] = [];
-    const placeLabel = (text: string, cx: number, tailY: number): void => {
+    let labelIndex = 0;
+    const placeLabel = (text: string, tailY: number): void => {
       const half = doc.getTextWidth(text) / 2;
-      const cxc = Math.min(Math.max(cx, x0 + half + 1), x0 + drawW - half - 1);
-      let row = 0;
-      while (labelBoxes.some((b) => b.row === row && cxc - half < b.x2 + 1 && cxc + half > b.x1 - 1)) row += 1;
-      labelBoxes.push({ x1: cxc - half, x2: cxc + half, row });
+      const { cx: cxc, row } = labelSlots[labelIndex++] as LoadLabelSlot;
       const textY = tailY - 1.5 - row * LABEL_ROW;
       figBoxes.push({ x1: cxc - half - 0.5, x2: cxc + half + 0.5, y1: textY - 2.9, y2: textY + 1 });
       pendingLabels.push(() => {
@@ -588,7 +658,7 @@ class Writer {
         doc.setLineWidth(0.35);
         doc.setDrawColor(...P.load);
         doc.line(sx(load.x1), tailY, sx(load.x2), tailY);
-        placeLabel(load.label, (sx(load.x1) + sx(load.x2)) / 2, tailY);
+        placeLabel(load.label, tailY);
       } else {
         const th = (load.angle * Math.PI) / 180;
         const tipX = sx(load.x);
@@ -596,7 +666,7 @@ class Writer {
         const tailX = tipX - Math.sin(th) * ARROW_LINE;
         const tailY = tipY - Math.cos(th) * ARROW_LINE;
         this.arrow(tailX, tailY, tipX, tipY, P.load, 0.6);
-        placeLabel(load.label, tailX, tailY);
+        placeLabel(load.label, tailY);
       }
     }
 
@@ -730,7 +800,7 @@ class Writer {
         this.kv(b.rows);
         break;
       case 'table':
-        this.table(b.header, b.rows, b.title);
+        this.table(b.header, b.rows, b.title, b.keepWholeChars);
         break;
       case 'paragraph':
         this.paragraph(b.text);

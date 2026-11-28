@@ -10,9 +10,10 @@ import type { ModelDoc } from '../editor/types';
 import { minimalVersion } from '../io/ogsJson';
 import { isPolylineReport, reportCircle } from '../engine/surface';
 import { GLOBAL_DEFAULTS, globalAlgorithmLabel, globalWinnerLabel } from '../engine/globalSearch';
-import type { CrackReport, Load, MaterialModel, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, ShansepSpec, Slice } from '../engine/types';
+import type { AnalysisReport, CrackReport, Load, MaterialModel, MethodKind, MethodReport, Point, Reinforcement, ReinforcementForce, ShansepSpec, Slice } from '../engine/types';
 import { describeWarning, warningContext } from '../engine/warnings';
-import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, resultSurfaceSummary } from './methodInfo';
+import { fsMinimum } from '../editor/app/shellModel';
+import { INTERSLICE_LABEL, analyzedPolyline, clipPolylineX, correctionFactorText, intersliceText, methodDetails, refinementWinnerText, resultSurfaceSummary } from './methodInfo';
 import { crackGeometry, type CrackGeometry } from '../render/crack';
 import { pondPolygons } from '../render/pond';
 import { MATERIAL_MODEL_LABEL } from '../render/scene';
@@ -107,7 +108,8 @@ export interface SectionDrawing {
 
 export type ReportBlock =
   | { kind: 'kv'; rows: [string, string][] }
-  | { kind: 'table'; header: string[]; rows: string[][]; title?: string }
+  /** `keepWholeChars`: las palabras de datos de hasta esa longitud no se parten al repartir los anchos (por defecto 14; 18 deja entera «Morgenstern-Price»). */
+  | { kind: 'table'; header: string[]; rows: string[][]; title?: string; keepWholeChars?: number }
   | { kind: 'paragraph'; text: string }
   | { kind: 'bullets'; title: string; items: string[] }
   | { kind: 'list'; items: { severity: 'nota' | 'aviso'; label: string; text: string }[] }
@@ -256,7 +258,19 @@ export function baseSurfacePoints(slices: readonly Slice[]): Point[] {
   return points;
 }
 
-function primaryResult(results: MethodReport[]): MethodReport | undefined {
+/**
+ * Resultado cuya superficie dibuja la figura del informe (E17f §2, RCM-B-06): el método que rige, el mismo que el lienzo y el HUD
+ * (`pickShownMethod`), o sea el primero de `fsMinimum(report).methods` que tiene dovelas. Antes era el primer método convergido del
+ * arreglo, que con varios métodos dibujaba otra superficie que la que el HUD nombra. Sin ningún método convergido con dovelas, la
+ * regla de siempre (el primero con dovelas, o el primero).
+ */
+export function primaryResult(results: MethodReport[]): MethodReport | undefined {
+  // `fsMinimum` solo lee `results`; el resto del informe (tiempos, versión) no interviene en la elección.
+  const governing = fsMinimum({ results } as AnalysisReport).methods;
+  for (const method of governing) {
+    const r = results.find((x) => x.method === method);
+    if (r && r.slices.length > 0) return r;
+  }
   return results.find((r) => r.status === 'converged' && r.slices.length > 0) ?? results.find((r) => r.slices.length > 0) ?? results[0];
 }
 
@@ -505,8 +519,9 @@ function modelSection(model: ModelDoc): ReportSection {
         rows.push(
           ['Búsqueda global', 'Sí (bloque sobre capas débiles o recocido, con refinamiento y pulido)'],
           ['Algoritmo global', dflt(g.algorithm, globalAlgorithmLabel(g.algorithm ?? GLOBAL_DEFAULTS.algorithm))],
-          ['Candidatos globales', dflt(g.generated, fmtParam(g.generated ?? GLOBAL_DEFAULTS.generated))],
-          ['Semilla global', dflt(g.seed, fmtParam(g.seed ?? GLOBAL_DEFAULTS.seed))],
+          ['Candidatos globales', dflt(g.generated, String(g.generated ?? GLOBAL_DEFAULTS.generated))],
+          // La semilla es un entero de hasta 2^53 − 1 (16 cifras): `fmtParam` la redondea a 6 cifras y la hace inválida (RCM-B-01).
+          ['Semilla global', dflt(g.seed, String(g.seed ?? GLOBAL_DEFAULTS.seed))],
           ['Pulido global', dflt(g.polish, (g.polish ?? GLOBAL_DEFAULTS.polish) ? 'Sí' : 'No')],
         );
       }
@@ -692,7 +707,7 @@ function nonCircularStatsTable(results: MethodReport[]): ReportBlock | null {
     rows: ncResults.map((r) => {
       const nc = r.search!.non_circular!;
       const polyText = nc.polyline_fos !== undefined ? fmt(nc.polyline_fos, 3) : 'Sin polilínea admisible';
-      const winner = r.status !== 'converged' ? DASH : isPolylineReport(r.surface) ? 'Polilínea' : 'Círculo';
+      const winner = r.status !== 'converged' ? DASH : refinementWinnerText(r);
       return [METHOD_LABEL[r.method], String(nc.seeds), String(nc.evaluated), fmt(nc.seed_fos, 3), polyText, winner];
     }),
   };
@@ -705,6 +720,8 @@ function globalStatsTable(results: MethodReport[]): ReportBlock | null {
   return {
     kind: 'table',
     title: 'Búsqueda global',
+    // RCM-B-12: la primera columna no parte «Morgenstern-Price» (17 caracteres) en «Morgenstern» y «-Price».
+    keepWholeChars: 18,
     header: ['Método', 'Algoritmo', 'Generados', 'Elegibles', 'Rechazados por tracción', 'Evaluaciones', 'FS global', 'Superficie ganadora'],
     rows: withGlobal.map((r) => {
       const g = r.search!.non_circular!.global!;

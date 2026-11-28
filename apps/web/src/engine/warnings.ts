@@ -350,7 +350,7 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
   },
   non_circular_global_tension_rejected: {
     severity: 'aviso',
-    text: 'La búsqueda global encontró una superficie con un FS menor en la rama con tracción (λ negativo o normal efectiva negativa) y no la tomó, porque ese FS no es fiable: el resultado es la mejor superficie elegible. Compare con la búsqueda circular y revise la normal efectiva N′ por dovela (presión de poros y grieta de tracción) antes de aceptarlo. Esas superficies suelen tener un FS más alto cuando otro programa las evalúa, así que el FS informado no es necesariamente un límite superior.',
+    text: 'En alguna parte de la etapa global (generación, refinamiento o pulido) la búsqueda encontró una superficie con un FS menor en la rama con tracción (λ negativo o normal efectiva negativa) y no la tomó, porque ese FS no es fiable: el resultado es la mejor superficie elegible. La nota cubre toda la etapa global; «Rechazados por tracción» cuenta solo los candidatos de la generación, así que puede ser 0 aunque esta nota salga. Compare con la búsqueda circular y revise la normal efectiva N′ por dovela (presión de poros y grieta de tracción) antes de aceptarlo. Esas superficies suelen tener un FS más alto cuando otro programa las evalúa, así que el FS informado no es necesariamente un límite superior.',
   },
   mock_engine: {
     severity: 'aviso',

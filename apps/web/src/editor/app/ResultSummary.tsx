@@ -7,7 +7,7 @@ import type { MethodKind } from '../../engine/types';
 import { IconCheck, IconChevronDown, IconWarning } from '../../ui/icons';
 import { METHOD_LABELS } from '../../ui/methodLabels';
 import { fsMinimum, fsText } from './shellModel';
-import { focusResultsTable, governingMethodText, summaryItems, warningCounts, warningCountsText } from './resultSummary';
+import { focusResultsTable, globalSearchLine, governingMethodText, summaryItems, warningCounts, warningCountsText } from './resultSummary';
 import type { EngineRun } from './reportInput';
 import './resultSummary.css';
 
@@ -138,6 +138,7 @@ export function ResultSummary({
   const items = run ? summaryItems(run.report) : [];
   const counts = run ? warningCountsText(warningCounts(run.report)) : null;
   const min = run ? fsMinimum(run.report) : null;
+  const globalLine = run ? globalSearchLine(run.report) : null;
   // B-12a: el FS de cada método usa el mismo texto que la cifra (4 decimales en [0,9995, 1)).
   const fosByMethod = new Map(run ? run.report.results.map((r) => [r.method, convergedFos(r)] as const) : []);
   const effectiveCurrent = current && !hasPendingDrafts;
@@ -291,6 +292,15 @@ export function ResultSummary({
                 </li>
               ))}
             </ul>
+            {globalLine ? (
+              <p className="rs-global small" data-testid="rs-global" data-flagged={globalLine.flagged ? 'true' : undefined} title={globalLine.title}>
+                {globalLine.flagged ? <IconWarning size={13} /> : null}
+                <span>
+                  {globalLine.flagged ? <span className="visually-hidden">Con aviso: </span> : null}
+                  {globalLine.text}
+                </span>
+              </p>
+            ) : null}
             {counts ? <p className="rs-counts small">{counts}</p> : null}
             {advisoriesLine}
             <button type="button" className="rs-table-link link-button" onClick={showTable}>

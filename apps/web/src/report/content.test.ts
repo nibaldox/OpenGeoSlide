@@ -303,13 +303,16 @@ describe('E12i: rótulo de la superficie y λ en el dibujo (R5-04)', () => {
 
   it('R10B-07: un círculo fijo convergido no es «crítica» (no es el resultado de una búsqueda): «Superficie fija, círculo»', () => {
     expect(results[0]?.search).toBeNull();
-    expect(label(results)).toBe('Superficie fija, círculo (Bishop simplificado)');
+    // CM-W3A (RCM-B-06): la figura es la del método que rige (menor FS), no la del primero del arreglo; en D01 rige Spencer.
+    expect(results.map((r) => r.method)).toEqual(['bishop', 'spencer']);
+    expect(results[1]!.fos!).toBeLessThan(results[0]!.fos!);
+    expect(label(results)).toBe('Superficie fija, círculo (Spencer)');
     expect(label(results)).not.toContain('crítica');
   });
 
   it('con un círculo de búsqueda convergido se rotula «Superficie crítica»', () => {
     const searched = results.map((r) => ({ ...r, search: { evaluated: 400, valid: 120 } }));
-    expect(label(searched)).toBe('Superficie crítica (Bishop simplificado)');
+    expect(label(searched)).toBe('Superficie crítica (Spencer)'); // el método que rige (RCM-B-06)
   });
 
   it('R10B-07: invalid y not_converged tienen leyendas distintas', () => {

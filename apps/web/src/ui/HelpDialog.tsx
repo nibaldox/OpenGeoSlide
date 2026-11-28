@@ -11,6 +11,7 @@ import {
   PROFESSIONAL_WARNING,
   QUICK_START,
   SHORTCUTS,
+  SHORTCUTS_CAPTION,
   type GlossaryTable,
   type Shortcut,
   EXAMPLE_FILES,
@@ -198,7 +199,7 @@ export function HelpDialog({ onClose, onStartTour }: { onClose: () => void; onSt
           <h3 id="help-shortcuts" tabIndex={-1}>
             Atajos de teclado
           </h3>
-          <ShortcutTable id={shortcutsCap} caption="Atajos de la aplicación (vistas Lienzo, Resultados e Informe, fuera de los campos de texto; las teclas de herramienta, solo en Lienzo)" rows={global} />
+          <ShortcutTable id={shortcutsCap} caption={SHORTCUTS_CAPTION} rows={global} />
           <ShortcutTable id={canvasCap} caption="Con el foco en el lienzo" rows={canvas} />
           <h4>Ratón y táctil</h4>
           <ul>
