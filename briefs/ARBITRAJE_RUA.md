@@ -99,3 +99,14 @@ Hasta 760 px de ancho:
 - `html` lleva `scroll-padding-bottom` del alto del pie;
 - el lienzo mide `clamp(260px, calc(100dvh - 530px), 360px)` (era 360 fijo, §2), para que la paleta quede sobre el pie
   al cargar.
+
+## UA-E6 (tras la regresión de cierre)
+
+Hasta 760 px:
+- el orden es lienzo → paleta → leyenda → HUD;
+- el alto del lienzo se mide con JS para que la paleta termine justo encima del pie fijo, con un mínimo de 200 px y
+  sin máximo;
+- a scroll 0, ningún control interactivo cruza el borde superior del pie.
+
+El FS mínimo sigue a la vista en el chip de la cabecera. Reemplaza el orden de §2 y de B-13(a), y la fórmula CSS de
+UA-E5. Tareas en `briefs/UA5_tareas.md`.
