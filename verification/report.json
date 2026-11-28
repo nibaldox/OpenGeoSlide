@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-11-27T14:42:11-03:00",
+  "generated_at": "2026-11-27T22:07:35-03:00",
   "harness_version": "1",
   "cases_dir": "verification/cases",
   "engines": {
     "ogs": {
       "binary": "target/release/ogs",
-      "version": "ogs-core 0.5.0",
+      "version": "ogs-core 0.5.1",
       "error": null
     },
     "cslope": {
@@ -1057,7 +1057,7 @@
         "fos": 1.1502139683684969,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal",
@@ -1097,7 +1097,7 @@
         "fos": 1.1520529834155766,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal",
@@ -1137,7 +1137,7 @@
         "fos": 1.3838760786423974,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1176,7 +1176,7 @@
         "fos": 1.4044306252852394,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1214,7 +1214,7 @@
         "fos": 1.401274923814589,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1253,7 +1253,7 @@
         "fos": 1.4044306252852394,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1291,7 +1291,7 @@
         "fos": 1.401274923814589,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1330,7 +1330,7 @@
         "fos": 0.4192993623106625,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1368,7 +1368,7 @@
         "fos": 1.1140989695524928,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1408,7 +1408,7 @@
         "fos": 1.1147842183992989,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1448,7 +1448,7 @@
         "fos": 1.1307312393862965,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1488,7 +1488,7 @@
         "fos": 1.1140989695524928,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1528,7 +1528,7 @@
         "fos": 2.8026118084518856,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.30822506985989917,
         "verdict": "OK"
@@ -1562,7 +1562,7 @@
         "fos": 2.6863328164567517,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.914080257578955,
         "verdict": "OK"
@@ -1596,7 +1596,7 @@
         "fos": 2.611113729388268,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.04267162407157654,
         "verdict": "OK"
@@ -1630,7 +1630,7 @@
         "fos": 2.667220232427365,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -1.0674987972045749,
         "verdict": "OK"
@@ -1664,7 +1664,7 @@
         "fos": 2.510163230147049,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.40652920588195585,
         "verdict": "OK"
@@ -1700,7 +1700,7 @@
         "fos": 2.510163748583825,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.4065499433530029,
         "verdict": "OK"
@@ -1736,7 +1736,7 @@
         "fos": 1.3519977288111815,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.07385113332209785,
         "verdict": "OK"
@@ -1768,7 +1768,7 @@
         "fos": 1.3519977288111815,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1804,7 +1804,7 @@
         "fos": 1.4686451217744831,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1841,7 +1841,7 @@
         "fos": 0.9553683114142832,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.17050037468304258,
         "verdict": "OK"
@@ -1875,7 +1875,7 @@
         "fos": 0.9776260416292812,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.3439305168928383,
         "verdict": "OK"
@@ -1909,7 +1909,7 @@
         "fos": 1.2902990741909495,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -1948,7 +1948,7 @@
         "fos": 1.5190183559862975,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -1988,7 +1988,7 @@
         "fos": 1.3647758959008376,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -2027,7 +2027,7 @@
         "fos": 1.1645827407932128,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_lambda"
         ],
@@ -2116,7 +2116,7 @@
         "fos": 1.165806725160912,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.35839955889639524,
         "verdict": "OK"
@@ -2202,7 +2202,7 @@
         "fos": 1.159004740083708,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.7830208768441833,
         "verdict": "OK"
@@ -2288,7 +2288,7 @@
         "fos": 1.221924561576956,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.6565397091905628,
         "verdict": "OK"
@@ -2376,7 +2376,7 @@
         "fos": 1.2167036730150786,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.27019073646896125,
         "verdict": "OK"
@@ -2464,7 +2464,7 @@
         "fos": 0.981729142430135,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.17644310511581635,
         "verdict": "OK"
@@ -2552,7 +2552,7 @@
         "fos": 1.143005857273741,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -2590,7 +2590,7 @@
         "fos": 1.143005857273741,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -2628,7 +2628,7 @@
         "fos": 1.5411535763516584,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass",
           "structural_checks_not_covered",
@@ -2708,7 +2708,7 @@
         "fos": 1.4374244044000206,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "truncated_mass",
@@ -2804,7 +2804,7 @@
         "fos": 1.3317149708699219,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "truncated_mass",
@@ -2900,7 +2900,7 @@
         "fos": 1.2529852931008574,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "truncated_mass",
@@ -2996,7 +2996,7 @@
         "fos": 1.4484466453556002,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass"
         ],
@@ -3300,7 +3300,7 @@
         "fos": 1.4484466453556002,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass"
         ],
@@ -3604,7 +3604,7 @@
         "fos": 1.575418816305005,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass"
         ],
@@ -3908,7 +3908,7 @@
         "fos": 1.4766665902790048,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "negative_effective_normal"
@@ -4061,7 +4061,7 @@
         "fos": 1.4417931702118503,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "negative_effective_normal"
@@ -4214,7 +4214,7 @@
         "fos": 1.7910575887624773,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4251,7 +4251,7 @@
         "fos": 1.7981133357765622,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4288,7 +4288,7 @@
         "fos": 1.7910575887624773,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4325,7 +4325,7 @@
         "fos": 1.8305204850621812,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass",
           "negative_effective_normal"
@@ -4384,7 +4384,7 @@
         "fos": 1.835762270808209,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass",
           "negative_effective_normal"
@@ -4443,7 +4443,7 @@
         "fos": 1.8305204850621812,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass",
           "negative_effective_normal"
@@ -4502,7 +4502,7 @@
         "fos": 1.791069002748442,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4539,7 +4539,7 @@
         "fos": 1.0520418941171956,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.09913359821081688,
         "verdict": "OK"
@@ -4571,7 +4571,7 @@
         "fos": 1.0077913398592067,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4609,7 +4609,7 @@
         "fos": 1.0077913398592067,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4647,7 +4647,7 @@
         "fos": 1.3987465271238366,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -4686,7 +4686,7 @@
         "fos": 1.3986044656290475,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -4725,7 +4725,7 @@
         "fos": 1.3987465271238366,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -4764,7 +4764,7 @@
         "fos": 1.4011731572980004,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -4803,7 +4803,7 @@
         "fos": 1.3330429517645912,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4841,7 +4841,7 @@
         "fos": 1.3330429517645912,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4879,7 +4879,7 @@
         "fos": 1.3330429517645912,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4917,7 +4917,7 @@
         "fos": 1.3374400204143466,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -4955,7 +4955,7 @@
         "fos": 1.1285773508419759,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.30235416590318365,
         "verdict": "OK"
@@ -4995,7 +4995,7 @@
         "fos": 1.1285634811675946,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.9629165474677702,
         "verdict": "OK"
@@ -5033,7 +5033,7 @@
         "fos": 1.1284566196392258,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.04048046447038488,
         "verdict": "OK"
@@ -5071,7 +5071,7 @@
         "fos": 1.1101337128344988,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5113,7 +5113,7 @@
         "fos": 1.1101178772133176,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5153,7 +5153,7 @@
         "fos": 1.1100084098935856,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.0909296567705715,
         "verdict": "OK"
@@ -5191,7 +5191,7 @@
         "fos": 1.1086790449662316,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5234,7 +5234,7 @@
         "fos": 1.1086676917036988,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5275,7 +5275,7 @@
         "fos": 1.1086676917036988,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5316,7 +5316,7 @@
         "fos": 1.0583458719495316,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5359,7 +5359,7 @@
         "fos": 1.0583338630438714,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5400,7 +5400,7 @@
         "fos": 1.0583338630438714,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5441,7 +5441,7 @@
         "fos": 2.245525750791334,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5484,7 +5484,7 @@
         "fos": 2.2455023401616785,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5525,7 +5525,7 @@
         "fos": 2.2455023401616785,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5566,7 +5566,7 @@
         "fos": 2.1287193680958043,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5609,7 +5609,7 @@
         "fos": 2.128695152356293,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5650,7 +5650,7 @@
         "fos": 2.128695152356293,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5691,7 +5691,7 @@
         "fos": 1.428556005001103,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.4610411393180797,
         "verdict": "OK"
@@ -5731,7 +5731,7 @@
         "fos": 1.4283827336558634,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.3148208199918176,
         "verdict": "OK"
@@ -5769,7 +5769,7 @@
         "fos": 1.157260784655705,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5807,7 +5807,7 @@
         "fos": 1.1586829434500368,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5843,7 +5843,7 @@
         "fos": 1.1586190025066254,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5879,7 +5879,7 @@
         "fos": 1.175643607582039,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.2000333122208013,
         "verdict": "OK"
@@ -5916,7 +5916,7 @@
         "fos": 1.1779826395015023,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -5953,7 +5953,7 @@
         "fos": 1.1376398860585046,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "truncated_mass"
@@ -5990,7 +5990,7 @@
         "fos": 1.5723492945460187,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -6029,7 +6029,7 @@
         "fos": 1.562854278854467,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -6068,7 +6068,7 @@
         "fos": 1.5723492945460187,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -6107,7 +6107,7 @@
         "fos": 1.5723492945460187,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -6146,7 +6146,7 @@
         "fos": 1.1328338309728028,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6185,7 +6185,7 @@
         "fos": 1.1329835085118494,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6224,7 +6224,7 @@
         "fos": 1.173144000642981,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -1.4164705342032757,
         "verdict": "OK"
@@ -6259,7 +6259,7 @@
         "fos": 1.2213075476158664,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5449879791639763,
         "verdict": "OK"
@@ -6293,7 +6293,7 @@
         "fos": 1.2213075476158664,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.10717603408740801,
         "verdict": "OK"
@@ -6327,7 +6327,7 @@
         "fos": 1.1965161350941602,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.5475743776605269,
         "verdict": "OK"
@@ -6361,7 +6361,7 @@
         "fos": 1.136925590479919,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_lambda",
           "negative_effective_normal"
@@ -6401,7 +6401,7 @@
         "fos": 1.12504131823797,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6440,7 +6440,7 @@
         "fos": 1.1201042860833967,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6479,7 +6479,7 @@
         "fos": 1.120106342925686,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6518,7 +6518,7 @@
         "fos": 1.4128557104935784,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.06060272617411229,
         "verdict": "OK"
@@ -6552,7 +6552,7 @@
         "fos": 1.4027961335411776,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.19972382436983516,
         "verdict": "OK"
@@ -6586,7 +6586,7 @@
         "fos": 2.5338898311587434,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5927881067578065,
         "verdict": "OK"
@@ -6618,7 +6618,7 @@
         "fos": 2.5309304295782358,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5528318436842496,
         "verdict": "OK"
@@ -6650,7 +6650,7 @@
         "fos": 2.5309304295782358,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -1.1355300946001672,
         "verdict": "OK"
@@ -6682,7 +6682,7 @@
         "fos": 1.3894558909270418,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.6111666003546571,
         "verdict": "OK"
@@ -6714,7 +6714,7 @@
         "fos": 1.3520684363408775,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5100488343725171,
         "verdict": "OK"
@@ -6746,7 +6746,7 @@
         "fos": 1.3520684363408775,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.1532175067316584,
         "verdict": "OK"
@@ -6778,7 +6778,7 @@
         "fos": 1.154707939985745,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -6816,7 +6816,7 @@
         "fos": 1.1547087623948151,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -6854,7 +6854,7 @@
         "fos": 1.1547087623948151,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -6892,7 +6892,7 @@
         "fos": 1.5236491298395887,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6933,7 +6933,7 @@
         "fos": 1.5216816826614985,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -6973,7 +6973,7 @@
         "fos": 1.533587520451674,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -7013,7 +7013,7 @@
         "fos": 1.2649823216325031,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.23631708656918507,
         "verdict": "OK"
@@ -7048,7 +7048,7 @@
         "fos": 1.3062483783662002,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.514213376527016,
         "verdict": "OK"
@@ -7082,7 +7082,7 @@
         "fos": 1.2767631239298465,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.059805950614925885,
         "verdict": "OK"
@@ -7116,7 +7116,7 @@
         "fos": 1.1705481309043995,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.9688552534348964,
         "verdict": "OK"
@@ -7151,7 +7151,7 @@
         "fos": 1.3303516073332229,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.3481942072492194,
         "verdict": "OK"
@@ -7185,7 +7185,7 @@
         "fos": 1.3285504851877625,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.04145219787367934,
         "verdict": "OK"
@@ -7219,7 +7219,7 @@
         "fos": 1.5687014779852106,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -7311,7 +7311,7 @@
         "fos": 0.7365821175659685,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.46187600459885353,
         "verdict": "OK"
@@ -7346,7 +7346,7 @@
         "fos": 0.7604205434450728,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.07614409394575473,
         "verdict": "OK"
@@ -7380,7 +7380,7 @@
         "fos": 0.7563550455569994,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.04696369801579224,
         "verdict": "OK"
@@ -7414,7 +7414,7 @@
         "fos": 0.7563550455569994,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.8473394075999193,
         "verdict": "OK"
@@ -7448,7 +7448,7 @@
         "fos": 0.9083186384670431,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.07495726435169943,
         "verdict": "OK"
@@ -7482,7 +7482,7 @@
         "fos": 0.9011467413209537,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.3504166281685653,
         "verdict": "OK"
@@ -7516,7 +7516,7 @@
         "fos": 0.9011467413209537,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.12741570232819052,
         "verdict": "OK"
@@ -7550,7 +7550,7 @@
         "fos": 1.042365866637583,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.2520701782217141,
         "verdict": "OK"
@@ -7584,7 +7584,7 @@
         "fos": 1.028661208620621,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.32352629645145153,
         "verdict": "OK"
@@ -7618,7 +7618,7 @@
         "fos": 1.028661208620621,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.12997974557077463,
         "verdict": "OK"
@@ -7652,7 +7652,7 @@
         "fos": 1.1518700292084036,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.18457285889049133,
         "verdict": "OK"
@@ -7686,7 +7686,7 @@
         "fos": 1.1317103709826042,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.20190732075799925,
         "verdict": "OK"
@@ -7720,7 +7720,7 @@
         "fos": 1.1317103709826042,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.15136026394728253,
         "verdict": "OK"
@@ -7754,7 +7754,7 @@
         "fos": 1.6134857647213623,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.9523778562699639,
         "verdict": "OK"
@@ -7969,7 +7969,7 @@
         "fos": 1.6078722056652766,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.7486292799212069,
         "verdict": "OK"
@@ -8184,7 +8184,7 @@
         "fos": 1.0957950430846115,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8223,7 +8223,7 @@
         "fos": 1.0994076166427693,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.05385303247552497,
         "verdict": "OK"
@@ -8260,7 +8260,7 @@
         "fos": 1.0957950430846115,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8299,7 +8299,7 @@
         "fos": 1.166259539722487,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.5396154933178589,
         "verdict": "OK"
@@ -8335,7 +8335,7 @@
         "fos": 1.4629652928534318,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.1345169646428283,
         "verdict": "OK"
@@ -8369,7 +8369,7 @@
         "fos": 1.5977409705212313,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -8407,7 +8407,7 @@
         "fos": 1.5957546968035876,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -8447,7 +8447,7 @@
         "fos": 1.5957546968035876,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -8487,7 +8487,7 @@
         "fos": 1.5972355376590952,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -8526,7 +8526,7 @@
         "fos": 1.5953480964872842,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -8566,7 +8566,7 @@
         "fos": 1.5953480964872842,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -8606,7 +8606,7 @@
         "fos": 1.5823055050622816,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.10697569051252837,
         "verdict": "OK"
@@ -8641,7 +8641,7 @@
         "fos": 1.6494537919864958,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.08821553316115699,
         "verdict": "OK"
@@ -8676,7 +8676,7 @@
         "fos": 2.076559436939828,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8712,7 +8712,7 @@
         "fos": 2.0723583606175837,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8750,7 +8750,7 @@
         "fos": 2.072768503864773,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8786,7 +8786,7 @@
         "fos": 1.7600653613654935,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8822,7 +8822,7 @@
         "fos": 1.7575525440048134,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8860,7 +8860,7 @@
         "fos": 1.758204914301594,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8896,7 +8896,7 @@
         "fos": 1.8298280566432894,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8933,7 +8933,7 @@
         "fos": 1.8276273247642603,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -8972,7 +8972,7 @@
         "fos": 1.82837133537958,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9009,7 +9009,7 @@
         "fos": 1.3793238237503909,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9045,7 +9045,7 @@
         "fos": 1.3697873022552198,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9083,7 +9083,7 @@
         "fos": 1.3793238237503909,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9119,7 +9119,7 @@
         "fos": 1.241636084602887,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9157,7 +9157,7 @@
         "fos": 1.2348537494282756,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9197,7 +9197,7 @@
         "fos": 1.1221289811387603,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9233,7 +9233,7 @@
         "fos": 1.112417241871727,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9271,7 +9271,7 @@
         "fos": 1.1221289811387603,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9307,7 +9307,7 @@
         "fos": 0.9851233619232898,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -9343,7 +9343,7 @@
         "fos": 0.9841420254934197,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -9379,7 +9379,7 @@
         "fos": 0.9855796590505889,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.4464990857991038,
         "verdict": "OK"
@@ -9413,7 +9413,7 @@
         "fos": 0.9841201185689425,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -9450,7 +9450,7 @@
         "fos": 0.9851233619232898,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -9486,7 +9486,7 @@
         "fos": 0.9841420254934197,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -9522,7 +9522,7 @@
         "fos": 1.6589800930036287,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.3016771031473093,
         "verdict": "OK"
@@ -9556,7 +9556,7 @@
         "fos": 1.6558919420574132,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.2474733700353451,
         "verdict": "OK"
@@ -9591,7 +9591,7 @@
         "fos": 1.5869050303985806,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5698602507155096,
         "verdict": "OK"
@@ -9625,7 +9625,7 @@
         "fos": 1.5825203144655469,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.5954576340736947,
         "verdict": "OK"
@@ -9659,7 +9659,7 @@
         "fos": 1.4751682973212146,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.928925633229384,
         "verdict": "OK"
@@ -9693,7 +9693,7 @@
         "fos": 1.4030617776412113,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.137951769308805,
         "verdict": "OK"
@@ -9727,7 +9727,7 @@
         "fos": 1.372390014049848,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.18981716001105814,
         "verdict": "OK"
@@ -9761,7 +9761,7 @@
         "fos": 1.3555833489059983,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.10439580648501741,
         "verdict": "OK"
@@ -9795,7 +9795,7 @@
         "fos": 1.3718914409448872,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.7314442152758796,
         "verdict": "OK"
@@ -9830,7 +9830,7 @@
         "fos": 1.4030617776412113,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.0044032531155589,
         "verdict": "OK"
@@ -9864,7 +9864,7 @@
         "fos": 1.2942320690087223,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9901,7 +9901,7 @@
         "fos": 1.2761766292457668,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9938,7 +9938,7 @@
         "fos": 1.26047285171092,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -9977,7 +9977,7 @@
         "fos": 1.2387994527960262,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal",
           "non_circular_large_change"
@@ -10018,7 +10018,7 @@
         "fos": 1.9574264307397582,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.483903015388,
         "verdict": "OK"
@@ -10054,7 +10054,7 @@
         "fos": 1.9574261121037608,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.4838866583039464,
         "verdict": "OK"
@@ -10090,7 +10090,7 @@
         "fos": 1.9671103569612944,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.9292127737965301,
         "verdict": "OK"
@@ -10126,7 +10126,7 @@
         "fos": 1.9574264307397582,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.32939163197120075,
         "verdict": "OK"
@@ -10162,7 +10162,7 @@
         "fos": 2.206351811341333,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.07464622548311715,
         "verdict": "OK"
@@ -10196,7 +10196,7 @@
         "fos": 2.2900072889632135,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.0869420173117946,
         "verdict": "OK"
@@ -10230,7 +10230,7 @@
         "fos": 2.0729424800424217,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.002774720577824424,
         "verdict": "OK"
@@ -10264,7 +10264,7 @@
         "fos": 2.2992833664510144,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.012325639452564381,
         "verdict": "OK"
@@ -10300,7 +10300,7 @@
         "fos": 1.0858215480445874,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.10841324336822002,
         "verdict": "OK"
@@ -10338,7 +10338,7 @@
         "fos": 1.0916704874499823,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.12163884263656681,
         "verdict": "OK"
@@ -10376,7 +10376,7 @@
         "fos": 1.3664534462554774,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -2.3961824103230382,
         "verdict": "OK"
@@ -10410,7 +10410,7 @@
         "fos": 1.3664534462554774,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.033195187077399296,
         "verdict": "OK"
@@ -10444,7 +10444,7 @@
         "fos": 0.4997855409211348,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10480,7 +10480,7 @@
         "fos": 1.4771791763422286,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10519,7 +10519,7 @@
         "fos": 1.4771791763422286,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10558,7 +10558,7 @@
         "fos": 2.02755529894106,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10596,7 +10596,7 @@
         "fos": 2.02755529894106,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10634,7 +10634,7 @@
         "fos": 1.9167508152941548,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.8816218575870999,
         "verdict": "OK"
@@ -10670,7 +10670,7 @@
         "fos": 1.9167508152941548,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.0914263861177427,
         "verdict": "OK"
@@ -10706,7 +10706,7 @@
         "fos": 1.2144942299123542,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10745,7 +10745,7 @@
         "fos": 1.2897782276983842,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10784,7 +10784,7 @@
         "fos": 1.3147571420071713,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10823,7 +10823,7 @@
         "fos": 2.530205238449962,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10861,7 +10861,7 @@
         "fos": 2.9743744070702745,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10897,7 +10897,7 @@
         "fos": 2.348269818418431,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10939,7 +10939,7 @@
         "fos": 2.348269818418431,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -10981,7 +10981,7 @@
         "fos": 2.387794417793089,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11021,7 +11021,7 @@
         "fos": 2.548569118522108,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11055,7 +11055,7 @@
         "fos": 2.548569118522108,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11089,7 +11089,7 @@
         "fos": 2.8158382762669834,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11125,7 +11125,7 @@
         "fos": 2.8158382762669834,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11161,7 +11161,7 @@
         "fos": 2.779564056346649,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11197,7 +11197,7 @@
         "fos": 2.779564056346649,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11233,7 +11233,7 @@
         "fos": 2.576691810744274,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11267,7 +11267,7 @@
         "fos": 2.576691810744274,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11301,7 +11301,7 @@
         "fos": 2.689966075826344,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.48220215218852747,
         "verdict": "OK"
@@ -11335,7 +11335,7 @@
         "fos": 2.689966075826344,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.07555438980892351,
         "verdict": "OK"
@@ -11369,7 +11369,7 @@
         "fos": 2.6735204379209336,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11405,7 +11405,7 @@
         "fos": 2.6735204379209336,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11441,7 +11441,7 @@
         "fos": 3.592605004766492,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11477,7 +11477,7 @@
         "fos": 3.592605004766492,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11513,7 +11513,7 @@
         "fos": 6.064998862540764,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11549,7 +11549,7 @@
         "fos": 6.064998862540764,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11585,7 +11585,7 @@
         "fos": 11.570763952991674,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -11621,7 +11621,7 @@
         "fos": 2.4512639723149503,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.15218035376984806,
         "verdict": "OK"
@@ -11655,7 +11655,7 @@
         "fos": 2.453013233132842,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.9470466309811376,
         "verdict": "OK"
@@ -11689,7 +11689,7 @@
         "fos": 1.017214209158726,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -12231,7 +12231,7 @@
         "fos": 0.9603654956143899,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass"
         ],
@@ -12351,7 +12351,7 @@
         "fos": 1.0306372146823144,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -12887,7 +12887,7 @@
         "fos": 1.0111333325118315,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "reinforcement_outside_mass",
           "truncated_mass"
@@ -13235,7 +13235,7 @@
         "fos": 1.011626986000803,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -13771,7 +13771,7 @@
         "fos": 0.961162388545046,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -14307,7 +14307,7 @@
         "fos": 1.4527053136025048,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14345,7 +14345,7 @@
         "fos": 1.2036604999913265,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14384,7 +14384,7 @@
         "fos": 1.2092559054100807,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14423,7 +14423,7 @@
         "fos": 1.2102046724576385,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14460,7 +14460,7 @@
         "fos": 1.4154971254239108,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -14500,7 +14500,7 @@
         "fos": 1.4154971254239108,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -14540,7 +14540,7 @@
         "fos": 1.421781780482042,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -14580,7 +14580,7 @@
         "fos": 1.2906241108769072,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14617,7 +14617,7 @@
         "fos": 1.2974471073574783,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14654,7 +14654,7 @@
         "fos": 1.289410609990557,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14693,7 +14693,7 @@
         "fos": 1.2952348625036794,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14732,7 +14732,7 @@
         "fos": 1.149881511849968,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -14772,7 +14772,7 @@
         "fos": 1.2828334793582352,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.16860082815289512,
         "verdict": "OK"
@@ -14806,7 +14806,7 @@
         "fos": 1.2882849774771268,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.13294748239327558,
         "verdict": "OK"
@@ -14840,7 +14840,7 @@
         "fos": 1.282179392636186,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.21950251858474354,
         "verdict": "OK"
@@ -14876,7 +14876,7 @@
         "fos": 1.2878956437341484,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.1631283927016738,
         "verdict": "OK"
@@ -14912,7 +14912,7 @@
         "fos": 1.1365031335108051,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.39411625672172607,
         "verdict": "OK"
@@ -14948,7 +14948,7 @@
         "fos": 1.4278419332136485,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.7651329014571953,
         "verdict": "OK"
@@ -14985,7 +14985,7 @@
         "fos": 1.4304206876113663,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.5921721245686627,
         "verdict": "OK"
@@ -15022,7 +15022,7 @@
         "fos": 0.9428402332910114,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.3021524777671769,
         "verdict": "OK"
@@ -15054,7 +15054,7 @@
         "fos": 0.9578270695425091,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.22634692265530165,
         "verdict": "OK"
@@ -15088,7 +15088,7 @@
         "fos": 1.0483150004037503,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -15125,7 +15125,7 @@
         "fos": 1.0483150004037503,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.0653002474975863,
         "verdict": "OK"
@@ -15159,7 +15159,7 @@
         "fos": 1.049020821323902,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -15198,7 +15198,7 @@
         "fos": 1.049020821323902,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.0019848735845692605,
         "verdict": "OK"
@@ -15232,7 +15232,7 @@
         "fos": 0.7640742830177856,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15268,7 +15268,7 @@
         "fos": 1.5014675558129666,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.16838059754211143,
         "verdict": "OK"
@@ -15302,7 +15302,7 @@
         "fos": 1.5206134304931864,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15336,7 +15336,7 @@
         "fos": 1.5198886359906358,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15370,7 +15370,7 @@
         "fos": 1.5198824290983362,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15406,7 +15406,7 @@
         "fos": 1.5335707099455718,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15440,7 +15440,7 @@
         "fos": 1.499596988653957,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15474,7 +15474,7 @@
         "fos": 1.4987862949141046,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15508,7 +15508,7 @@
         "fos": 1.4988101960877054,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15544,7 +15544,7 @@
         "fos": 1.509038968170882,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass"
         ],
@@ -15578,7 +15578,7 @@
         "fos": 0.9892478780595483,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -15854,7 +15854,7 @@
         "fos": 1.125019743196108,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -16130,7 +16130,7 @@
         "fos": 1.0442985976686088,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -16406,7 +16406,7 @@
         "fos": 0.9452429813641282,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -16682,7 +16682,7 @@
         "fos": 0.9210169496664786,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -16958,7 +16958,7 @@
         "fos": 0.9217615706420424,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -17235,7 +17235,7 @@
         "fos": 0.9672170037666166,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.79825602393676,
         "verdict": "OK"
@@ -17271,7 +17271,7 @@
         "fos": 0.9690371065222123,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.6115788182346326,
         "verdict": "OK"
@@ -17307,7 +17307,7 @@
         "fos": 0.9690371057427991,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.611578898174448,
         "verdict": "OK"
@@ -17342,7 +17342,7 @@
         "fos": 1.210019319213281,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.08431093575525413,
         "verdict": "OK"
@@ -17376,7 +17376,7 @@
         "fos": 1.2185009065830095,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.041125335222454616,
         "verdict": "OK"
@@ -17411,7 +17411,7 @@
         "fos": 0.9740377943151903,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.7097049627736649,
         "verdict": "OK"
@@ -17447,7 +17447,7 @@
         "fos": 1.2066745263816898,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -1.0111135043732786,
         "verdict": "OK"
@@ -17481,7 +17481,7 @@
         "fos": 2.248685341949368,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -17522,7 +17522,7 @@
         "fos": 2.441931976001715,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.1254815541220853,
         "verdict": "OK"
@@ -17554,7 +17554,7 @@
         "fos": 2.4426048732311867,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.17961286345784117,
         "verdict": "OK"
@@ -17586,7 +17586,7 @@
         "fos": 2.4443251499760494,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.5895123446933859,
         "verdict": "OK"
@@ -17618,7 +17618,7 @@
         "fos": 2.441922511051075,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.20749852672353503,
         "verdict": "OK"
@@ -17652,7 +17652,7 @@
         "fos": 2.6991751538412774,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -17686,7 +17686,7 @@
         "fos": 2.7217574276314904,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -17720,7 +17720,7 @@
         "fos": 2.648611884156285,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -17754,7 +17754,7 @@
         "fos": 2.727964263916502,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -17790,7 +17790,7 @@
         "fos": 1.3206761309087933,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -17826,7 +17826,7 @@
         "fos": 1.316901696379765,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -17862,7 +17862,7 @@
         "fos": 1.3408365319342415,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -17898,7 +17898,7 @@
         "fos": 1.316551978684425,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -17936,7 +17936,7 @@
         "fos": 1.237426066544193,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -17976,7 +17976,7 @@
         "fos": 1.2373819351516386,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_lambda",
@@ -18017,7 +18017,7 @@
         "fos": 1.2373819352796382,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_lambda",
@@ -18060,7 +18060,7 @@
         "fos": 1.3895668698975439,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground",
           "negative_effective_normal"
@@ -18100,7 +18100,7 @@
         "fos": 1.9914190865741805,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -18138,7 +18138,7 @@
         "fos": 2.005696660027624,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -18176,7 +18176,7 @@
         "fos": 1.8246598560180622,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -18213,7 +18213,7 @@
         "fos": 2.005849618115296,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "water_above_ground"
         ],
@@ -18253,7 +18253,7 @@
         "fos": 1.3252801513390795,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18292,7 +18292,7 @@
         "fos": 1.1775937476681846,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18331,7 +18331,7 @@
         "fos": 1.3430681702560037,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18369,7 +18369,7 @@
         "fos": 1.3996840944282831,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.12046455137934275,
         "verdict": "OK"
@@ -18404,7 +18404,7 @@
         "fos": 1.3913030051496618,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18444,7 +18444,7 @@
         "fos": 1.1009745429678977,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18480,7 +18480,7 @@
         "fos": 1.195567323005605,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "structural_checks_not_covered",
           "negative_effective_normal"
@@ -18573,7 +18573,7 @@
         "fos": 1.797732098911992,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.34744462793835973,
         "verdict": "OK"
@@ -18610,7 +18610,7 @@
         "fos": 1.7992630878033447,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.262578281411053,
         "verdict": "OK"
@@ -18647,7 +18647,7 @@
         "fos": 1.7841956049163752,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.32426788176675125,
         "verdict": "OK"
@@ -18685,7 +18685,7 @@
         "fos": 1.1751301030995385,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18728,7 +18728,7 @@
         "fos": 1.1901847532054386,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18771,7 +18771,7 @@
         "fos": 1.1744763683784536,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18815,7 +18815,7 @@
         "fos": 1.800041495400456,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.2194293015268323,
         "verdict": "OK"
@@ -18847,7 +18847,7 @@
         "fos": 1.7995548650392046,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.2464043769842273,
         "verdict": "OK"
@@ -18882,7 +18882,7 @@
         "fos": 1.8252027122693883,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18919,7 +18919,7 @@
         "fos": 1.809746390329576,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18958,7 +18958,7 @@
         "fos": 1.2137461662623468,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -18999,7 +18999,7 @@
         "fos": 1.198744052530231,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19042,7 +19042,7 @@
         "fos": 1.1724678979256493,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.04536249568207387,
         "verdict": "OK"
@@ -19076,7 +19076,7 @@
         "fos": 1.3723892202044785,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.028368819568396653,
         "verdict": "OK"
@@ -19110,7 +19110,7 @@
         "fos": 1.3339159041527973,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -19150,7 +19150,7 @@
         "fos": 1.3339159041527973,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -19190,7 +19190,7 @@
         "fos": 1.3339159041527973,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "truncated_mass",
           "negative_effective_normal"
@@ -19230,7 +19230,7 @@
         "fos": 0.9980213905686904,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19270,7 +19270,7 @@
         "fos": 1.0009687772724374,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": 0.09687772724373822,
         "verdict": "OK"
@@ -19305,7 +19305,7 @@
         "fos": 1.0009687772724374,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.0031191536026481176,
         "verdict": "OK"
@@ -19340,7 +19340,7 @@
         "fos": 1.0009687772724374,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [],
         "err_pct": -0.0031191536026481176,
         "verdict": "OK"
@@ -19375,7 +19375,7 @@
         "fos": 0.9912817853686734,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19414,7 +19414,7 @@
         "fos": 0.9912817853686734,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19453,7 +19453,7 @@
         "fos": 0.9966319497876349,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19493,7 +19493,7 @@
         "fos": 1.0006770058940153,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19532,7 +19532,7 @@
         "fos": 1.0006770058940153,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19571,7 +19571,7 @@
         "fos": 1.0006770058940153,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19610,7 +19610,7 @@
         "fos": 0.986456656872565,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19649,7 +19649,7 @@
         "fos": 0.986456656872565,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19688,7 +19688,7 @@
         "fos": 1.0080668034682976,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19727,7 +19727,7 @@
         "fos": 1.0080668034682976,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],
@@ -19766,7 +19766,7 @@
         "fos": 2.305823706829846,
         "status": "converged",
         "error": null,
-        "engine": "ogs-core 0.5.0",
+        "engine": "ogs-core 0.5.1",
         "warnings": [
           "negative_effective_normal"
         ],

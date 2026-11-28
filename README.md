@@ -29,12 +29,18 @@ y entrega el FS, las dovelas, los avisos del cálculo y un informe PDF.
 Está pensado para ingeniería geotécnica (minería a rajo abierto, botaderos, obras civiles), para docencia y para
 investigación. Es software libre (Apache-2.0).
 
-La versión publicada es la **0.5.0**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
+La versión publicada es la **0.5.1**: el motor (Bishop, Spencer, Morgenstern-Price y Janbu simplificado y corregido,
 con material no drenado, superficie polilínea fija, sismo pseudoestático y cargas), el formato v0.6 con los materiales
 **Hoek-Brown** y **SHANSEP** y la **búsqueda no circular**, el formato v0.5 con **grieta de tracción**, **agua embalsada**
 y pilotes de **Ito-Matsui**, el formato v0.4 con **refuerzos** (anclajes, clavos de suelo, geosintéticos, pilotes y
 tablestacas, activos y pasivos, con su fuerza en cada cruce con la superficie de falla), la CLI, el editor web (PWA), el
 paquete de Python y las pruebas de aceptación.
+
+La 0.5.1 (véase el [registro de cambios](CHANGELOG.md#051---2026-11-27)) **rediseña el editor web** con la identidad
+común de la suite: tema oscuro por defecto (con el claro a un clic), los diez pasos del modelo en una barra lateral con
+su resumen y su estado, las vistas Lienzo, Resultados, Casos de verificación e Informe, y un recuadro sobre el lienzo con
+el FS mínimo y los métodos. El motor, el formato `.ogs.json` y los resultados no cambian: dan la misma salida que la
+0.5.0.
 
 Con un pilote o una tablestaca, OpenGeoSlide calcula la estabilidad **global** con el elemento incluido, no su diseño
 estructural ([límite](docs/limitaciones.md#pilotes-y-tablestacas-el-límite-estructural-f48)).
@@ -96,12 +102,12 @@ oscuro y unidades SI o imperiales. Para compilarla en local, véase [`docs/desar
 ### Python
 
 OpenGeoSlide aún **no está en PyPI ni en crates.io**: se instala desde los assets del
-[Release v0.5.0](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.5.0). El wheel es `abi3` y sirve para
+[Release v0.5.1](https://github.com/nibaldox/OpenGeoSlide/releases/tag/v0.5.1). El wheel es `abi3` y sirve para
 CPython 3.11 o superior; este es el de Linux x86-64:
 
 ```sh
-WHL=opengeoslide-0.5.0-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.5.0/$WHL"
+WHL=opengeoslide-0.5.1-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+pip install "https://github.com/nibaldox/OpenGeoSlide/releases/download/v0.5.1/$WHL"
 ```
 
 Para macOS (`macosx_11_0_arm64` o `macosx_10_12_x86_64`) y Windows (`win_amd64`), cambie `WHL` por el nombre del `.whl` de
@@ -110,7 +116,7 @@ su plataforma, que figura en la página del release. También sirve descargarlo 
 ```python
 # desde la raíz del repositorio, donde está examples/
 import json, opengeoslide
-print(opengeoslide.version())                    # 0.5.0, la versión de ogs-core
+print(opengeoslide.version())                    # 0.5.1, la versión de ogs-core
 report = opengeoslide.analyze(json.load(open("examples/acads1a.ogs.json")))
 for r in report["results"]:
     print(r["method"], round(r["fos"], 4), r["status"])

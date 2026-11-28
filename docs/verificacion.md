@@ -20,7 +20,7 @@ un recuento propio de una tabla de esos informes, se dice.
 | cSlope 0.1.0 como segundo oráculo de los 347 checks | **346/347** (V027: cSlope no converge) | [`verification/REPORT.md`](../verification/REPORT.md) |
 | Identidad con la 0.4.0 (salida byte a byte, versión normalizada) | **0 diferencias en 180 modelos** (17 modelos v0.6 de `pending/F3B`, aparte) | `verification/tools/identity_vs_baseline.py` |
 | Web y `ogs` (ida y vuelta; 409 modelos: 347 checks, 56 diferenciales y 6 de frontera) | **409/409**; el test calcula el número a partir del índice de casos | `verification/tools/test_web_roundtrip.py` |
-| Pruebas automáticas (medidas en el commit de la release 0.5.0; véase «Reproducir» abajo) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4136 de 4136** con el motor real (`OGS_BIN`) y **3816** pasan con 320 omitidas sin él (4136 en total) | ídem |
+| Pruebas automáticas (medidas en el commit de la release 0.5.1; véase «Reproducir» abajo) | `ogs-core` **784** pasan y 2 ignoradas, igual con la característica `parallel`; `ogs-cli` **8**; `pytest verification` **1549** pasan y 1 omitida; wheel `ogs-py` **370** pasan y 2 omitidas; web **4653 de 4653** con el motor real (`OGS_BIN`) y **4333** pasan con 320 omitidas sin él (4653 en total) | ídem |
 
 ## Aceptación: casos publicados
 

@@ -8,6 +8,14 @@ API pueden cambiar entre versiones menores.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-27
+
+Rediseño del editor web con la identidad común de la suite (bloque UA, armazón «A · Flujo de trabajo»). **El motor,
+el formato `.ogs.json` y los resultados no cambian:** el código del motor es el de la 0.5.0 (solo cambia el número de
+versión); los 347 checks de `verification/report.json` y los 241 de la batería diferencial dan las mismas cifras que en la
+0.5.0 (cambian solo la versión, la fecha y los tiempos), y la identidad contra el binario de la 0.5.0 da 0 diferencias en
+180 modelos, con la versión normalizada.
+
 ### Changed
 - **Rediseño de la web con la identidad de la suite (bloque UA, armazón «A · Flujo de trabajo»).** Contrato:
   `briefs/UA_CONTRATO.md`, con las enmiendas UA-E1 a UA-E6 (`briefs/ARBITRAJE_RUA.md`); cierre en
@@ -27,9 +35,21 @@ API pueden cambiar entre versiones menores.
   - **Accesibilidad:** objetivos de clic de 24 px o más, chevrons y menús como SVG, tooltips con foco, nombres
     accesibles que coinciden con el texto visible (WCAG 2.5.3) y contraste verificado en ambos temas.
 - **Pruebas.** Aceptación del diseño A01-A17 (`docs/suite-a/e2e/aceptacion_ua.mjs`): 17/17 (v0.5.0: 5/17). Los
-  guiones e2e se migraron al armazón nuevo: 50 guiones con OK=1226 y FAIL=2, ambos ya presentes en v0.5.0. La suite
-  de la web pasa de 3816 a 4333 tests.
+  guiones e2e se migraron al armazón nuevo: 50 guiones con OK=1226 y FAIL=2, ambos ya presentes en v0.5.0.
+  - **Pruebas medidas en el commit de la release:** `ogs-core` 784 pasan y 2 ignoradas, igual con `parallel`, y 347
+    checks de aceptación sin fallas; `ogs-cli` 8; `pytest verification` 1549 pasan y 1 omitida; wheel `ogs-py` 370 pasan
+    y 2 omitidas; web 4653 de 4653 con el motor real (`OGS_BIN`) y 4333 pasan con 320 omitidas sin él (en la 0.5.0, 4136
+    y 3816).
 - **README.** Capturas nuevas en tema claro y oscuro; `assets/readme/src/capture-app.mjs` sigue el armazón A.
+
+### Known issues
+- **Pantallas de 640 px de alto o menos (móvil):** con el lienzo en su alto mínimo de 200 px, la paleta de herramientas
+  queda en parte bajo la barra fija de «Comprobar». Se alcanza desplazando la página.
+- **Ventanas de escritorio de unos 800 × 600:** en algunos modelos el recuadro de resultados todavía tapa parte del
+  modelo. Pliéguelo con su botón o agrande la ventana.
+- **Dos guiones e2e fallan igual que en la 0.5.0:** `u3o_onboarding` (paso 6, la Ayuda como diálogo) y `u6d_drafts`
+  (R9-11a). No son regresiones de este rediseño.
+- Siguen vigentes los problemas conocidos del motor de la [0.5.0](#050---2026-11-27).
 
 ## [0.5.0] - 2026-11-27
 
@@ -976,7 +996,8 @@ Hito de cierre de la Fase 0 (spike), incluido en 0.1.0 (primer release). Marcado
 ### Known issues
 - Las limitaciones conocidas están en el README y en `docs/fase0_cierre.md` (backlog de la Fase 1).
 
-[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/nibaldox/OpenGeoSlide/compare/v0.2.0...v0.3.0
