@@ -205,6 +205,36 @@ fn height(pm: &PreparedModel) -> f64 {
     hi - lo
 }
 type Candidate = (f64, usize, Vec<Point>);
+
+/// Diagnostic of A9 (test builds only): the best generated candidate, before the successive halving.
+#[cfg(test)]
+mod probe {
+    use super::Candidate;
+    use std::cell::RefCell;
+
+    thread_local! {
+        static SORTED: RefCell<Vec<Candidate>> = const { RefCell::new(Vec::new()) };
+        static START: RefCell<Option<Vec<crate::model::Point>>> = const { RefCell::new(None) };
+    }
+
+    pub(super) fn record_start(start: &[crate::model::Point]) {
+        START.with(|b| *b.borrow_mut() = Some(start.to_vec()));
+    }
+
+    /// The starting polyline of the annealing, if there was one.
+    pub(super) fn take_start() -> Option<Vec<crate::model::Point>> {
+        START.with(|b| b.borrow_mut().take())
+    }
+
+    pub(super) fn record(sorted: &[Candidate]) {
+        SORTED.with(|b| *b.borrow_mut() = sorted.to_vec());
+    }
+
+    /// The generated candidates, best first.
+    pub(super) fn take() -> Vec<Candidate> {
+        SORTED.with(|b| std::mem::take(&mut *b.borrow_mut()))
+    }
+}
 /// The evaluator returns the converged FS and whether it fails the tension guard.
 pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     model: &Model,
@@ -326,6 +356,8 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     if algorithm == "annealing" {
         let begin = stats.attempts;
         let mut start = None;
+        // The seed circle is the starting state, not a candidate: it is evaluated (it counts in `evaluated`) but it
+        // does not enter `generated`, `attempts` or the converged/eligible counters, as in the prototype.
         for (c, _) in seeds {
             let Some(p) = search_circle_polyline(pm, c) else {
                 continue;
@@ -333,16 +365,14 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
             if !admissible(pm, win, &p) {
                 continue;
             }
-            stats.attempts += 1;
-            let idx = stats.generated;
-            stats.generated += 1;
             stats.evaluated += 1;
-            if let Some(f) = guarded(&Surface::Polyline(Polyline { points: p.clone() })) {
-                candidates.push((f, idx, p.clone()));
+            generation_phase.set(false);
+            let f = guarded(&Surface::Polyline(Polyline { points: p.clone() }));
+            generation_phase.set(true);
+            if let Some(f) = f {
+                #[cfg(test)]
+                probe::record_start(&p);
                 start = Some((p, f));
-                break;
-            }
-            if stats.generated >= n {
                 break;
             }
         }
@@ -374,6 +404,8 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     }
     generation_phase.set(false);
     candidates.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+    #[cfg(test)]
+    probe::record(&candidates);
     let span = (win[0][1] - win[1][0])
         .abs()
         .max((win[1][1] - win[0][0]).abs())
@@ -796,5 +828,33 @@ mod tests {
             "no contact: auto never chooses block"
         );
         assert_eq!(stats.generated, 0, "no seed circle was given");
+    }
+
+    /// Diagnostic of A9, not a test: `OGS_A9_MODEL=<model.json (v0.7, with global)> cargo test --release --lib
+    /// a9_probe -- --ignored --nocapture` prints the best generated candidate before the refinement. It needs the
+    /// build without `parallel`, so that the generation runs in the thread of the test.
+    #[test]
+    #[ignore = "diagnostic of A9; needs OGS_A9_MODEL"]
+    fn a9_probe() {
+        let path = std::env::var("OGS_A9_MODEL").expect("OGS_A9_MODEL");
+        let text = std::fs::read_to_string(path).unwrap();
+        let out: serde_json::Value =
+            serde_json::from_str(&crate::analyze_json(&text).unwrap()).unwrap();
+        let g = &out["results"][0]["search"]["non_circular"]["global"];
+        let sorted = probe::take();
+        let best = sorted
+            .first()
+            .map(|(f, i, p)| serde_json::json!({"fos": f, "index": i, "points": p}));
+        let mut by_index: Vec<_> = sorted.iter().map(|(f, i, p)| (*i, *f, p.clone())).collect();
+        by_index.sort_by_key(|c| c.0);
+        let head: Vec<_> = by_index
+            .iter()
+            .take(6)
+            .map(|(i, f, p)| serde_json::json!([i, f, p]))
+            .collect();
+        println!(
+            "A9 {}",
+            serde_json::json!({"best": best, "head": head, "start": probe::take_start(), "stats": g})
+        );
     }
 }
