@@ -4,7 +4,7 @@
 //
 // Foco: al abrirse sola (primera visita) NO se mueve el foco (no secuestra la página); el cuadro está justo después de la
 // cabecera en el orden de tabulación. Si el usuario la abre desde «Ayuda», el foco va a «Siguiente». Esc o «Omitir» la
-// cierran y el foco vuelve al control destacado (o, si no es enfocable, al botón «Ayuda»).
+// cierran y el foco vuelve al control destacado (o, si no es enfocable, al botón «Ayuda»). Cerrada, la guía no deja nada en el DOM (CM-W2).
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { TOUR_STEPS, clipRect, matchesTarget, placePopover, revealBlock, ringRect, shouldCloseTourOnEscape, stepProgress, type Placed, type Rect, type TargetSpec } from './tour';
@@ -160,47 +160,53 @@ export function GuidedTour({ open, index, focusOnOpen, onNext, onPrev, onSkip, f
       <div className="visually-hidden" role="status" aria-live="polite" data-testid="tour-live">
         {announcement}
       </div>
-      <div ref={ringRef} popover="manual" className="tour-ring" aria-hidden="true" data-testid="tour-ring" style={layout.ring ? { left: layout.ring.x, top: layout.ring.y, width: layout.ring.width, height: layout.ring.height } : { display: 'none' }} />
-      <section
-        ref={popRef}
-        popover="manual"
-        role="dialog"
-        aria-modal="false"
-        aria-labelledby={titleId}
-        aria-describedby={bodyId}
-        className="tour-popover"
-        data-testid="guided-tour"
-        data-step={step.id}
-        data-placement={layout.pop?.placement ?? 'pending'}
-        style={layout.pop ? { left: layout.pop.left, top: layout.pop.top } : { visibility: 'hidden' }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            close();
-          }
-        }}
-      >
-        <p className="tour-progress small">{progress.label}</p>
-        <h2 id={titleId} className="tour-title">
-          {step.title}
-        </h2>
-        <p id={bodyId} className="tour-body">
-          {step.body}
-        </p>
-        <div className="tour-actions">
-          <button type="button" className="link-button" onClick={close}>
-            Omitir
-          </button>
-          <span className="tour-spacer" />
-          <button type="button" onClick={onPrev} disabled={progress.first}>
-            Anterior
-          </button>
-          <button ref={nextRef} type="button" className="primary" onClick={finishOrNext}>
-            {progress.last ? 'Terminar' : 'Siguiente'}
-          </button>
-        </div>
-      </section>
+      {/* CM-W2: cerrada, la guía no deja nada en el DOM. Antes el cuadro seguía ahí, oculto, con el texto del paso 1 («Paso 1 de 5», «Omitir»,
+          «Anterior», «Siguiente»): quien leía el texto de la página tras pulsar «Omitir» en el paso 2 creía haber vuelto al paso 1. */}
+      {open && (
+        <>
+          <div ref={ringRef} popover="manual" className="tour-ring" aria-hidden="true" data-testid="tour-ring" style={layout.ring ? { left: layout.ring.x, top: layout.ring.y, width: layout.ring.width, height: layout.ring.height } : { display: 'none' }} />
+          <section
+            ref={popRef}
+            popover="manual"
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={titleId}
+            aria-describedby={bodyId}
+            className="tour-popover"
+            data-testid="guided-tour"
+            data-step={step.id}
+            data-placement={layout.pop?.placement ?? 'pending'}
+            style={layout.pop ? { left: layout.pop.left, top: layout.pop.top } : { visibility: 'hidden' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                close();
+              }
+            }}
+          >
+            <p className="tour-progress small">{progress.label}</p>
+            <h2 id={titleId} className="tour-title">
+              {step.title}
+            </h2>
+            <p id={bodyId} className="tour-body">
+              {step.body}
+            </p>
+            <div className="tour-actions">
+              <button type="button" className="link-button" onClick={close}>
+                Omitir
+              </button>
+              <span className="tour-spacer" />
+              <button type="button" onClick={onPrev} disabled={progress.first}>
+                Anterior
+              </button>
+              <button ref={nextRef} type="button" className="primary" onClick={finishOrNext}>
+                {progress.last ? 'Terminar' : 'Siguiente'}
+              </button>
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }
