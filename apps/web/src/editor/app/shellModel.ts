@@ -395,7 +395,12 @@ export function runStatus(input: RunStatusInput): RunStatus {
       return out('warn', `Parcial · ${part} métodos`, [notConverged]);
     }
     if (fs.below1) return out('nok', 'Calculado · FS < 1,0', [minimum]);
-    return out(advisories > 0 ? 'warn' : 'neutral', `Calculado · FS mín. ${fs.text}`, [minimum]);
+    // CM-W2: el chip nombra el método que rige si cabe en 40 caracteres; el conteo de avisos tiene prioridad sobre el nombre.
+    const plain = `Calculado · FS mín. ${fs.text}`;
+    const named = `${plain} · ${methodNames(fs.methods)}`;
+    const withCount = withAdvisories(named, advisories);
+    const fitsNamed = named.length <= MAX_CHARS && (advisories === 0 || withCount !== named);
+    return out(advisories > 0 ? 'warn' : 'neutral', fitsNamed ? named : plain, [minimum]);
   }
   if (input.run !== null) return same('warn', input.pendingDrafts > 0 ? 'Cambios sin aplicar' : 'Resultados desactualizados');
   if (input.localErrors > 0) return same('warn', `Modelo con ${count(input.localErrors, 'problema', 'problemas')}`);

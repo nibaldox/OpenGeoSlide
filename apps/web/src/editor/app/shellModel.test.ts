@@ -612,7 +612,7 @@ describe('runStatus: una fila por condición, de arriba abajo', () => {
     ['calculando 1 método', { busy: true, methodsRequested: 1 }, { tone: 'accent', text: 'Calculando 1 método…' }],
     ['sin regiones', { hasRegions: false }, { tone: 'neutral', text: 'Sin modelo' }],
     ['error del motor sin resultado actual', { message: 'Falló', messageKind: 'error' }, { tone: 'nok', text: 'Error: Falló' }],
-    ['resultado actual, FS ≥ 1, sin avisos (neutral, no ok)', { run: okRun, current: true }, { tone: 'neutral', text: 'Calculado · FS mín. 1,234' }],
+    ['resultado actual, FS ≥ 1, sin avisos (neutral, no ok)', { run: okRun, current: true }, { tone: 'neutral', text: 'Calculado · FS mín. 1,234 · Bishop' }],
     ['resultado actual, FS ≥ 1, con avisos', { run: okRun, current: true, advisories: 2 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 2 avisos' }],
     ['resultado actual con un solo aviso (singular)', { run: okRun, current: true, advisories: 1 }, { tone: 'warn', text: 'Calculado · FS mín. 1,234 · 1 aviso' }],
     ['resultado actual con borradores: nunca es actual (A-02, B-01)', { run: okRun, current: true, pendingDrafts: 1 }, { tone: 'warn', text: 'Cambios sin aplicar' }],
@@ -650,7 +650,7 @@ describe('runStatus: una fila por condición, de arriba abajo', () => {
   });
 
   it('con resultado actual un mensaje de error no tapa el resultado', () => {
-    expect(runStatus(base({ run: okRun, current: true, message: 'Falló', messageKind: 'error' })).text).toBe('Calculado · FS mín. 1,234');
+    expect(runStatus(base({ run: okRun, current: true, message: 'Falló', messageKind: 'error' })).text).toBe('Calculado · FS mín. 1,234 · Bishop');
   });
 
   it('un resultado sin `current` no cuenta como resultado actual aunque exista', () => {
@@ -760,10 +760,10 @@ describe('runStatus: resultado actual', () => {
   });
 
   it('FS = 1 exacto no es < 1', () => {
-    expect(cur(report(result('bishop', 1))).text).toBe('Calculado · FS mín. 1,000');
+    expect(cur(report(result('bishop', 1))).text).toBe('Calculado · FS mín. 1,000 · Bishop');
   });
 
-  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (neutral); el título lleva los métodos del mínimo, empates incluidos', () => {
+  it('FS mínimo ≥ 1 → «Calculado · FS mín. 1,234» (neutral); con un empate el nombre no cabe en 40 caracteres y va solo en el título', () => {
     const s = cur(report(result('bishop', 1.2344), result('spencer', 1.2339), result('morgenstern_price', 1.5)));
     expect(s).toMatchObject({ tone: 'neutral', text: 'Calculado · FS mín. 1,234' });
     expect(s.title).toBe('Calculado · FS mín. 1,234. FS mínimo 1,234 (Bishop, Spencer)');
