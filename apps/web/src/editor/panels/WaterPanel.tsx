@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
-import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
+import { ErrorList, LabeledField, PanelSection, RowsPendingNote, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   appendPiezoPoint,
@@ -13,6 +13,7 @@ import {
   piezoSetCommand,
   piezoToForm,
   removePiezoPoint,
+  ROWS_PENDING_REASON,
   setPendingDraft,
   unitLabels,
   waterUnitWeightCommand,
@@ -58,6 +59,10 @@ export function WaterPanel({ store }: { store: EditorStore }) {
   const table = piezoFromForm(rows);
   const tableErrors = table.ok ? {} : table.errors;
   const rowsPending = piezoDraftPending(rows, points);
+  const pendingNoteId = useId();
+  // Quitar o agregar puntos reemplaza las filas con las del documento: con un borrador sin aplicar se pierde, así que se deshabilita.
+  const rowsReason = rowsPending ? ROWS_PENDING_REASON : undefined;
+  const rowsDescribedBy = rowsPending ? pendingNoteId : undefined;
   useEffect(() => {
     setPendingDraft(store, WATER_PIEZO_DRAFT.key, rowsPending ? WATER_PIEZO_DRAFT.label : null);
     return () => setPendingDraft(store, WATER_PIEZO_DRAFT.key, null);
@@ -153,8 +158,9 @@ export function WaterPanel({ store }: { store: EditorStore }) {
                     <td>
                       <button
                         type="button"
-                        disabled={remaining === null}
-                        title={remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto'}
+                        disabled={remaining === null || rowsPending}
+                        title={rowsReason ?? (remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto')}
+                        aria-describedby={rowsDescribedBy}
                         aria-label={`Quitar el punto ${i + 1} de la piezométrica`}
                         onClick={() => remaining && store.dispatch(piezoSetCommand(remaining))}
                       >
@@ -169,11 +175,18 @@ export function WaterPanel({ store }: { store: EditorStore }) {
           </div>
           <ErrorList errors={tableErrors} />
           <p className="muted small">Mínimo 2 puntos, con x estrictamente creciente.</p>
+          <RowsPendingNote id={pendingNoteId} pending={rowsPending} />
           <div className="ep-actions">
-            <button type="button" onClick={() => store.dispatch(piezoSetCommand(appendPiezoPoint(points, store.getState().doc)))}>
+            <button
+              type="button"
+              disabled={rowsPending}
+              title={rowsReason}
+              aria-describedby={rowsDescribedBy}
+              onClick={() => store.dispatch(piezoSetCommand(appendPiezoPoint(points, store.getState().doc)))}
+            >
               Agregar punto
             </button>
-            <button type="button" onClick={() => store.dispatch(piezoSetCommand(null))}>
+            <button type="button" disabled={rowsPending} title={rowsReason} aria-describedby={rowsDescribedBy} onClick={() => store.dispatch(piezoSetCommand(null))}>
               Quitar piezométrica
             </button>
           </div>

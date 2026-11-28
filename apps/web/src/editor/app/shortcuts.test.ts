@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { isEditableTag, shortcutFor, type KeyLike } from './shortcuts';
+import { isEditableTag, runCheckShortcut, shortcutFor, type KeyLike } from './shortcuts';
 
 const k = (key: string, over: Partial<KeyLike> = {}): KeyLike => ({ key, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...over });
 
@@ -61,5 +62,53 @@ describe('shortcutFor', () => {
     expect(isEditableTag('select')).toBe(true);
     expect(isEditableTag('button')).toBe(false);
     expect(isEditableTag('div', true)).toBe(true);
+  });
+});
+
+describe('CM-WA 1d: Ctrl/Cmd+Intro con el foco en un campo', () => {
+  it('con un campo enfocado, confirma el campo y comprueba después, con el estado ya repintado', () => {
+    const log: string[] = [];
+    let repaint: (() => void) | null = null;
+    runCheckShortcut({
+      commitFocused: () => {
+        log.push('commit');
+        return true;
+      },
+      check: () => log.push('check'),
+      defer: (run) => {
+        log.push('defer');
+        repaint = run;
+      },
+    });
+    expect(log).toEqual(['commit', 'defer']);
+    repaint!();
+    expect(log).toEqual(['commit', 'defer', 'check']);
+  });
+
+  it('sin campo enfocado, comprueba de inmediato (como antes)', () => {
+    const log: string[] = [];
+    runCheckShortcut({ commitFocused: () => false, check: () => log.push('check'), defer: () => log.push('defer') });
+    expect(log).toEqual(['check']);
+  });
+
+  it('por defecto espera un turno (setTimeout)', async () => {
+    const log: string[] = [];
+    runCheckShortcut({ commitFocused: () => true, check: () => log.push('check') });
+    expect(log).toEqual([]);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(log).toEqual(['check']);
+  });
+
+  it('el evento que cancela el campo (defaultPrevented) no dispara el atajo; el campo ya no lo cancela con Ctrl/Cmd', () => {
+    expect(shortcutFor(k('Enter', { ctrlKey: true, inField: true }))).toBe('check');
+    expect(shortcutFor(k('Enter', { metaKey: true, inField: true }))).toBe('check');
+    expect(shortcutFor(k('Enter', { ctrlKey: true, inField: true, defaultPrevented: true }))).toBeNull();
+    expect(shortcutFor(k('Enter', { inField: true }))).toBeNull(); // Intro sin modificadores no es un atajo
+  });
+
+  it('EditorApp enruta `check` por runCheckShortcut, confirmando el campo con foco y leyendo el último onCheck', () => {
+    const src = readFileSync(new URL('../EditorApp.tsx', import.meta.url), 'utf8');
+    expect(src).toMatch(/check: \(\) => runCheckShortcut\(\{ commitFocused: \(\) => commitFocusedField\(document\.activeElement\), check: \(\) => void onCheckRef\.current\(\) \}\),/);
+    expect(src).toMatch(/onCheckRef\.current = onCheck;/);
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useState, useSyncExternalStore } from 'react';
 import type { EditorState, EditorStore } from '../types';
 
 /**
@@ -17,14 +17,24 @@ function sameDeps(a: readonly unknown[], b: readonly unknown[]): boolean {
 }
 
 /**
+ * Época del documento (`EditorState.docEpoch`), que sube con «Nuevo», «Abrir», los ejemplos y la recuperación de un borrador.
+ * `EditorApp` la entrega a los paneles con este contexto y `useDraft` la suma a sus dependencias: así, todo borrador se reinicia
+ * al cambiar de documento aunque su valor sea el mismo (por ejemplo `null` antes y después), sin repetirlo panel por panel.
+ */
+export const DocEpochContext = createContext(0);
+
+/**
  * Borrador de formulario: texto que el usuario está escribiendo. Se reinicia desde el documento cuando cambian
- * `deps` (por ejemplo, tras deshacer) y `reset` lo devuelve al valor del documento (tecla Esc).
+ * `deps` (por ejemplo, tras deshacer) o cuando se carga otro documento (`docEpoch`), y `reset` lo devuelve al valor del
+ * documento (tecla Esc).
  */
 export function useDraft<F>(make: () => F, deps: readonly unknown[]): [F, (next: F) => void, () => void] {
-  const [state, setState] = useState(() => ({ deps, form: make() }));
+  const epoch = useContext(DocEpochContext);
+  const all = [epoch, ...deps];
+  const [state, setState] = useState(() => ({ deps: all, form: make() }));
   let current = state;
-  if (!sameDeps(state.deps, deps)) {
-    current = { deps, form: make() };
+  if (!sameDeps(state.deps, all)) {
+    current = { deps: all, form: make() };
     setState(current);
   }
   const set = (next: F): void => setState({ deps: current.deps, form: next });

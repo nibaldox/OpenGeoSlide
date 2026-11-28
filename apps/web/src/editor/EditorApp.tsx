@@ -68,7 +68,7 @@ import { shortcutDisposition, viewTitle, type ViewId } from './app/shell/views';
 import { readOpenFile, readTextFile } from './app/openFile';
 import { baseFileName, buildReportInput, exportAvailability, hasExportableSurface, hasReinforcementForces, reinforcementForcesCsv, resultCaption, resultsCsv, slicesCsv, surfaceCoordsCsv } from './app/reportInput';
 import { createSingleFlight } from './app/singleFlight';
-import { isEditableTag, shortcutFor, type ShortcutAction } from './app/shortcuts';
+import { isEditableTag, runCheckShortcut, shortcutFor, type ShortcutAction } from './app/shortcuts';
 import { OPEN_ELSEWHERE_TEXT } from './app/draftTabs';
 import { SAME_DRAFT_TEXT, clearOwnDraft, discardOfferedDraft, offeredDraftEntry, resolveTabDraftStorage, shouldWarnBeforeUnload, useDraftAutosave, useDraftOpenElsewhere, useSameDraftWarning, useUnloadGuard } from './app/useDraftAutosave';
 import { useEngineCheck } from './app/useEngineCheck';
@@ -86,6 +86,7 @@ import {
   SurfacePanel,
   WaterPanel,
 } from './panels';
+import { DocEpochContext } from './panels/useStoreSelector';
 import { createEditorStore, useEditorStore, useLocalIssues, type EditorStoreWithSave } from './state';
 import type { EditorStore, ModelDoc } from './types';
 
@@ -625,6 +626,8 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
 
   // ───────── Atajos globales ─────────
 
+  const onCheckRef = useRef(onCheck);
+  onCheckRef.current = onCheck;
   const actions = useRef<Record<ShortcutAction, () => void>>({} as Record<ShortcutAction, () => void>);
   actions.current = {
     undo: () => store.undo(),
@@ -635,7 +638,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
       onSave();
     },
     open: () => openRef.current?.click(),
-    check: () => void onCheck(),
+    // Ctrl+Intro con el foco en un campo: se confirma el campo y se comprueba con el estado ya repintado (`runCheckShortcut`).
+    // `onCheckRef` apunta al `onCheck` del último render, porque la confirmación del campo cambia los borradores pendientes.
+    check: () => runCheckShortcut({ commitFocused: () => commitFocusedField(document.activeElement), check: () => void onCheckRef.current() }),
     'tool:select': () => void switchTool('select'),
     'tool:add_vertex': () => void switchTool('add_vertex'),
     'tool:draw_region': () => void switchTool('draw_region'),
@@ -857,7 +862,9 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           </button>
         </div>
         <StepList order={STEP_ORDER} states={steps} active={tab} onSelect={selectStep}>
-          <ActivePanel store={store} />
+          <DocEpochContext.Provider value={docEpoch}>
+            <ActivePanel store={store} />
+          </DocEpochContext.Provider>
         </StepList>
       </aside>
       <ActionFoot

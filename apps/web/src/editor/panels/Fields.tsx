@@ -1,5 +1,5 @@
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { FieldErrors } from './forms';
+import { ROWS_PENDING_NOTE, type FieldErrors } from './forms';
 import { describedByIds, errorRole, nextFieldAnnounce, type FieldAnnounce } from './fieldA11y';
 import './panels.css';
 
@@ -11,6 +11,15 @@ export function PanelSection({ title, children, className }: { title: string; ch
       {children}
     </section>
   );
+}
+
+/** Aviso de una tabla con filas sin aplicar (los botones que reemplazan las filas quedan deshabilitados y lo enlazan con `aria-describedby`). */
+export function RowsPendingNote({ id, pending }: { id: string; pending: boolean }) {
+  return pending ? (
+    <p id={id} className="muted small ep-rows-pending" data-testid="rows-pending-note">
+      {ROWS_PENDING_NOTE}
+    </p>
+  ) : null;
 }
 
 export interface TextInputProps {
@@ -39,6 +48,8 @@ export interface TextInputProps {
 export function TextInput(props: TextInputProps) {
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter') {
+      // Ctrl/Cmd+Intro es el atajo «Comprobar»: no se cancela aquí. El atajo global confirma este campo (lo saca de foco) y calcula.
+      if (e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       props.onCommit?.();
     } else if (e.key === 'Escape') {

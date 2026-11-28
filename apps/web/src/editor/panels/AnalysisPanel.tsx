@@ -3,7 +3,7 @@ import type { Direction, IntersliceFunction, MethodKind, Point } from '../../eng
 import type { EditorStore } from '../types';
 import { crackEditCommands } from './crackWater';
 import { applyCommands } from './dispatch';
-import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
+import { ErrorList, LabeledField, PanelSection, RowsPendingNote, TextInput } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
   CRACK_DEFAULT_FIXED_DEPTH,
@@ -28,6 +28,7 @@ import {
   intersliceFunctionOf,
   methodDisabledReason,
   removeDataPoint,
+  ROWS_PENDING_REASON,
   setPendingDraft,
   toggleMethod,
   unitLabels,
@@ -54,6 +55,10 @@ function IntersliceSection({ store }: { store: EditorStore }) {
   const table = dataPointsFromForm(rows);
   const tableErrors = table.ok ? {} : table.errors;
   const rowsPending = fn === 'data_points' && !table.ok && JSON.stringify(rows) !== JSON.stringify(dataPointsToForm(points));
+  const pendingNoteId = useId();
+  // Agregar o quitar puntos reemplaza las filas con las del documento: con un borrador sin aplicar se pierde, así que se deshabilita.
+  const rowsReason = rowsPending ? ROWS_PENDING_REASON : undefined;
+  const rowsDescribedBy = rowsPending ? pendingNoteId : undefined;
   useEffect(() => {
     setPendingDraft(store, 'analysis:interslice', rowsPending ? 'Función entre dovelas' : null);
     return () => setPendingDraft(store, 'analysis:interslice', null);
@@ -117,14 +122,16 @@ function IntersliceSection({ store }: { store: EditorStore }) {
                       <td>
                         <button
                           type="button"
-                          disabled={!canInsertDataPoint(points, i)}
+                          disabled={rowsPending || !canInsertDataPoint(points, i)}
                           title={
-                            i >= points.length - 1
+                            rowsReason ??
+                            (i >= points.length - 1
                               ? 'Agregue el punto antes del último'
                               : canInsertDataPoint(points, i)
                                 ? 'Agregar un punto a medio camino del siguiente'
-                                : 'No cabe un punto entre estos dos: ξ debe seguir creciendo'
+                                : 'No cabe un punto entre estos dos: ξ debe seguir creciendo')
                           }
+                          aria-describedby={rowsDescribedBy}
                           aria-label={`Agregar un punto después del punto ${i + 1} de la función entre dovelas`}
                           onClick={() => store.dispatch(dataPointsCommand(insertDataPoint(points, i)))}
                         >
@@ -132,8 +139,9 @@ function IntersliceSection({ store }: { store: EditorStore }) {
                         </button>{' '}
                         <button
                           type="button"
-                          disabled={remaining === null}
-                          title={remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto'}
+                          disabled={remaining === null || rowsPending}
+                          title={rowsReason ?? (remaining === null ? 'Mínimo 2 puntos' : 'Quitar punto')}
+                          aria-describedby={rowsDescribedBy}
                           aria-label={`Quitar el punto ${i + 1} de la función entre dovelas`}
                           onClick={() => remaining && store.dispatch(dataPointsCommand(remaining))}
                         >
@@ -147,6 +155,7 @@ function IntersliceSection({ store }: { store: EditorStore }) {
             </table>
           </div>
           <ErrorList errors={tableErrors} />
+          <RowsPendingNote id={pendingNoteId} pending={rowsPending} />
           <p className="muted small">Al menos 2 puntos: ξ estrictamente creciente de 0 a 1, f igual o mayor que 0 y algún f mayor que 0. La función es lineal entre puntos.</p>
         </>
       ) : null}

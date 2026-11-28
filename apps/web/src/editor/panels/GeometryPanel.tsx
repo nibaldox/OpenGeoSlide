@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import type { Point } from '../../engine/types';
 import { useConfirm } from '../../ui/ConfirmDialog';
 import { materialColor } from '../../render/scene';
 import type { EditorStore, Issue } from '../types';
 import { createToolSwitch } from '../app/discard';
 import { applyCommands } from './dispatch';
-import { PanelSection, TextInput } from './Fields';
-import { regionMaterialCommand, setPendingDraft, unitLabels } from './forms';
+import { PanelSection, RowsPendingNote, TextInput } from './Fields';
+import { ROWS_PENDING_REASON, getPendingDrafts, hasPendingDraftWithPrefix, regionMaterialCommand, setPendingDraft, subscribePendingDrafts, unitLabels } from './forms';
 import {
   GRID_CHOICES,
   coordText,
@@ -36,16 +36,27 @@ export function vertexDraftPending(form: { x: string; y: string }, point: Point,
 
 const FIELD_PATH = (regionIndex: number, vertexIndex: number, axis: 'x' | 'y'): string => `/regions/${regionIndex}/polygon/${vertexIndex}/${axis}`;
 
-function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, onFocusRow }: {
+function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, tablePending, pendingNoteId, onFocusRow }: {
   store: EditorStore;
   regionIndex: number;
   vertexIndex: number;
   point: Point;
   count: number;
   selected: boolean;
+  /** Alguna fila de la tabla tiene un borrador sin aplicar: agregar o quitar vértices desplazaría las filas y lo perdería. */
+  tablePending: boolean;
+  pendingNoteId: string;
   onFocusRow: () => void;
 }) {
-  const [form, setForm, reset] = useDraft(() => ({ x: coordText(point[0]), y: coordText(point[1]) }), [point[0], point[1]]);
+  // Un borrador por eje: confirmar x cambia `point[0]` y no debe rehacer el texto de y (ni al revés).
+  const [xText, setXText, resetX] = useDraft(() => coordText(point[0]), [point[0]]);
+  const [yText, setYText, resetY] = useDraft(() => coordText(point[1]), [point[1]]);
+  const form = { x: xText, y: yText };
+  const setAxis = { x: setXText, y: setYText };
+  const reset = (): void => {
+    resetX();
+    resetY();
+  };
   const [committed, setCommitted] = useState(false);
   const doc = () => store.getState().doc;
   const errorOf = (axis: 'x' | 'y'): string | null => {
@@ -92,7 +103,7 @@ function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, on
               describedBy={error ? errId : undefined}
               onChange={(v) => {
                 setCommitted(false);
-                setForm({ ...form, [axis]: v });
+                setAxis[axis](v);
               }}
               onCommit={() => commit(axis)}
               onReset={reset}
@@ -104,7 +115,9 @@ function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, on
           <button
             type="button"
             aria-label={`Agregar después del vértice ${n} de la región ${regionIndex + 1}`}
-            title="Agrega un vértice en el punto medio de la arista siguiente"
+            disabled={tablePending}
+            title={tablePending ? ROWS_PENDING_REASON : 'Agrega un vértice en el punto medio de la arista siguiente'}
+            aria-describedby={tablePending ? pendingNoteId : undefined}
             onClick={() => {
               const cmd = vertexInsertCommand(doc(), regionIndex, vertexIndex);
               if (!cmd) return;
@@ -117,9 +130,10 @@ function VertexRow({ store, regionIndex, vertexIndex, point, count, selected, on
           </button>
           <button
             type="button"
-            disabled={removeCmd === null}
+            disabled={removeCmd === null || tablePending}
             aria-label={`Eliminar el vértice ${n} de la región ${regionIndex + 1}`}
-            title={removeCmd === null ? 'Una región necesita al menos 3 vértices' : 'Eliminar vértice'}
+            aria-describedby={tablePending ? pendingNoteId : undefined}
+            title={tablePending ? ROWS_PENDING_REASON : removeCmd === null ? 'Una región necesita al menos 3 vértices' : 'Eliminar vértice'}
             onClick={() => {
               if (!removeCmd) return;
               const target = nextVertexIndex(count, vertexIndex);
@@ -255,6 +269,14 @@ function VertexTable({ store, regionIndex, units }: { store: EditorStore; region
   const count = polygon?.length ?? 0;
   const [page, setPage] = useState(0);
   const selectedVertex = selection.kind === 'vertex' && selection.regionIndex === regionIndex ? selection.vertexIndex : null;
+  // Cada fila registra su borrador como `geometry:<región>:<vértice>`; la tabla se vuelve a pintar cuando el registro cambia.
+  useSyncExternalStore(
+    (listener) => subscribePendingDrafts(store, listener),
+    () => getPendingDrafts(store),
+    () => getPendingDrafts(store),
+  );
+  const tablePending = hasPendingDraftWithPrefix(store, `geometry:${regionIndex}:`);
+  const pendingNoteId = useId();
 
   // Un vértice elegido en el lienzo lleva a su página. No se desplaza la página del navegador hasta la fila: en móvil el panel
   // queda debajo del lienzo y arrastrar un tirador no debe mover la vista.
@@ -297,6 +319,8 @@ function VertexTable({ store, regionIndex, units }: { store: EditorStore; region
                   point={p}
                   count={count}
                   selected={selectedVertex === vi}
+                  tablePending={tablePending}
+                  pendingNoteId={pendingNoteId}
                   onFocusRow={() => store.dispatch({ type: 'ui/select', selection: { kind: 'vertex', regionIndex, vertexIndex: vi } })}
                 />
               );
@@ -304,6 +328,7 @@ function VertexTable({ store, regionIndex, units }: { store: EditorStore; region
           </tbody>
         </table>
       </div>
+      <RowsPendingNote id={pendingNoteId} pending={tablePending} />
       {range.pages > 1 ? (
         <nav className="gp-pager" aria-label="Páginas de la tabla de vértices">
           <button type="button" onClick={() => setPage(range.page - 1)} disabled={range.page === 0}>

@@ -709,6 +709,20 @@ export function hasPendingDrafts(store: object): boolean {
   return getPendingDrafts(store).length > 0;
 }
 
+/** `true` si hay un borrador sin aplicar cuya clave empieza por `prefix` (por ejemplo, las filas de una misma tabla). */
+export function hasPendingDraftWithPrefix(store: object, prefix: string): boolean {
+  const ch = pendingDraftChannels.get(store);
+  if (!ch) return false;
+  for (const key of ch.entries.keys()) if (key.startsWith(prefix)) return true;
+  return false;
+}
+
+/** Motivo (título del botón) por el que no se pueden agregar ni quitar filas de una tabla de puntos con un borrador pendiente. */
+export const ROWS_PENDING_REASON = 'Hay filas con cambios sin aplicar: corríjalas o pulse Esc para descartarlas';
+/** Aviso visible de la tabla; los botones deshabilitados lo enlazan con `aria-describedby`. */
+export const ROWS_PENDING_NOTE =
+  'Hay filas con cambios sin aplicar. Corrija los valores o pulse Esc para descartarlos: mientras tanto no se pueden agregar ni quitar puntos.';
+
 /** Suscripción a cambios en los borradores pendientes del store. */
 export function subscribePendingDrafts(store: object, listener: () => void): () => void {
   const ch = draftChannel(store);

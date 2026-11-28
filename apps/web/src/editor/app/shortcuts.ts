@@ -43,3 +43,24 @@ export function shortcutFor(e: KeyLike): ShortcutAction | null {
   if (key === 'h') return 'tool:pan';
   return null;
 }
+
+/**
+ * Ctrl/Cmd+Intro con el foco en un campo de texto: primero se confirma el campo (se saca el foco, como en `save`) y después se
+ * comprueba. La confirmación y los registros de borradores se actualizan al repintar, así que, si había un campo enfocado, la
+ * comprobación espera un turno: `check` lee entonces el estado ya actualizado (un valor inválido se rechaza con el aviso de los
+ * borradores pendientes, no con un texto nuevo). Sin campo enfocado, comprueba de inmediato.
+ */
+export function runCheckShortcut(deps: {
+  /** Saca el foco del campo enfocado (confirma su valor); `true` si había un campo. */
+  commitFocused: () => boolean;
+  check: () => void;
+  /** Cómo esperar un turno; por defecto `setTimeout(0)`. */
+  defer?: (run: () => void) => void;
+}): void {
+  const hadField = deps.commitFocused();
+  if (!hadField) {
+    deps.check();
+    return;
+  }
+  (deps.defer ?? ((run) => void setTimeout(run, 0)))(deps.check);
+}
