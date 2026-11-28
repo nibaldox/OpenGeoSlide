@@ -214,7 +214,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
             Cuesta hasta unas {formatCount(GLOBAL_BUDGET_APPROX)} evaluaciones más por método.
           </p>
           {form.global ? (
-            <div className="ep-grid">
+            <>
               <label className="field ep-field">
                 <span>Algoritmo</span>
                 <select
@@ -236,26 +236,28 @@ export function SearchPanel({ store }: { store: EditorStore }) {
                   ))}
                 </select>
               </label>
-              <LabeledField
-                label="Candidatos"
-                path="/analysis/search/non_circular/global/generated"
-                value={form.global_generated ?? ''}
-                hint={`Entero de ${GLOBAL_GENERATED_MIN} a ${formatCount(GLOBAL_GENERATED_MAX)}; vacío = ${GLOBAL_DEFAULTS.generated}`}
-                error={err('global_generated')}
-                onChange={(v) => setForm({ ...form, global_generated: v })}
-                onCommit={commit}
-                onReset={reset}
-              />
-              <LabeledField
-                label="Semilla"
-                path="/analysis/search/non_circular/global/seed"
-                value={form.global_seed ?? ''}
-                hint={`Entero de 0 a 2^53 − 1; vacío = ${GLOBAL_DEFAULTS.seed}`}
-                error={err('global_seed')}
-                onChange={(v) => setForm({ ...form, global_seed: v })}
-                onCommit={commit}
-                onReset={reset}
-              />
+              <div className="ep-grid">
+                <LabeledField
+                  label="Candidatos"
+                  path="/analysis/search/non_circular/global/generated"
+                  value={form.global_generated ?? ''}
+                  hint={`Entero de ${GLOBAL_GENERATED_MIN} a ${formatCount(GLOBAL_GENERATED_MAX)}; vacío = ${GLOBAL_DEFAULTS.generated}`}
+                  error={err('global_generated')}
+                  onChange={(v) => setForm({ ...form, global_generated: v })}
+                  onCommit={commit}
+                  onReset={reset}
+                />
+                <LabeledField
+                  label="Semilla"
+                  path="/analysis/search/non_circular/global/seed"
+                  value={form.global_seed ?? ''}
+                  hint={`Entero de 0 a 2^53 − 1; vacío = ${GLOBAL_DEFAULTS.seed}`}
+                  error={err('global_seed')}
+                  onChange={(v) => setForm({ ...form, global_seed: v })}
+                  onCommit={commit}
+                  onReset={reset}
+                />
+              </div>
               <label className="checkbox">
                 <input
                   type="checkbox"
@@ -271,7 +273,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
                 />
                 Pulido
               </label>
-            </div>
+            </>
           ) : null}
         </fieldset>
       ) : null}
