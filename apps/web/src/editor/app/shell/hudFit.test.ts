@@ -4,7 +4,7 @@ import { worldToScreen, type Viewport } from '../../../geometry/viewport';
 import { labelCovered } from '../../canvas/EditorCanvas';
 import { makeDoc } from '../../canvas/fakeStore';
 import { docBounds, fitToDocInsets, insetsFeasible, paddedBounds } from '../../canvas/viewportOps';
-import { boxOf, chooseHudFit, COMPACT_CARD_HEIGHT_PX, hudCandidates, HUD_GAP_PX, insetsEqual, isLastAutoFit, needsCompactHud, pickDocFor, sameViewport, type Box, type PickKey } from './hudFit';
+import { boxOf, chooseHudFit, COMPACT_CARD_HEIGHT_PX, hudCandidates, HUD_GAP_PX, insetsEqual, isLastAutoFit, modelBoundsKey, needsCompactHud, pickDocFor, sameViewport, type Box, type PickKey } from './hudFit';
 import { FIT_INSETS_DESKTOP } from './layout';
 
 const BASE = FIT_INSETS_DESKTOP;
@@ -186,5 +186,36 @@ describe('needsCompactHud (UA-E3 §3, A-07)', () => {
   it('1440 × 900 y 1280 × 800 con el HUD completo: no hace falta', () => {
     expect(needsCompactHud({ width: 1052, height: 576, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 480, right: 330, bottom: 561 } })).toBe(false);
     expect(needsCompactHud({ width: 892, height: 476, base: BASE, hud: hudAt(330, 254), legend: { left: 16, top: 400, right: 300, bottom: 461 } })).toBe(false);
+  });
+});
+
+/* ───────── CM-WB: la caja del modelo que decide el reencuadre (X34 §3) ───────── */
+
+describe('modelBoundsKey', () => {
+  /** La cresta: el vértice más alto de todo el modelo. */
+  let ri = 0;
+  let vi = 0;
+  let top = -Infinity;
+  doc.regions.forEach((r, i) => r.polygon.forEach((p, j) => { if (p[1] > top) { top = p[1]; ri = i; vi = j; } }));
+  const moveVertex = (regionIdx: number, vertexIdx: number, dx: number, dy: number) => ({
+    ...doc,
+    regions: doc.regions.map((r, i) => (i === regionIdx ? { ...r, polygon: r.polygon.map((p, j) => (j === vertexIdx ? ([p[0] + dx, p[1] + dy] as [number, number]) : p)) } : r)),
+  });
+  it('es la caja de regiones y piezométrica (la misma de `docBounds`): sin regiones, vacía', () => {
+    const b = docBounds(doc);
+    expect(modelBoundsKey(doc)).toBe(`${b.minX}|${b.maxX}|${b.minY}|${b.maxY}`);
+    expect(modelBoundsKey({ ...doc, regions: [] })).toBe('');
+  });
+  it('cambia al subir la cresta 20 m y 30 m (un extremo de la caja)', () => {
+    expect(modelBoundsKey(moveVertex(ri, vi, 0, 20))).not.toBe(modelBoundsKey(doc));
+    expect(modelBoundsKey(moveVertex(ri, vi, 0, 30))).not.toBe(modelBoundsKey(moveVertex(ri, vi, 0, 20)));
+    expect(modelBoundsKey(moveVertex(ri, vi, 0, 0))).toBe(modelBoundsKey(doc));
+  });
+  it('no cambia al mover un vértice sin salir de la caja', () => {
+    const b = docBounds(doc);
+    const inner = doc.regions[0]!.polygon.findIndex((p) => p[0] > b.minX && p[0] < b.maxX && p[1] > b.minY && p[1] < b.maxY);
+    // El modelo de prueba puede no tener vértices interiores: entonces se baja la cresta sin pasar del segundo punto más alto.
+    if (inner >= 0) expect(modelBoundsKey(moveVertex(0, inner, 0.1, 0.1))).toBe(modelBoundsKey(doc));
+    else expect(inner).toBe(-1);
   });
 });

@@ -52,7 +52,8 @@ export function useEngineCheck(store: EditorStore, client: EngineClient): Engine
   const localHasErrors = hasErrors(localIssues);
   useEffect(() => {
     controller.syncLocal(localHasErrors);
-  }, [controller, localHasErrors]);
+    // CM-WC: con los errores aún presentes, el aviso sigue al primer error vigente (`localIssues` cambia con cada edición).
+  }, [controller, localHasErrors, localIssues]);
 
   // R15B-01: nunca calcular sobre el material o refuerzo anterior mientras una tarjeta muestra un borrador sin aplicar.
   const check = useCallback(async (): Promise<EngineRun | null> => {

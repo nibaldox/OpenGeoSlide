@@ -1,6 +1,6 @@
 // U3-I: integración de U3-M y U3-O en Chrome (puerto 5186). Pestaña «Proyecto» registrada, confirmaciones propias (useConfirm) en lugar de
 // window.confirm (Nuevo, Talud simple, Ejemplos, Recuperar borrador, Eliminar región), atajo R en la ayuda, comando units/set y guía de
-// primera visita con «Dibujar región» y «Geometría». Uso: OGS_URL=http://127.0.0.1:5186/ node u3i_integracion.mjs
+// primera visita (Comprobar, «Geometría» y «Dibujar región»). Uso: OGS_URL=http://127.0.0.1:5186/ node u3i_integracion.mjs
 import { chromium } from 'playwright-core';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -222,7 +222,11 @@ await p2.getByRole('button', { name: 'Siguiente' }).click();
 await p2.waitForTimeout(300);
 const t2txt = await p2.locator('[data-testid="guided-tour"]').innerText();
 await p2.screenshot({ path: path.join(SHOTS, 'u3i-guia-paso2.png') });
-step('9 la guía menciona «Dibujar región» (R) en el paso 1 y Geometría y Proyecto en el paso 2', /Dibujar región/.test(t1) && /tecla R/.test(t1) && /geometría/i.test(t2txt) && /proyecto/i.test(t2txt), { paso1: t1.slice(0, 260), paso2: t2txt.slice(0, 300) });
+// CM-WC: la guía nueva parte del ejemplo abierto y señala «Comprobar» (paso 1); «Dibujar región» pasó al paso 3 (abrir otro ejemplo o empezar un modelo).
+await p2.getByRole('button', { name: 'Siguiente' }).click();
+await p2.waitForTimeout(300);
+const t3txt = await p2.locator('[data-testid="guided-tour"]').innerText();
+step('9 la guía parte de «Comprobar» (paso 1), menciona Geometría y Proyecto en el paso 2 y «Dibujar región» (R) en el paso 3', /Comprobar/.test(t1) && /geometría/i.test(t2txt) && /proyecto/i.test(t2txt) && /Dibujar región/.test(t3txt) && /tecla R/.test(t3txt), { paso1: t1.slice(0, 160), paso2: t2txt.slice(0, 200), paso3: t3txt.slice(0, 300) });
 await ctx2.close();
 
 step('Ningún diálogo nativo (window.confirm/alert/prompt)', nativeDialogs.length === 0, { nativeDialogs });

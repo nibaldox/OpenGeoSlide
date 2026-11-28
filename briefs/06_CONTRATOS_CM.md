@@ -226,3 +226,42 @@ taludes homogéneos del barrido, F7.3.1 encuentra «bases» y, con la regla lite
 `evaluated > 0` en al menos 23 de 24. Donde sea 0, porque no hay un círculo semilla elegible para el recocido, sale la
 nota `non_circular_global_no_candidates` y se nombra el talud. X37 §4.7 encontró un solo caso así,
 TAL-H30-b60-f20-c5.
+
+### E17b: la búsqueda global no puede depender de la suerte de la semilla (coordinador, 2026-11-28)
+
+**Problema.** CM-M midió que, con `global: {}` (semilla 0), V053 da 1,0847: no pasa A2. El 1,0395 de X37 salía con la
+semilla 37 del prototipo. El coordinador barrió semillas con el port de Rust (`cm-m` en `4e9baab`, V053, Spencer;
+`$TMPDIR/cm-coord/seeds/`):
+
+| `generated` | Semillas que pasan la banda (≤ 1,04535) | Mínimo | Mediana | Semillas sin mejora (1,0847) |
+|---|---:|---:|---:|---:|
+| 500 | 10 de 48 | 1,0137 | 1,0674 | 18 de 48 |
+| 2000 | 7 de 16 | 1,0200 | 1,0466 | 2 de 16 |
+
+El generador encuentra la cuenca del bloque (el mínimo de 1,0137 está a +0,8 % de cSlope, 1,0061), pero rara vez la
+conserva. El orden de los candidatos crudos predice mal el FS refinado, y tres semillas de refinamiento no alcanzan.
+**Elegir la semilla 37 como valor por defecto queda descartado**: sería ajustar el resultado a un solo caso.
+
+**Cambio en F7.3, pasos 3 y 4.** La selección y el refinamiento pasan a ser **por descarte sucesivo**, con un presupuesto
+total que respete A7:
+1. Se toman los K₀ mejores elegibles, con la regla del 5 % de entrada y salida distintas.
+2. Cada uno recibe un refinamiento corto.
+3. Se conserva la mejor fracción, que recibe más presupuesto.
+4. Se repite hasta que quedan 1 a 3 candidatos con el refinamiento completo de F6.10 (niveles hasta 33 y 1500
+   evaluaciones).
+
+CM-M fija K₀, las fracciones y los presupuestos por etapa midiendo. Puede además:
+- muestrear la geometría del bloque con una secuencia de baja discrepancia (Halton, con la semilla como desplazamiento
+  del índice), en vez de SplitMix64;
+- subir el `generated` por defecto dentro del rango [50, 2000].
+
+Lo que elija va en este archivo, con sus cifras, como E17c.
+
+**Nueva compuerta A2b (robustez):**
+- con los valores por defecto, V053 pasa la banda con la semilla 0 **y** con al menos 44 de las semillas 0 a 47;
+- se informa la distribución de V053 y de S2 en las 48 semillas: mínimo, mediana, máximo y cuántas pasan;
+- A7 (costo ≤ 4 veces el circular) sigue mandando. Si no hay ninguna variante que cumpla A2b y A7 a la vez, CM-M
+  informa la frontera medida (robustez contra costo) y el coordinador decide.
+
+Todas las demás compuertas (A3 a A9) se miden con la variante final y la semilla 0. A9, la paridad con el prototipo, se
+aplica al generador antes del descarte; la parte nueva no tiene prototipo y no se le exige.

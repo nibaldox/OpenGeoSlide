@@ -81,6 +81,7 @@ import {
 import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
 import { isTraceTool, traceOnDocChange, traceOnToolChange } from './trace';
 import { isLastAutoFit } from '../app/shell/hudFit';
+import { useModelRefit } from '../app/shell/useModelRefit';
 import { coordinateReadout, edgeScrollDelta, fitToDoc, fitToDocInsets, isMajorGridLine, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
 import { IconFit, IconZoomIn, IconZoomOut } from '../../ui/icons';
 import './canvas.css';
@@ -407,6 +408,21 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (vp && fitInsetsRef.current && isLastAutoFit(vp, lastAutoFit.current)) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, vp.width, vp.height) });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambian los valores de los márgenes
   }, [insetsKey]);
+
+  // CM-WB: una edición confirmada que cambia la caja del modelo (vértices, regiones, importaciones) reencuadra con la misma regla: solo si la
+  // vista sigue en el último encuadre automático y no durante un arrastre (al soltar, sí). Si no, un modelo que crece queda bajo el HUD.
+  useModelRefit(store, {
+    isAuto: () => {
+      const vp = store.getState().ui.viewport;
+      return vp !== null && fitInsetsRef.current !== undefined && isLastAutoFit(vp, lastAutoFit.current);
+    },
+    refit: () => {
+      const s = store.getState();
+      const vp = s.ui.viewport;
+      if (vp) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, vp.width, vp.height) });
+    },
+    isBusy: () => gestureRef.current.mode === 'drag',
+  });
 
   // B-10c: si la paleta no cabe en el lienzo, primero se compacta (botones de 36, sin rótulos) y, si aun así no cabe, hace scroll con la barra visible.
   // Al cambiar el alto del lienzo (o el contenido de la paleta) se vuelve a `full` y se mide de nuevo, todo antes de pintar.

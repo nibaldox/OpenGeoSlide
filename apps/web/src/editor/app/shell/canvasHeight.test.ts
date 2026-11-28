@@ -7,6 +7,7 @@ import {
   MAX_STREAK,
   attachCanvasHeight,
   canvasHeightDeficit,
+  canvasHeightPush,
   canvasHeightPx,
   canvasHeightRaw,
   readCanvasMetrics,
@@ -277,5 +278,92 @@ describe('attachCanvasHeight', () => {
     expect(d.mqListeners.size).toBe(0);
     d.fire();
     expect(d.props.has(CANVAS_HEIGHT_VAR)).toBe(false);
+  });
+});
+
+/* ───────── CM-WB: cifras reales de 320 × 568 y la paleta entera bajo el pie cuando no cabe ───────── */
+
+describe('canvasHeightPx a 320 × 568 (medido en Chrome, X34 §2 y barrido de CM-WB)', () => {
+  // v0.5.1: la cabecera de la app medía 185 px y la del lienzo 108: svgTop = 185 + 108 + 12 + 1 = 306 y la paleta, 99 + 10 de margen.
+  const v051 = { viewportH: 568, footH: 57, svgTop: 306, paletteH: 109, paletteTopMargin: 10 };
+  // Con la cabecera compacta (≤ 360 px): 87 + 92 + 8 + 1 = 188 sin avisos; la paleta, 99 + 6 de margen.
+  const compact = { viewportH: 568, footH: 57, svgTop: 188, paletteH: 105, paletteTopMargin: 6 };
+
+  it('antes: alto disponible 88 (déficit 112, el mínimo gana); la paleta empieza en 516, bajo el borde del pie (511)', () => {
+    expect(canvasHeightRaw(v051)).toBe(88);
+    expect(canvasHeightDeficit(v051)).toBe(112);
+    expect(canvasHeightPx(v051)).toBe(CANVAS_MIN_PX);
+    expect(v051.svgTop + canvasHeightPx(v051) + v051.paletteTopMargin).toBeGreaterThanOrEqual(568 - 57);
+  });
+  it('después: la cabecera compacta deja 210 px sin avisos y la paleta termina encima del pie', () => {
+    expect(canvasHeightRaw(compact)).toBe(210);
+    expect(canvasHeightDeficit(compact)).toBe(0);
+    expect(canvasHeightPx(compact)).toBe(210);
+    expect(compact.svgTop + 210 + compact.paletteH + CANVAS_MARGIN_PX).toBe(568 - 57);
+  });
+  it('con un aviso de una línea (48 px) no cabe: la paleta se baja entera bajo el pie, con el lienzo en 263', () => {
+    const withNotice = { ...compact, svgTop: 242 };
+    expect(canvasHeightRaw(withNotice)).toBe(156);
+    expect(canvasHeightPx(withNotice)).toBe(263);
+    expect(canvasHeightPush(withNotice)).toBe(263);
+    // La paleta empieza en 242 + 263 + 6 = 511 = borde superior del pie.
+    expect(withNotice.svgTop + 263 + withNotice.paletteTopMargin).toBe(568 - 57);
+  });
+  it('«calcular y editar» (pie de 129 px) tampoco cabe: lienzo en 245 y la paleta empieza en el borde del pie', () => {
+    const edit = { ...compact, footH: 129 };
+    expect(canvasHeightRaw(edit)).toBe(138);
+    expect(canvasHeightPx(edit)).toBe(245);
+    expect(edit.svgTop + 245 + edit.paletteTopMargin).toBe(568 - 129);
+  });
+});
+
+describe('canvasHeightPx: la paleta nunca cruza el borde del pie', () => {
+  it('con hasta MARGEN px de déficit se queda en MIN y la paleta aún termina encima del pie', () => {
+    const i = { viewportH: 600, footH: 57, svgTop: 600 - 57 - CANVAS_MARGIN_PX - 100 - (CANVAS_MIN_PX - CANVAS_MARGIN_PX), paletteH: 100, paletteTopMargin: 6 };
+    expect(canvasHeightRaw(i)).toBe(CANVAS_MIN_PX - CANVAS_MARGIN_PX);
+    expect(canvasHeightPx(i)).toBe(CANVAS_MIN_PX);
+    expect(i.svgTop + CANVAS_MIN_PX + i.paletteH).toBeLessThanOrEqual(600 - 57);
+  });
+  it('un píxel más de déficit y la paleta pasa entera bajo el pie', () => {
+    const i = { viewportH: 600, footH: 57, svgTop: 600 - 57 - CANVAS_MARGIN_PX - 100 - (CANVAS_MIN_PX - CANVAS_MARGIN_PX) + 1, paletteH: 100, paletteTopMargin: 6 };
+    expect(canvasHeightPx(i)).toBeGreaterThan(CANVAS_MIN_PX);
+    expect(i.svgTop + canvasHeightPx(i) + i.paletteTopMargin).toBeGreaterThanOrEqual(600 - 57);
+  });
+  it('barrido: para todo viewport, pie, top del SVG y paleta, el borde del pie no cae dentro de la paleta', () => {
+    let cases = 0;
+    for (const viewportH of [568, 640, 664, 740, 844, 915, 1024]) {
+      for (const footH of [57, 77, 113, 129, 137]) {
+        for (let svgTop = 100; svgTop <= 700; svgTop += 7) {
+          for (const [paletteH, paletteTopMargin] of [[105, 6], [109, 10], [60, 10], [160, 10]] as const) {
+            const i = { viewportH, footH, svgTop, paletteH, paletteTopMargin };
+            const h = canvasHeightPx(i);
+            expect(h).toBeGreaterThanOrEqual(CANVAS_MIN_PX);
+            const footTop = viewportH - footH;
+            const palTop = svgTop + h + paletteTopMargin;
+            const palBottom = svgTop + h + paletteH;
+            expect(palTop < footTop && palBottom > footTop, `vh=${viewportH} foot=${footH} top=${svgTop} pal=${paletteH}: ${palTop}-${palBottom} / pie ${footTop}`).toBe(false);
+            cases += 1;
+          }
+        }
+      }
+    }
+    expect(cases).toBeGreaterThan(5000);
+  });
+  it('sin margen superior de la paleta medido (0) el empuje usa el borde del SVG', () => {
+    expect(canvasHeightPush({ viewportH: 568, footH: 57, svgTop: 242, paletteH: 105 })).toBe(269);
+  });
+});
+
+describe('attachCanvasHeight: la paleta entera bajo el pie cuando el alto disponible cae bajo MIN', () => {
+  it('escribe el alto de empuje (> MIN) y no el mínimo', () => {
+    const w = world({ innerHeight: 568, header: 87, notices: 48, head: 92, paletteH: 99, paletteMargin: 6, foot: 57 });
+    const d = makeDom(w);
+    attachCanvasHeight(d.card as never, d.win as never);
+    const svgTop = w.header + w.notices + w.head + 13;
+    expect(expected(w)).toBeLessThan(CANVAS_MIN_PX - CANVAS_MARGIN_PX);
+    expect(d.props.get(CANVAS_HEIGHT_VAR)).toBe(`${568 - 57 - svgTop - 6}px`);
+    // Una segunda medida con el mismo mundo no escribe nada: el alto del SVG no mueve ninguno de los bloques medidos.
+    d.fire();
+    expect(d.applied).toHaveLength(1);
   });
 });

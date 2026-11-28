@@ -32,7 +32,7 @@ export function NoticeList({ notices, onDismiss, onDismissAll, onPausedChange }:
       <ul className="ea-notices" aria-label="Mensajes" data-testid="notices">
         {shown.map((n) => (
           <li key={n.id} className={`ea-notice ea-notice-${n.kind}`}>
-            <span id={`${baseId}-${n.id}`}>
+            <span id={`${baseId}-${n.id}`} title={n.text}>
               {n.text}
               {(n.count ?? 1) > 1 ? (
                 <span className="ea-notice-count" data-testid="notice-count">
