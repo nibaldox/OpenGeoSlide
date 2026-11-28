@@ -1542,6 +1542,24 @@ def test_unknown_version_lists_all_seven_versions():
             _mapped(m)
 
 
+def test_version_0_7_is_accepted_with_and_without_global_and_0_8_is_still_rejected():
+    for nc in ({"seeds": 3, "max_vertices": 33}, {"seeds": 3, "max_vertices": 33, "global": {}},
+               {"global": {"algorithm": "annealing", "generated": 100, "seed": 7}}):
+        m = v06_model(methods=["spencer"])
+        m["version"] = "0.7"
+        m["analysis"].pop("surface", None)
+        m["analysis"]["search"] = {"type": "circular_entry_exit", "non_circular": nc}
+        conv = ogs_to_cslope(m, _check("search", "spencer"))     # sin error: `global` es de ogs y cSlope no lo usa
+        assert conv.document["options"]["nonCircularOptimization"] is True
+        assert any("búsqueda global (F7.1)" in n for n in conv.notes) == ("global" in nc)
+    m = v06_model()
+    m["version"] = "0.7"
+    assert ogs_to_cslope(m, _check("fixed", "bishop")).document["options"]    # un modelo v0.7 sin búsqueda no circular
+    m["version"] = "0.8"
+    with pytest.raises(UnsupportedModel, match='"0.6" o "0.7"'):
+        ogs_to_cslope(m, _check("fixed", "bishop"))
+
+
 def test_version_0_7_drops_global_and_keeps_the_non_circular_search():
     m = v06_model(methods=["spencer"])
     m["version"] = "0.7"
