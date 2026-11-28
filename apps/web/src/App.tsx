@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
 import './App.css';
 import './ui/targets.css';
+import './editor/app/shell/shell.css';
 import { blockedMessage, caseBlockers } from './analysis/caseGate';
 import { checkModel, parseUploadedCase, runModel, summarizeTimes, type TimeSummary } from './analysis/runner';
 import { loadBuiltinCases, type CaseEntry } from './cases';
@@ -8,7 +9,8 @@ import { EngineCancelledError, getEngineClient, type AnalyzeResult, type EngineC
 import { userMessage } from './engine/errors';
 import type { EngineInfo } from './engine/protocol';
 import type { AnalysisReport, MethodKind, Model, VerificationCheck } from './engine/types';
-import { EditorApp } from './editor/EditorApp';
+import { EditorApp, type HeaderSlots } from './editor/EditorApp';
+import { DEFAULT_VIEW, type ViewId } from './editor/app/shell/views';
 import { resultCaption } from './editor/app/reportInput';
 import { lengthUnitOf } from './editor/canvas/layout';
 import { createRunGuard } from './editor/app/runGuard';
@@ -25,8 +27,9 @@ import { HelpDialog } from './ui/HelpDialog';
 import { InstallButton } from './ui/InstallButton';
 import { Legend } from './ui/Legend';
 import { EngineIndicator } from './ui/EngineIndicator';
-import { ThemeSelect } from './ui/ThemeSelect';
-import { useRovingTabIndex } from './ui/useRovingTabIndex';
+import { BrandMark } from './ui/BrandMark';
+import { IconHelp } from './ui/icons';
+import { ThemeToggle } from './ui/ThemeToggle';
 import { MAX_PERF_RUNS, PerformancePanel } from './ui/PerformancePanel';
 import { METHOD_LABELS, ResultsTable } from './ui/ResultsTable';
 
@@ -418,13 +421,15 @@ function CasesView({ client, info }: { client: EngineClient; info: EngineInfo | 
   );
 }
 
-type Mode = 'edit' | 'cases';
-
 export default function App() {
   const client = useMemo(() => getEngineClient(), []);
   const [info, setInfo] = useState<EngineInfo | null>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>('edit');
+  const [view, setView] = useState<ViewId>(DEFAULT_VIEW);
+  // Nodos de la cabecera donde `EditorApp` muestra el chip de estado y los menús «Archivo» y «Exportar» (portal).
+  const [chipNode, setChipNode] = useState<HTMLElement | null>(null);
+  const [menuNode, setMenuNode] = useState<HTMLElement | null>(null);
+  const headerSlots = useMemo<HeaderSlots>(() => ({ chip: chipNode, menus: menuNode }), [chipNode, menuNode]);
 
   useEffect(() => {
     let alive = true;
@@ -442,9 +447,10 @@ export default function App() {
   }, [client]);
 
   const simulated = info?.name === 'mock';
+  const editing = view !== 'cases';
 
   // Guía de primera visita y ayuda (UX-12). La guía no es modal: se abre sola solo la primera vez (`ogs.onboarding.v1`) y se
-  // reabre desde «Ayuda ▸ Recorrido guiado».
+  // reabre desde «Ayuda ▸ Recorrido guiado». Señala piezas del lienzo y de la barra lateral: solo se muestra en las vistas del editor.
   const [tour, dispatchTour] = useReducer(tourReducer, undefined, initialTour);
   const [tourFocus, setTourFocus] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -456,15 +462,15 @@ export default function App() {
     } catch {
       /* sin almacenamiento */
     }
-    if (autoOpenTour(storage, { editing: mode === 'edit' })) {
+    if (autoOpenTour(storage, { editing })) {
       setTourFocus(false);
       dispatchTour({ type: 'open' });
     }
-  }, [mode]);
-  // La guía señala controles del editor: en «Casos de verificación» no tiene destino y se cierra.
+  }, [editing]);
+  // En «Casos de verificación» la guía no tiene destino y se cierra.
   useEffect(() => {
-    if (mode !== 'edit') dispatchTour({ type: 'skip' });
-  }, [mode]);
+    if (!editing) dispatchTour({ type: 'skip' });
+  }, [editing]);
   const skipTour = useCallback(() => dispatchTour({ type: 'skip' }), []);
   const nextStep = useCallback(() => dispatchTour({ type: 'next' }), []);
   const prevStep = useCallback(() => dispatchTour({ type: 'prev' }), []);
@@ -472,73 +478,73 @@ export default function App() {
   const startTourFromHelp = (): void => {
     setHelpOpen(false);
     setTourFocus(true);
+    // Los destinos de la guía (HUD, paleta, pie de acción) están en «Lienzo»: se vuelve a esa vista para que existan.
+    setView('canvas');
     dispatchTour({ type: 'open' });
   };
-  const modeTabsRef = useRef<HTMLDivElement>(null);
-  const modeKeys = useRovingTabIndex(modeTabsRef, { selector: '[role="tab"]', orientation: 'horizontal', activateOnFocus: true });
 
   return (
-    <div className="app" lang="es">
+    <div className="app ua-app" lang="es">
       <a className="skip-link" href="#main-content">
         Saltar al contenido
       </a>
-      <header className="app-header">
-        <div className="app-brand">
-          <h1>OpenGeoSlide</h1>
-          <p className="muted">Estabilidad de taludes 2D: superficies de deslizamiento por Bishop, Spencer, Morgenstern-Price y Janbu</p>
+      <header className="app-header ua-header">
+        <div className="app-brand ua-brand">
+          <BrandMark />
+          <div className="ua-brand-text">
+            <h1>OpenGeoSlide</h1>
+            <p className="app-sub">Estabilidad de taludes 2D · equilibrio límite</p>
+          </div>
         </div>
-        <div className="mode-tabs" role="tablist" aria-label="Modo de la aplicación" ref={modeTabsRef} onKeyDown={modeKeys.onKeyDown}>
-          <button type="button" role="tab" id="mode-edit" aria-selected={mode === 'edit'} aria-controls="mode-edit-panel" className={mode === 'edit' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('edit')}>
-            Editar
-          </button>
-          <button type="button" role="tab" id="mode-cases" aria-selected={mode === 'cases'} aria-controls="mode-cases-panel" className={mode === 'cases' ? 'mode-tab mode-tab-active' : 'mode-tab'} onClick={() => setMode('cases')}>
-            Casos de verificación
-          </button>
-        </div>
-        <div className="app-header-tools">
-          <EngineIndicator info={info} error={engineError} />
+        <div className="ua-chip-slot" ref={setChipNode} />
+        <div className="ua-header-actions">
           <InstallButton />
           <button
             type="button"
             ref={helpButtonRef}
-            className="help-button"
+            className="help-button gs-btn"
             aria-haspopup="dialog"
             onClick={() => {
               skipTour();
               setHelpOpen(true);
             }}
           >
-            Ayuda
+            <IconHelp size={16} />
+            <span className="ua-btn-label">Ayuda</span>
           </button>
-          <ThemeSelect />
+          <ThemeToggle />
+          <div className="ua-menu-slot" ref={setMenuNode} />
         </div>
       </header>
 
       {/* Justo después de la cabecera en el orden de tabulación: la guía no mueve el foco al abrirse sola. */}
-      <GuidedTour open={tour.open && mode === 'edit'} index={tour.index} focusOnOpen={tourFocus} onNext={nextStep} onPrev={prevStep} onSkip={skipTour} fallbackFocus={helpFallback} />
+      <GuidedTour open={tour.open && editing} index={tour.index} focusOnOpen={tourFocus} onNext={nextStep} onPrev={prevStep} onSkip={skipTour} fallbackFocus={helpFallback} />
 
-      {/* El estado normal del motor es el indicador compacto de la cabecera; el modo simulado y los fallos de carga siguen visibles con su explicación. */}
-      {simulated && (
-        <div className="banner banner-sim" role="status">
-          <strong>Motor simulado.</strong> Los resultados son aproximados (Fellenius, 30 dovelas) y no provienen de ogs-core.
-          {info?.fallback_reason ? <span className="small"> Motivo: {info.fallback_reason}.</span> : null}
-        </div>
-      )}
-      {engineError && (
-        <div className="banner banner-error" role="alert">
-          {engineError}
-        </div>
-      )}
-
-      {/* Ambos modos permanecen montados: al volver a «Editar» se conservan el modelo, el historial y los resultados. */}
-      <main id="main-content" tabIndex={-1}>
-        <div id="mode-edit-panel" role="tabpanel" aria-labelledby="mode-edit" hidden={mode !== 'edit'}>
-          <EditorApp client={client} active={mode === 'edit'} />
-        </div>
-        <div id="mode-cases-panel" role="tabpanel" aria-labelledby="mode-cases" hidden={mode !== 'cases'}>
-          <CasesView client={client} info={info} />
-        </div>
-      </main>
+      {/* Las cuatro vistas permanecen montadas dentro de `EditorApp`: al volver a «Lienzo» se conservan el modelo, el historial y los resultados. */}
+      <EditorApp
+        client={client}
+        view={view}
+        onViewChange={setView}
+        headerSlots={headerSlots}
+        engineSlot={<EngineIndicator info={info} error={engineError} />}
+        casesView={<CasesView client={client} info={info} />}
+        sessionBanners={
+          <>
+            {/* El estado normal del motor es el indicador de la barra de estado; el modo simulado y los fallos de carga siguen visibles con su explicación. */}
+            {simulated && (
+              <div className="banner banner-sim" role="status">
+                <strong>Motor simulado.</strong> Los resultados son aproximados (Fellenius, 30 dovelas) y no provienen de ogs-core.
+                {info?.fallback_reason ? <span className="small"> Motivo: {info.fallback_reason}.</span> : null}
+              </div>
+            )}
+            {engineError && (
+              <div className="banner banner-error" role="alert">
+                {engineError}
+              </div>
+            )}
+          </>
+        }
+      />
 
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} onStartTour={startTourFromHelp} />}
       {/* Único anfitrión de `useConfirm()`: todas las confirmaciones de la aplicación pasan por aquí. */}

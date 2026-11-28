@@ -257,12 +257,17 @@ describe('R7-10: móvil sin atrapar el desplazamiento', () => {
     expect(render()).not.toContain('touch-action:none');
   });
 
-  it('el lienzo rellena el contenedor y el contenedor fija clamp(320px, 55dvh, 640px)', () => {
-    // Integración U2-C + U2-L: una sola fuente de altura (.ea-canvas en App.css); .ec-root la rellena.
+  it('el lienzo rellena el contenedor y el contenedor sale de la tarjeta del armazón, sin clamp', () => {
+    // UA1-A: una sola fuente de altura (`.ua-canvas` en el armazón: ocupa toda la tarjeta, que es el alto restante del área);
+    // `.ec-root` la rellena. Ya no hay un `clamp` por tamaño de pantalla.
     const css = readFileSync(new URL('./canvas.css', import.meta.url), 'utf8');
     expect(css).toMatch(/\.ec-root\s*\{[^}]*height:\s*100%/);
+    const shell = readFileSync(new URL('../app/shell/shell.css', import.meta.url), 'utf8');
+    expect(shell).toMatch(/\.ua-canvas\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0/);
+    expect(shell).toMatch(/\.ua-canvas-card\s*\{[^}]*position:\s*relative/);
     const app = readFileSync(new URL('../../App.css', import.meta.url), 'utf8');
-    expect(app).toMatch(/\.ea-canvas\s*\{[^}]*height:\s*clamp\(320px, 55dvh, 640px\)/);
+    for (const css of [shell, app]) expect(css).not.toMatch(/clamp\(320px/);
+    expect(app).not.toMatch(/\.ea-canvas\s*\{/);
     expect(render()).toContain('class="ec-root"');
   });
 });

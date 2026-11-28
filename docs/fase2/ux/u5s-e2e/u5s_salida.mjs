@@ -58,6 +58,7 @@ const archivo = (p) => p.getByRole('button', { name: /^Archivo/ });
   step('1c eliminar la última tarjeta de región: el foco no cae en <body>', lastCard && lastCard.tag !== 'BODY', { regionesEliminadas: guard, foco: lastCard });
   // 3. incidencia /regions
   await p.getByRole('button', { name: 'Comprobar', exact: true }).click();
+  await p.locator('#view-results').click(); // UA: Diagnósticos vive en la vista «Resultados»
   await p.waitForSelector('.ep-issue', { timeout: 20000 });
   await p.getByRole('tab', { name: 'Materiales' }).click();
   const issueBtn = p.locator('button.ep-issue', { hasText: /regiones/ });

@@ -35,7 +35,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { scope: 'global', keys: 'A', action: 'Herramienta «Agregar vértice»', probes: [{ key: 'a' }], shortcutAction: 'tool:add_vertex' },
   { scope: 'global', keys: 'R', action: 'Herramienta «Dibujar región»: clic o toque (o Espacio) colocan un vértice, Intro cierra la región y Esc cancela', probes: [{ key: 'r' }], shortcutAction: 'tool:draw_region' },
   { scope: 'global', keys: 'D', action: 'Herramienta «Dividir región»: trace una línea que entre y salga del borde de una región; Intro, o un clic en el borde, la divide en dos (un solo paso deshacible)', probes: [{ key: 'd' }], shortcutAction: 'tool:split_region' },
-  { scope: 'global', keys: 'E', action: 'Herramienta «Dibujar refuerzo»: elija el tipo y marque la cabeza y la punta con dos clics o toques (o con Espacio); la tablestaca es vertical', probes: [{ key: 'e' }], shortcutAction: 'tool:draw_reinforcement' },
+  { scope: 'global', keys: 'F o E', action: 'Herramienta «Dibujar refuerzo»: elija el tipo y marque la cabeza y la punta con dos clics o toques (o con Espacio); la tablestaca es vertical', probes: [{ key: 'f' }, { key: 'e' }], shortcutAction: 'tool:draw_reinforcement' },
   { scope: 'global', keys: 'H', action: 'Herramienta «Mover vista»', probes: [{ key: 'h' }], shortcutAction: 'tool:pan' },
 
   {

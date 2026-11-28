@@ -1,13 +1,188 @@
+/*
+ * Piel de los paneles del modelo (UA §4.6 y UA1-S 4): campos con la etiqueta encima, controles de 32, tarjetas de radio 12 y
+ * leyendas de `fieldset` como eyebrow. Solo var(--…) y medidas. Los tokens nuevos llevan respaldo a uno ya existente.
+ * Los selectores van bajo `.ep-panel` para pesar más que los globales de App.css (`button`, `:where(input…)`, `.field`).
+ */
+
+/* ── Campos ───────────────────────────────────────────── */
+.ep-panel .field {
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+/* Etiqueta encima del control: 12 px en --ui-ink-2. */
+.ep-panel .ep-field > label,
+.ep-panel label.ep-field,
+.ep-panel .field > label {
+  color: var(--ui-ink-2, var(--ui-ink-muted));
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.ep-panel .ep-field .muted,
+.ep-panel .field > label .muted {
+  color: var(--ui-ink-muted);
+}
+
+/* Controles de 32 de alto, fondo hundido, borde de control. */
+.ep-panel input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']),
+.ep-panel select,
+.ep-panel textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ui-control-border);
+  border-radius: var(--ui-radius-md, 8px);
+  background: var(--ui-surface-sunken, var(--ui-surface));
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.ep-panel input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']),
+.ep-panel select {
+  height: 32px;
+}
+
+.ep-panel textarea {
+  padding: 6px 10px;
+}
+
+/* Los numéricos (`inputmode="decimal"`) van en mono con cifras tabulares; los ids y nombres, en la sans. */
+.ep-panel input[inputmode='decimal'],
+.ep-panel .ep-table td.num,
+.ep-panel .ep-num {
+  font-family: var(--ui-font-mono, ui-monospace, 'SFMono-Regular', Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-panel input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']):hover:not(:disabled, :read-only),
+.ep-panel select:hover:not(:disabled) {
+  border-color: var(--ui-ink-muted);
+}
+
+.ep-panel input:focus-visible,
+.ep-panel select:focus-visible,
+.ep-panel textarea:focus-visible {
+  border-color: var(--ui-accent-bright, var(--ui-focus));
+  outline: 2px solid var(--ui-accent-bright, var(--ui-focus));
+  outline-offset: 1px;
+}
+
+.ep-panel input:disabled,
+.ep-panel select:disabled,
+.ep-panel textarea:disabled,
+.ep-panel input:read-only:not([type='checkbox'], [type='radio']) {
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-muted);
+}
+
+.ep-panel input:disabled,
+.ep-panel select:disabled {
+  cursor: not-allowed;
+}
+
+/* Invalidez: borde y texto de falla (el mensaje va en .ep-error). */
+.ep-panel input[aria-invalid='true'],
+.ep-panel select[aria-invalid='true'],
+.ep-panel textarea[aria-invalid='true'] {
+  border-color: var(--ui-err-ink);
+  background: var(--ui-input-err-bg);
+}
+
+.ep-panel input[type='checkbox'],
+.ep-panel input[type='radio'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.ep-panel .checkbox,
+.ep-panel .ep-radios label {
+  font-size: 13px;
+}
+
+/* UA2-F3: el objetivo de clic es la etiqueta que envuelve el control (≥ 24 de alto), sin agrandar el control nativo (16 px). */
+.ep-panel .checkbox,
+.ep-panel .checkbox > label,
+.ep-panel .ep-radios label {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 24px;
+}
+
+/* Leyendas de `fieldset` como eyebrow (11/600, +0,08 em). La parte entre paréntesis (unidades) conserva su caja. */
+.ep-panel fieldset legend,
+.ep-panel fieldset.field legend {
+  padding: 0;
+  margin-bottom: 6px;
+  color: var(--ui-ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ep-panel fieldset legend .muted {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ep-panel .ep-card legend {
+  padding: 0 4px;
+}
+
+/* ── Botones de los paneles (la misma piel que .gs-btn; los componentes no cambian de clase) ── */
+.ep-panel button:not(.link-button, .ep-issue, .primary) {
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--ui-border-strong, var(--ui-control-border));
+  border-radius: var(--ui-radius-md, 8px);
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ep-panel button:not(.link-button, .ep-issue, .primary):hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+}
+
+.ep-panel button:not(.ep-issue):disabled {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-muted);
+  opacity: 1;
+}
+
+.ep-panel button:focus-visible {
+  outline: 2px solid var(--ui-accent-bright, var(--ui-focus));
+  outline-offset: 2px;
+}
+
+.ep-panel .link-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ui-accent-bright, var(--ui-accent));
+}
+
+/* ── Tablas ───────────────────────────────────────────── */
 .ep-panel .ep-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 13px;
 }
 
 .ep-table th {
-  text-align: left;
-  font-weight: 600;
   padding: 2px 4px;
+  color: var(--ui-ink-2, var(--ui-ink-muted));
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -20,31 +195,22 @@
 .ep-field input[type='text'] {
   width: 100%;
   min-width: 4.5ch;
-  font: inherit;
-  padding: 3px 6px;
-  border: 1px solid var(--ui-control-border);
-  border-radius: 4px;
-}
-
-.ep-table input[aria-invalid='true'],
-.ep-field input[aria-invalid='true'] {
-  border-color: var(--ui-err-border);
-  background: var(--ui-input-err-bg);
 }
 
 .ep-row-selected {
   background: var(--ui-row-selected);
 }
 
+/* ── Mensajes ─────────────────────────────────────────── */
 .ep-error {
   color: var(--ui-err-ink);
-  font-size: 0.85rem;
+  font-size: 12px;
 }
 
 .ep-error-list {
   margin: 4px 0 8px;
   color: var(--ui-err-ink);
-  font-size: 0.85rem;
+  font-size: 12px;
 }
 
 .ep-error-list > ul {
@@ -108,7 +274,7 @@ ul.ep-error-list {
   text-align: left;
   background: transparent;
   border: 1px solid var(--ui-control-border);
-  border-radius: 6px;
+  border-radius: var(--ui-radius-md, 8px);
   padding: 6px 8px;
 }
 
@@ -119,9 +285,10 @@ button.ep-issue:hover {
 
 .ep-badge {
   flex: none;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
-  padding: 1px 6px;
+  letter-spacing: 0.04em;
+  padding: 1px 8px;
   border-radius: 999px;
   text-transform: uppercase;
 }
@@ -147,11 +314,11 @@ button.ep-issue:hover {
 
 .ep-new {
   border: 1px solid var(--ui-border);
-  border-radius: 6px;
-  padding: 8px;
+  border-radius: var(--ui-radius-lg, 12px);
+  padding: 8px 12px;
 }
 
-/* Tarjetas apiladas de materiales y cargas: etiquetas visibles y sin desborde horizontal (R7-13) */
+/* Tarjetas apiladas de materiales y cargas: etiquetas visibles y sin desborde horizontal (R7-13). */
 .ep-cards {
   display: flex;
   flex-direction: column;
@@ -162,14 +329,15 @@ button.ep-issue:hover {
 .ep-card {
   min-width: 0;
   margin: 0;
-  padding: 6px 10px 8px;
+  padding: 8px 12px 10px;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-lg, 12px);
+  background: var(--ui-surface-subtle);
 }
 
-.ep-card legend {
-  padding: 0 4px;
-  font-weight: 600;
+.ep-panel .ep-card.ep-row-selected {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-bg, var(--ui-row-selected));
 }
 
 .ep-card-id {
@@ -188,7 +356,7 @@ button.ep-issue:hover {
 
 .ep-issue-detail summary {
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--ui-ink-muted);
 }
 
@@ -206,7 +374,7 @@ div.ep-issue {
   max-width: 100%;
 }
 
-/* Ubicación de una carga: rango del terreno y de la corona + botón (UX9-03) */
+/* Ubicación de una carga: rango del terreno y de la corona + botón (UX9-03). */
 .ep-placement {
   display: flex;
   flex-direction: column;
@@ -221,7 +389,20 @@ div.ep-issue {
 
 .ep-note {
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-md, 8px);
   background: var(--ui-note-bg);
   color: var(--ui-note-ink);
+}
+
+/* Hasta 760 px (táctil): botones de 40 de alto; los campos, de 36. */
+@media (max-width: 760px) {
+  .ep-panel button:not(.link-button, .ep-issue) {
+    min-height: 40px;
+  }
+
+  .ep-panel input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']),
+  .ep-panel select {
+    height: 36px;
+    min-height: 36px;
+  }
 }

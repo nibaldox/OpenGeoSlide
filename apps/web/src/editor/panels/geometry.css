@@ -1,4 +1,4 @@
-/* Panel «Geometría» (U3-M): lista de regiones, tabla de vértices y ajuste. Solo consume tokens `var(--ui-*)`. */
+/* Panel «Geometría» (U3-M, piel UA1-S): lista de regiones, tabla de vértices y ajuste. Solo consume tokens `var(--ui-*)`. */
 
 .gp-regions {
   list-style: none;
@@ -11,9 +11,10 @@
 
 .gp-region {
   min-width: 0;
-  padding: 6px 10px 2px;
+  padding: 8px 12px 4px;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-lg, 12px);
+  background: var(--ui-surface-subtle);
 }
 
 .gp-region-head {
@@ -36,9 +37,9 @@
   white-space: nowrap;
 }
 
-.gp-row-actions button {
-  padding: 2px 6px;
-  font-size: 0.8rem;
+.ep-panel .gp-row-actions button:not(.link-button) {
+  padding: 2px 8px;
+  font-size: 12px;
   min-height: 28px;
 }
 
@@ -73,8 +74,15 @@
 .gp-check {
   display: flex;
   align-items: center;
+  min-height: 24px;
   gap: 8px;
   margin: 4px 0;
+}
+
+/* Coordenadas y áreas de la lista de regiones: mono con cifras tabulares. */
+.gp-region .gp-region-head,
+.gp-vertices td {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Material de cada región con su muestra de color (el tono es el del lienzo: tokens --canvas-mat-N). */
@@ -90,7 +98,7 @@
   width: 14px;
   height: 14px;
   border: 1px solid var(--ui-control-border);
-  border-radius: 3px;
+  border-radius: var(--ui-radius-sm, 4px);
 }
 
 .gp-split-actions button {

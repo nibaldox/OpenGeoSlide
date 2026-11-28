@@ -99,10 +99,12 @@ const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h 
   // Revisar el anillo de cada paso volviendo hacia atrás con «Anterior».
   for (let i = 3; i >= 0; i--) {
     const st = await tourState(page);
-    const expectedSel = ['[role="tablist"][aria-label="Paneles del modelo"]', 'button.ea-primary', '[data-testid="result-summary"]', null][i];
+    // UA: los destinos de la guía cambiaron (onboarding/tour.ts): el paso «materials» señala el contenedor `.ua-steps` (el tablist es `display: contents`, sin caja).
+    const expectedSel = ['.ua-steps', 'button.ea-primary', '[data-testid="result-summary"]', null][i];
     if (expectedSel) {
       const r = await rectOf(page, expectedSel);
-      const ok = st.ring && r && Math.abs(st.ring.x - (r.x - 4)) <= 3 && Math.abs(st.ring.y - (r.y - 4)) <= 3 && Math.abs(st.ring.w - (r.w + 8)) <= 3 && Math.abs(st.ring.h - (r.h + 8)) <= 3;
+      // UA: la barra lateral toca el borde izquierdo de la ventana (x = 0): el anillo se recorta en 0, así que se comparan los bordes (izquierdo con tope en 0) y no el ancho.
+      const ok = st.ring && r && Math.abs(st.ring.x - Math.max(0, r.x - 4)) <= 3 && Math.abs(st.ring.y - (r.y - 4)) <= 3 && Math.abs(st.ring.x + st.ring.w - (r.x + r.w + 4)) <= 3 && Math.abs(st.ring.h - (r.h + 8)) <= 3;
       detail[st.step] = { ring: st.ring, target: r, ok };
       ringOk &&= !!ok;
       if (st.pop && r) ringOk &&= !overlap(st.pop, r);

@@ -1,11 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OpenGeoSlide">
-  <!-- Icono propio: perfil de un talud con una superficie de falla circular. Contenido dentro de la zona segura (80 %) para «maskable». -->
-  <rect width="512" height="512" fill="#12324a"/>
-  <!-- terreno: meseta a la izquierda, talud inclinado y pie a la derecha -->
-  <path d="M86 214 H214 L376 352 H426 V400 H86 Z" fill="#c9a66b"/>
-  <path d="M86 214 H214 L376 352 H426" fill="none" stroke="#f4e3bd" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
-  <!-- superficie de falla circular -->
-  <path d="M170 214 A150 150 0 0 0 338 322" fill="none" stroke="#ff6b4a" stroke-width="12" stroke-linecap="round" stroke-dasharray="1 0"/>
-  <!-- cuña deslizante sombreada -->
-  <path d="M170 214 H214 L338 322 A150 150 0 0 1 170 214 Z" fill="#ff6b4a" fill-opacity="0.28"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512" role="img" aria-label="OpenGeoSlide">
+  <!-- Marca de la suite (XA4 §1): cuadro de esquinas r = 8, el perfil de un talud y su superficie de falla en arco discontinuo.
+       Colores fijos del tema oscuro: el relleno es --ui-accent-bg compuesto sobre #0a0a0b; el borde, --ui-accent; los trazos, --ui-accent-bright. -->
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="#161e27" stroke="#2c77c3" stroke-width="1.5"/>
+  <path d="M5 23h6.5l9-11H27" fill="none" stroke="#6db3f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10.5 23Q21 23.5 23.5 12" fill="none" stroke="#6db3f2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.2 2.4"/>
 </svg>

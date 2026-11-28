@@ -13,23 +13,18 @@ function safeStorage(): StorageLike | null {
 
 /** Controlador único de la aplicación (creado la primera vez que se usa, ya en el navegador). */
 export function getThemeController(): ThemeController {
-  instance ??= createThemeController({
-    storage: safeStorage(),
-    doc: document,
-    media: typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null,
-    win: window,
-  });
+  instance ??= createThemeController({ storage: safeStorage(), doc: document, win: window });
   return instance;
 }
 
 function subscribe(onChange: () => void): () => void {
   const controller = getThemeController();
-  controller.start(); // idempotente: engancha matchMedia y `storage` con el primer suscriptor
+  controller.start(); // idempotente: engancha `storage` con el primer suscriptor
   return controller.subscribe(onChange);
 }
 
-/** Estado del tema (preferencia, sistema y tema resuelto); el componente se vuelve a dibujar al cambiar. */
-export function useTheme(): ThemeState & { setPref: ThemeController['setPref'] } {
+/** Estado del tema (preferencia y tema vigente); el componente se vuelve a dibujar al cambiar. */
+export function useTheme(): ThemeState & { setPref: ThemeController['setPref']; toggle: ThemeController['toggle'] } {
   const state = useSyncExternalStore(subscribe, () => getThemeController().getState());
-  return { ...state, setPref: (pref) => getThemeController().setPref(pref) };
+  return { ...state, setPref: (pref) => getThemeController().setPref(pref), toggle: () => getThemeController().toggle() };
 }

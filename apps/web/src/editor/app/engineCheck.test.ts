@@ -154,6 +154,36 @@ describe('createEngineCheck', () => {
     expect(ctl.getState().engine?.status).toBe('ok');
   });
 
+  it('UA3 A-01: una cancelación externa (Casos o «Reiniciar el motor») no deja el cálculo en «busy»', async () => {
+    const { client, ctl } = setup();
+    const ok = ctl.check();
+    await until(() => client.calls.length === 1);
+    client.calls[0]!.resolve({ report: report('previo'), elapsed_ms: 1 });
+    await ok;
+    const second = ctl.check();
+    await until(() => client.calls.length === 2);
+    expect(ctl.getState().busy).toBe(true);
+    // Otro componente cancela el cliente compartido: este controlador no llamó a `cancel()` y su guardia sigue vigente.
+    client.calls[1]!.reject(new EngineCancelledError());
+    expect(await second).toBeNull();
+    expect(ctl.getState()).toMatchObject({ busy: false, message: 'Cálculo cancelado.', messageKind: 'info' });
+    expect(ctl.getState().run?.report.engine).toBe('previo');
+    expect(ctl.getState().engine?.status).toBe('ok');
+    expect(client.cancel).not.toHaveBeenCalled();
+  });
+
+  it('UA3 A-01: tras una cancelación externa se puede calcular de nuevo', async () => {
+    const { client, ctl } = setup();
+    const first = ctl.check();
+    await until(() => client.calls.length === 1);
+    client.calls[0]!.reject(new EngineCancelledError());
+    await first;
+    const again = ctl.check();
+    await until(() => client.calls.length === 2);
+    client.calls[1]!.resolve({ report: report('nuevo'), elapsed_ms: 1 });
+    expect((await again)?.report.engine).toBe('nuevo');
+  });
+
   it('cancelar sin cálculo en curso no hace nada', () => {
     const { client, ctl } = setup();
     ctl.cancel();

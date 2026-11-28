@@ -4,7 +4,7 @@
 // Uso: OGS_URL=http://127.0.0.1:5186/ OGS_REPO=<repo> TMPDIR=<scratch> node r2i2_tem.mjs
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, saveText, cli, compare, writeModel, setField, fieldOf, openMenu } from './lib.mjs';
+import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, showView, saveText, cli, compare, writeModel, setField, fieldOf, openMenu } from './lib.mjs';
 
 const T = process.env.TMPDIR;
 const live = (page) => page.waitForTimeout(450).then(() => page.textContent('[data-testid="live-polite"]')).then((t) => (t ?? '').trim());
@@ -103,9 +103,12 @@ for (const scheme of ['light', 'dark']) {
   await canvasShot(page, `tem-${scheme}-3-lienzo`);
   const arrows = await page.locator('[data-layer="reinforcement-forces"] [data-force-arrow]').count();
   step(`(${tag}) 3e el lienzo dibuja una flecha por fuerza aplicada del método mostrado`, arrows >= 3, { arrows });
+  // UA: la tabla de fuerzas y las notas viven en la vista «Resultados»; se abre para leerlas y se vuelve a «Lienzo».
+  await showView(page, 'Resultados');
   await page.getByTestId('reinforcement-forces').scrollIntoViewIfNeeded();
   await shot(page, `tem-${scheme}-4-tabla`);
   await axe(page, `resultado con fuerzas de cinco geosintéticos (${tag})`);
+  await showView(page, 'Lienzo');
 
   // 4. CSV de fuerzas.
   await openMenu(page, 'Exportar');

@@ -27,6 +27,9 @@ for (const theme of ['light', 'dark']) {
   const page = await ctx.newPage();
   await page.goto(URL_);
   await page.waitForSelector('[data-layer="regions"] polygon');
+  // UA: con los botones del armazón A (transición de color de `.gs-btn`), axe corre en pleno cambio de color y mide un «Comprobar» a medio camino entre el gris y el azul (contraste 1,02 y 2,33). Se espera al motor y a que terminen las transiciones.
+  await page.waitForFunction(() => /ogs-core/.test(document.querySelector('[data-testid="engine-banner"]')?.textContent ?? ''));
+  await page.waitForTimeout(600);
   await axe(page, `${theme}: editor inicial`);
   await page.getByRole('tab', { name: 'Materiales' }).click();
   await page.getByRole('button', { name: 'Nuevo material…' }).click();

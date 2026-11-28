@@ -1,0 +1,397 @@
+/*
+ * Primitivas comunes de la suite (.gs-*, contrato UA §4.5). Solo var(--…) y medidas: ningún color literal.
+ * Los tokens nuevos (--ui-ink-2, --ui-surface-sunken, --ui-border-strong, --ui-accent-bright, --ui-accent-bg,
+ * --ui-shadow-float, --ui-font-mono, --ui-radius-*) los define tokens.css; aquí van con respaldo a un token que ya existía,
+ * así que la hoja sigue siendo válida con cualquier versión de tokens.css.
+ *
+ * Especificidad: App.css fija reglas globales sobre `button` (`button:hover:not(:disabled, .primary, …)` pesa 0,2,1). Los
+ * estados de aquí llevan `:not(:disabled)` para pesar 0,3,0 y no perder contra ellas.
+ */
+
+/* ── Botones ──────────────────────────────────────────── */
+.gs-btn,
+.gs-btn-primary,
+.gs-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-border-strong, var(--ui-control-border));
+  border-radius: var(--ui-radius-md, 8px);
+  background: var(--ui-surface);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.gs-btn:hover:not(:disabled),
+.gs-icon-btn:hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+}
+
+.gs-btn:active:not(:disabled),
+.gs-icon-btn:active:not(:disabled) {
+  background: var(--ui-surface-active);
+}
+
+.gs-btn[aria-pressed='true']:not(:disabled),
+.gs-icon-btn[aria-pressed='true']:not(:disabled),
+.gs-btn[aria-expanded='true']:not(:disabled) {
+  background: var(--ui-accent-bg, var(--ui-surface-active));
+  border-color: var(--ui-accent);
+  color: var(--ui-accent-bright, var(--ui-accent));
+}
+
+/* Variante sin borde ni fondo en reposo (Deshacer, Rehacer, Contraer panel). */
+.gs-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ui-ink-2, var(--ui-ink-muted));
+}
+
+.gs-btn-ghost:hover:not(:disabled) {
+  color: var(--ui-ink);
+}
+
+.gs-btn-primary {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent);
+  color: var(--ui-ink-on-accent);
+  font-weight: 600;
+}
+
+.gs-btn-primary:hover:not(:disabled) {
+  border-color: var(--ui-accent-hover);
+  background: var(--ui-accent-hover);
+}
+
+.gs-btn-primary:active:not(:disabled) {
+  background: var(--ui-accent);
+}
+
+.gs-btn-lg {
+  min-height: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.gs-icon-btn {
+  width: 32px;
+  padding: 0;
+}
+
+.gs-btn:disabled,
+.gs-btn-primary:disabled,
+.gs-icon-btn:disabled,
+.gs-tool:disabled {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.gs-btn:focus-visible,
+.gs-btn-primary:focus-visible,
+.gs-icon-btn:focus-visible,
+.gs-tool:focus-visible {
+  outline: 2px solid var(--ui-accent-bright, var(--ui-focus));
+  outline-offset: 2px;
+}
+
+/* Un ícono dentro de un botón no captura el clic ni se encoge. */
+.gs-btn > .gs-icon,
+.gs-btn-primary > .gs-icon,
+.gs-icon-btn > .gs-icon,
+.gs-tool > .gs-icon {
+  flex: none;
+  pointer-events: none;
+}
+
+/* ── Tipografía y teclas ──────────────────────────────── */
+.gs-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+.gs-mono {
+  font-family: var(--ui-font-mono, ui-monospace, 'SFMono-Regular', Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
+  border-radius: var(--ui-radius-sm, 4px);
+  background: transparent;
+  color: inherit;
+  font-family: var(--ui-font-mono, ui-monospace, 'SFMono-Regular', Menlo, monospace);
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+/* ── Chips de estado ──────────────────────────────────── */
+/* `inline-block` y no `inline-flex`: así el texto suelto puede cortarse con elipsis en una sola línea. */
+.gs-chip {
+  display: inline-block;
+  box-sizing: border-box;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--ui-border-strong, var(--ui-control-border));
+  border-radius: 999px;
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-2, var(--ui-ink-muted));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.gs-chip::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+.gs-chip[data-tone='accent'] {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-bg, var(--ui-surface-active));
+  color: var(--ui-accent-bright, var(--ui-accent));
+}
+
+.gs-chip[data-tone='ok'] {
+  border-color: var(--ui-ok-border);
+  background: var(--ui-ok-bg);
+  color: var(--ui-ok-ink);
+}
+
+.gs-chip[data-tone='warn'] {
+  border-color: var(--ui-warn-border);
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+}
+
+.gs-chip[data-tone='nok'] {
+  border-color: var(--ui-err-border);
+  background: var(--ui-err-bg);
+  color: var(--ui-err-ink);
+}
+
+/* ── Botón de la paleta del lienzo ────────────────────── */
+.gs-tool {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 1px solid var(--ui-border-strong, var(--ui-control-border));
+  border-radius: 10px;
+  background: var(--ui-surface-subtle);
+  color: var(--ui-ink-2, var(--ui-ink-muted));
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.gs-tool:hover:not(:disabled) {
+  background: var(--ui-surface-hover);
+  color: var(--ui-ink);
+}
+
+.gs-tool[aria-pressed='true'],
+.gs-tool[aria-pressed='true']:hover:not(:disabled) {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent);
+  color: var(--ui-ink-on-accent);
+}
+
+/* Tooltip dentro del botón, a la izquierda (la paleta va pegada al borde derecho). Va `aria-hidden`: el nombre accesible es el
+   `aria-label` del botón y la tecla, `aria-keyshortcuts`. */
+.gs-tip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ui-ink);
+  color: var(--ui-surface);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden; /* UA-E2 punto 4: oculto de verdad (el texto no entra en el árbol ni en el nombre accesible) */
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 0.12s ease, visibility 0.12s;
+}
+
+.gs-tip .gs-kbd {
+  margin-left: 6px;
+}
+
+.gs-tool:hover .gs-tip,
+.gs-tool:focus-visible .gs-tip,
+.gs-btn:hover > .gs-tip,
+.gs-btn:focus-visible > .gs-tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── Insignia de paso (28) ────────────────────────────── */
+.gs-badge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ui-ink-muted);
+  font-family: var(--ui-font-mono, ui-monospace, 'SFMono-Regular', Menlo, monospace);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.gs-badge > .gs-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* El glifo (✓ o !) va con el color de la superficie sobre el círculo de estado: el relleno es el color del texto del estado. */
+.gs-badge[data-status='done'] {
+  border-color: var(--ui-ok-ink);
+  background: var(--ui-ok-ink);
+  color: var(--ui-surface);
+}
+
+.gs-badge[data-status='error'] {
+  border-color: var(--ui-err-ink);
+  background: var(--ui-err-ink);
+  color: var(--ui-surface);
+}
+
+.gs-badge[data-status='draft'] {
+  border-color: var(--ui-warn-border);
+  background: var(--ui-warn-bg);
+  color: var(--ui-warn-ink);
+}
+
+.gs-badge[data-status='optional'],
+.gs-badge[data-status='empty'] {
+  border-style: dashed;
+  border-color: var(--ui-border-dashed, var(--ui-control-border));
+}
+
+/* ── Indicador de carga ───────────────────────────────── */
+.gs-spinner {
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: gs-spin 0.7s linear infinite;
+}
+
+@keyframes gs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Tarjeta ──────────────────────────────────────────── */
+.gs-card {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg, 12px);
+  background: var(--ui-surface);
+}
+
+/* ── Pantallas estrechas y táctiles ───────────────────── */
+@media (max-width: 760px) {
+  .gs-btn,
+  .gs-btn-primary,
+  .gs-icon-btn,
+  .gs-tool {
+    min-height: 40px;
+  }
+
+  .gs-btn,
+  .gs-btn-primary,
+  .gs-icon-btn {
+    height: 40px;
+  }
+
+  .gs-icon-btn {
+    width: 40px;
+  }
+
+  .gs-tool {
+    width: 40px;
+    height: 40px;
+  }
+
+  .gs-tip {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .gs-tip {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-btn,
+  .gs-btn-primary,
+  .gs-icon-btn,
+  .gs-tool,
+  .gs-tip {
+    transition: none;
+  }
+
+  .gs-spinner {
+    animation-duration: 2s;
+  }
+}

@@ -1,12 +1,14 @@
 // Lienzo SVG del editor: regiones, vértices, piezométrica, círculo fijo, rangos de búsqueda, cargas y sismo.
 // Solo usa la interfaz EditorStore. La lógica (hit test, snap, gestos, teclado) vive en módulos puros.
 
-import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { circleSpec, isPolylineReport } from '../../engine/surface';
 import type { CrackReport, MethodReport, Point, ReinforcementForce, ReportSurface, Slice } from '../../engine/types';
 import { analyzedPolyline } from '../../report/methodInfo';
 import { screenToWorld, worldToScreen, type Viewport } from '../../geometry/viewport';
 import { materialColor } from '../../render/scene';
+import { axisTitleBaseline } from './axisTitle';
+import { nextPaletteMode, type PaletteMode } from './paletteMode';
 import type { EditorStore, ModelDoc } from '../types';
 import {
   IDLE,
@@ -61,7 +63,6 @@ import {
   axisTitles,
   circleCenterLabel,
   circleRadiusLabel,
-  cursorReadout,
   gridLines,
   loadShapes,
   pointsAttr,
@@ -79,7 +80,9 @@ import {
 } from './layout';
 import { SPLIT_INSTRUCTIONS, splitClick, splitKey } from './split';
 import { isTraceTool, traceOnDocChange, traceOnToolChange } from './trace';
-import { edgeScrollDelta, fitToDoc, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
+import { isLastAutoFit } from '../app/shell/hudFit';
+import { coordinateReadout, edgeScrollDelta, fitToDoc, fitToDocInsets, isMajorGridLine, panBy, pinchViewport, resizeViewport, wheelFactor, zoomAt, zoomStep } from './viewportOps';
+import { IconFit, IconZoomIn, IconZoomOut } from '../../ui/icons';
 import './canvas.css';
 
 // Colores: referencias a los tokens `--canvas-*` de styles/tokens.css; el tema los cambia sin volver a dibujar.
@@ -93,6 +96,8 @@ const COLOR_SURFACE_UNCONVERGED = 'var(--canvas-surface-unconverged)';
 const COLOR_LOAD = 'var(--canvas-load)';
 const COLOR_SEISMIC = 'var(--canvas-seismic)';
 const COLOR_GRID = 'var(--canvas-grid)';
+/** Líneas mayores de la rejilla (múltiplos de 5 pasos); sin el token, el color de la rejilla. */
+const COLOR_GRID_MAJOR = 'var(--canvas-grid-major, var(--canvas-grid))';
 const COLOR_AXIS_TEXT = 'var(--canvas-axis-text)';
 const COLOR_BAND_ENTRY = 'var(--canvas-band-entry)';
 const COLOR_BAND_EXIT = 'var(--canvas-band-exit)';
@@ -216,17 +221,50 @@ export interface EditorCanvasProps {
   onAnnounce?: (msg: string) => void;
   /** Contenido que se muestra sobre el lienzo cuando el modelo no tiene regiones (mensaje con las acciones para empezar). */
   emptyState?: ReactNode;
+  /**
+   * UA0 (contrato §4.2): botones de herramienta que el lienzo coloca en su paleta flotante, encima del grupo «Vista»
+   * (Acercar, Alejar, Encuadrar). Sin esta prop, la paleta solo trae el grupo «Vista».
+   */
+  paletteTools?: ReactNode;
+  /**
+   * UA0 (contrato §4.2): márgenes en px que «Encuadrar» y el encuadre inicial dejan libres para las capas flotantes
+   * (HUD, paleta, leyenda). Sin esta prop, el margen uniforme de siempre.
+   */
+  fitInsets?: FitInsets;
+  /**
+   * UA2-F1: cajas en px del lienzo que una capa flotante (el HUD) deja tapadas. Los rótulos del eje y que caerían debajo no se
+   * dibujan, para que no asomen cortados por el borde de la capa.
+   */
+  coveredBoxes?: readonly CoverBox[];
+}
+
+/** Caja en px de pantalla, relativa a la esquina superior izquierda del lienzo. */
+export interface CoverBox {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** UA0 (contrato §4.2): márgenes de encuadre en px de pantalla. */
+export interface FitInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
 }
 
 /** Movimiento máximo, en píxeles, entre pulsar y soltar para que un toque o clic cuente como «colocar un punto». */
 const DRAW_TAP_SLOP_PX = 6;
 
-function ToolIcon({ children }: { children: ReactNode }) {
-  return (
-    <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      {children}
-    </svg>
-  );
+/** ¿El rótulo del eje y (a la izquierda, sobre la línea `px`) queda bajo alguna de las cajas cubiertas? Cuenta un aire de 2 px. */
+export function labelCovered(label: string, px: number, boxes: readonly CoverBox[] | undefined): boolean {
+  if (!boxes?.length) return false;
+  const x0 = 4;
+  const x1 = 4 + label.length * AXIS_FONT_PX * 0.62;
+  const y0 = px - 2 - AXIS_FONT_PX;
+  const y1 = px - 2 + 3;
+  return boxes.some((b) => x1 + 2 > b.left && x0 - 2 < b.right && y1 + 2 > b.top && y0 - 2 < b.bottom);
 }
 
 const roundPx = (v: number): number => Math.round(v * 100) / 100;
@@ -249,7 +287,7 @@ function hexagon(cx: number, cy: number, r: number): string {
   return Array.from({ length: 6 }, (_, i) => `${roundPx(cx + r * Math.cos((Math.PI / 3) * i))},${roundPx(cy + r * Math.sin((Math.PI / 3) * i))}`).join(' ');
 }
 
-export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState }: EditorCanvasProps) {
+export function EditorCanvas({ store, result, surfaceConverged = true, units, onAnnounce, emptyState, paletteTools, fitInsets, coveredBoxes }: EditorCanvasProps) {
   // Envolturas con identidad estable por store: no dependen de `this` ni de cómo W1 construya el objeto.
   const subscribe = useCallback((listener: () => void) => store.subscribe(listener), [store]);
   const getState = useCallback(() => store.getState(), [store]);
@@ -283,6 +321,24 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const prevTool = useRef(store.getState().ui.tool);
   // Lectura de (x, y) del cursor: se escribe directamente en el DOM (sin estado) para no repintar el lienzo en cada movimiento.
   const readoutRef = useRef<HTMLParagraphElement>(null);
+  // Paleta flotante: si el lienzo es más bajo que ella, hace scroll en vez de recortarse (el tooltip solo se corta entonces).
+  const paletteRef = useRef<HTMLElement>(null);
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>('full');
+  // Márgenes del encuadre: se leen al encuadrar, sin volver a encuadrar cuando el padre pasa otro objeto igual.
+  const fitInsetsRef = useRef(fitInsets);
+  fitInsetsRef.current = fitInsets;
+  const fit = (d: ModelDoc, w: number, h: number): Viewport => {
+    const insets = fitInsetsRef.current;
+    return insets ? fitToDocInsets(d, w, h, insets) : fitToDoc(d, w, h);
+  };
+  // UA2-F1: último encuadre automático (al abrir, «Encuadrar», tecla 0 o un reencuadre por cambio de márgenes). Mientras la
+  // vista siga siendo exactamente esa, un cambio de márgenes o de tamaño la reencuadra; si el usuario la movió, no se toca.
+  const lastAutoFit = useRef<Viewport | null>(null);
+  const autoFit = (d: ModelDoc, w: number, h: number): Viewport => {
+    const next = fit(d, w, h);
+    lastAutoFit.current = next;
+    return next;
+  };
   const markerBase = useId().replace(/:/g, '_');
   const instructionsId = `${markerBase}-help`;
   const handleHelpId = `${markerBase}-handle-help`;
@@ -335,11 +391,36 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     if (vp === null) {
       // El ajuste inicial espera a la primera medida real: con el tamaño por defecto el modelo quedaba
       // centrado en 800 × 600 y, en un lienzo más ancho, con un margen vacío a la derecha.
-      if (measured) store.dispatch({ type: 'ui/viewport', viewport: fitToDoc(s.doc, size.w, size.h) });
+      if (measured) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, size.w, size.h) });
     } else if (vp.width !== size.w || vp.height !== size.h) {
-      store.dispatch({ type: 'ui/viewport', viewport: resizeViewport(vp, size.w, size.h) });
+      // Si la vista era el último encuadre automático, el tamaño nuevo también se encuadra (los márgenes del HUD cambian con él).
+      const wasAuto = isLastAutoFit(vp, lastAutoFit.current);
+      store.dispatch({ type: 'ui/viewport', viewport: wasAuto ? autoFit(s.doc, size.w, size.h) : resizeViewport(vp, size.w, size.h) });
     }
   }, [store, size.w, size.h, measured, ui.viewport]);
+
+  // UA2-F1: cuando cambian los márgenes (el HUD aparece, se pliega o cambia de tamaño), se reencuadra solo si la vista es el último encuadre automático.
+  const insetsKey = fitInsets ? `${fitInsets.top}|${fitInsets.right}|${fitInsets.bottom}|${fitInsets.left}` : '';
+  useEffect(() => {
+    const s = store.getState();
+    const vp = s.ui.viewport;
+    if (vp && fitInsetsRef.current && isLastAutoFit(vp, lastAutoFit.current)) store.dispatch({ type: 'ui/viewport', viewport: autoFit(s.doc, vp.width, vp.height) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo cuando cambian los valores de los márgenes
+  }, [insetsKey]);
+
+  // B-10c: si la paleta no cabe en el lienzo, primero se compacta (botones de 36, sin rótulos) y, si aun así no cabe, hace scroll con la barra visible.
+  // Al cambiar el alto del lienzo (o el contenido de la paleta) se vuelve a `full` y se mide de nuevo, todo antes de pintar.
+  const hasPaletteTools = paletteTools != null;
+  useLayoutEffect(() => {
+    setPaletteMode('full');
+  }, [size.h, hasPaletteTools]);
+  useLayoutEffect(() => {
+    const el = paletteRef.current;
+    if (!el) return;
+    // Con `overflow` visible (full y compact), `scrollHeight` mide el contenido completo.
+    const next = nextPaletteMode(paletteMode, paletteMode !== 'scroll' && el.scrollHeight > el.clientHeight + 1);
+    if (next !== paletteMode) setPaletteMode(next);
+  });
 
   // Rueda: zoom alrededor del cursor. Listener nativo no pasivo para poder llamar a preventDefault.
   useEffect(() => {
@@ -452,7 +533,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   }, [state.docEpoch]);
 
   const showReadout = (p: Point | null): void => {
-    if (readoutRef.current) readoutRef.current.textContent = p ? cursorReadout(p, unitsEff) : '';
+    if (readoutRef.current) readoutRef.current.textContent = p ? coordinateReadout(p, unitsEff) : '';
   };
   // Con una herramienta de trazo manda el cursor del dibujo (con ajuste, o el del teclado): también se lee desde el teclado.
   useEffect(() => {
@@ -501,7 +582,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
     return () => window.clearInterval(id);
   }, [ui.tool]);
 
-  const vp: Viewport = ui.viewport ?? fitToDoc(doc, size.w, size.h);
+  const vp: Viewport = ui.viewport ?? fit(doc, size.w, size.h);
   const preview = gesture.mode === 'drag' ? gesture.preview : null;
   const shown: ModelDoc = applyPreview(doc, preview);
 
@@ -711,7 +792,13 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
       if (r.focus.kind === 'circle_radius') setCirclePart('radius');
       else if (r.focus.kind === 'circle_center') setCirclePart('center');
     }
-    runActions(store, r.actions);
+    // «0» encuadra con keys.ts (margen uniforme); con `fitInsets`, el encuadre deja libres las capas flotantes como el botón.
+    const cvp = ctx.ui.viewport;
+    const actions =
+      e.key === '0' && r.handled && fitInsetsRef.current && cvp && r.actions.length === 1 && r.actions[0]?.type === 'ui/viewport'
+        ? [{ type: 'ui/viewport' as const, viewport: autoFit(ctx.doc, cvp.width, cvp.height) }]
+        : r.actions;
+    runActions(store, actions);
     if (r.announce) announce(r.announce);
     // Escape sale del modo tirador: la selección se quita y el foco vuelve al lienzo (las flechas desplazan la vista).
     if (e.key === 'Escape' && r.handled && focused) svgRef.current?.focus({ preventScroll: true });
@@ -729,7 +816,7 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const viewAction = (kind: 'in' | 'out' | 'fit'): void => {
     const cur = store.getState().ui.viewport ?? vp;
     if (kind === 'fit') {
-      store.dispatch({ type: 'ui/viewport', viewport: fitToDoc(store.getState().doc, cur.width, cur.height) });
+      store.dispatch({ type: 'ui/viewport', viewport: autoFit(store.getState().doc, cur.width, cur.height) });
       announce('Vista encuadrada al modelo');
       return;
     }
@@ -741,6 +828,14 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
   const toS = (p: Point): [number, number] => worldToScreen(vp, p[0], p[1]);
   const grid = gridLines(vp);
   const titles = axisTitles(unitsEff);
+  // B-13b: el título «y (m)» va en el primer hueco libre del eje: ni bajo el HUD o la leyenda ni encima de un rótulo de marca.
+  const yTitleBaseline = axisTitleBaseline({
+    title: titles.y,
+    fontPx: AXIS_FONT_PX,
+    height: vp.height,
+    covered: coveredBoxes ?? [],
+    ticks: grid.horizontal.filter((l) => l.px > AXIS_TITLE_RESERVE_PX / 2 && !labelCovered(l.label, l.px, coveredBoxes)).map((l) => ({ label: l.label, px: l.px })),
+  });
   const pz = piezoPoints(shown);
   const pzExtra = piezoExtension(shown);
   // F5.3: el agua embalsada es la región entre la piezométrica y el terreno donde la piezométrica pasa sobre él, en todo el modelo.
@@ -840,10 +935,10 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           </marker>
         </defs>
 
-        <g data-layer="grid" aria-hidden="true">
+        <g data-layer="grid" className="ec-grid" aria-hidden="true">
           {grid.vertical.map((l) => (
             <g key={`gx${l.px}`}>
-              <line x1={l.px} x2={l.px} y1={0} y2={vp.height} stroke={COLOR_GRID} strokeWidth={1} />
+              <line x1={l.px} x2={l.px} y1={0} y2={vp.height} stroke={isMajorGridLine(vp, 'x', l.px, grid.step) ? COLOR_GRID_MAJOR : COLOR_GRID} strokeWidth={1} />
               {l.px < vp.width - AXIS_TITLE_RESERVE_PX && (
                 <text x={l.px + 2} y={vp.height - 4} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{l.label}</text>
               )}
@@ -851,14 +946,16 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
           ))}
           {grid.horizontal.map((l) => (
             <g key={`gy${l.px}`}>
-              <line x1={0} x2={vp.width} y1={l.px} y2={l.px} stroke={COLOR_GRID} strokeWidth={1} />
-              {l.px > AXIS_TITLE_RESERVE_PX / 2 && (
+              <line x1={0} x2={vp.width} y1={l.px} y2={l.px} stroke={isMajorGridLine(vp, 'y', l.px, grid.step) ? COLOR_GRID_MAJOR : COLOR_GRID} strokeWidth={1} />
+              {l.px > AXIS_TITLE_RESERVE_PX / 2 && !labelCovered(l.label, l.px, coveredBoxes) && (
                 <text x={4} y={l.px - 2} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{l.label}</text>
               )}
             </g>
           ))}
           <text data-axis-title="x" x={vp.width - 6} y={vp.height - 4} textAnchor="end" fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.x}</text>
-          <text data-axis-title="y" x={6} y={AXIS_FONT_PX + 4} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.y}</text>
+          {yTitleBaseline !== null && (
+            <text data-axis-title="y" x={6} y={yTitleBaseline} fontSize={AXIS_FONT_PX} fill={COLOR_AXIS_TEXT} {...HALO_LABEL}>{titles.y}</text>
+          )}
         </g>
 
         <g data-layer="regions">
@@ -1343,17 +1440,30 @@ export function EditorCanvas({ store, result, surfaceConverged = true, units, on
         </g>
       </svg>
 
-      <div className="ec-tools" role="group" aria-label="Zoom y encuadre">
-        <button type="button" className="ec-tool" aria-label="Acercar" title="Acercar (+)" onClick={() => viewAction('in')}>
-          <ToolIcon><path d="M10 4v12M4 10h12" /></ToolIcon>
-        </button>
-        <button type="button" className="ec-tool" aria-label="Alejar" title="Alejar (−)" onClick={() => viewAction('out')}>
-          <ToolIcon><path d="M4 10h12" /></ToolIcon>
-        </button>
-        <button type="button" className="ec-tool" aria-label="Encuadrar" title="Encuadrar el modelo (0)" onClick={() => viewAction('fit')}>
-          <ToolIcon><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4" /></ToolIcon>
-        </button>
-      </div>
+      <nav ref={paletteRef} className="ec-palette" aria-label="Herramientas del lienzo" data-compact={paletteMode !== 'full' ? 'true' : undefined} data-scroll={paletteMode === 'scroll' ? 'true' : undefined}>
+        {paletteTools != null && (
+          <>
+            <span className="ec-palette-label" aria-hidden="true">Herram.</span>
+            {paletteTools}
+            <div className="ec-palette-divider" aria-hidden="true" />
+          </>
+        )}
+        <span className="ec-palette-label" aria-hidden="true">Vista</span>
+        <div className="ec-tools" role="group" aria-label="Zoom y encuadre">
+          <button type="button" className="gs-tool ec-tool" aria-label="Acercar" title="Acercar (+)" aria-keyshortcuts="+" onClick={() => viewAction('in')}>
+            <IconZoomIn size={18} />
+            <span className="gs-tip" aria-hidden="true">Acercar <kbd className="gs-kbd">+</kbd></span>
+          </button>
+          <button type="button" className="gs-tool ec-tool" aria-label="Alejar" title="Alejar (−)" aria-keyshortcuts="-" onClick={() => viewAction('out')}>
+            <IconZoomOut size={18} />
+            <span className="gs-tip" aria-hidden="true">Alejar <kbd className="gs-kbd">−</kbd></span>
+          </button>
+          <button type="button" className="gs-tool ec-tool" aria-label="Encuadrar" title="Encuadrar el modelo (0)" aria-keyshortcuts="0" onClick={() => viewAction('fit')}>
+            <IconFit size={18} />
+            <span className="gs-tip" aria-hidden="true">Encuadrar <kbd className="gs-kbd">0</kbd></span>
+          </button>
+        </div>
+      </nav>
 
       <p ref={readoutRef} className="ec-cursor" aria-hidden="true" data-testid="cursor-readout" />
 

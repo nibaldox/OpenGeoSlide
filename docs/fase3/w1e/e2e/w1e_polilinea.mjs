@@ -179,7 +179,7 @@ await page.waitForTimeout(500);
 step('10c cargar un caso con polilínea fija: Bishop se deshabilita con la explicación visible', (await bishopCases.isDisabled()) && (await page.locator('#cases-bishop-note').isVisible()), { nota: await page.locator('#cases-bishop-note').textContent().catch(() => null) });
 await shot(page, '05-casos-polilinea');
 await axe(page, 'Casos con polilínea (claro)');
-await page.getByRole('tab', { name: 'Editar' }).click();
+await page.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
 
 // 11. axe en claro con cada panel
 await tab(page, 'Superficie');

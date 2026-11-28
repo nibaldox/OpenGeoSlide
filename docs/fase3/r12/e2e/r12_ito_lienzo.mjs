@@ -98,6 +98,8 @@ async function handlesWin(p) {
 /** Con una herramienta activa, un gesto que empieza sobre el área de la información (px, py) hace lo suyo: se mide con la posición del primer tirador. */
 async function toolsKeepWorking(p, theme, px, py) {
   const pos = async () => { const r = await p.locator('[data-handle-key]').first().locator('[data-hit-area]').boundingBox(); return [r.x, r.y]; };
+  // UA: el lienzo se reencuadra solo tras «Comprobar» (deja libre el HUD): se espera a que la posición del primer tirador se estabilice antes de medir.
+  for (let prev = null, i = 0; i < 25; i += 1) { const cur = JSON.stringify(await pos()); if (cur === prev) break; prev = cur; await p.waitForTimeout(200); }
   const before = await pos();
   await p.getByRole('button', { name: 'Mover vista' }).click();
   await p.mouse.move(px, py);
@@ -115,9 +117,13 @@ async function toolsKeepWorking(p, theme, px, py) {
   await p.keyboard.press('Escape');
   await p.getByRole('button', { name: 'Seleccionar' }).click();
 }
-async function check(p) {
+async function check(p, withForce = true) {
   await p.getByRole('button', { name: 'Comprobar' }).click();
-  await p.waitForSelector('[data-force="p1"]', { state: 'attached', timeout: 30000 });
+  // UA: se espera el resultado vigente en el HUD (el lienzo ya no conserva la flecha de un cálculo desactualizado: con el pilote movido puede no cruzar la superficie) y, si hace falta, la flecha;
+  // después se deja un respiro al reencuadre automático del lienzo (deja libre el HUD) antes de medir en píxeles.
+  await p.waitForSelector('[data-testid="result-summary"][data-state="current"]', { state: 'attached', timeout: 30000 });
+  if (withForce) await p.waitForSelector('[data-force="p1"]', { state: 'attached', timeout: 30000 });
+  await p.waitForTimeout(700);
 }
 
 for (const theme of ['light', 'dark']) {
@@ -211,7 +217,7 @@ for (const theme of ['light', 'dark']) {
   await p.screenshot({ path: path.join(SHOTS, `${theme}-3-casos-slip.png`), fullPage: true });
   step(`${theme}: Casos dibuja un lienzo para cada ubicación y la flecha cambia con la ubicación (centroid ≠ slip_surface)`, !!casC?.data && !!casS?.data && casC.data !== casS.data, { w: casC?.width, h: casC?.height });
   await axe(p, `${theme} Casos con el pilote Ito-Matsui`);
-  await p.getByRole('tab', { name: 'Editar' }).click();
+  await p.locator('#mode-edit').click(); // UA: la pestaña «Editar» pasó a «Lienzo» (id mode-edit, tablist «Vistas»)
   await p.waitForSelector('[data-layer="regions"] polygon');
 
   // ── E15l-22: slip_surface → la flecha nace en el cruce ──
@@ -220,7 +226,11 @@ for (const theme of ['light', 'dark']) {
   await p.getByRole('tab', { name: 'Refuerzos' }).click();
   await check(p);
   a = await arrow(p);
-  step(`${theme}: slip_surface: la flecha nace en el cruce (x, y = ${crossY.toFixed(3)})`, Math.abs(a.y1 - yPx(crossY)) < PX_TOL, { y1: a.y1, esperado: yPx(crossY) });
+  // UA: tras reabrir y calcular, el lienzo se reencuadra para dejar libre el HUD: la escala y el origen se miden de nuevo.
+  const headCy2 = await handleCy(p, 'r-0-1');
+  const scale2 = ((await handleCy(p, 'r-0-2')) - headCy2) / 6;
+  const yPx2 = (worldY) => headCy2 + (32.5 - worldY) * scale2;
+  step(`${theme}: slip_surface: la flecha nace en el cruce (x, y = ${crossY.toFixed(3)})`, Math.abs(a.y1 - yPx2(crossY)) < PX_TOL, { y1: a.y1, esperado: yPx2(crossY) });
   await p.screenshot({ path: path.join(SHOTS, `${theme}-4-slip.png`) });
 
   // ── E15l-21: arrastre y teclado con el pilote Ito-Matsui (vuelta a centroid) ──
@@ -265,9 +275,11 @@ for (const theme of ['light', 'dark']) {
   const tx2 = /punta: x ([\d,]+) m/.exec(tip2)?.[1];
   step(`${theme}: mover el centro desplaza la cabeza y la punta juntas (x1 = x2 = ${hx})`, hx === tx2 && hx !== '45,0', { head2, tip2 });
   // El modelo sigue calculando con el pilote movido
-  await check(p);
+  await check(p, false);
   await p.waitForTimeout(300);
-  const body = await p.locator('body').innerText();
+  // UA: el FS del HUD está en «Lienzo» y las notas del motor en «Resultados» (innerText no lee lo oculto): se leen las dos.
+  await p.locator('#view-results').click();
+  const body = `${await p.locator('body').innerText()}\n${(await p.locator('#mode-edit').click(), await p.locator('body').innerText())}`;
   step(`${theme}: el modelo con el pilote movido calcula sin error de verticalidad`, !/reinforcement_pile_vertical|es vertical; la x de la punta/.test(body) && /FS \d/.test(body));
   await p.screenshot({ path: path.join(SHOTS, `${theme}-5-movido.png`) });
   await axe(p, `${theme} lienzo con el pilote movido`);

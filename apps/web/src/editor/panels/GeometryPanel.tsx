@@ -345,7 +345,7 @@ export function GeometryPanel({ store }: { store: EditorStore }) {
       ) : (
         <>
           <p className="muted small">
-            Para crear otra región use la herramienta «Dibujar región» (tecla R) de la barra del lienzo, o divida una existente con «Dividir
+            Para crear otra región use la herramienta «Dibujar región» (tecla R) de la paleta del lienzo, o divida una existente con «Dividir
             región» (tecla D). Aquí se asigna el material de cada región y se editan sus vértices.
           </p>
           <div className="ep-actions gp-split-actions">

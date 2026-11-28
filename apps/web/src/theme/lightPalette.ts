@@ -5,19 +5,19 @@
 import type { SectionPalette } from './sectionPalette';
 
 export const LIGHT_SECTION_PALETTE: SectionPalette = {
-  bg: '#ffffff',
-  grid: '#e2e8f0',
-  axis: '#334155',
+  bg: '#f6f7f9',
+  grid: '#e6e9ed',
+  axis: '#55606c',
   axisText: '#475569',
-  halo: '#ffffff',
-  regionEdge: '#1f2937',
-  surface: '#a31515',
+  halo: '#f6f7f9',
+  regionEdge: '#1f2933',
+  surface: '#b42318',
   surfaceUnconverged: '#9a3412',
   piezo: '#1e40af',
   pond: '#bfdbfe',
   reinforcement: '#0f5132',
-  sliceFill: 'rgb(71 85 105 / 0.16)',
-  sliceEdge: 'rgb(30 41 59 / 0.65)',
+  sliceFill: 'rgb(31 41 51 / 0.06)',
+  sliceEdge: 'rgb(31 41 51 / 0.62)',
   materialUnknown: '#cbd5e1',
   materials: ['#d8b77a', '#9cc29a', '#9fb9d9', '#dba5a5', '#c2a8d8', '#e3cf86', '#a9d4d0'],
 };

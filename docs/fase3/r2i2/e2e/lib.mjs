@@ -115,10 +115,24 @@ export function cli(file) {
 
 export async function check(page) {
   await page.getByRole('button', { name: 'Comprobar', exact: true }).first().click();
-  await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });
+  // UA: el resultado se espera en el HUD (result-summary, data-state=current) y la tabla se lee en la vista «Resultados»; después se vuelve a «Lienzo».
+  await page.waitForSelector('[data-testid="result-summary"][data-state="current"]', { state: 'attached', timeout: 60000 });
   await page.waitForSelector('button:has-text("Comprobar"):not([disabled])');
-  return page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
+  await showView(page, 'Resultados');
+  await page.waitForSelector('[data-testid="results-panel"] table tbody tr', { timeout: 60000 });
+  const rows = await page.$$eval('[data-testid="results-panel"] table tbody tr', (r) => r.map((x) => [...x.querySelectorAll('td')].map((c) => c.textContent.trim())));
+  await showView(page, 'Lienzo');
+  return rows;
 }
+
+// UA: la vista activa se elige en el tablist «Vistas» (Lienzo = #mode-edit, Resultados = #view-results); la tabla ya no está en el lienzo.
+export async function showView(page, name) {
+  const ids = { Lienzo: 'mode-edit', Resultados: 'view-results', Casos: 'mode-cases', 'Casos de verificación': 'mode-cases', Informe: 'view-report' };
+  const t = page.locator(`#${ids[name] ?? name}`);
+  if ((await t.getAttribute('aria-selected')) !== 'true') await t.click();
+  await page.waitForSelector(`#${ids[name] ?? name}[aria-selected="true"]`);
+}
+
 
 export async function shot(page, name) {
   const p = path.join(SHOTS, `${name}.png`);
@@ -226,6 +240,8 @@ export function writeModel(name, model) {
 
 /** Transformación mundo → página del lienzo, deducida de los tiradores de vértice (aria-label con x e y, más cx y cy). */
 export async function viewportOf(page) {
+  // UA: en móvil el lienzo queda por encima de la lista de pasos y la página puede estar desplazada: se trae el lienzo a la vista antes de medir.
+  await page.locator('svg.ec-svg').scrollIntoViewIfNeeded();
   const box = await page.locator('svg.ec-svg').boundingBox();
   const hs = await page.evaluate(() => [...document.querySelectorAll('[data-handle="vertex"]')].map((g) => {
     const m = /x (-?[\d.,]+) \w+, y (-?[\d.,]+)/.exec(g.getAttribute('aria-label') ?? '');

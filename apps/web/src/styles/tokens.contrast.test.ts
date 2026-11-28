@@ -51,17 +51,23 @@ export function contrast(a: Rgba, b: Rgba): number {
 
 const tokens = parseLightDark(css.slice(css.indexOf('@supports (color: light-dark')));
 
-function colorOf(name: string, theme: Theme, base?: string): Rgba {
+/** Fondo sobre el que se compone un color con alfa si el par no indica otro: el panel en la interfaz, el lienzo en el lienzo. */
+const defaultBase = (name: string): string => (name.startsWith('canvas-') ? 'canvas-bg' : 'ui-surface');
+
+/** `nombre` o `nombre@base`: la base solo cuenta si el color tiene alfa (p. ej. `ui-accent-bg@ui-bg`). */
+function colorOf(spec: string, theme: Theme, base?: string): Rgba {
+  const [name, at] = spec.split('@');
   const entry = tokens[name];
   if (!entry) throw new Error(`token inexistente: --${name}`);
   const c = parseColor(entry[theme]);
-  // Los colores con alfa se componen sobre el fondo indicado (por defecto, el del lienzo).
-  if (c[3] < 1) return over(c, colorOf(base ?? 'canvas-bg', theme));
+  if (c[3] < 1) return over(c, colorOf(at ?? base ?? defaultBase(name), theme));
   return c;
 }
 
 const MATS = [0, 1, 2, 3, 4, 5, 6].map((i) => `canvas-mat-${i}`).concat('canvas-mat-unknown');
 const UI_SURFACES = ['ui-bg', 'ui-surface', 'ui-surface-subtle'];
+/** Fondos con alfa (acento y estados) vistos sobre el panel y sobre el fondo de la app, que es el caso más oscuro del tema oscuro. */
+const ON = (token: string): string[] => [`${token}@ui-surface`, `${token}@ui-bg`];
 
 /** [primer plano, fondo, mínimo, descripción]. */
 type Pair = [string, string, number, string];
@@ -70,29 +76,50 @@ const UI = 3;
 
 const PAIRS: Pair[] = [
   // Texto sobre superficies de la interfaz
-  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-hover', 'ui-surface-active', 'ui-row-selected', 'ui-row-warn', 'ui-input-err-bg'].map(
-    (bg): Pair => ['ui-ink', bg, TEXT, 'texto principal'],
-  ),
-  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-hover', 'ui-row-warn'].map(
-    (bg): Pair => ['ui-ink-muted', bg, TEXT, 'texto atenuado (R7-15)'],
-  ),
+  ...[
+    'ui-bg',
+    'ui-surface',
+    'ui-surface-subtle',
+    'ui-surface-sunken',
+    'ui-surface-hover',
+    ...ON('ui-surface-active'),
+    'ui-row-selected',
+    'ui-row-warn',
+    'ui-input-err-bg',
+  ].map((bg): Pair => ['ui-ink', bg, TEXT, 'texto principal']),
+  // UA1-T: texto secundario (--ui-ink-2) y atenuado (R7-15), también sobre campos y sobre el acento de fondo
+  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-sunken', 'ui-surface-hover', ...ON('ui-accent-bg'), 'ui-row-warn'].flatMap((bg): Pair[] => [
+    ['ui-ink-2', bg, TEXT, 'texto secundario (UA1-T)'],
+    ['ui-ink-muted', bg, TEXT, 'texto atenuado (R7-15)'],
+  ]),
+  // Botón primario: texto blanco sobre el acento y sobre su hover (UA1-T)
   ['ui-ink-on-accent', 'ui-accent', TEXT, 'botón primario'],
   ['ui-ink-on-accent', 'ui-accent-hover', TEXT, 'botón primario, hover'],
-  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-hover', 'ui-surface-active'].map((bg): Pair => ['ui-accent', bg, TEXT, 'acento como texto']),
-  ['ui-ok-ink', 'ui-ok-bg', TEXT, 'estado correcto'],
-  ['ui-ok-ink', 'ui-surface', TEXT, 'estado correcto sobre panel'],
-  ['ui-warn-ink', 'ui-warn-bg', TEXT, 'aviso'],
-  ['ui-warn-ink', 'ui-surface', TEXT, 'aviso sobre panel'],
+  // Acento como texto (pestaña activa, paso activo, enlaces): --ui-accent-bright; sobre el panel, el fondo y el acento de fondo
+  ...['ui-bg', 'ui-surface', 'ui-surface-subtle', 'ui-surface-hover', ...ON('ui-accent-bg')].map((bg): Pair => ['ui-accent-bright', bg, TEXT, 'acento como texto (UA1-T)']),
+  // El acento sólido (herramienta activa, insignia, borde) no es texto: 3:1 contra las superficies
+  ...[...UI_SURFACES, 'ui-surface-sunken'].flatMap((bg): Pair[] => [
+    ['ui-accent', bg, UI, 'acento sólido (herramienta activa, borde)'],
+    ['ui-accent-hover', bg, UI, 'acento sólido, hover'],
+  ]),
+  // Chips y avisos de estado, sobre su fondo (con alfa en oscuro: sobre el panel y sobre el fondo de la app), sobre el panel y sobre el fondo
+  ...(['ok', 'warn', 'err', 'info'] as const).flatMap((s): Pair[] => [
+    ...ON(`ui-${s}-bg`).map((bg): Pair => [`ui-${s}-ink`, bg, TEXT, `chip de estado «${s}»`]),
+    [`ui-${s}-ink`, 'ui-surface', TEXT, `estado «${s}» sobre panel`],
+    [`ui-${s}-ink`, 'ui-bg', TEXT, `estado «${s}» sobre el fondo`],
+  ]),
   ['ui-warn-ink', 'ui-row-warn', TEXT, 'aviso sobre fila'],
-  ['ui-err-ink', 'ui-err-bg', TEXT, 'error'],
-  ['ui-err-ink', 'ui-surface', TEXT, 'error sobre panel'],
+  // UA3-C2 (B-08): la fila mostrada del HUD (`.rs-item-shown`) es --ui-accent-bg; con un método que no convergió, su FS y su estado van en --ui-warn-ink
+  ...ON('ui-accent-bg').map((bg): Pair => ['ui-warn-ink', bg, TEXT, 'fila mostrada del HUD con un método que no convergió (B-08)']),
+  ['ui-warn-ink', 'ui-surface-hover', TEXT, 'aviso del HUD con el cursor encima'],
   ['ui-err-ink', 'ui-input-err-bg', TEXT, 'error en campo'],
-  ['ui-info-ink', 'ui-info-bg', TEXT, 'información'],
   ['ui-note-ink', 'ui-note-bg', TEXT, 'nota'],
   // Elementos de interfaz (3:1)
-  ...UI_SURFACES.map((bg): Pair => ['ui-control-border', bg, UI, 'borde de control (UX-06)']),
-  ...[...UI_SURFACES, 'ui-surface-active', 'canvas-bg'].map((bg): Pair => ['ui-focus', bg, UI, 'anillo de foco']),
+  ...[...UI_SURFACES, 'ui-surface-sunken'].map((bg): Pair => ['ui-control-border', bg, UI, 'borde de control (UX-06)']),
+  ...[...UI_SURFACES, 'ui-surface-sunken', ...ON('ui-surface-active'), 'canvas-bg'].map((bg): Pair => ['ui-focus', bg, UI, 'anillo de foco']),
+  ...['ui-surface', 'ui-bg', ...ON('ui-info-bg')].map((bg): Pair => ['ui-info-border', bg, UI, 'borde del aviso informativo']),
   ['ui-err-border', 'ui-surface', UI, 'borde de campo inválido'],
+  ['ui-err-border', 'ui-surface-sunken', UI, 'borde de campo inválido'],
   ['ui-err-border', 'ui-input-err-bg', UI, 'borde de campo inválido'],
   // Texto del lienzo (la etiqueta de los ejes y de las cargas)
   ['canvas-axis-text', 'canvas-bg', TEXT, 'etiquetas de los ejes'],
@@ -112,6 +139,9 @@ const PAIRS: Pair[] = [
   ...['canvas-bg', ...UI_SURFACES, 'ui-row-warn', ...MATS].map((bg): Pair => ['canvas-slice-edge', bg, UI, 'trazo y muestra de «Dovelas»']),
   // Muestras de la leyenda (F5.3, F5.4): el borde del «Agua embalsada» y la línea de la «Grieta de tracción» sobre el panel.
   ...UI_SURFACES.flatMap((bg): Pair[] => ['canvas-piezo', 'canvas-surface'].map((fg): Pair => [fg, bg, UI, 'muestra de la leyenda (agua embalsada y grieta)'])),
+  // UA3-C2 (B-08): las bandas de entrada y salida de la búsqueda (objeto gráfico esencial, 3:1) sobre el fondo del lienzo. Con alfa, se componen sobre él.
+  // Sobre los materiales no se fijan: las bandas van en el aire, sobre el terreno (cifras en la cabecera de tokens.css).
+  ...['canvas-band-entry', 'canvas-band-exit'].map((fg): Pair => [fg, 'canvas-bg', UI, 'banda de entrada o salida de la búsqueda (B-08)']),
   // Tiradores: relleno y aro, y el tirador de la piezométrica
   ['canvas-handle-ring', 'canvas-handle-sel', UI, 'tirador seleccionado'],
   ['canvas-handle-ring', 'canvas-handle-snap', UI, 'tirador con imán'],
@@ -146,17 +176,19 @@ describe('tokens.css: contraste WCAG en claro y en oscuro', () => {
 
 describe('tokens.css: contrato y respaldos', () => {
   const required = [
-    ...['bg', 'surface', 'surface-subtle', 'surface-hover', 'surface-active', 'backdrop'].map((n) => `ui-${n}`),
-    ...['ink', 'ink-muted', 'ink-on-accent', 'border', 'control-border', 'focus', 'accent', 'accent-hover'].map((n) => `ui-${n}`),
+    ...['bg', 'surface', 'surface-subtle', 'surface-sunken', 'surface-hover', 'surface-active', 'backdrop'].map((n) => `ui-${n}`),
+    ...['ink', 'ink-2', 'ink-muted', 'ink-on-accent', 'border', 'border-strong', 'border-dashed', 'control-border', 'focus'].map((n) => `ui-${n}`),
+    ...['accent', 'accent-hover', 'accent-bright', 'accent-bg'].map((n) => `ui-${n}`),
     ...(['ok', 'warn', 'err'] as const).flatMap((s) => [`ui-${s}-bg`, `ui-${s}-ink`, `ui-${s}-border`]),
     'ui-info-bg',
     'ui-info-ink',
+    'ui-info-border',
     'ui-note-bg',
     'ui-note-ink',
     'ui-row-selected',
     'ui-row-warn',
     'ui-input-err-bg',
-    ...['bg', 'grid', 'axis', 'axis-text', 'halo', 'region-edge', 'selected', 'surface', 'surface-unconverged', 'piezo', 'load', 'seismic', 'seismic-bg'].map(
+    ...['bg', 'grid', 'grid-major', 'axis', 'axis-text', 'halo', 'region-edge', 'selected', 'surface', 'surface-unconverged', 'piezo', 'load', 'seismic', 'seismic-bg'].map(
       (n) => `canvas-${n}`,
     ),
     'canvas-band-entry',
@@ -168,7 +200,7 @@ describe('tokens.css: contrato y respaldos', () => {
     'canvas-mat-unknown',
   ];
 
-  it('define todos los tokens del contrato PLAN_UX', () => {
+  it('define todos los tokens del contrato PLAN_UX y del contrato UA (§3.1)', () => {
     expect(required.filter((n) => !tokens[n])).toEqual([]);
   });
 
@@ -198,5 +230,63 @@ describe('tokens.css: contrato y respaldos', () => {
       expect(mediaDark[name], `@media oscuro ${name}`).toBe(dark);
       expect(forcedDark[name], `data-theme=dark sin light-dark ${name}`).toBe(dark);
     }
+  });
+});
+
+describe('tokens.css: identidad de la suite v1.1 (UA1-T)', () => {
+  const value = (name: string, theme: Theme): string => tokens[name][theme];
+
+  it('el acento es el azul acero de la suite con texto blanco en ambos temas (UA-D5)', () => {
+    expect(value('ui-accent', 'dark')).toBe('#2c77c3');
+    expect(value('ui-accent', 'light')).toBe('#2f6da8');
+    expect(value('ui-ink-on-accent', 'dark')).toBe('#ffffff');
+    expect(value('ui-ink-on-accent', 'light')).toBe('#ffffff');
+    expect(value('ui-accent-hover', 'dark')).not.toBe(value('ui-accent', 'dark'));
+    expect(value('ui-accent-hover', 'light')).not.toBe(value('ui-accent', 'light'));
+  });
+
+  it('las superficies, el texto y los bordes toman los valores de la suite (XA4 §3.1)', () => {
+    const suite: Record<string, [string, string]> = {
+      'ui-bg': ['#eceef1', '#0a0a0b'],
+      'ui-surface': ['#f6f7f9', '#101011'],
+      'ui-surface-subtle': ['#e1e5ea', '#18181b'],
+      'ui-surface-sunken': ['#e4e7eb', '#060607'],
+      'ui-surface-hover': ['#dde2e8', '#1d1d21'],
+      'ui-ink': ['#1f2933', '#e6e9ee'],
+      'ui-ink-2': ['#46525f', '#b3bcc8'],
+      'ui-border': ['#d3d9e0', '#1d1d20'],
+      'ui-control-border': ['#737d8a', '#5b6673'],
+      'ui-focus': ['#275d91', '#6db3f2'],
+      'ui-accent-bright': ['#275d91', '#6db3f2'],
+      'canvas-bg': ['#f6f7f9', '#060607'],
+      'canvas-grid': ['#e6e9ed', '#17171a'],
+      'canvas-grid-major': ['#d3d9e0', '#232328'],
+      'canvas-region-edge': ['#1f2933', '#d9dee5'],
+      'canvas-handle-fill': ['#ffffff', '#0a0a0b'],
+      'canvas-handle-ring': ['#1f2933', '#e6e9ee'],
+    };
+    for (const [name, [light, dark]] of Object.entries(suite)) {
+      expect(value(name, 'light'), `claro ${name}`).toBe(light);
+      expect(value(name, 'dark'), `oscuro ${name}`).toBe(dark);
+    }
+  });
+
+  it('--ui-surface-active y --ui-accent-bg son el mismo color (acento con alfa)', () => {
+    for (const theme of ['light', 'dark'] as const) expect(value('ui-surface-active', theme)).toBe(value('ui-accent-bg', theme));
+  });
+
+  it('los valores claros de --canvas-mat-0…6 no cambian: el PDF (report/palette.ts) está atado a ellos', () => {
+    const light = ['#d8b77a', '#9cc29a', '#9fb9d9', '#dba5a5', '#c2a8d8', '#e3cf86', '#a9d4d0'];
+    light.forEach((hex, i) => expect(value(`canvas-mat-${i}`, 'light')).toBe(hex));
+  });
+
+  it('declara las fuentes, los radios y la sombra de las capas flotantes (los de la sombra, con medidas distintas por tema)', () => {
+    expect(css).toMatch(/--ui-font-sans:\s*'Outfit Variable',\s*system-ui/);
+    expect(css).toMatch(/--ui-font-mono:\s*'JetBrains Mono Variable',\s*ui-monospace/);
+    expect(css).toMatch(/--ui-radius-sm:\s*4px;/);
+    expect(css).toMatch(/--ui-radius-md:\s*8px;/);
+    expect(css).toMatch(/--ui-radius-lg:\s*12px;/);
+    expect(css).toMatch(/html\[data-theme='dark'\]\s*\{[^}]*--ui-shadow-float:\s*0 12px 36px rgb\(0 0 0 \/ 0\.6\);/);
+    expect(css).toMatch(/html\[data-theme='light'\]\s*\{[^}]*--ui-shadow-float:\s*0 12px 32px rgb\(15 23 42 \/ 0\.12\);/);
   });
 });

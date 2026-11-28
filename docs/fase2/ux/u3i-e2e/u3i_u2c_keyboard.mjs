@@ -63,12 +63,13 @@ step('1 el lienzo es una sola parada de tabulación (roving tabindex) con instru
 // 2. Llegar al lienzo solo con Tab
 let tabs = 0;
 await page.evaluate(() => document.body.focus());
-for (; tabs < 60; tabs += 1) {
+// UA: la barra lateral (pasos, campos del panel abierto en línea y pie de acción) precede al lienzo en el orden de foco: el tope pasa de 60 a 200 paradas.
+for (; tabs < 200; tabs += 1) {
   await kb.press('Tab');
   if ((await active()).key) break;
 }
 const a0 = await active();
-step('2 Tab llega al lienzo (primer tirador activo)', !!a0.key && tabs < 40, { tabsDesdeElInicio: tabs + 1, foco: a0 });
+step('2 Tab llega al lienzo (primer tirador activo)', !!a0.key && tabs < 160, { tabsDesdeElInicio: tabs + 1, foco: a0 });
 await page.screenshot({ path: path.join(SHOTS, 'kb-01-foco-en-lienzo.png') });
 
 // 3. Recorrer con ] y [ ; Tab interno

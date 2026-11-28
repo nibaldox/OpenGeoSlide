@@ -3,11 +3,13 @@ import {
   ONBOARDING_KEY,
   TOUR_STEPS,
   autoOpenTour,
+  clipRect,
   hasSeenTour,
   initialTour,
   markTourSeen,
   matchesTarget,
   placePopover,
+  revealBlock,
   ringRect,
   shouldCloseTourOnEscape,
   stepProgress,
@@ -151,8 +153,8 @@ describe('matchesTarget', () => {
   });
   it('con texto se compara como expresión regular sobre el texto del elemento', () => {
     const t = { selector: '.dd-trigger', text: '^Archivo' };
-    expect(matchesTarget(t, 'Archivo ▾')).toBe(true);
-    expect(matchesTarget(t, 'Exportar ▾')).toBe(false);
+    expect(matchesTarget(t, 'Archivo')).toBe(true);
+    expect(matchesTarget(t, 'Exportar')).toBe(false);
   });
 });
 
@@ -230,5 +232,27 @@ describe('Esc global de la guía (A-06)', () => {
   it('un menú abierto o un manejador que ya usó la tecla tienen prioridad', () => {
     expect(shouldCloseTourOnEscape({ ...base, menuOpen: true })).toBe(false);
     expect(shouldCloseTourOnEscape({ ...base, defaultPrevented: true })).toBe(false);
+  });
+});
+
+describe('UA2-F8: destinos más altos que la pantalla o pegados al borde', () => {
+  const vp = { width: 390, height: 844 };
+  it('clipRect limita el anillo a la parte visible, con el margen del anillo', () => {
+    expect(clipRect({ x: -2, y: -300, width: 394, height: 1926 }, vp)).toEqual({ x: 4, y: 4, width: 382, height: 836 });
+  });
+  it('un destino dentro del viewport no cambia', () => {
+    const r = { x: 10, y: 740, width: 370, height: 48 };
+    expect(clipRect(r, vp)).toEqual(r);
+  });
+  it('un destino fuera del viewport se deja tal cual', () => {
+    const r = { x: 10, y: 2000, width: 370, height: 48 };
+    expect(clipRect(r, vp)).toEqual(r);
+  });
+  it('revealBlock: más alto que la pantalla → inicio; visible con margen → nearest; cortado o fuera → centro', () => {
+    expect(revealBlock({ x: 0, y: 0, width: 390, height: 1926 }, 844)).toBe('start');
+    expect(revealBlock({ x: 0, y: 100, width: 390, height: 270 }, 844)).toBe('nearest');
+    expect(revealBlock({ x: 0, y: 0, width: 390, height: 270 }, 844)).toBe('center');
+    expect(revealBlock({ x: 0, y: -40, width: 390, height: 270 }, 844)).toBe('center');
+    expect(revealBlock({ x: 0, y: 700, width: 390, height: 270 }, 844)).toBe('center');
   });
 });

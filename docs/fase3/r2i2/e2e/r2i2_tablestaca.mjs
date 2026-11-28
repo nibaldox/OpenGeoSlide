@@ -7,7 +7,7 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, saveBlob, saveText, cli, compare, baseModel, writeModel, viewportOf, setField, fieldOf } from './lib.mjs';
+import { launchTap, start, tab, step, summary, shot, canvasShot, axe, checkReport, openFile, showView, saveBlob, saveText, cli, compare, baseModel, writeModel, viewportOf, setField, fieldOf } from './lib.mjs';
 
 // R11B-07 (E14o-16): la tablestaca trazada en el lienzo ya no se llama «tablestaca-1»: el lienzo y el botón «Agregar» comparten ids (a1, n1, g1, p1, s1).
 const T = process.env.TMPDIR;
@@ -76,12 +76,16 @@ for (const scheme of ['light', 'dark']) {
   step(`(${tag}) 4a el lienzo dibuja una flecha por fuerza aplicada`, arrows === 2, { arrows });
   const syms = await page.locator('[data-layer="reinforcements"] [data-reinforcement]').evaluateAll((g) => g.map((x) => x.getAttribute('data-reinforcement-type')));
   step(`(${tag}) 4b un símbolo por refuerzo (tablestaca y anclaje)`, syms.join() === 'sheet_pile,anchor', { syms });
+  // UA: la tabla de fuerzas y las notas viven en la vista «Resultados»; se abre para leerlas y se vuelve a «Lienzo».
+  await showView(page, 'Resultados');
   const tables = await page.locator('[data-testid="reinforcement-forces"] table').count();
   const tableText = (await page.locator('[data-testid="reinforcement-forces"]').innerText()).replace(/\s+/g, ' ');
   step(`(${tag}) 4c una tabla de fuerzas por método con id, tipo, cruce, estación, disponible, aplicada, movilizada y estado (E14o-14)`, tables === 5 && /Id Tipo Cruce Estación \(m\) Disponible \(kN\/m\) Aplicada fx; fy \(kN\/m\) Movilizada fx; fy \(kN\/m\) Aplicación Estado/.test(tableText) && /s1 Tablestaca 1/.test(tableText) && /a1 Anclaje 1/.test(tableText) && /Aplicada/.test(tableText), { tables, tableText: tableText.slice(0, 400) });
   step(`(${tag}) 4d el texto del límite de F4.8 está en los resultados`, LIMIT.test(tableText) && (await page.getByTestId('structural-limit').count()) === 1);
   await page.getByTestId('reinforcement-forces').scrollIntoViewIfNeeded();
   await shot(page, `tablestaca-${scheme}-2-tabla`);
+  await axe(page, `tabla de fuerzas en la vista Resultados (${tag})`);
+  await showView(page, 'Lienzo');
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(200);
   await shot(page, `tablestaca-${scheme}-3-resultado`);
