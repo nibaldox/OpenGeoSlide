@@ -1113,7 +1113,7 @@ function checkShape(model: Rec, issues: Issue[]): void {
               if (key === 'algorithm' && typeof v === 'string' && !isGlobalAlgorithm(v)) {
                 err(
                   'io.shape',
-                  `En ${describePath(`${gb}/${key}`)} el algoritmo no se reconoce: debe ser automático (auto), bloque (block) o recocido (annealing).`,
+                  `En ${describePath(`${gb}/${key}`)} el valor no se reconoce: debe ser automático (auto), bloque (block) o recocido (annealing).`,
                   `${gb}/${key}`,
                   `${key} = ${JSON.stringify(v)}`,
                 );
