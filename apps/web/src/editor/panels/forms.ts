@@ -1489,7 +1489,12 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   const vertices = form.non_circular ? take(errors, 'max_vertices', form.max_vertices ?? '', { required: false, missing: '', accept: v => [9, 17, 33].includes(v), range: 'Vértices: use 9, 17 o 33' }) : null;
   // F7.5: los valores por defecto no se escriben; `global: {}` queda vacío mientras el usuario no cambie ningún campo.
   const withGlobal = form.non_circular === true && form.global === true;
+  // RCM-B-03: un algoritmo desconocido (p. ej. de un borrador viejo) no se descarta en silencio: es un error del campo y la
+  // búsqueda no se aplica hasta que el usuario elija uno válido.
   const gAlgorithm = withGlobal && form.global_algorithm && isGlobalAlgorithm(form.global_algorithm) ? form.global_algorithm : null;
+  if (withGlobal && form.global_algorithm && gAlgorithm === null) {
+    errors.global_algorithm = `Algoritmo: «${form.global_algorithm}» no es válido; elija Automático, Bloque sobre capas débiles o Recocido`;
+  }
   const gGenerated = withGlobal
     ? take(errors, 'global_generated', form.global_generated ?? '', {
         required: false,

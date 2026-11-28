@@ -404,9 +404,9 @@ export interface GlobalStats {
   converged: number;
   /** Convergidos que pasan la guarda de tracción (F7.4). */
   eligible: number;
-  /** Convergidos que rechazó la guarda. */
+  /** Candidatos de la generación que rechazó la guarda; la nota de tracción cubre toda la etapa global (E17e §6). */
   tension_rejected: number;
-  /** Polilíneas del generador que se refinaron (≤ 3). */
+  /** Polilíneas que llegan al refinamiento completo de 1500 evaluaciones: 0 o 1 (E17e §7). */
   refined: number;
   /** Evaluaciones de toda la etapa global: generación, refinamiento y pulido. */
   evaluated: number;

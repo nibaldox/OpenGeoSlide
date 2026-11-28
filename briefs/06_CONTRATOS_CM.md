@@ -175,7 +175,7 @@ cSlope las evalúa entre 11 % y 66 % más arriba (V051, S1 y los taludes con c =
   `eligible`, `tension_rejected` y `global_fos`, solo si hay `global`.
 - Las notas de F7.2 entran en `ENGINE_WARNING_CODES`, en el catálogo y en el puntero de avisos.
 - **La Ayuda** explica cuándo usar la búsqueda global (capas débiles, contactos, mecanismos de bloque), su costo (hasta
-  unas 8000 evaluaciones más) y la guarda.
+  unas 5700 evaluaciones más con los valores por defecto: E17c y E17e) y la guarda.
 - **Sin `global`, la web produce los mismos documentos que la v0.5.1.**
 
 ## F7.6 Casos

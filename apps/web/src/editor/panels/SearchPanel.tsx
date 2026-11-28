@@ -61,6 +61,7 @@ export function SearchPanel({ store }: { store: EditorStore }) {
   const selectRange = (which: 'entry' | 'exit') => (): void =>
     store.dispatch({ type: 'ui/select', selection: { kind: 'search_range', which } });
   const err = (key: string): string | undefined => (key in errors ? errors[key] : undefined);
+  const algorithmError = err('global_algorithm');
 
   const count = (key: 'n_entry' | 'n_exit' | 'n_radius', label: string) => (
     <LabeledField
@@ -219,6 +220,8 @@ export function SearchPanel({ store }: { store: EditorStore }) {
                 <span>Algoritmo</span>
                 <select
                   data-path="/analysis/search/non_circular/global/algorithm"
+                  aria-invalid={algorithmError ? true : undefined}
+                  aria-describedby={algorithmError ? 'global-algorithm-error' : undefined}
                   value={form.global_algorithm || GLOBAL_DEFAULTS.algorithm}
                   onChange={(e) => {
                     const next = { ...form, global_algorithm: e.target.value === GLOBAL_DEFAULTS.algorithm ? '' : e.target.value };
@@ -234,8 +237,15 @@ export function SearchPanel({ store }: { store: EditorStore }) {
                       {GLOBAL_ALGORITHM_LABEL[a]}
                     </option>
                   ))}
+                  {/* RCM-B-03: un valor desconocido se muestra tal cual, como error, y no como «Automático». */}
+                  {algorithmError ? <option value={form.global_algorithm}>{`${form.global_algorithm} (no válido)`}</option> : null}
                 </select>
               </label>
+              {algorithmError ? (
+                <span id="global-algorithm-error" className="ep-error" role="alert">
+                  {algorithmError}
+                </span>
+              ) : null}
               <div className="ep-grid">
                 <LabeledField
                   label="Candidatos"

@@ -41,4 +41,4 @@ export function isGlobalAlgorithm(v: unknown): v is GlobalAlgorithm {
 }
 
 /** Presupuesto aproximado de evaluaciones adicionales por método con los valores por defecto (F7.3). */
-export const GLOBAL_BUDGET_APPROX = 8000;
+export const GLOBAL_BUDGET_APPROX = 5700;

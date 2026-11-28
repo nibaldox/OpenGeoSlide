@@ -199,13 +199,28 @@ describe('v0.7: rechazos de forma con su ruta (F7.1)', () => {
   });
 
   it('los rangos no son del archivo: abre y validateLocal los señala', () => {
-    const doc = open(model('0.7', { global: { generated: 10, seed: -1, algorithm: 'path' } })).doc as ModelDoc;
+    const doc = open(model('0.7', { global: { generated: 10, seed: -1 } })).doc as ModelDoc;
     expect(doc).not.toBeNull();
     const msgs = validateLocal(doc).filter((i) => i.severity === 'error').map((i) => i.text);
     expect(msgs).toContain('analysis.search.non_circular.global.generated debe estar en [50, 2000], no 10');
     expect(msgs).toContain('analysis.search.non_circular.global.seed debe estar en [0, 9007199254740991], no -1');
-    expect(msgs).toContain('analysis.search.non_circular.global.algorithm debe ser "auto", "block" o "annealing", no "path"');
   });
+
+  // RCM-B-03: `algorithm` es un enum cerrado: un texto desconocido se rechaza al abrir (como `interslice.function`), no se deja pasar.
+  it('un algoritmo desconocido se rechaza al abrir con io.shape y el puntero del campo', () => {
+    for (const bad of ['typo', 'path', 'Auto', '']) {
+      const r = open(model('0.7', { global: { generated: 50, seed: 0, polish: false, algorithm: bad } }));
+      expect(r.doc, bad).toBeNull();
+      const e = r.issues.find((i) => i.code === 'io.shape');
+      expect(e?.path, bad).toBe('/analysis/search/non_circular/global/algorithm');
+      expect(e?.text, bad).toContain('la búsqueda global (algoritmo)');
+      expect(e?.text, bad).toContain('no se reconoce');
+    }
+    for (const good of ['auto', 'block', 'annealing']) {
+      expect(open(model('0.7', { global: { algorithm: good } })).doc, good).not.toBeNull();
+    }
+  });
+
 });
 
 describe('v0.7: la versión del documento sube y baja con global (reducer)', () => {
@@ -294,11 +309,15 @@ describe.skipIf(!haveV07Engine)('v0.7: motor real (OGS_V07_ENGINE)', () => {
   });
 
   it('el motor rechaza los mismos rangos que validateLocal', () => {
-    for (const g of [{ generated: 10 }, { generated: 5000 }, { seed: -1 }, { algorithm: 'path' }]) {
+    for (const g of [{ generated: 10 }, { generated: 5000 }, { seed: -1 }]) {
       const r = analyzeWithEngine(JSON.stringify(withGlobal(g)));
       expect(r.status, JSON.stringify(g)).not.toBe(0);
       const local = validateLocal(open(withGlobal(g)).doc as ModelDoc).filter((i) => i.severity === 'error');
       expect(local.length, JSON.stringify(g)).toBeGreaterThan(0);
     }
+    // El algoritmo desconocido lo rechazan los dos al abrir (RCM-B-03): el motor al leer el JSON y la web con io.shape.
+    const algo = withGlobal({ algorithm: 'path' });
+    expect(analyzeWithEngine(JSON.stringify(algo)).status).not.toBe(0);
+    expect(open(algo).doc).toBeNull();
   });
 });

@@ -200,7 +200,7 @@ describe('F7.5: casilla y campos de la búsqueda global', () => {
     const store = createEditorStore(docWith({ global: {} }, ['bishop', 'spencer']));
     const m = mountPanel(store);
     expect(m.find((n) => n.props['data-testid'] === 'non-circular-bishop-note')).toBeDefined();
-    expect(m.text()).toMatch(/8\s000 evaluaciones/);
+    expect(m.text()).toMatch(/5\s700 evaluaciones/);
     const store2 = createEditorStore(docWith({ global: {} }));
     expect(mountPanel(store2).find((n) => n.props['data-testid'] === 'non-circular-bishop-note')).toBeUndefined();
   });

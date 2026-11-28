@@ -16,6 +16,8 @@ import type { Issue, ModelDoc } from '../editor/types';
 // Con extensión `.ts` (R12, E15l-19): `verification/tools/web_roundtrip_save.mjs` carga este módulo con `node --experimental-strip-types`,
 // que no resuelve importaciones de valor sin extensión (la cadena pond → polylineGround también la lleva).
 import { pondPolygons } from '../render/pond.ts';
+// Mismo motivo para la extensión: `globalSearch.ts` solo importa tipos, así que `--experimental-strip-types` lo carga.
+import { isGlobalAlgorithm } from '../engine/globalSearch.ts';
 
 export const OGS_FORMAT = 'opengeoslide';
 /** Versión que se guarda cuando el modelo no usa ningún campo de la v0.3 o superior (F3.9). */
@@ -1105,6 +1107,18 @@ function checkShape(model: Rec, issues: Issue[]): void {
             for (const key of GLOBAL_KEYS) {
               const v = g[key];
               if (OPTIONAL_ABSENT(v)) continue;
+              // RCM-B-03: `algorithm` es un enum cerrado (auto, block, annealing), como `interslice.function` y `material.model`: un
+              // texto desconocido se rechaza aquí, igual que el motor (serde). Los números fuera de rango siguen abriéndose y los
+              // señala `validateLocal`.
+              if (key === 'algorithm' && typeof v === 'string' && !isGlobalAlgorithm(v)) {
+                err(
+                  'io.shape',
+                  `En ${describePath(`${gb}/${key}`)} el valor no se reconoce: debe ser automático (auto), bloque (block) o recocido (annealing).`,
+                  `${gb}/${key}`,
+                  `${key} = ${JSON.stringify(v)}`,
+                );
+                continue;
+              }
               const ok = key === 'algorithm' ? typeof v === 'string' : key === 'polish' ? typeof v === 'boolean' : isNum(v);
               if (!ok) {
                 err(

@@ -1,9 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useContext, useEffect, useId, useRef } from 'react';
 import { hoekBrownParameters } from '../state/hoekBrown';
 import type { Material, MaterialModel } from '../../engine/types';
 import type { EditorStore, ModelDoc } from '../types';
-import { ErrorList, LabeledField, PanelSection, TextInput } from './Fields';
-import { useDraft, useStoreSelector } from './useStoreSelector';
+import { ErrorList, LabeledField, PanelSection, RowsPendingNote, TextInput } from './Fields';
+import { DocEpochContext, useDraft, useStoreSelector } from './useStoreSelector';
 import {
   MATERIAL_MODEL_OPTIONS,
   defaultStrengthGradient,
@@ -17,6 +17,7 @@ import {
   materialUsage,
   newMaterialForm,
   regionMaterialCommand,
+  ROWS_PENDING_REASON,
   setPendingDraft,
   setSuVariable,
   switchMaterialModel,
@@ -105,6 +106,19 @@ export const MATERIAL_RANGES_NOTE =
   'SHANSEP: S mayor que 0, exponente m en [0, 1] (vacío = 0,8), exactamente una fuente de OCR (OCR constante, POP o tabla por cota), OCR ≥ 1 y POP ≥ 0; ' +
   'la tabla necesita al menos 2 filas con la cota estrictamente creciente.';
 
+/** ¿Hay una fila de la tabla `ocr_by_elevation` con un borrador sin aplicar (celda inválida o tabla que no se puede aplicar)? */
+export function shansepRowsPending(errors: Readonly<Record<string, string>>): boolean {
+  return 'ocrRows' in errors || Object.keys(errors).some((k) => /^row\d+(y|ocr)$/.test(k));
+}
+
+/** Cota de la fila que «Agregar fila» inserta (la última + 1), o `null` si la última cota no es un número: nunca un `NaN`. */
+export function nextOcrRowY(rows: readonly { y: string }[]): string | null {
+  const last = rows[rows.length - 1];
+  if (!last || last.y.trim() === '') return null;
+  const n = Number(last.y.trim().replace(',', '.'));
+  return Number.isFinite(n) ? formatNumber(n + 1) : null;
+}
+
 function MaterialExtras({ form, setForm, scope, units, errors, commit, index, onReset }: {
   form: MaterialForm;
   setForm: (f: MaterialForm) => void;
@@ -116,6 +130,7 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit, index, on
   onReset?: () => void;
 }) {
   const sourceId = useId();
+  const pendingNoteId = useId();
   const basePath = index !== undefined ? `/materials/${index}` : undefined;
   const update = (next: MaterialForm) => { setForm(next); commit?.(next); };
   if (form.model === 'hoek_brown') {
@@ -131,6 +146,12 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit, index, on
   if (form.model !== 'shansep') return null;
   const rows = form.ocrRows ?? [{ y: '0', ocr: '1' }, { y: '1', ocr: '1' }];
   const ocrKey = form.ocrSource === 'pop' ? 'pop' : 'ocr';
+  // W1-1c: con una fila con borrador pendiente (cota u OCR inválidos, o tabla no aplicable) «Agregar fila» y «Quitar» reemplazarían
+  // las filas y perderían el borrador: quedan deshabilitados, con el motivo y la nota enlazada.
+  const rowsPending = shansepRowsPending(errors);
+  const rowsReason = rowsPending ? ROWS_PENDING_REASON : undefined;
+  const rowsDescribedBy = rowsPending ? pendingNoteId : undefined;
+  const nextY = nextOcrRowY(rows);
   return <fieldset className="field" style={{ gridColumn: '1 / -1' }}><legend>Fuente de OCR</legend>
     <div className="field"><label htmlFor={sourceId}><span className="visually-hidden">{scope}: </span>Fuente de OCR</label><select
       id={sourceId}
@@ -174,13 +195,14 @@ function MaterialExtras({ form, setForm, scope, units, errors, commit, index, on
                   onReset={onReset}
                 />
               </td>)}
-              <td><button type="button" disabled={rows.length <= 2} aria-label={`${scope}: quitar la fila ${i + 1}`} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar</button></td>
+              <td><button type="button" disabled={rows.length <= 2 || rowsPending} title={rowsReason} aria-describedby={rowsDescribedBy} aria-label={`${scope}: quitar la fila ${i + 1}`} onClick={() => update({ ...form, ocrRows: rows.filter((_, j) => i !== j) })}>Quitar</button></td>
             </tr>)}
           </tbody>
         </table>
       </div>
       <ErrorList errors={Object.fromEntries(Object.entries(errors).filter(([k]) => /^row\d+(y|ocr)$/.test(k)))} />
-      <button type="button" onClick={() => update({ ...form, ocrRows: [...rows, { y: formatNumber(Number(rows[rows.length - 1].y.replace(',', '.')) + 1), ocr: rows[rows.length - 1].ocr }] })}>Agregar fila</button>
+      <RowsPendingNote id={pendingNoteId} pending={rowsPending} />
+      <button type="button" disabled={rowsPending || nextY === null} title={rowsReason} aria-describedby={rowsDescribedBy} onClick={() => { if (nextY !== null) update({ ...form, ocrRows: [...rows, { y: nextY, ocr: rows[rows.length - 1].ocr }] }); }}>Agregar fila</button>
       {errors.ocrRows ? <p className="ep-error">{errors.ocrRows}</p> : null}
     </>}
   </fieldset>;
@@ -347,12 +369,19 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
   units: string | undefined;
   initiallyOpen?: boolean;
 }) {
-  const [form, setForm] = useState<MaterialForm | null>(() => (initiallyOpen ? newMaterialForm(ids, units) : null));
+  // W1-1a (RCM-B-04): el formulario es un borrador y se reinicia con `docEpoch` (Nuevo, Abrir, ejemplos): se cierra, o vuelve al
+  // formulario inicial si `initiallyOpen`. La referencia para saber si hay cambios viaja con el borrador, para reiniciarse con él.
+  const epoch = useContext(DocEpochContext);
+  const [draft, setDraft] = useDraft(() => {
+    const initial = initiallyOpen ? newMaterialForm(ids, units) : null;
+    return { form: initial, baseline: initial === null ? null : JSON.stringify(initial) };
+  }, []);
+  const form = draft.form;
+  const setForm = (next: MaterialForm | null): void => setDraft({ form: next, baseline: draft.baseline });
   const u = unitLabels(units);
   const open = form !== null;
   // R16c: el formulario abierto con cambios sin agregar es un borrador pendiente (el material nuevo solo entra al modelo con «Agregar material»).
-  const baseline = useRef<string | null>(form === null ? null : JSON.stringify(form));
-  const pending = newMaterialDraftPending(form, baseline.current);
+  const pending = newMaterialDraftPending(form, draft.baseline);
   useEffect(() => {
     setPendingDraft(store, NEW_MATERIAL_DRAFT.key, pending ? NEW_MATERIAL_DRAFT.label : null);
     return () => setPendingDraft(store, NEW_MATERIAL_DRAFT.key, null);
@@ -360,19 +389,26 @@ export function NewMaterial({ store, ids, units, initiallyOpen = false }: {
   const fieldsetRef = useRef<HTMLFieldSetElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
+  const lastEpoch = useRef(epoch);
   useEffect(() => {
+    // Al cambiar de documento el formulario se reinicia solo: no es un cierre del usuario y el foco no se mueve.
+    const epochChanged = lastEpoch.current !== epoch;
+    lastEpoch.current = epoch;
+    if (epochChanged) {
+      wasOpen.current = open;
+      return;
+    }
     // Al abrir, el foco va al primer campo; al cerrar (agregar o cancelar), vuelve a «Nuevo material…».
     if (open && !wasOpen.current && !initiallyOpen) fieldsetRef.current?.querySelector('input')?.focus();
     else if (!open && wasOpen.current) openerRef.current?.focus();
     wasOpen.current = open;
-  }, [open, initiallyOpen]);
+  }, [open, initiallyOpen, epoch]);
   if (form === null) {
     return (
       <div className="ep-actions">
         <button ref={openerRef} type="button" onClick={() => {
           const initial = newMaterialForm(ids, units);
-          baseline.current = JSON.stringify(initial);
-          setForm(initial);
+          setDraft({ form: initial, baseline: JSON.stringify(initial) });
         }}>
           Nuevo material…
         </button>
