@@ -17,12 +17,16 @@ import {
   planRegionImport,
   suggestBaseText,
   unitFactor,
+  addModeLabel,
+  defaultImportMode,
+  type ImportBase,
   type LengthUnit,
   type RegionImportPlan,
 } from './importPlan';
 import { isImperialUnits } from '../state/units';
 import { layerChoice } from './layerChoice';
 import { restoreFocus } from '../../ui/focusReturn';
+import { EXAMPLE_FILES, exampleFileUrl, type ExampleFile } from '../../onboarding/exampleFiles';
 
 /** Elemento que recibe el foco al abrir un `Modal`: el pedido, si sigue conectado; si no, el título. */
 export function pickInitialFocus<T extends { isConnected: boolean }>(requested: T | null | undefined, title: T | null | undefined): T | null {
@@ -137,17 +141,25 @@ function LayerMapTable({ layers, materials, mapping, onChange }: {
   );
 }
 
-function ModeChoice({ mode, onChange }: { mode: 'add' | 'replace'; onChange: (m: 'add' | 'replace') => void }) {
+/** Enlace para bajar el archivo de ejemplo del formato que se está importando. */
+function ExampleLink({ file }: { file: ExampleFile }) {
+  return (
+    <p className="small muted" data-testid="example-download">
+      ¿No tiene un archivo? <a href={exampleFileUrl(file)} download={file.fileName}>{file.label}</a>.
+    </p>
+  );
+}
+
+function ModeChoice({ mode, onChange, base }: { mode: 'add' | 'replace'; onChange: (m: 'add' | 'replace') => void; base?: ImportBase }) {
   const name = useId();
   return (
     <fieldset className="ea-fieldset">
       <legend>Destino</legend>
       <label>
-        <input type="radio" name={name} checked={mode === 'add'} onChange={() => onChange('add')} /> Agregar a las regiones actuales
+        <input type="radio" name={name} checked={mode === 'add'} onChange={() => onChange('add')} /> {addModeLabel(base)}
       </label>
       <label>
-        <input type="radio" name={name} checked={mode === 'replace'} onChange={() => onChange('replace')} /> Reemplazar las regiones
-        actuales
+        <input type="radio" name={name} checked={mode === 'replace'} onChange={() => onChange('replace')} /> Reemplazar las regiones actuales
       </label>
     </fieldset>
   );
@@ -170,16 +182,18 @@ export interface DxfDialogProps {
   result: DxfParseResult;
   materials: readonly Material[];
   units: string | undefined;
+  /** Modelo abierto: decide el destino por defecto y lo nombra. Sin él, «Agregar» y rótulos genéricos. */
+  base?: ImportBase;
   onCancel: () => void;
   onApply: (plan: RegionImportPlan, mode: 'add' | 'replace') => void;
 }
 
-export function DxfImportDialog({ fileName, result, materials, units, onCancel, onApply }: DxfDialogProps) {
+export function DxfImportDialog({ fileName, result, materials, units, base, onCancel, onApply }: DxfDialogProps) {
   const layers = useMemo(() => importableLayers(result), [result]);
   const open = useMemo(() => openPolylines(result), [result]);
   const [mapping, setMapping] = useState(() => defaultMapping(layers));
   const [unit, setUnit] = useState<LengthUnit>(() => defaultUnit(result.unitsFromHeader, units));
-  const [mode, setMode] = useState<'add' | 'replace'>('add');
+  const [mode, setMode] = useState<'add' | 'replace'>(() => defaultImportMode(base));
   const [openMode, setOpenMode] = useState<'close' | 'discard'>('close');
   const openModeName = useId();
   const factor = unitFactor(unit, units);
@@ -266,8 +280,9 @@ export function DxfImportDialog({ fileName, result, materials, units, onCancel, 
         </fieldset>
       )}
 
-      <ModeChoice mode={mode} onChange={setMode} />
+      <ModeChoice mode={mode} onChange={setMode} base={base} />
       <PlanSummary plan={plan} />
+      <ExampleLink file={EXAMPLE_FILES.dxf} />
       <div className="ea-actions">
         <button type="button" onClick={onCancel}>
           Cancelar
@@ -285,12 +300,14 @@ export interface CsvDialogProps {
   result: CsvImportResult;
   materials: readonly Material[];
   units: string | undefined;
+  /** Modelo abierto: decide el destino por defecto y lo nombra. Sin él, «Agregar» y rótulos genéricos. */
+  base?: ImportBase;
   onCancel: () => void;
   onApplyRegions: (plan: RegionImportPlan, mode: 'add' | 'replace') => void;
   onApplyPiezo: (points: Point[]) => void;
 }
 
-export function CsvImportDialog({ fileName, result, materials, units, onCancel, onApplyRegions, onApplyPiezo }: CsvDialogProps) {
+export function CsvImportDialog({ fileName, result, materials, units, base, onCancel, onApplyRegions, onApplyPiezo }: CsvDialogProps) {
   const hasLayer = result.rows[0] !== undefined && ('capa' in result.rows[0] || 'layer' in result.rows[0]);
   const [target, setTarget] = useState<'regions' | 'piezo'>(hasLayer ? 'regions' : 'piezo');
   const targetName = useId();
@@ -306,7 +323,7 @@ export function CsvImportDialog({ fileName, result, materials, units, onCancel, 
     const base = defaultMapping(layers.map((l) => ({ name: l.name, suggestedMaterialId: materials.find((m) => m.id.toLowerCase() === l.name.toLowerCase() || m.name.toLowerCase() === l.name.toLowerCase())?.id ?? null })));
     return { ...base, ...mapping };
   }, [layers, materials, mapping]);
-  const [mode, setMode] = useState<'add' | 'replace'>('add');
+  const [mode, setMode] = useState<'add' | 'replace'>(() => defaultImportMode(base));
   const plan = useMemo(
     () =>
       planRegionImport(
@@ -337,7 +354,7 @@ export function CsvImportDialog({ fileName, result, materials, units, onCancel, 
       {target === 'regions' ? (
         <>
           {layers.length > 0 && <LayerMapTable layers={layers} materials={materials} mapping={effective} onChange={setMapping} />}
-          <ModeChoice mode={mode} onChange={setMode} />
+          <ModeChoice mode={mode} onChange={setMode} base={base} />
           <PlanSummary plan={plan} />
         </>
       ) : (
@@ -351,6 +368,7 @@ export function CsvImportDialog({ fileName, result, materials, units, onCancel, 
           )}
         </p>
       )}
+      <ExampleLink file={EXAMPLE_FILES.csv} />
       <div className="ea-actions">
         <button type="button" onClick={onCancel}>
           Cancelar

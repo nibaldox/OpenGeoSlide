@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { parseCsv, csvToRegions } from '../../io/csv';
 import { parseDxf } from '../../io/dxf';
 import { loadCaseDoc } from '../../report/fixtures';
+import { hasErrors } from './diagnostics';
 import { createEditorStore, validateLocal } from '../state';
 import {
   NEW_MATERIAL,
   SKIP_LAYER,
+  addModeLabel,
   applyPlanToDoc,
   closeWithBase,
+  defaultImportMode,
   defaultMapping,
   defaultUnit,
   importableLayers,
@@ -17,6 +20,7 @@ import {
   suggestBaseText,
   suggestBaseY,
   unitFactor,
+  type ImportBase,
 } from './importPlan';
 
 const fixture = (name: string): string => readFileSync(new URL(`../../io/dxf/fixtures/${name}`, import.meta.url), 'utf8');
@@ -257,5 +261,48 @@ describe('base de las polilíneas abiertas (R7-06)', () => {
     );
     expect(plan.skipped).toBe(3);
     expect(plan.notes).toHaveLength(1);
+  });
+});
+
+describe('CM-WC: destino por defecto de la importación', () => {
+  const base = (over: Partial<ImportBase> = {}): ImportBase => ({ regionCount: 2, title: 'ACADS 1(a)', pristineStart: false, ...over });
+
+  it('modelo de arranque sin cambios, o sin regiones: «Reemplazar»; cualquier otro, «Agregar»', () => {
+    expect(defaultImportMode(base({ pristineStart: true }))).toBe('replace');
+    expect(defaultImportMode(base({ regionCount: 0 }))).toBe('replace');
+    expect(defaultImportMode(base({ pristineStart: true, regionCount: 0 }))).toBe('replace');
+    expect(defaultImportMode(base())).toBe('add');
+    expect(defaultImportMode(base({ regionCount: 1 }))).toBe('add');
+  });
+
+  it('sin saber cuál es el modelo (sin `base`), sigue «Agregar»', () => {
+    expect(defaultImportMode(undefined)).toBe('add');
+  });
+
+  it('el rótulo de «Agregar» dice a qué modelo se agrega', () => {
+    expect(addModeLabel(base())).toBe('Agregar a las 2 regiones de ACADS 1(a)');
+    expect(addModeLabel(base({ regionCount: 1, title: 'Mi talud' }))).toBe('Agregar a la región de Mi talud');
+    expect(addModeLabel(base({ regionCount: 0 }))).toBe('Agregar a ACADS 1(a) (no tiene regiones)');
+    expect(addModeLabel(base({ title: null }))).toBe('Agregar a las 2 regiones del modelo actual');
+    expect(addModeLabel(base({ regionCount: 0, title: null }))).toBe('Agregar al modelo actual (no tiene regiones)');
+    expect(addModeLabel(undefined)).toBe('Agregar a las regiones actuales');
+  });
+
+  it('terraplen.dxf sobre el modelo de arranque: con el destino por defecto («Reemplazar») no hay errores; con «Agregar» sí (el bloqueo de X35 §3 F1)', () => {
+    const doc = loadCaseDoc('V047a');
+    const result = parseDxf(fixture('terraplen.dxf'), { materials: doc.materials.map((m) => ({ id: m.id, name: m.name })) });
+    const layers = importableLayers(result);
+    const open = openPolylines(result);
+    const unit = defaultUnit(result.unitsFromHeader, doc.units);
+    const baseY = Number(suggestBaseText(open, unit, doc.units).replace(',', '.'));
+    const plan = planRegionImport(
+      { materials: [...doc.materials], units: doc.units },
+      { regions: result.regions, open: open.map((e) => ({ layer: e.layer, points: e.points })), mapping: defaultMapping(layers), factor: unitFactor(unit, doc.units), openMode: 'close', baseY },
+    );
+    const mode = defaultImportMode({ regionCount: doc.regions.length, title: 'ACADS 1(a)', pristineStart: true });
+    expect(mode).toBe('replace');
+    expect(plan.regions.length).toBeGreaterThanOrEqual(3);
+    expect(hasErrors(validateLocal(applyPlanToDoc(doc, plan, mode)))).toBe(false);
+    expect(hasErrors(validateLocal(applyPlanToDoc(doc, plan, 'add')))).toBe(true);
   });
 });
