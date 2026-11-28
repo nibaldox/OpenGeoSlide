@@ -121,10 +121,10 @@ describe('mockEngine: rechazo de los campos v0.6 (F6.13)', () => {
     expect(isAnalysisReport(analyzeMock(plain))).toBe(true);
   });
 
-  it('rechaza una versión desconocida ("0.7") con el mensaje exacto del motor', () => {
-    const bad = mutate(() => {}, '0.7');
+  it('rechaza una versión desconocida ("0.8") con el mensaje exacto del motor', () => {
+    const bad = mutate(() => {}, '0.8');
     expect(() => analyzeMock(bad)).toThrow(
-      'InvalidModel: version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no "0.7"',
+      'InvalidModel: version debe ser "0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7", no "0.8"',
     );
   });
 });

@@ -1,4 +1,5 @@
 import { isPolylineReport, reportCircle } from '../engine/surface';
+import { globalAlgorithmLabel, globalWinnerLabel } from '../engine/globalSearch';
 import type { AnalysisReport, MethodKind, Reinforcement, SolveStatus, TensionCrack } from '../engine/types';
 import { describeResultWarnings } from '../engine/warnings';
 import { convergedFos } from '../analysis/runner';
@@ -65,6 +66,7 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
   const allPolyline = report.results.length > 0 && polylines.every((p) => p !== null);
   const anySearch = report.results.some((r) => r.search != null);
   const nonCircularResults = report.results.filter((r) => r.search?.non_circular !== undefined);
+  const globalResults = report.results.filter((r) => r.search?.non_circular?.global !== undefined);
   const circleColumns = Boolean(lengthUnit) && !allPolyline;
   const columns = 7 + (circleColumns ? 2 : 0) + (allPolyline ? 1 : 0) + 1; // + «Superficie» (Dibujar)
   return (
@@ -179,6 +181,40 @@ export function ResultsTable({ report, elapsedMs, shownMethod, onShowMethod, len
                       {nc.polyline_fos !== undefined ? formatFs(nc.polyline_fos) : 'Sin polilínea admisible'}
                     </td>
                     <td>{winner}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      )}
+      {globalResults.length > 0 && (
+        <section className="rf nc-results" aria-label="Búsqueda global" data-testid="global-summary">
+          <table className="rf-table">
+            <caption>Búsqueda global</caption>
+            <thead>
+              <tr>
+                <th scope="col">Método</th>
+                <th scope="col">Algoritmo</th>
+                <th scope="col">Generados</th>
+                <th scope="col">Elegibles</th>
+                <th scope="col">Rechazados por tracción</th>
+                <th scope="col">FS global</th>
+                <th scope="col">Ganador</th>
+              </tr>
+            </thead>
+            <tbody>
+              {globalResults.map((r) => {
+                const g = r.search!.non_circular!.global!;
+                return (
+                  <tr key={r.method}>
+                    <td>{METHOD_LABELS[r.method]}</td>
+                    <td>{globalAlgorithmLabel(g.algorithm)}</td>
+                    <td className="num">{g.generated}</td>
+                    <td className="num">{g.eligible}</td>
+                    <td className="num">{g.tension_rejected}</td>
+                    <td className={g.global_fos != null ? 'num' : undefined}>{g.global_fos != null ? formatFs(g.global_fos) : 'Sin superficie elegible'}</td>
+                    <td>{globalWinnerLabel(g.winner)}</td>
                   </tr>
                 );
               })}

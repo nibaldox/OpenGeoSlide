@@ -12,7 +12,7 @@
 // - Bordes de dovela uniformes (sin puntos de quiebre).
 
 import { EngineError, type Engine } from './engine';
-import { isKnownOgsVersion, unknownVersionMessage, v06Fields } from '../io/ogsJson';
+import { isKnownOgsVersion, unknownVersionMessage, v06Fields, v07Fields } from '../io/ogsJson';
 import { pondPolygons } from '../render/pond';
 import {
   modelXRange,
@@ -123,6 +123,14 @@ function validateModel(model: Model): void {
   if (model.analysis != null && (model.analysis as { tension_crack?: unknown }).tension_crack != null) {
     throw new EngineError(
       'InvalidModel: el motor simulado no admite la grieta de tracción (analysis.tension_crack), un campo de la versión 0.5; use el motor WASM',
+    );
+  }
+  // Búsqueda global (v0.7, F7.1): se revisa antes que la v0.6 porque `global` vive dentro de `non_circular` y, si no, el rechazo
+  // diría «búsqueda no circular». Sin esto el simulado ignoraría `global` y devolvería un FS de la v0.6.
+  const v07 = v07Fields(model)[0];
+  if (v07 !== undefined) {
+    throw new EngineError(
+      `InvalidModel: el motor simulado no admite ${v07.what} (${v07.field}), un campo de la versión 0.7; use el motor WASM`,
     );
   }
   // Hoek-Brown, SHANSEP y búsqueda no circular (v0.6, F6.13): el motor simulado rechaza todo campo de F6.1.

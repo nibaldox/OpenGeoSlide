@@ -303,6 +303,8 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
   const withPoints = results.some((r) => intersliceCell(r, false) !== null);
   // F6.6: pasadas del lazo de Hoek-Brown y estadísticas de búsqueda no circular, solo cuando algún método las informa.
   const withHbPasses = results.some((r) => r.strength?.passes !== undefined);
+  // F7.5: las columnas de la búsqueda global solo existen si algún método trae `non_circular.global`; sin ella el CSV no cambia.
+  const withGlobal = results.some((r) => r.search?.non_circular?.global !== undefined);
   const decimalComma = (options.decimalComma ?? false) && (options.delimiter ?? ',') !== ',';
   const rows: CsvCell[][] = results.map((r) => {
     const circle = reportCircle(r.surface);
@@ -328,6 +330,16 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
       ...(withCrack ? crackCsvCells(r, withFace) : []),
       ...(withHbPasses ? [r.strength?.passes ?? null] : []),
       ...(withNonCircular ? [nc?.seeds ?? null, nc?.evaluated ?? null, nc?.seed_fos ?? null, nc?.polyline_fos ?? null] : []),
+      ...(withGlobal
+        ? [
+            nc?.global?.algorithm ?? null,
+            nc?.global?.generated ?? null,
+            nc?.global?.eligible ?? null,
+            nc?.global?.tension_rejected ?? null,
+            nc?.global?.global_fos ?? null,
+            nc?.global?.winner ?? null,
+          ]
+        : []),
     ];
   });
   const header = [
@@ -350,6 +362,9 @@ export function resultsToCsv(results: MethodReport[], options: ResultsCsvOptions
     ...(withCrack ? crackCsvHeader(options.units, withFace) : []),
     ...(withHbPasses ? ['pasadas_hb'] : []),
     ...(withNonCircular ? ['semillas_nc', 'evaluadas_nc', 'fs_semilla', 'fs_polilinea'] : []),
+    ...(withGlobal
+      ? ['global_algoritmo', 'global_generados', 'global_elegibles', 'global_rechazados_traccion', 'global_fs', 'global_ganador']
+      : []),
   ];
   return toCsv(header, rows, options);
 }

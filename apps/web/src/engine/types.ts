@@ -7,7 +7,7 @@
 
 export type Point = [number, number];
 
-/** `undrained` exige version "0.3" (F3.2); `hoek_brown` y `shansep` exigen version "0.6" (F6.1-F6.3). */
+/** `undrained` exige version "0.3" (F3.2); `hoek_brown` y `shansep` exigen version "0.6" (F6.1-F6.3); `non_circular.global` exige "0.7" (F7.1). */
 export type MaterialModel = 'mohr_coulomb' | 'undrained' | 'hoek_brown' | 'shansep';
 
 export interface Meta {
@@ -119,6 +119,23 @@ export interface NonCircularSpec {
   seeds?: number | null;
   /** Número máximo de vértices de la polilínea (9, 17 o 33); por defecto 33. */
   max_vertices?: number | null;
+  /** Búsqueda global (v0.7, F7.1). Exige version "0.7". `{}` toma todos los valores por defecto; null cuenta como ausente. */
+  global?: GlobalSpec | null;
+}
+
+/** Algoritmo de la búsqueda global (F7.1): `auto` elige `block` con contactos entre regiones y `annealing` si no (E17a). */
+export type GlobalAlgorithm = 'auto' | 'block' | 'annealing';
+
+/** Búsqueda global no circular (v0.7, F7.1). Todos los campos son opcionales; `{}` es válido. */
+export interface GlobalSpec {
+  /** Por defecto `"auto"`. */
+  algorithm?: GlobalAlgorithm | null;
+  /** Candidatos admisibles que se generan y evalúan, entero en [50, 2000]; por defecto 500. */
+  generated?: number | null;
+  /** Semilla del generador pseudoaleatorio, entero en [0, 2^53 − 1]; por defecto 0. */
+  seed?: number | null;
+  /** Pulido final; por defecto `true`. Solo corre si gana el generador. */
+  polish?: boolean | null;
 }
 
 export interface SearchSpec {
@@ -319,7 +336,7 @@ export interface AnalysisSettings {
 
 export interface Model {
   format: string;
-  version: '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6';
+  version: '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7';
   meta: Meta;
   units?: string;
   materials: Material[];
@@ -371,6 +388,34 @@ export interface NonCircularStats {
   seed_fos: number;
   /** FS de la mejor polilínea refinada; el motor lo omite si ninguna fue admisible (E16p). */
   polyline_fos?: number;
+  /** Estadísticas de la búsqueda global (v0.7, F7.2); el motor lo omite sin `non_circular.global`. */
+  global?: GlobalStats;
+}
+
+/** Estadísticas de la etapa global (v0.7, F7.2). */
+export interface GlobalStats {
+  /** El algoritmo que corrió: `block` o `annealing`; nunca `auto`. */
+  algorithm: 'block' | 'annealing';
+  /** Candidatos admisibles generados y evaluados. */
+  generated: number;
+  /** Intentos geométricos, incluidos los no admisibles. */
+  attempts: number;
+  /** Candidatos con solución convergida. */
+  converged: number;
+  /** Convergidos que pasan la guarda de tracción (F7.4). */
+  eligible: number;
+  /** Convergidos que rechazó la guarda. */
+  tension_rejected: number;
+  /** Polilíneas del generador que se refinaron (≤ 3). */
+  refined: number;
+  /** Evaluaciones de toda la etapa global: generación, refinamiento y pulido. */
+  evaluated: number;
+  /** Evaluaciones del pulido (0 si no corrió). */
+  polish_evaluated: number;
+  /** Mejor FS elegible de la etapa global, después de refinar y pulir; null si no hubo ninguno. */
+  global_fos?: number | null;
+  /** Quién dio la superficie crítica. */
+  winner: 'global' | 'refinement';
 }
 
 export interface SearchStats {

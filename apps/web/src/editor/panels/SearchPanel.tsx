@@ -3,6 +3,15 @@ import type { EditorStore } from '../types';
 import { LabeledField, PanelSection } from './Fields';
 import { useDraft, useStoreSelector } from './useStoreSelector';
 import {
+  GLOBAL_ALGORITHMS,
+  GLOBAL_ALGORITHM_LABEL,
+  GLOBAL_BUDGET_APPROX,
+  GLOBAL_DEFAULTS,
+  GLOBAL_GENERATED_MAX,
+  GLOBAL_GENERATED_MIN,
+} from '../../engine/globalSearch';
+import {
+  GLOBAL_FORM_EMPTY,
   MAX_AXIS_POINTS,
   formatCount,
   formatNumber,
@@ -15,6 +24,7 @@ import {
   searchesEqual,
   setPendingDraft,
   unitLabels,
+  withoutGlobal,
   type SearchForm,
 } from './forms';
 
@@ -182,6 +192,91 @@ export function SearchPanel({ store }: { store: EditorStore }) {
           </select>
         </label>
       </div> : null}
+      {form.non_circular ? (
+        <fieldset className="field" data-testid="global-search">
+          <legend className="visually-hidden">Búsqueda global</legend>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              data-path="/analysis/search/non_circular/global"
+              checked={form.global ?? false}
+              aria-describedby="global-search-help"
+              onChange={(e) => {
+                const next: SearchForm = e.target.checked ? { ...form, ...GLOBAL_FORM_EMPTY } : withoutGlobal(form);
+                setForm(next);
+                commitWith(next);
+              }}
+            />
+            Búsqueda global
+          </label>
+          <p className="muted small" id="global-search-help">
+            Genera superficies sobre capas o contactos débiles y las refina; el resultado nunca es peor que el del refinamiento.
+            Cuesta hasta unas {formatCount(GLOBAL_BUDGET_APPROX)} evaluaciones más por método.
+          </p>
+          {form.global ? (
+            <>
+              <label className="field ep-field">
+                <span>Algoritmo</span>
+                <select
+                  data-path="/analysis/search/non_circular/global/algorithm"
+                  value={form.global_algorithm || GLOBAL_DEFAULTS.algorithm}
+                  onChange={(e) => {
+                    const next = { ...form, global_algorithm: e.target.value === GLOBAL_DEFAULTS.algorithm ? '' : e.target.value };
+                    setForm(next);
+                    commitWith(next);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') reset();
+                  }}
+                >
+                  {GLOBAL_ALGORITHMS.map((a) => (
+                    <option key={a} value={a}>
+                      {GLOBAL_ALGORITHM_LABEL[a]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="ep-grid">
+                <LabeledField
+                  label="Candidatos"
+                  path="/analysis/search/non_circular/global/generated"
+                  value={form.global_generated ?? ''}
+                  hint={`Entero de ${GLOBAL_GENERATED_MIN} a ${formatCount(GLOBAL_GENERATED_MAX)}; vacío = ${GLOBAL_DEFAULTS.generated}`}
+                  error={err('global_generated')}
+                  onChange={(v) => setForm({ ...form, global_generated: v })}
+                  onCommit={commit}
+                  onReset={reset}
+                />
+                <LabeledField
+                  label="Semilla"
+                  path="/analysis/search/non_circular/global/seed"
+                  value={form.global_seed ?? ''}
+                  hint={`Entero de 0 a 2^53 − 1; vacío = ${GLOBAL_DEFAULTS.seed}`}
+                  error={err('global_seed')}
+                  onChange={(v) => setForm({ ...form, global_seed: v })}
+                  onCommit={commit}
+                  onReset={reset}
+                />
+              </div>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  data-path="/analysis/search/non_circular/global/polish"
+                  checked={form.global_polish ?? GLOBAL_DEFAULTS.polish}
+                  onChange={(e) => {
+                    // El valor por defecto (pulir) no se escribe: al volver a marcarla, el campo queda ausente.
+                    const { global_polish: _omit, ...rest } = form;
+                    const next: SearchForm = e.target.checked ? rest : { ...rest, global_polish: false };
+                    setForm(next);
+                    commitWith(next);
+                  }}
+                />
+                Pulido
+              </label>
+            </>
+          ) : null}
+        </fieldset>
+      ) : null}
       {pending ? (
         <p className="ep-note small" role="status" data-testid="search-pending">
           Hay cambios de esta tarjeta sin aplicar al modelo: corrija los errores para guardarlos.

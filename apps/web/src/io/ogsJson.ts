@@ -1,8 +1,8 @@
 // Abrir y guardar `.ogs.json` (X3 §2.6, F1.1, F1.4).
 //
-// - `openOgsJson` acepta v0.1 a v0.6 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
+// - `openOgsJson` acepta v0.1 a v0.7 (y `{model, checks}`), valida la forma y devuelve un `ModelDoc` con la versión
 //   mínima que lo describe (F3.9, F4.1, F5.1, F6.1): `"0.2"` sin campos posteriores, `"0.3"` con alguno de v0.3, `"0.4"` si hay
-//   refuerzos, `"0.5"` con grieta de tracción o pilote con presión del suelo y `"0.6"` si usa Hoek-Brown, SHANSEP o búsqueda no circular.
+//   refuerzos, `"0.5"` con grieta de tracción o pilote con presión del suelo `"0.6"` si usa Hoek-Brown, SHANSEP o búsqueda no circular y `"0.7"` con la búsqueda global (`non_circular.global`).
 // - `saveOgsJson` escribe esa versión mínima, con el orden de claves canónico de 00_CONTRATOS.md §1
 //   (`loads` después de `water`, `reinforcements` después de `loads`, `analysis.seismic`, `interslice` y `tension_crack` al
 //   final de `analysis`) y 2 espacios. Los números se escriben
@@ -28,11 +28,13 @@ export const OGS_V04 = '0.4';
 export const OGS_V05 = '0.5';
 /** Versión que se guarda cuando el modelo usa materiales `hoek_brown` o `shansep` o `analysis.search.non_circular` (F6.1). */
 export const OGS_V06 = '0.6';
+/** Versión que se guarda cuando el modelo usa la búsqueda global `analysis.search.non_circular.global` (F7.1). */
+export const OGS_V07 = '0.7';
 
-export const OGS_VERSIONS = ['0.1', OGS_SAVE_VERSION, OGS_V03, OGS_V04, OGS_V05, OGS_V06] as const;
+export const OGS_VERSIONS = ['0.1', OGS_SAVE_VERSION, OGS_V03, OGS_V04, OGS_V05, OGS_V06, OGS_V07] as const;
 export type KnownOgsVersion = (typeof OGS_VERSIONS)[number];
 
-type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04 | typeof OGS_V05 | typeof OGS_V06;
+type OgsVersion = typeof OGS_SAVE_VERSION | typeof OGS_V03 | typeof OGS_V04 | typeof OGS_V05 | typeof OGS_V06 | typeof OGS_V07;
 
 export function isKnownOgsVersion(v: unknown): v is KnownOgsVersion {
   return typeof v === 'string' && (OGS_VERSIONS as readonly string[]).includes(v);
@@ -47,7 +49,7 @@ export function versionAtLeast(declared: string, required: KnownOgsVersion): boo
 
 /** Mensaje de versión desconocida, igual en Rust, Python y la web (F6.1). */
 export function unknownVersionMessage(version: unknown): string {
-  return `version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no "${String(version)}"`;
+  return `version debe ser "0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7", no "${String(version)}"`;
 }
 
 export interface OpenOgsResult {
@@ -138,7 +140,8 @@ const SEARCH_KEYS = [
   'refine',
   'non_circular',
 ] as const;
-const NON_CIRCULAR_KEYS = ['seeds', 'max_vertices'] as const;
+const NON_CIRCULAR_KEYS = ['seeds', 'max_vertices', 'global'] as const;
+const GLOBAL_KEYS = ['algorithm', 'generated', 'seed', 'polish'] as const;
 const SEISMIC_KEYS = ['kh', 'kv'] as const;
 
 type Rec = Record<string, unknown>;
@@ -212,6 +215,11 @@ const FIELD_NAME: Readonly<Record<string, string>> = {
   non_circular: 'búsqueda no circular',
   seeds: 'semillas',
   max_vertices: 'vértices máximos',
+  global: 'búsqueda global',
+  algorithm: 'algoritmo',
+  generated: 'candidatos',
+  seed: 'semilla',
+  polish: 'pulido',
 };
 
 /** Campos de un refuerzo en palabras de la interfaz (v0.4). */
@@ -298,6 +306,10 @@ export function describePath(path: string): string {
       if (b === 'surface' && c === 'points' && d !== undefined) return `la polilínea fija, punto ${n(d)}`;
       if (b === 'interslice' && c === 'points' && d !== undefined) return `la función de fuerzas entre dovelas, punto ${n(d)}`;
       if (b === 'search' && c === 'non_circular') {
+        if (d === 'global') {
+          const e = seg[4];
+          return e === undefined ? 'la búsqueda global' : `la búsqueda global (${field(e)})`;
+        }
         return d === undefined ? 'la búsqueda no circular' : `la búsqueda no circular (${field(d)})`;
       }
       if (c === undefined) return section[b] ? section[b] : `la configuración del análisis (${field(b)})`;
@@ -548,7 +560,8 @@ const reinforcementSub: Sub = (v, path, ctx) => {
   return dropNull(orderedWith(keys, subs), REINFORCEMENT_OPTIONAL_KEYS)(v, path, ctx);
 };
 
-const nonCircularSub: Sub = dropNull(orderedWith(NON_CIRCULAR_KEYS), NON_CIRCULAR_KEYS);
+const globalSub: Sub = dropNull(orderedWith(GLOBAL_KEYS), GLOBAL_KEYS);
+const nonCircularSub: Sub = dropNull(orderedWith(NON_CIRCULAR_KEYS, { global: globalSub }), NON_CIRCULAR_KEYS);
 const searchSub: Sub = dropNull(orderedWith(SEARCH_KEYS, { non_circular: nonCircularSub }), ['non_circular']);
 
 const analysisSub: Sub = (v, path, ctx) => {
@@ -732,6 +745,24 @@ export function v06Fields(model: unknown): VersionField[] {
   return out;
 }
 
+/**
+ * Campos de la v0.7 que usa un modelo (F7.1, `first_v07_field` del motor): `analysis.search.non_circular.global`.
+ * Un `null` cuenta como ausente. `global: {}` también exige 0.7.
+ */
+export function v07Fields(model: unknown): VersionField[] {
+  const out: VersionField[] = [];
+  if (!isRecord(model)) return out;
+  const search = isRecord(model.analysis) ? model.analysis.search : undefined;
+  if (isRecord(search) && isRecord(search.non_circular) && present(search.non_circular.global)) {
+    out.push({
+      path: '/analysis/search/non_circular/global',
+      field: 'analysis.search.non_circular.global',
+      what: 'la búsqueda global',
+    });
+  }
+  return out;
+}
+
 export interface VersionGate {
   readonly version: OgsVersion;
   readonly fields: (model: unknown) => VersionField[];
@@ -748,6 +779,7 @@ export const VERSION_FIELD_TABLE: readonly VersionGate[] = [
   { version: OGS_V04, fields: v04Fields },
   { version: OGS_V05, fields: v05Fields },
   { version: OGS_V06, fields: v06Fields },
+  { version: OGS_V07, fields: v07Fields },
 ] as const;
 
 /**
@@ -786,7 +818,7 @@ function canonicalObject(doc: ModelDoc, ctx: Ctx, version: OgsVersion): Rec {
   return result;
 }
 
-/** Documento en orden canónico y con la versión mínima (`"0.2"` a `"0.6"`), sin serializar (para borradores y pruebas). Sin redondeo. */
+/** Documento en orden canónico y con la versión mínima (`"0.2"` a `"0.7"`), sin serializar (para borradores y pruebas). Sin redondeo. */
 export function canonicalDoc(doc: ModelDoc): ModelDoc {
   const version = minimalVersion(doc);
   const withVersion = { ...doc, format: OGS_FORMAT, version } as ModelDoc;
@@ -1053,6 +1085,7 @@ function checkShape(model: Rec, issues: Issue[]): void {
         err('io.shape', 'La búsqueda no circular no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacío (null).', nb);
       } else {
         for (const key of NON_CIRCULAR_KEYS) {
+          if (key === 'global') continue;
           if (!OPTIONAL_ABSENT(search.non_circular[key]) && !isNum(search.non_circular[key])) {
             err(
               'io.shape',
@@ -1060,6 +1093,28 @@ function checkShape(model: Rec, issues: Issue[]): void {
               `${nb}/${key}`,
               `${key} = ${JSON.stringify(search.non_circular[key]) ?? 'ausente'}`,
             );
+          }
+        }
+        // F7.1: `global` es un objeto opcional con `algorithm` (texto), `generated` y `seed` (números) y `polish` (sí/no); `{}` es válido.
+        const g = search.non_circular.global;
+        const gb = `${nb}/global`;
+        if (!OPTIONAL_ABSENT(g)) {
+          if (!isRecord(g)) {
+            err('io.shape', 'La búsqueda global no tiene la forma esperada: debe ser un bloque de datos { … } o estar vacía (null).', gb);
+          } else {
+            for (const key of GLOBAL_KEYS) {
+              const v = g[key];
+              if (OPTIONAL_ABSENT(v)) continue;
+              const ok = key === 'algorithm' ? typeof v === 'string' : key === 'polish' ? typeof v === 'boolean' : isNum(v);
+              if (!ok) {
+                err(
+                  'io.shape',
+                  `En ${describePath(`${gb}/${key}`)} falta un valor ${key === 'algorithm' ? 'de texto' : key === 'polish' ? 'de sí o no' : 'numérico'}.`,
+                  `${gb}/${key}`,
+                  `${key} = ${JSON.stringify(v) ?? 'ausente'}`,
+                );
+              }
+            }
           }
         }
       }
@@ -1199,7 +1254,7 @@ export function openOgsJson(text: string): OpenOgsResult {
     const shown = typeof model.version === 'string' ? `la versión "${model.version}"` : 'ninguna versión';
     return reject(
       'io.version',
-      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4, 0.5 y 0.6. Guárdelo de nuevo con una versión compatible.`,
+      `El archivo declara ${shown} del formato, y esta aplicación solo abre las versiones 0.1, 0.2, 0.3, 0.4, 0.5, 0.6 y 0.7. Guárdelo de nuevo con una versión compatible.`,
       '/version',
       `version = ${JSON.stringify(model.version) ?? 'ausente'}`,
     );
@@ -1209,13 +1264,13 @@ export function openOgsJson(text: string): OpenOgsResult {
   if (issues.some((i) => i.severity === 'error')) return { doc: null, issues };
 
   // Compuertas de versión a partir de la tabla única `VERSION_FIELD_TABLE` (E12a/E12h, E13a, E14a, E15a, E16a):
-  // las puertas anteriores quedan abiertas a 0.6; la puerta de 0.6 emite el mensaje exacto del motor (`<campo> requiere version "0.6"`).
+  // las puertas anteriores quedan abiertas a 0.7; las de 0.6 y 0.7 emiten el mensaje exacto del motor (`<campo> requiere version "0.6"`).
   for (const gate of VERSION_FIELD_TABLE) {
     if (versionAtLeast(model.version, gate.version)) continue;
     for (const { path, field, what } of gate.fields(model)) {
       const msg =
-        gate.version === OGS_V06
-          ? `${field} requiere version "0.6"`
+        gate.version === OGS_V07 || gate.version === OGS_V06
+          ? `${field} requiere version "${gate.version}"`
           : gate.version === OGS_SAVE_VERSION
             ? path === '/loads'
               ? 'El archivo declara el formato 0.1, que no admite cargas. Cambie la versión del archivo a "0.2" o quite las cargas.'

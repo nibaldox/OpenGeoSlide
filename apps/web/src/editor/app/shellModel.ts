@@ -182,7 +182,10 @@ function waterSummary(doc: ModelDoc): Summary {
 function surfaceSummary(doc: ModelDoc): Summary {
   const a = doc.analysis;
   // Con búsqueda, la superficie fija se ignora (misma regla que `issueTargetFor`).
-  if (a?.search) return { summary: a.search.non_circular ? 'Búsqueda no circular' : 'Búsqueda circular', base: 'done' };
+  if (a?.search) {
+    const nc = a.search.non_circular;
+    return { summary: nc ? (nc.global ? 'Búsqueda no circular, global' : 'Búsqueda no circular') : 'Búsqueda circular', base: 'done' };
+  }
   if (a?.surface?.type === 'circle') return { summary: 'Circular fija', base: 'done' };
   if (a?.surface?.type === 'polyline') return { summary: `Polilínea fija · ${count(a.surface.points.length, 'punto', 'puntos')}`, base: 'done' };
   return { summary: 'Sin superficie', base: 'empty' };

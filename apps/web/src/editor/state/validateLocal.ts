@@ -6,7 +6,8 @@
 // ni `search` son errores; un vértice consecutivo repetido es un aviso (el motor lo acepta). Los rangos numéricos son los de briefs/00_CONTRATOS.md §1 y §4.5, más F1.1 (sismo y cargas).
 // `path` es un puntero JSON. Los números de región y de arista de los textos son de base 1 (como en la UI).
 
-import type { AnalysisSettings, Material, Model, Point, Reinforcement } from '../../engine/types';
+import type { AnalysisSettings, GlobalSpec, Material, Model, Point, Reinforcement } from '../../engine/types';
+import { GLOBAL_GENERATED_MAX, GLOBAL_GENERATED_MIN, GLOBAL_SEED_MAX, GLOBAL_SEED_MIN, isGlobalAlgorithm } from '../../engine/globalSearch';
 import type { Issue, ModelDoc } from '../types';
 import { VERSION_FIELD_TABLE, isKnownOgsVersion, unknownVersionMessage, versionAtLeast } from '../../io/ogsJson';
 import { isFiniteNumber } from './docUtils';
@@ -1073,7 +1074,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     issues.push(error('editor.out_of_range', unknownVersionMessage(doc.version), '/version'));
   } else {
     // Compuertas de versión con la tabla única `VERSION_FIELD_TABLE` (`ogsJson.ts`), en el mismo orden que `loads::validate_document`:
-    // las puertas anteriores quedan abiertas a 0.6; la puerta de 0.6 usa el mensaje exacto del motor (`<campo> requiere version "0.6"`).
+    // las puertas anteriores quedan abiertas a 0.7; las de 0.6 y 0.7 usan el mensaje exacto del motor (`<campo> requiere version "0.6"`).
     for (const gate of VERSION_FIELD_TABLE) {
       if (versionAtLeast(doc.version, gate.version)) continue;
       const fields = gate.fields(doc);
@@ -1091,8 +1092,8 @@ export function validateLocal(doc: ModelDoc): Issue[] {
         if (fields.some((f) => f.path.startsWith('/reinforcements/'))) {
           issues.push(error('editor.reinforcement_pressure_version', `${version05PressureText(doc.version)}.`, '/version'));
         }
-      } else if (gate.version === '0.6') {
-        issues.push(error('editor.out_of_range', `${fields[0]!.field} requiere version "0.6"`, '/version'));
+      } else if (gate.version === '0.6' || gate.version === '0.7') {
+        issues.push(error('editor.out_of_range', `${fields[0]!.field} requiere version "${gate.version}"`, '/version'));
       }
     }
   }
@@ -1102,6 +1103,7 @@ export function validateLocal(doc: ModelDoc): Issue[] {
     if (nc.seeds != null && !(Number.isInteger(nc.seeds) && nc.seeds >= 1 && nc.seeds <= 10)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.seeds debe estar en [1, 10], no ${nc.seeds}`, '/analysis/search/non_circular/seeds'));
     if (nc.max_vertices != null && ![9, 17, 33].includes(nc.max_vertices)) issues.push(error('editor.out_of_range', `analysis.search.non_circular.max_vertices debe ser 9, 17 o 33, no ${nc.max_vertices}`, '/analysis/search/non_circular/max_vertices'));
     if ((doc.analysis.methods ?? ['bishop']).includes('bishop')) issues.push(error('editor.out_of_range', 'el método bishop no se admite con analysis.search.non_circular (la superficie crítica es una polilínea)', '/analysis/methods'));
+    validateGlobal(nc.global, issues);
   }
   if (doc.materials.some(m => m.model === 'hoek_brown' || m.model === 'shansep')) {
     if (doc.analysis.tension_crack?.depth === 'auto') issues.push(error('editor.out_of_range', 'analysis.tension_crack.depth "auto" no se admite con materiales hoek_brown o shansep; use una profundidad fija', '/analysis/tension_crack/depth'));
@@ -1118,6 +1120,22 @@ export function validateLocal(doc: ModelDoc): Issue[] {
   const crackNote = crackFixedSearchNote(doc, issues);
   if (crackNote) issues.push(crackNote);
   return issues;
+}
+
+/** Rangos de `analysis.search.non_circular.global` (F7.1), con el mismo patrón de mensajes que `seeds` y `max_vertices`. */
+function validateGlobal(g: GlobalSpec | null | undefined, issues: Issue[]): void {
+  if (g == null) return;
+  const base = '/analysis/search/non_circular/global';
+  const name = 'analysis.search.non_circular.global';
+  if (g.algorithm != null && !isGlobalAlgorithm(g.algorithm)) {
+    issues.push(error('editor.out_of_range', `${name}.algorithm debe ser "auto", "block" o "annealing", no "${String(g.algorithm)}"`, `${base}/algorithm`));
+  }
+  if (g.generated != null && !(Number.isInteger(g.generated) && g.generated >= GLOBAL_GENERATED_MIN && g.generated <= GLOBAL_GENERATED_MAX)) {
+    issues.push(error('editor.out_of_range', `${name}.generated debe estar en [${GLOBAL_GENERATED_MIN}, ${GLOBAL_GENERATED_MAX}], no ${g.generated}`, `${base}/generated`));
+  }
+  if (g.seed != null && !(Number.isInteger(g.seed) && g.seed >= GLOBAL_SEED_MIN && g.seed <= GLOBAL_SEED_MAX)) {
+    issues.push(error('editor.out_of_range', `${name}.seed debe estar en [0, 2^53 - 1], no ${g.seed}`, `${base}/seed`));
+  }
 }
 
 const cache = new WeakMap<Model, Issue[]>();
