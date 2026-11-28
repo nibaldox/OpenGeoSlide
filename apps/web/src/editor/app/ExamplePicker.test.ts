@@ -86,9 +86,11 @@ describe('filtro', () => {
 
   it('normalizeText y el texto del conteo', () => {
     expect(normalizeText('Tracción ÁÉ')).toBe('traccion ae');
-    expect(resultCountText(167, 167)).toBe('167 ejemplos');
-    expect(resultCountText(3, 167)).toBe('3 de 167 ejemplos');
-    expect(resultCountText(0, 167)).toBe('Ningún ejemplo coincide con el filtro.');
+    // El total sale del catálogo real, que a su vez es el de verification/cases/INDEX.md: no hay un literal que fijar.
+    const n = cases.length;
+    expect(resultCountText(n, n)).toBe(`${n} ejemplos`);
+    expect(resultCountText(3, n)).toBe(`3 de ${n} ejemplos`);
+    expect(resultCountText(0, n)).toBe('Ningún ejemplo coincide con el filtro.');
   });
 
   it('Intro: abre el único resultado, pasa a la lista si hay varios y no hace nada sin resultados', () => {
