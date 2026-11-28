@@ -242,3 +242,16 @@ def test_a_change_in_the_shape_of_the_json_is_not_covered_by_the_counters():
     assert ivb.json_diff_paths({"a": 1}, {"a": 1.0}) == ["a"]
     assert ivb.json_diff_paths({"a": [1, {"b": 2}]}, {"a": [1, {"b": 3}]}) == ["a.1.b"]
     assert ivb.json_diff_paths({"a": 1}, {"b": 1}) == ["$"]
+
+
+def test_a_model_with_v06_fields_has_no_variants_at_0_4_when_it_is_included(tmp_path):
+    """`--include-v06`: the baseline of v0.5.1 reads version 0.6, so these models run; version 0.4 cannot hold their fields."""
+    stub = tmp_path / "ogs"
+    stub.write_text("#!/bin/sh\necho '{\"engine\": \"ogs-core 0.5.1\", \"results\": [{\"surface\": {\"xc\": 1, \"yc\": 2, \"r\": 3}}]}'\n")
+    stub.chmod(0o755)
+    path = _write(tmp_path, "nc.json", analysis={"methods": ["spencer"], "search": {"non_circular": {}}})
+    ivb.STATS.clear()
+    assert ivb.check("nc", path, str(stub), str(stub), str(tmp_path)) == []
+    variants = {variant for variant, _ in ivb.STATS}
+    assert {"own", "search", "fixed"} <= variants
+    assert not any(v.endswith("@0.4") for v in variants)

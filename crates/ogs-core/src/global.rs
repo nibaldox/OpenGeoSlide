@@ -830,6 +830,37 @@ mod tests {
         assert_eq!(stats.generated, 0, "no seed circle was given");
     }
 
+    #[test]
+    fn auto_falls_back_to_annealing_when_the_block_finds_nothing_and_explicit_block_does_not() {
+        // E17a: windows that no block can reach: the contact layer exists, but 20·N attempts give no candidate.
+        let m = v053();
+        let pm = PreparedModel::new(&m).unwrap();
+        let mut search = m.analysis.search.clone().unwrap();
+        search.entry = Some([239.0, 240.0]);
+        search.exit = Some([0.0, 1.0]);
+        let solve = |s: &Surface| Some((depth_fos(&pm, s), false));
+        let auto = spec(serde_json::json!({"generated": 50}));
+        let (winner, stats, _) = run(&m, &pm, &search, &auto, &[], 5.0, solve);
+        assert!(winner.is_none());
+        assert_eq!(stats.algorithm, "annealing", "auto recurs to the annealing");
+        assert_eq!(
+            stats.attempts,
+            20 * 50,
+            "the attempts of the block stage are kept"
+        );
+        assert_eq!(
+            (stats.generated, stats.eligible, stats.winner),
+            (0, 0, "refinement")
+        );
+        let block = spec(serde_json::json!({"algorithm": "block", "generated": 50}));
+        let (_, stats, _) = run(&m, &pm, &search, &block, &[], 5.0, solve);
+        assert_eq!(
+            stats.algorithm, "block",
+            "an explicit block never recurs to the annealing"
+        );
+        assert_eq!(stats.attempts, 20 * 50);
+    }
+
     /// Diagnostic of A9, not a test: `OGS_A9_MODEL=<model.json (v0.7, with global)> cargo test --release --lib
     /// a9_probe -- --ignored --nocapture` prints the best generated candidate before the refinement. It needs the
     /// build without `parallel`, so that the generation runs in the thread of the test.
