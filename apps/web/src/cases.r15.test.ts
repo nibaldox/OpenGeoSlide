@@ -1,5 +1,6 @@
 // R15B-02: Casos de verificación con búsqueda no circular bloquean Bishop, describen «no circular»
-// y calculan sin error con la selección por defecto en los 15 casos no circulares (los -nc y los promovidos).
+// y calculan sin error con la selección por defecto en todos los casos no circulares (los -nc y los promovidos de F3B y de CM).
+// Cuántos son lo dice `verification/cases/INDEX.md` (las tablas de esas dos secciones), no un literal de este archivo.
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,10 +25,16 @@ const nonCircularCases: Array<{ file: string; data: VerificationCase }> = readdi
   .map((file) => ({ file, data: JSON.parse(readFileSync(join(casesDir, file), 'utf8')) as VerificationCase }))
   .filter(({ data }) => Boolean(data.model.analysis.search?.non_circular));
 
+// Filas de las secciones «Hoek-Brown y búsqueda no circular» y «Búsqueda no circular y global»: `| caso | v | búsqueda | ...`.
+const index = readFileSync(join(casesDir, 'INDEX.md'), 'utf8');
+const indexedNonCircular = [...new Set([...index.matchAll(/^\| ([A-Z][\w-]+) \| 0\.\d \| no circular(?: \+ global)? \|/gm)].map((m) => m[1]!))].sort();
+
 describe('R15B-02: casos no circulares en Casos de verificación', () => {
-  it('incluye los 15 casos no circulares del repositorio (los -nc y los promovidos)', () => {
-    expect(nonCircularCases).toHaveLength(15);
+  it('incluye los casos no circulares que dice el índice (los -nc y los promovidos de F3B y de CM)', () => {
+    expect(indexedNonCircular.length).toBeGreaterThan(0);
+    expect(nonCircularCases).toHaveLength(indexedNonCircular.length);
     const ids = nonCircularCases.map((c) => c.data.id);
+    expect([...ids].sort()).toEqual(indexedNonCircular);
     expect(ids).toContain('V001-nc');
     expect(ids).toContain('V050b');
     expect(ids).toContain('V103');

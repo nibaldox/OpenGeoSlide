@@ -1,0 +1,115 @@
+{
+  "id": "V041b-nc",
+  "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27), non-circular search",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V041b-nc",
+      "title": "Submerged slope, pool 60 ft above the crest (D&W fig. 6.27), non-circular search",
+      "notes": "As V041a with the pool 60 ft above the crest: the same factor of safety."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "material_1",
+        "name": "Material 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.10719,
+        "unit_weight_sat": null,
+        "cohesion": 4.78803,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "material_1",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.572
+          ],
+          [
+            9.144,
+            4.572
+          ],
+          [
+            32.004,
+            13.716
+          ],
+          [
+            42.672,
+            13.716
+          ],
+          [
+            42.672,
+            0.0
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          0.0,
+          32.004
+        ],
+        [
+          42.672,
+          32.004
+        ]
+      ]
+    },
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.59,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023144654088050314,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27.",
+    "derived_from": "cSlope verification problem V041b (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V041b de cSlope. El caso lleva el sufijo `-nc` porque `V041b` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
+    ]
+  }
+}

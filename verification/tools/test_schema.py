@@ -122,8 +122,8 @@ def test_every_case_validates_against_the_current_schema_and_the_index_counts_th
     models = _case_models()
     assert len(models) == _index_case_count() and set(V02_CASE_IDS) <= set(models)
     for cid, model in models.items():
-        assert _errors(model, {"0.6": SCHEMA_06, "0.5": SCHEMA_05, "0.4": SCHEMA_04}.get(model["version"], SCHEMA_03)) == [], cid
-        assert model["version"] in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6"), cid
+        assert _errors(model, {"0.7": SCHEMA_07, "0.6": SCHEMA_06, "0.5": SCHEMA_05, "0.4": SCHEMA_04}.get(model["version"], SCHEMA_03)) == [], cid
+        assert model["version"] in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7"), cid
         # V013b-e (Ito-Matsui, promoted in cc66c2e) carry reinforcements and are v0.5 because of `lateral_pressure`.
         ito = any("lateral_pressure" in r for r in model.get("reinforcements") or [])
         crack = model["analysis"].get("tension_crack") is not None
@@ -941,7 +941,7 @@ def test_every_case_the_battery_and_the_examples_validate_against_the_0_4_schema
         models[os.path.basename(path)] = _load(path)
     assert len(models) >= _index_case_count()
     for cid, model in models.items():
-        if model["version"] in ("0.5", "0.6"):      # the F3G cases with a crack are validated by the 0.5 schema, the F3B ones by the 0.6
+        if model["version"] in ("0.5", "0.6", "0.7"):      # the F3G cases with a crack are validated by the 0.5 schema, the F3B ones by the 0.6, V053 (CM) by the 0.7
             continue
         assert _errors(model, SCHEMA_04) == [], cid
     # and the older versions are still rejected by the older schemas: 0.3 does not know 0.4
@@ -1101,7 +1101,7 @@ def test_every_case_the_battery_and_the_examples_validate_against_the_0_5_schema
         models[os.path.basename(path)] = _load(path)
     assert len(models) >= _index_case_count()
     for cid, model in models.items():
-        if model["version"] == "0.6":      # the F3B cases (non-circular search, Hoek-Brown) are validated by the 0.6 schema
+        if model["version"] in ("0.6", "0.7"):      # the F3B cases (non-circular search, Hoek-Brown) are validated by the 0.6 schema, V053 (CM) by the 0.7
             continue
         assert _errors(model, SCHEMA_05) == [], cid
     # the older schemas do not know 0.5
@@ -1462,6 +1462,9 @@ def test_every_case_the_battery_and_the_examples_validate_against_the_0_6_schema
         models[os.path.basename(path)] = _load(path)
     assert len(models) >= _index_case_count()
     for cid, model in models.items():
+        if model["version"] == "0.7":      # V053 (CM, `global`) is a 0.7 case: the 0.7 schema validates it
+            assert _errors(model, SCHEMA_07) == [], cid
+            continue
         assert _errors(model, SCHEMA_06) == [], cid
     # the older schemas do not know 0.6
     assert _errors(_base_v06(), SCHEMA_05)

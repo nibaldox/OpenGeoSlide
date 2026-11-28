@@ -1,4 +1,4 @@
-"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 / v0.5 / v0.6 -> cSlope 0.1.0 analysis document.
+"""OpenGeoSlide .ogs.json v0.1 / v0.2 / v0.3 / v0.4 / v0.5 / v0.6 / v0.7 -> cSlope 0.1.0 analysis document.
 
 Translation only: nothing is computed here. The correspondence table and the
 known, documented differences are in README.md.
@@ -16,6 +16,12 @@ Hoek-Brown, SHANSEP and non-circular search (schema v0.6, contracts F6.1-F6.5)
   to 33 vertices in ``optimize.rs``), so they stay at cSlope's built-in defaults and a conversion note records it.
   ``bishop`` with ``non_circular`` is refused, as are ``tension_crack.depth = "auto"`` and ``lateral_pressure`` with
   ``hoek_brown`` or ``shansep`` materials (F6.4, F6.5).
+
+Version 0.7 (contract F7.1, CM-C2V)
+-----------------------------------
+- ``analysis.search.non_circular.global`` (the global search of ogs) has no cSlope equivalent: it is dropped and a note
+  records it. cSlope runs its own non-circular optimisation, so the oracle checks a published value that ogs reaches with
+  ``global`` against cSlope's search. Any other model converts as in v0.6.
 
 Schema v0.3 (contract F3.8)
 ---------------------------
@@ -136,12 +142,14 @@ F3_VERSION = "0.3"
 F4_VERSION = "0.4"
 F5_VERSION = "0.5"
 F6_VERSION = "0.6"
-ALL_VERSIONS = ("0.1", SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
+F7_VERSION = "0.7"
+ALL_VERSIONS = ("0.1", SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION, F7_VERSION)
 # versions that admit the fields of each stage (a later version admits everything of the earlier ones)
-SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
-F3_VERSIONS = (F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION)
-F4_VERSIONS = (F4_VERSION, F5_VERSION, F6_VERSION)
-F5_VERSIONS = (F5_VERSION, F6_VERSION)
+SEISMIC_LOADS_VERSIONS = (SEISMIC_LOADS_VERSION, F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION, F7_VERSION)
+F3_VERSIONS = (F3_VERSION, F4_VERSION, F5_VERSION, F6_VERSION, F7_VERSION)
+F4_VERSIONS = (F4_VERSION, F5_VERSION, F6_VERSION, F7_VERSION)
+F5_VERSIONS = (F5_VERSION, F6_VERSION, F7_VERSION)
+F6_VERSIONS = (F6_VERSION, F7_VERSION)
 F3_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 # ogs interslice function -> cSlope `intersliceFunction`
 INTERSLICE_MAP = {
@@ -843,7 +851,7 @@ _ALL_MATERIAL_KEYS = {
     "ucs", "gsi", "mi", "disturbance", "shansep",
 }
 _SHANSEP_KEYS = {"ratio", "exponent", "ocr", "pop", "ocr_by_elevation"}
-_NON_CIRCULAR_KEYS = {"seeds", "max_vertices"}
+_NON_CIRCULAR_KEYS = {"seeds", "max_vertices", "global"}
 
 
 def _material_field_rules(m: dict, model_name: str, forbidden: tuple[str, ...]) -> None:
@@ -1188,6 +1196,8 @@ def non_circular_options(model: dict, method: str, kind: str, notes: list[str]) 
     if not isinstance(nc, dict):
         raise UnsupportedModel("analysis.search.non_circular debe ser un objeto")
     _unknown(nc, _NON_CIRCULAR_KEYS, "analysis.search.non_circular")
+    if nc.get("global") is not None and model.get("version") != F7_VERSION:
+        raise UnsupportedModel(f'analysis.search.non_circular.global requiere version "{F7_VERSION}"')
     raw_seeds = nc.get("seeds")
     if raw_seeds is None:
         seeds = 3
@@ -1215,6 +1225,11 @@ def non_circular_options(model: dict, method: str, kind: str, notes: list[str]) 
         f"max_vertices={max_vertices}, pero cSlope 0.1.0 no tiene parámetro equivalente y usa sus valores fijos "
         "por defecto (3 semillas, hasta 33 vértices)."
     )
+    if nc.get("global") is not None:
+        notes.append(
+            "búsqueda global (F7.1): analysis.search.non_circular.global no tiene equivalente en cSlope 0.1.0; se omite y "
+            "cSlope corre su propia optimización no circular."
+        )
     return {"nonCircularOptimization": True}
 
 
@@ -1266,7 +1281,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         raise UnsupportedModel(f"unsupported method {method!r}")
     if "version" in model and model["version"] not in ALL_VERSIONS:
         raise UnsupportedModel(
-            f'version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no {model["version"]!r}'
+            f'version debe ser "0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7", no {model["version"]!r}'
         )
     analysis = model.get("analysis") or {}
     notes: list[str] = []
@@ -1290,7 +1305,7 @@ def ogs_to_cslope(model: dict, check: dict) -> Conversion:
         raise UnsupportedModel(f'lateral_pressure requiere version "{F5_VERSION}"')
     crack_options = tension_crack_options(model)
     v06_field = first_v06_field(model)
-    if v06_field is not None and model.get("version") != F6_VERSION:
+    if v06_field is not None and model.get("version") not in F6_VERSIONS:
         raise UnsupportedModel(f'{v06_field} requiere version "{F6_VERSION}"')
     validate_v06_interactions(model)
     nc_options = non_circular_options(model, method, kind, notes)

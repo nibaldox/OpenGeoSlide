@@ -1,6 +1,6 @@
 # Verificación cruzada: publicado vs. ogs vs. xslope (columna informativa)
 
-Generado: 2026-11-27T23:49:40-03:00 · informe v1 · casos: `verification/cases` (167 casos, 347 checks)
+Generado: 2026-11-28T02:18:09-03:00 · informe v1 · casos: `verification/cases` (175 casos, 356 checks)
 
 xslope **no es un juez**: los criterios de aceptación siguen siendo el publicado y ogs. En superficie fija el veredicto es la concordancia de xslope con ogs (|xslope − ogs| / ogs ≤ 0.5 %); en búsqueda cada motor halla su superficie y la fila es solo un diagnóstico.
 
@@ -17,16 +17,16 @@ xslope **no es un juez**: los criterios de aceptación siguen siendo el publicad
 | convertido, superficie fija | 80 |
 | Unsupported: método morgenstern_price | 44 |
 | Unsupported: grieta de tracción | 27 |
+| Unsupported: búsqueda no circular | 25 |
 | Unsupported: método janbu_corrected | 25 |
 | Unsupported: refuerzos | 21 |
-| Unsupported: búsqueda no circular | 16 |
 | Unsupported: método janbu_simplified | 11 |
 | Unsupported: sismo | 10 |
 | Unsupported: cargas | 6 |
 | Unsupported: material hoek_brown | 2 |
 | Unsupported: ventana de búsqueda de ancho cero | 2 |
 | Unsupported: undrained con gradiente: bases sobre el datum | 1 |
-| **total** | **347** |
+| **total** | **356** |
 
 | superficie | filas | mediana \|xs − ogs\| % | máximo \|xs − ogs\| % | en | concordancia | discrepancia | sin dato |
 |---|---:|---:|---:|---|---:|---:|---:|

@@ -178,6 +178,16 @@ export const exampleTitles: Readonly<Record<string, ExampleTitle>> = {
   V059c: { title: 'Talud de dos capas no drenadas, cu2/cu1 = 1,6, búsqueda no circular', source: 'Guo y Griffiths, 2020' },
   V094: { title: 'Talud de cuatro estratos de Yamagami y Ueta, búsqueda no circular', source: 'Greco, 1996, ejemplo 4; Yamagami y Ueta, 1988' },
   V103: { title: 'Talud de Spencer con ru = 0,5, superficie crítica no circular', source: 'Fredlund y Krahn, 1977; Baker, 1980; Spencer, 1969' },
+  // Lote CM (F7.6): promovidos a verification/cases/. `-nc` es el check no circular de un problema que ya tiene su caso circular;
+  // V039 y V051 entran con su propio id y V053 es de formato v0.7 (búsqueda global).
+  'V036c-nc': { title: 'Terraplén sobre cimentación no drenada, Su con cz = 10 psf/ft, búsqueda no circular', source: 'Duncan y Wright, fig. 15.9' },
+  'V036d-nc': { title: 'Terraplén sobre cimentación no drenada, Su con cz = 15 psf/ft, búsqueda no circular', source: 'Duncan y Wright, fig. 15.9' },
+  V039: { title: 'Dique de James Bay, búsqueda no circular', source: 'Duncan y Wright, fig. 7.16' },
+  'V041a-nc': { title: 'Talud sumergido, embalse 30 ft sobre la corona, búsqueda no circular', source: 'Duncan y Wright, fig. 6.27' },
+  'V041b-nc': { title: 'Talud sumergido, embalse 60 ft sobre la corona, búsqueda no circular', source: 'Duncan y Wright, fig. 6.27' },
+  V051: { title: 'ACADS 4: capa débil, nivel freático y sobrecargas, búsqueda no circular', source: 'Giam y Donald, 1989 (ACADS)' },
+  V053: { title: 'Talud con capa débil de Greco (1996), ejemplo 5 / Chen y Shao, búsqueda global', source: 'Greco, 1996; Chen y Shao, 1988' },
+  'V098-nc': { title: 'Talud de ejemplo sin carga sísmica, búsqueda no circular', source: 'manual de verificación de un programa comercial' },
   HAM1: { title: 'Talud de roca con Hoek-Brown, ejemplo 1 de Hammah et al., geometría reconstruida', source: 'Hammah et al., 2005' },
   V104a: { title: 'Terraplén sobre arcilla sin exceso de presión de poros (tutorial de B-barra, paso 1)', source: 'tutorial de un programa comercial' },
 };
