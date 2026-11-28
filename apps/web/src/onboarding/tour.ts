@@ -10,43 +10,45 @@ export interface TargetSpec {
 }
 
 export interface TourStep {
-  id: 'open' | 'materials' | 'check' | 'results' | 'report';
+  id: 'check' | 'materials' | 'open' | 'import' | 'help';
   title: string;
   body: string;
   target: TargetSpec;
 }
 
+// CM-WC: la guía parte del modelo que ya está abierto (al arrancar, el ejemplo ACADS 1(a)) y señala «Comprobar»: el primer
+// factor de seguridad está a un clic. Los demás pasos cubren editar, abrir otro ejemplo, importar y la Ayuda.
 export const TOUR_STEPS: readonly TourStep[] = [
   {
-    id: 'open',
-    title: 'Abra un ejemplo o empiece un modelo',
-    body: 'En «Archivo», en la cabecera, puede abrir un ejemplo publicado (por ejemplo, V047a), abrir un archivo guardado, importar un DXF o un CSV, o empezar un modelo vacío o un talud simple. Un modelo vacío se dibuja en el lienzo con la herramienta «Dibujar región» (tecla R), en la paleta flotante.',
-    target: { selector: '.dd-trigger', text: '^Archivo' },
+    id: 'check',
+    title: 'Pulse «Comprobar» para obtener el FS',
+    body: 'Al arrancar está abierto el ejemplo ACADS 1(a). Pulse «Comprobar», al pie de la barra lateral, para obtener su factor de seguridad (FS) con los métodos elegidos en «Análisis»; con otro modelo abierto, calcula el de ese modelo. También funciona con Ctrl+Intro. El FS y los avisos aparecen en el resumen sobre el lienzo.',
+    target: { selector: 'button.ea-primary' },
   },
   {
     id: 'materials',
-    title: 'Defina geometría, materiales y agua',
-    body: 'En la barra lateral «Modelo», cada paso se abre en línea y muestra un resumen de su estado. Se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades).',
+    title: 'Edite geometría, materiales y agua',
+    body: 'En la barra lateral «Modelo», cada paso se abre en línea y muestra un resumen de su estado. Se editan la geometría (regiones y vértices), los materiales (peso unitario, cohesión y ángulo de fricción), el agua (línea piezométrica), la superficie o la búsqueda, el análisis, las cargas, el sismo y los datos del proyecto (título y unidades). Después de editar, vuelva a pulsar «Comprobar».',
     // El tablist es `display: contents` (sin caja): se señala el contenedor de los pasos.
     target: { selector: '.ua-steps' },
   },
   {
-    id: 'check',
-    title: 'Pulse «Comprobar»',
-    body: '«Comprobar», al pie de la barra lateral, valida el modelo y calcula el factor de seguridad (FS) con los métodos elegidos en «Análisis». También funciona con Ctrl+Intro.',
-    target: { selector: 'button.ea-primary' },
+    id: 'open',
+    title: 'Abra otro ejemplo o empiece un modelo',
+    body: 'En «Archivo», la lista «Ejemplos» abre otro caso publicado como modelo (por ejemplo, V001). También puede abrir un archivo guardado, empezar un modelo vacío o crear un talud simple. Un modelo vacío se dibuja en el lienzo con la herramienta «Dibujar región» (tecla R), en la paleta flotante.',
+    target: { selector: '.dd-trigger', text: '^Archivo' },
   },
   {
-    id: 'results',
-    title: 'Lea el FS y los avisos',
-    body: 'Este resumen sobre el lienzo muestra el FS mínimo y el de cada método, y si convergió. Revise también los avisos y las notas: el detalle está en la vista «Resultados», junto con «Diagnósticos».',
-    target: { selector: '[data-testid="result-summary"]' },
+    id: 'import',
+    title: 'Importe un DXF o un CSV',
+    body: 'En «Archivo», «Importar DXF» e «Importar CSV» traen regiones (o la línea piezométrica) desde un archivo. Sobre el modelo de arranque sin cambios, la importación lo reemplaza; sobre otro modelo, se agrega a sus regiones, y puede elegir lo contrario. Si no tiene un archivo, el diálogo de importación y la Ayuda ofrecen un DXF y un CSV de ejemplo.',
+    target: { selector: '.dd-trigger', text: '^Archivo' },
   },
   {
-    id: 'report',
-    title: 'Exporte el informe',
-    body: 'Con un cálculo vigente, «Informe PDF» genera el informe con el modelo, la superficie crítica y los resultados; la vista «Informe» lista su contenido. Los CSV están en «Exportar». Los resultados deben ser revisados por un profesional competente.',
-    target: { selector: '.ua-actions button', text: '^(Informe PDF|Generando)' },
+    id: 'help',
+    title: 'Consulte la Ayuda',
+    body: 'La «Ayuda» reúne el glosario, los atajos de teclado y las limitaciones, y repite esta guía. Con un cálculo vigente, «Informe PDF» genera el informe con el modelo, la superficie crítica y los resultados. Los resultados deben ser revisados por un profesional competente.',
+    target: { selector: 'button.help-button' },
   },
 ];
 
