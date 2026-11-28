@@ -163,13 +163,16 @@ export const ENGINE_WARNING_CODES = [
   'shansep_nonpositive_stress',
   'non_circular_large_change',
   'non_circular_not_refined', // E16x: búsqueda no circular sin ninguna polilínea admisible (nota)
+  'non_circular_global_no_candidates', // F7.2: la búsqueda global no dio ninguna superficie elegible (nota)
+  'non_circular_global_tension_rejected', // F7.2/F7.4: la guarda rechazó una superficie con un FS menor (aviso)
 ] as const;
 
 /**
  * Códigos que el motor ya tiene fijados pero que `briefs/00_CONTRATOS.md` (E6) aún no lista. Vacía desde que E6 incorporó
- * `non_circular_not_refined` (E16x); se conserva para el próximo código nuevo.
+ * `non_circular_not_refined` (E16x). Lleva las notas de la búsqueda global (F7.2) hasta que el coordinador las agregue a la
+ * lista de E6; entonces se vacía de nuevo.
  */
-export const PENDING_E6_WARNING_CODES = [] as const;
+export const PENDING_E6_WARNING_CODES = ['non_circular_global_no_candidates', 'non_circular_global_tension_rejected'] as const;
 
 /**
  * Texto de la nota de γw por defecto (E15m-6 adaptado a la web, E15m-9): el campo se llama «γw» y vive en la pestaña «Agua». Lo usan el
@@ -341,6 +344,14 @@ const CATALOG: Readonly<Record<string, CatalogEntry>> = {
     severity: 'nota',
     text: 'La búsqueda no circular no encontró ninguna polilínea admisible: el resultado es el círculo de la búsqueda circular.',
   },
+  non_circular_global_no_candidates: {
+    severity: 'nota',
+    text: 'La búsqueda global no dio ninguna superficie elegible: el resultado es el del refinamiento de los círculos. Pruebe otro algoritmo, más candidatos u otra semilla, o revise que el modelo tenga capas o contactos débiles que el bloque pueda seguir.',
+  },
+  non_circular_global_tension_rejected: {
+    severity: 'aviso',
+    text: 'La búsqueda global encontró una superficie con un FS menor en la rama con tracción (λ negativo o normal efectiva negativa) y no la tomó, porque ese FS no es fiable: el resultado es la mejor superficie elegible. Compare con la búsqueda circular y revise la normal efectiva N′ por dovela (presión de poros y grieta de tracción) antes de aceptarlo. Esas superficies suelen tener un FS más alto cuando otro programa las evalúa, así que el FS informado no es necesariamente un límite superior.',
+  },
   mock_engine: {
     severity: 'aviso',
     text: 'Motor simulado (solo para desarrollo): el FS es una aproximación de Fellenius, no el cálculo de Bishop o Spencer del motor real.',
@@ -386,6 +397,8 @@ const WARNING_PATH: Readonly<Record<string, string>> = {
   shansep_nonpositive_stress: '/materials',
   non_circular_large_change: '/analysis/search',
   non_circular_not_refined: '/analysis/search',
+  non_circular_global_no_candidates: '/analysis/search/non_circular/global',
+  non_circular_global_tension_rejected: '/analysis/search/non_circular/global',
 };
 
 /** Puntero JSON aproximado al que apunta un aviso (`/analysis/search`, `/loads`…), o `null`. */

@@ -67,10 +67,11 @@ describe('v0.5: versión mínima y compuerta (F5.1)', () => {
     }
   });
 
-  it('la versión 0.7 se rechaza y el texto nombra de la 0.1 a la 0.6', () => {
-    const e = errors(model('0.7')).find((i) => i.code === 'io.version');
+  it('la versión 0.8 se rechaza y el texto nombra de la 0.1 a la 0.7', () => {
+    const e = errors(model('0.8')).find((i) => i.code === 'io.version');
     expect(e?.text).toContain('0.5');
     expect(e?.text).toContain('0.6');
+    expect(e?.text).toContain('0.7');
   });
 
   it('refuerzos y campos de la v0.3 se aceptan en un archivo 0.5', () => {

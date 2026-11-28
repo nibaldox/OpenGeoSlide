@@ -88,7 +88,30 @@ function isNonCircularStats(value: unknown): boolean {
     Number.isInteger(value.evaluated) &&
     value.evaluated >= 0 &&
     isFiniteNumber(value.seed_fos) &&
-    (value.polyline_fos === undefined || isFiniteNumber(value.polyline_fos))
+    (value.polyline_fos === undefined || isFiniteNumber(value.polyline_fos)) &&
+    (value.global === undefined || isGlobalStats(value.global))
+  );
+}
+
+function isCount(v: unknown): boolean {
+  return isFiniteNumber(v) && Number.isInteger(v) && v >= 0;
+}
+
+/** Estadísticas de la búsqueda global (v0.7, F7.2). `global_fos` es un número o `null`. */
+function isGlobalStats(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    (value.algorithm === 'block' || value.algorithm === 'annealing') &&
+    isCount(value.generated) &&
+    isCount(value.attempts) &&
+    isCount(value.converged) &&
+    isCount(value.eligible) &&
+    isCount(value.tension_rejected) &&
+    isCount(value.refined) &&
+    isCount(value.evaluated) &&
+    isCount(value.polish_evaluated) &&
+    (value.global_fos == null || isFiniteNumber(value.global_fos)) &&
+    (value.winner === 'global' || value.winner === 'refinement')
   );
 }
 

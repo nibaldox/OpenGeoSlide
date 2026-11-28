@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { MethodReport } from './types';
-import { compareSuggestion, describeResultWarnings, describeWarning, describeWarnings, ENGINE_WARNING_CODES, warningContext, warningPath } from './warnings';
+import { compareSuggestion, describeResultWarnings, describeWarning, describeWarnings, ENGINE_WARNING_CODES, PENDING_E6_WARNING_CODES, warningContext, warningPath } from './warnings';
 
 describe('describeWarning', () => {
   it('negative_effective_normal es una nota con el texto acordado (E5)', () => {
@@ -77,7 +77,8 @@ describe('describeWarning', () => {
     expect(fromContract.length).toBeGreaterThan(0);
     // G3 (E15i-8): `ito_matsui_spacing_range` ya está en la lista de E6 (integrado en F3G): la coincidencia es exacta.
     // R13 (E15m-6): `water_unit_weight_default` ya está en E6 (integrado): la coincidencia es exacta.
-    expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract].sort());
+    // F7.2: los dos códigos de la búsqueda global figuran en `PENDING_E6_WARNING_CODES` hasta que E6 los incorpore.
+    expect([...ENGINE_WARNING_CODES].sort()).toEqual([...fromContract, ...PENDING_E6_WARNING_CODES].sort());
     expect(ENGINE_WARNING_CODES).toContain('water_unit_weight_default');
   });
 

@@ -17,6 +17,7 @@ import {
   saveOgsJson,
   unknownVersionMessage,
   v06Fields,
+  v07Fields,
 } from './ogsJson';
 
 type Json = Record<string, unknown>;
@@ -55,9 +56,10 @@ const errors = (m: unknown) => open(m).issues.filter((i) => i.severity === 'erro
 const saved = (doc: ModelDoc): Json => JSON.parse(saveOgsJson(doc)) as Json;
 
 describe('v0.6: tabla única «campo → versión» y versión mínima (F6.1)', () => {
-  it('la tabla `VERSION_FIELD_TABLE` enumera en orden creciente de la 0.2 a la 0.6 y contiene la puerta v06Fields', () => {
-    expect(VERSION_FIELD_TABLE.map((g) => g.version)).toEqual(['0.2', '0.3', '0.4', '0.5', '0.6']);
-    expect(VERSION_FIELD_TABLE.at(-1)?.fields).toBe(v06Fields);
+  it('la tabla `VERSION_FIELD_TABLE` enumera en orden creciente de la 0.2 a la 0.7 y contiene las puertas v06Fields y v07Fields', () => {
+    expect(VERSION_FIELD_TABLE.map((g) => g.version)).toEqual(['0.2', '0.3', '0.4', '0.5', '0.6', '0.7']);
+    expect(VERSION_FIELD_TABLE.at(-1)?.fields).toBe(v07Fields);
+    expect(VERSION_FIELD_TABLE.at(-2)?.fields).toBe(v06Fields);
     expect(OGS_V06).toBe('0.6');
   });
 
@@ -272,16 +274,16 @@ describe('v0.6: apertura, puerta de versión y orden de F6.1', () => {
     expect(localErrs[0]?.text).toBe('materials[0].gsi requiere version "0.6"');
   });
 
-  it('versión desconocida "0.7": openOgsJson la rechaza enumerando 0.1 a 0.6 y validateLocal usa el texto exacto del motor', () => {
-    expect(unknownVersionMessage('0.7')).toBe('version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no "0.7"');
-    const r = open(model('0.7'));
+  it('versión desconocida "0.8": openOgsJson la rechaza enumerando 0.1 a 0.7 y validateLocal usa el texto exacto del motor', () => {
+    expect(unknownVersionMessage('0.8')).toBe('version debe ser "0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7", no "0.8"');
+    const r = open(model('0.8'));
     expect(r.doc).toBeNull();
     expect(r.issues[0]?.code).toBe('io.version');
-    expect(r.issues[0]?.text).toContain('0.1, 0.2, 0.3, 0.4, 0.5 y 0.6');
+    expect(r.issues[0]?.text).toContain('0.1, 0.2, 0.3, 0.4, 0.5, 0.6 y 0.7');
 
-    const badDoc = { ...baseDoc(), version: '0.7' as ModelDoc['version'] };
+    const badDoc = { ...baseDoc(), version: '0.8' as ModelDoc['version'] };
     const vErr = validateLocal(badDoc).find((i) => i.path === '/version');
-    expect(vErr?.text).toBe('version debe ser "0.1", "0.2", "0.3", "0.4", "0.5" o "0.6", no "0.7"');
+    expect(vErr?.text).toBe('version debe ser "0.1", "0.2", "0.3", "0.4", "0.5", "0.6" o "0.7", no "0.8"');
   });
 });
 
