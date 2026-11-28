@@ -94,7 +94,7 @@ fn the_gate_names_the_first_field_that_needs_version_03() {
 
 #[test]
 fn unknown_versions_are_rejected_and_the_message_lists_the_known_ones() {
-    let msg = reject(&with_version(v047a(json!(["bishop"])), "0.7"));
+    let msg = reject(&with_version(v047a(json!(["bishop"])), "0.8"));
     assert!(
         msg.starts_with("InvalidModel:")
             && msg.contains("0.1")
