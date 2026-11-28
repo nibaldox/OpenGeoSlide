@@ -235,6 +235,18 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     let tensions = std::cell::Cell::new(0usize);
     let generation_phase = std::cell::Cell::new(true);
     let mut rng = SplitMix64(spec.seed());
+    let rot: [f64; 20] = {
+        let mut r = SplitMix64(spec.seed() ^ 0x5eed_0f_ca11);
+        let mut a = [0.0; 20];
+        if spec.seed() != 0 {
+            for v in a.iter_mut() {
+                *v = r.uniform(0.0, 1.0);
+            }
+        }
+        a
+    };
+    // E17c: Halton con rotación de Cranley-Patterson por dimensión; la semilla 0 no rota.
+    let hs = |i: u64, b: u64| -> f64 { (halton(i, b) + rot[b as usize]).fract() };
     let win = noncircular::windows(pm, search);
     let h = height(pm);
     let n = spec.generated();
@@ -261,14 +273,13 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
     if algorithm == "block" {
         while stats.generated < n && stats.attempts < 20 * n && !edges.is_empty() {
             stats.attempts += 1;
-            let index = spec.seed() + stats.attempts as u64;
-            let [a, b] =
-                edges[((halton(index, 3) * edges.len() as f64) as usize).min(edges.len() - 1)];
-            let k = 2 + usize::from(halton(index, 2) >= 0.5);
+            let index = stats.attempts as u64;
+            let [a, b] = edges[((hs(index, 3) * edges.len() as f64) as usize).min(edges.len() - 1)];
+            let k = 2 + usize::from(hs(index, 2) >= 0.5);
             let mut ts: Vec<f64> = [5, 7, 11, 13]
                 .into_iter()
                 .take(k + 1)
-                .map(|base| halton(index, base))
+                .map(|base| hs(index, base))
                 .collect();
             ts.sort_by(f64::total_cmp);
             let mut points: Vec<Point> = ts
@@ -276,8 +287,9 @@ pub(crate) fn run<E: FnMut(&Surface) -> Option<(f64, bool)>>(
                 .map(|t| [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])])
                 .collect();
             points.sort_by(|a, b| a[0].total_cmp(&b[0]));
-            let tl = (90.0 + 45.0 * halton(index, 19)).to_radians();
-            let tr = (45.0 + 45.0 * halton(index, 17)).to_radians();
+            // E17c: inclinación de cada proyección entre 15° y 75° sobre la horizontal, a ambos lados.
+            let tl = (105.0 + 60.0 * hs(index, 19)).to_radians();
+            let tr = (15.0 + 60.0 * hs(index, 17)).to_radians();
             let (Some(l), Some(r)) = (
                 project(pm, points[0], tl, h),
                 project(pm, *points.last().unwrap(), tr, h),
