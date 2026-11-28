@@ -46,7 +46,7 @@ los leen. El motor acepta siete versiones:
   binario de la 0.4.0); los 17 modelos con campos v0.6 se saltan, porque el binario base no lee esa versión
   ([Verificación](verificacion.md#hoek-brown-shansep-y-búsqueda-no-circular-v06)).
 - **Un modelo sin `global` da la misma salida, byte a byte, que la 0.5.1**, con la versión del motor normalizada: 0
-  diferencias en 196 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-v06`, con los 17
+  diferencias en 196 modelos de `verification/` (`identity_vs_baseline.py --normalize-version --include-reinforced --include-v05 --include-v06 --with-v06`, con los 17
   modelos que traen campos v0.6) ([Verificación](verificacion.md#búsqueda-global-no-circular-v07)).
 - **Cada campo o variante de la versión 0.3 exige `"0.3"`, `reinforcements` exige `"0.4"`, `analysis.tension_crack` y
   el `lateral_pressure` y el `capacity` de un pilote exigen `"0.5"`, y los materiales `hoek_brown` y `shansep` y
