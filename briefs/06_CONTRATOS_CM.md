@@ -386,3 +386,27 @@ contradigan.
 
 Después de estos cambios se vuelven a correr todas las compuertas: A1 a A10, A2b y la paridad A9, con el prototipo
 alineado a estas reglas. Si A2 deja de pasar, se informa antes de seguir.
+
+### E17f: arbitraje de la revisión adversarial, lente B (RCM-B; el coordinador, 2026-11-28)
+
+El informe está en `$TMPDIR/rcm-B/RCM_B.md`; los modelos y guiones, en la misma carpeta.
+
+1. **F7.5 y el HUD (RCM-B-07).** El HUD no lleva las 6 cifras. Cuando un resultado trae `search.non_circular.global`,
+   lleva una sola línea:
+   - «Búsqueda global: ganó (bloque)» o «(recocido)»;
+   - o bien «Búsqueda global: no mejoró el refinamiento»;
+   - o bien «Búsqueda global: sin candidatos», con `eligible = 0`.
+
+   La línea va con el método que rige, y con una marca de aviso si está la nota `non_circular_global_tension_rejected`.
+   Las 6 cifras siguen en la tabla, el CSV y el PDF.
+2. **El informe PDF dibuja la superficie del método que rige (RCM-B-06).** Es el primero de `fsMinimum(report).methods`
+   que tiene dovelas, la misma regla que el lienzo y el HUD (`pickShownMethod`). Si eso cambia la identidad del informe
+   frente a v0.4.0 en modelos con varios métodos, la diferencia se declara en `identity_exceptions` con su causa. No se
+   esconde.
+3. **El algoritmo de `global` en la web (RCM-B-03).** `openOgsJson` rechaza un `algorithm` fuera de
+   `auto`, `block` y `annealing` con `io.shape`, como los demás enums. Los números fuera de rango siguen abriéndose y los
+   marca `validateLocal`, que es el patrón del editor.
+4. **`doc.version` en memoria (RCM-B-14).** No se cambia. La versión en memoria es un piso, y lo que va al motor y al
+   archivo es siempre `minimalVersion`. Queda documentado en `formato-ogs-json.md`.
+5. **Se aceptan** RCM-B-01, 02, 04, 05, 08 a 13 y 15, con la corrección que propone el informe, o una equivalente
+   que se justifique.
