@@ -30,7 +30,7 @@ for port in "$port_preview" "$port_hook"; do
 done
 env -u PYTHONPATH -u PYTHONHOME python3 docs/fase2/ux/u6g-e2e/make_fixtures.py "$OGS_FX" > /dev/null
 {
-for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs docs/fase3/r13/e2e/r13_*.mjs docs/suite-a/e2e/aceptacion_ua.mjs; do
+for f in docs/fase2/ux/{u3i,u3m,u3o,u4m,u4p,u5e,u5s,u6d,u6g,u6k}-e2e/*.mjs docs/fase3/w1e/e2e/w1e_*.mjs docs/fase3/w1f/e2e/w1f_canvas.mjs docs/fase3/iw/e2e/iw_*.mjs docs/fase3/r2i2/e2e/r2i2_*.mjs docs/fase3/g1w1/e2e/g1w1_*.mjs docs/fase3/g1w2/e2e/g1w2_*.mjs docs/fase3/g3w/e2e/g3w_*.mjs docs/fase3/r12/e2e/r12_*.mjs docs/fase3/r13/e2e/r13_*.mjs docs/suite-a/e2e/aceptacion_ua.mjs docs/cm/e2e/cm_*.mjs; do
   case "$f" in */lib.mjs|*explore*|*dbg*) continue;; esac
   n=$(basename "$f" .mjs)
   url=$OGS_URL; [ "$n" = w1f_canvas ] && url="http://127.0.0.1:$port_hook/"
