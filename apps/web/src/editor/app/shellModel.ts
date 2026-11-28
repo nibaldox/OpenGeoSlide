@@ -392,7 +392,11 @@ export function runStatus(input: RunStatusInput): RunStatus {
     if (fs.converged < fs.total) {
       const part = `${fs.converged} de ${fs.total}`;
       if (fs.below1) return out('nok', `Parcial · ${part} · FS < 1,0`, [minimum, notConverged]);
-      return out('warn', `Parcial · ${part} métodos`, [notConverged]);
+      // RCM-B-10: con FS ≥ 1,0 el chip también lleva el mínimo («FS mín. 1,301») si cabe en 40 caracteres, y el título siempre. Como con el
+      // nombre del método (CM-W2), el conteo de avisos tiene prioridad sobre la cifra: la cifra solo entra si cabe con los avisos.
+      const plain = `Parcial · ${part} métodos`;
+      const withFs = [`${plain} · FS mín. ${fs.text}`, `Parcial · ${part} · FS mín. ${fs.text}`].find((t) => t.length <= MAX_CHARS && (advisories === 0 || withAdvisories(t, advisories) !== t));
+      return out('warn', withFs ?? plain, [minimum, notConverged]);
     }
     if (fs.below1) return out('nok', 'Calculado · FS < 1,0', [minimum]);
     // CM-W2: el chip nombra el método que rige si cabe en 40 caracteres; el conteo de avisos tiene prioridad sobre el nombre.
