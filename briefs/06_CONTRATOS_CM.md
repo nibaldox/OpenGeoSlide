@@ -205,4 +205,24 @@ harness. Si alguno no pasa la banda con el motor final, queda retenido con su ca
 
 ## Enmiendas
 
-(ninguna todavía)
+### E17a: `auto` elige `block` solo con contactos y recurre al recocido (CM-M, 2026-11-28)
+
+**Problema** (medido por CM-M con el prototipo sin cambios, `$TMPDIR/cm-m/probe_layers.{py,json,log}`): en los 24
+taludes homogéneos del barrido, F7.3.1 encuentra «bases» y, con la regla literal, `auto` elige `block`. Los 24 agotan
+10 000 intentos sin una sola polilínea admisible. Coincide con X37 §4.5: G2 no tuvo candidatos en 27 de 40 modelos
+(los 24 taludes, V001-nc, V041a y V041b).
+
+**Reemplaza la última viñeta de F7.3.1:**
+
+- `auto` elige `block` **solo si hay aristas de contacto entre regiones** (el paso de «contacto» de F7.3.1). Las «bases»
+  no cuentan para esta elección.
+- Si `auto` eligió `block` y la generación terminó con 0 candidatos admisibles (por haber agotado los 20·`generated`
+  intentos), `auto` corre `annealing` con el mismo `generated`. `GlobalStats.algorithm` informa `"annealing"`, y
+  `attempts` suma los intentos de las dos etapas.
+- `algorithm: "block"` explícito conserva el respaldo por «bases» y **no** recurre al recocido. Si no hay candidatos,
+  sale la nota `non_circular_global_no_candidates`.
+
+**A8 queda así:** en los 24 taludes, `global` no empeora ninguno ni da avisos fuera de F7.2. La etapa global tiene
+`evaluated > 0` en al menos 23 de 24. Donde sea 0, porque no hay un círculo semilla elegible para el recocido, sale la
+nota `non_circular_global_no_candidates` y se nombra el talud. X37 §4.7 encontró un solo caso así,
+TAL-H30-b60-f20-c5.
