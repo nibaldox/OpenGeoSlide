@@ -4,7 +4,7 @@ Solo biblioteca estándar (salvo `oracle.py`, `from_cslope.py`, `build_corpus_ro
 `shapely` del venv del oráculo). No modifica el motor ni la web: usa `target/release/ogs analyze` (v0.3.0) para obtener las dovelas.
 
 ```
-export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch ; mkdir -p $TMPDIR/f3g-x21/rows
+export TMPDIR=<directorio temporal> ; mkdir -p $TMPDIR/f3g-x21/rows
 cd docs/fase3/exploracion/X21_proto
 PY="env -u PYTHONPATH -u PYTHONHOME python3" ; OR="env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python"
 $PY run_rows.py                       # escribe rows/X21-{P,D,A,C,W,N}*.json (filas propias) y results_proto.json

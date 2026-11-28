@@ -5,7 +5,7 @@ No modifica el motor ni la web: usa `target/release/ogs analyze` (el binario del
 de la superficie fija con dos nodos en `x_p ± 1e-6·ancho` (E14d.2), y les agrega las fuerzas del pilote con las convenciones de E14f (activa) y E14g (pasiva, ÷ F).
 
 ```
-export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch ; mkdir -p $TMPDIR/x22
+export TMPDIR=<directorio temporal> ; mkdir -p $TMPDIR/x22
 cd docs/fase3/exploracion/X22_proto
 PY="env -u PYTHONPATH -u PYTHONHOME python3" ; OR="env -u PYTHONPATH -u PYTHONHOME $TMPDIR/oracle-venv/bin/python"
 python3 im.py 2.4 0.8 20             # coeficientes A1, A2: forma del artículo (ecs. 13/14/23) y forma de cSlope

@@ -17,7 +17,7 @@ decisión sobre un criterio es del coordinador (sección 6).
 
 ## 2. Reproducción
 
-Desde la raíz del worktree (`export TMPDIR=/home/xodla/.hermes/profiles/open-geoslide/cache/scratch`; Python siempre con
+Desde la raíz del worktree (`export TMPDIR=<directorio temporal>`; Python siempre con
 `env -u PYTHONPATH -u PYTHONHOME`; binario `target/release/ogs` de `a64718b`, sin cambios de motor):
 
 ```
