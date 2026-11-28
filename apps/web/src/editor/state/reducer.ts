@@ -208,9 +208,24 @@ function isOptionalNonCircular(value: unknown): boolean {
   if (typeof value !== 'object' || Array.isArray(value)) return false;
   const nc = value as Record<string, unknown>;
   return (
-    Object.keys(nc).every((k) => k === 'seeds' || k === 'max_vertices' || nc[k] === undefined) &&
+    Object.keys(nc).every((k) => k === 'seeds' || k === 'max_vertices' || k === 'global' || nc[k] === undefined) &&
     optionalFinite(nc.seeds) &&
-    optionalFinite(nc.max_vertices)
+    optionalFinite(nc.max_vertices) &&
+    isOptionalGlobal(nc.global)
+  );
+}
+
+/** Solo la forma de `non_circular.global` (F7.1); los rangos los señala `validateLocal`. */
+function isOptionalGlobal(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== 'object' || Array.isArray(value)) return false;
+  const g = value as Record<string, unknown>;
+  return (
+    Object.keys(g).every((k) => ['algorithm', 'generated', 'seed', 'polish'].includes(k) || g[k] === undefined) &&
+    (g.algorithm === undefined || g.algorithm === null || typeof g.algorithm === 'string') &&
+    optionalFinite(g.generated) &&
+    optionalFinite(g.seed) &&
+    (g.polish === undefined || g.polish === null || typeof g.polish === 'boolean')
   );
 }
 
@@ -358,7 +373,10 @@ function applyCommandRaw(doc: ModelDoc, cmd: EditorCommand): ModelDoc | null {
       if (cmd.search === null) return withAnalysis(doc, { search: null });
       const nc = cmd.search.non_circular;
       return withAnalysis(doc, {
-        search: nc && typeof nc === 'object' ? { ...cmd.search, non_circular: { ...nc } } : { ...cmd.search },
+        search:
+          nc && typeof nc === 'object'
+            ? { ...cmd.search, non_circular: { ...nc, ...(nc.global && typeof nc.global === 'object' ? { global: { ...nc.global } } : {}) } }
+            : { ...cmd.search },
       });
     }
     case 'analysis/patch': {

@@ -71,7 +71,7 @@ function index(seg: string | undefined): number | null {
 export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | null {
   if (path === null || path === '') return null;
   const seg = path.split('/').slice(1);
-  const [a, b, c, d] = seg;
+  const [a, b, c, d, e] = seg;
   const selection = selectionForPath(path, doc);
 
   if (a === 'regions') {
@@ -147,7 +147,15 @@ export function issueTarget(path: string | null, doc: ModelDoc): IssueTarget | n
     if (b === 'search') {
       if (c === 'entry' || c === 'exit') return { tab: 'search', selection, fieldPath: `/analysis/search/${c}/${d === 'hi' ? 'hi' : 'lo'}` };
       if (c === 'non_circular') {
-        const sub = d === 'seeds' || d === 'max_vertices' ? `/${d}` : '';
+        // F7.5: cuatro niveles, `/analysis/search/non_circular/global/<campo>`; un campo desconocido lleva a la casilla de la búsqueda global.
+        const sub =
+          d === 'seeds' || d === 'max_vertices'
+            ? `/${d}`
+            : d === 'global'
+              ? e === 'algorithm' || e === 'generated' || e === 'seed' || e === 'polish'
+                ? `/global/${e}`
+                : '/global'
+              : '';
         return { tab: 'search', selection, fieldPath: `/analysis/search/non_circular${sub}` };
       }
       if (c !== undefined && SEARCH_FIELDS.has(c)) return { tab: 'search', selection, fieldPath: `/analysis/search/${c}` };

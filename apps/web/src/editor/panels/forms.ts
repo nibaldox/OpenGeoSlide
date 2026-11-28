@@ -14,9 +14,17 @@ import type {
   Point,
   SearchSpec,
   CircleSurfaceSpec,
+  GlobalSpec,
   SurfaceSpec,
   TensionCrack,
 } from '../../engine/types';
+import {
+  GLOBAL_GENERATED_MAX,
+  GLOBAL_GENERATED_MIN,
+  GLOBAL_SEED_MAX,
+  GLOBAL_SEED_MIN,
+  isGlobalAlgorithm,
+} from '../../engine/globalSearch';
 import {
   RULE_TEXT,
   SEARCH_RANGE_LABEL,
@@ -146,6 +154,8 @@ const FIELD_LABEL: Readonly<Record<string, string>> = {
   pop: 'POP',
   seeds: 'Semillas',
   max_vertices: 'Máximo de vértices',
+  global_generated: 'Candidatos',
+  global_seed: 'Semilla',
   crack_depth: 'Grieta de tracción, profundidad',
   crack_water_fill: 'Grieta de tracción, fracción de agua',
 };
@@ -1352,7 +1362,40 @@ export interface SearchForm {
   non_circular?: boolean;
   seeds?: string;
   max_vertices?: string;
+  /** Búsqueda global (v0.7, F7.5): la casilla y los cuatro campos. Los valores por defecto no se escriben en el documento. */
+  global?: boolean;
+  /** `''` = ausente (el motor toma `auto`). */
+  global_algorithm?: string;
+  /** Texto; vacío = ausente (el motor toma 500). */
+  global_generated?: string;
+  /** Texto; vacío = ausente (el motor toma 0). */
+  global_seed?: string;
+  /** `undefined` = ausente (el motor toma `true`). */
+  global_polish?: boolean;
 }
+
+/** Campos de la búsqueda global del formulario cuando la casilla está marcada y nada se ha cambiado: `global: {}`. */
+export const GLOBAL_FORM_EMPTY = { global: true, global_algorithm: '', global_generated: '', global_seed: '' } as const;
+
+/** El formulario sin los campos de la búsqueda global (la casilla se desmarca). */
+export function withoutGlobal(form: SearchForm): SearchForm {
+  const { global: _g, global_algorithm: _a, global_generated: _n, global_seed: _s, global_polish: _p, ...rest } = form;
+  return rest;
+}
+
+function globalToForm(g: GlobalSpec): Pick<SearchForm, 'global' | 'global_algorithm' | 'global_generated' | 'global_seed' | 'global_polish'> {
+  return {
+    global: true,
+    global_algorithm: g.algorithm ?? '',
+    // `String` y no `formatNumber`: la semilla llega a 2^53 − 1 (16 cifras) y no puede perder ninguna al pasar por el formulario.
+    global_generated: g.generated == null ? '' : String(g.generated),
+    global_seed: g.seed == null ? '' : String(g.seed),
+    ...(g.polish != null ? { global_polish: g.polish } : {}),
+  };
+}
+
+const GLOBAL_GENERATED_TEXT = `Candidatos: use un entero entre ${GLOBAL_GENERATED_MIN} y ${GLOBAL_GENERATED_MAX}`;
+const GLOBAL_SEED_TEXT = `Semilla: use un entero entre ${GLOBAL_SEED_MIN} y 9007199254740991 (2^53 − 1)`;
 
 function rangeToForm(range: readonly [number, number] | null | undefined): RangeForm {
   return range ? { lo: formatNumber(range[0]), hi: formatNumber(range[1]) } : { lo: '', hi: '' };
@@ -1368,7 +1411,14 @@ export function searchToForm(spec: SearchSpec): SearchForm {
     max_radius_factor: formatNumber(spec.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor),
     min_width: formatNumber(spec.min_width),
     refine: spec.refine ?? SEARCH_DEFAULTS.refine,
-    ...(spec.non_circular != null ? { non_circular: true, seeds: formatNumber(spec.non_circular.seeds), max_vertices: formatNumber(spec.non_circular.max_vertices) } : {}),
+    ...(spec.non_circular != null
+      ? {
+          non_circular: true,
+          seeds: formatNumber(spec.non_circular.seeds),
+          max_vertices: formatNumber(spec.non_circular.max_vertices),
+          ...(spec.non_circular.global != null ? globalToForm(spec.non_circular.global) : {}),
+        }
+      : {}),
   };
 }
 
@@ -1437,6 +1487,35 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
   });
   const seeds = form.non_circular ? take(errors, 'seeds', form.seeds ?? '', { required: false, missing: '', accept: v => Number.isInteger(v) && v >= 1 && v <= 10, range: 'Semillas: use un entero entre 1 y 10' }) : null;
   const vertices = form.non_circular ? take(errors, 'max_vertices', form.max_vertices ?? '', { required: false, missing: '', accept: v => [9, 17, 33].includes(v), range: 'Vértices: use 9, 17 o 33' }) : null;
+  // F7.5: los valores por defecto no se escriben; `global: {}` queda vacío mientras el usuario no cambie ningún campo.
+  const withGlobal = form.non_circular === true && form.global === true;
+  const gAlgorithm = withGlobal && form.global_algorithm && isGlobalAlgorithm(form.global_algorithm) ? form.global_algorithm : null;
+  const gGenerated = withGlobal
+    ? take(errors, 'global_generated', form.global_generated ?? '', {
+        required: false,
+        missing: '',
+        accept: (v) => Number.isInteger(v) && v >= GLOBAL_GENERATED_MIN && v <= GLOBAL_GENERATED_MAX,
+        range: GLOBAL_GENERATED_TEXT,
+        integer: true,
+      })
+    : null;
+  const gSeed = withGlobal
+    ? take(errors, 'global_seed', form.global_seed ?? '', {
+        required: false,
+        missing: '',
+        accept: (v) => Number.isInteger(v) && v >= GLOBAL_SEED_MIN && v <= GLOBAL_SEED_MAX,
+        range: GLOBAL_SEED_TEXT,
+        integer: true,
+      })
+    : null;
+  const globalSpec: GlobalSpec | null = withGlobal
+    ? {
+        ...(gAlgorithm !== null ? { algorithm: gAlgorithm } : {}),
+        ...(gGenerated !== null ? { generated: gGenerated } : {}),
+        ...(gSeed !== null ? { seed: gSeed } : {}),
+        ...(form.global_polish !== undefined ? { polish: form.global_polish } : {}),
+      }
+    : null;
   return done(errors, () => ({
     type: 'circular_entry_exit',
     entry,
@@ -1447,13 +1526,32 @@ export function searchFromForm(form: SearchForm, ctx: { xRange: readonly [number
     max_radius_factor: factor ?? SEARCH_DEFAULTS.max_radius_factor,
     min_width: minWidth,
     refine: form.refine,
-    ...(form.non_circular ? { non_circular: { ...(seeds !== null ? { seeds } : {}), ...(vertices !== null ? { max_vertices: vertices } : {}) } } : {}),
+    ...(form.non_circular
+      ? {
+          non_circular: {
+            ...(seeds !== null ? { seeds } : {}),
+            ...(vertices !== null ? { max_vertices: vertices } : {}),
+            ...(globalSpec !== null ? { global: globalSpec } : {}),
+          },
+        }
+      : {}),
   }));
 }
 
 function sameRange(a: readonly [number, number] | null | undefined, b: readonly [number, number] | null | undefined): boolean {
   if (!a || !b) return !a && !b;
   return a[0] === b[0] && a[1] === b[1];
+}
+
+/** `non_circular` con las claves en orden fijo y sin nulos (`null` y ausente son lo mismo, también dentro de `global`). */
+function canonicalNonCircular(nc: SearchSpec['non_circular']): unknown {
+  if (nc == null) return null;
+  const g = nc.global;
+  return {
+    seeds: nc.seeds ?? null,
+    max_vertices: nc.max_vertices ?? null,
+    global: g == null ? null : { algorithm: g.algorithm ?? null, generated: g.generated ?? null, seed: g.seed ?? null, polish: g.polish ?? null },
+  };
 }
 
 /** Igualdad efectiva de búsquedas (los campos ausentes valen su valor por defecto; `null` y ausente son lo mismo). */
@@ -1467,7 +1565,7 @@ export function searchesEqual(a: SearchSpec, b: SearchSpec): boolean {
     (a.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor) ===
       (b.max_radius_factor ?? SEARCH_DEFAULTS.max_radius_factor) &&
     (a.min_width ?? null) === (b.min_width ?? null) &&
-    JSON.stringify(a.non_circular ?? null) === JSON.stringify(b.non_circular ?? null) &&
+    JSON.stringify(canonicalNonCircular(a.non_circular)) === JSON.stringify(canonicalNonCircular(b.non_circular)) &&
     (a.refine ?? SEARCH_DEFAULTS.refine) === (b.refine ?? SEARCH_DEFAULTS.refine)
   );
 }
