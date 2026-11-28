@@ -3,11 +3,12 @@
 OpenGeoSlide es software en desarrollo y no es una herramienta certificada. Esta página reúne lo que **no** hace la
 versión actual (con la Fase 3a: formato v0.3, material no drenado, superficies polilínea, Morgenstern-Price y Janbu;
 con el bloque de refuerzos: formato v0.4; con el de grieta de tracción, agua embalsada y pilotes de Ito-Matsui: formato
-v0.5, publicado con la 0.4.0, y con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, publicado con la
-0.5.0), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
+v0.5, publicado con la 0.4.0, con el bloque F3B de Hoek-Brown, SHANSEP y búsqueda no circular: formato v0.6, publicado con la
+0.5.0, y con la búsqueda global no circular del bloque CM: formato v0.7, aún sin publicar), los avisos que muestra la aplicación y las limitaciones numéricas conocidas del motor, con lo que cambió y lo que
 quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la revisión R11 del bloque de refuerzos
 (enmiendas E14o) y lo que documenta la revisión R12 del bloque v0.5 (enmiendas E15l), más lo que corrigió la revisión R15 del bloque F3B
-(enmiendas E16v a E16z). El resumen está en el
+(enmiendas E16v a E16z), más lo que cierra el bloque CM (contrato `briefs/06_CONTRATOS_CM.md`, enmiendas E17a a E17d;
+[`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md)). El resumen está en el
 [README](../README.md#limitaciones-conocidas), y la aplicación lo enlaza desde su Ayuda.
 
 ## Alcance: lo que la versión actual no hace
@@ -20,6 +21,13 @@ quedó retenido tras la revisión R10 (enmiendas E13l), más lo que corrigió la
   Es un mínimo local, **sin Bishop**, que puede quedar bajo el publicado en materiales con capa débil y tracción (V002) y
   que cuesta de 2,3 a 3,1 veces la búsqueda circular. Las superficies no circulares también se pueden **fijar a mano**
   como polilínea. Los detalles están [más abajo](#búsqueda-no-circular-v06).
+- **Búsqueda global no circular, con límites** (formato v0.7, `analysis.search.non_circular.global`, aún sin publicar):
+  genera superficies no circulares propias y las refina. **No es exhaustiva** (500 candidatos por defecto, y el resultado
+  cambia con la semilla) y **no se ofrece con Bishop**. El bloque sobre capas débiles necesita contactos entre regiones, y si
+  no los hay recurre al recocido. **La guarda de tracción puede dejar sin tomar un FS menor** (y lo avisa con
+  `non_circular_global_tension_rejected`). Tres de los 24 taludes homogéneos del barrido no tienen círculo semilla elegible
+  y quedan sin etapa global. El costo llega a unas 4 veces el circular (mediana 1,55; máximo 3,81 medido). Los detalles están
+  [más abajo](#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no).
 - **Cuatro modelos de resistencia:** Mohr-Coulomb (peso unitario, cohesión y ángulo de fricción, con `unit_weight_sat`
   y `ru` opcionales), **no drenado** (φ = 0, Su constante o lineal con la cota), **Hoek-Brown** (roca fracturada; v0.6) y
   **SHANSEP** (resistencia no drenada normalizada por σ′v; v0.6), estos dos con sus límites
@@ -291,18 +299,24 @@ del publicado (1,23, 1,209 y 1,21 en las tres referencias) y del que cSlope entr
 Si el aviso `effective_ends_outside_range` aparece en su modelo, revise si la superficie crítica corresponde al
 mecanismo que usted busca y acote los rangos o fije `search.min_width`.
 
-## Lo que sigue fuera tras la Fase 3b
+## Lo que sigue fuera tras el bloque CM
 
 Con el formato v0.6 ya existen la búsqueda no circular, Hoek-Brown y SHANSEP, cada uno con los límites de
-[más abajo](#hoek-brown-shansep-y-búsqueda-no-circular-formato-v06-qué-hace-y-qué-no). Hoy **no** existe:
+[más abajo](#hoek-brown-shansep-y-búsqueda-no-circular-formato-v06-qué-hace-y-qué-no). Con el v0.7 existe la búsqueda
+global no circular, con un pulido final
+([sus límites](#búsqueda-global-no-circular-formato-v07-qué-hace-y-qué-no)). Hoy **no** existe:
 
 - **Los campos de cSlope fuera del formato v0.6:** en Hoek-Brown, `mb`, `s` y `a` directos; en SHANSEP, `su_min`, `yield_stress`,
   `su_by_stress`, `anisotropy`, `yield_from_earlier_stage`, `above_water` y `b_bar`.
 - **V105a** (SHANSEP con `aboveWater`), **V002** (búsqueda no circular con la rama de tracción de E12e) y **V009c** (el
   aviso `interslice_shear_exceeds_strength`, como V009a y V009b): retenidos en `verification/pending/F3B/HOLD.json`, con
-  su causa. Con los de las demás carpetas de `verification/pending/`, son **18 checks en 12 casos**.
+  su causa. Con los de las demás carpetas de `verification/pending/`, son **18 checks en 12 casos** antes del bloque CM
+  (⟨RETENIDOS⟩ después; véase `verification/pending/INDEX.md`).
 - **El ejemplo 2 de Hammah et al. (2005)**, que no se reprodujo (X23 §3.2). El ejemplo 1 (HAM1) sí, con su geometría reconstruida.
-- **Un pulido final de la búsqueda no circular** (cSlope lo usa; cuesta 3,6 veces más, X29 §5).
+- **Un pulido sin generador.** El pulido de la v0.7 solo corre si gana la etapa global. El refinamiento de la v0.6 sigue sin
+  pulido final (cSlope lo usa y cuesta 3,6 veces más, X29 §5).
+- **El *path search* y el PSO** (enjambre de partículas) como generadores de la búsqueda global: el contrato de la v0.7 los
+  dejó fuera (el *path search* no mejoró ningún caso válido y es el más caro, X37).
 
 ## Refuerzos (formato v0.4): qué hace y qué no
 
@@ -979,6 +993,80 @@ El motor rechaza, con `InvalidModel`, antes de cortar dovelas (F6.5):
 Los mensajes exactos están en el [formato](formato-ogs-json.md#combinaciones-no-admitidas-v06). El esquema no las rechaza (E16n):
 relacionan dos partes del documento.
 
+## Búsqueda global no circular (formato v0.7): qué hace y qué no
+
+La v0.7 agrega `analysis.search.non_circular.global` ([formato](formato-ogs-json.md#v07-búsqueda-global-no-circular)). Genera
+superficies no circulares propias (un bloque sobre una capa débil o un recocido simulado), refina la mejor y la pule. **Aún no
+está publicada:** la 0.5.1 llega hasta el formato v0.6. Un modelo sin `global` da la misma salida, byte a byte, que la 0.5.1.
+Las cifras de abajo son las de [`verification/global/REPORT.md`](../verification/global/REPORT.md).
+
+- **No es una búsqueda exhaustiva ni halla «el» mínimo global.** Evalúa 500 candidatos admisibles por defecto (de 50 a 2000) y
+  refina uno. El resultado depende de la semilla: en V053, con las semillas 0 a 47, el FS va de 1,0029 a 1,0239 (mediana
+  1,0077), y en S2, de 0,7416 a 0,8051 (mediana 0,7588). Las 48 caen dentro de la banda publicada de V053 (≤ 1,0453), y la
+  búsqueda de cSlope da 1,0061 y 0,7156. Con la misma semilla, el resultado es el mismo. **Más candidatos no garantizan un FS
+  menor:** con 100 candidatos, V053 da 1,0079.
+- **El resultado nunca empeora.** El refinamiento de la v0.6 se calcula siempre, sin cambios, y la etapa global solo lo
+  reemplaza si da un FS estrictamente menor y su superficie es elegible. En 52 resultados de la batería, ninguno quedó sobre su
+  FS sin `global`, y `global` ganó en 19. Con el recocido, en los 24 taludes homogéneos, la mejora es pequeña (hasta 0,14 %).
+- **No se ofrece con Bishop.** Igual que con `non_circular`: el FS de Bishop en una superficie no circular depende de un eje de
+  momentos sin significado físico. Con `global` y Bishop, el motor da error y la web deshabilita Bishop.
+- **El bloque necesita contactos entre regiones.** Con `algorithm: "auto"`, el motor elige `block` solo si el modelo tiene
+  aristas de contacto entre regiones. Si no las tiene (un talud homogéneo), o si el bloque no da ningún candidato admisible,
+  recurre al `annealing`. Un `block` explícito sin contactos usa las «bases» del modelo y **no** recurre al recocido: si no hay
+  candidatos, sale la nota `non_circular_global_no_candidates`.
+- **Los taludes sin círculo semilla elegible quedan sin etapa global efectiva.** El recocido parte de la polilínea del círculo
+  semilla 1, y la guarda debe aceptarla. De los 24 taludes homogéneos del barrido hay tres: TAL-H30-b60-f35-c5
+  (`evaluated` = 0, y ya en la v0.6 el refinamiento sale con `non_circular_not_refined`), TAL-H30-b60-f20-c30 y
+  TAL-H10-b60-f35-c30 (`evaluated` = 1, porque la guarda rechaza el círculo de partida, que ya tiene tracción en la v0.6). En
+  los tres, el resultado es el del refinamiento y el motor emite `non_circular_global_no_candidates`.
+- **La guarda de tracción puede dejar sin tomar un FS menor, y lo avisa.** Un candidato con `negative_lambda` o con
+  `negative_effective_normal_major` no es elegible. Es una guarda conservadora frente a un FS falso y bajo: en V051, sin ella,
+  el generador toma una superficie con 0,630, y cSlope la evalúa en 1,048. Con la guarda, V051 queda en 0,7071 (el publicado
+  es 0,707). La contrapartida es que puede rechazar una superficie válida: en el prototipo X37, S2 con el bloque daba λ < 0 aunque
+  cSlope la confirmaba a 0,2 %, y la guarda la deja fuera. Cuando la guarda rechaza una superficie con un FS menor que el reportado, el motor emite
+  `non_circular_global_tension_rejected`: existe un FS menor en la rama con tracción y no se tomó. **Qué hacer:** compare con
+  la búsqueda circular de Bishop y revise N′ por dovela.
+- **El refinamiento de la v0.6 conserva su comportamiento con λ < 0** (V002 y E16u, [arriba](#búsqueda-no-circular-v06)). La
+  guarda vale solo para las superficies del generador.
+- **El costo.** El tiempo con `global` y 500 candidatos fue, frente al circular, de **1,55 veces** (mediana) a **3,81 veces**
+  (máximo, V026-nc) en 50 modelos (nativo, mediana de 3 corridas por modelo). En WebAssembly sobre V8 de Node, la razón fue de
+  2,87 en V053 y de 1,97 en S2, y el FS coincidió con el nativo a 7e-16. **No se midió en Chrome** (el coordinador lo mide al
+  integrar). El motor no promete la igualdad bit a bit entre el nativo y WASM. Con los valores por defecto, la etapa global evalúa
+  a lo sumo 5690 candidatos (el máximo medido fue 4064).
+- **No hay *path search* ni PSO.** El contrato descartó el recorrido de rutas porque no mejoró ningún caso válido y es el más
+  caro. Tampoco hay enjambre de partículas.
+- **El pulido solo corre si gana la etapa global.** El refinamiento de la v0.6, que se calcula siempre, sigue sin pulido final.
+- **Solo el recocido tiene paridad con el prototipo X37** (A9): coincide en 40 de 40 casos, a ~1e-15, una vez que el prototipo
+  aplica las reglas del contrato (con el prototipo original coincide en 31 de 40). El bloque cambió en E17c (secuencia de
+  Halton rotada y proyecciones de 15° a 75°): con la versión anterior, V053 daba 1,0847 con la semilla 0 y solo 10 de 48
+  semillas pasaban la banda; con la final, pasan las 48.
+- **Con varios métodos, cada uno corre su propia etapa global.** El costo se suma por método.
+
+**Casos publicados.** Los 9 checks no circulares de F7.6 (V036c, V036d, V039 ×2, V041a, V041b, V051 y V098 con
+`non_circular`, y V053 con `global: {}`) pasan a `verification/cases`. Si alguno no pasa la banda con el motor final, queda en
+`verification/pending/CM/HOLD.json`, con su causa; el recuento está en
+[Verificación](verificacion.md#búsqueda-global-no-circular-v07).
+
+## Web: lo que se corrigió en el bloque CM y lo que sigue abierto
+
+Los *Known issues* de la web de la 0.5.0 y de la 0.5.1 quedaron corregidos en el bloque CM (la web se publica con la
+próxima versión):
+
+- **Borradores del editor (0.5.0):** tras «Nuevo» o «Abrir», todo borrador se reinicia desde el documento nuevo (`useDraft`
+  depende de `docEpoch`); en una fila de vértice, confirmar `x` no toca el borrador de `y`; «Agregar punto», «Quitar» y
+  «Quitar piezométrica» quedan deshabilitados mientras haya una fila con borrador pendiente, y lo explican; Ctrl+Intro calcula
+  aunque el foco esté en un campo de texto, después de confirmarlo.
+- **Pantallas de 640 px de alto o menos (0.5.1):** a scroll 0, ningún control interactivo queda bajo el pie fijo, en 8
+  viewports y 7 estados (0 controles cruzados). Las cabeceras se compactan a 360 px de ancho o menos.
+- **Ventanas de unos 800 × 600 (0.5.1):** el lienzo se reencuadra cuando cambia la caja del modelo por una edición, solo si la
+  vista sigue en el último encuadre automático; el recuadro no tapa el modelo.
+- **Guiones e2e (0.5.1):** `u3o_onboarding`, `u6d_drafts`, `w1e_polilinea` y `r2i2_tablestaca_inclinada` pasan. La regresión
+  tiene 51 guiones, con OK = 1302 y FAIL = 0 (en la base de la 0.5.1: OK = 1226 y FAIL = 2, y dos guiones cortados).
+
+Lo que sigue abierto está en [`docs/cm/CIERRE_CM.md`](cm/CIERRE_CM.md): en particular, **la compuerta de los 5 minutos no se
+cierra sin el protocolo humano**, que mide el usuario. Las limitaciones del motor de la 0.5.0 (V002, Hoek-Brown en bajo
+confinamiento, la curvatura convexa acumulada y las demás de arriba) siguen vigentes.
+
 ## Avisos geotécnicos de la aplicación
 
 Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF:
@@ -1046,8 +1134,7 @@ Estos casos están cubiertos por avisos en «Diagnósticos» y en el informe PDF
 
 Limitaciones que las revisiones adversariales ([`docs/reviews/`](reviews/)) dejaron abiertas, más las que dejó la
 verificación de la ola B. Cada una indica el síntoma y el aviso que lo acompaña. Ninguna cambia la aceptación (los
-347 checks de los 167 casos, 20 de ellos promovidos de F3B,
-[`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
+checks de los casos publicados, [`verification/REPORT.md`](../verification/REPORT.md)) ni la batería diferencial (56/56 en D01-D14
 con Bishop y Spencer; M-P, Janbu corregido, D15-D23, el bloque v0.5 D28-D42, con 58 OK, 2 explicados y 0 fallas, y el bloque
 F3B, con 41 OK, 1 explicado y 0 fallas, en
 [`verification/differential/REPORT.md`](../verification/differential/REPORT.md), con el detalle de D21 a D23 en

@@ -1,0 +1,342 @@
+{
+  "id": "V051",
+  "title": "ACADS 4, weak layer, water table and surcharges",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V051",
+      "title": "ACADS 4, weak layer, water table and surcharges",
+      "notes": "Weak-layer slope with a piezometric line and two surcharge strips (20 kPa on the bench, 20–40 kPa ramp on the crest); non-circular search. The published results are widely spread, so the problem tests the search."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil_1",
+        "name": "Soil 1",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 28.5,
+        "friction_angle": 20.0,
+        "ru": null
+      },
+      {
+        "id": "weak_layer",
+        "name": "Weak Layer",
+        "model": "mohr_coulomb",
+        "unit_weight": 18.84,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 10.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            20.0,
+            15.0
+          ],
+          [
+            20.0,
+            18.28
+          ],
+          [
+            84.0,
+            36.2
+          ],
+          [
+            84.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "soil_1",
+        "polygon": [
+          [
+            20.0,
+            18.88
+          ],
+          [
+            20.0,
+            27.75
+          ],
+          [
+            43.0,
+            27.75
+          ],
+          [
+            67.5,
+            40.0
+          ],
+          [
+            84.0,
+            40.0
+          ],
+          [
+            84.0,
+            36.8
+          ]
+        ]
+      },
+      {
+        "material": "weak_layer",
+        "polygon": [
+          [
+            20.0,
+            18.28
+          ],
+          [
+            20.0,
+            18.88
+          ],
+          [
+            84.0,
+            36.8
+          ],
+          [
+            84.0,
+            36.2
+          ]
+        ]
+      }
+    ],
+    "water": {
+      "unit_weight": 9.807,
+      "piezometric_line": [
+        [
+          20.0,
+          27.75
+        ],
+        [
+          43.0,
+          27.75
+        ],
+        [
+          49.0,
+          29.8
+        ],
+        [
+          60.0,
+          34.0
+        ],
+        [
+          66.0,
+          35.8
+        ],
+        [
+          74.0,
+          37.6
+        ],
+        [
+          80.0,
+          38.4
+        ],
+        [
+          84.0,
+          38.4
+        ]
+      ]
+    },
+    "loads": [
+      {
+        "type": "udl",
+        "id": "u1",
+        "x1": 23.0,
+        "x2": 43.0,
+        "q": 20.0
+      },
+      {
+        "type": "udl",
+        "id": "u2",
+        "x1": 70.0,
+        "x2": 70.5,
+        "q": 20.5
+      },
+      {
+        "type": "udl",
+        "id": "u3",
+        "x1": 70.5,
+        "x2": 71.0,
+        "q": 21.5
+      },
+      {
+        "type": "udl",
+        "id": "u4",
+        "x1": 71.0,
+        "x2": 71.5,
+        "q": 22.5
+      },
+      {
+        "type": "udl",
+        "id": "u5",
+        "x1": 71.5,
+        "x2": 72.0,
+        "q": 23.5
+      },
+      {
+        "type": "udl",
+        "id": "u6",
+        "x1": 72.0,
+        "x2": 72.5,
+        "q": 24.5
+      },
+      {
+        "type": "udl",
+        "id": "u7",
+        "x1": 72.5,
+        "x2": 73.0,
+        "q": 25.5
+      },
+      {
+        "type": "udl",
+        "id": "u8",
+        "x1": 73.0,
+        "x2": 73.5,
+        "q": 26.5
+      },
+      {
+        "type": "udl",
+        "id": "u9",
+        "x1": 73.5,
+        "x2": 74.0,
+        "q": 27.5
+      },
+      {
+        "type": "udl",
+        "id": "u10",
+        "x1": 74.0,
+        "x2": 74.5,
+        "q": 28.5
+      },
+      {
+        "type": "udl",
+        "id": "u11",
+        "x1": 74.5,
+        "x2": 75.0,
+        "q": 29.5
+      },
+      {
+        "type": "udl",
+        "id": "u12",
+        "x1": 75.0,
+        "x2": 75.5,
+        "q": 30.5
+      },
+      {
+        "type": "udl",
+        "id": "u13",
+        "x1": 75.5,
+        "x2": 76.0,
+        "q": 31.5
+      },
+      {
+        "type": "udl",
+        "id": "u14",
+        "x1": 76.0,
+        "x2": 76.5,
+        "q": 32.5
+      },
+      {
+        "type": "udl",
+        "id": "u15",
+        "x1": 76.5,
+        "x2": 77.0,
+        "q": 33.5
+      },
+      {
+        "type": "udl",
+        "id": "u16",
+        "x1": 77.0,
+        "x2": 77.5,
+        "q": 34.5
+      },
+      {
+        "type": "udl",
+        "id": "u17",
+        "x1": 77.5,
+        "x2": 78.0,
+        "q": 35.5
+      },
+      {
+        "type": "udl",
+        "id": "u18",
+        "x1": 78.0,
+        "x2": 78.5,
+        "q": 36.5
+      },
+      {
+        "type": "udl",
+        "id": "u19",
+        "x1": 78.5,
+        "x2": 79.0,
+        "q": 37.5
+      },
+      {
+        "type": "udl",
+        "id": "u20",
+        "x1": 79.0,
+        "x2": 79.5,
+        "q": 38.5
+      },
+      {
+        "type": "udl",
+        "id": "u21",
+        "x1": 79.5,
+        "x2": 80.0,
+        "q": 39.5
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 0.707,
+      "published_by": "Commercial program A (optimized)",
+      "tolerance": 0.020707213578500708,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Giam & Donald (1989), ACADS slope stability programs review.",
+    "derived_from": "cSlope verification problem V051 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "Pore pressure with the phreatic correction (head × cos²θ of the piezometric line, which slopes up to about 21° here), as commercial program A computes it: on its unoptimized block surface (Table 9.4, 0.760) cSlope gives 0.761 with the correction and 0.743 with vertical head. With vertical head the optimized check was 1.7 % low. The values below were found with vertical head.",
+      "Known gap: commercial program A's optimized Janbu corrected is 0.699 (Table 9.5), cSlope's optimized Janbu corrected 0.754 (+7.8 %); the 0.734 of Table 9.4 is commercial program A's block search without optimization and is not comparable with an optimized search. The search is sensitive to the method: Morgenstern-Price (half-sine) finds 0.718 against commercial program B's 0.689 and Spencer 0.718 against commercial program A's 0.707. commercial program A's optimized band 0.683–0.707; ACADS Slope 2000 (GLE) 0.688; commercial program A block search 0.760 (Spencer); program D's search 0.724 (Spencer) / 0.718 (Janbu); commercial program B Bishop 0.699; ACADS 20-program mean 0.808.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "La fuente pide porePressureHead=phreatic-correction; ogs usa altura vertical. X29 §1 comprobó que en V036a el FS del oráculo no cambia al quitar esta opción."
+    ]
+  }
+}

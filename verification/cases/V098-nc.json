@@ -1,0 +1,190 @@
+{
+  "id": "V098-nc",
+  "title": "Example slope without seismic load, non-circular search",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V098-nc",
+      "title": "Example slope without seismic load, non-circular search",
+      "notes": "10 m, 2:1 slope in three layers over a horizontal base, dry, no seismic load; Spencer search, circular and non-circular."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "soil1",
+        "name": "soil1",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.5,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 38.0,
+        "ru": null
+      },
+      {
+        "id": "soil2",
+        "name": "soil2",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.5,
+        "unit_weight_sat": null,
+        "cohesion": 5.3,
+        "friction_angle": 23.0,
+        "ru": null
+      },
+      {
+        "id": "soil3",
+        "name": "soil3",
+        "model": "mohr_coulomb",
+        "unit_weight": 19.5,
+        "unit_weight_sat": null,
+        "cohesion": 7.2,
+        "friction_angle": 20.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "soil1",
+        "polygon": [
+          [
+            30.0,
+            25.0
+          ],
+          [
+            50.0,
+            35.0
+          ],
+          [
+            70.0,
+            35.0
+          ],
+          [
+            70.0,
+            31.0
+          ],
+          [
+            54.0,
+            31.0
+          ],
+          [
+            50.0,
+            29.0
+          ],
+          [
+            40.0,
+            27.0
+          ]
+        ]
+      },
+      {
+        "material": "soil2",
+        "polygon": [
+          [
+            70.0,
+            31.0
+          ],
+          [
+            70.0,
+            24.0
+          ],
+          [
+            52.0,
+            24.0
+          ],
+          [
+            40.0,
+            27.0
+          ],
+          [
+            50.0,
+            29.0
+          ],
+          [
+            54.0,
+            31.0
+          ]
+        ]
+      },
+      {
+        "material": "soil3",
+        "polygon": [
+          [
+            70.0,
+            24.0
+          ],
+          [
+            70.0,
+            20.0
+          ],
+          [
+            20.0,
+            20.0
+          ],
+          [
+            20.0,
+            25.0
+          ],
+          [
+            30.0,
+            25.0
+          ],
+          [
+            40.0,
+            27.0
+          ],
+          [
+            52.0,
+            24.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 40,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.36,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.023676470588235295,
+      "options": {
+        "slices": 40
+      }
+    }
+  ],
+  "source": {
+    "reference": "Verification manual of a commercial slope stability program.",
+    "derived_from": "cSlope verification problem V098 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "commercial program A multi-modal optimization 1.359. The k = 0.15 and yield-acceleration cases need a seismic coefficient.",
+      "Commercial program A's 1.360 is a non-circular result: its manual runs both columns with a particle-swarm search plus surface-altering optimization (multi-modal and uni-modal), so it is now checked against cSlope's non-circular search (1.357); before it was compared with the circular search (1.372, +0.9 %), as program D's circular 1.372 still is.",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05.",
+      "Checks de búsqueda no circular del problema V098 de cSlope. El caso lleva el sufijo `-nc` porque `V098` ya está en `verification/cases` con otros checks y otro modelo (búsqueda circular)."
+    ]
+  }
+}

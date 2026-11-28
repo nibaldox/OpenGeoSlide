@@ -1,0 +1,215 @@
+{
+  "id": "V039",
+  "title": "James Bay dyke (Duncan & Wright fig. 7.16)",
+  "model": {
+    "format": "opengeoslide",
+    "version": "0.6",
+    "meta": {
+      "id": "V039",
+      "title": "James Bay dyke (Duncan & Wright fig. 7.16)",
+      "notes": "Granular fill embankment with a wide berm (c′ = 0, φ′ = 30°) on a 4 m clay crust (Su = 41), 8 m marine clay (34.5) and 6.5 m lacustrine clay (31.2); circular search. The critical circle is deep and tangent to the base of the lacustrine clay."
+    },
+    "units": "SI",
+    "materials": [
+      {
+        "id": "fill",
+        "name": "Fill",
+        "model": "mohr_coulomb",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "cohesion": 0.0,
+        "friction_angle": 30.0,
+        "ru": null
+      },
+      {
+        "id": "clay_crust",
+        "name": "Clay crust",
+        "model": "undrained",
+        "unit_weight": 20.0,
+        "unit_weight_sat": null,
+        "undrained_strength": 41.0,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "marine_clay",
+        "name": "Marine clay",
+        "model": "undrained",
+        "unit_weight": 18.8,
+        "unit_weight_sat": null,
+        "undrained_strength": 34.5,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      },
+      {
+        "id": "lacustrine_clay",
+        "name": "Lacustrine clay",
+        "model": "undrained",
+        "unit_weight": 20.3,
+        "unit_weight_sat": null,
+        "undrained_strength": 31.2,
+        "strength_datum": 0.0,
+        "strength_gradient": 0.0,
+        "ru": null
+      }
+    ],
+    "regions": [
+      {
+        "material": "clay_crust",
+        "polygon": [
+          [
+            -17.0,
+            15.0
+          ],
+          [
+            -17.0,
+            19.0
+          ],
+          [
+            132.0,
+            19.0
+          ],
+          [
+            168.0,
+            19.0
+          ],
+          [
+            168.0,
+            15.0
+          ]
+        ]
+      },
+      {
+        "material": "fill",
+        "polygon": [
+          [
+            -17.0,
+            19.0
+          ],
+          [
+            -17.0,
+            31.0
+          ],
+          [
+            40.0,
+            31.0
+          ],
+          [
+            58.0,
+            25.0
+          ],
+          [
+            114.0,
+            25.0
+          ],
+          [
+            132.0,
+            19.0
+          ]
+        ]
+      },
+      {
+        "material": "lacustrine_clay",
+        "polygon": [
+          [
+            -17.0,
+            0.5
+          ],
+          [
+            -17.0,
+            7.0
+          ],
+          [
+            168.0,
+            7.0
+          ],
+          [
+            168.0,
+            0.5
+          ]
+        ]
+      },
+      {
+        "material": "marine_clay",
+        "polygon": [
+          [
+            -17.0,
+            7.0
+          ],
+          [
+            -17.0,
+            15.0
+          ],
+          [
+            168.0,
+            15.0
+          ],
+          [
+            168.0,
+            7.0
+          ]
+        ]
+      }
+    ],
+    "slope": {
+      "direction": "auto"
+    },
+    "analysis": {
+      "methods": [
+        "spencer"
+      ],
+      "slices": 50,
+      "tolerance": 1e-05,
+      "max_iterations": 500,
+      "min_m_alpha": 0.2,
+      "search": {
+        "type": "circular_entry_exit",
+        "n_entry": 20,
+        "n_exit": 20,
+        "n_radius": 20,
+        "max_radius_factor": 5.0,
+        "min_width": null,
+        "refine": true,
+        "non_circular": {
+          "seeds": 3,
+          "max_vertices": 33
+        }
+      }
+    }
+  },
+  "checks": [
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.167,
+      "published_by": "Commercial program A (non-circular)",
+      "tolerance": 0.020428449014567265,
+      "options": {
+        "slices": 50
+      }
+    },
+    {
+      "method": "spencer",
+      "kind": "search",
+      "published": 1.16,
+      "published_by": "Duncan & Wright (reference), non-circular",
+      "tolerance": 0.02431034482758621,
+      "options": {
+        "slices": 50
+      }
+    }
+  ],
+  "source": {
+    "reference": "Duncan & Wright, Soil Strength and Slope Stability, fig. 7.16.",
+    "derived_from": "cSlope verification problem V039 (MIT License), https://github.com/ZilanCiftci/cslope",
+    "notes": [
+      "The composite check (2026-11): cSlope's search with composite circles along the model base (compositeBase; the till is the base of the model), against D&W's composite surface of Fig. 7.26 (1.17); the circle checks are circles only (compositeSurfaces off), as the references.",
+      "The lacustrine clay is 6.5 m thick (model base y = 0.5 under the figure's labeled ground and layer tops): commercial program A's own result figures (Figs. 75.2 and 75.3) put the surface ends at y = 30.5 and 18.5 with the critical circle tangent to its base, which fits only 18.5 m of clay below the toe; the vertex labels of its Fig. 75.1 (base at 0 under 31 / 19) contradict its analyzed model. The other program's model (V040) has the same 6.5 m. With 7 m every check was 1.6–2.0 % low.",
+      "Commercial program A reports 1.468 / 1.464 on its own (not the critical) circle; cSlope gives 1.464 / 1.461 on that circle. Non-circular: commercial program A Bishop 1.105, GLE 1.142. Program D's 1.424 / 1.420 were computed with 7 m of lacustrine clay.",
+      "Duncan, Wright & Brandon (2014): 1.45 is Spencer on circles (p. 147, Fig. 7.25), there is no Bishop value (a Bishop check attributed to them was removed 2026-10-25); 1.16 is the fully optimized non-circular surface (a program's non-circular search, p. 149, Fig. 7.27), while 1.17 belongs to the composite surface of Fig. 7.26 (center (−46, 55), R 83 m) and their force-equilibrium spreadsheet (Fig. 7.29).",
+      "cSlope fija options.tolerance = 0.001 (tolerancia del solver) en sus checks; no se importa: ogs usa analysis.tolerance = 1e-05."
+    ]
+  }
+}

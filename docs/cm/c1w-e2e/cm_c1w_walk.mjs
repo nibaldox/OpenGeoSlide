@@ -143,12 +143,28 @@ async function axe(p, label) {
   const j6 = await save(again.p, 'walk6');
   step('volver a marcar empieza con global: {}', j6.version === '0.7' && JSON.stringify(ncOf(j6).global) === '{}', { nc: ncOf(j6) });
 
-  // Comprobar con el motor WASM v0.5.1 (no conoce la 0.7): debe decirlo, no devolver un FS inventado
+  // Comprobar: con el WASM v0.5.1 (sin 0.7) el motor lo rechaza y no hay FS inventado; con el WASM v0.7 hay FS y resumen de la etapa global.
   await again.p.getByRole('button', { name: /Comprobar/ }).first().click();
-  await again.p.waitForTimeout(4000);
-  const body = await again.p.locator('body').innerText();
-  step('Comprobar con el WASM v0.5.1 (sin 0.7): informa el rechazo del motor («unknown field `global`»), sin FS', /unknown field `global`/.test(body) && !/Factor de seguridad\s*[:=]?\s*\d/.test(body), { extracto: (body.match(/[^\n]*unknown field[^\n]*/i) ?? [''])[0].slice(0, 200) });
-  await again.p.screenshot({ path: `${SHOTS}/walk-1440x900-comprobar-wasm051.png` });
+  let body = '';
+  for (let i = 0; i < 40; i++) {
+    await again.p.waitForTimeout(500);
+    body = await again.p.locator('body').innerText();
+    if (/unknown field `global`/.test(body) || /FS mín\.\s*\d/.test(body)) break;
+  }
+  if (/unknown field `global`/.test(body)) {
+    step('Comprobar con el WASM v0.5.1 (sin 0.7): informa el rechazo del motor («unknown field `global`»), sin FS', !/FS mín\.\s*\d/.test(body), { extracto: (body.match(/[^\n]*unknown field[^\n]*/i) ?? [''])[0].slice(0, 200) });
+    await again.p.screenshot({ path: `${SHOTS}/walk-1440x900-comprobar-wasm051.png` });
+  } else {
+    const fs = (body.match(/FS mín\.\s*[\d,]+[^\n]*/) ?? [''])[0].slice(0, 80);
+    step('Comprobar con el WASM v0.7: hay FS y el motor no rechaza global', fs !== '' && !/unknown field/.test(body), { fs });
+    const results = again.p.getByRole('tab', { name: /Resultados/ }).or(again.p.getByRole('button', { name: /^Resultados/ })).first();
+    if (await results.count()) await results.click().catch(() => {});
+    await again.p.waitForTimeout(500);
+    const g = again.p.locator('[data-testid="global-summary"]').first();
+    const gText = (await g.count()) ? (await g.innerText()).replace(/\s+/g, ' ').slice(0, 240) : '';
+    step('la tabla de resultados trae el resumen «Búsqueda global» de la corrida real', /Búsqueda global/.test(gText), { resumen: gText });
+    await again.p.screenshot({ path: `${SHOTS}/walk-1440x900-comprobar-wasm07.png` });
+  }
   await again.ctx.close();
 }
 

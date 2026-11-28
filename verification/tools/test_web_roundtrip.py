@@ -61,12 +61,14 @@ V03_METHODS = ("morgenstern_price", "janbu_simplified", "janbu_corrected")
 
 
 def minimal_version(model: dict) -> str:
-    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.6"`` con búsqueda no circular o material Hoek-Brown o SHANSEP (F6.1), ``"0.5"`` con grieta de tracción o pilote de Ito-Matsui (``lateral_pressure``), ``"0.4"`` con refuerzos, ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
+    """Versión mínima con la que se guarda un modelo (F3.9): ``"0.7"`` con ``non_circular.global`` (F7.1), ``"0.6"`` con búsqueda no circular o material Hoek-Brown o SHANSEP (F6.1), ``"0.5"`` con grieta de tracción o pilote de Ito-Matsui (``lateral_pressure``), ``"0.4"`` con refuerzos, ``"0.3"`` si usa algún campo de la v0.3, si no ``"0.2"``.
 
     Independiente del código de la web: los campos de la v0.3 son los de F3.1 (material no drenado y sus parámetros,
     polilínea fija, métodos M-P y Janbu, función entre dovelas).
     """
     analysis = model.get("analysis") or {}
+    if ((analysis.get("search") or {}).get("non_circular") or {}).get("global") is not None:      # v0.7: búsqueda global (F7.1, V053 de CM)
+        return "0.7"
     if (analysis.get("search") or {}).get("non_circular") is not None or any(
             m.get("model") in ("hoek_brown", "shansep") for m in model.get("materials", [])):      # v0.6: búsqueda no circular, Hoek-Brown, SHANSEP (F6.1)
         return "0.6"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.6 y contra el binario `ogs`.
+"""Valida los ejemplos de docs/formato-ogs-json.md contra el esquema 0.7 y contra el binario `ogs`.
 
 Uso (desde la raíz del repositorio, con el binario compilado: `cargo build --release -p ogs-cli`):
 
@@ -163,7 +163,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ogs", default="target/release/ogs")
     ap.add_argument("--doc", default="docs/formato-ogs-json.md")
-    ap.add_argument("--schema", default="schema/ogs-0.6.schema.json")
+    ap.add_argument("--schema", default="schema/ogs-0.7.schema.json")
     a = ap.parse_args()
 
     validador = Draft202012Validator(json.loads(Path(a.schema).read_text()))

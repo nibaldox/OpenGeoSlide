@@ -1,9 +1,9 @@
-# Casos de verificación v0.1 a v0.6 (desde cSlope)
+# Casos de verificación v0.1 a v0.7 (desde cSlope)
 
 Generado por `verification/tools/import_cslope.py`. No editar a mano.
 Fuente: cSlope (MIT License, Copyright (c) 2026 Zilan Ciftci), https://github.com/ZilanCiftci/cslope.
 
-Casos convertidos e incluidos: **167** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **21**, v0.6 con Hoek-Brown o búsqueda no circular: **16**), con **347** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Lote F3B: los casos v0.6 con búsqueda no circular y Hoek-Brown, promovidos desde `verification/pending/F3B` (sección «Hoek-Brown y búsqueda no circular»). Casos no incluidos: **31** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
+Casos convertidos e incluidos: **175** (v0.1: **49**, v0.2 con sismo o cargas: **5**, v0.3: **53**, v0.4 con refuerzos: **23**, v0.5 con grieta de tracción: **21**, v0.6 con Hoek-Brown o búsqueda no circular: **23**, v0.7 con búsqueda global: **1**), con **356** checks. Lote 0: todo lo que se convierte con la versión 0.1 o 0.2, sin tope ni selección. Lotes 1 y 2 (`undrained`, polilíneas fijas, Morgenstern-Price y Janbu): los casos v0.3, promovidos desde `verification/pending/F3` cuando el motor reproduce sus checks. Lotes R1 a R4: los casos v0.4 con refuerzos, promovidos desde `verification/pending/F3R` (sección «Casos con refuerzos»). Lote F3G: los casos con grieta de tracción (v0.5) y con agua embalsada (la versión mínima de sus campos si no tienen grieta), promovidos desde `verification/pending/F3G` (sección «Grieta de tracción y agua embalsada»). Lote F3B: los casos v0.6 con búsqueda no circular y Hoek-Brown, promovidos desde `verification/pending/F3B` (sección «Hoek-Brown y búsqueda no circular»). Lote CM (F7.6): los checks no circulares que F3B no listó, de v0.6 y, con `global`, de v0.7 (V053), promovidos en CM (sección «Búsqueda no circular y global (lote CM, v0.6 y v0.7)»). Casos no incluidos: **28** (motivo en cada fila). Los problemas de cSlope con sismo o cargas que no se pudieron convertir figuran en [`../pending/INDEX.md`](../pending/INDEX.md); los checks que el motor no reproduce, en [`../pending/lote0/INDEX.md`](../pending/lote0/INDEX.md); los lotes 1 y 2 (formato v0.3), en [`../pending/F3/INDEX.md`](../pending/F3/INDEX.md).
 
 Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / Janbu corregido.
 
@@ -176,6 +176,14 @@ Checks por método: Bishop / Spencer / Morgenstern-Price / Janbu simplificado / 
 | V094 | Yamagami & Ueta (1988) four-layer slope, non-circular | Greco (1996) example 4; Yamagami & Ueta (1988). | SI | — | 0 / 1 / 1 / 0 / 0 | search | 0.6 |
 | V103 | Spencer's slope, rᵤ = 0.5, non-circular critical surface | Fredlund, D.G. & Krahn, J. (1977), Can. Geotech. J. 14(3), Figs. 3 and 7; Baker, R. (1980). Determination of the critical slip surface in slope stability computations. Int. J. Numer. Anal. Meth. Geomech. 4, 333–359; Spencer (1969). | SI | — | 0 / 2 / 0 / 0 / 0 | search | 0.6 |
 | HAM1 | Hammah et al. (2005), ejemplo 1 | Hammah et al. (2005), ARMA/USRMS 05-810 | SI | — | 1 / 1 / 0 / 0 / 0 | fixed | 0.6 |
+| V036c-nc | Embankment on an undrained foundation, cz = 10 psf/ft, non-circular search | Duncan & Wright, Soil Strength and Slope Stability, fig. 15.9. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
+| V036d-nc | Embankment on an undrained foundation, cz = 15 psf/ft, non-circular search | Duncan & Wright, Soil Strength and Slope Stability, fig. 15.9. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
+| V039 | James Bay dyke (Duncan & Wright fig. 7.16) | Duncan & Wright, Soil Strength and Slope Stability, fig. 7.16. | SI | — | 0 / 2 / 0 / 0 / 0 | search | 0.6 |
+| V041a-nc | Submerged slope, pool 30 ft above the crest (D&W fig. 6.27), non-circular search | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
+| V041b-nc | Submerged slope, pool 60 ft above the crest (D&W fig. 6.27), non-circular search | Duncan & Wright, Soil Strength and Slope Stability, fig. 6.27. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
+| V051 | ACADS 4, weak layer, water table and surcharges | Giam & Donald (1989), ACADS slope stability programs review. | SI | udl q = 20 en [23, 43]; udl q = 20.5 en [70, 70.5]; udl q = 21.5 en [70.5, 71]; udl q = 22.5 en [71, 71.5]; udl q = 23.5 en [71.5, 72]; udl q = 24.5 en [72, 72.5]; udl q = 25.5 en [72.5, 73]; udl q = 26.5 en [73, 73.5]; udl q = 27.5 en [73.5, 74]; udl q = 28.5 en [74, 74.5]; udl q = 29.5 en [74.5, 75]; udl q = 30.5 en [75, 75.5]; udl q = 31.5 en [75.5, 76]; udl q = 32.5 en [76, 76.5]; udl q = 33.5 en [76.5, 77]; udl q = 34.5 en [77, 77.5]; udl q = 35.5 en [77.5, 78]; udl q = 36.5 en [78, 78.5]; udl q = 37.5 en [78.5, 79]; udl q = 38.5 en [79, 79.5]; udl q = 39.5 en [79.5, 80] | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
+| V053 | Greco (1996) ex. 5 / Chen & Shao weak-layer slope, reference geometry | Greco (1996) example 5; Chen & Shao (1988). | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.7 |
+| V098-nc | Example slope without seismic load, non-circular search | Verification manual of a commercial slope stability program. | SI | — | 0 / 1 / 0 / 0 / 0 | search | 0.6 |
 
 ## Checks descartados en casos convertidos
 
@@ -243,11 +251,8 @@ En la fuente hay **10** problemas con `unitWeightSat` no nulo; **0** se incluyen
 | V017a | contorno no válido (Self-intersection[13.8160684182133 100.095038741757]) |
 | V017b | definition con clave que cambia el problema: reinforcements |
 | V035b | definition con clave que cambia el problema: reinforcements |
-| V039 | opción de check que cambia el problema: compositeBase |
 | V043 | definition con clave que cambia el problema: customSurfaces |
-| V051 | sin checks válidos |
 | V099 | piezométrica sobre el terreno (agua embalsada) |
-| V053 | sin checks válidos |
 | V100 | material 'Clay' con modelo 'shear-normal' |
 | V066d | definition con clave que cambia el problema: reinforcements, waterTables |
 | V068 | material 'Lower' con modelo 's-f-datum' |
@@ -445,3 +450,21 @@ La comparación por cruce de las fuerzas (posición, fuerza y dirección de ogs 
 | V102b-nc | 0.6 | no circular | spencer | 0.997 | Commercial program A (non-circular) | 2.05 | 0.9966 | -0.04 | 0.9965 | -0.05 |
 | V103 | 0.6 | no circular | spencer | 1.02 | Baker (non-circular) | 2.49 | 1.0081 | -1.17 | 1.0078 | -1.20 |
 | V103 | 0.6 | no circular | spencer | 1.01 | Commercial program A (non-circular) | 2.50 | 1.0081 | -0.19 | 1.0078 | -0.22 |
+
+## Búsqueda no circular y global (lote CM, v0.6 y v0.7)
+
+**8** casos con **9** checks, promovidos desde `verification/pending/F3B` (§«Otros casos con búsqueda no circular») en CM (F7.6): los checks con `nonCircularOptimization` del corpus de cSlope que F3B no listó. Son de v0.6, con `analysis.search.non_circular` en sus valores por defecto (3 semillas y 33 vértices), salvo **V053**, que es de v0.7 con `analysis.search.non_circular.global: {}` (la búsqueda global; el refinamiento solo da +7,40 % sobre el publicado). Los cinco problemas que ya tienen un caso en este directorio con otros checks llevan el sufijo `-nc`: V036c-nc, V036d-nc, V041a-nc, V041b-nc, V098-nc. La tolerancia es la del corpus de cSlope, leída como **relativa** (`|Δ|/publicado ≤ tolerancia`); no se relajó ninguna ni se tocó ningún dato.
+
+Ningún check de este lote queda retenido.
+
+| caso | v | búsqueda | método | publicado | por | tol % | ogs | Δ ogs % | cSlope | Δ cSlope % |
+|---|---|---|---|---:|---|---:|---:|---:|---:|---:|
+| V036c-nc | 0.6 | no circular | spencer | 1.018 | Commercial program A (non-circular) | 2.05 | 1.0156 | -0.24 | 1.0166 | -0.14 |
+| V036d-nc | 0.6 | no circular | spencer | 1.116 | Commercial program A (non-circular) | 2.04 | 1.1200 | +0.36 | 1.1173 | +0.11 |
+| V039 | 0.6 | no circular | spencer | 1.167 | Commercial program A (non-circular) | 2.04 | 1.1596 | -0.64 | 1.1618 | -0.45 |
+| V039 | 0.6 | no circular | spencer | 1.16 | Duncan & Wright (reference), non-circular | 2.43 | 1.1596 | -0.04 | 1.1618 | +0.15 |
+| V041a-nc | 0.6 | no circular | spencer | 1.592 | Commercial program A (non-circular) | 2.03 | 1.5901 | -0.12 | 1.5915 | -0.03 |
+| V041b-nc | 0.6 | no circular | spencer | 1.59 | Commercial program A (non-circular) | 2.31 | 1.5892 | -0.05 | 1.5898 | -0.01 |
+| V051 | 0.6 | no circular | spencer | 0.707 | Commercial program A (optimized) | 2.07 | 0.7071 | +0.02 | 0.6953 | -1.66 |
+| V053 | 0.7 | no circular + global | spencer | 1.01 | Commercial program A (block search) | 3.50 | 1.0103 | +0.03 | 1.0061 | -0.39 |
+| V098-nc | 0.6 | no circular | spencer | 1.36 | Commercial program A (non-circular) | 2.37 | 1.3571 | -0.22 | 1.3567 | -0.24 |
