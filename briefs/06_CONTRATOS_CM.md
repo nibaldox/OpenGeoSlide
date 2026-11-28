@@ -309,3 +309,28 @@ rotadas, V053 y S2, Spencer):
 
 **Estado de A2b:** pasa, con 48 de 48 semillas y la semilla 0 en 1,0103 (banda de 1,01 ± 3,5 %; cSlope 1,0061).
 **Estado de A7 en V053 y S2:** la razón máxima es 3,75 < 4. Las demás compuertas se miden con esta variante.
+
+### E17d: cierre del motor (CM-M, relevo de Sonnet; aceptado por el coordinador el 2026-11-28)
+
+1. **Capas (F7.3.1).** Los materiales Hoek-Brown y SHANSEP no compiten en la elección de la capa, pero sus aristas sí
+   cuentan como contactos y como bases. En `undrained`, ρ = Su(z_r) / (γ · z_r), con tan φ = 0. `block` explícito usa
+   las bases cuando no hay ninguna capa con contacto.
+2. **Recocido (F7.3.3).** El círculo de partida se evalúa y suma a `evaluated`, pero no es un candidato: `generated`,
+   `attempts`, `converged` y `eligible` no lo cuentan. Así el port de Rust reproduce el prototipo.
+3. **F7.2, `attempts`.** El tope pasa a ≤ 40 · `generated`, porque cuando `auto` recurre al recocido (E17a) suma los
+   intentos de las dos etapas.
+4. **A9.** El recocido coincide con el prototipo en 40 de 40 casos, a ~1e-15, una vez que el prototipo aplica las
+   reglas de este contrato (la guarda y el conteo de candidatos). Con el prototipo original coincide en 31 de 40; las 9
+   diferencias son candidatos que la guarda rechaza o que no convergen, y el prototipo no los cuenta como generados. El
+   bloque no tiene paridad, porque cambió en E17c.
+5. **A8 y E17a: los taludes sin etapa global efectiva.** Son tres, todos con la nota
+   `non_circular_global_no_candidates`:
+   - TAL-H30-b60-f35-c5 da `evaluated = 0`. Ya en v0.6 el refinamiento sale con `non_circular_not_refined`.
+   - TAL-H30-b60-f20-c30 y TAL-H10-b60-f35-c30 dan `evaluated = 1`: la guarda rechaza el círculo de partida, que ya
+     tiene tracción en v0.6.
+
+   El que nombraba E17a, TAL-H30-b60-f20-c5, ahora sí corre, con 2211 evaluaciones.
+6. **A7 en WASM.** Se midió en V8 de Node (`wasm-bindgen --target nodejs`), no en Chrome: la razón máxima es 2,87 y el FS
+   es igual al nativo a 7e-16. El coordinador mide además en Chrome al integrar.
+
+Las cifras de todas las compuertas están en `verification/global/REPORT.md` y en `REPORT.json`.
