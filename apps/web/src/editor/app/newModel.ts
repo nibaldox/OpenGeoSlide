@@ -75,6 +75,19 @@ export function emptyModel(units: 'SI' | 'imperial' = 'SI'): ModelDoc {
   };
 }
 
+/**
+ * Modelo nuevo a partir de una importación sobre el modelo de arranque (CM-W2): el de «Nuevo» (`emptyModel`: sin agua, sin cargas,
+ * dirección «auto», análisis con Bishop y Spencer y la búsqueda de los modelos nuevos) con las regiones y los materiales importados
+ * y el nombre del archivo como título.
+ *
+ * Ventanas de la búsqueda: «Nuevo» y «Talud simple» no calculan ventanas de entrada y salida (`entry` y `exit` en `null`), así que no hay
+ * una regla propia para una geometría cualquiera: se deja la del motor cuando faltan (todo el ancho del modelo).
+ */
+export function importedModel(input: { title: string; units: 'SI' | 'imperial'; materials: Material[]; regions: ModelDoc['regions'] }): ModelDoc {
+  const base = emptyModel(input.units);
+  return { ...base, meta: { ...base.meta, id: 'importado', title: input.title }, materials: input.materials, regions: input.regions };
+}
+
 // ───────────────────────── Talud simple ─────────────────────────
 
 export type SlopeShape = { kind: 'angle'; degrees: number } | { kind: 'ratio'; horizontal: number };

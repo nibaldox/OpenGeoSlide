@@ -101,7 +101,8 @@ describe('CM-WC: destino por defecto y archivos de ejemplo en los diálogos de i
 
   it('DXF sobre el modelo de arranque sin cambios: «Reemplazar» marcado', () => {
     const html = dxfHtml(pristine);
-    expect(checked(html, 'Reemplazar las regiones actuales')).toBe(true);
+    // CM-W2: con el modelo de arranque, «Reemplazar» dice que crea un modelo nuevo.
+    expect(checked(html, 'Reemplazar: crea un modelo nuevo con este archivo')).toBe(true);
     expect(checked(html, 'Agregar a')).toBe(false);
   });
   it('DXF sobre un modelo con cambios, o sin saber cuál es: «Agregar» marcado, y nombra el modelo', () => {
@@ -110,7 +111,7 @@ describe('CM-WC: destino por defecto y archivos de ejemplo en los diálogos de i
     expect(checked(dxfHtml(undefined), 'Agregar a las regiones actuales')).toBe(true);
   });
   it('CSV de regiones: la misma regla', () => {
-    expect(checked(csvHtml(pristine), 'Reemplazar las regiones actuales')).toBe(true);
+    expect(checked(csvHtml(pristine), 'Reemplazar: crea un modelo nuevo con este archivo')).toBe(true);
     expect(checked(csvHtml(edited), 'Agregar a')).toBe(true);
     expect(checked(csvHtml(undefined), 'Agregar a las regiones actuales')).toBe(true);
   });

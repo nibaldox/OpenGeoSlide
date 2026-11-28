@@ -452,14 +452,24 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
     setCsv({ fileName: file.name, result: parseCsv(read.text) });
   };
 
-  const applyRegions = (plan: RegionImportPlan, mode: 'add' | 'replace', source: string): void => {
-    applyRegionImport(store, plan, mode);
+  const applyRegions = (plan: RegionImportPlan, mode: 'add' | 'replace', source: string, fresh: boolean): void => {
+    applyRegionImport(store, plan, mode, fresh ? { fileName: source } : undefined);
+    if (fresh) {
+      // CM-W2: es otro modelo (el de «Nuevo» con lo importado): el resultado y el método elegido del ejemplo de arranque ya no le corresponden, y
+      // deja de ser un «ejemplo» en el rótulo.
+      resetEngine();
+      setShownMethod(null);
+      methodChosen.current = false;
+      setIsExample(false);
+    }
     setDxf(null);
     setCsv(null);
     backToCanvas();
     notify(
       'info',
-      `${source}: ${plan.regions.length} región(es) importada(s) (${mode === 'add' ? 'agregadas' : 'reemplazan a las anteriores'}). Se deshace con Ctrl+Z.`,
+      fresh
+        ? `${source}: modelo nuevo creado con ${plan.regions.length} región(es) y ${plan.newMaterials.length} material(es) del archivo. Se deshace con Ctrl+Z.`
+        : `${source}: ${plan.regions.length} región(es) importada(s) (${mode === 'add' ? 'agregadas' : 'reemplazan a las anteriores'}). Se deshace con Ctrl+Z.`,
     );
   };
 
@@ -1083,7 +1093,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           units={doc.units}
           base={{ regionCount: doc.regions.length, title: doc.meta?.title ?? null, pristineStart }}
           onCancel={() => setDxf(null)}
-          onApply={(plan, mode) => applyRegions(plan, mode, dxf.fileName)}
+          onApply={(plan, mode, fresh) => applyRegions(plan, mode, dxf.fileName, fresh)}
         />
       )}
       {csv && (
@@ -1094,7 +1104,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
           units={doc.units}
           base={{ regionCount: doc.regions.length, title: doc.meta?.title ?? null, pristineStart }}
           onCancel={() => setCsv(null)}
-          onApplyRegions={(plan, mode) => applyRegions(plan, mode, csv.fileName)}
+          onApplyRegions={(plan, mode, fresh) => applyRegions(plan, mode, csv.fileName, fresh)}
           onApplyPiezo={(points) => {
             applyPiezoImport(store, points);
             backToCanvas();

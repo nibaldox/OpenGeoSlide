@@ -4,11 +4,10 @@
 // Inicio: primera visita, almacenamiento limpio. Fin: el FS visible en el resumen.
 //
 // Variantes (variable OGS_T3):
-//   ruta_minima (por defecto): en el diálogo de importación elige «Reemplazar las regiones actuales»,
+//   ruta_minima (por defecto): en el diálogo de importación elige «Reemplazar» si no viene marcado (con el arranque sin cambios ya viene),
 //                              luego «Importar» y «Comprobar».
-//   defecto:  se acepta todo lo que trae el diálogo al abrirse (destino «Agregar», polilínea «Cerrarla con base y = 24»).
-//             Medido: «Agregar» + V047a cargado da «Modelo con 1 problema» y bloquea «Comprobar».
-//             Se espera el bloqueo («El modelo tiene errores») y se registra; no es una medición de FS.
+//   defecto:  se acepta todo lo que trae el diálogo al abrirse (destino por defecto, polilínea «Cerrarla con base y = 24»), sin tocar nada.
+//             Antes de CM-WC el destino era «Agregar» y, con V047a cargado, daba «Modelo con 1 problema» y bloqueaba «Comprobar»; hoy calcula.
 // El archivo se entrega junto con el enunciado; el guion lo toma de OGS_REPO (por defecto, la raíz de este repo).
 'use strict';
 const path = require('node:path');
@@ -38,28 +37,26 @@ runTask(VARIANT === 'defecto' ? 'T3_dxf_defecto' : 'T3_dxf', async (run, page) =
   // Diálogo «Importar DXF: <archivo>» con sus avisos, capas, unidades y destino.
   await page.getByText(/^Importar DXF:/).first().waitFor({ timeout: 30000 });
   run.think('leer el diálogo: avisos, capas, destino y polilínea abierta');
-  if (VARIANT !== 'defecto') {
-    // Destino: por defecto el diálogo «Agrega» a las regiones del modelo que está abierto (en la primera visita, V047a).
-    run.think('elegir destino «Reemplazar» (el por defecto agrega a V047a)');
-    await click(run, page.locator('dialog[open] label', { hasText: /Reemplazar las regiones/ }), 'Reemplazar las regiones actuales');
-    // La polilínea abierta (TERRENO) se deja con su valor por defecto («Cerrarlas con una base horizontal», y = 24):
-    // medido, con «Reemplazar» ya calcula (X35 §3, F2). Si se descarta, el FS es el mismo.
+  // CM-W2: con el modelo de arranque sin cambios, «Reemplazar: crea un modelo nuevo con este archivo» ya viene marcado (CM-WC). Los textos
+  // posibles del destino son ese y «Reemplazar las regiones actuales (se conservan materiales, agua y análisis)» (documento con cambios).
+  const replace = page.locator('dialog[open] label', { hasText: /Reemplazar/ });
+  run.meta.destino_marcado_al_abrir = (await replace.locator('input').first().isChecked()) ? 'Reemplazar' : 'Agregar';
+  run.meta.texto_del_destino = (await replace.first().innerText()).trim();
+  if (VARIANT !== 'defecto' && run.meta.destino_marcado_al_abrir !== 'Reemplazar') {
+    run.think('elegir destino «Reemplazar»');
+    await click(run, replace, 'Reemplazar');
   }
+  // La polilínea abierta (TERRENO) se deja con su valor por defecto («Cerrarlas con una base horizontal», y = 24): el diálogo explica la cota
+  // y el área (CM-W2). Se registra el texto.
+  const help = page.locator('dialog[open] [data-testid="open-base-help"]');
+  run.meta.explicacion_de_la_base = (await help.count()) > 0 ? (await help.first().innerText()).trim() : null;
   run.think('pulsar «Importar» en el diálogo');
   await click(run, page.getByRole('button', { name: 'Importar', exact: true }), 'Importar (diálogo DXF)');
   run.mark('dxf_importado');
   run.meta.resumen_tras_importar = (await page.locator('[data-testid="result-summary"]').innerText()).slice(0, 200);
 
   run.think('ubicar «Comprobar» en el pie de la barra lateral');
-  if (VARIANT === 'defecto') {
-    // Se intenta el cálculo y se espera el aviso de bloqueo; sin FS, el resultado es «bloqueado», no una medición.
-    await click(run, page.getByRole('button', { name: 'Comprobar', exact: true }).first(), 'Comprobar');
-    run.mark('calc_click');
-    await page.getByText(/El modelo tiene errores/).first().waitFor({ timeout: 20000 });
-    run.mark('bloqueo_visible');
-    run.meta.bloqueo = (await page.getByText(/El modelo tiene errores/).first().innerText()).trim();
-    run.meta.modelo_estado = (await page.evaluate(() => document.body.innerText.match(/Modelo con \d+ problemas?|Listo para calcular|Con error/g) || [])).join(' | ');
-    throw new Error('bloqueado por el diálogo de importación (variante defecto): no hay FS');
-  }
+  // CM-W2: la variante `defecto` (se acepta todo lo que trae el diálogo) ya no se bloquea: calcula igual que la ruta mínima.
+  run.meta.rotulo_del_documento = (await page.locator('.ua-main-head').first().innerText()).replace(/\s+/g, ' ').trim().slice(0, 160);
   await calcAndWaitFS(run, page, 'T3');
 });

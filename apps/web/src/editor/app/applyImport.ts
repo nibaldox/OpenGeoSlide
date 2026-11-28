@@ -3,13 +3,24 @@
 import type { Point } from '../../engine/types';
 import type { EditorStore } from '../types';
 import { piezoCreateCommands } from '../panels/forms';
-import { applyPlanToDoc, type RegionImportPlan } from './importPlan';
+import { isImperialUnits } from '../state/units';
+import { applyPlanToDoc, importDocTitle, type RegionImportPlan } from './importPlan';
+import { importedModel } from './newModel';
 
-/** `replace` sustituye las regiones; `add` agrega materiales nuevos y regiones. Ambos se deshacen con un Ctrl+Z. */
-export function applyRegionImport(store: EditorStore, plan: RegionImportPlan, mode: 'replace' | 'add'): void {
+/**
+ * `replace` sustituye las regiones; `add` agrega materiales nuevos y regiones. Ambos se deshacen con un Ctrl+Z.
+ *
+ * Con `fresh` (CM-W2: `replace` sobre el modelo de arranque sin cambios) el documento resultante no conserva nada del anterior: parte
+ * del de «Nuevo» (`importedModel`) con los materiales y las regiones del plan y el nombre del archivo como título. El plan debe
+ * haberse calculado sin los materiales del modelo anterior (`freshMapping`), porque aquí no quedan.
+ */
+export function applyRegionImport(store: EditorStore, plan: RegionImportPlan, mode: 'replace' | 'add', fresh?: { fileName: string }): void {
   if (mode === 'replace') {
     const s = store.getState();
-    store.dispatch({ type: 'doc/replace', doc: applyPlanToDoc(s.doc, plan, 'replace'), fileName: s.file.name });
+    const doc = fresh
+      ? importedModel({ title: importDocTitle(fresh.fileName), units: isImperialUnits(s.doc.units) ? 'imperial' : 'SI', materials: plan.newMaterials, regions: plan.regions })
+      : applyPlanToDoc(s.doc, plan, 'replace');
+    store.dispatch({ type: 'doc/replace', doc, fileName: s.file.name });
     store.dispatch({ type: 'ui/viewport', viewport: null });
     return;
   }

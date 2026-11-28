@@ -256,3 +256,100 @@ export function addModeLabel(base: ImportBase | undefined): string {
   if (base.regionCount === 1) return `Agregar a la región ${of}`;
   return `Agregar a las ${base.regionCount} regiones ${of}`;
 }
+
+// ───────── Importar sobre el modelo de arranque: un modelo nuevo (CM-W2) ─────────
+
+/**
+ * ¿«Reemplazar» crea un modelo nuevo? Sí si el modelo abierto es el de arranque sin cambios (`ImportBase.pristineStart`): importar un
+ * DXF o un CSV de regiones sobre un ejemplo que nadie eligió no debe dejar su título, su agua, su búsqueda ni su análisis
+ * (en la prueba a ciegas, el agente no supo qué modelo había calculado). En cualquier otro caso «Reemplazar» cambia solo las regiones.
+ */
+export function isFreshImport(mode: 'add' | 'replace', base: ImportBase | undefined): boolean {
+  return mode === 'replace' && base?.pristineStart === true;
+}
+
+/** Título del modelo nuevo: el nombre del archivo sin su extensión («terraplen.dxf» → «terraplen»); «Modelo importado» si no queda nombre. */
+export function importDocTitle(fileName: string): string {
+  const name = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]*$/, '').trim();
+  return name === '' ? 'Modelo importado' : name;
+}
+
+/**
+ * Mapeo de capas para un modelo nuevo: no hay materiales previos a los que asignar una capa, así que toda capa que no se omite crea su
+ * material (aunque el DXF sugiriera uno del ejemplo de arranque por el nombre).
+ */
+export function freshMapping(mapping: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(mapping).map(([layer, choice]) => [layer, choice === SKIP_LAYER ? SKIP_LAYER : NEW_MATERIAL]));
+}
+
+// ───────── Base de las polilíneas abiertas: de dónde sale la cota y qué área da (CM-W2) ─────────
+
+/** Área de un polígono (fórmula del cordón), siempre positiva. */
+export function polygonArea(polygon: readonly Point[]): number {
+  let twice = 0;
+  for (let i = 0; i < polygon.length; i += 1) {
+    const a = polygon[i] as Point;
+    const b = polygon[(i + 1) % polygon.length] as Point;
+    twice += a[0] * b[1] - b[0] * a[1];
+  }
+  return Math.abs(twice) / 2;
+}
+
+/** Cota y mínima de las polilíneas abiertas, en unidades del modelo (la que usa `suggestBaseY`); `null` si no hay ninguna. */
+export function openMinY(open: readonly { points: readonly Point[] }[], unit: LengthUnit, modelUnits: string | undefined): number | null {
+  const ys = open.flatMap((e) => e.points.map((p) => p[1]));
+  return ys.length === 0 ? null : Math.min(...ys) * unitFactor(unit, modelUnits);
+}
+
+/** Área (en unidades del modelo al cuadrado) de cada región que resulta de cerrar una polilínea abierta con la base `baseY`. */
+export function openClosureAreas(
+  open: readonly { layer: string; points: readonly Point[] }[],
+  mapping: Record<string, string>,
+  factor: number,
+  baseY: number,
+): { layer: string; area: number }[] {
+  const out: { layer: string; area: number }[] = [];
+  for (const o of open) {
+    const choice = Object.hasOwn(mapping, o.layer) ? (mapping[o.layer] ?? SKIP_LAYER) : SKIP_LAYER;
+    if (choice === SKIP_LAYER) continue;
+    const polygon = closeWithBase(scale(o.points, factor), baseY);
+    if (polygon !== null) out.push({ layer: o.layer, area: polygonArea(polygon) });
+  }
+  return out;
+}
+
+/** Número con coma decimal y a lo sumo 2 decimales («25», «24,3», «20,25»). */
+function plainNumber(v: number): string {
+  return String(Math.round(v * 100) / 100).replace('.', ',');
+}
+
+/** «20 m²» / «12,5 ft²»: el área en las unidades del modelo. */
+export function areaText(area: number, modelUnits: string | undefined): string {
+  return `${plainNumber(area)} ${modelLengthUnit(modelUnits)}²`;
+}
+
+/**
+ * Explicación de la base `y` de las polilíneas abiertas: de dónde sale la cota sugerida (la cota mínima del dibujo menos 1, redondeada
+ * a 0,1) y el área de cada región que se crea al cerrarlas con la base escrita. Dos frases cortas; la segunda, sin `baseY`, pide el valor.
+ */
+export function openBaseHelp(input: {
+  minY: number | null;
+  baseY: number | null;
+  areas: readonly { layer: string; area: number }[];
+  units: string | undefined;
+}): string[] {
+  const len = modelLengthUnit(input.units);
+  const lines: string[] = [];
+  if (input.minY !== null) {
+    lines.push(`La cota sugerida es la cota mínima del dibujo (${plainNumber(input.minY)} ${len}) menos 1 ${len}, redondeada a 0,1: la base queda bajo el terreno.`);
+  }
+  if (input.baseY === null) {
+    lines.push('Escriba la cota y de la base para ver el área de las regiones que se crearán.');
+  } else if (input.areas.length === 0) {
+    lines.push('Con esta base no se crea ninguna región (revise el material de la capa).');
+  } else {
+    const list = input.areas.map((a) => `${a.layer}: ${areaText(a.area, input.units)}`).join('; ');
+    lines.push(`Cerradas con y = ${plainNumber(input.baseY)} ${len}, cada polilínea abierta forma una región (${list}).`);
+  }
+  return lines;
+}

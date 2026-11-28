@@ -19,6 +19,12 @@ import {
   unitFactor,
   addModeLabel,
   defaultImportMode,
+  freshMapping,
+  importDocTitle,
+  isFreshImport,
+  openBaseHelp,
+  openClosureAreas,
+  openMinY,
   type ImportBase,
   type LengthUnit,
   type RegionImportPlan,
@@ -150,6 +156,11 @@ function ExampleLink({ file }: { file: ExampleFile }) {
   );
 }
 
+/** Rótulo de «Reemplazar»: con el modelo de arranque sin cambios crea un modelo nuevo; en otro caso cambia solo las regiones (CM-W2). */
+export function replaceModeLabel(base: ImportBase | undefined): string {
+  return base?.pristineStart === true ? 'Reemplazar: crea un modelo nuevo con este archivo' : 'Reemplazar las regiones actuales (se conservan materiales, agua y análisis)';
+}
+
 function ModeChoice({ mode, onChange, base }: { mode: 'add' | 'replace'; onChange: (m: 'add' | 'replace') => void; base?: ImportBase }) {
   const name = useId();
   return (
@@ -159,18 +170,19 @@ function ModeChoice({ mode, onChange, base }: { mode: 'add' | 'replace'; onChang
         <input type="radio" name={name} checked={mode === 'add'} onChange={() => onChange('add')} /> {addModeLabel(base)}
       </label>
       <label>
-        <input type="radio" name={name} checked={mode === 'replace'} onChange={() => onChange('replace')} /> Reemplazar las regiones actuales
+        <input type="radio" name={name} checked={mode === 'replace'} onChange={() => onChange('replace')} /> {replaceModeLabel(base)}
       </label>
     </fieldset>
   );
 }
 
-function PlanSummary({ plan }: { plan: RegionImportPlan }) {
+function PlanSummary({ plan, freshTitle }: { plan: RegionImportPlan; /** Título del modelo nuevo si «Reemplazar» parte de uno (CM-W2). */ freshTitle?: string }) {
   return (
     <p className="small" role="status">
       Se importarán <strong>{plan.regions.length}</strong> región(es) y se crearán <strong>{plan.newMaterials.length}</strong> material(es)
       nuevo(s)
       {plan.skipped > 0 ? `; ${plan.skipped} elemento(s) omitido(s)` : ''}. {plan.notes.join(' ')}
+      {freshTitle !== undefined ? ` Se creará un modelo nuevo titulado «${freshTitle}», sin agua y con búsqueda y análisis nuevos; el ejemplo de arranque se puede recuperar con Ctrl+Z.` : ''}
     </p>
   );
 }
@@ -185,7 +197,8 @@ export interface DxfDialogProps {
   /** Modelo abierto: decide el destino por defecto y lo nombra. Sin él, «Agregar» y rótulos genéricos. */
   base?: ImportBase;
   onCancel: () => void;
-  onApply: (plan: RegionImportPlan, mode: 'add' | 'replace') => void;
+  /** `fresh`: «Reemplazar» sobre el modelo de arranque sin cambios: el documento resultante es un modelo nuevo (CM-W2). */
+  onApply: (plan: RegionImportPlan, mode: 'add' | 'replace', fresh: boolean) => void;
 }
 
 export function DxfImportDialog({ fileName, result, materials, units, base, onCancel, onApply }: DxfDialogProps) {
@@ -202,21 +215,38 @@ export function DxfImportDialog({ fileName, result, materials, units, base, onCa
   const baseText = baseEdited ?? suggestBaseText(open, unit, units);
   const parsedBase = parseNumber(baseText);
   const baseY = parsedBase.kind === 'ok' ? parsedBase.value : null;
+  // CM-W2: «Reemplazar» sobre el modelo de arranque crea un modelo nuevo, sin los materiales del ejemplo: las capas solo pueden crear
+  // material (o omitirse) y los ids se calculan sin los del ejemplo.
+  const fresh = isFreshImport(mode, base);
+  const planMaterials = useMemo(() => (fresh ? [] : [...materials]), [fresh, materials]);
+  const planMapping = useMemo(() => (fresh ? freshMapping(mapping) : mapping), [fresh, mapping]);
+  const openInput = useMemo(() => open.map((e) => ({ layer: e.layer, points: e.points })), [open]);
 
   const plan = useMemo(
     () =>
       planRegionImport(
-        { materials: [...materials], units },
+        { materials: planMaterials, units },
         {
           regions: result.regions,
-          open: open.map((e) => ({ layer: e.layer, points: e.points })),
-          mapping,
+          open: openInput,
+          mapping: planMapping,
           factor,
           openMode,
           baseY,
         },
       ),
-    [materials, units, result.regions, open, mapping, factor, openMode, baseY],
+    [planMaterials, units, result.regions, openInput, planMapping, factor, openMode, baseY],
+  );
+  const baseHelpId = useId();
+  const baseHelp = useMemo(
+    () =>
+      openBaseHelp({
+        minY: openMinY(openInput, unit, units),
+        baseY,
+        areas: baseY === null ? [] : openClosureAreas(openInput, planMapping, factor, baseY),
+        units,
+      }),
+    [openInput, unit, units, baseY, planMapping, factor],
   );
 
   return (
@@ -248,8 +278,8 @@ export function DxfImportDialog({ fileName, result, materials, units, base, onCa
             name: l.name,
             detail: [l.regions > 0 ? `${l.regions} cerrada(s)` : '', l.open > 0 ? `${l.open} abierta(s)` : ''].filter(Boolean).join(', '),
           }))}
-          materials={materials}
-          mapping={mapping}
+          materials={planMaterials}
+          mapping={planMapping}
           onChange={setMapping}
         />
       )}
@@ -270,10 +300,16 @@ export function DxfImportDialog({ fileName, result, materials, units, base, onCa
               value={baseText}
               disabled={openMode !== 'close'}
               aria-invalid={openMode === 'close' && baseY === null ? true : undefined}
+              aria-describedby={openMode === 'close' ? baseHelpId : undefined}
               onChange={(e) => setBaseEdited(e.target.value)}
             />
             <span className="muted small">en unidades del modelo</span>
           </label>
+          {openMode === 'close' && (
+            <p id={baseHelpId} className="small muted" data-testid="open-base-help">
+              {baseHelp.join(' ')}
+            </p>
+          )}
           <label>
             <input type="radio" name={openModeName} checked={openMode === 'discard'} onChange={() => setOpenMode('discard')} /> Descartarlas
           </label>
@@ -281,13 +317,13 @@ export function DxfImportDialog({ fileName, result, materials, units, base, onCa
       )}
 
       <ModeChoice mode={mode} onChange={setMode} base={base} />
-      <PlanSummary plan={plan} />
+      <PlanSummary plan={plan} freshTitle={fresh ? importDocTitle(fileName) : undefined} />
       <ExampleLink file={EXAMPLE_FILES.dxf} />
       <div className="ea-actions">
         <button type="button" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="button" className="primary ea-primary" disabled={plan.regions.length === 0} onClick={() => onApply(plan, mode)}>
+        <button type="button" className="primary ea-primary" disabled={plan.regions.length === 0} onClick={() => onApply(plan, mode, fresh)}>
           Importar
         </button>
       </div>
@@ -303,7 +339,7 @@ export interface CsvDialogProps {
   /** Modelo abierto: decide el destino por defecto y lo nombra. Sin él, «Agregar» y rótulos genéricos. */
   base?: ImportBase;
   onCancel: () => void;
-  onApplyRegions: (plan: RegionImportPlan, mode: 'add' | 'replace') => void;
+  onApplyRegions: (plan: RegionImportPlan, mode: 'add' | 'replace', fresh: boolean) => void;
   onApplyPiezo: (points: Point[]) => void;
 }
 
@@ -324,13 +360,17 @@ export function CsvImportDialog({ fileName, result, materials, units, base, onCa
     return { ...base, ...mapping };
   }, [layers, materials, mapping]);
   const [mode, setMode] = useState<'add' | 'replace'>(() => defaultImportMode(base));
+  // CM-W2: igual que en el DXF, «Reemplazar» sobre el modelo de arranque crea un modelo nuevo y sus capas solo crean material.
+  const fresh = isFreshImport(mode, base);
+  const planMaterials = useMemo(() => (fresh ? [] : [...materials]), [fresh, materials]);
+  const planMapping = useMemo(() => (fresh ? freshMapping(effective) : effective), [fresh, effective]);
   const plan = useMemo(
     () =>
       planRegionImport(
-        { materials: [...materials], units },
-        { regions: regionRead.regions, open: [], mapping: effective, factor: 1, openMode: 'discard', baseY: null },
+        { materials: planMaterials, units },
+        { regions: regionRead.regions, open: [], mapping: planMapping, factor: 1, openMode: 'discard', baseY: null },
       ),
-    [materials, units, regionRead, effective],
+    [planMaterials, units, regionRead, planMapping],
   );
   const issues: ImportIssue[] = [...result.issues, ...(target === 'regions' ? regionRead.issues : piezoRead.issues)];
   const piezoOk = piezoRead.points.length >= 2 && !issues.some((i) => i.severity === 'error');
@@ -353,9 +393,9 @@ export function CsvImportDialog({ fileName, result, materials, units, base, onCa
       <IssueList issues={issues} />
       {target === 'regions' ? (
         <>
-          {layers.length > 0 && <LayerMapTable layers={layers} materials={materials} mapping={effective} onChange={setMapping} />}
+          {layers.length > 0 && <LayerMapTable layers={layers} materials={planMaterials} mapping={planMapping} onChange={setMapping} />}
           <ModeChoice mode={mode} onChange={setMode} base={base} />
-          <PlanSummary plan={plan} />
+          <PlanSummary plan={plan} freshTitle={fresh ? importDocTitle(fileName) : undefined} />
         </>
       ) : (
         <p className="small" role="status">
@@ -374,7 +414,7 @@ export function CsvImportDialog({ fileName, result, materials, units, base, onCa
           Cancelar
         </button>
         {target === 'regions' ? (
-          <button type="button" className="primary ea-primary" disabled={!regionsOk} onClick={() => onApplyRegions(plan, mode)}>
+          <button type="button" className="primary ea-primary" disabled={!regionsOk} onClick={() => onApplyRegions(plan, mode, fresh)}>
             Importar regiones
           </button>
         ) : (
