@@ -15,6 +15,7 @@ import type { CsvImportResult } from '../io/types';
 import { buildReportPdf } from '../report/pdf';
 import './app/editor-app.css';
 import './app/newModel.css';
+import './app/docLabel.css';
 import { buildScene } from '../render/scene';
 import { CrackSummary } from '../ui/CrackResults';
 import { useConfirm } from '../ui/ConfirmDialog';
@@ -141,6 +142,15 @@ export function fileStatusText({
   return `· ${parts.join(' · ')}`;
 }
 
+/**
+ * Rótulo del documento abierto en la cabecera del área (X35 §3, punto 8): el mismo título que la barra de estado
+ * (`documentTitle`: «Ejemplo: …» mientras es un ejemplo sin archivo propio) y, tras un punto medio, si tiene cambios sin guardar.
+ * Una sola línea: el estilo la recorta con puntos suspensivos, y el texto completo queda en el DOM y en el `title`.
+ */
+export function docLabelText(input: { fileName: string | null; title: string | null | undefined; example: boolean; dirty: boolean }): string {
+  return `${documentTitle(input)} · ${input.dirty ? 'con cambios sin guardar' : 'sin cambios'}`;
+}
+
 /** Nodos de la cabecera (los crea `App`) donde el editor muestra el chip de estado y los menús «Archivo» y «Exportar». */
 export interface HeaderSlots {
   chip: HTMLElement | null;
@@ -242,6 +252,7 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
   // Un trazo a medias no está en el documento ni en el borrador, pero se perdería al cerrar: cuenta como cambio sin guardar (R9-11a).
   const tracePoints = useEditorStore(store, (s) => s.ui.tracePoints ?? 0);
   const dirty = docDirty || tracePoints > 0;
+  const docLabel = docLabelText({ fileName, title: doc.meta.title, example: isExample, dirty });
   const tool = useEditorStore(store, (s) => s.ui.tool);
   useUnloadGuard(shouldWarnBeforeUnload({ dirty: docDirty, autosaveEnabled: draft === null, persistent: draftStorage.persistent, failure: draftFailure, tracePoints, pendingDrafts: engine.pendingDrafts.length }));
   const canUndo = useEditorStore(store, (s) => s.history.past.length > 0);
@@ -918,7 +929,14 @@ export function EditorApp({ client, view, onViewChange, headerSlots, engineSlot,
               </button>
             ) : null}
             <h2>{viewTitle(view)}</h2>
-            <span className="ua-spacer" />
+            {view === 'cases' ? (
+              <span className="ua-spacer" />
+            ) : (
+              // El rótulo ocupa el lugar del espaciador: ni agrega alto ni empuja nada (con 320 px se recorta con puntos suspensivos).
+              <span className="ua-spacer ua-doc-label" data-testid="doc-label" title={docLabel}>
+                {docLabel}
+              </span>
+            )}
             {side.collapsed ? <CollapsedActions check={checkProps} busy={engine.busy} onCancel={engine.cancel} engineFailed={engineStatus === 'failed'} onRestartEngine={() => client.cancel()} /> : null}
             {view === 'cases' ? null : narrow ? (
               // Con 480 px o menos, Deshacer y Rehacer se pliegan en un menú «Editar» (B-09). Las herramientas viven en la paleta.

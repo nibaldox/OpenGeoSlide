@@ -1,0 +1,9 @@
+/* Rótulo del documento en la cabecera del área (`.ua-main-head`, EditorApp.tsx): una línea con puntos suspensivos, sin alto nuevo. */
+.ua-doc-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ui-ink-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
